@@ -1,0 +1,11 @@
+{
+  "domain": "selora_ai",
+  "name": "Selora AI",
+  "codeowners": ["@selora-homes"],
+  "config_flow": true,
+  "documentation": "https://github.com/selora-homes/ha-smart-butler",
+  "iot_class": "local_polling",
+  "issue_tracker": "https://github.com/selora-homes/ha-smart-butler/issues",
+  "requirements": ["adb-shell[async]>=0.4.4", "ruamel.yaml>=0.18.0"],
+  "version": "0.1.0"
+}

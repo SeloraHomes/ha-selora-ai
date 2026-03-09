@@ -1,0 +1,37 @@
+# ── Home Assistant config (tracked separately) ────────────
+configuration.yaml
+automations.yaml
+scenes.yaml
+scripts.yaml
+blueprints/
+themes/
+.HA_VERSION
+
+# ── Home Assistant runtime (never commit) ──────────────────
+*.db
+*.db-shm
+*.db-wal
+*.log
+*.log.*
+secrets.yaml
+deps/
+tts/
+venv/
+.storage/
+__pycache__/
+*.pyc
+
+# ── Backup copies ──────────────────────────────────────────
+custom_components/selora_backup/
+
+# ── Archives ───────────────────────────────────────────────
+*.zip
+
+# ── Claude Code local settings ─────────────────────────────
+.claude/
+
+# ── OS / IDE ───────────────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.swp

@@ -1,0 +1,37 @@
+{
+  "title": "Selora AI",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure Selora AI",
+        "description": "Choose which LLM backend to use for automation suggestions.",
+        "data": {
+          "llm_provider": "LLM Provider"
+        }
+      },
+      "anthropic": {
+        "title": "Anthropic (Claude) Configuration",
+        "description": "Enter your Anthropic API key. Get one at console.anthropic.com.",
+        "data": {
+          "anthropic_api_key": "API Key",
+          "anthropic_model": "Model"
+        }
+      },
+      "ollama": {
+        "title": "Ollama (Local) Configuration",
+        "description": "Enter your local Ollama server details. Make sure the model is pulled.",
+        "data": {
+          "ollama_host": "Ollama Host URL",
+          "ollama_model": "Model Name"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Unable to connect. Check your API key, or verify Ollama is running and the model is pulled.",
+      "unknown": "An unexpected error occurred."
+    },
+    "abort": {
+      "already_configured": "Selora AI is already configured."
+    }
+  }
+}
