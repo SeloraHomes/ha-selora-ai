@@ -1,0 +1,422 @@
+"""Sensor platform — Hub dashboard sensors for Selora AI.
+
+Four sensors on the Selora AI Hub device:
+  - Status:        "5 devices managed"          (aggregate overview)
+  - Devices:       "3 TVs, 1 speaker, 1 light"  (categorised inventory)
+  - Last Activity: "Auto-paired basement TV"     (recent action log)
+  - Discovery:     "2 pending" / "All configured" (flow status)
+
+Update mechanism: 60s poll + immediate dispatcher signal updates.
+"""
+
+from __future__ import annotations
+
+import logging
+from collections import deque
+from datetime import datetime, timedelta
+from typing import Any
+
+from homeassistant.components.sensor import SensorEntity
+from homeassistant.helpers.entity import EntityCategory
+from homeassistant.config_entries import ConfigEntry
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.device_registry import DeviceInfo
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.event import async_track_time_interval
+from homeassistant.helpers import device_registry as dr, entity_registry as er, area_registry as ar
+
+from .const import (
+    AUTOMATION_ID_PREFIX,
+    DOMAIN,
+    KNOWN_INTEGRATIONS,
+    SIGNAL_ACTIVITY_LOG,
+    SIGNAL_DEVICES_UPDATED,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+_UPDATE_INTERVAL = timedelta(seconds=60)
+
+# Entity domains Selora AI considers "managed"
+_MANAGED_DOMAINS = {
+    "media_player",
+    "light",
+    "switch",
+    "climate",
+    "cover",
+    "fan",
+    "lock",
+    "vacuum",
+}
+
+# Integrations to skip when building the device list (system / infra)
+_SKIP_DOMAINS = {
+    DOMAIN, "homeassistant", "automation", "frontend", "backup", "sun",
+    "persistent_notification", "recorder", "logger", "system_log",
+    "default_config", "config", "person", "zone", "script", "scene",
+    "group", "template", "webhook", "conversation", "assist_pipeline",
+    "cloud", "mobile_app", "tag", "blueprint", "ffmpeg", "met",
+    "bluetooth", "dhcp", "ssdp", "zeroconf", "usb", "network",
+    "shopping_list", "google_translate", "radio_browser",
+}
+
+
+async def async_setup_entry(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Set up Selora AI Hub sensors."""
+    sensors = [
+        SmartButlerStatusSensor(hass, entry),
+        DeviceListSensor(hass, entry),
+        LastActivitySensor(hass, entry),
+        DiscoverySensor(hass, entry),
+    ]
+    async_add_entities(sensors, update_before_add=True)
+    _LOGGER.info("Selora AI Hub: 4 sensors registered")
+
+
+# ── Helper ──────────────────────────────────────────────────────────
+
+
+def _hub_device_info() -> DeviceInfo:
+    return DeviceInfo(identifiers={(DOMAIN, "selora_ai_hub")})
+
+
+# ── Status Sensor (enhanced) ────────────────────────────────────────
+
+
+class SmartButlerStatusSensor(SensorEntity):
+    """Aggregate status sensor — device count + pending automations."""
+
+    _attr_has_entity_name = True
+    _attr_unique_id = "selora_ai_hub_status"
+    _attr_name = "Status"
+    _attr_icon = "mdi:robot"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_timer = None
+        self._unsub_signal = None
+        self._device_count = 0
+        self._pending_automations = 0
+        self._devices_by_category: dict[str, list[dict[str, str]]] = {}
+        self._attr_device_info = _hub_device_info()
+
+    @property
+    def native_value(self) -> str:
+        parts = [f"{self._device_count} devices managed"]
+        if self._pending_automations:
+            parts.append(f"{self._pending_automations} automations pending review")
+        return ", ".join(parts)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "device_count": self._device_count,
+            "pending_automations": self._pending_automations,
+            "devices": self._devices_by_category,
+        }
+
+    def _refresh(self) -> None:
+        device_count = 0
+        for state in self.hass.states.async_all():
+            domain = state.entity_id.split(".")[0]
+            if domain in _MANAGED_DOMAINS:
+                device_count += 1
+        self._device_count = device_count
+
+        pending = 0
+        for state in self.hass.states.async_all("automation"):
+            aid = state.attributes.get("id", "")
+            if aid.startswith(AUTOMATION_ID_PREFIX) and state.state == "off":
+                pending += 1
+        self._pending_automations = pending
+
+        # Build category map from device registry
+        self._devices_by_category = _build_device_categories(self.hass)
+
+    async def async_added_to_hass(self) -> None:
+        self._refresh()
+
+        @callback
+        def _tick(_now) -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        @callback
+        def _on_signal() -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
+        self._unsub_signal = async_dispatcher_connect(
+            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_timer:
+            self._unsub_timer()
+        if self._unsub_signal:
+            self._unsub_signal()
+
+
+# ── Device List Sensor ──────────────────────────────────────────────
+
+
+def _build_device_categories(hass: HomeAssistant) -> dict[str, list[dict[str, Any]]]:
+    """Walk device registry, match against KNOWN_INTEGRATIONS, return categorised inventory.
+
+    Each device entry includes: name, integration, area, state, and primary entity_id
+    so users can find and control devices from the sensor attributes.
+    """
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    area_reg = ar.async_get(hass)
+    categories: dict[str, list[dict[str, Any]]] = {}
+
+    for device in dev_reg.devices.values():
+        for ident_domain, _ in device.identifiers:
+            if ident_domain in _SKIP_DOMAINS:
+                continue
+            info = KNOWN_INTEGRATIONS.get(ident_domain)
+            category = info.category.value if info else "other"
+            integration_name = info.name if info else ident_domain
+
+            # Resolve area name
+            area_name = None
+            if device.area_id:
+                area_entry = area_reg.async_get_area(device.area_id)
+                if area_entry:
+                    area_name = area_entry.name
+
+            # Find the primary entity (media_player, light, switch, etc.) and its state
+            primary_entity_id = None
+            device_state = None
+            for entity in er.async_entries_for_device(ent_reg, device.id):
+                entity_domain = entity.entity_id.split(".")[0]
+                if entity_domain in _MANAGED_DOMAINS:
+                    primary_entity_id = entity.entity_id
+                    state_obj = hass.states.get(entity.entity_id)
+                    if state_obj:
+                        device_state = state_obj.state
+                    break
+
+            categories.setdefault(category, [])
+            categories[category].append({
+                "name": device.name or "Unknown",
+                "integration": integration_name,
+                "area": area_name,
+                "state": device_state,
+                "entity_id": primary_entity_id,
+            })
+            break  # one category per device
+
+    return categories
+
+
+def _summarise_categories(cats: dict[str, list]) -> str:
+    """Build a human-readable summary like '3 TVs, 1 speaker, 1 light'."""
+    if not cats:
+        return "No devices"
+    parts = []
+    for cat, devices in sorted(cats.items(), key=lambda x: -len(x[1])):
+        n = len(devices)
+        label = cat if n == 1 else f"{cat}s"
+        parts.append(f"{n} {label}")
+    return ", ".join(parts)
+
+
+class DeviceListSensor(SensorEntity):
+    """Categorised device inventory sensor."""
+
+    _attr_has_entity_name = True
+    _attr_unique_id = "selora_ai_hub_device_list"
+    _attr_name = "Devices"
+    _attr_icon = "mdi:devices"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_timer = None
+        self._unsub_signal = None
+        self._categories: dict[str, list[dict[str, str]]] = {}
+        self._attr_device_info = _hub_device_info()
+
+    @property
+    def native_value(self) -> str:
+        return _summarise_categories(self._categories)
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {"inventory": self._categories}
+
+    def _refresh(self) -> None:
+        self._categories = _build_device_categories(self.hass)
+
+    async def async_added_to_hass(self) -> None:
+        self._refresh()
+
+        @callback
+        def _tick(_now) -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        @callback
+        def _on_signal() -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
+        self._unsub_signal = async_dispatcher_connect(
+            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_timer:
+            self._unsub_timer()
+        if self._unsub_signal:
+            self._unsub_signal()
+
+
+# ── Last Activity Sensor ────────────────────────────────────────────
+
+
+class LastActivitySensor(SensorEntity):
+    """Tracks recent Selora AI activity — keeps a deque of 20 entries."""
+
+    _attr_has_entity_name = True
+    _attr_unique_id = "selora_ai_hub_last_activity"
+    _attr_name = "Last Activity"
+    _attr_icon = "mdi:history"
+    _attr_entity_category = EntityCategory.DIAGNOSTIC
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_signal = None
+        self._log: deque[dict[str, str]] = deque(maxlen=20)
+        self._attr_device_info = _hub_device_info()
+
+    @property
+    def native_value(self) -> str:
+        if not self._log:
+            return "No activity yet"
+        return self._log[-1].get("message", "")
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "timestamp": self._log[-1]["timestamp"] if self._log else None,
+            "action_type": self._log[-1].get("action_type", "") if self._log else None,
+            "recent_log": list(self._log),
+        }
+
+    async def async_added_to_hass(self) -> None:
+        @callback
+        def _on_activity(message: str, action_type: str = "info") -> None:
+            self._log.append({
+                "message": message,
+                "action_type": action_type,
+                "timestamp": datetime.now().isoformat(),
+            })
+            self.async_write_ha_state()
+
+        self._unsub_signal = async_dispatcher_connect(
+            self.hass, SIGNAL_ACTIVITY_LOG, _on_activity
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_signal:
+            self._unsub_signal()
+
+
+# ── Discovery Sensor ────────────────────────────────────────────────
+
+
+class DiscoverySensor(SensorEntity):
+    """Shows pending discovery flows and configured integration count."""
+
+    _attr_has_entity_name = True
+    _attr_unique_id = "selora_ai_hub_discovery"
+    _attr_name = "Discovery"
+    _attr_icon = "mdi:radar"
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_timer = None
+        self._unsub_signal = None
+        self._pending_count = 0
+        self._configured_count = 0
+        self._pending_flows: list[dict[str, str]] = []
+        self._last_scan: str | None = None
+        self._attr_device_info = _hub_device_info()
+
+    @property
+    def native_value(self) -> str:
+        if self._pending_count:
+            return f"{self._pending_count} pending"
+        return "All configured"
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "pending_flows": self._pending_flows,
+            "configured_count": self._configured_count,
+            "last_scan": self._last_scan,
+        }
+
+    def _refresh(self) -> None:
+        from .const import PROTECTED_DOMAINS
+
+        # Pending flows
+        progress = self.hass.config_entries.flow.async_progress()
+        self._pending_flows = []
+        for flow in progress:
+            handler = flow.get("handler", "")
+            if handler in _SKIP_DOMAINS:
+                continue
+            info = KNOWN_INTEGRATIONS.get(handler)
+            name = info.name if info else handler
+            self._pending_flows.append({
+                "handler": handler,
+                "name": name,
+                "flow_id": flow["flow_id"],
+            })
+        self._pending_count = len(self._pending_flows)
+
+        # Configured count (non-system integrations)
+        count = 0
+        for ce in self.hass.config_entries.async_entries():
+            if ce.domain not in PROTECTED_DOMAINS and ce.domain not in _SKIP_DOMAINS:
+                count += 1
+        self._configured_count = count
+        self._last_scan = datetime.now().isoformat()
+
+    async def async_added_to_hass(self) -> None:
+        self._refresh()
+
+        @callback
+        def _tick(_now) -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        @callback
+        def _on_signal() -> None:
+            self._refresh()
+            self.async_write_ha_state()
+
+        self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
+        self._unsub_signal = async_dispatcher_connect(
+            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_timer:
+            self._unsub_timer()
+        if self._unsub_signal:
+            self._unsub_signal()
