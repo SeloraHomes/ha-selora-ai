@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 
 DOMAIN = "selora_ai"
@@ -200,6 +200,14 @@ KNOWN_INTEGRATIONS: dict[str, IntegrationInfo] = {i.domain: i for i in [
     IntegrationInfo("myq", "MyQ Garage", DeviceCategory.IOT, DiscoveryMethod.CLOUD, brands=("Chamberlain", "LiftMaster")),
 ]}
 
+# ── Config Entry Types ──────────────────────────────────────────────
+CONF_ENTRY_TYPE = "entry_type"
+ENTRY_TYPE_LLM = "llm_config"
+ENTRY_TYPE_DEVICE = "device_onboarding"
+
+# ── Device Selection ───────────────────────────────────────────────
+CONF_SELECTED_DEVICES = "selected_devices"
+
 # ── LLM Provider ────────────────────────────────────────────────────
 CONF_LLM_PROVIDER = "llm_provider"
 LLM_PROVIDER_ANTHROPIC = "anthropic"
@@ -211,7 +219,7 @@ CONF_ANTHROPIC_API_KEY = "anthropic_api_key"
 CONF_ANTHROPIC_MODEL = "anthropic_model"
 
 DEFAULT_ANTHROPIC_HOST = "https://api.anthropic.com"
-DEFAULT_ANTHROPIC_API_KEY = ""  # User must provide their own key during setup
+DEFAULT_ANTHROPIC_API_KEY = ""
 DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
 ANTHROPIC_API_VERSION = "2023-06-01"
 

@@ -96,30 +96,28 @@ class DiscoverButton(_HubActionButton):
 
 
 class AutoSetupButton(_HubActionButton):
-    """Auto-accept all pending auto-discoverable device flows."""
+    """Scan for devices and report what's available to onboard."""
 
     _attr_unique_id = f"{DOMAIN}_auto_setup"
-    _attr_name = "Auto Setup"
-    _attr_icon = "mdi:auto-fix"
+    _attr_name = "Scan Devices"
+    _attr_icon = "mdi:radar"
 
     async def async_press(self) -> None:
         dm = self._get_device_manager()
         if not dm:
             _LOGGER.error("DeviceManager not available")
             return
-        result = await dm.auto_setup_discovered()
-        await dm.auto_assign_areas()
-        accepted = result.get("accepted", [])
-        skipped = result.get("skipped", [])
-        failed = result.get("failed", [])
+        result = await dm.discover_network_devices()
+        summary = result.get("summary", {})
+        discovered = summary.get("discovered_count", 0)
 
-        _LOGGER.info("Auto-setup: %d accepted, %d skipped, %d failed", len(accepted), len(skipped), len(failed))
+        _LOGGER.info("Device scan: %s", summary)
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
-        names = [a.get("title", a["handler"]) for a in accepted] if accepted else ["none"]
         async_dispatcher_send(
             self.hass, SIGNAL_ACTIVITY_LOG,
-            f"Auto-setup: {len(accepted)} accepted — {', '.join(names)}",
-            "auto_setup",
+            f"Scan: {discovered} devices found"
+            + (f" — use Settings > Add Entry to onboard" if discovered > 0 else ""),
+            "discover",
         )
 
 

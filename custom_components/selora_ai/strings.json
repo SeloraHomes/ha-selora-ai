@@ -23,6 +23,14 @@
           "ollama_host": "Ollama Host URL",
           "ollama_model": "Model Name"
         }
+      },
+      "select_devices": {
+        "title": "Select Devices to Onboard",
+        "description": "Selora AI found {count} devices on your network. Assign a room to add a device, or select 'Skip' to skip it.\n\n{device_list}"
+      },
+      "results": {
+        "title": "Device Setup Results",
+        "description": "Setup complete: {succeeded} succeeded, {failed} failed, {needs_attention} need manual attention.\n\n{details}"
       }
     },
     "error": {
@@ -30,7 +38,12 @@
       "unknown": "An unexpected error occurred."
     },
     "abort": {
-      "already_configured": "Selora AI is already configured."
+      "already_configured": "Selora AI is already configured.",
+      "cannot_connect": "Unable to connect to Selora AI cloud service. Please try again later.",
+      "unknown": "An unexpected error occurred during setup.",
+      "llm_not_ready": "Selora AI LLM backend is not running. Please configure it first.",
+      "no_devices_found": "No new devices were discovered on your network. Try again later.",
+      "no_devices_selected": "No devices were selected."
     }
   }
 }
