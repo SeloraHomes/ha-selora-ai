@@ -35,6 +35,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from .const import (
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
+    CONF_ENTRY_TYPE,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
@@ -45,6 +46,7 @@ from .const import (
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
+    ENTRY_TYPE_DEVICE,
     LLM_PROVIDER_ANTHROPIC,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
@@ -82,7 +84,7 @@ async def _handle_webhook(
     """Handle incoming Selora AI commands via webhook."""
     try:
         body = await request.json()
-    except (json.JSONDecodeError, Exception):
+    except (json.JSONDecodeError, ValueError):
         return Response(
             text=json.dumps({"error": "Invalid JSON"}),
             content_type="application/json",
@@ -156,6 +158,11 @@ async def _handle_webhook(
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Selora AI from a config entry."""
+    # Device onboarding entries are records only — no runtime setup needed
+    if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+        _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
+        return True
+
     provider = entry.data.get(CONF_LLM_PROVIDER, DEFAULT_LLM_PROVIDER)
 
     lookback = entry.data.get(
@@ -222,49 +229,53 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if cleanup["removed_devices"]:
         _LOGGER.info("Removed %d mirror devices on startup", len(cleanup["removed_devices"]))
 
-    # Schedule delayed auto-discovery (30s) so HA's SSDP/mDNS has time to find devices
-    async def _delayed_auto_setup() -> None:
+    # Schedule delayed discovery (30s) so HA's SSDP/mDNS has time to find devices
+    # Discovery only — users onboard devices via "Add Entry" in the UI
+    async def _delayed_discovery() -> None:
         await asyncio.sleep(30)
         try:
-            result = await device_mgr.auto_setup_discovered()
-            accepted = result.get("accepted", [])
-            skipped = result.get("skipped", [])
-            failed = result.get("failed", [])
+            result = await device_mgr.discover_network_devices()
+            summary = result.get("summary", {})
             _LOGGER.info(
-                "Auto-setup on startup: %d accepted, %d skipped, %d failed",
-                len(accepted), len(skipped), len(failed),
+                "Startup discovery: %d discovered, %d configured, %d available",
+                summary.get("discovered_count", 0),
+                summary.get("configured_count", 0),
+                summary.get("available_count", 0),
             )
-            if accepted:
-                names = [a.get("title", a["handler"]) for a in accepted]
-                _LOGGER.info("Auto-setup accepted: %s", ", ".join(names))
-            # Sync Cast known_hosts so Cast creates entities for all TVs
+            # Sync Cast known_hosts (safe, does not require user input)
             cast_result = await device_mgr.sync_cast_known_hosts()
             if cast_result.get("updated"):
                 _LOGGER.info("Cast known_hosts updated: %s", cast_result.get("added_hosts"))
-                # Wait for Cast to reload and create entities
                 await asyncio.sleep(10)
-            # Auto-assign areas to devices based on name matching
+            # Auto-assign areas (safe, does not create new integrations)
             area_result = await device_mgr.auto_assign_areas()
             area_assigned = area_result.get("assigned", [])
             if area_assigned:
                 _LOGGER.info("Auto-assigned %d devices to areas", len(area_assigned))
-            # Generate dashboard with discovered device controls
+            # Generate dashboard
             await device_mgr.generate_dashboard()
             async_dispatcher_send(hass, SIGNAL_DEVICES_UPDATED)
-            async_dispatcher_send(
-                hass, SIGNAL_ACTIVITY_LOG,
-                f"Startup auto-setup: {len(accepted)} accepted, "
-                f"{len(skipped)} skipped, {len(failed)} failed"
-                + (f", {len(area_assigned)} areas assigned" if area_assigned else ""),
-                "auto_setup",
-            )
+            discovered_count = summary.get("discovered_count", 0)
+            if discovered_count > 0:
+                async_dispatcher_send(
+                    hass, SIGNAL_ACTIVITY_LOG,
+                    f"Startup discovery: {discovered_count} devices found — "
+                    f"use 'Add Entry' to onboard them",
+                    "discover",
+                )
         except Exception:
-            _LOGGER.exception("Delayed auto-setup failed")
+            _LOGGER.exception("Delayed discovery failed")
 
-    hass.async_create_task(_delayed_auto_setup())
+    hass.async_create_task(_delayed_discovery())
 
     # Set up entity platforms (sensor + button)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Immediately add Selora AI Hub card to dashboard (entities now exist)
+    try:
+        await device_mgr.generate_dashboard()
+    except Exception:
+        _LOGGER.debug("Immediate dashboard generation failed — will retry in delayed discovery")
 
     # Register webhooks (only once, not per entry)
     if not hass.data[DOMAIN].get("_webhook_registered"):
@@ -286,6 +297,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload — stop background tasks, close sessions."""
+    # Device onboarding entries have no runtime state to clean up
+    if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+        return True
+
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
 
     collector: DataCollector | None = data.get("collector")

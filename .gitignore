@@ -30,6 +30,9 @@ custom_components/selora_backup/
 # ── Claude Code local settings ─────────────────────────────
 .claude/
 
+# ── Secrets ─────────────────────────────────────────────────
+.env
+
 # ── OS / IDE ───────────────────────────────────────────────
 .DS_Store
 .idea/

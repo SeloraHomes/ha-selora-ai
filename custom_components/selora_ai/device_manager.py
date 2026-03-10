@@ -968,37 +968,93 @@ class DeviceManager:
                 "cards": un_cards,
             })
 
-        # Write the dashboard config
-        dashboard = {
-            "version": 1,
-            "minor_version": 1,
-            "key": "lovelace",
-            "data": {
-                "config": {
-                    "title": "Home",
-                    "views": [
-                        {
-                            "path": "default_view",
-                            "title": "Overview",
-                            "cards": cards,
-                        }
-                    ],
-                },
-            },
+        # The dashboard config to use if creating from scratch
+        config = {
+            "title": "Home",
+            "views": [
+                {
+                    "path": "default_view",
+                    "title": "Overview",
+                    "cards": cards,
+                }
+            ],
         }
 
+        selora_card = {
+            "type": "entities",
+            "title": "Selora AI Hub",
+            "entities": [
+                "sensor.selora_ai_hub_devices",
+                "sensor.selora_ai_hub_status",
+                "sensor.selora_ai_hub_discovery",
+            ],
+        }
+
+        # Use HA's Lovelace API — updates cache + fires events for immediate effect
+        saved = False
+        try:
+            lovelace_data = self.hass.data.get("lovelace")
+            if lovelace_data and hasattr(lovelace_data, "dashboards"):
+                for url_path, dashboard_obj in lovelace_data.dashboards.items():
+                    if not hasattr(dashboard_obj, "async_save"):
+                        continue
+                    try:
+                        current_config = await dashboard_obj.async_load(force=False)
+                    except Exception:
+                        # No config yet — save our full config
+                        await dashboard_obj.async_save(config)
+                        _LOGGER.info(
+                            "Generated dashboard '%s' with %d cards",
+                            url_path, len(cards),
+                        )
+                        saved = True
+                        continue
+
+                    # Dashboard has config — ensure Selora AI Hub card is present
+                    views = current_config.get("views", [])
+                    if not views:
+                        current_config["views"] = [{"path": "default_view", "title": "Overview", "cards": []}]
+                        views = current_config["views"]
+                    view_cards = views[0].get("cards", [])
+                    has_selora = any(
+                        c.get("title") == "Selora AI Hub" for c in view_cards
+                    )
+                    if not has_selora:
+                        view_cards.insert(0, selora_card)
+                        views[0]["cards"] = view_cards
+                        await dashboard_obj.async_save(current_config)
+                        _LOGGER.info(
+                            "Added Selora AI Hub card to dashboard '%s'",
+                            url_path,
+                        )
+                    saved = True
+        except Exception:
+            _LOGGER.debug("Lovelace API save failed", exc_info=True)
+
+        if saved:
+            return {"generated": True, "cards": len(cards)}
+
+        # Fallback: direct file write (takes effect after HA restart)
         import json, os
         storage_path = os.path.join(self.hass.config.path(), ".storage", "lovelace")
-        # Only write if no custom dashboard exists yet
         if not os.path.exists(storage_path):
+            dashboard_data = {
+                "version": 1,
+                "minor_version": 1,
+                "key": "lovelace",
+                "data": {"config": config},
+            }
             await self.hass.async_add_executor_job(
-                self._write_dashboard, storage_path, dashboard
+                self._write_dashboard, storage_path, dashboard_data
             )
-            _LOGGER.info("Generated Selora AI dashboard with %d cards", len(cards))
-            return {"generated": True, "cards": len(cards)}
-        else:
-            _LOGGER.info("Dashboard already exists — not overwriting")
-            return {"generated": False, "reason": "dashboard already exists"}
+            _LOGGER.info("Generated dashboard (file fallback) with %d cards", len(cards))
+        return {"generated": True, "cards": len(cards)}
+
+    @staticmethod
+    def _read_dashboard(path: str) -> dict:
+        import json
+        with open(path, "r") as f:
+            return json.load(f)
 
     @staticmethod
     def _write_dashboard(path: str, data: dict) -> None:
