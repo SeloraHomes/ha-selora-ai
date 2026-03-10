@@ -24,12 +24,16 @@ import json
 import logging
 from typing import Any
 
+import voluptuous as vol
+
 from aiohttp.web import Request, Response
 
-from homeassistant.components import webhook
+from homeassistant.components import conversation, webhook, websocket_api
+from homeassistant.components.websocket_api import decorators
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import intent
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 
 from .const import (
@@ -48,18 +52,22 @@ from .const import (
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_NONE,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     WEBHOOK_DEVICES_ID,
+    AUTOMATION_ID_PREFIX,
+    PANEL_NAME,
+    PANEL_TITLE,
+    PANEL_ICON,
+    PANEL_PATH,
 )
-from .collector import DataCollector
-from .device_manager import DeviceManager, handle_devices_webhook
-from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
 
 WEBHOOK_ID = "selora_ai_command"
-PLATFORMS = ["sensor", "button"]
+PLATFORMS = ["sensor", "button", "conversation"]
 
 
 def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
@@ -101,6 +109,8 @@ async def _handle_webhook(
 
     _LOGGER.info("Selora AI received command: %s", command)
 
+    from .llm_client import LLMClient
+    
     # Find the first available LLM client
     llm: LLMClient | None = None
     for entry_data in hass.data.get(DOMAIN, {}).values():
@@ -156,6 +166,316 @@ async def _handle_webhook(
     )
 
 
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/chat",
+    vol.Required("message"): str,
+})
+async def _handle_websocket_chat(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Handle chat messages from the side panel."""
+    
+    # 1. Try Home Assistant's native conversation assistant first.
+    # This allows the user to perform immediate actions without LLM reasoning.
+    try:
+        ha_result = await conversation.async_converse(
+            hass=hass,
+            text=msg["message"],
+            conversation_id=None,
+            context=connection.context,
+        )
+        
+        # If HA assistant handled it successfully, return its response.
+        if ha_result.response.error_code is None:
+            speech = ha_result.response.speech.get("plain", {}).get("speech", "")
+            if not speech and hasattr(ha_result.response, "as_dict"):
+                # Fallback to dict access if structured get fails
+                res_dict = ha_result.response.as_dict()
+                speech = res_dict.get("speech", {}).get("plain", {}).get("speech", "")
+
+            if speech:
+                connection.send_result(msg["id"], {
+                    "response": speech,
+                    "automation": None,
+                    "automation_yaml": None,
+                })
+                return
+    except Exception as exc:
+        _LOGGER.error("Error in HA conversation processing: %s", exc)
+        # Continue to Selora LLM if Assist fails or crashes
+
+    # 2. Fall back to Selora LLM for automation reasoning.
+    from .llm_client import LLMClient
+    
+    llm: LLMClient | None = None
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and "llm" in entry_data:
+            llm = entry_data["llm"]
+            break
+
+    if llm is None:
+        connection.send_error(msg["id"], "not_initialized", "Selora AI LLM not initialized")
+        return
+
+    # Get context: entities, devices, areas
+    entities = _collect_entity_states(hass)
+    
+    # Get existing automations for context
+    automations = []
+    for state in hass.states.async_all("automation"):
+        automations.append({
+            "entity_id": state.entity_id,
+            "alias": state.attributes.get("friendly_name", state.entity_id),
+            "state": state.state,
+        })
+
+    # Send message to LLM (enhanced for chat)
+    result = await llm.architect_chat(
+        msg["message"], 
+        entities, 
+        existing_automations=automations
+    )
+    
+    if "error" in result:
+        connection.send_error(msg["id"], "llm_error", result["error"])
+        return
+        
+    connection.send_result(msg["id"], {
+        "response": result.get("response", "I'm not sure how to help with that."),
+        "automation": result.get("automation"),
+        "automation_yaml": result.get("automation_yaml"),
+    })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/create_automation",
+    vol.Required("automation"): dict,
+})
+async def _handle_websocket_create_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create a new automation from the side panel."""
+    automation_data = msg["automation"]
+    
+    # Basic validation
+    has_trigger = automation_data.get("trigger") or automation_data.get("triggers")
+    has_action = automation_data.get("action") or automation_data.get("actions")
+    
+    if not automation_data.get("alias") or not has_trigger or not has_action:
+        connection.send_error(msg["id"], "invalid_format", "Invalid automation structure (missing alias, trigger, or action)")
+        return
+
+    try:
+        # We'll use the automation service to create it if available, 
+        # but HA usually requires writing to automations.yaml for manual creation.
+        # For now, we'll implement a helper to write it.
+        from .automation_utils import async_create_automation
+        
+        success = await async_create_automation(hass, automation_data)
+        
+        if success:
+            connection.send_result(msg["id"], {"status": "success"})
+        else:
+            connection.send_error(msg["id"], "creation_failed", "Failed to write automation to file")
+            
+    except Exception as exc:
+        _LOGGER.exception("Error creating automation")
+        connection.send_error(msg["id"], "error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_suggestions",
+})
+async def _handle_websocket_get_suggestions(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the latest automated suggestions from the background collector."""
+    suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+    connection.send_result(msg["id"], suggestions)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_automations",
+})
+async def _handle_websocket_get_automations(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return all existing automations and flag Selora-managed ones."""
+    try:
+        from homeassistant.helpers import entity_registry as er
+        
+        registry = er.async_get(hass)
+        automations = []
+        
+        for state in hass.states.async_all("automation"):
+            entity_id = state.entity_id
+            entry = registry.async_get(entity_id)
+            
+            is_selora = False
+            if entry and entry.unique_id:
+                is_selora = entry.unique_id.startswith(AUTOMATION_ID_PREFIX)
+            
+            # Fallback to description check if unique_id doesn't match
+            description = state.attributes.get("description", "")
+            if not is_selora and description and "[Selora AI]" in description:
+                is_selora = True
+                
+            automations.append({
+                "entity_id": entity_id,
+                "alias": state.attributes.get("friendly_name", entity_id),
+                "description": description,
+                "state": state.state,
+                "is_selora": is_selora,
+                "last_triggered": state.attributes.get("last_triggered"),
+            })
+            
+        connection.send_result(msg["id"], automations)
+    except Exception as exc:
+        _LOGGER.exception("Error in _handle_websocket_get_automations")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_config",
+})
+async def _handle_websocket_get_config(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the current integration config."""
+    # We find the first config entry for our domain
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
+        return
+    
+    entry = entries[0]
+    connection.send_result(msg["id"], {
+        "llm_provider": entry.data.get(CONF_LLM_PROVIDER),
+        "anthropic_api_key": entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
+        "anthropic_model": entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+        "ollama_host": entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
+        "ollama_model": entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+    })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/update_config",
+    vol.Required("config"): dict,
+})
+async def _handle_websocket_update_config(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update the integration config and re-initialize."""
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
+        return
+    
+    entry = entries[0]
+    new_config = msg["config"]
+    
+    # Update the entry data
+    hass.config_entries.async_update_entry(entry, data={**entry.data, **new_config})
+    
+    # Reload the entry to apply changes
+    await hass.config_entries.async_reload(entry.entry_id)
+    connection.send_result(msg["id"], {"status": "success"})
+
+
+async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+    """Set up the Selora AI component."""
+    hass.data.setdefault(DOMAIN, {})
+
+    # Register WebSocket API
+    websocket_api.async_register_command(hass, _handle_websocket_chat)
+    websocket_api.async_register_command(hass, _handle_websocket_create_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_get_suggestions)
+    websocket_api.async_register_command(hass, _handle_websocket_get_automations)
+    websocket_api.async_register_command(hass, _handle_websocket_get_config)
+    websocket_api.async_register_command(hass, _handle_websocket_update_config)
+
+    # Register static path for frontend
+    # Modern way to register static paths (2024.7+)
+    try:
+        from homeassistant.components.http import StaticPathConfig
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/panel.js",
+                    hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js"),
+                    False,
+                )
+            ]
+        )
+    except (ImportError, AttributeError):
+        # Fallback for older versions
+        hass.http.register_static_path(
+            f"/api/{DOMAIN}/panel.js",
+            hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js"),
+            False,
+        )
+
+    # Register custom side panel in the sidebar
+    from homeassistant.components import frontend
+    
+    # In recent HA, async_register_panel might be deprecated or renamed
+    # We try both async_register_panel and async_register_built_in_panel
+    if hasattr(frontend, "async_register_panel"):
+        frontend.async_register_panel(
+            hass,
+            frontend_url_path=PANEL_PATH,
+            webcomponent_name=PANEL_NAME,
+            sidebar_title=PANEL_TITLE,
+            sidebar_icon=PANEL_ICON,
+            module_url=f"/api/{DOMAIN}/panel.js",
+            config={"domain": DOMAIN},
+            require_admin=False,
+        )
+    elif hasattr(frontend, "async_register_built_in_panel"):
+        try:
+            frontend.async_register_built_in_panel(
+                hass,
+                component_name="custom",
+                sidebar_title=PANEL_TITLE,
+                sidebar_icon=PANEL_ICON,
+                frontend_url_path=PANEL_PATH,
+                config={
+                    "_panel_custom": {
+                        "name": PANEL_NAME,
+                        "module_url": f"/api/{DOMAIN}/panel.js",
+                    },
+                    "domain": DOMAIN,
+                },
+                require_admin=False,
+            )
+        except ValueError as err:
+            _LOGGER.warning("Panel already registered: %s", err)
+    else:
+        _LOGGER.warning("Neither async_register_panel nor async_register_built_in_panel found in frontend")
+
+    _LOGGER.info("Selora AI initialized (awaiting entry)")
+
+    return True
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Selora AI from a config entry."""
     # Device onboarding entries are records only — no runtime setup needed
@@ -169,6 +489,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS
     )
 
+    from .llm_client import LLMClient
+    from .device_manager import DeviceManager
+
     if provider == LLM_PROVIDER_ANTHROPIC:
         llm = LLMClient(
             hass,
@@ -177,7 +500,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
             lookback_days=lookback,
         )
-    else:
+    elif provider == LLM_PROVIDER_OLLAMA:
         llm = LLMClient(
             hass,
             provider=provider,
@@ -185,19 +508,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
             lookback_days=lookback,
         )
+    else:
+        # Provider is NONE (skipped)
+        llm = None
 
     # Verify LLM is healthy on startup
-    if not await llm.health_check():
+    if llm and not await llm.health_check():
         _LOGGER.warning(
             "%s not reachable — will retry on next collection cycle",
             llm.provider_name,
         )
 
+    from .collector import DataCollector
     collector = DataCollector(hass, llm, lookback_days=lookback)
     device_mgr = DeviceManager(
         hass,
-        api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
-        model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+        api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, "") if llm else "",
+        model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL) if llm else DEFAULT_ANTHROPIC_MODEL,
     )
 
     # Store references for cleanup on unload
@@ -254,6 +581,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 _LOGGER.info("Auto-assigned %d devices to areas", len(area_assigned))
             # Generate dashboard
             await device_mgr.generate_dashboard()
+            from .const import SIGNAL_DEVICES_UPDATED, SIGNAL_ACTIVITY_LOG
             async_dispatcher_send(hass, SIGNAL_DEVICES_UPDATED)
             discovered_count = summary.get("discovered_count", 0)
             if discovered_count > 0:
@@ -279,6 +607,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register webhooks (only once, not per entry)
     if not hass.data[DOMAIN].get("_webhook_registered"):
+        from .device_manager import handle_devices_webhook
         webhook.async_register(
             hass, DOMAIN, "Selora AI Command", WEBHOOK_ID, _handle_webhook
         )
@@ -287,11 +616,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.data[DOMAIN]["_webhook_registered"] = True
         _LOGGER.info("Selora AI webhooks registered: /api/webhook/%s, /api/webhook/%s", WEBHOOK_ID, WEBHOOK_DEVICES_ID)
-
     # Start background collection + analysis
-    await collector.async_start()
-
-    _LOGGER.info("Selora AI started (%s)", llm.provider_name)
+    if llm:
+        await collector.async_start()
+        _LOGGER.info("Selora AI started (%s)", llm.provider_name)
+    else:
+        _LOGGER.info("Selora AI started (unconfigured mode)")
+    
     return True
 
 

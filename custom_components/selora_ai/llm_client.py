@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import yaml
 from typing import Any
 
 import aiohttp
@@ -30,7 +31,8 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
-    MESSAGES_ENDPOINT,
+    ANTHROPIC_MESSAGES_ENDPOINT,
+    OLLAMA_CHAT_ENDPOINT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,7 +76,9 @@ class LLMClient:
 
     @property
     def _endpoint(self) -> str:
-        return f"{self._host}{MESSAGES_ENDPOINT}"
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            return f"{self._host}{ANTHROPIC_MESSAGES_ENDPOINT}"
+        return f"{self._host}{OLLAMA_CHAT_ENDPOINT}"
 
     @property
     def provider_name(self) -> str:
@@ -86,37 +90,217 @@ class LLMClient:
         self, home_snapshot: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Send collected HA data to LLM for automation analysis."""
+        if self._provider == LLM_PROVIDER_ANTHROPIC and not self._api_key:
+            _LOGGER.warning("Skipping analysis: Anthropic API Key not configured")
+            return []
+
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_analysis_prompt(home_snapshot)
 
+        result, error = await self._send_request(
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}]
+        )
+        
+        if not result:
+            return []
+            
+        return self._parse_suggestions(result)
+
+    async def architect_chat(
+        self,
+        user_message: str,
+        entities: list[dict[str, Any]],
+        existing_automations: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Conversational architect chat for generating automations."""
+        if self._provider == LLM_PROVIDER_ANTHROPIC and not self._api_key:
+            return {
+                "response": "Please configure your Anthropic API Key in the Settings tab to start chatting.",
+                "config_issue": True
+            }
+
+        system_prompt = self._build_architect_system_prompt()
+        
+        # Build context from interesting entities only to save tokens
+        # (lights, switches, media players, climate, sensors)
+        interesting_domains = {
+            "light", "switch", "media_player", "climate", "fan", 
+            "cover", "lock", "vacuum", "sensor", "binary_sensor",
+            "water_heater", "humidifier", "input_boolean", "input_select"
+        }
+        
+        entity_lines = []
+        for e in entities:
+            eid = e.get("entity_id", "")
+            domain = eid.split(".")[0]
+            if domain not in interesting_domains:
+                continue
+                
+            state = e.get("state", "unknown")
+            friendly = e.get("attributes", {}).get("friendly_name", "")
+            entity_lines.append(f"  - {eid}: {state} ({friendly})")
+            
+        # Limit to first 500 entities if still too many
+        if len(entity_lines) > 500:
+            entity_lines = entity_lines[:500]
+            entity_lines.append("  - ... (truncated to 500 entities)")
+            
+        # Build context for existing automations
+        auto_lines = []
+        if existing_automations:
+            for a in existing_automations:
+                alias = a.get("alias", a.get("entity_id", "unknown"))
+                state = a.get("state", "unknown")
+                auto_lines.append(f"  - {alias} (Status: {state})")
+
+        if not auto_lines:
+            auto_section = "EXISTING AUTOMATIONS: None yet.\n"
+        else:
+            auto_section = "EXISTING AUTOMATIONS:\n" + "\n".join(auto_lines) + "\n"
+            
+        context_prompt = (
+            f"USER REQUEST: {user_message}\n\n"
+            f"{auto_section}\n"
+            f"AVAILABLE ENTITIES:\n" + "\n".join(entity_lines) + "\n\n"
+            "If the request is for an automation, provide the automation in the requested JSON format. "
+            "You can also suggest modifications to existing automations listed above. "
+            "Otherwise, just answer the user's question."
+        )
+
+        result, error = await self._send_request(
+            system=system_prompt,
+            messages=[{"role": "user", "content": context_prompt}]
+        )
+
+        if not result:
+            is_config_issue = error and ("HTTP 401" in error or "credit balance" in error)
+            return {
+                "response": f"I'm sorry, I encountered an error while communicating with the LLM: {error or 'Unknown error'}. Please check your settings and logs.",
+                "error": error or "llm_request_failed",
+                "config_issue": is_config_issue
+            }
+            
+        # Parse for structured output (we want a response text + optional automation JSON)
+        return self._parse_architect_response(result)
+
+    async def _send_request(
+        self, system: str, messages: list[dict[str, str]]
+    ) -> tuple[str | None, str | None]:
+        """Unified request handler for Anthropic and OpenAI/Ollama formats.
+        
+        Returns: (response_text, error_message)
+        """
         try:
             session = async_get_clientsession(self._hass)
+            
+            if self._provider == LLM_PROVIDER_ANTHROPIC:
+                payload = {
+                    "model": self._model,
+                    "max_tokens": 4096,
+                    "system": system,
+                    "messages": messages,
+                }
+            else:
+                # OpenAI / Ollama format
+                payload = {
+                    "model": self._model,
+                    "messages": [
+                        {"role": "system", "content": system},
+                        *messages
+                    ],
+                }
+
             async with session.post(
                 self._endpoint,
                 headers=self._get_headers(),
                 timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-                json={
-                    "model": self._model,
-                    "max_tokens": 4096,
-                    "messages": [
-                        {"role": "user", "content": user_prompt},
-                    ],
-                    "system": system_prompt,
-                },
+                json=payload,
             ) as resp:
                 if resp.status != 200:
                     body = await resp.text()
-                    _LOGGER.warning(
-                        "%s returned %s: %s", self.provider_name, resp.status, body[:200]
+                    error_msg = f"HTTP {resp.status}: {body[:200]}"
+                    _LOGGER.error(
+                        "LLM Request failed: %s returned %s: %s", self.provider_name, resp.status, body
                     )
-                    return []
+                    return None, error_msg
 
-                data = await resp.json()
-                return self._parse_suggestions(data)
+                try:
+                    data = await resp.json()
+                except Exception as exc:
+                    body = await resp.text()
+                    error_msg = f"JSON Parse Error: {str(exc)}"
+                    _LOGGER.error("Failed to parse LLM JSON response: %s. Body: %s", exc, body)
+                    return None, error_msg
+                
+                if self._provider == LLM_PROVIDER_ANTHROPIC:
+                    if "content" not in data or not data["content"]:
+                        _LOGGER.error("Anthropic response missing 'content': %s", data)
+                        return None, "Response missing 'content'"
+                    return data["content"][0]["text"], None
+                else:
+                    if "choices" not in data or not data["choices"]:
+                        _LOGGER.error("OpenAI/Ollama response missing 'choices': %s", data)
+                        return None, "Response missing 'choices'"
+                    return data["choices"][0]["message"]["content"], None
 
+        except Exception as exc:
+            _LOGGER.exception("Request to %s failed", self.provider_name)
+            return None, str(exc)
+
+    def _build_architect_system_prompt(self) -> str:
+        """System prompt for the Smart Home Architect role."""
+        return (
+            "You are the Selora AI Smart Home Architect. Your goal is to help users create practical, "
+            "reliable Home Assistant automations. You have access to the current state of their home.\n\n"
+            "GUIDANCE FOR USERS (Share this when relevant):\n"
+            "- For simple, immediate actions (e.g., 'turn on the kitchen light', 'is the front door locked?'), "
+            "Home Assistant Assist handles these directly in this chat.\n"
+            "- For complex logic, schedules, or multi-device scenarios, ask me to 'build an automation'.\n"
+            "- If I suggest an automation, you can review the YAML and click 'Create' to add it to your system.\n\n"
+            "When a user asks for an automation:\n"
+            "1. Identify the correct entities to use based on the provided list.\n"
+            "2. Generate a valid Home Assistant automation in JSON format.\n"
+            "3. Explain briefly what the automation does.\n\n"
+            "CRITICAL: Your response must be in this JSON format if an automation is generated:\n"
+            "{\n"
+            "  \"response\": \"Your conversational explanation here\",\n"
+            "  \"automation\": {\n"
+            "    \"alias\": \"Name\",\n"
+            "    \"description\": \"...\",\n"
+            "    \"triggers\": [...],\n"
+            "    \"conditions\": [...],\n"
+            "    \"actions\": [...]\n"
+            "  }\n"
+            "}\n"
+            "If no automation is needed, just return:\n"
+            "{\n"
+            "  \"response\": \"Your answer here\"\n"
+            "}\n"
+            "Always return ONLY valid JSON."
+        )
+
+    def _parse_architect_response(self, text: str) -> dict[str, Any]:
+        """Parse the JSON response from the architect LLM."""
+        try:
+            # Try to find JSON block if the LLM added prose
+            start = text.find("{")
+            end = text.rfind("}")
+            if start != -1 and end != -1:
+                json_str = text[start : end + 1]
+                data = json.loads(json_str)
+                
+                # Add YAML version for the UI preview
+                if "automation" in data:
+                    import yaml
+                    data["automation_yaml"] = yaml.dump(
+                        data["automation"], default_flow_style=False, allow_unicode=True
+                    )
+                return data
+            return {"response": text}
         except Exception:
-            _LOGGER.exception("Failed to get analysis from %s", self.provider_name)
-            return []
+            _LOGGER.error("Failed to parse architect response: %s", text)
+            return {"response": text}
 
     def _build_system_prompt(self) -> str:
         """System prompt — defines Selora AI's persona and output format."""
@@ -190,15 +374,9 @@ class LLMClient:
         )
         return prompt
 
-    def _parse_suggestions(self, response: dict[str, Any]) -> list[dict[str, Any]]:
-        """Parse the Anthropic-format response into automation configs."""
+    def _parse_suggestions(self, text: str) -> list[dict[str, Any]]:
+        """Parse the LLM response into automation configs."""
         try:
-            content = response.get("content", [])
-            text = ""
-            for block in content:
-                if block.get("type") == "text":
-                    text += block.get("text", "")
-
             _LOGGER.debug("Raw %s response: %s", self._provider, text[:500])
 
             # Strip markdown fences if present
@@ -356,28 +534,11 @@ class LLMClient:
 
     async def _health_check_anthropic(self) -> bool:
         """Check Anthropic API with a minimal request."""
-        try:
-            session = async_get_clientsession(self._hass)
-            async with session.post(
-                self._endpoint,
-                headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-                json={
-                    "model": self._model,
-                    "max_tokens": 1,
-                    "messages": [{"role": "user", "content": "Hi"}],
-                },
-            ) as resp:
-                if resp.status == 200:
-                    return True
-                body = await resp.text()
-                _LOGGER.warning(
-                    "Anthropic health check failed (%s): %s", resp.status, body[:200]
-                )
-                return False
-        except Exception:
-            _LOGGER.exception("Anthropic health check failed")
-            return False
+        result, error = await self._send_request(
+            system="Respond with 'ok'",
+            messages=[{"role": "user", "content": "Hi"}]
+        )
+        return result is not None
 
     async def _health_check_ollama(self) -> bool:
         """Check Ollama is reachable and the model is pulled."""
