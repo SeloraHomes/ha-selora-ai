@@ -212,6 +212,7 @@ CONF_SELECTED_DEVICES = "selected_devices"
 CONF_LLM_PROVIDER = "llm_provider"
 LLM_PROVIDER_ANTHROPIC = "anthropic"
 LLM_PROVIDER_OLLAMA = "ollama"
+LLM_PROVIDER_NONE = "none"
 DEFAULT_LLM_PROVIDER = LLM_PROVIDER_ANTHROPIC
 
 # ── Anthropic (Claude API) ──────────────────────────────────────────
@@ -219,8 +220,8 @@ CONF_ANTHROPIC_API_KEY = "anthropic_api_key"
 CONF_ANTHROPIC_MODEL = "anthropic_model"
 
 DEFAULT_ANTHROPIC_HOST = "https://api.anthropic.com"
-DEFAULT_ANTHROPIC_API_KEY = ""
-DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
+DEFAULT_ANTHROPIC_API_KEY = ""  # User must provide their own key during setup
+DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20240620"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
 # ── Ollama (Local LLM) ──────────────────────────────────────────────
@@ -232,8 +233,10 @@ CONF_OLLAMA_MODEL = "ollama_model"
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.1"
 
-# Shared endpoint path (both backends use the same path)
-MESSAGES_ENDPOINT = "/v1/messages"
+# Endpoint paths
+ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"
+OLLAMA_CHAT_ENDPOINT = "/v1/chat/completions"
+MESSAGES_ENDPOINT = ANTHROPIC_MESSAGES_ENDPOINT  # Legacy compatibility
 
 # ── MQTT (future) ────────────────────────────────────────────────────
 # Reaction-based behavior capture (Matthew, Mar 4).
@@ -270,6 +273,12 @@ PROTECTED_DOMAINS = {
     "bluetooth", "dhcp", "ssdp", "zeroconf", "usb", "network",  # core system discovery
     DOMAIN,  # never remove ourselves
 }
+
+# ── Side Panel ──────────────────────────────────────────────────────
+PANEL_NAME = "selora-ai-architect"
+PANEL_TITLE = "Selora AI"
+PANEL_ICON = "mdi:robot-confetti"
+PANEL_PATH = "selora-ai-architect"
 
 # ── HA Recorder ──────────────────────────────────────────────────────
 # Historical data source (SQLite) for pattern detection.

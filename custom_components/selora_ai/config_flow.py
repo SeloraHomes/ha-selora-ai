@@ -18,7 +18,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from homeassistant.config_entries import ConfigFlow
+from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import (
@@ -45,8 +45,8 @@ from .const import (
     ENTRY_TYPE_LLM,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_NONE,
 )
-from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +56,7 @@ _LOGGER = logging.getLogger(__name__)
 
 async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate the Anthropic API key works."""
+    from .llm_client import LLMClient
     client = LLMClient(
         hass,
         provider=LLM_PROVIDER_ANTHROPIC,
@@ -70,6 +71,7 @@ async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict
 
 async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that Ollama is reachable and the model is available."""
+    from .llm_client import LLMClient
     client = LLMClient(
         hass,
         provider=LLM_PROVIDER_OLLAMA,
@@ -82,10 +84,7 @@ async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
     return {"title": f"Selora AI (Ollama — {model})"}
 
 
-# ── Config Flow ───────────────────────────────────────────────────────
-
-
-class SeloraAIConfigFlow(ConfigFlow, domain=DOMAIN):
+class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Selora AI.
 
     Initial setup: LLM config → device discovery → selection → results
@@ -96,6 +95,7 @@ class SeloraAIConfigFlow(ConfigFlow, domain=DOMAIN):
 
     def __init__(self) -> None:
         """Initialize the config flow."""
+        super().__init__()
         self._provider: str = DEFAULT_LLM_PROVIDER
         # LLM config stored between steps (initial setup only)
         self._llm_data: dict[str, Any] | None = None
@@ -152,7 +152,16 @@ class SeloraAIConfigFlow(ConfigFlow, domain=DOMAIN):
             self._provider = user_input[CONF_LLM_PROVIDER]
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 return await self.async_step_anthropic()
-            return await self.async_step_ollama()
+            if self._provider == LLM_PROVIDER_OLLAMA:
+                return await self.async_step_ollama()
+            
+            # Skip for now
+            await self.async_set_unique_id(DOMAIN)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title="Selora AI (Unconfigured)", 
+                data={CONF_LLM_PROVIDER: LLM_PROVIDER_NONE}
+            )
 
         return self.async_show_form(
             step_id="user",
@@ -165,6 +174,7 @@ class SeloraAIConfigFlow(ConfigFlow, domain=DOMAIN):
                         {
                             LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude) — Recommended",
                             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
+                            LLM_PROVIDER_NONE: "Skip for now (Configure later)",
                         }
                     ),
                 }

@@ -163,7 +163,7 @@ class DeviceManager:
 
     def _get_flow_host(self, flow_id: str) -> str | None:
         """Extract host IP from a pending flow handler's instance vars."""
-        handler = self.hass.config_entries.flow._progress.get(flow_id)
+        handler = self.hass.config_entries.flow.async_get(flow_id)
         if handler and hasattr(handler, "host"):
             return handler.host
         return None

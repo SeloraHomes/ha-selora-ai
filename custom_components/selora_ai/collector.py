@@ -17,7 +17,6 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from ruamel.yaml import YAML
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
@@ -72,6 +71,10 @@ class DataCollector:
 
     async def _collect_analyze_log(self) -> None:
         """Full cycle: collect → LLM analysis → log suggestions."""
+        if not self._llm:
+            _LOGGER.debug("Skipping collection cycle: No LLM configured")
+            return
+
         # Step 1: Build the home data snapshot
         snapshot = {
             "devices": self._collect_devices(),
@@ -92,12 +95,45 @@ class DataCollector:
         # Step 2: Feed snapshot to the configured LLM
         suggestions = await self._llm.analyze_home_data(snapshot)
 
-        # Step 3: Log suggestions only — automations are configured manually
+        # Step 3: Log suggestions and store for UI
         if suggestions:
             _LOGGER.info(
-                "Selora AI generated %d automation suggestions (log only, not auto-creating)",
+                "Selora AI generated %d automation suggestions",
                 len(suggestions),
             )
+            
+            # Enrich suggestions with YAML for UI preview
+            from .const import DOMAIN
+            import yaml
+            
+            enriched = []
+            for s in suggestions:
+                # Normalize keys for consistency
+                triggers = s.get("triggers") or s.get("trigger", [])
+                actions = s.get("actions") or s.get("action", [])
+                conditions = s.get("conditions") or s.get("condition", [])
+                
+                # HA automation schema uses 'trigger', 'action', 'condition'
+                automation_preview = {
+                    "alias": s.get("alias", "New Automation"),
+                    "description": s.get("description", ""),
+                    "trigger": triggers,
+                    "condition": conditions,
+                    "action": actions,
+                    "mode": "single",
+                }
+                
+                s["automation_yaml"] = yaml.dump(
+                    automation_preview, default_flow_style=False, allow_unicode=True
+                )
+                # Keep normalized version for easy creation
+                s["automation_data"] = automation_preview
+                enriched.append(s)
+
+            # Store in hass.data for the side panel to fetch
+            self._hass.data.setdefault(DOMAIN, {})
+            self._hass.data[DOMAIN]["latest_suggestions"] = enriched
+            
             self._notify_suggestions(suggestions, created_count=0)
         else:
             _LOGGER.info("No new automation suggestions from LLM")
@@ -212,6 +248,7 @@ class DataCollector:
         Writes to a temp file first, then renames — prevents corruption
         if the process crashes mid-write.
         """
+        from ruamel.yaml import YAML
         ryaml = YAML()
         ryaml.default_flow_style = False
         ryaml.allow_unicode = True

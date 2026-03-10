@@ -1,114 +1,58 @@
 # Selora AI — Home Assistant Integration
 
-Custom Home Assistant integration that uses LLM-powered analysis to automatically discover devices, suggest automations, and manage your smart home.
+Selora AI is a next-generation Home Assistant integration that acts as an "AI Architect" for your smart home. It uses Large Language Models (LLMs) to analyze your home's data, discover devices, and help you build a more automated, intuitive living space.
 
-## Features
+## 🚀 Key Features
 
-- **Dual LLM Backend** — Anthropic Claude (cloud, recommended) or Ollama (local, on-prem)
-- **Auto Device Discovery** — scans your network, accepts discoverable integrations, and auto-pairs Android TVs via ADB
-- **Automation Suggestions** — periodically analyzes your home data and suggests useful automations
-- **Cast Sync** — discovers Google Cast devices on your subnet and syncs `known_hosts`
-- **Area Auto-Assignment** — matches device names to HA areas
-- **Dashboard Generation** — builds a Lovelace dashboard with media player controls
-- **Natural Language Commands** — webhook endpoint translates plain English into HA service calls
+- **Dual LLM Backend** — Support for **Anthropic Claude** (cloud-based, high performance) and **Ollama** (local, privacy-focused).
+- **Selora AI Architect** — A dedicated side panel chat interface where you can ask questions about your home and generate automations using natural language.
+- **Home Assistant Assist Integration** — Use Selora AI as your primary conversation agent in the standard HA chat interface (Assist).
+- **Context-Aware Conversations** — The AI now sees your existing automations, allowing it to suggest modifications or avoid duplicates during chat.
+- **Intelligent Background Analysis** — Periodically analyzes your devices, entity states, and historical data to suggest useful, context-aware automations.
+- **Zero-Touch Android TV Pairing** — Fully automatic onboarding for Android TVs. Selora AI wakes the TV via WoL, captures the pairing PIN via ADB screenshots, and uses Claude Vision to read and submit the PIN.
+- **Network Discovery & Onboarding** — Scans your network for supported integrations and helps you onboard them with area auto-assignment.
+- **Selora AI Hub** — A centralized device in Home Assistant with sensors and buttons to monitor and manage the integration's status and actions.
+- **Automated Dashboard Generation** — Automatically builds a Lovelace dashboard with controls for your media players and other discovered devices.
 
-## Architecture
+## 🛠 Implementation Status
 
-```
-HA entity registry / state machine / recorder (SQLite)
-    |
-    v
-DataCollector  ──snapshot──>  LLMClient (Anthropic API or local Ollama)
-    |                              |
-    |                         suggestions
-    |                              v
-    v                    automations.yaml (disabled)
-logging + sensors              + reload
-```
+| Feature | Status | Description |
+|---------|--------|-------------|
+| **Core Logic** | ✅ Complete | Data collection, LLM interfacing, and integration setup. |
+| **Android TV Auto-Pairing** | ✅ Complete | WoL + ADB + Claude Vision orchestration. |
+| **Architect Chat** | ✅ Complete | Side panel & Home Assistant Assist (Conversation Agent). |
+| **Automation Suggestions** | ✅ Complete | Periodic analysis + context-aware chat (sees existing automations). |
+| **Hub Sensors & Buttons** | ✅ Complete | Real-time status, device inventory, and management actions (Discover, Cleanup, Reset). |
+| **Webhook API** | ✅ Complete | Endpoints for external commands and discovery orchestration. |
+| **MQTT Listener** | 🚧 Pending | Future feature for reaction-based behavior capture (Matthew, Mar 4). |
 
-## Installation
+## 📂 Project Structure
 
-1. Copy `custom_components/selora_ai/` into your Home Assistant `custom_components/` directory
-2. Restart Home Assistant
-3. Go to **Settings > Devices & Services > Add Integration > Selora AI**
-4. Choose your LLM provider:
-   - **Anthropic (Claude)** — enter your API key from [console.anthropic.com](https://console.anthropic.com)
-   - **Ollama** — enter your local Ollama host URL and model name
+- `__init__.py`: Component setup, API registration, and panel initialization.
+- `collector.py`: Background data gathering and LLM analysis logic.
+- `llm_client.py`: Unified interface for Anthropic and Ollama backends.
+- `device_manager.py`: The "brain" for discovery, ADB pairing, and dashboard generation.
+- `config_flow.py`: User-friendly setup and device onboarding flow.
+- `conversation.py`: Assist Conversation Agent implementation for natural language control.
+- `automation_utils.py`: Helpers for writing automations to `automations.yaml`.
+- `sensor.py` & `button.py`: Hub device entity implementations.
+- `frontend/`: Custom side panel frontend (React/JS).
 
-## Hub Sensors
+## ⏭ Next Steps
 
-After setup, Selora AI registers a Hub device with these sensors:
+1.  **MQTT Reaction System**: Implement `mqtt_listener.py` to capture and classify point-in-time events for better automation triggers.
+2.  **Expanded Device Support**: Increase the number of `KNOWN_INTEGRATIONS` and specialized discovery handlers.
+3.  **Stability & Timeouts**: Refine LLM request handling to better manage timeouts and network latency.
+4.  **Multi-language Support**: Finalize translations for the UI and LLM prompts.
 
-| Sensor | Description |
-|--------|-------------|
-| **Status** | Aggregate device count + pending automations |
-| **Devices** | Categorised inventory (TVs, speakers, lights, etc.) |
-| **Discovery** | Pending discovery flows vs configured count |
-| **Last Activity** | Recent action log (diagnostic) |
-
-## Hub Buttons
-
-| Button | Action |
-|--------|--------|
-| **Discover Devices** | Scan network, report discovered/configured devices |
-| **Auto Setup** | Accept all auto-discoverable pending flows |
-| **Cleanup** | Remove stale mirror devices and orphaned entities |
-| **Reset Everything** | Wipe non-protected integrations, clean up, re-discover |
-
-## Webhook API
-
-### Command Endpoint
-
-```
-POST /api/webhook/selora_ai_command
-Content-Type: application/json
-
-{"command": "turn on the kitchen tv"}
-```
-
-Returns:
-```json
-{
-  "command": "turn on the kitchen tv",
-  "response": "Turning on Kitchen TV",
-  "executed": ["media_player.turn_on"]
-}
-```
-
-### Devices Endpoint
-
-```
-POST /api/webhook/selora_ai_devices
-Content-Type: application/json
-
-{"action": "discover"}
-```
-
-Supported actions: `discover`, `auto_setup`, `accept_flow`, `submit_pin`, `cleanup`, `reset`
-
-## Configuration
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `llm_provider` | `anthropic` | LLM backend (`anthropic` or `ollama`) |
-| `anthropic_api_key` | — | Anthropic API key (required for Claude) |
-| `anthropic_model` | `claude-opus-4-6` | Anthropic model ID |
-| `ollama_host` | `http://localhost:11434` | Ollama server URL |
-| `ollama_model` | `llama3.1` | Ollama model name |
-| `recorder_lookback_days` | `7` | Days of history to analyze |
-
-## Known Integrations
-
-Selora AI recognizes ~85 smart home integrations across categories: lighting, TVs, speakers, appliances, thermostats, cameras, locks, vacuums, cars, energy, IoT platforms, and protocol bridges. See `const.py` for the full list.
-
-## Requirements
+## 📋 Requirements
 
 - Home Assistant 2025.1+
 - Python 3.12+
 - `aiohttp>=3.8.0`
 - `adb-shell[async]>=0.4.4` (for Android TV auto-pairing)
-- `pyyaml>=6.0`
+- `ruamel.yaml>=0.17.0`
 
-## License
+## 📄 License
 
 Selora Homes Software License. See [LICENSE](LICENSE) for details.
