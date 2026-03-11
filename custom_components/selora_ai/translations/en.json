@@ -17,6 +17,14 @@
           "anthropic_model": "Model"
         }
       },
+      "openai": {
+        "title": "OpenAI Configuration",
+        "description": "Enter your OpenAI API key. Get one at platform.openai.com.",
+        "data": {
+          "openai_api_key": "API Key",
+          "openai_model": "Model"
+        }
+      },
       "ollama": {
         "title": "Ollama (Local) Configuration",
         "description": "Enter your local Ollama server details. Make sure the model is pulled.",

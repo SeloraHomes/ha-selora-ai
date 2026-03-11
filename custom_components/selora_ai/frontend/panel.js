@@ -5,6 +5,35 @@ import {
   css,
 } from "https://unpkg.com/lit-element@2.4.0/lit-element.js?module";
 
+/**
+ * Lightweight markdown-to-HTML converter.
+ * Handles: **bold**, *italic*, numbered lists, bullet lists, `code`, line breaks.
+ */
+function renderMarkdown(text) {
+  if (!text) return "";
+  let escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Code blocks (```)
+  escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre style="background:#2d2d2d;color:#f8f8f2;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>');
+  // Inline code
+  escaped = escaped.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px;font-size:13px;">$1</code>');
+  // Bold
+  escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // Italic
+  escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  // Numbered lists: lines starting with "1. ", "2. ", etc.
+  escaped = escaped.replace(/^(\d+)\.\s+(.+)$/gm, '<div style="margin:4px 0 4px 8px;"><strong>$1.</strong> $2</div>');
+  // Bullet lists: lines starting with "- "
+  escaped = escaped.replace(/^[-•]\s+(.+)$/gm, '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(255,255,255,0.15);">$1</div>');
+  // Line breaks
+  escaped = escaped.replace(/\n/g, "<br>");
+
+  return escaped;
+}
+
 class SeloraAIArchitectPanel extends LitElement {
   static get properties() {
     return {
@@ -131,6 +160,12 @@ class SeloraAIArchitectPanel extends LitElement {
         display: flex;
         align-items: center;
       }
+      .header-logo {
+        width: 32px;
+        height: 32px;
+        margin-right: 12px;
+        border-radius: 6px;
+      }
       .header-top ha-icon {
         margin-right: 12px;
       }
@@ -198,6 +233,12 @@ class SeloraAIArchitectPanel extends LitElement {
         color: var(--primary-text-color);
         border-bottom-left-radius: 4px;
         box-shadow: var(--card-box-shadow);
+      }
+      .message.assistant .msg-content strong {
+        color: var(--accent-color, #ff9800);
+      }
+      .message.assistant .msg-content em {
+        opacity: 0.85;
       }
       .message-info {
         font-size: 11px;
@@ -329,7 +370,7 @@ class SeloraAIArchitectPanel extends LitElement {
     return html`
       <div class="header">
         <div class="header-top">
-          <ha-icon icon="mdi:robot-confetti"></ha-icon>
+          <img class="header-logo" src="/api/selora_ai/logo.png" alt="Selora AI" />
           Selora AI Architect
         </div>
         <div class="tabs">
@@ -369,7 +410,7 @@ class SeloraAIArchitectPanel extends LitElement {
           (msg) => html`
             <div class="message-wrapper">
               <div class="message ${msg.role}">
-                ${msg.content}
+                <span class="msg-content" .innerHTML=${msg.role === "assistant" ? renderMarkdown(msg.content) : msg.content}></span>
                 ${msg.automation ? this.renderInlineAutomation(msg.automation, msg.automation_yaml) : ""}
                 ${msg.config_issue ? html`
                   <div style="margin-top: 12px;">
@@ -502,12 +543,13 @@ class SeloraAIArchitectPanel extends LitElement {
 
           <div class="form-group">
             <label>LLM Provider</label>
-            <select 
+            <select
               .value=${this._config.llm_provider}
               @change=${(e) => this._updateConfig("llm_provider", e.target.value)}
               style="padding: 8px; border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color);"
             >
               <option value="anthropic">Anthropic (Claude)</option>
+              <option value="openai">OpenAI</option>
               <option value="ollama">Ollama (Local)</option>
             </select>
           </div>
@@ -527,6 +569,23 @@ class SeloraAIArchitectPanel extends LitElement {
                 label="Anthropic Model"
                 .value=${this._config.anthropic_model}
                 @input=${(e) => this._updateConfig("anthropic_model", e.target.value)}
+              ></ha-textfield>
+            </div>
+          ` : this._config.llm_provider === "openai" ? html`
+            <div class="form-group ${this._flashApiKey ? "flash" : ""}">
+              <ha-textfield
+                id="api-key-field"
+                label="OpenAI API Key"
+                type="password"
+                .value=${this._config.openai_api_key}
+                @input=${(e) => this._updateConfig("openai_api_key", e.target.value)}
+              ></ha-textfield>
+            </div>
+            <div class="form-group">
+              <ha-textfield
+                label="OpenAI Model"
+                .value=${this._config.openai_model}
+                @input=${(e) => this._updateConfig("openai_model", e.target.value)}
               ></ha-textfield>
             </div>
           ` : html`
@@ -749,9 +808,6 @@ class SeloraAIArchitectPanel extends LitElement {
   _goToSettings() {
     this._activeTab = "settings";
     this._loadConfig().then(() => {
-      if (this._config && this._config.llm_provider !== "anthropic") {
-        this._updateConfig("llm_provider", "anthropic");
-      }
       this._flashApiKey = true;
       setTimeout(() => {
         this._flashApiKey = false;

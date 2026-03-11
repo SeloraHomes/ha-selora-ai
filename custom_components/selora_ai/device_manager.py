@@ -881,10 +881,10 @@ class DeviceManager:
         return {"assigned": assigned}
 
     async def generate_dashboard(self) -> dict[str, Any]:
-        """Auto-generate a Lovelace dashboard config based on discovered devices.
+        """Auto-generate a Lovelace dashboard showing all useful entities.
 
-        Builds sections per area, with media player / light / switch cards.
-        Writes to HA's .storage/lovelace.lovelace so it becomes the default dashboard.
+        Builds a comprehensive overview: weather, people, controllable devices
+        grouped by area, sensors, and the Selora AI hub card.
         """
         from homeassistant.helpers import area_registry as ar, entity_registry as ent_r
 
@@ -892,60 +892,152 @@ class DeviceManager:
         ent_reg = ent_r.async_get(self.hass)
         area_reg = ar.async_get(self.hass)
 
-        # Controllable entity domains
-        controllable = {"media_player", "light", "switch", "climate", "cover", "fan", "lock", "vacuum"}
+        # Domains we want on the dashboard
+        controllable = {
+            "media_player", "light", "switch", "climate", "cover",
+            "fan", "lock", "vacuum", "humidifier", "water_heater",
+        }
+        sensor_domains = {"sensor", "binary_sensor"}
+        all_dashboard_domains = controllable | sensor_domains | {
+            "camera", "weather", "person", "input_boolean",
+            "input_number", "input_select", "automation", "scene",
+        }
+
+        # Skip internal/noisy entities
+        skip_platforms = {"selora_ai", "backup"}
+        skip_prefixes = (
+            "sensor.backup_", "event.backup_", "sensor.sun_solar_",
+        )
 
         # Build area_id → area_name lookup
         area_names = {a.id: a.name for a in area_reg.async_list_areas()}
 
-        # Group entities by area (inherit area from device if entity has none)
-        area_entities: dict[str, list[str]] = {}  # area_name → [entity_ids]
-        unassigned: list[str] = []
+        # Collect all visible entities grouped by purpose
+        area_controllable: dict[str, list[str]] = {}
+        area_sensors: dict[str, list[str]] = {}
+        unassigned_controllable: list[str] = []
+        unassigned_sensors: list[str] = []
+        weather_entities: list[str] = []
+        person_entities: list[str] = []
+        camera_entities: list[str] = []
+        scene_entities: list[str] = []
+        sun_entities: list[str] = []
 
         for entity in ent_reg.entities.values():
-            domain = entity.entity_id.split(".")[0]
-            if domain not in controllable:
+            eid = entity.entity_id
+            domain = eid.split(".")[0]
+
+            if domain not in all_dashboard_domains:
                 continue
             if entity.disabled_by or entity.hidden_by:
                 continue
+            if entity.platform in skip_platforms:
+                continue
+            if any(eid.startswith(p) for p in skip_prefixes):
+                continue
 
-            # Determine area: entity area > device area
+            # Special-purpose entities go to dedicated sections
+            if domain == "weather":
+                weather_entities.append(eid)
+                continue
+            if domain == "person":
+                person_entities.append(eid)
+                continue
+            if domain == "camera":
+                camera_entities.append(eid)
+                continue
+            if domain == "scene":
+                scene_entities.append(eid)
+                continue
+            if eid in ("sensor.sun_next_rising", "sensor.sun_next_setting", "binary_sensor.sun_solar_rising"):
+                sun_entities.append(eid)
+                continue
+            # Skip other sun sensors
+            if entity.platform == "sun" and eid not in sun_entities:
+                continue
+
+            # Determine area
             area_id = entity.area_id
             if not area_id and entity.device_id:
                 device = dev_reg.async_get(entity.device_id)
                 if device:
                     area_id = device.area_id
 
-            if area_id and area_id in area_names:
-                area_name = area_names[area_id]
-                area_entities.setdefault(area_name, []).append(entity.entity_id)
-            else:
-                unassigned.append(entity.entity_id)
+            area_name = area_names.get(area_id) if area_id else None
 
-        # Build Lovelace cards
+            if domain in controllable:
+                if area_name:
+                    area_controllable.setdefault(area_name, []).append(eid)
+                else:
+                    unassigned_controllable.append(eid)
+            elif domain in sensor_domains:
+                if area_name:
+                    area_sensors.setdefault(area_name, []).append(eid)
+                else:
+                    unassigned_sensors.append(eid)
+
+        # ── Build Lovelace cards ──
         cards: list[dict[str, Any]] = []
 
-        # Selora AI Hub summary card
+        # Weather card (prominent, top of dashboard)
+        for weid in weather_entities:
+            cards.append({"type": "weather-forecast", "entity": weid, "show_forecast": True})
+
+        # Person tracking
+        if person_entities:
+            cards.append({
+                "type": "glance",
+                "title": "People",
+                "entities": [{"entity": eid, "tap_action": {"action": "more-info"}} for eid in person_entities],
+            })
+
+        # Sun info
+        if sun_entities:
+            cards.append({
+                "type": "glance",
+                "title": "Sun",
+                "entities": [{"entity": eid} for eid in sorted(sun_entities)],
+            })
+
+        # Selora AI Hub
         cards.append({
             "type": "entities",
             "title": "Selora AI Hub",
             "entities": [
-                "sensor.selora_ai_hub_devices",
                 "sensor.selora_ai_hub_status",
+                "sensor.selora_ai_hub_devices",
                 "sensor.selora_ai_hub_discovery",
+                "sensor.selora_ai_hub_last_activity",
+                "button.selora_ai_hub_discover_devices",
             ],
         })
 
-        # Area sections with device cards
-        for area_name in sorted(area_entities):
-            entity_ids = area_entities[area_name]
+        # Area sections — controllable devices
+        for area_name in sorted(set(list(area_controllable.keys()) + list(area_sensors.keys()))):
             area_cards: list[dict[str, Any]] = []
-            for eid in sorted(entity_ids):
+
+            for eid in sorted(area_controllable.get(area_name, [])):
                 domain = eid.split(".")[0]
                 if domain == "media_player":
                     area_cards.append({"type": "media-control", "entity": eid})
+                elif domain in ("light", "switch", "fan", "cover"):
+                    area_cards.append({"type": "button", "entity": eid, "tap_action": {"action": "toggle"}})
+                elif domain == "climate":
+                    area_cards.append({"type": "thermostat", "entity": eid})
+                elif domain == "camera":
+                    area_cards.append({"type": "picture-entity", "entity": eid})
                 else:
                     area_cards.append({"type": "entity", "entity": eid})
+
+            # Sensors for this area as a glance card
+            area_sensor_list = area_sensors.get(area_name, [])
+            if area_sensor_list:
+                area_cards.append({
+                    "type": "glance",
+                    "title": "Sensors",
+                    "entities": [{"entity": eid} for eid in sorted(area_sensor_list)[:8]],
+                })
+
             if area_cards:
                 cards.append({
                     "type": "vertical-stack",
@@ -953,19 +1045,43 @@ class DeviceManager:
                     "cards": area_cards,
                 })
 
-        # Unassigned devices
-        if unassigned:
-            un_cards = []
-            for eid in sorted(unassigned):
+        # Cameras
+        for ceid in camera_entities:
+            cards.append({"type": "picture-entity", "entity": ceid})
+
+        # Scenes
+        if scene_entities:
+            cards.append({
+                "type": "glance",
+                "title": "Scenes",
+                "entities": [{"entity": eid, "tap_action": {"action": "call-service", "service": "scene.turn_on", "service_data": {"entity_id": eid}}} for eid in scene_entities[:8]],
+            })
+
+        # Unassigned controllable devices
+        if unassigned_controllable:
+            un_cards: list[dict[str, Any]] = []
+            for eid in sorted(unassigned_controllable):
                 domain = eid.split(".")[0]
                 if domain == "media_player":
                     un_cards.append({"type": "media-control", "entity": eid})
+                elif domain in ("light", "switch", "fan", "cover"):
+                    un_cards.append({"type": "button", "entity": eid, "tap_action": {"action": "toggle"}})
+                elif domain == "climate":
+                    un_cards.append({"type": "thermostat", "entity": eid})
                 else:
                     un_cards.append({"type": "entity", "entity": eid})
             cards.append({
                 "type": "vertical-stack",
                 "title": "Other Devices",
                 "cards": un_cards,
+            })
+
+        # Unassigned sensors
+        if unassigned_sensors:
+            cards.append({
+                "type": "glance",
+                "title": "Sensors",
+                "entities": [{"entity": eid} for eid in sorted(unassigned_sensors)[:12]],
             })
 
         # The dashboard config to use if creating from scratch
