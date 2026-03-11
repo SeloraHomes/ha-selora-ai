@@ -23,21 +23,23 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import yaml
+import uuid
+from datetime import datetime, timedelta
 from typing import Any
 
 import voluptuous as vol
 
 from aiohttp.web import Request, Response
 
-from homeassistant.components import conversation, webhook, websocket_api
+from homeassistant.components import webhook, websocket_api
 from homeassistant.components.websocket_api import decorators
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import intent
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
-from datetime import datetime, timedelta
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CONF_ANTHROPIC_API_KEY,
@@ -89,6 +91,174 @@ _LOGGER = logging.getLogger(__name__)
 
 WEBHOOK_ID = "selora_ai_command"
 PLATFORMS = ["sensor", "button", "conversation"]
+
+_CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
+_CONVERSATIONS_STORAGE_VERSION = 1
+
+# Maximum messages kept per session (older messages pruned from the middle,
+# keeping the first message for context and the latest N-1 for recency).
+_SESSION_MAX_MESSAGES = 100
+
+
+class ConversationStore:
+    """Thin wrapper around HA's Store for persisting chat sessions."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._store: Store = Store(
+            hass,
+            version=_CONVERSATIONS_STORAGE_VERSION,
+            key=_CONVERSATIONS_STORAGE_KEY,
+        )
+        self._data: dict[str, Any] | None = None
+
+    async def _ensure_loaded(self) -> None:
+        if self._data is None:
+            raw = await self._store.async_load()
+            self._data = raw if isinstance(raw, dict) else {"sessions": {}}
+
+    async def list_sessions(self) -> list[dict[str, Any]]:
+        """Return session summaries (no messages) sorted by updated_at descending."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        summaries = []
+        for sid, session in self._data["sessions"].items():
+            summaries.append({
+                "id": sid,
+                "title": session.get("title", "Untitled"),
+                "created_at": session.get("created_at", ""),
+                "updated_at": session.get("updated_at", ""),
+                "message_count": len(session.get("messages", [])),
+            })
+        summaries.sort(key=lambda s: s["updated_at"], reverse=True)
+        return summaries
+
+    async def get_session(self, session_id: str) -> dict[str, Any] | None:
+        """Return a full session including messages, or None if not found."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        return self._data["sessions"].get(session_id)
+
+    async def create_session(self) -> dict[str, Any]:
+        """Create a new empty session and persist it."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        now = datetime.utcnow().isoformat()
+        session: dict[str, Any] = {
+            "id": str(uuid.uuid4()),
+            "title": "New conversation",
+            "created_at": now,
+            "updated_at": now,
+            "messages": [],
+        }
+        self._data["sessions"][session["id"]] = session
+        await self._store.async_save(self._data)
+        return session
+
+    async def append_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        *,
+        automation: dict[str, Any] | None = None,
+        automation_yaml: str | None = None,
+        description: str | None = None,
+        automation_status: str | None = None,
+        intent: str | None = None,
+        calls: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Append a message to a session, auto-create if missing, and persist."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+
+        if session_id not in self._data["sessions"]:
+            now = datetime.utcnow().isoformat()
+            self._data["sessions"][session_id] = {
+                "id": session_id,
+                "title": "New conversation",
+                "created_at": now,
+                "updated_at": now,
+                "messages": [],
+            }
+
+        session = self._data["sessions"][session_id]
+        message: dict[str, Any] = {
+            "role": role,
+            "content": content,
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        if intent is not None:
+            message["intent"] = intent
+        if automation is not None:
+            message["automation"] = automation
+        if automation_yaml is not None:
+            message["automation_yaml"] = automation_yaml
+        if description is not None:
+            message["description"] = description
+        if automation_status is not None:
+            message["automation_status"] = automation_status
+        if calls is not None:
+            message["calls"] = calls
+
+        session["messages"].append(message)
+
+        # Prune if too long (keep first + latest N-1)
+        msgs = session["messages"]
+        if len(msgs) > _SESSION_MAX_MESSAGES:
+            session["messages"] = [msgs[0]] + msgs[-((_SESSION_MAX_MESSAGES - 1)):]
+
+        # Update title from first user message
+        if session["title"] == "New conversation":
+            for m in session["messages"]:
+                if m["role"] == "user":
+                    session["title"] = m["content"][:60]
+                    break
+
+        session["updated_at"] = datetime.utcnow().isoformat()
+        await self._store.async_save(self._data)
+        return message
+
+    async def set_automation_status(
+        self, session_id: str, message_index: int, status: str
+    ) -> bool:
+        """Update the automation_status field of a specific message."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        if not session:
+            return False
+        msgs = session["messages"]
+        if message_index < 0 or message_index >= len(msgs):
+            return False
+        msgs[message_index]["automation_status"] = status
+        session["updated_at"] = datetime.utcnow().isoformat()
+        await self._store.async_save(self._data)
+        return True
+
+    async def delete_session(self, session_id: str) -> bool:
+        """Delete a session. Returns True if it existed."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        if session_id not in self._data["sessions"]:
+            return False
+        del self._data["sessions"][session_id]
+        await self._store.async_save(self._data)
+        return True
+
+
+def _mask_api_key(key: str) -> str:
+    """Return a safe display hint — first 8 chars + ellipsis."""
+    if not key:
+        return ""
+    if len(key) <= 8:
+        return "***"
+    return f"{key[:8]}..."
 
 
 def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
@@ -191,46 +361,21 @@ async def _handle_webhook(
 @decorators.websocket_command({
     vol.Required("type"): "selora_ai/chat",
     vol.Required("message"): str,
+    vol.Optional("session_id"): str,
 })
 async def _handle_websocket_chat(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Handle chat messages from the side panel."""
-    
-    # 1. Try Home Assistant's native conversation assistant first.
-    # This allows the user to perform immediate actions without LLM reasoning.
-    try:
-        ha_result = await conversation.async_converse(
-            hass=hass,
-            text=msg["message"],
-            conversation_id=None,
-            context=connection.context,
-        )
-        
-        # If HA assistant handled it successfully, return its response.
-        if ha_result.response.error_code is None:
-            speech = ha_result.response.speech.get("plain", {}).get("speech", "")
-            if not speech and hasattr(ha_result.response, "as_dict"):
-                # Fallback to dict access if structured get fails
-                res_dict = ha_result.response.as_dict()
-                speech = res_dict.get("speech", {}).get("plain", {}).get("speech", "")
+    """Handle chat messages from the side panel.
 
-            if speech:
-                connection.send_result(msg["id"], {
-                    "response": speech,
-                    "automation": None,
-                    "automation_yaml": None,
-                })
-                return
-    except Exception as exc:
-        _LOGGER.error("Error in HA conversation processing: %s", exc)
-        # Continue to Selora LLM if Assist fails or crashes
-
-    # 2. Fall back to Selora LLM for automation reasoning.
+    The LLM classifies the intent itself (command / automation / clarification / answer).
+    Commands are executed immediately; automations are returned as proposals for user review.
+    All turns are persisted to the session store so conversations can be resumed.
+    """
     from .llm_client import LLMClient
-    
+
     llm: LLMClient | None = None
     for entry_data in hass.data.get(DOMAIN, {}).values():
         if isinstance(entry_data, dict) and "llm" in entry_data:
@@ -241,34 +386,222 @@ async def _handle_websocket_chat(
         connection.send_error(msg["id"], "not_initialized", "Selora AI LLM not initialized")
         return
 
-    # Get context: entities, devices, areas
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+
+    # Resolve or create session
+    session_id = msg.get("session_id") or ""
+    if session_id:
+        session = await store.get_session(session_id)
+        if not session:
+            # Stale id — start fresh
+            session = await store.create_session()
+            session_id = session["id"]
+    else:
+        session = await store.create_session()
+        session_id = session["id"]
+
+    # Build history from stored messages.
+    # For assistant messages that proposed an automation, append the YAML so the
+    # LLM has full context when the user asks to refine it.
+    stored_messages = (session or {}).get("messages", [])
+    history = []
+    for m in stored_messages:
+        if m.get("role") not in ("user", "assistant"):
+            continue
+        content = m["content"]
+        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
+            alias = (m.get("automation") or {}).get("alias", "")
+            description = m.get("description", "")
+            header = f"[Proposed automation: {alias}"
+            if description:
+                header += f" — {description}"
+            header += f"]\n{m['automation_yaml']}"
+            content = f"{content}\n\n{header}"
+        history.append({"role": m["role"], "content": content})
+
+    # Persist the user's message
+    user_message = msg["message"]
+    await store.append_message(session_id, "user", user_message)
+
+    # Gather home context
     entities = _collect_entity_states(hass)
-    
-    # Get existing automations for context
-    automations = []
-    for state in hass.states.async_all("automation"):
-        automations.append({
+    automations = [
+        {
             "entity_id": state.entity_id,
             "alias": state.attributes.get("friendly_name", state.entity_id),
             "state": state.state,
-        })
+        }
+        for state in hass.states.async_all("automation")
+    ]
 
-    # Send message to LLM (enhanced for chat)
     result = await llm.architect_chat(
-        msg["message"], 
-        entities, 
-        existing_automations=automations
+        user_message,
+        entities,
+        existing_automations=automations,
+        history=history,
     )
-    
-    if "error" in result:
+
+    if "error" in result and result.get("intent") != "answer":
         connection.send_error(msg["id"], "llm_error", result["error"])
         return
-        
+
+    intent_type = result.get("intent", "answer")
+    response_text = result.get("response", "I'm not sure how to help with that.")
+
+    # --- Execute immediate commands ---
+    executed: list[str] = []
+    if intent_type == "command":
+        calls = result.get("calls", [])
+        for call in calls:
+            service = call.get("service", "")
+            if not service or "." not in service:
+                continue
+            domain_part, service_name = service.split(".", 1)
+            target = call.get("target", {})
+            data = call.get("data", {})
+            try:
+                await hass.services.async_call(
+                    domain_part, service_name, {**data, **target}, blocking=True
+                )
+                executed.append(service)
+            except Exception as exc:
+                _LOGGER.error("Failed to execute %s: %s", service, exc)
+                response_text += f" (Failed: {service}: {exc})"
+
+    # Persist the assistant response
+    await store.append_message(
+        session_id,
+        "assistant",
+        response_text,
+        intent=intent_type,
+        automation=result.get("automation"),
+        automation_yaml=result.get("automation_yaml"),
+        description=result.get("description"),
+        automation_status="pending" if result.get("automation") else None,
+        calls=result.get("calls") if intent_type == "command" else None,
+    )
+
+    # Retrieve index of the assistant message just appended (for status updates)
+    updated_session = await store.get_session(session_id)
+    assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
+
     connection.send_result(msg["id"], {
-        "response": result.get("response", "I'm not sure how to help with that."),
+        "session_id": session_id,
+        "intent": intent_type,
+        "response": response_text,
+        "description": result.get("description"),
         "automation": result.get("automation"),
         "automation_yaml": result.get("automation_yaml"),
+        "automation_message_index": assistant_message_index if result.get("automation") else None,
+        "executed": executed,
+        "config_issue": result.get("config_issue", False),
     })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_sessions",
+})
+async def _handle_websocket_get_sessions(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return a list of conversation session summaries."""
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    sessions = await store.list_sessions()
+    connection.send_result(msg["id"], sessions)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_session",
+    vol.Required("session_id"): str,
+})
+async def _handle_websocket_get_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the full message history for a session."""
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    session = await store.get_session(msg["session_id"])
+    if not session:
+        connection.send_error(msg["id"], "not_found", "Session not found")
+        return
+    connection.send_result(msg["id"], session)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/new_session",
+})
+async def _handle_websocket_new_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create a new empty conversation session."""
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    session = await store.create_session()
+    connection.send_result(msg["id"], {"session_id": session["id"]})
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/delete_session",
+    vol.Required("session_id"): str,
+})
+async def _handle_websocket_delete_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Delete a conversation session."""
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    deleted = await store.delete_session(msg["session_id"])
+    if not deleted:
+        connection.send_error(msg["id"], "not_found", "Session not found")
+        return
+    connection.send_result(msg["id"], {"status": "deleted"})
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/set_automation_status",
+    vol.Required("session_id"): str,
+    vol.Required("message_index"): int,
+    vol.Required("status"): str,
+})
+async def _handle_websocket_set_automation_status(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update the acceptance status of an automation proposal in a session."""
+    valid_statuses = {"pending", "accepted", "declined", "saved", "refining"}
+    if msg["status"] not in valid_statuses:
+        connection.send_error(msg["id"], "invalid_status", f"Status must be one of {valid_statuses}")
+        return
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    ok = await store.set_automation_status(msg["session_id"], msg["message_index"], msg["status"])
+    if not ok:
+        connection.send_error(msg["id"], "not_found", "Session or message not found")
+        return
+    connection.send_result(msg["id"], {"status": "updated"})
 
 
 @websocket_api.async_response
@@ -312,6 +645,71 @@ async def _handle_websocket_create_automation(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/apply_automation_yaml",
+    vol.Required("yaml_text"): str,
+})
+async def _handle_websocket_apply_automation_yaml(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Parse raw YAML text and create a new automation from it."""
+    from .automation_utils import _parse_automation_yaml, async_create_automation
+
+    parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
+    if parsed is None:
+        connection.send_error(msg["id"], "parse_error", "Invalid YAML — could not parse automation")
+        return
+
+    has_trigger = parsed.get("trigger") or parsed.get("triggers")
+    has_action = parsed.get("action") or parsed.get("actions")
+    if not parsed.get("alias") or not has_trigger or not has_action:
+        connection.send_error(msg["id"], "invalid_format", "Automation must have alias, trigger, and action")
+        return
+
+    try:
+        success = await async_create_automation(hass, parsed)
+        if success:
+            connection.send_result(msg["id"], {"status": "created"})
+        else:
+            connection.send_error(msg["id"], "creation_failed", "Failed to write automation")
+    except Exception as exc:
+        _LOGGER.exception("Error applying automation YAML")
+        connection.send_error(msg["id"], "error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/update_automation_yaml",
+    vol.Required("automation_id"): str,
+    vol.Required("yaml_text"): str,
+})
+async def _handle_websocket_update_automation_yaml(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Parse raw YAML text and update an existing automation in automations.yaml."""
+    from .automation_utils import _parse_automation_yaml, async_update_automation
+
+    parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
+    if parsed is None:
+        connection.send_error(msg["id"], "parse_error", "Invalid YAML — could not parse automation")
+        return
+
+    try:
+        success = await async_update_automation(hass, msg["automation_id"], parsed)
+        if success:
+            connection.send_result(msg["id"], {"status": "updated"})
+        else:
+            connection.send_error(msg["id"], "not_found", "Automation not found in automations.yaml")
+    except Exception as exc:
+        _LOGGER.exception("Error updating automation YAML")
+        connection.send_error(msg["id"], "error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_suggestions",
 })
 async def _handle_websocket_get_suggestions(
@@ -333,35 +731,65 @@ async def _handle_websocket_get_automations(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Return all existing automations and flag Selora-managed ones."""
+    """Return all existing automations and flag Selora-managed ones, including full config."""
     try:
         from homeassistant.helpers import entity_registry as er
-        
+        from .automation_utils import _read_automations_yaml
+        from pathlib import Path
+
         registry = er.async_get(hass)
+
+        # Build a lookup from automation id → full config for flowchart rendering
+        automations_path = Path(hass.config.config_dir) / "automations.yaml"
+        yaml_automations = await hass.async_add_executor_job(
+            _read_automations_yaml, automations_path
+        )
+        yaml_by_id: dict[str, dict] = {
+            a.get("id", ""): a for a in yaml_automations if a.get("id")
+        }
+
         automations = []
-        
+
         for state in hass.states.async_all("automation"):
             entity_id = state.entity_id
             entry = registry.async_get(entity_id)
-            
+
             is_selora = False
+            automation_id = ""
             if entry and entry.unique_id:
+                automation_id = entry.unique_id
                 is_selora = entry.unique_id.startswith(AUTOMATION_ID_PREFIX)
-            
+
             # Fallback to description check if unique_id doesn't match
             description = state.attributes.get("description", "")
             if not is_selora and description and "[Selora AI]" in description:
                 is_selora = True
-                
+
+            # Merge full config (trigger/condition/action) from automations.yaml
+            full_config = yaml_by_id.get(automation_id, {})
+
+            # Serialise config as editable YAML text (omit internal HA fields)
+            yaml_text = ""
+            if full_config:
+                try:
+                    yaml_text = yaml.dump(full_config, allow_unicode=True, default_flow_style=False)
+                except Exception:
+                    yaml_text = ""
+
             automations.append({
                 "entity_id": entity_id,
+                "automation_id": automation_id,
                 "alias": state.attributes.get("friendly_name", entity_id),
                 "description": description,
                 "state": state.state,
                 "is_selora": is_selora,
                 "last_triggered": state.attributes.get("last_triggered"),
+                "trigger": full_config.get("trigger") or full_config.get("triggers") or [],
+                "condition": full_config.get("condition") or full_config.get("conditions") or [],
+                "action": full_config.get("action") or full_config.get("actions") or [],
+                "yaml_text": yaml_text,
             })
-            
+
         connection.send_result(msg["id"], automations)
     except Exception as exc:
         _LOGGER.exception("Error in _handle_websocket_get_automations")
@@ -390,9 +818,12 @@ async def _handle_websocket_get_config(
     
     connection.send_result(msg["id"], {
         "llm_provider": config_data.get(CONF_LLM_PROVIDER),
-        "anthropic_api_key": config_data.get(CONF_ANTHROPIC_API_KEY, ""),
+        # Never send the raw key to the frontend — only a safe display hint.
+        "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),
+        "anthropic_api_key_set": bool(config_data.get(CONF_ANTHROPIC_API_KEY)),
         "anthropic_model": config_data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
-        "openai_api_key": config_data.get(CONF_OPENAI_API_KEY, ""),
+        "openai_api_key_hint": _mask_api_key(config_data.get(CONF_OPENAI_API_KEY, "")),
+        "openai_api_key_set": bool(config_data.get(CONF_OPENAI_API_KEY)),
         "openai_model": config_data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
         "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
         "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
@@ -434,6 +865,8 @@ async def _handle_websocket_update_config(
         CONF_LLM_PROVIDER,
         CONF_ANTHROPIC_API_KEY,
         CONF_ANTHROPIC_MODEL,
+        CONF_OPENAI_API_KEY,
+        CONF_OPENAI_MODEL,
         CONF_OLLAMA_HOST,
         CONF_OLLAMA_MODEL,
         CONF_ENTRY_TYPE,
@@ -441,6 +874,14 @@ async def _handle_websocket_update_config(
     
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
     new_options = {k: v for k, v in new_config.items() if k not in data_keys}
+
+    # Only overwrite the stored API keys if the frontend sent a new non-empty value.
+    # The frontend sends an empty string when the user hasn't touched the key field,
+    # so we must not clobber the existing key in that case.
+    for key in (CONF_ANTHROPIC_API_KEY, CONF_OPENAI_API_KEY):
+        if key in new_data and not new_data[key]:
+            new_data.pop(key, None)
+
     
     # Update the entry
     hass.config_entries.async_update_entry(
@@ -461,10 +902,18 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Register WebSocket API
     websocket_api.async_register_command(hass, _handle_websocket_chat)
     websocket_api.async_register_command(hass, _handle_websocket_create_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_apply_automation_yaml)
+    websocket_api.async_register_command(hass, _handle_websocket_update_automation_yaml)
     websocket_api.async_register_command(hass, _handle_websocket_get_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automations)
     websocket_api.async_register_command(hass, _handle_websocket_get_config)
     websocket_api.async_register_command(hass, _handle_websocket_update_config)
+    # Conversation sessions
+    websocket_api.async_register_command(hass, _handle_websocket_get_sessions)
+    websocket_api.async_register_command(hass, _handle_websocket_get_session)
+    websocket_api.async_register_command(hass, _handle_websocket_new_session)
+    websocket_api.async_register_command(hass, _handle_websocket_delete_session)
+    websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
