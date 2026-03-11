@@ -260,14 +260,14 @@ CONF_OLLAMA_HOST = "ollama_host"
 CONF_OLLAMA_MODEL = "ollama_model"
 
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
-DEFAULT_OLLAMA_MODEL = "llama3.1"
+DEFAULT_OLLAMA_MODEL = "llama4"
 
 # ── OpenAI (GPT API) ───────────────────────────────────────────────
 CONF_OPENAI_API_KEY = "openai_api_key"
 CONF_OPENAI_MODEL = "openai_model"
 
 DEFAULT_OPENAI_HOST = "https://api.openai.com"
-DEFAULT_OPENAI_MODEL = "gpt-4o"
+DEFAULT_OPENAI_MODEL = "gpt-5.4"
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"

@@ -97,10 +97,30 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             )
 
         response_text = result.get("response", "I'm not sure how to help with that.")
-        
-        # If there's an automation, we inform the user it's in the panel
-        if result.get("automation"):
-            response_text += "\n\n(I've generated a draft automation. You can review and enable it in the Selora AI sidebar panel.)"
+        intent_type = result.get("intent", "answer")
+
+        if intent_type == "command":
+            # Execute immediate commands via HA Assist context
+            calls = result.get("calls", [])
+            for call in calls:
+                service = call.get("service", "")
+                if not service or "." not in service:
+                    continue
+                domain_part, service_name = service.split(".", 1)
+                target = call.get("target", {})
+                data = call.get("data", {})
+                try:
+                    await self.hass.services.async_call(
+                        domain_part, service_name, {**data, **target}, blocking=True
+                    )
+                except Exception as exc:
+                    _LOGGER.error("Failed to execute %s via Assist: %s", service, exc)
+
+        elif intent_type == "automation" and result.get("automation"):
+            desc = result.get("description", "")
+            if desc:
+                response_text += f"\n\nAutomation summary: {desc}"
+            response_text += "\n\n(Draft automation created — review and enable it in the Selora AI sidebar panel.)"
 
         response.async_set_speech(response_text)
         

@@ -36,6 +36,46 @@ def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> No
         ryaml.dump(automations, fh)
     tmp_path.replace(path)
 
+def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
+    """Parse a YAML string into an automation dict (runs in executor). Returns None on error."""
+    try:
+        data = yaml.safe_load(yaml_text)
+        if isinstance(data, dict):
+            return data
+    except yaml.YAMLError as exc:
+        _LOGGER.error("YAML parse error: %s", exc)
+    return None
+
+
+async def async_update_automation(hass: HomeAssistant, automation_id: str, updated: dict[str, Any]) -> bool:
+    """Replace an existing automation (by id) in automations.yaml and reload."""
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    found = False
+    for i, a in enumerate(existing):
+        if a.get("id") == automation_id:
+            # Preserve the original id and keep initial_state from existing unless overridden
+            updated.setdefault("id", automation_id)
+            updated.setdefault("initial_state", a.get("initial_state", False))
+            existing[i] = updated
+            found = True
+            break
+
+    if not found:
+        _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
+        return False
+
+    try:
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+        _LOGGER.info("Updated automation: %s", automation_id)
+        await hass.services.async_call("automation", "reload")
+        return True
+    except Exception as exc:
+        _LOGGER.exception("Failed to update automation: %s", exc)
+        return False
+
+
 async def async_create_automation(hass: HomeAssistant, suggestion: dict[str, Any]) -> bool:
     """Write a single automation suggestion to automations.yaml and reload."""
     automations_path = Path(hass.config.config_dir) / "automations.yaml"

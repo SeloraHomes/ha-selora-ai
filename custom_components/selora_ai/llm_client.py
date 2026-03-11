@@ -127,77 +127,100 @@ class LLMClient:
         user_message: str,
         entities: list[dict[str, Any]],
         existing_automations: list[dict[str, Any]] | None = None,
+        history: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
-        """Conversational architect chat for generating automations."""
+        """Conversational architect — classifies intent and handles commands, automations, or questions.
+
+        history: prior turns as [{"role": "user"|"assistant", "content": "plain text"}].
+                 Only plain content (no entity context blobs) — home context is only injected
+                 on the current turn to keep token usage bounded across a long session.
+
+        Returns a dict with at minimum:
+          intent: "command" | "automation" | "clarification" | "answer"
+          response: conversational text for the chat bubble
+        For "automation":
+          automation: HA automation JSON
+          automation_yaml: YAML string (generated here, not by LLM)
+          description: plain-English summary of what the automation does
+        For "command":
+          calls: list of HA service call dicts
+        """
         if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
             provider_label = "Anthropic" if self._provider == LLM_PROVIDER_ANTHROPIC else "OpenAI"
             return {
+                "intent": "answer",
                 "response": f"Please configure your {provider_label} API Key in the Settings tab to start chatting.",
-                "config_issue": True
+                "config_issue": True,
             }
 
         system_prompt = self._build_architect_system_prompt()
-        
+
         # Build context from interesting entities only to save tokens
-        # (lights, switches, media players, climate, sensors)
         interesting_domains = {
-            "light", "switch", "media_player", "climate", "fan", 
+            "light", "switch", "media_player", "climate", "fan",
             "cover", "lock", "vacuum", "sensor", "binary_sensor",
-            "water_heater", "humidifier", "input_boolean", "input_select"
+            "water_heater", "humidifier", "input_boolean", "input_select",
         }
-        
-        entity_lines = []
+
+        entity_lines: list[str] = []
         for e in entities:
             eid = e.get("entity_id", "")
             domain = eid.split(".")[0]
             if domain not in interesting_domains:
                 continue
-                
             state = e.get("state", "unknown")
             friendly = e.get("attributes", {}).get("friendly_name", "")
             entity_lines.append(f"  - {eid}: {state} ({friendly})")
-            
-        # Limit to first 500 entities if still too many
+
         if len(entity_lines) > 500:
             entity_lines = entity_lines[:500]
             entity_lines.append("  - ... (truncated to 500 entities)")
-            
-        # Build context for existing automations
-        auto_lines = []
+
+        auto_lines: list[str] = []
         if existing_automations:
             for a in existing_automations:
                 alias = a.get("alias", a.get("entity_id", "unknown"))
                 state = a.get("state", "unknown")
                 auto_lines.append(f"  - {alias} (Status: {state})")
 
-        if not auto_lines:
-            auto_section = "EXISTING AUTOMATIONS: None yet.\n"
-        else:
-            auto_section = "EXISTING AUTOMATIONS:\n" + "\n".join(auto_lines) + "\n"
-            
+        auto_section = (
+            "EXISTING AUTOMATIONS:\n" + "\n".join(auto_lines)
+            if auto_lines
+            else "EXISTING AUTOMATIONS: None yet."
+        )
+
+        # Current turn: include full home context so the LLM can resolve entity references
         context_prompt = (
             f"USER REQUEST: {user_message}\n\n"
-            f"{auto_section}\n"
-            f"AVAILABLE ENTITIES:\n" + "\n".join(entity_lines) + "\n\n"
-            "If the request is for an automation, provide the automation in the requested JSON format. "
-            "You can also suggest modifications to existing automations listed above. "
-            "Otherwise, just answer the user's question."
+            f"{auto_section}\n\n"
+            "AVAILABLE ENTITIES:\n" + "\n".join(entity_lines)
         )
 
-        result, error = await self._send_request(
-            system=system_prompt,
-            messages=[{"role": "user", "content": context_prompt}]
-        )
+        # Multi-turn messages: prior history (plain text only) + current turn with full context.
+        # History entries should only carry the human-readable content — not the entity blobs —
+        # so the LLM can follow the conversational thread without ballooning the prompt.
+        messages: list[dict[str, str]] = []
+        for turn in (history or [])[-10:]:
+            role = turn.get("role", "")
+            content = str(turn.get("content", "")).strip()
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+        messages.append({"role": "user", "content": context_prompt})
+
+        result, error = await self._send_request(system=system_prompt, messages=messages)
 
         if not result:
-            is_config_issue = error and ("HTTP 401" in error or "credit balance" in error)
+            is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
             return {
-                "response": f"I'm sorry, I encountered an error while communicating with the LLM: {error or 'Unknown error'}. Please check your settings and logs.",
+                "intent": "answer",
+                "response": (
+                    f"I encountered an error communicating with the LLM: {error or 'Unknown error'}. "
+                    "Please check your settings and logs."
+                ),
                 "error": error or "llm_request_failed",
-                "config_issue": is_config_issue
+                "config_issue": is_config_issue,
             }
-            
-        # Parse for structured output (we want a response text + optional automation JSON)
+
         return self._parse_architect_response(result)
 
     async def _send_request(
@@ -267,56 +290,90 @@ class LLMClient:
     def _build_architect_system_prompt(self) -> str:
         """System prompt for the Smart Home Architect role."""
         return (
-            "You are the Selora AI Smart Home Architect. Your goal is to help users create practical, "
-            "reliable Home Assistant automations. You have access to the current state of their home.\n\n"
-            "GUIDANCE FOR USERS (Share this when relevant):\n"
-            "- For simple, immediate actions (e.g., 'turn on the kitchen light', 'is the front door locked?'), "
-            "Home Assistant Assist handles these directly in this chat.\n"
-            "- For complex logic, schedules, or multi-device scenarios, ask me to 'build an automation'.\n"
-            "- If I suggest an automation, you can review the YAML and click 'Create' to add it to your system.\n\n"
-            "When a user asks for an automation:\n"
-            "1. Identify the correct entities to use based on the provided list.\n"
-            "2. Generate a valid Home Assistant automation in JSON format.\n"
-            "3. Explain briefly what the automation does.\n\n"
-            "CRITICAL: Your response must be in this JSON format if an automation is generated:\n"
-            "{\n"
-            "  \"response\": \"Your conversational explanation here\",\n"
-            "  \"automation\": {\n"
-            "    \"alias\": \"Name\",\n"
-            "    \"description\": \"...\",\n"
-            "    \"triggers\": [...],\n"
-            "    \"conditions\": [...],\n"
-            "    \"actions\": [...]\n"
-            "  }\n"
-            "}\n"
-            "If no automation is needed, just return:\n"
-            "{\n"
-            "  \"response\": \"Your answer here\"\n"
-            "}\n"
-            "Always return ONLY valid JSON."
+            "You are the Selora AI Smart Home Architect. You help users control their smart home and design automations.\n"
+            "You have access to the current entity states and can see the conversation history for context.\n\n"
+            "CLASSIFY the user's intent and respond with one of these JSON formats:\n\n"
+
+            "1. IMMEDIATE COMMAND — control a device right now (turn on/off, set level, query state):\n"
+            '{\n'
+            '  "intent": "command",\n'
+            '  "response": "Short confirmation, e.g. Turning on the kitchen lights.",\n'
+            '  "calls": [\n'
+            '    {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}, "data": {"brightness_pct": 80}}\n'
+            '  ]\n'
+            '}\n\n'
+
+            "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
+            '{\n'
+            '  "intent": "automation",\n'
+            '  "response": "Conversational explanation of what you built and any trade-offs.",\n'
+            '  "description": "Precise plain-English summary for the user to verify — e.g. \'Every weekday at 7am: turn on light.bedroom and start media_player.kitchen_speaker.\'",\n'
+            '  "automation": {\n'
+            '    "alias": "Descriptive name",\n'
+            '    "description": "...",\n'
+            '    "triggers": [...],\n'
+            '    "conditions": [...],\n'
+            '    "actions": [...]\n'
+            '  }\n'
+            '}\n\n'
+
+            "3. CLARIFICATION — the request is ambiguous; ask a focused follow-up question:\n"
+            '{\n'
+            '  "intent": "clarification",\n'
+            '  "response": "The specific question you need answered before proceeding."\n'
+            '}\n\n'
+
+            "4. ANSWER — general question or conversation that needs no device control or automation:\n"
+            '{\n'
+            '  "intent": "answer",\n'
+            '  "response": "Your answer."\n'
+            '}\n\n'
+
+            "RULES:\n"
+            "- Only use entity_ids from the AVAILABLE ENTITIES list.\n"
+            "- For automations, use plural HA 2024+ keys: 'triggers', 'actions', 'conditions'.\n"
+            "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
+            "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
+            "- Use conversation history to interpret follow-ups and refine previous automations.\n"
+            "- When refining an existing automation, return the full updated automation JSON.\n"
+            "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
         )
 
     def _parse_architect_response(self, text: str) -> dict[str, Any]:
-        """Parse the JSON response from the architect LLM."""
+        """Parse the JSON response from the architect LLM.
+
+        Normalises the result to always include 'intent' and 'response'.
+        For 'automation' intent, generates automation_yaml server-side.
+        """
         try:
-            # Try to find JSON block if the LLM added prose
             start = text.find("{")
             end = text.rfind("}")
-            if start != -1 and end != -1:
-                json_str = text[start : end + 1]
-                data = json.loads(json_str)
-                
-                # Add YAML version for the UI preview
+            if start == -1 or end == -1:
+                return {"intent": "answer", "response": text}
+
+            data: dict[str, Any] = json.loads(text[start : end + 1])
+
+            # Ensure intent is always present
+            if "intent" not in data:
+                # Legacy single-key response without intent — infer from content
                 if "automation" in data:
-                    import yaml
-                    data["automation_yaml"] = yaml.dump(
-                        data["automation"], default_flow_style=False, allow_unicode=True
-                    )
-                return data
-            return {"response": text}
-        except Exception:
-            _LOGGER.error("Failed to parse architect response: %s", text)
-            return {"response": text}
+                    data["intent"] = "automation"
+                elif "calls" in data:
+                    data["intent"] = "command"
+                else:
+                    data["intent"] = "answer"
+
+            # Generate YAML server-side so the LLM doesn't need to produce it
+            if data.get("automation"):
+                data["automation_yaml"] = yaml.dump(
+                    data["automation"], default_flow_style=False, allow_unicode=True
+                )
+
+            return data
+
+        except (json.JSONDecodeError, KeyError, ValueError):
+            _LOGGER.error("Failed to parse architect response: %s", text[:500])
+            return {"intent": "answer", "response": text}
 
     def _build_system_prompt(self) -> str:
         """System prompt — defines Selora AI's persona and output format."""
