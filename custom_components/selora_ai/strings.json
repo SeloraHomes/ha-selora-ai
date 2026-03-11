@@ -45,5 +45,25 @@
       "no_devices_found": "No new devices were discovered on your network. Try again later.",
       "no_devices_selected": "No devices were selected."
     }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Background Services Settings",
+        "description": "Configure background services for Selora AI.",
+        "data": {
+          "collector_enabled": "Data Collector (AI Analysis) Enabled",
+          "collector_mode": "Execution Mode",
+          "collector_interval": "Analysis Interval (seconds)",
+          "collector_start_time": "Scheduled Start Time",
+          "collector_end_time": "Scheduled End Time",
+          "discovery_enabled": "Network Discovery Enabled",
+          "discovery_mode": "Execution Mode",
+          "discovery_interval": "Discovery Interval (seconds)",
+          "discovery_start_time": "Scheduled Start Time",
+          "discovery_end_time": "Scheduled End Time"
+        }
+      }
+    }
   }
 }

@@ -22,7 +22,21 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import AUTOMATION_ID_PREFIX, DEFAULT_PUSH_INTERVAL, DEFAULT_RECORDER_LOOKBACK_DAYS, DOMAIN
+from .const import (
+    AUTOMATION_ID_PREFIX,
+    DEFAULT_PUSH_INTERVAL,
+    DEFAULT_RECORDER_LOOKBACK_DAYS,
+    DOMAIN,
+    CONF_COLLECTOR_ENABLED,
+    CONF_COLLECTOR_MODE,
+    CONF_COLLECTOR_INTERVAL,
+    CONF_COLLECTOR_START_TIME,
+    CONF_COLLECTOR_END_TIME,
+    MODE_SCHEDULED,
+    DEFAULT_COLLECTOR_ENABLED,
+    DEFAULT_COLLECTOR_MODE,
+    DEFAULT_COLLECTOR_INTERVAL,
+)
 from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,14 +50,23 @@ class DataCollector:
         hass: HomeAssistant,
         llm: LLMClient,
         lookback_days: int = DEFAULT_RECORDER_LOOKBACK_DAYS,
+        settings: dict[str, Any] | None = None,
     ) -> None:
         self._hass = hass
         self._llm = llm
         self._lookback_days = lookback_days
+        self._settings = settings or {}
         self._unsub_timer = None
 
     async def async_start(self) -> None:
         """Start the periodic collection → analysis → log cycle."""
+        enabled = self._settings.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED)
+        if not enabled:
+            _LOGGER.info("Data collector is disabled in settings")
+            return
+
+        interval = self._settings.get(CONF_COLLECTOR_INTERVAL, DEFAULT_COLLECTOR_INTERVAL)
+
         try:
             await self._collect_analyze_log()
         except Exception:
@@ -52,9 +75,9 @@ class DataCollector:
         self._unsub_timer = async_track_time_interval(
             self._hass,
             self._scheduled_cycle,
-            timedelta(seconds=DEFAULT_PUSH_INTERVAL),
+            timedelta(seconds=interval),
         )
-        _LOGGER.info("Data collector started (interval: %ss)", DEFAULT_PUSH_INTERVAL)
+        _LOGGER.info("Data collector started (interval: %ss)", interval)
 
     async def async_stop(self) -> None:
         """Stop the periodic timer."""
@@ -64,10 +87,36 @@ class DataCollector:
 
     async def _scheduled_cycle(self, _now: datetime) -> None:
         """Timer callback."""
+        # Respect schedule window
+        mode = self._settings.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE)
+        if mode == MODE_SCHEDULED:
+            start_str = self._settings.get(CONF_COLLECTOR_START_TIME, "09:00")
+            end_str = self._settings.get(CONF_COLLECTOR_END_TIME, "17:00")
+            
+            if not self._is_within_window(start_str, end_str):
+                _LOGGER.debug("Outside scheduled window (%s - %s), skipping collection", start_str, end_str)
+                return
+
         try:
             await self._collect_analyze_log()
         except Exception:
             _LOGGER.exception("Scheduled collection cycle failed")
+
+    def _is_within_window(self, start_time: str, end_time: str) -> bool:
+        """Check if current local time is within the HH:MM window."""
+        try:
+            now = datetime.now().time()
+            start = datetime.strptime(start_time, "%H:%M").time()
+            end = datetime.strptime(end_time, "%H:%M").time()
+
+            if start <= end:
+                return start <= now <= end
+            else:
+                # Spans midnight (e.g., 22:00 to 04:00)
+                return now >= start or now <= end
+        except ValueError:
+            _LOGGER.error("Invalid time format in settings: %s or %s", start_time, end_time)
+            return True # Default to allowed if config is broken
 
     async def _collect_analyze_log(self) -> None:
         """Full cycle: collect → LLM analysis → log suggestions."""
