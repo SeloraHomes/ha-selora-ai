@@ -205,6 +205,34 @@ CONF_ENTRY_TYPE = "entry_type"
 ENTRY_TYPE_LLM = "llm_config"
 ENTRY_TYPE_DEVICE = "device_onboarding"
 
+# ── Background Services ─────────────────────────────────────────────
+CONF_COLLECTOR_ENABLED = "collector_enabled"
+CONF_COLLECTOR_MODE = "collector_mode"
+CONF_COLLECTOR_START_TIME = "collector_start_time"
+CONF_COLLECTOR_END_TIME = "collector_end_time"
+CONF_COLLECTOR_INTERVAL = "collector_interval"
+
+CONF_DISCOVERY_ENABLED = "discovery_enabled"
+CONF_DISCOVERY_MODE = "discovery_mode"
+CONF_DISCOVERY_START_TIME = "discovery_start_time"
+CONF_DISCOVERY_END_TIME = "discovery_end_time"
+CONF_DISCOVERY_INTERVAL = "discovery_interval"
+
+MODE_CONTINUOUS = "continuous"
+MODE_SCHEDULED = "scheduled"
+
+DEFAULT_COLLECTOR_ENABLED = True
+DEFAULT_COLLECTOR_MODE = MODE_CONTINUOUS
+DEFAULT_COLLECTOR_INTERVAL = 3600  # 1 hour in seconds
+DEFAULT_COLLECTOR_START_TIME = "09:00"
+DEFAULT_COLLECTOR_END_TIME = "17:00"
+
+DEFAULT_DISCOVERY_ENABLED = True
+DEFAULT_DISCOVERY_MODE = MODE_CONTINUOUS
+DEFAULT_DISCOVERY_INTERVAL = 14400  # 4 hours in seconds
+DEFAULT_DISCOVERY_START_TIME = "00:00"
+DEFAULT_DISCOVERY_END_TIME = "23:59"
+
 # ── Device Selection ───────────────────────────────────────────────
 CONF_SELECTED_DEVICES = "selected_devices"
 
@@ -221,7 +249,7 @@ CONF_ANTHROPIC_MODEL = "anthropic_model"
 
 DEFAULT_ANTHROPIC_HOST = "https://api.anthropic.com"
 DEFAULT_ANTHROPIC_API_KEY = ""  # User must provide their own key during setup
-DEFAULT_ANTHROPIC_MODEL = "claude-3-5-sonnet-20240620"
+DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
 # ── Ollama (Local LLM) ──────────────────────────────────────────────

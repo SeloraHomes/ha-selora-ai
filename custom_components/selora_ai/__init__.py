@@ -35,6 +35,8 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
 from homeassistant.helpers.dispatcher import async_dispatcher_send
+from homeassistant.helpers.event import async_track_time_interval
+from datetime import datetime, timedelta
 
 from .const import (
     CONF_ANTHROPIC_API_KEY,
@@ -62,6 +64,20 @@ from .const import (
     PANEL_TITLE,
     PANEL_ICON,
     PANEL_PATH,
+    CONF_COLLECTOR_ENABLED,
+    CONF_COLLECTOR_MODE,
+    CONF_COLLECTOR_INTERVAL,
+    CONF_COLLECTOR_START_TIME,
+    CONF_COLLECTOR_END_TIME,
+    CONF_DISCOVERY_ENABLED,
+    CONF_DISCOVERY_MODE,
+    CONF_DISCOVERY_INTERVAL,
+    CONF_DISCOVERY_START_TIME,
+    CONF_DISCOVERY_END_TIME,
+    MODE_SCHEDULED,
+    DEFAULT_DISCOVERY_ENABLED,
+    DEFAULT_DISCOVERY_MODE,
+    DEFAULT_DISCOVERY_INTERVAL,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -364,12 +380,26 @@ async def _handle_websocket_get_config(
         return
     
     entry = entries[0]
+    # Merge entry data with options for a complete view
+    config_data = {**entry.data, **entry.options}
+    
     connection.send_result(msg["id"], {
-        "llm_provider": entry.data.get(CONF_LLM_PROVIDER),
-        "anthropic_api_key": entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
-        "anthropic_model": entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
-        "ollama_host": entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
-        "ollama_model": entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+        "llm_provider": config_data.get(CONF_LLM_PROVIDER),
+        "anthropic_api_key": config_data.get(CONF_ANTHROPIC_API_KEY, ""),
+        "anthropic_model": config_data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+        "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
+        "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+        # Background Services
+        "collector_enabled": config_data.get(CONF_COLLECTOR_ENABLED, True),
+        "collector_mode": config_data.get(CONF_COLLECTOR_MODE, "continuous"),
+        "collector_interval": config_data.get(CONF_COLLECTOR_INTERVAL, 3600),
+        "collector_start_time": config_data.get(CONF_COLLECTOR_START_TIME, "09:00"),
+        "collector_end_time": config_data.get(CONF_COLLECTOR_END_TIME, "17:00"),
+        "discovery_enabled": config_data.get(CONF_DISCOVERY_ENABLED, True),
+        "discovery_mode": config_data.get(CONF_DISCOVERY_MODE, "continuous"),
+        "discovery_interval": config_data.get(CONF_DISCOVERY_INTERVAL, 14400),
+        "discovery_start_time": config_data.get(CONF_DISCOVERY_START_TIME, "00:00"),
+        "discovery_end_time": config_data.get(CONF_DISCOVERY_END_TIME, "23:59"),
     })
 
 
@@ -392,8 +422,25 @@ async def _handle_websocket_update_config(
     entry = entries[0]
     new_config = msg["config"]
     
-    # Update the entry data
-    hass.config_entries.async_update_entry(entry, data={**entry.data, **new_config})
+    # Split into data and options
+    data_keys = {
+        CONF_LLM_PROVIDER,
+        CONF_ANTHROPIC_API_KEY,
+        CONF_ANTHROPIC_MODEL,
+        CONF_OLLAMA_HOST,
+        CONF_OLLAMA_MODEL,
+        CONF_ENTRY_TYPE,
+    }
+    
+    new_data = {k: v for k, v in new_config.items() if k in data_keys}
+    new_options = {k: v for k, v in new_config.items() if k not in data_keys}
+    
+    # Update the entry
+    hass.config_entries.async_update_entry(
+        entry, 
+        data={**entry.data, **new_data},
+        options={**entry.options, **new_options}
+    )
     
     # Reload the entry to apply changes
     await hass.config_entries.async_reload(entry.entry_id)
@@ -520,7 +567,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
     from .collector import DataCollector
-    collector = DataCollector(hass, llm, lookback_days=lookback)
+    collector = DataCollector(hass, llm, lookback_days=lookback, settings=entry.options)
     device_mgr = DeviceManager(
         hass,
         api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, "") if llm else "",
@@ -533,6 +580,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "llm": llm,
         "collector": collector,
         "device_manager": device_mgr,
+        "unsub_discovery": None, # Will be set below
     }
 
     # Register a hub device for Selora AI (service type — not a physical device)
@@ -556,45 +604,87 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if cleanup["removed_devices"]:
         _LOGGER.info("Removed %d mirror devices on startup", len(cleanup["removed_devices"]))
 
-    # Schedule delayed discovery (30s) so HA's SSDP/mDNS has time to find devices
-    # Discovery only — users onboard devices via "Add Entry" in the UI
-    async def _delayed_discovery() -> None:
-        await asyncio.sleep(30)
+    # Schedule periodic discovery if enabled
+    options = entry.options
+    discovery_enabled = options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED)
+    
+    async def _run_discovery(_now: datetime | None = None) -> None:
+        """Run the discovery process and respect settings."""
+        # Respect schedule window if not initial startup
+        if _now is not None:
+            mode = options.get(CONF_DISCOVERY_MODE, DEFAULT_DISCOVERY_MODE)
+            if mode == MODE_SCHEDULED:
+                start_str = options.get(CONF_DISCOVERY_START_TIME, "00:00")
+                end_str = options.get(CONF_DISCOVERY_END_TIME, "23:59")
+                
+                # Inline _is_within_window logic
+                try:
+                    now_time = datetime.now().time()
+                    start_time = datetime.strptime(start_str, "%H:%M").time()
+                    end_time = datetime.strptime(end_str, "%H:%M").time()
+                    
+                    within = False
+                    if start_time <= end_time:
+                        within = start_time <= now_time <= end_time
+                    else:
+                        within = now_time >= start_time or now_time <= end_time
+                    
+                    if not within:
+                        _LOGGER.debug("Outside discovery window (%s - %s), skipping", start_str, end_str)
+                        return
+                except ValueError:
+                    _LOGGER.error("Invalid discovery time format: %s or %s", start_str, end_str)
+
         try:
             result = await device_mgr.discover_network_devices()
             summary = result.get("summary", {})
             _LOGGER.info(
-                "Startup discovery: %d discovered, %d configured, %d available",
+                "Network discovery: %d discovered, %d configured, %d available",
                 summary.get("discovered_count", 0),
                 summary.get("configured_count", 0),
                 summary.get("available_count", 0),
             )
-            # Sync Cast known_hosts (safe, does not require user input)
+            # Sync Cast known_hosts (safe)
             cast_result = await device_mgr.sync_cast_known_hosts()
             if cast_result.get("updated"):
                 _LOGGER.info("Cast known_hosts updated: %s", cast_result.get("added_hosts"))
-                await asyncio.sleep(10)
-            # Auto-assign areas (safe, does not create new integrations)
+            
+            # Auto-assign areas (safe)
             area_result = await device_mgr.auto_assign_areas()
-            area_assigned = area_result.get("assigned", [])
-            if area_assigned:
-                _LOGGER.info("Auto-assigned %d devices to areas", len(area_assigned))
+            if area_result.get("assigned"):
+                _LOGGER.info("Auto-assigned %d devices to areas", len(area_result["assigned"]))
+            
             # Generate dashboard
             await device_mgr.generate_dashboard()
-            from .const import SIGNAL_DEVICES_UPDATED, SIGNAL_ACTIVITY_LOG
             async_dispatcher_send(hass, SIGNAL_DEVICES_UPDATED)
+            
             discovered_count = summary.get("discovered_count", 0)
             if discovered_count > 0:
                 async_dispatcher_send(
                     hass, SIGNAL_ACTIVITY_LOG,
-                    f"Startup discovery: {discovered_count} devices found — "
-                    f"use 'Add Entry' to onboard them",
+                    f"Network discovery: {discovered_count} new devices found",
                     "discover",
                 )
         except Exception:
-            _LOGGER.exception("Delayed discovery failed")
+            _LOGGER.exception("Discovery task failed")
+
+    # Initial delayed discovery
+    async def _delayed_discovery() -> None:
+        await asyncio.sleep(30)
+        if discovery_enabled:
+            await _run_discovery()
 
     hass.async_create_task(_delayed_discovery())
+    
+    # Periodic discovery timer
+    unsub_discovery = None
+    if discovery_enabled:
+        interval = options.get(CONF_DISCOVERY_INTERVAL, DEFAULT_DISCOVERY_INTERVAL)
+        unsub_discovery = async_track_time_interval(
+            hass, _run_discovery, timedelta(seconds=interval)
+        )
+        _LOGGER.info("Periodic discovery started (interval: %ss)", interval)
+        hass.data[DOMAIN][entry.entry_id]["unsub_discovery"] = unsub_discovery
 
     # Set up entity platforms (sensor + button)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
@@ -616,6 +706,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
         hass.data[DOMAIN]["_webhook_registered"] = True
         _LOGGER.info("Selora AI webhooks registered: /api/webhook/%s, /api/webhook/%s", WEBHOOK_ID, WEBHOOK_DEVICES_ID)
+    
     # Start background collection + analysis
     if llm:
         await collector.async_start()
@@ -623,7 +714,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Selora AI started (unconfigured mode)")
     
+    # Register update listener for options
+    entry.async_on_unload(entry.add_update_listener(async_reload_entry))
+
     return True
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload the config entry when options change."""
+    await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
@@ -635,9 +734,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
 
     collector: DataCollector | None = data.get("collector")
+    unsub_discovery = data.get("unsub_discovery")
 
     if collector:
         await collector.async_stop()
+    
+    if unsub_discovery:
+        unsub_discovery()
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

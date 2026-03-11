@@ -36,16 +36,38 @@ from .const import (
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
     CONF_SELECTED_DEVICES,
+    CONF_COLLECTOR_ENABLED,
+    CONF_COLLECTOR_MODE,
+    CONF_COLLECTOR_START_TIME,
+    CONF_COLLECTOR_END_TIME,
+    CONF_COLLECTOR_INTERVAL,
+    CONF_DISCOVERY_ENABLED,
+    CONF_DISCOVERY_MODE,
+    CONF_DISCOVERY_START_TIME,
+    CONF_DISCOVERY_END_TIME,
+    CONF_DISCOVERY_INTERVAL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_COLLECTOR_ENABLED,
+    DEFAULT_COLLECTOR_MODE,
+    DEFAULT_COLLECTOR_INTERVAL,
+    DEFAULT_COLLECTOR_START_TIME,
+    DEFAULT_COLLECTOR_END_TIME,
+    DEFAULT_DISCOVERY_ENABLED,
+    DEFAULT_DISCOVERY_MODE,
+    DEFAULT_DISCOVERY_INTERVAL,
+    DEFAULT_DISCOVERY_START_TIME,
+    DEFAULT_DISCOVERY_END_TIME,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_NONE,
+    MODE_CONTINUOUS,
+    MODE_SCHEDULED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,6 +114,10 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """
 
     VERSION = 1
+
+    def async_get_options_flow(self, config_entry: config_entries.ConfigEntry) -> SeloraAiOptionsFlowHandler:
+        """Get the options flow for this handler."""
+        return SeloraAiOptionsFlowHandler(config_entry)
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -552,4 +578,82 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 "needs_attention": str(needs_attention),
                 "details": details,
             },
+        )
+
+
+class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
+    """Handle Selora AI options."""
+
+    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+        """Initialize options flow."""
+        self.config_entry = config_entry
+
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Manage the background services options."""
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        options = self.config_entry.options
+
+        return self.async_show_form(
+            step_id="init",
+            data_schema=vol.Schema(
+                {
+                    # Data Collector
+                    vol.Required(
+                        CONF_COLLECTOR_ENABLED,
+                        default=options.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED),
+                    ): bool,
+                    vol.Required(
+                        CONF_COLLECTOR_MODE,
+                        default=options.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE),
+                    ): vol.In(
+                        {
+                            MODE_CONTINUOUS: "Continuous",
+                            MODE_SCHEDULED: "Scheduled Window",
+                        }
+                    ),
+                    vol.Required(
+                        CONF_COLLECTOR_INTERVAL,
+                        default=options.get(CONF_COLLECTOR_INTERVAL, DEFAULT_COLLECTOR_INTERVAL),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=60)),
+                    vol.Optional(
+                        CONF_COLLECTOR_START_TIME,
+                        default=options.get(CONF_COLLECTOR_START_TIME, DEFAULT_COLLECTOR_START_TIME),
+                    ): str,
+                    vol.Optional(
+                        CONF_COLLECTOR_END_TIME,
+                        default=options.get(CONF_COLLECTOR_END_TIME, DEFAULT_COLLECTOR_END_TIME),
+                    ): str,
+                    
+                    # Network Discovery
+                    vol.Required(
+                        CONF_DISCOVERY_ENABLED,
+                        default=options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED),
+                    ): bool,
+                    vol.Required(
+                        CONF_DISCOVERY_MODE,
+                        default=options.get(CONF_DISCOVERY_MODE, DEFAULT_DISCOVERY_MODE),
+                    ): vol.In(
+                        {
+                            MODE_CONTINUOUS: "Continuous",
+                            MODE_SCHEDULED: "Scheduled Window",
+                        }
+                    ),
+                    vol.Required(
+                        CONF_DISCOVERY_INTERVAL,
+                        default=options.get(CONF_DISCOVERY_INTERVAL, DEFAULT_DISCOVERY_INTERVAL),
+                    ): vol.All(vol.Coerce(int), vol.Range(min=60)),
+                    vol.Optional(
+                        CONF_DISCOVERY_START_TIME,
+                        default=options.get(CONF_DISCOVERY_START_TIME, DEFAULT_DISCOVERY_START_TIME),
+                    ): str,
+                    vol.Optional(
+                        CONF_DISCOVERY_END_TIME,
+                        default=options.get(CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME),
+                    ): str,
+                }
+            ),
         )

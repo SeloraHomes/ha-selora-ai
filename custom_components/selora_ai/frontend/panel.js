@@ -545,6 +545,111 @@ class SeloraAIArchitectPanel extends LitElement {
               ></ha-textfield>
             </div>
           `}
+          <h3 style="margin-top: 32px; border-bottom: 1px solid var(--divider-color); padding-bottom: 8px;">
+            Background Services
+          </h3>
+          
+          <div style="margin-top: 16px;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <ha-switch 
+                .checked=${this._config.collector_enabled}
+                @change=${(e) => this._updateConfig("collector_enabled", e.target.checked)}
+              ></ha-switch>
+              <label>Data Collector (AI Analysis) Enabled</label>
+            </div>
+            
+            ${this._config.collector_enabled ? html`
+              <div style="padding-left: 24px; border-left: 2px solid var(--divider-color); margin-bottom: 24px;">
+                <div class="form-group">
+                  <label>Execution Mode</label>
+                  <select 
+                    .value=${this._config.collector_mode}
+                    @change=${(e) => this._updateConfig("collector_mode", e.target.value)}
+                    style="padding: 8px; border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); width: 100%;"
+                  >
+                    <option value="continuous">Continuous</option>
+                    <option value="scheduled">Scheduled Window</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <ha-textfield
+                    label="Analysis Interval (seconds)"
+                    type="number"
+                    .value=${this._config.collector_interval}
+                    @input=${(e) => this._updateConfig("collector_interval", parseInt(e.target.value))}
+                  ></ha-textfield>
+                </div>
+                
+                ${this._config.collector_mode === "scheduled" ? html`
+                  <div style="display: flex; gap: 16px;">
+                    <ha-textfield
+                      label="Start Time (HH:MM)"
+                      .value=${this._config.collector_start_time}
+                      @input=${(e) => this._updateConfig("collector_start_time", e.target.value)}
+                      style="flex: 1;"
+                    ></ha-textfield>
+                    <ha-textfield
+                      label="End Time (HH:MM)"
+                      .value=${this._config.collector_end_time}
+                      @input=${(e) => this._updateConfig("collector_end_time", e.target.value)}
+                      style="flex: 1;"
+                    ></ha-textfield>
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+            
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <ha-switch 
+                .checked=${this._config.discovery_enabled}
+                @change=${(e) => this._updateConfig("discovery_enabled", e.target.checked)}
+              ></ha-switch>
+              <label>Network Discovery Enabled</label>
+            </div>
+            
+            ${this._config.discovery_enabled ? html`
+              <div style="padding-left: 24px; border-left: 2px solid var(--divider-color); margin-bottom: 24px;">
+                <div class="form-group">
+                  <label>Execution Mode</label>
+                  <select 
+                    .value=${this._config.discovery_mode}
+                    @change=${(e) => this._updateConfig("discovery_mode", e.target.value)}
+                    style="padding: 8px; border-radius: 4px; background: var(--card-background-color); color: var(--primary-text-color); border: 1px solid var(--divider-color); width: 100%;"
+                  >
+                    <option value="continuous">Continuous</option>
+                    <option value="scheduled">Scheduled Window</option>
+                  </select>
+                </div>
+                
+                <div class="form-group">
+                  <ha-textfield
+                    label="Discovery Interval (seconds)"
+                    type="number"
+                    .value=${this._config.discovery_interval}
+                    @input=${(e) => this._updateConfig("discovery_interval", parseInt(e.target.value))}
+                  ></ha-textfield>
+                </div>
+                
+                ${this._config.discovery_mode === "scheduled" ? html`
+                  <div style="display: flex; gap: 16px;">
+                    <ha-textfield
+                      label="Start Time (HH:MM)"
+                      .value=${this._config.discovery_start_time}
+                      @input=${(e) => this._updateConfig("discovery_start_time", e.target.value)}
+                      style="flex: 1;"
+                    ></ha-textfield>
+                    <ha-textfield
+                      label="End Time (HH:MM)"
+                      .value=${this._config.discovery_end_time}
+                      @input=${(e) => this._updateConfig("discovery_end_time", e.target.value)}
+                      style="flex: 1;"
+                    ></ha-textfield>
+                  </div>
+                ` : ""}
+              </div>
+            ` : ""}
+          </div>
 
           <div class="save-bar">
             <mwc-button raised @click=${this._saveConfig} ?disabled=${this._savingConfig}>
