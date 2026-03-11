@@ -240,6 +240,7 @@ CONF_SELECTED_DEVICES = "selected_devices"
 CONF_LLM_PROVIDER = "llm_provider"
 LLM_PROVIDER_ANTHROPIC = "anthropic"
 LLM_PROVIDER_OLLAMA = "ollama"
+LLM_PROVIDER_OPENAI = "openai"
 LLM_PROVIDER_NONE = "none"
 DEFAULT_LLM_PROVIDER = LLM_PROVIDER_ANTHROPIC
 
@@ -261,9 +262,17 @@ CONF_OLLAMA_MODEL = "ollama_model"
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "llama3.1"
 
+# ── OpenAI (GPT API) ───────────────────────────────────────────────
+CONF_OPENAI_API_KEY = "openai_api_key"
+CONF_OPENAI_MODEL = "openai_model"
+
+DEFAULT_OPENAI_HOST = "https://api.openai.com"
+DEFAULT_OPENAI_MODEL = "gpt-4o"
+
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"
 OLLAMA_CHAT_ENDPOINT = "/v1/chat/completions"
+OPENAI_CHAT_ENDPOINT = "/v1/chat/completions"
 MESSAGES_ENDPOINT = ANTHROPIC_MESSAGES_ENDPOINT  # Legacy compatibility
 
 # ── MQTT (future) ────────────────────────────────────────────────────
@@ -305,7 +314,7 @@ PROTECTED_DOMAINS = {
 # ── Side Panel ──────────────────────────────────────────────────────
 PANEL_NAME = "selora-ai-architect"
 PANEL_TITLE = "Selora AI"
-PANEL_ICON = "mdi:robot-confetti"
+PANEL_ICON = "mdi:head-lightbulb"
 PANEL_PATH = "selora-ai-architect"
 
 # ── HA Recorder ──────────────────────────────────────────────────────

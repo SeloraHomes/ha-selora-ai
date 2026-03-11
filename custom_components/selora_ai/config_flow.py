@@ -35,6 +35,8 @@ from .const import (
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
+    CONF_OPENAI_API_KEY,
+    CONF_OPENAI_MODEL,
     CONF_SELECTED_DEVICES,
     CONF_COLLECTOR_ENABLED,
     CONF_COLLECTOR_MODE,
@@ -60,11 +62,13 @@ from .const import (
     DEFAULT_DISCOVERY_INTERVAL,
     DEFAULT_DISCOVERY_START_TIME,
     DEFAULT_DISCOVERY_END_TIME,
+    DEFAULT_OPENAI_MODEL,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_NONE,
     MODE_CONTINUOUS,
     MODE_SCHEDULED,
@@ -104,6 +108,21 @@ async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
         raise ConnectionError("Ollama not reachable or model not found")
     model = data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL)
     return {"title": f"Selora AI (Ollama — {model})"}
+
+
+async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
+    """Validate that the OpenAI API key works."""
+    from .llm_client import LLMClient
+    client = LLMClient(
+        hass,
+        provider=LLM_PROVIDER_OPENAI,
+        api_key=data[CONF_OPENAI_API_KEY],
+        model=data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
+    )
+    if not await client.health_check():
+        raise ConnectionError("OpenAI API key invalid or unreachable")
+    model = data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL)
+    return {"title": f"Selora AI (OpenAI — {model})"}
 
 
 class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -178,9 +197,11 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._provider = user_input[CONF_LLM_PROVIDER]
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 return await self.async_step_anthropic()
+            if self._provider == LLM_PROVIDER_OPENAI:
+                return await self.async_step_openai()
             if self._provider == LLM_PROVIDER_OLLAMA:
                 return await self.async_step_ollama()
-            
+
             # Skip for now
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
@@ -199,6 +220,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(
                         {
                             LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude) — Recommended",
+                            LLM_PROVIDER_OPENAI: "OpenAI",
                             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
                             LLM_PROVIDER_NONE: "Skip for now (Configure later)",
                         }
@@ -242,6 +264,43 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_ANTHROPIC_MODEL,
                         default=DEFAULT_ANTHROPIC_MODEL,
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_openai(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure OpenAI API key, then chain to discovery."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                info = await _validate_openai(self.hass, user_input)
+            except ConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Failed to validate OpenAI API key")
+                errors["base"] = "unknown"
+            else:
+                self._llm_data = {
+                    CONF_ENTRY_TYPE: ENTRY_TYPE_LLM,
+                    CONF_LLM_PROVIDER: LLM_PROVIDER_OPENAI,
+                    **user_input,
+                    "_title": info["title"],
+                }
+                return await self.async_step_discover()
+
+        return self.async_show_form(
+            step_id="openai",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_OPENAI_API_KEY): str,
+                    vol.Required(
+                        CONF_OPENAI_MODEL,
+                        default=DEFAULT_OPENAI_MODEL,
                     ): str,
                 }
             ),

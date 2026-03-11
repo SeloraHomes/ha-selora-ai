@@ -1,11 +1,12 @@
-"""LLM client — unified interface for Anthropic API and local Ollama.
+"""LLM client — unified interface for Anthropic API, OpenAI API, and local Ollama.
 
-Both backends use the Anthropic /v1/messages format, so one client handles
-both. The only differences are host, auth headers, model name, and health check.
+Anthropic uses /v1/messages; OpenAI and Ollama share the /v1/chat/completions
+format. The client routes to the correct payload, headers, and health check.
 
 Backends:
   1. Anthropic API (Claude) — cloud, needs API key
-  2. Ollama — local, Anthropic-compatible endpoint, no key needed
+  2. OpenAI API (GPT) — cloud, needs API key, chat completions format
+  3. Ollama — local, OpenAI-compatible endpoint, no key needed
      https://docs.ollama.com/api/anthropic-compatibility
 """
 
@@ -28,11 +29,15 @@ from .const import (
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_OPENAI_HOST,
+    DEFAULT_OPENAI_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_OPENAI,
     ANTHROPIC_MESSAGES_ENDPOINT,
     OLLAMA_CHAT_ENDPOINT,
+    OPENAI_CHAT_ENDPOINT,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,6 +66,10 @@ class LLMClient:
             self._host = DEFAULT_ANTHROPIC_HOST
             self._model = model or DEFAULT_ANTHROPIC_MODEL
             self._api_key = api_key
+        elif provider == LLM_PROVIDER_OPENAI:
+            self._host = (host or DEFAULT_OPENAI_HOST).rstrip("/")
+            self._model = model or DEFAULT_OPENAI_MODEL
+            self._api_key = api_key
         else:
             self._host = (host or DEFAULT_OLLAMA_HOST).rstrip("/")
             self._model = model or DEFAULT_OLLAMA_MODEL
@@ -72,26 +81,32 @@ class LLMClient:
         if self._provider == LLM_PROVIDER_ANTHROPIC and self._api_key:
             headers["x-api-key"] = self._api_key
             headers["anthropic-version"] = ANTHROPIC_API_VERSION
+        elif self._provider == LLM_PROVIDER_OPENAI and self._api_key:
+            headers["Authorization"] = f"Bearer {self._api_key}"
         return headers
 
     @property
     def _endpoint(self) -> str:
         if self._provider == LLM_PROVIDER_ANTHROPIC:
             return f"{self._host}{ANTHROPIC_MESSAGES_ENDPOINT}"
+        if self._provider == LLM_PROVIDER_OPENAI:
+            return f"{self._host}{OPENAI_CHAT_ENDPOINT}"
         return f"{self._host}{OLLAMA_CHAT_ENDPOINT}"
 
     @property
     def provider_name(self) -> str:
         if self._provider == LLM_PROVIDER_ANTHROPIC:
             return f"Anthropic ({self._model})"
+        if self._provider == LLM_PROVIDER_OPENAI:
+            return f"OpenAI ({self._model})"
         return f"Ollama ({self._model})"
 
     async def analyze_home_data(
         self, home_snapshot: dict[str, Any]
     ) -> list[dict[str, Any]]:
         """Send collected HA data to LLM for automation analysis."""
-        if self._provider == LLM_PROVIDER_ANTHROPIC and not self._api_key:
-            _LOGGER.warning("Skipping analysis: Anthropic API Key not configured")
+        if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
+            _LOGGER.warning("Skipping analysis: %s API key not configured", self._provider)
             return []
 
         system_prompt = self._build_system_prompt()
@@ -114,9 +129,10 @@ class LLMClient:
         existing_automations: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Conversational architect chat for generating automations."""
-        if self._provider == LLM_PROVIDER_ANTHROPIC and not self._api_key:
+        if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
+            provider_label = "Anthropic" if self._provider == LLM_PROVIDER_ANTHROPIC else "OpenAI"
             return {
-                "response": "Please configure your Anthropic API Key in the Settings tab to start chatting.",
+                "response": f"Please configure your {provider_label} API Key in the Settings tab to start chatting.",
                 "config_issue": True
             }
 
@@ -464,43 +480,20 @@ class LLMClient:
             + "\n".join(entity_lines)
         )
 
+        result, error = await self._send_request(
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}]
+        )
+
+        if not result:
+            _LOGGER.warning("%s command failed: %s", self.provider_name, error)
+            return {"calls": [], "response": f"LLM error: {error or 'unknown'}"}
+
+        return self._parse_command_response_text(result)
+
+    def _parse_command_response_text(self, text: str) -> dict[str, Any]:
+        """Parse LLM response text into service calls."""
         try:
-            session = async_get_clientsession(self._hass)
-            async with session.post(
-                self._endpoint,
-                headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-                json={
-                    "model": self._model,
-                    "max_tokens": 1024,
-                    "messages": [{"role": "user", "content": user_prompt}],
-                    "system": system_prompt,
-                },
-            ) as resp:
-                if resp.status != 200:
-                    body = await resp.text()
-                    _LOGGER.warning(
-                        "%s command failed (%s): %s",
-                        self.provider_name, resp.status, body[:200],
-                    )
-                    return {"calls": [], "response": f"LLM error: {resp.status}"}
-
-                data = await resp.json()
-                return self._parse_command_response(data)
-
-        except Exception:
-            _LOGGER.exception("Failed to execute command via %s", self.provider_name)
-            return {"calls": [], "response": "Failed to reach LLM"}
-
-    def _parse_command_response(self, response: dict[str, Any]) -> dict[str, Any]:
-        """Parse LLM response into service calls."""
-        try:
-            content = response.get("content", [])
-            text = ""
-            for block in content:
-                if block.get("type") == "text":
-                    text += block.get("text", "")
-
             text = text.strip()
             if text.startswith("```"):
                 text = text.split("\n", 1)[1] if "\n" in text else text[3:]
@@ -530,10 +523,20 @@ class LLMClient:
         """Verify the LLM backend is reachable."""
         if self._provider == LLM_PROVIDER_ANTHROPIC:
             return await self._health_check_anthropic()
+        if self._provider == LLM_PROVIDER_OPENAI:
+            return await self._health_check_openai()
         return await self._health_check_ollama()
 
     async def _health_check_anthropic(self) -> bool:
         """Check Anthropic API with a minimal request."""
+        result, error = await self._send_request(
+            system="Respond with 'ok'",
+            messages=[{"role": "user", "content": "Hi"}]
+        )
+        return result is not None
+
+    async def _health_check_openai(self) -> bool:
+        """Check OpenAI API with a minimal request."""
         result, error = await self._send_request(
             system="Respond with 'ok'",
             messages=[{"role": "user", "content": "Hi"}]

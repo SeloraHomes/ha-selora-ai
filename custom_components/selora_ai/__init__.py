@@ -14,6 +14,7 @@ Self-contained HA custom integration.
 
 LLM Backends:
     Anthropic API  — Claude, cloud, recommended
+    OpenAI API     — GPT models, cloud
     Ollama         — Llama 3.1, local, on-prem fallback
 """
 
@@ -45,16 +46,20 @@ from .const import (
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
+    CONF_OPENAI_API_KEY,
+    CONF_OPENAI_MODEL,
     CONF_RECORDER_LOOKBACK_DAYS,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
+    DEFAULT_OPENAI_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_NONE,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
@@ -387,6 +392,8 @@ async def _handle_websocket_get_config(
         "llm_provider": config_data.get(CONF_LLM_PROVIDER),
         "anthropic_api_key": config_data.get(CONF_ANTHROPIC_API_KEY, ""),
         "anthropic_model": config_data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+        "openai_api_key": config_data.get(CONF_OPENAI_API_KEY, ""),
+        "openai_model": config_data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
         "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
         "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
         # Background Services
@@ -469,7 +476,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                     f"/api/{DOMAIN}/panel.js",
                     hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js"),
                     False,
-                )
+                ),
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/logo.png",
+                    hass.config.path(f"custom_components/{DOMAIN}/brand/logo.png"),
+                    True,
+                ),
             ]
         )
     except (ImportError, AttributeError):
@@ -478,6 +490,11 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             f"/api/{DOMAIN}/panel.js",
             hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js"),
             False,
+        )
+        hass.http.register_static_path(
+            f"/api/{DOMAIN}/logo.png",
+            hass.config.path(f"custom_components/{DOMAIN}/brand/logo.png"),
+            True,
         )
 
     # Register custom side panel in the sidebar
@@ -545,6 +562,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             provider=provider,
             api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+            lookback_days=lookback,
+        )
+    elif provider == LLM_PROVIDER_OPENAI:
+        llm = LLMClient(
+            hass,
+            provider=provider,
+            api_key=entry.data.get(CONF_OPENAI_API_KEY, ""),
+            model=entry.data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
             lookback_days=lookback,
         )
     elif provider == LLM_PROVIDER_OLLAMA:
