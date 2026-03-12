@@ -1,0 +1,202 @@
+"""AutomationStore — persists automation versions and lifecycle metadata.
+
+Backed by HA's Store API (same pattern as ConversationStore in __init__.py).
+No custom SQLite — the data volume (50 automations × 20 versions) does not
+justify schema management overhead.
+
+Data layout in storage:
+    {
+        "records": {
+            "<automation_id>": {
+                "automation_id": str,
+                "current_version_id": str,
+                "versions": [AutomationVersion, ...],
+                "deleted_at": str | None,
+            }
+        }
+    }
+"""
+
+from __future__ import annotations
+
+import difflib
+import logging
+import uuid
+from datetime import datetime, timezone
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
+
+from .const import AUTOMATION_SOFT_DELETE_DAYS, AUTOMATION_STORE_KEY
+
+_LOGGER = logging.getLogger(__name__)
+
+_STORE_VERSION = 1
+
+
+class AutomationStore:
+    """Version and lifecycle store for Selora-managed automations."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._store: Store = Store(hass, version=_STORE_VERSION, key=AUTOMATION_STORE_KEY)
+        self._data: dict[str, Any] | None = None
+
+    async def _ensure_loaded(self) -> None:
+        if self._data is None:
+            raw = await self._store.async_load()
+            self._data = raw if isinstance(raw, dict) else {"records": {}}
+
+    async def _get_loaded_data(self) -> dict[str, Any]:
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Automation store data failed to load")
+        return self._data
+
+    # ── Version management ───────────────────────────────────────────────
+
+    async def add_version(
+        self,
+        automation_id: str,
+        yaml_text: str,
+        data: dict[str, Any],
+        message: str,
+        session_id: str | None = None,
+    ) -> str:
+        """Append a new immutable version record and update current_version_id.
+
+        Returns the new version_id.
+        Creates the AutomationRecord if this is the first version.
+        """
+        data_store = await self._get_loaded_data()
+        version_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        version: dict[str, Any] = {
+            "version_id": version_id,
+            "automation_id": automation_id,
+            "created_at": now,
+            "yaml": yaml_text,
+            "data": data,
+            "message": message,
+            "session_id": session_id,
+        }
+        records = data_store["records"]
+        if automation_id not in records:
+            records[automation_id] = {
+                "automation_id": automation_id,
+                "current_version_id": version_id,
+                "versions": [version],
+                "deleted_at": None,
+            }
+        else:
+            records[automation_id]["versions"].append(version)
+            records[automation_id]["current_version_id"] = version_id
+        await self._store.async_save(data_store)
+        return version_id
+
+    async def get_record(self, automation_id: str) -> dict[str, Any] | None:
+        """Return the full record for an automation, or None if not tracked."""
+        data_store = await self._get_loaded_data()
+        return data_store["records"].get(automation_id)
+
+    async def get_versions(self, automation_id: str) -> list[dict[str, Any]]:
+        """Return ordered version list for an automation (oldest first)."""
+        record = await self.get_record(automation_id)
+        return record["versions"] if record else []
+
+    async def get_diff(
+        self, automation_id: str, version_id_a: str, version_id_b: str
+    ) -> str | None:
+        """Return a unified diff between two versions.
+
+        Returns None if either version_id is not found.
+        """
+        versions = await self.get_versions(automation_id)
+        by_id = {v["version_id"]: v for v in versions}
+        va = by_id.get(version_id_a)
+        vb = by_id.get(version_id_b)
+        if not va or not vb:
+            return None
+        diff = difflib.unified_diff(
+            va["yaml"].splitlines(keepends=True),
+            vb["yaml"].splitlines(keepends=True),
+            fromfile=f"version:{version_id_a[:8]}",
+            tofile=f"version:{version_id_b[:8]}",
+        )
+        return "".join(diff)
+
+    # ── Lifecycle ────────────────────────────────────────────────────────
+
+    async def soft_delete(self, automation_id: str) -> bool:
+        """Mark an automation as soft-deleted. Returns False if not tracked."""
+        data_store = await self._get_loaded_data()
+        record = data_store["records"].get(automation_id)
+        if not record:
+            return False
+        record["deleted_at"] = datetime.now(timezone.utc).isoformat()
+        await self._store.async_save(data_store)
+        return True
+
+    async def restore(self, automation_id: str) -> bool:
+        """Clear deleted_at, marking the automation as active again."""
+        data_store = await self._get_loaded_data()
+        record = data_store["records"].get(automation_id)
+        if not record:
+            return False
+        record["deleted_at"] = None
+        await self._store.async_save(data_store)
+        return True
+
+    async def purge_old_deleted(
+        self, older_than_days: int = AUTOMATION_SOFT_DELETE_DAYS
+    ) -> list[str]:
+        """Permanently remove records soft-deleted more than `older_than_days` ago.
+
+        Returns the list of purged automation_ids so the caller can remove them
+        from automations.yaml as well.
+        """
+        data_store = await self._get_loaded_data()
+        now = datetime.now(timezone.utc)
+        to_purge: list[str] = []
+        for automation_id, record in data_store["records"].items():
+            deleted_at = record.get("deleted_at")
+            if not deleted_at:
+                continue
+            try:
+                dt = datetime.fromisoformat(deleted_at)
+                if (now - dt).days >= older_than_days:
+                    to_purge.append(automation_id)
+            except ValueError:
+                _LOGGER.warning(
+                    "Invalid deleted_at value for %s: %s", automation_id, deleted_at
+                )
+        for automation_id in to_purge:
+            del data_store["records"][automation_id]
+        if to_purge:
+            await self._store.async_save(data_store)
+            _LOGGER.info("Purged %d expired soft-deleted automations", len(to_purge))
+        return to_purge
+
+    # ── Metadata helpers ─────────────────────────────────────────────────
+
+    async def get_metadata(self, automation_id: str) -> dict[str, Any] | None:
+        """Return lightweight metadata (no version YAML). None if not tracked."""
+        record = await self.get_record(automation_id)
+        if not record:
+            return None
+        return {
+            "automation_id": automation_id,
+            "version_count": len(record["versions"]),
+            "current_version_id": record["current_version_id"],
+            "deleted_at": record.get("deleted_at"),
+            "is_deleted": record.get("deleted_at") is not None,
+        }
+
+    async def list_deleted_ids(self) -> list[str]:
+        """Return automation_ids that are currently soft-deleted."""
+        data_store = await self._get_loaded_data()
+        return [
+            aid
+            for aid, rec in data_store["records"].items()
+            if rec.get("deleted_at")
+        ]

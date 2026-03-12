@@ -251,6 +251,19 @@ class ConversationStore:
         await self._store.async_save(self._data)
         return True
 
+    async def get_session_preview(self, session_id: str) -> str:
+        """Return the session's first user message truncated to 60 chars, or empty string."""
+        await self._ensure_loaded()
+        if self._data is None:
+            return ""
+        session = self._data["sessions"].get(session_id)
+        if not session:
+            return ""
+        for msg in session.get("messages", []):
+            if msg.get("role") == "user":
+                return msg.get("content", "")[:60]
+        return session.get("title", "")[:60]
+
 
 def _mask_api_key(key: str) -> str:
     """Return a safe display hint — first 8 chars + ellipsis."""
@@ -772,6 +785,7 @@ async def _handle_websocket_set_automation_status(
 @decorators.websocket_command({
     vol.Required("type"): "selora_ai/create_automation",
     vol.Required("automation"): dict,
+    vol.Optional("session_id"): str,
 })
 async def _handle_websocket_create_automation(
     hass: HomeAssistant,
@@ -780,28 +794,24 @@ async def _handle_websocket_create_automation(
 ) -> None:
     """Create a new automation from the side panel."""
     automation_data = msg["automation"]
-    
+
     # Basic validation
     has_trigger = automation_data.get("trigger") or automation_data.get("triggers")
     has_action = automation_data.get("action") or automation_data.get("actions")
-    
+
     if not automation_data.get("alias") or not has_trigger or not has_action:
         connection.send_error(msg["id"], "invalid_format", "Invalid automation structure (missing alias, trigger, or action)")
         return
 
     try:
-        # We'll use the automation service to create it if available, 
-        # but HA usually requires writing to automations.yaml for manual creation.
-        # For now, we'll implement a helper to write it.
         from .automation_utils import async_create_automation
-        
-        success = await async_create_automation(hass, automation_data)
-        
+        success = await async_create_automation(
+            hass, automation_data, session_id=msg.get("session_id")
+        )
         if success:
             connection.send_result(msg["id"], {"status": "success"})
         else:
             connection.send_error(msg["id"], "creation_failed", "Failed to write automation to file")
-            
     except Exception as exc:
         _LOGGER.exception("Error creating automation")
         connection.send_error(msg["id"], "error", str(exc))
@@ -811,6 +821,7 @@ async def _handle_websocket_create_automation(
 @decorators.websocket_command({
     vol.Required("type"): "selora_ai/apply_automation_yaml",
     vol.Required("yaml_text"): str,
+    vol.Optional("session_id"): str,
 })
 async def _handle_websocket_apply_automation_yaml(
     hass: HomeAssistant,
@@ -832,7 +843,9 @@ async def _handle_websocket_apply_automation_yaml(
         return
 
     try:
-        success = await async_create_automation(hass, parsed)
+        success = await async_create_automation(
+            hass, parsed, session_id=msg.get("session_id")
+        )
         if success:
             connection.send_result(msg["id"], {"status": "created"})
         else:
@@ -847,6 +860,7 @@ async def _handle_websocket_apply_automation_yaml(
     vol.Required("type"): "selora_ai/update_automation_yaml",
     vol.Required("automation_id"): str,
     vol.Required("yaml_text"): str,
+    vol.Optional("session_id"): str,
 })
 async def _handle_websocket_update_automation_yaml(
     hass: HomeAssistant,
@@ -862,7 +876,13 @@ async def _handle_websocket_update_automation_yaml(
         return
 
     try:
-        success = await async_update_automation(hass, msg["automation_id"], parsed)
+        success = await async_update_automation(
+            hass,
+            msg["automation_id"],
+            parsed,
+            session_id=msg.get("session_id"),
+            version_message="Updated via YAML editor",
+        )
         if success:
             connection.send_result(msg["id"], {"status": "updated"})
         else:
@@ -889,17 +909,25 @@ async def _handle_websocket_get_suggestions(
 @websocket_api.async_response
 @decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_automations",
+    vol.Optional("include_deleted", default=False): bool,
 })
 async def _handle_websocket_get_automations(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Return all existing automations and flag Selora-managed ones, including full config."""
+    """Return all existing automations and flag Selora-managed ones, including full config.
+
+    Pass include_deleted=true to also return soft-deleted automations.
+    Each automation is enriched with AutomationStore metadata when available:
+    version_count, current_version_id, deleted_at, is_deleted.
+    """
     try:
         from homeassistant.helpers import entity_registry as er
         from .automation_utils import _read_automations_yaml
         from pathlib import Path
+
+        include_deleted: bool = msg.get("include_deleted", False)
 
         registry = er.async_get(hass)
 
@@ -911,6 +939,10 @@ async def _handle_websocket_get_automations(
         yaml_by_id: dict[str, dict] = {
             a.get("id", ""): a for a in yaml_automations if a.get("id")
         }
+
+        # Preload store metadata for all tracked automations
+        store = _get_automation_store(hass)
+        deleted_ids: set[str] = set(await store.list_deleted_ids())
 
         automations = []
 
@@ -929,6 +961,10 @@ async def _handle_websocket_get_automations(
             if not is_selora and description and "[Selora AI]" in description:
                 is_selora = True
 
+            is_deleted = automation_id in deleted_ids
+            if is_deleted and not include_deleted:
+                continue
+
             # Merge full config (trigger/condition/action) from automations.yaml
             full_config = yaml_by_id.get(automation_id, {})
 
@@ -939,6 +975,9 @@ async def _handle_websocket_get_automations(
                     yaml_text = yaml.dump(full_config, allow_unicode=True, default_flow_style=False)
                 except Exception:
                     yaml_text = ""
+
+            # Merge lifecycle metadata from the store
+            meta = await store.get_metadata(automation_id) if automation_id else None
 
             automations.append({
                 "entity_id": entity_id,
@@ -952,6 +991,11 @@ async def _handle_websocket_get_automations(
                 "condition": full_config.get("condition") or full_config.get("conditions") or [],
                 "action": full_config.get("action") or full_config.get("actions") or [],
                 "yaml_text": yaml_text,
+                # Lifecycle metadata (None for automations not tracked by the store)
+                "version_count": meta["version_count"] if meta else None,
+                "current_version_id": meta["current_version_id"] if meta else None,
+                "deleted_at": meta["deleted_at"] if meta else None,
+                "is_deleted": is_deleted,
             })
 
         connection.send_result(msg["id"], automations)
@@ -1067,6 +1111,211 @@ async def _handle_websocket_update_config(
     hass.async_create_task(_reload())
 
 
+def _get_automation_store(hass: HomeAssistant):
+    """Return (or lazily create) the AutomationStore from hass.data."""
+    from .automation_store import AutomationStore
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if "_automation_store" not in domain_data:
+        domain_data["_automation_store"] = AutomationStore(hass)
+    return domain_data["_automation_store"]
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_automation_versions",
+    vol.Required("automation_id"): str,
+})
+async def _handle_websocket_get_automation_versions(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return ordered version history for an automation with session previews joined in."""
+    try:
+        store = _get_automation_store(hass)
+        versions = await store.get_versions(msg["automation_id"])
+
+        conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        result = []
+        for v in versions:
+            entry = dict(v)
+            sid = v.get("session_id")
+            entry["session_preview"] = (
+                await conv_store.get_session_preview(sid) if sid else None
+            )
+            result.append(entry)
+
+        connection.send_result(msg["id"], result)
+    except Exception as exc:
+        _LOGGER.exception("Error in get_automation_versions")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_automation_diff",
+    vol.Required("automation_id"): str,
+    vol.Required("version_id_a"): str,
+    vol.Required("version_id_b"): str,
+})
+async def _handle_websocket_get_automation_diff(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return a unified diff between two versions of an automation."""
+    try:
+        store = _get_automation_store(hass)
+        diff = await store.get_diff(
+            msg["automation_id"], msg["version_id_a"], msg["version_id_b"]
+        )
+        if diff is None:
+            connection.send_error(msg["id"], "not_found", "One or both version IDs not found")
+            return
+        connection.send_result(msg["id"], {"diff": diff})
+    except Exception as exc:
+        _LOGGER.exception("Error in get_automation_diff")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/soft_delete_automation",
+    vol.Required("automation_id"): str,
+})
+async def _handle_websocket_soft_delete_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Soft-delete an automation: disable it in HA and set deleted_at in the store."""
+    try:
+        from .automation_utils import async_soft_delete_automation
+        success = await async_soft_delete_automation(hass, msg["automation_id"])
+        if success:
+            connection.send_result(msg["id"], {"status": "deleted"})
+        else:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+    except Exception as exc:
+        _LOGGER.exception("Error in soft_delete_automation")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/restore_automation",
+    vol.Required("automation_id"): str,
+})
+async def _handle_websocket_restore_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Restore a soft-deleted automation: re-enable it and clear deleted_at."""
+    try:
+        from .automation_utils import async_restore_automation
+        success = await async_restore_automation(hass, msg["automation_id"])
+        if success:
+            connection.send_result(msg["id"], {"status": "restored"})
+        else:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+    except Exception as exc:
+        _LOGGER.exception("Error in restore_automation")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/load_automation_to_session",
+    vol.Required("automation_id"): str,
+    vol.Optional("session_id"): str,
+})
+async def _handle_websocket_load_automation_to_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open a chat session pre-loaded with the automation's current YAML for refinement.
+
+    Inserts an assistant message that surfaces the automation YAML as context.
+    Subsequent selora_ai/chat messages in this session refine it via the existing
+    chat handler.
+    """
+    from .automation_utils import _read_automations_yaml
+    from pathlib import Path
+
+    automation_id = msg["automation_id"]
+
+    # Resolve YAML — prefer the store's current version, fall back to live file
+    store = _get_automation_store(hass)
+    record = await store.get_record(automation_id)
+
+    automation_data: dict[str, Any] | None = None
+    yaml_text: str = ""
+
+    if record:
+        versions = record.get("versions", [])
+        if versions:
+            current_ver = next(
+                (v for v in versions if v["version_id"] == record["current_version_id"]),
+                versions[-1],
+            )
+            yaml_text = current_ver.get("yaml", "")
+            automation_data = current_ver.get("data", {})
+
+    if not yaml_text:
+        # Fall back to reading live automations.yaml
+        automations_path = Path(hass.config.config_dir) / "automations.yaml"
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        for a in existing:
+            if a.get("id") == automation_id:
+                automation_data = a
+                yaml_text = yaml.dump(a, allow_unicode=True, default_flow_style=False)
+                break
+
+    if not yaml_text or not automation_data:
+        connection.send_error(msg["id"], "not_found", "Automation not found")
+        return
+
+    conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+
+    # Resolve or create session
+    session_id = msg.get("session_id", "")
+    if session_id:
+        session = await conv_store.get_session(session_id)
+        if not session:
+            session = await conv_store.create_session()
+            session_id = session["id"]
+    else:
+        session = await conv_store.create_session()
+        session_id = session["id"]
+
+    alias = automation_data.get("alias", automation_id)
+
+    # Insert assistant context message so the LLM has the full automation on first turn
+    await conv_store.append_message(
+        session_id,
+        "assistant",
+        f"I've loaded the automation **{alias}** for refinement. "
+        "What changes would you like to make?",
+        intent="automation",
+        automation=automation_data,
+        automation_yaml=yaml_text,
+        automation_status="refining",
+    )
+
+    connection.send_result(msg["id"], {
+        "session_id": session_id,
+        "automation_id": automation_id,
+        "alias": alias,
+        "yaml_text": yaml_text,
+    })
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -1087,6 +1336,12 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_new_session)
     websocket_api.async_register_command(hass, _handle_websocket_delete_session)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
+    # Automation lifecycle
+    websocket_api.async_register_command(hass, _handle_websocket_get_automation_versions)
+    websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)
+    websocket_api.async_register_command(hass, _handle_websocket_soft_delete_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_restore_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
