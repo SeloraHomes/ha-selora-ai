@@ -240,6 +240,19 @@ class ConversationStore:
         await self._store.async_save(self._data)
         return True
 
+    async def update_session_title(self, session_id: str, title: str) -> bool:
+        """Update a session's title and persist."""
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        if not session:
+            return False
+        session["title"] = title
+        session["updated_at"] = datetime.utcnow().isoformat()
+        await self._store.async_save(self._data)
+        return True
+
     async def delete_session(self, session_id: str) -> bool:
         """Delete a session. Returns True if it existed."""
         await self._ensure_loaded()
@@ -659,6 +672,25 @@ async def _handle_websocket_chat_stream(
         # Get message index for automation status tracking
         updated_session = await store.get_session(session_id)
         assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
+
+        # Auto-generate a better title if still the default
+        current_title = (updated_session or {}).get("title", "")
+        is_default_title = (
+            current_title == "New conversation"
+            or current_title == user_message[:60]
+        )
+        if is_default_title:
+            async def _generate_title() -> None:
+                try:
+                    title = await llm.generate_session_title(
+                        user_message, response_text
+                    )
+                    await store.update_session_title(session_id, title)
+                    _LOGGER.debug("Auto-titled session %s: %s", session_id, title)
+                except Exception:
+                    _LOGGER.debug("Background title generation failed for %s", session_id)
+
+            hass.async_create_task(_generate_title())
 
         connection.send_message(
             websocket_api.event_message(msg["id"], {
