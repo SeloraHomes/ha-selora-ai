@@ -45,3 +45,6 @@ AGENTS.md
 
 # ── Local dependency manifest overrides ─────────────────────
 requirements.txt
+
+# ── Frontend build artifacts ──────────────────────────────────
+node_modules/

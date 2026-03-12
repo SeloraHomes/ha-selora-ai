@@ -1,0 +1,13 @@
+{
+  "name": "selora-ai-panel",
+  "private": true,
+  "scripts": {
+    "build": "esbuild src/panel.js --bundle --format=esm --outfile=panel.js && node postbuild.js"
+  },
+  "dependencies": {
+    "lit": "^2.8.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.20.0"
+  }
+}
