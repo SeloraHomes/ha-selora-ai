@@ -502,6 +502,170 @@ async def _handle_websocket_chat(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/chat_stream",
+    vol.Required("message"): str,
+    vol.Optional("session_id"): str,
+})
+async def _handle_websocket_chat_stream(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Stream chat responses to the frontend via subscription events.
+
+    All turns are persisted to the session store so conversations can be resumed.
+
+    Event types sent to the client:
+      {"type": "token", "text": "..."}          — incremental text chunk
+      {"type": "done", "response": ..., ...}    — final parsed result
+      {"type": "error", "message": "..."}       — on failure
+    """
+    from .llm_client import LLMClient
+
+    # Set up subscription pattern
+    connection.subscriptions[msg["id"]] = lambda: None
+    connection.send_result(msg["id"])
+
+    # Find the LLM client
+    llm: LLMClient | None = None
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and "llm" in entry_data:
+            llm = entry_data["llm"]
+            break
+
+    if llm is None:
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {"type": "error", "message": "Selora AI LLM not initialized"})
+        )
+        return
+
+    # ---- Session management ----
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+
+    session_id = msg.get("session_id") or ""
+    if session_id:
+        session = await store.get_session(session_id)
+        if not session:
+            session = await store.create_session()
+            session_id = session["id"]
+    else:
+        session = await store.create_session()
+        session_id = session["id"]
+
+    # Build history from stored messages (same logic as non-streaming chat)
+    stored_messages = (session or {}).get("messages", [])
+    history: list[dict[str, str]] = []
+    for m in stored_messages:
+        if m.get("role") not in ("user", "assistant"):
+            continue
+        content = m["content"]
+        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
+            alias = (m.get("automation") or {}).get("alias", "")
+            description = m.get("description", "")
+            header = f"[Proposed automation: {alias}"
+            if description:
+                header += f" — {description}"
+            header += f"]\n{m['automation_yaml']}"
+            content = f"{content}\n\n{header}"
+        history.append({"role": m["role"], "content": content})
+
+    # Persist the user message
+    user_message = msg["message"]
+    await store.append_message(session_id, "user", user_message)
+
+    # Try HA conversation agent first (if available)
+    try:
+        from homeassistant.components.conversation import async_converse
+
+        conv_result = await async_converse(
+            hass,
+            msg["message"],
+            conversation_id=None,
+            context=connection.context(msg),
+        )
+        response_text = conv_result.response.speech.get("plain", {}).get("speech", "")
+        if response_text:
+            await store.append_message(session_id, "assistant", response_text)
+            connection.send_message(
+                websocket_api.event_message(msg["id"], {"type": "token", "text": response_text})
+            )
+            connection.send_message(
+                websocket_api.event_message(msg["id"], {
+                    "type": "done",
+                    "session_id": session_id,
+                    "response": response_text,
+                    "automation": None,
+                    "automation_yaml": None,
+                })
+            )
+            return
+    except (ImportError, AttributeError, Exception):
+        # conversation agent not available or failed — fall back to LLM streaming
+        pass
+
+    try:
+        entities = _collect_entity_states(hass)
+        automations = [
+            {
+                "entity_id": state.entity_id,
+                "alias": state.attributes.get("friendly_name", state.entity_id),
+                "state": state.state,
+            }
+            for state in hass.states.async_all("automation")
+        ]
+
+        full_text = ""
+        async for chunk in llm.architect_chat_stream(
+            msg["message"], entities,
+            existing_automations=automations,
+            history=history,
+        ):
+            full_text += chunk
+            connection.send_message(
+                websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
+            )
+
+        parsed = llm.parse_streamed_response(full_text)
+        intent_type = parsed.get("intent", "answer")
+        response_text = parsed.get("response", full_text)
+
+        # Persist the assistant response
+        await store.append_message(
+            session_id,
+            "assistant",
+            response_text,
+            intent=intent_type,
+            automation=parsed.get("automation"),
+            automation_yaml=parsed.get("automation_yaml"),
+            description=parsed.get("description"),
+            automation_status="pending" if parsed.get("automation") else None,
+        )
+
+        # Get message index for automation status tracking
+        updated_session = await store.get_session(session_id)
+        assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
+
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {
+                "type": "done",
+                "session_id": session_id,
+                "response": response_text,
+                "automation": parsed.get("automation"),
+                "automation_yaml": parsed.get("automation_yaml"),
+                "automation_message_index": assistant_message_index if parsed.get("automation") else None,
+            })
+        )
+    except Exception as exc:
+        _LOGGER.exception("Streaming chat failed")
+        connection.send_message(
+            websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)})
+        )
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_sessions",
 })
 async def _handle_websocket_get_sessions(
@@ -885,14 +1049,22 @@ async def _handle_websocket_update_config(
     
     # Update the entry
     hass.config_entries.async_update_entry(
-        entry, 
+        entry,
         data={**entry.data, **new_data},
         options={**entry.options, **new_options}
     )
-    
-    # Reload the entry to apply changes
-    await hass.config_entries.async_reload(entry.entry_id)
+
+    # Send result BEFORE reload so the frontend gets a response
     connection.send_result(msg["id"], {"status": "success"})
+
+    # Schedule the reload as a background task so the WS response arrives first
+    async def _reload() -> None:
+        try:
+            await hass.config_entries.async_reload(entry.entry_id)
+        except Exception:
+            _LOGGER.exception("Failed to reload entry after config update")
+
+    hass.async_create_task(_reload())
 
 
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
@@ -901,6 +1073,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
 
     # Register WebSocket API
     websocket_api.async_register_command(hass, _handle_websocket_chat)
+    websocket_api.async_register_command(hass, _handle_websocket_chat_stream)
     websocket_api.async_register_command(hass, _handle_websocket_create_automation)
     websocket_api.async_register_command(hass, _handle_websocket_apply_automation_yaml)
     websocket_api.async_register_command(hass, _handle_websocket_update_automation_yaml)

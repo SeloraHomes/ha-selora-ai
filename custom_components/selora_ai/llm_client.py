@@ -375,6 +375,234 @@ class LLMClient:
             _LOGGER.error("Failed to parse architect response: %s", text[:500])
             return {"intent": "answer", "response": text}
 
+    # ------------------------------------------------------------------
+    # Streaming helpers
+    # ------------------------------------------------------------------
+
+    async def _send_request_stream(self, system: str, messages: list[dict[str, str]]):
+        """Async generator that yields text chunks from an SSE stream."""
+        try:
+            session = async_get_clientsession(self._hass)
+            if self._provider == LLM_PROVIDER_ANTHROPIC:
+                payload = {
+                    "model": self._model,
+                    "max_tokens": 4096,
+                    "system": system,
+                    "messages": messages,
+                    "stream": True,
+                }
+            else:
+                payload = {
+                    "model": self._model,
+                    "messages": [
+                        {"role": "system", "content": system},
+                        *messages,
+                    ],
+                    "stream": True,
+                }
+
+            async with session.post(
+                self._endpoint,
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                json=payload,
+            ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    _LOGGER.error(
+                        "LLM stream failed: %s returned %s: %s",
+                        self.provider_name, resp.status, body[:200],
+                    )
+                    return
+
+                buffer = ""
+                async for raw_chunk in resp.content.iter_any():
+                    buffer += raw_chunk.decode("utf-8")
+                    while "\n" in buffer:
+                        line, buffer = buffer.split("\n", 1)
+                        line = line.strip()
+                        if not line:
+                            continue
+                        text = self._parse_stream_line(line)
+                        if text:
+                            yield text
+        except Exception:
+            _LOGGER.exception("Streaming request to %s failed", self.provider_name)
+
+    def _parse_stream_line(self, line: str) -> str | None:
+        """Extract text content from a single SSE line."""
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            # Anthropic streams: data: {"type":"content_block_delta","delta":{"text":"..."}}
+            if not line.startswith("data: "):
+                return None
+            raw = line[6:]
+            try:
+                obj = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                return None
+            if obj.get("type") == "content_block_delta":
+                return obj.get("delta", {}).get("text")
+            return None
+        else:
+            # OpenAI / Ollama: data: {"choices":[{"delta":{"content":"..."}}]}
+            if not line.startswith("data: "):
+                return None
+            raw = line[6:]
+            if raw.strip() == "[DONE]":
+                return None
+            try:
+                obj = json.loads(raw)
+            except (json.JSONDecodeError, ValueError):
+                return None
+            choices = obj.get("choices", [])
+            if choices:
+                return choices[0].get("delta", {}).get("content")
+            return None
+
+    def _build_architect_stream_system_prompt(self) -> str:
+        """Streaming-optimised system prompt.
+
+        Instead of requiring pure JSON (impossible to parse mid-stream), the LLM
+        responds with natural conversational text first.  If the response involves
+        an automation, it appends the automation JSON inside a fenced block at the
+        very end:
+
+            ```automation
+            { ... }
+            ```
+        """
+        return (
+            "You are the Selora AI Smart Home Architect. You help users control their smart home and design automations.\n"
+            "You have access to the current entity states and can see the conversation history for context.\n\n"
+            "RESPONSE FORMAT:\n"
+            "Respond with natural conversational text. Be helpful and friendly.\n\n"
+            "If your response involves creating or updating an automation, append the full automation JSON\n"
+            "inside a fenced code block with the language tag 'automation' at the END of your response:\n\n"
+            "```automation\n"
+            "{\n"
+            '  "alias": "Descriptive name",\n'
+            '  "description": "...",\n'
+            '  "triggers": [...],\n'
+            '  "conditions": [...],\n'
+            '  "actions": [...]\n'
+            "}\n"
+            "```\n\n"
+            "RULES:\n"
+            "- Only use entity_ids from the AVAILABLE ENTITIES list.\n"
+            "- For automations, use plural HA 2024+ keys: 'triggers', 'actions', 'conditions'.\n"
+            "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
+            "- Match entity names flexibly — 'kitchen lights' -> 'light.kitchen', etc.\n"
+            "- Use conversation history to interpret follow-ups and refine previous automations.\n"
+            "- When refining an existing automation, return the full updated automation JSON.\n"
+            "- If no automation or command is needed, just respond with text — no code block required.\n"
+        )
+
+    def parse_streamed_response(self, text: str) -> dict[str, Any]:
+        """Parse completed streamed text.
+
+        Looks for a ```automation ... ``` fenced block.  Text before it is the
+        conversational response; the block contents are parsed as automation JSON.
+        Falls back to _parse_architect_response for pure-JSON responses.
+        """
+        import re
+
+        match = re.search(r"```automation\s*\n?([\s\S]*?)```", text)
+        if match:
+            response_text = text[: match.start()].strip()
+            json_text = match.group(1).strip()
+            try:
+                automation = json.loads(json_text)
+                automation_yaml = yaml.dump(
+                    automation, default_flow_style=False, allow_unicode=True
+                )
+                return {
+                    "intent": "automation",
+                    "response": response_text or "Here's the automation I've created.",
+                    "automation": automation,
+                    "automation_yaml": automation_yaml,
+                    "description": automation.get("description", ""),
+                }
+            except (json.JSONDecodeError, ValueError):
+                _LOGGER.warning("Failed to parse automation block: %s", json_text[:200])
+
+        # No fenced block — try the old JSON-only parser
+        return self._parse_architect_response(text)
+
+    async def architect_chat_stream(
+        self,
+        user_message: str,
+        entities: list[dict[str, Any]],
+        existing_automations: list[dict[str, Any]] | None = None,
+        history: list[dict[str, Any]] | None = None,
+    ):
+        """Async generator — streaming version of architect_chat.
+
+        history: prior turns as [{"role": "user"|"assistant", "content": "..."}].
+                 Only plain content — home context is only injected on the current
+                 turn to keep token usage bounded across a long session.
+
+        Yields text chunks as they arrive from the LLM.  The caller must
+        accumulate the full text and call parse_streamed_response() when done.
+        """
+        if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
+            provider_label = "Anthropic" if self._provider == LLM_PROVIDER_ANTHROPIC else "OpenAI"
+            yield f"Please configure your {provider_label} API Key in the Settings tab to start chatting."
+            return
+
+        system_prompt = self._build_architect_stream_system_prompt()
+
+        # Build context from interesting entities only to save tokens
+        interesting_domains = {
+            "light", "switch", "media_player", "climate", "fan",
+            "cover", "lock", "vacuum", "sensor", "binary_sensor",
+            "water_heater", "humidifier", "input_boolean", "input_select",
+        }
+
+        entity_lines: list[str] = []
+        for e in entities:
+            eid = e.get("entity_id", "")
+            domain = eid.split(".")[0]
+            if domain not in interesting_domains:
+                continue
+            state = e.get("state", "unknown")
+            friendly = e.get("attributes", {}).get("friendly_name", "")
+            entity_lines.append(f"  - {eid}: {state} ({friendly})")
+
+        if len(entity_lines) > 500:
+            entity_lines = entity_lines[:500]
+            entity_lines.append("  - ... (truncated to 500 entities)")
+
+        auto_lines: list[str] = []
+        if existing_automations:
+            for a in existing_automations:
+                alias = a.get("alias", a.get("entity_id", "unknown"))
+                state = a.get("state", "unknown")
+                auto_lines.append(f"  - {alias} (Status: {state})")
+
+        auto_section = (
+            "EXISTING AUTOMATIONS:\n" + "\n".join(auto_lines)
+            if auto_lines
+            else "EXISTING AUTOMATIONS: None yet."
+        )
+
+        # Current turn includes full home context
+        context_prompt = (
+            f"USER REQUEST: {user_message}\n\n"
+            f"{auto_section}\n\n"
+            "AVAILABLE ENTITIES:\n" + "\n".join(entity_lines)
+        )
+
+        # Multi-turn: prior history (plain text) + current turn with context
+        messages: list[dict[str, str]] = []
+        for turn in (history or [])[-10:]:
+            role = turn.get("role", "")
+            if role in ("user", "assistant"):
+                messages.append({"role": role, "content": turn["content"]})
+        messages.append({"role": "user", "content": context_prompt})
+
+        async for chunk in self._send_request_stream(system_prompt, messages):
+            yield chunk
+
     def _build_system_prompt(self) -> str:
         """System prompt — defines Selora AI's persona and output format."""
         return (

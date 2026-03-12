@@ -237,61 +237,75 @@ class SeloraAIArchitectPanel extends LitElement {
 
   async _sendMessage() {
     if (!this._input.trim() || this._loading) return;
-
-    const userText = this._input.trim();
+    const userMsg = this._input;
+    this._messages = [...this._messages, { role: "user", content: userMsg }];
     this._input = "";
     this._loading = true;
 
-    // Optimistically add user message to view
-    this._messages = [
-      ...this._messages,
-      { role: "user", content: userText, timestamp: new Date().toISOString() },
-    ];
+    const assistantMsg = { role: "assistant", content: "", _streaming: true };
+    this._messages = [...this._messages, assistantMsg];
 
     try {
-      const response = await this.hass.callWS({
-        type: "selora_ai/chat",
-        message: userText,
-        session_id: this._activeSessionId || undefined,
-      });
-
-      if (response.session_id && response.session_id !== this._activeSessionId) {
-        this._activeSessionId = response.session_id;
-        await this._loadSessions();
-      }
-
+      const subscribePayload = {
+        type: "selora_ai/chat_stream",
+        message: userMsg,
+      };
       if (this._activeSessionId) {
-        const session = await this.hass.callWS({
-          type: "selora_ai/get_session",
-          session_id: this._activeSessionId,
-        });
-        this._messages = session.messages || [];
-      } else {
-        this._messages = [
-          ...this._messages,
-          {
-            role: "assistant",
-            content: response.response || "No response.",
-            intent: response.intent,
-            automation: response.automation || null,
-            automation_yaml: response.automation_yaml || null,
-            description: response.description || null,
-            automation_status: response.automation ? "pending" : null,
-            timestamp: new Date().toISOString(),
-          },
-        ];
+        subscribePayload.session_id = this._activeSessionId;
       }
-    } catch (err) {
-      this._messages = [
-        ...this._messages,
-        {
-          role: "assistant",
-          content: "Sorry, I encountered an error: " + err.message,
-          timestamp: new Date().toISOString(),
+
+      const unsub = await this.hass.connection.subscribeMessage(
+        (event) => {
+          if (event.type === "token") {
+            assistantMsg.content += event.text;
+            this._messages = [...this._messages];
+            this._loading = false;
+            this._requestScrollChat();
+          } else if (event.type === "done") {
+            assistantMsg.content = event.response || assistantMsg.content;
+            assistantMsg.automation = event.automation || null;
+            assistantMsg.automation_yaml = event.automation_yaml || null;
+            assistantMsg.automation_status = event.automation ? "pending" : null;
+            assistantMsg.automation_message_index = event.automation_message_index ?? null;
+            assistantMsg._streaming = false;
+            this._messages = [...this._messages];
+            this._loading = false;
+
+            // Update session tracking
+            if (event.session_id) {
+              if (event.session_id !== this._activeSessionId) {
+                this._activeSessionId = event.session_id;
+              }
+              this._loadSessions();
+            }
+
+            unsub();
+          } else if (event.type === "error") {
+            assistantMsg.content = "Sorry, I encountered an error: " + event.message;
+            assistantMsg._streaming = false;
+            this._messages = [...this._messages];
+            this._loading = false;
+            unsub();
+          }
         },
-      ];
-    } finally {
+        subscribePayload
+      );
+    } catch (err) {
+      assistantMsg.content = "Sorry, I encountered an error: " + err.message;
+      assistantMsg._streaming = false;
+      this._messages = [...this._messages];
       this._loading = false;
+    }
+  }
+
+  _requestScrollChat() {
+    if (!this._scrollPending) {
+      this._scrollPending = true;
+      requestAnimationFrame(() => {
+        this._scrollPending = false;
+        const container = this.shadowRoot.getElementById("chat-messages");
+        if (container) container.scrollTop = container.scrollHeight;
+      });
     }
   }
 
@@ -1008,14 +1022,43 @@ class SeloraAIArchitectPanel extends LitElement {
         align-items: center;
         flex-shrink: 0;
       }
-      .loading-row {
+      .typing-bubble {
+        align-self: flex-start;
+        background-color: var(--card-background-color);
+        box-shadow: var(--card-box-shadow);
+        border-radius: 18px;
+        border-bottom-left-radius: 4px;
+        padding: 16px 22px;
         display: flex;
         align-items: center;
-        gap: 8px;
-        padding: 8px 4px;
-        opacity: 0.6;
-        font-size: 13px;
-        font-style: italic;
+        gap: 5px;
+      }
+      .typing-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--secondary-text-color);
+        animation: typingBounce 1.4s infinite ease-in-out both;
+      }
+      .typing-dot:nth-child(1) { animation-delay: 0s; }
+      .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+      .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+      @keyframes typingBounce {
+        0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+        40% { transform: scale(1); opacity: 1; }
+      }
+      .streaming-cursor::after {
+        content: "";
+        display: inline-block;
+        width: 2px;
+        height: 1em;
+        background-color: var(--primary-text-color);
+        margin-left: 2px;
+        vertical-align: text-bottom;
+        animation: blink 0.7s step-end infinite;
+      }
+      @keyframes blink {
+        50% { opacity: 0; }
       }
 
       /* ---- Scroll view (automations / settings) ---- */
@@ -1168,9 +1211,10 @@ class SeloraAIArchitectPanel extends LitElement {
 
           ${this._loading
             ? html`
-                <div class="loading-row">
-                  <ha-circular-progress active size="small"></ha-circular-progress>
-                  Architect is thinking…
+                <div class="typing-bubble">
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
+                  <div class="typing-dot"></div>
                 </div>
               `
             : ""}
@@ -1199,10 +1243,12 @@ class SeloraAIArchitectPanel extends LitElement {
 
   _renderMessage(msg, idx) {
     const isUser = msg.role === "user";
+    // Hide empty streaming messages (typing indicator shown separately)
+    if (msg._streaming && !msg.content) return html``;
     return html`
       <div class="message-row">
         <div class="bubble ${isUser ? "user" : "assistant"}">
-          <div class="msg-content" .innerHTML=${isUser ? msg.content : renderMarkdown(msg.content)}></div>
+          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(msg.content)}></span>
           ${msg.config_issue
             ? html`
                 <div style="margin-top: 10px;">
