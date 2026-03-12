@@ -804,6 +804,28 @@ class LLMClient:
             _LOGGER.warning("Failed to parse command response: %s", exc)
             return {"calls": [], "response": "Failed to parse LLM response"}
 
+    async def generate_session_title(
+        self, user_msg: str, assistant_response: str
+    ) -> str:
+        """Ask the LLM for a concise 3-5 word conversation title."""
+        system = (
+            "Generate a concise 3-5 word title summarizing this conversation. "
+            "Return only the title text, nothing else."
+        )
+        messages = [
+            {"role": "user", "content": user_msg},
+            {"role": "assistant", "content": assistant_response[:200]},
+            {"role": "user", "content": "Now generate a short title for this conversation."},
+        ]
+        try:
+            result, error = await self._send_request(system=system, messages=messages)
+            if result:
+                title = result.strip().strip('"').strip("'")
+                return title[:80]
+        except Exception:
+            _LOGGER.debug("Title generation failed, using fallback")
+        return user_msg[:60]
+
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""
         if self._provider == LLM_PROVIDER_ANTHROPIC:
