@@ -1291,11 +1291,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 summary.get("configured_count", 0),
                 summary.get("available_count", 0),
             )
-            # Sync Cast known_hosts (safe)
-            cast_result = await device_mgr.sync_cast_known_hosts()
-            if cast_result.get("updated"):
-                _LOGGER.info("Cast known_hosts updated: %s", cast_result.get("added_hosts"))
-            
             # Auto-assign areas (safe)
             area_result = await device_mgr.auto_assign_areas()
             if area_result.get("assigned"):

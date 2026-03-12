@@ -7,6 +7,6 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://gitlab.com/selorahomes/products/selora-ai/ha-integration/-/work_items",
   "dependencies": ["conversation"],
-  "requirements": ["adb-shell[async]>=0.4.4", "ruamel.yaml>=0.18.0"],
+  "requirements": ["ruamel.yaml>=0.18.0"],
   "version": "0.1.0"
 }
