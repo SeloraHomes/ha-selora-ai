@@ -861,6 +861,7 @@ async def _handle_websocket_apply_automation_yaml(
     vol.Required("automation_id"): str,
     vol.Required("yaml_text"): str,
     vol.Optional("session_id"): str,
+    vol.Optional("version_message"): str,
 })
 async def _handle_websocket_update_automation_yaml(
     hass: HomeAssistant,
@@ -881,7 +882,7 @@ async def _handle_websocket_update_automation_yaml(
             msg["automation_id"],
             parsed,
             session_id=msg.get("session_id"),
-            version_message="Updated via YAML editor",
+            version_message=msg.get("version_message", "Updated via YAML editor"),
         )
         if success:
             connection.send_result(msg["id"], {"status": "updated"})

@@ -79,6 +79,34 @@ class SeloraAIArchitectPanel extends LitElement {
       // Editable YAML state (keyed by msgIndex or suggestion key)
       _editedYaml: { type: Object },
       _savingYaml: { type: Object },
+
+      // Version history drawer
+      _versionHistoryOpen: { type: Object },
+      _versions: { type: Object },
+      _loadingVersions: { type: Object },
+
+      // Diff viewer
+      _diffOpen: { type: Boolean },
+      _diffAutomationId: { type: String },
+      _diffVersionA: { type: String },
+      _diffVersionB: { type: String },
+      _diffResult: { type: Array },
+      _loadingDiff: { type: Boolean },
+
+      // Recently deleted section
+      _showDeleted: { type: Boolean },
+      _deletedAutomations: { type: Array },
+      _loadingDeleted: { type: Boolean },
+
+      // Action loading states
+      _deletingAutomation: { type: Object },
+      _restoringAutomation: { type: Object },
+      _restoringVersion: { type: Object },
+      _loadingToChat: { type: Object },
+
+      // Toast notifications
+      _toast: { type: String },
+      _toastType: { type: String },
     };
   }
 
@@ -99,6 +127,29 @@ class SeloraAIArchitectPanel extends LitElement {
     this._config = null;
     this._savingConfig = false;
     this._newApiKey = "";
+    // Version history
+    this._versionHistoryOpen = {};
+    this._versions = {};
+    this._loadingVersions = {};
+    // Diff viewer
+    this._diffOpen = false;
+    this._diffAutomationId = null;
+    this._diffVersionA = null;
+    this._diffVersionB = null;
+    this._diffResult = [];
+    this._loadingDiff = false;
+    // Recently deleted
+    this._showDeleted = false;
+    this._deletedAutomations = [];
+    this._loadingDeleted = false;
+    // Action loading states
+    this._deletingAutomation = {};
+    this._restoringAutomation = {};
+    this._restoringVersion = {};
+    this._loadingToChat = {};
+    this._toast = "";
+    this._toastType = "info";
+    this._toastTimer = null;
   }
 
   connectedCallback() {
@@ -223,9 +274,9 @@ class SeloraAIArchitectPanel extends LitElement {
       await this.hass.callWS({ type: "selora_ai/update_config", config: payload });
       this._newApiKey = "";
       await this._loadConfig();
-      alert("Configuration saved successfully!");
+      this._showToast("Configuration saved.", "success");
     } catch (err) {
-      alert("Failed to save configuration: " + err.message);
+      this._showToast("Failed to save configuration: " + err.message, "error");
     } finally {
       this._savingConfig = false;
     }
@@ -341,7 +392,7 @@ class SeloraAIArchitectPanel extends LitElement {
         },
       ];
     } catch (err) {
-      alert("Failed to create automation: " + err.message);
+      this._showToast("Failed to create automation: " + err.message, "error");
     }
   }
 
@@ -391,9 +442,9 @@ class SeloraAIArchitectPanel extends LitElement {
     try {
       await this.hass.callWS({ type: "selora_ai/create_automation", automation });
       await this._loadAutomations();
-      alert(`Automation "${automation.alias}" created.`);
+      this._showToast(`Automation "${automation.alias}" created.`, "success");
     } catch (err) {
-      alert("Failed to create automation: " + err.message);
+      this._showToast("Failed to create automation: " + err.message, "error");
     }
   }
 
@@ -425,7 +476,7 @@ class SeloraAIArchitectPanel extends LitElement {
           timestamp: new Date().toISOString(),
         }];
       } catch (err) {
-        alert("Failed to create automation from edited YAML: " + err.message);
+        this._showToast("Failed to create automation from edited YAML: " + err.message, "error");
       } finally {
         this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
         this.requestUpdate();
@@ -446,9 +497,9 @@ class SeloraAIArchitectPanel extends LitElement {
         await this.hass.callWS({ type: "selora_ai/create_automation", automation: auto });
       }
       await this._loadAutomations();
-      alert(`Automation "${auto.alias}" created.`);
+      this._showToast(`Automation "${auto.alias}" created.`, "success");
     } catch (err) {
-      alert("Failed to create automation: " + err.message);
+      this._showToast("Failed to create automation: " + err.message, "error");
     } finally {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
       this.requestUpdate();
@@ -469,8 +520,9 @@ class SeloraAIArchitectPanel extends LitElement {
       // Clear edits and refresh
       this._editedYaml = { ...this._editedYaml, [yamlKey]: undefined };
       await this._loadAutomations();
+      this._showToast("Automation YAML saved.", "success");
     } catch (err) {
-      alert("Failed to save changes: " + err.message);
+      this._showToast("Failed to save changes: " + err.message, "error");
     } finally {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
       this.requestUpdate();
@@ -495,6 +547,32 @@ class SeloraAIArchitectPanel extends LitElement {
 
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };
+    this.requestUpdate();
+  }
+
+  _showToast(message, type = "info") {
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
+    }
+    this._toast = message;
+    this._toastType = type;
+    this._toastTimer = setTimeout(() => {
+      this._toast = "";
+      this._toastType = "info";
+      this._toastTimer = null;
+      this.requestUpdate();
+    }, 3500);
+    this.requestUpdate();
+  }
+
+  _dismissToast() {
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
+    }
+    this._toast = "";
+    this._toastType = "info";
     this.requestUpdate();
   }
 
@@ -1124,6 +1202,34 @@ class SeloraAIArchitectPanel extends LitElement {
       :host([narrow]) .sidebar.open {
         transform: translateX(0);
       }
+
+      .toast {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 10050;
+        max-width: min(420px, calc(100vw - 32px));
+        padding: 10px 12px;
+        border-radius: 10px;
+        color: #fff;
+        font-size: 13px;
+        line-height: 1.4;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .toast.info { background: #1f6feb; }
+      .toast.success { background: #198754; }
+      .toast.error { background: #dc3545; }
+      .toast-close {
+        margin-left: auto;
+        cursor: pointer;
+        opacity: 0.85;
+      }
+      .toast-close:hover {
+        opacity: 1;
+      }
     `;
   }
 
@@ -1188,6 +1294,15 @@ class SeloraAIArchitectPanel extends LitElement {
         ${this._activeTab === "automations" ? this._renderAutomations() : ""}
         ${this._activeTab === "settings" ? this._renderSettings() : ""}
       </div>
+
+      ${this._toast
+        ? html`
+            <div class="toast ${this._toastType}">
+              <span>${this._toast}</span>
+              <ha-icon class="toast-close" icon="mdi:close" @click=${() => this._dismissToast()}></ha-icon>
+            </div>
+          `
+        : ""}
     `;
   }
 
@@ -1636,6 +1751,382 @@ class SeloraAIArchitectPanel extends LitElement {
     }
   }
 
+  // -------------------------------------------------------------------------
+  // Version history methods
+  // -------------------------------------------------------------------------
+
+  async _openVersionHistory(automationId) {
+    const isOpen = !!this._versionHistoryOpen[automationId];
+    this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: !isOpen };
+    if (!isOpen && !this._versions[automationId]) {
+      await this._loadVersionHistory(automationId);
+    }
+    this.requestUpdate();
+  }
+
+  async _loadVersionHistory(automationId) {
+    this._loadingVersions = { ...this._loadingVersions, [automationId]: true };
+    try {
+      const result = await this.hass.callWS({ type: "selora_ai/get_automation_versions", automation_id: automationId });
+      const ordered = Array.isArray(result) ? [...result].reverse() : [];
+      this._versions = { ...this._versions, [automationId]: ordered };
+    } catch (err) {
+      console.error("Failed to load version history", err);
+      this._showToast("Failed to load version history: " + err.message, "error");
+    } finally {
+      this._loadingVersions = { ...this._loadingVersions, [automationId]: false };
+    }
+    this.requestUpdate();
+  }
+
+  async _openDiffViewer(automationId) {
+    const versions = this._versions[automationId];
+    if (!versions || versions.length < 2) await this._loadVersionHistory(automationId);
+    const v = this._versions[automationId] || [];
+    this._diffAutomationId = automationId;
+    this._diffVersionA = v[0]?.version_id || null;
+    this._diffVersionB = v[1]?.version_id || null;
+    this._diffResult = [];
+    this._diffOpen = true;
+    if (this._diffVersionA && this._diffVersionB) {
+      await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
+    }
+    this.requestUpdate();
+  }
+
+  async _loadDiff(automationId, versionAId, versionBId) {
+    if (!versionAId || !versionBId) return;
+    this._loadingDiff = true;
+    this._diffResult = [];
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/get_automation_diff",
+        automation_id: automationId,
+        version_id_a: versionAId,
+        version_id_b: versionBId,
+      });
+      const diffText = result?.diff || "";
+      this._diffResult = diffText ? diffText.split("\n") : [];
+    } catch (err) {
+      console.error("Failed to load diff", err);
+      this._showToast("Failed to load diff: " + err.message, "error");
+    } finally {
+      this._loadingDiff = false;
+    }
+    this.requestUpdate();
+  }
+
+  async _restoreVersion(automationId, versionId, yamlText) {
+    const key = `${automationId}_${versionId}`;
+    this._restoringVersion = { ...this._restoringVersion, [key]: true };
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_automation_yaml",
+        automation_id: automationId,
+        yaml_text: yamlText,
+        version_message: `Restored from version ${versionId}`,
+      });
+      this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: false };
+      this._versions = { ...this._versions, [automationId]: null };
+      await this._loadAutomations();
+      this._showToast("Version restored.", "success");
+    } catch (err) {
+      console.error("Failed to restore version", err);
+      this._showToast("Failed to restore version: " + err.message, "error");
+    } finally {
+      this._restoringVersion = { ...this._restoringVersion, [key]: false };
+    }
+    this.requestUpdate();
+  }
+
+  // -------------------------------------------------------------------------
+  // Soft delete / restore methods
+  // -------------------------------------------------------------------------
+
+  async _softDeleteAutomation(automationId) {
+    this._deletingAutomation = { ...this._deletingAutomation, [automationId]: true };
+    try {
+      await this.hass.callWS({ type: "selora_ai/soft_delete_automation", automation_id: automationId });
+      await this._loadAutomations();
+      this._showToast("Automation moved to Recently Deleted.", "success");
+    } catch (err) {
+      console.error("Failed to delete automation", err);
+      this._showToast("Failed to delete automation: " + err.message, "error");
+    } finally {
+      this._deletingAutomation = { ...this._deletingAutomation, [automationId]: false };
+    }
+    this.requestUpdate();
+  }
+
+  async _restoreDeletedAutomation(automationId) {
+    this._restoringAutomation = { ...this._restoringAutomation, [automationId]: true };
+    try {
+      await this.hass.callWS({ type: "selora_ai/restore_automation", automation_id: automationId });
+      await this._loadDeletedAutomations();
+      await this._loadAutomations();
+      this._showToast("Automation restored.", "success");
+    } catch (err) {
+      console.error("Failed to restore automation", err);
+      this._showToast("Failed to restore automation: " + err.message, "error");
+    } finally {
+      this._restoringAutomation = { ...this._restoringAutomation, [automationId]: false };
+    }
+    this.requestUpdate();
+  }
+
+  async _toggleDeletedSection() {
+    this._showDeleted = !this._showDeleted;
+    if (this._showDeleted && this._deletedAutomations.length === 0) {
+      await this._loadDeletedAutomations();
+    }
+    this.requestUpdate();
+  }
+
+  async _loadDeletedAutomations() {
+    this._loadingDeleted = true;
+    try {
+      const result = await this.hass.callWS({ type: "selora_ai/get_automations", include_deleted: true });
+      this._deletedAutomations = (result || []).filter((a) => a.is_deleted);
+    } catch (err) {
+      console.error("Failed to load deleted automations", err);
+      this._showToast("Failed to load deleted automations: " + err.message, "error");
+    } finally {
+      this._loadingDeleted = false;
+    }
+    this.requestUpdate();
+  }
+
+  // -------------------------------------------------------------------------
+  // Refine in chat
+  // -------------------------------------------------------------------------
+
+  async _loadAutomationToChat(automationId) {
+    this._loadingToChat = { ...this._loadingToChat, [automationId]: true };
+    try {
+      const result = await this.hass.callWS({ type: "selora_ai/load_automation_to_session", automation_id: automationId });
+      const sessionId = result?.session_id;
+      if (sessionId) {
+        this._activeSessionId = sessionId;
+        this._activeTab = "chat";
+        await this._openSession(sessionId);
+        this._showToast("Automation loaded into chat.", "success");
+      }
+    } catch (err) {
+      console.error("Failed to load automation to chat", err);
+      this._showToast("Failed to load automation into chat: " + err.message, "error");
+    } finally {
+      this._loadingToChat = { ...this._loadingToChat, [automationId]: false };
+    }
+    this.requestUpdate();
+  }
+
+  // -------------------------------------------------------------------------
+  // Render: version history drawer
+  // -------------------------------------------------------------------------
+
+  _renderVersionHistoryDrawer(a) {
+    const automationId = a.automation_id || a.entity_id;
+    if (!this._versionHistoryOpen[automationId]) return "";
+    const versions = this._versions[automationId] || [];
+    const loading = this._loadingVersions[automationId];
+    return html`
+      <div style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <span style="font-weight:600;font-size:13px;">
+            <ha-icon icon="mdi:history" style="--mdc-icon-size:15px;vertical-align:middle;margin-right:4px;"></ha-icon>
+            Version History
+          </span>
+          ${versions.length >= 2
+            ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                @click=${() => this._openDiffViewer(automationId)}>
+                <ha-icon icon="mdi:compare" style="--mdc-icon-size:12px;"></ha-icon>
+                Compare versions
+              </button>`
+            : ""}
+        </div>
+        ${loading
+          ? html`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
+          : versions.length === 0
+          ? html`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>`
+          : versions.map((v, i) => {
+              const key = `${automationId}_${v.version_id}`;
+              const restoring = this._restoringVersion[key];
+              const date = new Date(v.created_at);
+              const relativeTime = this._relativeTime(date);
+              return html`
+                <div style="border-bottom:1px solid var(--divider-color);padding:8px 0;display:flex;flex-direction:column;gap:4px;">
+                  <div style="display:flex;align-items:center;gap:8px;">
+                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i}</span>
+                    <span style="font-size:12px;" title=${date.toISOString()}>${relativeTime}</span>
+                    ${i === 0 ? html`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
+                    ${v.session_id
+                      ? html`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
+                          @click=${() => { this._activeSessionId = v.session_id; this._activeTab = "chat"; this._openSession(v.session_id); }}>
+                          from chat session
+                        </span>`
+                      : ""}
+                  </div>
+                  ${(v.message || v.version_message)
+                    ? html`<div style="font-size:11px;opacity:0.7;font-style:italic;">"${v.message || v.version_message}"</div>`
+                    : ""}
+                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                      @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
+                      <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:11px;"></ha-icon>
+                      ${this._expandedAutomations[`ver_${key}`] ? "Hide YAML" : "View YAML"}
+                    </button>
+                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                      @click=${async () => { await this._openDiffViewer(automationId); this._diffVersionA = this._versions[automationId]?.[0]?.version_id || null; this._diffVersionB = v.version_id; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); this.requestUpdate(); }}>
+                      <ha-icon icon="mdi:compare" style="--mdc-icon-size:11px;"></ha-icon>
+                      Compare with current
+                    </button>
+                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                      ?disabled=${!!this._loadingToChat[automationId]}
+                      @click=${() => this._loadAutomationToChat(automationId)}>
+                      <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:11px;"></ha-icon>
+                      ${this._loadingToChat[automationId] ? "Loading…" : "Refine in chat"}
+                    </button>
+                    ${i > 0
+                      ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                          ?disabled=${restoring || !(v.yaml || v.yaml_content)}
+                          @click=${() => this._restoreVersion(automationId, v.version_id, v.yaml || v.yaml_content || "")}>
+                          <ha-icon icon="mdi:restore" style="--mdc-icon-size:11px;"></ha-icon>
+                          ${restoring ? "Restoring…" : "Restore this version"}
+                        </button>`
+                      : ""}
+                  </div>
+                  ${this._expandedAutomations[`ver_${key}`]
+                    ? html`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:4px 0 0;white-space:pre-wrap;">${v.yaml || v.yaml_content || "(no YAML stored)"}</pre>`
+                    : ""}
+                </div>
+              `;
+            })}
+      </div>
+    `;
+  }
+
+  // -------------------------------------------------------------------------
+  // Render: diff viewer modal
+  // -------------------------------------------------------------------------
+
+  _renderDiffViewer() {
+    if (!this._diffOpen) return "";
+    const automationId = this._diffAutomationId;
+    const versions = this._versions[automationId] || [];
+    return html`
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
+        @click=${(e) => { if (e.target === e.currentTarget) { this._diffOpen = false; this.requestUpdate(); } }}>
+        <div style="background:var(--card-background-color);border-radius:12px;width:90%;max-width:760px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--divider-color);">
+            <span style="font-weight:700;font-size:15px;">
+              <ha-icon icon="mdi:compare" style="--mdc-icon-size:17px;vertical-align:middle;margin-right:6px;"></ha-icon>
+              Compare Versions
+            </span>
+            <ha-icon icon="mdi:close" style="cursor:pointer;--mdc-icon-size:20px;" @click=${() => { this._diffOpen = false; this.requestUpdate(); }}></ha-icon>
+          </div>
+          <div style="padding:12px 20px;border-bottom:1px solid var(--divider-color);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;opacity:0.7;">Version A (newer):</span>
+              <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
+                .value=${this._diffVersionA || ""}
+                @change=${async (e) => { this._diffVersionA = e.target.value; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); }}>
+                ${versions.map((v, i) => html`<option value=${v.version_id}>v${versions.length - i} — ${v.message || v.version_message || new Date(v.created_at).toLocaleDateString()}</option>`)}
+              </select>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span style="font-size:12px;opacity:0.7;">Version B (older):</span>
+              <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
+                .value=${this._diffVersionB || ""}
+                @change=${async (e) => { this._diffVersionB = e.target.value; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); }}>
+                ${versions.map((v, i) => html`<option value=${v.version_id}>v${versions.length - i} — ${v.message || v.version_message || new Date(v.created_at).toLocaleDateString()}</option>`)}
+              </select>
+            </div>
+          </div>
+          <div style="flex:1;overflow-y:auto;padding:12px 20px;">
+            ${this._loadingDiff
+              ? html`<div style="opacity:0.5;text-align:center;padding:24px;">Loading diff…</div>`
+              : this._diffResult.length === 0
+              ? html`<div style="opacity:0.5;text-align:center;padding:24px;">No differences found.</div>`
+              : html`<pre style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;">${this._diffResult.map((line) => {
+                  const bg = line.startsWith("+") ? "rgba(40,167,69,0.15)" : line.startsWith("-") ? "rgba(220,53,69,0.15)" : "transparent";
+                  const color = line.startsWith("+") ? "#40c057" : line.startsWith("-") ? "#fa5252" : "var(--primary-text-color)";
+                  return html`<span style="display:block;background:${bg};color:${color};padding:1px 4px;">${line}</span>`;
+                })}</pre>`}
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // -------------------------------------------------------------------------
+  // Render: recently deleted section
+  // -------------------------------------------------------------------------
+
+  _renderDeletedSection() {
+    const daysRemaining = (deletedAt) => {
+      const elapsed = (Date.now() - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24);
+      return Math.max(0, Math.round(30 - elapsed));
+    };
+    return html`
+      <div style="margin-top:16px;">
+        <div class="expand-toggle" style="display:flex;align-items:center;gap:6px;"
+          @click=${() => this._toggleDeletedSection()}>
+          <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:14px;opacity:0.6;"></ha-icon>
+          <span>Recently Deleted</span>
+          <ha-icon icon="mdi:chevron-${this._showDeleted ? "up" : "down"}" style="--mdc-icon-size:14px;margin-left:auto;"></ha-icon>
+        </div>
+        ${this._showDeleted
+          ? html`
+              <div style="margin-top:8px;">
+                ${this._loadingDeleted
+                  ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading…</div>`
+                  : this._deletedAutomations.length === 0
+                  ? html`<div style="opacity:0.45;font-size:12px;padding:8px 0;">No recently deleted automations.</div>`
+                  : this._deletedAutomations.map((a) => {
+                      const automationId = a.automation_id || a.entity_id;
+                      const days = daysRemaining(a.deleted_at);
+                      const restoring = this._restoringAutomation[automationId];
+                      return html`
+                        <div class="card" style="opacity:0.8;border-left:3px solid var(--error-color);">
+                          <div class="card-header">
+                            <h3 style="flex:1;">${a.alias}</h3>
+                            ${days <= 3
+                              ? html`<span style="font-size:10px;background:var(--error-color);color:#fff;border-radius:4px;padding:2px 6px;">⚠ ${days}d left</span>`
+                              : html`<span style="font-size:11px;opacity:0.6;">${days} days until purge</span>`}
+                          </div>
+                          <p style="font-size:11px;opacity:0.6;margin:4px 0;">
+                            Deleted ${this._relativeTime(new Date(a.deleted_at))}
+                          </p>
+                          <div class="card-actions">
+                            <button class="btn btn-outline" ?disabled=${restoring}
+                              @click=${() => this._restoreDeletedAutomation(automationId)}>
+                              <ha-icon icon="mdi:restore" style="--mdc-icon-size:13px;"></ha-icon>
+                              ${restoring ? "Restoring…" : "Restore"}
+                            </button>
+                          </div>
+                        </div>
+                      `;
+                    })}
+              </div>
+            `
+          : ""}
+      </div>
+    `;
+  }
+
+  // -------------------------------------------------------------------------
+  // Helper: relative time
+  // -------------------------------------------------------------------------
+
+  _relativeTime(date) {
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
+    return date.toLocaleDateString();
+  }
+
   _renderAutomations() {
     return html`
       <div class="scroll-view">
@@ -1645,6 +2136,10 @@ class SeloraAIArchitectPanel extends LitElement {
               ${this._automations.map((a) => {
                 const expanded = !!this._expandedAutomations[a.entity_id];
                 const isOn = a.state === "on";
+                const automationId = a.automation_id || a.entity_id;
+                const versionCount = a.version_count || null;
+                const deleting = this._deletingAutomation[automationId];
+                const loadingChat = this._loadingToChat[automationId];
                 return html`
                   <div class="card">
                     <div class="card-header">
@@ -1652,7 +2147,13 @@ class SeloraAIArchitectPanel extends LitElement {
                       <div class="chip ${a.is_selora ? "ai-managed" : "user-managed"}" style="margin-right:8px;">
                         ${a.is_selora ? "SELORA" : "USER"}
                       </div>
-                    </div>
+                      ${versionCount
+                        ? html`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-right:4px;"
+                            @click=${() => this._openVersionHistory(automationId)}>
+                            <ha-icon icon="mdi:history" style="--mdc-icon-size:12px;vertical-align:middle;"></ha-icon>
+                            v${versionCount}
+                          </span>`
+                        : ""}</div>
 
                     ${a.description
                       ? html`<p>${a.description.replace("[Selora AI] ", "")}</p>`
@@ -1702,10 +2203,27 @@ class SeloraAIArchitectPanel extends LitElement {
                         <ha-icon icon="mdi:${isOn ? "pause" : "play"}" style="--mdc-icon-size:13px;"></ha-icon>
                         ${isOn ? "Disable" : "Enable"}
                       </button>
+                      <button class="btn btn-outline"
+                        @click=${() => this._openVersionHistory(automationId)}>
+                        <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;"></ha-icon>
+                        History
+                      </button>
+                      <button class="btn btn-outline" ?disabled=${loadingChat}
+                        @click=${() => this._loadAutomationToChat(automationId)}>
+                        <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                        ${loadingChat ? "Loading…" : "Refine in chat"}
+                      </button>
+                      <button class="btn btn-outline btn-danger" ?disabled=${deleting}
+                        @click=${() => this._softDeleteAutomation(automationId)}>
+                        <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                        ${deleting ? "Deleting…" : "Delete"}
+                      </button>
                     </div>
+                    ${this._renderVersionHistoryDrawer(a)}
                   </div>
                 `;
               })}
+              ${this._renderDeletedSection()}
               <div style="border-top: 1px solid var(--divider-color); margin: 24px 0 16px;"></div>
             `
           : ""}
@@ -1754,6 +2272,7 @@ class SeloraAIArchitectPanel extends LitElement {
               `;
             })}
       </div>
+      ${this._renderDiffViewer()}
     `;
   }
 
