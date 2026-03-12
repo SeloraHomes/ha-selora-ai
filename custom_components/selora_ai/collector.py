@@ -57,6 +57,7 @@ class DataCollector:
         self._lookback_days = lookback_days
         self._settings = settings or {}
         self._unsub_timer = None
+        self._unsub_purge_timer = None
 
     async def async_start(self) -> None:
         """Start the periodic collection → analysis → log cycle."""
@@ -79,11 +80,31 @@ class DataCollector:
         )
         _LOGGER.info("Data collector started (interval: %ss)", interval)
 
+        # Daily purge of expired soft-deleted automations
+        self._unsub_purge_timer = async_track_time_interval(
+            self._hass,
+            self._scheduled_purge,
+            timedelta(days=1),
+        )
+
     async def async_stop(self) -> None:
-        """Stop the periodic timer."""
+        """Stop the periodic timers."""
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
+        if self._unsub_purge_timer:
+            self._unsub_purge_timer()
+            self._unsub_purge_timer = None
+
+    async def _scheduled_purge(self, _now: datetime) -> None:
+        """Daily timer callback: purge expired soft-deleted automations."""
+        try:
+            from .automation_utils import async_purge_deleted_automations
+            purged = await async_purge_deleted_automations(self._hass)
+            if purged:
+                _LOGGER.info("Daily purge removed %d expired automations: %s", len(purged), purged)
+        except Exception:
+            _LOGGER.exception("Daily automation purge failed")
 
     async def _scheduled_cycle(self, _now: datetime) -> None:
         """Timer callback."""
@@ -273,6 +294,22 @@ class DataCollector:
             await self._hass.services.async_call("automation", "reload")
         except Exception:
             _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
+
+        # Record first version for each new automation in the lifecycle store
+        try:
+            from .automation_utils import _get_automation_store
+            store = _get_automation_store(self._hass)
+            for automation in new_automations:
+                yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
+                await store.add_version(
+                    automation["id"],
+                    yaml_text,
+                    automation,
+                    "Created by collector",
+                    session_id=None,
+                )
+        except Exception:
+            _LOGGER.exception("Failed to record automation versions in store")
 
         _LOGGER.info("Created %d new automations in automations.yaml", len(new_automations))
         return [{"id": a["id"], "alias": a["alias"]} for a in new_automations]

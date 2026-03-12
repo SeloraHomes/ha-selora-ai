@@ -1,3 +1,4 @@
+from __future__ import annotations
 
 import logging
 import uuid
@@ -6,9 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from .const import AUTOMATION_ID_PREFIX
+from .const import AUTOMATION_ID_PREFIX, AUTOMATION_SOFT_DELETE_DAYS
 
 _LOGGER = logging.getLogger(__name__)
+
 
 def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
     """Read and parse automations.yaml (runs in executor)."""
@@ -25,6 +27,7 @@ def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
         _LOGGER.error("Error reading automations.yaml: %s", exc)
     return []
 
+
 def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> None:
     """Write automations list to YAML atomically, preserving formatting."""
     from ruamel.yaml import YAML
@@ -35,6 +38,7 @@ def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> No
     with tmp_path.open("w", encoding="utf-8") as fh:
         ryaml.dump(automations, fh)
     tmp_path.replace(path)
+
 
 def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
     """Parse a YAML string into an automation dict (runs in executor). Returns None on error."""
@@ -47,7 +51,24 @@ def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
     return None
 
 
-async def async_update_automation(hass: HomeAssistant, automation_id: str, updated: dict[str, Any]) -> bool:
+def _get_automation_store(hass: HomeAssistant):
+    """Return (or lazily create) the AutomationStore from hass.data."""
+    from .automation_store import AutomationStore
+    from .const import DOMAIN
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if "_automation_store" not in domain_data:
+        domain_data["_automation_store"] = AutomationStore(hass)
+    return domain_data["_automation_store"]
+
+
+async def async_update_automation(
+    hass: HomeAssistant,
+    automation_id: str,
+    updated: dict[str, Any],
+    *,
+    session_id: str | None = None,
+    version_message: str = "Updated via YAML editor",
+) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload."""
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
@@ -70,13 +91,25 @@ async def async_update_automation(hass: HomeAssistant, automation_id: str, updat
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         _LOGGER.info("Updated automation: %s", automation_id)
         await hass.services.async_call("automation", "reload")
+
+        # Record version
+        yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
+        store = _get_automation_store(hass)
+        await store.add_version(automation_id, yaml_text, updated, version_message, session_id)
+
         return True
     except Exception as exc:
         _LOGGER.exception("Failed to update automation: %s", exc)
         return False
 
 
-async def async_create_automation(hass: HomeAssistant, suggestion: dict[str, Any]) -> bool:
+async def async_create_automation(
+    hass: HomeAssistant,
+    suggestion: dict[str, Any],
+    *,
+    session_id: str | None = None,
+    version_message: str = "Created",
+) -> bool:
     """Write a single automation suggestion to automations.yaml and reload."""
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
 
@@ -105,11 +138,12 @@ async def async_create_automation(hass: HomeAssistant, suggestion: dict[str, Any
         conditions = [conditions]
 
     short_id = uuid.uuid4().hex[:8]
+    automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
     automation = {
-        "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
+        "id": automation_id,
         "alias": alias,
         "description": f"[Selora AI] {suggestion.get('description', alias)}",
-        "initial_state": False, # Start disabled for review
+        "initial_state": False,  # Start disabled for review
         "trigger": triggers,
         "condition": conditions or [],
         "action": actions,
@@ -117,14 +151,121 @@ async def async_create_automation(hass: HomeAssistant, suggestion: dict[str, Any
     }
 
     existing.append(automation)
-    
+
     try:
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         _LOGGER.info("Created new automation: %s", alias)
-        
+
         # Reload HA automations
         await hass.services.async_call("automation", "reload")
+
+        # Record first version
+        yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
+        store = _get_automation_store(hass)
+        await store.add_version(automation_id, yaml_text, automation, version_message, session_id)
+
         return True
     except Exception as exc:
         _LOGGER.exception("Failed to create automation: %s", exc)
         return False
+
+
+async def async_soft_delete_automation(
+    hass: HomeAssistant, automation_id: str
+) -> bool:
+    """Disable the automation in automations.yaml and mark it deleted in the store.
+
+    The automation is NOT removed from the file — it is disabled (initial_state: False)
+    so HA hides it from the active automations list. Permanent removal happens only
+    after the 30-day retention window via async_purge_deleted_automations().
+    """
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    found = False
+    for automation in existing:
+        if automation.get("id") == automation_id:
+            automation["initial_state"] = False
+            found = True
+            break
+
+    if not found:
+        _LOGGER.error("Automation id %s not found in automations.yaml for soft-delete", automation_id)
+        return False
+
+    try:
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+        await hass.services.async_call("automation", "reload")
+        store = _get_automation_store(hass)
+        await store.soft_delete(automation_id)
+        _LOGGER.info("Soft-deleted automation: %s", automation_id)
+        return True
+    except Exception as exc:
+        _LOGGER.exception("Failed to soft-delete automation %s: %s", automation_id, exc)
+        return False
+
+
+async def async_restore_automation(
+    hass: HomeAssistant, automation_id: str
+) -> bool:
+    """Re-enable a soft-deleted automation and clear its deleted_at in the store."""
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    found = False
+    for automation in existing:
+        if automation.get("id") == automation_id:
+            automation["initial_state"] = True
+            found = True
+            break
+
+    if not found:
+        _LOGGER.error("Automation id %s not found in automations.yaml for restore", automation_id)
+        return False
+
+    try:
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+        await hass.services.async_call("automation", "reload")
+        store = _get_automation_store(hass)
+        await store.restore(automation_id)
+        _LOGGER.info("Restored automation: %s", automation_id)
+        return True
+    except Exception as exc:
+        _LOGGER.exception("Failed to restore automation %s: %s", automation_id, exc)
+        return False
+
+
+async def async_purge_deleted_automations(
+    hass: HomeAssistant,
+    older_than_days: int = AUTOMATION_SOFT_DELETE_DAYS,
+) -> list[str]:
+    """Permanently remove automations whose soft-delete window has expired.
+
+    Removes both the store record and the automations.yaml entry.
+    Returns the list of purged automation_ids.
+    """
+    store = _get_automation_store(hass)
+    purged_ids = await store.purge_old_deleted(older_than_days)
+
+    if not purged_ids:
+        return []
+
+    # Remove purged entries from automations.yaml
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    purged_set = set(purged_ids)
+    remaining = [a for a in existing if a.get("id") not in purged_set]
+
+    if len(remaining) != len(existing):
+        try:
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+            await hass.services.async_call("automation", "reload")
+            _LOGGER.info(
+                "Purged %d expired automations from automations.yaml: %s",
+                len(purged_ids),
+                purged_ids,
+            )
+        except Exception as exc:
+            _LOGGER.exception("Failed to write automations.yaml during purge: %s", exc)
+
+    return purged_ids

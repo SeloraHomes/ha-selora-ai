@@ -38,3 +38,7 @@ custom_components/selora_backup/
 .idea/
 .vscode/
 *.swp
+.ha_run.lock
+
+# ── Local dependency manifest overrides ─────────────────────
+requirements.txt

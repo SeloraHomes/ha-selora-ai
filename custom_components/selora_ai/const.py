@@ -322,3 +322,7 @@ PANEL_PATH = "selora-ai-architect"
 # https://www.home-assistant.io/integrations/recorder/
 DEFAULT_RECORDER_LOOKBACK_DAYS = 7
 CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
+
+# ── Automation Lifecycle ──────────────────────────────────────────────
+AUTOMATION_STORE_KEY = "selora_ai_automations"
+AUTOMATION_SOFT_DELETE_DAYS = 30
