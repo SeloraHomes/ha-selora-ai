@@ -1,637 +1,86 @@
-// node_modules/@lit/reactive-element/css-tag.js
-var t = window;
-var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
-var s = Symbol();
-var n = /* @__PURE__ */ new WeakMap();
-var o = class {
-  constructor(t3, e4, n5) {
-    if (this._$cssResult$ = true, n5 !== s)
-      throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-    this.cssText = t3, this.t = e4;
-  }
-  get styleSheet() {
-    let t3 = this.o;
-    const s5 = this.t;
-    if (e && void 0 === t3) {
-      const e4 = void 0 !== s5 && 1 === s5.length;
-      e4 && (t3 = n.get(s5)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e4 && n.set(s5, t3));
-    }
-    return t3;
-  }
-  toString() {
-    return this.cssText;
-  }
-};
-var r = (t3) => new o("string" == typeof t3 ? t3 : t3 + "", void 0, s);
-var i = (t3, ...e4) => {
-  const n5 = 1 === t3.length ? t3[0] : e4.reduce((e5, s5, n6) => e5 + ((t4) => {
-    if (true === t4._$cssResult$)
-      return t4.cssText;
-    if ("number" == typeof t4)
-      return t4;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + t4 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(s5) + t3[n6 + 1], t3[0]);
-  return new o(n5, t3, s);
-};
-var S = (s5, n5) => {
-  e ? s5.adoptedStyleSheets = n5.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet) : n5.forEach((e4) => {
-    const n6 = document.createElement("style"), o5 = t.litNonce;
-    void 0 !== o5 && n6.setAttribute("nonce", o5), n6.textContent = e4.cssText, s5.appendChild(n6);
-  });
-};
-var c = e ? (t3) => t3 : (t3) => t3 instanceof CSSStyleSheet ? ((t4) => {
-  let e4 = "";
-  for (const s5 of t4.cssRules)
-    e4 += s5.cssText;
-  return r(e4);
-})(t3) : t3;
+import { LitElement, html, css } from "lit";
 
-// node_modules/@lit/reactive-element/reactive-element.js
-var s2;
-var e2 = window;
-var r2 = e2.trustedTypes;
-var h = r2 ? r2.emptyScript : "";
-var o2 = e2.reactiveElementPolyfillSupport;
-var n2 = { toAttribute(t3, i3) {
-  switch (i3) {
-    case Boolean:
-      t3 = t3 ? h : null;
-      break;
-    case Object:
-    case Array:
-      t3 = null == t3 ? t3 : JSON.stringify(t3);
-  }
-  return t3;
-}, fromAttribute(t3, i3) {
-  let s5 = t3;
-  switch (i3) {
-    case Boolean:
-      s5 = null !== t3;
-      break;
-    case Number:
-      s5 = null === t3 ? null : Number(t3);
-      break;
-    case Object:
-    case Array:
-      try {
-        s5 = JSON.parse(t3);
-      } catch (t4) {
-        s5 = null;
-      }
-  }
-  return s5;
-} };
-var a = (t3, i3) => i3 !== t3 && (i3 == i3 || t3 == t3);
-var l = { attribute: true, type: String, converter: n2, reflect: false, hasChanged: a };
-var d = "finalized";
-var u = class extends HTMLElement {
-  constructor() {
-    super(), this._$Ei = /* @__PURE__ */ new Map(), this.isUpdatePending = false, this.hasUpdated = false, this._$El = null, this._$Eu();
-  }
-  static addInitializer(t3) {
-    var i3;
-    this.finalize(), (null !== (i3 = this.h) && void 0 !== i3 ? i3 : this.h = []).push(t3);
-  }
-  static get observedAttributes() {
-    this.finalize();
-    const t3 = [];
-    return this.elementProperties.forEach((i3, s5) => {
-      const e4 = this._$Ep(s5, i3);
-      void 0 !== e4 && (this._$Ev.set(e4, s5), t3.push(e4));
-    }), t3;
-  }
-  static createProperty(t3, i3 = l) {
-    if (i3.state && (i3.attribute = false), this.finalize(), this.elementProperties.set(t3, i3), !i3.noAccessor && !this.prototype.hasOwnProperty(t3)) {
-      const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3, e4 = this.getPropertyDescriptor(t3, s5, i3);
-      void 0 !== e4 && Object.defineProperty(this.prototype, t3, e4);
-    }
-  }
-  static getPropertyDescriptor(t3, i3, s5) {
-    return { get() {
-      return this[i3];
-    }, set(e4) {
-      const r4 = this[t3];
-      this[i3] = e4, this.requestUpdate(t3, r4, s5);
-    }, configurable: true, enumerable: true };
-  }
-  static getPropertyOptions(t3) {
-    return this.elementProperties.get(t3) || l;
-  }
-  static finalize() {
-    if (this.hasOwnProperty(d))
-      return false;
-    this[d] = true;
-    const t3 = Object.getPrototypeOf(this);
-    if (t3.finalize(), void 0 !== t3.h && (this.h = [...t3.h]), this.elementProperties = new Map(t3.elementProperties), this._$Ev = /* @__PURE__ */ new Map(), this.hasOwnProperty("properties")) {
-      const t4 = this.properties, i3 = [...Object.getOwnPropertyNames(t4), ...Object.getOwnPropertySymbols(t4)];
-      for (const s5 of i3)
-        this.createProperty(s5, t4[s5]);
-    }
-    return this.elementStyles = this.finalizeStyles(this.styles), true;
-  }
-  static finalizeStyles(i3) {
-    const s5 = [];
-    if (Array.isArray(i3)) {
-      const e4 = new Set(i3.flat(1 / 0).reverse());
-      for (const i4 of e4)
-        s5.unshift(c(i4));
-    } else
-      void 0 !== i3 && s5.push(c(i3));
-    return s5;
-  }
-  static _$Ep(t3, i3) {
-    const s5 = i3.attribute;
-    return false === s5 ? void 0 : "string" == typeof s5 ? s5 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
-  }
-  _$Eu() {
-    var t3;
-    this._$E_ = new Promise((t4) => this.enableUpdating = t4), this._$AL = /* @__PURE__ */ new Map(), this._$Eg(), this.requestUpdate(), null === (t3 = this.constructor.h) || void 0 === t3 || t3.forEach((t4) => t4(this));
-  }
-  addController(t3) {
-    var i3, s5;
-    (null !== (i3 = this._$ES) && void 0 !== i3 ? i3 : this._$ES = []).push(t3), void 0 !== this.renderRoot && this.isConnected && (null === (s5 = t3.hostConnected) || void 0 === s5 || s5.call(t3));
-  }
-  removeController(t3) {
-    var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.splice(this._$ES.indexOf(t3) >>> 0, 1);
-  }
-  _$Eg() {
-    this.constructor.elementProperties.forEach((t3, i3) => {
-      this.hasOwnProperty(i3) && (this._$Ei.set(i3, this[i3]), delete this[i3]);
-    });
-  }
-  createRenderRoot() {
-    var t3;
-    const s5 = null !== (t3 = this.shadowRoot) && void 0 !== t3 ? t3 : this.attachShadow(this.constructor.shadowRootOptions);
-    return S(s5, this.constructor.elementStyles), s5;
-  }
-  connectedCallback() {
-    var t3;
-    void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostConnected) || void 0 === i3 ? void 0 : i3.call(t4);
-    });
-  }
-  enableUpdating(t3) {
-  }
-  disconnectedCallback() {
-    var t3;
-    null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostDisconnected) || void 0 === i3 ? void 0 : i3.call(t4);
-    });
-  }
-  attributeChangedCallback(t3, i3, s5) {
-    this._$AK(t3, s5);
-  }
-  _$EO(t3, i3, s5 = l) {
-    var e4;
-    const r4 = this.constructor._$Ep(t3, s5);
-    if (void 0 !== r4 && true === s5.reflect) {
-      const h3 = (void 0 !== (null === (e4 = s5.converter) || void 0 === e4 ? void 0 : e4.toAttribute) ? s5.converter : n2).toAttribute(i3, s5.type);
-      this._$El = t3, null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3), this._$El = null;
-    }
-  }
-  _$AK(t3, i3) {
-    var s5;
-    const e4 = this.constructor, r4 = e4._$Ev.get(t3);
-    if (void 0 !== r4 && this._$El !== r4) {
-      const t4 = e4.getPropertyOptions(r4), h3 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== (null === (s5 = t4.converter) || void 0 === s5 ? void 0 : s5.fromAttribute) ? t4.converter : n2;
-      this._$El = r4, this[r4] = h3.fromAttribute(i3, t4.type), this._$El = null;
-    }
-  }
-  requestUpdate(t3, i3, s5) {
-    let e4 = true;
-    void 0 !== t3 && (((s5 = s5 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(this[t3], i3) ? (this._$AL.has(t3) || this._$AL.set(t3, i3), true === s5.reflect && this._$El !== t3 && (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()), this._$EC.set(t3, s5))) : e4 = false), !this.isUpdatePending && e4 && (this._$E_ = this._$Ej());
-  }
-  async _$Ej() {
-    this.isUpdatePending = true;
-    try {
-      await this._$E_;
-    } catch (t4) {
-      Promise.reject(t4);
-    }
-    const t3 = this.scheduleUpdate();
-    return null != t3 && await t3, !this.isUpdatePending;
-  }
-  scheduleUpdate() {
-    return this.performUpdate();
-  }
-  performUpdate() {
-    var t3;
-    if (!this.isUpdatePending)
-      return;
-    this.hasUpdated, this._$Ei && (this._$Ei.forEach((t4, i4) => this[i4] = t4), this._$Ei = void 0);
-    let i3 = false;
-    const s5 = this._$AL;
-    try {
-      i3 = this.shouldUpdate(s5), i3 ? (this.willUpdate(s5), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-        var i4;
-        return null === (i4 = t4.hostUpdate) || void 0 === i4 ? void 0 : i4.call(t4);
-      }), this.update(s5)) : this._$Ek();
-    } catch (t4) {
-      throw i3 = false, this._$Ek(), t4;
-    }
-    i3 && this._$AE(s5);
-  }
-  willUpdate(t3) {
-  }
-  _$AE(t3) {
-    var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.forEach((t4) => {
-      var i4;
-      return null === (i4 = t4.hostUpdated) || void 0 === i4 ? void 0 : i4.call(t4);
-    }), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t3)), this.updated(t3);
-  }
-  _$Ek() {
-    this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = false;
-  }
-  get updateComplete() {
-    return this.getUpdateComplete();
-  }
-  getUpdateComplete() {
-    return this._$E_;
-  }
-  shouldUpdate(t3) {
-    return true;
-  }
-  update(t3) {
-    void 0 !== this._$EC && (this._$EC.forEach((t4, i3) => this._$EO(i3, this[i3], t4)), this._$EC = void 0), this._$Ek();
-  }
-  updated(t3) {
-  }
-  firstUpdated(t3) {
-  }
-};
-u[d] = true, u.elementProperties = /* @__PURE__ */ new Map(), u.elementStyles = [], u.shadowRootOptions = { mode: "open" }, null == o2 || o2({ ReactiveElement: u }), (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2 ? s2 : e2.reactiveElementVersions = []).push("1.6.3");
+// ---------------------------------------------------------------------------
+// Selora AI Architect Panel
+// ---------------------------------------------------------------------------
+// Layout: two-pane when wide, single-pane when narrow.
+//   Left pane  — session list + "New Chat" button
+//   Right pane — active session (messages + input)
+//
+// Tabs within right pane: Chat | Automations | Settings
+// ---------------------------------------------------------------------------
 
-// node_modules/lit-html/lit-html.js
-var t2;
-var i2 = window;
-var s3 = i2.trustedTypes;
-var e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t3) => t3 }) : void 0;
-var o3 = "$lit$";
-var n3 = `lit$${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}$`;
-var l2 = "?" + n3;
-var h2 = `<${l2}>`;
-var r3 = document;
-var u2 = () => r3.createComment("");
-var d2 = (t3) => null === t3 || "object" != typeof t3 && "function" != typeof t3;
-var c2 = Array.isArray;
-var v = (t3) => c2(t3) || "function" == typeof (null == t3 ? void 0 : t3[Symbol.iterator]);
-var a2 = "[ 	\n\f\r]";
-var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
-var _ = /-->/g;
-var m = />/g;
-var p = RegExp(`>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
-\f\r"'\`<>=]|("|')|))|$)`, "g");
-var g = /'/g;
-var $ = /"/g;
-var y = /^(?:script|style|textarea|title)$/i;
-var w = (t3) => (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
-var x = w(1);
-var b = w(2);
-var T = Symbol.for("lit-noChange");
-var A = Symbol.for("lit-nothing");
-var E = /* @__PURE__ */ new WeakMap();
-var C = r3.createTreeWalker(r3, 129, null, false);
-function P(t3, i3) {
-  if (!Array.isArray(t3) || !t3.hasOwnProperty("raw"))
-    throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i3) : i3;
-}
-var V = (t3, i3) => {
-  const s5 = t3.length - 1, e4 = [];
-  let l4, r4 = 2 === i3 ? "<svg>" : "", u3 = f;
-  for (let i4 = 0; i4 < s5; i4++) {
-    const s6 = t3[i4];
-    let d3, c3, v2 = -1, a3 = 0;
-    for (; a3 < s6.length && (u3.lastIndex = a3, c3 = u3.exec(s6), null !== c3); )
-      a3 = u3.lastIndex, u3 === f ? "!--" === c3[1] ? u3 = _ : void 0 !== c3[1] ? u3 = m : void 0 !== c3[2] ? (y.test(c3[2]) && (l4 = RegExp("</" + c3[2], "g")), u3 = p) : void 0 !== c3[3] && (u3 = p) : u3 === p ? ">" === c3[0] ? (u3 = null != l4 ? l4 : f, v2 = -1) : void 0 === c3[1] ? v2 = -2 : (v2 = u3.lastIndex - c3[2].length, d3 = c3[1], u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g) : u3 === $ || u3 === g ? u3 = p : u3 === _ || u3 === m ? u3 = f : (u3 = p, l4 = void 0); // nosemgrep
-    const w2 = u3 === p && t3[i4 + 1].startsWith("/>") ? " " : "";
-    r4 += u3 === f ? s6 + h2 : v2 >= 0 ? (e4.push(d3), s6.slice(0, v2) + o3 + s6.slice(v2) + n3 + w2) : s6 + n3 + (-2 === v2 ? (e4.push(void 0), i4) : w2);
-  }
-  return [P(t3, r4 + (t3[s5] || "<?>") + (2 === i3 ? "</svg>" : "")), e4];
-};
-var N = class _N {
-  constructor({ strings: t3, _$litType$: i3 }, e4) {
-    let h3;
-    this.parts = [];
-    let r4 = 0, d3 = 0;
-    const c3 = t3.length - 1, v2 = this.parts, [a3, f2] = V(t3, i3);
-    if (this.el = _N.createElement(a3, e4), C.currentNode = this.el.content, 2 === i3) {
-      const t4 = this.el.content, i4 = t4.firstChild;
-      i4.remove(), t4.append(...i4.childNodes);
-    }
-    for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
-      if (1 === h3.nodeType) {
-        if (h3.hasAttributes()) {
-          const t4 = [];
-          for (const i4 of h3.getAttributeNames())
-            if (i4.endsWith(o3) || i4.startsWith(n3)) {
-              const s5 = f2[d3++];
-              if (t4.push(i4), void 0 !== s5) {
-                const t5 = h3.getAttribute(s5.toLowerCase() + o3).split(n3), i5 = /([.?@])?(.*)/.exec(s5);
-                v2.push({ type: 1, index: r4, name: i5[2], strings: t5, ctor: "." === i5[1] ? H : "?" === i5[1] ? L : "@" === i5[1] ? z : k });
-              } else
-                v2.push({ type: 6, index: r4 });
-            }
-          for (const i4 of t4)
-            h3.removeAttribute(i4);
-        }
-        if (y.test(h3.tagName)) {
-          const t4 = h3.textContent.split(n3), i4 = t4.length - 1;
-          if (i4 > 0) {
-            h3.textContent = s3 ? s3.emptyScript : "";
-            for (let s5 = 0; s5 < i4; s5++)
-              h3.append(t4[s5], u2()), C.nextNode(), v2.push({ type: 2, index: ++r4 });
-            h3.append(t4[i4], u2());
-          }
-        }
-      } else if (8 === h3.nodeType)
-        if (h3.data === l2)
-          v2.push({ type: 2, index: r4 });
-        else {
-          let t4 = -1;
-          for (; -1 !== (t4 = h3.data.indexOf(n3, t4 + 1)); )
-            v2.push({ type: 7, index: r4 }), t4 += n3.length - 1;
-        }
-      r4++;
-    }
-  }
-  static createElement(t3, i3) {
-    const s5 = r3.createElement("template");
-    return s5.innerHTML = t3, s5;
-  }
-};
-function S2(t3, i3, s5 = t3, e4) {
-  var o5, n5, l4, h3;
-  if (i3 === T)
-    return i3;
-  let r4 = void 0 !== e4 ? null === (o5 = s5._$Co) || void 0 === o5 ? void 0 : o5[e4] : s5._$Cl;
-  const u3 = d2(i3) ? void 0 : i3._$litDirective$;
-  return (null == r4 ? void 0 : r4.constructor) !== u3 && (null === (n5 = null == r4 ? void 0 : r4._$AO) || void 0 === n5 || n5.call(r4, false), void 0 === u3 ? r4 = void 0 : (r4 = new u3(t3), r4._$AT(t3, s5, e4)), void 0 !== e4 ? (null !== (l4 = (h3 = s5)._$Co) && void 0 !== l4 ? l4 : h3._$Co = [])[e4] = r4 : s5._$Cl = r4), void 0 !== r4 && (i3 = S2(t3, r4._$AS(t3, i3.values), r4, e4)), i3;
-}
-var M = class {
-  constructor(t3, i3) {
-    this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i3;
-  }
-  get parentNode() {
-    return this._$AM.parentNode;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  u(t3) {
-    var i3;
-    const { el: { content: s5 }, parts: e4 } = this._$AD, o5 = (null !== (i3 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i3 ? i3 : r3).importNode(s5, true);
-    C.currentNode = o5;
-    let n5 = C.nextNode(), l4 = 0, h3 = 0, u3 = e4[0];
-    for (; void 0 !== u3; ) {
-      if (l4 === u3.index) {
-        let i4;
-        2 === u3.type ? i4 = new R(n5, n5.nextSibling, this, t3) : 1 === u3.type ? i4 = new u3.ctor(n5, u3.name, u3.strings, this, t3) : 6 === u3.type && (i4 = new Z(n5, this, t3)), this._$AV.push(i4), u3 = e4[++h3];
-      }
-      l4 !== (null == u3 ? void 0 : u3.index) && (n5 = C.nextNode(), l4++);
-    }
-    return C.currentNode = r3, o5;
-  }
-  v(t3) {
-    let i3 = 0;
-    for (const s5 of this._$AV)
-      void 0 !== s5 && (void 0 !== s5.strings ? (s5._$AI(t3, s5, i3), i3 += s5.strings.length - 2) : s5._$AI(t3[i3])), i3++;
-  }
-};
-var R = class _R {
-  constructor(t3, i3, s5, e4) {
-    var o5;
-    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t3, this._$AB = i3, this._$AM = s5, this.options = e4, this._$Cp = null === (o5 = null == e4 ? void 0 : e4.isConnected) || void 0 === o5 || o5;
-  }
-  get _$AU() {
-    var t3, i3;
-    return null !== (i3 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) && void 0 !== i3 ? i3 : this._$Cp;
-  }
-  get parentNode() {
-    let t3 = this._$AA.parentNode;
-    const i3 = this._$AM;
-    return void 0 !== i3 && 11 === (null == t3 ? void 0 : t3.nodeType) && (t3 = i3.parentNode), t3;
-  }
-  get startNode() {
-    return this._$AA;
-  }
-  get endNode() {
-    return this._$AB;
-  }
-  _$AI(t3, i3 = this) {
-    t3 = S2(this, t3, i3), d2(t3) ? t3 === A || null == t3 || "" === t3 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t3 !== this._$AH && t3 !== T && this._(t3) : void 0 !== t3._$litType$ ? this.g(t3) : void 0 !== t3.nodeType ? this.$(t3) : v(t3) ? this.T(t3) : this._(t3);
-  }
-  k(t3) {
-    return this._$AA.parentNode.insertBefore(t3, this._$AB);
-  }
-  $(t3) {
-    this._$AH !== t3 && (this._$AR(), this._$AH = this.k(t3));
-  }
-  _(t3) {
-    this._$AH !== A && d2(this._$AH) ? this._$AA.nextSibling.data = t3 : this.$(r3.createTextNode(t3)), this._$AH = t3;
-  }
-  g(t3) {
-    var i3;
-    const { values: s5, _$litType$: e4 } = t3, o5 = "number" == typeof e4 ? this._$AC(t3) : (void 0 === e4.el && (e4.el = N.createElement(P(e4.h, e4.h[0]), this.options)), e4);
-    if ((null === (i3 = this._$AH) || void 0 === i3 ? void 0 : i3._$AD) === o5)
-      this._$AH.v(s5);
-    else {
-      const t4 = new M(o5, this), i4 = t4.u(this.options);
-      t4.v(s5), this.$(i4), this._$AH = t4;
-    }
-  }
-  _$AC(t3) {
-    let i3 = E.get(t3.strings);
-    return void 0 === i3 && E.set(t3.strings, i3 = new N(t3)), i3;
-  }
-  T(t3) {
-    c2(this._$AH) || (this._$AH = [], this._$AR());
-    const i3 = this._$AH;
-    let s5, e4 = 0;
-    for (const o5 of t3)
-      e4 === i3.length ? i3.push(s5 = new _R(this.k(u2()), this.k(u2()), this, this.options)) : s5 = i3[e4], s5._$AI(o5), e4++;
-    e4 < i3.length && (this._$AR(s5 && s5._$AB.nextSibling, e4), i3.length = e4);
-  }
-  _$AR(t3 = this._$AA.nextSibling, i3) {
-    var s5;
-    for (null === (s5 = this._$AP) || void 0 === s5 || s5.call(this, false, true, i3); t3 && t3 !== this._$AB; ) {
-      const i4 = t3.nextSibling;
-      t3.remove(), t3 = i4;
-    }
-  }
-  setConnected(t3) {
-    var i3;
-    void 0 === this._$AM && (this._$Cp = t3, null === (i3 = this._$AP) || void 0 === i3 || i3.call(this, t3));
-  }
-};
-var k = class {
-  constructor(t3, i3, s5, e4, o5) {
-    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t3, this.name = i3, this._$AM = e4, this.options = o5, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
-  }
-  get tagName() {
-    return this.element.tagName;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AI(t3, i3 = this, s5, e4) {
-    const o5 = this.strings;
-    let n5 = false;
-    if (void 0 === o5)
-      t3 = S2(this, t3, i3, 0), n5 = !d2(t3) || t3 !== this._$AH && t3 !== T, n5 && (this._$AH = t3);
-    else {
-      const e5 = t3;
-      let l4, h3;
-      for (t3 = o5[0], l4 = 0; l4 < o5.length - 1; l4++)
-        h3 = S2(this, e5[s5 + l4], i3, l4), h3 === T && (h3 = this._$AH[l4]), n5 || (n5 = !d2(h3) || h3 !== this._$AH[l4]), h3 === A ? t3 = A : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l4 + 1]), this._$AH[l4] = h3;
-    }
-    n5 && !e4 && this.j(t3);
-  }
-  j(t3) {
-    t3 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t3 ? t3 : "");
-  }
-};
-var H = class extends k {
-  constructor() {
-    super(...arguments), this.type = 3;
-  }
-  j(t3) {
-    this.element[this.name] = t3 === A ? void 0 : t3;
-  }
-};
-var I = s3 ? s3.emptyScript : "";
-var L = class extends k {
-  constructor() {
-    super(...arguments), this.type = 4;
-  }
-  j(t3) {
-    t3 && t3 !== A ? this.element.setAttribute(this.name, I) : this.element.removeAttribute(this.name);
-  }
-};
-var z = class extends k {
-  constructor(t3, i3, s5, e4, o5) {
-    super(t3, i3, s5, e4, o5), this.type = 5;
-  }
-  _$AI(t3, i3 = this) {
-    var s5;
-    if ((t3 = null !== (s5 = S2(this, t3, i3, 0)) && void 0 !== s5 ? s5 : A) === T)
-      return;
-    const e4 = this._$AH, o5 = t3 === A && e4 !== A || t3.capture !== e4.capture || t3.once !== e4.once || t3.passive !== e4.passive, n5 = t3 !== A && (e4 === A || o5);
-    o5 && this.element.removeEventListener(this.name, this, e4), n5 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
-  }
-  handleEvent(t3) {
-    var i3, s5;
-    "function" == typeof this._$AH ? this._$AH.call(null !== (s5 = null === (i3 = this.options) || void 0 === i3 ? void 0 : i3.host) && void 0 !== s5 ? s5 : this.element, t3) : this._$AH.handleEvent(t3);
-  }
-};
-var Z = class {
-  constructor(t3, i3, s5) {
-    this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i3, this.options = s5;
-  }
-  get _$AU() {
-    return this._$AM._$AU;
-  }
-  _$AI(t3) {
-    S2(this, t3);
-  }
-};
-var B = i2.litHtmlPolyfillSupport;
-null == B || B(N, R), (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2 ? t2 : i2.litHtmlVersions = []).push("2.8.0");
-var D = (t3, i3, s5) => {
-  var e4, o5;
-  const n5 = null !== (e4 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== e4 ? e4 : i3;
-  let l4 = n5._$litPart$;
-  if (void 0 === l4) {
-    const t4 = null !== (o5 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== o5 ? o5 : null;
-    n5._$litPart$ = l4 = new R(i3.insertBefore(u2(), t4), t4, void 0, null != s5 ? s5 : {});
-  }
-  return l4._$AI(t3), l4;
-};
-
-// node_modules/lit-element/lit-element.js
-var l3;
-var o4;
-var s4 = class extends u {
-  constructor() {
-    super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
-  }
-  createRenderRoot() {
-    var t3, e4;
-    const i3 = super.createRenderRoot();
-    return null !== (t3 = (e4 = this.renderOptions).renderBefore) && void 0 !== t3 || (e4.renderBefore = i3.firstChild), i3;
-  }
-  update(t3) {
-    const i3 = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = D(i3, this.renderRoot, this.renderOptions);
-  }
-  connectedCallback() {
-    var t3;
-    super.connectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(true);
-  }
-  disconnectedCallback() {
-    var t3;
-    super.disconnectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(false);
-  }
-  render() {
-    return T;
-  }
-};
-s4.finalized = true, s4._$litElement$ = true, null === (l3 = globalThis.litElementHydrateSupport) || void 0 === l3 || l3.call(globalThis, { LitElement: s4 });
-var n4 = globalThis.litElementPolyfillSupport;
-null == n4 || n4({ LitElement: s4 });
-(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4 ? o4 : globalThis.litElementVersions = []).push("3.3.3");
-
-// src/panel.js
+/**
+ * Lightweight markdown-to-HTML converter.
+ * Handles: **bold**, *italic*, numbered lists, bullet lists, `code`, line breaks.
+ */
 function renderMarkdown(text) {
-  if (!text)
-    return "";
-  let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  if (!text) return "";
+  let escaped = text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+
+  // Code blocks (```)
   escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre style="background:#2d2d2d;color:#f8f8f2;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>');
+  // Inline code
   escaped = escaped.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px;font-size:13px;">$1</code>');
+  // Bold
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // Italic
   escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  // Numbered lists: lines starting with "1. ", "2. ", etc.
   escaped = escaped.replace(/^(\d+)\.\s+(.+)$/gm, '<div style="margin:4px 0 4px 8px;"><strong>$1.</strong> $2</div>');
+  // Bullet lists: lines starting with "- "
   escaped = escaped.replace(/^[-•]\s+(.+)$/gm, '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(255,255,255,0.15);">$1</div>');
+  // Line breaks
   escaped = escaped.replace(/\n/g, "<br>");
+
   return escaped;
 }
-var SeloraAIArchitectPanel = class extends s4 {
+
+class SeloraAIArchitectPanel extends LitElement {
   static get properties() {
     return {
       hass: { type: Object },
       narrow: { type: Boolean, reflect: true },
       route: { type: Object },
       panel: { type: Object },
+
       // Session list
       _sessions: { type: Array },
       _activeSessionId: { type: String },
+
       // Message view
       _messages: { type: Array },
       _input: { type: String },
       _loading: { type: Boolean },
+
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
+
       // Tabs
       _activeTab: { type: String },
+
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
       _expandedAutomations: { type: Object },
+
       // Settings tab
       _config: { type: Object },
       _savingConfig: { type: Boolean },
       _newApiKey: { type: String },
+
       // Editable YAML state (keyed by msgIndex or suggestion key)
       _editedYaml: { type: Object },
       _savingYaml: { type: Object },
+
       // Version history drawer
       _versionHistoryOpen: { type: Object },
       _versions: { type: Object },
       _loadingVersions: { type: Object },
+
       // Diff viewer
       _diffOpen: { type: Boolean },
       _diffAutomationId: { type: String },
@@ -639,20 +88,24 @@ var SeloraAIArchitectPanel = class extends s4 {
       _diffVersionB: { type: String },
       _diffResult: { type: Array },
       _loadingDiff: { type: Boolean },
+
       // Recently deleted section
       _showDeleted: { type: Boolean },
       _deletedAutomations: { type: Array },
       _loadingDeleted: { type: Boolean },
+
       // Action loading states
       _deletingAutomation: { type: Object },
       _restoringAutomation: { type: Object },
       _restoringVersion: { type: Object },
       _loadingToChat: { type: Object },
+
       // Toast notifications
       _toast: { type: String },
-      _toastType: { type: String }
+      _toastType: { type: String },
     };
   }
+
   constructor() {
     super();
     this._sessions = [];
@@ -670,18 +123,22 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._config = null;
     this._savingConfig = false;
     this._newApiKey = "";
+    // Version history
     this._versionHistoryOpen = {};
     this._versions = {};
     this._loadingVersions = {};
+    // Diff viewer
     this._diffOpen = false;
     this._diffAutomationId = null;
     this._diffVersionA = null;
     this._diffVersionB = null;
     this._diffResult = [];
     this._loadingDiff = false;
+    // Recently deleted
     this._showDeleted = false;
     this._deletedAutomations = [];
     this._loadingDeleted = false;
+    // Action loading states
     this._deletingAutomation = {};
     this._restoringAutomation = {};
     this._restoringVersion = {};
@@ -690,19 +147,23 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._toastType = "info";
     this._toastTimer = null;
   }
+
   connectedCallback() {
     super.connectedCallback();
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
   }
+
   // -------------------------------------------------------------------------
   // Data loaders
   // -------------------------------------------------------------------------
+
   async _loadSessions() {
     try {
       const sessions = await this.hass.callWS({ type: "selora_ai/get_sessions" });
       this._sessions = sessions || [];
+      // Auto-open most recent session if no active session
       if (!this._activeSessionId && this._sessions.length > 0) {
         await this._openSession(this._sessions[0].id);
       }
@@ -710,21 +171,22 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to load sessions", err);
     }
   }
+
   async _openSession(sessionId) {
     try {
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
-        session_id: sessionId
+        session_id: sessionId,
       });
       this._activeSessionId = session.id;
       this._messages = session.messages || [];
       this._activeTab = "chat";
-      if (this.narrow)
-        this._showSidebar = false;
+      if (this.narrow) this._showSidebar = false;
     } catch (err) {
       console.error("Failed to open session", err);
     }
   }
+
   async _newSession() {
     try {
       const { session_id } = await this.hass.callWS({ type: "selora_ai/new_session" });
@@ -732,16 +194,15 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._messages = [];
       this._activeTab = "chat";
       await this._loadSessions();
-      if (this.narrow)
-        this._showSidebar = false;
+      if (this.narrow) this._showSidebar = false;
     } catch (err) {
       console.error("Failed to create session", err);
     }
   }
+
   async _deleteSession(sessionId, evt) {
     evt.stopPropagation();
-    if (!confirm("Delete this conversation?"))
-      return;
+    if (!confirm("Delete this conversation?")) return;
     try {
       await this.hass.callWS({ type: "selora_ai/delete_session", session_id: sessionId });
       if (this._activeSessionId === sessionId) {
@@ -753,6 +214,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to delete session", err);
     }
   }
+
   async _loadSuggestions() {
     try {
       const suggestions = await this.hass.callWS({ type: "selora_ai/get_suggestions" });
@@ -761,6 +223,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to load suggestions", err);
     }
   }
+
   async _loadAutomations() {
     try {
       const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
@@ -769,6 +232,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to load automations", err);
     }
   }
+
   async _loadConfig() {
     try {
       const config = await this.hass.callWS({ type: "selora_ai/get_config" });
@@ -778,9 +242,9 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to load config", err);
     }
   }
+
   async _saveConfig() {
-    if (!this._config || this._savingConfig)
-      return;
+    if (!this._config || this._savingConfig) return;
     this._savingConfig = true;
     try {
       const payload = { ...this._config };
@@ -802,6 +266,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       delete payload.anthropic_api_key_set;
       delete payload.openai_api_key_hint;
       delete payload.openai_api_key_set;
+
       await this.hass.callWS({ type: "selora_ai/update_config", config: payload });
       this._newApiKey = "";
       await this._loadConfig();
@@ -812,26 +277,30 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._savingConfig = false;
     }
   }
+
   // -------------------------------------------------------------------------
   // Messaging
   // -------------------------------------------------------------------------
+
   async _sendMessage() {
-    if (!this._input.trim() || this._loading)
-      return;
+    if (!this._input.trim() || this._loading) return;
     const userMsg = this._input;
     this._messages = [...this._messages, { role: "user", content: userMsg }];
     this._input = "";
     this._loading = true;
+
     const assistantMsg = { role: "assistant", content: "", _streaming: true };
     this._messages = [...this._messages, assistantMsg];
+
     try {
       const subscribePayload = {
         type: "selora_ai/chat_stream",
-        message: userMsg
+        message: userMsg,
       };
       if (this._activeSessionId) {
         subscribePayload.session_id = this._activeSessionId;
       }
+
       const unsub = await this.hass.connection.subscribeMessage(
         (event) => {
           if (event.type === "token") {
@@ -848,12 +317,15 @@ var SeloraAIArchitectPanel = class extends s4 {
             assistantMsg._streaming = false;
             this._messages = [...this._messages];
             this._loading = false;
+
+            // Update session tracking
             if (event.session_id) {
               if (event.session_id !== this._activeSessionId) {
                 this._activeSessionId = event.session_id;
               }
               this._loadSessions();
             }
+
             unsub();
           } else if (event.type === "error") {
             assistantMsg.content = "Sorry, I encountered an error: " + event.message;
@@ -872,87 +344,96 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._loading = false;
     }
   }
+
   _requestScrollChat() {
     if (!this._scrollPending) {
       this._scrollPending = true;
       requestAnimationFrame(() => {
         this._scrollPending = false;
         const container = this.shadowRoot.getElementById("chat-messages");
-        if (container)
-          container.scrollTop = container.scrollHeight;
+        if (container) container.scrollTop = container.scrollHeight;
       });
     }
   }
+
   // -------------------------------------------------------------------------
   // Automation actions
   // -------------------------------------------------------------------------
+
   async _acceptAutomation(msgIndex, automation) {
     try {
       await this.hass.callWS({
         type: "selora_ai/create_automation",
-        automation
+        automation: automation,
       });
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
         message_index: msgIndex,
-        status: "saved"
+        status: "saved",
       });
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
-        session_id: this._activeSessionId
+        session_id: this._activeSessionId,
       });
       this._messages = session.messages || [];
       await this._loadAutomations();
+
       this._messages = [
         ...this._messages,
         {
           role: "assistant",
           content: `Automation "${automation.alias}" created and added to your system (disabled by default for review).`,
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
-        }
+          timestamp: new Date().toISOString(),
+        },
       ];
     } catch (err) {
       this._showToast("Failed to create automation: " + err.message, "error");
     }
   }
+
   async _declineAutomation(msgIndex) {
     try {
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
         message_index: msgIndex,
-        status: "declined"
+        status: "declined",
       });
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
-        session_id: this._activeSessionId
+        session_id: this._activeSessionId,
       });
       this._messages = session.messages || [];
     } catch (err) {
       console.error("Failed to decline automation", err);
     }
   }
+
   async _refineAutomation(msgIndex, automation, description) {
+    // Mark the original proposal as "refining" so the card shows it's superseded
     try {
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
         message_index: msgIndex,
-        status: "refining"
+        status: "refining",
       });
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
-        session_id: this._activeSessionId
+        session_id: this._activeSessionId,
       });
       this._messages = session.messages || [];
     } catch (err) {
       console.error("Failed to mark automation as refining", err);
     }
+
+    // Pre-fill with rich context so the user just needs to describe the change
     const ctx = description ? ` (${description})` : "";
     this._input = `Refine "${automation.alias}"${ctx}: `;
     this.shadowRoot.querySelector("ha-textfield")?.focus();
   }
+
   async _createAutomationFromSuggestion(automation) {
     try {
       await this.hass.callWS({ type: "selora_ai/create_automation", automation });
@@ -962,13 +443,16 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._showToast("Failed to create automation: " + err.message, "error");
     }
   }
+
   _discardSuggestion(suggestion) {
-    this._suggestions = this._suggestions.filter((s5) => s5 !== suggestion);
+    this._suggestions = this._suggestions.filter((s) => s !== suggestion);
   }
+
   // Accept automation — if the user edited the YAML, send the edited version
   async _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
     const edited = this._editedYaml[yamlKey];
     if (edited && edited !== (this._originalYaml?.[yamlKey] ?? "")) {
+      // Use edited YAML text
       try {
         this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
         this.requestUpdate();
@@ -977,7 +461,7 @@ var SeloraAIArchitectPanel = class extends s4 {
           type: "selora_ai/set_automation_status",
           session_id: this._activeSessionId,
           message_index: msgIndex,
-          status: "saved"
+          status: "saved",
         });
         const session = await this.hass.callWS({ type: "selora_ai/get_session", session_id: this._activeSessionId });
         this._messages = session.messages || [];
@@ -985,7 +469,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         this._messages = [...this._messages, {
           role: "assistant",
           content: `Automation "${automation.alias}" created with your edits (disabled by default for review).`,
-          timestamp: (/* @__PURE__ */ new Date()).toISOString()
+          timestamp: new Date().toISOString(),
         }];
       } catch (err) {
         this._showToast("Failed to create automation from edited YAML: " + err.message, "error");
@@ -997,6 +481,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       await this._acceptAutomation(msgIndex, automation);
     }
   }
+
   async _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     const edited = this._editedYaml[yamlKey];
     try {
@@ -1016,19 +501,20 @@ var SeloraAIArchitectPanel = class extends s4 {
       this.requestUpdate();
     }
   }
+
   async _saveActiveAutomationYaml(automationId, yamlKey) {
     const edited = this._editedYaml[yamlKey];
-    if (!edited)
-      return;
+    if (!edited) return;
     try {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
       this.requestUpdate();
       await this.hass.callWS({
         type: "selora_ai/update_automation_yaml",
         automation_id: automationId,
-        yaml_text: edited
+        yaml_text: edited,
       });
-      this._editedYaml = { ...this._editedYaml, [yamlKey]: void 0 };
+      // Clear edits and refresh
+      this._editedYaml = { ...this._editedYaml, [yamlKey]: undefined };
       await this._loadAutomations();
       this._showToast("Automation YAML saved.", "success");
     } catch (err) {
@@ -1038,23 +524,28 @@ var SeloraAIArchitectPanel = class extends s4 {
       this.requestUpdate();
     }
   }
+
   _initYamlEdit(key, originalYaml) {
-    if (this._editedYaml[key] === void 0) {
+    if (this._editedYaml[key] === undefined) {
       this._editedYaml = { ...this._editedYaml, [key]: originalYaml };
     }
   }
+
   _onYamlInput(key, value) {
     this._editedYaml = { ...this._editedYaml, [key]: value };
     this.requestUpdate();
   }
+
   _goToSettings() {
     this._activeTab = "settings";
     this._loadConfig();
   }
+
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };
     this.requestUpdate();
   }
+
   _showToast(message, type = "info") {
     if (this._toastTimer) {
       clearTimeout(this._toastTimer);
@@ -1070,6 +561,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }, 3500);
     this.requestUpdate();
   }
+
   _dismissToast() {
     if (this._toastTimer) {
       clearTimeout(this._toastTimer);
@@ -1079,21 +571,24 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._toastType = "info";
     this.requestUpdate();
   }
+
   // -------------------------------------------------------------------------
   // Scroll to bottom on new messages
   // -------------------------------------------------------------------------
+
   updated(changedProps) {
     if (changedProps.has("_messages") && this._activeTab === "chat") {
       const container = this.shadowRoot.getElementById("chat-messages");
-      if (container)
-        container.scrollTop = container.scrollHeight;
+      if (container) container.scrollTop = container.scrollHeight;
     }
   }
+
   // -------------------------------------------------------------------------
   // Styles
   // -------------------------------------------------------------------------
+
   static get styles() {
-    return i`
+    return css`
       :host {
         display: flex;
         height: 100%;
@@ -1733,11 +1228,13 @@ var SeloraAIArchitectPanel = class extends s4 {
       }
     `;
   }
+
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
+
   render() {
-    return x`
+    return html`
       <div class="sidebar ${this._showSidebar ? "open" : ""}" part="sidebar">
         <div class="sidebar-header">
           <span>Conversations</span>
@@ -1746,25 +1243,27 @@ var SeloraAIArchitectPanel = class extends s4 {
           + New Chat
         </mwc-button>
         <div class="session-list">
-          ${this._sessions.length === 0 ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">No conversations yet.</div>` : this._sessions.map(
-      (s5) => x`
+          ${this._sessions.length === 0
+            ? html`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">No conversations yet.</div>`
+            : this._sessions.map(
+                (s) => html`
                   <div
-                    class="session-item ${s5.id === this._activeSessionId ? "active" : ""}"
-                    @click=${() => this._openSession(s5.id)}
+                    class="session-item ${s.id === this._activeSessionId ? "active" : ""}"
+                    @click=${() => this._openSession(s.id)}
                   >
                     <div style="flex:1; min-width:0;">
-                      <div class="session-title">${s5.title}</div>
-                      <div class="session-meta">${this._formatDate(s5.updated_at)}</div>
+                      <div class="session-title">${s.title}</div>
+                      <div class="session-meta">${this._formatDate(s.updated_at)}</div>
                     </div>
                     <ha-icon
                       class="session-delete"
                       icon="mdi:delete-outline"
-                      @click=${(e4) => this._deleteSession(s5.id, e4)}
+                      @click=${(e) => this._deleteSession(s.id, e)}
                       title="Delete"
                     ></ha-icon>
                   </div>
                 `
-    )}
+              )}
         </div>
       </div>
 
@@ -1773,7 +1272,7 @@ var SeloraAIArchitectPanel = class extends s4 {
           <div class="header-top">
             <ha-icon-button
               title="Conversations"
-              @click=${() => this._showSidebar = !this._showSidebar}
+              @click=${() => (this._showSidebar = !this._showSidebar)}
             >
               <ha-icon icon="mdi:menu"></ha-icon>
             </ha-icon-button>
@@ -1781,12 +1280,9 @@ var SeloraAIArchitectPanel = class extends s4 {
             Selora AI Architect
           </div>
           <div class="tabs">
-            <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => this._activeTab = "chat"}>Chat</div>
-            <div class="tab ${this._activeTab === "automations" ? "active" : ""}" @click=${() => this._activeTab = "automations"}>Automations</div>
-            <div class="tab ${this._activeTab === "settings" ? "active" : ""}" @click=${() => {
-      this._activeTab = "settings";
-      this._loadConfig();
-    }}>Settings</div>
+            <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => (this._activeTab = "chat")}>Chat</div>
+            <div class="tab ${this._activeTab === "automations" ? "active" : ""}" @click=${() => (this._activeTab = "automations")}>Automations</div>
+            <div class="tab ${this._activeTab === "settings" ? "active" : ""}" @click=${() => { this._activeTab = "settings"; this._loadConfig(); }}>Settings</div>
           </div>
         </div>
 
@@ -1795,43 +1291,51 @@ var SeloraAIArchitectPanel = class extends s4 {
         ${this._activeTab === "settings" ? this._renderSettings() : ""}
       </div>
 
-      ${this._toast ? x`
+      ${this._toast
+        ? html`
             <div class="toast ${this._toastType}">
               <span>${this._toast}</span>
               <ha-icon class="toast-close" icon="mdi:close" @click=${() => this._dismissToast()}></ha-icon>
             </div>
-          ` : ""}
+          `
+        : ""}
     `;
   }
+
   // -------------------------------------------------------------------------
   // Chat pane
   // -------------------------------------------------------------------------
+
   _renderChat() {
-    return x`
+    return html`
       <div class="chat-pane">
         <div class="chat-messages" id="chat-messages">
-          ${!this._activeSessionId || this._messages.length === 0 ? x`
+          ${!this._activeSessionId || this._messages.length === 0
+            ? html`
                 <div class="empty-state">
                   <ha-icon icon="mdi:robot-happy-outline"></ha-icon>
                   <div style="font-size:16px; font-weight:500;">Start a conversation</div>
                   <div style="font-size:13px;">Ask me to build an automation, control a device, or answer a question about your home.</div>
                 </div>
-              ` : this._messages.map((msg, idx) => this._renderMessage(msg, idx))}
+              `
+            : this._messages.map((msg, idx) => this._renderMessage(msg, idx))}
 
-          ${this._loading ? x`
+          ${this._loading
+            ? html`
                 <div class="typing-bubble">
                   <div class="typing-dot"></div>
                   <div class="typing-dot"></div>
                   <div class="typing-dot"></div>
                 </div>
-              ` : ""}
+              `
+            : ""}
         </div>
 
         <div class="chat-input">
           <ha-textfield
             .value=${this._input}
-            @input=${(e4) => this._input = e4.target.value}
-            @keydown=${(e4) => e4.key === "Enter" && !e4.shiftKey && this._sendMessage()}
+            @input=${(e) => (this._input = e.target.value)}
+            @keydown=${(e) => e.key === "Enter" && !e.shiftKey && this._sendMessage()}
             placeholder="Describe an automation or ask a question…"
             ?disabled=${this._loading}
             style="flex:1;"
@@ -1847,28 +1351,33 @@ var SeloraAIArchitectPanel = class extends s4 {
       </div>
     `;
   }
+
   _renderMessage(msg, idx) {
     const isUser = msg.role === "user";
-    if (msg._streaming && !msg.content)
-      return x``;
-    return x`
+    // Hide empty streaming messages (typing indicator shown separately)
+    if (msg._streaming && !msg.content) return html``;
+    return html`
       <div class="message-row">
         <div class="bubble ${isUser ? "user" : "assistant"}">
           <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(msg.content)}></span>
-          ${msg.config_issue ? x`
+          ${msg.config_issue
+            ? html`
                 <div style="margin-top: 10px;">
                   <mwc-button dense raised @click=${this._goToSettings}>Go to Settings</mwc-button>
                 </div>
-              ` : ""}
+              `
+            : ""}
           ${msg.automation ? this._renderProposalCard(msg, idx) : ""}
         </div>
         <div class="bubble-meta">${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}</div>
       </div>
     `;
   }
+
   // -------------------------------------------------------------------------
   // YAML editor
   // -------------------------------------------------------------------------
+
   /**
    * Render an editable YAML textarea with an optional save button.
    * @param {string} key         - unique key for tracking edits (_editedYaml)
@@ -1880,116 +1389,108 @@ var SeloraAIArchitectPanel = class extends s4 {
     const current = this._editedYaml[key] ?? originalYaml;
     const isDirty = current !== originalYaml;
     const saving = !!this._savingYaml[key];
-    return x`
+    return html`
       <textarea
         class="yaml-editor"
         .value=${current}
-        @input=${(e4) => this._onYamlInput(key, e4.target.value)}
+        @input=${(e) => this._onYamlInput(key, e.target.value)}
         spellcheck="false"
         autocomplete="off"
         rows="8"
       ></textarea>
-      ${isDirty || onSave ? x`
+      ${isDirty || onSave ? html`
         <div class="yaml-edit-bar">
-          ${isDirty ? x`
+          ${isDirty ? html`
             <span class="yaml-unsaved">
               <ha-icon icon="mdi:circle-edit-outline" style="--mdc-icon-size:13px;"></ha-icon>
               Unsaved changes
             </span>
-          ` : x`<span style="flex:1;"></span>`}
-          ${onSave ? x`
+          ` : html`<span style="flex:1;"></span>`}
+          ${onSave ? html`
             <button class="btn btn-primary" ?disabled=${saving || !isDirty} @click=${() => onSave(key)}>
               <ha-icon icon="mdi:content-save" style="--mdc-icon-size:13px;"></ha-icon>
-              ${saving ? "Saving\u2026" : "Save changes"}
+              ${saving ? "Saving…" : "Save changes"}
             </button>
           ` : ""}
         </div>
       ` : ""}
     `;
   }
+
   // -------------------------------------------------------------------------
   // Automation flowchart helpers
   // -------------------------------------------------------------------------
+
   /** Strip the domain prefix and underscores: "light.kitchen_lamp" → "kitchen lamp" */
   _fmtEntity(id) {
-    if (!id)
-      return "";
+    if (!id) return "";
     const parts = String(id).split(".");
     return (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(/_/g, " ");
   }
+
   _fmtEntities(val) {
-    if (!val)
-      return "";
+    if (!val) return "";
     const arr = Array.isArray(val) ? val : [val];
-    return arr.map((e4) => this._fmtEntity(e4)).join(", ");
+    return arr.map((e) => this._fmtEntity(e)).join(", ");
   }
+
   _describeFlowItem(item) {
-    if (!item || typeof item !== "object")
-      return String(item ?? "");
-    const p2 = item.platform || item.trigger;
-    if (p2 === "time") {
+    if (!item || typeof item !== "object") return String(item ?? "");
+
+    // HA supports both 'platform' (classic) and 'trigger' (new format) keys on trigger objects
+    const p = item.platform || item.trigger;
+
+    // ── Triggers ──────────────────────────────────────────────────────────────
+    if (p === "time") {
       const at = Array.isArray(item.at) ? item.at.join(", ") : item.at;
       return `At ${at}`;
     }
-    if (p2 === "sun") {
+    if (p === "sun") {
       const ev = (item.event || "").replace(/_/g, " ");
       const offset = item.offset ? ` (${item.offset})` : "";
       return `Sun ${ev}${offset}`;
     }
-    if (p2 === "state") {
+    if (p === "state") {
       const eid = this._fmtEntities(item.entity_id);
       const from = item.from != null ? ` from "${item.from}"` : "";
       const to = item.to != null ? ` becomes "${item.to}"` : " changes";
       const dur = item.for ? ` for ${item.for}` : "";
       return `${eid}${from}${to}${dur}`;
     }
-    if (p2 === "numeric_state") {
+    if (p === "numeric_state") {
       const eid = this._fmtEntities(item.entity_id);
-      if (item.above != null && item.below != null)
-        return `${eid} between ${item.above} and ${item.below}`;
-      if (item.above != null)
-        return `${eid} rises above ${item.above}`;
-      if (item.below != null)
-        return `${eid} drops below ${item.below}`;
+      if (item.above != null && item.below != null) return `${eid} between ${item.above} and ${item.below}`;
+      if (item.above != null) return `${eid} rises above ${item.above}`;
+      if (item.below != null) return `${eid} drops below ${item.below}`;
       return `${eid} value changes`;
     }
-    if (p2 === "homeassistant") {
-      const ev = item.event === "start" ? "starts up" : item.event === "shutdown" ? "shuts down" : item.event || "event";
+    if (p === "homeassistant") {
+      const ev = item.event === "start" ? "starts up" : item.event === "shutdown" ? "shuts down" : (item.event || "event");
       return `Home Assistant ${ev}`;
     }
-    if (p2 === "time_pattern") {
-      if (item.seconds != null)
-        return `Every ${item.seconds} seconds`;
-      if (item.minutes != null)
-        return `Every ${item.minutes} minutes`;
-      if (item.hours != null)
-        return `Every ${item.hours} hours`;
+    if (p === "time_pattern") {
+      if (item.seconds != null) return `Every ${item.seconds} seconds`;
+      if (item.minutes != null) return `Every ${item.minutes} minutes`;
+      if (item.hours != null) return `Every ${item.hours} hours`;
       return "On a time pattern";
     }
-    if (p2 === "template")
-      return "When a template becomes true";
-    if (p2 === "event")
-      return item.event_type ? `Event: ${String(item.event_type).replace(/_/g, " ")}` : "On an event";
-    if (p2 === "device")
-      return item.type ? String(item.type).replace(/_/g, " ") : "Device trigger";
-    if (p2 === "zone") {
+    if (p === "template") return "When a template becomes true";
+    if (p === "event") return item.event_type ? `Event: ${String(item.event_type).replace(/_/g, " ")}` : "On an event";
+    if (p === "device") return item.type ? String(item.type).replace(/_/g, " ") : "Device trigger";
+    if (p === "zone") {
       const eid = this._fmtEntities(item.entity_id);
       const zone = this._fmtEntity(item.zone);
       const ev = (item.event || "enters").replace(/_/g, " ");
       return `${eid} ${ev} ${zone}`.trim();
     }
-    if (p2 === "mqtt")
-      return `MQTT: ${item.topic || "message received"}`;
-    if (p2 === "webhook")
-      return "Webhook received";
-    if (p2 === "tag")
-      return `Tag scanned${item.tag_id ? `: ${item.tag_id}` : ""}`;
-    if (p2 === "geo_location")
-      return "Geo-location event";
-    if (p2 === "calendar")
-      return `Calendar: ${item.event || "event"}`;
-    if (p2)
-      return String(p2).replace(/_/g, " ");
+    if (p === "mqtt") return `MQTT: ${item.topic || "message received"}`;
+    if (p === "webhook") return "Webhook received";
+    if (p === "tag") return `Tag scanned${item.tag_id ? `: ${item.tag_id}` : ""}`;
+    if (p === "geo_location") return "Geo-location event";
+    if (p === "calendar") return `Calendar: ${item.event || "event"}`;
+    if (p) return String(p).replace(/_/g, " "); // generic platform — still readable
+
+    // ── Conditions (use 'condition' key) ──────────────────────────────────────
     const cond = item.condition;
     if (cond === "state") {
       const eid = this._fmtEntities(item.entity_id);
@@ -1998,166 +1499,131 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     if (cond === "numeric_state") {
       const eid = this._fmtEntities(item.entity_id);
-      if (item.above != null && item.below != null)
-        return `${eid} between ${item.above} and ${item.below}`;
-      if (item.above != null)
-        return `${eid} above ${item.above}`;
-      if (item.below != null)
-        return `${eid} below ${item.below}`;
+      if (item.above != null && item.below != null) return `${eid} between ${item.above} and ${item.below}`;
+      if (item.above != null) return `${eid} above ${item.above}`;
+      if (item.below != null) return `${eid} below ${item.below}`;
       return `${eid} numeric check`;
     }
     if (cond === "time") {
       const parts = [];
-      if (item.after)
-        parts.push(`after ${item.after}`);
-      if (item.before)
-        parts.push(`before ${item.before}`);
+      if (item.after) parts.push(`after ${item.after}`);
+      if (item.before) parts.push(`before ${item.before}`);
       if (item.weekday) {
         const days = Array.isArray(item.weekday) ? item.weekday.join(", ") : item.weekday;
         parts.push(`on ${days}`);
       }
-      return parts.length ? parts.join(" \xB7 ") : "Time window";
+      return parts.length ? parts.join(" · ") : "Time window";
     }
-    if (cond === "template")
-      return "Template evaluates to true";
+    if (cond === "template") return "Template evaluates to true";
     if (cond === "sun") {
       const parts = [];
-      if (item.after)
-        parts.push(`after ${String(item.after).replace(/_/g, " ")}`);
-      if (item.before)
-        parts.push(`before ${String(item.before).replace(/_/g, " ")}`);
+      if (item.after) parts.push(`after ${String(item.after).replace(/_/g, " ")}`);
+      if (item.before) parts.push(`before ${String(item.before).replace(/_/g, " ")}`);
       return parts.join(", ") || "Sun position";
     }
-    if (cond === "and")
-      return `All ${(item.conditions || []).length} conditions must be true`;
-    if (cond === "or")
-      return `Any of ${(item.conditions || []).length} conditions is true`;
-    if (cond === "not")
-      return "None of the conditions are true";
+    if (cond === "and") return `All ${(item.conditions || []).length} conditions must be true`;
+    if (cond === "or") return `Any of ${(item.conditions || []).length} conditions is true`;
+    if (cond === "not") return "None of the conditions are true";
     if (cond === "zone") {
       const eid = this._fmtEntities(item.entity_id);
       return `${eid} is in ${this._fmtEntity(item.zone) || "zone"}`;
     }
-    if (cond === "device")
-      return item.type ? String(item.type).replace(/_/g, " ") : "Device condition";
-    if (cond)
-      return String(cond).replace(/_/g, " ");
+    if (cond === "device") return item.type ? String(item.type).replace(/_/g, " ") : "Device condition";
+    if (cond) return String(cond).replace(/_/g, " ");
+
+    // ── Actions ───────────────────────────────────────────────────────────────
     const svc = item.service || item.action;
     if (svc) {
       const [, svcName = svc] = String(svc).split(".");
       const name = svcName.replace(/_/g, " ");
       const targets = item.target?.entity_id ?? item.data?.entity_id;
-      const t3 = this._fmtEntities(targets);
+      const t = this._fmtEntities(targets);
       const extras = [];
-      if (item.data?.brightness_pct != null)
-        extras.push(`${item.data.brightness_pct}% brightness`);
-      if (item.data?.temperature != null)
-        extras.push(`${item.data.temperature}\xB0`);
-      if (item.data?.color_temp != null)
-        extras.push(`colour temp ${item.data.color_temp}`);
-      if (item.data?.message)
-        extras.push(`"${item.data.message}"`);
-      if (item.data?.title)
-        extras.push(item.data.title);
-      const detail = [t3, ...extras].filter(Boolean).join(", ");
+      if (item.data?.brightness_pct != null) extras.push(`${item.data.brightness_pct}% brightness`);
+      if (item.data?.temperature != null) extras.push(`${item.data.temperature}°`);
+      if (item.data?.color_temp != null) extras.push(`colour temp ${item.data.color_temp}`);
+      if (item.data?.message) extras.push(`"${item.data.message}"`);
+      if (item.data?.title) extras.push(item.data.title);
+      const detail = [t, ...extras].filter(Boolean).join(", ");
       return detail ? `${name}: ${detail}` : name;
     }
     if (item.delay) {
-      const d3 = item.delay;
-      if (typeof d3 === "string")
-        return `Wait ${d3}`;
+      const d = item.delay;
+      if (typeof d === "string") return `Wait ${d}`;
       const parts = [];
-      if (d3.hours)
-        parts.push(`${d3.hours}h`);
-      if (d3.minutes)
-        parts.push(`${d3.minutes}m`);
-      if (d3.seconds)
-        parts.push(`${d3.seconds}s`);
+      if (d.hours) parts.push(`${d.hours}h`);
+      if (d.minutes) parts.push(`${d.minutes}m`);
+      if (d.seconds) parts.push(`${d.seconds}s`);
       return parts.length ? `Wait ${parts.join(" ")}` : "Wait";
     }
-    if (item.wait_template)
-      return "Wait until condition is met";
-    if (item.wait_for_trigger)
-      return "Wait for a trigger";
-    if (item.scene)
-      return `Activate scene: ${this._fmtEntity(item.scene)}`;
-    if (item.choose)
-      return `Choose between ${item.choose.length} option${item.choose.length !== 1 ? "s" : ""}`;
+    if (item.wait_template) return "Wait until condition is met";
+    if (item.wait_for_trigger) return "Wait for a trigger";
+    if (item.scene) return `Activate scene: ${this._fmtEntity(item.scene)}`;
+    if (item.choose) return `Choose between ${item.choose.length} option${item.choose.length !== 1 ? "s" : ""}`;
     if (item.repeat) {
-      const r4 = item.repeat;
-      if (r4.count != null)
-        return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
-      if (r4.while)
-        return "Repeat while condition holds";
-      if (r4.until)
-        return "Repeat until condition is met";
+      const r = item.repeat;
+      if (r.count != null) return `Repeat ${r.count} time${r.count !== 1 ? "s" : ""}`;
+      if (r.while) return "Repeat while condition holds";
+      if (r.until) return "Repeat until condition is met";
       return "Repeat";
     }
-    if (item.parallel)
-      return `Run ${(item.parallel || []).length} actions in parallel`;
-    if (item.sequence)
-      return `Run a sequence of ${(item.sequence || []).length} steps`;
-    if (item.variables)
-      return "Set variables";
-    if (item.stop)
-      return `Stop: ${item.stop}`;
-    if (item.event)
-      return `Fire event: ${String(item.event).replace(/_/g, " ")}`;
-    const SKIP = /* @__PURE__ */ new Set(["id", "enabled", "mode", "alias", "description"]);
-    const readable = Object.entries(item).filter(([k2, v2]) => !SKIP.has(k2) && v2 != null && v2 !== "").map(([k2, v2]) => {
-      const label = k2.replace(/_/g, " ");
-      const val = Array.isArray(v2) ? v2.map((x2) => typeof x2 === "object" ? "\u2026" : x2).join(", ") : v2;
-      return `${label}: ${val}`;
-    }).slice(0, 3);
-    return readable.length ? readable.join(" \xB7 ") : "Step";
+    if (item.parallel) return `Run ${(item.parallel || []).length} actions in parallel`;
+    if (item.sequence) return `Run a sequence of ${(item.sequence || []).length} steps`;
+    if (item.variables) return "Set variables";
+    if (item.stop) return `Stop: ${item.stop}`;
+    if (item.event) return `Fire event: ${String(item.event).replace(/_/g, " ")}`;
+
+    // ── Human-readable fallback — never show raw JSON ─────────────────────────
+    const SKIP = new Set(["id", "enabled", "mode", "alias", "description"]);
+    const readable = Object.entries(item)
+      .filter(([k, v]) => !SKIP.has(k) && v != null && v !== "")
+      .map(([k, v]) => {
+        const label = k.replace(/_/g, " ");
+        const val = Array.isArray(v) ? v.map((x) => (typeof x === "object" ? "…" : x)).join(", ") : v;
+        return `${label}: ${val}`;
+      })
+      .slice(0, 3);
+    return readable.length ? readable.join(" · ") : "Step";
   }
+
   _renderAutomationFlowchart(auto) {
-    if (!auto)
-      return x``;
-    const triggers = (() => {
-      const t3 = auto.triggers ?? auto.trigger ?? [];
-      return Array.isArray(t3) ? t3 : [t3];
-    })();
-    const conditions = (() => {
-      const c3 = auto.conditions ?? auto.condition ?? [];
-      return Array.isArray(c3) ? c3 : [c3];
-    })().filter(Boolean);
-    const actions = (() => {
-      const a3 = auto.actions ?? auto.action ?? [];
-      return Array.isArray(a3) ? a3 : [a3];
-    })();
-    if (!triggers.length && !actions.length)
-      return x``;
-    return x`
+    if (!auto) return html``;
+    const triggers = (() => { const t = auto.triggers ?? auto.trigger ?? []; return Array.isArray(t) ? t : [t]; })();
+    const conditions = (() => { const c = auto.conditions ?? auto.condition ?? []; return Array.isArray(c) ? c : [c]; })().filter(Boolean);
+    const actions = (() => { const a = auto.actions ?? auto.action ?? []; return Array.isArray(a) ? a : [a]; })();
+    if (!triggers.length && !actions.length) return html``;
+    return html`
       <div class="flow-chart">
         <div class="flow-section">
           <div class="flow-label">Trigger</div>
-          ${triggers.map((t3) => x`<div class="flow-node trigger-node">${this._describeFlowItem(t3)}</div>`)}
+          ${triggers.map((t) => html`<div class="flow-node trigger-node">${this._describeFlowItem(t)}</div>`)}
         </div>
-        ${conditions.length ? x`
+        ${conditions.length ? html`
           <div class="flow-arrow">↓</div>
           <div class="flow-section">
             <div class="flow-label">Condition</div>
-            ${conditions.map((c3) => x`<div class="flow-node condition-node">${this._describeFlowItem(c3)}</div>`)}
+            ${conditions.map((c) => html`<div class="flow-node condition-node">${this._describeFlowItem(c)}</div>`)}
           </div>
         ` : ""}
         <div class="flow-arrow">↓</div>
         <div class="flow-section">
           <div class="flow-label">Actions</div>
-          ${actions.map((a3, i3) => x`
-            ${i3 > 0 ? x`<div class="flow-arrow-sm">↓</div>` : ""}
-            <div class="flow-node action-node">${this._describeFlowItem(a3)}</div>
+          ${actions.map((a, i) => html`
+            ${i > 0 ? html`<div class="flow-arrow-sm">↓</div>` : ""}
+            <div class="flow-node action-node">${this._describeFlowItem(a)}</div>
           `)}
         </div>
       </div>
     `;
   }
+
   _renderProposalCard(msg, msgIndex) {
     const status = msg.automation_status;
     const automation = msg.automation;
     const yaml = msg.automation_yaml || "";
+
     if (status === "saved") {
-      return x`
+      return html`
         <div class="proposal-card" style="margin-top:12px;">
           <div class="proposal-header">
             <ha-icon icon="mdi:check-circle"></ha-icon>
@@ -2172,8 +1638,9 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
       `;
     }
+
     if (status === "declined") {
-      return x`
+      return html`
         <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
           <div class="proposal-header" style="color:var(--secondary-text-color);">
             <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -2186,8 +1653,9 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
       `;
     }
+
     if (status === "refining") {
-      return x`
+      return html`
         <div class="proposal-card" style="margin-top:12px; opacity:0.75;">
           <div class="proposal-header" style="color:var(--warning-color, #ff9800);">
             <ha-icon icon="mdi:pencil-circle-outline"></ha-icon>
@@ -2203,10 +1671,12 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
       `;
     }
+
+    // Pending proposal — full review UI
     const yamlOpen = this._yamlOpen && this._yamlOpen[msgIndex];
     const yamlKey = `proposal_${msgIndex}`;
-    const hasEdits = this._editedYaml[yamlKey] !== void 0 && this._editedYaml[yamlKey] !== yaml;
-    return x`
+    const hasEdits = this._editedYaml[yamlKey] !== undefined && this._editedYaml[yamlKey] !== yaml;
+    return html`
       <div class="proposal-card">
         <div class="proposal-header">
           <ha-icon icon="mdi:lightning-bolt"></ha-icon>
@@ -2215,10 +1685,12 @@ var SeloraAIArchitectPanel = class extends s4 {
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
 
-          ${msg.description ? x`
+          ${msg.description
+            ? html`
                 <div class="proposal-description-label">What this automation does</div>
                 <div class="proposal-description">${msg.description}</div>
-              ` : ""}
+              `
+            : ""}
 
           ${this._renderAutomationFlowchart(automation)}
 
@@ -2250,17 +1722,21 @@ var SeloraAIArchitectPanel = class extends s4 {
       </div>
     `;
   }
+
   _toggleYaml(msgIndex) {
-    this._yamlOpen = { ...this._yamlOpen || {}, [msgIndex]: !(this._yamlOpen || {})[msgIndex] };
+    this._yamlOpen = { ...(this._yamlOpen || {}), [msgIndex]: !((this._yamlOpen || {})[msgIndex]) };
     this.requestUpdate();
   }
+
   // -------------------------------------------------------------------------
   // Automations tab
   // -------------------------------------------------------------------------
+
   _toggleExpandAutomation(key) {
     this._expandedAutomations = { ...this._expandedAutomations, [key]: !this._expandedAutomations[key] };
     this.requestUpdate();
   }
+
   async _toggleAutomation(entityId, currentState) {
     try {
       const service = currentState === "on" ? "turn_off" : "turn_on";
@@ -2270,9 +1746,11 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to toggle automation", err);
     }
   }
+
   // -------------------------------------------------------------------------
   // Version history methods
   // -------------------------------------------------------------------------
+
   async _openVersionHistory(automationId) {
     const isOpen = !!this._versionHistoryOpen[automationId];
     this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: !isOpen };
@@ -2281,6 +1759,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _loadVersionHistory(automationId) {
     this._loadingVersions = { ...this._loadingVersions, [automationId]: true };
     try {
@@ -2295,14 +1774,14 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _openDiffViewer(automationId) {
     const versions = this._versions[automationId];
-    if (!versions || versions.length < 2)
-      await this._loadVersionHistory(automationId);
-    const v2 = this._versions[automationId] || [];
+    if (!versions || versions.length < 2) await this._loadVersionHistory(automationId);
+    const v = this._versions[automationId] || [];
     this._diffAutomationId = automationId;
-    this._diffVersionA = v2[0]?.version_id || null;
-    this._diffVersionB = v2[1]?.version_id || null;
+    this._diffVersionA = v[0]?.version_id || null;
+    this._diffVersionB = v[1]?.version_id || null;
     this._diffResult = [];
     this._diffOpen = true;
     if (this._diffVersionA && this._diffVersionB) {
@@ -2310,9 +1789,9 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _loadDiff(automationId, versionAId, versionBId) {
-    if (!versionAId || !versionBId)
-      return;
+    if (!versionAId || !versionBId) return;
     this._loadingDiff = true;
     this._diffResult = [];
     try {
@@ -2320,7 +1799,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         type: "selora_ai/get_automation_diff",
         automation_id: automationId,
         version_id_a: versionAId,
-        version_id_b: versionBId
+        version_id_b: versionBId,
       });
       const diffText = result?.diff || "";
       this._diffResult = diffText ? diffText.split("\n") : [];
@@ -2332,6 +1811,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _restoreVersion(automationId, versionId, yamlText) {
     const key = `${automationId}_${versionId}`;
     this._restoringVersion = { ...this._restoringVersion, [key]: true };
@@ -2340,7 +1820,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         type: "selora_ai/update_automation_yaml",
         automation_id: automationId,
         yaml_text: yamlText,
-        version_message: `Restored from version ${versionId}`
+        version_message: `Restored from version ${versionId}`,
       });
       this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: false };
       this._versions = { ...this._versions, [automationId]: null };
@@ -2354,9 +1834,11 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   // -------------------------------------------------------------------------
   // Soft delete / restore methods
   // -------------------------------------------------------------------------
+
   async _softDeleteAutomation(automationId) {
     this._deletingAutomation = { ...this._deletingAutomation, [automationId]: true };
     try {
@@ -2371,6 +1853,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _restoreDeletedAutomation(automationId) {
     this._restoringAutomation = { ...this._restoringAutomation, [automationId]: true };
     try {
@@ -2386,6 +1869,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _toggleDeletedSection() {
     this._showDeleted = !this._showDeleted;
     if (this._showDeleted && this._deletedAutomations.length === 0) {
@@ -2393,11 +1877,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   async _loadDeletedAutomations() {
     this._loadingDeleted = true;
     try {
       const result = await this.hass.callWS({ type: "selora_ai/get_automations", include_deleted: true });
-      this._deletedAutomations = (result || []).filter((a3) => a3.is_deleted);
+      this._deletedAutomations = (result || []).filter((a) => a.is_deleted);
     } catch (err) {
       console.error("Failed to load deleted automations", err);
       this._showToast("Failed to load deleted automations: " + err.message, "error");
@@ -2406,9 +1891,11 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   // -------------------------------------------------------------------------
   // Refine in chat
   // -------------------------------------------------------------------------
+
   async _loadAutomationToChat(automationId) {
     this._loadingToChat = { ...this._loadingToChat, [automationId]: true };
     try {
@@ -2428,49 +1915,56 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
     this.requestUpdate();
   }
+
   // -------------------------------------------------------------------------
   // Render: version history drawer
   // -------------------------------------------------------------------------
-  _renderVersionHistoryDrawer(a3) {
-    const automationId = a3.automation_id || a3.entity_id;
-    if (!this._versionHistoryOpen[automationId])
-      return "";
+
+  _renderVersionHistoryDrawer(a) {
+    const automationId = a.automation_id || a.entity_id;
+    if (!this._versionHistoryOpen[automationId]) return "";
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
-    return x`
+    return html`
       <div style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
           <span style="font-weight:600;font-size:13px;">
             <ha-icon icon="mdi:history" style="--mdc-icon-size:15px;vertical-align:middle;margin-right:4px;"></ha-icon>
             Version History
           </span>
-          ${versions.length >= 2 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+          ${versions.length >= 2
+            ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
                 @click=${() => this._openDiffViewer(automationId)}>
                 <ha-icon icon="mdi:compare" style="--mdc-icon-size:12px;"></ha-icon>
                 Compare versions
-              </button>` : ""}
+              </button>`
+            : ""}
         </div>
-        ${loading ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>` : versions.length === 0 ? x`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>` : versions.map((v2, i3) => {
-      const key = `${automationId}_${v2.version_id}`;
-      const restoring = this._restoringVersion[key];
-      const date = new Date(v2.created_at);
-      const relativeTime = this._relativeTime(date);
-      return x`
+        ${loading
+          ? html`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
+          : versions.length === 0
+          ? html`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>`
+          : versions.map((v, i) => {
+              const key = `${automationId}_${v.version_id}`;
+              const restoring = this._restoringVersion[key];
+              const date = new Date(v.created_at);
+              const relativeTime = this._relativeTime(date);
+              return html`
                 <div style="border-bottom:1px solid var(--divider-color);padding:8px 0;display:flex;flex-direction:column;gap:4px;">
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i3}</span>
+                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i}</span>
                     <span style="font-size:12px;" title=${date.toISOString()}>${relativeTime}</span>
-                    ${i3 === 0 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
-                    ${v2.session_id ? x`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
-                          @click=${() => {
-        this._activeSessionId = v2.session_id;
-        this._activeTab = "chat";
-        this._openSession(v2.session_id);
-      }}>
+                    ${i === 0 ? html`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
+                    ${v.session_id
+                      ? html`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
+                          @click=${() => { this._activeSessionId = v.session_id; this._activeTab = "chat"; this._openSession(v.session_id); }}>
                           from chat session
-                        </span>` : ""}
+                        </span>`
+                      : ""}
                   </div>
-                  ${v2.message || v2.version_message ? x`<div style="font-size:11px;opacity:0.7;font-style:italic;">"${v2.message || v2.version_message}"</div>` : ""}
+                  ${(v.message || v.version_message)
+                    ? html`<div style="font-size:11px;opacity:0.7;font-style:italic;">"${v.message || v.version_message}"</div>`
+                    : ""}
                   <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
                     <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
                       @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
@@ -2478,13 +1972,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       ${this._expandedAutomations[`ver_${key}`] ? "Hide YAML" : "View YAML"}
                     </button>
                     <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      @click=${async () => {
-        await this._openDiffViewer(automationId);
-        this._diffVersionA = this._versions[automationId]?.[0]?.version_id || null;
-        this._diffVersionB = v2.version_id;
-        await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
-        this.requestUpdate();
-      }}>
+                      @click=${async () => { await this._openDiffViewer(automationId); this._diffVersionA = this._versions[automationId]?.[0]?.version_id || null; this._diffVersionB = v.version_id; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); this.requestUpdate(); }}>
                       <ha-icon icon="mdi:compare" style="--mdc-icon-size:11px;"></ha-icon>
                       Compare with current
                     </button>
@@ -2492,93 +1980,90 @@ var SeloraAIArchitectPanel = class extends s4 {
                       ?disabled=${!!this._loadingToChat[automationId]}
                       @click=${() => this._loadAutomationToChat(automationId)}>
                       <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:11px;"></ha-icon>
-                      ${this._loadingToChat[automationId] ? "Loading\u2026" : "Refine in chat"}
+                      ${this._loadingToChat[automationId] ? "Loading…" : "Refine in chat"}
                     </button>
-                    ${i3 > 0 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                          ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
-                          @click=${() => this._restoreVersion(automationId, v2.version_id, v2.yaml || v2.yaml_content || "")}>
+                    ${i > 0
+                      ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                          ?disabled=${restoring || !(v.yaml || v.yaml_content)}
+                          @click=${() => this._restoreVersion(automationId, v.version_id, v.yaml || v.yaml_content || "")}>
                           <ha-icon icon="mdi:restore" style="--mdc-icon-size:11px;"></ha-icon>
-                          ${restoring ? "Restoring\u2026" : "Restore this version"}
-                        </button>` : ""}
+                          ${restoring ? "Restoring…" : "Restore this version"}
+                        </button>`
+                      : ""}
                   </div>
-                  ${this._expandedAutomations[`ver_${key}`] ? x`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:4px 0 0;white-space:pre-wrap;">${v2.yaml || v2.yaml_content || "(no YAML stored)"}</pre>` : ""}
+                  ${this._expandedAutomations[`ver_${key}`]
+                    ? html`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:4px 0 0;white-space:pre-wrap;">${v.yaml || v.yaml_content || "(no YAML stored)"}</pre>`
+                    : ""}
                 </div>
               `;
-    })}
+            })}
       </div>
     `;
   }
+
   // -------------------------------------------------------------------------
   // Render: diff viewer modal
   // -------------------------------------------------------------------------
+
   _renderDiffViewer() {
-    if (!this._diffOpen)
-      return "";
+    if (!this._diffOpen) return "";
     const automationId = this._diffAutomationId;
     const versions = this._versions[automationId] || [];
-    return x`
+    return html`
       <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
-        @click=${(e4) => {
-      if (e4.target === e4.currentTarget) {
-        this._diffOpen = false;
-        this.requestUpdate();
-      }
-    }}>
+        @click=${(e) => { if (e.target === e.currentTarget) { this._diffOpen = false; this.requestUpdate(); } }}>
         <div style="background:var(--card-background-color);border-radius:12px;width:90%;max-width:760px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.4);">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--divider-color);">
             <span style="font-weight:700;font-size:15px;">
               <ha-icon icon="mdi:compare" style="--mdc-icon-size:17px;vertical-align:middle;margin-right:6px;"></ha-icon>
               Compare Versions
             </span>
-            <ha-icon icon="mdi:close" style="cursor:pointer;--mdc-icon-size:20px;" @click=${() => {
-      this._diffOpen = false;
-      this.requestUpdate();
-    }}></ha-icon>
+            <ha-icon icon="mdi:close" style="cursor:pointer;--mdc-icon-size:20px;" @click=${() => { this._diffOpen = false; this.requestUpdate(); }}></ha-icon>
           </div>
           <div style="padding:12px 20px;border-bottom:1px solid var(--divider-color);display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:12px;opacity:0.7;">Version A (newer):</span>
               <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
                 .value=${this._diffVersionA || ""}
-                @change=${async (e4) => {
-      this._diffVersionA = e4.target.value;
-      await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
-    }}>
-                ${versions.map((v2, i3) => x`<option value=${v2.version_id}>v${versions.length - i3} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
+                @change=${async (e) => { this._diffVersionA = e.target.value; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); }}>
+                ${versions.map((v, i) => html`<option value=${v.version_id}>v${versions.length - i} — ${v.message || v.version_message || new Date(v.created_at).toLocaleDateString()}</option>`)}
               </select>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:12px;opacity:0.7;">Version B (older):</span>
               <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
                 .value=${this._diffVersionB || ""}
-                @change=${async (e4) => {
-      this._diffVersionB = e4.target.value;
-      await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
-    }}>
-                ${versions.map((v2, i3) => x`<option value=${v2.version_id}>v${versions.length - i3} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
+                @change=${async (e) => { this._diffVersionB = e.target.value; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); }}>
+                ${versions.map((v, i) => html`<option value=${v.version_id}>v${versions.length - i} — ${v.message || v.version_message || new Date(v.created_at).toLocaleDateString()}</option>`)}
               </select>
             </div>
           </div>
           <div style="flex:1;overflow-y:auto;padding:12px 20px;">
-            ${this._loadingDiff ? x`<div style="opacity:0.5;text-align:center;padding:24px;">Loading diff…</div>` : this._diffResult.length === 0 ? x`<div style="opacity:0.5;text-align:center;padding:24px;">No differences found.</div>` : x`<pre style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;">${this._diffResult.map((line) => {
-      const bg = line.startsWith("+") ? "rgba(40,167,69,0.15)" : line.startsWith("-") ? "rgba(220,53,69,0.15)" : "transparent";
-      const color = line.startsWith("+") ? "#40c057" : line.startsWith("-") ? "#fa5252" : "var(--primary-text-color)";
-      return x`<span style="display:block;background:${bg};color:${color};padding:1px 4px;">${line}</span>`;
-    })}</pre>`}
+            ${this._loadingDiff
+              ? html`<div style="opacity:0.5;text-align:center;padding:24px;">Loading diff…</div>`
+              : this._diffResult.length === 0
+              ? html`<div style="opacity:0.5;text-align:center;padding:24px;">No differences found.</div>`
+              : html`<pre style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;">${this._diffResult.map((line) => {
+                  const bg = line.startsWith("+") ? "rgba(40,167,69,0.15)" : line.startsWith("-") ? "rgba(220,53,69,0.15)" : "transparent";
+                  const color = line.startsWith("+") ? "#40c057" : line.startsWith("-") ? "#fa5252" : "var(--primary-text-color)";
+                  return html`<span style="display:block;background:${bg};color:${color};padding:1px 4px;">${line}</span>`;
+                })}</pre>`}
           </div>
         </div>
       </div>
     `;
   }
+
   // -------------------------------------------------------------------------
   // Render: recently deleted section
   // -------------------------------------------------------------------------
+
   _renderDeletedSection() {
     const daysRemaining = (deletedAt) => {
-      const elapsed = (Date.now() - new Date(deletedAt).getTime()) / (1e3 * 60 * 60 * 24);
+      const elapsed = (Date.now() - new Date(deletedAt).getTime()) / (1000 * 60 * 60 * 24);
       return Math.max(0, Math.round(30 - elapsed));
     };
-    return x`
+    return html`
       <div style="margin-top:16px;">
         <div class="expand-toggle" style="display:flex;align-items:center;gap:6px;"
           @click=${() => this._toggleDeletedSection()}>
@@ -2586,111 +2071,131 @@ var SeloraAIArchitectPanel = class extends s4 {
           <span>Recently Deleted</span>
           <ha-icon icon="mdi:chevron-${this._showDeleted ? "up" : "down"}" style="--mdc-icon-size:14px;margin-left:auto;"></ha-icon>
         </div>
-        ${this._showDeleted ? x`
+        ${this._showDeleted
+          ? html`
               <div style="margin-top:8px;">
-                ${this._loadingDeleted ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading…</div>` : this._deletedAutomations.length === 0 ? x`<div style="opacity:0.45;font-size:12px;padding:8px 0;">No recently deleted automations.</div>` : this._deletedAutomations.map((a3) => {
-      const automationId = a3.automation_id || a3.entity_id;
-      const days = daysRemaining(a3.deleted_at);
-      const restoring = this._restoringAutomation[automationId];
-      return x`
+                ${this._loadingDeleted
+                  ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading…</div>`
+                  : this._deletedAutomations.length === 0
+                  ? html`<div style="opacity:0.45;font-size:12px;padding:8px 0;">No recently deleted automations.</div>`
+                  : this._deletedAutomations.map((a) => {
+                      const automationId = a.automation_id || a.entity_id;
+                      const days = daysRemaining(a.deleted_at);
+                      const restoring = this._restoringAutomation[automationId];
+                      return html`
                         <div class="card" style="opacity:0.8;border-left:3px solid var(--error-color);">
                           <div class="card-header">
-                            <h3 style="flex:1;">${a3.alias}</h3>
-                            ${days <= 3 ? x`<span style="font-size:10px;background:var(--error-color);color:#fff;border-radius:4px;padding:2px 6px;">⚠ ${days}d left</span>` : x`<span style="font-size:11px;opacity:0.6;">${days} days until purge</span>`}
+                            <h3 style="flex:1;">${a.alias}</h3>
+                            ${days <= 3
+                              ? html`<span style="font-size:10px;background:var(--error-color);color:#fff;border-radius:4px;padding:2px 6px;">⚠ ${days}d left</span>`
+                              : html`<span style="font-size:11px;opacity:0.6;">${days} days until purge</span>`}
                           </div>
                           <p style="font-size:11px;opacity:0.6;margin:4px 0;">
-                            Deleted ${this._relativeTime(new Date(a3.deleted_at))}
+                            Deleted ${this._relativeTime(new Date(a.deleted_at))}
                           </p>
                           <div class="card-actions">
                             <button class="btn btn-outline" ?disabled=${restoring}
                               @click=${() => this._restoreDeletedAutomation(automationId)}>
                               <ha-icon icon="mdi:restore" style="--mdc-icon-size:13px;"></ha-icon>
-                              ${restoring ? "Restoring\u2026" : "Restore"}
+                              ${restoring ? "Restoring…" : "Restore"}
                             </button>
                           </div>
                         </div>
                       `;
-    })}
+                    })}
               </div>
-            ` : ""}
+            `
+          : ""}
       </div>
     `;
   }
+
   // -------------------------------------------------------------------------
   // Helper: relative time
   // -------------------------------------------------------------------------
+
   _relativeTime(date) {
-    const seconds = Math.floor((Date.now() - date.getTime()) / 1e3);
-    if (seconds < 60)
-      return "just now";
-    if (seconds < 3600)
-      return `${Math.floor(seconds / 60)}m ago`;
-    if (seconds < 86400)
-      return `${Math.floor(seconds / 3600)}h ago`;
-    if (seconds < 604800)
-      return `${Math.floor(seconds / 86400)}d ago`;
+    const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
+    if (seconds < 60) return "just now";
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+    if (seconds < 604800) return `${Math.floor(seconds / 86400)}d ago`;
     return date.toLocaleDateString();
   }
+
   _renderAutomations() {
-    return x`
+    return html`
       <div class="scroll-view">
-        ${this._automations.length > 0 ? x`
+        ${this._automations.length > 0
+          ? html`
               <h2 style="margin-top:0;">Active Automations</h2>
-              ${this._automations.map((a3) => {
-      const expanded = !!this._expandedAutomations[a3.entity_id];
-      const isOn = a3.state === "on";
-      const automationId = a3.automation_id || a3.entity_id;
-      const versionCount = a3.version_count || null;
-      const deleting = this._deletingAutomation[automationId];
-      const loadingChat = this._loadingToChat[automationId];
-      return x`
+              ${this._automations.map((a) => {
+                const expanded = !!this._expandedAutomations[a.entity_id];
+                const isOn = a.state === "on";
+                const automationId = a.automation_id || a.entity_id;
+                const versionCount = a.version_count || null;
+                const deleting = this._deletingAutomation[automationId];
+                const loadingChat = this._loadingToChat[automationId];
+                return html`
                   <div class="card">
                     <div class="card-header">
-                      <h3 style="flex:1;">${a3.alias}</h3>
-                      <div class="chip ${a3.is_selora ? "ai-managed" : "user-managed"}" style="margin-right:8px;">
-                        ${a3.is_selora ? "SELORA" : "USER"}
+                      <h3 style="flex:1;">${a.alias}</h3>
+                      <div class="chip ${a.is_selora ? "ai-managed" : "user-managed"}" style="margin-right:8px;">
+                        ${a.is_selora ? "SELORA" : "USER"}
                       </div>
-                      ${versionCount ? x`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-right:4px;"
+                      ${versionCount
+                        ? html`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-right:4px;"
                             @click=${() => this._openVersionHistory(automationId)}>
                             <ha-icon icon="mdi:history" style="--mdc-icon-size:12px;vertical-align:middle;"></ha-icon>
                             v${versionCount}
-                          </span>` : ""}</div>
+                          </span>`
+                        : ""}</div>
 
-                    ${a3.description ? x`<p>${a3.description.replace("[Selora AI] ", "")}</p>` : ""}
+                    ${a.description
+                      ? html`<p>${a.description.replace("[Selora AI] ", "")}</p>`
+                      : ""}
 
                     <div class="toggle-row">
-                      <label class="toggle-switch" @click=${() => this._toggleAutomation(a3.entity_id, a3.state)}>
+                      <label class="toggle-switch" @click=${() => this._toggleAutomation(a.entity_id, a.state)}>
                         <div class="toggle-track ${isOn ? "on" : ""}">
                           <div class="toggle-thumb"></div>
                         </div>
                       </label>
                       <span class="toggle-label ${isOn ? "on" : ""}">${isOn ? "Enabled" : "Disabled"}</span>
-                      ${a3.last_triggered ? x`<span style="font-size:11px; opacity:0.5; margin-left:auto;">Last run: ${new Date(a3.last_triggered).toLocaleString()}</span>` : ""}
+                      ${a.last_triggered
+                        ? html`<span style="font-size:11px; opacity:0.5; margin-left:auto;">Last run: ${new Date(a.last_triggered).toLocaleString()}</span>`
+                        : ""}
                     </div>
 
-                    ${a3.trigger?.length || a3.action?.length ? x`
-                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(a3.entity_id)}>
+                    ${(a.trigger?.length || a.action?.length)
+                      ? html`
+                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(a.entity_id)}>
                             <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:14px;"></ha-icon>
                             ${expanded ? "Hide flow" : "View flow"}
                           </div>
-                          ${expanded ? this._renderAutomationFlowchart(a3) : ""}
-                        ` : ""}
+                          ${expanded ? this._renderAutomationFlowchart(a) : ""}
+                        `
+                      : ""}
 
-                    ${a3.yaml_text ? x`
-                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(`yaml_${a3.entity_id}`)}>
+                    ${a.yaml_text
+                      ? html`
+                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(`yaml_${a.entity_id}`)}>
                             <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
-                            ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "Hide YAML" : "Edit YAML"}
+                            ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "Hide YAML" : "Edit YAML"}
                           </div>
-                          ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? this._renderYamlEditor(
-        `yaml_${a3.entity_id}`,
-        a3.yaml_text,
-        (key) => this._saveActiveAutomationYaml(a3.automation_id, key)
-      ) : ""}
-                        ` : ""}
+                          ${this._expandedAutomations[`yaml_${a.entity_id}`]
+                            ? this._renderYamlEditor(
+                                `yaml_${a.entity_id}`,
+                                a.yaml_text,
+                                (key) => this._saveActiveAutomationYaml(a.automation_id, key)
+                              )
+                            : ""}
+                        `
+                      : ""}
 
                     <div class="card-actions">
                       <button class="btn ${isOn ? "btn-outline btn-danger" : "btn-success"}"
-                        @click=${() => this._toggleAutomation(a3.entity_id, a3.state)}>
+                        @click=${() => this._toggleAutomation(a.entity_id, a.state)}>
                         <ha-icon icon="mdi:${isOn ? "pause" : "play"}" style="--mdc-icon-size:13px;"></ha-icon>
                         ${isOn ? "Disable" : "Enable"}
                       </button>
@@ -2702,40 +2207,43 @@ var SeloraAIArchitectPanel = class extends s4 {
                       <button class="btn btn-outline" ?disabled=${loadingChat}
                         @click=${() => this._loadAutomationToChat(automationId)}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${loadingChat ? "Loading\u2026" : "Refine in chat"}
+                        ${loadingChat ? "Loading…" : "Refine in chat"}
                       </button>
                       <button class="btn btn-outline btn-danger" ?disabled=${deleting}
                         @click=${() => this._softDeleteAutomation(automationId)}>
                         <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${deleting ? "Deleting\u2026" : "Delete"}
+                        ${deleting ? "Deleting…" : "Delete"}
                       </button>
                     </div>
-                    ${this._renderVersionHistoryDrawer(a3)}
+                    ${this._renderVersionHistoryDrawer(a)}
                   </div>
                 `;
-    })}
+              })}
               ${this._renderDeletedSection()}
               <div style="border-top: 1px solid var(--divider-color); margin: 24px 0 16px;"></div>
-            ` : ""}
+            `
+          : ""}
 
         <h2 style="margin-top:0;">AI Recommendations</h2>
-        ${this._suggestions.length === 0 ? x`
+        ${this._suggestions.length === 0
+          ? html`
               <div style="display:flex; flex-direction:column; align-items:center; opacity:0.45; padding:32px 0; gap:12px;">
                 <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;"></ha-icon>
                 <p>No recommendations yet — background analysis runs hourly.</p>
               </div>
-            ` : this._suggestions.map((item) => {
-      const auto = item.automation || item.automation_data;
-      const key = `sug_${auto.alias}`;
-      const expanded = !!this._expandedAutomations[key];
-      const origYaml = item.automation_yaml || "";
-      return x`
+            `
+          : this._suggestions.map((item) => {
+              const auto = item.automation || item.automation_data;
+              const key = `sug_${auto.alias}`;
+              const expanded = !!this._expandedAutomations[key];
+              const origYaml = item.automation_yaml || "";
+              return html`
                 <div class="card">
                   <div class="card-header">
                     <h3>${auto.alias}</h3>
                     <div class="chip suggestion">RECOMMENDED</div>
                   </div>
-                  ${auto.description ? x`<p>${auto.description}</p>` : ""}
+                  ${auto.description ? html`<p>${auto.description}</p>` : ""}
 
                   ${this._renderAutomationFlowchart(auto)}
 
@@ -2753,30 +2261,34 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <button class="btn btn-primary" ?disabled=${!!this._savingYaml[key]}
                       @click=${() => this._createSuggestionWithEdits(auto, key, origYaml)}>
                       <ha-icon icon="mdi:plus" style="--mdc-icon-size:13px;"></ha-icon>
-                      ${this._savingYaml[key] ? "Creating\u2026" : "Create Automation"}
+                      ${this._savingYaml[key] ? "Creating…" : "Create Automation"}
                     </button>
                   </div>
                 </div>
               `;
-    })}
+            })}
       </div>
       ${this._renderDiffViewer()}
     `;
   }
+
   // -------------------------------------------------------------------------
   // Settings tab
   // -------------------------------------------------------------------------
+
   _renderSettings() {
     if (!this._config) {
-      return x`
+      return html`
         <div class="scroll-view" style="display:flex; justify-content:center; padding-top:64px;">
           <ha-circular-progress active></ha-circular-progress>
         </div>
       `;
     }
+
     const isAnthropic = this._config.llm_provider === "anthropic";
     const isOpenAI = this._config.llm_provider === "openai";
-    return x`
+
+    return html`
       <div class="scroll-view">
         <div class="settings-form">
           <h2>Integration Settings</h2>
@@ -2785,7 +2297,7 @@ var SeloraAIArchitectPanel = class extends s4 {
             <label>LLM Provider</label>
             <select
               .value=${this._config.llm_provider}
-              @change=${(e4) => this._updateConfig("llm_provider", e4.target.value)}
+              @change=${(e) => this._updateConfig("llm_provider", e.target.value)}
               style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
             >
               <option value="anthropic">Anthropic (Claude)</option>
@@ -2794,15 +2306,18 @@ var SeloraAIArchitectPanel = class extends s4 {
             </select>
           </div>
 
-          ${isAnthropic ? x`
+          ${isAnthropic
+            ? html`
                 <div class="form-group">
                   <label>Anthropic API Key</label>
-                  ${this._config.anthropic_api_key_set ? x`<div class="key-hint">Current key: ${this._config.anthropic_api_key_hint}</div>` : x`<div class="key-not-set">No API key set.</div>`}
+                  ${this._config.anthropic_api_key_set
+                    ? html`<div class="key-hint">Current key: ${this._config.anthropic_api_key_hint}</div>`
+                    : html`<div class="key-not-set">No API key set.</div>`}
                   <ha-textfield
                     label="${this._config.anthropic_api_key_set ? "Enter new key to replace" : "Enter API key"}"
                     type="password"
                     .value=${this._newApiKey}
-                    @input=${(e4) => this._newApiKey = e4.target.value}
+                    @input=${(e) => (this._newApiKey = e.target.value)}
                     placeholder="sk-ant-..."
                     style="margin-top:8px;"
                   ></ha-textfield>
@@ -2811,18 +2326,21 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <ha-textfield
                     label="Anthropic Model"
                     .value=${this._config.anthropic_model}
-                    @input=${(e4) => this._updateConfig("anthropic_model", e4.target.value)}
+                    @input=${(e) => this._updateConfig("anthropic_model", e.target.value)}
                   ></ha-textfield>
                 </div>
-              ` : isOpenAI ? x`
+              `
+            : isOpenAI ? html`
                 <div class="form-group">
                   <label>OpenAI API Key</label>
-                  ${this._config.openai_api_key_set ? x`<div class="key-hint">Current key: ${this._config.openai_api_key_hint}</div>` : x`<div class="key-not-set">No API key set.</div>`}
+                  ${this._config.openai_api_key_set
+                    ? html`<div class="key-hint">Current key: ${this._config.openai_api_key_hint}</div>`
+                    : html`<div class="key-not-set">No API key set.</div>`}
                   <ha-textfield
                     label="${this._config.openai_api_key_set ? "Enter new key to replace" : "Enter API key"}"
                     type="password"
                     .value=${this._newApiKey}
-                    @input=${(e4) => this._newApiKey = e4.target.value}
+                    @input=${(e) => (this._newApiKey = e.target.value)}
                     placeholder="sk-..."
                     style="margin-top:8px;"
                   ></ha-textfield>
@@ -2831,22 +2349,22 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <ha-textfield
                     label="OpenAI Model"
                     .value=${this._config.openai_model}
-                    @input=${(e4) => this._updateConfig("openai_model", e4.target.value)}
+                    @input=${(e) => this._updateConfig("openai_model", e.target.value)}
                   ></ha-textfield>
                 </div>
-            ` : x`
+            ` : html`
                 <div class="form-group">
                   <ha-textfield
                     label="Ollama Host"
                     .value=${this._config.ollama_host}
-                    @input=${(e4) => this._updateConfig("ollama_host", e4.target.value)}
+                    @input=${(e) => this._updateConfig("ollama_host", e.target.value)}
                   ></ha-textfield>
                 </div>
                 <div class="form-group">
                   <ha-textfield
                     label="Ollama Model"
                     .value=${this._config.ollama_model}
-                    @input=${(e4) => this._updateConfig("ollama_model", e4.target.value)}
+                    @input=${(e) => this._updateConfig("ollama_model", e.target.value)}
                   ></ha-textfield>
                 </div>
               `}
@@ -2857,18 +2375,19 @@ var SeloraAIArchitectPanel = class extends s4 {
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
               <ha-switch
                 .checked=${this._config.collector_enabled}
-                @change=${(e4) => this._updateConfig("collector_enabled", e4.target.checked)}
+                @change=${(e) => this._updateConfig("collector_enabled", e.target.checked)}
               ></ha-switch>
               <label>Data Collector (AI Analysis)</label>
             </div>
 
-            ${this._config.collector_enabled ? x`
+            ${this._config.collector_enabled
+              ? html`
                   <div style="padding-left:20px; border-left:2px solid var(--divider-color); margin-bottom:20px;">
                     <div class="form-group">
                       <label>Mode</label>
                       <select
                         .value=${this._config.collector_mode}
-                        @change=${(e4) => this._updateConfig("collector_mode", e4.target.value)}
+                        @change=${(e) => this._updateConfig("collector_mode", e.target.value)}
                         style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
                       >
                         <option value="continuous">Continuous</option>
@@ -2878,33 +2397,37 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <div class="form-group">
                       <ha-textfield label="Interval (seconds)" type="number"
                         .value=${this._config.collector_interval}
-                        @input=${(e4) => this._updateConfig("collector_interval", parseInt(e4.target.value))}
+                        @input=${(e) => this._updateConfig("collector_interval", parseInt(e.target.value))}
                       ></ha-textfield>
                     </div>
-                    ${this._config.collector_mode === "scheduled" ? x`
+                    ${this._config.collector_mode === "scheduled"
+                      ? html`
                           <div style="display:flex; gap:12px;">
-                            <ha-textfield label="Start (HH:MM)" .value=${this._config.collector_start_time} @input=${(e4) => this._updateConfig("collector_start_time", e4.target.value)} style="flex:1;"></ha-textfield>
-                            <ha-textfield label="End (HH:MM)"   .value=${this._config.collector_end_time}   @input=${(e4) => this._updateConfig("collector_end_time", e4.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="Start (HH:MM)" .value=${this._config.collector_start_time} @input=${(e) => this._updateConfig("collector_start_time", e.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="End (HH:MM)"   .value=${this._config.collector_end_time}   @input=${(e) => this._updateConfig("collector_end_time",   e.target.value)} style="flex:1;"></ha-textfield>
                           </div>
-                        ` : ""}
+                        `
+                      : ""}
                   </div>
-                ` : ""}
+                `
+              : ""}
 
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
               <ha-switch
                 .checked=${this._config.discovery_enabled}
-                @change=${(e4) => this._updateConfig("discovery_enabled", e4.target.checked)}
+                @change=${(e) => this._updateConfig("discovery_enabled", e.target.checked)}
               ></ha-switch>
               <label>Network Discovery</label>
             </div>
 
-            ${this._config.discovery_enabled ? x`
+            ${this._config.discovery_enabled
+              ? html`
                   <div style="padding-left:20px; border-left:2px solid var(--divider-color); margin-bottom:20px;">
                     <div class="form-group">
                       <label>Mode</label>
                       <select
                         .value=${this._config.discovery_mode}
-                        @change=${(e4) => this._updateConfig("discovery_mode", e4.target.value)}
+                        @change=${(e) => this._updateConfig("discovery_mode", e.target.value)}
                         style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
                       >
                         <option value="continuous">Continuous</option>
@@ -2914,94 +2437,59 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <div class="form-group">
                       <ha-textfield label="Interval (seconds)" type="number"
                         .value=${this._config.discovery_interval}
-                        @input=${(e4) => this._updateConfig("discovery_interval", parseInt(e4.target.value))}
+                        @input=${(e) => this._updateConfig("discovery_interval", parseInt(e.target.value))}
                       ></ha-textfield>
                     </div>
-                    ${this._config.discovery_mode === "scheduled" ? x`
+                    ${this._config.discovery_mode === "scheduled"
+                      ? html`
                           <div style="display:flex; gap:12px;">
-                            <ha-textfield label="Start (HH:MM)" .value=${this._config.discovery_start_time} @input=${(e4) => this._updateConfig("discovery_start_time", e4.target.value)} style="flex:1;"></ha-textfield>
-                            <ha-textfield label="End (HH:MM)"   .value=${this._config.discovery_end_time}   @input=${(e4) => this._updateConfig("discovery_end_time", e4.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="Start (HH:MM)" .value=${this._config.discovery_start_time} @input=${(e) => this._updateConfig("discovery_start_time", e.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="End (HH:MM)"   .value=${this._config.discovery_end_time}   @input=${(e) => this._updateConfig("discovery_end_time",   e.target.value)} style="flex:1;"></ha-textfield>
                           </div>
-                        ` : ""}
+                        `
+                      : ""}
                   </div>
-                ` : ""}
+                `
+              : ""}
           </div>
 
           <div class="save-bar">
             <mwc-button raised @click=${this._saveConfig} ?disabled=${this._savingConfig}>
-              ${this._savingConfig ? "Saving\u2026" : "Save Settings"}
+              ${this._savingConfig ? "Saving…" : "Save Settings"}
             </mwc-button>
           </div>
         </div>
       </div>
     `;
   }
+
   // -------------------------------------------------------------------------
   // Helpers
   // -------------------------------------------------------------------------
+
   _formatDate(iso) {
-    if (!iso)
-      return "";
+    if (!iso) return "";
     try {
-      const d3 = new Date(iso);
-      const now = /* @__PURE__ */ new Date();
-      const diffMs = now - d3;
-      if (diffMs < 6e4)
-        return "just now";
-      if (diffMs < 36e5)
-        return `${Math.floor(diffMs / 6e4)}m ago`;
-      if (diffMs < 864e5)
-        return `${Math.floor(diffMs / 36e5)}h ago`;
-      return d3.toLocaleDateString();
+      const d = new Date(iso);
+      const now = new Date();
+      const diffMs = now - d;
+      if (diffMs < 60000) return "just now";
+      if (diffMs < 3600000) return `${Math.floor(diffMs / 60000)}m ago`;
+      if (diffMs < 86400000) return `${Math.floor(diffMs / 3600000)}h ago`;
+      return d.toLocaleDateString();
     } catch {
       return "";
     }
   }
+
   _formatTime(iso) {
-    if (!iso)
-      return "";
+    if (!iso) return "";
     try {
       return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
     } catch {
       return "";
     }
   }
-};
+}
+
 customElements.define("selora-ai-architect", SeloraAIArchitectPanel);
-/*! Bundled license information:
-
-@lit/reactive-element/css-tag.js:
-  (**
-   * @license
-   * Copyright 2019 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
-@lit/reactive-element/reactive-element.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
-lit-html/lit-html.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
-lit-element/lit-element.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
-lit-html/is-server.js:
-  (**
-   * @license
-   * Copyright 2022 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-*/
