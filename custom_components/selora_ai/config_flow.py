@@ -469,43 +469,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             area_id = area_choice if area_choice != "no_area" else None
 
             try:
-                if handler in ("androidtv_remote",):
-                    # Android TV needs multi-step pairing (confirm → PIN)
-                    # Try accept_flow first — advances Zeroconf flows from
-                    # "discovery_confirm" to "pair" step
-                    try:
-                        result = await dm.accept_flow(flow_id)
-                    except Exception:
-                        result = {"type": "form", "errors": {"base": "unknown"}}
-
-                    if result.get("type") == "create_entry":
-                        pass  # Already paired — fall through to success handler
-                    elif not result.get("errors"):
-                        # Flow advanced (e.g. to "pair" step) — needs manual PIN
-                        self._setup_results.append({
-                            "flow_id": result.get("flow_id", flow_id),
-                            "name": display_name,
-                            "status": "needs_attention",
-                            "step_id": result.get("step_id", ""),
-                            "message": "Enter the PIN shown on your TV in Settings > Integrations",
-                        })
-                        continue
-                    else:
-                        # accept_flow had validation errors — try auto-pair
-                        try:
-                            result = await dm.auto_pair_android(flow_id)
-                        except Exception:
-                            result = {"error": "Auto-pair failed"}
-                        if result.get("error"):
-                            self._setup_results.append({
-                                "flow_id": flow_id,
-                                "name": display_name,
-                                "status": "needs_attention",
-                                "message": "Complete setup in Settings > Integrations",
-                            })
-                            continue
-                else:
-                    result = await dm.accept_flow(flow_id)
+                result = await dm.accept_flow(flow_id)
 
                 if result.get("type") == "create_entry":
                     # Assign area to the newly created device
@@ -551,9 +515,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._create_llm_entry()
             return self.async_abort(reason="no_devices_selected")
 
-        # Post-setup: sync Cast, generate dashboard
+        # Post-setup: generate dashboard
         try:
-            await dm.sync_cast_known_hosts()
             await dm.generate_dashboard()
         except Exception:
             _LOGGER.exception("Post-setup tasks failed")
