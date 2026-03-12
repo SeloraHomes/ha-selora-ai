@@ -39,6 +39,9 @@ custom_components/selora_backup/
 .vscode/
 *.swp
 .ha_run.lock
+.python-version
+requirements.txt
+AGENTS.md
 
 # ── Local dependency manifest overrides ─────────────────────
 requirements.txt
