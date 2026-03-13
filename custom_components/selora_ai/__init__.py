@@ -169,6 +169,7 @@ class ConversationStore:
         automation_status: str | None = None,
         intent: str | None = None,
         calls: list[dict[str, Any]] | None = None,
+        automation_id: str | None = None,
     ) -> dict[str, Any]:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -203,6 +204,8 @@ class ConversationStore:
             message["automation_status"] = automation_status
         if calls is not None:
             message["calls"] = calls
+        if automation_id is not None:
+            message["automation_id"] = automation_id
 
         session["messages"].append(message)
 
@@ -513,6 +516,12 @@ async def _handle_websocket_chat(
     updated_session = await store.get_session(session_id)
     assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
 
+    # Check if this session is refining an existing automation
+    refining_automation_id = None
+    for m in stored_messages:
+        if m.get("automation_status") == "refining" and m.get("automation_id"):
+            refining_automation_id = m["automation_id"]
+
     connection.send_result(msg["id"], {
         "session_id": session_id,
         "intent": intent_type,
@@ -524,6 +533,7 @@ async def _handle_websocket_chat(
         "executed": executed,
         "config_issue": result.get("config_issue", False),
         "validation_error": result.get("validation_error"),
+        "refining_automation_id": refining_automation_id,
     })
 
 
@@ -663,6 +673,12 @@ async def _handle_websocket_chat_stream(
 
             hass.async_create_task(_generate_title())
 
+        # Check if this session is refining an existing automation
+        refining_automation_id = None
+        for m in stored_messages:
+            if m.get("automation_status") == "refining" and m.get("automation_id"):
+                refining_automation_id = m["automation_id"]
+
         connection.send_message(
             websocket_api.event_message(msg["id"], {
                 "type": "done",
@@ -672,6 +688,7 @@ async def _handle_websocket_chat_stream(
                 "automation_yaml": parsed.get("automation_yaml"),
                 "automation_message_index": assistant_message_index if parsed.get("automation") else None,
                 "validation_error": parsed.get("validation_error"),
+                "refining_automation_id": refining_automation_id,
             })
         )
     except Exception as exc:
@@ -826,14 +843,15 @@ async def _handle_websocket_create_automation(
     vol.Required("type"): "selora_ai/apply_automation_yaml",
     vol.Required("yaml_text"): str,
     vol.Optional("session_id"): str,
+    vol.Optional("automation_id"): str,
 })
 async def _handle_websocket_apply_automation_yaml(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Parse raw YAML text and create a new automation from it."""
-    from .automation_utils import _parse_automation_yaml, async_create_automation
+    """Parse raw YAML text and create or update an automation."""
+    from .automation_utils import _parse_automation_yaml, async_create_automation, async_update_automation
 
     parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
     if parsed is None:
@@ -846,14 +864,26 @@ async def _handle_websocket_apply_automation_yaml(
         connection.send_error(msg["id"], "invalid_format", "Automation must have alias, trigger, and action")
         return
 
+    automation_id = msg.get("automation_id")
     try:
-        success = await async_create_automation(
-            hass, parsed, session_id=msg.get("session_id")
-        )
-        if success:
-            connection.send_result(msg["id"], {"status": "created"})
+        if automation_id:
+            success = await async_update_automation(
+                hass, automation_id, parsed,
+                session_id=msg.get("session_id"),
+                version_message="Refined via chat",
+            )
+            if success:
+                connection.send_result(msg["id"], {"status": "updated"})
+            else:
+                connection.send_error(msg["id"], "not_found", "Automation not found in automations.yaml")
         else:
-            connection.send_error(msg["id"], "creation_failed", "Failed to write automation")
+            success = await async_create_automation(
+                hass, parsed, session_id=msg.get("session_id")
+            )
+            if success:
+                connection.send_result(msg["id"], {"status": "created"})
+            else:
+                connection.send_error(msg["id"], "creation_failed", "Failed to write automation")
     except Exception as exc:
         _LOGGER.exception("Error applying automation YAML")
         connection.send_error(msg["id"], "error", str(exc))
@@ -1364,6 +1394,7 @@ async def _handle_websocket_load_automation_to_session(
         automation=automation_data,
         automation_yaml=yaml_text,
         automation_status="refining",
+        automation_id=automation_id,
     )
 
     connection.send_result(msg["id"], {
