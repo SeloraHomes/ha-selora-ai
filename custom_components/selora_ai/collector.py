@@ -10,6 +10,9 @@ Data sources:
 
 from __future__ import annotations
 
+import asyncio
+import hashlib
+import json
 import logging
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -24,6 +27,8 @@ from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
     AUTOMATION_ID_PREFIX,
+    COLLECTOR_DOMAINS,
+    DEFAULT_LLM_TIMEOUT,
     DEFAULT_PUSH_INTERVAL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
@@ -163,8 +168,25 @@ class DataCollector:
             len(snapshot["recorder_history"]),
         )
 
-        # Step 2: Feed snapshot to the configured LLM
-        suggestions = await self._llm.analyze_home_data(snapshot)
+        # Change 7: Warn if no recorder history available
+        if not snapshot["recorder_history"]:
+            _LOGGER.warning(
+                "No recorder history available — suggestions will be based on "
+                "current state only (is the recorder integration enabled?)"
+            )
+
+        # Step 2: Feed snapshot to the configured LLM (with timeout)
+        try:
+            suggestions = await asyncio.wait_for(
+                self._llm.analyze_home_data(snapshot),
+                timeout=DEFAULT_LLM_TIMEOUT + 10,
+            )
+        except TimeoutError:
+            _LOGGER.warning(
+                "LLM analysis timed out after %ds — skipping this cycle",
+                DEFAULT_LLM_TIMEOUT + 10,
+            )
+            return
 
         # Step 3: Log suggestions and store for UI
         if suggestions:
@@ -172,13 +194,30 @@ class DataCollector:
                 "Selora AI generated %d automation suggestions",
                 len(suggestions),
             )
-            
-            # Enrich suggestions with YAML for UI preview
-            from .const import DOMAIN
-            import yaml
-            
-            enriched = []
+
+            # Deduplicate suggestions by trigger+action content
+            seen_hashes: set[str] = set()
+            unique_suggestions: list[dict[str, Any]] = []
             for s in suggestions:
+                h = self._suggestion_hash(s)
+                if h in seen_hashes:
+                    _LOGGER.debug(
+                        "Skipping duplicate suggestion: %s",
+                        s.get("alias", "<no alias>"),
+                    )
+                    continue
+                seen_hashes.add(h)
+                unique_suggestions.append(s)
+
+            if len(unique_suggestions) < len(suggestions):
+                _LOGGER.info(
+                    "Removed %d duplicate suggestions",
+                    len(suggestions) - len(unique_suggestions),
+                )
+
+            # Enrich suggestions with YAML for UI preview
+            enriched = []
+            for s in unique_suggestions:
                 is_valid, reason, automation_preview = validate_automation_payload(s)
                 if not is_valid or automation_preview is None:
                     _LOGGER.warning(
@@ -188,6 +227,9 @@ class DataCollector:
                     )
                     continue
 
+                # Validate entity IDs referenced in the suggestion
+                self._validate_entity_ids(s)
+
                 suggestion = dict(s)
                 suggestion["automation_yaml"] = yaml.dump(
                     automation_preview, default_flow_style=False, allow_unicode=True
@@ -195,7 +237,7 @@ class DataCollector:
                 suggestion["automation_data"] = automation_preview
                 enriched.append(suggestion)
 
-            filtered_out = len(suggestions) - len(enriched)
+            filtered_out = len(unique_suggestions) - len(enriched)
             if filtered_out:
                 _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
 
@@ -401,24 +443,28 @@ class DataCollector:
 
     def _collect_devices(self) -> list[dict[str, Any]]:
         """Get all devices from the HA device registry."""
-        registry = dr.async_get(self._hass)
-        devices = []
+        try:
+            registry = dr.async_get(self._hass)
+            devices = []
 
-        for device in registry.devices.values():
-            devices.append(
-                {
-                    "id": device.id,
-                    "name": device.name or device.name_by_user or "Unknown",
-                    "manufacturer": device.manufacturer,
-                    "model": device.model,
-                    "area_id": device.area_id,
-                    "connections": list(device.connections),
-                    "identifiers": list(device.identifiers),
-                    "via_device_id": device.via_device_id,
-                }
-            )
+            for device in registry.devices.values():
+                devices.append(
+                    {
+                        "id": device.id,
+                        "name": device.name or device.name_by_user or "Unknown",
+                        "manufacturer": device.manufacturer,
+                        "model": device.model,
+                        "area_id": device.area_id,
+                        "connections": list(device.connections),
+                        "identifiers": list(device.identifiers),
+                        "via_device_id": device.via_device_id,
+                    }
+                )
 
-        return devices
+            return devices
+        except Exception:
+            _LOGGER.exception("Failed to collect devices from registry")
+            return []
 
     # Attribute keys safe to pass to the LLM — excludes PII and secrets
     _SAFE_ATTRIBUTES = {
@@ -426,36 +472,57 @@ class DataCollector:
         "supported_features", "min_temp", "max_temp", "target_temp_step",
         "min_mireds", "max_mireds", "brightness", "color_temp",
         "effect_list", "source_list", "sound_mode_list", "media_content_type",
+        # Climate
+        "current_temperature", "current_humidity", "target_temperature",
+        "hvac_modes", "preset_modes", "fan_modes",
+        # Sensor / energy
+        "state_class", "last_reset",
+        # Cover
+        "current_position", "current_tilt_position",
     }
 
     def _collect_entity_states(self) -> list[dict[str, Any]]:
-        """Get current states of all entities — point-in-time snapshot.
+        """Get current states of interesting entities — point-in-time snapshot.
 
-        Only includes safe, non-PII attributes to avoid leaking sensitive data
-        (e.g. GPS coordinates, tokens, IP addresses) to the LLM.
+        Only includes domains in COLLECTOR_DOMAINS and safe, non-PII attributes
+        to avoid leaking sensitive data (e.g. GPS coordinates, tokens, IP
+        addresses) to the LLM.
         """
-        states = []
+        try:
+            states = []
 
-        for state in self._hass.states.async_all():
-            safe_attrs = {
-                k: v for k, v in state.attributes.items()
-                if k in self._SAFE_ATTRIBUTES
-            }
-            states.append(
-                {
-                    "entity_id": state.entity_id,
-                    "state": state.state,
-                    "attributes": safe_attrs,
-                    "last_changed": state.last_changed.isoformat()
-                    if state.last_changed
-                    else None,
-                    "last_updated": state.last_updated.isoformat()
-                    if state.last_updated
-                    else None,
-                }
-            )
+            for state in self._hass.states.async_all():
+                try:
+                    domain = state.entity_id.split(".")[0]
+                    if domain not in COLLECTOR_DOMAINS:
+                        continue
 
-        return states
+                    safe_attrs = {
+                        k: v for k, v in state.attributes.items()
+                        if k in self._SAFE_ATTRIBUTES
+                    }
+                    states.append(
+                        {
+                            "entity_id": state.entity_id,
+                            "state": state.state,
+                            "attributes": safe_attrs,
+                            "last_changed": state.last_changed.isoformat()
+                            if state.last_changed
+                            else None,
+                            "last_updated": state.last_updated.isoformat()
+                            if state.last_updated
+                            else None,
+                        }
+                    )
+                except Exception:
+                    _LOGGER.warning(
+                        "Skipping entity %s due to error", state.entity_id, exc_info=True
+                    )
+
+            return states
+        except Exception:
+            _LOGGER.exception("Failed to collect entity states")
+            return []
 
     def _collect_automations(self) -> list[dict[str, Any]]:
         """Get existing automations so the LLM doesn't suggest duplicates."""
@@ -472,6 +539,48 @@ class DataCollector:
             )
 
         return automations
+
+    @staticmethod
+    def _suggestion_hash(automation: dict[str, Any]) -> str:
+        """Return a content hash of trigger+action for deduplication."""
+        key = {
+            "trigger": automation.get("trigger"),
+            "action": automation.get("action"),
+        }
+        raw = json.dumps(key, sort_keys=True, default=str)
+        return hashlib.sha256(raw.encode()).hexdigest()
+
+    def _validate_entity_ids(self, automation: dict[str, Any]) -> None:
+        """Warn about entity IDs in a suggestion that don't exist in HA."""
+        found: list[str] = []
+        self._extract_entity_ids(automation, found)
+        if not found:
+            return
+
+        known = {s.entity_id for s in self._hass.states.async_all()}
+        for eid in found:
+            if eid not in known:
+                _LOGGER.warning(
+                    "Suggestion '%s' references unknown entity_id: %s",
+                    automation.get("alias", "<no alias>"),
+                    eid,
+                )
+
+    @staticmethod
+    def _extract_entity_ids(obj: Any, found: list[str]) -> None:
+        """Recursively walk a dict/list to find all entity_id values."""
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "entity_id":
+                    if isinstance(value, str):
+                        found.append(value)
+                    elif isinstance(value, list):
+                        found.extend(v for v in value if isinstance(v, str))
+                else:
+                    DataCollector._extract_entity_ids(value, found)
+        elif isinstance(obj, list):
+            for item in obj:
+                DataCollector._extract_entity_ids(item, found)
 
     async def _collect_recorder_history(self) -> list[dict[str, Any]]:
         """Pull historical state changes from HA Recorder (SQLite).
