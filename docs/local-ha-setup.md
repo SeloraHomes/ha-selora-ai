@@ -66,7 +66,7 @@ Uses Claude via Anthropic's cloud API. Best quality suggestions.
 1. Get an API key at [console.anthropic.com](https://console.anthropic.com)
 2. Select "Anthropic (Claude)" in the config flow
 3. Paste your API key
-4. Default model: `claude-opus-4-6`
+4. Default model: `claude-sonnet-4-6`
 
 ### Option B: Ollama (Local / On-Prem)
 

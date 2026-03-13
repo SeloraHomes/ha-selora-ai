@@ -114,5 +114,5 @@ http://localhost:8123/api/webhook/selora_ai_command?command=turn+on+the+kitchen+
 
 | Provider | Config Key | Default Model | Notes |
 |----------|-----------|---------------|-------|
-| Anthropic | `anthropic_api_key` + `anthropic_model` | `claude-opus-4-6` | Cloud, recommended |
+| Anthropic | `anthropic_api_key` + `anthropic_model` | `claude-sonnet-4-6` | Cloud, recommended |
 | Ollama | `ollama_host` + `ollama_model` | `llama3.1` at `localhost:11434` | Local, no data leaves network |

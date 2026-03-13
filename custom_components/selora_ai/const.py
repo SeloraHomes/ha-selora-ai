@@ -250,7 +250,7 @@ CONF_ANTHROPIC_MODEL = "anthropic_model"
 
 DEFAULT_ANTHROPIC_HOST = "https://api.anthropic.com"
 DEFAULT_ANTHROPIC_API_KEY = ""  # User must provide their own key during setup
-DEFAULT_ANTHROPIC_MODEL = "claude-opus-4-6"
+DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
 # ── Ollama (Local LLM) ──────────────────────────────────────────────
