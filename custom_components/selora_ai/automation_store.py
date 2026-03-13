@@ -147,6 +147,16 @@ class AutomationStore:
         await self._store.async_save(data_store)
         return True
 
+    async def purge_record(self, automation_id: str) -> bool:
+        """Permanently remove one automation record and all versions."""
+        data_store = await self._get_loaded_data()
+        records = data_store["records"]
+        if automation_id not in records:
+            return False
+        del records[automation_id]
+        await self._store.async_save(data_store)
+        return True
+
     async def purge_old_deleted(
         self, older_than_days: int = AUTOMATION_SOFT_DELETE_DAYS
     ) -> list[str]:

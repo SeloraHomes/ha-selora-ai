@@ -523,6 +523,7 @@ async def _handle_websocket_chat(
         "automation_message_index": assistant_message_index if result.get("automation") else None,
         "executed": executed,
         "config_issue": result.get("config_issue", False),
+        "validation_error": result.get("validation_error"),
     })
 
 
@@ -670,6 +671,7 @@ async def _handle_websocket_chat_stream(
                 "automation": parsed.get("automation"),
                 "automation_yaml": parsed.get("automation_yaml"),
                 "automation_message_index": assistant_message_index if parsed.get("automation") else None,
+                "validation_error": parsed.get("validation_error"),
             })
         )
     except Exception as exc:
@@ -939,8 +941,11 @@ async def _handle_websocket_get_automations(
         yaml_automations = await hass.async_add_executor_job(
             _read_automations_yaml, automations_path
         )
-        yaml_by_id: dict[str, dict] = {
+        yaml_by_id: dict[str, dict[str, Any]] = {
             a.get("id", ""): a for a in yaml_automations if a.get("id")
+        }
+        yaml_by_alias: dict[str, dict[str, Any]] = {
+            str(a.get("alias", "")): a for a in yaml_automations if a.get("id") and a.get("alias")
         }
 
         # Preload store metadata for all tracked automations
@@ -956,13 +961,32 @@ async def _handle_websocket_get_automations(
             is_selora = False
             automation_id = ""
             if entry and entry.unique_id:
-                automation_id = entry.unique_id
                 is_selora = entry.unique_id.startswith(AUTOMATION_ID_PREFIX)
+                if entry.unique_id in yaml_by_id:
+                    automation_id = entry.unique_id
 
             # Fallback to description check if unique_id doesn't match
             description = state.attributes.get("description", "")
             if not is_selora and description and "[Selora AI]" in description:
                 is_selora = True
+
+            # Prefer explicit id attributes when available
+            if not automation_id:
+                state_id = state.attributes.get("id")
+                if isinstance(state_id, str) and state_id in yaml_by_id:
+                    automation_id = state_id
+
+            if not automation_id and entry and entry.unique_id:
+                unique_id_attr = state.attributes.get("unique_id")
+                if isinstance(unique_id_attr, str) and unique_id_attr in yaml_by_id:
+                    automation_id = unique_id_attr
+
+            # Last fallback: alias match from automations.yaml
+            if not automation_id:
+                alias = str(state.attributes.get("friendly_name", ""))
+                alias_match = yaml_by_alias.get(alias)
+                if alias_match:
+                    automation_id = str(alias_match.get("id", ""))
 
             is_deleted = automation_id in deleted_ids
             if is_deleted and not include_deleted:
@@ -1231,6 +1255,30 @@ async def _handle_websocket_restore_automation(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/hard_delete_automation",
+    vol.Required("automation_id"): str,
+})
+async def _handle_websocket_hard_delete_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Permanently delete a soft-deleted automation and all version history."""
+    try:
+        from .automation_utils import async_hard_delete_automation
+
+        store = _get_automation_store(hass)
+        await async_hard_delete_automation(hass, store, msg["automation_id"])
+        connection.send_result(msg["id"], {"status": "hard_deleted"})
+    except ValueError as exc:
+        connection.send_error(msg["id"], "invalid_state", str(exc))
+    except Exception as exc:
+        _LOGGER.exception("Error in hard_delete_automation")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/load_automation_to_session",
     vol.Required("automation_id"): str,
     vol.Optional("session_id"): str,
@@ -1246,7 +1294,7 @@ async def _handle_websocket_load_automation_to_session(
     Subsequent selora_ai/chat messages in this session refine it via the existing
     chat handler.
     """
-    from .automation_utils import _read_automations_yaml
+    from .automation_utils import _parse_automation_yaml, _read_automations_yaml
     from pathlib import Path
 
     automation_id = msg["automation_id"]
@@ -1266,7 +1314,14 @@ async def _handle_websocket_load_automation_to_session(
                 versions[-1],
             )
             yaml_text = current_ver.get("yaml", "")
-            automation_data = current_ver.get("data", {})
+            version_data = current_ver.get("data")
+            if isinstance(version_data, dict):
+                automation_data = version_data
+
+    if yaml_text and automation_data is None:
+        parsed = await hass.async_add_executor_job(_parse_automation_yaml, yaml_text)
+        if parsed:
+            automation_data = parsed
 
     if not yaml_text:
         # Fall back to reading live automations.yaml
@@ -1278,7 +1333,7 @@ async def _handle_websocket_load_automation_to_session(
                 yaml_text = yaml.dump(a, allow_unicode=True, default_flow_style=False)
                 break
 
-    if not yaml_text or not automation_data:
+    if not yaml_text or automation_data is None:
         connection.send_error(msg["id"], "not_found", "Automation not found")
         return
 
@@ -1344,6 +1399,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)
     websocket_api.async_register_command(hass, _handle_websocket_soft_delete_automation)
     websocket_api.async_register_command(hass, _handle_websocket_restore_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_hard_delete_automation)
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
 
     # Register static path for frontend

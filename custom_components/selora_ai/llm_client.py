@@ -21,6 +21,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
+from .automation_utils import validate_automation_payload
 from .const import (
     ANTHROPIC_API_VERSION,
     DEFAULT_ANTHROPIC_HOST,
@@ -363,11 +364,24 @@ class LLMClient:
                 else:
                     data["intent"] = "answer"
 
-            # Generate YAML server-side so the LLM doesn't need to produce it
             if data.get("automation"):
-                data["automation_yaml"] = yaml.dump(
-                    data["automation"], default_flow_style=False, allow_unicode=True
-                )
+                is_valid, reason, normalized = validate_automation_payload(data["automation"])
+                if not is_valid or normalized is None:
+                    _LOGGER.warning("Discarding invalid architect automation payload: %s", reason)
+                    data.pop("automation", None)
+                    data.pop("automation_yaml", None)
+                    data["validation_error"] = reason
+                    data["response"] = (
+                        "I couldn't create a valid automation from that request: "
+                        f"{reason}. Please refine the request and try again."
+                    )
+                    if data.get("intent") == "automation":
+                        data["intent"] = "answer"
+                else:
+                    data["automation"] = normalized
+                    data["automation_yaml"] = yaml.dump(
+                        normalized, default_flow_style=False, allow_unicode=True
+                    )
 
             return data
 
@@ -512,15 +526,27 @@ class LLMClient:
             json_text = match.group(1).strip()
             try:
                 automation = json.loads(json_text)
+                is_valid, reason, normalized = validate_automation_payload(automation)
+                if not is_valid or normalized is None:
+                    _LOGGER.warning("Discarding invalid streamed automation payload: %s", reason)
+                    return {
+                        "intent": "answer",
+                        "response": (
+                            response_text
+                            or "I couldn't create a valid automation from that request"
+                        ) + f": {reason}. Please refine the request and try again.",
+                        "validation_error": reason,
+                    }
+
                 automation_yaml = yaml.dump(
-                    automation, default_flow_style=False, allow_unicode=True
+                    normalized, default_flow_style=False, allow_unicode=True
                 )
                 return {
                     "intent": "automation",
                     "response": response_text or "Here's the automation I've created.",
-                    "automation": automation,
+                    "automation": normalized,
                     "automation_yaml": automation_yaml,
-                    "description": automation.get("description", ""),
+                    "description": normalized.get("description", ""),
                 }
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse automation block: %s", json_text[:200])
@@ -623,7 +649,7 @@ class LLMClient:
             '  {\n'
             '    "alias": "Notify when sun sets",\n'
             '    "description": "Send a notification at sunset each day",\n'
-            '    "triggers": [{"trigger": "sun", "event": "sunset"}],\n'
+            '    "triggers": [{"platform": "sun", "event": "sunset"}],\n'
             '    "actions": [{"action": "notify.notify", "data": {"message": "Sun has set"}}]\n'
             '  }\n'
             ']\n\n'

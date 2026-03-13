@@ -51,6 +51,69 @@ def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
     return None
 
 
+def validate_automation_payload(
+    automation: dict[str, Any] | None,
+) -> tuple[bool, str, dict[str, Any] | None]:
+    """Validate and normalize automation payload before it is shown or persisted."""
+    if not isinstance(automation, dict):
+        return False, "automation payload must be an object", None
+
+    alias = str(automation.get("alias", "")).strip()
+    if not alias:
+        return False, "automation alias is required", None
+
+    triggers = automation.get("trigger") or automation.get("triggers") or []
+    actions = automation.get("action") or automation.get("actions") or []
+    conditions = automation.get("condition") or automation.get("conditions") or []
+
+    if not isinstance(triggers, list):
+        triggers = [triggers]
+    if not isinstance(actions, list):
+        actions = [actions]
+    if conditions and not isinstance(conditions, list):
+        conditions = [conditions]
+
+    if not triggers:
+        return False, "automation must include at least one trigger", None
+    if not actions:
+        return False, "automation must include at least one action", None
+
+    if not all(isinstance(t, dict) for t in triggers):
+        return False, "all triggers must be objects", None
+    if not all(isinstance(a, dict) for a in actions):
+        return False, "all actions must be objects", None
+    if not all(isinstance(c, dict) for c in conditions):
+        return False, "all conditions must be objects", None
+
+    normalized_triggers: list[dict[str, Any]] = []
+    for trig in triggers:
+        fixed_trigger = dict(trig)
+        if not fixed_trigger.get("platform") and fixed_trigger.get("trigger"):
+            fixed_trigger["platform"] = fixed_trigger.pop("trigger")
+        if not fixed_trigger.get("platform"):
+            return False, "each trigger must include a platform", None
+        normalized_triggers.append(fixed_trigger)
+
+    normalized = {
+        "alias": alias,
+        "description": str(automation.get("description", "")).strip(),
+        "trigger": normalized_triggers,
+        "condition": conditions,
+        "action": actions,
+        "mode": automation.get("mode", "single"),
+    }
+
+    try:
+        yaml_text = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False)
+        reparsed = yaml.safe_load(yaml_text)
+        if not isinstance(reparsed, dict):
+            return False, "automation YAML did not round-trip to an object", None
+    except (yaml.YAMLError, TypeError, ValueError) as exc:
+        return False, f"automation YAML serialization failed: {exc}", None
+
+    return True, "", normalized
+
+
 def _get_automation_store(hass: HomeAssistant):
     """Return (or lazily create) the AutomationStore from hass.data."""
     from .automation_store import AutomationStore
@@ -233,6 +296,32 @@ async def async_restore_automation(
     except Exception as exc:
         _LOGGER.exception("Failed to restore automation %s: %s", automation_id, exc)
         return False
+
+
+async def async_hard_delete_automation(
+    hass: HomeAssistant,
+    automation_store,
+    automation_id: str,
+) -> None:
+    """Permanently delete a soft-deleted automation and all version history.
+
+    Raises ValueError if the automation is not soft-deleted.
+    """
+    record = await automation_store.get_record(automation_id)
+    if not record or not record.get("deleted_at"):
+        raise ValueError("Automation must be soft-deleted before hard delete")
+
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    remaining = [a for a in existing if a.get("id") != automation_id]
+    if len(remaining) == len(existing):
+        raise ValueError("Automation not found in automations.yaml")
+
+    await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+    await automation_store.purge_record(automation_id)
+    await hass.services.async_call("automation", "reload")
+    _LOGGER.info("Hard-deleted automation: %s", automation_id)
 
 
 async def async_purge_deleted_automations(
