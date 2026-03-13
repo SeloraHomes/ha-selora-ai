@@ -97,8 +97,13 @@ class SeloraAIArchitectPanel extends LitElement {
       // Action loading states
       _deletingAutomation: { type: Object },
       _restoringAutomation: { type: Object },
+      _hardDeletingAutomation: { type: Object },
       _restoringVersion: { type: Object },
       _loadingToChat: { type: Object },
+
+      // Hard delete confirmation modal
+      _hardDeleteTarget: { type: Object },
+      _hardDeleteAliasInput: { type: String },
 
       // Toast notifications
       _toast: { type: String },
@@ -141,8 +146,11 @@ class SeloraAIArchitectPanel extends LitElement {
     // Action loading states
     this._deletingAutomation = {};
     this._restoringAutomation = {};
+    this._hardDeletingAutomation = {};
     this._restoringVersion = {};
     this._loadingToChat = {};
+    this._hardDeleteTarget = null;
+    this._hardDeleteAliasInput = "";
     this._toast = "";
     this._toastType = "info";
     this._toastTimer = null;
@@ -317,6 +325,9 @@ class SeloraAIArchitectPanel extends LitElement {
             assistantMsg._streaming = false;
             this._messages = [...this._messages];
             this._loading = false;
+            if (event.validation_error) {
+              this._showToast(`Automation validation failed: ${event.validation_error}`, "error");
+            }
 
             // Update session tracking
             if (event.session_id) {
@@ -1291,6 +1302,8 @@ class SeloraAIArchitectPanel extends LitElement {
         ${this._activeTab === "settings" ? this._renderSettings() : ""}
       </div>
 
+      ${this._renderHardDeleteDialog()}
+
       ${this._toast
         ? html`
             <div class="toast ${this._toastType}">
@@ -1870,6 +1883,41 @@ class SeloraAIArchitectPanel extends LitElement {
     this.requestUpdate();
   }
 
+  _openHardDeleteDialog(automationId, alias) {
+    this._hardDeleteTarget = { automationId, alias };
+    this._hardDeleteAliasInput = "";
+    this.requestUpdate();
+  }
+
+  _closeHardDeleteDialog() {
+    this._hardDeleteTarget = null;
+    this._hardDeleteAliasInput = "";
+    this.requestUpdate();
+  }
+
+  async _confirmHardDelete() {
+    const target = this._hardDeleteTarget;
+    if (!target) return;
+
+    const { automationId, alias } = target;
+    if (this._hardDeleteAliasInput !== alias) return;
+
+    this._hardDeletingAutomation = { ...this._hardDeletingAutomation, [automationId]: true };
+    try {
+      await this.hass.callWS({ type: "selora_ai/hard_delete_automation", automation_id: automationId });
+      this._closeHardDeleteDialog();
+      await this._loadDeletedAutomations();
+      await this._loadAutomations();
+      this._showToast("Automation permanently deleted.", "success");
+    } catch (err) {
+      console.error("Failed to hard delete automation", err);
+      this._showToast("Failed to permanently delete automation: " + err.message, "error");
+    } finally {
+      this._hardDeletingAutomation = { ...this._hardDeletingAutomation, [automationId]: false };
+    }
+    this.requestUpdate();
+  }
+
   async _toggleDeletedSection() {
     this._showDeleted = !this._showDeleted;
     if (this._showDeleted && this._deletedAutomations.length === 0) {
@@ -1897,6 +1945,10 @@ class SeloraAIArchitectPanel extends LitElement {
   // -------------------------------------------------------------------------
 
   async _loadAutomationToChat(automationId) {
+    if (!automationId) {
+      this._showToast("This automation cannot be refined because it has no automation ID.", "error");
+      return;
+    }
     this._loadingToChat = { ...this._loadingToChat, [automationId]: true };
     try {
       const result = await this.hass.callWS({ type: "selora_ai/load_automation_to_session", automation_id: automationId });
@@ -2082,6 +2134,7 @@ class SeloraAIArchitectPanel extends LitElement {
                       const automationId = a.automation_id || a.entity_id;
                       const days = daysRemaining(a.deleted_at);
                       const restoring = this._restoringAutomation[automationId];
+                      const hardDeleting = this._hardDeletingAutomation[automationId];
                       return html`
                         <div class="card" style="opacity:0.8;border-left:3px solid var(--error-color);">
                           <div class="card-header">
@@ -2094,10 +2147,15 @@ class SeloraAIArchitectPanel extends LitElement {
                             Deleted ${this._relativeTime(new Date(a.deleted_at))}
                           </p>
                           <div class="card-actions">
-                            <button class="btn btn-outline" ?disabled=${restoring}
+                            <button class="btn btn-outline" ?disabled=${restoring || hardDeleting}
                               @click=${() => this._restoreDeletedAutomation(automationId)}>
                               <ha-icon icon="mdi:restore" style="--mdc-icon-size:13px;"></ha-icon>
                               ${restoring ? "Restoring…" : "Restore"}
+                            </button>
+                            <button class="btn btn-outline btn-danger" ?disabled=${restoring || hardDeleting}
+                              @click=${() => this._openHardDeleteDialog(automationId, a.alias)}>
+                              <ha-icon icon="mdi:trash-can" style="--mdc-icon-size:13px;"></ha-icon>
+                              ${hardDeleting ? "Deleting…" : "Permanently Delete"}
                             </button>
                           </div>
                         </div>
@@ -2106,6 +2164,51 @@ class SeloraAIArchitectPanel extends LitElement {
               </div>
             `
           : ""}
+      </div>
+    `;
+  }
+
+  _renderHardDeleteDialog() {
+    if (!this._hardDeleteTarget) return "";
+
+    const { automationId, alias } = this._hardDeleteTarget;
+    const hardDeleting = !!this._hardDeletingAutomation[automationId];
+    const canConfirm = this._hardDeleteAliasInput === alias;
+
+    return html`
+      <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;"
+        @click=${(e) => {
+          if (e.target === e.currentTarget && !hardDeleting) {
+            this._closeHardDeleteDialog();
+          }
+        }}>
+        <div style="background:var(--card-background-color);border-radius:12px;width:90%;max-width:520px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid var(--divider-color);">
+          <div style="font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;color:var(--error-color);">
+            <ha-icon icon="mdi:alert-octagon"></ha-icon>
+            Permanently Delete Automation
+          </div>
+          <p style="font-size:13px;opacity:0.85;margin:0 0 10px;line-height:1.45;">
+            This action cannot be undone. Type the automation alias to confirm permanent deletion.
+          </p>
+          <p style="font-size:12px;opacity:0.75;margin:0 0 8px;">
+            Alias: <strong>${alias}</strong>
+          </p>
+          <ha-textfield
+            .value=${this._hardDeleteAliasInput}
+            @input=${(e) => (this._hardDeleteAliasInput = e.target.value)}
+            placeholder="Type alias exactly"
+            ?disabled=${hardDeleting}
+            style="width:100%;"
+          ></ha-textfield>
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;">
+            <button class="btn btn-outline" ?disabled=${hardDeleting} @click=${() => this._closeHardDeleteDialog()}>
+              Cancel
+            </button>
+            <button class="btn btn-danger" ?disabled=${hardDeleting || !canConfirm} @click=${() => this._confirmHardDelete()}>
+              ${hardDeleting ? "Deleting…" : "Permanently Delete"}
+            </button>
+          </div>
+        </div>
       </div>
     `;
   }
@@ -2132,7 +2235,8 @@ class SeloraAIArchitectPanel extends LitElement {
               ${this._automations.map((a) => {
                 const expanded = !!this._expandedAutomations[a.entity_id];
                 const isOn = a.state === "on";
-                const automationId = a.automation_id || a.entity_id;
+                const automationId = a.automation_id || "";
+                const hasAutomationId = !!automationId;
                 const versionCount = a.version_count || null;
                 const deleting = this._deletingAutomation[automationId];
                 const loadingChat = this._loadingToChat[automationId];
@@ -2143,7 +2247,7 @@ class SeloraAIArchitectPanel extends LitElement {
                       <div class="chip ${a.is_selora ? "ai-managed" : "user-managed"}" style="margin-right:8px;">
                         ${a.is_selora ? "SELORA" : "USER"}
                       </div>
-                      ${versionCount
+                      ${versionCount && hasAutomationId
                         ? html`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-right:4px;"
                             @click=${() => this._openVersionHistory(automationId)}>
                             <ha-icon icon="mdi:history" style="--mdc-icon-size:12px;vertical-align:middle;"></ha-icon>
@@ -2199,17 +2303,17 @@ class SeloraAIArchitectPanel extends LitElement {
                         <ha-icon icon="mdi:${isOn ? "pause" : "play"}" style="--mdc-icon-size:13px;"></ha-icon>
                         ${isOn ? "Disable" : "Enable"}
                       </button>
-                      <button class="btn btn-outline"
+                      <button class="btn btn-outline" ?disabled=${!hasAutomationId}
                         @click=${() => this._openVersionHistory(automationId)}>
                         <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;"></ha-icon>
                         History
                       </button>
-                      <button class="btn btn-outline" ?disabled=${loadingChat}
+                      <button class="btn btn-outline" ?disabled=${!hasAutomationId || loadingChat}
                         @click=${() => this._loadAutomationToChat(automationId)}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         ${loadingChat ? "Loading…" : "Refine in chat"}
                       </button>
-                      <button class="btn btn-outline btn-danger" ?disabled=${deleting}
+                      <button class="btn btn-outline btn-danger" ?disabled=${!hasAutomationId || deleting}
                         @click=${() => this._softDeleteAutomation(automationId)}>
                         <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         ${deleting ? "Deleting…" : "Delete"}

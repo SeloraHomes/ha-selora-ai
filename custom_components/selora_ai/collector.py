@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_COLLECTOR_MODE,
     DEFAULT_COLLECTOR_INTERVAL,
 )
+from .automation_utils import validate_automation_payload
 from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -178,33 +179,31 @@ class DataCollector:
             
             enriched = []
             for s in suggestions:
-                # Normalize keys for consistency
-                triggers = s.get("triggers") or s.get("trigger", [])
-                actions = s.get("actions") or s.get("action", [])
-                conditions = s.get("conditions") or s.get("condition", [])
-                
-                # HA automation schema uses 'trigger', 'action', 'condition'
-                automation_preview = {
-                    "alias": s.get("alias", "New Automation"),
-                    "description": s.get("description", ""),
-                    "trigger": triggers,
-                    "condition": conditions,
-                    "action": actions,
-                    "mode": "single",
-                }
-                
-                s["automation_yaml"] = yaml.dump(
+                is_valid, reason, automation_preview = validate_automation_payload(s)
+                if not is_valid or automation_preview is None:
+                    _LOGGER.warning(
+                        "Skipping invalid collector suggestion '%s': %s",
+                        s.get("alias", "<missing alias>"),
+                        reason,
+                    )
+                    continue
+
+                suggestion = dict(s)
+                suggestion["automation_yaml"] = yaml.dump(
                     automation_preview, default_flow_style=False, allow_unicode=True
                 )
-                # Keep normalized version for easy creation
-                s["automation_data"] = automation_preview
-                enriched.append(s)
+                suggestion["automation_data"] = automation_preview
+                enriched.append(suggestion)
+
+            filtered_out = len(suggestions) - len(enriched)
+            if filtered_out:
+                _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
 
             # Store in hass.data for the side panel to fetch
             self._hass.data.setdefault(DOMAIN, {})
             self._hass.data[DOMAIN]["latest_suggestions"] = enriched
-            
-            self._notify_suggestions(suggestions, created_count=0)
+
+            self._notify_suggestions(enriched, created_count=0)
         else:
             _LOGGER.info("No new automation suggestions from LLM")
 
@@ -234,42 +233,32 @@ class DataCollector:
             if not isinstance(suggestion, dict):
                 continue
 
-            alias = suggestion.get("alias", "").strip()
-            if not alias:
+            is_valid, reason, normalized = validate_automation_payload(suggestion)
+            if not is_valid or normalized is None:
+                _LOGGER.debug("Skipping invalid suggestion: %s", reason)
                 continue
+
+            alias = normalized["alias"]
 
             # Skip duplicates
             if alias.lower() in existing_aliases:
                 _LOGGER.debug("Skipping duplicate automation: %s", alias)
                 continue
 
-            # Normalize trigger/action → triggers/actions (LLM may use singular)
-            triggers = suggestion.get("triggers") or suggestion.get("trigger", [])
-            actions = suggestion.get("actions") or suggestion.get("action", [])
-            conditions = suggestion.get("conditions") or suggestion.get("condition", [])
-
-            if not triggers or not actions:
-                _LOGGER.debug("Skipping suggestion missing triggers or actions: %s", alias)
-                continue
-
-            # Ensure lists
-            if not isinstance(triggers, list):
-                triggers = [triggers]
-            if not isinstance(actions, list):
-                actions = [actions]
-            if conditions and not isinstance(conditions, list):
-                conditions = [conditions]
-
+            triggers = normalized["trigger"]
+            actions = normalized["action"]
+            conditions = normalized["condition"]
             short_id = uuid.uuid4().hex[:8]
+            description = normalized.get("description") or alias
             automation = {
                 "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
                 "alias": alias,
-                "description": f"[Selora AI] {suggestion.get('description', alias)}",
+                "description": f"[Selora AI] {description}",
                 "initial_state": False,
-                "triggers": triggers,
-                "conditions": conditions or [],
-                "actions": actions,
-                "mode": "single",
+                "trigger": triggers,
+                "condition": conditions or [],
+                "action": actions,
+                "mode": normalized.get("mode", "single"),
             }
 
             new_automations.append(automation)
