@@ -12,8 +12,21 @@ Data layout in storage:
                 "current_version_id": str,
                 "versions": [AutomationVersion, ...],
                 "deleted_at": str | None,
+                "lineage": [LineageEntry, ...],  # ordered chronologically
             }
+        },
+        "session_index": {
+            "<session_id>": [automation_id, ...]  # reverse index
         }
+    }
+
+LineageEntry shape:
+    {
+        "version_id": str,
+        "session_id": str | None,
+        "message_index": int | None,   # position in session message list
+        "action": str,                 # "created" | "updated" | "restored" | "refined"
+        "timestamp": str,              # ISO datetime
     }
 """
 
@@ -45,7 +58,17 @@ class AutomationStore:
     async def _ensure_loaded(self) -> None:
         if self._data is None:
             raw = await self._store.async_load()
-            self._data = raw if isinstance(raw, dict) else {"records": {}}
+            if isinstance(raw, dict):
+                self._data = raw
+                # Migrate: ensure top-level session_index exists
+                if "session_index" not in self._data:
+                    self._data["session_index"] = {}
+                # Migrate: ensure every record has a lineage list
+                for record in self._data.get("records", {}).values():
+                    if "lineage" not in record:
+                        record["lineage"] = []
+            else:
+                self._data = {"records": {}, "session_index": {}}
 
     async def _get_loaded_data(self) -> dict[str, Any]:
         await self._ensure_loaded()
@@ -62,11 +85,18 @@ class AutomationStore:
         data: dict[str, Any],
         message: str,
         session_id: str | None = None,
+        *,
+        action: str | None = None,
+        message_index: int | None = None,
     ) -> str:
         """Append a new immutable version record and update current_version_id.
 
         Returns the new version_id.
         Creates the AutomationRecord if this is the first version.
+
+        A LineageEntry is always appended to track every change.  When
+        session_id is provided the entry is also added to the session_index
+        so sessions can be reverse-looked-up by automation.
         """
         data_store = await self._get_loaded_data()
         version_id = str(uuid.uuid4())
@@ -81,16 +111,44 @@ class AutomationStore:
             "session_id": session_id,
         }
         records = data_store["records"]
-        if automation_id not in records:
+        is_new = automation_id not in records
+        if is_new:
             records[automation_id] = {
                 "automation_id": automation_id,
                 "current_version_id": version_id,
                 "versions": [version],
                 "deleted_at": None,
+                "lineage": [],
             }
         else:
+            # Migrate existing records that pre-date lineage support
+            if "lineage" not in records[automation_id]:
+                records[automation_id]["lineage"] = []
             records[automation_id]["versions"].append(version)
             records[automation_id]["current_version_id"] = version_id
+
+        # Resolve action label when not explicitly provided
+        resolved_action: str = action or (
+            "created" if is_new else ("refined" if session_id else "updated")
+        )
+
+        # Append lineage entry (always — even for non-session edits)
+        lineage_entry: dict[str, Any] = {
+            "version_id": version_id,
+            "session_id": session_id,
+            "message_index": message_index,
+            "action": resolved_action,
+            "timestamp": now,
+        }
+        records[automation_id]["lineage"].append(lineage_entry)
+
+        # Maintain session → automations reverse index
+        if session_id:
+            session_index: dict[str, list[str]] = data_store.setdefault("session_index", {})
+            touched = session_index.setdefault(session_id, [])
+            if automation_id not in touched:
+                touched.append(automation_id)
+
         await self._store.async_save(data_store)
         return version_id
 
@@ -210,3 +268,17 @@ class AutomationStore:
             for aid, rec in data_store["records"].items()
             if rec.get("deleted_at")
         ]
+
+    # ── Lineage ──────────────────────────────────────────────────────────
+
+    async def get_automation_lineage(self, automation_id: str) -> list[dict[str, Any]]:
+        """Return the chronological lineage list for an automation."""
+        record = await self.get_record(automation_id)
+        if not record:
+            return []
+        return list(record.get("lineage", []))
+
+    async def get_session_automations(self, session_id: str) -> list[str]:
+        """Return automation_ids touched by a given session (via reverse index)."""
+        data_store = await self._get_loaded_data()
+        return list(data_store.get("session_index", {}).get(session_id, []))

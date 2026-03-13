@@ -260,7 +260,27 @@ async def async_soft_delete_automation(
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         await hass.services.async_call("automation", "reload")
         store = _get_automation_store(hass)
-        await store.soft_delete(automation_id)
+
+        # Bootstrap a store record for automations created before store tracking was introduced.
+        # soft_delete() returns False when no record exists; in that case we create a minimal
+        # "imported" version entry so the automation is trackable, then mark it deleted.
+        if not await store.soft_delete(automation_id):
+            _LOGGER.info(
+                "Automation %s has no store record — bootstrapping before soft-delete", automation_id
+            )
+            # Find the automation's current YAML from the (already updated) file
+            target = next((a for a in existing if a.get("id") == automation_id), {})
+            yaml_text = yaml.dump(target, allow_unicode=True, default_flow_style=False)
+            await store.add_version(
+                automation_id,
+                yaml_text,
+                target,
+                "imported",
+                session_id=None,
+                action="created",
+            )
+            await store.soft_delete(automation_id)
+
         _LOGGER.info("Soft-deleted automation: %s", automation_id)
         return True
     except Exception as exc:
