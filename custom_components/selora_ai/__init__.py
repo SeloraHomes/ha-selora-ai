@@ -601,36 +601,6 @@ async def _handle_websocket_chat_stream(
     user_message = msg["message"]
     await store.append_message(session_id, "user", user_message)
 
-    # Try HA conversation agent first (if available)
-    try:
-        from homeassistant.components.conversation import async_converse
-
-        conv_result = await async_converse(
-            hass,
-            msg["message"],
-            conversation_id=None,
-            context=connection.context(msg),
-        )
-        response_text = conv_result.response.speech.get("plain", {}).get("speech", "")
-        if response_text:
-            await store.append_message(session_id, "assistant", response_text)
-            connection.send_message(
-                websocket_api.event_message(msg["id"], {"type": "token", "text": response_text})
-            )
-            connection.send_message(
-                websocket_api.event_message(msg["id"], {
-                    "type": "done",
-                    "session_id": session_id,
-                    "response": response_text,
-                    "automation": None,
-                    "automation_yaml": None,
-                })
-            )
-            return
-    except (ImportError, AttributeError, Exception):
-        # conversation agent not available or failed — fall back to LLM streaming
-        pass
-
     try:
         entities = _collect_entity_states(hass)
         automations = [
