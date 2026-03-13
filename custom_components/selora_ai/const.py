@@ -289,6 +289,13 @@ DEFAULT_LLM_TIMEOUT = 120  # seconds — per-request timeout for LLM calls
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"
 
+# Entity domains the collector includes in snapshots (matches LLM filtering)
+COLLECTOR_DOMAINS = {
+    "light", "switch", "media_player", "climate", "fan",
+    "cover", "lock", "vacuum", "sensor", "binary_sensor",
+    "water_heater", "humidifier", "input_boolean", "input_select",
+}
+
 # ── LLM Suggestion Limits ───────────────────────────────────────────
 DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
 
