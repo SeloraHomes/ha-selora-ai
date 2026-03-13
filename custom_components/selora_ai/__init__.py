@@ -1309,6 +1309,70 @@ async def _handle_websocket_hard_delete_automation(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_automation_lineage",
+    vol.Required("automation_id"): str,
+})
+async def _handle_websocket_get_automation_lineage(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the lineage list for an automation with session previews joined in."""
+    try:
+        store = _get_automation_store(hass)
+        lineage = await store.get_automation_lineage(msg["automation_id"])
+
+        conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        result = []
+        for entry in lineage:
+            enriched = dict(entry)
+            sid = entry.get("session_id")
+            if sid:
+                session = await conv_store.get_session(sid)
+                enriched["session_preview"] = await conv_store.get_session_preview(sid)
+                enriched["session_title"] = (session or {}).get("title") or enriched["session_preview"]
+            else:
+                enriched["session_preview"] = None
+                enriched["session_title"] = None
+            result.append(enriched)
+
+        connection.send_result(msg["id"], result)
+    except Exception as exc:
+        _LOGGER.exception("Error in get_automation_lineage")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_session_automations",
+    vol.Required("session_id"): str,
+})
+async def _handle_websocket_get_session_automations(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return all automations (with metadata) touched by a given session."""
+    try:
+        store = _get_automation_store(hass)
+        automation_ids = await store.get_session_automations(msg["session_id"])
+
+        result = []
+        for automation_id in automation_ids:
+            meta = await store.get_metadata(automation_id)
+            if meta:
+                result.append(meta)
+
+        connection.send_result(msg["id"], result)
+    except Exception as exc:
+        _LOGGER.exception("Error in get_session_automations")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/load_automation_to_session",
     vol.Required("automation_id"): str,
     vol.Optional("session_id"): str,
@@ -1431,6 +1495,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_soft_delete_automation)
     websocket_api.async_register_command(hass, _handle_websocket_restore_automation)
     websocket_api.async_register_command(hass, _handle_websocket_hard_delete_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_get_automation_lineage)
+    websocket_api.async_register_command(hass, _handle_websocket_get_session_automations)
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
 
     # Register static path for frontend

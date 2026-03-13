@@ -80,6 +80,9 @@ class SeloraAIArchitectPanel extends LitElement {
       _versionHistoryOpen: { type: Object },
       _versions: { type: Object },
       _loadingVersions: { type: Object },
+      _versionTab: { type: Object },      // keyed by automationId → "versions" | "lineage"
+      _lineage: { type: Object },         // keyed by automationId → LineageEntry[]
+      _loadingLineage: { type: Object },
 
       // Diff viewer
       _diffOpen: { type: Boolean },
@@ -132,6 +135,9 @@ class SeloraAIArchitectPanel extends LitElement {
     this._versionHistoryOpen = {};
     this._versions = {};
     this._loadingVersions = {};
+    this._versionTab = {};
+    this._lineage = {};
+    this._loadingLineage = {};
     // Diff viewer
     this._diffOpen = false;
     this._diffAutomationId = null;
@@ -372,40 +378,68 @@ class SeloraAIArchitectPanel extends LitElement {
   // Automation actions
   // -------------------------------------------------------------------------
 
-  _getRefiningAutomationId(msgIndex) {
-    // Check the message itself for a refining_automation_id (set from done event)
-    const msg = this._messages[msgIndex];
+  // -------------------------------------------------------------------------
+  // Refinement helpers
+  // -------------------------------------------------------------------------
+
+  _getRefiningAutomationId(msgIndex = null) {
+    const msg = msgIndex == null ? null : this._messages[msgIndex];
     if (msg?.refining_automation_id) return msg.refining_automation_id;
-    // Scan earlier messages in session for a refining context
+    if (msg?.automation_id) return msg.automation_id;
+    if (msg?.automation?.id) return msg.automation.id;
+
     for (const m of this._messages) {
-      if (m.automation_status === "refining" && m.automation_id) return m.automation_id;
+      if (m.automation_status === "refining") {
+        if (m.automation_id) return m.automation_id;
+        if (m.automation?.id) return m.automation.id;
+      }
     }
     return null;
   }
 
+  async _loadLineage(automationId) {
+    this._loadingLineage = { ...this._loadingLineage, [automationId]: true };
+    this.requestUpdate();
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/get_automation_lineage",
+        automation_id: automationId,
+      });
+      this._lineage = { ...this._lineage, [automationId]: result };
+    } catch (err) {
+      console.error("Failed to load lineage", err);
+      this._lineage = { ...this._lineage, [automationId]: [] };
+    } finally {
+      this._loadingLineage = { ...this._loadingLineage, [automationId]: false };
+      this.requestUpdate();
+    }
+  }
+
   async _acceptAutomation(msgIndex, automation) {
     try {
-      // Check if this is a refinement of an existing automation
       const refiningId = this._getRefiningAutomationId(msgIndex);
       if (refiningId) {
-        // Update existing automation by ID
-        const yamlText = this._messages[msgIndex]?.automation_yaml;
+        const yamlText = this._messages[msgIndex]?.automation_yaml || "";
         if (yamlText) {
           await this.hass.callWS({
-            type: "selora_ai/apply_automation_yaml",
-            yaml_text: yamlText,
+            type: "selora_ai/update_automation_yaml",
             automation_id: refiningId,
+            yaml_text: yamlText,
+            session_id: this._activeSessionId,
+            version_message: "Refined via chat",
           });
         } else {
           await this.hass.callWS({
             type: "selora_ai/create_automation",
             automation: automation,
+            session_id: this._activeSessionId,
           });
         }
       } else {
         await this.hass.callWS({
           type: "selora_ai/create_automation",
           automation: automation,
+          session_id: this._activeSessionId,
         });
       }
       await this.hass.callWS({
@@ -421,12 +455,14 @@ class SeloraAIArchitectPanel extends LitElement {
       this._messages = session.messages || [];
       await this._loadAutomations();
 
-      const verb = refiningId ? "updated" : "created";
+      const actionLabel = refiningId
+        ? "updated."
+        : "created and added to your system (disabled by default for review).";
       this._messages = [
         ...this._messages,
         {
           role: "assistant",
-          content: `Automation "${automation.alias}" ${verb} and added to your system (disabled by default for review).`,
+          content: `Automation "${automation.alias}" ${actionLabel}`,
           timestamp: new Date().toISOString(),
         },
       ];
@@ -494,15 +530,31 @@ class SeloraAIArchitectPanel extends LitElement {
   // Accept automation — if the user edited the YAML, send the edited version
   async _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
     const edited = this._editedYaml[yamlKey];
-    if (edited && edited !== (this._originalYaml?.[yamlKey] ?? "")) {
-      // Use edited YAML text
+    const msg = this._messages[msgIndex] || {};
+    const originalYaml = msg.automation_yaml || "";
+    const refiningId = this._getRefiningAutomationId(msgIndex);
+
+    if (edited && edited !== (this._originalYaml?.[yamlKey] ?? originalYaml)) {
       try {
         this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
         this.requestUpdate();
-        const refiningId = this._getRefiningAutomationId(msgIndex);
-        const wsPayload = { type: "selora_ai/apply_automation_yaml", yaml_text: edited };
-        if (refiningId) wsPayload.automation_id = refiningId;
-        await this.hass.callWS(wsPayload);
+
+        if (refiningId) {
+          await this.hass.callWS({
+            type: "selora_ai/update_automation_yaml",
+            automation_id: refiningId,
+            yaml_text: edited,
+            session_id: this._activeSessionId,
+            version_message: "Refined via chat (with edits)",
+          });
+        } else {
+          await this.hass.callWS({
+            type: "selora_ai/apply_automation_yaml",
+            yaml_text: edited,
+            session_id: this._activeSessionId,
+          });
+        }
+
         await this.hass.callWS({
           type: "selora_ai/set_automation_status",
           session_id: this._activeSessionId,
@@ -512,10 +564,13 @@ class SeloraAIArchitectPanel extends LitElement {
         const session = await this.hass.callWS({ type: "selora_ai/get_session", session_id: this._activeSessionId });
         this._messages = session.messages || [];
         await this._loadAutomations();
-        const verb = refiningId ? "updated" : "created";
+
+        const actionLabel = refiningId
+          ? "updated with your edits."
+          : "created with your edits (disabled by default for review).";
         this._messages = [...this._messages, {
           role: "assistant",
-          content: `Automation "${automation.alias}" ${verb} with your edits (disabled by default for review).`,
+          content: `Automation "${automation.alias}" ${actionLabel}`,
           timestamp: new Date().toISOString(),
         }];
       } catch (err) {
@@ -2013,14 +2068,36 @@ class SeloraAIArchitectPanel extends LitElement {
     if (!this._versionHistoryOpen[automationId]) return "";
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
+    const activeTab = this._versionTab[automationId] || "versions";
+    const lineage = this._lineage[automationId] || [];
+    const loadingLineage = this._loadingLineage[automationId];
+
+    const switchTab = async (tab) => {
+      this._versionTab = { ...this._versionTab, [automationId]: tab };
+      if (tab === "lineage" && !this._lineage[automationId]) {
+        await this._loadLineage(automationId);
+      }
+      this.requestUpdate();
+    };
+
     return html`
       <div style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <span style="font-weight:600;font-size:13px;">
-            <ha-icon icon="mdi:history" style="--mdc-icon-size:15px;vertical-align:middle;margin-right:4px;"></ha-icon>
-            Version History
-          </span>
-          ${versions.length >= 2
+          <div style="display:flex;gap:0;">
+            <button class="tab ${activeTab === "versions" ? "active" : ""}"
+              style="font-size:12px;padding:4px 12px;border-radius:6px 0 0 6px;border:1px solid var(--divider-color);background:${activeTab === "versions" ? "var(--primary-color)" : "transparent"};color:${activeTab === "versions" ? "#fff" : "inherit"};cursor:pointer;"
+              @click=${() => switchTab("versions")}>
+              <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
+              Versions
+            </button>
+            <button class="tab ${activeTab === "lineage" ? "active" : ""}"
+              style="font-size:12px;padding:4px 12px;border-radius:0 6px 6px 0;border:1px solid var(--divider-color);border-left:none;background:${activeTab === "lineage" ? "var(--primary-color)" : "transparent"};color:${activeTab === "lineage" ? "#fff" : "inherit"};cursor:pointer;"
+              @click=${() => switchTab("lineage")}>
+              <ha-icon icon="mdi:timeline-outline" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
+              Lineage
+            </button>
+          </div>
+          ${activeTab === "versions" && versions.length >= 2
             ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
                 @click=${() => this._openDiffViewer(automationId)}>
                 <ha-icon icon="mdi:compare" style="--mdc-icon-size:12px;"></ha-icon>
@@ -2028,7 +2105,56 @@ class SeloraAIArchitectPanel extends LitElement {
               </button>`
             : ""}
         </div>
-        ${loading
+        ${activeTab === "lineage"
+          ? (loadingLineage
+              ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading lineage…</div>`
+              : lineage.length === 0
+              ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">No lineage entries yet. Lineage is recorded as automations are created and refined via chat.</div>`
+              : html`<div style="position:relative;padding-left:20px;margin-top:4px;">
+                  <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
+                  ${lineage.map((entry, i) => {
+                    const date = new Date(entry.timestamp);
+                    const relativeTime = this._relativeTime(date);
+                    const actionIcons = { created: "mdi:plus-circle", refined: "mdi:chat-processing-outline", updated: "mdi:pencil", restored: "mdi:restore" };
+                    const icon = actionIcons[entry.action] || "mdi:circle-small";
+                    const canJump = !!entry.session_id;
+                    return html`
+                      <div style="position:relative;margin-bottom:12px;padding-left:12px;">
+                        <ha-icon icon="${icon}" style="position:absolute;left:-12px;top:1px;--mdc-icon-size:16px;color:var(--primary-color);background:var(--card-background-color);border-radius:50%;"></ha-icon>
+                        <div style="display:flex;flex-direction:column;gap:2px;">
+                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                            <span style="font-size:12px;font-weight:600;text-transform:capitalize;">${entry.action}</span>
+                            <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
+                            ${i === lineage.length - 1 ? html`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
+                          </div>
+                          ${entry.session_title || entry.session_preview
+                            ? html`<div style="font-size:11px;opacity:0.7;font-style:italic;">${entry.session_title || entry.session_preview}</div>`
+                            : entry.session_id
+                            ? html`<div style="font-size:11px;opacity:0.5;">Chat session</div>`
+                            : html`<div style="font-size:11px;opacity:0.5;">Manual edit</div>`}
+                          ${canJump
+                            ? html`<span style="font-size:11px;color:var(--primary-color);cursor:pointer;text-decoration:underline;"
+                                @click=${() => {
+                                  this._activeTab = "chat";
+                                  this._activeSessionId = entry.session_id;
+                                  this._openSession(entry.session_id);
+                                  if (entry.message_index != null) {
+                                    // scroll to the producing message after session loads
+                                    setTimeout(() => {
+                                      const msgs = this.shadowRoot?.querySelectorAll(".message-row");
+                                      if (msgs && msgs[entry.message_index]) msgs[entry.message_index].scrollIntoView({ behavior: "smooth", block: "start" });
+                                    }, 400);
+                                  }
+                                }}>
+                                Jump to session →
+                              </span>`
+                            : ""}
+                        </div>
+                      </div>
+                    `;
+                  })}
+                </div>`)
+          : (loading
           ? html`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
           : versions.length === 0
           ? html`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>`
@@ -2084,7 +2210,7 @@ class SeloraAIArchitectPanel extends LitElement {
                     : ""}
                 </div>
               `;
-            })}
+            }))}
       </div>
     `;
   }
