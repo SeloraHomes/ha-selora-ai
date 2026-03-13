@@ -852,6 +852,7 @@ var SeloraAIArchitectPanel = class extends s4 {
             assistantMsg.automation_yaml = event.automation_yaml || null;
             assistantMsg.automation_status = event.automation ? "pending" : null;
             assistantMsg.automation_message_index = event.automation_message_index ?? null;
+            assistantMsg.refining_automation_id = event.refining_automation_id || null;
             assistantMsg._streaming = false;
             this._messages = [...this._messages];
             this._loading = false;
@@ -896,12 +897,39 @@ var SeloraAIArchitectPanel = class extends s4 {
   // -------------------------------------------------------------------------
   // Automation actions
   // -------------------------------------------------------------------------
+  _getRefiningAutomationId(msgIndex) {
+    const msg = this._messages[msgIndex];
+    if (msg?.refining_automation_id)
+      return msg.refining_automation_id;
+    for (const m2 of this._messages) {
+      if (m2.automation_status === "refining" && m2.automation_id)
+        return m2.automation_id;
+    }
+    return null;
+  }
   async _acceptAutomation(msgIndex, automation) {
     try {
-      await this.hass.callWS({
-        type: "selora_ai/create_automation",
-        automation
-      });
+      const refiningId = this._getRefiningAutomationId(msgIndex);
+      if (refiningId) {
+        const yamlText = this._messages[msgIndex]?.automation_yaml;
+        if (yamlText) {
+          await this.hass.callWS({
+            type: "selora_ai/apply_automation_yaml",
+            yaml_text: yamlText,
+            automation_id: refiningId
+          });
+        } else {
+          await this.hass.callWS({
+            type: "selora_ai/create_automation",
+            automation
+          });
+        }
+      } else {
+        await this.hass.callWS({
+          type: "selora_ai/create_automation",
+          automation
+        });
+      }
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
@@ -914,16 +942,17 @@ var SeloraAIArchitectPanel = class extends s4 {
       });
       this._messages = session.messages || [];
       await this._loadAutomations();
+      const verb = refiningId ? "updated" : "created";
       this._messages = [
         ...this._messages,
         {
           role: "assistant",
-          content: `Automation "${automation.alias}" created and added to your system (disabled by default for review).`,
+          content: `Automation "${automation.alias}" ${verb} and added to your system (disabled by default for review).`,
           timestamp: (/* @__PURE__ */ new Date()).toISOString()
         }
       ];
     } catch (err) {
-      this._showToast("Failed to create automation: " + err.message, "error");
+      this._showToast("Failed to save automation: " + err.message, "error");
     }
   }
   async _declineAutomation(msgIndex) {
@@ -982,7 +1011,11 @@ var SeloraAIArchitectPanel = class extends s4 {
       try {
         this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
         this.requestUpdate();
-        await this.hass.callWS({ type: "selora_ai/apply_automation_yaml", yaml_text: edited });
+        const refiningId = this._getRefiningAutomationId(msgIndex);
+        const wsPayload = { type: "selora_ai/apply_automation_yaml", yaml_text: edited };
+        if (refiningId)
+          wsPayload.automation_id = refiningId;
+        await this.hass.callWS(wsPayload);
         await this.hass.callWS({
           type: "selora_ai/set_automation_status",
           session_id: this._activeSessionId,
@@ -992,13 +1025,14 @@ var SeloraAIArchitectPanel = class extends s4 {
         const session = await this.hass.callWS({ type: "selora_ai/get_session", session_id: this._activeSessionId });
         this._messages = session.messages || [];
         await this._loadAutomations();
+        const verb = refiningId ? "updated" : "created";
         this._messages = [...this._messages, {
           role: "assistant",
-          content: `Automation "${automation.alias}" created with your edits (disabled by default for review).`,
+          content: `Automation "${automation.alias}" ${verb} with your edits (disabled by default for review).`,
           timestamp: (/* @__PURE__ */ new Date()).toISOString()
         }];
       } catch (err) {
-        this._showToast("Failed to create automation from edited YAML: " + err.message, "error");
+        this._showToast("Failed to save automation from edited YAML: " + err.message, "error");
       } finally {
         this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
         this.requestUpdate();
