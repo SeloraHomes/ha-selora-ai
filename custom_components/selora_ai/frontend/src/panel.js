@@ -914,8 +914,8 @@ class SeloraAIArchitectPanel extends LitElement {
         background: var(--secondary-background-color);
       }
       .session-item.active {
-        background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.12);
-        border-left: 3px solid var(--primary-color);
+        background: rgba(245, 158, 11, 0.12);
+        border-left: 3px solid #f59e0b;
       }
       .session-title {
         font-size: 13px;
@@ -1042,8 +1042,8 @@ class SeloraAIArchitectPanel extends LitElement {
       }
       .bubble.user {
         align-self: flex-end;
-        background: var(--primary-color);
-        color: white;
+        background: #f59e0b !important;
+        color: #1a1a1a !important;
         border-bottom-right-radius: 4px;
       }
       .bubble.assistant {
@@ -1063,13 +1063,13 @@ class SeloraAIArchitectPanel extends LitElement {
       /* ---- Automation proposal card ---- */
       .proposal-card {
         margin-top: 12px;
-        border: 1px solid var(--primary-color);
+        border: 1px solid #f59e0b;
         border-radius: 10px;
         overflow: hidden;
         background: var(--primary-background-color);
       }
       .proposal-header {
-        background: rgba(var(--rgb-primary-color, 3,169,244), 0.1);
+        background: rgba(245, 158, 11, 0.1);
         padding: 10px 14px;
         font-size: 12px;
         font-weight: 700;
@@ -1078,7 +1078,7 @@ class SeloraAIArchitectPanel extends LitElement {
         display: flex;
         align-items: center;
         gap: 6px;
-        color: var(--primary-color);
+        color: #f59e0b;
       }
       .proposal-body {
         padding: 14px;
@@ -1134,7 +1134,7 @@ class SeloraAIArchitectPanel extends LitElement {
         transition: border-color 0.15s;
       }
       textarea.yaml-editor:focus {
-        border-color: var(--primary-color);
+        border-color: #f59e0b;
       }
       .yaml-edit-bar {
         display: flex;
@@ -1224,20 +1224,12 @@ class SeloraAIArchitectPanel extends LitElement {
         line-height: 1.4;
       }
       .flow-node + .flow-node { margin-top: 3px; }
-      .trigger-node {
-        background: rgba(var(--rgb-primary-color, 3,169,244), 0.12);
-        border: 1px solid rgba(var(--rgb-primary-color, 3,169,244), 0.35);
-        color: var(--primary-color);
-      }
-      .condition-node {
-        background: rgba(255,152,0,0.1);
-        border: 1px solid rgba(255,152,0,0.35);
-        color: var(--warning-color, #ff9800);
-      }
+      .trigger-node,
+      .condition-node,
       .action-node {
-        background: rgba(76,175,80,0.1);
-        border: 1px solid rgba(76,175,80,0.35);
-        color: var(--success-color, #4caf50);
+        background: rgba(var(--rgb-primary-text-color, 255,255,255), 0.06);
+        border: 1px solid rgba(var(--rgb-primary-text-color, 255,255,255), 0.15);
+        color: var(--primary-text-color);
       }
       .flow-arrow {
         font-size: 16px;
@@ -1275,7 +1267,7 @@ class SeloraAIArchitectPanel extends LitElement {
         border: 1px solid rgba(0,0,0,0.15);
         transition: background 0.2s;
       }
-      .toggle-track.on { background: var(--success-color, #4caf50); }
+      .toggle-track.on { background: #f59e0b; }
       .toggle-thumb {
         position: absolute;
         top: 3px;
@@ -1293,7 +1285,7 @@ class SeloraAIArchitectPanel extends LitElement {
         font-weight: 600;
         color: var(--secondary-text-color);
       }
-      .toggle-label.on { color: var(--success-color, #4caf50); }
+      .toggle-label.on { color: #f59e0b; }
 
       /* ---- Card action buttons ---- */
       .card-actions {
@@ -1321,9 +1313,9 @@ class SeloraAIArchitectPanel extends LitElement {
       }
       .btn:hover { opacity: 0.85; }
       .btn-primary {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: white;
+        background: #f59e0b;
+        border-color: #f59e0b;
+        color: #1a1a1a;
       }
       .btn-success {
         background: var(--success-color, #4caf50);
@@ -1335,7 +1327,7 @@ class SeloraAIArchitectPanel extends LitElement {
         color: var(--primary-text-color);
         background: var(--card-background-color);
       }
-      .btn-outline:hover { border-color: var(--primary-color); color: var(--primary-color); }
+      .btn-outline:hover { border-color: #f59e0b; color: #f59e0b; }
       .btn-danger {
         border-color: var(--error-color, #f44336);
         color: var(--error-color, #f44336);
@@ -1472,7 +1464,7 @@ class SeloraAIArchitectPanel extends LitElement {
         width: 18px;
         height: 18px;
         border: 2.5px solid rgba(0,0,0,0.1);
-        border-top-color: var(--primary-color);
+        border-top-color: #f59e0b;
         border-radius: 50%;
         animation: spin 0.7s linear infinite;
       }
@@ -1631,9 +1623,9 @@ class SeloraAIArchitectPanel extends LitElement {
         font-weight: 700;
         color: white;
       }
-      .chip.ai-managed { background: #4caf50; }
+      .chip.ai-managed { background: #f59e0b; }
       .chip.user-managed { background: #9e9e9e; }
-      .chip.suggestion { background: var(--primary-color); }
+      .chip.suggestion { background: #f59e0b; }
       pre { background: #1e1e2e; color: #cdd6f4; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; }
 
       /* ---- Settings ---- */
@@ -1743,7 +1735,7 @@ class SeloraAIArchitectPanel extends LitElement {
             >
               <ha-icon icon="mdi:menu"></ha-icon>
             </ha-icon-button>
-            <ha-icon icon="mdi:robot-confetti"></ha-icon>
+            <img src="/api/selora_ai/logo.png" alt="Selora" style="width:28px;height:28px;border-radius:6px;">
             Selora AI Architect
           </div>
           <div class="tabs">
@@ -2806,10 +2798,9 @@ class SeloraAIArchitectPanel extends LitElement {
                 const loadingChat = this._loadingToChat[automationId];
                 const burgerOpen = this._openBurgerMenu === automationId;
                 return html`
-                  <div class="card" style="padding:12px 14px;${isDraft ? "border-color:var(--primary-color);box-shadow:0 0 0 1px var(--primary-color);" : ""}">
+                  <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
                       <h3 style="flex:1;font-size:14px;margin:0;">${a.alias}</h3>
-                      <span class="status-indicator ${isOn ? "on" : "off"}">${isDraft ? "New" : isOn ? "Enabled" : "Disabled"}</span>
                       <div class="chip ${a.is_selora ? "ai-managed" : "user-managed"}" style="margin-left:6px;">
                         ${a.is_selora ? "SELORA" : "USER"}
                       </div>
@@ -2872,11 +2863,13 @@ class SeloraAIArchitectPanel extends LitElement {
                       : ""}
 
                     <div class="card-actions" style="margin-top:8px;padding-top:8px;">
-                      <button class="btn ${isOn ? "btn-outline btn-warning" : "btn-success"}"
+                      <label class="toggle-switch" title="${isOn ? "Enabled" : "Disabled"}"
                         @click=${() => this._toggleAutomation(a.entity_id, a.state, automationId)}>
-                        <ha-icon icon="mdi:${isOn ? "pause" : "play"}" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${isOn ? "Disable" : "Enable"}
-                      </button>
+                        <input type="checkbox" .checked=${isOn}>
+                        <div class="toggle-track ${isOn ? "on" : ""}">
+                          <div class="toggle-thumb"></div>
+                        </div>
+                      </label>
                       ${isDraft ? html`
                       <button class="btn btn-primary"
                         @click=${() => { this._activeSessionId = a._linked_session; this._activeTab = "chat"; this._openSession(a._linked_session); }}>
