@@ -726,9 +726,20 @@ var SeloraAIArchitectPanel = class extends s4 {
   }
   connectedCallback() {
     super.connectedCallback();
+    this._checkTabParam();
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+  }
+  _checkTabParam() {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab === "automations" || tab === "settings") {
+      this._activeTab = tab;
+      const url = new URL(window.location);
+      url.searchParams.delete("tab");
+      window.history.replaceState({}, "", url);
+    }
   }
   // -------------------------------------------------------------------------
   // Data loaders
@@ -1350,6 +1361,9 @@ var SeloraAIArchitectPanel = class extends s4 {
   // Scroll to bottom on new messages
   // -------------------------------------------------------------------------
   updated(changedProps) {
+    if (changedProps.has("hass")) {
+      this._checkTabParam();
+    }
     if (changedProps.has("_messages") && this._activeTab === "chat") {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container)
@@ -1555,6 +1569,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       }
       .bubble.user + .bubble-meta { align-self: flex-end; }
       .bubble.assistant + .bubble-meta { align-self: flex-start; }
+      .bubble.assistant strong { color: #f59e0b; }
 
       /* ---- Automation proposal card ---- */
       .proposal-card {
