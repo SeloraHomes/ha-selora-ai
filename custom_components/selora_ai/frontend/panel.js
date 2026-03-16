@@ -644,6 +644,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       _diffVersionB: { type: String },
       _diffResult: { type: Array },
       _loadingDiff: { type: Boolean },
+      // Automation filter
+      _automationFilter: { type: String },
+      // Burger menu
+      _openBurgerMenu: { type: String },
       // Recently deleted section
       _showDeleted: { type: Boolean },
       _deletedAutomations: { type: Array },
@@ -659,7 +663,15 @@ var SeloraAIArchitectPanel = class extends s4 {
       _hardDeleteAliasInput: { type: String },
       // Toast notifications
       _toast: { type: String },
-      _toastType: { type: String }
+      _toastType: { type: String },
+      // Detail drawer for compact grid
+      _expandedDetailId: { type: String },
+      // New automation dialog
+      _showNewAutoDialog: { type: Boolean },
+      _newAutoName: { type: String },
+      _suggestingName: { type: Boolean },
+      // Generate suggestions loading
+      _generatingSuggestions: { type: Boolean }
     };
   }
   constructor() {
@@ -691,6 +703,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._diffVersionB = null;
     this._diffResult = [];
     this._loadingDiff = false;
+    this._automationFilter = "";
+    this._openBurgerMenu = null;
     this._showDeleted = false;
     this._deletedAutomations = [];
     this._loadingDeleted = false;
@@ -704,6 +718,11 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._toast = "";
     this._toastType = "info";
     this._toastTimer = null;
+    this._expandedDetailId = null;
+    this._showNewAutoDialog = false;
+    this._newAutoName = "";
+    this._suggestingName = false;
+    this._generatingSuggestions = false;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -753,6 +772,101 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to create session", err);
     }
   }
+  async _newAutomationChat(name) {
+    if (!name || !name.trim())
+      return;
+    const trimmed = name.trim();
+    this._showNewAutoDialog = false;
+    this.requestUpdate();
+    try {
+      const { session_id } = await this.hass.callWS({ type: "selora_ai/new_session" });
+      await Promise.all([
+        this.hass.callWS({ type: "selora_ai/rename_session", session_id, title: trimmed }).catch(() => {
+        }),
+        this.hass.callWS({ type: "selora_ai/create_draft", alias: trimmed, session_id }).catch(() => {
+        })
+      ]);
+      this._activeSessionId = session_id;
+      this._messages = [];
+      this._input = `Create a new automation called "${trimmed}". It should `;
+      this._activeTab = "chat";
+      if (this.narrow)
+        this._showSidebar = false;
+      this.requestUpdate();
+      await this.updateComplete;
+      const textfield = this.shadowRoot?.querySelector("ha-textfield");
+      if (textfield)
+        textfield.focus();
+      this._loadAutomations();
+      this._loadSessions();
+    } catch (err) {
+      console.error("Failed to create automation chat session", err);
+    }
+  }
+  _renderNewAutomationDialog() {
+    if (!this._showNewAutoDialog)
+      return "";
+    return x`
+      <div class="modal-overlay" @click=${() => {
+      this._showNewAutoDialog = false;
+    }}>
+        <div class="modal-content" style="max-width:420px;" @click=${(e4) => e4.stopPropagation()}>
+          <h3 style="margin:0 0 16px;">New Automation</h3>
+          <label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px;">Automation name</label>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" placeholder="e.g. Turn off lights at midnight"
+              style="flex:1;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;font-size:14px;background:var(--card-background-color);color:var(--primary-text-color);box-sizing:border-box;"
+              .value=${this._newAutoName}
+              @input=${(e4) => {
+      this._newAutoName = e4.target.value;
+    }}
+              @keydown=${(e4) => {
+      if (e4.key === "Enter")
+        this._newAutomationChat(this._newAutoName);
+    }}>
+            <button class="btn btn-outline" style="padding:8px 10px;flex-shrink:0;" title="AI Suggest"
+              ?disabled=${this._suggestingName}
+              @click=${() => this._suggestAutomationName()}>
+              ${this._suggestingName ? x`<span class="spinner green"></span>` : x`<ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:18px;"></ha-icon>`}
+            </button>
+          </div>
+          ${this._suggestingName ? x`<div style="font-size:12px;color:var(--secondary-text-color);margin-top:6px;">Asking AI for a suggestion…</div>` : ""}
+          <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;">
+            <button class="btn btn-outline" @click=${() => {
+      this._showNewAutoDialog = false;
+    }}>Cancel</button>
+            <button class="btn btn-primary" ?disabled=${!this._newAutoName?.trim()}
+              @click=${() => this._newAutomationChat(this._newAutoName)}>
+              <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:14px;"></ha-icon>
+              Create in Chat
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  async _suggestAutomationName() {
+    this._suggestingName = true;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/chat",
+        message: "Suggest one short, descriptive automation name for my smart home based on my devices and current setup. Reply with ONLY the automation name, nothing else. No quotes, no explanation."
+      });
+      const name = (result?.response || "").trim().replace(/^["']|["']$/g, "");
+      if (name)
+        this._newAutoName = name;
+      if (result?.session_id) {
+        this.hass.callWS({ type: "selora_ai/delete_session", session_id: result.session_id }).catch(() => {
+        });
+        this._loadSessions();
+      }
+    } catch (err) {
+      console.error("Failed to suggest name", err);
+      this._showToast("Failed to generate suggestion \u2014 check LLM config", "error");
+    } finally {
+      this._suggestingName = false;
+    }
+  }
   async _deleteSession(sessionId, evt) {
     evt.stopPropagation();
     if (!confirm("Delete this conversation?"))
@@ -776,10 +890,41 @@ var SeloraAIArchitectPanel = class extends s4 {
       console.error("Failed to load suggestions", err);
     }
   }
+  async _triggerGenerateSuggestions() {
+    this._generatingSuggestions = true;
+    try {
+      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      this._suggestions = suggestions || [];
+      if (this._suggestions.length > 0) {
+        this._showToast(`Generated ${this._suggestions.length} recommendation(s)`, "success");
+      } else {
+        this._showToast("Analysis complete \u2014 no new suggestions at this time", "info");
+      }
+    } catch (err) {
+      console.error("Failed to generate suggestions", err);
+      this._showToast("Failed to generate suggestions: " + (err.message || "unknown error"), "error");
+    } finally {
+      this._generatingSuggestions = false;
+    }
+  }
   async _loadAutomations() {
     try {
-      const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
-      this._automations = automations || [];
+      const [automations, drafts] = await Promise.all([
+        this.hass.callWS({ type: "selora_ai/get_automations" }),
+        this.hass.callWS({ type: "selora_ai/get_drafts" }).catch(() => [])
+      ]);
+      const draftCards = (drafts || []).map((d3) => ({
+        entity_id: `draft_${d3.draft_id}`,
+        alias: d3.alias,
+        state: "off",
+        is_selora: true,
+        automation_id: "",
+        last_triggered: null,
+        _draft: true,
+        _draft_id: d3.draft_id,
+        _linked_session: d3.session_id
+      }));
+      this._automations = [...draftCards, ...automations || []];
     } catch (err) {
       console.error("Failed to load automations", err);
     }
@@ -981,6 +1126,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         session_id: this._activeSessionId
       });
       this._messages = session.messages || [];
+      await this._removeDraftForSession(this._activeSessionId);
       await this._loadAutomations();
       const actionLabel = refiningId ? "updated." : "created and added to your system (disabled by default for review).";
       this._messages = [
@@ -993,6 +1139,30 @@ var SeloraAIArchitectPanel = class extends s4 {
       ];
     } catch (err) {
       this._showToast("Failed to save automation: " + err.message, "error");
+    }
+  }
+  async _removeDraftForSession(sessionId) {
+    if (!sessionId)
+      return;
+    try {
+      const draft = this._automations.find((a3) => a3._draft && a3._linked_session === sessionId);
+      if (draft && draft._draft_id) {
+        await this.hass.callWS({ type: "selora_ai/remove_draft", draft_id: draft._draft_id });
+      }
+    } catch (err) {
+      console.error("Failed to remove draft for session", err);
+    }
+  }
+  async _dismissDraft(draftId) {
+    if (!draftId)
+      return;
+    try {
+      await this.hass.callWS({ type: "selora_ai/remove_draft", draft_id: draftId });
+      await this._loadAutomations();
+      this._showToast("Draft dismissed.", "info");
+    } catch (err) {
+      console.error("Failed to dismiss draft", err);
+      this._showToast("Failed to dismiss draft: " + err.message, "error");
     }
   }
   async _declineAutomation(msgIndex) {
@@ -1668,6 +1838,110 @@ var SeloraAIArchitectPanel = class extends s4 {
         background: transparent;
       }
       .btn-danger:hover { background: rgba(244,67,54,0.08); }
+      .btn-warning {
+        border-color: var(--warning-color, #ff9800);
+        color: var(--warning-color, #ff9800);
+        background: transparent;
+      }
+      .btn-warning:hover { background: rgba(255,152,0,0.08); }
+
+      /* ---- Burger menu ---- */
+      .burger-menu-wrapper {
+        position: relative;
+      }
+      .burger-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        border: 1px solid var(--divider-color);
+        background: var(--card-background-color);
+        cursor: pointer;
+        color: var(--secondary-text-color);
+        transition: background 0.15s;
+      }
+      .burger-btn:hover { background: rgba(0,0,0,0.06); color: var(--primary-text-color); }
+      .burger-dropdown {
+        position: absolute;
+        right: 0;
+        top: 32px;
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 100;
+        min-width: 140px;
+        overflow: hidden;
+      }
+      .burger-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        color: var(--primary-text-color);
+        border: none;
+        background: none;
+        width: 100%;
+        text-align: left;
+      }
+      .burger-item:hover { background: rgba(var(--rgb-primary-color, 3,169,244), 0.08); }
+      .burger-item.danger { color: var(--error-color, #f44336); }
+      .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
+
+      /* ---- Filter input ---- */
+      .filter-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+        gap: 12px;
+      }
+      .filter-input-wrap {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        padding: 4px 10px;
+        flex: 0 1 260px;
+      }
+      .filter-input-wrap input {
+        border: none;
+        background: transparent;
+        color: var(--primary-text-color);
+        font-size: 13px;
+        outline: none;
+        flex: 1;
+        min-width: 0;
+      }
+      .filter-input-wrap ha-icon {
+        --mdc-icon-size: 16px;
+        color: var(--secondary-text-color);
+        flex-shrink: 0;
+      }
+
+      /* ---- Status indicator (inline) ---- */
+      .status-indicator {
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 10px;
+        flex-shrink: 0;
+      }
+      .status-indicator.on {
+        color: var(--success-color, #4caf50);
+        background: rgba(76,175,80,0.12);
+      }
+      .status-indicator.off {
+        color: var(--secondary-text-color);
+        background: rgba(158,158,158,0.12);
+      }
       .btn-ghost {
         border-color: transparent;
         color: var(--secondary-text-color);
@@ -1687,6 +1961,93 @@ var SeloraAIArchitectPanel = class extends s4 {
         padding: 4px 0;
       }
       .expand-toggle:hover { opacity: 1; }
+
+      /* ---- Spinner ---- */
+      .spinner {
+        display: inline-block;
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid rgba(0,0,0,0.1);
+        border-top-color: var(--primary-color);
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      .spinner.green {
+        border-color: rgba(76,175,80,0.2);
+        border-top-color: var(--success-color, #4caf50);
+      }
+      @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ---- Modal overlay ---- */
+      .modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.5);
+        z-index: 10001;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .modal-content {
+        background: var(--card-background-color, #fff);
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        width: 90%;
+      }
+
+      /* ---- Automations grid (masonry via CSS columns) ---- */
+      .automations-grid {
+        columns: 2 280px;
+        column-gap: 10px;
+        margin-bottom: 14px;
+      }
+      .automations-grid .card {
+        break-inside: avoid;
+        margin-bottom: 10px;
+        padding: 12px 14px;
+        display: flex;
+        flex-direction: column;
+        min-width: 0;
+      }
+      .automations-grid .card-header {
+        margin-bottom: 4px;
+        align-items: center;
+      }
+      .automations-grid .card h3 {
+        font-size: 13px;
+        line-height: 1.3;
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .automations-grid .card-meta {
+        font-size: 11px;
+        color: var(--secondary-text-color);
+        opacity: 0.7;
+      }
+
+      /* ---- Automation detail drawer (below grid) ---- */
+      .automation-detail-drawer {
+        background: var(--card-background-color);
+        border: 1px solid var(--divider-color);
+        border-radius: 10px;
+        padding: 16px;
+        margin-bottom: 14px;
+        box-shadow: var(--card-box-shadow);
+      }
+      .automation-detail-drawer .detail-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .automation-detail-drawer .detail-header h3 {
+        margin: 0;
+        font-size: 16px;
+      }
 
       /* ---- Chat input ---- */
       .chat-input {
@@ -1879,7 +2240,10 @@ var SeloraAIArchitectPanel = class extends s4 {
           </div>
           <div class="tabs">
             <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => this._activeTab = "chat"}>Chat</div>
-            <div class="tab ${this._activeTab === "automations" ? "active" : ""}" @click=${() => this._activeTab = "automations"}>Automations</div>
+            <div class="tab ${this._activeTab === "automations" ? "active" : ""}" @click=${() => {
+      this._activeTab = "automations";
+      this._loadAutomations();
+    }}>Automations</div>
             <div class="tab ${this._activeTab === "settings" ? "active" : ""}" @click=${() => {
       this._activeTab = "settings";
       this._loadConfig();
@@ -2360,13 +2724,27 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._expandedAutomations = { ...this._expandedAutomations, [key]: !this._expandedAutomations[key] };
     this.requestUpdate();
   }
-  async _toggleAutomation(entityId, currentState) {
+  async _toggleAutomation(entityId, currentState, automationId) {
     try {
-      const service = currentState === "on" ? "turn_off" : "turn_on";
-      await this.hass.callService("automation", service, { entity_id: entityId });
+      await this.hass.callWS({
+        type: "selora_ai/toggle_automation",
+        automation_id: automationId,
+        entity_id: entityId
+      });
       await this._loadAutomations();
     } catch (err) {
       console.error("Failed to toggle automation", err);
+    }
+  }
+  _toggleBurgerMenu(automationId, evt) {
+    evt.stopPropagation();
+    this._openBurgerMenu = this._openBurgerMenu === automationId ? null : automationId;
+    this.requestUpdate();
+  }
+  _closeBurgerMenus() {
+    if (this._openBurgerMenu) {
+      this._openBurgerMenu = null;
+      this.requestUpdate();
     }
   }
   // -------------------------------------------------------------------------
@@ -2873,11 +3251,34 @@ var SeloraAIArchitectPanel = class extends s4 {
     return date.toLocaleDateString();
   }
   _renderAutomations() {
+    const filterText = (this._automationFilter || "").toLowerCase();
+    const filteredAutomations = filterText ? this._automations.filter((a3) => (a3.alias || "").toLowerCase().includes(filterText)) : this._automations;
     return x`
-      <div class="scroll-view">
+      <div class="scroll-view" @click=${() => this._closeBurgerMenus()}>
         ${this._automations.length > 0 ? x`
-              <h2 style="margin-top:0;">Active Automations</h2>
-              ${this._automations.map((a3) => {
+              <div class="filter-row">
+                <h2 style="margin:0;">Automations</h2>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="filter-input-wrap">
+                    <ha-icon icon="mdi:magnify"></ha-icon>
+                    <input type="text" placeholder="Filter automations…"
+                      .value=${this._automationFilter}
+                      @input=${(e4) => {
+      this._automationFilter = e4.target.value;
+    }}>
+                  </div>
+                  <button class="btn btn-primary" style="white-space:nowrap;" @click=${() => {
+      this._newAutoName = "";
+      this._showNewAutoDialog = true;
+    }}>
+                    <ha-icon icon="mdi:plus" style="--mdc-icon-size:14px;"></ha-icon>
+                    New Automation
+                  </button>
+                </div>
+              </div>
+              <div class="automations-grid">
+              ${filteredAutomations.map((a3) => {
+      const isDraft = !!a3._draft;
       const expanded = !!this._expandedAutomations[a3.entity_id];
       const isOn = a3.state === "on";
       const automationId = a3.automation_id || "";
@@ -2885,86 +3286,121 @@ var SeloraAIArchitectPanel = class extends s4 {
       const versionCount = a3.version_count || null;
       const deleting = this._deletingAutomation[automationId];
       const loadingChat = this._loadingToChat[automationId];
+      const burgerOpen = this._openBurgerMenu === automationId;
       return x`
-                  <div class="card">
-                    <div class="card-header">
-                      <h3 style="flex:1;">${a3.alias}</h3>
-                      <div class="chip ${a3.is_selora ? "ai-managed" : "user-managed"}" style="margin-right:8px;">
+                  <div class="card" style="padding:12px 14px;${isDraft ? "border-color:var(--primary-color);box-shadow:0 0 0 1px var(--primary-color);" : ""}">
+                    <div class="card-header" style="margin-bottom:6px;">
+                      <h3 style="flex:1;font-size:14px;margin:0;">${a3.alias}</h3>
+                      <span class="status-indicator ${isOn ? "on" : "off"}">${isDraft ? "New" : isOn ? "Enabled" : "Disabled"}</span>
+                      <div class="chip ${a3.is_selora ? "ai-managed" : "user-managed"}" style="margin-left:6px;">
                         ${a3.is_selora ? "SELORA" : "USER"}
                       </div>
-                      ${versionCount && hasAutomationId ? x`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-right:4px;"
-                            @click=${() => this._openVersionHistory(automationId)}>
-                            <ha-icon icon="mdi:history" style="--mdc-icon-size:12px;vertical-align:middle;"></ha-icon>
-                            v${versionCount}
-                          </span>` : ""}</div>
-
-                    ${a3.description ? x`<p>${a3.description.replace("[Selora AI] ", "")}</p>` : ""}
-
-                    <div class="toggle-row">
-                      <label class="toggle-switch" @click=${() => this._toggleAutomation(a3.entity_id, a3.state)}>
-                        <div class="toggle-track ${isOn ? "on" : ""}">
-                          <div class="toggle-thumb"></div>
+                      ${versionCount && hasAutomationId ? x`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-left:6px;"
+                            @click=${() => this._openVersionHistory(automationId)}>v${versionCount}</span>` : ""}
+                      ${hasAutomationId ? x`
+                        <div class="burger-menu-wrapper" style="margin-left:6px;">
+                          <button class="burger-btn" @click=${(e4) => this._toggleBurgerMenu(automationId, e4)}
+                            title="More actions">
+                            <ha-icon icon="mdi:dots-vertical" style="--mdc-icon-size:16px;"></ha-icon>
+                          </button>
+                          ${burgerOpen ? x`
+                            <div class="burger-dropdown">
+                              <button class="burger-item" @click=${(e4) => {
+        e4.stopPropagation();
+        this._openBurgerMenu = null;
+        this._openVersionHistory(automationId);
+      }}>
+                                <ha-icon icon="mdi:history" style="--mdc-icon-size:14px;"></ha-icon>
+                                History
+                              </button>
+                              <button class="burger-item danger" ?disabled=${deleting}
+                                @click=${(e4) => {
+        e4.stopPropagation();
+        this._openBurgerMenu = null;
+        this._softDeleteAutomation(automationId);
+      }}>
+                                <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:14px;"></ha-icon>
+                                ${deleting ? "Deleting\u2026" : "Delete"}
+                              </button>
+                            </div>
+                          ` : ""}
                         </div>
-                      </label>
-                      <span class="toggle-label ${isOn ? "on" : ""}">${isOn ? "Enabled" : "Disabled"}</span>
-                      ${a3.last_triggered ? x`<span style="font-size:11px; opacity:0.5; margin-left:auto;">Last run: ${new Date(a3.last_triggered).toLocaleString()}</span>` : ""}
+                      ` : ""}
                     </div>
 
                     ${a3.trigger?.length || a3.action?.length ? x`
-                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(a3.entity_id)}>
-                            <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:14px;"></ha-icon>
-                            ${expanded ? "Hide flow" : "View flow"}
-                          </div>
-                          ${expanded ? this._renderAutomationFlowchart(a3) : ""}
-                        ` : ""}
+                        ${this._expandedAutomations[`flow_${a3.entity_id}`] ? this._renderAutomationFlowchart(a3) : ""}
+                        <span class="expand-toggle" style="padding:0;margin:0 0 4px;" @click=${() => {
+        this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a3.entity_id}`]: !this._expandedAutomations[`flow_${a3.entity_id}`] };
+        this.requestUpdate();
+      }}>
+                          <ha-icon icon="mdi:chevron-${this._expandedAutomations[`flow_${a3.entity_id}`] ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
+                          ${this._expandedAutomations[`flow_${a3.entity_id}`] ? "Hide flow" : "Show flow"}
+                        </span>` : ""}
 
-                    ${a3.yaml_text ? x`
-                          <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(`yaml_${a3.entity_id}`)}>
-                            <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
-                            ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "Hide YAML" : "Edit YAML"}
-                          </div>
-                          ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? this._renderYamlEditor(
+                    <div style="display:flex;align-items:center;gap:12px;font-size:11px;opacity:0.6;margin-bottom:6px;flex-wrap:wrap;">
+                      ${a3.yaml_text ? x`
+                            <span class="expand-toggle" style="padding:0;margin:0;" @click=${() => this._toggleExpandAutomation(`yaml_${a3.entity_id}`)}>
+                              <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:12px;"></ha-icon>
+                              ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "Hide YAML" : "Edit YAML"}
+                            </span>
+                          ` : ""}
+                      ${a3.last_triggered ? x`<span style="margin-left:auto;">Last run: ${new Date(a3.last_triggered).toLocaleString()}</span>` : !isDraft ? x`<span style="margin-left:auto;">Never triggered</span>` : ""}
+                    </div>
+
+                    ${this._expandedAutomations[`yaml_${a3.entity_id}`] && a3.yaml_text ? this._renderYamlEditor(
         `yaml_${a3.entity_id}`,
         a3.yaml_text,
         (key) => this._saveActiveAutomationYaml(a3.automation_id, key)
       ) : ""}
-                        ` : ""}
 
-                    <div class="card-actions">
-                      <button class="btn ${isOn ? "btn-outline btn-danger" : "btn-success"}"
-                        @click=${() => this._toggleAutomation(a3.entity_id, a3.state)}>
+                    <div class="card-actions" style="margin-top:8px;padding-top:8px;">
+                      <button class="btn ${isOn ? "btn-outline btn-warning" : "btn-success"}"
+                        @click=${() => this._toggleAutomation(a3.entity_id, a3.state, automationId)}>
                         <ha-icon icon="mdi:${isOn ? "pause" : "play"}" style="--mdc-icon-size:13px;"></ha-icon>
                         ${isOn ? "Disable" : "Enable"}
                       </button>
-                      <button class="btn btn-outline" ?disabled=${!hasAutomationId}
-                        @click=${() => this._openVersionHistory(automationId)}>
-                        <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;"></ha-icon>
-                        History
+                      ${isDraft ? x`
+                      <button class="btn btn-primary"
+                        @click=${() => {
+        this._activeSessionId = a3._linked_session;
+        this._activeTab = "chat";
+        this._openSession(a3._linked_session);
+      }}>
+                        <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                        Define in Chat
                       </button>
+                      <button class="btn btn-outline" style="margin-left:auto;"
+                        @click=${() => this._dismissDraft(a3._draft_id)}>
+                        <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                        Dismiss
+                      </button>` : x`
                       <button class="btn btn-outline" ?disabled=${!hasAutomationId || loadingChat}
                         @click=${() => this._loadAutomationToChat(automationId)}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         ${loadingChat ? "Loading\u2026" : "Refine in chat"}
-                      </button>
-                      <button class="btn btn-outline btn-danger" ?disabled=${!hasAutomationId || deleting}
-                        @click=${() => this._softDeleteAutomation(automationId)}>
-                        <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${deleting ? "Deleting\u2026" : "Delete"}
-                      </button>
+                      </button>`}
                     </div>
                     ${this._renderVersionHistoryDrawer(a3)}
                   </div>
                 `;
     })}
+              </div>
+              ${filteredAutomations.length === 0 && this._automations.length > 0 ? x`<div style="text-align:center;opacity:0.45;padding:24px 0;">No automations match "${this._automationFilter}"</div>` : ""}
               ${this._renderDeletedSection()}
               <div style="border-top: 1px solid var(--divider-color); margin: 24px 0 16px;"></div>
             ` : ""}
 
         <h2 style="margin-top:0;">AI Recommendations</h2>
         ${this._suggestions.length === 0 ? x`
-              <div style="display:flex; flex-direction:column; align-items:center; opacity:0.45; padding:32px 0; gap:12px;">
-                <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;"></ha-icon>
-                <p>No recommendations yet — background analysis runs hourly.</p>
+              <div style="display:flex; flex-direction:column; align-items:center; padding:32px 0; gap:12px;">
+                <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;opacity:0.35;"></ha-icon>
+                <p style="opacity:0.45;margin:0;">No recommendations yet — background analysis runs hourly.</p>
+                <button class="btn btn-primary" style="margin-top:8px;" ?disabled=${this._generatingSuggestions}
+                  @click=${() => this._triggerGenerateSuggestions()}>
+                  <ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:16px;"></ha-icon>
+                  ${this._generatingSuggestions ? "Analyzing\u2026" : "Generate Suggestions"}
+                </button>
               </div>
             ` : this._suggestions.map((item) => {
       const auto = item.automation || item.automation_data;
@@ -3003,6 +3439,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     })}
       </div>
       ${this._renderDiffViewer()}
+      ${this._renderNewAutomationDialog()}
     `;
   }
   // -------------------------------------------------------------------------

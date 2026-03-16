@@ -69,6 +69,7 @@ class AutomationStore:
                         record["lineage"] = []
             else:
                 self._data = {"records": {}, "session_index": {}}
+            self._data.setdefault("drafts", {})
 
     async def _get_loaded_data(self) -> dict[str, Any]:
         await self._ensure_loaded()
@@ -269,6 +270,7 @@ class AutomationStore:
             if rec.get("deleted_at")
         ]
 
+<<<<<<< HEAD
     # ── Lineage ──────────────────────────────────────────────────────────
 
     async def get_automation_lineage(self, automation_id: str) -> list[dict[str, Any]]:
@@ -282,3 +284,35 @@ class AutomationStore:
         """Return automation_ids touched by a given session (via reverse index)."""
         data_store = await self._get_loaded_data()
         return list(data_store.get("session_index", {}).get(session_id, []))
+
+    # ── Draft automations ─────────────────────────────────────────────────
+
+    async def create_draft(self, alias: str, session_id: str) -> dict[str, Any]:
+        """Create a draft automation linked to a chat session."""
+        data_store = await self._get_loaded_data()
+        draft_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        draft = {
+            "draft_id": draft_id,
+            "alias": alias,
+            "session_id": session_id,
+            "created_at": now,
+        }
+        data_store.setdefault("drafts", {})[draft_id] = draft
+        await self._store.async_save(data_store)
+        return draft
+
+    async def list_drafts(self) -> list[dict[str, Any]]:
+        """Return all draft automations."""
+        data_store = await self._get_loaded_data()
+        return list(data_store.get("drafts", {}).values())
+
+    async def remove_draft(self, draft_id: str) -> bool:
+        """Remove a draft (e.g. after the automation is created)."""
+        data_store = await self._get_loaded_data()
+        drafts = data_store.get("drafts", {})
+        if draft_id not in drafts:
+            return False
+        del drafts[draft_id]
+        await self._store.async_save(data_store)
+        return True
