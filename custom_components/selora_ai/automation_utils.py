@@ -233,6 +233,41 @@ async def async_create_automation(
         return False
 
 
+async def async_toggle_automation(
+    hass: HomeAssistant,
+    automation_id: str,
+    entity_id: str,
+    enable: bool,
+) -> bool:
+    """Toggle an automation's initial_state in automations.yaml and apply at runtime.
+
+    This persists the enabled/disabled state so it survives HA restarts.
+    """
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    found = False
+    for automation in existing:
+        if automation.get("id") == automation_id:
+            automation["initial_state"] = enable
+            found = True
+            break
+
+    if not found:
+        _LOGGER.error("Automation id %s not found in automations.yaml for toggle", automation_id)
+        return False
+
+    try:
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+        service = "turn_on" if enable else "turn_off"
+        await hass.services.async_call("automation", service, {"entity_id": entity_id})
+        _LOGGER.info("Toggled automation %s to %s", automation_id, "enabled" if enable else "disabled")
+        return True
+    except Exception as exc:
+        _LOGGER.exception("Failed to toggle automation %s: %s", automation_id, exc)
+        return False
+
+
 async def async_soft_delete_automation(
     hass: HomeAssistant, automation_id: str
 ) -> bool:

@@ -755,6 +755,28 @@ async def _handle_websocket_new_session(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/rename_session",
+    vol.Required("session_id"): str,
+    vol.Required("title"): str,
+})
+async def _handle_websocket_rename_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Rename a conversation session."""
+    store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    ok = await store.update_session_title(msg["session_id"], msg["title"])
+    if ok:
+        connection.send_result(msg["id"], {"status": "ok"})
+    else:
+        connection.send_error(msg["id"], "not_found", "Session not found")
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/delete_session",
     vol.Required("session_id"): str,
 })
@@ -939,6 +961,89 @@ async def _handle_websocket_get_suggestions(
     """Return the latest automated suggestions from the background collector."""
     suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
     connection.send_result(msg["id"], suggestions)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/generate_suggestions",
+})
+async def _handle_websocket_generate_suggestions(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Trigger an on-demand analysis cycle to generate new suggestions."""
+    domain_data = hass.data.get(DOMAIN, {})
+    collector = None
+    for key, val in domain_data.items():
+        if key.startswith("_") or key == "_webhook_registered":
+            continue
+        if isinstance(val, dict) and "collector" in val:
+            collector = val["collector"]
+            break
+
+    if collector is None:
+        connection.send_error(msg["id"], "no_collector", "No collector available — check LLM configuration")
+        return
+
+    try:
+        await collector._collect_analyze_log()
+        suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+        connection.send_result(msg["id"], suggestions)
+    except Exception as exc:
+        _LOGGER.exception("On-demand analysis failed")
+        connection.send_error(msg["id"], "analysis_failed", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/create_draft",
+    vol.Required("alias"): str,
+    vol.Required("session_id"): str,
+})
+async def _handle_websocket_create_draft(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create a persisted draft automation linked to a chat session."""
+    store = _get_automation_store(hass)
+    draft = await store.create_draft(msg["alias"], msg["session_id"])
+    connection.send_result(msg["id"], draft)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_drafts",
+})
+async def _handle_websocket_get_drafts(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return all draft automations."""
+    store = _get_automation_store(hass)
+    drafts = await store.list_drafts()
+    connection.send_result(msg["id"], drafts)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/remove_draft",
+    vol.Required("draft_id"): str,
+})
+async def _handle_websocket_remove_draft(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Remove a draft automation."""
+    store = _get_automation_store(hass)
+    ok = await store.remove_draft(msg["draft_id"])
+    if ok:
+        connection.send_result(msg["id"], {"status": "ok"})
+    else:
+        connection.send_error(msg["id"], "not_found", "Draft not found")
 
 
 @websocket_api.async_response
@@ -1239,6 +1344,36 @@ async def _handle_websocket_get_automation_diff(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/toggle_automation",
+    vol.Required("automation_id"): str,
+    vol.Required("entity_id"): str,
+})
+async def _handle_websocket_toggle_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Toggle an automation's enabled state, persisting initial_state in automations.yaml."""
+    try:
+        from .automation_utils import async_toggle_automation
+        entity_id = msg["entity_id"]
+        state = hass.states.get(entity_id)
+        currently_on = state and state.state == "on"
+        enable = not currently_on
+        success = await async_toggle_automation(
+            hass, msg["automation_id"], entity_id, enable
+        )
+        if success:
+            connection.send_result(msg["id"], {"status": "toggled", "enabled": enable})
+        else:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+    except Exception as exc:
+        _LOGGER.exception("Error in toggle_automation")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/soft_delete_automation",
     vol.Required("automation_id"): str,
 })
@@ -1487,11 +1622,17 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_sessions)
     websocket_api.async_register_command(hass, _handle_websocket_get_session)
     websocket_api.async_register_command(hass, _handle_websocket_new_session)
+    websocket_api.async_register_command(hass, _handle_websocket_rename_session)
+    websocket_api.async_register_command(hass, _handle_websocket_generate_suggestions)
+    websocket_api.async_register_command(hass, _handle_websocket_create_draft)
+    websocket_api.async_register_command(hass, _handle_websocket_get_drafts)
+    websocket_api.async_register_command(hass, _handle_websocket_remove_draft)
     websocket_api.async_register_command(hass, _handle_websocket_delete_session)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
     # Automation lifecycle
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_versions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)
+    websocket_api.async_register_command(hass, _handle_websocket_toggle_automation)
     websocket_api.async_register_command(hass, _handle_websocket_soft_delete_automation)
     websocket_api.async_register_command(hass, _handle_websocket_restore_automation)
     websocket_api.async_register_command(hass, _handle_websocket_hard_delete_automation)
