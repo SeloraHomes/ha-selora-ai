@@ -270,7 +270,6 @@ class AutomationStore:
             if rec.get("deleted_at")
         ]
 
-<<<<<<< HEAD
     # ── Lineage ──────────────────────────────────────────────────────────
 
     async def get_automation_lineage(self, automation_id: str) -> list[dict[str, Any]]:
