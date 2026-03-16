@@ -3,9 +3,9 @@
   "name": "Selora AI",
   "codeowners": ["@selorahomes"],
   "config_flow": true,
-  "documentation": "https://gitlab.com/selorahomes/products/selora-ai/ha-integration",
+  "documentation": "https://github.com/SeloraHomes/ha-selora-ai",
   "iot_class": "local_polling",
-  "issue_tracker": "https://gitlab.com/selorahomes/products/selora-ai/ha-integration/-/work_items",
+  "issue_tracker": "https://github.com/SeloraHomes/ha-selora-ai/issues",
   "dependencies": ["conversation"],
   "requirements": ["ruamel.yaml>=0.18.0"],
   "version": "0.1.0"

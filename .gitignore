@@ -18,6 +18,7 @@ deps/
 tts/
 venv/
 .storage/
+.cache/
 __pycache__/
 *.pyc
 
@@ -48,3 +49,6 @@ requirements.txt
 
 # ── Frontend build artifacts ──────────────────────────────────
 node_modules/
+
+# ── Local dev scripts ─────────────────────────────────────────
+/scripts/

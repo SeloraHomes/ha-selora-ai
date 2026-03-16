@@ -1,4 +1,8 @@
 {
   "name": "Selora AI",
-  "render_readme": true
+  "render_readme": true,
+  "homeassistant": "2025.1.0",
+  "category": "integration",
+  "domains": ["selora_ai"],
+  "documentation": "http://selorahomes.com/docs/selora-ai"
 }
