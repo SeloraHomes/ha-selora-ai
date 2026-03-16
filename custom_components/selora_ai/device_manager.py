@@ -16,6 +16,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
 import aiohttp
@@ -605,9 +606,8 @@ class DeviceManager:
             return {"generated": True, "cards": len(cards)}
 
         # Fallback: direct file write (takes effect after HA restart)
-        import json, os
-        storage_path = os.path.join(self.hass.config.path(), ".storage", "lovelace")
-        if not os.path.exists(storage_path):
+        storage_path = Path(self.hass.config.path()) / ".storage" / "lovelace"
+        if not storage_path.exists():
             dashboard_data = {
                 "version": 1,
                 "minor_version": 1,
@@ -615,21 +615,18 @@ class DeviceManager:
                 "data": {"config": config},
             }
             await self.hass.async_add_executor_job(
-                self._write_dashboard, storage_path, dashboard_data
+                self._write_dashboard,
+                dashboard_data,
             )
             _LOGGER.info("Generated dashboard (file fallback) with %d cards", len(cards))
         return {"generated": True, "cards": len(cards)}
 
-    @staticmethod
-    def _read_dashboard(path: str) -> dict:
-        import json
-        with open(path, "r") as f:
-            return json.load(f)
-
-    @staticmethod
-    def _write_dashboard(path: str, data: dict) -> None:
-        import json
-        with open(path, "w") as f:
+    def _write_dashboard(self, data: dict) -> None:
+        path = (Path(self.hass.config.path()) / ".storage" / "lovelace").resolve()
+        config_root = Path(self.hass.config.path()).resolve()
+        if config_root not in path.parents:
+            raise ValueError("Invalid dashboard storage path")
+        with path.open("w", encoding="utf-8") as f:
             json.dump(data, f, indent=2)
 
     # ── Reset & cleanup ──────────────────────────────────────────

@@ -1,0 +1,72 @@
+name: Capture Screenshots
+
+# Run manually from the Actions tab. Point it at any running HA instance
+# that already has the Selora AI integration installed and configured.
+#
+# Inputs:
+#   ha_url   — Base URL of the target HA instance (e.g. https://ha.example.com)
+#   ref      — Branch/tag to check out and commit screenshots into (default: current branch)
+#
+# Required secret (repo or environment secret):
+#   HA_TOKEN — Long-lived access token generated in HA under Profile → Security
+
+on:
+  workflow_dispatch:
+    inputs:
+      ha_url:
+        description: "Home Assistant base URL (no trailing slash)"
+        required: true
+        default: "http://homeassistant.local:8123"
+      ref:
+        description: "Branch to commit updated screenshots into"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  capture:
+    name: Capture UI screenshots
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.ref_name }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        working-directory: scripts
+        run: npm ci
+
+      - name: Install Playwright browsers
+        working-directory: scripts
+        run: npx playwright install chromium --with-deps
+
+      - name: Capture screenshots
+        working-directory: scripts
+        env:
+          HA_URL: ${{ inputs.ha_url }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          HA_REFRESH_TOKEN: ${{ secrets.HA_REFRESH_TOKEN }}
+          OUTPUT_DIR: ${{ github.workspace }}/docs/screenshots
+        run: node capture-screenshots.js
+
+      - name: Commit updated screenshots
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots/
+          if git diff --cached --quiet; then
+            echo "No screenshot changes to commit."
+          else
+            git commit -m "docs: update screenshots from HA instance [${{ inputs.ha_url }}]"
+            git push
+          fi
