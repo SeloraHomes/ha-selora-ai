@@ -190,9 +190,22 @@ class SeloraAIArchitectPanel extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this._checkTabParam();
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+  }
+
+  _checkTabParam() {
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get("tab");
+    if (tab === "automations" || tab === "settings") {
+      this._activeTab = tab;
+      // Clean the query param so it doesn't stick on subsequent visits
+      const url = new URL(window.location);
+      url.searchParams.delete("tab");
+      window.history.replaceState({}, "", url);
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -853,6 +866,9 @@ class SeloraAIArchitectPanel extends LitElement {
   // -------------------------------------------------------------------------
 
   updated(changedProps) {
+    if (changedProps.has("hass")) {
+      this._checkTabParam();
+    }
     if (changedProps.has("_messages") && this._activeTab === "chat") {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
@@ -1059,6 +1075,7 @@ class SeloraAIArchitectPanel extends LitElement {
       }
       .bubble.user + .bubble-meta { align-self: flex-end; }
       .bubble.assistant + .bubble-meta { align-self: flex-start; }
+      .bubble.assistant strong { color: #f59e0b; }
 
       /* ---- Automation proposal card ---- */
       .proposal-card {
