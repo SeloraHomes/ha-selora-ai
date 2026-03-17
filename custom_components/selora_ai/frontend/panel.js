@@ -1139,7 +1139,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._messages = session.messages || [];
       await this._removeDraftForSession(this._activeSessionId);
       await this._loadAutomations();
-      const actionLabel = refiningId ? "updated." : "created and added to your system (disabled by default for review).";
+      const actionLabel = refiningId ? "updated." : automation?.initial_state === true ? "created and added to your system." : "created and added to your system (disabled by default for review).";
       this._messages = [
         ...this._messages,
         {
@@ -1259,7 +1259,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         const session = await this.hass.callWS({ type: "selora_ai/get_session", session_id: this._activeSessionId });
         this._messages = session.messages || [];
         await this._loadAutomations();
-        const actionLabel = refiningId ? "updated with your edits." : "created with your edits (disabled by default for review).";
+        const actionLabel = refiningId ? "updated with your edits." : automation?.initial_state === true ? "created with your edits." : "created with your edits (disabled by default for review).";
         this._messages = [...this._messages, {
           role: "assistant",
           content: `Automation "${automation.alias}" ${actionLabel}`,

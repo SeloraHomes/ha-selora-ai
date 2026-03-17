@@ -202,11 +202,13 @@ async def async_create_automation(
 
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
+    raw_initial_state = suggestion.get("initial_state", False)
+    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else False
     automation = {
         "id": automation_id,
         "alias": alias,
         "description": f"[Selora AI] {suggestion.get('description', alias)}",
-        "initial_state": False,  # Start disabled for review
+        "initial_state": initial_state,
         "trigger": triggers,
         "condition": conditions or [],
         "action": actions,
