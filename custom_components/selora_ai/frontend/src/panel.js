@@ -620,7 +620,9 @@ class SeloraAIArchitectPanel extends LitElement {
 
       const actionLabel = refiningId
         ? "updated."
-        : "created and added to your system (disabled by default for review).";
+        : (automation?.initial_state === true
+            ? "created and added to your system."
+            : "created and added to your system (disabled by default for review).");
       this._messages = [
         ...this._messages,
         {
@@ -754,7 +756,9 @@ class SeloraAIArchitectPanel extends LitElement {
 
         const actionLabel = refiningId
           ? "updated with your edits."
-          : "created with your edits (disabled by default for review).";
+          : (automation?.initial_state === true
+              ? "created with your edits."
+              : "created with your edits (disabled by default for review).");
         this._messages = [...this._messages, {
           role: "assistant",
           content: `Automation "${automation.alias}" ${actionLabel}`,
