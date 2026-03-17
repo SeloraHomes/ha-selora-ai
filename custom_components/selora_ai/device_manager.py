@@ -2,7 +2,7 @@
 
 Wraps HA's config_entries.flow API so Selora AI can list discovered
 devices, accept/pair them (including PIN entry), and complete integration
-— all via a single webhook endpoint.
+through authenticated Home Assistant flows.
 
 All devices go through the same generic flow:
   1. discover_network_devices() finds pending config flows
@@ -13,14 +13,12 @@ All devices go through the same generic flow:
 
 from __future__ import annotations
 
-import asyncio
 import json
 import logging
 from pathlib import Path
 from typing import Any
 
 import aiohttp
-from aiohttp.web import Request, Response
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
@@ -730,106 +728,3 @@ class DeviceManager:
                 out["entry_id"] = entry.entry_id
                 out["title"] = entry.title
         return out
-
-
-def _json(data: Any, status: int = 200) -> Response:
-    return Response(
-        text=json.dumps(data),
-        content_type="application/json",
-        status=status,
-    )
-
-
-def _get_flow_handler(hass: HomeAssistant, flow_id: str) -> str:
-    """Look up the handler (domain) for a given flow_id."""
-    for flow in hass.config_entries.flow.async_progress():
-        if flow["flow_id"] == flow_id:
-            return flow.get("handler", "")
-    return ""
-
-
-async def handle_devices_webhook(
-    hass: HomeAssistant, webhook_id: str, request: Request
-) -> Response:
-    """Route device-management webhook requests by action."""
-    try:
-        body = await request.json()
-    except (json.JSONDecodeError, Exception):
-        return _json({"error": "Invalid JSON"}, 400)
-
-    action = body.get("action", "").strip()
-    if not action:
-        return _json({"error": "Missing 'action' field"}, 400)
-
-    from .const import DOMAIN  # local import to avoid circular ref
-
-    # Find the DeviceManager stored during setup
-    dm: DeviceManager | None = None
-    for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "device_manager" in entry_data:
-            dm = entry_data["device_manager"]
-            break
-
-    if dm is None:
-        return _json({"error": "DeviceManager not initialised"}, 503)
-
-    try:
-        if action == "list":
-            devices = await dm.list_discovered()
-            return _json({"discovered": devices})
-
-        if action == "add":
-            flow_id = body.get("flow_id", "")
-            if not flow_id:
-                return _json({"error": "Missing 'flow_id'"}, 400)
-            result = await dm.accept_flow(flow_id)
-            return _json(result)
-
-        if action == "pair":
-            flow_id = body.get("flow_id", "")
-            pin = body.get("pin", "")
-            if not flow_id or not pin:
-                return _json({"error": "Missing 'flow_id' or 'pin'"}, 400)
-            result = await dm.submit_pin(flow_id, pin)
-            return _json(result)
-
-        if action == "discover":
-            domain = body.get("domain", "")
-            host = body.get("host", "")
-            # With domain+host: manual flow start (existing behavior)
-            if domain and host:
-                result = await dm.start_device_flow(domain, host)
-                return _json(result)
-            # No params: comprehensive network status
-            result = await dm.discover_network_devices()
-            return _json(result)
-
-        if action == "auto_setup":
-            result = await dm.auto_setup_discovered()
-            return _json(result)
-
-        if action == "configure":
-            flow_id = body.get("flow_id", "")
-            user_input = body.get("user_input", {})
-            if not flow_id:
-                return _json({"error": "Missing 'flow_id'"}, 400)
-            result = await dm.configure_step(flow_id, user_input)
-            return _json(result)
-
-        if action == "reset":
-            reset_result = await dm.reset_integrations()
-            cleanup_result = await dm.cleanup_mirror_devices()
-            # Wait for HA's SSDP/mDNS to re-discover devices on the network
-            await asyncio.sleep(15)
-            auto_result = await dm.auto_setup_discovered()
-            return _json({**reset_result, **cleanup_result, "auto_setup": auto_result})
-
-        if action == "cleanup":
-            result = await dm.cleanup_mirror_devices()
-            return _json(result)
-
-        return _json({"error": f"Unknown action: {action}"}, 400)
-
-    except Exception as exc:
-        _LOGGER.error("Device webhook error (%s): %s", action, exc)
-        return _json({"error": str(exc)}, 500)

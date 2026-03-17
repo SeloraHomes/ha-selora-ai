@@ -13,7 +13,6 @@ Thanks for working on the integration. This document covers the developer-facing
 | **Architect Chat** | ✅ Complete | Side panel & Home Assistant Assist (Conversation Agent). |
 | **Automation Suggestions** | ✅ Complete | Periodic analysis + context-aware chat (sees existing automations). |
 | **Hub Sensors & Buttons** | ✅ Complete | Real-time status, device inventory, and management actions (Discover, Cleanup, Reset). |
-| **Webhook API** | ✅ Complete | Endpoints for external commands and discovery orchestration. |
 | **MQTT Listener** | 🚧 Pending | Future feature for reaction-based behavior capture. |
 
 ---
@@ -22,7 +21,7 @@ Thanks for working on the integration. This document covers the developer-facing
 
 ```
 custom_components/selora_ai/
-├── __init__.py          # Integration setup/teardown, webhooks, entry routing
+├── __init__.py          # Integration setup/teardown, entry routing
 ├── config_flow.py       # UI config flow (LLM setup → device discovery → area assignment → results)
 ├── collector.py         # Hourly data collection + LLM automation writer
 ├── llm_client.py        # Unified LLM client (Anthropic + Ollama)
@@ -79,9 +78,6 @@ Open http://localhost:8123, then add Selora AI under **Settings → Devices & Se
 - All entities use `_attr_has_entity_name = True` and reference the hub device `(DOMAIN, "selora_ai_hub")`
 - Dispatcher signals for real-time updates: `SIGNAL_DEVICES_UPDATED`, `SIGNAL_ACTIVITY_LOG`
 - Dashboard generation uses the HA Lovelace API (`LovelaceStorage.async_save`) — not direct file writes
-- Webhooks support both POST and GET:
-  - `/api/webhook/selora_ai_command` — natural language commands
-  - `/api/webhook/selora_ai_devices` — device management
 
 ### Config Flow
 - First entry: LLM provider selection → credentials → device discovery → area assignment → results
@@ -105,20 +101,6 @@ Open http://localhost:8123, then add Selora AI under **Settings → Devices & Se
 - **Commit style:** conventional commits (`feat:`, `fix:`, `refactor:`, `docs:`)
 - Never commit secrets — `.env` and `secrets.yaml` are in `.gitignore`
 - GitLab CI runs SAST and secret detection — all findings must be resolved before merge
-
----
-
-## Testing Webhooks
-
-```bash
-# POST (programmatic)
-curl -X POST http://localhost:8123/api/webhook/selora_ai_command \
-  -H 'Content-Type: application/json' \
-  -d '{"command": "turn on the kitchen tv"}'
-
-# GET (browser-friendly)
-http://localhost:8123/api/webhook/selora_ai_command?command=turn+on+the+kitchen+tv
-```
 
 ---
 
