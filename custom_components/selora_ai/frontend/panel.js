@@ -658,6 +658,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       _hardDeletingAutomation: { type: Object },
       _restoringVersion: { type: Object },
       _loadingToChat: { type: Object },
+      // Bulk automation actions
+      _selectedAutomationIds: { type: Object },
+      _bulkActionInProgress: { type: Boolean },
+      _bulkActionLabel: { type: String },
       // Hard delete confirmation modal
       _hardDeleteTarget: { type: Object },
       _hardDeleteAliasInput: { type: String },
@@ -713,6 +717,9 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._hardDeletingAutomation = {};
     this._restoringVersion = {};
     this._loadingToChat = {};
+    this._selectedAutomationIds = {};
+    this._bulkActionInProgress = false;
+    this._bulkActionLabel = "";
     this._hardDeleteTarget = null;
     this._hardDeleteAliasInput = "";
     this._toast = "";
@@ -936,6 +943,10 @@ var SeloraAIArchitectPanel = class extends s4 {
         _linked_session: d3.session_id
       }));
       this._automations = [...draftCards, ...automations || []];
+      const validIds = new Set(this._automations.map((a3) => a3.automation_id).filter(Boolean));
+      this._selectedAutomationIds = Object.fromEntries(
+        Object.entries(this._selectedAutomationIds || {}).filter(([id, selected]) => selected && validIds.has(id))
+      );
     } catch (err) {
       console.error("Failed to load automations", err);
     }
@@ -1933,6 +1944,52 @@ var SeloraAIArchitectPanel = class extends s4 {
         color: var(--secondary-text-color);
         flex-shrink: 0;
       }
+      .bulk-select-all {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        color: var(--secondary-text-color);
+      }
+      .bulk-select-all input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: var(--primary-color);
+      }
+      .bulk-actions-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        margin: -2px 0 12px;
+        padding: 8px 10px;
+        border: 1px solid var(--divider-color);
+        border-radius: 8px;
+        background: var(--secondary-background-color);
+      }
+      .bulk-actions-row .left {
+        font-size: 12px;
+        font-weight: 600;
+      }
+      .bulk-actions-row .actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+      }
+      .card-select {
+        display: inline-flex;
+        align-items: center;
+        margin-right: 6px;
+      }
+      .card-select input {
+        width: 14px;
+        height: 14px;
+        margin: 0;
+        accent-color: var(--primary-color);
+        cursor: pointer;
+      }
 
       /* ---- Status indicator (inline) ---- */
       .status-indicator {
@@ -2737,16 +2794,143 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._expandedAutomations = { ...this._expandedAutomations, [key]: !this._expandedAutomations[key] };
     this.requestUpdate();
   }
-  async _toggleAutomation(entityId, currentState, automationId) {
+  _getSelectedAutomationIds() {
+    return Object.keys(this._selectedAutomationIds || {}).filter((id) => this._selectedAutomationIds[id]);
+  }
+  _automationIsEnabled(automation) {
+    if (!automation)
+      return false;
+    if (automation.state === "on")
+      return true;
+    if (automation.state === "off")
+      return false;
+    if (automation.state === "unavailable" && typeof automation.persisted_enabled === "boolean") {
+      return automation.persisted_enabled;
+    }
+    return false;
+  }
+  _toggleAutomationSelection(automationId, evt) {
+    evt.stopPropagation();
+    if (!automationId)
+      return;
+    const checked = !!evt.target.checked;
+    this._selectedAutomationIds = {
+      ...this._selectedAutomationIds,
+      [automationId]: checked
+    };
+    this.requestUpdate();
+  }
+  _toggleSelectAllFiltered(filteredAutomations, checked) {
+    const selectable = (filteredAutomations || []).filter((a3) => !a3._draft && a3.automation_id);
+    const next = { ...this._selectedAutomationIds };
+    for (const auto of selectable) {
+      next[auto.automation_id] = checked;
+    }
+    this._selectedAutomationIds = next;
+    this.requestUpdate();
+  }
+  _clearAutomationSelection() {
+    this._selectedAutomationIds = {};
+    this.requestUpdate();
+  }
+  async _bulkToggleSelected(enable) {
+    if (this._bulkActionInProgress)
+      return;
+    const selectedIds = this._getSelectedAutomationIds();
+    if (!selectedIds.length)
+      return;
+    const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+    const targets = selectedIds.map((id) => byId.get(id)).filter((a3) => a3 && !a3._draft && a3.automation_id).filter((a3) => enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3));
+    const skippedCount = selectedIds.length - targets.length;
+    if (!targets.length) {
+      this._showToast(`Selected automations are already ${enable ? "enabled" : "disabled"}.`, "info");
+      return;
+    }
+    this._bulkActionInProgress = true;
+    this._bulkActionLabel = `${enable ? "Enabling" : "Disabling"} ${targets.length} automation(s)\u2026`;
+    let successCount = 0;
+    try {
+      for (const auto of targets) {
+        try {
+          await this.hass.callWS({
+            type: "selora_ai/toggle_automation",
+            automation_id: auto.automation_id,
+            entity_id: auto.entity_id,
+            enabled: enable
+          });
+          successCount += 1;
+        } catch (err) {
+          console.error("Bulk toggle failed", auto.automation_id, err);
+        }
+      }
+      await this._loadAutomations();
+      const failedCount = targets.length - successCount;
+      if (failedCount === 0) {
+        const skippedNote = skippedCount > 0 ? ` (${skippedCount} already in target state)` : "";
+        this._showToast(`${enable ? "Enabled" : "Disabled"} ${successCount} automation(s)${skippedNote}.`, "success");
+      } else {
+        this._showToast(`${enable ? "Enable" : "Disable"} completed: ${successCount} succeeded, ${failedCount} failed.`, "error");
+      }
+    } finally {
+      this._bulkActionInProgress = false;
+      this._bulkActionLabel = "";
+      this.requestUpdate();
+    }
+  }
+  async _bulkSoftDeleteSelected() {
+    if (this._bulkActionInProgress)
+      return;
+    const selectedIds = this._getSelectedAutomationIds();
+    if (!selectedIds.length)
+      return;
+    const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+    const targets = selectedIds.map((id) => byId.get(id)).filter((a3) => a3 && !a3._draft && a3.automation_id);
+    if (!targets.length)
+      return;
+    if (!confirm(`Soft-delete ${targets.length} selected automation(s)?`))
+      return;
+    this._bulkActionInProgress = true;
+    this._bulkActionLabel = `Soft-deleting ${targets.length} automation(s)\u2026`;
+    let successCount = 0;
+    try {
+      for (const auto of targets) {
+        try {
+          await this.hass.callWS({
+            type: "selora_ai/soft_delete_automation",
+            automation_id: auto.automation_id
+          });
+          successCount += 1;
+        } catch (err) {
+          console.error("Bulk soft-delete failed", auto.automation_id, err);
+        }
+      }
+      this._selectedAutomationIds = {};
+      await this._loadAutomations();
+      const failedCount = targets.length - successCount;
+      if (failedCount === 0) {
+        this._showToast(`Soft-deleted ${successCount} automation(s).`, "success");
+      } else {
+        this._showToast(`Soft-delete completed: ${successCount} succeeded, ${failedCount} failed.`, "error");
+      }
+    } finally {
+      this._bulkActionInProgress = false;
+      this._bulkActionLabel = "";
+      this.requestUpdate();
+    }
+  }
+  async _toggleAutomation(entityId, automationId, enabled) {
     try {
       await this.hass.callWS({
         type: "selora_ai/toggle_automation",
         automation_id: automationId,
-        entity_id: entityId
+        entity_id: entityId,
+        enabled: !!enabled
       });
       await this._loadAutomations();
     } catch (err) {
       console.error("Failed to toggle automation", err);
+      const message = err?.message || "unknown error";
+      this._showToast(`Failed to toggle automation: ${message}`, "error");
     }
   }
   _toggleBurgerMenu(automationId, evt) {
@@ -3266,11 +3450,28 @@ var SeloraAIArchitectPanel = class extends s4 {
   _renderAutomations() {
     const filterText = (this._automationFilter || "").toLowerCase();
     const filteredAutomations = filterText ? this._automations.filter((a3) => (a3.alias || "").toLowerCase().includes(filterText)) : this._automations;
+    const selectableAutomations = filteredAutomations.filter((a3) => !a3._draft && a3.automation_id);
+    const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
+    const selectedIds = this._getSelectedAutomationIds();
+    const selectedVisibleCount = selectableIds.filter((id) => this._selectedAutomationIds[id]).length;
+    const allVisibleSelected = selectableIds.length > 0 && selectedVisibleCount === selectableIds.length;
+    const partiallyVisibleSelected = selectedVisibleCount > 0 && !allVisibleSelected;
+    const hiddenSelectedCount = Math.max(0, selectedIds.length - selectedVisibleCount);
+    const bulkDisabled = selectedIds.length === 0 || this._bulkActionInProgress;
     return x`
       <div class="scroll-view" @click=${() => this._closeBurgerMenus()}>
         ${this._automations.length > 0 ? x`
               <div class="filter-row">
-                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
+                <h2 style="margin:0;">Automations</h2>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
+                  <label class="bulk-select-all">
+                    <input type="checkbox"
+                      ?checked=${allVisibleSelected}
+                      .indeterminate=${partiallyVisibleSelected}
+                      ?disabled=${selectableIds.length === 0 || this._bulkActionInProgress}
+                      @change=${(e4) => this._toggleSelectAllFiltered(filteredAutomations, e4.target.checked)}>
+                    <span>Select all</span>
+                  </label>
                   <div class="filter-input-wrap">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input type="text" placeholder="Filter automations…"
@@ -3288,13 +3489,36 @@ var SeloraAIArchitectPanel = class extends s4 {
                   </button>
                 </div>
               </div>
+              ${selectedIds.length > 0 ? x`
+                <div class="bulk-actions-row">
+                  <div class="left">
+                    ${selectedIds.length} selected${hiddenSelectedCount > 0 ? x` <span style="opacity:0.65;font-weight:500;">(${hiddenSelectedCount} hidden by filter)</span>` : ""}
+                    ${this._bulkActionInProgress ? x`<span style="opacity:0.75;font-weight:500;"> · ${this._bulkActionLabel}</span>` : ""}
+                  </div>
+                  <div class="actions">
+                    <button class="btn btn-outline" ?disabled=${bulkDisabled} @click=${() => this._bulkToggleSelected(true)}>
+                      ${this._bulkActionInProgress ? "Working\u2026" : "Enable all"}
+                    </button>
+                    <button class="btn btn-outline" ?disabled=${bulkDisabled} @click=${() => this._bulkToggleSelected(false)}>
+                      ${this._bulkActionInProgress ? "Working\u2026" : "Disable all"}
+                    </button>
+                    <button class="btn btn-outline btn-danger" ?disabled=${bulkDisabled} @click=${() => this._bulkSoftDeleteSelected()}>
+                      ${this._bulkActionInProgress ? "Working\u2026" : "Soft-delete selected"}
+                    </button>
+                    <button class="btn btn-ghost" ?disabled=${this._bulkActionInProgress} @click=${() => this._clearAutomationSelection()}>
+                      Clear
+                    </button>
+                  </div>
+                </div>
+              ` : ""}
               <div class="automations-grid">
               ${filteredAutomations.map((a3) => {
       const isDraft = !!a3._draft;
       const expanded = !!this._expandedAutomations[a3.entity_id];
-      const isOn = a3.state === "on";
+      const isOn = this._automationIsEnabled(a3);
       const automationId = a3.automation_id || "";
       const hasAutomationId = !!automationId;
+      const canToggle = hasAutomationId && !this._bulkActionInProgress;
       const versionCount = a3.version_count || null;
       const deleting = this._deletingAutomation[automationId];
       const loadingChat = this._loadingToChat[automationId];
@@ -3302,10 +3526,20 @@ var SeloraAIArchitectPanel = class extends s4 {
       return x`
                   <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
+                      ${hasAutomationId ? x`
+                        <label class="card-select">
+                          <input type="checkbox"
+                            .checked=${!!this._selectedAutomationIds[automationId]}
+                            ?disabled=${this._bulkActionInProgress}
+                            @click=${(e4) => e4.stopPropagation()}
+                            @change=${(e4) => this._toggleAutomationSelection(automationId, e4)}>
+                        </label>
+                      ` : ""}
                       <h3 style="flex:1;font-size:14px;margin:0;">${a3.alias}</h3>
                       ${hasAutomationId ? x`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
                           <button class="burger-btn" @click=${(e4) => this._toggleBurgerMenu(automationId, e4)}
+                            ?disabled=${this._bulkActionInProgress}
                             title="More actions">
                             <ha-icon icon="mdi:dots-vertical" style="--mdc-icon-size:16px;"></ha-icon>
                           </button>
@@ -3362,9 +3596,22 @@ var SeloraAIArchitectPanel = class extends s4 {
       ) : ""}
 
                     <div class="card-actions" style="margin-top:8px;padding-top:8px;">
-                      <label class="toggle-switch" title="${isOn ? "Enabled" : "Disabled"}"
-                        @click=${() => this._toggleAutomation(a3.entity_id, a3.state, automationId)}>
-                        <input type="checkbox" .checked=${isOn}>
+                      <label class="toggle-switch" title="${canToggle ? isOn ? "Enabled" : "Disabled" : "Unavailable \u2014 automation id not resolved"}"
+                        style="${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
+                        @click=${() => {
+        if (!canToggle) {
+          this._showToast("Unable to toggle: automation id was not resolved. Reload and try again.", "error");
+        }
+      }}>
+                        <input type="checkbox"
+                          .checked=${isOn}
+                          ?disabled=${!canToggle}
+                          @click=${(e4) => e4.stopPropagation()}
+                          @change=${(e4) => {
+        if (!canToggle)
+          return;
+        this._toggleAutomation(a3.entity_id, automationId, e4.target.checked);
+      }}>
                         <div class="toggle-track ${isOn ? "on" : ""}">
                           <div class="toggle-thumb"></div>
                         </div>
@@ -3384,7 +3631,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                         <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
                         Dismiss
                       </button>` : x`
-                      <button class="btn btn-outline" ?disabled=${!hasAutomationId || loadingChat}
+                      <button class="btn btn-outline" ?disabled=${!hasAutomationId || loadingChat || this._bulkActionInProgress}
                         @click=${() => this._loadAutomationToChat(automationId)}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         ${loadingChat ? "Loading\u2026" : "Refine in chat"}

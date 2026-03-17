@@ -1077,7 +1077,7 @@ async def _handle_websocket_get_automations(
             _read_automations_yaml, automations_path
         )
         yaml_by_id: dict[str, dict[str, Any]] = {
-            a.get("id", ""): a for a in yaml_automations if a.get("id")
+            str(a.get("id")): a for a in yaml_automations if a.get("id")
         }
         yaml_by_alias: dict[str, dict[str, Any]] = {
             str(a.get("alias", "")): a for a in yaml_automations if a.get("id") and a.get("alias")
@@ -1096,9 +1096,10 @@ async def _handle_websocket_get_automations(
             is_selora = False
             automation_id = ""
             if entry and entry.unique_id:
-                is_selora = entry.unique_id.startswith(AUTOMATION_ID_PREFIX)
-                if entry.unique_id in yaml_by_id:
-                    automation_id = entry.unique_id
+                unique_id = str(entry.unique_id)
+                is_selora = unique_id.startswith(AUTOMATION_ID_PREFIX)
+                if unique_id in yaml_by_id:
+                    automation_id = unique_id
 
             # Fallback to description check if unique_id doesn't match
             description = state.attributes.get("description", "")
@@ -1108,13 +1109,17 @@ async def _handle_websocket_get_automations(
             # Prefer explicit id attributes when available
             if not automation_id:
                 state_id = state.attributes.get("id")
-                if isinstance(state_id, str) and state_id in yaml_by_id:
-                    automation_id = state_id
+                if state_id is not None:
+                    state_id_str = str(state_id)
+                    if state_id_str in yaml_by_id:
+                        automation_id = state_id_str
 
             if not automation_id and entry and entry.unique_id:
                 unique_id_attr = state.attributes.get("unique_id")
-                if isinstance(unique_id_attr, str) and unique_id_attr in yaml_by_id:
-                    automation_id = unique_id_attr
+                if unique_id_attr is not None:
+                    unique_id_attr_str = str(unique_id_attr)
+                    if unique_id_attr_str in yaml_by_id:
+                        automation_id = unique_id_attr_str
 
             # Last fallback: alias match from automations.yaml
             if not automation_id:
@@ -1149,6 +1154,11 @@ async def _handle_websocket_get_automations(
                 "state": state.state,
                 "is_selora": is_selora,
                 "last_triggered": state.attributes.get("last_triggered"),
+                "persisted_enabled": (
+                    full_config.get("initial_state")
+                    if isinstance(full_config.get("initial_state"), bool)
+                    else None
+                ),
                 "trigger": full_config.get("trigger") or full_config.get("triggers") or [],
                 "condition": full_config.get("condition") or full_config.get("conditions") or [],
                 "action": full_config.get("action") or full_config.get("actions") or [],
@@ -1347,6 +1357,7 @@ async def _handle_websocket_get_automation_diff(
     vol.Required("type"): "selora_ai/toggle_automation",
     vol.Required("automation_id"): str,
     vol.Required("entity_id"): str,
+    vol.Optional("enabled"): bool,
 })
 async def _handle_websocket_toggle_automation(
     hass: HomeAssistant,
@@ -1357,14 +1368,20 @@ async def _handle_websocket_toggle_automation(
     try:
         from .automation_utils import async_toggle_automation
         entity_id = msg["entity_id"]
-        state = hass.states.get(entity_id)
-        currently_on = state and state.state == "on"
-        enable = not currently_on
+        requested_enabled = msg.get("enabled")
+        if requested_enabled is None:
+            state = hass.states.get(entity_id)
+            currently_on = state and state.state == "on"
+            enable = not currently_on
+            status = "toggled"
+        else:
+            enable = bool(requested_enabled)
+            status = "set"
         success = await async_toggle_automation(
             hass, msg["automation_id"], entity_id, enable
         )
         if success:
-            connection.send_result(msg["id"], {"status": "toggled", "enabled": enable})
+            connection.send_result(msg["id"], {"status": status, "enabled": enable})
         else:
             connection.send_error(msg["id"], "not_found", "Automation not found")
     except Exception as exc:
