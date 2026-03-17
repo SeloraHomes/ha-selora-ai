@@ -21,7 +21,6 @@ LLM Backends:
 from __future__ import annotations
 
 import asyncio
-import json
 import logging
 import yaml
 import uuid
@@ -30,9 +29,7 @@ from typing import Any
 
 import voluptuous as vol
 
-from aiohttp.web import Request, Response
-
-from homeassistant.components import webhook, websocket_api
+from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 
 from homeassistant.config_entries import ConfigEntry
@@ -65,7 +62,6 @@ from .const import (
     LLM_PROVIDER_NONE,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
-    WEBHOOK_DEVICES_ID,
     AUTOMATION_ID_PREFIX,
     PANEL_NAME,
     PANEL_TITLE,
@@ -89,7 +85,6 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-WEBHOOK_ID = "selora_ai_command"
 PLATFORMS = ["sensor", "button", "conversation"]
 
 _CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
@@ -306,84 +301,21 @@ def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
     return states
 
 
-async def _handle_webhook(
-    hass: HomeAssistant, webhook_id: str, request: Request
-) -> Response:
-    """Handle incoming Selora AI commands via webhook."""
-    try:
-        body = await request.json()
-    except (json.JSONDecodeError, ValueError):
-        return Response(
-            text=json.dumps({"error": "Invalid JSON"}),
-            content_type="application/json",
-            status=400,
-        )
+def _require_admin(
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> bool:
+    """Ensure Selora websocket commands are only available to admins."""
+    user = getattr(connection, "user", None)
+    if user is not None and getattr(user, "is_admin", False):
+        return True
 
-    command = body.get("command", "").strip()
-    if not command:
-        return Response(
-            text=json.dumps({"error": "Missing 'command' field"}),
-            content_type="application/json",
-            status=400,
-        )
-
-    _LOGGER.info("Selora AI received command: %s", command)
-
-    from .llm_client import LLMClient
-    
-    # Find the first available LLM client
-    llm: LLMClient | None = None
-    for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "llm" in entry_data:
-            llm = entry_data["llm"]
-            break
-
-    if llm is None:
-        return Response(
-            text=json.dumps({"error": "No LLM configured"}),
-            content_type="application/json",
-            status=503,
-        )
-
-    # Get current entity states dynamically
-    entities = _collect_entity_states(hass)
-
-    # Ask the LLM to translate the command
-    result = await llm.execute_command(command, entities)
-
-    calls = result.get("calls", [])
-    response_text = result.get("response", "No response")
-
-    # Execute the service calls
-    executed = []
-    for call in calls:
-        service = call.get("service", "")
-        if not service or "." not in service:
-            continue
-
-        domain, service_name = service.split(".", 1)
-        target = call.get("target", {})
-        data = call.get("data", {})
-
-        try:
-            await hass.services.async_call(
-                domain, service_name, {**data, **target}, blocking=True
-            )
-            executed.append(service)
-            _LOGGER.info("Executed: %s → %s", service, target)
-        except Exception as exc:
-            _LOGGER.error("Failed to execute %s: %s", service, exc)
-            response_text += f" (Failed: {service}: {exc})"
-
-    return Response(
-        text=json.dumps({
-            "command": command,
-            "response": response_text,
-            "executed": executed,
-        }),
-        content_type="application/json",
-        status=200,
+    connection.send_error(
+        msg["id"],
+        "admin_required",
+        "Selora AI panel actions require an administrator account",
     )
+    return False
 
 
 @websocket_api.async_response
@@ -403,6 +335,9 @@ async def _handle_websocket_chat(
     Commands are executed immediately; automations are returned as proposals for user review.
     All turns are persisted to the session store so conversations can be resumed.
     """
+    if not _require_admin(connection, msg):
+        return
+
     from .llm_client import LLMClient
 
     llm: LLMClient | None = None
@@ -557,6 +492,9 @@ async def _handle_websocket_chat_stream(
       {"type": "done", "response": ..., ...}    — final parsed result
       {"type": "error", "message": "..."}       — on failure
     """
+    if not _require_admin(connection, msg):
+        return
+
     from .llm_client import LLMClient
 
     # Set up subscription pattern
@@ -708,6 +646,9 @@ async def _handle_websocket_get_sessions(
     msg: dict[str, Any],
 ) -> None:
     """Return a list of conversation session summaries."""
+    if not _require_admin(connection, msg):
+        return
+
     store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
@@ -726,6 +667,9 @@ async def _handle_websocket_get_session(
     msg: dict[str, Any],
 ) -> None:
     """Return the full message history for a session."""
+    if not _require_admin(connection, msg):
+        return
+
     store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
@@ -746,6 +690,9 @@ async def _handle_websocket_new_session(
     msg: dict[str, Any],
 ) -> None:
     """Create a new empty conversation session."""
+    if not _require_admin(connection, msg):
+        return
+
     store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
@@ -765,6 +712,9 @@ async def _handle_websocket_rename_session(
     msg: dict[str, Any],
 ) -> None:
     """Rename a conversation session."""
+    if not _require_admin(connection, msg):
+        return
+
     store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
@@ -786,6 +736,9 @@ async def _handle_websocket_delete_session(
     msg: dict[str, Any],
 ) -> None:
     """Delete a conversation session."""
+    if not _require_admin(connection, msg):
+        return
+
     store: ConversationStore = hass.data[DOMAIN].setdefault(
         "_conv_store", ConversationStore(hass)
     )
@@ -809,6 +762,9 @@ async def _handle_websocket_set_automation_status(
     msg: dict[str, Any],
 ) -> None:
     """Update the acceptance status of an automation proposal in a session."""
+    if not _require_admin(connection, msg):
+        return
+
     valid_statuses = {"pending", "accepted", "declined", "saved", "refining"}
     if msg["status"] not in valid_statuses:
         connection.send_error(msg["id"], "invalid_status", f"Status must be one of {valid_statuses}")
@@ -836,6 +792,9 @@ async def _handle_websocket_create_automation(
     msg: dict[str, Any],
 ) -> None:
     """Create a new automation from the side panel."""
+    if not _require_admin(connection, msg):
+        return
+
     automation_data = msg["automation"]
 
     # Basic validation
@@ -873,6 +832,9 @@ async def _handle_websocket_apply_automation_yaml(
     msg: dict[str, Any],
 ) -> None:
     """Parse raw YAML text and create or update an automation."""
+    if not _require_admin(connection, msg):
+        return
+
     from .automation_utils import _parse_automation_yaml, async_create_automation, async_update_automation
 
     parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
@@ -925,6 +887,9 @@ async def _handle_websocket_update_automation_yaml(
     msg: dict[str, Any],
 ) -> None:
     """Parse raw YAML text and update an existing automation in automations.yaml."""
+    if not _require_admin(connection, msg):
+        return
+
     from .automation_utils import _parse_automation_yaml, async_update_automation
 
     parsed = await hass.async_add_executor_job(_parse_automation_yaml, msg["yaml_text"])
@@ -959,6 +924,9 @@ async def _handle_websocket_get_suggestions(
     msg: dict[str, Any],
 ) -> None:
     """Return the latest automated suggestions from the background collector."""
+    if not _require_admin(connection, msg):
+        return
+
     suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
     connection.send_result(msg["id"], suggestions)
 
@@ -973,10 +941,13 @@ async def _handle_websocket_generate_suggestions(
     msg: dict[str, Any],
 ) -> None:
     """Trigger an on-demand analysis cycle to generate new suggestions."""
+    if not _require_admin(connection, msg):
+        return
+
     domain_data = hass.data.get(DOMAIN, {})
     collector = None
     for key, val in domain_data.items():
-        if key.startswith("_") or key == "_webhook_registered":
+        if key.startswith("_"):
             continue
         if isinstance(val, dict) and "collector" in val:
             collector = val["collector"]
@@ -1007,6 +978,9 @@ async def _handle_websocket_create_draft(
     msg: dict[str, Any],
 ) -> None:
     """Create a persisted draft automation linked to a chat session."""
+    if not _require_admin(connection, msg):
+        return
+
     store = _get_automation_store(hass)
     draft = await store.create_draft(msg["alias"], msg["session_id"])
     connection.send_result(msg["id"], draft)
@@ -1022,6 +996,9 @@ async def _handle_websocket_get_drafts(
     msg: dict[str, Any],
 ) -> None:
     """Return all draft automations."""
+    if not _require_admin(connection, msg):
+        return
+
     store = _get_automation_store(hass)
     drafts = await store.list_drafts()
     connection.send_result(msg["id"], drafts)
@@ -1038,6 +1015,9 @@ async def _handle_websocket_remove_draft(
     msg: dict[str, Any],
 ) -> None:
     """Remove a draft automation."""
+    if not _require_admin(connection, msg):
+        return
+
     store = _get_automation_store(hass)
     ok = await store.remove_draft(msg["draft_id"])
     if ok:
@@ -1062,6 +1042,9 @@ async def _handle_websocket_get_automations(
     Each automation is enriched with AutomationStore metadata when available:
     version_count, current_version_id, deleted_at, is_deleted.
     """
+    if not _require_admin(connection, msg):
+        return
+
     try:
         from homeassistant.helpers import entity_registry as er
         from .automation_utils import _read_automations_yaml
@@ -1186,6 +1169,9 @@ async def _handle_websocket_get_config(
     msg: dict[str, Any],
 ) -> None:
     """Return the current integration config."""
+    if not _require_admin(connection, msg):
+        return
+
     # We find the first config entry for our domain
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
@@ -1232,6 +1218,9 @@ async def _handle_websocket_update_config(
     msg: dict[str, Any],
 ) -> None:
     """Update the integration config and re-initialize."""
+    if not _require_admin(connection, msg):
+        return
+
     entries = hass.config_entries.async_entries(DOMAIN)
     if not entries:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
@@ -1303,6 +1292,9 @@ async def _handle_websocket_get_automation_versions(
     msg: dict[str, Any],
 ) -> None:
     """Return ordered version history for an automation with session previews joined in."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         store = _get_automation_store(hass)
         versions = await store.get_versions(msg["automation_id"])
@@ -1338,6 +1330,9 @@ async def _handle_websocket_get_automation_diff(
     msg: dict[str, Any],
 ) -> None:
     """Return a unified diff between two versions of an automation."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         store = _get_automation_store(hass)
         diff = await store.get_diff(
@@ -1365,6 +1360,9 @@ async def _handle_websocket_toggle_automation(
     msg: dict[str, Any],
 ) -> None:
     """Toggle an automation's enabled state, persisting initial_state in automations.yaml."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         from .automation_utils import async_toggle_automation
         entity_id = msg["entity_id"]
@@ -1400,6 +1398,9 @@ async def _handle_websocket_soft_delete_automation(
     msg: dict[str, Any],
 ) -> None:
     """Soft-delete an automation: disable it in HA and set deleted_at in the store."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         from .automation_utils import async_soft_delete_automation
         success = await async_soft_delete_automation(hass, msg["automation_id"])
@@ -1423,6 +1424,9 @@ async def _handle_websocket_restore_automation(
     msg: dict[str, Any],
 ) -> None:
     """Restore a soft-deleted automation: re-enable it and clear deleted_at."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         from .automation_utils import async_restore_automation
         success = await async_restore_automation(hass, msg["automation_id"])
@@ -1446,6 +1450,9 @@ async def _handle_websocket_hard_delete_automation(
     msg: dict[str, Any],
 ) -> None:
     """Permanently delete a soft-deleted automation and all version history."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         from .automation_utils import async_hard_delete_automation
 
@@ -1470,6 +1477,9 @@ async def _handle_websocket_get_automation_lineage(
     msg: dict[str, Any],
 ) -> None:
     """Return the lineage list for an automation with session previews joined in."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         store = _get_automation_store(hass)
         lineage = await store.get_automation_lineage(msg["automation_id"])
@@ -1507,6 +1517,9 @@ async def _handle_websocket_get_session_automations(
     msg: dict[str, Any],
 ) -> None:
     """Return all automations (with metadata) touched by a given session."""
+    if not _require_admin(connection, msg):
+        return
+
     try:
         store = _get_automation_store(hass)
         automation_ids = await store.get_session_automations(msg["session_id"])
@@ -1540,6 +1553,9 @@ async def _handle_websocket_load_automation_to_session(
     Subsequent selora_ai/chat messages in this session refine it via the existing
     chat handler.
     """
+    if not _require_admin(connection, msg):
+        return
+
     from .automation_utils import _parse_automation_yaml, _read_automations_yaml
     from pathlib import Path
 
@@ -1712,7 +1728,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             sidebar_icon=PANEL_ICON,
             module_url=f"/api/{DOMAIN}/panel.js",
             config={"domain": DOMAIN},
-            require_admin=False,
+            require_admin=True,
         )
     elif hasattr(frontend, "async_register_built_in_panel"):
         try:
@@ -1729,7 +1745,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                     },
                     "domain": DOMAIN,
                 },
-                require_admin=False,
+                require_admin=True,
             )
         except ValueError as err:
             _LOGGER.warning("Panel already registered: %s", err)
@@ -1923,18 +1939,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except Exception:
         _LOGGER.debug("Immediate dashboard generation failed — will retry in delayed discovery")
 
-    # Register webhooks (only once, not per entry)
-    if not hass.data[DOMAIN].get("_webhook_registered"):
-        from .device_manager import handle_devices_webhook
-        webhook.async_register(
-            hass, DOMAIN, "Selora AI Command", WEBHOOK_ID, _handle_webhook
-        )
-        webhook.async_register(
-            hass, DOMAIN, "Selora AI Devices", WEBHOOK_DEVICES_ID, handle_devices_webhook
-        )
-        hass.data[DOMAIN]["_webhook_registered"] = True
-        _LOGGER.info("Selora AI webhooks registered: /api/webhook/%s, /api/webhook/%s", WEBHOOK_ID, WEBHOOK_DEVICES_ID)
-    
     # Start background collection + analysis
     if llm:
         await collector.async_start()
@@ -1972,13 +1976,6 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-
-    # Unregister webhooks if no more entries
-    remaining = {k: v for k, v in hass.data.get(DOMAIN, {}).items() if k != "_webhook_registered"}
-    if not remaining and hass.data.get(DOMAIN, {}).get("_webhook_registered"):
-        webhook.async_unregister(hass, WEBHOOK_ID)
-        webhook.async_unregister(hass, WEBHOOK_DEVICES_ID)
-        hass.data[DOMAIN]["_webhook_registered"] = False
 
     _LOGGER.info("Selora AI stopped")
     return True

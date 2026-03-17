@@ -13,7 +13,7 @@ Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM ba
 | Feature | Description |
 |---|---|
 | **AI Automation Suggestions** | Periodically analyzes device states and history, then writes draft automations to `automations.yaml` (disabled, prefixed `[Selora AI]`) for your review. |
-| **Natural Language Commands** | Send plain-English commands via the Selora AI Architect chat panel or the webhook API. |
+| **Natural Language Commands** | Send plain-English commands via the Selora AI Architect chat panel or Home Assistant Assist. |
 | **Home Assistant Assist** | Use Selora AI as your primary Conversation Agent in the standard HA chat / voice interface. |
 | **Context-Aware Chat** | The AI sees your existing automations so it can suggest refinements instead of duplicates. |
 | **Network Device Discovery** | Scans your network for supported integrations and helps onboard them with automatic area assignment. |
@@ -99,7 +99,6 @@ Go to **Settings → Devices & Services → Selora AI**, click **+ Add entry**, 
 After setup, click **Configure** on the Selora AI card to adjust:
 - LLM model selection
 - Analysis frequency (how often Selora AI scans for automation ideas)
-- Webhook token (if you want to secure the command endpoint)
 
 ---
 
@@ -112,22 +111,6 @@ After setup, a **Selora AI** panel appears in the HA sidebar. Open it to chat wi
 ### Home Assistant Assist
 
 You can set Selora AI as the default Conversation Agent under **Settings → Voice assistants**. Once set, all Assist commands (voice or text) are handled by Selora AI.
-
-### Webhook API
-
-Send natural language commands programmatically:
-
-```bash
-# POST (from scripts, Node-RED, etc.)
-curl -X POST http://<your-ha-host>:8123/api/webhook/selora_ai_command \
-  -H 'Content-Type: application/json' \
-  -d '{"command": "turn off all the living room lights at midnight"}'
-
-# GET (browser-friendly)
-http://<your-ha-host>:8123/api/webhook/selora_ai_command?command=turn+off+all+lights
-```
-
----
 
 ## 🛠 The Selora AI Hub
 

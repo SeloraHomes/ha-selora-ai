@@ -98,27 +98,11 @@ After setup, Selora AI runs on a 1-hour analysis cycle and a 30-second startup a
 4. Press **Auto Setup** to accept any pending discovery flows
 5. Check **Settings > Automations** — suggested automations appear as disabled (prefixed with `[Selora AI]`)
 
-## Webhook API
-
-Selora AI exposes two webhook endpoints for external integrations:
-
-```bash
-# Natural language command → HA service calls
-curl -X POST http://localhost:8123/api/webhook/selora_ai_command \
-  -H 'Content-Type: application/json' \
-  -d '{"command": "turn on the kitchen tv"}'
-
-# Device management
-curl -X POST http://localhost:8123/api/webhook/selora_ai_devices \
-  -H 'Content-Type: application/json' \
-  -d '{"action": "discover"}'
-```
-
 ## Project structure
 
-```
+``` 
 custom_components/selora_ai/
-├── __init__.py          # Integration setup/teardown, webhooks
+├── __init__.py          # Integration setup/teardown
 ├── button.py            # Hub action buttons (Discover, Auto Setup, Cleanup, Reset)
 ├── collector.py         # Data collection + automation writer
 ├── config_flow.py       # UI config flow (provider selection)

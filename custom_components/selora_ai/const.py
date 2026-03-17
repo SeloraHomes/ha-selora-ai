@@ -303,9 +303,6 @@ DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
 # Prefix for auto-created automation IDs (easy to find/filter).
 AUTOMATION_ID_PREFIX = "selora_ai_"
 
-# ── Device Discovery Webhook ─────────────────────────────────────────
-WEBHOOK_DEVICES_ID = "selora_ai_devices"
-
 # ── Protected Domains (never removed by reset) ──────────────────────
 PROTECTED_DOMAINS = {
     "homeassistant", "automation", "frontend", "backup", "sun",
