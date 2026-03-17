@@ -1290,6 +1290,7 @@ class SeloraAIArchitectPanel extends LitElement {
       /* ---- Card action buttons ---- */
       .card-actions {
         display: flex;
+        align-items: center;
         gap: 8px;
         flex-wrap: wrap;
         margin-top: 12px;
@@ -2772,8 +2773,7 @@ class SeloraAIArchitectPanel extends LitElement {
         ${this._automations.length > 0
           ? html`
               <div class="filter-row">
-                <h2 style="margin:0;">Automations</h2>
-                <div style="display:flex;align-items:center;gap:8px;">
+                <div style="display:flex;align-items:center;gap:8px;margin-left:auto;">
                   <div class="filter-input-wrap">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input type="text" placeholder="Filter automations…"
@@ -2833,11 +2833,11 @@ class SeloraAIArchitectPanel extends LitElement {
 
                     ${(a.trigger?.length || a.action?.length)
                       ? html`
-                        ${this._expandedAutomations[`flow_${a.entity_id}`] ? this._renderAutomationFlowchart(a) : ""}
                         <span class="expand-toggle" style="padding:0;margin:0 0 4px;" @click=${() => { this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a.entity_id}`]: !this._expandedAutomations[`flow_${a.entity_id}`] }; this.requestUpdate(); }}>
                           <ha-icon icon="mdi:chevron-${this._expandedAutomations[`flow_${a.entity_id}`] ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
                           ${this._expandedAutomations[`flow_${a.entity_id}`] ? "Hide flow" : "Show flow"}
-                        </span>`
+                        </span>
+                        ${this._expandedAutomations[`flow_${a.entity_id}`] ? this._renderAutomationFlowchart(a) : ""}`
                       : ""}
 
                     <div style="display:flex;align-items:center;gap:12px;font-size:11px;opacity:0.6;margin-bottom:6px;flex-wrap:wrap;">
