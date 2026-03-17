@@ -1468,6 +1468,7 @@ class SeloraAIArchitectPanel extends LitElement {
         padding: 4px 8px;
       }
       .btn-ghost:hover { color: var(--primary-text-color); background: rgba(0,0,0,0.06); border-color: var(--divider-color); }
+      .btn-ghost.active { color: #b45309; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.05); }
       .expand-toggle {
         font-size: 11px;
         opacity: 0.55;
@@ -1876,10 +1877,10 @@ class SeloraAIArchitectPanel extends LitElement {
       <textarea
         class="yaml-editor"
         .value=${current}
-        @input=${(e) => this._onYamlInput(key, e.target.value)}
+        @input=${(e) => { this._onYamlInput(key, e.target.value); e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
         spellcheck="false"
         autocomplete="off"
-        rows="8"
+        rows="${Math.max(8, (current || "").split("\n").length + 1)}"
       ></textarea>
       ${isDirty || onSave ? html`
         <div class="yaml-edit-bar">
@@ -2822,13 +2823,6 @@ class SeloraAIArchitectPanel extends LitElement {
                   <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
                       <h3 style="flex:1;font-size:14px;margin:0;">${a.alias}</h3>
-                      <div class="chip ${a.is_selora ? "ai-managed" : "user-managed"}" style="margin-left:6px;">
-                        ${a.is_selora ? "SELORA" : "USER"}
-                      </div>
-                      ${versionCount && hasAutomationId
-                        ? html`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-left:6px;"
-                            @click=${() => this._openVersionHistory(automationId)}>v${versionCount}</span>`
-                        : ""}
                       ${hasAutomationId ? html`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
                           <button class="burger-btn" @click=${(e) => this._toggleBurgerMenu(automationId, e)}
@@ -2852,28 +2846,30 @@ class SeloraAIArchitectPanel extends LitElement {
                       ` : ""}
                     </div>
 
-                    ${(a.trigger?.length || a.action?.length)
-                      ? html`
-                        <span class="expand-toggle" style="padding:0;margin:0 0 4px;" @click=${() => { this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a.entity_id}`]: !this._expandedAutomations[`flow_${a.entity_id}`] }; this.requestUpdate(); }}>
-                          <ha-icon icon="mdi:chevron-${this._expandedAutomations[`flow_${a.entity_id}`] ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-                          ${this._expandedAutomations[`flow_${a.entity_id}`] ? "Hide flow" : "Show flow"}
-                        </span>
-                        ${this._expandedAutomations[`flow_${a.entity_id}`] ? this._renderAutomationFlowchart(a) : ""}`
-                      : ""}
-
-                    <div style="display:flex;align-items:center;gap:12px;font-size:11px;opacity:0.6;margin-bottom:6px;flex-wrap:wrap;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+                      ${(a.trigger?.length || a.action?.length)
+                        ? html`
+                          <button class="btn btn-ghost ${this._expandedAutomations[`flow_${a.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
+                            @click=${() => { this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a.entity_id}`]: !this._expandedAutomations[`flow_${a.entity_id}`] }; this.requestUpdate(); }}>
+                            <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                            ${this._expandedAutomations[`flow_${a.entity_id}`] ? "Hide flow" : "Show flow"}
+                          </button>`
+                        : ""}
                       ${a.yaml_text
                         ? html`
-                            <span class="expand-toggle" style="padding:0;margin:0;" @click=${() => this._toggleExpandAutomation(`yaml_${a.entity_id}`)}>
-                              <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:12px;"></ha-icon>
-                              ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "Hide YAML" : "Edit YAML"}
-                            </span>
-                          `
+                          <button class="btn btn-ghost ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
+                            @click=${() => this._toggleExpandAutomation(`yaml_${a.entity_id}`)}>
+                            <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
+                            ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "Hide YAML" : "Edit YAML"}
+                          </button>`
                         : ""}
                       ${a.last_triggered
-                        ? html`<span style="margin-left:auto;">Last run: ${new Date(a.last_triggered).toLocaleString()}</span>`
-                        : !isDraft ? html`<span style="margin-left:auto;">Never triggered</span>` : ""}
+                        ? html`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Last run: ${new Date(a.last_triggered).toLocaleString()}</span>`
+                        : !isDraft ? html`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Never triggered</span>` : ""}
                     </div>
+
+                    ${this._expandedAutomations[`flow_${a.entity_id}`] && (a.trigger?.length || a.action?.length)
+                      ? this._renderAutomationFlowchart(a) : ""}
 
                     ${this._expandedAutomations[`yaml_${a.entity_id}`] && a.yaml_text
                       ? this._renderYamlEditor(

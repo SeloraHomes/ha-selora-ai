@@ -1958,6 +1958,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         padding: 4px 8px;
       }
       .btn-ghost:hover { color: var(--primary-text-color); background: rgba(0,0,0,0.06); border-color: var(--divider-color); }
+      .btn-ghost.active { color: #b45309; border-color: rgba(245,158,11,0.35); background: rgba(245,158,11,0.05); }
       .expand-toggle {
         font-size: 11px;
         opacity: 0.55;
@@ -2355,10 +2356,14 @@ var SeloraAIArchitectPanel = class extends s4 {
       <textarea
         class="yaml-editor"
         .value=${current}
-        @input=${(e4) => this._onYamlInput(key, e4.target.value)}
+        @input=${(e4) => {
+      this._onYamlInput(key, e4.target.value);
+      e4.target.style.height = "auto";
+      e4.target.style.height = e4.target.scrollHeight + "px";
+    }}
         spellcheck="false"
         autocomplete="off"
-        rows="8"
+        rows="${Math.max(8, (current || "").split("\n").length + 1)}"
       ></textarea>
       ${isDirty || onSave ? x`
         <div class="yaml-edit-bar">
@@ -3298,11 +3303,6 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
                       <h3 style="flex:1;font-size:14px;margin:0;">${a3.alias}</h3>
-                      <div class="chip ${a3.is_selora ? "ai-managed" : "user-managed"}" style="margin-left:6px;">
-                        ${a3.is_selora ? "SELORA" : "USER"}
-                      </div>
-                      ${versionCount && hasAutomationId ? x`<span title="Version history" style="font-size:11px;background:var(--secondary-background-color);border:1px solid var(--divider-color);border-radius:4px;padding:2px 7px;cursor:pointer;margin-left:6px;"
-                            @click=${() => this._openVersionHistory(automationId)}>v${versionCount}</span>` : ""}
                       ${hasAutomationId ? x`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
                           <button class="burger-btn" @click=${(e4) => this._toggleBurgerMenu(automationId, e4)}
@@ -3334,25 +3334,26 @@ var SeloraAIArchitectPanel = class extends s4 {
                       ` : ""}
                     </div>
 
-                    ${a3.trigger?.length || a3.action?.length ? x`
-                        <span class="expand-toggle" style="padding:0;margin:0 0 4px;" @click=${() => {
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
+                      ${a3.trigger?.length || a3.action?.length ? x`
+                          <button class="btn btn-ghost ${this._expandedAutomations[`flow_${a3.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
+                            @click=${() => {
         this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a3.entity_id}`]: !this._expandedAutomations[`flow_${a3.entity_id}`] };
         this.requestUpdate();
       }}>
-                          <ha-icon icon="mdi:chevron-${this._expandedAutomations[`flow_${a3.entity_id}`] ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-                          ${this._expandedAutomations[`flow_${a3.entity_id}`] ? "Hide flow" : "Show flow"}
-                        </span>
-                        ${this._expandedAutomations[`flow_${a3.entity_id}`] ? this._renderAutomationFlowchart(a3) : ""}` : ""}
-
-                    <div style="display:flex;align-items:center;gap:12px;font-size:11px;opacity:0.6;margin-bottom:6px;flex-wrap:wrap;">
+                            <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                            ${this._expandedAutomations[`flow_${a3.entity_id}`] ? "Hide flow" : "Show flow"}
+                          </button>` : ""}
                       ${a3.yaml_text ? x`
-                            <span class="expand-toggle" style="padding:0;margin:0;" @click=${() => this._toggleExpandAutomation(`yaml_${a3.entity_id}`)}>
-                              <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:12px;"></ha-icon>
-                              ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "Hide YAML" : "Edit YAML"}
-                            </span>
-                          ` : ""}
-                      ${a3.last_triggered ? x`<span style="margin-left:auto;">Last run: ${new Date(a3.last_triggered).toLocaleString()}</span>` : !isDraft ? x`<span style="margin-left:auto;">Never triggered</span>` : ""}
+                          <button class="btn btn-ghost ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
+                            @click=${() => this._toggleExpandAutomation(`yaml_${a3.entity_id}`)}>
+                            <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
+                            ${this._expandedAutomations[`yaml_${a3.entity_id}`] ? "Hide YAML" : "Edit YAML"}
+                          </button>` : ""}
+                      ${a3.last_triggered ? x`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Last run: ${new Date(a3.last_triggered).toLocaleString()}</span>` : !isDraft ? x`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Never triggered</span>` : ""}
                     </div>
+
+                    ${this._expandedAutomations[`flow_${a3.entity_id}`] && (a3.trigger?.length || a3.action?.length) ? this._renderAutomationFlowchart(a3) : ""}
 
                     ${this._expandedAutomations[`yaml_${a3.entity_id}`] && a3.yaml_text ? this._renderYamlEditor(
         `yaml_${a3.entity_id}`,
