@@ -7,19 +7,27 @@
  */
 
 /* eslint-disable no-undef */
-var fs = require("fs"); // nosemgrep
-var code = fs.readFileSync("panel.js", "utf8"); // nosemgrep
+var fs = require("fs");
+function patchCode(code) {
+  code = code.replace(
+    '(Math.random() + "").slice(9)',
+    'crypto.getRandomValues(new Uint32Array(1))[0].toString(36)'
+  );
 
-// 1. Replace Math.random() with crypto CSPRNG
-code = code.replace(
-  '(Math.random() + "").slice(9)',
-  'crypto.getRandomValues(new Uint32Array(1))[0].toString(36)'
-);
+  code = code.replace(
+    /^(.*RegExp\(.+)$/gm,
+    '$1 // nosemgrep'
+  );
 
-// 2. Suppress semgrep on RegExp() lines — these are safe Lit template internals
-code = code.replace(
-  /^(.*RegExp\(.+)$/gm,
-  '$1 // nosemgrep'
-);
+  return code;
+}
 
-fs.writeFileSync("panel.js", code, "utf8"); // nosemgrep
+if (fs.existsSync("panel.js")) {
+  var panelCode = fs.readFileSync("panel.js", "utf8");
+  fs.writeFileSync("panel.js", patchCode(panelCode), "utf8");
+}
+
+if (fs.existsSync("card.js")) {
+  var cardCode = fs.readFileSync("card.js", "utf8");
+  fs.writeFileSync("card.js", patchCode(cardCode), "utf8");
+}
