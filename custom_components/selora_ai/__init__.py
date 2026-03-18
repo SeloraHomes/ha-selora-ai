@@ -1980,6 +1980,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Backfill history from recorder on first start
     hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback))
 
+    # ── Pattern Detection: Pattern Engine ────────────────────────────────
+    from .pattern_engine import PatternEngine
+
+    pattern_engine = PatternEngine(hass, pattern_store)
+    await pattern_engine.async_start()
+    hass.data[DOMAIN][entry.entry_id]["pattern_engine"] = pattern_engine
+    _LOGGER.info("Pattern detection engine started (15-min scan interval)")
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
@@ -2008,7 +2015,10 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unsub_discovery:
         unsub_discovery()
 
-    # Stop pattern detection state listener
+    # Stop pattern detection
+    pattern_engine = data.get("pattern_engine")
+    if pattern_engine:
+        await pattern_engine.async_stop()
     unsub_state = data.get("unsub_state_listener")
     if unsub_state:
         unsub_state()
