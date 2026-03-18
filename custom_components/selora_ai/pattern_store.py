@@ -1,0 +1,442 @@
+"""PatternStore — persists state history, detected patterns, and proactive suggestions.
+
+Backed by HA's Store API (same pattern as AutomationStore).
+
+Data layout:
+    {
+        "state_history": {
+            "<entity_id>": [
+                {"state": "on", "prev": "off", "ts": "ISO-8601"},
+                ...  # ring buffer, max PATTERN_HISTORY_MAX_PER_ENTITY per entity
+            ]
+        },
+        "patterns": {
+            "<pattern_id>": {
+                "pattern_id": str,
+                "type": "time_based" | "correlation" | "sequence",
+                "confidence": float,
+                "entity_ids": [str],
+                "description": str,
+                "evidence": dict,
+                "detected_at": str,
+                "last_seen": str,
+                "occurrence_count": int,
+                "status": "active" | "dismissed" | "snoozed" | "accepted",
+                "snooze_until": str | None,
+            }
+        },
+        "suggestions": {
+            "<suggestion_id>": {
+                "suggestion_id": str,
+                "pattern_id": str,
+                "source": "pattern" | "hybrid",
+                "confidence": float,
+                "automation_data": dict,
+                "automation_yaml": str,
+                "description": str,
+                "evidence_summary": str,
+                "created_at": str,
+                "status": "pending" | "accepted" | "dismissed" | "snoozed",
+                "snooze_until": str | None,
+            }
+        },
+        "meta": {
+            "last_history_collection": str,
+            "last_pattern_scan": str,
+        }
+    }
+"""
+
+from __future__ import annotations
+
+import logging
+import uuid
+from datetime import datetime, timedelta, timezone
+from typing import Any
+
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import Store
+
+from .const import (
+    PATTERN_HISTORY_MAX_PER_ENTITY,
+    PATTERN_HISTORY_RETENTION_DAYS,
+    PATTERN_STORE_KEY,
+)
+
+_LOGGER = logging.getLogger(__name__)
+
+_STORE_VERSION = 1
+
+
+class PatternStore:
+    """Persistent store for state history, patterns, and proactive suggestions."""
+
+    def __init__(self, hass: HomeAssistant) -> None:
+        self._store: Store = Store(hass, version=_STORE_VERSION, key=PATTERN_STORE_KEY)
+        self._data: dict[str, Any] | None = None
+        self._pending_state_changes = 0
+
+    async def _ensure_loaded(self) -> None:
+        if self._data is not None:
+            return
+        raw = await self._store.async_load()
+        if isinstance(raw, dict):
+            self._data = raw
+            self._data.setdefault("state_history", {})
+            self._data.setdefault("patterns", {})
+            self._data.setdefault("suggestions", {})
+            self._data.setdefault("meta", {})
+        else:
+            self._data = {
+                "state_history": {},
+                "patterns": {},
+                "suggestions": {},
+                "meta": {},
+            }
+
+    async def _get_loaded_data(self) -> dict[str, Any]:
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Pattern store data failed to load")
+        return self._data
+
+    async def _save(self) -> None:
+        if self._data is not None:
+            await self._store.async_save(self._data)
+
+    # ── State History ────────────────────────────────────────────────────
+
+    async def record_state_change(
+        self,
+        entity_id: str,
+        new_state: str,
+        old_state: str,
+        timestamp: str,
+    ) -> None:
+        """Append a state change to the ring buffer for this entity."""
+        data = await self._get_loaded_data()
+        history = data["state_history"]
+        entries = history.setdefault(entity_id, [])
+        entries.append({"state": new_state, "prev": old_state, "ts": timestamp})
+
+        # Enforce ring buffer limit
+        if len(entries) > PATTERN_HISTORY_MAX_PER_ENTITY:
+            history[entity_id] = entries[-PATTERN_HISTORY_MAX_PER_ENTITY:]
+
+        # Batch save: defer to periodic flush to avoid excessive I/O.
+        # The caller (state listener) calls this on every state change,
+        # so we only persist every 50 events or when explicitly flushed.
+        self._pending_state_changes += 1
+        if self._pending_state_changes >= 50:
+            await self._save()
+            self._pending_state_changes = 0
+
+    async def flush(self) -> None:
+        """Force-persist any buffered state history to disk."""
+        await self._save()
+        self._pending_state_changes = 0
+
+    async def get_entity_history(
+        self, entity_id: str, since: datetime | None = None
+    ) -> list[dict[str, Any]]:
+        """Return state history for a single entity, optionally filtered by time."""
+        data = await self._get_loaded_data()
+        entries = data["state_history"].get(entity_id, [])
+        if since is None:
+            return list(entries)
+        cutoff = since.isoformat()
+        return [e for e in entries if e["ts"] >= cutoff]
+
+    async def get_all_history(
+        self, since: datetime | None = None
+    ) -> dict[str, list[dict[str, Any]]]:
+        """Return state history for all entities."""
+        data = await self._get_loaded_data()
+        history = data["state_history"]
+        if since is None:
+            return {k: list(v) for k, v in history.items()}
+        cutoff = since.isoformat()
+        return {
+            k: [e for e in v if e["ts"] >= cutoff]
+            for k, v in history.items()
+            if any(e["ts"] >= cutoff for e in v)
+        }
+
+    async def prune_old_history(
+        self, older_than_days: int = PATTERN_HISTORY_RETENTION_DAYS
+    ) -> int:
+        """Remove state history entries older than the retention window.
+
+        Returns the number of entries removed.
+        """
+        data = await self._get_loaded_data()
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=older_than_days)
+        ).isoformat()
+        removed = 0
+        history = data["state_history"]
+        empty_keys: list[str] = []
+        for entity_id, entries in history.items():
+            before = len(entries)
+            history[entity_id] = [e for e in entries if e["ts"] >= cutoff]
+            removed += before - len(history[entity_id])
+            if not history[entity_id]:
+                empty_keys.append(entity_id)
+        for key in empty_keys:
+            del history[key]
+        if removed > 0:
+            await self._save()
+            _LOGGER.info(
+                "Pruned %d state history entries older than %d days",
+                removed,
+                older_than_days,
+            )
+        return removed
+
+    async def backfill_from_recorder(
+        self, hass: HomeAssistant, lookback_days: int = 7
+    ) -> int:
+        """One-time import of recent state history from HA Recorder.
+
+        Only runs when state_history is empty (first start).
+        Returns the number of entries imported.
+        """
+        data = await self._get_loaded_data()
+        if data["state_history"]:
+            return 0  # Already have data
+
+        try:
+            from homeassistant.components.recorder import get_instance
+            from homeassistant.components.recorder.history import (
+                get_significant_states,
+            )
+        except ImportError:
+            _LOGGER.warning("Recorder not available for backfill")
+            return 0
+
+        from .const import COLLECTOR_DOMAINS
+
+        now = datetime.now(timezone.utc)
+        start = now - timedelta(days=lookback_days)
+
+        entity_ids = [
+            s.entity_id
+            for s in hass.states.async_all()
+            if s.entity_id.split(".")[0] in COLLECTOR_DOMAINS
+        ]
+        if not entity_ids:
+            return 0
+
+        try:
+            states = await get_instance(hass).async_add_executor_job(
+                get_significant_states,
+                hass,
+                start,
+                now,
+                entity_ids,
+            )
+        except Exception:
+            _LOGGER.exception("Failed to backfill from recorder")
+            return 0
+
+        count = 0
+        history = data["state_history"]
+        for entity_id, entity_states in states.items():
+            entries: list[dict[str, Any]] = []
+            prev_state = ""
+            for state in entity_states:
+                if state.state == prev_state:
+                    continue
+                entries.append({
+                    "state": state.state,
+                    "prev": prev_state,
+                    "ts": state.last_changed.isoformat(),
+                })
+                prev_state = state.state
+            if entries:
+                history[entity_id] = entries[-PATTERN_HISTORY_MAX_PER_ENTITY:]
+                count += len(history[entity_id])
+
+        if count:
+            data["meta"]["last_history_collection"] = now.isoformat()
+            await self._save()
+            _LOGGER.info("Backfilled %d state history entries from recorder", count)
+        return count
+
+    # ── Patterns ─────────────────────────────────────────────────────────
+
+    async def save_pattern(self, pattern: dict[str, Any]) -> str:
+        """Save or update a detected pattern. Returns the pattern_id."""
+        data = await self._get_loaded_data()
+        now = datetime.now(timezone.utc).isoformat()
+
+        pattern_id = pattern.get("pattern_id") or str(uuid.uuid4())
+        existing = data["patterns"].get(pattern_id)
+
+        if existing:
+            existing["confidence"] = pattern["confidence"]
+            existing["last_seen"] = now
+            existing["occurrence_count"] = existing.get("occurrence_count", 0) + 1
+            existing["evidence"] = pattern.get("evidence", existing["evidence"])
+        else:
+            data["patterns"][pattern_id] = {
+                "pattern_id": pattern_id,
+                "type": pattern["type"],
+                "confidence": pattern["confidence"],
+                "entity_ids": pattern["entity_ids"],
+                "description": pattern["description"],
+                "evidence": pattern.get("evidence", {}),
+                "detected_at": now,
+                "last_seen": now,
+                "occurrence_count": 1,
+                "status": "active",
+                "snooze_until": None,
+            }
+
+        await self._save()
+        return pattern_id
+
+    async def get_patterns(
+        self,
+        status: str | None = None,
+        pattern_type: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Return patterns, optionally filtered by status and/or type."""
+        data = await self._get_loaded_data()
+        now = datetime.now(timezone.utc).isoformat()
+        results: list[dict[str, Any]] = []
+        did_unsnooze = False
+
+        for p in data["patterns"].values():
+            if status and p["status"] != status:
+                # Un-snooze patterns whose snooze window has passed
+                if p["status"] == "snoozed" and p.get("snooze_until"):
+                    if p["snooze_until"] <= now:
+                        p["status"] = "active"
+                        did_unsnooze = True
+                    elif status == "active":
+                        continue
+                else:
+                    continue
+            if pattern_type and p["type"] != pattern_type:
+                continue
+            results.append(p)
+
+        if did_unsnooze:
+            await self._save()
+
+        return results
+
+    async def update_pattern_status(
+        self,
+        pattern_id: str,
+        status: str,
+        snooze_until: str | None = None,
+    ) -> bool:
+        """Update a pattern's status."""
+        data = await self._get_loaded_data()
+        pattern = data["patterns"].get(pattern_id)
+        if not pattern:
+            return False
+        pattern["status"] = status
+        pattern["snooze_until"] = snooze_until
+        await self._save()
+        return True
+
+    async def find_pattern_by_signature(
+        self,
+        pattern_type: str,
+        entity_ids: list[str],
+        evidence_key: str,
+    ) -> dict[str, Any] | None:
+        """Find an existing pattern by type + entities + evidence key for dedup."""
+        data = await self._get_loaded_data()
+        entity_set = set(entity_ids)
+        for p in data["patterns"].values():
+            if p["type"] != pattern_type:
+                continue
+            if set(p["entity_ids"]) != entity_set:
+                continue
+            # Match on a distinguishing evidence field
+            if p.get("evidence", {}).get("_signature") == evidence_key:
+                return p
+        return None
+
+    # ── Suggestions ──────────────────────────────────────────────────────
+
+    async def save_suggestion(self, suggestion: dict[str, Any]) -> str:
+        """Save a proactive suggestion. Returns the suggestion_id."""
+        data = await self._get_loaded_data()
+        suggestion_id = suggestion.get("suggestion_id") or str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+
+        data["suggestions"][suggestion_id] = {
+            "suggestion_id": suggestion_id,
+            "pattern_id": suggestion.get("pattern_id", ""),
+            "source": suggestion.get("source", "pattern"),
+            "confidence": suggestion.get("confidence", 0.0),
+            "automation_data": suggestion.get("automation_data", {}),
+            "automation_yaml": suggestion.get("automation_yaml", ""),
+            "description": suggestion.get("description", ""),
+            "evidence_summary": suggestion.get("evidence_summary", ""),
+            "created_at": now,
+            "status": "pending",
+            "snooze_until": None,
+        }
+
+        await self._save()
+        return suggestion_id
+
+    async def get_suggestions(
+        self, status: str | None = None
+    ) -> list[dict[str, Any]]:
+        """Return proactive suggestions, optionally filtered by status."""
+        data = await self._get_loaded_data()
+        now = datetime.now(timezone.utc).isoformat()
+        results: list[dict[str, Any]] = []
+        did_unsnooze = False
+
+        for s in data["suggestions"].values():
+            # Un-snooze expired suggestions
+            if s["status"] == "snoozed" and s.get("snooze_until"):
+                if s["snooze_until"] <= now:
+                    s["status"] = "pending"
+                    did_unsnooze = True
+
+            if status and s["status"] != status:
+                continue
+            results.append(s)
+
+        if did_unsnooze:
+            await self._save()
+
+        return results
+
+    async def update_suggestion_status(
+        self,
+        suggestion_id: str,
+        status: str,
+        snooze_until: str | None = None,
+    ) -> bool:
+        """Update a suggestion's status."""
+        data = await self._get_loaded_data()
+        suggestion = data["suggestions"].get(suggestion_id)
+        if not suggestion:
+            return False
+        suggestion["status"] = status
+        suggestion["snooze_until"] = snooze_until
+        await self._save()
+        return True
+
+    async def get_suggestion(self, suggestion_id: str) -> dict[str, Any] | None:
+        """Return a single suggestion by ID."""
+        data = await self._get_loaded_data()
+        return data["suggestions"].get(suggestion_id)
+
+    async def has_suggestion_for_pattern(self, pattern_id: str) -> bool:
+        """Check if a non-dismissed suggestion already exists for a pattern."""
+        data = await self._get_loaded_data()
+        for s in data["suggestions"].values():
+            if s["pattern_id"] == pattern_id and s["status"] in ("pending", "snoozed"):
+                return True
+        return False
