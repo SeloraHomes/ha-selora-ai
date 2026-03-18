@@ -63,6 +63,8 @@ from .const import (
     LLM_PROVIDER_NONE,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
+    SIGNAL_PROACTIVE_SUGGESTIONS,
+    WEBHOOK_DEVICES_ID,
     AUTOMATION_ID_PREFIX,
     PANEL_NAME,
     PANEL_TITLE,
@@ -924,11 +926,13 @@ async def _handle_websocket_get_suggestions(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Return the latest automated suggestions from the background collector."""
+    """Return proactive pattern-based suggestions (fallback to collector suggestions)."""
     if not _require_admin(connection, msg):
         return
 
-    suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+    suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
+    if not suggestions:
+        suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
     connection.send_result(msg["id"], suggestions)
 
 
@@ -941,29 +945,43 @@ async def _handle_websocket_generate_suggestions(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Trigger an on-demand analysis cycle to generate new suggestions."""
+    """Trigger an on-demand pattern scan and suggestion generation cycle."""
     if not _require_admin(connection, msg):
         return
 
     domain_data = hass.data.get(DOMAIN, {})
-    collector = None
+    runtime: dict[str, Any] | None = None
+
     for key, val in domain_data.items():
-        if key.startswith("_"):
+        if not isinstance(key, str) or key.startswith("_"):
             continue
-        if isinstance(val, dict) and "collector" in val:
-            collector = val["collector"]
+        if isinstance(val, dict) and "pattern_engine" in val and "suggestion_generator" in val:
+            runtime = val
             break
 
-    if collector is None:
-        connection.send_error(msg["id"], "no_collector", "No collector available — check LLM configuration")
+    if runtime is None:
+        connection.send_error(msg["id"], "no_pattern_engine", "Pattern engine not available")
         return
 
     try:
-        await collector._collect_analyze_log()
-        suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
-        connection.send_result(msg["id"], suggestions)
+        pattern_engine = runtime["pattern_engine"]
+        suggestion_generator = runtime["suggestion_generator"]
+
+        patterns = await pattern_engine.scan()
+        suggestions = await suggestion_generator.generate_from_patterns(patterns)
+
+        if suggestions:
+            existing = hass.data[DOMAIN].get("proactive_suggestions", [])
+            existing.extend(suggestions)
+            hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+            async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+
+        all_suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
+        if not all_suggestions:
+            all_suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+        connection.send_result(msg["id"], all_suggestions)
     except Exception as exc:
-        _LOGGER.exception("On-demand analysis failed")
+        _LOGGER.exception("On-demand suggestion generation failed")
         connection.send_error(msg["id"], "analysis_failed", str(exc))
 
 
@@ -1984,9 +2002,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     from .pattern_engine import PatternEngine
 
     pattern_engine = PatternEngine(hass, pattern_store)
-    await pattern_engine.async_start()
     hass.data[DOMAIN][entry.entry_id]["pattern_engine"] = pattern_engine
-    _LOGGER.info("Pattern detection engine started (15-min scan interval)")
+
+    # ── Suggestion Generator: Pattern → Automation ───────────────────────
+    from .suggestion_generator import SuggestionGenerator
+
+    suggestion_generator = SuggestionGenerator(hass, pattern_store, llm)
+    hass.data[DOMAIN][entry.entry_id]["suggestion_generator"] = suggestion_generator
+
+    async def _on_patterns_detected(patterns: list[dict[str, Any]]) -> None:
+        """Callback: convert new patterns into proactive suggestions."""
+        suggestions = await suggestion_generator.generate_from_patterns(patterns)
+        if suggestions:
+            # Store for dashboard card quick access
+            existing = hass.data[DOMAIN].get("proactive_suggestions", [])
+            existing.extend(suggestions)
+            # Keep only the latest 50 suggestions
+            hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+            async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+
+    pattern_engine.on_patterns_detected = _on_patterns_detected
+    await pattern_engine.async_start()
+    _LOGGER.info("Pattern detection + suggestion generation started")
+
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
