@@ -334,6 +334,7 @@ class LLMClient:
             "- Only use entity_ids from the AVAILABLE ENTITIES list.\n"
             "- For automations, use plural HA 2024+ keys: 'triggers', 'actions', 'conditions'.\n"
             "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
+            "- For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
             "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
@@ -505,6 +506,7 @@ class LLMClient:
             "- Only use entity_ids from the AVAILABLE ENTITIES list.\n"
             "- For automations, use plural HA 2024+ keys: 'triggers', 'actions', 'conditions'.\n"
             "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
+            "- For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
             "- Match entity names flexibly — 'kitchen lights' -> 'light.kitchen', etc.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
@@ -644,6 +646,8 @@ class LLMClient:
             "5. Use valid Home Assistant automation YAML schema (as JSON).\n"
             "6. For actions, use 'action' key (not 'service') for the service call, e.g. "
             '"notify.notify". Include \'data\' for parameters.\n\n'
+            "7. For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. "
+            "Use \"on\"/\"off\" (not true/false). Example: {\"platform\": \"state\", \"entity_id\": \"binary_sensor.front_door_person\", \"to\": \"on\"}.\n\n"
             "EXAMPLE OUTPUT:\n"
             '[\n'
             '  {\n'
@@ -651,6 +655,13 @@ class LLMClient:
             '    "description": "Send a notification at sunset each day",\n'
             '    "triggers": [{"platform": "sun", "event": "sunset"}],\n'
             '    "actions": [{"action": "notify.notify", "data": {"message": "Sun has set"}}]\n'
+            '  },\n'
+            '  {\n'
+            '    "alias": "Turn on porch light when motion detected",\n'
+            '    "description": "Turn on the porch light when front door detects a person",\n'
+            '    "triggers": [{"platform": "state", "entity_id": "binary_sensor.front_door_person", "to": "on"}],\n'
+            '    "conditions": [{"condition": "sun", "after": "sunset", "before": "sunrise"}],\n'
+            '    "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.front_porch"}}]\n'
             '  }\n'
             ']\n\n'
             "Respond with ONLY the JSON array. No markdown fences. No explanation."

@@ -92,6 +92,21 @@ def validate_automation_payload(
             fixed_trigger["platform"] = fixed_trigger.pop("trigger")
         if not fixed_trigger.get("platform"):
             return False, "each trigger must include a platform", None
+
+        # HA state triggers require 'to' and 'from' to be strings.
+        # LLMs often produce boolean values (true/false) instead of the
+        # string equivalents ("on"/"off").  Coerce them here so the
+        # automation passes HA schema validation at runtime.
+        for key in ("to", "from"):
+            if key in fixed_trigger and not isinstance(fixed_trigger[key], str):
+                val = fixed_trigger[key]
+                if isinstance(val, bool):
+                    fixed_trigger[key] = "on" if val else "off"
+                elif val is None:
+                    fixed_trigger.pop(key, None)
+                else:
+                    fixed_trigger[key] = str(val)
+
         normalized_triggers.append(fixed_trigger)
 
     normalized = {
