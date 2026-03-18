@@ -330,3 +330,19 @@ CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
 AUTOMATION_SOFT_DELETE_DAYS = 30
+
+# ── Pattern Detection ────────────────────────────────────────────────
+PATTERN_STORE_KEY = "selora_ai_patterns"
+DEFAULT_PATTERN_INTERVAL = 900  # 15 minutes
+CONF_PATTERN_ENABLED = "pattern_detection_enabled"
+PATTERN_HISTORY_MAX_PER_ENTITY = 500
+PATTERN_HISTORY_RETENTION_DAYS = 14
+
+PATTERN_TYPE_TIME_BASED = "time_based"
+PATTERN_TYPE_CORRELATION = "correlation"
+PATTERN_TYPE_SEQUENCE = "sequence"
+
+CONFIDENCE_HIGH = 0.75
+CONFIDENCE_MEDIUM = 0.50
+
+SIGNAL_PROACTIVE_SUGGESTIONS = f"{DOMAIN}_proactive_suggestions"

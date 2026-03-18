@@ -39,6 +39,7 @@ from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    COLLECTOR_DOMAINS,
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
     CONF_ENTRY_TYPE,
@@ -1945,7 +1946,40 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI started (%s)", llm.provider_name)
     else:
         _LOGGER.info("Selora AI started (unconfigured mode)")
-    
+
+    # ── Pattern Detection: State History Collection ─────────────────────
+    from .pattern_store import PatternStore
+
+    pattern_store = PatternStore(hass)
+
+    async def _state_change_listener(event: Any) -> None:
+        """Record state changes for pattern detection."""
+        entity_id = event.data.get("entity_id", "")
+        domain = entity_id.split(".")[0] if "." in entity_id else ""
+        if domain not in COLLECTOR_DOMAINS:
+            return
+        new_state = event.data.get("new_state")
+        old_state = event.data.get("old_state")
+        if new_state is None or old_state is None:
+            return
+        if new_state.state == old_state.state:
+            return  # Only track actual state changes
+        await pattern_store.record_state_change(
+            entity_id,
+            new_state.state,
+            old_state.state,
+            new_state.last_changed.isoformat(),
+        )
+
+    unsub_state_listener = hass.bus.async_listen(
+        "state_changed", _state_change_listener
+    )
+    hass.data[DOMAIN][entry.entry_id]["pattern_store"] = pattern_store
+    hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
+
+    # Backfill history from recorder on first start
+    hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback))
+
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
@@ -1970,9 +2004,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     if collector:
         await collector.async_stop()
-    
+
     if unsub_discovery:
         unsub_discovery()
+
+    # Stop pattern detection state listener
+    unsub_state = data.get("unsub_state_listener")
+    if unsub_state:
+        unsub_state()
+    pattern_store = data.get("pattern_store")
+    if pattern_store:
+        await pattern_store.flush()
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
