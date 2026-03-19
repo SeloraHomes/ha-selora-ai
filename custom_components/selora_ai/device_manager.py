@@ -549,18 +549,8 @@ class DeviceManager:
             ],
         }
 
-        selora_card = {
-            "type": "entities",
-            "title": "Selora AI Hub",
-            "entities": [
-                "sensor.selora_ai_hub_devices",
-                "sensor.selora_ai_hub_status",
-                "sensor.selora_ai_hub_discovery",
-            ],
-        }
-
         # Use HA's Lovelace API — updates cache + fires events for immediate effect
-        saved = False
+        wrote_dashboard = False
         try:
             lovelace_data = self.hass.data.get("lovelace")
             if lovelace_data and hasattr(lovelace_data, "dashboards"):
@@ -568,7 +558,7 @@ class DeviceManager:
                     if not hasattr(dashboard_obj, "async_save"):
                         continue
                     try:
-                        current_config = await dashboard_obj.async_load(force=False)
+                        await dashboard_obj.async_load(force=False)
                     except Exception:
                         # No config yet — save our full config
                         await dashboard_obj.async_save(config)
@@ -576,31 +566,12 @@ class DeviceManager:
                             "Generated dashboard '%s' with %d cards",
                             url_path, len(cards),
                         )
-                        saved = True
+                        wrote_dashboard = True
                         continue
-
-                    # Dashboard has config — ensure Selora AI Hub card is present
-                    views = current_config.get("views", [])
-                    if not views:
-                        current_config["views"] = [{"path": "default_view", "title": "Overview", "cards": []}]
-                        views = current_config["views"]
-                    view_cards = views[0].get("cards", [])
-                    has_selora = any(
-                        c.get("title") == "Selora AI Hub" for c in view_cards
-                    )
-                    if not has_selora:
-                        view_cards.insert(0, selora_card)
-                        views[0]["cards"] = view_cards
-                        await dashboard_obj.async_save(current_config)
-                        _LOGGER.info(
-                            "Added Selora AI Hub card to dashboard '%s'",
-                            url_path,
-                        )
-                    saved = True
         except Exception:
             _LOGGER.debug("Lovelace API save failed", exc_info=True)
 
-        if saved:
+        if wrote_dashboard:
             return {"generated": True, "cards": len(cards)}
 
         # Fallback: direct file write (takes effect after HA restart)
@@ -617,7 +588,8 @@ class DeviceManager:
                 dashboard_data,
             )
             _LOGGER.info("Generated dashboard (file fallback) with %d cards", len(cards))
-        return {"generated": True, "cards": len(cards)}
+            wrote_dashboard = True
+        return {"generated": wrote_dashboard, "cards": len(cards)}
 
     def _write_dashboard(self, data: dict) -> None:
         path = (Path(self.hass.config.path()) / ".storage" / "lovelace").resolve()

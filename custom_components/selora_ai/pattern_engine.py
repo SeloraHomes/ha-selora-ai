@@ -90,7 +90,6 @@ class PatternEngine:
                 await self._initial_scan_task
         self._initial_scan_task = None
 
-
     async def _scheduled_scan(self, _now: Any) -> None:
         """Periodic scan callback."""
         try:
