@@ -516,12 +516,6 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self._create_llm_entry()
             return self.async_abort(reason="no_devices_selected")
 
-        # Post-setup: generate dashboard
-        try:
-            await dm.generate_dashboard()
-        except Exception:
-            _LOGGER.exception("Post-setup tasks failed")
-
         return await self.async_step_results()
 
     async def _assign_area_to_entry(self, entry_id: str, area_id: str) -> None:

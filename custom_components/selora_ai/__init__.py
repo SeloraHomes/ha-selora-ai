@@ -2449,12 +2449,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Set up entity platforms (sensor + button)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    # Immediately add Selora AI Hub card to dashboard (entities now exist)
-    try:
-        await device_mgr.generate_dashboard()
-    except Exception:
-        _LOGGER.debug("Immediate dashboard generation failed — will retry in delayed discovery")
-
     # Start background collection + analysis
     if llm:
         await collector.async_start()
