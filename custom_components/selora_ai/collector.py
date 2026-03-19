@@ -42,7 +42,7 @@ from .const import (
     DEFAULT_COLLECTOR_MODE,
     DEFAULT_COLLECTOR_INTERVAL,
 )
-from .automation_utils import validate_automation_payload
+from .automation_utils import assess_automation_risk, validate_automation_payload
 from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -235,6 +235,7 @@ class DataCollector:
                     automation_preview, default_flow_style=False, allow_unicode=True
                 )
                 suggestion["automation_data"] = automation_preview
+                suggestion["risk_assessment"] = assess_automation_risk(automation_preview)
                 enriched.append(suggestion)
 
             filtered_out = len(unique_suggestions) - len(enriched)

@@ -168,6 +168,7 @@ class ConversationStore:
         intent: str | None = None,
         calls: list[dict[str, Any]] | None = None,
         automation_id: str | None = None,
+        risk_assessment: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -204,6 +205,8 @@ class ConversationStore:
             message["calls"] = calls
         if automation_id is not None:
             message["automation_id"] = automation_id
+        if risk_assessment is not None:
+            message["risk_assessment"] = risk_assessment
 
         session["messages"].append(message)
 
@@ -321,6 +324,11 @@ def _require_admin(
     return False
 
 
+def _sanitize_history_text(value: Any) -> str:
+    """Normalize untrusted conversation context before sending it back to the LLM."""
+    return " ".join(str(value or "").split())
+
+
 @websocket_api.async_response
 @decorators.websocket_command({
     vol.Required("type"): "selora_ai/chat",
@@ -379,9 +387,12 @@ async def _handle_websocket_chat(
             continue
         content = m["content"]
         if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
-            alias = (m.get("automation") or {}).get("alias", "")
-            description = m.get("description", "")
-            header = f"[Proposed automation: {alias}"
+            alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
+            description = _sanitize_history_text(m.get("description", ""))
+            header = (
+                "[Untrusted automation reference data for context only: "
+                f"{alias}"
+            )
             if description:
                 header += f" — {description}"
             header += f"]\n{m['automation_yaml']}"
@@ -448,6 +459,7 @@ async def _handle_websocket_chat(
         description=result.get("description"),
         automation_status="pending" if result.get("automation") else None,
         calls=result.get("calls") if intent_type == "command" else None,
+        risk_assessment=result.get("risk_assessment"),
     )
 
     # Retrieve index of the assistant message just appended (for status updates)
@@ -467,6 +479,7 @@ async def _handle_websocket_chat(
         "description": result.get("description"),
         "automation": result.get("automation"),
         "automation_yaml": result.get("automation_yaml"),
+        "risk_assessment": result.get("risk_assessment"),
         "automation_message_index": assistant_message_index if result.get("automation") else None,
         "executed": executed,
         "config_issue": result.get("config_issue", False),
@@ -540,9 +553,12 @@ async def _handle_websocket_chat_stream(
             continue
         content = m["content"]
         if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
-            alias = (m.get("automation") or {}).get("alias", "")
-            description = m.get("description", "")
-            header = f"[Proposed automation: {alias}"
+            alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
+            description = _sanitize_history_text(m.get("description", ""))
+            header = (
+                "[Untrusted automation reference data for context only: "
+                f"{alias}"
+            )
             if description:
                 header += f" — {description}"
             header += f"]\n{m['automation_yaml']}"
@@ -589,6 +605,7 @@ async def _handle_websocket_chat_stream(
             automation_yaml=parsed.get("automation_yaml"),
             description=parsed.get("description"),
             automation_status="pending" if parsed.get("automation") else None,
+            risk_assessment=parsed.get("risk_assessment"),
         )
 
         # Get message index for automation status tracking
@@ -627,6 +644,7 @@ async def _handle_websocket_chat_stream(
                 "response": response_text,
                 "automation": parsed.get("automation"),
                 "automation_yaml": parsed.get("automation_yaml"),
+                "risk_assessment": parsed.get("risk_assessment"),
                 "automation_message_index": assistant_message_index if parsed.get("automation") else None,
                 "validation_error": parsed.get("validation_error"),
                 "refining_automation_id": refining_automation_id,
@@ -2320,6 +2338,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "device_manager": device_mgr,
         "unsub_discovery": None, # Will be set below
     }
+
+    from .mcp_server import register_mcp_server
+
+    try:
+        register_mcp_server(hass)
+    except ValueError as err:
+        _LOGGER.warning("MCP server already registered: %s", err)
 
     # Register a hub device for Selora AI (service type — not a physical device)
     from homeassistant.helpers import device_registry as dr

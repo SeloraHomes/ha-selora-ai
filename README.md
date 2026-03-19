@@ -112,6 +112,105 @@ After setup, a **Selora AI** panel appears in the HA sidebar. Open it to chat wi
 
 You can set Selora AI as the default Conversation Agent under **Settings → Voice assistants**. Once set, all Assist commands (voice or text) are handled by Selora AI.
 
+---
+
+## 🔌 MCP + Agent Skills Onboarding (End Users)
+
+Use this if you want external AI agents (Claude, Codex, OpenClaw, etc.) to use Selora directly.
+
+### 1) Enable Selora AI in Home Assistant
+
+Complete the normal Selora setup first (LLM configured, integration loaded). The MCP endpoint is then available at:
+
+- `http://<your-ha-host>:8123/api/selora_ai/mcp`
+
+### 2) Create a Home Assistant long-lived token
+
+In Home Assistant:
+
+- **Profile → Security → Long-Lived Access Tokens → Create Token**
+
+Use an admin account token if you want write actions (`create`, `accept`, `delete`).
+
+### 3) Add Selora MCP server to your agent client
+
+For clients using MCP server JSON config, use:
+
+```json
+{
+  "mcpServers": {
+    "selora-ai": {
+      "url": "http://homeassistant.local:8123/api/selora_ai/mcp",
+      "headers": {
+        "Authorization": "Bearer <long-lived-access-token>"
+      }
+    }
+  }
+}
+```
+
+### 4) Verify connectivity
+
+Run a simple read flow from your client:
+
+1. `selora_get_home_snapshot`
+2. `selora_list_automations`
+
+If these return data, onboarding is working.
+
+### 5) Enable skill-guided behavior
+
+This repo includes synchronized skill files for all three ecosystems:
+
+- `./.claude/skills/selora-mcp/SKILL.md`
+- `./.codex/skills/selora-mcp/SKILL.md`
+- `./.openclaw/skills/selora-mcp/SKILL.md`
+
+These skills encode:
+- Trigger phrasing
+- Safe call sequencing
+- Admin/write boundaries
+- Explicit confirmation and risk gates
+
+After editing skill files, restart your agent session so changes are reloaded.
+
+### 6) Recommended first-run workflow
+
+1. Ask: "analyze my home"
+2. Ask for an automation proposal and validate YAML
+3. Confirm create (disabled by default)
+4. Optionally run `selora_trigger_scan`
+5. Review `selora_list_suggestions` / `selora_list_patterns`
+6. Confirm `accept` or `dismiss` suggestion actions explicitly
+
+### 7) Troubleshooting MCP onboarding
+
+If onboarding fails, check these in order:
+
+1. **401 / unauthorized errors**
+   - Confirm the token is valid and copied fully.
+   - Confirm header format is exactly: `Authorization: Bearer <token>`.
+2. **403 / admin-required for write tools**
+   - Use a token from an admin Home Assistant account.
+   - Read tools should still work with non-admin tokens.
+3. **Connection errors / timeout**
+   - Verify the MCP URL host is reachable from your agent environment.
+   - If remote, confirm HTTPS URL and network routing are correct.
+4. **Skill not triggering automatically**
+   - Confirm skill files exist at project paths:
+     - `./.claude/skills/selora-mcp/SKILL.md`
+     - `./.codex/skills/selora-mcp/SKILL.md`
+     - `./.openclaw/skills/selora-mcp/SKILL.md`
+   - Restart the agent session so skill metadata reloads.
+5. **Wrong automation targeted**
+   - Call `selora_list_automations` first and use returned `automation_id`.
+   - Do not rely on guessed IDs or stale chat context.
+6. **No patterns/suggestions returned**
+   - Run `selora_trigger_scan` first, then retry `selora_list_suggestions`.
+   - Ensure Selora LLM is configured and the collector is enabled.
+
+For deeper technical details and protocol behavior, see [./docs/selora-mcp-server.md](./docs/selora-mcp-server.md).
+
 ## 🛠 The Selora AI Hub
 
 The integration creates a **Selora AI Hub** device under **Settings → Devices & Services → Devices**. It exposes:

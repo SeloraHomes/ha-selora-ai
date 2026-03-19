@@ -2269,6 +2269,8 @@ class SeloraAIArchitectPanel extends LitElement {
     const status = msg.automation_status;
     const automation = msg.automation;
     const yaml = msg.automation_yaml || "";
+    const risk = msg.risk_assessment || automation?.risk_assessment || null;
+    const scrutinyTags = risk?.scrutiny_tags || [];
 
     if (status === "saved") {
       return html`
@@ -2332,11 +2334,35 @@ class SeloraAIArchitectPanel extends LitElement {
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
+          ${scrutinyTags.length
+            ? html`
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;">
+                  ${scrutinyTags.map(
+                    (tag) => html`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+                  )}
+                </div>
+              `
+            : ""}
 
           ${msg.description
             ? html`
                 <div class="proposal-description-label">What this automation does</div>
                 <div class="proposal-description">${msg.description}</div>
+              `
+            : ""}
+
+          ${risk?.level === "elevated"
+            ? html`
+                <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);">
+                  <ha-icon icon="mdi:alert-outline"></ha-icon>
+                  <div>
+                    <strong>Elevated risk review recommended.</strong>
+                    <div style="margin-top:4px;">${risk.summary}</div>
+                    ${risk.reasons?.length
+                      ? html`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>`
+                      : ""}
+                  </div>
+                </div>
               `
             : ""}
 
@@ -3294,6 +3320,7 @@ class SeloraAIArchitectPanel extends LitElement {
             `
           : this._suggestions.map((item) => {
               const auto = item.automation || item.automation_data;
+              const risk = item.risk_assessment || auto?.risk_assessment || null;
               const key = `sug_${auto.alias}`;
               const expanded = !!this._expandedAutomations[key];
               const origYaml = item.automation_yaml || "";
@@ -3301,9 +3328,28 @@ class SeloraAIArchitectPanel extends LitElement {
                 <div class="card">
                   <div class="card-header">
                     <h3>${auto.alias}</h3>
-                    <div class="chip suggestion">RECOMMENDED</div>
+                    <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
+                      <div class="chip suggestion">RECOMMENDED</div>
+                      ${(risk?.scrutiny_tags || []).map(
+                        (tag) => html`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+                      )}
+                    </div>
                   </div>
                   ${auto.description ? html`<p>${auto.description}</p>` : ""}
+                  ${risk?.level === "elevated"
+                    ? html`
+                        <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:12px;">
+                          <ha-icon icon="mdi:alert-outline"></ha-icon>
+                          <div>
+                            <strong>Elevated risk review recommended.</strong>
+                            <div style="margin-top:4px;">${risk.summary}</div>
+                            ${risk.reasons?.length
+                              ? html`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>`
+                              : ""}
+                          </div>
+                        </div>
+                      `
+                    : ""}
 
                   ${this._renderAutomationFlowchart(auto)}
 
