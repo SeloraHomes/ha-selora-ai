@@ -24,7 +24,7 @@ import asyncio
 import logging
 import yaml
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import voluptuous as vol
@@ -79,6 +79,7 @@ from .const import (
     CONF_DISCOVERY_INTERVAL,
     CONF_DISCOVERY_START_TIME,
     CONF_DISCOVERY_END_TIME,
+    CONF_PATTERN_ENABLED,
     MODE_SCHEDULED,
     DEFAULT_DISCOVERY_ENABLED,
     DEFAULT_DISCOVERY_MODE,
@@ -1669,8 +1670,10 @@ async def _handle_websocket_get_proactive_suggestions(
     msg: dict[str, Any],
 ) -> None:
     """Return proactive suggestions from pattern detection."""
+    if not _require_admin(connection, msg):
+        return
+
     status = msg.get("status", "pending")
-    # Try PatternStore first (persistent), fall back to in-memory
     pattern_store = _get_pattern_store(hass)
     if pattern_store:
         suggestions = await pattern_store.get_suggestions(status=status)
@@ -1693,6 +1696,9 @@ async def _handle_websocket_update_proactive_suggestion(
     msg: dict[str, Any],
 ) -> None:
     """Accept, dismiss, or snooze a proactive suggestion."""
+    if not _require_admin(connection, msg):
+        return
+
     pattern_store = _get_pattern_store(hass)
     if not pattern_store:
         connection.send_error(msg["id"], "no_store", "Pattern store not available")
@@ -1700,36 +1706,66 @@ async def _handle_websocket_update_proactive_suggestion(
 
     suggestion_id = msg["suggestion_id"]
     action = msg["action"]
+    suggestion = await pattern_store.get_suggestion(suggestion_id)
+    if suggestion is None:
+        connection.send_error(msg["id"], "not_found", "Suggestion not found")
+        return
 
-    # For snooze, compute snooze_until from client-provided or default duration
-    snooze_until = None
-    if action == "snoozed":
-        from datetime import datetime, timedelta, timezone
-        snooze_hours = msg.get("snooze_hours", 24.0)
-        snooze_until = (
-            datetime.now(timezone.utc) + timedelta(hours=snooze_hours)
-        ).isoformat()
-
-    await pattern_store.update_suggestion_status(
-        suggestion_id, action, snooze_until=snooze_until
-    )
-
-    # If accepted, create the automation
     if action == "accepted":
-        suggestion = await pattern_store.get_suggestion(suggestion_id)
-        if suggestion and suggestion.get("automation_data"):
-            from .automation_utils import async_create_automation
-            result = await async_create_automation(
-                hass, suggestion["automation_data"]
-            )
-            connection.send_result(msg["id"], {
-                "status": action,
-                "automation_created": result.get("success", False),
-                "automation_id": result.get("automation_id"),
-            })
+        automation_data = suggestion.get("automation_data")
+        if not isinstance(automation_data, dict) or not automation_data:
+            connection.send_error(msg["id"], "invalid_suggestion", "Suggestion has no automation payload")
             return
 
+        from .automation_utils import async_create_automation
+
+        result = await async_create_automation(hass, automation_data)
+        if not result.get("success", False):
+            connection.send_error(msg["id"], "create_failed", "Failed to create automation from suggestion")
+            return
+
+        await pattern_store.update_suggestion_status(suggestion_id, "accepted")
+        connection.send_result(msg["id"], {
+            "status": "accepted",
+            "automation_created": True,
+            "automation_id": result.get("automation_id"),
+        })
+        return
+
+    snooze_until = None
+    if action == "snoozed":
+        snooze_hours = msg.get("snooze_hours", 24.0)
+        snooze_until = (datetime.now(timezone.utc) + timedelta(hours=snooze_hours)).isoformat()
+
+    updated = await pattern_store.update_suggestion_status(
+        suggestion_id, action, snooze_until=snooze_until
+    )
+    if not updated:
+        connection.send_error(msg["id"], "not_found", "Suggestion not found")
+        return
+
     connection.send_result(msg["id"], {"status": action})
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_state_history_summary",
+})
+async def _handle_websocket_get_state_history_summary(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return aggregated state history stats for the automations tab."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+    summary = await pattern_store.get_history_summary()
+    connection.send_result(msg["id"], summary)
 
 
 def _get_pattern_store(hass: HomeAssistant):
@@ -1782,6 +1818,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     # Proactive suggestions
     websocket_api.async_register_command(hass, _handle_websocket_get_proactive_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)
+    websocket_api.async_register_command(hass, _handle_websocket_get_state_history_summary)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
@@ -1966,6 +2003,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Schedule periodic discovery if enabled
     options = entry.options
     discovery_enabled = options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED)
+    pattern_enabled = options.get(CONF_PATTERN_ENABLED, True)
     
     async def _run_discovery(_now: datetime | None = None) -> None:
         """Run the discovery process and respect settings."""
@@ -2056,65 +2094,62 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Selora AI started (unconfigured mode)")
 
-    # ── Pattern Detection: State History Collection ─────────────────────
-    from .pattern_store import PatternStore
+    if pattern_enabled:
+        from .pattern_store import PatternStore
 
-    pattern_store = PatternStore(hass)
+        pattern_store = PatternStore(hass)
 
-    async def _state_change_listener(event: Any) -> None:
-        """Record state changes for pattern detection."""
-        entity_id = event.data.get("entity_id", "")
-        domain = entity_id.split(".")[0] if "." in entity_id else ""
-        if domain not in COLLECTOR_DOMAINS:
-            return
-        new_state = event.data.get("new_state")
-        old_state = event.data.get("old_state")
-        if new_state is None or old_state is None:
-            return
-        if new_state.state == old_state.state:
-            return  # Only track actual state changes
-        await pattern_store.record_state_change(
-            entity_id,
-            new_state.state,
-            old_state.state,
-            new_state.last_changed.isoformat(),
+        async def _state_change_listener(event: Any) -> None:
+            """Record state changes for pattern detection."""
+            entity_id = event.data.get("entity_id", "")
+            domain = entity_id.split(".")[0] if "." in entity_id else ""
+            if domain not in COLLECTOR_DOMAINS:
+                return
+            new_state = event.data.get("new_state")
+            old_state = event.data.get("old_state")
+            if new_state is None or old_state is None:
+                return
+            if new_state.state == old_state.state:
+                return
+            await pattern_store.record_state_change(
+                entity_id,
+                new_state.state,
+                old_state.state,
+                new_state.last_changed.isoformat(),
+            )
+
+        unsub_state_listener = hass.bus.async_listen(
+            "state_changed", _state_change_listener
         )
+        hass.data[DOMAIN][entry.entry_id]["pattern_store"] = pattern_store
+        hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
 
-    unsub_state_listener = hass.bus.async_listen(
-        "state_changed", _state_change_listener
-    )
-    hass.data[DOMAIN][entry.entry_id]["pattern_store"] = pattern_store
-    hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
+        hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback))
 
-    # Backfill history from recorder on first start
-    hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback))
+        from .pattern_engine import PatternEngine
 
-    # ── Pattern Detection: Pattern Engine ────────────────────────────────
-    from .pattern_engine import PatternEngine
+        pattern_engine = PatternEngine(hass, pattern_store)
+        hass.data[DOMAIN][entry.entry_id]["pattern_engine"] = pattern_engine
 
-    pattern_engine = PatternEngine(hass, pattern_store)
-    hass.data[DOMAIN][entry.entry_id]["pattern_engine"] = pattern_engine
+        from .suggestion_generator import SuggestionGenerator
 
-    # ── Suggestion Generator: Pattern → Automation ───────────────────────
-    from .suggestion_generator import SuggestionGenerator
+        suggestion_generator = SuggestionGenerator(hass, pattern_store, llm)
+        hass.data[DOMAIN][entry.entry_id]["suggestion_generator"] = suggestion_generator
 
-    suggestion_generator = SuggestionGenerator(hass, pattern_store, llm)
-    hass.data[DOMAIN][entry.entry_id]["suggestion_generator"] = suggestion_generator
+        async def _on_patterns_detected(patterns: list[dict[str, Any]]) -> None:
+            """Callback: convert new patterns into proactive suggestions."""
+            suggestions = await suggestion_generator.generate_from_patterns(patterns)
+            if suggestions:
+                existing = hass.data[DOMAIN].get("proactive_suggestions", [])
+                existing.extend(suggestions)
+                hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+                async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 
-    async def _on_patterns_detected(patterns: list[dict[str, Any]]) -> None:
-        """Callback: convert new patterns into proactive suggestions."""
-        suggestions = await suggestion_generator.generate_from_patterns(patterns)
-        if suggestions:
-            # Store for dashboard card quick access
-            existing = hass.data[DOMAIN].get("proactive_suggestions", [])
-            existing.extend(suggestions)
-            # Keep only the latest 50 suggestions
-            hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
-            async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
-
-    pattern_engine.on_patterns_detected = _on_patterns_detected
-    await pattern_engine.async_start()
-    _LOGGER.info("Pattern detection + suggestion generation started")
+        pattern_engine.on_patterns_detected = _on_patterns_detected
+        await pattern_engine.async_start()
+        _LOGGER.info("Pattern detection + suggestion generation started")
+    else:
+        _LOGGER.info("Pattern detection disabled")
 
     # Register update listener for options
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))

@@ -193,6 +193,65 @@ class PatternStore:
             )
         return removed
 
+    async def get_history_summary(self) -> list[dict[str, Any]]:
+        """Aggregated state history stats per entity for automations tab.
+
+        Returns a list of per-entity summaries with change count,
+        distinct days active, most common states, and date range.
+        """
+        data = await self._get_loaded_data()
+        summaries: list[dict[str, Any]] = []
+
+        for entity_id, changes in data["state_history"].items():
+            if not changes:
+                continue
+
+            dates: set[str] = set()
+            state_counts: dict[str, int] = {}
+            for change in changes:
+                ts = change.get("ts", "")
+                if ts:
+                    dates.add(ts[:10])
+                state = change.get("state", "")
+                if state and state not in ("unavailable", "unknown"):
+                    state_counts[state] = state_counts.get(state, 0) + 1
+
+            top_states = sorted(
+                state_counts.items(), key=lambda x: x[1], reverse=True
+            )[:5]
+
+            timestamps = [c["ts"] for c in changes if c.get("ts")]
+            summaries.append({
+                "entity_id": entity_id,
+                "change_count": len(changes),
+                "active_days": len(dates),
+                "first_seen": min(timestamps) if timestamps else None,
+                "last_seen": max(timestamps) if timestamps else None,
+                "top_states": [{"state": s, "count": c} for s, c in top_states],
+            })
+
+        summaries.sort(key=lambda x: x["change_count"], reverse=True)
+        return summaries
+
+    async def get_pattern_detail(
+        self, pattern_id: str
+    ) -> dict[str, Any] | None:
+        """Return a single pattern with entity history context for detail view."""
+        data = await self._get_loaded_data()
+        pattern = data["patterns"].get(pattern_id)
+        if not pattern:
+            return None
+
+        entity_history: dict[str, list[dict[str, Any]]] = {}
+        for eid in pattern.get("entity_ids", []):
+            history = data["state_history"].get(eid, [])
+            entity_history[eid] = history[-20:]
+
+        return {
+            **pattern,
+            "entity_history": entity_history,
+        }
+
     async def backfill_from_recorder(
         self, hass: HomeAssistant, lookback_days: int = 7
     ) -> int:
