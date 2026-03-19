@@ -1749,6 +1749,96 @@ async def _handle_websocket_update_proactive_suggestion(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_patterns",
+    vol.Optional("status", default="active"): str,
+    vol.Optional("pattern_type"): str,
+})
+async def _handle_websocket_get_patterns(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return detected patterns for the automations tab with filtering."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+    patterns = await pattern_store.get_patterns(
+        status=msg.get("status"),
+        pattern_type=msg.get("pattern_type"),
+    )
+    # Sort by confidence descending
+    patterns.sort(key=lambda p: p.get("confidence", 0), reverse=True)
+    connection.send_result(msg["id"], patterns)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_pattern_detail",
+    vol.Required("pattern_id"): str,
+})
+async def _handle_websocket_get_pattern_detail(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return a single pattern with full entity history context."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+    detail = await pattern_store.get_pattern_detail(msg["pattern_id"])
+    if detail is None:
+        connection.send_error(msg["id"], "not_found", "Pattern not found")
+        return
+    connection.send_result(msg["id"], detail)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/update_pattern_status",
+    vol.Required("pattern_id"): str,
+    vol.Required("status"): vol.In(["active", "dismissed", "snoozed"]),
+    vol.Optional("snooze_hours", default=24): int,
+})
+async def _handle_websocket_update_pattern_status(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update a pattern's status (dismiss or snooze)."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+
+    snooze_until = None
+    if msg["status"] == "snoozed":
+        from datetime import timezone
+        snooze_until = (
+            datetime.now(timezone.utc) + timedelta(hours=msg.get("snooze_hours", 24))
+        ).isoformat()
+
+    ok = await pattern_store.update_pattern_status(
+        msg["pattern_id"], msg["status"], snooze_until
+    )
+    if not ok:
+        connection.send_error(msg["id"], "not_found", "Pattern not found")
+        return
+    connection.send_result(msg["id"], {"status": msg["status"]})
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_state_history_summary",
 })
 async def _handle_websocket_get_state_history_summary(
@@ -1819,6 +1909,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_proactive_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)
     websocket_api.async_register_command(hass, _handle_websocket_get_state_history_summary)
+    websocket_api.async_register_command(hass, _handle_websocket_get_patterns)
+    websocket_api.async_register_command(hass, _handle_websocket_get_pattern_detail)
+    websocket_api.async_register_command(hass, _handle_websocket_update_pattern_status)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
@@ -2046,8 +2139,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             if area_result.get("assigned"):
                 _LOGGER.info("Auto-assigned %d devices to areas", len(area_result["assigned"]))
             
-            # Generate dashboard
-            await device_mgr.generate_dashboard()
             async_dispatcher_send(hass, SIGNAL_DEVICES_UPDATED)
             
             discovered_count = summary.get("discovered_count", 0)
@@ -2080,12 +2171,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up entity platforms (sensor + button)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
-
-    # Immediately add Selora AI Hub card to dashboard (entities now exist)
-    try:
-        await device_mgr.generate_dashboard()
-    except Exception:
-        _LOGGER.debug("Immediate dashboard generation failed — will retry in delayed discovery")
 
     # Start background collection + analysis
     if llm:
