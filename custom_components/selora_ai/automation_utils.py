@@ -187,8 +187,11 @@ async def async_create_automation(
     *,
     session_id: str | None = None,
     version_message: str = "Created",
-) -> bool:
-    """Write a single automation suggestion to automations.yaml and reload."""
+) -> dict[str, Any]:
+    """Write a single automation suggestion to automations.yaml and reload.
+
+    Returns a dict with keys: success (bool), automation_id (str | None).
+    """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
 
     # Read existing automations
@@ -196,7 +199,7 @@ async def async_create_automation(
 
     alias = suggestion.get("alias", "").strip()
     if not alias:
-        return False
+        return {"success": False, "automation_id": None}
 
     # Normalize trigger/action
     triggers = suggestion.get("triggers") or suggestion.get("trigger", [])
@@ -205,7 +208,7 @@ async def async_create_automation(
 
     if not triggers or not actions:
         _LOGGER.error("Automation suggestion missing triggers or actions: %s", alias)
-        return False
+        return {"success": False, "automation_id": None}
 
     # Ensure lists
     if not isinstance(triggers, list):
@@ -244,10 +247,10 @@ async def async_create_automation(
         store = _get_automation_store(hass)
         await store.add_version(automation_id, yaml_text, automation, version_message, session_id)
 
-        return True
+        return {"success": True, "automation_id": automation_id}
     except Exception as exc:
         _LOGGER.exception("Failed to create automation: %s", exc)
-        return False
+        return {"success": False, "automation_id": None}
 
 
 async def async_toggle_automation(
