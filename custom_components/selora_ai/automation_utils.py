@@ -11,6 +11,38 @@ from .const import AUTOMATION_ID_PREFIX, AUTOMATION_SOFT_DELETE_DAYS
 
 _LOGGER = logging.getLogger(__name__)
 
+_ELEVATED_RISK_SERVICE_DOMAINS = {
+    "shell_command",
+    "python_script",
+    "pyscript",
+    "rest_command",
+    "hassio",
+}
+_ELEVATED_RISK_SERVICE_NAMES = {
+    "script.turn_on",
+    "script.toggle",
+}
+_ELEVATED_RISK_TRIGGER_PLATFORMS = {
+    "webhook",
+}
+_SCRUTINY_ENTITY_DOMAINS = {
+    "lock": "Access control",
+    "cover": "Entry point",
+    "camera": "Camera",
+    "alarm_control_panel": "Security system",
+    "person": "Presence",
+    "device_tracker": "Presence",
+    "water_heater": "Water / heat",
+    "humidifier": "Water / HVAC",
+    "vacuum": "Appliance",
+    "media_player": "Media device",
+}
+_SCRUTINY_SERVICE_DOMAINS = {
+    "notify": "Notification",
+    "tts": "Notification",
+    "persistent_notification": "Notification",
+}
+
 
 def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
     """Read and parse automations.yaml (runs in executor)."""
@@ -127,6 +159,111 @@ def validate_automation_payload(
         return False, f"automation YAML serialization failed: {exc}", None
 
     return True, "", normalized
+
+
+def assess_automation_risk(automation: dict[str, Any]) -> dict[str, Any]:
+    """Classify automation proposals that could expand HA compute/control risk."""
+    flags: list[str] = []
+    reasons: list[str] = []
+    scrutiny_tags: list[str] = []
+
+    triggers = automation.get("trigger") or automation.get("triggers") or []
+    actions = automation.get("action") or automation.get("actions") or []
+
+    if not isinstance(triggers, list):
+        triggers = [triggers]
+    if not isinstance(actions, list):
+        actions = [actions]
+
+    referenced_entity_ids: set[str] = set()
+
+    def _collect_entity_ids(obj: Any) -> None:
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if key == "entity_id":
+                    if isinstance(value, str):
+                        referenced_entity_ids.add(value)
+                    elif isinstance(value, list):
+                        for item in value:
+                            if isinstance(item, str):
+                                referenced_entity_ids.add(item)
+                else:
+                    _collect_entity_ids(value)
+        elif isinstance(obj, list):
+            for item in obj:
+                _collect_entity_ids(item)
+
+    _collect_entity_ids(triggers)
+    _collect_entity_ids(actions)
+    _collect_entity_ids(automation.get("condition") or automation.get("conditions") or [])
+
+    for trigger in triggers:
+        if not isinstance(trigger, dict):
+            continue
+        platform = str(trigger.get("platform") or trigger.get("trigger") or "").strip()
+        if platform in _ELEVATED_RISK_TRIGGER_PLATFORMS:
+            flags.append("remote_ingress_trigger")
+            reasons.append(
+                "uses a webhook trigger, which creates a remotely invokable entry point"
+            )
+
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        service = str(action.get("service") or action.get("action") or "").strip()
+        if not service:
+            continue
+        domain = service.split(".", 1)[0]
+
+        if domain in _ELEVATED_RISK_SERVICE_DOMAINS:
+            flags.append("compute_capability")
+            reasons.append(
+                f"calls {service}, which can execute code, invoke add-ons, or reach external systems"
+            )
+            continue
+
+        if service in _ELEVATED_RISK_SERVICE_NAMES:
+            flags.append("indirect_execution")
+            reasons.append(
+                f"calls {service}, which can delegate execution to pre-existing HA scripts"
+            )
+            continue
+
+        if domain in _SCRUTINY_SERVICE_DOMAINS:
+            scrutiny_tags.append(_SCRUTINY_SERVICE_DOMAINS[domain])
+
+    for entity_id in referenced_entity_ids:
+        domain = entity_id.split(".", 1)[0]
+        if domain in _SCRUTINY_ENTITY_DOMAINS:
+            scrutiny_tags.append(_SCRUTINY_ENTITY_DOMAINS[domain])
+
+    unique_flags = sorted(set(flags))
+    unique_reasons = []
+    for reason in reasons:
+        if reason not in unique_reasons:
+            unique_reasons.append(reason)
+    unique_scrutiny_tags = sorted(set(scrutiny_tags))
+
+    if unique_flags:
+        summary = (
+            "Elevated risk: this automation uses execution or ingress primitives that could "
+            "expand Home Assistant control or compute exposure."
+        )
+        return {
+            "level": "elevated",
+            "flags": unique_flags,
+            "summary": summary,
+            "reasons": unique_reasons,
+            "scrutiny_tags": unique_scrutiny_tags,
+        }
+
+    return {
+        "level": "normal",
+        "flags": [],
+        "summary": "",
+        "reasons": [],
+        "scrutiny_tags": unique_scrutiny_tags,
+    }
 
 
 def _get_automation_store(hass: HomeAssistant):

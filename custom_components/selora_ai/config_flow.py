@@ -368,8 +368,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             flow_obj = self.hass.config_entries.flow._progress.get(flow_id)
             if flow_obj and hasattr(flow_obj, "host"):
                 host = flow_obj.host or ""
-        except Exception:
-            pass
+        except (AttributeError, KeyError, TypeError) as err:
+            _LOGGER.debug("Unable to resolve discovered device host: %s", err)
 
         if title_name:
             return f"{title_name} ({name})"

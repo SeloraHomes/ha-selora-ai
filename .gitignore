@@ -30,6 +30,7 @@ custom_components/selora_backup/
 
 # ── Claude Code local settings ─────────────────────────────
 .claude/
+!.claude/skills/
 
 # ── Secrets ─────────────────────────────────────────────────
 .env
