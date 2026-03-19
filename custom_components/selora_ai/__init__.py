@@ -64,7 +64,6 @@ from .const import (
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
-    WEBHOOK_DEVICES_ID,
     AUTOMATION_ID_PREFIX,
     PANEL_NAME,
     PANEL_TITLE,
@@ -810,11 +809,11 @@ async def _handle_websocket_create_automation(
 
     try:
         from .automation_utils import async_create_automation
-        success = await async_create_automation(
+        result = await async_create_automation(
             hass, automation_data, session_id=msg.get("session_id")
         )
-        if success:
-            connection.send_result(msg["id"], {"status": "success"})
+        if result["success"]:
+            connection.send_result(msg["id"], {"status": "success", "automation_id": result["automation_id"]})
         else:
             connection.send_error(msg["id"], "creation_failed", "Failed to write automation to file")
     except Exception as exc:
@@ -864,11 +863,11 @@ async def _handle_websocket_apply_automation_yaml(
             else:
                 connection.send_error(msg["id"], "not_found", "Automation not found in automations.yaml")
         else:
-            success = await async_create_automation(
+            result = await async_create_automation(
                 hass, parsed, session_id=msg.get("session_id")
             )
-            if success:
-                connection.send_result(msg["id"], {"status": "created"})
+            if result["success"]:
+                connection.send_result(msg["id"], {"status": "created", "automation_id": result["automation_id"]})
             else:
                 connection.send_error(msg["id"], "creation_failed", "Failed to write automation")
     except Exception as exc:
@@ -1656,6 +1655,95 @@ async def _handle_websocket_load_automation_to_session(
     })
 
 
+# ── Proactive Suggestion Websocket Endpoints ─────────────────────────
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_proactive_suggestions",
+    vol.Optional("status", default="pending"): str,
+})
+async def _handle_websocket_get_proactive_suggestions(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return proactive suggestions from pattern detection."""
+    status = msg.get("status", "pending")
+    # Try PatternStore first (persistent), fall back to in-memory
+    pattern_store = _get_pattern_store(hass)
+    if pattern_store:
+        suggestions = await pattern_store.get_suggestions(status=status)
+    else:
+        all_suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
+        suggestions = [s for s in all_suggestions if s.get("status") == status]
+    connection.send_result(msg["id"], suggestions)
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/update_proactive_suggestion",
+    vol.Required("suggestion_id"): str,
+    vol.Required("action"): vol.In(["accepted", "dismissed", "snoozed"]),
+    vol.Optional("snooze_hours"): vol.Coerce(float),
+})
+async def _handle_websocket_update_proactive_suggestion(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Accept, dismiss, or snooze a proactive suggestion."""
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+
+    suggestion_id = msg["suggestion_id"]
+    action = msg["action"]
+
+    # For snooze, compute snooze_until from client-provided or default duration
+    snooze_until = None
+    if action == "snoozed":
+        from datetime import datetime, timedelta, timezone
+        snooze_hours = msg.get("snooze_hours", 24.0)
+        snooze_until = (
+            datetime.now(timezone.utc) + timedelta(hours=snooze_hours)
+        ).isoformat()
+
+    await pattern_store.update_suggestion_status(
+        suggestion_id, action, snooze_until=snooze_until
+    )
+
+    # If accepted, create the automation
+    if action == "accepted":
+        suggestion = await pattern_store.get_suggestion(suggestion_id)
+        if suggestion and suggestion.get("automation_data"):
+            from .automation_utils import async_create_automation
+            result = await async_create_automation(
+                hass, suggestion["automation_data"]
+            )
+            connection.send_result(msg["id"], {
+                "status": action,
+                "automation_created": result.get("success", False),
+                "automation_id": result.get("automation_id"),
+            })
+            return
+
+    connection.send_result(msg["id"], {"status": action})
+
+
+def _get_pattern_store(hass: HomeAssistant):
+    """Find the PatternStore from any active config entry."""
+    domain_data = hass.data.get(DOMAIN, {})
+    for key, val in domain_data.items():
+        if key.startswith("_") or not isinstance(val, dict):
+            continue
+        store = val.get("pattern_store")
+        if store is not None:
+            return store
+    return None
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -1691,6 +1779,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_lineage)
     websocket_api.async_register_command(hass, _handle_websocket_get_session_automations)
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
+    # Proactive suggestions
+    websocket_api.async_register_command(hass, _handle_websocket_get_proactive_suggestions)
+    websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
