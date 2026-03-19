@@ -1749,6 +1749,132 @@ async def _handle_websocket_update_proactive_suggestion(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/get_suggestion_detail",
+    vol.Required("suggestion_id"): str,
+})
+async def _handle_websocket_get_suggestion_detail(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return full suggestion detail with YAML preview and pattern context."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+
+    suggestion = await pattern_store.get_suggestion(msg["suggestion_id"])
+    if not suggestion:
+        connection.send_error(msg["id"], "not_found", "Suggestion not found")
+        return
+
+    # Enrich with pattern detail if available
+    pattern_id = suggestion.get("pattern_id", "")
+    pattern_detail = None
+    if pattern_id:
+        pattern_detail = await pattern_store.get_pattern_detail(pattern_id)
+
+    connection.send_result(msg["id"], {
+        **suggestion,
+        "pattern_detail": pattern_detail,
+    })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/accept_suggestion_with_edits",
+    vol.Required("suggestion_id"): str,
+    vol.Required("automation_yaml"): str,
+})
+async def _handle_websocket_accept_suggestion_with_edits(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Accept a suggestion with user-edited YAML (automations tab editing)."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+
+    suggestion = await pattern_store.get_suggestion(msg["suggestion_id"])
+    if not suggestion:
+        connection.send_error(msg["id"], "not_found", "Suggestion not found")
+        return
+
+    # Parse the user-edited YAML
+    try:
+        automation_data = yaml.safe_load(msg["automation_yaml"])
+    except yaml.YAMLError as exc:
+        connection.send_error(msg["id"], "invalid_yaml", str(exc))
+        return
+
+    if not isinstance(automation_data, dict):
+        connection.send_error(msg["id"], "invalid_yaml", "YAML must be a mapping")
+        return
+
+    from .automation_utils import validate_automation_payload, async_create_automation
+    is_valid, reason, normalized = validate_automation_payload(automation_data)
+    if not is_valid or normalized is None:
+        connection.send_error(msg["id"], "invalid_automation", reason or "Validation failed")
+        return
+
+    result = await async_create_automation(hass, normalized)
+    if not result.get("success", False):
+        connection.send_error(msg["id"], "create_failed", "Failed to create automation from suggestion")
+        return
+
+    await pattern_store.update_suggestion_status(msg["suggestion_id"], "accepted")
+
+    connection.send_result(msg["id"], {
+        "status": "accepted",
+        "automation_created": True,
+        "automation_id": result.get("automation_id"),
+    })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/trigger_pattern_scan",
+})
+async def _handle_websocket_trigger_pattern_scan(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Manually trigger a pattern scan (automations tab refresh)."""
+    if not _require_admin(connection, msg):
+        return
+
+    domain_data = hass.data.get(DOMAIN, {})
+    engine = None
+    for key, val in domain_data.items():
+        if key.startswith("_") or not isinstance(val, dict):
+            continue
+        e = val.get("pattern_engine")
+        if e is not None:
+            engine = e
+            break
+
+    if engine is None:
+        connection.send_error(msg["id"], "no_engine", "Pattern engine not available")
+        return
+
+    new_patterns = await engine.scan()
+    connection.send_result(msg["id"], {
+        "patterns_found": len(new_patterns),
+        "patterns": new_patterns,
+    })
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_patterns",
     vol.Optional("status", default="active"): str,
     vol.Optional("pattern_type"): str,
@@ -1912,6 +2038,9 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_patterns)
     websocket_api.async_register_command(hass, _handle_websocket_get_pattern_detail)
     websocket_api.async_register_command(hass, _handle_websocket_update_pattern_status)
+    websocket_api.async_register_command(hass, _handle_websocket_get_suggestion_detail)
+    websocket_api.async_register_command(hass, _handle_websocket_accept_suggestion_with_edits)
+    websocket_api.async_register_command(hass, _handle_websocket_trigger_pattern_scan)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
