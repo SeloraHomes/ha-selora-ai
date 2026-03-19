@@ -48,6 +48,7 @@ from .const import (
     CONF_DISCOVERY_START_TIME,
     CONF_DISCOVERY_END_TIME,
     CONF_DISCOVERY_INTERVAL,
+    CONF_PATTERN_ENABLED,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
@@ -676,6 +677,10 @@ class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
                         CONF_DISCOVERY_END_TIME,
                         default=options.get(CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME),
                     ): str,
+                    vol.Required(
+                        CONF_PATTERN_ENABLED,
+                        default=options.get(CONF_PATTERN_ENABLED, True),
+                    ): bool,
                 }
             ),
         )
