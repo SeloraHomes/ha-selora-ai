@@ -587,12 +587,18 @@ class LLMClient:
             "- If no automation or command is needed, just respond with text — no code block required.\n"
         )
 
-    def parse_streamed_response(self, text: str) -> dict[str, Any]:
+    def parse_streamed_response(
+        self, text: str, entities: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
         """Parse completed streamed text.
 
         Looks for a ```automation ... ``` fenced block.  Text before it is the
         conversational response; the block contents are parsed as automation JSON.
         Falls back to _parse_architect_response for pure-JSON responses.
+
+        When *entities* is provided, command-intent results are validated
+        through ``_apply_command_policy`` so that unsafe calls are blocked
+        even on the streaming path.
         """
         import re
 
@@ -629,7 +635,13 @@ class LLMClient:
                 _LOGGER.warning("Failed to parse automation block: %s", json_text[:200])
 
         # No fenced block — try the old JSON-only parser
-        return self._parse_architect_response(text)
+        result = self._parse_architect_response(text)
+
+        # Apply command safety policy if entities are available
+        if entities is not None and result.get("calls"):
+            result = self._apply_command_policy(result, entities)
+
+        return result
 
     async def architect_chat_stream(
         self,

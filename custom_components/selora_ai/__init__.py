@@ -324,9 +324,12 @@ def _require_admin(
     return False
 
 
-def _sanitize_history_text(value: Any) -> str:
-    """Normalize untrusted conversation context before sending it back to the LLM."""
-    return " ".join(str(value or "").split())
+def _sanitize_history_text(value: Any, max_length: int = 200) -> str:
+    """Normalize and truncate untrusted conversation context before sending it back to the LLM."""
+    text = " ".join(str(value or "").split())
+    if len(text) > max_length:
+        return text[:max_length] + "..."
+    return text
 
 
 @websocket_api.async_response
@@ -591,7 +594,7 @@ async def _handle_websocket_chat_stream(
                 websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
             )
 
-        parsed = llm.parse_streamed_response(full_text)
+        parsed = llm.parse_streamed_response(full_text, entities=entities)
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
