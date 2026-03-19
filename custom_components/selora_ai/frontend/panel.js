@@ -675,7 +675,14 @@ var SeloraAIArchitectPanel = class extends s4 {
       _newAutoName: { type: String },
       _suggestingName: { type: Boolean },
       // Generate suggestions loading
-      _generatingSuggestions: { type: Boolean }
+      _generatingSuggestions: { type: Boolean },
+      // Proactive suggestions (pattern-based)
+      _proactiveSuggestions: { type: Array },
+      _loadingProactive: { type: Boolean },
+      _proactiveExpanded: { type: Object },
+      _acceptingProactive: { type: Object },
+      _dismissingProactive: { type: Object },
+      _showProactive: { type: Boolean }
     };
   }
   constructor() {
@@ -730,6 +737,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._newAutoName = "";
     this._suggestingName = false;
     this._generatingSuggestions = false;
+    this._proactiveSuggestions = [];
+    this._loadingProactive = false;
+    this._proactiveExpanded = {};
+    this._acceptingProactive = {};
+    this._dismissingProactive = {};
+    this._showProactive = true;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -950,6 +963,91 @@ var SeloraAIArchitectPanel = class extends s4 {
     } catch (err) {
       console.error("Failed to load automations", err);
     }
+    this._loadProactiveSuggestions();
+  }
+  async _loadProactiveSuggestions() {
+    this._loadingProactive = true;
+    try {
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/get_proactive_suggestions",
+        status: "pending"
+      });
+      this._proactiveSuggestions = suggestions || [];
+    } catch (err) {
+      console.error("Failed to load proactive suggestions", err);
+      this._proactiveSuggestions = [];
+    }
+    this._loadingProactive = false;
+  }
+  async _acceptProactiveSuggestion(suggestionId, editedYaml) {
+    this._acceptingProactive = { ...this._acceptingProactive, [suggestionId]: true };
+    try {
+      if (editedYaml) {
+        await this.hass.callWS({
+          type: "selora_ai/accept_suggestion_with_edits",
+          suggestion_id: suggestionId,
+          automation_yaml: editedYaml
+        });
+      } else {
+        await this.hass.callWS({
+          type: "selora_ai/update_proactive_suggestion",
+          suggestion_id: suggestionId,
+          action: "accepted"
+        });
+      }
+      this._showToast("Suggestion accepted \u2014 automation created", "success");
+      await this._loadAutomations();
+    } catch (err) {
+      console.error("Failed to accept suggestion", err);
+      this._showToast("Failed to accept suggestion", "error");
+    }
+    this._acceptingProactive = { ...this._acceptingProactive, [suggestionId]: false };
+  }
+  async _dismissProactiveSuggestion(suggestionId) {
+    this._dismissingProactive = { ...this._dismissingProactive, [suggestionId]: true };
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_proactive_suggestion",
+        suggestion_id: suggestionId,
+        action: "dismissed"
+      });
+      this._proactiveSuggestions = this._proactiveSuggestions.filter(
+        (s5) => s5.suggestion_id !== suggestionId
+      );
+      this._showToast("Suggestion dismissed", "info");
+    } catch (err) {
+      console.error("Failed to dismiss suggestion", err);
+    }
+    this._dismissingProactive = { ...this._dismissingProactive, [suggestionId]: false };
+  }
+  async _snoozeProactiveSuggestion(suggestionId) {
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_proactive_suggestion",
+        suggestion_id: suggestionId,
+        action: "snoozed"
+      });
+      this._proactiveSuggestions = this._proactiveSuggestions.filter(
+        (s5) => s5.suggestion_id !== suggestionId
+      );
+      this._showToast("Suggestion snoozed for 24h", "info");
+    } catch (err) {
+      console.error("Failed to snooze suggestion", err);
+    }
+  }
+  async _triggerPatternScan() {
+    this._loadingProactive = true;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/trigger_pattern_scan"
+      });
+      this._showToast(`Scan complete \u2014 ${result.patterns_found} patterns found`, "success");
+      await this._loadProactiveSuggestions();
+    } catch (err) {
+      console.error("Pattern scan failed", err);
+      this._showToast("Pattern scan failed", "error");
+    }
+    this._loadingProactive = false;
   }
   async _loadConfig() {
     try {
@@ -3460,6 +3558,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     const bulkDisabled = selectedIds.length === 0 || this._bulkActionInProgress;
     return x`
       <div class="scroll-view" @click=${() => this._closeBurgerMenus()}>
+        ${this._renderProactiveSuggestions()}
         ${this._automations.length > 0 ? x`
               <div class="filter-row">
                 <h2 style="margin:0;">Automations</h2>
@@ -3696,6 +3795,109 @@ var SeloraAIArchitectPanel = class extends s4 {
       </div>
       ${this._renderDiffViewer()}
       ${this._renderNewAutomationDialog()}
+    `;
+  }
+  // -------------------------------------------------------------------------
+  // Proactive suggestions section (automations tab)
+  // -------------------------------------------------------------------------
+  _renderProactiveSuggestions() {
+    if (!this._showProactive && !this._proactiveSuggestions.length)
+      return "";
+    return x`
+      <div style="margin-bottom:16px;">
+        <div class="filter-row" style="margin-bottom:8px;">
+          <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
+            <ha-icon icon="mdi:lightbulb-auto-outline" style="--mdc-icon-size:20px;color:#f59e0b;"></ha-icon>
+            Suggested
+            ${this._proactiveSuggestions.length > 0 ? x`<span style="background:#f59e0b;color:#000;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">${this._proactiveSuggestions.length}</span>` : ""}
+          </h2>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn" style="font-size:11px;" ?disabled=${this._loadingProactive}
+              @click=${() => this._triggerPatternScan()}>
+              <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
+              ${this._loadingProactive ? "Scanning\u2026" : "Scan Now"}
+            </button>
+            <button class="btn" style="font-size:11px;"
+              @click=${() => {
+      this._showProactive = !this._showProactive;
+    }}>
+              <ha-icon icon="mdi:chevron-${this._showProactive ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
+              ${this._showProactive ? "Hide" : "Show"}
+            </button>
+          </div>
+        </div>
+
+        ${this._showProactive ? x`
+          ${this._proactiveSuggestions.length === 0 ? x`<div class="card" style="padding:16px;text-align:center;opacity:0.6;font-size:13px;">
+                <ha-icon icon="mdi:check-circle-outline" style="--mdc-icon-size:24px;margin-bottom:8px;display:block;"></ha-icon>
+                No new suggestions. Patterns are analyzed every 15 minutes.
+              </div>` : x`
+              <div class="automations-grid">
+                ${this._proactiveSuggestions.map((s5) => {
+      const expanded = !!this._proactiveExpanded[s5.suggestion_id];
+      const accepting = !!this._acceptingProactive[s5.suggestion_id];
+      const dismissing = !!this._dismissingProactive[s5.suggestion_id];
+      const yamlKey = `proactive_${s5.suggestion_id}`;
+      const editedYaml = this._editedYaml[yamlKey];
+      const displayYaml = editedYaml !== void 0 ? editedYaml : s5.automation_yaml;
+      const confidencePct = Math.round((s5.confidence || 0) * 100);
+      const confidenceColor = confidencePct >= 75 ? "#22c55e" : confidencePct >= 50 ? "#f59e0b" : "#ef4444";
+      return x`
+                    <div class="card" style="padding:12px 14px;border-color:#f59e0b;border-left:3px solid #f59e0b;">
+                      <div class="card-header" style="margin-bottom:6px;">
+                        <h3 style="flex:1;font-size:14px;margin:0;">${s5.description}</h3>
+                        <span style="font-size:11px;color:${confidenceColor};font-weight:600;margin-left:8px;">${confidencePct}%</span>
+                        <div class="chip ai-managed" style="margin-left:6px;">PATTERN</div>
+                      </div>
+
+                      <div style="font-size:11px;opacity:0.6;margin-bottom:8px;">
+                        ${s5.evidence_summary || ""}
+                        ${s5.source === "hybrid" ? x` <span style="opacity:0.5;">· AI-enhanced</span>` : ""}
+                      </div>
+
+                      <span class="expand-toggle" style="padding:0;margin:0 0 8px;" @click=${() => {
+        this._proactiveExpanded = { ...this._proactiveExpanded, [s5.suggestion_id]: !expanded };
+      }}>
+                        <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
+                        ${expanded ? "Hide YAML" : "Show YAML"}
+                      </span>
+
+                      ${expanded ? x`
+                        <div style="margin-bottom:8px;">
+                          <textarea class="yaml-editor"
+                            style="width:100%;min-height:120px;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:vertical;"
+                            .value=${displayYaml}
+                            @input=${(e4) => {
+        this._editedYaml = { ...this._editedYaml, [yamlKey]: e4.target.value };
+      }}>
+                          </textarea>
+                        </div>
+                      ` : ""}
+
+                      <div style="display:flex;gap:8px;justify-content:flex-end;">
+                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
+                          @click=${() => this._snoozeProactiveSuggestion(s5.suggestion_id)}>
+                          <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                          Snooze
+                        </button>
+                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
+                          @click=${() => this._dismissProactiveSuggestion(s5.suggestion_id)}>
+                          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                          ${dismissing ? "Dismissing\u2026" : "Dismiss"}
+                        </button>
+                        <button class="btn btn-primary" style="font-size:11px;" ?disabled=${accepting}
+                          @click=${() => this._acceptProactiveSuggestion(s5.suggestion_id, editedYaml)}>
+                          <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
+                          ${accepting ? "Creating\u2026" : "Accept"}
+                        </button>
+                      </div>
+                    </div>
+                  `;
+    })}
+              </div>
+            `}
+        ` : ""}
+      </div>
     `;
   }
   // -------------------------------------------------------------------------
