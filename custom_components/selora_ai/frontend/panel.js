@@ -676,6 +676,8 @@ var SeloraAIArchitectPanel = class extends s4 {
       _suggestingName: { type: Boolean },
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
+      // Automations sub-tab
+      _automationsSubTab: { type: String },
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
@@ -697,6 +699,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
+    this._automationsSubTab = "my_automations";
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
@@ -2011,6 +2014,41 @@ var SeloraAIArchitectPanel = class extends s4 {
       .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
 
       /* ---- Filter input ---- */
+      .sub-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 12px;
+        justify-content: center;
+      }
+      .sub-tab {
+        padding: 8px 18px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s, border-color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sub-tab:hover { color: var(--primary-text-color); }
+      .sub-tab.active {
+        color: #f59e0b;
+        border-bottom-color: #f59e0b;
+      }
+      .sub-tab .badge {
+        background: #f59e0b;
+        color: #000;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 16px;
+        text-align: center;
+      }
       .filter-row {
         display: flex;
         align-items: center;
@@ -2787,8 +2825,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const status = msg.automation_status;
     const automation = msg.automation;
     const yaml = msg.automation_yaml || "";
-    const risk = msg.risk_assessment || (automation == null ? void 0 : automation.risk_assessment) || null;
-    const scrutinyTags = (risk == null ? void 0 : risk.scrutiny_tags) || [];
+    const risk = msg.risk_assessment || automation?.risk_assessment || null;
+    const scrutinyTags = risk?.scrutiny_tags || [];
     if (status === "saved") {
       return x`
         <div class="proposal-card" style="margin-top:12px;">
@@ -2849,7 +2887,9 @@ var SeloraAIArchitectPanel = class extends s4 {
           <div class="proposal-name">${automation.alias}</div>
           ${scrutinyTags.length ? x`
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;">
-                  ${scrutinyTags.map((tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`)}
+                  ${scrutinyTags.map(
+      (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+    )}
                 </div>
               ` : ""}
 
@@ -2857,13 +2897,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                 <div class="proposal-description-label">What this automation does</div>
                 <div class="proposal-description">${msg.description}</div>
               ` : ""}
-          ${risk != null && risk.level === "elevated" ? x`
+
+          ${risk?.level === "elevated" ? x`
                 <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);">
                   <ha-icon icon="mdi:alert-outline"></ha-icon>
                   <div>
                     <strong>Elevated risk review recommended.</strong>
                     <div style="margin-top:4px;">${risk.summary}</div>
-                    ${risk.reasons != null && risk.reasons.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
+                    ${risk.reasons?.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
                   </div>
                 </div>
               ` : ""}
@@ -3575,10 +3616,24 @@ var SeloraAIArchitectPanel = class extends s4 {
     const bulkDisabled = selectedIds.length === 0 || this._bulkActionInProgress;
     return x`
       <div class="scroll-view" @click=${() => this._closeBurgerMenus()}>
-        ${this._renderProactiveSuggestions()}
+        <div class="sub-tabs">
+          <button class="sub-tab ${this._automationsSubTab === "my_automations" ? "active" : ""}"
+            @click=${() => {
+      this._automationsSubTab = "my_automations";
+    }}>
+            My Automations
+          </button>
+          <button class="sub-tab ${this._automationsSubTab === "suggestions" ? "active" : ""}"
+            @click=${() => {
+      this._automationsSubTab = "suggestions";
+    }}>
+            Suggestions
+            ${(this._suggestions || []).length + (this._proactiveSuggestions || []).length > 0 ? x`<span class="badge">${(this._suggestions || []).length + (this._proactiveSuggestions || []).length}</span>` : ""}
+          </button>
+        </div>
+        ${this._automationsSubTab === "my_automations" ? x`
         ${this._automations.length > 0 ? x`
               <div class="filter-row">
-                <h2 style="margin:0;">Automations</h2>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
                   <label class="bulk-select-all">
                     <input type="checkbox"
@@ -3760,10 +3815,21 @@ var SeloraAIArchitectPanel = class extends s4 {
               </div>
               ${filteredAutomations.length === 0 && this._automations.length > 0 ? x`<div style="text-align:center;opacity:0.45;padding:24px 0;">No automations match "${this._automationFilter}"</div>` : ""}
               ${this._renderDeletedSection()}
-              <div style="border-top: 1px solid var(--divider-color); margin: 24px 0 16px;"></div>
-            ` : ""}
-
-        <h2 style="margin-top:0;">AI Recommendations</h2>
+            ` : x`<div style="text-align:center;padding:32px 0;">
+              <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"></ha-icon>
+              <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
+              <button class="btn btn-primary" @click=${() => {
+      this._newAutoName = "";
+      this._showNewAutoDialog = true;
+    }}>
+                <ha-icon icon="mdi:plus" style="--mdc-icon-size:14px;"></ha-icon>
+                New Automation
+              </button>
+            </div>`}
+        ` : ""}
+        ${this._automationsSubTab === "suggestions" ? x`
+          ${this._renderProactiveSuggestions()}
+          <h2 style="margin-top:0;">AI Recommendations</h2>
         ${this._suggestions.length === 0 ? x`
               <div style="display:flex; flex-direction:column; align-items:center; padding:32px 0; gap:12px;">
                 <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;opacity:0.35;"></ha-icon>
@@ -3776,27 +3842,29 @@ var SeloraAIArchitectPanel = class extends s4 {
               </div>
             ` : this._suggestions.map((item) => {
       const auto = item.automation || item.automation_data;
-              const risk = item.risk_assessment || (auto == null ? void 0 : auto.risk_assessment) || null;
-              const key = `sug_${auto.alias}`;
-              const expanded = !!this._expandedAutomations[key];
-              const origYaml = item.automation_yaml || "";
+      const risk = item.risk_assessment || auto?.risk_assessment || null;
+      const key = `sug_${auto.alias}`;
+      const expanded = !!this._expandedAutomations[key];
+      const origYaml = item.automation_yaml || "";
       return x`
                 <div class="card">
                   <div class="card-header">
                     <h3>${auto.alias}</h3>
                     <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
                       <div class="chip suggestion">RECOMMENDED</div>
-                      ${(((risk == null ? void 0 : risk.scrutiny_tags) || []).map((tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`))}
+                      ${(risk?.scrutiny_tags || []).map(
+        (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+      )}
                     </div>
                   </div>
                   ${auto.description ? x`<p>${auto.description}</p>` : ""}
-                  ${risk != null && risk.level === "elevated" ? x`
+                  ${risk?.level === "elevated" ? x`
                         <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:12px;">
                           <ha-icon icon="mdi:alert-outline"></ha-icon>
                           <div>
                             <strong>Elevated risk review recommended.</strong>
                             <div style="margin-top:4px;">${risk.summary}</div>
-                            ${risk.reasons != null && risk.reasons.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
+                            ${risk.reasons?.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
                           </div>
                         </div>
                       ` : ""}
@@ -3823,6 +3891,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                 </div>
               `;
     })}
+        ` : ""}
       </div>
       ${this._renderDiffViewer()}
       ${this._renderNewAutomationDialog()}
