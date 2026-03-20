@@ -1981,7 +1981,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         flex-shrink: 0;
         cursor: pointer;
       }
-      .toggle-switch input { opacity: 0; width: 0; height: 0; }
+      .toggle-switch input { opacity: 0; width: 0; height: 0; position: absolute; }
       .toggle-track {
         position: absolute;
         inset: 0;
@@ -1990,11 +1990,11 @@ var SeloraAIArchitectPanel = class extends s4 {
         border: 1px solid rgba(0,0,0,0.15);
         transition: background 0.2s;
       }
-      .toggle-track.on { background: #f59e0b; }
+      .toggle-track.on { background: #f59e0b; border-color: #d97706; }
       .toggle-thumb {
         position: absolute;
-        top: 3px;
-        left: 3px;
+        top: 2px;
+        left: 2px;
         width: 16px;
         height: 16px;
         border-radius: 50%;
@@ -2002,7 +2002,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         box-shadow: 0 1px 3px rgba(0,0,0,0.3);
         transition: left 0.2s;
       }
-      .toggle-track.on .toggle-thumb { left: 21px; }
+      .toggle-track.on .toggle-thumb { left: 20px; }
       .toggle-label {
         font-size: 12px;
         font-weight: 600;
