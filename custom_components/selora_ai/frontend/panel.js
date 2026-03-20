@@ -2400,7 +2400,7 @@ var SeloraAIArchitectPanel = class extends s4 {
               <ha-icon icon="mdi:menu"></ha-icon>
             </ha-icon-button>
             <img src="/api/selora_ai/logo.png" alt="Selora" style="width:28px;height:28px;border-radius:6px;">
-            Selora AI Architect
+            Selora AI
           </div>
           <div class="tabs">
             <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => this._activeTab = "chat"}>Chat</div>
@@ -2787,8 +2787,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const status = msg.automation_status;
     const automation = msg.automation;
     const yaml = msg.automation_yaml || "";
-    const risk = msg.risk_assessment || (automation == null ? void 0 : automation.risk_assessment) || null;
-    const scrutinyTags = (risk == null ? void 0 : risk.scrutiny_tags) || [];
+    const risk = msg.risk_assessment || automation?.risk_assessment || null;
+    const scrutinyTags = risk?.scrutiny_tags || [];
     if (status === "saved") {
       return x`
         <div class="proposal-card" style="margin-top:12px;">
@@ -2849,7 +2849,9 @@ var SeloraAIArchitectPanel = class extends s4 {
           <div class="proposal-name">${automation.alias}</div>
           ${scrutinyTags.length ? x`
                 <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;">
-                  ${scrutinyTags.map((tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`)}
+                  ${scrutinyTags.map(
+      (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+    )}
                 </div>
               ` : ""}
 
@@ -2857,13 +2859,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                 <div class="proposal-description-label">What this automation does</div>
                 <div class="proposal-description">${msg.description}</div>
               ` : ""}
-          ${risk != null && risk.level === "elevated" ? x`
+
+          ${risk?.level === "elevated" ? x`
                 <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);">
                   <ha-icon icon="mdi:alert-outline"></ha-icon>
                   <div>
                     <strong>Elevated risk review recommended.</strong>
                     <div style="margin-top:4px;">${risk.summary}</div>
-                    ${risk.reasons != null && risk.reasons.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
+                    ${risk.reasons?.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
                   </div>
                 </div>
               ` : ""}
@@ -3776,27 +3779,29 @@ var SeloraAIArchitectPanel = class extends s4 {
               </div>
             ` : this._suggestions.map((item) => {
       const auto = item.automation || item.automation_data;
-              const risk = item.risk_assessment || (auto == null ? void 0 : auto.risk_assessment) || null;
-              const key = `sug_${auto.alias}`;
-              const expanded = !!this._expandedAutomations[key];
-              const origYaml = item.automation_yaml || "";
+      const risk = item.risk_assessment || auto?.risk_assessment || null;
+      const key = `sug_${auto.alias}`;
+      const expanded = !!this._expandedAutomations[key];
+      const origYaml = item.automation_yaml || "";
       return x`
                 <div class="card">
                   <div class="card-header">
                     <h3>${auto.alias}</h3>
                     <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
                       <div class="chip suggestion">RECOMMENDED</div>
-                      ${(((risk == null ? void 0 : risk.scrutiny_tags) || []).map((tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`))}
+                      ${(risk?.scrutiny_tags || []).map(
+        (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
+      )}
                     </div>
                   </div>
                   ${auto.description ? x`<p>${auto.description}</p>` : ""}
-                  ${risk != null && risk.level === "elevated" ? x`
+                  ${risk?.level === "elevated" ? x`
                         <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:12px;">
                           <ha-icon icon="mdi:alert-outline"></ha-icon>
                           <div>
                             <strong>Elevated risk review recommended.</strong>
                             <div style="margin-top:4px;">${risk.summary}</div>
-                            ${risk.reasons != null && risk.reasons.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
+                            ${risk.reasons?.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
                           </div>
                         </div>
                       ` : ""}
