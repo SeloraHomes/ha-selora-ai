@@ -88,7 +88,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["sensor", "button", "conversation"]
+PLATFORMS = ["conversation"]
 
 _CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
 _CONVERSATIONS_STORAGE_VERSION = 1
@@ -2349,26 +2349,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     except ValueError as err:
         _LOGGER.warning("MCP server already registered: %s", err)
 
-    # Register a hub device for Selora AI (service type — not a physical device)
-    from homeassistant.helpers import device_registry as dr
+    # One-time cleanup: remove the legacy Hub device and its entities if present
+    from homeassistant.helpers import device_registry as dr, entity_registry as er
     dev_reg = dr.async_get(hass)
-    hub_device = dev_reg.async_get_or_create(
-        config_entry_id=entry.entry_id,
-        identifiers={(DOMAIN, "selora_ai_hub")},
-        name="Selora AI Hub",
-        manufacturer="Selora Homes",
-        model="Selora AI",
-        sw_version="0.1.0",
-        entry_type=dr.DeviceEntryType.SERVICE,
-    )
-    # Always clear area — Hub is whole-home, not room-specific
-    if hub_device.area_id:
-        dev_reg.async_update_device(hub_device.id, area_id=None)
-
-    # Clean up stale mirror devices from previous versions
-    cleanup = await device_mgr.cleanup_mirror_devices()
-    if cleanup["removed_devices"]:
-        _LOGGER.info("Removed %d mirror devices on startup", len(cleanup["removed_devices"]))
+    ent_reg = er.async_get(hass)
+    hub_device = dev_reg.async_get_device(identifiers={(DOMAIN, "selora_ai_hub")})
+    if hub_device:
+        for entity in er.async_entries_for_device(
+            ent_reg, hub_device.id, include_disabled_entities=True
+        ):
+            ent_reg.async_remove(entity.entity_id)
+        dev_reg.async_remove_device(hub_device.id)
+        _LOGGER.info("Removed legacy Selora AI Hub device and its entities")
 
     # Schedule periodic discovery if enabled
     options = entry.options

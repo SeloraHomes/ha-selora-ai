@@ -13,16 +13,11 @@ All devices go through the same generic flow:
 
 from __future__ import annotations
 
-import json
 import logging
-from pathlib import Path
 from typing import Any
-
-import aiohttp
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -301,15 +296,9 @@ class DeviceManager:
 
         assigned: list[dict[str, str]] = []
 
-        from .const import DOMAIN
-        hub_id = (DOMAIN, "selora_ai_hub")
-
         for device in dev_reg.devices.values():
             if device.area_id:
                 continue  # already assigned
-            # Skip the Selora AI Hub — it's whole-home, not room-specific
-            if hub_id in device.identifiers:
-                continue
             name = (device.name or "").lower()
             if not name:
                 continue
@@ -333,272 +322,6 @@ class DeviceManager:
 
         return {"assigned": assigned}
 
-    async def generate_dashboard(self) -> dict[str, Any]:
-        """Auto-generate a Lovelace dashboard showing all useful entities.
-
-        Builds a comprehensive overview: weather, people, controllable devices
-        grouped by area, sensors, and the Selora AI hub card.
-        """
-        from homeassistant.helpers import area_registry as ar, entity_registry as ent_r
-
-        dev_reg = dr.async_get(self.hass)
-        ent_reg = ent_r.async_get(self.hass)
-        area_reg = ar.async_get(self.hass)
-
-        # Domains we want on the dashboard
-        controllable = {
-            "media_player", "light", "switch", "climate", "cover",
-            "fan", "lock", "vacuum", "humidifier", "water_heater",
-        }
-        sensor_domains = {"sensor", "binary_sensor"}
-        all_dashboard_domains = controllable | sensor_domains | {
-            "camera", "weather", "person", "input_boolean",
-            "input_number", "input_select", "automation", "scene",
-        }
-
-        # Skip internal/noisy entities
-        skip_platforms = {"selora_ai", "backup"}
-        skip_prefixes = (
-            "sensor.backup_", "event.backup_", "sensor.sun_solar_",
-        )
-
-        # Build area_id → area_name lookup
-        area_names = {a.id: a.name for a in area_reg.async_list_areas()}
-
-        # Collect all visible entities grouped by purpose
-        area_controllable: dict[str, list[str]] = {}
-        area_sensors: dict[str, list[str]] = {}
-        unassigned_controllable: list[str] = []
-        unassigned_sensors: list[str] = []
-        weather_entities: list[str] = []
-        person_entities: list[str] = []
-        camera_entities: list[str] = []
-        scene_entities: list[str] = []
-        sun_entities: list[str] = []
-
-        for entity in ent_reg.entities.values():
-            eid = entity.entity_id
-            domain = eid.split(".")[0]
-
-            if domain not in all_dashboard_domains:
-                continue
-            if entity.disabled_by or entity.hidden_by:
-                continue
-            if entity.platform in skip_platforms:
-                continue
-            if any(eid.startswith(p) for p in skip_prefixes):
-                continue
-
-            # Special-purpose entities go to dedicated sections
-            if domain == "weather":
-                weather_entities.append(eid)
-                continue
-            if domain == "person":
-                person_entities.append(eid)
-                continue
-            if domain == "camera":
-                camera_entities.append(eid)
-                continue
-            if domain == "scene":
-                scene_entities.append(eid)
-                continue
-            if eid in ("sensor.sun_next_rising", "sensor.sun_next_setting", "binary_sensor.sun_solar_rising"):
-                sun_entities.append(eid)
-                continue
-            # Skip other sun sensors
-            if entity.platform == "sun" and eid not in sun_entities:
-                continue
-
-            # Determine area
-            area_id = entity.area_id
-            if not area_id and entity.device_id:
-                device = dev_reg.async_get(entity.device_id)
-                if device:
-                    area_id = device.area_id
-
-            area_name = area_names.get(area_id) if area_id else None
-
-            if domain in controllable:
-                if area_name:
-                    area_controllable.setdefault(area_name, []).append(eid)
-                else:
-                    unassigned_controllable.append(eid)
-            elif domain in sensor_domains:
-                if area_name:
-                    area_sensors.setdefault(area_name, []).append(eid)
-                else:
-                    unassigned_sensors.append(eid)
-
-        # ── Build Lovelace cards ──
-        cards: list[dict[str, Any]] = []
-
-        # Weather card (prominent, top of dashboard)
-        for weid in weather_entities:
-            cards.append({"type": "weather-forecast", "entity": weid, "show_forecast": True})
-
-        # Person tracking
-        if person_entities:
-            cards.append({
-                "type": "glance",
-                "title": "People",
-                "entities": [{"entity": eid, "tap_action": {"action": "more-info"}} for eid in person_entities],
-            })
-
-        # Sun info
-        if sun_entities:
-            cards.append({
-                "type": "glance",
-                "title": "Sun",
-                "entities": [{"entity": eid} for eid in sorted(sun_entities)],
-            })
-
-        # Selora AI Hub
-        cards.append({
-            "type": "entities",
-            "title": "Selora AI Hub",
-            "entities": [
-                "sensor.selora_ai_hub_status",
-                "sensor.selora_ai_hub_devices",
-                "sensor.selora_ai_hub_discovery",
-                "sensor.selora_ai_hub_last_activity",
-                "button.selora_ai_hub_discover_devices",
-            ],
-        })
-
-        # Area sections — controllable devices
-        for area_name in sorted(set(list(area_controllable.keys()) + list(area_sensors.keys()))):
-            area_cards: list[dict[str, Any]] = []
-
-            for eid in sorted(area_controllable.get(area_name, [])):
-                domain = eid.split(".")[0]
-                if domain == "media_player":
-                    area_cards.append({"type": "media-control", "entity": eid})
-                elif domain in ("light", "switch", "fan", "cover"):
-                    area_cards.append({"type": "button", "entity": eid, "tap_action": {"action": "toggle"}})
-                elif domain == "climate":
-                    area_cards.append({"type": "thermostat", "entity": eid})
-                elif domain == "camera":
-                    area_cards.append({"type": "picture-entity", "entity": eid})
-                else:
-                    area_cards.append({"type": "entity", "entity": eid})
-
-            # Sensors for this area as a glance card
-            area_sensor_list = area_sensors.get(area_name, [])
-            if area_sensor_list:
-                area_cards.append({
-                    "type": "glance",
-                    "title": "Sensors",
-                    "entities": [{"entity": eid} for eid in sorted(area_sensor_list)[:8]],
-                })
-
-            if area_cards:
-                cards.append({
-                    "type": "vertical-stack",
-                    "title": area_name,
-                    "cards": area_cards,
-                })
-
-        # Cameras
-        for ceid in camera_entities:
-            cards.append({"type": "picture-entity", "entity": ceid})
-
-        # Scenes
-        if scene_entities:
-            cards.append({
-                "type": "glance",
-                "title": "Scenes",
-                "entities": [{"entity": eid, "tap_action": {"action": "call-service", "service": "scene.turn_on", "service_data": {"entity_id": eid}}} for eid in scene_entities[:8]],
-            })
-
-        # Unassigned controllable devices
-        if unassigned_controllable:
-            un_cards: list[dict[str, Any]] = []
-            for eid in sorted(unassigned_controllable):
-                domain = eid.split(".")[0]
-                if domain == "media_player":
-                    un_cards.append({"type": "media-control", "entity": eid})
-                elif domain in ("light", "switch", "fan", "cover"):
-                    un_cards.append({"type": "button", "entity": eid, "tap_action": {"action": "toggle"}})
-                elif domain == "climate":
-                    un_cards.append({"type": "thermostat", "entity": eid})
-                else:
-                    un_cards.append({"type": "entity", "entity": eid})
-            cards.append({
-                "type": "vertical-stack",
-                "title": "Other Devices",
-                "cards": un_cards,
-            })
-
-        # Unassigned sensors
-        if unassigned_sensors:
-            cards.append({
-                "type": "glance",
-                "title": "Sensors",
-                "entities": [{"entity": eid} for eid in sorted(unassigned_sensors)[:12]],
-            })
-
-        # The dashboard config to use if creating from scratch
-        config = {
-            "title": "Home",
-            "views": [
-                {
-                    "path": "default_view",
-                    "title": "Overview",
-                    "cards": cards,
-                }
-            ],
-        }
-
-        # Use HA's Lovelace API — updates cache + fires events for immediate effect
-        wrote_dashboard = False
-        try:
-            lovelace_data = self.hass.data.get("lovelace")
-            if lovelace_data and hasattr(lovelace_data, "dashboards"):
-                for url_path, dashboard_obj in lovelace_data.dashboards.items():
-                    if not hasattr(dashboard_obj, "async_save"):
-                        continue
-                    try:
-                        await dashboard_obj.async_load(force=False)
-                    except Exception:
-                        # No config yet — save our full config
-                        await dashboard_obj.async_save(config)
-                        _LOGGER.info(
-                            "Generated dashboard '%s' with %d cards",
-                            url_path, len(cards),
-                        )
-                        wrote_dashboard = True
-                        continue
-        except Exception:
-            _LOGGER.debug("Lovelace API save failed", exc_info=True)
-
-        if wrote_dashboard:
-            return {"generated": True, "cards": len(cards)}
-
-        # Fallback: direct file write (takes effect after HA restart)
-        storage_path = Path(self.hass.config.path()) / ".storage" / "lovelace"
-        if not storage_path.exists():
-            dashboard_data = {
-                "version": 1,
-                "minor_version": 1,
-                "key": "lovelace",
-                "data": {"config": config},
-            }
-            await self.hass.async_add_executor_job(
-                self._write_dashboard,
-                dashboard_data,
-            )
-            _LOGGER.info("Generated dashboard (file fallback) with %d cards", len(cards))
-            wrote_dashboard = True
-        return {"generated": wrote_dashboard, "cards": len(cards)}
-
-    def _write_dashboard(self, data: dict) -> None:
-        path = (Path(self.hass.config.path()) / ".storage" / "lovelace").resolve()
-        config_root = Path(self.hass.config.path()).resolve()
-        if config_root not in path.parents:
-            raise ValueError("Invalid dashboard storage path")
-        with path.open("w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-
     # ── Reset & cleanup ──────────────────────────────────────────
 
     async def reset_integrations(self) -> dict[str, Any]:
@@ -619,37 +342,17 @@ class DeviceManager:
         return {"removed_integrations": removed}
 
     async def cleanup_mirror_devices(self) -> dict[str, Any]:
-        """Remove Selora AI mirror devices + orphaned entities.
-
-        Keeps only the Hub device and its core entities (status sensor + 4 action buttons).
-        Removes everything else: stale accept/reject buttons, Turn On/Off, Kitchen Status, etc.
-        """
+        """Remove all Selora AI-owned devices and orphaned entities."""
         from .const import DOMAIN
 
         dev_reg = dr.async_get(self.hass)
         ent_reg = er.async_get(self.hass)
-        hub_id = (DOMAIN, "selora_ai_hub")
-
-        # Unique IDs of entities we want to KEEP on the Hub
-        _KEEP_UNIQUE_IDS = {
-            "selora_ai_hub_status",            # status sensor
-            "selora_ai_hub_device_list",       # device list sensor
-            "selora_ai_hub_last_activity",     # last activity sensor
-            "selora_ai_hub_discovery",         # discovery sensor
-            f"{DOMAIN}_discover",              # discover button
-            f"{DOMAIN}_auto_setup",            # auto setup button
-            f"{DOMAIN}_cleanup",               # cleanup button
-            f"{DOMAIN}_reset",                 # reset button
-        }
 
         removed_devices: list[str] = []
         removed_entities: list[str] = []
 
-        # 1. Remove non-Hub devices owned by our integration
         for device in list(dev_reg.devices.values()):
             if not any(ident[0] == DOMAIN for ident in device.identifiers):
-                continue
-            if hub_id in device.identifiers:
                 continue
 
             for entity in er.async_entries_for_device(ent_reg, device.id, include_disabled_entities=True):
@@ -659,18 +362,15 @@ class DeviceManager:
             dev_reg.async_remove_device(device.id)
             removed_devices.append(device.name or device.id)
 
-        # 2. Remove orphaned entities on the Hub that aren't core
         for entity in list(ent_reg.entities.values()):
             if entity.platform != DOMAIN:
-                continue
-            if entity.unique_id in _KEEP_UNIQUE_IDS:
                 continue
             ent_reg.async_remove(entity.entity_id)
             removed_entities.append(entity.entity_id)
 
         if removed_devices or removed_entities:
             _LOGGER.info(
-                "Cleaned up %d mirror devices, %d stale entities",
+                "Cleaned up %d devices, %d entities",
                 len(removed_devices), len(removed_entities),
             )
 
