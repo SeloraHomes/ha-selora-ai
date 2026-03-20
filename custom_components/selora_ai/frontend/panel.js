@@ -1504,13 +1504,18 @@ var SeloraAIArchitectPanel = class extends s4 {
 
       /* ---- Sidebar (session list) ---- */
       .sidebar {
-        width: 260px;
-        min-width: 260px;
+        width: 0;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         background: var(--sidebar-background-color, var(--card-background-color));
         border-right: 1px solid var(--divider-color);
         overflow: hidden;
+        transition: width 0.25s ease, min-width 0.25s ease;
+      }
+      .sidebar.open {
+        width: 260px;
+        min-width: 260px;
       }
       .sidebar-header {
         padding: 16px;
@@ -2111,7 +2116,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       .filter-row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
+        justify-content: center;
         margin-bottom: 12px;
         gap: 12px;
       }
@@ -2257,15 +2262,15 @@ var SeloraAIArchitectPanel = class extends s4 {
         width: 90%;
       }
 
-      /* ---- Automations grid (masonry via CSS columns) ---- */
+      /* ---- Automations grid (CSS Grid) ---- */
       .automations-grid {
-        columns: 2 280px;
-        column-gap: 10px;
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        gap: 10px;
         margin-bottom: 14px;
       }
       .automations-grid .card {
-        break-inside: avoid;
-        margin-bottom: 10px;
+        margin-bottom: 0;
         padding: 12px 14px;
         display: flex;
         flex-direction: column;
@@ -2363,7 +2368,11 @@ var SeloraAIArchitectPanel = class extends s4 {
       .scroll-view {
         flex: 1;
         overflow-y: auto;
-        padding: 16px;
+        padding: 16px 24px;
+        max-width: 1200px;
+        margin: 0 auto;
+        width: 100%;
+        box-sizing: border-box;
       }
       .card {
         background: var(--card-background-color);
@@ -2410,16 +2419,20 @@ var SeloraAIArchitectPanel = class extends s4 {
       .key-not-set { font-size: 12px; opacity: 0.5; font-style: italic; margin-top: 4px; }
       .save-bar { margin-top: 28px; display: flex; justify-content: flex-end; }
 
-      /* Narrow overrides */
+      /* Narrow overrides — sidebar overlays on small screens */
       :host([narrow]) .sidebar {
         position: absolute;
         left: 0; top: 0; bottom: 0;
         z-index: 10;
+        width: 0;
+        min-width: 0;
         transform: translateX(-100%);
-        transition: transform 0.25s ease;
+        transition: transform 0.25s ease, width 0.25s ease, min-width 0.25s ease;
         box-shadow: 2px 0 8px rgba(0,0,0,0.2);
       }
       :host([narrow]) .sidebar.open {
+        width: 260px;
+        min-width: 260px;
         transform: translateX(0);
       }
 
@@ -2500,13 +2513,18 @@ var SeloraAIArchitectPanel = class extends s4 {
             Selora AI Architect
           </div>
           <div class="tabs">
-            <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => this._activeTab = "chat"}>Chat</div>
+            <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => {
+      this._activeTab = "chat";
+      this._showSidebar = true;
+    }}>Chat</div>
             <div class="tab ${this._activeTab === "automations" ? "active" : ""}" @click=${() => {
       this._activeTab = "automations";
+      this._showSidebar = false;
       this._loadAutomations();
     }}>Automations</div>
             <div class="tab ${this._activeTab === "settings" ? "active" : ""}" @click=${() => {
       this._activeTab = "settings";
+      this._showSidebar = false;
       this._loadConfig();
     }}>Settings</div>
           </div>
