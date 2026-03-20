@@ -140,6 +140,9 @@ class SeloraAIArchitectPanel extends LitElement {
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
 
+      // Bulk edit mode
+      _bulkEditMode: { type: Boolean },
+
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
@@ -211,6 +214,7 @@ class SeloraAIArchitectPanel extends LitElement {
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
+    this._bulkEditMode = false;
     // Proactive suggestions
     this._proactiveSuggestions = [];
     this._loadingProactive = false;
@@ -1642,7 +1646,7 @@ class SeloraAIArchitectPanel extends LitElement {
         border: 1px solid var(--divider-color);
         border-radius: 8px;
         padding: 4px 10px;
-        flex: 0 1 260px;
+        flex: 0 1 400px;
       }
       .filter-input-wrap input {
         border: none;
@@ -3238,15 +3242,17 @@ class SeloraAIArchitectPanel extends LitElement {
         ${this._automations.length > 0
           ? html`
               <div class="filter-row">
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
-                  <label class="bulk-select-all">
-                    <input type="checkbox"
-                      ?checked=${allVisibleSelected}
-                      .indeterminate=${partiallyVisibleSelected}
-                      ?disabled=${selectableIds.length === 0 || this._bulkActionInProgress}
-                      @change=${(e) => this._toggleSelectAllFiltered(filteredAutomations, e.target.checked)}>
-                    <span>Select all</span>
-                  </label>
+                <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+                  ${this._bulkEditMode ? html`
+                    <label class="bulk-select-all">
+                      <input type="checkbox"
+                        ?checked=${allVisibleSelected}
+                        .indeterminate=${partiallyVisibleSelected}
+                        ?disabled=${selectableIds.length === 0 || this._bulkActionInProgress}
+                        @change=${(e) => this._toggleSelectAllFiltered(filteredAutomations, e.target.checked)}>
+                      <span>Select all</span>
+                    </label>
+                  ` : ""}
                   <div class="filter-input-wrap">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input type="text" placeholder="Filter automations…"
@@ -3257,9 +3263,19 @@ class SeloraAIArchitectPanel extends LitElement {
                     <ha-icon icon="mdi:plus" style="--mdc-icon-size:14px;"></ha-icon>
                     New Automation
                   </button>
+                  ${this._bulkEditMode ? html`
+                    <button class="btn btn-outline" style="white-space:nowrap;" @click=${() => { this._bulkEditMode = false; this._clearAutomationSelection(); }}>
+                      Done
+                    </button>
+                  ` : html`
+                    <button class="btn btn-outline" style="white-space:nowrap;" @click=${() => { this._bulkEditMode = true; }}>
+                      <ha-icon icon="mdi:checkbox-multiple-outline" style="--mdc-icon-size:14px;"></ha-icon>
+                      Bulk edit
+                    </button>
+                  `}
                 </div>
               </div>
-              ${selectedIds.length > 0 ? html`
+              ${this._bulkEditMode && selectedIds.length > 0 ? html`
                 <div class="bulk-actions-row">
                   <div class="left">
                     ${selectedIds.length} selected${hiddenSelectedCount > 0 ? html` <span style="opacity:0.65;font-weight:500;">(${hiddenSelectedCount} hidden by filter)</span>` : ""}
@@ -3296,7 +3312,7 @@ class SeloraAIArchitectPanel extends LitElement {
                 return html`
                   <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
-                      ${hasAutomationId ? html`
+                      ${this._bulkEditMode && hasAutomationId ? html`
                         <label class="card-select">
                           <input type="checkbox"
                             .checked=${!!this._selectedAutomationIds[automationId]}
