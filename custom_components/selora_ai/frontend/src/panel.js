@@ -137,6 +137,9 @@ class SeloraAIArchitectPanel extends LitElement {
       // Automations sub-tab
       _automationsSubTab: { type: String },
 
+      // Inline card tabs (flow / yaml / history)
+      _cardActiveTab: { type: Object },
+
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
@@ -206,6 +209,8 @@ class SeloraAIArchitectPanel extends LitElement {
     this._newAutoName = "";
     this._suggestingName = false;
     this._generatingSuggestions = false;
+    // Inline card tabs
+    this._cardActiveTab = {};
     // Proactive suggestions
     this._proactiveSuggestions = [];
     this._loadingProactive = false;
@@ -1533,6 +1538,59 @@ class SeloraAIArchitectPanel extends LitElement {
       .burger-item.danger { color: var(--error-color, #f44336); }
       .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
 
+      /* ---- Card inline tabs (Flow / YAML / History) ---- */
+      .card-tabs {
+        display: flex;
+        align-items: center;
+        gap: 0;
+        margin: 8px 0 0;
+        border-top: 1px solid var(--divider-color);
+        padding-top: 8px;
+        font-size: 12px;
+      }
+      .card-tabs .label {
+        font-size: 11px;
+        opacity: 0.5;
+        margin-right: 8px;
+        white-space: nowrap;
+      }
+      .card-tab {
+        padding: 4px 10px;
+        border: none;
+        background: none;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s, border-color 0.15s;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .card-tab:hover { color: var(--primary-text-color); }
+      .card-tab.active {
+        color: #f59e0b;
+        border-bottom-color: #f59e0b;
+      }
+      .card-chevron {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.25s ease;
+        cursor: pointer;
+        opacity: 0.5;
+        --mdc-icon-size: 16px;
+        flex-shrink: 0;
+      }
+      .card-chevron:hover { opacity: 0.8; }
+      .card-chevron.open { transform: rotate(180deg); }
+      .card-tab-sep {
+        color: var(--divider-color);
+        font-size: 12px;
+        user-select: none;
+      }
+
       /* ---- Filter input ---- */
       .sub-tabs {
         display: flex;
@@ -2825,7 +2883,6 @@ class SeloraAIArchitectPanel extends LitElement {
 
   _renderVersionHistoryDrawer(a) {
     const automationId = a.automation_id || a.entity_id;
-    if (!this._versionHistoryOpen[automationId]) return "";
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
     const activeTab = this._versionTab[automationId] || "versions";
@@ -3258,10 +3315,6 @@ class SeloraAIArchitectPanel extends LitElement {
                           </button>
                           ${burgerOpen ? html`
                             <div class="burger-dropdown">
-                              <button class="burger-item" @click=${(e) => { e.stopPropagation(); this._openBurgerMenu = null; this._openVersionHistory(automationId); }}>
-                                <ha-icon icon="mdi:history" style="--mdc-icon-size:14px;"></ha-icon>
-                                History
-                              </button>
                               <button class="burger-item danger" ?disabled=${deleting}
                                 @click=${(e) => { e.stopPropagation(); this._openBurgerMenu = null; this._softDeleteAutomation(automationId); }}>
                                 <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:14px;"></ha-icon>
@@ -3273,40 +3326,7 @@ class SeloraAIArchitectPanel extends LitElement {
                       ` : ""}
                     </div>
 
-                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap;">
-                      ${(a.trigger?.length || a.action?.length)
-                        ? html`
-                          <button class="btn btn-ghost ${this._expandedAutomations[`flow_${a.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
-                            @click=${() => { this._expandedAutomations = { ...this._expandedAutomations, [`flow_${a.entity_id}`]: !this._expandedAutomations[`flow_${a.entity_id}`] }; this.requestUpdate(); }}>
-                            <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                            ${this._expandedAutomations[`flow_${a.entity_id}`] ? "Hide flow" : "Show flow"}
-                          </button>`
-                        : ""}
-                      ${a.yaml_text
-                        ? html`
-                          <button class="btn btn-ghost ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "active" : ""}" style="font-size:11px;padding:3px 8px;"
-                            @click=${() => this._toggleExpandAutomation(`yaml_${a.entity_id}`)}>
-                            <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
-                            ${this._expandedAutomations[`yaml_${a.entity_id}`] ? "Hide YAML" : "Edit YAML"}
-                          </button>`
-                        : ""}
-                      ${a.last_triggered
-                        ? html`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Last run: ${new Date(a.last_triggered).toLocaleString()}</span>`
-                        : !isDraft ? html`<span style="margin-left:auto;font-size:11px;opacity:0.5;">Never triggered</span>` : ""}
-                    </div>
-
-                    ${this._expandedAutomations[`flow_${a.entity_id}`] && (a.trigger?.length || a.action?.length)
-                      ? this._renderAutomationFlowchart(a) : ""}
-
-                    ${this._expandedAutomations[`yaml_${a.entity_id}`] && a.yaml_text
-                      ? this._renderYamlEditor(
-                          `yaml_${a.entity_id}`,
-                          a.yaml_text,
-                          (key) => this._saveActiveAutomationYaml(a.automation_id, key)
-                        )
-                      : ""}
-
-                    <div class="card-actions" style="margin-top:8px;padding-top:8px;">
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;flex-wrap:wrap;">
                       <label class="toggle-switch" title="${canToggle ? (isOn ? "Enabled" : "Disabled") : "Unavailable — automation id not resolved"}"
                         style="${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
                         @click=${() => {
@@ -3327,23 +3347,80 @@ class SeloraAIArchitectPanel extends LitElement {
                         </div>
                       </label>
                       ${isDraft ? html`
-                      <button class="btn btn-primary"
+                      <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;"
                         @click=${() => { this._activeSessionId = a._linked_session; this._activeTab = "chat"; this._openSession(a._linked_session); }}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         Define in Chat
                       </button>
-                      <button class="btn btn-outline" style="margin-left:auto;"
+                      <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;margin-left:auto;"
                         @click=${() => this._dismissDraft(a._draft_id)}>
                         <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
                         Dismiss
                       </button>` : html`
-                      <button class="btn btn-outline" ?disabled=${!hasAutomationId || loadingChat || this._bulkActionInProgress}
+                      <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;" ?disabled=${!hasAutomationId || loadingChat || this._bulkActionInProgress}
                         @click=${() => this._loadAutomationToChat(automationId)}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         ${loadingChat ? "Loading…" : "Refine in chat"}
                       </button>`}
                     </div>
-                    ${this._renderVersionHistoryDrawer(a)}
+
+                    <div class="card-tabs">
+                      <span class="label">View:</span>
+                      ${(a.trigger?.length || a.action?.length) ? html`
+                        <button class="card-tab ${this._cardActiveTab[a.entity_id] === "flow" ? "active" : ""}"
+                          @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [a.entity_id]: this._cardActiveTab[a.entity_id] === "flow" ? null : "flow" }; }}>
+                          <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
+                        </button>
+                        <span class="card-tab-sep">|</span>
+                      ` : ""}
+                      ${a.yaml_text ? html`
+                        <button class="card-tab ${this._cardActiveTab[a.entity_id] === "yaml" ? "active" : ""}"
+                          @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [a.entity_id]: this._cardActiveTab[a.entity_id] === "yaml" ? null : "yaml" }; }}>
+                          <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
+                        </button>
+                        <span class="card-tab-sep">|</span>
+                      ` : ""}
+                      ${hasAutomationId ? html`
+                        <button class="card-tab ${this._cardActiveTab[a.entity_id] === "history" ? "active" : ""}"
+                          @click=${() => {
+                            const isActive = this._cardActiveTab[a.entity_id] === "history";
+                            this._cardActiveTab = { ...this._cardActiveTab, [a.entity_id]: isActive ? null : "history" };
+                            if (!isActive && !this._versions[automationId]) {
+                              this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: true };
+                              this._loadVersionHistory(automationId);
+                            }
+                          }}>
+                          History
+                        </button>
+                      ` : ""}
+                      <ha-icon icon="mdi:chevron-down"
+                        class="card-chevron ${this._cardActiveTab[a.entity_id] ? 'open' : ''}"
+                        style="margin-left:auto;"
+                        title="Expand details"
+                        @click=${() => {
+                          const current = this._cardActiveTab[a.entity_id];
+                          if (current) {
+                            this._cardActiveTab = { ...this._cardActiveTab, [a.entity_id]: null };
+                          } else {
+                            this._cardActiveTab = { ...this._cardActiveTab, [a.entity_id]: "flow" };
+                          }
+                        }}></ha-icon>
+                    </div>
+
+                    ${this._cardActiveTab[a.entity_id] === "flow" && (a.trigger?.length || a.action?.length)
+                      ? this._renderAutomationFlowchart(a) : ""}
+
+                    ${this._cardActiveTab[a.entity_id] === "yaml" && a.yaml_text
+                      ? this._renderYamlEditor(
+                          `yaml_${a.entity_id}`,
+                          a.yaml_text,
+                          (key) => this._saveActiveAutomationYaml(a.automation_id, key)
+                        )
+                      : ""}
+
+                    ${this._cardActiveTab[a.entity_id] === "history" && hasAutomationId
+                      ? this._renderVersionHistoryDrawer(a)
+                      : ""}
                   </div>
                 `;
               })}
