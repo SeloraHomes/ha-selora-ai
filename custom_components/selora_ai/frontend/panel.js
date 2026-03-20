@@ -4,17 +4,17 @@ var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "a
 var s = Symbol();
 var n = /* @__PURE__ */ new WeakMap();
 var o = class {
-  constructor(t3, e4, n5) {
+  constructor(t3, e5, n5) {
     if (this._$cssResult$ = true, n5 !== s)
       throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-    this.cssText = t3, this.t = e4;
+    this.cssText = t3, this.t = e5;
   }
   get styleSheet() {
     let t3 = this.o;
-    const s5 = this.t;
+    const s6 = this.t;
     if (e && void 0 === t3) {
-      const e4 = void 0 !== s5 && 1 === s5.length;
-      e4 && (t3 = n.get(s5)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e4 && n.set(s5, t3));
+      const e5 = void 0 !== s6 && 1 === s6.length;
+      e5 && (t3 = n.get(s6)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e5 && n.set(s6, t3));
     }
     return t3;
   }
@@ -23,27 +23,27 @@ var o = class {
   }
 };
 var r = (t3) => new o("string" == typeof t3 ? t3 : t3 + "", void 0, s);
-var i = (t3, ...e4) => {
-  const n5 = 1 === t3.length ? t3[0] : e4.reduce((e5, s5, n6) => e5 + ((t4) => {
+var i = (t3, ...e5) => {
+  const n5 = 1 === t3.length ? t3[0] : e5.reduce((e6, s6, n6) => e6 + ((t4) => {
     if (true === t4._$cssResult$)
       return t4.cssText;
     if ("number" == typeof t4)
       return t4;
     throw Error("Value passed to 'css' function must be a 'css' function result: " + t4 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(s5) + t3[n6 + 1], t3[0]);
+  })(s6) + t3[n6 + 1], t3[0]);
   return new o(n5, t3, s);
 };
-var S = (s5, n5) => {
-  e ? s5.adoptedStyleSheets = n5.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet) : n5.forEach((e4) => {
+var S = (s6, n5) => {
+  e ? s6.adoptedStyleSheets = n5.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet) : n5.forEach((e5) => {
     const n6 = document.createElement("style"), o5 = t.litNonce;
-    void 0 !== o5 && n6.setAttribute("nonce", o5), n6.textContent = e4.cssText, s5.appendChild(n6);
+    void 0 !== o5 && n6.setAttribute("nonce", o5), n6.textContent = e5.cssText, s6.appendChild(n6);
   });
 };
 var c = e ? (t3) => t3 : (t3) => t3 instanceof CSSStyleSheet ? ((t4) => {
-  let e4 = "";
-  for (const s5 of t4.cssRules)
-    e4 += s5.cssText;
-  return r(e4);
+  let e5 = "";
+  for (const s6 of t4.cssRules)
+    e5 += s6.cssText;
+  return r(e5);
 })(t3) : t3;
 
 // node_modules/@lit/reactive-element/reactive-element.js
@@ -52,8 +52,8 @@ var e2 = window;
 var r2 = e2.trustedTypes;
 var h = r2 ? r2.emptyScript : "";
 var o2 = e2.reactiveElementPolyfillSupport;
-var n2 = { toAttribute(t3, i3) {
-  switch (i3) {
+var n2 = { toAttribute(t3, i5) {
+  switch (i5) {
     case Boolean:
       t3 = t3 ? h : null;
       break;
@@ -62,26 +62,26 @@ var n2 = { toAttribute(t3, i3) {
       t3 = null == t3 ? t3 : JSON.stringify(t3);
   }
   return t3;
-}, fromAttribute(t3, i3) {
-  let s5 = t3;
-  switch (i3) {
+}, fromAttribute(t3, i5) {
+  let s6 = t3;
+  switch (i5) {
     case Boolean:
-      s5 = null !== t3;
+      s6 = null !== t3;
       break;
     case Number:
-      s5 = null === t3 ? null : Number(t3);
+      s6 = null === t3 ? null : Number(t3);
       break;
     case Object:
     case Array:
       try {
-        s5 = JSON.parse(t3);
+        s6 = JSON.parse(t3);
       } catch (t4) {
-        s5 = null;
+        s6 = null;
       }
   }
-  return s5;
+  return s6;
 } };
-var a = (t3, i3) => i3 !== t3 && (i3 == i3 || t3 == t3);
+var a = (t3, i5) => i5 !== t3 && (i5 == i5 || t3 == t3);
 var l = { attribute: true, type: String, converter: n2, reflect: false, hasChanged: a };
 var d = "finalized";
 var u = class extends HTMLElement {
@@ -89,29 +89,29 @@ var u = class extends HTMLElement {
     super(), this._$Ei = /* @__PURE__ */ new Map(), this.isUpdatePending = false, this.hasUpdated = false, this._$El = null, this._$Eu();
   }
   static addInitializer(t3) {
-    var i3;
-    this.finalize(), (null !== (i3 = this.h) && void 0 !== i3 ? i3 : this.h = []).push(t3);
+    var i5;
+    this.finalize(), (null !== (i5 = this.h) && void 0 !== i5 ? i5 : this.h = []).push(t3);
   }
   static get observedAttributes() {
     this.finalize();
     const t3 = [];
-    return this.elementProperties.forEach((i3, s5) => {
-      const e4 = this._$Ep(s5, i3);
-      void 0 !== e4 && (this._$Ev.set(e4, s5), t3.push(e4));
+    return this.elementProperties.forEach((i5, s6) => {
+      const e5 = this._$Ep(s6, i5);
+      void 0 !== e5 && (this._$Ev.set(e5, s6), t3.push(e5));
     }), t3;
   }
-  static createProperty(t3, i3 = l) {
-    if (i3.state && (i3.attribute = false), this.finalize(), this.elementProperties.set(t3, i3), !i3.noAccessor && !this.prototype.hasOwnProperty(t3)) {
-      const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3, e4 = this.getPropertyDescriptor(t3, s5, i3);
-      void 0 !== e4 && Object.defineProperty(this.prototype, t3, e4);
+  static createProperty(t3, i5 = l) {
+    if (i5.state && (i5.attribute = false), this.finalize(), this.elementProperties.set(t3, i5), !i5.noAccessor && !this.prototype.hasOwnProperty(t3)) {
+      const s6 = "symbol" == typeof t3 ? Symbol() : "__" + t3, e5 = this.getPropertyDescriptor(t3, s6, i5);
+      void 0 !== e5 && Object.defineProperty(this.prototype, t3, e5);
     }
   }
-  static getPropertyDescriptor(t3, i3, s5) {
+  static getPropertyDescriptor(t3, i5, s6) {
     return { get() {
-      return this[i3];
-    }, set(e4) {
+      return this[i5];
+    }, set(e5) {
       const r4 = this[t3];
-      this[i3] = e4, this.requestUpdate(t3, r4, s5);
+      this[i5] = e5, this.requestUpdate(t3, r4, s6);
     }, configurable: true, enumerable: true };
   }
   static getPropertyOptions(t3) {
@@ -123,53 +123,53 @@ var u = class extends HTMLElement {
     this[d] = true;
     const t3 = Object.getPrototypeOf(this);
     if (t3.finalize(), void 0 !== t3.h && (this.h = [...t3.h]), this.elementProperties = new Map(t3.elementProperties), this._$Ev = /* @__PURE__ */ new Map(), this.hasOwnProperty("properties")) {
-      const t4 = this.properties, i3 = [...Object.getOwnPropertyNames(t4), ...Object.getOwnPropertySymbols(t4)];
-      for (const s5 of i3)
-        this.createProperty(s5, t4[s5]);
+      const t4 = this.properties, i5 = [...Object.getOwnPropertyNames(t4), ...Object.getOwnPropertySymbols(t4)];
+      for (const s6 of i5)
+        this.createProperty(s6, t4[s6]);
     }
     return this.elementStyles = this.finalizeStyles(this.styles), true;
   }
-  static finalizeStyles(i3) {
-    const s5 = [];
-    if (Array.isArray(i3)) {
-      const e4 = new Set(i3.flat(1 / 0).reverse());
-      for (const i4 of e4)
-        s5.unshift(c(i4));
+  static finalizeStyles(i5) {
+    const s6 = [];
+    if (Array.isArray(i5)) {
+      const e5 = new Set(i5.flat(1 / 0).reverse());
+      for (const i6 of e5)
+        s6.unshift(c(i6));
     } else
-      void 0 !== i3 && s5.push(c(i3));
-    return s5;
+      void 0 !== i5 && s6.push(c(i5));
+    return s6;
   }
-  static _$Ep(t3, i3) {
-    const s5 = i3.attribute;
-    return false === s5 ? void 0 : "string" == typeof s5 ? s5 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
+  static _$Ep(t3, i5) {
+    const s6 = i5.attribute;
+    return false === s6 ? void 0 : "string" == typeof s6 ? s6 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
   }
   _$Eu() {
     var t3;
     this._$E_ = new Promise((t4) => this.enableUpdating = t4), this._$AL = /* @__PURE__ */ new Map(), this._$Eg(), this.requestUpdate(), null === (t3 = this.constructor.h) || void 0 === t3 || t3.forEach((t4) => t4(this));
   }
   addController(t3) {
-    var i3, s5;
-    (null !== (i3 = this._$ES) && void 0 !== i3 ? i3 : this._$ES = []).push(t3), void 0 !== this.renderRoot && this.isConnected && (null === (s5 = t3.hostConnected) || void 0 === s5 || s5.call(t3));
+    var i5, s6;
+    (null !== (i5 = this._$ES) && void 0 !== i5 ? i5 : this._$ES = []).push(t3), void 0 !== this.renderRoot && this.isConnected && (null === (s6 = t3.hostConnected) || void 0 === s6 || s6.call(t3));
   }
   removeController(t3) {
-    var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.splice(this._$ES.indexOf(t3) >>> 0, 1);
+    var i5;
+    null === (i5 = this._$ES) || void 0 === i5 || i5.splice(this._$ES.indexOf(t3) >>> 0, 1);
   }
   _$Eg() {
-    this.constructor.elementProperties.forEach((t3, i3) => {
-      this.hasOwnProperty(i3) && (this._$Ei.set(i3, this[i3]), delete this[i3]);
+    this.constructor.elementProperties.forEach((t3, i5) => {
+      this.hasOwnProperty(i5) && (this._$Ei.set(i5, this[i5]), delete this[i5]);
     });
   }
   createRenderRoot() {
     var t3;
-    const s5 = null !== (t3 = this.shadowRoot) && void 0 !== t3 ? t3 : this.attachShadow(this.constructor.shadowRootOptions);
-    return S(s5, this.constructor.elementStyles), s5;
+    const s6 = null !== (t3 = this.shadowRoot) && void 0 !== t3 ? t3 : this.attachShadow(this.constructor.shadowRootOptions);
+    return S(s6, this.constructor.elementStyles), s6;
   }
   connectedCallback() {
     var t3;
     void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostConnected) || void 0 === i3 ? void 0 : i3.call(t4);
+      var i5;
+      return null === (i5 = t4.hostConnected) || void 0 === i5 ? void 0 : i5.call(t4);
     });
   }
   enableUpdating(t3) {
@@ -177,32 +177,32 @@ var u = class extends HTMLElement {
   disconnectedCallback() {
     var t3;
     null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostDisconnected) || void 0 === i3 ? void 0 : i3.call(t4);
+      var i5;
+      return null === (i5 = t4.hostDisconnected) || void 0 === i5 ? void 0 : i5.call(t4);
     });
   }
-  attributeChangedCallback(t3, i3, s5) {
-    this._$AK(t3, s5);
+  attributeChangedCallback(t3, i5, s6) {
+    this._$AK(t3, s6);
   }
-  _$EO(t3, i3, s5 = l) {
-    var e4;
-    const r4 = this.constructor._$Ep(t3, s5);
-    if (void 0 !== r4 && true === s5.reflect) {
-      const h3 = (void 0 !== (null === (e4 = s5.converter) || void 0 === e4 ? void 0 : e4.toAttribute) ? s5.converter : n2).toAttribute(i3, s5.type);
+  _$EO(t3, i5, s6 = l) {
+    var e5;
+    const r4 = this.constructor._$Ep(t3, s6);
+    if (void 0 !== r4 && true === s6.reflect) {
+      const h3 = (void 0 !== (null === (e5 = s6.converter) || void 0 === e5 ? void 0 : e5.toAttribute) ? s6.converter : n2).toAttribute(i5, s6.type);
       this._$El = t3, null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3), this._$El = null;
     }
   }
-  _$AK(t3, i3) {
-    var s5;
-    const e4 = this.constructor, r4 = e4._$Ev.get(t3);
+  _$AK(t3, i5) {
+    var s6;
+    const e5 = this.constructor, r4 = e5._$Ev.get(t3);
     if (void 0 !== r4 && this._$El !== r4) {
-      const t4 = e4.getPropertyOptions(r4), h3 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== (null === (s5 = t4.converter) || void 0 === s5 ? void 0 : s5.fromAttribute) ? t4.converter : n2;
-      this._$El = r4, this[r4] = h3.fromAttribute(i3, t4.type), this._$El = null;
+      const t4 = e5.getPropertyOptions(r4), h3 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== (null === (s6 = t4.converter) || void 0 === s6 ? void 0 : s6.fromAttribute) ? t4.converter : n2;
+      this._$El = r4, this[r4] = h3.fromAttribute(i5, t4.type), this._$El = null;
     }
   }
-  requestUpdate(t3, i3, s5) {
-    let e4 = true;
-    void 0 !== t3 && (((s5 = s5 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(this[t3], i3) ? (this._$AL.has(t3) || this._$AL.set(t3, i3), true === s5.reflect && this._$El !== t3 && (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()), this._$EC.set(t3, s5))) : e4 = false), !this.isUpdatePending && e4 && (this._$E_ = this._$Ej());
+  requestUpdate(t3, i5, s6) {
+    let e5 = true;
+    void 0 !== t3 && (((s6 = s6 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(this[t3], i5) ? (this._$AL.has(t3) || this._$AL.set(t3, i5), true === s6.reflect && this._$El !== t3 && (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()), this._$EC.set(t3, s6))) : e5 = false), !this.isUpdatePending && e5 && (this._$E_ = this._$Ej());
   }
   async _$Ej() {
     this.isUpdatePending = true;
@@ -221,26 +221,26 @@ var u = class extends HTMLElement {
     var t3;
     if (!this.isUpdatePending)
       return;
-    this.hasUpdated, this._$Ei && (this._$Ei.forEach((t4, i4) => this[i4] = t4), this._$Ei = void 0);
-    let i3 = false;
-    const s5 = this._$AL;
+    this.hasUpdated, this._$Ei && (this._$Ei.forEach((t4, i6) => this[i6] = t4), this._$Ei = void 0);
+    let i5 = false;
+    const s6 = this._$AL;
     try {
-      i3 = this.shouldUpdate(s5), i3 ? (this.willUpdate(s5), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-        var i4;
-        return null === (i4 = t4.hostUpdate) || void 0 === i4 ? void 0 : i4.call(t4);
-      }), this.update(s5)) : this._$Ek();
+      i5 = this.shouldUpdate(s6), i5 ? (this.willUpdate(s6), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
+        var i6;
+        return null === (i6 = t4.hostUpdate) || void 0 === i6 ? void 0 : i6.call(t4);
+      }), this.update(s6)) : this._$Ek();
     } catch (t4) {
-      throw i3 = false, this._$Ek(), t4;
+      throw i5 = false, this._$Ek(), t4;
     }
-    i3 && this._$AE(s5);
+    i5 && this._$AE(s6);
   }
   willUpdate(t3) {
   }
   _$AE(t3) {
-    var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.forEach((t4) => {
-      var i4;
-      return null === (i4 = t4.hostUpdated) || void 0 === i4 ? void 0 : i4.call(t4);
+    var i5;
+    null === (i5 = this._$ES) || void 0 === i5 || i5.forEach((t4) => {
+      var i6;
+      return null === (i6 = t4.hostUpdated) || void 0 === i6 ? void 0 : i6.call(t4);
     }), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t3)), this.updated(t3);
   }
   _$Ek() {
@@ -256,7 +256,7 @@ var u = class extends HTMLElement {
     return true;
   }
   update(t3) {
-    void 0 !== this._$EC && (this._$EC.forEach((t4, i3) => this._$EO(i3, this[i3], t4)), this._$EC = void 0), this._$Ek();
+    void 0 !== this._$EC && (this._$EC.forEach((t4, i5) => this._$EO(i5, this[i5], t4)), this._$EC = void 0), this._$Ek();
   }
   updated(t3) {
   }
@@ -288,64 +288,64 @@ var p = RegExp(`>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
 var g = /'/g;
 var $ = /"/g;
 var y = /^(?:script|style|textarea|title)$/i;
-var w = (t3) => (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
+var w = (t3) => (i5, ...s6) => ({ _$litType$: t3, strings: i5, values: s6 });
 var x = w(1);
 var b = w(2);
 var T = Symbol.for("lit-noChange");
 var A = Symbol.for("lit-nothing");
 var E = /* @__PURE__ */ new WeakMap();
 var C = r3.createTreeWalker(r3, 129, null, false);
-function P(t3, i3) {
+function P(t3, i5) {
   if (!Array.isArray(t3) || !t3.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i3) : i3;
+  return void 0 !== e3 ? e3.createHTML(i5) : i5;
 }
-var V = (t3, i3) => {
-  const s5 = t3.length - 1, e4 = [];
-  let l4, r4 = 2 === i3 ? "<svg>" : "", u3 = f;
-  for (let i4 = 0; i4 < s5; i4++) {
-    const s6 = t3[i4];
-    let d3, c3, v2 = -1, a3 = 0;
-    for (; a3 < s6.length && (u3.lastIndex = a3, c3 = u3.exec(s6), null !== c3); )
-      a3 = u3.lastIndex, u3 === f ? "!--" === c3[1] ? u3 = _ : void 0 !== c3[1] ? u3 = m : void 0 !== c3[2] ? (y.test(c3[2]) && (l4 = RegExp("</" + c3[2], "g")), u3 = p) : void 0 !== c3[3] && (u3 = p) : u3 === p ? ">" === c3[0] ? (u3 = null != l4 ? l4 : f, v2 = -1) : void 0 === c3[1] ? v2 = -2 : (v2 = u3.lastIndex - c3[2].length, d3 = c3[1], u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g) : u3 === $ || u3 === g ? u3 = p : u3 === _ || u3 === m ? u3 = f : (u3 = p, l4 = void 0); // nosemgrep
-    const w2 = u3 === p && t3[i4 + 1].startsWith("/>") ? " " : "";
-    r4 += u3 === f ? s6 + h2 : v2 >= 0 ? (e4.push(d3), s6.slice(0, v2) + o3 + s6.slice(v2) + n3 + w2) : s6 + n3 + (-2 === v2 ? (e4.push(void 0), i4) : w2);
+var V = (t3, i5) => {
+  const s6 = t3.length - 1, e5 = [];
+  let l5, r4 = 2 === i5 ? "<svg>" : "", u3 = f;
+  for (let i6 = 0; i6 < s6; i6++) {
+    const s7 = t3[i6];
+    let d3, c3, v2 = -1, a4 = 0;
+    for (; a4 < s7.length && (u3.lastIndex = a4, c3 = u3.exec(s7), null !== c3); )
+      a4 = u3.lastIndex, u3 === f ? "!--" === c3[1] ? u3 = _ : void 0 !== c3[1] ? u3 = m : void 0 !== c3[2] ? (y.test(c3[2]) && (l5 = RegExp("</" + c3[2], "g")), u3 = p) : void 0 !== c3[3] && (u3 = p) : u3 === p ? ">" === c3[0] ? (u3 = null != l5 ? l5 : f, v2 = -1) : void 0 === c3[1] ? v2 = -2 : (v2 = u3.lastIndex - c3[2].length, d3 = c3[1], u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g) : u3 === $ || u3 === g ? u3 = p : u3 === _ || u3 === m ? u3 = f : (u3 = p, l5 = void 0); // nosemgrep
+    const w2 = u3 === p && t3[i6 + 1].startsWith("/>") ? " " : "";
+    r4 += u3 === f ? s7 + h2 : v2 >= 0 ? (e5.push(d3), s7.slice(0, v2) + o3 + s7.slice(v2) + n3 + w2) : s7 + n3 + (-2 === v2 ? (e5.push(void 0), i6) : w2);
   }
-  return [P(t3, r4 + (t3[s5] || "<?>") + (2 === i3 ? "</svg>" : "")), e4];
+  return [P(t3, r4 + (t3[s6] || "<?>") + (2 === i5 ? "</svg>" : "")), e5];
 };
 var N = class _N {
-  constructor({ strings: t3, _$litType$: i3 }, e4) {
+  constructor({ strings: t3, _$litType$: i5 }, e5) {
     let h3;
     this.parts = [];
     let r4 = 0, d3 = 0;
-    const c3 = t3.length - 1, v2 = this.parts, [a3, f2] = V(t3, i3);
-    if (this.el = _N.createElement(a3, e4), C.currentNode = this.el.content, 2 === i3) {
-      const t4 = this.el.content, i4 = t4.firstChild;
-      i4.remove(), t4.append(...i4.childNodes);
+    const c3 = t3.length - 1, v2 = this.parts, [a4, f2] = V(t3, i5);
+    if (this.el = _N.createElement(a4, e5), C.currentNode = this.el.content, 2 === i5) {
+      const t4 = this.el.content, i6 = t4.firstChild;
+      i6.remove(), t4.append(...i6.childNodes);
     }
     for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
       if (1 === h3.nodeType) {
         if (h3.hasAttributes()) {
           const t4 = [];
-          for (const i4 of h3.getAttributeNames())
-            if (i4.endsWith(o3) || i4.startsWith(n3)) {
-              const s5 = f2[d3++];
-              if (t4.push(i4), void 0 !== s5) {
-                const t5 = h3.getAttribute(s5.toLowerCase() + o3).split(n3), i5 = /([.?@])?(.*)/.exec(s5);
-                v2.push({ type: 1, index: r4, name: i5[2], strings: t5, ctor: "." === i5[1] ? H : "?" === i5[1] ? L : "@" === i5[1] ? z : k });
+          for (const i6 of h3.getAttributeNames())
+            if (i6.endsWith(o3) || i6.startsWith(n3)) {
+              const s6 = f2[d3++];
+              if (t4.push(i6), void 0 !== s6) {
+                const t5 = h3.getAttribute(s6.toLowerCase() + o3).split(n3), i7 = /([.?@])?(.*)/.exec(s6);
+                v2.push({ type: 1, index: r4, name: i7[2], strings: t5, ctor: "." === i7[1] ? H : "?" === i7[1] ? L : "@" === i7[1] ? z : k });
               } else
                 v2.push({ type: 6, index: r4 });
             }
-          for (const i4 of t4)
-            h3.removeAttribute(i4);
+          for (const i6 of t4)
+            h3.removeAttribute(i6);
         }
         if (y.test(h3.tagName)) {
-          const t4 = h3.textContent.split(n3), i4 = t4.length - 1;
-          if (i4 > 0) {
+          const t4 = h3.textContent.split(n3), i6 = t4.length - 1;
+          if (i6 > 0) {
             h3.textContent = s3 ? s3.emptyScript : "";
-            for (let s5 = 0; s5 < i4; s5++)
-              h3.append(t4[s5], u2()), C.nextNode(), v2.push({ type: 2, index: ++r4 });
-            h3.append(t4[i4], u2());
+            for (let s6 = 0; s6 < i6; s6++)
+              h3.append(t4[s6], u2()), C.nextNode(), v2.push({ type: 2, index: ++r4 });
+            h3.append(t4[i6], u2());
           }
         }
       } else if (8 === h3.nodeType)
@@ -359,22 +359,22 @@ var N = class _N {
       r4++;
     }
   }
-  static createElement(t3, i3) {
-    const s5 = r3.createElement("template");
-    return s5.innerHTML = t3, s5;
+  static createElement(t3, i5) {
+    const s6 = r3.createElement("template");
+    return s6.innerHTML = t3, s6;
   }
 };
-function S2(t3, i3, s5 = t3, e4) {
-  var o5, n5, l4, h3;
-  if (i3 === T)
-    return i3;
-  let r4 = void 0 !== e4 ? null === (o5 = s5._$Co) || void 0 === o5 ? void 0 : o5[e4] : s5._$Cl;
-  const u3 = d2(i3) ? void 0 : i3._$litDirective$;
-  return (null == r4 ? void 0 : r4.constructor) !== u3 && (null === (n5 = null == r4 ? void 0 : r4._$AO) || void 0 === n5 || n5.call(r4, false), void 0 === u3 ? r4 = void 0 : (r4 = new u3(t3), r4._$AT(t3, s5, e4)), void 0 !== e4 ? (null !== (l4 = (h3 = s5)._$Co) && void 0 !== l4 ? l4 : h3._$Co = [])[e4] = r4 : s5._$Cl = r4), void 0 !== r4 && (i3 = S2(t3, r4._$AS(t3, i3.values), r4, e4)), i3;
+function S2(t3, i5, s6 = t3, e5) {
+  var o5, n5, l5, h3;
+  if (i5 === T)
+    return i5;
+  let r4 = void 0 !== e5 ? null === (o5 = s6._$Co) || void 0 === o5 ? void 0 : o5[e5] : s6._$Cl;
+  const u3 = d2(i5) ? void 0 : i5._$litDirective$;
+  return (null == r4 ? void 0 : r4.constructor) !== u3 && (null === (n5 = null == r4 ? void 0 : r4._$AO) || void 0 === n5 || n5.call(r4, false), void 0 === u3 ? r4 = void 0 : (r4 = new u3(t3), r4._$AT(t3, s6, e5)), void 0 !== e5 ? (null !== (l5 = (h3 = s6)._$Co) && void 0 !== l5 ? l5 : h3._$Co = [])[e5] = r4 : s6._$Cl = r4), void 0 !== r4 && (i5 = S2(t3, r4._$AS(t3, i5.values), r4, e5)), i5;
 }
 var M = class {
-  constructor(t3, i3) {
-    this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i3;
+  constructor(t3, i5) {
+    this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i5;
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -383,38 +383,38 @@ var M = class {
     return this._$AM._$AU;
   }
   u(t3) {
-    var i3;
-    const { el: { content: s5 }, parts: e4 } = this._$AD, o5 = (null !== (i3 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i3 ? i3 : r3).importNode(s5, true);
+    var i5;
+    const { el: { content: s6 }, parts: e5 } = this._$AD, o5 = (null !== (i5 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i5 ? i5 : r3).importNode(s6, true);
     C.currentNode = o5;
-    let n5 = C.nextNode(), l4 = 0, h3 = 0, u3 = e4[0];
+    let n5 = C.nextNode(), l5 = 0, h3 = 0, u3 = e5[0];
     for (; void 0 !== u3; ) {
-      if (l4 === u3.index) {
-        let i4;
-        2 === u3.type ? i4 = new R(n5, n5.nextSibling, this, t3) : 1 === u3.type ? i4 = new u3.ctor(n5, u3.name, u3.strings, this, t3) : 6 === u3.type && (i4 = new Z(n5, this, t3)), this._$AV.push(i4), u3 = e4[++h3];
+      if (l5 === u3.index) {
+        let i6;
+        2 === u3.type ? i6 = new R(n5, n5.nextSibling, this, t3) : 1 === u3.type ? i6 = new u3.ctor(n5, u3.name, u3.strings, this, t3) : 6 === u3.type && (i6 = new Z(n5, this, t3)), this._$AV.push(i6), u3 = e5[++h3];
       }
-      l4 !== (null == u3 ? void 0 : u3.index) && (n5 = C.nextNode(), l4++);
+      l5 !== (null == u3 ? void 0 : u3.index) && (n5 = C.nextNode(), l5++);
     }
     return C.currentNode = r3, o5;
   }
   v(t3) {
-    let i3 = 0;
-    for (const s5 of this._$AV)
-      void 0 !== s5 && (void 0 !== s5.strings ? (s5._$AI(t3, s5, i3), i3 += s5.strings.length - 2) : s5._$AI(t3[i3])), i3++;
+    let i5 = 0;
+    for (const s6 of this._$AV)
+      void 0 !== s6 && (void 0 !== s6.strings ? (s6._$AI(t3, s6, i5), i5 += s6.strings.length - 2) : s6._$AI(t3[i5])), i5++;
   }
 };
 var R = class _R {
-  constructor(t3, i3, s5, e4) {
+  constructor(t3, i5, s6, e5) {
     var o5;
-    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t3, this._$AB = i3, this._$AM = s5, this.options = e4, this._$Cp = null === (o5 = null == e4 ? void 0 : e4.isConnected) || void 0 === o5 || o5;
+    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t3, this._$AB = i5, this._$AM = s6, this.options = e5, this._$Cp = null === (o5 = null == e5 ? void 0 : e5.isConnected) || void 0 === o5 || o5;
   }
   get _$AU() {
-    var t3, i3;
-    return null !== (i3 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) && void 0 !== i3 ? i3 : this._$Cp;
+    var t3, i5;
+    return null !== (i5 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) && void 0 !== i5 ? i5 : this._$Cp;
   }
   get parentNode() {
     let t3 = this._$AA.parentNode;
-    const i3 = this._$AM;
-    return void 0 !== i3 && 11 === (null == t3 ? void 0 : t3.nodeType) && (t3 = i3.parentNode), t3;
+    const i5 = this._$AM;
+    return void 0 !== i5 && 11 === (null == t3 ? void 0 : t3.nodeType) && (t3 = i5.parentNode), t3;
   }
   get startNode() {
     return this._$AA;
@@ -422,8 +422,8 @@ var R = class _R {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t3, i3 = this) {
-    t3 = S2(this, t3, i3), d2(t3) ? t3 === A || null == t3 || "" === t3 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t3 !== this._$AH && t3 !== T && this._(t3) : void 0 !== t3._$litType$ ? this.g(t3) : void 0 !== t3.nodeType ? this.$(t3) : v(t3) ? this.T(t3) : this._(t3);
+  _$AI(t3, i5 = this) {
+    t3 = S2(this, t3, i5), d2(t3) ? t3 === A || null == t3 || "" === t3 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t3 !== this._$AH && t3 !== T && this._(t3) : void 0 !== t3._$litType$ ? this.g(t3) : void 0 !== t3.nodeType ? this.$(t3) : v(t3) ? this.T(t3) : this._(t3);
   }
   k(t3) {
     return this._$AA.parentNode.insertBefore(t3, this._$AB);
@@ -435,42 +435,42 @@ var R = class _R {
     this._$AH !== A && d2(this._$AH) ? this._$AA.nextSibling.data = t3 : this.$(r3.createTextNode(t3)), this._$AH = t3;
   }
   g(t3) {
-    var i3;
-    const { values: s5, _$litType$: e4 } = t3, o5 = "number" == typeof e4 ? this._$AC(t3) : (void 0 === e4.el && (e4.el = N.createElement(P(e4.h, e4.h[0]), this.options)), e4);
-    if ((null === (i3 = this._$AH) || void 0 === i3 ? void 0 : i3._$AD) === o5)
-      this._$AH.v(s5);
+    var i5;
+    const { values: s6, _$litType$: e5 } = t3, o5 = "number" == typeof e5 ? this._$AC(t3) : (void 0 === e5.el && (e5.el = N.createElement(P(e5.h, e5.h[0]), this.options)), e5);
+    if ((null === (i5 = this._$AH) || void 0 === i5 ? void 0 : i5._$AD) === o5)
+      this._$AH.v(s6);
     else {
-      const t4 = new M(o5, this), i4 = t4.u(this.options);
-      t4.v(s5), this.$(i4), this._$AH = t4;
+      const t4 = new M(o5, this), i6 = t4.u(this.options);
+      t4.v(s6), this.$(i6), this._$AH = t4;
     }
   }
   _$AC(t3) {
-    let i3 = E.get(t3.strings);
-    return void 0 === i3 && E.set(t3.strings, i3 = new N(t3)), i3;
+    let i5 = E.get(t3.strings);
+    return void 0 === i5 && E.set(t3.strings, i5 = new N(t3)), i5;
   }
   T(t3) {
     c2(this._$AH) || (this._$AH = [], this._$AR());
-    const i3 = this._$AH;
-    let s5, e4 = 0;
+    const i5 = this._$AH;
+    let s6, e5 = 0;
     for (const o5 of t3)
-      e4 === i3.length ? i3.push(s5 = new _R(this.k(u2()), this.k(u2()), this, this.options)) : s5 = i3[e4], s5._$AI(o5), e4++;
-    e4 < i3.length && (this._$AR(s5 && s5._$AB.nextSibling, e4), i3.length = e4);
+      e5 === i5.length ? i5.push(s6 = new _R(this.k(u2()), this.k(u2()), this, this.options)) : s6 = i5[e5], s6._$AI(o5), e5++;
+    e5 < i5.length && (this._$AR(s6 && s6._$AB.nextSibling, e5), i5.length = e5);
   }
-  _$AR(t3 = this._$AA.nextSibling, i3) {
-    var s5;
-    for (null === (s5 = this._$AP) || void 0 === s5 || s5.call(this, false, true, i3); t3 && t3 !== this._$AB; ) {
-      const i4 = t3.nextSibling;
-      t3.remove(), t3 = i4;
+  _$AR(t3 = this._$AA.nextSibling, i5) {
+    var s6;
+    for (null === (s6 = this._$AP) || void 0 === s6 || s6.call(this, false, true, i5); t3 && t3 !== this._$AB; ) {
+      const i6 = t3.nextSibling;
+      t3.remove(), t3 = i6;
     }
   }
   setConnected(t3) {
-    var i3;
-    void 0 === this._$AM && (this._$Cp = t3, null === (i3 = this._$AP) || void 0 === i3 || i3.call(this, t3));
+    var i5;
+    void 0 === this._$AM && (this._$Cp = t3, null === (i5 = this._$AP) || void 0 === i5 || i5.call(this, t3));
   }
 };
 var k = class {
-  constructor(t3, i3, s5, e4, o5) {
-    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t3, this.name = i3, this._$AM = e4, this.options = o5, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
+  constructor(t3, i5, s6, e5, o5) {
+    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t3, this.name = i5, this._$AM = e5, this.options = o5, s6.length > 2 || "" !== s6[0] || "" !== s6[1] ? (this._$AH = Array(s6.length - 1).fill(new String()), this.strings = s6) : this._$AH = A;
   }
   get tagName() {
     return this.element.tagName;
@@ -478,18 +478,18 @@ var k = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(t3, i3 = this, s5, e4) {
+  _$AI(t3, i5 = this, s6, e5) {
     const o5 = this.strings;
     let n5 = false;
     if (void 0 === o5)
-      t3 = S2(this, t3, i3, 0), n5 = !d2(t3) || t3 !== this._$AH && t3 !== T, n5 && (this._$AH = t3);
+      t3 = S2(this, t3, i5, 0), n5 = !d2(t3) || t3 !== this._$AH && t3 !== T, n5 && (this._$AH = t3);
     else {
-      const e5 = t3;
-      let l4, h3;
-      for (t3 = o5[0], l4 = 0; l4 < o5.length - 1; l4++)
-        h3 = S2(this, e5[s5 + l4], i3, l4), h3 === T && (h3 = this._$AH[l4]), n5 || (n5 = !d2(h3) || h3 !== this._$AH[l4]), h3 === A ? t3 = A : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l4 + 1]), this._$AH[l4] = h3;
+      const e6 = t3;
+      let l5, h3;
+      for (t3 = o5[0], l5 = 0; l5 < o5.length - 1; l5++)
+        h3 = S2(this, e6[s6 + l5], i5, l5), h3 === T && (h3 = this._$AH[l5]), n5 || (n5 = !d2(h3) || h3 !== this._$AH[l5]), h3 === A ? t3 = A : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l5 + 1]), this._$AH[l5] = h3;
     }
-    n5 && !e4 && this.j(t3);
+    n5 && !e5 && this.j(t3);
   }
   j(t3) {
     t3 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t3 ? t3 : "");
@@ -513,24 +513,24 @@ var L = class extends k {
   }
 };
 var z = class extends k {
-  constructor(t3, i3, s5, e4, o5) {
-    super(t3, i3, s5, e4, o5), this.type = 5;
+  constructor(t3, i5, s6, e5, o5) {
+    super(t3, i5, s6, e5, o5), this.type = 5;
   }
-  _$AI(t3, i3 = this) {
-    var s5;
-    if ((t3 = null !== (s5 = S2(this, t3, i3, 0)) && void 0 !== s5 ? s5 : A) === T)
+  _$AI(t3, i5 = this) {
+    var s6;
+    if ((t3 = null !== (s6 = S2(this, t3, i5, 0)) && void 0 !== s6 ? s6 : A) === T)
       return;
-    const e4 = this._$AH, o5 = t3 === A && e4 !== A || t3.capture !== e4.capture || t3.once !== e4.once || t3.passive !== e4.passive, n5 = t3 !== A && (e4 === A || o5);
-    o5 && this.element.removeEventListener(this.name, this, e4), n5 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
+    const e5 = this._$AH, o5 = t3 === A && e5 !== A || t3.capture !== e5.capture || t3.once !== e5.once || t3.passive !== e5.passive, n5 = t3 !== A && (e5 === A || o5);
+    o5 && this.element.removeEventListener(this.name, this, e5), n5 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
   }
   handleEvent(t3) {
-    var i3, s5;
-    "function" == typeof this._$AH ? this._$AH.call(null !== (s5 = null === (i3 = this.options) || void 0 === i3 ? void 0 : i3.host) && void 0 !== s5 ? s5 : this.element, t3) : this._$AH.handleEvent(t3);
+    var i5, s6;
+    "function" == typeof this._$AH ? this._$AH.call(null !== (s6 = null === (i5 = this.options) || void 0 === i5 ? void 0 : i5.host) && void 0 !== s6 ? s6 : this.element, t3) : this._$AH.handleEvent(t3);
   }
 };
 var Z = class {
-  constructor(t3, i3, s5) {
-    this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i3, this.options = s5;
+  constructor(t3, i5, s6) {
+    this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i5, this.options = s6;
   }
   get _$AU() {
     return this._$AM._$AU;
@@ -539,17 +539,18 @@ var Z = class {
     S2(this, t3);
   }
 };
+var j = { O: o3, P: n3, A: l2, C: 1, M: V, L: M, R: v, D: S2, I: R, V: k, H: L, N: z, U: H, F: Z };
 var B = i2.litHtmlPolyfillSupport;
 null == B || B(N, R), (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2 ? t2 : i2.litHtmlVersions = []).push("2.8.0");
-var D = (t3, i3, s5) => {
-  var e4, o5;
-  const n5 = null !== (e4 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== e4 ? e4 : i3;
-  let l4 = n5._$litPart$;
-  if (void 0 === l4) {
-    const t4 = null !== (o5 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== o5 ? o5 : null;
-    n5._$litPart$ = l4 = new R(i3.insertBefore(u2(), t4), t4, void 0, null != s5 ? s5 : {});
+var D = (t3, i5, s6) => {
+  var e5, o5;
+  const n5 = null !== (e5 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== e5 ? e5 : i5;
+  let l5 = n5._$litPart$;
+  if (void 0 === l5) {
+    const t4 = null !== (o5 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== o5 ? o5 : null;
+    n5._$litPart$ = l5 = new R(i5.insertBefore(u2(), t4), t4, void 0, null != s6 ? s6 : {});
   }
-  return l4._$AI(t3), l4;
+  return l5._$AI(t3), l5;
 };
 
 // node_modules/lit-element/lit-element.js
@@ -560,13 +561,13 @@ var s4 = class extends u {
     super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
   }
   createRenderRoot() {
-    var t3, e4;
-    const i3 = super.createRenderRoot();
-    return null !== (t3 = (e4 = this.renderOptions).renderBefore) && void 0 !== t3 || (e4.renderBefore = i3.firstChild), i3;
+    var t3, e5;
+    const i5 = super.createRenderRoot();
+    return null !== (t3 = (e5 = this.renderOptions).renderBefore) && void 0 !== t3 || (e5.renderBefore = i5.firstChild), i5;
   }
   update(t3) {
-    const i3 = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = D(i3, this.renderRoot, this.renderOptions);
+    const i5 = this.render();
+    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = D(i5, this.renderRoot, this.renderOptions);
   }
   connectedCallback() {
     var t3;
@@ -584,6 +585,43 @@ s4.finalized = true, s4._$litElement$ = true, null === (l3 = globalThis.litEleme
 var n4 = globalThis.litElementPolyfillSupport;
 null == n4 || n4({ LitElement: s4 });
 (null !== (o4 = globalThis.litElementVersions) && void 0 !== o4 ? o4 : globalThis.litElementVersions = []).push("3.3.3");
+
+// node_modules/lit-html/directive.js
+var e4 = (t3) => (...e5) => ({ _$litDirective$: t3, values: e5 });
+var i3 = class {
+  constructor(t3) {
+  }
+  get _$AU() {
+    return this._$AM._$AU;
+  }
+  _$AT(t3, e5, i5) {
+    this._$Ct = t3, this._$AM = e5, this._$Ci = i5;
+  }
+  _$AS(t3, e5) {
+    return this.update(t3, e5);
+  }
+  update(t3, e5) {
+    return this.render(...e5);
+  }
+};
+
+// node_modules/lit-html/directive-helpers.js
+var { I: l4 } = j;
+var s5 = {};
+var a3 = (o5, l5 = s5) => o5._$AH = l5;
+
+// node_modules/lit-html/directives/keyed.js
+var i4 = e4(class extends i3 {
+  constructor() {
+    super(...arguments), this.key = A;
+  }
+  render(r4, t3) {
+    return this.key = r4, t3;
+  }
+  update(r4, [t3, e5]) {
+    return t3 !== this.key && (a3(r4), this.key = t3), e5;
+  }
+});
 
 // src/panel.js
 function renderMarkdown(text) {
@@ -805,6 +843,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._activeSessionId = session_id;
       this._messages = [];
       this._activeTab = "chat";
+      this._welcomeKey = (this._welcomeKey || 0) + 1;
       await this._loadSessions();
       if (this.narrow)
         this._showSidebar = false;
@@ -850,18 +889,18 @@ var SeloraAIArchitectPanel = class extends s4 {
       <div class="modal-overlay" @click=${() => {
       this._showNewAutoDialog = false;
     }}>
-        <div class="modal-content" style="max-width:420px;" @click=${(e4) => e4.stopPropagation()}>
+        <div class="modal-content" style="max-width:420px;" @click=${(e5) => e5.stopPropagation()}>
           <h3 style="margin:0 0 16px;">New Automation</h3>
           <label style="font-size:13px;font-weight:500;display:block;margin-bottom:6px;">Automation name</label>
           <div style="display:flex;gap:8px;align-items:center;">
             <input type="text" placeholder="e.g. Turn off lights at midnight"
               style="flex:1;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;font-size:14px;background:var(--card-background-color);color:var(--primary-text-color);box-sizing:border-box;"
               .value=${this._newAutoName}
-              @input=${(e4) => {
-      this._newAutoName = e4.target.value;
+              @input=${(e5) => {
+      this._newAutoName = e5.target.value;
     }}
-              @keydown=${(e4) => {
-      if (e4.key === "Enter")
+              @keydown=${(e5) => {
+      if (e5.key === "Enter")
         this._newAutomationChat(this._newAutoName);
     }}>
             <button class="btn btn-outline" style="padding:8px 10px;flex-shrink:0;" title="AI Suggest"
@@ -965,7 +1004,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         _linked_session: d3.session_id
       }));
       this._automations = [...draftCards, ...automations || []];
-      const validIds = new Set(this._automations.map((a3) => a3.automation_id).filter(Boolean));
+      const validIds = new Set(this._automations.map((a4) => a4.automation_id).filter(Boolean));
       this._selectedAutomationIds = Object.fromEntries(
         Object.entries(this._selectedAutomationIds || {}).filter(([id, selected]) => selected && validIds.has(id))
       );
@@ -1021,7 +1060,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         action: "dismissed"
       });
       this._proactiveSuggestions = this._proactiveSuggestions.filter(
-        (s5) => s5.suggestion_id !== suggestionId
+        (s6) => s6.suggestion_id !== suggestionId
       );
       this._showToast("Suggestion dismissed", "info");
     } catch (err) {
@@ -1037,7 +1076,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         action: "snoozed"
       });
       this._proactiveSuggestions = this._proactiveSuggestions.filter(
-        (s5) => s5.suggestion_id !== suggestionId
+        (s6) => s6.suggestion_id !== suggestionId
       );
       this._showToast("Suggestion snoozed for 24h", "info");
     } catch (err) {
@@ -1104,6 +1143,10 @@ var SeloraAIArchitectPanel = class extends s4 {
   // -------------------------------------------------------------------------
   // Messaging
   // -------------------------------------------------------------------------
+  _quickStart(message) {
+    this._input = message;
+    this._sendMessage();
+  }
   async _sendMessage() {
     if (!this._input.trim() || this._loading)
       return;
@@ -1274,7 +1317,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     if (!sessionId)
       return;
     try {
-      const draft = this._automations.find((a3) => a3._draft && a3._linked_session === sessionId);
+      const draft = this._automations.find((a4) => a4._draft && a4._linked_session === sessionId);
       if (draft && draft._draft_id) {
         await this.hass.callWS({ type: "selora_ai/remove_draft", draft_id: draft._draft_id });
       }
@@ -1341,7 +1384,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
   }
   _discardSuggestion(suggestion) {
-    this._suggestions = this._suggestions.filter((s5) => s5 !== suggestion);
+    this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
   }
   // Accept automation — if the user edited the YAML, send the edited version
   async _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
@@ -1647,6 +1690,15 @@ var SeloraAIArchitectPanel = class extends s4 {
         flex-direction: column;
         gap: 12px;
       }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes logoEntrance {
+        0% { opacity: 0; transform: scale(0.6) translateY(12px); }
+        60% { opacity: 1; transform: scale(1.06) translateY(-2px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
       .empty-state {
         flex: 1;
         display: flex;
@@ -1657,9 +1709,33 @@ var SeloraAIArchitectPanel = class extends s4 {
         gap: 12px;
         padding: 32px;
         text-align: center;
+        animation: fadeInUp 0.5s ease both;
       }
+      .empty-state.welcome {
+        opacity: 1;
+        gap: 0;
+      }
+      .empty-state.welcome > * {
+        animation: fadeInUp 0.5s ease both;
+      }
+      .empty-state.welcome > img:first-child {
+        animation: logoEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .empty-state.welcome > :nth-child(2) { animation-delay: 0.15s; }
+      .empty-state.welcome > :nth-child(3) { animation-delay: 0.25s; }
+      .empty-state.welcome > :nth-child(4) { animation-delay: 0.35s; }
+      .empty-state.welcome > :nth-child(5) { animation-delay: 0.4s; }
+      .empty-state.welcome > :nth-child(6) { animation-delay: 0.45s; }
+      .empty-state.welcome > :nth-child(7) { animation-delay: 0.5s; }
       .empty-state ha-icon {
         --mdc-icon-size: 56px;
+      }
+      .welcome-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .welcome-card:active {
+        transform: translateY(0);
       }
       .message-row {
         display: flex;
@@ -2479,19 +2555,19 @@ var SeloraAIArchitectPanel = class extends s4 {
         </mwc-button>
         <div class="session-list">
           ${this._sessions.length === 0 ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">No conversations yet.</div>` : this._sessions.map(
-      (s5) => x`
+      (s6) => x`
                   <div
-                    class="session-item ${s5.id === this._activeSessionId ? "active" : ""}"
-                    @click=${() => this._openSession(s5.id)}
+                    class="session-item ${s6.id === this._activeSessionId ? "active" : ""}"
+                    @click=${() => this._openSession(s6.id)}
                   >
                     <div style="flex:1; min-width:0;">
-                      <div class="session-title">${s5.title}</div>
-                      <div class="session-meta">${this._formatDate(s5.updated_at)}</div>
+                      <div class="session-title">${s6.title}</div>
+                      <div class="session-meta">${this._formatDate(s6.updated_at)}</div>
                     </div>
                     <ha-icon
                       class="session-delete"
                       icon="mdi:delete-outline"
-                      @click=${(e4) => this._deleteSession(s5.id, e4)}
+                      @click=${(e5) => this._deleteSession(s6.id, e5)}
                       title="Delete"
                     ></ha-icon>
                   </div>
@@ -2552,13 +2628,68 @@ var SeloraAIArchitectPanel = class extends s4 {
     return x`
       <div class="chat-pane">
         <div class="chat-messages" id="chat-messages">
-          ${!this._activeSessionId || this._messages.length === 0 ? x`
-                <div class="empty-state">
-                  <ha-icon icon="mdi:robot-happy-outline"></ha-icon>
-                  <div style="font-size:16px; font-weight:500;">Start a conversation</div>
-                  <div style="font-size:13px;">Ask me to build an automation, control a device, or answer a question about your home.</div>
+          ${!this._activeSessionId || this._messages.length === 0 ? i4(this._welcomeKey || 0, x`
+                <div class="empty-state welcome" style="max-width:520px;margin:0 auto;text-align:center;">
+                  <img src="/api/selora_ai/logo.png" alt="Selora AI" style="width:56px;height:56px;border-radius:12px;margin-bottom:8px;">
+                  <div style="font-size:20px;font-weight:600;margin-bottom:4px;">Welcome to Selora AI</div>
+                  <div style="font-size:13px;opacity:0.7;margin-bottom:20px;line-height:1.5;">
+                    Your intelligent home automation architect. I analyze your devices,
+                    detect patterns, and help you build automations using natural language.
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-bottom:20px;">
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("Create an automation for my home")}>
+                      <ha-icon icon="mdi:lightning-bolt" style="--mdc-icon-size:18px;color:#f59e0b;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Create Automations</div>
+                        <div style="font-size:11px;opacity:0.6;">Describe what you want in plain English</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("Analyze my device usage patterns and suggest automations")}>
+                      <ha-icon icon="mdi:magnify-scan" style="--mdc-icon-size:18px;color:#3b82f6;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Detect Patterns</div>
+                        <div style="font-size:11px;opacity:0.6;">AI spots your routines and suggests automations</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("What devices do I have and how are they organized?")}>
+                      <ha-icon icon="mdi:home-search-outline" style="--mdc-icon-size:18px;color:#22c55e;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Manage Devices</div>
+                        <div style="font-size:11px;opacity:0.6;">Discover, organize, and control your smart home</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("What can you help me with?")}>
+                      <ha-icon icon="mdi:chat-question-outline" style="--mdc-icon-size:18px;color:#a855f7;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Ask Anything</div>
+                        <div style="font-size:11px;opacity:0.6;">Get answers about your home setup</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4;margin-bottom:10px;">Quick start</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("Create an automation that turns off all lights at midnight")}>
+                      <ha-icon icon="mdi:lightbulb-off-outline" style="--mdc-icon-size:16px;"></ha-icon>
+                      Turn off all lights at midnight
+                    </button>
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("What devices do I have and which ones are currently on?")}>
+                      <ha-icon icon="mdi:devices" style="--mdc-icon-size:16px;"></ha-icon>
+                      What devices do I have?
+                    </button>
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("Suggest useful automations based on my devices and usage patterns")}>
+                      <ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:16px;"></ha-icon>
+                      Suggest automations for my home
+                    </button>
+                  </div>
                 </div>
-              ` : this._messages.map((msg, idx) => this._renderMessage(msg, idx))}
+              `) : this._messages.map((msg, idx) => this._renderMessage(msg, idx))}
 
           ${this._loading ? x`
                 <div class="typing-bubble">
@@ -2572,8 +2703,8 @@ var SeloraAIArchitectPanel = class extends s4 {
         <div class="chat-input">
           <ha-textfield
             .value=${this._input}
-            @input=${(e4) => this._input = e4.target.value}
-            @keydown=${(e4) => e4.key === "Enter" && !e4.shiftKey && this._sendMessage()}
+            @input=${(e5) => this._input = e5.target.value}
+            @keydown=${(e5) => e5.key === "Enter" && !e5.shiftKey && this._sendMessage()}
             placeholder="Describe an automation or ask a question…"
             ?disabled=${this._loading}
             style="flex:1;"
@@ -2626,10 +2757,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       <textarea
         class="yaml-editor"
         .value=${current}
-        @input=${(e4) => {
-      this._onYamlInput(key, e4.target.value);
-      e4.target.style.height = "auto";
-      e4.target.style.height = e4.target.scrollHeight + "px";
+        @input=${(e5) => {
+      this._onYamlInput(key, e5.target.value);
+      e5.target.style.height = "auto";
+      e5.target.style.height = e5.target.scrollHeight + "px";
     }}
         spellcheck="false"
         autocomplete="off"
@@ -2672,14 +2803,14 @@ var SeloraAIArchitectPanel = class extends s4 {
       return this._fmtEntity(arr[0]);
     if (arr.length === 2)
       return `${this._fmtEntity(arr[0])} and ${this._fmtEntity(arr[1])}`;
-    return arr.slice(0, -1).map((e4) => this._fmtEntity(e4)).join(", ") + ", and " + this._fmtEntity(arr[arr.length - 1]);
+    return arr.slice(0, -1).map((e5) => this._fmtEntity(e5)).join(", ") + ", and " + this._fmtEntity(arr[arr.length - 1]);
   }
   _fmtState(state) {
     if (state == null)
       return null;
-    const s5 = String(state);
+    const s6 = String(state);
     const friendly = { on: "on", off: "off", home: "home", not_home: "away", open: "open", closed: "closed", locked: "locked", unlocked: "unlocked", playing: "playing", paused: "paused", idle: "idle", unavailable: "unavailable", unknown: "unknown" };
-    return friendly[s5] || s5.replace(/_/g, " ");
+    return friendly[s6] || s6.replace(/_/g, " ");
   }
   _describeFlowItem(item) {
     if (!item || typeof item !== "object")
@@ -2890,8 +3021,8 @@ var SeloraAIArchitectPanel = class extends s4 {
       return Array.isArray(c3) ? c3 : [c3];
     })().filter(Boolean);
     const actions = (() => {
-      const a3 = auto.actions ?? auto.action ?? [];
-      return Array.isArray(a3) ? a3 : [a3];
+      const a4 = auto.actions ?? auto.action ?? [];
+      return Array.isArray(a4) ? a4 : [a4];
     })();
     if (!triggers.length && !actions.length)
       return x``;
@@ -2911,9 +3042,9 @@ var SeloraAIArchitectPanel = class extends s4 {
         <div class="flow-arrow">↓</div>
         <div class="flow-section">
           <div class="flow-label">Actions</div>
-          ${actions.map((a3, i3) => x`
-            ${i3 > 0 ? x`<div class="flow-arrow-sm">↓</div>` : ""}
-            <div class="flow-node action-node">${this._describeFlowItem(a3)}</div>
+          ${actions.map((a4, i5) => x`
+            ${i5 > 0 ? x`<div class="flow-arrow-sm">↓</div>` : ""}
+            <div class="flow-node action-node">${this._describeFlowItem(a4)}</div>
           `)}
         </div>
       </div>
@@ -3075,7 +3206,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     this.requestUpdate();
   }
   _toggleSelectAllFiltered(filteredAutomations, checked) {
-    const selectable = (filteredAutomations || []).filter((a3) => !a3._draft && a3.automation_id);
+    const selectable = (filteredAutomations || []).filter((a4) => !a4._draft && a4.automation_id);
     const next = { ...this._selectedAutomationIds };
     for (const auto of selectable) {
       next[auto.automation_id] = checked;
@@ -3093,8 +3224,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const selectedIds = this._getSelectedAutomationIds();
     if (!selectedIds.length)
       return;
-    const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
-    const targets = selectedIds.map((id) => byId.get(id)).filter((a3) => a3 && !a3._draft && a3.automation_id).filter((a3) => enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3));
+    const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
+    const targets = selectedIds.map((id) => byId.get(id)).filter((a4) => a4 && !a4._draft && a4.automation_id).filter((a4) => enable ? !this._automationIsEnabled(a4) : this._automationIsEnabled(a4));
     const skippedCount = selectedIds.length - targets.length;
     if (!targets.length) {
       this._showToast(`Selected automations are already ${enable ? "enabled" : "disabled"}.`, "info");
@@ -3137,8 +3268,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const selectedIds = this._getSelectedAutomationIds();
     if (!selectedIds.length)
       return;
-    const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
-    const targets = selectedIds.map((id) => byId.get(id)).filter((a3) => a3 && !a3._draft && a3.automation_id);
+    const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
+    const targets = selectedIds.map((id) => byId.get(id)).filter((a4) => a4 && !a4._draft && a4.automation_id);
     if (!targets.length)
       return;
     if (!confirm(`Soft-delete ${targets.length} selected automation(s)?`))
@@ -3357,7 +3488,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._loadingDeleted = true;
     try {
       const result = await this.hass.callWS({ type: "selora_ai/get_automations", include_deleted: true });
-      this._deletedAutomations = (result || []).filter((a3) => a3.is_deleted);
+      this._deletedAutomations = (result || []).filter((a4) => a4.is_deleted);
     } catch (err) {
       console.error("Failed to load deleted automations", err);
       this._showToast("Failed to load deleted automations: " + err.message, "error");
@@ -3395,8 +3526,8 @@ var SeloraAIArchitectPanel = class extends s4 {
   // -------------------------------------------------------------------------
   // Render: version history drawer
   // -------------------------------------------------------------------------
-  _renderVersionHistoryDrawer(a3) {
-    const automationId = a3.automation_id || a3.entity_id;
+  _renderVersionHistoryDrawer(a4) {
+    const automationId = a4.automation_id || a4.entity_id;
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
     const activeTab = this._versionTab[automationId] || "versions";
@@ -3434,7 +3565,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
         ${activeTab === "lineage" ? loadingLineage ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading lineage…</div>` : lineage.length === 0 ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">No lineage entries yet. Lineage is recorded as automations are created and refined via chat.</div>` : x`<div style="position:relative;padding-left:20px;margin-top:4px;">
                   <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
-                  ${lineage.map((entry, i3) => {
+                  ${lineage.map((entry, i5) => {
       const date = new Date(entry.timestamp);
       const relativeTime = this._relativeTime(date);
       const actionIcons = { created: "mdi:plus-circle", refined: "mdi:chat-processing-outline", updated: "mdi:pencil", restored: "mdi:restore" };
@@ -3447,7 +3578,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                           <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
                             <span style="font-size:12px;font-weight:600;text-transform:capitalize;">${entry.action}</span>
                             <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
-                            ${i3 === lineage.length - 1 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
+                            ${i5 === lineage.length - 1 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
                           </div>
                           ${entry.session_title || entry.session_preview ? x`<div style="font-size:11px;opacity:0.7;font-style:italic;">${entry.session_title || entry.session_preview}</div>` : entry.session_id ? x`<div style="font-size:11px;opacity:0.5;">Chat session</div>` : x`<div style="font-size:11px;opacity:0.5;">Manual edit</div>`}
                           ${canJump ? x`<span style="font-size:11px;color:var(--primary-color);cursor:pointer;text-decoration:underline;"
@@ -3469,7 +3600,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       </div>
                     `;
     })}
-                </div>` : loading ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>` : versions.length === 0 ? x`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>` : versions.map((v2, i3) => {
+                </div>` : loading ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>` : versions.length === 0 ? x`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>` : versions.map((v2, i5) => {
       const key = `${automationId}_${v2.version_id}`;
       const restoring = this._restoringVersion[key];
       const date = new Date(v2.created_at);
@@ -3477,9 +3608,9 @@ var SeloraAIArchitectPanel = class extends s4 {
       return x`
                 <div style="border-bottom:1px solid var(--divider-color);padding:8px 0;display:flex;flex-direction:column;gap:4px;">
                   <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i3}</span>
+                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i5}</span>
                     <span style="font-size:12px;" title=${date.toISOString()}>${relativeTime}</span>
-                    ${i3 === 0 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
+                    ${i5 === 0 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
                     ${v2.session_id ? x`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
                           @click=${() => {
         this._activeSessionId = v2.session_id;
@@ -3513,7 +3644,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:11px;"></ha-icon>
                       ${this._loadingToChat[automationId] ? "Loading\u2026" : "Refine in chat"}
                     </button>
-                    ${i3 > 0 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                    ${i5 > 0 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
                           ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
                           @click=${() => this._restoreVersion(automationId, v2.version_id, v2.yaml || v2.yaml_content || "")}>
                           <ha-icon icon="mdi:restore" style="--mdc-icon-size:11px;"></ha-icon>
@@ -3537,8 +3668,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const versions = this._versions[automationId] || [];
     return x`
       <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
-        @click=${(e4) => {
-      if (e4.target === e4.currentTarget) {
+        @click=${(e5) => {
+      if (e5.target === e5.currentTarget) {
         this._diffOpen = false;
         this.requestUpdate();
       }
@@ -3559,22 +3690,22 @@ var SeloraAIArchitectPanel = class extends s4 {
               <span style="font-size:12px;opacity:0.7;">Version A (newer):</span>
               <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
                 .value=${this._diffVersionA || ""}
-                @change=${async (e4) => {
-      this._diffVersionA = e4.target.value;
+                @change=${async (e5) => {
+      this._diffVersionA = e5.target.value;
       await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
     }}>
-                ${versions.map((v2, i3) => x`<option value=${v2.version_id}>v${versions.length - i3} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
+                ${versions.map((v2, i5) => x`<option value=${v2.version_id}>v${versions.length - i5} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
               </select>
             </div>
             <div style="display:flex;align-items:center;gap:8px;">
               <span style="font-size:12px;opacity:0.7;">Version B (older):</span>
               <select style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
                 .value=${this._diffVersionB || ""}
-                @change=${async (e4) => {
-      this._diffVersionB = e4.target.value;
+                @change=${async (e5) => {
+      this._diffVersionB = e5.target.value;
       await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
     }}>
-                ${versions.map((v2, i3) => x`<option value=${v2.version_id}>v${versions.length - i3} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
+                ${versions.map((v2, i5) => x`<option value=${v2.version_id}>v${versions.length - i5} — ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}</option>`)}
               </select>
             </div>
           </div>
@@ -3607,19 +3738,19 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
         ${this._showDeleted ? x`
               <div style="margin-top:8px;">
-                ${this._loadingDeleted ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading…</div>` : this._deletedAutomations.length === 0 ? x`<div style="opacity:0.45;font-size:12px;padding:8px 0;">No recently deleted automations.</div>` : this._deletedAutomations.map((a3) => {
-      const automationId = a3.automation_id || a3.entity_id;
-      const days = daysRemaining(a3.deleted_at);
+                ${this._loadingDeleted ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading…</div>` : this._deletedAutomations.length === 0 ? x`<div style="opacity:0.45;font-size:12px;padding:8px 0;">No recently deleted automations.</div>` : this._deletedAutomations.map((a4) => {
+      const automationId = a4.automation_id || a4.entity_id;
+      const days = daysRemaining(a4.deleted_at);
       const restoring = this._restoringAutomation[automationId];
       const hardDeleting = this._hardDeletingAutomation[automationId];
       return x`
                         <div class="card" style="opacity:0.8;border-left:3px solid var(--error-color);">
                           <div class="card-header">
-                            <h3 style="flex:1;">${a3.alias}</h3>
+                            <h3 style="flex:1;">${a4.alias}</h3>
                             ${days <= 3 ? x`<span style="font-size:10px;background:var(--error-color);color:#fff;border-radius:4px;padding:2px 6px;">⚠ ${days}d left</span>` : x`<span style="font-size:11px;opacity:0.6;">${days} days until purge</span>`}
                           </div>
                           <p style="font-size:11px;opacity:0.6;margin:4px 0;">
-                            Deleted ${this._relativeTime(new Date(a3.deleted_at))}
+                            Deleted ${this._relativeTime(new Date(a4.deleted_at))}
                           </p>
                           <div class="card-actions">
                             <button class="btn btn-outline" ?disabled=${restoring || hardDeleting}
@@ -3628,7 +3759,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                               ${restoring ? "Restoring\u2026" : "Restore"}
                             </button>
                             <button class="btn btn-outline btn-danger" ?disabled=${restoring || hardDeleting}
-                              @click=${() => this._openHardDeleteDialog(automationId, a3.alias)}>
+                              @click=${() => this._openHardDeleteDialog(automationId, a4.alias)}>
                               <ha-icon icon="mdi:trash-can" style="--mdc-icon-size:13px;"></ha-icon>
                               ${hardDeleting ? "Deleting\u2026" : "Permanently Delete"}
                             </button>
@@ -3649,8 +3780,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const canConfirm = this._hardDeleteAliasInput === alias;
     return x`
       <div style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;"
-        @click=${(e4) => {
-      if (e4.target === e4.currentTarget && !hardDeleting) {
+        @click=${(e5) => {
+      if (e5.target === e5.currentTarget && !hardDeleting) {
         this._closeHardDeleteDialog();
       }
     }}>
@@ -3667,7 +3798,7 @@ var SeloraAIArchitectPanel = class extends s4 {
           </p>
           <ha-textfield
             .value=${this._hardDeleteAliasInput}
-            @input=${(e4) => this._hardDeleteAliasInput = e4.target.value}
+            @input=${(e5) => this._hardDeleteAliasInput = e5.target.value}
             placeholder="Type alias exactly"
             ?disabled=${hardDeleting}
             style="width:100%;"
@@ -3701,9 +3832,9 @@ var SeloraAIArchitectPanel = class extends s4 {
   }
   _renderAutomations() {
     const filterText = (this._automationFilter || "").toLowerCase();
-    const filteredAutomations = filterText ? this._automations.filter((a3) => (a3.alias || "").toLowerCase().includes(filterText)) : this._automations;
-    const selectableAutomations = filteredAutomations.filter((a3) => !a3._draft && a3.automation_id);
-    const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
+    const filteredAutomations = filterText ? this._automations.filter((a4) => (a4.alias || "").toLowerCase().includes(filterText)) : this._automations;
+    const selectableAutomations = filteredAutomations.filter((a4) => !a4._draft && a4.automation_id);
+    const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
     const selectedIds = this._getSelectedAutomationIds();
     const selectedVisibleCount = selectableIds.filter((id) => this._selectedAutomationIds[id]).length;
     const allVisibleSelected = selectableIds.length > 0 && selectedVisibleCount === selectableIds.length;
@@ -3737,7 +3868,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                         ?checked=${allVisibleSelected}
                         .indeterminate=${partiallyVisibleSelected}
                         ?disabled=${selectableIds.length === 0 || this._bulkActionInProgress}
-                        @change=${(e4) => this._toggleSelectAllFiltered(filteredAutomations, e4.target.checked)}>
+                        @change=${(e5) => this._toggleSelectAllFiltered(filteredAutomations, e5.target.checked)}>
                       <span>Select all</span>
                     </label>
                   ` : ""}
@@ -3745,8 +3876,8 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input type="text" placeholder="Filter automations…"
                       .value=${this._automationFilter}
-                      @input=${(e4) => {
-      this._automationFilter = e4.target.value;
+                      @input=${(e5) => {
+      this._automationFilter = e5.target.value;
     }}>
                   </div>
                   <button class="btn btn-primary" style="white-space:nowrap;" @click=${() => {
@@ -3796,14 +3927,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                 </div>
               ` : ""}
               <div class="automations-grid">
-              ${filteredAutomations.map((a3) => {
-      const isDraft = !!a3._draft;
-      const expanded = !!this._expandedAutomations[a3.entity_id];
-      const isOn = this._automationIsEnabled(a3);
-      const automationId = a3.automation_id || "";
+              ${filteredAutomations.map((a4) => {
+      const isDraft = !!a4._draft;
+      const expanded = !!this._expandedAutomations[a4.entity_id];
+      const isOn = this._automationIsEnabled(a4);
+      const automationId = a4.automation_id || "";
       const hasAutomationId = !!automationId;
       const canToggle = hasAutomationId && !this._bulkActionInProgress;
-      const versionCount = a3.version_count || null;
+      const versionCount = a4.version_count || null;
       const deleting = this._deletingAutomation[automationId];
       const loadingChat = this._loadingToChat[automationId];
       const burgerOpen = this._openBurgerMenu === automationId;
@@ -3815,14 +3946,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                           <input type="checkbox"
                             .checked=${!!this._selectedAutomationIds[automationId]}
                             ?disabled=${this._bulkActionInProgress}
-                            @click=${(e4) => e4.stopPropagation()}
-                            @change=${(e4) => this._toggleAutomationSelection(automationId, e4)}>
+                            @click=${(e5) => e5.stopPropagation()}
+                            @change=${(e5) => this._toggleAutomationSelection(automationId, e5)}>
                         </label>
                       ` : ""}
-                      <h3 style="flex:1;font-size:14px;margin:0;">${a3.alias}</h3>
+                      <h3 style="flex:1;font-size:14px;margin:0;">${a4.alias}</h3>
                       ${hasAutomationId ? x`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
-                          <button class="burger-btn" @click=${(e4) => this._toggleBurgerMenu(automationId, e4)}
+                          <button class="burger-btn" @click=${(e5) => this._toggleBurgerMenu(automationId, e5)}
                             ?disabled=${this._bulkActionInProgress}
                             title="More actions">
                             <ha-icon icon="mdi:dots-vertical" style="--mdc-icon-size:16px;"></ha-icon>
@@ -3830,8 +3961,8 @@ var SeloraAIArchitectPanel = class extends s4 {
                           ${burgerOpen ? x`
                             <div class="burger-dropdown">
                               <button class="burger-item danger" ?disabled=${deleting}
-                                @click=${(e4) => {
-        e4.stopPropagation();
+                                @click=${(e5) => {
+        e5.stopPropagation();
         this._openBurgerMenu = null;
         this._softDeleteAutomation(automationId);
       }}>
@@ -3855,11 +3986,11 @@ var SeloraAIArchitectPanel = class extends s4 {
                         <input type="checkbox"
                           .checked=${isOn}
                           ?disabled=${!canToggle}
-                          @click=${(e4) => e4.stopPropagation()}
-                          @change=${(e4) => {
+                          @click=${(e5) => e5.stopPropagation()}
+                          @change=${(e5) => {
         if (!canToggle)
           return;
-        this._toggleAutomation(a3.entity_id, automationId, e4.target.checked);
+        this._toggleAutomation(a4.entity_id, automationId, e5.target.checked);
       }}>
                         <div class="toggle-track ${isOn ? "on" : ""}">
                           <div class="toggle-thumb"></div>
@@ -3868,15 +3999,15 @@ var SeloraAIArchitectPanel = class extends s4 {
                       ${isDraft ? x`
                       <button class="btn btn-primary" style="font-size:11px;padding:3px 8px;"
                         @click=${() => {
-        this._activeSessionId = a3._linked_session;
+        this._activeSessionId = a4._linked_session;
         this._activeTab = "chat";
-        this._openSession(a3._linked_session);
+        this._openSession(a4._linked_session);
       }}>
                         <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:13px;"></ha-icon>
                         Define in Chat
                       </button>
                       <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;margin-left:auto;"
-                        @click=${() => this._dismissDraft(a3._draft_id)}>
+                        @click=${() => this._dismissDraft(a4._draft_id)}>
                         <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
                         Dismiss
                       </button>` : x`
@@ -3889,29 +4020,29 @@ var SeloraAIArchitectPanel = class extends s4 {
 
                     <div class="card-tabs">
                       <span class="label">View:</span>
-                      ${a3.trigger?.length || a3.action?.length ? x`
-                        <button class="card-tab ${this._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                      ${a4.trigger?.length || a4.action?.length ? x`
+                        <button class="card-tab ${this._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
                           @click=${() => {
-        this._cardActiveTab = { ...this._cardActiveTab, [a3.entity_id]: this._cardActiveTab[a3.entity_id] === "flow" ? null : "flow" };
+        this._cardActiveTab = { ...this._cardActiveTab, [a4.entity_id]: this._cardActiveTab[a4.entity_id] === "flow" ? null : "flow" };
       }}>
                           <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
                         </button>
                         <span class="card-tab-sep">|</span>
                       ` : ""}
-                      ${a3.yaml_text ? x`
-                        <button class="card-tab ${this._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                      ${a4.yaml_text ? x`
+                        <button class="card-tab ${this._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
                           @click=${() => {
-        this._cardActiveTab = { ...this._cardActiveTab, [a3.entity_id]: this._cardActiveTab[a3.entity_id] === "yaml" ? null : "yaml" };
+        this._cardActiveTab = { ...this._cardActiveTab, [a4.entity_id]: this._cardActiveTab[a4.entity_id] === "yaml" ? null : "yaml" };
       }}>
                           <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
                         </button>
                         <span class="card-tab-sep">|</span>
                       ` : ""}
                       ${hasAutomationId ? x`
-                        <button class="card-tab ${this._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                        <button class="card-tab ${this._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
                           @click=${() => {
-        const isActive = this._cardActiveTab[a3.entity_id] === "history";
-        this._cardActiveTab = { ...this._cardActiveTab, [a3.entity_id]: isActive ? null : "history" };
+        const isActive = this._cardActiveTab[a4.entity_id] === "history";
+        this._cardActiveTab = { ...this._cardActiveTab, [a4.entity_id]: isActive ? null : "history" };
         if (!isActive && !this._versions[automationId]) {
           this._versionHistoryOpen = { ...this._versionHistoryOpen, [automationId]: true };
           this._loadVersionHistory(automationId);
@@ -3921,28 +4052,28 @@ var SeloraAIArchitectPanel = class extends s4 {
                         </button>
                       ` : ""}
                       <ha-icon icon="mdi:chevron-down"
-                        class="card-chevron ${this._cardActiveTab[a3.entity_id] ? "open" : ""}"
+                        class="card-chevron ${this._cardActiveTab[a4.entity_id] ? "open" : ""}"
                         style="margin-left:auto;"
                         title="Expand details"
                         @click=${() => {
-        const current = this._cardActiveTab[a3.entity_id];
+        const current = this._cardActiveTab[a4.entity_id];
         if (current) {
-          this._cardActiveTab = { ...this._cardActiveTab, [a3.entity_id]: null };
+          this._cardActiveTab = { ...this._cardActiveTab, [a4.entity_id]: null };
         } else {
-          this._cardActiveTab = { ...this._cardActiveTab, [a3.entity_id]: "flow" };
+          this._cardActiveTab = { ...this._cardActiveTab, [a4.entity_id]: "flow" };
         }
       }}></ha-icon>
                     </div>
 
-                    ${this._cardActiveTab[a3.entity_id] === "flow" && (a3.trigger?.length || a3.action?.length) ? this._renderAutomationFlowchart(a3) : ""}
+                    ${this._cardActiveTab[a4.entity_id] === "flow" && (a4.trigger?.length || a4.action?.length) ? this._renderAutomationFlowchart(a4) : ""}
 
-                    ${this._cardActiveTab[a3.entity_id] === "yaml" && a3.yaml_text ? this._renderYamlEditor(
-        `yaml_${a3.entity_id}`,
-        a3.yaml_text,
-        (key) => this._saveActiveAutomationYaml(a3.automation_id, key)
+                    ${this._cardActiveTab[a4.entity_id] === "yaml" && a4.yaml_text ? this._renderYamlEditor(
+        `yaml_${a4.entity_id}`,
+        a4.yaml_text,
+        (key) => this._saveActiveAutomationYaml(a4.automation_id, key)
       ) : ""}
 
-                    ${this._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? this._renderVersionHistoryDrawer(a3) : ""}
+                    ${this._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? this._renderVersionHistoryDrawer(a4) : ""}
                   </div>
                 `;
     })}
@@ -4067,30 +4198,30 @@ var SeloraAIArchitectPanel = class extends s4 {
                 No new suggestions. Patterns are analyzed every 15 minutes.
               </div>` : x`
               <div class="automations-grid">
-                ${this._proactiveSuggestions.map((s5) => {
-      const expanded = !!this._proactiveExpanded[s5.suggestion_id];
-      const accepting = !!this._acceptingProactive[s5.suggestion_id];
-      const dismissing = !!this._dismissingProactive[s5.suggestion_id];
-      const yamlKey = `proactive_${s5.suggestion_id}`;
+                ${this._proactiveSuggestions.map((s6) => {
+      const expanded = !!this._proactiveExpanded[s6.suggestion_id];
+      const accepting = !!this._acceptingProactive[s6.suggestion_id];
+      const dismissing = !!this._dismissingProactive[s6.suggestion_id];
+      const yamlKey = `proactive_${s6.suggestion_id}`;
       const editedYaml = this._editedYaml[yamlKey];
-      const displayYaml = editedYaml !== void 0 ? editedYaml : s5.automation_yaml;
-      const confidencePct = Math.round((s5.confidence || 0) * 100);
+      const displayYaml = editedYaml !== void 0 ? editedYaml : s6.automation_yaml;
+      const confidencePct = Math.round((s6.confidence || 0) * 100);
       const confidenceColor = confidencePct >= 75 ? "#22c55e" : confidencePct >= 50 ? "#f59e0b" : "#ef4444";
       return x`
                     <div class="card" style="padding:12px 14px;border-color:#f59e0b;border-left:3px solid #f59e0b;">
                       <div class="card-header" style="margin-bottom:6px;">
-                        <h3 style="flex:1;font-size:14px;margin:0;">${s5.description}</h3>
+                        <h3 style="flex:1;font-size:14px;margin:0;">${s6.description}</h3>
                         <span style="font-size:11px;color:${confidenceColor};font-weight:600;margin-left:8px;">${confidencePct}%</span>
                         <div class="chip ai-managed" style="margin-left:6px;">PATTERN</div>
                       </div>
 
                       <div style="font-size:11px;opacity:0.6;margin-bottom:8px;">
-                        ${s5.evidence_summary || ""}
-                        ${s5.source === "hybrid" ? x` <span style="opacity:0.5;">· AI-enhanced</span>` : ""}
+                        ${s6.evidence_summary || ""}
+                        ${s6.source === "hybrid" ? x` <span style="opacity:0.5;">· AI-enhanced</span>` : ""}
                       </div>
 
                       <span class="expand-toggle" style="padding:0;margin:0 0 8px;" @click=${() => {
-        this._proactiveExpanded = { ...this._proactiveExpanded, [s5.suggestion_id]: !expanded };
+        this._proactiveExpanded = { ...this._proactiveExpanded, [s6.suggestion_id]: !expanded };
       }}>
                         <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
                         ${expanded ? "Hide YAML" : "Show YAML"}
@@ -4101,8 +4232,8 @@ var SeloraAIArchitectPanel = class extends s4 {
                           <textarea class="yaml-editor"
                             style="width:100%;min-height:120px;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:vertical;"
                             .value=${displayYaml}
-                            @input=${(e4) => {
-        this._editedYaml = { ...this._editedYaml, [yamlKey]: e4.target.value };
+                            @input=${(e5) => {
+        this._editedYaml = { ...this._editedYaml, [yamlKey]: e5.target.value };
       }}>
                           </textarea>
                         </div>
@@ -4110,17 +4241,17 @@ var SeloraAIArchitectPanel = class extends s4 {
 
                       <div style="display:flex;gap:8px;justify-content:flex-end;">
                         <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._snoozeProactiveSuggestion(s5.suggestion_id)}>
+                          @click=${() => this._snoozeProactiveSuggestion(s6.suggestion_id)}>
                           <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
                           Snooze
                         </button>
                         <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._dismissProactiveSuggestion(s5.suggestion_id)}>
+                          @click=${() => this._dismissProactiveSuggestion(s6.suggestion_id)}>
                           <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
                           ${dismissing ? "Dismissing\u2026" : "Dismiss"}
                         </button>
                         <button class="btn btn-primary" style="font-size:11px;" ?disabled=${accepting}
-                          @click=${() => this._acceptProactiveSuggestion(s5.suggestion_id, editedYaml)}>
+                          @click=${() => this._acceptProactiveSuggestion(s6.suggestion_id, editedYaml)}>
                           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
                           ${accepting ? "Creating\u2026" : "Accept"}
                         </button>
@@ -4156,7 +4287,7 @@ var SeloraAIArchitectPanel = class extends s4 {
             <label>LLM Provider</label>
             <select
               .value=${this._config.llm_provider}
-              @change=${(e4) => this._updateConfig("llm_provider", e4.target.value)}
+              @change=${(e5) => this._updateConfig("llm_provider", e5.target.value)}
               style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
             >
               <option value="anthropic">Anthropic (Claude)</option>
@@ -4173,7 +4304,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                     label="${this._config.anthropic_api_key_set ? "Enter new key to replace" : "Enter API key"}"
                     type="password"
                     .value=${this._newApiKey}
-                    @input=${(e4) => this._newApiKey = e4.target.value}
+                    @input=${(e5) => this._newApiKey = e5.target.value}
                     placeholder="sk-ant-..."
                     style="margin-top:8px;"
                   ></ha-textfield>
@@ -4182,7 +4313,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <ha-textfield
                     label="Anthropic Model"
                     .value=${this._config.anthropic_model}
-                    @input=${(e4) => this._updateConfig("anthropic_model", e4.target.value)}
+                    @input=${(e5) => this._updateConfig("anthropic_model", e5.target.value)}
                   ></ha-textfield>
                 </div>
               ` : isOpenAI ? x`
@@ -4193,7 +4324,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                     label="${this._config.openai_api_key_set ? "Enter new key to replace" : "Enter API key"}"
                     type="password"
                     .value=${this._newApiKey}
-                    @input=${(e4) => this._newApiKey = e4.target.value}
+                    @input=${(e5) => this._newApiKey = e5.target.value}
                     placeholder="sk-..."
                     style="margin-top:8px;"
                   ></ha-textfield>
@@ -4202,7 +4333,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <ha-textfield
                     label="OpenAI Model"
                     .value=${this._config.openai_model}
-                    @input=${(e4) => this._updateConfig("openai_model", e4.target.value)}
+                    @input=${(e5) => this._updateConfig("openai_model", e5.target.value)}
                   ></ha-textfield>
                 </div>
             ` : x`
@@ -4210,14 +4341,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                   <ha-textfield
                     label="Ollama Host"
                     .value=${this._config.ollama_host}
-                    @input=${(e4) => this._updateConfig("ollama_host", e4.target.value)}
+                    @input=${(e5) => this._updateConfig("ollama_host", e5.target.value)}
                   ></ha-textfield>
                 </div>
                 <div class="form-group">
                   <ha-textfield
                     label="Ollama Model"
                     .value=${this._config.ollama_model}
-                    @input=${(e4) => this._updateConfig("ollama_model", e4.target.value)}
+                    @input=${(e5) => this._updateConfig("ollama_model", e5.target.value)}
                   ></ha-textfield>
                 </div>
               `}
@@ -4228,7 +4359,7 @@ var SeloraAIArchitectPanel = class extends s4 {
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
               <ha-switch
                 .checked=${this._config.collector_enabled}
-                @change=${(e4) => this._updateConfig("collector_enabled", e4.target.checked)}
+                @change=${(e5) => this._updateConfig("collector_enabled", e5.target.checked)}
               ></ha-switch>
               <label>Data Collector (AI Analysis)</label>
             </div>
@@ -4239,7 +4370,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       <label>Mode</label>
                       <select
                         .value=${this._config.collector_mode}
-                        @change=${(e4) => this._updateConfig("collector_mode", e4.target.value)}
+                        @change=${(e5) => this._updateConfig("collector_mode", e5.target.value)}
                         style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
                       >
                         <option value="continuous">Continuous</option>
@@ -4249,13 +4380,13 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <div class="form-group">
                       <ha-textfield label="Interval (seconds)" type="number"
                         .value=${this._config.collector_interval}
-                        @input=${(e4) => this._updateConfig("collector_interval", parseInt(e4.target.value))}
+                        @input=${(e5) => this._updateConfig("collector_interval", parseInt(e5.target.value))}
                       ></ha-textfield>
                     </div>
                     ${this._config.collector_mode === "scheduled" ? x`
                           <div style="display:flex; gap:12px;">
-                            <ha-textfield label="Start (HH:MM)" .value=${this._config.collector_start_time} @input=${(e4) => this._updateConfig("collector_start_time", e4.target.value)} style="flex:1;"></ha-textfield>
-                            <ha-textfield label="End (HH:MM)"   .value=${this._config.collector_end_time}   @input=${(e4) => this._updateConfig("collector_end_time", e4.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="Start (HH:MM)" .value=${this._config.collector_start_time} @input=${(e5) => this._updateConfig("collector_start_time", e5.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="End (HH:MM)"   .value=${this._config.collector_end_time}   @input=${(e5) => this._updateConfig("collector_end_time", e5.target.value)} style="flex:1;"></ha-textfield>
                           </div>
                         ` : ""}
                   </div>
@@ -4264,7 +4395,7 @@ var SeloraAIArchitectPanel = class extends s4 {
             <div style="display:flex; align-items:center; gap:8px; margin-bottom:16px;">
               <ha-switch
                 .checked=${this._config.discovery_enabled}
-                @change=${(e4) => this._updateConfig("discovery_enabled", e4.target.checked)}
+                @change=${(e5) => this._updateConfig("discovery_enabled", e5.target.checked)}
               ></ha-switch>
               <label>Network Discovery</label>
             </div>
@@ -4275,7 +4406,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       <label>Mode</label>
                       <select
                         .value=${this._config.discovery_mode}
-                        @change=${(e4) => this._updateConfig("discovery_mode", e4.target.value)}
+                        @change=${(e5) => this._updateConfig("discovery_mode", e5.target.value)}
                         style="padding:8px; border-radius:4px; background:var(--card-background-color); color:var(--primary-text-color); border:1px solid var(--divider-color); width:100%;"
                       >
                         <option value="continuous">Continuous</option>
@@ -4285,13 +4416,13 @@ var SeloraAIArchitectPanel = class extends s4 {
                     <div class="form-group">
                       <ha-textfield label="Interval (seconds)" type="number"
                         .value=${this._config.discovery_interval}
-                        @input=${(e4) => this._updateConfig("discovery_interval", parseInt(e4.target.value))}
+                        @input=${(e5) => this._updateConfig("discovery_interval", parseInt(e5.target.value))}
                       ></ha-textfield>
                     </div>
                     ${this._config.discovery_mode === "scheduled" ? x`
                           <div style="display:flex; gap:12px;">
-                            <ha-textfield label="Start (HH:MM)" .value=${this._config.discovery_start_time} @input=${(e4) => this._updateConfig("discovery_start_time", e4.target.value)} style="flex:1;"></ha-textfield>
-                            <ha-textfield label="End (HH:MM)"   .value=${this._config.discovery_end_time}   @input=${(e4) => this._updateConfig("discovery_end_time", e4.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="Start (HH:MM)" .value=${this._config.discovery_start_time} @input=${(e5) => this._updateConfig("discovery_start_time", e5.target.value)} style="flex:1;"></ha-textfield>
+                            <ha-textfield label="End (HH:MM)"   .value=${this._config.discovery_end_time}   @input=${(e5) => this._updateConfig("discovery_end_time", e5.target.value)} style="flex:1;"></ha-textfield>
                           </div>
                         ` : ""}
                   </div>
@@ -4373,6 +4504,27 @@ lit-html/is-server.js:
   (**
    * @license
    * Copyright 2022 Google LLC
+   * SPDX-License-Identifier: BSD-3-Clause
+   *)
+
+lit-html/directive.js:
+  (**
+   * @license
+   * Copyright 2017 Google LLC
+   * SPDX-License-Identifier: BSD-3-Clause
+   *)
+
+lit-html/directive-helpers.js:
+  (**
+   * @license
+   * Copyright 2020 Google LLC
+   * SPDX-License-Identifier: BSD-3-Clause
+   *)
+
+lit-html/directives/keyed.js:
+  (**
+   * @license
+   * Copyright 2021 Google LLC
    * SPDX-License-Identifier: BSD-3-Clause
    *)
 */

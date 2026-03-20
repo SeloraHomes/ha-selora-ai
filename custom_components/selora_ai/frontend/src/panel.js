@@ -1,4 +1,5 @@
 import { LitElement, html, css } from "lit";
+import { keyed } from "lit/directives/keyed.js";
 
 // ---------------------------------------------------------------------------
 // Selora AI Architect Panel
@@ -282,6 +283,7 @@ class SeloraAIArchitectPanel extends LitElement {
       this._activeSessionId = session_id;
       this._messages = [];
       this._activeTab = "chat";
+      this._welcomeKey = (this._welcomeKey || 0) + 1;
       await this._loadSessions();
       if (this.narrow) this._showSidebar = false;
     } catch (err) {
@@ -588,6 +590,11 @@ class SeloraAIArchitectPanel extends LitElement {
   // -------------------------------------------------------------------------
   // Messaging
   // -------------------------------------------------------------------------
+
+  _quickStart(message) {
+    this._input = message;
+    this._sendMessage();
+  }
 
   async _sendMessage() {
     if (!this._input.trim() || this._loading) return;
@@ -1170,6 +1177,15 @@ class SeloraAIArchitectPanel extends LitElement {
         flex-direction: column;
         gap: 12px;
       }
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(18px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes logoEntrance {
+        0% { opacity: 0; transform: scale(0.6) translateY(12px); }
+        60% { opacity: 1; transform: scale(1.06) translateY(-2px); }
+        100% { opacity: 1; transform: scale(1) translateY(0); }
+      }
       .empty-state {
         flex: 1;
         display: flex;
@@ -1180,9 +1196,33 @@ class SeloraAIArchitectPanel extends LitElement {
         gap: 12px;
         padding: 32px;
         text-align: center;
+        animation: fadeInUp 0.5s ease both;
       }
+      .empty-state.welcome {
+        opacity: 1;
+        gap: 0;
+      }
+      .empty-state.welcome > * {
+        animation: fadeInUp 0.5s ease both;
+      }
+      .empty-state.welcome > img:first-child {
+        animation: logoEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+      }
+      .empty-state.welcome > :nth-child(2) { animation-delay: 0.15s; }
+      .empty-state.welcome > :nth-child(3) { animation-delay: 0.25s; }
+      .empty-state.welcome > :nth-child(4) { animation-delay: 0.35s; }
+      .empty-state.welcome > :nth-child(5) { animation-delay: 0.4s; }
+      .empty-state.welcome > :nth-child(6) { animation-delay: 0.45s; }
+      .empty-state.welcome > :nth-child(7) { animation-delay: 0.5s; }
       .empty-state ha-icon {
         --mdc-icon-size: 56px;
+      }
+      .welcome-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      }
+      .welcome-card:active {
+        transform: translateY(0);
       }
       .message-row {
         display: flex;
@@ -2073,13 +2113,68 @@ class SeloraAIArchitectPanel extends LitElement {
       <div class="chat-pane">
         <div class="chat-messages" id="chat-messages">
           ${!this._activeSessionId || this._messages.length === 0
-            ? html`
-                <div class="empty-state">
-                  <ha-icon icon="mdi:robot-happy-outline"></ha-icon>
-                  <div style="font-size:16px; font-weight:500;">Start a conversation</div>
-                  <div style="font-size:13px;">Ask me to build an automation, control a device, or answer a question about your home.</div>
+            ? keyed(this._welcomeKey || 0, html`
+                <div class="empty-state welcome" style="max-width:520px;margin:0 auto;text-align:center;">
+                  <img src="/api/selora_ai/logo.png" alt="Selora AI" style="width:56px;height:56px;border-radius:12px;margin-bottom:8px;">
+                  <div style="font-size:20px;font-weight:600;margin-bottom:4px;">Welcome to Selora AI</div>
+                  <div style="font-size:13px;opacity:0.7;margin-bottom:20px;line-height:1.5;">
+                    Your intelligent home automation architect. I analyze your devices,
+                    detect patterns, and help you build automations using natural language.
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-bottom:20px;">
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("Create an automation for my home")}>
+                      <ha-icon icon="mdi:lightning-bolt" style="--mdc-icon-size:18px;color:#f59e0b;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Create Automations</div>
+                        <div style="font-size:11px;opacity:0.6;">Describe what you want in plain English</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("Analyze my device usage patterns and suggest automations")}>
+                      <ha-icon icon="mdi:magnify-scan" style="--mdc-icon-size:18px;color:#3b82f6;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Detect Patterns</div>
+                        <div style="font-size:11px;opacity:0.6;">AI spots your routines and suggests automations</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("What devices do I have and how are they organized?")}>
+                      <ha-icon icon="mdi:home-search-outline" style="--mdc-icon-size:18px;color:#22c55e;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Manage Devices</div>
+                        <div style="font-size:11px;opacity:0.6;">Discover, organize, and control your smart home</div>
+                      </div>
+                    </div>
+                    <div class="welcome-card" style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
+                      @click=${() => this._quickStart("What can you help me with?")}>
+                      <ha-icon icon="mdi:chat-question-outline" style="--mdc-icon-size:18px;color:#a855f7;flex-shrink:0;margin-top:1px;"></ha-icon>
+                      <div>
+                        <div style="font-size:12px;font-weight:600;">Ask Anything</div>
+                        <div style="font-size:11px;opacity:0.6;">Get answers about your home setup</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.08em;opacity:0.4;margin-bottom:10px;">Quick start</div>
+                  <div style="display:flex;flex-direction:column;gap:8px;width:100%;">
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("Create an automation that turns off all lights at midnight")}>
+                      <ha-icon icon="mdi:lightbulb-off-outline" style="--mdc-icon-size:16px;"></ha-icon>
+                      Turn off all lights at midnight
+                    </button>
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("What devices do I have and which ones are currently on?")}>
+                      <ha-icon icon="mdi:devices" style="--mdc-icon-size:16px;"></ha-icon>
+                      What devices do I have?
+                    </button>
+                    <button class="btn btn-outline" style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
+                      @click=${() => this._quickStart("Suggest useful automations based on my devices and usage patterns")}>
+                      <ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:16px;"></ha-icon>
+                      Suggest automations for my home
+                    </button>
+                  </div>
                 </div>
-              `
+              `)
             : this._messages.map((msg, idx) => this._renderMessage(msg, idx))}
 
           ${this._loading
