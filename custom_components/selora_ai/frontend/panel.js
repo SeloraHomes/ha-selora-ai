@@ -2661,13 +2661,25 @@ var SeloraAIArchitectPanel = class extends s4 {
     if (!id)
       return "";
     const parts = String(id).split(".");
-    return (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(/_/g, " ");
+    const raw = (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(/_/g, " ");
+    return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
   }
   _fmtEntities(val) {
     if (!val)
       return "";
     const arr = Array.isArray(val) ? val : [val];
-    return arr.map((e4) => this._fmtEntity(e4)).join(", ");
+    if (arr.length === 1)
+      return this._fmtEntity(arr[0]);
+    if (arr.length === 2)
+      return `${this._fmtEntity(arr[0])} and ${this._fmtEntity(arr[1])}`;
+    return arr.slice(0, -1).map((e4) => this._fmtEntity(e4)).join(", ") + ", and " + this._fmtEntity(arr[arr.length - 1]);
+  }
+  _fmtState(state) {
+    if (state == null)
+      return null;
+    const s5 = String(state);
+    const friendly = { on: "on", off: "off", home: "home", not_home: "away", open: "open", closed: "closed", locked: "locked", unlocked: "unlocked", playing: "playing", paused: "paused", idle: "idle", unavailable: "unavailable", unknown: "unknown" };
+    return friendly[s5] || s5.replace(/_/g, " ");
   }
   _describeFlowItem(item) {
     if (!item || typeof item !== "object")
@@ -2675,29 +2687,37 @@ var SeloraAIArchitectPanel = class extends s4 {
     const p2 = item.platform || item.trigger;
     if (p2 === "time") {
       const at = Array.isArray(item.at) ? item.at.join(", ") : item.at;
-      return `At ${at}`;
+      return `Every day at ${at}`;
     }
     if (p2 === "sun") {
-      const ev = (item.event || "").replace(/_/g, " ");
+      const ev = item.event === "sunset" ? "At sunset" : item.event === "sunrise" ? "At sunrise" : `Sun ${(item.event || "").replace(/_/g, " ")}`;
       const offset = item.offset ? ` (${item.offset})` : "";
-      return `Sun ${ev}${offset}`;
+      return `${ev}${offset}`;
     }
     if (p2 === "state") {
       const eid = this._fmtEntities(item.entity_id);
-      const from = item.from != null ? ` from "${item.from}"` : "";
-      const to = item.to != null ? ` becomes "${item.to}"` : " changes";
-      const dur = item.for ? ` for ${item.for}` : "";
-      return `${eid}${from}${to}${dur}`;
+      const fromState = this._fmtState(item.from);
+      const toState = this._fmtState(item.to);
+      const dur = item.for ? ` for ${typeof item.for === "object" ? [item.for.hours && `${item.for.hours}h`, item.for.minutes && `${item.for.minutes}m`, item.for.seconds && `${item.for.seconds}s`].filter(Boolean).join(" ") || item.for : item.for}` : "";
+      if (toState === "on")
+        return `When ${eid} turns on${dur}`;
+      if (toState === "off")
+        return `When ${eid} turns off${dur}`;
+      if (toState && fromState)
+        return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
+      if (toState)
+        return `When ${eid} becomes ${toState}${dur}`;
+      return `When ${eid} changes state${dur}`;
     }
     if (p2 === "numeric_state") {
       const eid = this._fmtEntities(item.entity_id);
       if (item.above != null && item.below != null)
-        return `${eid} between ${item.above} and ${item.below}`;
+        return `When ${eid} is between ${item.above} and ${item.below}`;
       if (item.above != null)
-        return `${eid} rises above ${item.above}`;
+        return `When ${eid} rises above ${item.above}`;
       if (item.below != null)
-        return `${eid} drops below ${item.below}`;
-      return `${eid} value changes`;
+        return `When ${eid} drops below ${item.below}`;
+      return `When ${eid} value changes`;
     }
     if (p2 === "homeassistant") {
       const ev = item.event === "start" ? "starts up" : item.event === "shutdown" ? "shuts down" : item.event || "event";
@@ -2739,8 +2759,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     const cond = item.condition;
     if (cond === "state") {
       const eid = this._fmtEntities(item.entity_id);
-      const st = item.state ?? item.to;
-      return `${eid} is "${st}"`;
+      const st = this._fmtState(item.state ?? item.to);
+      return `${eid} is ${st}`;
     }
     if (cond === "numeric_state") {
       const eid = this._fmtEntities(item.entity_id);
@@ -2790,23 +2810,24 @@ var SeloraAIArchitectPanel = class extends s4 {
       return String(cond).replace(/_/g, " ");
     const svc = item.service || item.action;
     if (svc) {
-      const [, svcName = svc] = String(svc).split(".");
-      const name = svcName.replace(/_/g, " ");
+      const [domain = "", svcName = svc] = String(svc).split(".");
+      const friendlyActions = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock", open_cover: "Open", close_cover: "Close", set_temperature: "Set temperature for", set_value: "Set value for", send_command: "Send command to", notify: "Send notification via", reload: "Reload" };
+      const name = friendlyActions[svcName] || svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
       const targets = item.target?.entity_id ?? item.data?.entity_id;
       const t3 = this._fmtEntities(targets);
       const extras = [];
       if (item.data?.brightness_pct != null)
-        extras.push(`${item.data.brightness_pct}% brightness`);
+        extras.push(`at ${item.data.brightness_pct}% brightness`);
       if (item.data?.temperature != null)
-        extras.push(`${item.data.temperature}\xB0`);
+        extras.push(`to ${item.data.temperature}\xB0`);
       if (item.data?.color_temp != null)
-        extras.push(`colour temp ${item.data.color_temp}`);
+        extras.push(`color temp ${item.data.color_temp}`);
       if (item.data?.message)
         extras.push(`"${item.data.message}"`);
       if (item.data?.title)
         extras.push(item.data.title);
-      const detail = [t3, ...extras].filter(Boolean).join(", ");
-      return detail ? `${name}: ${detail}` : name;
+      const detail = extras.length ? ` (${extras.join(", ")})` : "";
+      return t3 ? `${name} ${t3}${detail}` : `${name}${detail}`;
     }
     if (item.delay) {
       const d3 = item.delay;
