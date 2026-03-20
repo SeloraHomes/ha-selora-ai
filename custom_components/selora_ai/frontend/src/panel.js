@@ -14,6 +14,28 @@ import { LitElement, html, css } from "lit";
  * Lightweight markdown-to-HTML converter.
  * Handles: **bold**, *italic*, numbered lists, bullet lists, `code`, line breaks.
  */
+/**
+ * Strip ```automation ... ``` blocks from message text.
+ * Returns { text, hasAutomationBlock, isPartialBlock }.
+ */
+function stripAutomationBlock(text) {
+  if (!text) return { text: "", hasAutomationBlock: false, isPartialBlock: false };
+
+  // Complete block: ```automation ... ```
+  const completeRe = /```automation[\s\S]*?```/g;
+  const hasComplete = completeRe.test(text);
+  let cleaned = text.replace(completeRe, "").trim();
+
+  // Partial block (still streaming): ```automation ... (no closing ```)
+  const partialRe = /```automation[\s\S]*$/;
+  const hasPartial = !hasComplete && partialRe.test(cleaned);
+  if (hasPartial) {
+    cleaned = cleaned.replace(partialRe, "").trim();
+  }
+
+  return { text: cleaned, hasAutomationBlock: hasComplete, isPartialBlock: hasPartial };
+}
+
 function renderMarkdown(text) {
   if (!text) return "";
   let escaped = text
@@ -2004,10 +2026,26 @@ class SeloraAIArchitectPanel extends LitElement {
     const isUser = msg.role === "user";
     // Hide empty streaming messages (typing indicator shown separately)
     if (msg._streaming && !msg.content) return html``;
+
+    // Strip automation JSON blocks from display, show spinner while generating
+    let displayContent = msg.content;
+    let showAutomationSpinner = false;
+    if (!isUser) {
+      const { text, isPartialBlock } = stripAutomationBlock(msg.content);
+      displayContent = text;
+      showAutomationSpinner = isPartialBlock && msg._streaming;
+    }
+
     return html`
       <div class="message-row">
         <div class="bubble ${isUser ? "user" : "assistant"}">
-          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(msg.content)}></span>
+          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(displayContent)}></span>
+          ${showAutomationSpinner ? html`
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);">
+              <div class="typing-dot" style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>
+              <span style="font-size:13px;font-weight:500;color:#f59e0b;">Building automation...</span>
+            </div>
+          ` : ""}
           ${msg.config_issue
             ? html`
                 <div style="margin-top: 10px;">
