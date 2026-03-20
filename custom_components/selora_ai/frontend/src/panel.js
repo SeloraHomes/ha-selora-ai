@@ -134,6 +134,9 @@ class SeloraAIArchitectPanel extends LitElement {
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
 
+      // Automations sub-tab
+      _automationsSubTab: { type: String },
+
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
@@ -156,6 +159,7 @@ class SeloraAIArchitectPanel extends LitElement {
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
+    this._automationsSubTab = "my_automations";
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
@@ -1530,6 +1534,41 @@ class SeloraAIArchitectPanel extends LitElement {
       .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
 
       /* ---- Filter input ---- */
+      .sub-tabs {
+        display: flex;
+        gap: 0;
+        margin-bottom: 12px;
+        justify-content: center;
+      }
+      .sub-tab {
+        padding: 8px 18px;
+        border: none;
+        background: none;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--secondary-text-color);
+        cursor: pointer;
+        border-bottom: 2px solid transparent;
+        transition: color 0.15s, border-color 0.15s;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .sub-tab:hover { color: var(--primary-text-color); }
+      .sub-tab.active {
+        color: #f59e0b;
+        border-bottom-color: #f59e0b;
+      }
+      .sub-tab .badge {
+        background: #f59e0b;
+        color: #000;
+        border-radius: 10px;
+        padding: 1px 7px;
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 16px;
+        text-align: center;
+      }
       .filter-row {
         display: flex;
         align-items: center;
@@ -3125,11 +3164,23 @@ class SeloraAIArchitectPanel extends LitElement {
 
     return html`
       <div class="scroll-view" @click=${() => this._closeBurgerMenus()}>
-        ${this._renderProactiveSuggestions()}
+        <div class="sub-tabs">
+          <button class="sub-tab ${this._automationsSubTab === "my_automations" ? "active" : ""}"
+            @click=${() => { this._automationsSubTab = "my_automations"; }}>
+            My Automations
+          </button>
+          <button class="sub-tab ${this._automationsSubTab === "suggestions" ? "active" : ""}"
+            @click=${() => { this._automationsSubTab = "suggestions"; }}>
+            Suggestions
+            ${((this._suggestions || []).length + (this._proactiveSuggestions || []).length) > 0
+              ? html`<span class="badge">${(this._suggestions || []).length + (this._proactiveSuggestions || []).length}</span>`
+              : ""}
+          </button>
+        </div>
+        ${this._automationsSubTab === "my_automations" ? html`
         ${this._automations.length > 0
           ? html`
               <div class="filter-row">
-                <h2 style="margin:0;">Automations</h2>
                 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;">
                   <label class="bulk-select-all">
                     <input type="checkbox"
@@ -3301,11 +3352,19 @@ class SeloraAIArchitectPanel extends LitElement {
                 ? html`<div style="text-align:center;opacity:0.45;padding:24px 0;">No automations match "${this._automationFilter}"</div>`
                 : ""}
               ${this._renderDeletedSection()}
-              <div style="border-top: 1px solid var(--divider-color); margin: 24px 0 16px;"></div>
             `
-          : ""}
-
-        <h2 style="margin-top:0;">AI Recommendations</h2>
+          : html`<div style="text-align:center;padding:32px 0;">
+              <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"></ha-icon>
+              <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
+              <button class="btn btn-primary" @click=${() => { this._newAutoName = ""; this._showNewAutoDialog = true; }}>
+                <ha-icon icon="mdi:plus" style="--mdc-icon-size:14px;"></ha-icon>
+                New Automation
+              </button>
+            </div>`}
+        ` : ""}
+        ${this._automationsSubTab === "suggestions" ? html`
+          ${this._renderProactiveSuggestions()}
+          <h2 style="margin-top:0;">AI Recommendations</h2>
         ${this._suggestions.length === 0
           ? html`
               <div style="display:flex; flex-direction:column; align-items:center; padding:32px 0; gap:12px;">
@@ -3373,6 +3432,7 @@ class SeloraAIArchitectPanel extends LitElement {
                 </div>
               `;
             })}
+        ` : ""}
       </div>
       ${this._renderDiffViewer()}
       ${this._renderNewAutomationDialog()}
