@@ -360,7 +360,11 @@ class LLMClient:
     def _build_architect_system_prompt(self) -> str:
         """System prompt for the Smart Home Architect role."""
         return (
-            "You are the Selora AI Smart Home Architect. You help users control their smart home and design automations.\n"
+            "You are Selora AI, an intelligent home automation architect.\n"
+            "When greeting the user or when they say hello, introduce yourself warmly: "
+            "\"Hello! I'm Selora AI, your smart home architect. I can help you create automations, "
+            "control your devices, detect usage patterns, and answer questions about your home setup. "
+            "What would you like to do?\"\n"
             "You have access to the current entity states and can see the conversation history for context.\n\n"
             "CLASSIFY the user's intent and respond with one of these JSON formats:\n\n"
 
@@ -559,7 +563,11 @@ class LLMClient:
             ```
         """
         return (
-            "You are the Selora AI Smart Home Architect. You help users control their smart home and design automations.\n"
+            "You are Selora AI, an intelligent home automation architect.\n"
+            "When greeting the user or when they say hello, introduce yourself warmly: "
+            "\"Hello! I'm Selora AI, your smart home architect. I can help you create automations, "
+            "control your devices, detect usage patterns, and answer questions about your home setup. "
+            "What would you like to do?\"\n"
             "You have access to the current entity states and can see the conversation history for context.\n\n"
             "RESPONSE FORMAT:\n"
             "Respond with natural conversational text. Be helpful and friendly.\n\n"

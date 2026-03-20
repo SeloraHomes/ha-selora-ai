@@ -5,6 +5,7 @@ import logging
 from typing import Any
 
 from homeassistant.components import conversation
+from homeassistant.components.conversation import ChatLog, ConversationEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
@@ -27,6 +28,8 @@ async def async_setup_entry(
 class SeloraConversationEntity(conversation.ConversationEntity):
     """Selora AI conversation entity."""
 
+    _attr_supported_features = ConversationEntityFeature.CONTROL
+
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         """Initialize the agent."""
         self.hass = hass
@@ -39,10 +42,12 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         """Return a list of supported languages."""
         return ["en"]
 
-    async def async_handle_message(
-        self, user_input: conversation.ConversationInput
+    async def _async_handle_message(
+        self,
+        user_input: conversation.ConversationInput,
+        chat_log: ChatLog,
     ) -> conversation.ConversationResult:
-        """Handle a sentence."""
+        """Handle a sentence via HA Assist pipeline."""
         llm_data = self.hass.data[DOMAIN].get(self.entry.entry_id)
         if not llm_data or "llm" not in llm_data:
             _LOGGER.warning("Selora AI LLM not initialized for entry %s", self.entry.entry_id)
@@ -78,18 +83,18 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         # Use architect_chat for rich responses and automation generation
         _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
         result = await llm.architect_chat(
-            user_input.text, 
+            user_input.text,
             entities,
-            existing_automations=automations
+            existing_automations=automations,
         )
-        
+
         response = intent.IntentResponse(language=user_input.language)
-        
+
         if "error" in result:
             _LOGGER.error("Selora AI LLM error: %s", result["error"])
             response.async_set_error(
                 intent.IntentResponseErrorCode.UNKNOWN,
-                result["error"]
+                result["error"],
             )
             return conversation.ConversationResult(
                 response=response,
@@ -111,7 +116,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 data = call.get("data", {})
                 try:
                     await self.hass.services.async_call(
-                        domain_part, service_name, {**data, **target}, blocking=True
+                        domain_part, service_name, {**data, **target}, blocking=True,
                     )
                 except Exception as exc:
                     _LOGGER.error("Failed to execute %s via Assist: %s", service, exc)
@@ -123,7 +128,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             response_text += "\n\n(Draft automation created — review and enable it in the Selora AI sidebar panel.)"
 
         response.async_set_speech(response_text)
-        
+
         return conversation.ConversationResult(
             response=response,
             conversation_id=user_input.conversation_id,
