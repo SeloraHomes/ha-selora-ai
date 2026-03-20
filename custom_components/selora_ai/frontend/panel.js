@@ -624,6 +624,19 @@ var i4 = e4(class extends i3 {
 });
 
 // src/panel.js
+function stripAutomationBlock(text) {
+  if (!text)
+    return { text: "", hasAutomationBlock: false, isPartialBlock: false };
+  const completeRe = /```automation[\s\S]*?```/g;
+  const hasComplete = completeRe.test(text);
+  let cleaned = text.replace(completeRe, "").trim();
+  const partialRe = /```automation[\s\S]*$/;
+  const hasPartial = !hasComplete && partialRe.test(cleaned);
+  if (hasPartial) {
+    cleaned = cleaned.replace(partialRe, "").trim();
+  }
+  return { text: cleaned, hasAutomationBlock: hasComplete, isPartialBlock: hasPartial };
+}
 function renderMarkdown(text) {
   if (!text)
     return "";
@@ -2724,10 +2737,23 @@ var SeloraAIArchitectPanel = class extends s4 {
     const isUser = msg.role === "user";
     if (msg._streaming && !msg.content)
       return x``;
+    let displayContent = msg.content;
+    let showAutomationSpinner = false;
+    if (!isUser) {
+      const { text, isPartialBlock } = stripAutomationBlock(msg.content);
+      displayContent = text;
+      showAutomationSpinner = isPartialBlock && msg._streaming;
+    }
     return x`
       <div class="message-row">
         <div class="bubble ${isUser ? "user" : "assistant"}">
-          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(msg.content)}></span>
+          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(displayContent)}></span>
+          ${showAutomationSpinner ? x`
+            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);">
+              <div class="typing-dot" style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>
+              <span style="font-size:13px;font-weight:500;color:#f59e0b;">Building automation...</span>
+            </div>
+          ` : ""}
           ${msg.config_issue ? x`
                 <div style="margin-top: 10px;">
                   <mwc-button dense raised @click=${this._goToSettings}>Go to Settings</mwc-button>
