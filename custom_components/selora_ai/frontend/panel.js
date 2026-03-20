@@ -2586,7 +2586,7 @@ var SeloraAIArchitectPanel = class extends s4 {
               <ha-icon icon="mdi:menu"></ha-icon>
             </ha-icon-button>
             <img src="/api/selora_ai/logo.png" alt="Selora" style="width:28px;height:28px;border-radius:6px;">
-            Selora AI Architect
+            Selora AI
           </div>
           <div class="tabs">
             <div class="tab ${this._activeTab === "chat" ? "active" : ""}" @click=${() => {
