@@ -195,10 +195,32 @@ class DataCollector:
                 len(suggestions),
             )
 
-            # Deduplicate suggestions by trigger+action content
+            # Build set of existing automation aliases to prevent re-suggesting
+            existing_aliases: set[str] = set()
+            for state in self._hass.states.async_all("automation"):
+                alias = (state.attributes.get("friendly_name") or "").strip().lower()
+                if alias:
+                    existing_aliases.add(alias)
+
+            # Filter out suggestions that duplicate existing automations
+            novel: list[dict[str, Any]] = []
+            for s in suggestions:
+                alias = (s.get("alias") or "").strip().lower()
+                if alias in existing_aliases:
+                    _LOGGER.debug("Skipping suggestion that already exists: %s", s.get("alias"))
+                    continue
+                novel.append(s)
+
+            if len(novel) < len(suggestions):
+                _LOGGER.info(
+                    "Filtered %d suggestions that duplicate existing automations",
+                    len(suggestions) - len(novel),
+                )
+
+            # Deduplicate remaining by trigger+action content
             seen_hashes: set[str] = set()
             unique_suggestions: list[dict[str, Any]] = []
-            for s in suggestions:
+            for s in novel:
                 h = self._suggestion_hash(s)
                 if h in seen_hashes:
                     _LOGGER.debug(
@@ -209,10 +231,10 @@ class DataCollector:
                 seen_hashes.add(h)
                 unique_suggestions.append(s)
 
-            if len(unique_suggestions) < len(suggestions):
+            if len(unique_suggestions) < len(novel):
                 _LOGGER.info(
                     "Removed %d duplicate suggestions",
-                    len(suggestions) - len(unique_suggestions),
+                    len(novel) - len(unique_suggestions),
                 )
 
             # Enrich suggestions with YAML for UI preview

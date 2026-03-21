@@ -31,6 +31,7 @@ class SeloraAIDashboardCard extends LitElement {
       _showNewAutomation: { type: Boolean },
       _newAutomationName: { type: String },
       _generatingName: { type: Boolean },
+      _creatingAutomation: { type: Boolean },
 
       // Error feedback
       _errorMessage: { type: String },
@@ -49,6 +50,7 @@ class SeloraAIDashboardCard extends LitElement {
     this._showNewAutomation = false;
     this._newAutomationName = "";
     this._generatingName = false;
+    this._creatingAutomation = false;
     this._errorMessage = "";
   }
 
@@ -204,11 +206,29 @@ class SeloraAIDashboardCard extends LitElement {
     this._expandedId = this._expandedId === automationId ? null : automationId;
   }
 
-  _createInChat() {
+  async _createAutomation() {
     const name = this._newAutomationName.trim();
     if (!name) return;
-    history.pushState(null, "", `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`);
-    window.dispatchEvent(new Event("location-changed"));
+    this._creatingAutomation = true;
+    try {
+      // Ask the LLM to generate an automation, then save it directly
+      const result = await this.hass.callWS({
+        type: "selora_ai/quick_create_automation",
+        name: name,
+      });
+      if (result && result.automation_id) {
+        this._showNewAutomation = false;
+        this._newAutomationName = "";
+        await this._loadAutomations();
+      } else {
+        this._showError("Failed to create automation. Try again.");
+      }
+    } catch (err) {
+      console.error("Selora AI Card: Failed to create automation", err);
+      this._showError("Failed to create automation: " + err.message);
+    } finally {
+      this._creatingAutomation = false;
+    }
   }
 
   async _letAIDecide() {
@@ -438,11 +458,11 @@ class SeloraAIDashboardCard extends LitElement {
                   placeholder="e.g. Turn off lights at midnight"
                   .value=${this._newAutomationName}
                   @input=${(e) => { this._newAutomationName = e.target.value; }}
-                  @keydown=${(e) => { if (e.key === "Enter") this._createInChat(); }}
+                  @keydown=${(e) => { if (e.key === "Enter") this._createAutomation(); }}
                 >
               `}
               <button class="modal-magic-btn" title="Let AI decide"
-                ?disabled=${this._generatingName}
+                ?disabled=${this._generatingName || this._creatingAutomation}
                 @click=${this._letAIDecide}>
                 ${this._generatingName
                   ? html`<span class="spinner"></span>`
@@ -450,10 +470,13 @@ class SeloraAIDashboardCard extends LitElement {
               </button>
             </div>
             <div class="modal-actions">
-              <button class="modal-btn modal-cancel" @click=${() => { this._showNewAutomation = false; }}>Cancel</button>
-              <button class="modal-btn modal-create" @click=${this._createInChat}
-                ?disabled=${!this._newAutomationName.trim()}>
-                <ha-icon icon="mdi:chat-plus-outline"></ha-icon> Create in Chat
+              <button class="modal-btn modal-cancel" @click=${() => { this._showNewAutomation = false; }}
+                ?disabled=${this._creatingAutomation}>Cancel</button>
+              <button class="modal-btn modal-create" @click=${this._createAutomation}
+                ?disabled=${!this._newAutomationName.trim() || this._creatingAutomation}>
+                ${this._creatingAutomation
+                  ? html`<span class="spinner"></span> Creating...`
+                  : html`<ha-icon icon="mdi:plus-circle-outline"></ha-icon> Create`}
               </button>
             </div>
           </div>
