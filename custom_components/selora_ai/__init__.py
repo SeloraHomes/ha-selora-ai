@@ -1030,24 +1030,35 @@ async def _handle_websocket_generate_suggestions(
         return
 
     try:
-        # Run the collector's LLM analysis cycle to get fresh suggestions
-        collector = runtime.get("collector")
-        if collector:
-            await collector._collect_analyze_log()
-
-        # Also run pattern engine scan if available
+        # 1. Run the fast, local-only pattern engine first (milliseconds)
         pattern_engine = runtime.get("pattern_engine")
         suggestion_generator = runtime.get("suggestion_generator")
         if pattern_engine and suggestion_generator:
-            patterns = await pattern_engine.scan()
-            suggestions = await suggestion_generator.generate_from_patterns(patterns)
-            if suggestions:
-                existing = hass.data[DOMAIN].get("proactive_suggestions", [])
-                existing.extend(suggestions)
-                hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
-                async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+            try:
+                async with asyncio.timeout(15):
+                    patterns = await pattern_engine.scan()
+                    suggestions = await suggestion_generator.generate_from_patterns(patterns)
+                    if suggestions:
+                        existing = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
+                        existing.extend(suggestions)
+                        hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+                        async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+            except TimeoutError:
+                _LOGGER.warning("Pattern scan timed out after 15s, continuing with LLM")
 
-        # Return combined results: proactive first, then collector
+        # 2. Run the LLM analysis with a shorter interactive timeout (30s)
+        collector = runtime.get("collector")
+        if collector:
+            try:
+                async with asyncio.timeout(30):
+                    await collector._collect_analyze_log()
+            except TimeoutError:
+                _LOGGER.warning(
+                    "On-demand LLM analysis timed out after 30s — "
+                    "returning existing suggestions"
+                )
+
+        # 3. Return combined results: proactive first, then collector
         all_suggestions = list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", []))
         collector_suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
         # Merge without duplicates (by alias)
@@ -1249,6 +1260,10 @@ async def _handle_websocket_get_automations(
                 "deleted_at": meta["deleted_at"] if meta else None,
                 "is_deleted": is_deleted,
             })
+
+        # Sort by position in automations.yaml (newest appended last)
+        yaml_order = {str(a.get("id")): i for i, a in enumerate(yaml_automations) if a.get("id")}
+        automations.sort(key=lambda a: yaml_order.get(a["automation_id"], -1))
 
         connection.send_result(msg["id"], automations)
     except Exception as exc:

@@ -357,8 +357,8 @@ async def async_create_automation(
 
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
-    raw_initial_state = suggestion.get("initial_state", False)
-    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else False
+    raw_initial_state = suggestion.get("initial_state", True)
+    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else True
     automation = {
         "id": automation_id,
         "alias": alias,
