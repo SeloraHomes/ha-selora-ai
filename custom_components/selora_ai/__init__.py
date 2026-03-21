@@ -940,6 +940,50 @@ async def _handle_websocket_update_automation_yaml(
 
 @websocket_api.async_response
 @decorators.websocket_command({
+    vol.Required("type"): "selora_ai/rename_automation",
+    vol.Required("automation_id"): str,
+    vol.Required("alias"): str,
+})
+async def _handle_websocket_rename_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Rename an existing automation's alias in automations.yaml and reload."""
+    if not _require_admin(connection, msg):
+        return
+
+    from pathlib import Path
+    from .automation_utils import _read_automations_yaml, _write_automations_yaml
+
+    automation_id = msg["automation_id"]
+    new_alias = msg["alias"].strip()
+    if not new_alias:
+        connection.send_error(msg["id"], "invalid", "Alias cannot be empty")
+        return
+
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    try:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        found = False
+        for a in existing:
+            if a.get("id") == automation_id:
+                a["alias"] = new_alias
+                found = True
+                break
+        if not found:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+            return
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+        await hass.services.async_call("automation", "reload")
+        connection.send_result(msg["id"], {"status": "renamed"})
+    except Exception as exc:
+        _LOGGER.exception("Error renaming automation")
+        connection.send_error(msg["id"], "error", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
     vol.Required("type"): "selora_ai/get_suggestions",
 })
 async def _handle_websocket_get_suggestions(
@@ -966,40 +1010,53 @@ async def _handle_websocket_generate_suggestions(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Trigger an on-demand pattern scan and suggestion generation cycle."""
+    """Trigger an on-demand LLM analysis + pattern scan to generate fresh suggestions."""
     if not _require_admin(connection, msg):
         return
 
     domain_data = hass.data.get(DOMAIN, {})
-    runtime: dict[str, Any] | None = None
 
+    # Find the runtime entry with collector and/or pattern engine
+    runtime: dict[str, Any] | None = None
     for key, val in domain_data.items():
         if not isinstance(key, str) or key.startswith("_"):
             continue
-        if isinstance(val, dict) and "pattern_engine" in val and "suggestion_generator" in val:
+        if isinstance(val, dict) and "collector" in val:
             runtime = val
             break
 
     if runtime is None:
-        connection.send_error(msg["id"], "no_pattern_engine", "Pattern engine not available")
+        connection.send_error(msg["id"], "not_ready", "Selora AI is not fully initialized yet")
         return
 
     try:
-        pattern_engine = runtime["pattern_engine"]
-        suggestion_generator = runtime["suggestion_generator"]
+        # Run the collector's LLM analysis cycle to get fresh suggestions
+        collector = runtime.get("collector")
+        if collector:
+            await collector._collect_analyze_log()
 
-        patterns = await pattern_engine.scan()
-        suggestions = await suggestion_generator.generate_from_patterns(patterns)
+        # Also run pattern engine scan if available
+        pattern_engine = runtime.get("pattern_engine")
+        suggestion_generator = runtime.get("suggestion_generator")
+        if pattern_engine and suggestion_generator:
+            patterns = await pattern_engine.scan()
+            suggestions = await suggestion_generator.generate_from_patterns(patterns)
+            if suggestions:
+                existing = hass.data[DOMAIN].get("proactive_suggestions", [])
+                existing.extend(suggestions)
+                hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+                async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 
-        if suggestions:
-            existing = hass.data[DOMAIN].get("proactive_suggestions", [])
-            existing.extend(suggestions)
-            hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
-            async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+        # Return combined results: proactive first, then collector
+        all_suggestions = list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", []))
+        collector_suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+        # Merge without duplicates (by alias)
+        seen_aliases = {s.get("alias", "").lower() for s in all_suggestions}
+        for s in collector_suggestions:
+            if s.get("alias", "").lower() not in seen_aliases:
+                all_suggestions.append(s)
+                seen_aliases.add(s.get("alias", "").lower())
 
-        all_suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
-        if not all_suggestions:
-            all_suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
         connection.send_result(msg["id"], all_suggestions)
     except Exception as exc:
         _LOGGER.exception("On-demand suggestion generation failed")
@@ -2147,6 +2204,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_create_automation)
     websocket_api.async_register_command(hass, _handle_websocket_apply_automation_yaml)
     websocket_api.async_register_command(hass, _handle_websocket_update_automation_yaml)
+    websocket_api.async_register_command(hass, _handle_websocket_rename_automation)
     websocket_api.async_register_command(hass, _handle_websocket_get_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automations)
     websocket_api.async_register_command(hass, _handle_websocket_get_config)
