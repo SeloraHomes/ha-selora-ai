@@ -306,7 +306,7 @@ class LLMClient:
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 payload = {
                     "model": self._model,
-                    "max_tokens": 4096,
+                    "max_tokens": 1024,
                     "system": system,
                     "messages": messages,
                 }
@@ -475,7 +475,7 @@ class LLMClient:
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 payload = {
                     "model": self._model,
-                    "max_tokens": 4096,
+                    "max_tokens": 1024,
                     "system": system,
                     "messages": messages,
                     "stream": True,
@@ -585,8 +585,9 @@ class LLMClient:
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n\n"
             "You have access to the current entity states and conversation history.\n\n"
             "RESPONSE FORMAT:\n"
-            "Respond with natural, friendly conversational text. Use markdown formatting for clarity: "
-            "headings (###), bold (**text**), numbered/bulleted lists, and code blocks where appropriate.\n\n"
+            "BE CONCISE. Keep responses short — 2-4 sentences for simple answers, a short paragraph for "
+            "explanations. This is a chat, not an essay. Get to the point quickly.\n"
+            "Use markdown formatting sparingly: bold (**text**) and short bullet lists only when needed.\n\n"
             "If your response involves creating or updating an automation, append the full automation JSON\n"
             "inside a fenced code block with the language tag 'automation' at the END of your response:\n\n"
             "```automation\n"

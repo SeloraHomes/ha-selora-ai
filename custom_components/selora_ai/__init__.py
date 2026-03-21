@@ -1058,20 +1058,143 @@ async def _handle_websocket_generate_suggestions(
                     "returning existing suggestions"
                 )
 
-        # 3. Return combined results: proactive first, then collector
-        all_suggestions = list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", []))
-        collector_suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
-        # Merge without duplicates (by alias)
-        seen_aliases = {s.get("alias", "").lower() for s in all_suggestions}
-        for s in collector_suggestions:
-            if s.get("alias", "").lower() not in seen_aliases:
-                all_suggestions.append(s)
-                seen_aliases.add(s.get("alias", "").lower())
+        # 3. Build set of existing automation aliases to exclude from suggestions
+        existing_aliases: set[str] = set()
+        for state in hass.states.async_all("automation"):
+            alias = (state.attributes.get("friendly_name") or "").strip().lower()
+            if alias:
+                existing_aliases.add(alias)
+
+        # 4. Return combined results: proactive first, then collector — skip existing
+        all_suggestions = []
+        seen_aliases: set[str] = set()
+        for s in list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])):
+            alias = (s.get("alias") or "").strip().lower()
+            if alias in existing_aliases or alias in seen_aliases:
+                continue
+            all_suggestions.append(s)
+            seen_aliases.add(alias)
+        for s in hass.data.get(DOMAIN, {}).get("latest_suggestions", []):
+            alias = (s.get("alias") or "").strip().lower()
+            if alias in existing_aliases or alias in seen_aliases:
+                continue
+            all_suggestions.append(s)
+            seen_aliases.add(alias)
 
         connection.send_result(msg["id"], all_suggestions)
     except Exception as exc:
         _LOGGER.exception("On-demand suggestion generation failed")
         connection.send_error(msg["id"], "analysis_failed", str(exc))
+
+
+@websocket_api.async_response
+@decorators.websocket_command({
+    vol.Required("type"): "selora_ai/quick_create_automation",
+    vol.Required("name"): str,
+})
+async def _handle_websocket_quick_create_automation(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create an automation by name using the LLM — no chat session needed."""
+    if not _require_admin(connection, msg):
+        return
+
+    name = msg["name"].strip()
+    if not name:
+        connection.send_error(msg["id"], "invalid_name", "Automation name is required")
+        return
+
+    from .llm_client import LLMClient
+
+    llm: LLMClient | None = None
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and "llm" in entry_data:
+            llm = entry_data["llm"]
+            break
+
+    if llm is None:
+        connection.send_error(msg["id"], "no_llm", "No LLM provider configured")
+        return
+
+    try:
+        entities = _collect_entity_states(hass)
+        existing = [
+            {
+                "entity_id": s.entity_id,
+                "alias": s.attributes.get("friendly_name", s.entity_id),
+                "state": s.state,
+            }
+            for s in hass.states.async_all("automation")
+        ]
+
+        prompt = (
+            f'Create a Home Assistant automation called "{name}". '
+            "Infer the best trigger, conditions, and actions based on the name "
+            "and the available entities. Keep it practical and useful. "
+            "IMPORTANT: All trigger fields must have valid values — never use null. "
+            "For time triggers use 'at' with HH:MM:SS format. "
+            "For state triggers use string values for 'to'/'from'."
+        )
+
+        async with asyncio.timeout(30):
+            result = await llm.architect_chat(
+                prompt, entities, existing_automations=existing
+            )
+
+        automation = result.get("automation")
+        if not automation:
+            # Try parsing from response text
+            parsed = llm.parse_streamed_response(
+                result.get("response", ""), entities
+            )
+            automation = parsed.get("automation")
+
+        if not automation:
+            connection.send_error(
+                msg["id"], "no_automation",
+                "The AI could not generate an automation for that name. Try a more descriptive name."
+            )
+            return
+
+        # Ensure the alias matches what the user typed
+        automation["alias"] = name
+        automation["initial_state"] = True
+
+        # Validate before saving — reject broken automations
+        from .automation_utils import validate_automation_payload, async_create_automation
+
+        is_valid, reason, normalized = validate_automation_payload(automation)
+        if not is_valid or normalized is None:
+            connection.send_error(
+                msg["id"], "invalid_automation",
+                f"Generated automation is invalid: {reason}. Try a more specific name."
+            )
+            return
+
+        # Sanitize triggers — strip null values that HA rejects
+        triggers = normalized.get("trigger") or normalized.get("triggers") or []
+        for t in (triggers if isinstance(triggers, list) else [triggers]):
+            for key in list(t.keys()):
+                if t[key] is None:
+                    del t[key]
+
+        create_result = await async_create_automation(hass, normalized)
+
+        if create_result.get("success"):
+            connection.send_result(msg["id"], {
+                "status": "created",
+                "automation_id": create_result["automation_id"],
+            })
+        else:
+            connection.send_error(msg["id"], "create_failed", "Failed to save automation")
+
+    except TimeoutError:
+        connection.send_error(msg["id"], "timeout", "Automation creation timed out")
+    except Exception as exc:
+        _LOGGER.exception("Quick create automation failed")
+        connection.send_error(msg["id"], "error", str(exc))
 
 
 @websocket_api.async_response
@@ -2230,6 +2353,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_new_session)
     websocket_api.async_register_command(hass, _handle_websocket_rename_session)
     websocket_api.async_register_command(hass, _handle_websocket_generate_suggestions)
+    websocket_api.async_register_command(hass, _handle_websocket_quick_create_automation)
     websocket_api.async_register_command(hass, _handle_websocket_create_draft)
     websocket_api.async_register_command(hass, _handle_websocket_get_drafts)
     websocket_api.async_register_command(hass, _handle_websocket_remove_draft)

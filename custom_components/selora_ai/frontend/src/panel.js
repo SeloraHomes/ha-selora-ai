@@ -83,6 +83,7 @@ class SeloraAIArchitectPanel extends LitElement {
       _messages: { type: Array },
       _input: { type: String },
       _loading: { type: Boolean },
+      _streaming: { type: Boolean },
 
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
@@ -208,6 +209,8 @@ class SeloraAIArchitectPanel extends LitElement {
     this._messages = [];
     this._input = "";
     this._loading = false;
+    this._streaming = false;
+    this._streamUnsub = null;
     this._showSidebar = true;
     this._activeTab = "chat";
     this._suggestions = [];
@@ -760,7 +763,8 @@ class SeloraAIArchitectPanel extends LitElement {
         subscribePayload.session_id = this._activeSessionId;
       }
 
-      const unsub = await this.hass.connection.subscribeMessage(
+      this._streaming = true;
+      this._streamUnsub = await this.hass.connection.subscribeMessage(
         (event) => {
           if (event.type === "token") {
             assistantMsg.content += event.text;
@@ -777,6 +781,8 @@ class SeloraAIArchitectPanel extends LitElement {
             assistantMsg._streaming = false;
             this._messages = [...this._messages];
             this._loading = false;
+            this._streaming = false;
+            this._streamUnsub = null;
             if (event.validation_error) {
               this._showToast(`Automation validation failed: ${event.validation_error}`, "error");
             }
@@ -788,14 +794,13 @@ class SeloraAIArchitectPanel extends LitElement {
               }
               this._loadSessions();
             }
-
-            unsub();
           } else if (event.type === "error") {
             assistantMsg.content = "Sorry, I encountered an error: " + event.message;
             assistantMsg._streaming = false;
             this._messages = [...this._messages];
             this._loading = false;
-            unsub();
+            this._streaming = false;
+            this._streamUnsub = null;
           }
         },
         subscribePayload
@@ -805,6 +810,23 @@ class SeloraAIArchitectPanel extends LitElement {
       assistantMsg._streaming = false;
       this._messages = [...this._messages];
       this._loading = false;
+      this._streaming = false;
+      this._streamUnsub = null;
+    }
+  }
+
+  _stopStreaming() {
+    if (this._streamUnsub) {
+      this._streamUnsub();
+      this._streamUnsub = null;
+    }
+    this._streaming = false;
+    this._loading = false;
+    // Mark the last assistant message as done
+    const lastMsg = this._messages[this._messages.length - 1];
+    if (lastMsg && lastMsg._streaming) {
+      lastMsg._streaming = false;
+      this._messages = [...this._messages];
     }
   }
 
@@ -1445,7 +1467,7 @@ class SeloraAIArchitectPanel extends LitElement {
       .bubble-meta {
         font-size: 10px;
         opacity: 0.5;
-        margin-top: 3px;
+        margin-top: 2px;
         display: flex;
         align-items: center;
         gap: 6px;
@@ -2534,16 +2556,24 @@ class SeloraAIArchitectPanel extends LitElement {
             @input=${(e) => (this._input = e.target.value)}
             @keydown=${(e) => e.key === "Enter" && !e.shiftKey && this._sendMessage()}
             placeholder="Describe an automation or ask a question…"
-            ?disabled=${this._loading}
+            ?disabled=${this._loading || this._streaming}
             style="flex:1;"
           ></ha-textfield>
+          ${this._streaming ? html`
+          <ha-icon-button
+            @click=${() => this._stopStreaming()}
+            title="Stop generating"
+            style="color:#f59e0b;"
+          >
+            <ha-icon icon="mdi:stop-circle"></ha-icon>
+          </ha-icon-button>` : html`
           <ha-icon-button
             @click=${this._sendMessage}
             ?disabled=${this._loading || !this._input.trim()}
             title="Send"
           >
             <ha-icon icon="mdi:send"></ha-icon>
-          </ha-icon-button>
+          </ha-icon-button>`}
         </div>
       </div>
     `;
@@ -2565,34 +2595,42 @@ class SeloraAIArchitectPanel extends LitElement {
 
     return html`
       <div class="message-row">
-        <div class="bubble ${isUser ? "user" : "assistant"}">
-          <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${isUser ? msg.content : renderMarkdown(displayContent)}></span>
-          ${showAutomationSpinner ? html`
-            <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);">
-              <div class="typing-dot" style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>
-              <span style="font-size:13px;font-weight:500;color:#f59e0b;">Building automation...</span>
-            </div>
-          ` : ""}
-          ${msg.config_issue
-            ? html`
-                <div style="margin-top: 10px;">
-                  <mwc-button dense raised @click=${this._goToSettings}>Go to Settings</mwc-button>
+        ${isUser ? html`
+          <div class="bubble user">
+            <span class="msg-content" .innerHTML=${msg.content}></span>
+          </div>
+        ` : html`
+          <div style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;">
+            <div class="bubble assistant" style="max-width:100%;align-self:auto;">
+              <span class="msg-content ${msg._streaming ? "streaming-cursor" : ""}" .innerHTML=${renderMarkdown(displayContent)}></span>
+              ${showAutomationSpinner ? html`
+                <div style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(245,158,11,0.08);border:1px solid rgba(245,158,11,0.15);">
+                  <div class="typing-dot" style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#f59e0b;"></div>
+                  <span style="font-size:13px;font-weight:500;color:#f59e0b;">Building automation...</span>
                 </div>
-              `
-            : ""}
-          ${msg.automation ? this._renderProposalCard(msg, idx) : ""}
-          ${!isUser ? html`
-            <div class="copy-msg-row">
+              ` : ""}
+              ${msg.config_issue
+                ? html`
+                    <div style="margin-top: 10px;">
+                      <mwc-button dense raised @click=${this._goToSettings}>Go to Settings</mwc-button>
+                    </div>
+                  `
+                : ""}
+              ${msg.automation ? this._renderProposalCard(msg, idx) : ""}
+            </div>
+            <div class="bubble-meta" style="display:flex;justify-content:space-between;align-items:center;width:100%;">
+              <span>Selora AI · ${this._formatTime(msg.timestamp)}</span>
               <button class="copy-msg-btn" title="Copy message"
                 @click=${(e) => this._copyMessageText(msg, e.currentTarget)}>
                 <ha-icon icon="mdi:content-copy" style="--mdc-icon-size:12px;"></ha-icon>
               </button>
             </div>
-          ` : ""}
-        </div>
+          </div>
+        `}
+        ${isUser ? html`
         <div class="bubble-meta">
-          ${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}
-        </div>
+          You · ${this._formatTime(msg.timestamp)}
+        </div>` : ""}
       </div>
     `;
   }
