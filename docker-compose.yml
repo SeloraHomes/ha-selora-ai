@@ -6,5 +6,7 @@ services:
       - ./:/config
       - /etc/localtime:/etc/localtime:ro
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "8123:8123"
