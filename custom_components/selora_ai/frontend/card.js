@@ -754,10 +754,12 @@ var SeloraAIDashboardCard = class extends s4 {
     const name = this._newAutomationName.trim();
     if (!name)
       return;
-    window.location.href = `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`;
+    history.pushState(null, "", `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`);
+    window.dispatchEvent(new Event("location-changed"));
   }
   _openPanel() {
-    window.location.href = "/selora-ai-architect?tab=automations";
+    history.pushState(null, "", "/selora-ai-architect?tab=automations");
+    window.dispatchEvent(new Event("location-changed"));
   }
   // -------------------------------------------------------------------------
   // Formatting helpers
@@ -987,7 +989,8 @@ var SeloraAIDashboardCard = class extends s4 {
 
             <div class="detail-actions">
               <button class="detail-btn open-btn" @click=${() => {
-      window.location.href = "/selora-ai-architect?tab=automations";
+      history.pushState(null, "", "/selora-ai-architect?tab=automations");
+      window.dispatchEvent(new Event("location-changed"));
     }}>
                 <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
               </button>

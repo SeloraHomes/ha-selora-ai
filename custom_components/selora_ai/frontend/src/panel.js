@@ -48,6 +48,11 @@ function renderMarkdown(text) {
   escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre style="background:#2d2d2d;color:#f8f8f2;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>');
   // Inline code
   escaped = escaped.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px;font-size:13px;">$1</code>');
+  // Headings (#### → h6, ### → h5, ## → h4, # → h3) — sized for chat bubbles
+  escaped = escaped.replace(/^####\s+(.+)$/gm, '<div style="font-weight:700;font-size:14px;margin:10px 0 4px;">$1</div>');
+  escaped = escaped.replace(/^###\s+(.+)$/gm, '<div style="font-weight:700;font-size:15px;margin:12px 0 4px;">$1</div>');
+  escaped = escaped.replace(/^##\s+(.+)$/gm, '<div style="font-weight:700;font-size:16px;margin:14px 0 6px;">$1</div>');
+  escaped = escaped.replace(/^#\s+(.+)$/gm, '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>');
   // Bold
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   // Italic
@@ -166,6 +171,10 @@ class SeloraAIArchitectPanel extends LitElement {
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
 
+      // Inline alias editing
+      _editingAlias: { type: String },  // automation_id being renamed
+      _editingAliasValue: { type: String },
+
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
@@ -173,6 +182,19 @@ class SeloraAIArchitectPanel extends LitElement {
       _acceptingProactive: { type: Object },
       _dismissingProactive: { type: Object },
       _showProactive: { type: Boolean },
+
+      // Delete session confirmation
+      _deleteConfirmSessionId: { type: String },
+
+      // Bulk session delete
+      _selectChatsMode: { type: Boolean },
+      _selectedSessionIds: { type: Object },
+
+      // Pagination
+      _automationsPage: { type: Number },
+      _suggestionsPage: { type: Number },
+      _autosPerPage: { type: Number },
+      _suggestionsPerPage: { type: Number },
     };
   }
 
@@ -238,6 +260,8 @@ class SeloraAIArchitectPanel extends LitElement {
     // Inline card tabs
     this._cardActiveTab = {};
     this._bulkEditMode = false;
+    this._editingAlias = null;
+    this._editingAliasValue = "";
     // Proactive suggestions
     this._proactiveSuggestions = [];
     this._loadingProactive = false;
@@ -245,6 +269,16 @@ class SeloraAIArchitectPanel extends LitElement {
     this._acceptingProactive = {};
     this._dismissingProactive = {};
     this._showProactive = true;
+    // Delete session confirmation
+    this._deleteConfirmSessionId = null;
+    // Bulk session delete
+    this._selectChatsMode = false;
+    this._selectedSessionIds = {};
+    // Pagination
+    this._automationsPage = 1;
+    this._suggestionsPage = 1;
+    this._autosPerPage = 10;
+    this._suggestionsPerPage = 10;
   }
 
   connectedCallback() {
@@ -253,6 +287,15 @@ class SeloraAIArchitectPanel extends LitElement {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._locationHandler = () => this._checkTabParam();
+    window.addEventListener("location-changed", this._locationHandler);
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._locationHandler) {
+      window.removeEventListener("location-changed", this._locationHandler);
+    }
   }
 
   _checkTabParam() {
@@ -260,7 +303,10 @@ class SeloraAIArchitectPanel extends LitElement {
     const tab = params.get("tab");
     if (tab === "automations" || tab === "settings") {
       this._activeTab = tab;
-      // Clean the query param so it doesn't stick on subsequent visits
+      this._showSidebar = false;
+    }
+    // Clean the query param so it doesn't stick on subsequent visits
+    if (tab) {
       const url = new URL(window.location);
       url.searchParams.delete("tab");
       window.history.replaceState({}, "", url);
@@ -275,8 +321,8 @@ class SeloraAIArchitectPanel extends LitElement {
     try {
       const sessions = await this.hass.callWS({ type: "selora_ai/get_sessions" });
       this._sessions = sessions || [];
-      // Auto-open most recent session if no active session
-      if (!this._activeSessionId && this._sessions.length > 0) {
+      // Auto-open most recent session if no active session and on chat tab
+      if (!this._activeSessionId && this._sessions.length > 0 && this._activeTab === "chat") {
         await this._openSession(this._sessions[0].id);
       }
     } catch (err) {
@@ -404,9 +450,15 @@ class SeloraAIArchitectPanel extends LitElement {
     }
   }
 
-  async _deleteSession(sessionId, evt) {
+  _deleteSession(sessionId, evt) {
     evt.stopPropagation();
-    if (!confirm("Delete this conversation?")) return;
+    this._deleteConfirmSessionId = sessionId;
+  }
+
+  async _confirmDeleteSession() {
+    const sessionId = this._deleteConfirmSessionId;
+    if (!sessionId) return;
+    this._deleteConfirmSessionId = null;
     try {
       await this.hass.callWS({ type: "selora_ai/delete_session", session_id: sessionId });
       if (this._activeSessionId === sessionId) {
@@ -417,6 +469,51 @@ class SeloraAIArchitectPanel extends LitElement {
     } catch (err) {
       console.error("Failed to delete session", err);
     }
+  }
+
+  _toggleSessionSelection(sessionId) {
+    this._selectedSessionIds = {
+      ...this._selectedSessionIds,
+      [sessionId]: !this._selectedSessionIds[sessionId],
+    };
+  }
+
+  _toggleSelectAllSessions() {
+    const allSelected = this._sessions.every((s) => this._selectedSessionIds[s.id]);
+    if (allSelected) {
+      this._selectedSessionIds = {};
+    } else {
+      const selected = {};
+      this._sessions.forEach((s) => { selected[s.id] = true; });
+      this._selectedSessionIds = selected;
+    }
+  }
+
+  _requestBulkDeleteSessions() {
+    const count = Object.values(this._selectedSessionIds).filter(Boolean).length;
+    if (count === 0) return;
+    this._deleteConfirmSessionId = "__bulk__";
+  }
+
+  async _confirmBulkDeleteSessions() {
+    this._deleteConfirmSessionId = null;
+    const ids = Object.entries(this._selectedSessionIds)
+      .filter(([, v]) => v)
+      .map(([id]) => id);
+    for (const id of ids) {
+      try {
+        await this.hass.callWS({ type: "selora_ai/delete_session", session_id: id });
+        if (this._activeSessionId === id) {
+          this._activeSessionId = null;
+          this._messages = [];
+        }
+      } catch (err) {
+        console.error("Failed to delete session", id, err);
+      }
+    }
+    this._selectedSessionIds = {};
+    this._selectChatsMode = false;
+    await this._loadSessions();
   }
 
   async _loadSuggestions() {
@@ -431,10 +528,26 @@ class SeloraAIArchitectPanel extends LitElement {
   async _triggerGenerateSuggestions() {
     this._generatingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
-      this._suggestions = suggestions || [];
-      if (this._suggestions.length > 0) {
-        this._showToast(`Generated ${this._suggestions.length} recommendation(s)`, "success");
+      const newSuggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      // Merge new suggestions with existing — don't replace
+      const existingAliases = new Set((this._suggestions || []).map((s) => {
+        const a = s.automation || s.automation_data || {};
+        return (a.alias || "").toLowerCase();
+      }));
+      const added = [];
+      for (const s of (newSuggestions || [])) {
+        const a = s.automation || s.automation_data || {};
+        const alias = (a.alias || "").toLowerCase();
+        if (!existingAliases.has(alias)) {
+          added.push(s);
+          existingAliases.add(alias);
+        }
+      }
+      this._suggestions = [...added, ...this._suggestions];
+      // Reload proactive suggestions to stay in sync
+      await this._loadProactiveSuggestions();
+      if (added.length > 0) {
+        this._showToast(`Generated ${added.length} new recommendation(s)`, "success");
       } else {
         this._showToast("Analysis complete — no new suggestions at this time", "info");
       }
@@ -463,7 +576,7 @@ class SeloraAIArchitectPanel extends LitElement {
         _draft_id: d.draft_id,
         _linked_session: d.session_id,
       }));
-      this._automations = [...draftCards, ...(automations || [])];
+      this._automations = [...draftCards, ...((automations || []).reverse())];
       const validIds = new Set(this._automations.map((a) => a.automation_id).filter(Boolean));
       this._selectedAutomationIds = Object.fromEntries(
         Object.entries(this._selectedAutomationIds || {}).filter(([id, selected]) => selected && validIds.has(id))
@@ -482,7 +595,14 @@ class SeloraAIArchitectPanel extends LitElement {
         type: "selora_ai/get_proactive_suggestions",
         status: "pending",
       });
-      this._proactiveSuggestions = suggestions || [];
+      // Deduplicate by description
+      const seen = new Set();
+      this._proactiveSuggestions = (suggestions || []).filter((s) => {
+        const key = (s.description || "").toLowerCase().trim();
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
     } catch (err) {
       console.error("Failed to load proactive suggestions", err);
       this._proactiveSuggestions = [];
@@ -1129,6 +1249,69 @@ class SeloraAIArchitectPanel extends LitElement {
       .session-delete:hover {
         opacity: 1 !important;
       }
+      .sidebar-select-btn {
+        background: transparent;
+        border: 1px solid var(--divider-color);
+        color: var(--primary-text-color);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .sidebar-select-btn:hover {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: #f59e0b;
+      }
+      .select-actions-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--divider-color);
+        background: rgba(245, 158, 11, 0.06);
+      }
+      .select-all-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .select-all-label input[type="checkbox"] {
+        accent-color: #f59e0b;
+        cursor: pointer;
+      }
+      .btn-delete-selected {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: transparent;
+        border: 1px solid var(--error-color, #ef4444);
+        color: var(--error-color, #ef4444);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .btn-delete-selected:hover:not([disabled]) {
+        background: var(--error-color, #ef4444);
+        color: #fff;
+      }
+      .btn-delete-selected[disabled] {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .session-checkbox {
+        accent-color: #f59e0b;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
       .new-chat-btn {
         margin: 12px;
         display: block;
@@ -1274,9 +1457,31 @@ class SeloraAIArchitectPanel extends LitElement {
         font-size: 10px;
         opacity: 0.5;
         margin-top: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
       .bubble.user + .bubble-meta { align-self: flex-end; }
       .bubble.assistant + .bubble-meta { align-self: flex-start; }
+      .copy-msg-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 4px;
+      }
+      .copy-msg-btn {
+        background: none;
+        border: none;
+        padding: 2px 4px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s, color 0.15s;
+        color: inherit;
+        line-height: 1;
+        border-radius: 4px;
+      }
+      .message-row:hover .copy-msg-btn { opacity: 0.7; }
+      .copy-msg-btn:hover { opacity: 1 !important; }
+      .copy-msg-btn.copied { opacity: 1 !important; color: var(--success-color, #4caf50); }
       .bubble.assistant strong { color: #f59e0b; }
 
       /* ---- Automation proposal card ---- */
@@ -1301,6 +1506,12 @@ class SeloraAIArchitectPanel extends LitElement {
       }
       .proposal-body {
         padding: 14px;
+      }
+      .proposal-body .flow-chart {
+        align-items: flex-start;
+      }
+      .proposal-body .flow-section {
+        text-align: left;
       }
       .proposal-name {
         font-weight: 600;
@@ -1419,11 +1630,11 @@ class SeloraAIArchitectPanel extends LitElement {
       .flow-chart {
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         margin: 10px 0 12px;
         font-size: 12px;
       }
-      .flow-section { width: 100%; }
+      .flow-section { width: 100%; text-align: center; }
       .flow-label {
         font-size: 9px;
         font-weight: 800;
@@ -1454,13 +1665,15 @@ class SeloraAIArchitectPanel extends LitElement {
         font-size: 16px;
         line-height: 1;
         opacity: 0.35;
-        padding: 3px 0 3px 4px;
+        padding: 3px 0;
+        text-align: center;
       }
       .flow-arrow-sm {
         font-size: 13px;
         line-height: 1;
         opacity: 0.3;
-        padding: 2px 0 2px 4px;
+        padding: 2px 0;
+        text-align: center;
       }
 
       /* ---- Toggle switch ---- */
@@ -1608,6 +1821,31 @@ class SeloraAIArchitectPanel extends LitElement {
       .burger-item:hover { background: rgba(var(--rgb-primary-color, 3,169,244), 0.08); }
       .burger-item.danger { color: var(--error-color, #f44336); }
       .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
+      .rename-input {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 4px 8px;
+        outline: none;
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        min-width: 0;
+      }
+      .rename-save-btn {
+        background: #f59e0b;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        padding: 4px 6px;
+        margin-left: 4px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+      }
+      .rename-save-btn:hover { background: #d97706; }
 
       /* ---- Card inline tabs (Flow / YAML / History) ---- */
       .card-tabs {
@@ -1847,12 +2085,50 @@ class SeloraAIArchitectPanel extends LitElement {
         width: 90%;
       }
 
-      /* ---- Automations grid (CSS Grid) ---- */
+      /* ---- Automations grid (flex columns for independent heights) ---- */
       .automations-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        display: flex;
         gap: 10px;
         margin-bottom: 14px;
+      }
+      .automations-grid .masonry-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      @media (max-width: 600px) {
+        .automations-grid { flex-direction: column; }
+      }
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px 0;
+      }
+      .page-info {
+        font-size: 12px;
+        opacity: 0.6;
+      }
+      .per-page-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .per-page-select {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--divider-color);
+        background: var(--primary-background-color);
+        color: var(--primary-text-color);
+        cursor: pointer;
       }
       .automations-grid .card {
         margin-bottom: 0;
@@ -2060,10 +2336,32 @@ class SeloraAIArchitectPanel extends LitElement {
       <div class="sidebar ${this._showSidebar ? "open" : ""}" part="sidebar">
         <div class="sidebar-header">
           <span>Conversations</span>
+          ${this._sessions.length > 0 ? html`
+            ${this._selectChatsMode ? html`
+              <button class="sidebar-select-btn" @click=${() => { this._selectChatsMode = false; this._selectedSessionIds = {}; }}>Done</button>
+            ` : html`
+              <button class="sidebar-select-btn" @click=${() => { this._selectChatsMode = true; }}>Select</button>
+            `}
+          ` : ""}
         </div>
-        <mwc-button class="new-chat-btn" outlined @click=${this._newSession}>
-          + New Chat
-        </mwc-button>
+        ${this._selectChatsMode ? html`
+          <div class="select-actions-bar">
+            <label class="select-all-label" @click=${() => this._toggleSelectAllSessions()}>
+              <input type="checkbox" .checked=${this._sessions.length > 0 && this._sessions.every((s) => this._selectedSessionIds[s.id])}>
+              <span>Select all</span>
+            </label>
+            <button class="btn-delete-selected"
+              ?disabled=${Object.values(this._selectedSessionIds).filter(Boolean).length === 0}
+              @click=${() => this._requestBulkDeleteSessions()}>
+              <ha-icon icon="mdi:delete-outline" style="--mdc-icon-size:14px;"></ha-icon>
+              Delete (${Object.values(this._selectedSessionIds).filter(Boolean).length})
+            </button>
+          </div>
+        ` : html`
+          <mwc-button class="new-chat-btn" outlined @click=${this._newSession}>
+            + New Chat
+          </mwc-button>
+        `}
         <div class="session-list">
           ${this._sessions.length === 0
             ? html`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">No conversations yet.</div>`
@@ -2071,18 +2369,25 @@ class SeloraAIArchitectPanel extends LitElement {
                 (s) => html`
                   <div
                     class="session-item ${s.id === this._activeSessionId ? "active" : ""}"
-                    @click=${() => this._openSession(s.id)}
+                    @click=${() => this._selectChatsMode ? this._toggleSessionSelection(s.id) : this._openSession(s.id)}
                   >
+                    ${this._selectChatsMode ? html`
+                      <input type="checkbox" class="session-checkbox"
+                        .checked=${!!this._selectedSessionIds[s.id]}
+                        @click=${(e) => { e.stopPropagation(); this._toggleSessionSelection(s.id); }}>
+                    ` : ""}
                     <div style="flex:1; min-width:0;">
                       <div class="session-title">${s.title}</div>
                       <div class="session-meta">${this._formatDate(s.updated_at)}</div>
                     </div>
-                    <ha-icon
-                      class="session-delete"
-                      icon="mdi:delete-outline"
-                      @click=${(e) => this._deleteSession(s.id, e)}
-                      title="Delete"
-                    ></ha-icon>
+                    ${!this._selectChatsMode ? html`
+                      <ha-icon
+                        class="session-delete"
+                        icon="mdi:delete-outline"
+                        @click=${(e) => this._deleteSession(s.id, e)}
+                        title="Delete"
+                      ></ha-icon>
+                    ` : ""}
                   </div>
                 `
               )}
@@ -2115,6 +2420,30 @@ class SeloraAIArchitectPanel extends LitElement {
 
       ${this._renderHardDeleteDialog()}
 
+      ${this._deleteConfirmSessionId ? html`
+        <div class="modal-overlay" @click=${(e) => { if (e.target === e.currentTarget) this._deleteConfirmSessionId = null; }}>
+          <div class="modal-content" style="max-width:400px;text-align:center;">
+            ${this._deleteConfirmSessionId === "__bulk__" ? html`
+              <div style="font-size:17px;font-weight:600;margin-bottom:8px;">Delete Conversations</div>
+              <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                Delete ${Object.values(this._selectedSessionIds).filter(Boolean).length} selected conversation(s)? This cannot be undone.
+              </div>
+              <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn btn-outline" @click=${() => { this._deleteConfirmSessionId = null; }}>Cancel</button>
+                <button class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;" @click=${() => this._confirmBulkDeleteSessions()}>Delete</button>
+              </div>
+            ` : html`
+              <div style="font-size:17px;font-weight:600;margin-bottom:8px;">Delete Conversation</div>
+              <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">Are you sure you want to delete this conversation? This cannot be undone.</div>
+              <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn btn-outline" @click=${() => { this._deleteConfirmSessionId = null; }}>Cancel</button>
+                <button class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;" @click=${() => this._confirmDeleteSession()}>Delete</button>
+              </div>
+            `}
+          </div>
+        </div>
+      ` : ""}
+
       ${this._toast
         ? html`
             <div class="toast ${this._toastType}">
@@ -2134,7 +2463,7 @@ class SeloraAIArchitectPanel extends LitElement {
     return html`
       <div class="chat-pane">
         <div class="chat-messages" id="chat-messages">
-          ${!this._activeSessionId || this._messages.length === 0
+          ${this._messages.length === 0
             ? keyed(this._welcomeKey || 0, html`
                 <div class="empty-state welcome" style="max-width:520px;margin:0 auto;text-align:center;">
                   <img src="/api/selora_ai/logo.png" alt="Selora AI" style="width:56px;height:56px;border-radius:12px;margin-bottom:8px;">
@@ -2263,10 +2592,36 @@ class SeloraAIArchitectPanel extends LitElement {
               `
             : ""}
           ${msg.automation ? this._renderProposalCard(msg, idx) : ""}
+          ${!isUser ? html`
+            <div class="copy-msg-row">
+              <button class="copy-msg-btn" title="Copy message"
+                @click=${(e) => this._copyMessageText(msg, e.currentTarget)}>
+                <ha-icon icon="mdi:content-copy" style="--mdc-icon-size:12px;"></ha-icon>
+              </button>
+            </div>
+          ` : ""}
         </div>
-        <div class="bubble-meta">${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}</div>
+        <div class="bubble-meta">
+          ${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}
+        </div>
       </div>
     `;
+  }
+
+  async _copyMessageText(msg, btn) {
+    try {
+      const text = msg.content || "";
+      await navigator.clipboard.writeText(text);
+      btn.classList.add("copied");
+      const icon = btn.querySelector("ha-icon");
+      if (icon) icon.setAttribute("icon", "mdi:check");
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        if (icon) icon.setAttribute("icon", "mdi:content-copy");
+      }, 1500);
+    } catch (_) {
+      /* clipboard not available */
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -2339,6 +2694,42 @@ class SeloraAIArchitectPanel extends LitElement {
     return friendly[s] || s.replace(/_/g, " ");
   }
 
+  _fmtTime(val) {
+    if (val == null) return String(val);
+    const s = String(val).trim();
+    // Jinja template — extract entity and show friendly name
+    if (s.includes("{{") || s.includes("{%")) {
+      const m = s.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m) return this._fmtEntity(m[1]);
+      const m2 = s.match(/state_attr\(['"]([^'"]+)['"]/);
+      if (m2) return this._fmtEntity(m2[1]);
+      return "a calculated time";
+    }
+    // Handle raw seconds (e.g. 43200 => "12:00 PM")
+    const num = Number(s);
+    if (!isNaN(num) && num >= 0 && num <= 86400 && !s.includes(":")) {
+      const h = Math.floor(num / 3600);
+      const m = Math.floor((num % 3600) / 60);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    }
+    // Handle HH:MM:SS or HH:MM (e.g. "12:00:00" => "12:00 PM")
+    const parts = s.split(":");
+    if (parts.length >= 2) {
+      const h = parseInt(parts[0], 10);
+      const m = parseInt(parts[1], 10);
+      if (!isNaN(h) && !isNaN(m)) {
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
+    }
+    // Entity reference like input_datetime.xxx
+    if (s.startsWith("input_datetime.") || s.startsWith("sensor.")) return this._fmtEntity(s);
+    return s;
+  }
+
   _describeFlowItem(item) {
     if (!item || typeof item !== "object") return String(item ?? "");
 
@@ -2347,8 +2738,11 @@ class SeloraAIArchitectPanel extends LitElement {
 
     // ── Triggers ──────────────────────────────────────────────────────────────
     if (p === "time") {
-      const at = Array.isArray(item.at) ? item.at.join(", ") : item.at;
-      return `Every day at ${at}`;
+      const raw = item.at;
+      if (Array.isArray(raw)) {
+        return `Every day at ${raw.map((t) => this._fmtTime(t)).join(", ")}`;
+      }
+      return `Every day at ${this._fmtTime(raw)}`;
     }
     if (p === "sun") {
       const ev = item.event === "sunset" ? "At sunset" : item.event === "sunrise" ? "At sunrise" : `Sun ${(item.event || "").replace(/_/g, " ")}`;
@@ -2383,7 +2777,13 @@ class SeloraAIArchitectPanel extends LitElement {
       if (item.hours != null) return `Every ${item.hours} hours`;
       return "On a time pattern";
     }
-    if (p === "template") return "When a template becomes true";
+    if (p === "template") {
+      // Try to extract a readable entity from the value_template
+      const tmpl = item.value_template || "";
+      const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
+      if (entityMatch) return `When ${this._fmtEntity(entityMatch[1])} condition is met`;
+      return "When a condition is met";
+    }
     if (p === "event") return item.event_type ? `Event: ${String(item.event_type).replace(/_/g, " ")}` : "On an event";
     if (p === "device") return item.type ? String(item.type).replace(/_/g, " ") : "Device trigger";
     if (p === "zone") {
@@ -2415,8 +2815,8 @@ class SeloraAIArchitectPanel extends LitElement {
     }
     if (cond === "time") {
       const parts = [];
-      if (item.after) parts.push(`after ${item.after}`);
-      if (item.before) parts.push(`before ${item.before}`);
+      if (item.after) parts.push(`after ${this._fmtTime(item.after)}`);
+      if (item.before) parts.push(`before ${this._fmtTime(item.before)}`);
       if (item.weekday) {
         const days = Array.isArray(item.weekday) ? item.weekday.join(", ") : item.weekday;
         parts.push(`on ${days}`);
@@ -2443,17 +2843,46 @@ class SeloraAIArchitectPanel extends LitElement {
     // ── Actions ───────────────────────────────────────────────────────────────
     const svc = item.service || item.action;
     if (svc) {
-      const [domain = "", svcName = svc] = String(svc).split(".");
-      const friendlyActions = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock", open_cover: "Open", close_cover: "Close", set_temperature: "Set temperature for", set_value: "Set value for", send_command: "Send command to", notify: "Send notification via", reload: "Reload" };
+      const svcStr = String(svc);
+      const [domain = "", svcName = svc] = svcStr.split(".");
+
+      // Special handling for notification services
+      if (svcStr === "notify.persistent_notification" || domain === "persistent_notification") {
+        const title = item.data?.title;
+        const msg = item.data?.message;
+        if (title && msg) return `Notify: "${title}"`;
+        if (title) return `Notify: "${title}"`;
+        if (msg) { const short = msg.length > 60 ? msg.slice(0, 57) + "…" : msg; return `Notify: "${short}"`; }
+        return "Send a notification";
+      }
+      if (domain === "notify") {
+        const target = svcName.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
+        const msg = item.data?.message;
+        const title = item.data?.title;
+        if (title) return `Notify ${target}: "${title}"`;
+        if (msg) { const short = msg.length > 50 ? msg.slice(0, 47) + "…" : msg; return `Notify ${target}: "${short}"`; }
+        return `Notify via ${target}`;
+      }
+      if (domain === "tts") {
+        const msg = item.data?.message;
+        if (msg) { const short = msg.length > 50 ? msg.slice(0, 47) + "…" : msg; return `Say: "${short}"`; }
+        return "Text-to-speech";
+      }
+
+      const friendlyActions = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock", open_cover: "Open", close_cover: "Close", set_temperature: "Set temperature for", set_value: "Set value for", send_command: "Send command to", reload: "Reload" };
       const name = friendlyActions[svcName] || svcName.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       const targets = item.target?.entity_id ?? item.data?.entity_id;
       const t = this._fmtEntities(targets);
       const extras = [];
-      if (item.data?.brightness_pct != null) extras.push(`at ${item.data.brightness_pct}% brightness`);
+      if (item.data?.brightness_pct != null) extras.push(`at ${item.data.brightness_pct}%`);
       if (item.data?.temperature != null) extras.push(`to ${item.data.temperature}°`);
       if (item.data?.color_temp != null) extras.push(`color temp ${item.data.color_temp}`);
-      if (item.data?.message) extras.push(`"${item.data.message}"`);
-      if (item.data?.title) extras.push(item.data.title);
+      // Don't show raw messages with Jinja templates — too noisy
+      if (item.data?.message && !String(item.data.message).includes("{{")) {
+        const short = item.data.message.length > 50 ? item.data.message.slice(0, 47) + "…" : item.data.message;
+        extras.push(`"${short}"`);
+      }
+      if (item.data?.title && !String(item.data.title).includes("{{")) extras.push(item.data.title);
       const detail = extras.length ? ` (${extras.join(", ")})` : "";
       return t ? `${name} ${t}${detail}` : `${name}${detail}`;
     }
@@ -2483,17 +2912,20 @@ class SeloraAIArchitectPanel extends LitElement {
     if (item.stop) return `Stop: ${item.stop}`;
     if (item.event) return `Fire event: ${String(item.event).replace(/_/g, " ")}`;
 
-    // ── Human-readable fallback — never show raw JSON ─────────────────────────
+    // ── Human-readable fallback — never show raw JSON or Jinja ────────────────
     const SKIP = new Set(["id", "enabled", "mode", "alias", "description"]);
     const readable = Object.entries(item)
       .filter(([k, v]) => !SKIP.has(k) && v != null && v !== "")
       .map(([k, v]) => {
         const label = k.replace(/_/g, " ");
-        const val = Array.isArray(v) ? v.map((x) => (typeof x === "object" ? "…" : x)).join(", ") : v;
-        return `${label}: ${val}`;
+        const strVal = typeof v === "string" ? v : Array.isArray(v) ? v.map((x) => (typeof x === "object" ? "…" : x)).join(", ") : String(v);
+        // Hide Jinja templates
+        if (strVal.includes("{{") || strVal.includes("{%")) return null;
+        return `${label}: ${strVal}`;
       })
+      .filter(Boolean)
       .slice(0, 3);
-    return readable.length ? readable.join(" · ") : "Step";
+    return readable.length ? readable.join(" · ") : "Automation step";
   }
 
   _renderAutomationFlowchart(auto) {
@@ -2596,15 +3028,6 @@ class SeloraAIArchitectPanel extends LitElement {
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
-          ${scrutinyTags.length
-            ? html`
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;">
-                  ${scrutinyTags.map(
-                    (tag) => html`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
-                  )}
-                </div>
-              `
-            : ""}
 
           ${msg.description
             ? html`
@@ -2835,6 +3258,48 @@ class SeloraAIArchitectPanel extends LitElement {
   }
 
   // -------------------------------------------------------------------------
+  // Rename automation
+  // -------------------------------------------------------------------------
+
+  _startRenameAutomation(automationId, currentAlias) {
+    this._editingAlias = automationId;
+    this._editingAliasValue = currentAlias || "";
+    this._openBurgerMenu = null;
+    this.requestUpdate();
+    // Focus the input after render
+    this.updateComplete.then(() => {
+      const input = this.shadowRoot.querySelector(`.rename-input[data-id="${automationId}"]`);
+      if (input) { input.focus(); input.select(); }
+    });
+  }
+
+  async _saveRenameAutomation(automationId) {
+    const newAlias = (this._editingAliasValue || "").trim();
+    if (!newAlias) {
+      this._editingAlias = null;
+      return;
+    }
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/rename_automation",
+        automation_id: automationId,
+        alias: newAlias,
+      });
+      this._editingAlias = null;
+      this._showToast("Automation renamed", "success");
+      await this._loadAutomations();
+    } catch (err) {
+      console.error("Failed to rename automation", err);
+      this._showToast("Failed to rename: " + err.message, "error");
+    }
+  }
+
+  _cancelRenameAutomation() {
+    this._editingAlias = null;
+    this._editingAliasValue = "";
+  }
+
+  // -------------------------------------------------------------------------
   // Version history methods
   // -------------------------------------------------------------------------
 
@@ -3030,6 +3495,7 @@ class SeloraAIArchitectPanel extends LitElement {
       if (sessionId) {
         this._activeSessionId = sessionId;
         this._activeTab = "chat";
+        this._showSidebar = true;
         await this._openSession(sessionId);
         this._showToast("Automation loaded into chat.", "success");
       }
@@ -3050,149 +3516,56 @@ class SeloraAIArchitectPanel extends LitElement {
     const automationId = a.automation_id || a.entity_id;
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
-    const activeTab = this._versionTab[automationId] || "versions";
-    const lineage = this._lineage[automationId] || [];
-    const loadingLineage = this._loadingLineage[automationId];
-
-    const switchTab = async (tab) => {
-      this._versionTab = { ...this._versionTab, [automationId]: tab };
-      if (tab === "lineage" && !this._lineage[automationId]) {
-        await this._loadLineage(automationId);
-      }
-      this.requestUpdate();
-    };
 
     return html`
       <div style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="display:flex;gap:0;">
-            <button class="tab ${activeTab === "versions" ? "active" : ""}"
-              style="font-size:12px;padding:4px 12px;border-radius:6px 0 0 6px;border:1px solid var(--divider-color);background:${activeTab === "versions" ? "var(--primary-color)" : "transparent"};color:${activeTab === "versions" ? "#fff" : "inherit"};cursor:pointer;"
-              @click=${() => switchTab("versions")}>
-              <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
-              Versions
-            </button>
-            <button class="tab ${activeTab === "lineage" ? "active" : ""}"
-              style="font-size:12px;padding:4px 12px;border-radius:0 6px 6px 0;border:1px solid var(--divider-color);border-left:none;background:${activeTab === "lineage" ? "var(--primary-color)" : "transparent"};color:${activeTab === "lineage" ? "#fff" : "inherit"};cursor:pointer;"
-              @click=${() => switchTab("lineage")}>
-              <ha-icon icon="mdi:timeline-outline" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
-              Lineage
-            </button>
-          </div>
-          ${activeTab === "versions" && versions.length >= 2
-            ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                @click=${() => this._openDiffViewer(automationId)}>
-                <ha-icon icon="mdi:compare" style="--mdc-icon-size:12px;"></ha-icon>
-                Compare versions
-              </button>`
-            : ""}
-        </div>
-        ${activeTab === "lineage"
-          ? (loadingLineage
-              ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading lineage…</div>`
-              : lineage.length === 0
-              ? html`<div style="opacity:0.5;font-size:12px;padding:8px 0;">No lineage entries yet. Lineage is recorded as automations are created and refined via chat.</div>`
-              : html`<div style="position:relative;padding-left:20px;margin-top:4px;">
-                  <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
-                  ${lineage.map((entry, i) => {
-                    const date = new Date(entry.timestamp);
-                    const relativeTime = this._relativeTime(date);
-                    const actionIcons = { created: "mdi:plus-circle", refined: "mdi:chat-processing-outline", updated: "mdi:pencil", restored: "mdi:restore" };
-                    const icon = actionIcons[entry.action] || "mdi:circle-small";
-                    const canJump = !!entry.session_id;
-                    return html`
-                      <div style="position:relative;margin-bottom:12px;padding-left:12px;">
-                        <ha-icon icon="${icon}" style="position:absolute;left:-12px;top:1px;--mdc-icon-size:16px;color:var(--primary-color);background:var(--card-background-color);border-radius:50%;"></ha-icon>
-                        <div style="display:flex;flex-direction:column;gap:2px;">
-                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span style="font-size:12px;font-weight:600;text-transform:capitalize;">${entry.action}</span>
-                            <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
-                            ${i === lineage.length - 1 ? html`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
-                          </div>
-                          ${entry.session_title || entry.session_preview
-                            ? html`<div style="font-size:11px;opacity:0.7;font-style:italic;">${entry.session_title || entry.session_preview}</div>`
-                            : entry.session_id
-                            ? html`<div style="font-size:11px;opacity:0.5;">Chat session</div>`
-                            : html`<div style="font-size:11px;opacity:0.5;">Manual edit</div>`}
-                          ${canJump
-                            ? html`<span style="font-size:11px;color:var(--primary-color);cursor:pointer;text-decoration:underline;"
-                                @click=${() => {
-                                  this._activeTab = "chat";
-                                  this._activeSessionId = entry.session_id;
-                                  this._openSession(entry.session_id);
-                                  if (entry.message_index != null) {
-                                    // scroll to the producing message after session loads
-                                    setTimeout(() => {
-                                      const msgs = this.shadowRoot?.querySelectorAll(".message-row");
-                                      if (msgs && msgs[entry.message_index]) msgs[entry.message_index].scrollIntoView({ behavior: "smooth", block: "start" });
-                                    }, 400);
-                                  }
-                                }}>
-                                Jump to session →
-                              </span>`
-                            : ""}
-                        </div>
-                      </div>
-                    `;
-                  })}
-                </div>`)
-          : (loading
+        ${loading
           ? html`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
           : versions.length === 0
           ? html`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>`
-          : versions.map((v, i) => {
-              const key = `${automationId}_${v.version_id}`;
-              const restoring = this._restoringVersion[key];
-              const date = new Date(v.created_at);
-              const relativeTime = this._relativeTime(date);
-              return html`
-                <div style="border-bottom:1px solid var(--divider-color);padding:8px 0;display:flex;flex-direction:column;gap:4px;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i}</span>
-                    <span style="font-size:12px;" title=${date.toISOString()}>${relativeTime}</span>
-                    ${i === 0 ? html`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
-                    ${v.session_id
-                      ? html`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
-                          @click=${() => { this._activeSessionId = v.session_id; this._activeTab = "chat"; this._openSession(v.session_id); }}>
-                          from chat session
-                        </span>`
+          : html`
+            <div style="position:relative;padding-left:20px;">
+              <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
+              ${versions.map((v, i) => {
+                const key = `${automationId}_${v.version_id}`;
+                const restoring = this._restoringVersion[key];
+                const date = new Date(v.created_at);
+                const relativeTime = this._relativeTime(date);
+                const isCurrent = i === 0;
+                return html`
+                  <div style="position:relative;margin-bottom:${i < versions.length - 1 ? "14px" : "0"};padding-left:14px;">
+                    <div style="position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:${isCurrent ? "#f59e0b" : "var(--divider-color)"};border:2px solid var(--secondary-background-color);"></div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                      <span style="font-size:12px;font-weight:600;">v${versions.length - i}</span>
+                      <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
+                      ${isCurrent ? html`<span style="font-size:10px;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 6px;font-weight:600;">current</span>` : ""}
+                    </div>
+                    ${(v.message || v.version_message)
+                      ? html`<div style="font-size:11px;opacity:0.6;margin-top:2px;">${v.message || v.version_message}</div>`
                       : ""}
-                  </div>
-                  ${(v.message || v.version_message)
-                    ? html`<div style="font-size:11px;opacity:0.7;font-style:italic;">"${v.message || v.version_message}"</div>`
-                    : ""}
-                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
-                      <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:11px;"></ha-icon>
-                      ${this._expandedAutomations[`ver_${key}`] ? "Hide YAML" : "View YAML"}
-                    </button>
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      @click=${async () => { await this._openDiffViewer(automationId); this._diffVersionA = this._versions[automationId]?.[0]?.version_id || null; this._diffVersionB = v.version_id; await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB); this.requestUpdate(); }}>
-                      <ha-icon icon="mdi:compare" style="--mdc-icon-size:11px;"></ha-icon>
-                      Compare with current
-                    </button>
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      ?disabled=${!!this._loadingToChat[automationId]}
-                      @click=${() => this._loadAutomationToChat(automationId)}>
-                      <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:11px;"></ha-icon>
-                      ${this._loadingToChat[automationId] ? "Loading…" : "Refine in chat"}
-                    </button>
-                    ${i > 0
-                      ? html`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                      <button class="btn btn-outline" style="font-size:10px;padding:2px 7px;"
+                        @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
+                        <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:11px;"></ha-icon>
+                        ${this._expandedAutomations[`ver_${key}`] ? "Hide" : "YAML"}
+                      </button>
+                      ${!isCurrent ? html`
+                        <button class="btn btn-outline" style="font-size:10px;padding:2px 7px;"
                           ?disabled=${restoring || !(v.yaml || v.yaml_content)}
                           @click=${() => this._restoreVersion(automationId, v.version_id, v.yaml || v.yaml_content || "")}>
                           <ha-icon icon="mdi:restore" style="--mdc-icon-size:11px;"></ha-icon>
-                          ${restoring ? "Restoring…" : "Restore this version"}
-                        </button>`
+                          ${restoring ? "Restoring…" : "Restore"}
+                        </button>
+                      ` : ""}
+                    </div>
+                    ${this._expandedAutomations[`ver_${key}`]
+                      ? html`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0 0;white-space:pre-wrap;">${v.yaml || v.yaml_content || "(no YAML stored)"}</pre>`
                       : ""}
                   </div>
-                  ${this._expandedAutomations[`ver_${key}`]
-                    ? html`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:4px 0 0;white-space:pre-wrap;">${v.yaml || v.yaml_content || "(no YAML stored)"}</pre>`
-                    : ""}
-                </div>
-              `;
-            }))}
+                `;
+              })}
+            </div>
+          `}
       </div>
     `;
   }
@@ -3370,11 +3743,25 @@ class SeloraAIArchitectPanel extends LitElement {
     return date.toLocaleDateString();
   }
 
+  /** Distribute card templates into masonry columns (round-robin, left-to-right order).
+   *  Optional firstColFooter appends extra content at the bottom of the first column. */
+  _masonryColumns(cards, cols = 3, firstColFooter = null) {
+    const w = window.innerWidth;
+    const numCols = w <= 600 ? 1 : w <= 1000 ? 2 : cols;
+    const buckets = Array.from({ length: numCols }, () => []);
+    cards.forEach((c, i) => buckets[i % numCols].push(c));
+    return buckets.map((col, i) => html`<div class="masonry-col">${col}${i === 0 && firstColFooter ? firstColFooter : ""}</div>`);
+  }
+
   _renderAutomations() {
     const filterText = (this._automationFilter || "").toLowerCase();
     const filteredAutomations = filterText
       ? this._automations.filter((a) => (a.alias || "").toLowerCase().includes(filterText))
       : this._automations;
+    const perPage = this._autosPerPage || 10;
+    const totalAutoPages = Math.max(1, Math.ceil(filteredAutomations.length / perPage));
+    const safeAutoPage = Math.min(this._automationsPage, totalAutoPages);
+    const pagedAutomations = filteredAutomations.slice((safeAutoPage - 1) * perPage, safeAutoPage * perPage);
     const selectableAutomations = filteredAutomations.filter((a) => !a._draft && a.automation_id);
     const selectableIds = selectableAutomations.map((a) => a.automation_id);
     const selectedIds = this._getSelectedAutomationIds();
@@ -3394,9 +3781,10 @@ class SeloraAIArchitectPanel extends LitElement {
           <button class="sub-tab ${this._automationsSubTab === "suggestions" ? "active" : ""}"
             @click=${() => { this._automationsSubTab = "suggestions"; }}>
             Suggestions
-            ${((this._suggestions || []).length + (this._proactiveSuggestions || []).length) > 0
-              ? html`<span class="badge">${(this._suggestions || []).length + (this._proactiveSuggestions || []).length}</span>`
-              : ""}
+            ${(() => {
+              const qualCount = (this._proactiveSuggestions || []).filter((s) => (s.confidence || 0) >= 0.8).length + (this._suggestions || []).length;
+              return qualCount > 0 ? html`<span class="badge">${qualCount}</span>` : "";
+            })()}
           </button>
         </div>
         ${this._automationsSubTab === "my_automations" ? html`
@@ -3418,7 +3806,7 @@ class SeloraAIArchitectPanel extends LitElement {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input type="text" placeholder="Filter automations…"
                       .value=${this._automationFilter}
-                      @input=${(e) => { this._automationFilter = e.target.value; }}>
+                      @input=${(e) => { this._automationFilter = e.target.value; this._automationsPage = 1; }}>
                   </div>
                   <button class="btn btn-primary" style="white-space:nowrap;" @click=${() => { this._newAutoName = ""; this._showNewAutoDialog = true; }}>
                     <ha-icon icon="mdi:plus" style="--mdc-icon-size:14px;"></ha-icon>
@@ -3434,6 +3822,14 @@ class SeloraAIArchitectPanel extends LitElement {
                       Bulk edit
                     </button>
                   `}
+                  <label class="per-page-label">Show Per Page:
+                    <select class="per-page-select" .value=${String(this._autosPerPage)}
+                      @change=${(e) => { this._autosPerPage = Number(e.target.value); this._automationsPage = 1; }}>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </label>
                 </div>
               </div>
               ${this._bulkEditMode && selectedIds.length > 0 ? html`
@@ -3459,7 +3855,7 @@ class SeloraAIArchitectPanel extends LitElement {
                 </div>
               ` : ""}
               <div class="automations-grid">
-              ${filteredAutomations.map((a) => {
+              ${this._masonryColumns(pagedAutomations.map((a) => {
                 const isDraft = !!a._draft;
                 const expanded = !!this._expandedAutomations[a.entity_id];
                 const isOn = this._automationIsEnabled(a);
@@ -3482,7 +3878,21 @@ class SeloraAIArchitectPanel extends LitElement {
                             @change=${(e) => this._toggleAutomationSelection(automationId, e)}>
                         </label>
                       ` : ""}
-                      <h3 style="flex:1;font-size:14px;margin:0;">${a.alias}</h3>
+                      ${this._editingAlias === automationId ? html`
+                        <input class="rename-input" data-id="${automationId}"
+                          .value=${this._editingAliasValue}
+                          @input=${(e) => { this._editingAliasValue = e.target.value; }}
+                          @keydown=${(e) => {
+                            if (e.key === "Enter") this._saveRenameAutomation(automationId);
+                            if (e.key === "Escape") this._cancelRenameAutomation();
+                          }}>
+                        <button class="rename-save-btn" title="Save"
+                          @click=${() => this._saveRenameAutomation(automationId)}>
+                          <ha-icon icon="mdi:check" style="--mdc-icon-size:16px;"></ha-icon>
+                        </button>
+                      ` : html`
+                        <h3 style="flex:1;font-size:14px;margin:0;">${a.alias}</h3>
+                      `}
                       ${hasAutomationId ? html`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
                           <button class="burger-btn" @click=${(e) => this._toggleBurgerMenu(automationId, e)}
@@ -3492,6 +3902,11 @@ class SeloraAIArchitectPanel extends LitElement {
                           </button>
                           ${burgerOpen ? html`
                             <div class="burger-dropdown">
+                              <button class="burger-item"
+                                @click=${(e) => { e.stopPropagation(); this._startRenameAutomation(automationId, a.alias); }}>
+                                <ha-icon icon="mdi:pencil-outline" style="--mdc-icon-size:14px;"></ha-icon>
+                                Rename
+                              </button>
                               <button class="burger-item danger" ?disabled=${deleting}
                                 @click=${(e) => { e.stopPropagation(); this._openBurgerMenu = null; this._softDeleteAutomation(automationId); }}>
                                 <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:14px;"></ha-icon>
@@ -3600,12 +4015,20 @@ class SeloraAIArchitectPanel extends LitElement {
                       : ""}
                   </div>
                 `;
-              })}
+              }), 3, this._renderDeletedSection())}
               </div>
+              ${totalAutoPages > 1 ? html`
+                <div class="pagination">
+                  <button class="btn btn-outline" ?disabled=${safeAutoPage <= 1}
+                    @click=${() => { this._automationsPage = safeAutoPage - 1; }}>‹ Prev</button>
+                  <span class="page-info">Page ${safeAutoPage} of ${totalAutoPages} · ${filteredAutomations.length} automations</span>
+                  <button class="btn btn-outline" ?disabled=${safeAutoPage >= totalAutoPages}
+                    @click=${() => { this._automationsPage = safeAutoPage + 1; }}>Next ›</button>
+                </div>
+              ` : ""}
               ${filteredAutomations.length === 0 && this._automations.length > 0
                 ? html`<div style="text-align:center;opacity:0.45;padding:24px 0;">No automations match "${this._automationFilter}"</div>`
                 : ""}
-              ${this._renderDeletedSection()}
             `
           : html`<div style="text-align:center;padding:32px 0;">
               <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"></ha-icon>
@@ -3617,77 +4040,86 @@ class SeloraAIArchitectPanel extends LitElement {
             </div>`}
         ` : ""}
         ${this._automationsSubTab === "suggestions" ? html`
-          ${this._renderProactiveSuggestions()}
-          <h2 style="margin-top:0;">AI Recommendations</h2>
-        ${this._suggestions.length === 0
-          ? html`
-              <div style="display:flex; flex-direction:column; align-items:center; padding:32px 0; gap:12px;">
-                <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;opacity:0.35;"></ha-icon>
-                <p style="opacity:0.45;margin:0;">No recommendations yet — background analysis runs hourly.</p>
-                <button class="btn btn-primary" style="margin-top:8px;" ?disabled=${this._generatingSuggestions}
-                  @click=${() => this._triggerGenerateSuggestions()}>
-                  <ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:16px;"></ha-icon>
-                  ${this._generatingSuggestions ? "Analyzing…" : "Generate Suggestions"}
-                </button>
-              </div>
-            `
-          : this._suggestions.map((item) => {
-              const auto = item.automation || item.automation_data;
-              const risk = item.risk_assessment || auto?.risk_assessment || null;
-              const key = `sug_${auto.alias}`;
-              const expanded = !!this._expandedAutomations[key];
-              const origYaml = item.automation_yaml || "";
-              return html`
-                <div class="card">
-                  <div class="card-header">
-                    <h3>${auto.alias}</h3>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
-                      <div class="chip suggestion">RECOMMENDED</div>
-                      ${(risk?.scrutiny_tags || []).map(
-                        (tag) => html`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
-                      )}
+          ${this._renderUnifiedSuggestions()}
+          ${this._suggestions.length > 0 ? html`
+            <div class="automations-grid">
+              ${this._masonryColumns(this._suggestions.map((item) => {
+                const auto = item.automation || item.automation_data;
+                const risk = item.risk_assessment || auto?.risk_assessment || null;
+                const cardKey = `sug_${auto.alias}`;
+                const origYaml = item.automation_yaml || "";
+                const editedYaml = this._editedYaml[cardKey];
+                const displayYaml = editedYaml !== undefined ? editedYaml : origYaml;
+                const hasFlow = auto && (auto.trigger?.length || auto.triggers?.length || auto.action?.length || auto.actions?.length);
+                const defaultTab = hasFlow ? "flow" : "yaml";
+                const activeTab = this._cardActiveTab[cardKey] !== undefined ? this._cardActiveTab[cardKey] : defaultTab;
+                return html`
+                  <div class="card" style="padding:12px 14px;text-align:center;">
+                    <div class="card-header" style="margin-bottom:6px;justify-content:center;">
+                      <h3 style="font-size:14px;margin:0;">${auto.alias}</h3>
                     </div>
-                  </div>
-                  ${auto.description ? html`<p>${auto.description}</p>` : ""}
-                  ${risk?.level === "elevated"
-                    ? html`
-                        <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:12px;">
-                          <ha-icon icon="mdi:alert-outline"></ha-icon>
-                          <div>
-                            <strong>Elevated risk review recommended.</strong>
-                            <div style="margin-top:4px;">${risk.summary}</div>
-                            ${risk.reasons?.length
-                              ? html`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>`
-                              : ""}
+                    ${auto.description ? html`<div style="font-size:11px;opacity:0.55;margin-bottom:6px;">${auto.description}</div>` : ""}
+                    ${risk?.level === "elevated"
+                      ? html`
+                          <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:8px;font-size:12px;">
+                            <ha-icon icon="mdi:alert-outline"></ha-icon>
+                            <span>${risk.summary}</span>
                           </div>
-                        </div>
-                      `
-                    : ""}
+                        `
+                      : ""}
 
-                  ${this._renderAutomationFlowchart(auto)}
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                      <button class="btn btn-primary" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${!!this._savingYaml[cardKey]}
+                        @click=${() => this._createSuggestionWithEdits(auto, cardKey, origYaml)}>
+                        <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
+                        ${this._savingYaml[cardKey] ? "Creating…" : "Accept"}
+                      </button>
+                      <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" @click=${() => this._discardSuggestion(item)}>
+                        <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                        Discard
+                      </button>
+                    </div>
 
-                  <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(key)}>
-                    <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
-                    ${expanded ? "Hide YAML" : "Edit YAML"}
+                    <div class="card-tabs">
+                      <span class="label">View:</span>
+                      ${hasFlow ? html`
+                        <button class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                          @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "flow" ? null : "flow" }; }}>
+                          <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
+                        </button>
+                        <span class="card-tab-sep">|</span>
+                      ` : ""}
+                      <button class="card-tab ${activeTab === "yaml" ? "active" : ""}"
+                        @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "yaml" ? null : "yaml" }; }}>
+                        <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
+                      </button>
+                      <ha-icon icon="mdi:chevron-down"
+                        class="card-chevron ${activeTab ? 'open' : ''}"
+                        style="margin-left:auto;"
+                        @click=${() => {
+                          this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab ? null : (hasFlow ? "flow" : "yaml") };
+                        }}></ha-icon>
+                    </div>
+
+                    ${activeTab === "flow" && hasFlow
+                      ? this._renderAutomationFlowchart(auto) : ""}
+
+                    ${activeTab === "yaml" ? html`
+                      <div style="margin-top:6px;">
+                        <textarea class="yaml-editor"
+                          style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
+                          .value=${displayYaml}
+                          @input=${(e) => { this._editedYaml = { ...this._editedYaml, [cardKey]: e.target.value }; e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+                          @focus=${(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}>
+                        </textarea>
+                      </div>
+                    ` : ""}
                   </div>
-                  ${expanded ? this._renderYamlEditor(key, origYaml) : ""}
-
-                  <div class="card-actions">
-                    <button class="btn btn-outline" @click=${() => this._discardSuggestion(item)}>
-                      <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                      Discard
-                    </button>
-                    <button class="btn btn-primary" ?disabled=${!!this._savingYaml[key]}
-                      @click=${() => this._createSuggestionWithEdits(auto, key, origYaml)}>
-                      <ha-icon icon="mdi:plus" style="--mdc-icon-size:13px;"></ha-icon>
-                      ${this._savingYaml[key] ? "Creating…" : "Create Automation"}
-                    </button>
-                  </div>
-                </div>
-              `;
-            })}
+                `;
+              }))}
+            </div>
+          ` : ""}
         ` : ""}
-      </div>
       ${this._renderDiffViewer()}
       ${this._renderNewAutomationDialog()}
     `;
@@ -3697,103 +4129,150 @@ class SeloraAIArchitectPanel extends LitElement {
   // Proactive suggestions section (automations tab)
   // -------------------------------------------------------------------------
 
-  _renderProactiveSuggestions() {
-    if (!this._showProactive && !this._proactiveSuggestions.length) return "";
+  _renderUnifiedSuggestions() {
+    const MIN_CONF = 0.8;
+    const SPAGE_SIZE = this._suggestionsPerPage || 10;
+    // Deduplicate proactive suggestions by description
+    const seenDescs = new Set();
+    const qualified = (this._proactiveSuggestions || []).filter((s) => {
+      if ((s.confidence || 0) < MIN_CONF) return false;
+      const key = (s.description || "").toLowerCase().trim();
+      if (seenDescs.has(key)) return false;
+      seenDescs.add(key);
+      return true;
+    });
+    const totalItems = qualified.length + (this._suggestions || []).length;
 
     return html`
       <div style="margin-bottom:16px;">
-        <div class="filter-row" style="margin-bottom:8px;">
-          <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
-            <ha-icon icon="mdi:lightbulb-auto-outline" style="--mdc-icon-size:20px;color:#f59e0b;"></ha-icon>
-            Suggested
-            ${this._proactiveSuggestions.length > 0
-              ? html`<span style="background:#f59e0b;color:#000;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">${this._proactiveSuggestions.length}</span>`
-              : ""}
-          </h2>
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div class="filter-row" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <button class="btn" style="font-size:11px;" ?disabled=${this._loadingProactive}
               @click=${() => this._triggerPatternScan()}>
               <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
               ${this._loadingProactive ? "Scanning…" : "Scan Now"}
             </button>
-            <button class="btn" style="font-size:11px;"
-              @click=${() => { this._showProactive = !this._showProactive; }}>
-              <ha-icon icon="mdi:chevron-${this._showProactive ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-              ${this._showProactive ? "Hide" : "Show"}
+            <button class="btn btn-primary" style="font-size:11px;" ?disabled=${this._generatingSuggestions}
+              @click=${() => this._triggerGenerateSuggestions()}>
+              ${this._generatingSuggestions
+                ? html`<span class="spinner" style="width:14px;height:14px;border-width:2px;vertical-align:middle;"></span>`
+                : html`<ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:13px;"></ha-icon>`}
+              ${this._generatingSuggestions ? "Analyzing…" : "Generate"}
             </button>
+            <label class="per-page-label">Show Per Page:
+              <select class="per-page-select" .value=${String(this._suggestionsPerPage)}
+                @change=${(e) => { this._suggestionsPerPage = Number(e.target.value); this._suggestionsPage = 1; }}>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        ${this._showProactive ? html`
-          ${this._proactiveSuggestions.length === 0
-            ? html`<div class="card" style="padding:16px;text-align:center;opacity:0.6;font-size:13px;">
-                <ha-icon icon="mdi:check-circle-outline" style="--mdc-icon-size:24px;margin-bottom:8px;display:block;"></ha-icon>
-                No new suggestions. Patterns are analyzed every 15 minutes.
-              </div>`
-            : html`
+        ${totalItems === 0 ? html`
+          <div style="display:flex;flex-direction:column;align-items:center;padding:32px 0;gap:12px;">
+            <ha-icon icon="mdi:lightbulb-auto-outline" style="--mdc-icon-size:48px;opacity:0.3;"></ha-icon>
+            <p style="opacity:0.45;margin:0;font-size:13px;">No suggestions yet. Tap "Generate" to analyze your home.</p>
+          </div>
+        ` : ""}
+
+        ${qualified.length > 0 ? html`
+          ${(() => {
+            const sTotalPages = Math.max(1, Math.ceil(qualified.length / SPAGE_SIZE));
+            const sSafePage = Math.min(this._suggestionsPage, sTotalPages);
+            const sPaged = qualified.slice((sSafePage - 1) * SPAGE_SIZE, sSafePage * SPAGE_SIZE);
+
+            return html`
               <div class="automations-grid">
-                ${this._proactiveSuggestions.map((s) => {
-                  const expanded = !!this._proactiveExpanded[s.suggestion_id];
+                ${this._masonryColumns(sPaged.map((s) => {
                   const accepting = !!this._acceptingProactive[s.suggestion_id];
                   const dismissing = !!this._dismissingProactive[s.suggestion_id];
-                  const yamlKey = `proactive_${s.suggestion_id}`;
-                  const editedYaml = this._editedYaml[yamlKey];
+                  const cardKey = `proactive_${s.suggestion_id}`;
+                  const editedYaml = this._editedYaml[cardKey];
                   const displayYaml = editedYaml !== undefined ? editedYaml : s.automation_yaml;
-                  const confidencePct = Math.round((s.confidence || 0) * 100);
-                  const confidenceColor = confidencePct >= 75 ? "#22c55e" : confidencePct >= 50 ? "#f59e0b" : "#ef4444";
-
+                  const parsedAuto = s.automation_data || null;
+                  const hasFlow = parsedAuto && (parsedAuto.trigger?.length || parsedAuto.triggers?.length || parsedAuto.action?.length || parsedAuto.actions?.length);
+                  const defaultTab = hasFlow ? "flow" : "yaml";
+                  const activeTab = this._cardActiveTab[cardKey] !== undefined ? this._cardActiveTab[cardKey] : defaultTab;
                   return html`
-                    <div class="card" style="padding:12px 14px;border-color:#f59e0b;border-left:3px solid #f59e0b;">
-                      <div class="card-header" style="margin-bottom:6px;">
-                        <h3 style="flex:1;font-size:14px;margin:0;">${s.description}</h3>
-                        <span style="font-size:11px;color:${confidenceColor};font-weight:600;margin-left:8px;">${confidencePct}%</span>
-                        <div class="chip ai-managed" style="margin-left:6px;">PATTERN</div>
+                    <div class="card" style="padding:12px 14px;text-align:center;">
+                      <div class="card-header" style="margin-bottom:6px;justify-content:center;">
+                        <h3 style="font-size:14px;margin:0;">${s.description}</h3>
                       </div>
 
-                      <div style="font-size:11px;opacity:0.6;margin-bottom:8px;">
-                        ${s.evidence_summary || ""}
-                        ${s.source === "hybrid" ? html` <span style="opacity:0.5;">· AI-enhanced</span>` : ""}
-                      </div>
-
-                      <span class="expand-toggle" style="padding:0;margin:0 0 8px;" @click=${() => {
-                        this._proactiveExpanded = { ...this._proactiveExpanded, [s.suggestion_id]: !expanded };
-                      }}>
-                        <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${expanded ? "Hide YAML" : "Show YAML"}
-                      </span>
-
-                      ${expanded ? html`
-                        <div style="margin-bottom:8px;">
-                          <textarea class="yaml-editor"
-                            style="width:100%;min-height:120px;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:vertical;"
-                            .value=${displayYaml}
-                            @input=${(e) => { this._editedYaml = { ...this._editedYaml, [yamlKey]: e.target.value }; }}>
-                          </textarea>
+                      ${s.evidence_summary ? html`
+                        <div style="font-size:11px;opacity:0.55;margin-bottom:6px;">
+                          ${s.evidence_summary}
                         </div>
                       ` : ""}
 
-                      <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._snoozeProactiveSuggestion(s.suggestion_id)}>
-                          <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                          Snooze
-                        </button>
-                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._dismissProactiveSuggestion(s.suggestion_id)}>
-                          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
-                          ${dismissing ? "Dismissing…" : "Dismiss"}
-                        </button>
-                        <button class="btn btn-primary" style="font-size:11px;" ?disabled=${accepting}
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                        <button class="btn btn-primary" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${accepting}
                           @click=${() => this._acceptProactiveSuggestion(s.suggestion_id, editedYaml)}>
                           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
                           ${accepting ? "Creating…" : "Accept"}
                         </button>
+                        <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${dismissing}
+                          @click=${() => this._dismissProactiveSuggestion(s.suggestion_id)}>
+                          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                          ${dismissing ? "Dismissing…" : "Dismiss"}
+                        </button>
+                        <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${dismissing}
+                          @click=${() => this._snoozeProactiveSuggestion(s.suggestion_id)}>
+                          <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                          Snooze
+                        </button>
                       </div>
+
+                      <div class="card-tabs">
+                        <span class="label">View:</span>
+                        ${hasFlow ? html`
+                          <button class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                            @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "flow" ? null : "flow" }; }}>
+                            <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
+                          </button>
+                          <span class="card-tab-sep">|</span>
+                        ` : ""}
+                        <button class="card-tab ${activeTab === "yaml" ? "active" : ""}"
+                          @click=${() => { this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "yaml" ? null : "yaml" }; }}>
+                          <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
+                        </button>
+                        <ha-icon icon="mdi:chevron-down"
+                          class="card-chevron ${activeTab ? 'open' : ''}"
+                          style="margin-left:auto;"
+                          @click=${() => {
+                            this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab ? null : "yaml" };
+                          }}></ha-icon>
+                      </div>
+
+                      ${activeTab === "flow" && hasFlow
+                        ? this._renderAutomationFlowchart(parsedAuto) : ""}
+
+                      ${activeTab === "yaml" ? html`
+                        <div style="margin-top:6px;">
+                          <textarea class="yaml-editor"
+                            style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
+                            .value=${displayYaml}
+                            @input=${(e) => { this._editedYaml = { ...this._editedYaml, [cardKey]: e.target.value }; e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}
+                            @focus=${(e) => { e.target.style.height = "auto"; e.target.style.height = e.target.scrollHeight + "px"; }}>
+                          </textarea>
+                        </div>
+                      ` : ""}
                     </div>
                   `;
-                })}
+                }))}
               </div>
-            `}
+              ${sTotalPages > 1 ? html`
+                <div class="pagination">
+                  <button class="btn btn-outline" ?disabled=${sSafePage <= 1}
+                    @click=${() => { this._suggestionsPage = sSafePage - 1; }}>‹ Prev</button>
+                  <span class="page-info">Page ${sSafePage} of ${sTotalPages} · ${qualified.length} suggestions</span>
+                  <button class="btn btn-outline" ?disabled=${sSafePage >= sTotalPages}
+                    @click=${() => { this._suggestionsPage = sSafePage + 1; }}>Next ›</button>
+                </div>
+              ` : ""}
+            `; })()}
         ` : ""}
       </div>
     `;
