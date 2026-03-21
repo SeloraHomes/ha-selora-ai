@@ -30,6 +30,7 @@ class SeloraAIDashboardCard extends LitElement {
       // New automation form
       _showNewAutomation: { type: Boolean },
       _newAutomationName: { type: String },
+      _generatingName: { type: Boolean },
 
       // Error feedback
       _errorMessage: { type: String },
@@ -47,6 +48,7 @@ class SeloraAIDashboardCard extends LitElement {
     this._expandedId = null;
     this._showNewAutomation = false;
     this._newAutomationName = "";
+    this._generatingName = false;
     this._errorMessage = "";
   }
 
@@ -110,11 +112,7 @@ class SeloraAIDashboardCard extends LitElement {
       const max = this.config.max_automations || 10;
       this._automations = (automations || [])
         .filter((a) => a.is_selora)
-        .sort((a, b) => {
-          const aTime = a.last_triggered || "";
-          const bTime = b.last_triggered || "";
-          return bTime.localeCompare(aTime);
-        })
+        .reverse()
         .slice(0, max);
     } catch (err) {
       console.error("Selora AI Card: Failed to load automations", err);
@@ -172,6 +170,10 @@ class SeloraAIDashboardCard extends LitElement {
   }
 
   async _toggleAutomation(automation) {
+    if (!automation.automation_id || !automation.entity_id) {
+      this._showError("Cannot toggle: automation ID not resolved");
+      return;
+    }
     try {
       await this.hass.callWS({
         type: "selora_ai/toggle_automation",
@@ -205,9 +207,27 @@ class SeloraAIDashboardCard extends LitElement {
   _createInChat() {
     const name = this._newAutomationName.trim();
     if (!name) return;
-    // Navigate to the panel with the automation name as a query param
     history.pushState(null, "", `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`);
     window.dispatchEvent(new Event("location-changed"));
+  }
+
+  async _letAIDecide() {
+    this._generatingName = true;
+    try {
+      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      if (suggestions && suggestions.length > 0) {
+        // Pick a random suggestion name to keep it fresh
+        const idx = crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
+        this._newAutomationName = suggestions[idx].alias || suggestions[idx].description || "New Automation";
+      } else {
+        this._showError("No suggestions available. Try adding more devices first.");
+      }
+    } catch (err) {
+      console.error("Selora AI Card: Failed to generate name", err);
+      this._showError("Failed to generate suggestion");
+    } finally {
+      this._generatingName = false;
+    }
   }
 
   _openPanel() {
@@ -234,18 +254,115 @@ class SeloraAIDashboardCard extends LitElement {
     return date.toLocaleDateString();
   }
 
+  _fmtEntity(eid) {
+    if (!eid) return "";
+    if (this.hass?.states?.[eid]) {
+      return this.hass.states[eid].attributes?.friendly_name || eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+  }
+
+  _fmtTime(val) {
+    if (val == null) return "";
+    const s = String(val).trim();
+    if (s.includes("{{")) {
+      const m = s.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m) return this._fmtEntity(m[1]);
+      return "a calculated time";
+    }
+    const num = Number(s);
+    if (!isNaN(num) && num >= 0 && num <= 86400 && !s.includes(":")) {
+      const h = Math.floor(num / 3600), m = Math.floor((num % 3600) / 60);
+      const ampm = h >= 12 ? "PM" : "AM";
+      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    }
+    const parts = s.split(":");
+    if (parts.length >= 2) {
+      const h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+      if (!isNaN(h) && !isNaN(m)) {
+        const ampm = h >= 12 ? "PM" : "AM";
+        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
+        return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      }
+    }
+    if (s.startsWith("input_datetime.") || s.startsWith("sensor.")) return this._fmtEntity(s);
+    return s;
+  }
+
   _formatTrigger(t) {
     if (!t) return "Unknown trigger";
-    if (t.platform === "time" || t.trigger === "time") return `Time: ${t.at || ""}`;
-    if (t.platform === "state" || t.trigger === "state") return `State: ${t.entity_id || ""}`;
-    if (t.platform === "sun" || t.trigger === "sun") return `Sun: ${t.event || ""}`;
-    return t.platform || t.trigger || "Trigger";
+    const p = t.platform || t.trigger;
+    if (p === "time") {
+      const raw = t.at;
+      if (Array.isArray(raw)) return `Every day at ${raw.map(v => this._fmtTime(v)).join(", ")}`;
+      return `Every day at ${this._fmtTime(raw)}`;
+    }
+    if (p === "sun") {
+      const ev = t.event === "sunset" ? "At sunset" : t.event === "sunrise" ? "At sunrise" : `Sun ${(t.event || "").replace(/_/g, " ")}`;
+      return `${ev}${t.offset ? ` (${t.offset})` : ""}`;
+    }
+    if (p === "state") {
+      const eid = this._fmtEntity(t.entity_id);
+      if (t.to === "on") return `When ${eid} turns on`;
+      if (t.to === "off") return `When ${eid} turns off`;
+      if (t.to) return `When ${eid} becomes ${t.to}`;
+      return `When ${eid} changes state`;
+    }
+    if (p === "numeric_state") {
+      const eid = this._fmtEntity(t.entity_id);
+      if (t.above != null) return `When ${eid} rises above ${t.above}`;
+      if (t.below != null) return `When ${eid} drops below ${t.below}`;
+      return `When ${eid} value changes`;
+    }
+    if (p === "homeassistant") return `Home Assistant ${t.event === "start" ? "starts up" : "shuts down"}`;
+    if (p === "template") {
+      const tmpl = t.value_template || "";
+      const m = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m) return `When ${this._fmtEntity(m[1])} condition is met`;
+      return "When a condition is met";
+    }
+    if (p === "time_pattern") {
+      if (t.minutes != null) return `Every ${t.minutes} minutes`;
+      if (t.hours != null) return `Every ${t.hours} hours`;
+      return "On a time pattern";
+    }
+    if (p) return p.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return "Trigger";
   }
 
   _formatAction(a) {
     if (!a) return "Unknown action";
-    if (a.service) return a.service;
-    if (a.action) return a.action;
+    const svc = a.service || a.action;
+    if (svc) {
+      const str = String(svc);
+      const [domain = "", name = svc] = str.split(".");
+      if (str === "notify.persistent_notification" || domain === "persistent_notification") {
+        const title = a.data?.title, msg = a.data?.message;
+        if (title) return `Notify: "${title}"`;
+        if (msg) return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        return "Send a notification";
+      }
+      if (domain === "notify") {
+        const target = name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+        const title = a.data?.title, msg = a.data?.message;
+        if (title) return `Notify: "${title}"`;
+        if (msg && !msg.includes("{{")) return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        return `Notify via ${target}`;
+      }
+      if (domain === "tts") {
+        const msg = a.data?.message;
+        if (msg && !msg.includes("{{")) return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        return "Text-to-speech";
+      }
+      const friendly = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock" };
+      const label = friendly[name] || name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const targets = a.target?.entity_id ?? a.data?.entity_id;
+      const t = targets ? (Array.isArray(targets) ? targets.map(e => this._fmtEntity(e)).join(", ") : this._fmtEntity(targets)) : "";
+      return t ? `${label} ${t}` : label;
+    }
+    if (a.delay) return `Wait ${typeof a.delay === "string" ? a.delay : ""}`;
+    if (a.scene) return `Activate scene: ${this._fmtEntity(a.scene)}`;
     return "Action";
   }
 
@@ -308,17 +425,28 @@ class SeloraAIDashboardCard extends LitElement {
           <div class="modal">
             <div class="modal-title">New Automation</div>
             <div class="modal-label">Automation name</div>
-            <div class="modal-row">
-              <input
-                class="modal-input"
-                type="text"
-                placeholder="e.g. Turn off lights at midnight"
-                .value=${this._newAutomationName}
-                @input=${(e) => { this._newAutomationName = e.target.value; }}
-                @keydown=${(e) => { if (e.key === "Enter") this._createInChat(); }}
-              >
-              <button class="modal-magic-btn" title="Let AI decide" @click=${this._createInChat}>
-                <ha-icon icon="mdi:auto-fix"></ha-icon>
+            <div class="modal-row ${this._generatingName ? "generating" : ""}">
+              ${this._generatingName ? html`
+                <div class="modal-input generating-placeholder">
+                  <span class="dots-loader"><span></span><span></span><span></span></span>
+                  <span style="opacity:0.5;font-size:13px;">Generating suggestion...</span>
+                </div>
+              ` : html`
+                <input
+                  class="modal-input"
+                  type="text"
+                  placeholder="e.g. Turn off lights at midnight"
+                  .value=${this._newAutomationName}
+                  @input=${(e) => { this._newAutomationName = e.target.value; }}
+                  @keydown=${(e) => { if (e.key === "Enter") this._createInChat(); }}
+                >
+              `}
+              <button class="modal-magic-btn" title="Let AI decide"
+                ?disabled=${this._generatingName}
+                @click=${this._letAIDecide}>
+                ${this._generatingName
+                  ? html`<span class="spinner"></span>`
+                  : html`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
               </button>
             </div>
             <div class="modal-actions">
@@ -412,11 +540,12 @@ class SeloraAIDashboardCard extends LitElement {
               ${a.last_triggered ? html` · Ran ${this._formatRelativeTime(a.last_triggered)}` : ""}
             </div>
           </div>
-          <ha-icon
-            icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
-            class="activity-toggle ${isOn ? "on" : "off"}"
-            @click=${(e) => { e.stopPropagation(); this._toggleAutomation(a); }}
-          ></ha-icon>
+          <div class="activity-toggle-wrap" @click=${(e) => { e.stopPropagation(); e.preventDefault(); this._toggleAutomation(a); }}>
+            <ha-icon
+              icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
+              class="activity-toggle ${isOn ? "on" : "off"}"
+            ></ha-icon>
+          </div>
         </div>
 
         ${isExpanded ? html`
@@ -691,10 +820,13 @@ class SeloraAIDashboardCard extends LitElement {
         opacity: 0.5;
         margin-top: 1px;
       }
-      .activity-toggle {
-        --mdc-icon-size: 24px;
+      .activity-toggle-wrap {
         cursor: pointer;
         flex-shrink: 0;
+        padding: 4px;
+      }
+      .activity-toggle {
+        --mdc-icon-size: 24px;
         transition: color 0.15s;
       }
       .activity-toggle.on {
@@ -922,6 +1054,15 @@ class SeloraAIDashboardCard extends LitElement {
       }
       .modal-input::placeholder {
         opacity: 0.35;
+      }
+      .modal-input.generating-placeholder {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-color: var(--selora-accent);
+      }
+      .modal-row.generating .modal-magic-btn {
+        border-color: var(--selora-accent);
       }
       .modal-magic-btn {
         display: inline-flex;
