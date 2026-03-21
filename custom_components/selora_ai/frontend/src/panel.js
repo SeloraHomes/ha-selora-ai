@@ -190,6 +190,9 @@ class SeloraAIArchitectPanel extends LitElement {
       _selectChatsMode: { type: Boolean },
       _selectedSessionIds: { type: Object },
 
+      // Pending "Create in Chat" from dashboard card
+      _pendingNewAutomation: { type: String },
+
       // Pagination
       _automationsPage: { type: Number },
       _suggestionsPage: { type: Number },
@@ -305,10 +308,24 @@ class SeloraAIArchitectPanel extends LitElement {
       this._activeTab = tab;
       this._showSidebar = false;
     }
-    // Clean the query param so it doesn't stick on subsequent visits
-    if (tab) {
+
+    // Handle "Create in Chat" from dashboard card
+    const newAuto = params.get("new_automation");
+    if (newAuto) {
+      if (this.hass) {
+        // hass is ready — create the chat immediately
+        this._newAutomationChat(newAuto);
+      } else {
+        // First panel load — hass not set yet, defer until updated()
+        this._pendingNewAutomation = newAuto;
+      }
+    }
+
+    // Clean query params so they don't stick on subsequent visits
+    if (tab || newAuto) {
       const url = new URL(window.location);
       url.searchParams.delete("tab");
+      url.searchParams.delete("new_automation");
       window.history.replaceState({}, "", url);
     }
   }
@@ -375,7 +392,7 @@ class SeloraAIArchitectPanel extends LitElement {
       // Switch to chat
       this._activeSessionId = session_id;
       this._messages = [];
-      this._input = `Create a new automation called "${trimmed}". It should `;
+      this._input = `Create a new automation called "${trimmed}".`;
       this._activeTab = "chat";
       if (this.narrow) this._showSidebar = false;
 
@@ -561,22 +578,8 @@ class SeloraAIArchitectPanel extends LitElement {
 
   async _loadAutomations() {
     try {
-      const [automations, drafts] = await Promise.all([
-        this.hass.callWS({ type: "selora_ai/get_automations" }),
-        this.hass.callWS({ type: "selora_ai/get_drafts" }).catch(() => []),
-      ]);
-      const draftCards = (drafts || []).map((d) => ({
-        entity_id: `draft_${d.draft_id}`,
-        alias: d.alias,
-        state: "off",
-        is_selora: true,
-        automation_id: "",
-        last_triggered: null,
-        _draft: true,
-        _draft_id: d.draft_id,
-        _linked_session: d.session_id,
-      }));
-      this._automations = [...draftCards, ...((automations || []).reverse())];
+      const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
+      this._automations = (automations || []).reverse();
       const validIds = new Set(this._automations.map((a) => a.automation_id).filter(Boolean));
       this._selectedAutomationIds = Object.fromEntries(
         Object.entries(this._selectedAutomationIds || {}).filter(([id, selected]) => selected && validIds.has(id))
@@ -898,19 +901,8 @@ class SeloraAIArchitectPanel extends LitElement {
       await this._removeDraftForSession(this._activeSessionId);
       await this._loadAutomations();
 
-      const actionLabel = refiningId
-        ? "updated."
-        : (automation?.initial_state === true
-            ? "created and added to your system."
-            : "created and added to your system (disabled by default for review).");
-      this._messages = [
-        ...this._messages,
-        {
-          role: "assistant",
-          content: `Automation "${automation.alias}" ${actionLabel}`,
-          timestamp: new Date().toISOString(),
-        },
-      ];
+      this._showToast(`Automation "${automation.alias}" ${refiningId ? "updated" : "created and enabled"}.`, "success");
+      this._activeTab = "automations";
     } catch (err) {
       this._showToast("Failed to save automation: " + err.message, "error");
     }
@@ -1034,16 +1026,8 @@ class SeloraAIArchitectPanel extends LitElement {
         this._messages = session.messages || [];
         await this._loadAutomations();
 
-        const actionLabel = refiningId
-          ? "updated with your edits."
-          : (automation?.initial_state === true
-              ? "created with your edits."
-              : "created with your edits (disabled by default for review).");
-        this._messages = [...this._messages, {
-          role: "assistant",
-          content: `Automation "${automation.alias}" ${actionLabel}`,
-          timestamp: new Date().toISOString(),
-        }];
+        this._showToast(`Automation "${automation.alias}" ${refiningId ? "updated" : "created and enabled"}.`, "success");
+        this._activeTab = "automations";
       } catch (err) {
         this._showToast("Failed to save automation from edited YAML: " + err.message, "error");
       } finally {
@@ -1153,6 +1137,12 @@ class SeloraAIArchitectPanel extends LitElement {
     if (changedProps.has("hass")) {
       this._checkTabParam();
     }
+    // Process deferred "Create in Chat" once hass becomes available
+    if (this.hass && this._pendingNewAutomation) {
+      const name = this._pendingNewAutomation;
+      this._pendingNewAutomation = null;
+      this._newAutomationChat(name);
+    }
     if (changedProps.has("_messages") && this._activeTab === "chat") {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
@@ -1171,7 +1161,6 @@ class SeloraAIArchitectPanel extends LitElement {
         background: var(--primary-background-color);
         color: var(--primary-text-color);
         font-family: var(--paper-font-body1_-_font-family, roboto, sans-serif);
-        overflow: hidden;
       }
 
       /* ---- Sidebar (session list) ---- */
@@ -2976,7 +2965,7 @@ class SeloraAIArchitectPanel extends LitElement {
           <div class="proposal-body">
             <div class="proposal-name">${automation.alias}</div>
             <div class="proposal-status saved">
-              <ha-icon icon="mdi:check"></ha-icon> Saved to your system (disabled — enable in Automations)
+              <ha-icon icon="mdi:check"></ha-icon> Saved and enabled
             </div>
           </div>
         </div>
@@ -3867,7 +3856,7 @@ class SeloraAIArchitectPanel extends LitElement {
                 const loadingChat = this._loadingToChat[automationId];
                 const burgerOpen = this._openBurgerMenu === automationId;
                 return html`
-                  <div class="card" style="padding:12px 14px;${isDraft ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
+                  <div class="card" style="padding:12px 14px;${isDraft || a.state === "on" ? "border-color:#f59e0b;box-shadow:0 0 0 1px #f59e0b;" : ""}">
                     <div class="card-header" style="margin-bottom:6px;">
                       ${this._bulkEditMode && hasAutomationId ? html`
                         <label class="card-select">

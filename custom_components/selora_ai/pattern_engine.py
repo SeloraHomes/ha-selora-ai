@@ -44,6 +44,15 @@ _MIN_COOCCURRENCES = 4
 # Number of 15-minute time slots per day
 _SLOTS_PER_DAY = 96
 
+# Safety limits to prevent OOM on large histories
+_MAX_HISTORY_PER_ENTITY_SCAN = 100  # Only scan the most recent N changes per entity
+_MAX_TIMELINE_SIZE = 2000  # Hard cap on total timeline entries
+_MAX_PAIR_SAMPLES = 50  # Max co-occurrence samples stored per pair
+_YIELD_EVERY = 500  # Yield to event loop every N iterations
+
+# States to skip in correlation/sequence detection
+_SKIP_STATES = frozenset({"unavailable", "unknown", ""})
+
 
 class PatternEngine:
     """Lightweight local pattern detection — no ML dependencies."""
@@ -211,45 +220,60 @@ class PatternEngine:
         """Detect device pairs that change state within a short window.
 
         Algorithm:
-        1. Build sorted timeline of all state changes
-        2. Sliding window: for each change, look forward up to 5 minutes
+        1. Build sorted timeline of all state changes (capped per entity)
+        2. Sliding window: for each change, scan forward up to 5 minutes
         3. Count co-occurrence pairs (A_state → B_state within window)
         4. Pairs with 4+ matches are patterns
         """
-        # Build sorted timeline
+        # Build sorted timeline — cap per entity to avoid memory explosion
         timeline: list[tuple[datetime, str, str]] = []
         for entity_id, changes in history.items():
-            for change in changes:
+            recent = changes[-_MAX_HISTORY_PER_ENTITY_SCAN:]
+            for change in recent:
                 ts = _parse_timestamp(change["ts"])
-                if ts is not None:
+                if ts is not None and change["state"] not in _SKIP_STATES:
                     timeline.append((ts, entity_id, change["state"]))
 
         timeline.sort(key=lambda x: x[0])
 
+        # Cap total timeline to prevent runaway memory usage
+        if len(timeline) > _MAX_TIMELINE_SIZE:
+            timeline = timeline[-_MAX_TIMELINE_SIZE:]
+
         if len(timeline) < _MIN_COOCCURRENCES * 2:
             return []
 
-        # Count co-occurrences within the time window
+        # Count co-occurrences within the time window using sliding window
         pair_counts: dict[
             tuple[str, str, str, str], list[float]
         ] = defaultdict(list)
 
+        window_start = 0
         for i, (ts_a, eid_a, state_a) in enumerate(timeline):
+            # Advance window_start to keep only events within range
+            while window_start < i:
+                if (ts_a - timeline[window_start][0]).total_seconds() <= _CORRELATION_WINDOW_SECS:
+                    break
+                window_start += 1
+
+            # Look forward from i+1 while within the time window
             for j in range(i + 1, len(timeline)):
                 ts_b, eid_b, state_b = timeline[j]
                 delta = (ts_b - ts_a).total_seconds()
                 if delta > _CORRELATION_WINDOW_SECS:
                     break
-                if delta < 1:
-                    continue
-                if eid_a == eid_b:
-                    continue
-                # Skip unavailable/unknown
-                if state_a in ("unavailable", "unknown") or state_b in ("unavailable", "unknown"):
+                if delta < 1 or eid_a == eid_b:
                     continue
 
                 key = (eid_a, state_a, eid_b, state_b)
                 pair_counts[key].append(delta)
+                # Cap per-pair storage to avoid unbounded list growth
+                if len(pair_counts[key]) > _MAX_PAIR_SAMPLES:
+                    pair_counts[key] = pair_counts[key][-_MAX_PAIR_SAMPLES:]
+
+            # Yield to event loop periodically to avoid blocking HA
+            if i % _YIELD_EVERY == 0 and i > 0:
+                await asyncio.sleep(0)
 
         patterns: list[dict[str, Any]] = []
 
@@ -313,17 +337,23 @@ class PatternEngine:
         cause-effect relationships where A consistently precedes B.
         Only produces patterns not already captured by correlation detection.
         """
-        # Build sorted timeline
+        # Build sorted timeline — cap per entity
         timeline: list[tuple[datetime, str, str, str]] = []
         for entity_id, changes in history.items():
-            for change in changes:
+            recent = changes[-_MAX_HISTORY_PER_ENTITY_SCAN:]
+            for change in recent:
                 ts = _parse_timestamp(change["ts"])
-                if ts is not None:
+                if ts is not None and change["state"] not in _SKIP_STATES:
                     timeline.append(
                         (ts, entity_id, change["state"], change.get("prev", ""))
                     )
 
         timeline.sort(key=lambda x: x[0])
+
+        # Cap total timeline
+        if len(timeline) > _MAX_TIMELINE_SIZE:
+            timeline = timeline[-_MAX_TIMELINE_SIZE:]
+
         if len(timeline) < _MIN_COOCCURRENCES * 2:
             return []
 
@@ -336,8 +366,6 @@ class PatternEngine:
         for i, (ts_a, eid_a, state_a, prev_a) in enumerate(timeline):
             if not prev_a or prev_a == state_a:
                 continue
-            if state_a in ("unavailable", "unknown"):
-                continue
 
             for j in range(i + 1, len(timeline)):
                 ts_b, eid_b, state_b, _prev_b = timeline[j]
@@ -346,12 +374,14 @@ class PatternEngine:
                     break
                 if delta < 1 or eid_a == eid_b:
                     continue
-                if state_b in ("unavailable", "unknown"):
-                    continue
 
                 # Track the full transition: A(prev→state) → B turns state_b
                 key = (eid_a, prev_a, state_a, eid_b, state_b)
                 seq_counts[key] += 1
+
+            # Yield to event loop periodically
+            if i % _YIELD_EVERY == 0 and i > 0:
+                await asyncio.sleep(0)
 
         patterns: list[dict[str, Any]] = []
 
