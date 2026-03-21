@@ -260,7 +260,7 @@ CONF_OLLAMA_HOST = "ollama_host"
 CONF_OLLAMA_MODEL = "ollama_model"
 
 DEFAULT_OLLAMA_HOST = "http://host.docker.internal:11434"
-DEFAULT_OLLAMA_MODEL = "llama3.1"
+DEFAULT_OLLAMA_MODEL = "llama4"
 
 # ── OpenAI (GPT API) ───────────────────────────────────────────────
 CONF_OPENAI_API_KEY = "openai_api_key"
