@@ -603,6 +603,7 @@ var SeloraAIDashboardCard = class extends s4 {
       // New automation form
       _showNewAutomation: { type: Boolean },
       _newAutomationName: { type: String },
+      _generatingName: { type: Boolean },
       // Error feedback
       _errorMessage: { type: String }
     };
@@ -618,6 +619,7 @@ var SeloraAIDashboardCard = class extends s4 {
     this._expandedId = null;
     this._showNewAutomation = false;
     this._newAutomationName = "";
+    this._generatingName = false;
     this._errorMessage = "";
   }
   setConfig(config) {
@@ -668,11 +670,7 @@ var SeloraAIDashboardCard = class extends s4 {
     try {
       const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
       const max = this.config.max_automations || 10;
-      this._automations = (automations || []).filter((a3) => a3.is_selora).sort((a3, b2) => {
-        const aTime = a3.last_triggered || "";
-        const bTime = b2.last_triggered || "";
-        return bTime.localeCompare(aTime);
-      }).slice(0, max);
+      this._automations = (automations || []).filter((a3) => a3.is_selora).reverse().slice(0, max);
     } catch (err) {
       console.error("Selora AI Card: Failed to load automations", err);
       this._automations = [];
@@ -723,6 +721,10 @@ var SeloraAIDashboardCard = class extends s4 {
     }
   }
   async _toggleAutomation(automation) {
+    if (!automation.automation_id || !automation.entity_id) {
+      this._showError("Cannot toggle: automation ID not resolved");
+      return;
+    }
     try {
       await this.hass.callWS({
         type: "selora_ai/toggle_automation",
@@ -757,6 +759,23 @@ var SeloraAIDashboardCard = class extends s4 {
     history.pushState(null, "", `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`);
     window.dispatchEvent(new Event("location-changed"));
   }
+  async _letAIDecide() {
+    this._generatingName = true;
+    try {
+      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      if (suggestions && suggestions.length > 0) {
+        const idx = crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
+        this._newAutomationName = suggestions[idx].alias || suggestions[idx].description || "New Automation";
+      } else {
+        this._showError("No suggestions available. Try adding more devices first.");
+      }
+    } catch (err) {
+      console.error("Selora AI Card: Failed to generate name", err);
+      this._showError("Failed to generate suggestion");
+    } finally {
+      this._generatingName = false;
+    }
+  }
   _openPanel() {
     history.pushState(null, "", "/selora-ai-architect?tab=automations");
     window.dispatchEvent(new Event("location-changed"));
@@ -783,24 +802,136 @@ var SeloraAIDashboardCard = class extends s4 {
       return `${diffDays}d ago`;
     return date.toLocaleDateString();
   }
+  _fmtEntity(eid) {
+    if (!eid)
+      return "";
+    if (this.hass?.states?.[eid]) {
+      return this.hass.states[eid].attributes?.friendly_name || eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    }
+    return eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+  }
+  _fmtTime(val) {
+    if (val == null)
+      return "";
+    const s5 = String(val).trim();
+    if (s5.includes("{{")) {
+      const m2 = s5.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m2)
+        return this._fmtEntity(m2[1]);
+      return "a calculated time";
+    }
+    const num = Number(s5);
+    if (!isNaN(num) && num >= 0 && num <= 86400 && !s5.includes(":")) {
+      const h3 = Math.floor(num / 3600), m2 = Math.floor(num % 3600 / 60);
+      const ampm = h3 >= 12 ? "PM" : "AM";
+      const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+      return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+    }
+    const parts = s5.split(":");
+    if (parts.length >= 2) {
+      const h3 = parseInt(parts[0], 10), m2 = parseInt(parts[1], 10);
+      if (!isNaN(h3) && !isNaN(m2)) {
+        const ampm = h3 >= 12 ? "PM" : "AM";
+        const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+        return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+      }
+    }
+    if (s5.startsWith("input_datetime.") || s5.startsWith("sensor."))
+      return this._fmtEntity(s5);
+    return s5;
+  }
   _formatTrigger(t3) {
     if (!t3)
       return "Unknown trigger";
-    if (t3.platform === "time" || t3.trigger === "time")
-      return `Time: ${t3.at || ""}`;
-    if (t3.platform === "state" || t3.trigger === "state")
-      return `State: ${t3.entity_id || ""}`;
-    if (t3.platform === "sun" || t3.trigger === "sun")
-      return `Sun: ${t3.event || ""}`;
-    return t3.platform || t3.trigger || "Trigger";
+    const p2 = t3.platform || t3.trigger;
+    if (p2 === "time") {
+      const raw = t3.at;
+      if (Array.isArray(raw))
+        return `Every day at ${raw.map((v2) => this._fmtTime(v2)).join(", ")}`;
+      return `Every day at ${this._fmtTime(raw)}`;
+    }
+    if (p2 === "sun") {
+      const ev = t3.event === "sunset" ? "At sunset" : t3.event === "sunrise" ? "At sunrise" : `Sun ${(t3.event || "").replace(/_/g, " ")}`;
+      return `${ev}${t3.offset ? ` (${t3.offset})` : ""}`;
+    }
+    if (p2 === "state") {
+      const eid = this._fmtEntity(t3.entity_id);
+      if (t3.to === "on")
+        return `When ${eid} turns on`;
+      if (t3.to === "off")
+        return `When ${eid} turns off`;
+      if (t3.to)
+        return `When ${eid} becomes ${t3.to}`;
+      return `When ${eid} changes state`;
+    }
+    if (p2 === "numeric_state") {
+      const eid = this._fmtEntity(t3.entity_id);
+      if (t3.above != null)
+        return `When ${eid} rises above ${t3.above}`;
+      if (t3.below != null)
+        return `When ${eid} drops below ${t3.below}`;
+      return `When ${eid} value changes`;
+    }
+    if (p2 === "homeassistant")
+      return `Home Assistant ${t3.event === "start" ? "starts up" : "shuts down"}`;
+    if (p2 === "template") {
+      const tmpl = t3.value_template || "";
+      const m2 = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m2)
+        return `When ${this._fmtEntity(m2[1])} condition is met`;
+      return "When a condition is met";
+    }
+    if (p2 === "time_pattern") {
+      if (t3.minutes != null)
+        return `Every ${t3.minutes} minutes`;
+      if (t3.hours != null)
+        return `Every ${t3.hours} hours`;
+      return "On a time pattern";
+    }
+    if (p2)
+      return p2.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    return "Trigger";
   }
   _formatAction(a3) {
     if (!a3)
       return "Unknown action";
-    if (a3.service)
-      return a3.service;
-    if (a3.action)
-      return a3.action;
+    const svc = a3.service || a3.action;
+    if (svc) {
+      const str = String(svc);
+      const [domain = "", name = svc] = str.split(".");
+      if (str === "notify.persistent_notification" || domain === "persistent_notification") {
+        const title = a3.data?.title, msg = a3.data?.message;
+        if (title)
+          return `Notify: "${title}"`;
+        if (msg)
+          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
+        return "Send a notification";
+      }
+      if (domain === "notify") {
+        const target = name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+        const title = a3.data?.title, msg = a3.data?.message;
+        if (title)
+          return `Notify: "${title}"`;
+        if (msg && !msg.includes("{{"))
+          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
+        return `Notify via ${target}`;
+      }
+      if (domain === "tts") {
+        const msg = a3.data?.message;
+        if (msg && !msg.includes("{{"))
+          return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
+        return "Text-to-speech";
+      }
+      const friendly = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock" };
+      const label = friendly[name] || name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+      const targets = a3.target?.entity_id ?? a3.data?.entity_id;
+      const t3 = targets ? Array.isArray(targets) ? targets.map((e4) => this._fmtEntity(e4)).join(", ") : this._fmtEntity(targets) : "";
+      return t3 ? `${label} ${t3}` : label;
+    }
+    if (a3.delay)
+      return `Wait ${typeof a3.delay === "string" ? a3.delay : ""}`;
+    if (a3.scene)
+      return `Activate scene: ${this._fmtEntity(a3.scene)}`;
     return "Action";
   }
   // -------------------------------------------------------------------------
@@ -865,22 +996,31 @@ var SeloraAIDashboardCard = class extends s4 {
           <div class="modal">
             <div class="modal-title">New Automation</div>
             <div class="modal-label">Automation name</div>
-            <div class="modal-row">
-              <input
-                class="modal-input"
-                type="text"
-                placeholder="e.g. Turn off lights at midnight"
-                .value=${this._newAutomationName}
-                @input=${(e4) => {
+            <div class="modal-row ${this._generatingName ? "generating" : ""}">
+              ${this._generatingName ? x`
+                <div class="modal-input generating-placeholder">
+                  <span class="dots-loader"><span></span><span></span><span></span></span>
+                  <span style="opacity:0.5;font-size:13px;">Generating suggestion...</span>
+                </div>
+              ` : x`
+                <input
+                  class="modal-input"
+                  type="text"
+                  placeholder="e.g. Turn off lights at midnight"
+                  .value=${this._newAutomationName}
+                  @input=${(e4) => {
       this._newAutomationName = e4.target.value;
     }}
-                @keydown=${(e4) => {
+                  @keydown=${(e4) => {
       if (e4.key === "Enter")
         this._createInChat();
     }}
-              >
-              <button class="modal-magic-btn" title="Let AI decide" @click=${this._createInChat}>
-                <ha-icon icon="mdi:auto-fix"></ha-icon>
+                >
+              `}
+              <button class="modal-magic-btn" title="Let AI decide"
+                ?disabled=${this._generatingName}
+                @click=${this._letAIDecide}>
+                ${this._generatingName ? x`<span class="spinner"></span>` : x`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
               </button>
             </div>
             <div class="modal-actions">
@@ -955,14 +1095,16 @@ var SeloraAIDashboardCard = class extends s4 {
               ${a3.last_triggered ? x` · Ran ${this._formatRelativeTime(a3.last_triggered)}` : ""}
             </div>
           </div>
-          <ha-icon
-            icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
-            class="activity-toggle ${isOn ? "on" : "off"}"
-            @click=${(e4) => {
+          <div class="activity-toggle-wrap" @click=${(e4) => {
       e4.stopPropagation();
+      e4.preventDefault();
       this._toggleAutomation(a3);
-    }}
-          ></ha-icon>
+    }}>
+            <ha-icon
+              icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
+              class="activity-toggle ${isOn ? "on" : "off"}"
+            ></ha-icon>
+          </div>
         </div>
 
         ${isExpanded ? x`
@@ -1238,10 +1380,13 @@ var SeloraAIDashboardCard = class extends s4 {
         opacity: 0.5;
         margin-top: 1px;
       }
-      .activity-toggle {
-        --mdc-icon-size: 24px;
+      .activity-toggle-wrap {
         cursor: pointer;
         flex-shrink: 0;
+        padding: 4px;
+      }
+      .activity-toggle {
+        --mdc-icon-size: 24px;
         transition: color 0.15s;
       }
       .activity-toggle.on {
@@ -1469,6 +1614,15 @@ var SeloraAIDashboardCard = class extends s4 {
       }
       .modal-input::placeholder {
         opacity: 0.35;
+      }
+      .modal-input.generating-placeholder {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-color: var(--selora-accent);
+      }
+      .modal-row.generating .modal-magic-btn {
+        border-color: var(--selora-accent);
       }
       .modal-magic-btn {
         display: inline-flex;
