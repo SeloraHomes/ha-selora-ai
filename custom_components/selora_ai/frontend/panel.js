@@ -643,6 +643,10 @@ function renderMarkdown(text) {
   let escaped = text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre style="background:#2d2d2d;color:#f8f8f2;padding:10px;border-radius:6px;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>');
   escaped = escaped.replace(/`([^`]+)`/g, '<code style="background:rgba(255,255,255,0.1);padding:2px 5px;border-radius:3px;font-size:13px;">$1</code>');
+  escaped = escaped.replace(/^####\s+(.+)$/gm, '<div style="font-weight:700;font-size:14px;margin:10px 0 4px;">$1</div>');
+  escaped = escaped.replace(/^###\s+(.+)$/gm, '<div style="font-weight:700;font-size:15px;margin:12px 0 4px;">$1</div>');
+  escaped = escaped.replace(/^##\s+(.+)$/gm, '<div style="font-weight:700;font-size:16px;margin:14px 0 6px;">$1</div>');
+  escaped = escaped.replace(/^#\s+(.+)$/gm, '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>');
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
   escaped = escaped.replace(/^(\d+)\.\s+(.+)$/gm, '<div style="margin:4px 0 4px 8px;"><strong>$1.</strong> $2</div>');
@@ -733,13 +737,27 @@ var SeloraAIArchitectPanel = class extends s4 {
       _cardActiveTab: { type: Object },
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
+      // Inline alias editing
+      _editingAlias: { type: String },
+      // automation_id being renamed
+      _editingAliasValue: { type: String },
       // Proactive suggestions (pattern-based)
       _proactiveSuggestions: { type: Array },
       _loadingProactive: { type: Boolean },
       _proactiveExpanded: { type: Object },
       _acceptingProactive: { type: Object },
       _dismissingProactive: { type: Object },
-      _showProactive: { type: Boolean }
+      _showProactive: { type: Boolean },
+      // Delete session confirmation
+      _deleteConfirmSessionId: { type: String },
+      // Bulk session delete
+      _selectChatsMode: { type: Boolean },
+      _selectedSessionIds: { type: Object },
+      // Pagination
+      _automationsPage: { type: Number },
+      _suggestionsPage: { type: Number },
+      _autosPerPage: { type: Number },
+      _suggestionsPerPage: { type: Number }
     };
   }
   constructor() {
@@ -797,12 +815,21 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._generatingSuggestions = false;
     this._cardActiveTab = {};
     this._bulkEditMode = false;
+    this._editingAlias = null;
+    this._editingAliasValue = "";
     this._proactiveSuggestions = [];
     this._loadingProactive = false;
     this._proactiveExpanded = {};
     this._acceptingProactive = {};
     this._dismissingProactive = {};
     this._showProactive = true;
+    this._deleteConfirmSessionId = null;
+    this._selectChatsMode = false;
+    this._selectedSessionIds = {};
+    this._automationsPage = 1;
+    this._suggestionsPage = 1;
+    this._autosPerPage = 10;
+    this._suggestionsPerPage = 10;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -810,12 +837,23 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._locationHandler = () => this._checkTabParam();
+    window.addEventListener("location-changed", this._locationHandler);
+  }
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    if (this._locationHandler) {
+      window.removeEventListener("location-changed", this._locationHandler);
+    }
   }
   _checkTabParam() {
     const params = new URLSearchParams(window.location.search);
     const tab = params.get("tab");
     if (tab === "automations" || tab === "settings") {
       this._activeTab = tab;
+      this._showSidebar = false;
+    }
+    if (tab) {
       const url = new URL(window.location);
       url.searchParams.delete("tab");
       window.history.replaceState({}, "", url);
@@ -828,7 +866,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     try {
       const sessions = await this.hass.callWS({ type: "selora_ai/get_sessions" });
       this._sessions = sessions || [];
-      if (!this._activeSessionId && this._sessions.length > 0) {
+      if (!this._activeSessionId && this._sessions.length > 0 && this._activeTab === "chat") {
         await this._openSession(this._sessions[0].id);
       }
     } catch (err) {
@@ -959,10 +997,15 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._suggestingName = false;
     }
   }
-  async _deleteSession(sessionId, evt) {
+  _deleteSession(sessionId, evt) {
     evt.stopPropagation();
-    if (!confirm("Delete this conversation?"))
+    this._deleteConfirmSessionId = sessionId;
+  }
+  async _confirmDeleteSession() {
+    const sessionId = this._deleteConfirmSessionId;
+    if (!sessionId)
       return;
+    this._deleteConfirmSessionId = null;
     try {
       await this.hass.callWS({ type: "selora_ai/delete_session", session_id: sessionId });
       if (this._activeSessionId === sessionId) {
@@ -973,6 +1016,48 @@ var SeloraAIArchitectPanel = class extends s4 {
     } catch (err) {
       console.error("Failed to delete session", err);
     }
+  }
+  _toggleSessionSelection(sessionId) {
+    this._selectedSessionIds = {
+      ...this._selectedSessionIds,
+      [sessionId]: !this._selectedSessionIds[sessionId]
+    };
+  }
+  _toggleSelectAllSessions() {
+    const allSelected = this._sessions.every((s6) => this._selectedSessionIds[s6.id]);
+    if (allSelected) {
+      this._selectedSessionIds = {};
+    } else {
+      const selected = {};
+      this._sessions.forEach((s6) => {
+        selected[s6.id] = true;
+      });
+      this._selectedSessionIds = selected;
+    }
+  }
+  _requestBulkDeleteSessions() {
+    const count = Object.values(this._selectedSessionIds).filter(Boolean).length;
+    if (count === 0)
+      return;
+    this._deleteConfirmSessionId = "__bulk__";
+  }
+  async _confirmBulkDeleteSessions() {
+    this._deleteConfirmSessionId = null;
+    const ids = Object.entries(this._selectedSessionIds).filter(([, v2]) => v2).map(([id]) => id);
+    for (const id of ids) {
+      try {
+        await this.hass.callWS({ type: "selora_ai/delete_session", session_id: id });
+        if (this._activeSessionId === id) {
+          this._activeSessionId = null;
+          this._messages = [];
+        }
+      } catch (err) {
+        console.error("Failed to delete session", id, err);
+      }
+    }
+    this._selectedSessionIds = {};
+    this._selectChatsMode = false;
+    await this._loadSessions();
   }
   async _loadSuggestions() {
     try {
@@ -985,10 +1070,24 @@ var SeloraAIArchitectPanel = class extends s4 {
   async _triggerGenerateSuggestions() {
     this._generatingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
-      this._suggestions = suggestions || [];
-      if (this._suggestions.length > 0) {
-        this._showToast(`Generated ${this._suggestions.length} recommendation(s)`, "success");
+      const newSuggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      const existingAliases = new Set((this._suggestions || []).map((s6) => {
+        const a4 = s6.automation || s6.automation_data || {};
+        return (a4.alias || "").toLowerCase();
+      }));
+      const added = [];
+      for (const s6 of newSuggestions || []) {
+        const a4 = s6.automation || s6.automation_data || {};
+        const alias = (a4.alias || "").toLowerCase();
+        if (!existingAliases.has(alias)) {
+          added.push(s6);
+          existingAliases.add(alias);
+        }
+      }
+      this._suggestions = [...added, ...this._suggestions];
+      await this._loadProactiveSuggestions();
+      if (added.length > 0) {
+        this._showToast(`Generated ${added.length} new recommendation(s)`, "success");
       } else {
         this._showToast("Analysis complete \u2014 no new suggestions at this time", "info");
       }
@@ -1016,7 +1115,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         _draft_id: d3.draft_id,
         _linked_session: d3.session_id
       }));
-      this._automations = [...draftCards, ...automations || []];
+      this._automations = [...draftCards, ...(automations || []).reverse()];
       const validIds = new Set(this._automations.map((a4) => a4.automation_id).filter(Boolean));
       this._selectedAutomationIds = Object.fromEntries(
         Object.entries(this._selectedAutomationIds || {}).filter(([id, selected]) => selected && validIds.has(id))
@@ -1033,7 +1132,14 @@ var SeloraAIArchitectPanel = class extends s4 {
         type: "selora_ai/get_proactive_suggestions",
         status: "pending"
       });
-      this._proactiveSuggestions = suggestions || [];
+      const seen = /* @__PURE__ */ new Set();
+      this._proactiveSuggestions = (suggestions || []).filter((s6) => {
+        const key = (s6.description || "").toLowerCase().trim();
+        if (seen.has(key))
+          return false;
+        seen.add(key);
+        return true;
+      });
     } catch (err) {
       console.error("Failed to load proactive suggestions", err);
       this._proactiveSuggestions = [];
@@ -1633,6 +1739,69 @@ var SeloraAIArchitectPanel = class extends s4 {
       .session-delete:hover {
         opacity: 1 !important;
       }
+      .sidebar-select-btn {
+        background: transparent;
+        border: 1px solid var(--divider-color);
+        color: var(--primary-text-color);
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 12px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+      }
+      .sidebar-select-btn:hover {
+        background: rgba(245, 158, 11, 0.1);
+        border-color: #f59e0b;
+      }
+      .select-actions-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        border-bottom: 1px solid var(--divider-color);
+        background: rgba(245, 158, 11, 0.06);
+      }
+      .select-all-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        cursor: pointer;
+        user-select: none;
+      }
+      .select-all-label input[type="checkbox"] {
+        accent-color: #f59e0b;
+        cursor: pointer;
+      }
+      .btn-delete-selected {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        background: transparent;
+        border: 1px solid var(--error-color, #ef4444);
+        color: var(--error-color, #ef4444);
+        font-size: 11px;
+        font-weight: 500;
+        padding: 4px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        transition: background 0.15s, color 0.15s;
+      }
+      .btn-delete-selected:hover:not([disabled]) {
+        background: var(--error-color, #ef4444);
+        color: #fff;
+      }
+      .btn-delete-selected[disabled] {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+      .session-checkbox {
+        accent-color: #f59e0b;
+        cursor: pointer;
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
       .new-chat-btn {
         margin: 12px;
         display: block;
@@ -1778,9 +1947,31 @@ var SeloraAIArchitectPanel = class extends s4 {
         font-size: 10px;
         opacity: 0.5;
         margin-top: 3px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
       .bubble.user + .bubble-meta { align-self: flex-end; }
       .bubble.assistant + .bubble-meta { align-self: flex-start; }
+      .copy-msg-row {
+        display: flex;
+        justify-content: flex-end;
+        margin-top: 4px;
+      }
+      .copy-msg-btn {
+        background: none;
+        border: none;
+        padding: 2px 4px;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.15s, color 0.15s;
+        color: inherit;
+        line-height: 1;
+        border-radius: 4px;
+      }
+      .message-row:hover .copy-msg-btn { opacity: 0.7; }
+      .copy-msg-btn:hover { opacity: 1 !important; }
+      .copy-msg-btn.copied { opacity: 1 !important; color: var(--success-color, #4caf50); }
       .bubble.assistant strong { color: #f59e0b; }
 
       /* ---- Automation proposal card ---- */
@@ -1805,6 +1996,12 @@ var SeloraAIArchitectPanel = class extends s4 {
       }
       .proposal-body {
         padding: 14px;
+      }
+      .proposal-body .flow-chart {
+        align-items: flex-start;
+      }
+      .proposal-body .flow-section {
+        text-align: left;
       }
       .proposal-name {
         font-weight: 600;
@@ -1923,11 +2120,11 @@ var SeloraAIArchitectPanel = class extends s4 {
       .flow-chart {
         display: flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         margin: 10px 0 12px;
         font-size: 12px;
       }
-      .flow-section { width: 100%; }
+      .flow-section { width: 100%; text-align: center; }
       .flow-label {
         font-size: 9px;
         font-weight: 800;
@@ -1958,13 +2155,15 @@ var SeloraAIArchitectPanel = class extends s4 {
         font-size: 16px;
         line-height: 1;
         opacity: 0.35;
-        padding: 3px 0 3px 4px;
+        padding: 3px 0;
+        text-align: center;
       }
       .flow-arrow-sm {
         font-size: 13px;
         line-height: 1;
         opacity: 0.3;
-        padding: 2px 0 2px 4px;
+        padding: 2px 0;
+        text-align: center;
       }
 
       /* ---- Toggle switch ---- */
@@ -2112,6 +2311,31 @@ var SeloraAIArchitectPanel = class extends s4 {
       .burger-item:hover { background: rgba(var(--rgb-primary-color, 3,169,244), 0.08); }
       .burger-item.danger { color: var(--error-color, #f44336); }
       .burger-item.danger:hover { background: rgba(244,67,54,0.08); }
+      .rename-input {
+        flex: 1;
+        font-size: 14px;
+        font-weight: 600;
+        border: 1px solid #f59e0b;
+        border-radius: 6px;
+        padding: 4px 8px;
+        outline: none;
+        background: var(--card-background-color, #fff);
+        color: var(--primary-text-color);
+        min-width: 0;
+      }
+      .rename-save-btn {
+        background: #f59e0b;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        padding: 4px 6px;
+        margin-left: 4px;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+      }
+      .rename-save-btn:hover { background: #d97706; }
 
       /* ---- Card inline tabs (Flow / YAML / History) ---- */
       .card-tabs {
@@ -2351,12 +2575,50 @@ var SeloraAIArchitectPanel = class extends s4 {
         width: 90%;
       }
 
-      /* ---- Automations grid (CSS Grid) ---- */
+      /* ---- Automations grid (flex columns for independent heights) ---- */
       .automations-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+        display: flex;
         gap: 10px;
         margin-bottom: 14px;
+      }
+      .automations-grid .masonry-col {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        min-width: 0;
+      }
+      @media (max-width: 600px) {
+        .automations-grid { flex-direction: column; }
+      }
+      .pagination {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        padding: 12px 0;
+      }
+      .page-info {
+        font-size: 12px;
+        opacity: 0.6;
+      }
+      .per-page-label {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .per-page-select {
+        font-size: 12px;
+        font-weight: 600;
+        padding: 4px 8px;
+        border-radius: 6px;
+        border: 1px solid var(--divider-color);
+        background: var(--primary-background-color);
+        color: var(--primary-text-color);
+        cursor: pointer;
       }
       .automations-grid .card {
         margin-bottom: 0;
@@ -2562,27 +2824,64 @@ var SeloraAIArchitectPanel = class extends s4 {
       <div class="sidebar ${this._showSidebar ? "open" : ""}" part="sidebar">
         <div class="sidebar-header">
           <span>Conversations</span>
+          ${this._sessions.length > 0 ? x`
+            ${this._selectChatsMode ? x`
+              <button class="sidebar-select-btn" @click=${() => {
+      this._selectChatsMode = false;
+      this._selectedSessionIds = {};
+    }}>Done</button>
+            ` : x`
+              <button class="sidebar-select-btn" @click=${() => {
+      this._selectChatsMode = true;
+    }}>Select</button>
+            `}
+          ` : ""}
         </div>
-        <mwc-button class="new-chat-btn" outlined @click=${this._newSession}>
-          + New Chat
-        </mwc-button>
+        ${this._selectChatsMode ? x`
+          <div class="select-actions-bar">
+            <label class="select-all-label" @click=${() => this._toggleSelectAllSessions()}>
+              <input type="checkbox" .checked=${this._sessions.length > 0 && this._sessions.every((s6) => this._selectedSessionIds[s6.id])}>
+              <span>Select all</span>
+            </label>
+            <button class="btn-delete-selected"
+              ?disabled=${Object.values(this._selectedSessionIds).filter(Boolean).length === 0}
+              @click=${() => this._requestBulkDeleteSessions()}>
+              <ha-icon icon="mdi:delete-outline" style="--mdc-icon-size:14px;"></ha-icon>
+              Delete (${Object.values(this._selectedSessionIds).filter(Boolean).length})
+            </button>
+          </div>
+        ` : x`
+          <mwc-button class="new-chat-btn" outlined @click=${this._newSession}>
+            + New Chat
+          </mwc-button>
+        `}
         <div class="session-list">
           ${this._sessions.length === 0 ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">No conversations yet.</div>` : this._sessions.map(
       (s6) => x`
                   <div
                     class="session-item ${s6.id === this._activeSessionId ? "active" : ""}"
-                    @click=${() => this._openSession(s6.id)}
+                    @click=${() => this._selectChatsMode ? this._toggleSessionSelection(s6.id) : this._openSession(s6.id)}
                   >
+                    ${this._selectChatsMode ? x`
+                      <input type="checkbox" class="session-checkbox"
+                        .checked=${!!this._selectedSessionIds[s6.id]}
+                        @click=${(e5) => {
+        e5.stopPropagation();
+        this._toggleSessionSelection(s6.id);
+      }}>
+                    ` : ""}
                     <div style="flex:1; min-width:0;">
                       <div class="session-title">${s6.title}</div>
                       <div class="session-meta">${this._formatDate(s6.updated_at)}</div>
                     </div>
-                    <ha-icon
-                      class="session-delete"
-                      icon="mdi:delete-outline"
-                      @click=${(e5) => this._deleteSession(s6.id, e5)}
-                      title="Delete"
-                    ></ha-icon>
+                    ${!this._selectChatsMode ? x`
+                      <ha-icon
+                        class="session-delete"
+                        icon="mdi:delete-outline"
+                        @click=${(e5) => this._deleteSession(s6.id, e5)}
+                        title="Delete"
+                      ></ha-icon>
+                    ` : ""}
                   </div>
                 `
     )}
@@ -2626,6 +2925,37 @@ var SeloraAIArchitectPanel = class extends s4 {
 
       ${this._renderHardDeleteDialog()}
 
+      ${this._deleteConfirmSessionId ? x`
+        <div class="modal-overlay" @click=${(e5) => {
+      if (e5.target === e5.currentTarget)
+        this._deleteConfirmSessionId = null;
+    }}>
+          <div class="modal-content" style="max-width:400px;text-align:center;">
+            ${this._deleteConfirmSessionId === "__bulk__" ? x`
+              <div style="font-size:17px;font-weight:600;margin-bottom:8px;">Delete Conversations</div>
+              <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                Delete ${Object.values(this._selectedSessionIds).filter(Boolean).length} selected conversation(s)? This cannot be undone.
+              </div>
+              <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn btn-outline" @click=${() => {
+      this._deleteConfirmSessionId = null;
+    }}>Cancel</button>
+                <button class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;" @click=${() => this._confirmBulkDeleteSessions()}>Delete</button>
+              </div>
+            ` : x`
+              <div style="font-size:17px;font-weight:600;margin-bottom:8px;">Delete Conversation</div>
+              <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">Are you sure you want to delete this conversation? This cannot be undone.</div>
+              <div style="display:flex;gap:10px;justify-content:center;">
+                <button class="btn btn-outline" @click=${() => {
+      this._deleteConfirmSessionId = null;
+    }}>Cancel</button>
+                <button class="btn" style="background:#ef4444;color:#fff;border-color:#ef4444;" @click=${() => this._confirmDeleteSession()}>Delete</button>
+              </div>
+            `}
+          </div>
+        </div>
+      ` : ""}
+
       ${this._toast ? x`
             <div class="toast ${this._toastType}">
               <span>${this._toast}</span>
@@ -2641,7 +2971,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     return x`
       <div class="chat-pane">
         <div class="chat-messages" id="chat-messages">
-          ${!this._activeSessionId || this._messages.length === 0 ? i4(this._welcomeKey || 0, x`
+          ${this._messages.length === 0 ? i4(this._welcomeKey || 0, x`
                 <div class="empty-state welcome" style="max-width:520px;margin:0 auto;text-align:center;">
                   <img src="/api/selora_ai/logo.png" alt="Selora AI" style="width:56px;height:56px;border-radius:12px;margin-bottom:8px;">
                   <div style="font-size:20px;font-weight:600;margin-bottom:4px;">Welcome to Selora AI</div>
@@ -2760,10 +3090,36 @@ var SeloraAIArchitectPanel = class extends s4 {
                 </div>
               ` : ""}
           ${msg.automation ? this._renderProposalCard(msg, idx) : ""}
+          ${!isUser ? x`
+            <div class="copy-msg-row">
+              <button class="copy-msg-btn" title="Copy message"
+                @click=${(e5) => this._copyMessageText(msg, e5.currentTarget)}>
+                <ha-icon icon="mdi:content-copy" style="--mdc-icon-size:12px;"></ha-icon>
+              </button>
+            </div>
+          ` : ""}
         </div>
-        <div class="bubble-meta">${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}</div>
+        <div class="bubble-meta">
+          ${isUser ? "You" : "Selora AI"} · ${this._formatTime(msg.timestamp)}
+        </div>
       </div>
     `;
+  }
+  async _copyMessageText(msg, btn) {
+    try {
+      const text = msg.content || "";
+      await navigator.clipboard.writeText(text);
+      btn.classList.add("copied");
+      const icon = btn.querySelector("ha-icon");
+      if (icon)
+        icon.setAttribute("icon", "mdi:check");
+      setTimeout(() => {
+        btn.classList.remove("copied");
+        if (icon)
+          icon.setAttribute("icon", "mdi:content-copy");
+      }, 1500);
+    } catch (_2) {
+    }
   }
   // -------------------------------------------------------------------------
   // YAML editor
@@ -2838,13 +3194,51 @@ var SeloraAIArchitectPanel = class extends s4 {
     const friendly = { on: "on", off: "off", home: "home", not_home: "away", open: "open", closed: "closed", locked: "locked", unlocked: "unlocked", playing: "playing", paused: "paused", idle: "idle", unavailable: "unavailable", unknown: "unknown" };
     return friendly[s6] || s6.replace(/_/g, " ");
   }
+  _fmtTime(val) {
+    if (val == null)
+      return String(val);
+    const s6 = String(val).trim();
+    if (s6.includes("{{") || s6.includes("{%")) {
+      const m2 = s6.match(/states\(['"]([^'"]+)['"]\)/);
+      if (m2)
+        return this._fmtEntity(m2[1]);
+      const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
+      if (m22)
+        return this._fmtEntity(m22[1]);
+      return "a calculated time";
+    }
+    const num = Number(s6);
+    if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
+      const h3 = Math.floor(num / 3600);
+      const m2 = Math.floor(num % 3600 / 60);
+      const ampm = h3 >= 12 ? "PM" : "AM";
+      const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+      return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+    }
+    const parts = s6.split(":");
+    if (parts.length >= 2) {
+      const h3 = parseInt(parts[0], 10);
+      const m2 = parseInt(parts[1], 10);
+      if (!isNaN(h3) && !isNaN(m2)) {
+        const ampm = h3 >= 12 ? "PM" : "AM";
+        const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+        return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+      }
+    }
+    if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
+      return this._fmtEntity(s6);
+    return s6;
+  }
   _describeFlowItem(item) {
     if (!item || typeof item !== "object")
       return String(item ?? "");
     const p2 = item.platform || item.trigger;
     if (p2 === "time") {
-      const at = Array.isArray(item.at) ? item.at.join(", ") : item.at;
-      return `Every day at ${at}`;
+      const raw = item.at;
+      if (Array.isArray(raw)) {
+        return `Every day at ${raw.map((t3) => this._fmtTime(t3)).join(", ")}`;
+      }
+      return `Every day at ${this._fmtTime(raw)}`;
     }
     if (p2 === "sun") {
       const ev = item.event === "sunset" ? "At sunset" : item.event === "sunrise" ? "At sunrise" : `Sun ${(item.event || "").replace(/_/g, " ")}`;
@@ -2889,8 +3283,13 @@ var SeloraAIArchitectPanel = class extends s4 {
         return `Every ${item.hours} hours`;
       return "On a time pattern";
     }
-    if (p2 === "template")
-      return "When a template becomes true";
+    if (p2 === "template") {
+      const tmpl = item.value_template || "";
+      const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
+      if (entityMatch)
+        return `When ${this._fmtEntity(entityMatch[1])} condition is met`;
+      return "When a condition is met";
+    }
     if (p2 === "event")
       return item.event_type ? `Event: ${String(item.event_type).replace(/_/g, " ")}` : "On an event";
     if (p2 === "device")
@@ -2932,9 +3331,9 @@ var SeloraAIArchitectPanel = class extends s4 {
     if (cond === "time") {
       const parts = [];
       if (item.after)
-        parts.push(`after ${item.after}`);
+        parts.push(`after ${this._fmtTime(item.after)}`);
       if (item.before)
-        parts.push(`before ${item.before}`);
+        parts.push(`before ${this._fmtTime(item.before)}`);
       if (item.weekday) {
         const days = Array.isArray(item.weekday) ? item.weekday.join(", ") : item.weekday;
         parts.push(`on ${days}`);
@@ -2967,21 +3366,57 @@ var SeloraAIArchitectPanel = class extends s4 {
       return String(cond).replace(/_/g, " ");
     const svc = item.service || item.action;
     if (svc) {
-      const [domain = "", svcName = svc] = String(svc).split(".");
-      const friendlyActions = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock", open_cover: "Open", close_cover: "Close", set_temperature: "Set temperature for", set_value: "Set value for", send_command: "Send command to", notify: "Send notification via", reload: "Reload" };
+      const svcStr = String(svc);
+      const [domain = "", svcName = svc] = svcStr.split(".");
+      if (svcStr === "notify.persistent_notification" || domain === "persistent_notification") {
+        const title = item.data?.title;
+        const msg = item.data?.message;
+        if (title && msg)
+          return `Notify: "${title}"`;
+        if (title)
+          return `Notify: "${title}"`;
+        if (msg) {
+          const short = msg.length > 60 ? msg.slice(0, 57) + "\u2026" : msg;
+          return `Notify: "${short}"`;
+        }
+        return "Send a notification";
+      }
+      if (domain === "notify") {
+        const target = svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+        const msg = item.data?.message;
+        const title = item.data?.title;
+        if (title)
+          return `Notify ${target}: "${title}"`;
+        if (msg) {
+          const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
+          return `Notify ${target}: "${short}"`;
+        }
+        return `Notify via ${target}`;
+      }
+      if (domain === "tts") {
+        const msg = item.data?.message;
+        if (msg) {
+          const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
+          return `Say: "${short}"`;
+        }
+        return "Text-to-speech";
+      }
+      const friendlyActions = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock", open_cover: "Open", close_cover: "Close", set_temperature: "Set temperature for", set_value: "Set value for", send_command: "Send command to", reload: "Reload" };
       const name = friendlyActions[svcName] || svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
       const targets = item.target?.entity_id ?? item.data?.entity_id;
       const t3 = this._fmtEntities(targets);
       const extras = [];
       if (item.data?.brightness_pct != null)
-        extras.push(`at ${item.data.brightness_pct}% brightness`);
+        extras.push(`at ${item.data.brightness_pct}%`);
       if (item.data?.temperature != null)
         extras.push(`to ${item.data.temperature}\xB0`);
       if (item.data?.color_temp != null)
         extras.push(`color temp ${item.data.color_temp}`);
-      if (item.data?.message)
-        extras.push(`"${item.data.message}"`);
-      if (item.data?.title)
+      if (item.data?.message && !String(item.data.message).includes("{{")) {
+        const short = item.data.message.length > 50 ? item.data.message.slice(0, 47) + "\u2026" : item.data.message;
+        extras.push(`"${short}"`);
+      }
+      if (item.data?.title && !String(item.data.title).includes("{{"))
         extras.push(item.data.title);
       const detail = extras.length ? ` (${extras.join(", ")})` : "";
       return t3 ? `${name} ${t3}${detail}` : `${name}${detail}`;
@@ -3030,10 +3465,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     const SKIP = /* @__PURE__ */ new Set(["id", "enabled", "mode", "alias", "description"]);
     const readable = Object.entries(item).filter(([k2, v2]) => !SKIP.has(k2) && v2 != null && v2 !== "").map(([k2, v2]) => {
       const label = k2.replace(/_/g, " ");
-      const val = Array.isArray(v2) ? v2.map((x2) => typeof x2 === "object" ? "\u2026" : x2).join(", ") : v2;
-      return `${label}: ${val}`;
-    }).slice(0, 3);
-    return readable.length ? readable.join(" \xB7 ") : "Step";
+      const strVal = typeof v2 === "string" ? v2 : Array.isArray(v2) ? v2.map((x2) => typeof x2 === "object" ? "\u2026" : x2).join(", ") : String(v2);
+      if (strVal.includes("{{") || strVal.includes("{%"))
+        return null;
+      return `${label}: ${strVal}`;
+    }).filter(Boolean).slice(0, 3);
+    return readable.length ? readable.join(" \xB7 ") : "Automation step";
   }
   _renderAutomationFlowchart(auto) {
     if (!auto)
@@ -3140,13 +3577,6 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
-          ${scrutinyTags.length ? x`
-                <div style="display:flex; flex-wrap:wrap; gap:6px; margin:8px 0 4px;">
-                  ${scrutinyTags.map(
-      (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
-    )}
-                </div>
-              ` : ""}
 
           ${msg.description ? x`
                 <div class="proposal-description-label">What this automation does</div>
@@ -3356,6 +3786,46 @@ var SeloraAIArchitectPanel = class extends s4 {
     }
   }
   // -------------------------------------------------------------------------
+  // Rename automation
+  // -------------------------------------------------------------------------
+  _startRenameAutomation(automationId, currentAlias) {
+    this._editingAlias = automationId;
+    this._editingAliasValue = currentAlias || "";
+    this._openBurgerMenu = null;
+    this.requestUpdate();
+    this.updateComplete.then(() => {
+      const input = this.shadowRoot.querySelector(`.rename-input[data-id="${automationId}"]`);
+      if (input) {
+        input.focus();
+        input.select();
+      }
+    });
+  }
+  async _saveRenameAutomation(automationId) {
+    const newAlias = (this._editingAliasValue || "").trim();
+    if (!newAlias) {
+      this._editingAlias = null;
+      return;
+    }
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/rename_automation",
+        automation_id: automationId,
+        alias: newAlias
+      });
+      this._editingAlias = null;
+      this._showToast("Automation renamed", "success");
+      await this._loadAutomations();
+    } catch (err) {
+      console.error("Failed to rename automation", err);
+      this._showToast("Failed to rename: " + err.message, "error");
+    }
+  }
+  _cancelRenameAutomation() {
+    this._editingAlias = null;
+    this._editingAliasValue = "";
+  }
+  // -------------------------------------------------------------------------
   // Version history methods
   // -------------------------------------------------------------------------
   async _openVersionHistory(automationId) {
@@ -3538,6 +4008,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       if (sessionId) {
         this._activeSessionId = sessionId;
         this._activeTab = "chat";
+        this._showSidebar = true;
         await this._openSession(sessionId);
         this._showToast("Automation loaded into chat.", "success");
       }
@@ -3556,131 +4027,47 @@ var SeloraAIArchitectPanel = class extends s4 {
     const automationId = a4.automation_id || a4.entity_id;
     const versions = this._versions[automationId] || [];
     const loading = this._loadingVersions[automationId];
-    const activeTab = this._versionTab[automationId] || "versions";
-    const lineage = this._lineage[automationId] || [];
-    const loadingLineage = this._loadingLineage[automationId];
-    const switchTab = async (tab) => {
-      this._versionTab = { ...this._versionTab, [automationId]: tab };
-      if (tab === "lineage" && !this._lineage[automationId]) {
-        await this._loadLineage(automationId);
-      }
-      this.requestUpdate();
-    };
     return x`
       <div style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="display:flex;gap:0;">
-            <button class="tab ${activeTab === "versions" ? "active" : ""}"
-              style="font-size:12px;padding:4px 12px;border-radius:6px 0 0 6px;border:1px solid var(--divider-color);background:${activeTab === "versions" ? "var(--primary-color)" : "transparent"};color:${activeTab === "versions" ? "#fff" : "inherit"};cursor:pointer;"
-              @click=${() => switchTab("versions")}>
-              <ha-icon icon="mdi:history" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
-              Versions
-            </button>
-            <button class="tab ${activeTab === "lineage" ? "active" : ""}"
-              style="font-size:12px;padding:4px 12px;border-radius:0 6px 6px 0;border:1px solid var(--divider-color);border-left:none;background:${activeTab === "lineage" ? "var(--primary-color)" : "transparent"};color:${activeTab === "lineage" ? "#fff" : "inherit"};cursor:pointer;"
-              @click=${() => switchTab("lineage")}>
-              <ha-icon icon="mdi:timeline-outline" style="--mdc-icon-size:13px;vertical-align:middle;margin-right:3px;"></ha-icon>
-              Lineage
-            </button>
-          </div>
-          ${activeTab === "versions" && versions.length >= 2 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                @click=${() => this._openDiffViewer(automationId)}>
-                <ha-icon icon="mdi:compare" style="--mdc-icon-size:12px;"></ha-icon>
-                Compare versions
-              </button>` : ""}
-        </div>
-        ${activeTab === "lineage" ? loadingLineage ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">Loading lineage…</div>` : lineage.length === 0 ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">No lineage entries yet. Lineage is recorded as automations are created and refined via chat.</div>` : x`<div style="position:relative;padding-left:20px;margin-top:4px;">
-                  <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
-                  ${lineage.map((entry, i5) => {
-      const date = new Date(entry.timestamp);
-      const relativeTime = this._relativeTime(date);
-      const actionIcons = { created: "mdi:plus-circle", refined: "mdi:chat-processing-outline", updated: "mdi:pencil", restored: "mdi:restore" };
-      const icon = actionIcons[entry.action] || "mdi:circle-small";
-      const canJump = !!entry.session_id;
-      return x`
-                      <div style="position:relative;margin-bottom:12px;padding-left:12px;">
-                        <ha-icon icon="${icon}" style="position:absolute;left:-12px;top:1px;--mdc-icon-size:16px;color:var(--primary-color);background:var(--card-background-color);border-radius:50%;"></ha-icon>
-                        <div style="display:flex;flex-direction:column;gap:2px;">
-                          <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-                            <span style="font-size:12px;font-weight:600;text-transform:capitalize;">${entry.action}</span>
-                            <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
-                            ${i5 === lineage.length - 1 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
-                          </div>
-                          ${entry.session_title || entry.session_preview ? x`<div style="font-size:11px;opacity:0.7;font-style:italic;">${entry.session_title || entry.session_preview}</div>` : entry.session_id ? x`<div style="font-size:11px;opacity:0.5;">Chat session</div>` : x`<div style="font-size:11px;opacity:0.5;">Manual edit</div>`}
-                          ${canJump ? x`<span style="font-size:11px;color:var(--primary-color);cursor:pointer;text-decoration:underline;"
-                                @click=${() => {
-        this._activeTab = "chat";
-        this._activeSessionId = entry.session_id;
-        this._openSession(entry.session_id);
-        if (entry.message_index != null) {
-          setTimeout(() => {
-            const msgs = this.shadowRoot?.querySelectorAll(".message-row");
-            if (msgs && msgs[entry.message_index])
-              msgs[entry.message_index].scrollIntoView({ behavior: "smooth", block: "start" });
-          }, 400);
-        }
-      }}>
-                                Jump to session →
-                              </span>` : ""}
-                        </div>
-                      </div>
-                    `;
-    })}
-                </div>` : loading ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>` : versions.length === 0 ? x`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>` : versions.map((v2, i5) => {
+        ${loading ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>` : versions.length === 0 ? x`<div style="opacity:0.5;font-size:12px;">No version history yet.</div>` : x`
+            <div style="position:relative;padding-left:20px;">
+              <div style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"></div>
+              ${versions.map((v2, i5) => {
       const key = `${automationId}_${v2.version_id}`;
       const restoring = this._restoringVersion[key];
       const date = new Date(v2.created_at);
       const relativeTime = this._relativeTime(date);
+      const isCurrent = i5 === 0;
       return x`
-                <div style="border-bottom:1px solid var(--divider-color);padding:8px 0;display:flex;flex-direction:column;gap:4px;">
-                  <div style="display:flex;align-items:center;gap:8px;">
-                    <span style="font-size:11px;font-weight:600;opacity:0.7;">v${versions.length - i5}</span>
-                    <span style="font-size:12px;" title=${date.toISOString()}>${relativeTime}</span>
-                    ${i5 === 0 ? x`<span style="font-size:10px;background:var(--primary-color);color:#fff;border-radius:4px;padding:1px 5px;">current</span>` : ""}
-                    ${v2.session_id ? x`<span style="font-size:11px;opacity:0.6;cursor:pointer;text-decoration:underline;"
-                          @click=${() => {
-        this._activeSessionId = v2.session_id;
-        this._activeTab = "chat";
-        this._openSession(v2.session_id);
-      }}>
-                          from chat session
-                        </span>` : ""}
-                  </div>
-                  ${v2.message || v2.version_message ? x`<div style="font-size:11px;opacity:0.7;font-style:italic;">"${v2.message || v2.version_message}"</div>` : ""}
-                  <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
-                      <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:11px;"></ha-icon>
-                      ${this._expandedAutomations[`ver_${key}`] ? "Hide YAML" : "View YAML"}
-                    </button>
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      @click=${async () => {
-        await this._openDiffViewer(automationId);
-        this._diffVersionA = this._versions[automationId]?.[0]?.version_id || null;
-        this._diffVersionB = v2.version_id;
-        await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
-        this.requestUpdate();
-      }}>
-                      <ha-icon icon="mdi:compare" style="--mdc-icon-size:11px;"></ha-icon>
-                      Compare with current
-                    </button>
-                    <button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
-                      ?disabled=${!!this._loadingToChat[automationId]}
-                      @click=${() => this._loadAutomationToChat(automationId)}>
-                      <ha-icon icon="mdi:chat-processing-outline" style="--mdc-icon-size:11px;"></ha-icon>
-                      ${this._loadingToChat[automationId] ? "Loading\u2026" : "Refine in chat"}
-                    </button>
-                    ${i5 > 0 ? x`<button class="btn btn-outline" style="font-size:11px;padding:3px 8px;"
+                  <div style="position:relative;margin-bottom:${i5 < versions.length - 1 ? "14px" : "0"};padding-left:14px;">
+                    <div style="position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:${isCurrent ? "#f59e0b" : "var(--divider-color)"};border:2px solid var(--secondary-background-color);"></div>
+                    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
+                      <span style="font-size:12px;font-weight:600;">v${versions.length - i5}</span>
+                      <span style="font-size:11px;opacity:0.6;" title=${date.toISOString()}>${relativeTime}</span>
+                      ${isCurrent ? x`<span style="font-size:10px;background:#f59e0b;color:#fff;border-radius:4px;padding:1px 6px;font-weight:600;">current</span>` : ""}
+                    </div>
+                    ${v2.message || v2.version_message ? x`<div style="font-size:11px;opacity:0.6;margin-top:2px;">${v2.message || v2.version_message}</div>` : ""}
+                    <div style="display:flex;gap:6px;margin-top:6px;">
+                      <button class="btn btn-outline" style="font-size:10px;padding:2px 7px;"
+                        @click=${() => this._toggleExpandAutomation(`ver_${key}`)}>
+                        <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:11px;"></ha-icon>
+                        ${this._expandedAutomations[`ver_${key}`] ? "Hide" : "YAML"}
+                      </button>
+                      ${!isCurrent ? x`
+                        <button class="btn btn-outline" style="font-size:10px;padding:2px 7px;"
                           ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
                           @click=${() => this._restoreVersion(automationId, v2.version_id, v2.yaml || v2.yaml_content || "")}>
                           <ha-icon icon="mdi:restore" style="--mdc-icon-size:11px;"></ha-icon>
-                          ${restoring ? "Restoring\u2026" : "Restore this version"}
-                        </button>` : ""}
+                          ${restoring ? "Restoring\u2026" : "Restore"}
+                        </button>
+                      ` : ""}
+                    </div>
+                    ${this._expandedAutomations[`ver_${key}`] ? x`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0 0;white-space:pre-wrap;">${v2.yaml || v2.yaml_content || "(no YAML stored)"}</pre>` : ""}
                   </div>
-                  ${this._expandedAutomations[`ver_${key}`] ? x`<pre style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:4px 0 0;white-space:pre-wrap;">${v2.yaml || v2.yaml_content || "(no YAML stored)"}</pre>` : ""}
-                </div>
-              `;
+                `;
     })}
+            </div>
+          `}
       </div>
     `;
   }
@@ -3856,9 +4243,22 @@ var SeloraAIArchitectPanel = class extends s4 {
       return `${Math.floor(seconds / 86400)}d ago`;
     return date.toLocaleDateString();
   }
+  /** Distribute card templates into masonry columns (round-robin, left-to-right order).
+   *  Optional firstColFooter appends extra content at the bottom of the first column. */
+  _masonryColumns(cards, cols = 3, firstColFooter = null) {
+    const w2 = window.innerWidth;
+    const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
+    const buckets = Array.from({ length: numCols }, () => []);
+    cards.forEach((c3, i5) => buckets[i5 % numCols].push(c3));
+    return buckets.map((col, i5) => x`<div class="masonry-col">${col}${i5 === 0 && firstColFooter ? firstColFooter : ""}</div>`);
+  }
   _renderAutomations() {
     const filterText = (this._automationFilter || "").toLowerCase();
     const filteredAutomations = filterText ? this._automations.filter((a4) => (a4.alias || "").toLowerCase().includes(filterText)) : this._automations;
+    const perPage = this._autosPerPage || 10;
+    const totalAutoPages = Math.max(1, Math.ceil(filteredAutomations.length / perPage));
+    const safeAutoPage = Math.min(this._automationsPage, totalAutoPages);
+    const pagedAutomations = filteredAutomations.slice((safeAutoPage - 1) * perPage, safeAutoPage * perPage);
     const selectableAutomations = filteredAutomations.filter((a4) => !a4._draft && a4.automation_id);
     const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
     const selectedIds = this._getSelectedAutomationIds();
@@ -3881,7 +4281,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       this._automationsSubTab = "suggestions";
     }}>
             Suggestions
-            ${(this._suggestions || []).length + (this._proactiveSuggestions || []).length > 0 ? x`<span class="badge">${(this._suggestions || []).length + (this._proactiveSuggestions || []).length}</span>` : ""}
+            ${(() => {
+      const qualCount = (this._proactiveSuggestions || []).filter((s6) => (s6.confidence || 0) >= 0.8).length + (this._suggestions || []).length;
+      return qualCount > 0 ? x`<span class="badge">${qualCount}</span>` : "";
+    })()}
           </button>
         </div>
         ${this._automationsSubTab === "my_automations" ? x`
@@ -3904,6 +4307,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                       .value=${this._automationFilter}
                       @input=${(e5) => {
       this._automationFilter = e5.target.value;
+      this._automationsPage = 1;
     }}>
                   </div>
                   <button class="btn btn-primary" style="white-space:nowrap;" @click=${() => {
@@ -3928,6 +4332,17 @@ var SeloraAIArchitectPanel = class extends s4 {
                       Bulk edit
                     </button>
                   `}
+                  <label class="per-page-label">Show Per Page:
+                    <select class="per-page-select" .value=${String(this._autosPerPage)}
+                      @change=${(e5) => {
+      this._autosPerPage = Number(e5.target.value);
+      this._automationsPage = 1;
+    }}>
+                      <option value="10">10</option>
+                      <option value="20">20</option>
+                      <option value="50">50</option>
+                    </select>
+                  </label>
                 </div>
               </div>
               ${this._bulkEditMode && selectedIds.length > 0 ? x`
@@ -3953,7 +4368,7 @@ var SeloraAIArchitectPanel = class extends s4 {
                 </div>
               ` : ""}
               <div class="automations-grid">
-              ${filteredAutomations.map((a4) => {
+              ${this._masonryColumns(pagedAutomations.map((a4) => {
       const isDraft = !!a4._draft;
       const expanded = !!this._expandedAutomations[a4.entity_id];
       const isOn = this._automationIsEnabled(a4);
@@ -3976,7 +4391,25 @@ var SeloraAIArchitectPanel = class extends s4 {
                             @change=${(e5) => this._toggleAutomationSelection(automationId, e5)}>
                         </label>
                       ` : ""}
-                      <h3 style="flex:1;font-size:14px;margin:0;">${a4.alias}</h3>
+                      ${this._editingAlias === automationId ? x`
+                        <input class="rename-input" data-id="${automationId}"
+                          .value=${this._editingAliasValue}
+                          @input=${(e5) => {
+        this._editingAliasValue = e5.target.value;
+      }}
+                          @keydown=${(e5) => {
+        if (e5.key === "Enter")
+          this._saveRenameAutomation(automationId);
+        if (e5.key === "Escape")
+          this._cancelRenameAutomation();
+      }}>
+                        <button class="rename-save-btn" title="Save"
+                          @click=${() => this._saveRenameAutomation(automationId)}>
+                          <ha-icon icon="mdi:check" style="--mdc-icon-size:16px;"></ha-icon>
+                        </button>
+                      ` : x`
+                        <h3 style="flex:1;font-size:14px;margin:0;">${a4.alias}</h3>
+                      `}
                       ${hasAutomationId ? x`
                         <div class="burger-menu-wrapper" style="margin-left:6px;">
                           <button class="burger-btn" @click=${(e5) => this._toggleBurgerMenu(automationId, e5)}
@@ -3986,6 +4419,14 @@ var SeloraAIArchitectPanel = class extends s4 {
                           </button>
                           ${burgerOpen ? x`
                             <div class="burger-dropdown">
+                              <button class="burger-item"
+                                @click=${(e5) => {
+        e5.stopPropagation();
+        this._startRenameAutomation(automationId, a4.alias);
+      }}>
+                                <ha-icon icon="mdi:pencil-outline" style="--mdc-icon-size:14px;"></ha-icon>
+                                Rename
+                              </button>
                               <button class="burger-item danger" ?disabled=${deleting}
                                 @click=${(e5) => {
         e5.stopPropagation();
@@ -4102,10 +4543,22 @@ var SeloraAIArchitectPanel = class extends s4 {
                     ${this._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? this._renderVersionHistoryDrawer(a4) : ""}
                   </div>
                 `;
-    })}
+    }), 3, this._renderDeletedSection())}
               </div>
+              ${totalAutoPages > 1 ? x`
+                <div class="pagination">
+                  <button class="btn btn-outline" ?disabled=${safeAutoPage <= 1}
+                    @click=${() => {
+      this._automationsPage = safeAutoPage - 1;
+    }}>‹ Prev</button>
+                  <span class="page-info">Page ${safeAutoPage} of ${totalAutoPages} · ${filteredAutomations.length} automations</span>
+                  <button class="btn btn-outline" ?disabled=${safeAutoPage >= totalAutoPages}
+                    @click=${() => {
+      this._automationsPage = safeAutoPage + 1;
+    }}>Next ›</button>
+                </div>
+              ` : ""}
               ${filteredAutomations.length === 0 && this._automations.length > 0 ? x`<div style="text-align:center;opacity:0.45;padding:24px 0;">No automations match "${this._automationFilter}"</div>` : ""}
-              ${this._renderDeletedSection()}
             ` : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
@@ -4119,71 +4572,94 @@ var SeloraAIArchitectPanel = class extends s4 {
             </div>`}
         ` : ""}
         ${this._automationsSubTab === "suggestions" ? x`
-          ${this._renderProactiveSuggestions()}
-          <h2 style="margin-top:0;">AI Recommendations</h2>
-        ${this._suggestions.length === 0 ? x`
-              <div style="display:flex; flex-direction:column; align-items:center; padding:32px 0; gap:12px;">
-                <ha-icon icon="mdi:robot-vacuum-variant" style="--mdc-icon-size:56px;opacity:0.35;"></ha-icon>
-                <p style="opacity:0.45;margin:0;">No recommendations yet — background analysis runs hourly.</p>
-                <button class="btn btn-primary" style="margin-top:8px;" ?disabled=${this._generatingSuggestions}
-                  @click=${() => this._triggerGenerateSuggestions()}>
-                  <ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:16px;"></ha-icon>
-                  ${this._generatingSuggestions ? "Analyzing\u2026" : "Generate Suggestions"}
-                </button>
-              </div>
-            ` : this._suggestions.map((item) => {
+          ${this._renderUnifiedSuggestions()}
+          ${this._suggestions.length > 0 ? x`
+            <div class="automations-grid">
+              ${this._masonryColumns(this._suggestions.map((item) => {
       const auto = item.automation || item.automation_data;
       const risk = item.risk_assessment || auto?.risk_assessment || null;
-      const key = `sug_${auto.alias}`;
-      const expanded = !!this._expandedAutomations[key];
+      const cardKey = `sug_${auto.alias}`;
       const origYaml = item.automation_yaml || "";
+      const editedYaml = this._editedYaml[cardKey];
+      const displayYaml = editedYaml !== void 0 ? editedYaml : origYaml;
+      const hasFlow = auto && (auto.trigger?.length || auto.triggers?.length || auto.action?.length || auto.actions?.length);
+      const defaultTab = hasFlow ? "flow" : "yaml";
+      const activeTab = this._cardActiveTab[cardKey] !== void 0 ? this._cardActiveTab[cardKey] : defaultTab;
       return x`
-                <div class="card">
-                  <div class="card-header">
-                    <h3>${auto.alias}</h3>
-                    <div style="display:flex; flex-wrap:wrap; gap:6px; justify-content:flex-end;">
-                      <div class="chip suggestion">RECOMMENDED</div>
-                      ${(risk?.scrutiny_tags || []).map(
-        (tag) => x`<div class="chip" style="background:rgba(33,150,243,0.10); color:var(--primary-color); border:1px solid rgba(33,150,243,0.18);">${tag}</div>`
-      )}
+                  <div class="card" style="padding:12px 14px;text-align:center;">
+                    <div class="card-header" style="margin-bottom:6px;justify-content:center;">
+                      <h3 style="font-size:14px;margin:0;">${auto.alias}</h3>
                     </div>
-                  </div>
-                  ${auto.description ? x`<p>${auto.description}</p>` : ""}
-                  ${risk?.level === "elevated" ? x`
-                        <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:12px;">
-                          <ha-icon icon="mdi:alert-outline"></ha-icon>
-                          <div>
-                            <strong>Elevated risk review recommended.</strong>
-                            <div style="margin-top:4px;">${risk.summary}</div>
-                            ${risk.reasons?.length ? x`<div style="margin-top:6px; font-size:12px;">${risk.reasons.join(" ")}</div>` : ""}
+                    ${auto.description ? x`<div style="font-size:11px;opacity:0.55;margin-bottom:6px;">${auto.description}</div>` : ""}
+                    ${risk?.level === "elevated" ? x`
+                          <div class="proposal-status" style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:8px;font-size:12px;">
+                            <ha-icon icon="mdi:alert-outline"></ha-icon>
+                            <span>${risk.summary}</span>
                           </div>
-                        </div>
+                        ` : ""}
+
+                    <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                      <button class="btn btn-primary" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${!!this._savingYaml[cardKey]}
+                        @click=${() => this._createSuggestionWithEdits(auto, cardKey, origYaml)}>
+                        <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
+                        ${this._savingYaml[cardKey] ? "Creating\u2026" : "Accept"}
+                      </button>
+                      <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" @click=${() => this._discardSuggestion(item)}>
+                        <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                        Discard
+                      </button>
+                    </div>
+
+                    <div class="card-tabs">
+                      <span class="label">View:</span>
+                      ${hasFlow ? x`
+                        <button class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                          @click=${() => {
+        this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "flow" ? null : "flow" };
+      }}>
+                          <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
+                        </button>
+                        <span class="card-tab-sep">|</span>
                       ` : ""}
+                      <button class="card-tab ${activeTab === "yaml" ? "active" : ""}"
+                        @click=${() => {
+        this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "yaml" ? null : "yaml" };
+      }}>
+                        <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
+                      </button>
+                      <ha-icon icon="mdi:chevron-down"
+                        class="card-chevron ${activeTab ? "open" : ""}"
+                        style="margin-left:auto;"
+                        @click=${() => {
+        this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab ? null : hasFlow ? "flow" : "yaml" };
+      }}></ha-icon>
+                    </div>
 
-                  ${this._renderAutomationFlowchart(auto)}
+                    ${activeTab === "flow" && hasFlow ? this._renderAutomationFlowchart(auto) : ""}
 
-                  <div class="expand-toggle" @click=${() => this._toggleExpandAutomation(key)}>
-                    <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:13px;"></ha-icon>
-                    ${expanded ? "Hide YAML" : "Edit YAML"}
+                    ${activeTab === "yaml" ? x`
+                      <div style="margin-top:6px;">
+                        <textarea class="yaml-editor"
+                          style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
+                          .value=${displayYaml}
+                          @input=${(e5) => {
+        this._editedYaml = { ...this._editedYaml, [cardKey]: e5.target.value };
+        e5.target.style.height = "auto";
+        e5.target.style.height = e5.target.scrollHeight + "px";
+      }}
+                          @focus=${(e5) => {
+        e5.target.style.height = "auto";
+        e5.target.style.height = e5.target.scrollHeight + "px";
+      }}>
+                        </textarea>
+                      </div>
+                    ` : ""}
                   </div>
-                  ${expanded ? this._renderYamlEditor(key, origYaml) : ""}
-
-                  <div class="card-actions">
-                    <button class="btn btn-outline" @click=${() => this._discardSuggestion(item)}>
-                      <ha-icon icon="mdi:trash-can-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                      Discard
-                    </button>
-                    <button class="btn btn-primary" ?disabled=${!!this._savingYaml[key]}
-                      @click=${() => this._createSuggestionWithEdits(auto, key, origYaml)}>
-                      <ha-icon icon="mdi:plus" style="--mdc-icon-size:13px;"></ha-icon>
-                      ${this._savingYaml[key] ? "Creating\u2026" : "Create Automation"}
-                    </button>
-                  </div>
-                </div>
-              `;
-    })}
+                `;
+    }))}
+            </div>
+          ` : ""}
         ` : ""}
-      </div>
       ${this._renderDiffViewer()}
       ${this._renderNewAutomationDialog()}
     `;
@@ -4191,102 +4667,165 @@ var SeloraAIArchitectPanel = class extends s4 {
   // -------------------------------------------------------------------------
   // Proactive suggestions section (automations tab)
   // -------------------------------------------------------------------------
-  _renderProactiveSuggestions() {
-    if (!this._showProactive && !this._proactiveSuggestions.length)
-      return "";
+  _renderUnifiedSuggestions() {
+    const MIN_CONF = 0.8;
+    const SPAGE_SIZE = this._suggestionsPerPage || 10;
+    const seenDescs = /* @__PURE__ */ new Set();
+    const qualified = (this._proactiveSuggestions || []).filter((s6) => {
+      if ((s6.confidence || 0) < MIN_CONF)
+        return false;
+      const key = (s6.description || "").toLowerCase().trim();
+      if (seenDescs.has(key))
+        return false;
+      seenDescs.add(key);
+      return true;
+    });
+    const totalItems = qualified.length + (this._suggestions || []).length;
     return x`
       <div style="margin-bottom:16px;">
-        <div class="filter-row" style="margin-bottom:8px;">
-          <h2 style="margin:0;display:flex;align-items:center;gap:8px;">
-            <ha-icon icon="mdi:lightbulb-auto-outline" style="--mdc-icon-size:20px;color:#f59e0b;"></ha-icon>
-            Suggested
-            ${this._proactiveSuggestions.length > 0 ? x`<span style="background:#f59e0b;color:#000;border-radius:10px;padding:1px 8px;font-size:11px;font-weight:600;">${this._proactiveSuggestions.length}</span>` : ""}
-          </h2>
-          <div style="display:flex;align-items:center;gap:8px;">
+        <div class="filter-row" style="margin-bottom:12px;">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:center;">
             <button class="btn" style="font-size:11px;" ?disabled=${this._loadingProactive}
               @click=${() => this._triggerPatternScan()}>
               <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
               ${this._loadingProactive ? "Scanning\u2026" : "Scan Now"}
             </button>
-            <button class="btn" style="font-size:11px;"
-              @click=${() => {
-      this._showProactive = !this._showProactive;
-    }}>
-              <ha-icon icon="mdi:chevron-${this._showProactive ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-              ${this._showProactive ? "Hide" : "Show"}
+            <button class="btn btn-primary" style="font-size:11px;" ?disabled=${this._generatingSuggestions}
+              @click=${() => this._triggerGenerateSuggestions()}>
+              ${this._generatingSuggestions ? x`<span class="spinner" style="width:14px;height:14px;border-width:2px;vertical-align:middle;"></span>` : x`<ha-icon icon="mdi:auto-fix" style="--mdc-icon-size:13px;"></ha-icon>`}
+              ${this._generatingSuggestions ? "Analyzing\u2026" : "Generate"}
             </button>
+            <label class="per-page-label">Show Per Page:
+              <select class="per-page-select" .value=${String(this._suggestionsPerPage)}
+                @change=${(e5) => {
+      this._suggestionsPerPage = Number(e5.target.value);
+      this._suggestionsPage = 1;
+    }}>
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="50">50</option>
+              </select>
+            </label>
           </div>
         </div>
 
-        ${this._showProactive ? x`
-          ${this._proactiveSuggestions.length === 0 ? x`<div class="card" style="padding:16px;text-align:center;opacity:0.6;font-size:13px;">
-                <ha-icon icon="mdi:check-circle-outline" style="--mdc-icon-size:24px;margin-bottom:8px;display:block;"></ha-icon>
-                No new suggestions. Patterns are analyzed every 15 minutes.
-              </div>` : x`
-              <div class="automations-grid">
-                ${this._proactiveSuggestions.map((s6) => {
-      const expanded = !!this._proactiveExpanded[s6.suggestion_id];
-      const accepting = !!this._acceptingProactive[s6.suggestion_id];
-      const dismissing = !!this._dismissingProactive[s6.suggestion_id];
-      const yamlKey = `proactive_${s6.suggestion_id}`;
-      const editedYaml = this._editedYaml[yamlKey];
-      const displayYaml = editedYaml !== void 0 ? editedYaml : s6.automation_yaml;
-      const confidencePct = Math.round((s6.confidence || 0) * 100);
-      const confidenceColor = confidencePct >= 75 ? "#22c55e" : confidencePct >= 50 ? "#f59e0b" : "#ef4444";
+        ${totalItems === 0 ? x`
+          <div style="display:flex;flex-direction:column;align-items:center;padding:32px 0;gap:12px;">
+            <ha-icon icon="mdi:lightbulb-auto-outline" style="--mdc-icon-size:48px;opacity:0.3;"></ha-icon>
+            <p style="opacity:0.45;margin:0;font-size:13px;">No suggestions yet. Tap "Generate" to analyze your home.</p>
+          </div>
+        ` : ""}
+
+        ${qualified.length > 0 ? x`
+          ${(() => {
+      const sTotalPages = Math.max(1, Math.ceil(qualified.length / SPAGE_SIZE));
+      const sSafePage = Math.min(this._suggestionsPage, sTotalPages);
+      const sPaged = qualified.slice((sSafePage - 1) * SPAGE_SIZE, sSafePage * SPAGE_SIZE);
       return x`
-                    <div class="card" style="padding:12px 14px;border-color:#f59e0b;border-left:3px solid #f59e0b;">
-                      <div class="card-header" style="margin-bottom:6px;">
-                        <h3 style="flex:1;font-size:14px;margin:0;">${s6.description}</h3>
-                        <span style="font-size:11px;color:${confidenceColor};font-weight:600;margin-left:8px;">${confidencePct}%</span>
-                        <div class="chip ai-managed" style="margin-left:6px;">PATTERN</div>
+              <div class="automations-grid">
+                ${this._masonryColumns(sPaged.map((s6) => {
+        const accepting = !!this._acceptingProactive[s6.suggestion_id];
+        const dismissing = !!this._dismissingProactive[s6.suggestion_id];
+        const cardKey = `proactive_${s6.suggestion_id}`;
+        const editedYaml = this._editedYaml[cardKey];
+        const displayYaml = editedYaml !== void 0 ? editedYaml : s6.automation_yaml;
+        const parsedAuto = s6.automation_data || null;
+        const hasFlow = parsedAuto && (parsedAuto.trigger?.length || parsedAuto.triggers?.length || parsedAuto.action?.length || parsedAuto.actions?.length);
+        const defaultTab = hasFlow ? "flow" : "yaml";
+        const activeTab = this._cardActiveTab[cardKey] !== void 0 ? this._cardActiveTab[cardKey] : defaultTab;
+        return x`
+                    <div class="card" style="padding:12px 14px;text-align:center;">
+                      <div class="card-header" style="margin-bottom:6px;justify-content:center;">
+                        <h3 style="font-size:14px;margin:0;">${s6.description}</h3>
                       </div>
 
-                      <div style="font-size:11px;opacity:0.6;margin-bottom:8px;">
-                        ${s6.evidence_summary || ""}
-                        ${s6.source === "hybrid" ? x` <span style="opacity:0.5;">· AI-enhanced</span>` : ""}
-                      </div>
-
-                      <span class="expand-toggle" style="padding:0;margin:0 0 8px;" @click=${() => {
-        this._proactiveExpanded = { ...this._proactiveExpanded, [s6.suggestion_id]: !expanded };
-      }}>
-                        <ha-icon icon="mdi:chevron-${expanded ? "up" : "down"}" style="--mdc-icon-size:13px;"></ha-icon>
-                        ${expanded ? "Hide YAML" : "Show YAML"}
-                      </span>
-
-                      ${expanded ? x`
-                        <div style="margin-bottom:8px;">
-                          <textarea class="yaml-editor"
-                            style="width:100%;min-height:120px;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:vertical;"
-                            .value=${displayYaml}
-                            @input=${(e5) => {
-        this._editedYaml = { ...this._editedYaml, [yamlKey]: e5.target.value };
-      }}>
-                          </textarea>
+                      ${s6.evidence_summary ? x`
+                        <div style="font-size:11px;opacity:0.55;margin-bottom:6px;">
+                          ${s6.evidence_summary}
                         </div>
                       ` : ""}
 
-                      <div style="display:flex;gap:8px;justify-content:flex-end;">
-                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._snoozeProactiveSuggestion(s6.suggestion_id)}>
-                          <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
-                          Snooze
-                        </button>
-                        <button class="btn" style="font-size:11px;" ?disabled=${dismissing}
-                          @click=${() => this._dismissProactiveSuggestion(s6.suggestion_id)}>
-                          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
-                          ${dismissing ? "Dismissing\u2026" : "Dismiss"}
-                        </button>
-                        <button class="btn btn-primary" style="font-size:11px;" ?disabled=${accepting}
+                      <div style="display:flex;align-items:center;gap:6px;margin-bottom:2px;">
+                        <button class="btn btn-primary" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${accepting}
                           @click=${() => this._acceptProactiveSuggestion(s6.suggestion_id, editedYaml)}>
                           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
                           ${accepting ? "Creating\u2026" : "Accept"}
                         </button>
+                        <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${dismissing}
+                          @click=${() => this._dismissProactiveSuggestion(s6.suggestion_id)}>
+                          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+                          ${dismissing ? "Dismissing\u2026" : "Dismiss"}
+                        </button>
+                        <button class="btn btn-outline" style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;" ?disabled=${dismissing}
+                          @click=${() => this._snoozeProactiveSuggestion(s6.suggestion_id)}>
+                          <ha-icon icon="mdi:clock-outline" style="--mdc-icon-size:13px;"></ha-icon>
+                          Snooze
+                        </button>
                       </div>
+
+                      <div class="card-tabs">
+                        <span class="label">View:</span>
+                        ${hasFlow ? x`
+                          <button class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                            @click=${() => {
+          this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "flow" ? null : "flow" };
+        }}>
+                            <ha-icon icon="mdi:sitemap-outline" style="--mdc-icon-size:14px;"></ha-icon> Flow
+                          </button>
+                          <span class="card-tab-sep">|</span>
+                        ` : ""}
+                        <button class="card-tab ${activeTab === "yaml" ? "active" : ""}"
+                          @click=${() => {
+          this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab === "yaml" ? null : "yaml" };
+        }}>
+                          <ha-icon icon="mdi:code-braces" style="--mdc-icon-size:14px;"></ha-icon> YAML
+                        </button>
+                        <ha-icon icon="mdi:chevron-down"
+                          class="card-chevron ${activeTab ? "open" : ""}"
+                          style="margin-left:auto;"
+                          @click=${() => {
+          this._cardActiveTab = { ...this._cardActiveTab, [cardKey]: activeTab ? null : "yaml" };
+        }}></ha-icon>
+                      </div>
+
+                      ${activeTab === "flow" && hasFlow ? this._renderAutomationFlowchart(parsedAuto) : ""}
+
+                      ${activeTab === "yaml" ? x`
+                        <div style="margin-top:6px;">
+                          <textarea class="yaml-editor"
+                            style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
+                            .value=${displayYaml}
+                            @input=${(e5) => {
+          this._editedYaml = { ...this._editedYaml, [cardKey]: e5.target.value };
+          e5.target.style.height = "auto";
+          e5.target.style.height = e5.target.scrollHeight + "px";
+        }}
+                            @focus=${(e5) => {
+          e5.target.style.height = "auto";
+          e5.target.style.height = e5.target.scrollHeight + "px";
+        }}>
+                          </textarea>
+                        </div>
+                      ` : ""}
                     </div>
                   `;
-    })}
+      }))}
               </div>
-            `}
+              ${sTotalPages > 1 ? x`
+                <div class="pagination">
+                  <button class="btn btn-outline" ?disabled=${sSafePage <= 1}
+                    @click=${() => {
+        this._suggestionsPage = sSafePage - 1;
+      }}>‹ Prev</button>
+                  <span class="page-info">Page ${sSafePage} of ${sTotalPages} · ${qualified.length} suggestions</span>
+                  <button class="btn btn-outline" ?disabled=${sSafePage >= sTotalPages}
+                    @click=${() => {
+        this._suggestionsPage = sSafePage + 1;
+      }}>Next ›</button>
+                </div>
+              ` : ""}
+            `;
+    })()}
         ` : ""}
       </div>
     `;

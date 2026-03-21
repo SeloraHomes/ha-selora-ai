@@ -206,11 +206,13 @@ class SeloraAIDashboardCard extends LitElement {
     const name = this._newAutomationName.trim();
     if (!name) return;
     // Navigate to the panel with the automation name as a query param
-    window.location.href = `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`;
+    history.pushState(null, "", `/selora-ai-architect?new_automation=${encodeURIComponent(name)}`);
+    window.dispatchEvent(new Event("location-changed"));
   }
 
   _openPanel() {
-    window.location.href = "/selora-ai-architect?tab=automations";
+    history.pushState(null, "", "/selora-ai-architect?tab=automations");
+    window.dispatchEvent(new Event("location-changed"));
   }
 
   // -------------------------------------------------------------------------
@@ -440,7 +442,7 @@ class SeloraAIDashboardCard extends LitElement {
             ` : ""}
 
             <div class="detail-actions">
-              <button class="detail-btn open-btn" @click=${() => { window.location.href = "/selora-ai-architect?tab=automations"; }}>
+              <button class="detail-btn open-btn" @click=${() => { history.pushState(null, "", "/selora-ai-architect?tab=automations"); window.dispatchEvent(new Event("location-changed")); }}>
                 <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
               </button>
               <button class="detail-btn delete-btn" @click=${() => this._deleteAutomation(a)}>
