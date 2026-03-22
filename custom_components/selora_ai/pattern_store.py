@@ -58,6 +58,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import (
+    DISMISSAL_SUPPRESSION_WINDOW_DAYS,
     PATTERN_HISTORY_MAX_PER_ENTITY,
     PATTERN_HISTORY_RETENTION_DAYS,
     PATTERN_STORE_KEY,
@@ -93,6 +94,11 @@ class PatternStore:
                 "suggestions": {},
                 "meta": {},
             }
+
+        # Migration: ensure all suggestions have dismissal fields (added in v2)
+        for s in self._data["suggestions"].values():
+            s.setdefault("dismissed_at", None)
+            s.setdefault("dismissal_reason", None)
 
     async def _get_loaded_data(self) -> dict[str, Any]:
         await self._ensure_loaded()
@@ -441,6 +447,8 @@ class PatternStore:
             "created_at": now,
             "status": "pending",
             "snooze_until": None,
+            "dismissed_at": None,
+            "dismissal_reason": None,
         }
 
         await self._save()
@@ -476,16 +484,42 @@ class PatternStore:
         suggestion_id: str,
         status: str,
         snooze_until: str | None = None,
+        dismissed_at: str | None = None,
+        dismissal_reason: str | None = None,
     ) -> bool:
-        """Update a suggestion's status."""
+        """Update a suggestion's status, including optional dismissal metadata."""
         data = await self._get_loaded_data()
         suggestion = data["suggestions"].get(suggestion_id)
         if not suggestion:
             return False
         suggestion["status"] = status
         suggestion["snooze_until"] = snooze_until
+        if dismissed_at is not None:
+            suggestion["dismissed_at"] = dismissed_at
+        if dismissal_reason is not None:
+            suggestion["dismissal_reason"] = dismissal_reason
         await self._save()
         return True
+
+    async def get_recently_dismissed_suggestions(
+        self, window_days: int = DISMISSAL_SUPPRESSION_WINDOW_DAYS
+    ) -> list[dict[str, Any]]:
+        """Return suggestions dismissed within the suppression window.
+
+        Used by SuggestionGenerator to avoid re-surfacing recently rejected
+        patterns and to pass dismissal context to the LLM.
+        """
+        data = await self._get_loaded_data()
+        cutoff = (
+            datetime.now(timezone.utc) - timedelta(days=window_days)
+        ).isoformat()
+        return [
+            s
+            for s in data["suggestions"].values()
+            if s.get("status") == "dismissed"
+            and s.get("dismissed_at")
+            and s["dismissed_at"] >= cutoff
+        ]
 
     async def get_suggestion(self, suggestion_id: str) -> dict[str, Any] | None:
         """Return a single suggestion by ID."""

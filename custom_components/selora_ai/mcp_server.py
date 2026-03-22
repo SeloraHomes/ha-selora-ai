@@ -1128,18 +1128,37 @@ async def _tool_dismiss_suggestion(
     if target is None:
         return {"error": f"Suggestion {suggestion_id} not found"}
 
+    now_iso = datetime.now(timezone.utc).isoformat()
+    dismissal_reason = reason if reason else "user-declined"
+
+    # Update in-memory status overlay (used by phase-2 suggestion rendering)
     status_store = _get_suggestion_status_store(hass)
     status_store[suggestion_id] = {
         "status": "dismissed",
-        "reason": reason,
+        "reason": dismissal_reason,
         "created_at": status_store.get(suggestion_id, {}).get("created_at", target["created_at"]),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": now_iso,
     }
+
+    # Persist to PatternStore so dismissal survives HA restarts (#43)
+    pattern_store = hass.data.get(DOMAIN, {}).get("pattern_store")
+    if pattern_store is not None:
+        await pattern_store.update_suggestion_status(
+            suggestion_id,
+            status="dismissed",
+            dismissed_at=now_iso,
+            dismissal_reason=dismissal_reason,
+        )
+    else:
+        _LOGGER.warning(
+            "pattern_store not available — dismissal for %s not persisted to storage",
+            suggestion_id,
+        )
 
     return {
         "suggestion_id": suggestion_id,
         "status": "dismissed",
-        "reason": reason,
+        "reason": dismissal_reason,
     }
 
 
