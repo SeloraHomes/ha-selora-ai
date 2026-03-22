@@ -502,6 +502,8 @@ class DataCollector:
         "state_class", "last_reset",
         # Cover
         "current_position", "current_tilt_position",
+        # Presence / device tracker
+        "source_type",
     }
 
     def _collect_entity_states(self) -> list[dict[str, Any]]:
