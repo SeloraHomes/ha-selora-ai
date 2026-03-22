@@ -17,6 +17,7 @@ from homeassistant.core import HomeAssistant
 from .automation_utils import validate_automation_payload
 from .const import (
     CONFIDENCE_MEDIUM,
+    DISMISSAL_SUPPRESSION_WINDOW_DAYS,
     PATTERN_TYPE_CORRELATION,
     PATTERN_TYPE_SEQUENCE,
     PATTERN_TYPE_TIME_BASED,
@@ -46,14 +47,28 @@ class SuggestionGenerator:
 
         For each pattern above CONFIDENCE_MEDIUM:
         1. Skip if already has a pending suggestion
-        2. Build a valid HA automation payload
-        3. Validate through automation_utils
-        4. Deduplicate against existing automations
-        5. Optionally enrich description via LLM
-        6. Save to pattern store
+        2. Skip if pattern was dismissed within the suppression window (#44)
+        3. Build a valid HA automation payload
+        4. Validate through automation_utils
+        5. Deduplicate against existing automations
+        6. Optionally enrich description via LLM (with dismissal context, #45)
+        7. Save to pattern store
         """
         suggestions: list[dict[str, Any]] = []
         existing_aliases = self._get_existing_aliases()
+
+        # Fetch recently dismissed suggestions once for the whole batch (#44 + #45)
+        recently_dismissed = await self._store.get_recently_dismissed_suggestions()
+        dismissed_pattern_ids: set[str] = {
+            s["pattern_id"] for s in recently_dismissed if s.get("pattern_id")
+        }
+        dismissed_summary = self._build_dismissed_summary(recently_dismissed)
+        if dismissed_pattern_ids:
+            _LOGGER.debug(
+                "Dismissal suppression active for %d pattern(s) within %d-day window",
+                len(dismissed_pattern_ids),
+                DISMISSAL_SUPPRESSION_WINDOW_DAYS,
+            )
 
         for pattern in patterns:
             if pattern["confidence"] < CONFIDENCE_MEDIUM:
@@ -61,6 +76,15 @@ class SuggestionGenerator:
 
             pattern_id = pattern.get("pattern_id", "")
             if pattern_id and await self._store.has_suggestion_for_pattern(pattern_id):
+                continue
+
+            # Skip patterns whose suggestions were recently dismissed (#44)
+            if pattern_id and pattern_id in dismissed_pattern_ids:
+                _LOGGER.debug(
+                    "Suppressing suggestion for pattern %s — dismissed within %d-day window",
+                    pattern_id,
+                    DISMISSAL_SUPPRESSION_WINDOW_DAYS,
+                )
                 continue
 
             automation = self._pattern_to_automation(pattern)
@@ -95,9 +119,11 @@ class SuggestionGenerator:
                 "evidence_summary": self._build_evidence_summary(pattern),
             }
 
-            # Optional LLM enrichment (best-effort, non-blocking)
+            # Optional LLM enrichment with dismissal context (best-effort, non-blocking) (#45)
             if self._llm:
-                suggestion = await self._enrich_with_llm(suggestion, pattern)
+                suggestion = await self._enrich_with_llm(
+                    suggestion, pattern, dismissed_summary=dismissed_summary
+                )
 
             sid = await self._store.save_suggestion(suggestion)
             suggestion["suggestion_id"] = sid
@@ -258,6 +284,26 @@ class SuggestionGenerator:
         return None
 
     @staticmethod
+    def _build_dismissed_summary(dismissed: list[dict[str, Any]]) -> str:
+        """Build a short dismissal context string for the LLM prompt (#45).
+
+        Groups dismissed suggestions by pattern type and reason so the model
+        can avoid proposing automation categories the user has already rejected.
+        """
+        if not dismissed:
+            return ""
+        lines: list[str] = []
+        seen: set[str] = set()
+        for s in dismissed:
+            desc = s.get("description", "")
+            reason = s.get("dismissal_reason") or "user-declined"
+            key = f"{desc[:60]}|{reason}"
+            if key not in seen:
+                seen.add(key)
+                lines.append(f"- {desc[:80]} (reason: {reason})")
+        return "\n".join(lines[:10])  # cap at 10 to keep prompt manageable
+
+    @staticmethod
     def _build_evidence_summary(pattern: dict[str, Any]) -> str:
         """Human-readable summary of pattern evidence."""
         evidence = pattern.get("evidence", {})
@@ -280,15 +326,28 @@ class SuggestionGenerator:
         return f"Observed {count} times"
 
     async def _enrich_with_llm(
-        self, suggestion: dict[str, Any], pattern: dict[str, Any]
+        self,
+        suggestion: dict[str, Any],
+        pattern: dict[str, Any],
+        dismissed_summary: str = "",
     ) -> dict[str, Any]:
-        """Ask the LLM for a better human description (best-effort)."""
+        """Ask the LLM for a better human description (best-effort).
+
+        Passes a summary of recently dismissed patterns so the LLM avoids
+        re-proposing similar automations (#45).
+        """
         try:
+            dismissal_context = (
+                f"\nRecently dismissed automation types (do not re-suggest similar patterns):\n{dismissed_summary}"
+                if dismissed_summary
+                else ""
+            )
             prompt = (
                 "Rewrite this automation description to be clear and friendly "
                 "for a homeowner (one sentence, no technical jargon):\n"
                 f"Pattern: {pattern['description']}\n"
                 f"Evidence: {suggestion['evidence_summary']}"
+                f"{dismissal_context}"
             )
             result, _ = await asyncio.wait_for(
                 self._llm._send_request(

@@ -345,4 +345,7 @@ PATTERN_TYPE_SEQUENCE = "sequence"
 CONFIDENCE_HIGH = 0.75
 CONFIDENCE_MEDIUM = 0.50
 
+# How long a dismissed suggestion suppresses re-surfacing of the same pattern
+DISMISSAL_SUPPRESSION_WINDOW_DAYS = 7
+
 SIGNAL_PROACTIVE_SUGGESTIONS = f"{DOMAIN}_proactive_suggestions"
