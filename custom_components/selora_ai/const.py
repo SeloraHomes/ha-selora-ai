@@ -294,6 +294,7 @@ COLLECTOR_DOMAINS = {
     "light", "switch", "media_player", "climate", "fan",
     "cover", "lock", "vacuum", "sensor", "binary_sensor",
     "water_heater", "humidifier", "input_boolean", "input_select",
+    "device_tracker", "person",
 }
 
 # ── LLM Suggestion Limits ───────────────────────────────────────────

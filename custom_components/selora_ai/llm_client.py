@@ -222,6 +222,7 @@ class LLMClient:
             "light", "switch", "media_player", "climate", "fan",
             "cover", "lock", "vacuum", "sensor", "binary_sensor",
             "water_heater", "humidifier", "input_boolean", "input_select",
+            "device_tracker", "person",
         }
 
         entity_lines: list[str] = []
@@ -408,6 +409,7 @@ class LLMClient:
             "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
             "- For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
             "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
+            "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
@@ -607,6 +609,7 @@ class LLMClient:
             "- For service calls, use the 'service' key (e.g. 'light.turn_on').\n"
             "- For state triggers, 'to' and 'from' MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
             "- Match entity names flexibly: 'kitchen lights' -> 'light.kitchen', etc.\n"
+            "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
@@ -699,6 +702,7 @@ class LLMClient:
             "light", "switch", "media_player", "climate", "fan",
             "cover", "lock", "vacuum", "sensor", "binary_sensor",
             "water_heater", "humidifier", "input_boolean", "input_select",
+            "device_tracker", "person",
         }
 
         entity_lines: list[str] = []
