@@ -77,8 +77,8 @@ if strings_path.exists() and en_path.exists():
             errors.append(f"translations/en.json missing keys: {sorted(missing_in_en)}")
         if extra_in_en:
             errors.append(f"translations/en.json has extra keys vs strings.json: {sorted(extra_in_en)}")
-    except json.JSONDecodeError:
-        pass  # covered above
+    except json.JSONDecodeError as exc:
+        errors.append(f"strings.json or translations/en.json: invalid JSON — {exc}")
 
 # ── Result ────────────────────────────────────────────────────────────────────
 if errors:

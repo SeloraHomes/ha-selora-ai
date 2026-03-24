@@ -1,0 +1,11 @@
+{
+  "name": "ha-selora-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Selora AI Home Assistant integration — release tooling",
+  "scripts": {
+    "release": "semantic-release",
+    "release:dry": "semantic-release --dry-run"
+  }
+}

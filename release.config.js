@@ -1,0 +1,105 @@
+// semantic-release configuration
+// Docs: https://semantic-release.gitbook.io/semantic-release/
+//
+// Trigger: runs automatically in GitLab CI on every push to main.
+// Requires CI variables:
+//   GL_TOKEN  — GitLab project access token (write_repository + api scope)
+//   GH_TOKEN  — GitHub personal access token (repo scope) for the HACS mirror
+//
+// Commit types that produce a release:
+//   feat:            → minor bump  (0.1.0 → 0.2.0)
+//   fix: / perf: / refactor: → patch bump  (0.1.0 → 0.1.1)
+//   BREAKING CHANGE  → major bump  (0.1.0 → 1.0.0)
+//   docs: / chore: / style: / test: → no release
+
+export default {
+  branches: ["main"],
+  tagFormat: "v${version}",
+
+  plugins: [
+    // 1. Analyse commits to determine the next version
+    [
+      "@semantic-release/commit-analyzer",
+      {
+        preset: "conventionalcommits",
+        releaseRules: [
+          { type: "feat",     release: "minor" },
+          { type: "fix",      release: "patch" },
+          { type: "perf",     release: "patch" },
+          { type: "refactor", release: "patch" },
+          { type: "revert",   release: "patch" },
+          { type: "docs",     release: false   },
+          { type: "chore",    release: false   },
+          { type: "style",    release: false   },
+          { type: "test",     release: false   },
+          { breaking: true,   release: "major" },
+        ],
+      },
+    ],
+
+    // 2. Generate human-readable release notes
+    [
+      "@semantic-release/release-notes-generator",
+      {
+        preset: "conventionalcommits",
+        presetConfig: {
+          types: [
+            { type: "feat",     section: "Features"         },
+            { type: "fix",      section: "Bug Fixes"        },
+            { type: "perf",     section: "Performance"      },
+            { type: "refactor", section: "Code Refactoring" },
+            { type: "revert",   section: "Reverts"          },
+            { type: "docs",     section: "Documentation", hidden: true },
+            { type: "chore",    section: "Chores",        hidden: true },
+          ],
+        },
+      },
+    ],
+
+    // 3. Prepend release notes to CHANGELOG.md
+    [
+      "@semantic-release/changelog",
+      { changelogFile: "CHANGELOG.md" },
+    ],
+
+    // 4. Bump the version field in manifest.json to match the new tag
+    [
+      "@semantic-release/exec",
+      {
+        prepareCmd:
+          "python3 scripts/bump_manifest_version.py ${nextRelease.version}",
+      },
+    ],
+
+    // 5. Commit the updated CHANGELOG.md + manifest.json back to main
+    [
+      "@semantic-release/git",
+      {
+        assets: [
+          "CHANGELOG.md",
+          "custom_components/selora_ai/manifest.json",
+        ],
+        message:
+          "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}",
+      },
+    ],
+
+    // 6. Create the GitLab tag + release page
+    [
+      "@semantic-release/gitlab",
+      {
+        gitlabUrl: "https://gitlab.com",
+        gitlabApiPathPrefix: "/api/v4",
+      },
+    ],
+
+    // 7. Create matching GitHub release (HACS reads tags/releases from the mirror)
+    [
+      "@semantic-release/github",
+      {
+        githubUrl: "https://api.github.com",
+        repositoryUrl: "https://github.com/SeloraHomes/ha-selora-ai",
+      },
+    ],
+  ],
+};
