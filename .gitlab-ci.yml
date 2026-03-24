@@ -1,0 +1,75 @@
+# Selora AI — GitLab CI Pipeline
+# Runs on every merge request and on pushes to the default branch.
+
+stages:
+  - lint
+  - validate
+  - test
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+.pip-cache: &pip-cache
+  cache:
+    key: "pip-py313-$CI_COMMIT_REF_SLUG"
+    paths:
+      - .cache/pip
+
+.default-rules: &default-rules
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+
+# =============================================================================
+# STAGE: lint
+# =============================================================================
+
+lint:ruff:
+  stage: lint
+  image: python:3.13-slim
+  <<: *pip-cache
+  <<: *default-rules
+  before_script:
+    - pip install ruff --quiet
+  script:
+    - echo "ruff lint"
+    - ruff check custom_components/
+    - echo "ruff format check"
+    - ruff format --check custom_components/
+
+# =============================================================================
+# STAGE: validate
+# =============================================================================
+
+validate:hacs:
+  stage: validate
+  image: python:3.13-slim
+  <<: *default-rules
+  script:
+    - python3 scripts/validate_hacs.py
+
+validate:manifest:
+  stage: validate
+  image: python:3.13-slim
+  <<: *default-rules
+  script:
+    - python3 scripts/validate_manifest.py
+
+# =============================================================================
+# STAGE: test
+# =============================================================================
+
+test:unit:
+  stage: test
+  image: python:3.13-slim
+  <<: *pip-cache
+  <<: *default-rules
+  before_script:
+    - pip install pytest pytest-asyncio --quiet
+  script:
+    - >-
+      if [ -d "tests" ]; then
+        pytest tests/ -v;
+      else
+        echo "No tests/ directory — skipping";
+      fi

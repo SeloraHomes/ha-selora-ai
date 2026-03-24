@@ -11,38 +11,36 @@ Data sources:
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 import hashlib
 import json
 import logging
-import uuid
-from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
-
-import yaml
+import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers.event import async_track_time_interval
+import yaml
 
+from .automation_utils import assess_automation_risk, validate_automation_payload
 from .const import (
     AUTOMATION_ID_PREFIX,
     COLLECTOR_DOMAINS,
+    CONF_COLLECTOR_ENABLED,
+    CONF_COLLECTOR_END_TIME,
+    CONF_COLLECTOR_INTERVAL,
+    CONF_COLLECTOR_MODE,
+    CONF_COLLECTOR_START_TIME,
+    DEFAULT_COLLECTOR_ENABLED,
+    DEFAULT_COLLECTOR_INTERVAL,
+    DEFAULT_COLLECTOR_MODE,
     DEFAULT_LLM_TIMEOUT,
-    DEFAULT_PUSH_INTERVAL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
-    CONF_COLLECTOR_ENABLED,
-    CONF_COLLECTOR_MODE,
-    CONF_COLLECTOR_INTERVAL,
-    CONF_COLLECTOR_START_TIME,
-    CONF_COLLECTOR_END_TIME,
     MODE_SCHEDULED,
-    DEFAULT_COLLECTOR_ENABLED,
-    DEFAULT_COLLECTOR_MODE,
-    DEFAULT_COLLECTOR_INTERVAL,
 )
-from .automation_utils import assess_automation_risk, validate_automation_payload
 from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
@@ -106,6 +104,7 @@ class DataCollector:
         """Daily timer callback: purge expired soft-deleted automations."""
         try:
             from .automation_utils import async_purge_deleted_automations
+
             purged = await async_purge_deleted_automations(self._hass)
             if purged:
                 _LOGGER.info("Daily purge removed %d expired automations: %s", len(purged), purged)
@@ -119,9 +118,11 @@ class DataCollector:
         if mode == MODE_SCHEDULED:
             start_str = self._settings.get(CONF_COLLECTOR_START_TIME, "09:00")
             end_str = self._settings.get(CONF_COLLECTOR_END_TIME, "17:00")
-            
+
             if not self._is_within_window(start_str, end_str):
-                _LOGGER.debug("Outside scheduled window (%s - %s), skipping collection", start_str, end_str)
+                _LOGGER.debug(
+                    "Outside scheduled window (%s - %s), skipping collection", start_str, end_str
+                )
                 return
 
         try:
@@ -143,7 +144,7 @@ class DataCollector:
                 return now >= start or now <= end
         except ValueError:
             _LOGGER.error("Invalid time format in settings: %s or %s", start_time, end_time)
-            return True # Default to allowed if config is broken
+            return True  # Default to allowed if config is broken
 
     async def _collect_analyze_log(self) -> None:
         """Full cycle: collect → LLM analysis → log suggestions."""
@@ -157,7 +158,7 @@ class DataCollector:
             "entity_states": self._collect_entity_states(),
             "automations": self._collect_automations(),
             "recorder_history": await self._collect_recorder_history(),
-            "collected_at": datetime.now(timezone.utc).isoformat(),
+            "collected_at": datetime.now(UTC).isoformat(),
         }
 
         _LOGGER.info(
@@ -289,9 +290,7 @@ class DataCollector:
             _LOGGER.exception("Failed to read automations.yaml")
             return []
 
-        existing_aliases = {
-            a.get("alias", "").lower() for a in existing if isinstance(a, dict)
-        }
+        existing_aliases = {a.get("alias", "").lower() for a in existing if isinstance(a, dict)}
 
         new_automations = []
         for suggestion in suggestions:
@@ -352,6 +351,7 @@ class DataCollector:
         # Record first version for each new automation in the lifecycle store
         try:
             from .automation_utils import _get_automation_store
+
             store = _get_automation_store(self._hass)
             for automation in new_automations:
                 yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
@@ -389,6 +389,7 @@ class DataCollector:
         if the process crashes mid-write.
         """
         from ruamel.yaml import YAML
+
         ryaml = YAML()
         ryaml.default_flow_style = False
         ryaml.allow_unicode = True
@@ -397,11 +398,14 @@ class DataCollector:
             ryaml.dump(automations, fh)
         tmp_path.replace(path)  # atomic on POSIX
 
-    def _notify_suggestions(self, suggestions: list[dict[str, Any]], created_count: int = 0) -> None:
+    def _notify_suggestions(
+        self, suggestions: list[dict[str, Any]], created_count: int = 0
+    ) -> None:
         """Log suggestions (no persistent notifications)."""
         _LOGGER.info(
             "Selora AI generated %d suggestions (%d created as automations)",
-            len(suggestions), created_count,
+            len(suggestions),
+            created_count,
         )
 
     @staticmethod
@@ -491,17 +495,35 @@ class DataCollector:
 
     # Attribute keys safe to pass to the LLM — excludes PII and secrets
     _SAFE_ATTRIBUTES = {
-        "friendly_name", "device_class", "unit_of_measurement", "icon",
-        "supported_features", "min_temp", "max_temp", "target_temp_step",
-        "min_mireds", "max_mireds", "brightness", "color_temp",
-        "effect_list", "source_list", "sound_mode_list", "media_content_type",
+        "friendly_name",
+        "device_class",
+        "unit_of_measurement",
+        "icon",
+        "supported_features",
+        "min_temp",
+        "max_temp",
+        "target_temp_step",
+        "min_mireds",
+        "max_mireds",
+        "brightness",
+        "color_temp",
+        "effect_list",
+        "source_list",
+        "sound_mode_list",
+        "media_content_type",
         # Climate
-        "current_temperature", "current_humidity", "target_temperature",
-        "hvac_modes", "preset_modes", "fan_modes",
+        "current_temperature",
+        "current_humidity",
+        "target_temperature",
+        "hvac_modes",
+        "preset_modes",
+        "fan_modes",
         # Sensor / energy
-        "state_class", "last_reset",
+        "state_class",
+        "last_reset",
         # Cover
-        "current_position", "current_tilt_position",
+        "current_position",
+        "current_tilt_position",
         # Presence / device tracker
         "source_type",
     }
@@ -523,8 +545,7 @@ class DataCollector:
                         continue
 
                     safe_attrs = {
-                        k: v for k, v in state.attributes.items()
-                        if k in self._SAFE_ATTRIBUTES
+                        k: v for k, v in state.attributes.items() if k in self._SAFE_ATTRIBUTES
                     }
                     states.append(
                         {
@@ -621,7 +642,7 @@ class DataCollector:
                 get_significant_states,
             )
 
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             start = now - timedelta(days=self._lookback_days)
 
             # HA 2025.1+ requires entity_ids — collect all from state machine

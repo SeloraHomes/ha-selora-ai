@@ -49,10 +49,10 @@ Data layout:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import logging
-import uuid
-from datetime import datetime, timedelta, timezone
 from typing import Any
+import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -168,17 +168,13 @@ class PatternStore:
             if any(e["ts"] >= cutoff for e in v)
         }
 
-    async def prune_old_history(
-        self, older_than_days: int = PATTERN_HISTORY_RETENTION_DAYS
-    ) -> int:
+    async def prune_old_history(self, older_than_days: int = PATTERN_HISTORY_RETENTION_DAYS) -> int:
         """Remove state history entries older than the retention window.
 
         Returns the number of entries removed.
         """
         data = await self._get_loaded_data()
-        cutoff = (
-            datetime.now(timezone.utc) - timedelta(days=older_than_days)
-        ).isoformat()
+        cutoff = (datetime.now(UTC) - timedelta(days=older_than_days)).isoformat()
         removed = 0
         history = data["state_history"]
         empty_keys: list[str] = []
@@ -222,26 +218,24 @@ class PatternStore:
                 if state and state not in ("unavailable", "unknown"):
                     state_counts[state] = state_counts.get(state, 0) + 1
 
-            top_states = sorted(
-                state_counts.items(), key=lambda x: x[1], reverse=True
-            )[:5]
+            top_states = sorted(state_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
             timestamps = [c["ts"] for c in changes if c.get("ts")]
-            summaries.append({
-                "entity_id": entity_id,
-                "change_count": len(changes),
-                "active_days": len(dates),
-                "first_seen": min(timestamps) if timestamps else None,
-                "last_seen": max(timestamps) if timestamps else None,
-                "top_states": [{"state": s, "count": c} for s, c in top_states],
-            })
+            summaries.append(
+                {
+                    "entity_id": entity_id,
+                    "change_count": len(changes),
+                    "active_days": len(dates),
+                    "first_seen": min(timestamps) if timestamps else None,
+                    "last_seen": max(timestamps) if timestamps else None,
+                    "top_states": [{"state": s, "count": c} for s, c in top_states],
+                }
+            )
 
         summaries.sort(key=lambda x: x["change_count"], reverse=True)
         return summaries
 
-    async def get_pattern_detail(
-        self, pattern_id: str
-    ) -> dict[str, Any] | None:
+    async def get_pattern_detail(self, pattern_id: str) -> dict[str, Any] | None:
         """Return a single pattern with entity history context for detail view."""
         data = await self._get_loaded_data()
         pattern = data["patterns"].get(pattern_id)
@@ -258,9 +252,7 @@ class PatternStore:
             "entity_history": entity_history,
         }
 
-    async def backfill_from_recorder(
-        self, hass: HomeAssistant, lookback_days: int = 7
-    ) -> int:
+    async def backfill_from_recorder(self, hass: HomeAssistant, lookback_days: int = 7) -> int:
         """One-time import of recent state history from HA Recorder.
 
         Only runs when state_history is empty (first start).
@@ -281,7 +273,7 @@ class PatternStore:
 
         from .const import COLLECTOR_DOMAINS
 
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         start = now - timedelta(days=lookback_days)
 
         entity_ids = [
@@ -312,11 +304,13 @@ class PatternStore:
             for state in entity_states:
                 if state.state == prev_state:
                     continue
-                entries.append({
-                    "state": state.state,
-                    "prev": prev_state,
-                    "ts": state.last_changed.isoformat(),
-                })
+                entries.append(
+                    {
+                        "state": state.state,
+                        "prev": prev_state,
+                        "ts": state.last_changed.isoformat(),
+                    }
+                )
                 prev_state = state.state
             if entries:
                 history[entity_id] = entries[-PATTERN_HISTORY_MAX_PER_ENTITY:]
@@ -333,7 +327,7 @@ class PatternStore:
     async def save_pattern(self, pattern: dict[str, Any]) -> str:
         """Save or update a detected pattern. Returns the pattern_id."""
         data = await self._get_loaded_data()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         pattern_id = pattern.get("pattern_id") or str(uuid.uuid4())
         existing = data["patterns"].get(pattern_id)
@@ -368,7 +362,7 @@ class PatternStore:
     ) -> list[dict[str, Any]]:
         """Return patterns, optionally filtered by status and/or type."""
         data = await self._get_loaded_data()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         results: list[dict[str, Any]] = []
         did_unsnooze = False
 
@@ -433,7 +427,7 @@ class PatternStore:
         """Save a proactive suggestion. Returns the suggestion_id."""
         data = await self._get_loaded_data()
         suggestion_id = suggestion.get("suggestion_id") or str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
 
         data["suggestions"][suggestion_id] = {
             "suggestion_id": suggestion_id,
@@ -454,21 +448,18 @@ class PatternStore:
         await self._save()
         return suggestion_id
 
-    async def get_suggestions(
-        self, status: str | None = None
-    ) -> list[dict[str, Any]]:
+    async def get_suggestions(self, status: str | None = None) -> list[dict[str, Any]]:
         """Return proactive suggestions, optionally filtered by status."""
         data = await self._get_loaded_data()
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         results: list[dict[str, Any]] = []
         did_unsnooze = False
 
         for s in data["suggestions"].values():
             # Un-snooze expired suggestions
-            if s["status"] == "snoozed" and s.get("snooze_until"):
-                if s["snooze_until"] <= now:
-                    s["status"] = "pending"
-                    did_unsnooze = True
+            if s["status"] == "snoozed" and s.get("snooze_until") and s["snooze_until"] <= now:
+                s["status"] = "pending"
+                did_unsnooze = True
 
             if status and s["status"] != status:
                 continue
@@ -510,9 +501,7 @@ class PatternStore:
         patterns and to pass dismissal context to the LLM.
         """
         data = await self._get_loaded_data()
-        cutoff = (
-            datetime.now(timezone.utc) - timedelta(days=window_days)
-        ).isoformat()
+        cutoff = (datetime.now(UTC) - timedelta(days=window_days)).isoformat()
         return [
             s
             for s in data["suggestions"].values()

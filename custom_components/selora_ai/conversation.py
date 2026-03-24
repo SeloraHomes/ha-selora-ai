@@ -1,8 +1,8 @@
 """Conversation platform for Selora AI."""
+
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from homeassistant.components import conversation
 from homeassistant.components.conversation import ChatLog, ConversationEntityFeature
@@ -69,16 +69,19 @@ class SeloraConversationEntity(conversation.ConversationEntity):
 
         # Get current entity states for context
         from . import _collect_entity_states
+
         entities = _collect_entity_states(self.hass)
 
         # Get existing automations for context
         automations = []
         for state in self.hass.states.async_all("automation"):
-            automations.append({
-                "entity_id": state.entity_id,
-                "alias": state.attributes.get("friendly_name", state.entity_id),
-                "state": state.state,
-            })
+            automations.append(
+                {
+                    "entity_id": state.entity_id,
+                    "alias": state.attributes.get("friendly_name", state.entity_id),
+                    "state": state.state,
+                }
+            )
 
         # Use architect_chat for rich responses and automation generation
         _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
@@ -116,7 +119,10 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 data = call.get("data", {})
                 try:
                     await self.hass.services.async_call(
-                        domain_part, service_name, {**data, **target}, blocking=True,
+                        domain_part,
+                        service_name,
+                        {**data, **target},
+                        blocking=True,
                     )
                 except Exception as exc:
                     _LOGGER.error("Failed to execute %s via Assist: %s", service, exc)

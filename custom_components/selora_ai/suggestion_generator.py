@@ -9,10 +9,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
-import yaml
 from typing import Any
 
 from homeassistant.core import HomeAssistant
+import yaml
 
 from .automation_utils import validate_automation_payload
 from .const import (
@@ -40,9 +40,7 @@ class SuggestionGenerator:
         self._store = pattern_store
         self._llm = llm
 
-    async def generate_from_patterns(
-        self, patterns: list[dict[str, Any]]
-    ) -> list[dict[str, Any]]:
+    async def generate_from_patterns(self, patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Convert patterns into automation suggestions.
 
         For each pattern above CONFIDENCE_MEDIUM:
@@ -105,9 +103,7 @@ class SuggestionGenerator:
                 )
                 continue
 
-            yaml_text = yaml.dump(
-                normalized, allow_unicode=True, default_flow_style=False
-            )
+            yaml_text = yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
 
             suggestion: dict[str, Any] = {
                 "pattern_id": pattern_id,
@@ -168,15 +164,19 @@ class SuggestionGenerator:
 
         conditions: list[dict[str, Any]] = []
         if evidence.get("is_weekday") is True:
-            conditions.append({
-                "condition": "time",
-                "weekday": ["mon", "tue", "wed", "thu", "fri"],
-            })
+            conditions.append(
+                {
+                    "condition": "time",
+                    "weekday": ["mon", "tue", "wed", "thu", "fri"],
+                }
+            )
         elif evidence.get("is_weekday") is False:
-            conditions.append({
-                "condition": "time",
-                "weekday": ["sat", "sun"],
-            })
+            conditions.append(
+                {
+                    "condition": "time",
+                    "weekday": ["sat", "sun"],
+                }
+            )
 
         return {
             "alias": f"[Selora AI] {pattern['description']}",
@@ -203,11 +203,13 @@ class SuggestionGenerator:
         return {
             "alias": f"[Selora AI] {pattern['description']}",
             "description": pattern["description"],
-            "trigger": [{
-                "platform": "state",
-                "entity_id": trigger_entity,
-                "to": trigger_state,
-            }],
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": trigger_entity,
+                    "to": trigger_state,
+                }
+            ],
             "condition": [],
             "action": [action],
             "mode": "single",
@@ -245,9 +247,7 @@ class SuggestionGenerator:
         }
 
     @staticmethod
-    def _build_action(
-        domain: str, entity_id: str, target_state: str
-    ) -> dict[str, Any] | None:
+    def _build_action(domain: str, entity_id: str, target_state: str) -> dict[str, Any] | None:
         """Build an HA action dict for common state transitions."""
         if target_state == "on":
             return {
@@ -362,7 +362,7 @@ class SuggestionGenerator:
             if result:
                 suggestion["description"] = result.strip()
                 suggestion["source"] = "hybrid"
-        except (TimeoutError, asyncio.TimeoutError):
+        except TimeoutError:
             _LOGGER.debug("LLM enrichment timed out, using original description")
         except Exception:
             _LOGGER.debug("LLM enrichment failed, using original description")

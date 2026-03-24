@@ -15,7 +15,6 @@ import asyncio
 import logging
 
 from homeassistant.components.button import ButtonEntity
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
@@ -33,12 +32,15 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Register Hub action buttons."""
-    async_add_entities([
-        DiscoverButton(hass, entry),
-        AutoSetupButton(hass, entry),
-        CleanupButton(hass, entry),
-        ResetButton(hass, entry),
-    ], update_before_add=True)
+    async_add_entities(
+        [
+            DiscoverButton(hass, entry),
+            AutoSetupButton(hass, entry),
+            CleanupButton(hass, entry),
+            ResetButton(hass, entry),
+        ],
+        update_before_add=True,
+    )
 
 
 # ── Base ──────────────────────────────────────────────────────────────
@@ -78,14 +80,12 @@ class DiscoverButton(_HubActionButton):
             return
         result = await dm.discover_network_devices()
         summary = result.get("summary", {})
-        discovered = result.get("discovered", [])
-        configured = result.get("configured", [])
-        active = result.get("active_initiated", [])
 
         _LOGGER.info("Discover: %s", summary)
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
         async_dispatcher_send(
-            self.hass, SIGNAL_ACTIVITY_LOG,
+            self.hass,
+            SIGNAL_ACTIVITY_LOG,
             f"Discovered {summary.get('discovered_count', 0)} pending, "
             f"{summary.get('configured_count', 0)} configured",
             "discover",
@@ -114,9 +114,10 @@ class AutoSetupButton(_HubActionButton):
         _LOGGER.info("Device scan: %s", summary)
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
         async_dispatcher_send(
-            self.hass, SIGNAL_ACTIVITY_LOG,
+            self.hass,
+            SIGNAL_ACTIVITY_LOG,
             f"Scan: {discovered} devices found"
-            + (f" — use Settings > Add Entry to onboard" if discovered > 0 else ""),
+            + (" — use Settings > Add Entry to onboard" if discovered > 0 else ""),
             "discover",
         )
 
@@ -140,10 +141,13 @@ class CleanupButton(_HubActionButton):
         removed_devices = result.get("removed_devices", [])
         removed_entities = result.get("removed_entities", [])
 
-        _LOGGER.info("Cleanup: removed %d devices, %d entities", len(removed_devices), len(removed_entities))
+        _LOGGER.info(
+            "Cleanup: removed %d devices, %d entities", len(removed_devices), len(removed_entities)
+        )
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
         async_dispatcher_send(
-            self.hass, SIGNAL_ACTIVITY_LOG,
+            self.hass,
+            SIGNAL_ACTIVITY_LOG,
             f"Cleanup: removed {len(removed_devices)} devices, {len(removed_entities)} entities",
             "cleanup",
         )
@@ -165,7 +169,7 @@ class ResetButton(_HubActionButton):
             _LOGGER.error("DeviceManager not available")
             return
         reset_result = await dm.reset_integrations()
-        cleanup_result = await dm.cleanup_mirror_devices()
+        await dm.cleanup_mirror_devices()
         # Wait for HA's SSDP/mDNS to re-discover devices on the network
         await asyncio.sleep(15)
         auto_result = await dm.auto_setup_discovered()
@@ -175,7 +179,8 @@ class ResetButton(_HubActionButton):
         _LOGGER.info("Reset: removed %d, auto-setup accepted %d", len(removed), len(accepted))
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
         async_dispatcher_send(
-            self.hass, SIGNAL_ACTIVITY_LOG,
+            self.hass,
+            SIGNAL_ACTIVITY_LOG,
             f"Reset: removed {len(removed)}, re-setup accepted {len(accepted)}",
             "reset",
         )

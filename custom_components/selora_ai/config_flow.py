@@ -13,64 +13,63 @@ Single continuous flow:
 from __future__ import annotations
 
 import logging
-import uuid
 from typing import Any
-
-import voluptuous as vol
+import uuid
 
 from homeassistant import config_entries
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+import voluptuous as vol
 
 from .const import (
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
+    CONF_COLLECTOR_ENABLED,
+    CONF_COLLECTOR_END_TIME,
+    CONF_COLLECTOR_INTERVAL,
+    CONF_COLLECTOR_MODE,
+    CONF_COLLECTOR_START_TIME,
+    CONF_DISCOVERY_ENABLED,
+    CONF_DISCOVERY_END_TIME,
+    CONF_DISCOVERY_INTERVAL,
+    CONF_DISCOVERY_MODE,
+    CONF_DISCOVERY_START_TIME,
     CONF_ENTRY_TYPE,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
     CONF_OPENAI_MODEL,
-    CONF_SELECTED_DEVICES,
-    CONF_COLLECTOR_ENABLED,
-    CONF_COLLECTOR_MODE,
-    CONF_COLLECTOR_START_TIME,
-    CONF_COLLECTOR_END_TIME,
-    CONF_COLLECTOR_INTERVAL,
-    CONF_DISCOVERY_ENABLED,
-    CONF_DISCOVERY_MODE,
-    CONF_DISCOVERY_START_TIME,
-    CONF_DISCOVERY_END_TIME,
-    CONF_DISCOVERY_INTERVAL,
     CONF_PATTERN_ENABLED,
+    CONF_SELECTED_DEVICES,
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_COLLECTOR_ENABLED,
+    DEFAULT_COLLECTOR_END_TIME,
+    DEFAULT_COLLECTOR_INTERVAL,
+    DEFAULT_COLLECTOR_MODE,
+    DEFAULT_COLLECTOR_START_TIME,
+    DEFAULT_DISCOVERY_ENABLED,
+    DEFAULT_DISCOVERY_END_TIME,
+    DEFAULT_DISCOVERY_INTERVAL,
+    DEFAULT_DISCOVERY_MODE,
+    DEFAULT_DISCOVERY_START_TIME,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
-    DEFAULT_COLLECTOR_ENABLED,
-    DEFAULT_COLLECTOR_MODE,
-    DEFAULT_COLLECTOR_INTERVAL,
-    DEFAULT_COLLECTOR_START_TIME,
-    DEFAULT_COLLECTOR_END_TIME,
-    DEFAULT_DISCOVERY_ENABLED,
-    DEFAULT_DISCOVERY_MODE,
-    DEFAULT_DISCOVERY_INTERVAL,
-    DEFAULT_DISCOVERY_START_TIME,
-    DEFAULT_DISCOVERY_END_TIME,
     DEFAULT_OPENAI_MODEL,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_NONE,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
-    LLM_PROVIDER_NONE,
     MODE_CONTINUOUS,
     MODE_SCHEDULED,
 )
@@ -84,6 +83,7 @@ _LOGGER = logging.getLogger(__name__)
 async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate the Anthropic API key works."""
     from .llm_client import LLMClient
+
     client = LLMClient(
         hass,
         provider=LLM_PROVIDER_ANTHROPIC,
@@ -99,6 +99,7 @@ async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict
 async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that Ollama is reachable and the model is available."""
     from .llm_client import LLMClient
+
     client = LLMClient(
         hass,
         provider=LLM_PROVIDER_OLLAMA,
@@ -114,6 +115,7 @@ async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
 async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that the OpenAI API key works."""
     from .llm_client import LLMClient
+
     client = LLMClient(
         hass,
         provider=LLM_PROVIDER_OPENAI,
@@ -135,7 +137,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 1
 
-    def async_get_options_flow(self, config_entry: config_entries.ConfigEntry) -> SeloraAiOptionsFlowHandler:
+    def async_get_options_flow(
+        self, config_entry: config_entries.ConfigEntry
+    ) -> SeloraAiOptionsFlowHandler:
         """Get the options flow for this handler."""
         return SeloraAiOptionsFlowHandler(config_entry)
 
@@ -176,6 +180,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # During initial setup, no LLM entry exists yet — create a temp DeviceManager
         if self._llm_data:
             from .device_manager import DeviceManager
+
             return DeviceManager(
                 self.hass,
                 api_key=self._llm_data.get(CONF_ANTHROPIC_API_KEY, ""),
@@ -185,9 +190,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── Entry Point ───────────────────────────────────────────────────
 
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Entry point — choose LLM provider or route to device discovery."""
         if self._has_llm_entry():
             # Add Entry mode: skip LLM config, go straight to discovery
@@ -207,8 +210,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.async_set_unique_id(DOMAIN)
             self._abort_if_unique_id_configured()
             return self.async_create_entry(
-                title="Selora AI (Unconfigured)", 
-                data={CONF_LLM_PROVIDER: LLM_PROVIDER_NONE}
+                title="Selora AI (Unconfigured)", data={CONF_LLM_PROVIDER: LLM_PROVIDER_NONE}
             )
 
         return self.async_show_form(
@@ -232,9 +234,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── LLM Configuration (store config, chain to discovery) ──────────
 
-    async def async_step_anthropic(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_anthropic(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure Anthropic API key, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -271,9 +271,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_openai(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_openai(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure OpenAI API key, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -308,9 +306,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_ollama(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_ollama(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Configure local Ollama, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -354,9 +350,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     def _build_device_label(self, dev: dict[str, Any]) -> str:
         """Build a human-readable label for a discovered device."""
-        handler = dev.get("handler", "unknown")
         known = dev.get("known", {})
-        name = known.get("name", handler)
+        name = known.get("name", dev.get("handler", ""))
         ctx = dev.get("context", {})
         title_name = ctx.get("title_placeholders", {}).get("name", "")
         unique_id = ctx.get("unique_id", "")
@@ -379,9 +374,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return f"{name} — {unique_id}"
         return name
 
-    async def async_step_discover(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_discover(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Run discovery, show per-device area dropdowns."""
         dm = self._get_or_create_device_manager()
         if dm is None:
@@ -389,10 +382,10 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Run discovery, filter out our own domain and system integrations
         from .const import PROTECTED_DOMAINS
+
         result = await dm.discover_network_devices()
         self._discovered_devices = [
-            d for d in result.get("discovered", [])
-            if d.get("handler", "") not in PROTECTED_DOMAINS
+            d for d in result.get("discovered", []) if d.get("handler", "") not in PROTECTED_DOMAINS
         ]
 
         if not self._discovered_devices:
@@ -403,6 +396,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Get available areas from HA
         from homeassistant.helpers import area_registry as ar
+
         area_reg = ar.async_get(self.hass)
         areas = area_reg.async_list_areas()
 
@@ -411,9 +405,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             SelectOptionDict(value="no_area", label="Add (no area)"),
         ]
         for area in sorted(areas, key=lambda a: a.name):
-            area_options.append(
-                SelectOptionDict(value=area.id, label=area.name)
-            )
+            area_options.append(SelectOptionDict(value=area.id, label=area.name))
 
         # Build one dropdown per discovered device
         schema_dict: dict = {}
@@ -430,9 +422,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             device_lines.append(f"**{label}**")
 
         # Include device names in description so user knows what device_N is
-        device_list = "\n".join(
-            f"{i + 1}. {line}" for i, line in enumerate(device_lines)
-        )
+        device_list = "\n".join(f"{i + 1}. {line}" for i, line in enumerate(device_lines))
 
         return self.async_show_form(
             step_id="select_devices",
@@ -465,7 +455,6 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
             any_selected = True
             flow_id = dev["flow_id"]
-            handler = dev.get("handler", "")
             display_name = self._build_device_label(dev)
             area_id = area_choice if area_choice != "no_area" else None
 
@@ -479,36 +468,44 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         if entry_id:
                             await self._assign_area_to_entry(entry_id, area_id)
 
-                    self._setup_results.append({
-                        "flow_id": flow_id,
-                        "name": display_name,
-                        "status": "success",
-                        "title": result.get("title", display_name),
-                        "area_id": area_id,
-                    })
+                    self._setup_results.append(
+                        {
+                            "flow_id": flow_id,
+                            "name": display_name,
+                            "status": "success",
+                            "title": result.get("title", display_name),
+                            "area_id": area_id,
+                        }
+                    )
                 elif result.get("error"):
-                    self._setup_results.append({
+                    self._setup_results.append(
+                        {
+                            "flow_id": flow_id,
+                            "name": display_name,
+                            "status": "error",
+                            "message": result["error"],
+                        }
+                    )
+                else:
+                    self._setup_results.append(
+                        {
+                            "flow_id": result.get("flow_id", flow_id),
+                            "name": display_name,
+                            "status": "needs_attention",
+                            "step_id": result.get("step_id", ""),
+                            "message": f"Requires manual setup: step '{result.get('step_id', 'unknown')}'",
+                        }
+                    )
+            except Exception as exc:
+                _LOGGER.error("Setup failed for %s (%s): %s", display_name, flow_id, exc)
+                self._setup_results.append(
+                    {
                         "flow_id": flow_id,
                         "name": display_name,
                         "status": "error",
-                        "message": result["error"],
-                    })
-                else:
-                    self._setup_results.append({
-                        "flow_id": result.get("flow_id", flow_id),
-                        "name": display_name,
-                        "status": "needs_attention",
-                        "step_id": result.get("step_id", ""),
-                        "message": f"Requires manual setup: step '{result.get('step_id', 'unknown')}'",
-                    })
-            except Exception as exc:
-                _LOGGER.error("Setup failed for %s (%s): %s", display_name, flow_id, exc)
-                self._setup_results.append({
-                    "flow_id": flow_id,
-                    "name": display_name,
-                    "status": "error",
-                    "message": str(exc),
-                })
+                        "message": str(exc),
+                    }
+                )
 
         if not any_selected:
             if self._llm_data:
@@ -521,6 +518,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _assign_area_to_entry(self, entry_id: str, area_id: str) -> None:
         """Assign all devices from a config entry to an area."""
         from homeassistant.helpers import device_registry as dr
+
         dev_reg = dr.async_get(self.hass)
         for device in dr.async_entries_for_config_entry(dev_reg, entry_id):
             dev_reg.async_update_device(device.id, area_id=area_id)
@@ -533,9 +531,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         title = self._llm_data.pop("_title", "Selora AI")
         return self.async_create_entry(title=title, data=self._llm_data)
 
-    async def async_step_results(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_results(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Show setup results and create the appropriate config entry."""
         if user_input is not None:
             if self._llm_data:
@@ -605,9 +601,7 @@ class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
         """Manage the background services options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)
@@ -638,13 +632,14 @@ class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(int), vol.Range(min=60)),
                     vol.Optional(
                         CONF_COLLECTOR_START_TIME,
-                        default=options.get(CONF_COLLECTOR_START_TIME, DEFAULT_COLLECTOR_START_TIME),
+                        default=options.get(
+                            CONF_COLLECTOR_START_TIME, DEFAULT_COLLECTOR_START_TIME
+                        ),
                     ): str,
                     vol.Optional(
                         CONF_COLLECTOR_END_TIME,
                         default=options.get(CONF_COLLECTOR_END_TIME, DEFAULT_COLLECTOR_END_TIME),
                     ): str,
-                    
                     # Network Discovery
                     vol.Required(
                         CONF_DISCOVERY_ENABLED,
@@ -665,7 +660,9 @@ class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
                     ): vol.All(vol.Coerce(int), vol.Range(min=60)),
                     vol.Optional(
                         CONF_DISCOVERY_START_TIME,
-                        default=options.get(CONF_DISCOVERY_START_TIME, DEFAULT_DISCOVERY_START_TIME),
+                        default=options.get(
+                            CONF_DISCOVERY_START_TIME, DEFAULT_DISCOVERY_START_TIME
+                        ),
                     ): str,
                     vol.Optional(
                         CONF_DISCOVERY_END_TIME,
