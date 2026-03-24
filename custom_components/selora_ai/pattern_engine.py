@@ -12,11 +12,12 @@ Detectors:
 from __future__ import annotations
 
 import asyncio
-import logging
 from collections import defaultdict
+from collections.abc import Callable, Coroutine
 from contextlib import suppress
-from datetime import datetime, timedelta, timezone
-from typing import Any, Callable, Coroutine
+from datetime import UTC, datetime, timedelta
+import logging
+from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
@@ -78,9 +79,7 @@ class PatternEngine:
             timedelta(seconds=DEFAULT_PATTERN_INTERVAL),
         )
         if self._initial_scan_task is None or self._initial_scan_task.done():
-            self._initial_scan_task = self._hass.async_create_task(
-                self._delayed_initial_scan()
-            )
+            self._initial_scan_task = self._hass.async_create_task(self._delayed_initial_scan())
 
     async def _delayed_initial_scan(self) -> None:
         """Wait 60 seconds after startup, then run the first scan."""
@@ -121,7 +120,7 @@ class PatternEngine:
 
         # Update metadata
         data = await self._store._get_loaded_data()
-        data["meta"]["last_pattern_scan"] = datetime.now(timezone.utc).isoformat()
+        data["meta"]["last_pattern_scan"] = datetime.now(UTC).isoformat()
         await self._store._save()
 
         if new_patterns:
@@ -192,8 +191,7 @@ class PatternEngine:
                     "type": PATTERN_TYPE_TIME_BASED,
                     "entity_ids": [entity_id],
                     "description": (
-                        f"{entity_name} turns {state} around "
-                        f"{hour:02d}:{minute:02d} on {day_type}"
+                        f"{entity_name} turns {state} around {hour:02d}:{minute:02d} on {day_type}"
                     ),
                     "evidence": {
                         "_signature": signature,
@@ -244,9 +242,7 @@ class PatternEngine:
             return []
 
         # Count co-occurrences within the time window using sliding window
-        pair_counts: dict[
-            tuple[str, str, str, str], list[float]
-        ] = defaultdict(list)
+        pair_counts: dict[tuple[str, str, str, str], list[float]] = defaultdict(list)
 
         window_start = 0
         for i, (ts_a, eid_a, state_a) in enumerate(timeline):
@@ -344,9 +340,7 @@ class PatternEngine:
             for change in recent:
                 ts = _parse_timestamp(change["ts"])
                 if ts is not None and change["state"] not in _SKIP_STATES:
-                    timeline.append(
-                        (ts, entity_id, change["state"], change.get("prev", ""))
-                    )
+                    timeline.append((ts, entity_id, change["state"], change.get("prev", "")))
 
         timeline.sort(key=lambda x: x[0])
 
@@ -359,9 +353,7 @@ class PatternEngine:
 
         # Track directional sequences: A turns X → B turns Y
         # Only count if A's transition (prev→state) is meaningful
-        seq_counts: dict[
-            tuple[str, str, str, str, str], int
-        ] = defaultdict(int)
+        seq_counts: dict[tuple[str, str, str, str, str], int] = defaultdict(int)
 
         for i, (ts_a, eid_a, state_a, prev_a) in enumerate(timeline):
             if not prev_a or prev_a == state_a:
@@ -417,8 +409,7 @@ class PatternEngine:
                 "type": PATTERN_TYPE_SEQUENCE,
                 "entity_ids": [eid_a, eid_b],
                 "description": (
-                    f"When {name_a} changes from {prev_a} to {state_a}, "
-                    f"{name_b} turns {state_b}"
+                    f"When {name_a} changes from {prev_a} to {state_a}, {name_b} turns {state_b}"
                 ),
                 "evidence": {
                     "_signature": signature,

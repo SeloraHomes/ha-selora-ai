@@ -32,11 +32,11 @@ LineageEntry shape:
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 import difflib
 import logging
-import uuid
-from datetime import datetime, timezone
 from typing import Any
+import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
@@ -101,7 +101,7 @@ class AutomationStore:
         """
         data_store = await self._get_loaded_data()
         version_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         version: dict[str, Any] = {
             "version_id": version_id,
             "automation_id": automation_id,
@@ -192,7 +192,7 @@ class AutomationStore:
         record = data_store["records"].get(automation_id)
         if not record:
             return False
-        record["deleted_at"] = datetime.now(timezone.utc).isoformat()
+        record["deleted_at"] = datetime.now(UTC).isoformat()
         await self._store.async_save(data_store)
         return True
 
@@ -225,7 +225,7 @@ class AutomationStore:
         from automations.yaml as well.
         """
         data_store = await self._get_loaded_data()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         to_purge: list[str] = []
         for automation_id, record in data_store["records"].items():
             deleted_at = record.get("deleted_at")
@@ -236,9 +236,7 @@ class AutomationStore:
                 if (now - dt).days >= older_than_days:
                     to_purge.append(automation_id)
             except ValueError:
-                _LOGGER.warning(
-                    "Invalid deleted_at value for %s: %s", automation_id, deleted_at
-                )
+                _LOGGER.warning("Invalid deleted_at value for %s: %s", automation_id, deleted_at)
         for automation_id in to_purge:
             del data_store["records"][automation_id]
         if to_purge:
@@ -264,11 +262,7 @@ class AutomationStore:
     async def list_deleted_ids(self) -> list[str]:
         """Return automation_ids that are currently soft-deleted."""
         data_store = await self._get_loaded_data()
-        return [
-            aid
-            for aid, rec in data_store["records"].items()
-            if rec.get("deleted_at")
-        ]
+        return [aid for aid, rec in data_store["records"].items() if rec.get("deleted_at")]
 
     # ── Lineage ──────────────────────────────────────────────────────────
 
@@ -290,7 +284,7 @@ class AutomationStore:
         """Create a draft automation linked to a chat session."""
         data_store = await self._get_loaded_data()
         draft_id = str(uuid.uuid4())
-        now = datetime.now(timezone.utc).isoformat()
+        now = datetime.now(UTC).isoformat()
         draft = {
             "draft_id": draft_id,
             "alias": alias,

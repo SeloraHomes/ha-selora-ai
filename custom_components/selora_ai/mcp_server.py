@@ -32,24 +32,24 @@ See docs/selora-mcp-server.md and ADR-001-selora-mcp-server.md.
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Sequence
+from datetime import UTC, datetime
 import hashlib
+from http import HTTPStatus
 import json
 import logging
-from datetime import datetime, timezone
-from http import HTTPStatus
 from pathlib import Path
-from typing import Any, Sequence
+from typing import Any
 
-import anyio
 from aiohttp import web
+import anyio
+from homeassistant.components.http import KEY_HASS, HomeAssistantView
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import Unauthorized
 from mcp import types
 from mcp.server import Server
 from mcp.shared.message import SessionMessage
 from mcp.types import JSONRPCMessage
-
-from homeassistant.components.http import KEY_HASS, HomeAssistantView
-from homeassistant.core import HomeAssistant
-from homeassistant.exceptions import Unauthorized
 
 from .const import AUTOMATION_ID_PREFIX, DOMAIN
 
@@ -135,7 +135,7 @@ class SeloraAIMCPView(HomeAssistantView):
             return web.Response(status=HTTPStatus.ACCEPTED)
 
         # Build a stateless server for this request
-        user = request[KEY_HASS_USER] if KEY_HASS_USER in request else None
+        user = request.get(KEY_HASS_USER, None)
         is_admin = bool(user and getattr(user, "is_admin", False))
         server, init_options = _create_selora_mcp_server(hass, is_admin=is_admin)
 
@@ -193,9 +193,7 @@ def _create_selora_mcp_server(
         return _TOOL_DEFINITIONS
 
     @server.call_tool()  # type: ignore[no-untyped-call]
-    async def _call_tool(
-        name: str, arguments: dict[str, Any]
-    ) -> Sequence[types.TextContent]:
+    async def _call_tool(name: str, arguments: dict[str, Any]) -> Sequence[types.TextContent]:
         return await _dispatch(hass, name, arguments, is_admin=is_admin)
 
     return server, server.create_initialization_options()
@@ -393,15 +391,17 @@ async def _tool_list_automations(
 
         risk = assess_automation_risk(auto)
 
-        result.append({
-            "automation_id": automation_id,
-            "alias": alias,
-            "status": status,
-            "version_count": meta["version_count"] if meta else 1,
-            "current_version_id": meta["current_version_id"] if meta else None,
-            "deleted_at": meta["deleted_at"] if meta else None,
-            "risk_assessment": _sanitize_risk(risk),
-        })
+        result.append(
+            {
+                "automation_id": automation_id,
+                "alias": alias,
+                "status": status,
+                "version_count": meta["version_count"] if meta else 1,
+                "current_version_id": meta["current_version_id"] if meta else None,
+                "deleted_at": meta["deleted_at"] if meta else None,
+                "risk_assessment": _sanitize_risk(risk),
+            }
+        )
 
     return result
 
@@ -409,11 +409,10 @@ async def _tool_list_automations(
 # ── Tool: selora_get_automation ───────────────────────────────────────────────
 
 
-async def _tool_get_automation(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Return full detail for a single automation including YAML and version history."""
     import yaml as _yaml
+
     from .automation_utils import assess_automation_risk
 
     automation_id = str(arguments.get("automation_id", ""))
@@ -431,12 +430,14 @@ async def _tool_get_automation(
     lineage: list[dict[str, Any]] = []
     if record:
         for v in record.get("versions", []):
-            versions.append({
-                "version_id": v["version_id"],
-                "created_at": v.get("created_at", ""),
-                "message": _sanitize(v.get("message", "")),
-                "session_id": v.get("session_id"),
-            })
+            versions.append(
+                {
+                    "version_id": v["version_id"],
+                    "created_at": v.get("created_at", ""),
+                    "message": _sanitize(v.get("message", "")),
+                    "session_id": v.get("session_id"),
+                }
+            )
         lineage = [
             {
                 "version_id": le.get("version_id"),
@@ -454,9 +455,9 @@ async def _tool_get_automation(
         "automation_id": automation_id,
         "alias": _sanitize(auto.get("alias", "")),
         "yaml": yaml_text,
-        "status": "deleted" if (record and record.get("deleted_at")) else (
-            "disabled" if not auto.get("initial_state", True) else "enabled"
-        ),
+        "status": "deleted"
+        if (record and record.get("deleted_at"))
+        else ("disabled" if not auto.get("initial_state", True) else "enabled"),
         "version_count": len(versions),
         "versions": versions,
         "lineage": lineage,
@@ -472,17 +473,21 @@ async def _tool_validate_automation(
 ) -> dict[str, Any]:
     """Validate + risk-assess YAML without creating anything. Pure read."""
     import yaml as _yaml
-    from .automation_utils import validate_automation_payload, assess_automation_risk
+
+    from .automation_utils import assess_automation_risk, validate_automation_payload
 
     yaml_text = str(arguments.get("yaml", ""))
     if not yaml_text.strip():
-        return {"valid": False, "errors": ["yaml field is required"], "normalized_yaml": None, "risk_assessment": None}
+        return {
+            "valid": False,
+            "errors": ["yaml field is required"],
+            "normalized_yaml": None,
+            "risk_assessment": None,
+        }
 
     # Parse
     try:
-        parsed = await hass.async_add_executor_job(
-            lambda: _yaml.safe_load(yaml_text)
-        )
+        parsed = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
     except _yaml.YAMLError as exc:
         return {
             "valid": False,
@@ -492,7 +497,12 @@ async def _tool_validate_automation(
         }
 
     if not isinstance(parsed, dict):
-        return {"valid": False, "errors": ["YAML must be a mapping"], "normalized_yaml": None, "risk_assessment": None}
+        return {
+            "valid": False,
+            "errors": ["YAML must be a mapping"],
+            "normalized_yaml": None,
+            "risk_assessment": None,
+        }
 
     # Validate
     is_valid, reason, normalized = validate_automation_payload(parsed)
@@ -518,19 +528,18 @@ async def _tool_validate_automation(
 # ── Tool: selora_create_automation ────────────────────────────────────────────
 
 
-async def _tool_create_automation(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Create an automation from externally-provided YAML.
 
     Server-side validation and risk assessment run unconditionally.
     Automations are created disabled by default.
     """
     import yaml as _yaml
+
     from .automation_utils import (
-        validate_automation_payload,
         assess_automation_risk,
         async_create_automation,
+        validate_automation_payload,
     )
 
     yaml_text = str(arguments.get("yaml", ""))
@@ -541,9 +550,7 @@ async def _tool_create_automation(
         return {"error": "yaml field is required"}
 
     try:
-        parsed = await hass.async_add_executor_job(
-            lambda: _yaml.safe_load(yaml_text)
-        )
+        parsed = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
     except _yaml.YAMLError as exc:
         return {"error": f"YAML parse error: {exc}"}
 
@@ -559,9 +566,7 @@ async def _tool_create_automation(
     # Enforce disabled-by-default
     normalized["initial_state"] = enabled
 
-    success = await async_create_automation(
-        hass, normalized, version_message=version_message
-    )
+    success = await async_create_automation(hass, normalized, version_message=version_message)
     if not success:
         return {"error": "Failed to write automation to automations.yaml"}
 
@@ -584,9 +589,7 @@ async def _tool_create_automation(
 # ── Tool: selora_accept_automation ────────────────────────────────────────────
 
 
-async def _tool_accept_automation(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Enable/commit a pending Selora automation."""
     from .automation_utils import async_update_automation
 
@@ -619,9 +622,7 @@ async def _tool_accept_automation(
 # ── Tool: selora_delete_automation ────────────────────────────────────────────
 
 
-async def _tool_delete_automation(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Soft-delete a Selora-managed automation."""
     from .automation_utils import async_soft_delete_automation
 
@@ -646,7 +647,8 @@ async def _tool_delete_automation(
 
 async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     """Return current entity states grouped by HA area."""
-    from homeassistant.helpers import area_registry as ar, entity_registry as er
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import entity_registry as er
 
     area_reg = ar.async_get(hass)
     entity_reg = er.async_get(hass)
@@ -661,8 +663,14 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
 
     # Skip domains that are noisy / not useful for automation context
     _SKIP_DOMAINS = {
-        "automation", "scene", "script", "group", "sun", "zone",
-        "persistent_notification", "device_tracker",
+        "automation",
+        "scene",
+        "script",
+        "group",
+        "sun",
+        "zone",
+        "persistent_notification",
+        "device_tracker",
     }
 
     for state in hass.states.async_all():
@@ -677,9 +685,7 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
             "entity_id": state.entity_id,
             "domain": domain,
             "state": _sanitize(state.state, limit=64),
-            "friendly_name": _sanitize(
-                state.attributes.get("friendly_name", state.entity_id)
-            ),
+            "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
         }
 
         if area_id and area_id in area_names:
@@ -696,16 +702,13 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
 # ── Tool: selora_chat ─────────────────────────────────────────────────────────
 
 
-async def _tool_chat(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Send a message to Selora's LLM and return the response.
 
     This is the primary suspension point for the external agent in the
     Coroutine Synthesis pattern: the external agent yields here and Selora's
     LLM advances the automation artifact using home-grounded generation.
     """
-    from . import ConversationStore
 
     message = str(arguments.get("message", "")).strip()
     if not message:
@@ -744,8 +747,7 @@ async def _tool_chat(
 
     # Collect existing automation aliases for dedup
     existing_aliases = [
-        str(s.attributes.get("friendly_name", ""))
-        for s in hass.states.async_all("automation")
+        str(s.attributes.get("friendly_name", "")) for s in hass.states.async_all("automation")
     ]
 
     # Call Selora's LLM
@@ -882,11 +884,15 @@ def _suggestion_identity(raw: dict[str, Any], index: int) -> tuple[str, str]:
     return f"sugg_{digest}", f"pattern_{digest}"
 
 
-def _normalize_suggestion(raw: dict[str, Any], *, index: int, status_store: dict[str, dict[str, Any]]) -> dict[str, Any]:
+def _normalize_suggestion(
+    raw: dict[str, Any], *, index: int, status_store: dict[str, dict[str, Any]]
+) -> dict[str, Any]:
     suggestion_id, fallback_pattern_id = _suggestion_identity(raw, index)
     persisted = status_store.get(suggestion_id, {})
     status = persisted.get("status", "pending")
-    created_at = persisted.get("created_at") or raw.get("created_at") or datetime.now(timezone.utc).isoformat()
+    created_at = (
+        persisted.get("created_at") or raw.get("created_at") or datetime.now(UTC).isoformat()
+    )
     automation_yaml = str(raw.get("automation_yaml", ""))
     description = _sanitize(raw.get("description", raw.get("alias", "")), limit=400)
     confidence_raw = raw.get("confidence", 0.7)
@@ -942,9 +948,7 @@ async def _phase2_suggestions(hass: HomeAssistant) -> list[dict[str, Any]]:
     for index, raw in enumerate(raw_items):
         if not isinstance(raw, dict):
             continue
-        results.append(
-            _normalize_suggestion(raw, index=index, status_store=status_store)
-        )
+        results.append(_normalize_suggestion(raw, index=index, status_store=status_store))
     return results
 
 
@@ -1021,7 +1025,9 @@ async def _tool_list_patterns(
         current = patterns[pattern_id]
         current["occurrence_count"] += 1
         current["confidence"] = max(float(current["confidence"]), float(suggestion["confidence"]))
-        current["entity_ids"] = sorted(set(current["entity_ids"]) | set(suggestion.get("entity_ids", [])))
+        current["entity_ids"] = sorted(
+            set(current["entity_ids"]) | set(suggestion.get("entity_ids", []))
+        )
         current["last_seen"] = max(str(current["last_seen"]), str(suggestion["created_at"]))
         current["evidence"]["suggestion_ids"].append(suggestion["suggestion_id"])
 
@@ -1042,9 +1048,7 @@ async def _tool_list_patterns(
     return result
 
 
-async def _tool_get_pattern(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_get_pattern(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     pattern_id = str(arguments.get("pattern_id", "")).strip()
     if not pattern_id:
         return {"error": "pattern_id is required"}
@@ -1073,9 +1077,7 @@ async def _tool_get_pattern(
     }
 
 
-async def _tool_accept_suggestion(
-    hass: HomeAssistant, arguments: dict[str, Any]
-) -> dict[str, Any]:
+async def _tool_accept_suggestion(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     suggestion_id = str(arguments.get("suggestion_id", "")).strip()
     enabled = bool(arguments.get("enabled", False))
     if not suggestion_id:
@@ -1104,7 +1106,7 @@ async def _tool_accept_suggestion(
     status_store[suggestion_id] = {
         "status": "accepted",
         "created_at": status_store.get(suggestion_id, {}).get("created_at", target["created_at"]),
-        "updated_at": datetime.now(timezone.utc).isoformat(),
+        "updated_at": datetime.now(UTC).isoformat(),
     }
 
     return {
@@ -1128,7 +1130,7 @@ async def _tool_dismiss_suggestion(
     if target is None:
         return {"error": f"Suggestion {suggestion_id} not found"}
 
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(UTC).isoformat()
     dismissal_reason = reason if reason else "user-declined"
 
     # Update in-memory status overlay (used by phase-2 suggestion rendering)
@@ -1164,7 +1166,7 @@ async def _tool_dismiss_suggestion(
 
 async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
     domain_data = hass.data.setdefault(DOMAIN, {})
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     last_scan_iso = domain_data.get("_mcp_last_scan_at")
 
     if isinstance(last_scan_iso, str):
@@ -1186,9 +1188,9 @@ async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
     if collector is None:
         return {"error": "No collector available — check LLM configuration"}
 
-    started = datetime.now(timezone.utc)
+    started = datetime.now(UTC)
     await collector._collect_analyze_log()
-    finished = datetime.now(timezone.utc)
+    finished = datetime.now(UTC)
 
     domain_data["_mcp_last_scan_at"] = finished.isoformat()
     suggestions = await _phase2_suggestions(hass)
@@ -1321,9 +1323,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
         inputSchema={
             "type": "object",
             "required": ["automation_id"],
-            "properties": {
-                "automation_id": {"type": "string"}
-            },
+            "properties": {"automation_id": {"type": "string"}},
         },
     ),
     types.Tool(
@@ -1399,9 +1399,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
         inputSchema={
             "type": "object",
             "required": ["pattern_id"],
-            "properties": {
-                "pattern_id": {"type": "string"}
-            },
+            "properties": {"pattern_id": {"type": "string"}},
         },
     ),
     types.Tool(
@@ -1441,8 +1439,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
     types.Tool(
         name=TOOL_DISMISS_SUGGESTION,
         description=(
-            "Mark a suggestion as dismissed. Optionally include a reason. "
-            "Requires admin access."
+            "Mark a suggestion as dismissed. Optionally include a reason. Requires admin access."
         ),
         inputSchema={
             "type": "object",

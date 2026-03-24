@@ -17,7 +17,8 @@ import logging
 from typing import Any
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers import device_registry as dr, entity_registry as er
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -35,28 +36,26 @@ class DeviceManager:
         progress = self.hass.config_entries.flow.async_progress()
         results: list[dict[str, Any]] = []
         for flow in progress:
-            results.append({
-                "flow_id": flow["flow_id"],
-                "handler": flow.get("handler", ""),
-                "step_id": flow.get("step_id", ""),
-                "context": {
-                    k: v
-                    for k, v in flow.get("context", {}).items()
-                    if k in ("source", "unique_id", "title_placeholders")
-                },
-            })
+            results.append(
+                {
+                    "flow_id": flow["flow_id"],
+                    "handler": flow.get("handler", ""),
+                    "step_id": flow.get("step_id", ""),
+                    "context": {
+                        k: v
+                        for k, v in flow.get("context", {}).items()
+                        if k in ("source", "unique_id", "title_placeholders")
+                    },
+                }
+            )
         return results
 
     async def accept_flow(self, flow_id: str) -> dict[str, Any]:
         """Confirm a discovered flow with empty user input (single-step)."""
-        result = await self.hass.config_entries.flow.async_configure(
-            flow_id, user_input={}
-        )
+        result = await self.hass.config_entries.flow.async_configure(flow_id, user_input={})
         return self._normalise_result(result)
 
-    async def start_device_flow(
-        self, domain: str, host: str
-    ) -> dict[str, Any]:
+    async def start_device_flow(self, domain: str, host: str) -> dict[str, Any]:
         """Manually kick off a config flow by domain + host IP."""
         result = await self.hass.config_entries.flow.async_init(
             domain,
@@ -72,13 +71,9 @@ class DeviceManager:
         )
         return self._normalise_result(result)
 
-    async def configure_step(
-        self, flow_id: str, user_input: dict[str, Any]
-    ) -> dict[str, Any]:
+    async def configure_step(self, flow_id: str, user_input: dict[str, Any]) -> dict[str, Any]:
         """Generic escape-hatch: progress any flow step with arbitrary input."""
-        result = await self.hass.config_entries.flow.async_configure(
-            flow_id, user_input=user_input
-        )
+        result = await self.hass.config_entries.flow.async_configure(flow_id, user_input=user_input)
         return self._normalise_result(result)
 
     # ── Network discovery & auto-setup ────────────────────────────
@@ -104,7 +99,7 @@ class DeviceManager:
             active_initiated: Flows started by active discovery
             summary: counts
         """
-        from .const import KNOWN_INTEGRATIONS, PROTECTED_DOMAINS, DiscoveryMethod
+        from .const import KNOWN_INTEGRATIONS, PROTECTED_DOMAINS
 
         # Active discovery — start flows for devices we know about but aren't fully configured
         active_initiated = await self._trigger_active_discovery()
@@ -166,15 +161,17 @@ class DeviceManager:
         for domain, info in KNOWN_INTEGRATIONS.items():
             if domain in discovered_domains or domain in configured_domains:
                 continue
-            available.append({
-                "domain": domain,
-                "name": info.name,
-                "category": info.category.value,
-                "discovery": info.discovery.value,
-                "source": info.source.value,
-                "brands": info.brands,
-                "notes": info.notes,
-            })
+            available.append(
+                {
+                    "domain": domain,
+                    "name": info.name,
+                    "category": info.category.value,
+                    "discovery": info.discovery.value,
+                    "source": info.source.value,
+                    "brands": info.brands,
+                    "notes": info.notes,
+                }
+            )
 
         return {
             "discovered": discovered,
@@ -207,7 +204,7 @@ class DeviceManager:
 
         Returns: {accepted: [...], skipped: [...], failed: [...]}
         """
-        from .const import KNOWN_INTEGRATIONS, PROTECTED_DOMAINS
+        from .const import PROTECTED_DOMAINS
 
         progress = self.hass.config_entries.flow.async_progress()
 
@@ -218,7 +215,6 @@ class DeviceManager:
         for flow in progress:
             handler = flow.get("handler", "")
             flow_id = flow["flow_id"]
-            step_id = flow.get("step_id", "")
 
             # Never auto-accept flows for protected/system integrations
             if handler in PROTECTED_DOMAINS:
@@ -230,7 +226,13 @@ class DeviceManager:
                 result = await self.accept_flow(flow_id)
 
                 if result.get("type") == "create_entry":
-                    accepted.append({"handler": handler, "flow_id": flow_id, "title": result.get("title", handler)})
+                    accepted.append(
+                        {
+                            "handler": handler,
+                            "flow_id": flow_id,
+                            "title": result.get("title", handler),
+                        }
+                    )
                     continue
 
                 # Multi-step flow — try config cloning from a similar device
@@ -239,28 +241,33 @@ class DeviceManager:
                     if clone_data:
                         _LOGGER.info(
                             "Auto-setup: cloning config from existing %s entry for flow %s",
-                            handler, result.get("flow_id", flow_id),
+                            handler,
+                            result.get("flow_id", flow_id),
                         )
                         try:
                             clone_result = await self.configure_step(
                                 result.get("flow_id", flow_id), clone_data
                             )
                             if clone_result.get("type") == "create_entry":
-                                accepted.append({
-                                    "handler": handler,
-                                    "flow_id": flow_id,
-                                    "title": clone_result.get("title", handler),
-                                    "cloned": True,
-                                })
+                                accepted.append(
+                                    {
+                                        "handler": handler,
+                                        "flow_id": flow_id,
+                                        "title": clone_result.get("title", handler),
+                                        "cloned": True,
+                                    }
+                                )
                                 continue
                         except Exception as clone_exc:
                             _LOGGER.debug("Config clone failed for %s: %s", handler, clone_exc)
 
-                    skipped.append({
-                        "handler": handler,
-                        "flow_id": result.get("flow_id", flow_id),
-                        "reason": f"requires step: {result['step_id']}",
-                    })
+                    skipped.append(
+                        {
+                            "handler": handler,
+                            "flow_id": result.get("flow_id", flow_id),
+                            "reason": f"requires step: {result['step_id']}",
+                        }
+                    )
                 else:
                     failed.append({"handler": handler, "flow_id": flow_id, "error": str(result)})
 
@@ -270,7 +277,9 @@ class DeviceManager:
 
         _LOGGER.info(
             "Auto-setup complete: %d accepted, %d skipped, %d failed",
-            len(accepted), len(skipped), len(failed),
+            len(accepted),
+            len(skipped),
+            len(failed),
         )
 
         return {"accepted": accepted, "skipped": skipped, "failed": failed}
@@ -314,11 +323,15 @@ class DeviceManager:
 
             if matched_area_id:
                 dev_reg.async_update_device(device.id, area_id=matched_area_id)
-                assigned.append({
-                    "device": device.name or "",
-                    "area": matched_area_name or "",
-                })
-                _LOGGER.info("Auto-assigned device '%s' to area '%s'", device.name, matched_area_name)
+                assigned.append(
+                    {
+                        "device": device.name or "",
+                        "area": matched_area_name or "",
+                    }
+                )
+                _LOGGER.info(
+                    "Auto-assigned device '%s' to area '%s'", device.name, matched_area_name
+                )
 
         return {"assigned": assigned}
 
@@ -355,7 +368,9 @@ class DeviceManager:
             if not any(ident[0] == DOMAIN for ident in device.identifiers):
                 continue
 
-            for entity in er.async_entries_for_device(ent_reg, device.id, include_disabled_entities=True):
+            for entity in er.async_entries_for_device(
+                ent_reg, device.id, include_disabled_entities=True
+            ):
                 ent_reg.async_remove(entity.entity_id)
                 removed_entities.append(entity.entity_id)
 
@@ -371,7 +386,8 @@ class DeviceManager:
         if removed_devices or removed_entities:
             _LOGGER.info(
                 "Cleaned up %d devices, %d entities",
-                len(removed_devices), len(removed_entities),
+                len(removed_devices),
+                len(removed_entities),
             )
 
         return {

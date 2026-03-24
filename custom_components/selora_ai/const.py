@@ -17,20 +17,23 @@ SIGNAL_ACTIVITY_LOG = f"{DOMAIN}_activity_log"
 
 class DiscoveryMethod(Enum):
     """How HA discovers this integration."""
-    AUTO = "auto"          # SSDP / mDNS / USB — zero config
-    CLOUD = "cloud"        # Requires account credentials
-    MANUAL = "manual"      # User must provide host/IP
+
+    AUTO = "auto"  # SSDP / mDNS / USB — zero config
+    CLOUD = "cloud"  # Requires account credentials
+    MANUAL = "manual"  # User must provide host/IP
     PROTOCOL = "protocol"  # Protocol bridge (Zigbee, Z-Wave, Matter)
 
 
 class IntegrationSource(Enum):
     """Where the integration comes from."""
+
     CORE = "core"  # Built into HA
     HACS = "hacs"  # Community store
 
 
 class DeviceCategory(Enum):
     """Broad device categories for grouping."""
+
     LIGHTING = "lighting"
     TV = "tv"
     SPEAKER = "speaker"
@@ -53,6 +56,7 @@ class DeviceCategory(Enum):
 @dataclass(frozen=True)
 class IntegrationInfo:
     """Metadata about a known smart-home integration."""
+
     domain: str
     name: str
     category: DeviceCategory
@@ -63,142 +67,611 @@ class IntegrationInfo:
 
 
 # ~85 known integrations Selora AI can discover / recommend
-KNOWN_INTEGRATIONS: dict[str, IntegrationInfo] = {i.domain: i for i in [
-    # ── Lighting ──────────────────────────────────────────────────
-    IntegrationInfo("hue", "Philips Hue", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Philips",)),
-    IntegrationInfo("lifx", "LIFX", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("LIFX",)),
-    IntegrationInfo("nanoleaf", "Nanoleaf", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Nanoleaf",)),
-    IntegrationInfo("wiz", "WiZ", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("WiZ", "Philips")),
-    IntegrationInfo("tplink", "TP-Link Kasa/Tapo", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("TP-Link",)),
-    IntegrationInfo("lutron_caseta", "Lutron Caseta", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Lutron",)),
-    IntegrationInfo("yeelight", "Yeelight", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Yeelight", "Xiaomi")),
-    IntegrationInfo("elgato", "Elgato Key Light", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Elgato",)),
-    IntegrationInfo("twinkly", "Twinkly", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Twinkly",)),
-    IntegrationInfo("tradfri", "IKEA TRADFRI", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("IKEA",)),
-    IntegrationInfo("cync", "GE Cync", DeviceCategory.LIGHTING, DiscoveryMethod.CLOUD, brands=("GE", "Cync")),
-
-    # ── TVs ───────────────────────────────────────────────────────
-    IntegrationInfo("samsungtv", "Samsung TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Samsung",)),
-    IntegrationInfo("webostv", "LG webOS TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("LG",)),
-    IntegrationInfo("braviatv", "Sony Bravia TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Sony",)),
-    IntegrationInfo("roku", "Roku", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Roku",)),
-    IntegrationInfo("apple_tv", "Apple TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Apple",)),
-    IntegrationInfo("vizio", "Vizio SmartCast", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Vizio",)),
-    IntegrationInfo("androidtv_remote", "Android TV Remote", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Google", "Sony", "Nvidia", "Xiaomi")),
-
-    # ── Speakers / Media ──────────────────────────────────────────
-    IntegrationInfo("cast", "Google Cast / Chromecast", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Google",)),
-    IntegrationInfo("sonos", "Sonos", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Sonos",)),
-    IntegrationInfo("bang_olufsen", "Bang & Olufsen", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Bang & Olufsen",)),
-    IntegrationInfo("denonavr", "Denon AVR", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Denon", "Marantz")),
-    IntegrationInfo("heos", "Denon HEOS", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Denon",)),
-    IntegrationInfo("yamaha_musiccast", "Yamaha MusicCast", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Yamaha",)),
-    IntegrationInfo("plex", "Plex Media Server", DeviceCategory.MEDIA, DiscoveryMethod.AUTO, brands=("Plex",)),
-    IntegrationInfo("kodi", "Kodi", DeviceCategory.MEDIA, DiscoveryMethod.AUTO, brands=("Kodi",)),
-    IntegrationInfo("harmony", "Logitech Harmony", DeviceCategory.MEDIA, DiscoveryMethod.AUTO, brands=("Logitech",)),
-    IntegrationInfo("alexa_devices", "Alexa Media Player", DeviceCategory.SPEAKER, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Amazon",)),
-    IntegrationInfo("dlna_dmr", "DLNA Media Renderer", DeviceCategory.MEDIA, DiscoveryMethod.AUTO),
-    IntegrationInfo("spotify", "Spotify", DeviceCategory.MEDIA, DiscoveryMethod.CLOUD, brands=("Spotify",)),
-    IntegrationInfo("music_assistant", "Music Assistant", DeviceCategory.MEDIA, DiscoveryMethod.AUTO, source=IntegrationSource.HACS),
-
-    # ── Appliances ────────────────────────────────────────────────
-    IntegrationInfo("smartthings", "Samsung SmartThings", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Samsung",)),
-    IntegrationInfo("home_connect", "Home Connect (Bosch/Siemens)", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Bosch", "Siemens")),
-    IntegrationInfo("miele", "Miele", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Miele",)),
-    IntegrationInfo("whirlpool", "Whirlpool", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Whirlpool", "Maytag", "KitchenAid")),
-    IntegrationInfo("lg_thinq", "LG ThinQ", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("LG",)),
-    IntegrationInfo("ge_home", "GE Home (SmartHQ)", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("GE",)),
-    IntegrationInfo("dyson_local", "Dyson", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Dyson",)),
-    IntegrationInfo("anova", "Anova Sous Vide", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Anova",)),
-    IntegrationInfo("meater", "MEATER Thermometer", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("MEATER",)),
-    IntegrationInfo("switchbot", "SwitchBot", DeviceCategory.APPLIANCE, DiscoveryMethod.AUTO, brands=("SwitchBot",)),
-
-    # ── Thermostats / Climate ─────────────────────────────────────
-    IntegrationInfo("ecobee", "ecobee", DeviceCategory.THERMOSTAT, DiscoveryMethod.CLOUD, brands=("ecobee",)),
-    IntegrationInfo("nest", "Google Nest", DeviceCategory.THERMOSTAT, DiscoveryMethod.CLOUD, brands=("Google", "Nest")),
-
-    # ── Cameras / Security ────────────────────────────────────────
-    IntegrationInfo("ring", "Ring", DeviceCategory.SECURITY, DiscoveryMethod.CLOUD, brands=("Ring", "Amazon")),
-    IntegrationInfo("unifiprotect", "UniFi Protect", DeviceCategory.CAMERA, DiscoveryMethod.AUTO, brands=("Ubiquiti",)),
-    IntegrationInfo("reolink", "Reolink", DeviceCategory.CAMERA, DiscoveryMethod.AUTO, brands=("Reolink",)),
-    IntegrationInfo("blink", "Blink", DeviceCategory.SECURITY, DiscoveryMethod.CLOUD, brands=("Blink", "Amazon")),
-    IntegrationInfo("simplisafe", "SimpliSafe", DeviceCategory.SECURITY, DiscoveryMethod.CLOUD, brands=("SimpliSafe",)),
-    IntegrationInfo("frigate", "Frigate NVR", DeviceCategory.CAMERA, DiscoveryMethod.MANUAL, source=IntegrationSource.HACS, brands=("Frigate",)),
-    IntegrationInfo("eufy_security", "Eufy Security", DeviceCategory.SECURITY, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Eufy", "Anker")),
-
-    # ── Locks ─────────────────────────────────────────────────────
-    IntegrationInfo("august", "August / Yale", DeviceCategory.LOCK, DiscoveryMethod.CLOUD, brands=("August", "Yale")),
-
-    # ── Vacuums ───────────────────────────────────────────────────
-    IntegrationInfo("roomba", "iRobot Roomba", DeviceCategory.VACUUM, DiscoveryMethod.AUTO, brands=("iRobot",)),
-    IntegrationInfo("roborock", "Roborock", DeviceCategory.VACUUM, DiscoveryMethod.CLOUD, brands=("Roborock",)),
-    IntegrationInfo("sharkiq", "Shark IQ", DeviceCategory.VACUUM, DiscoveryMethod.CLOUD, brands=("Shark",)),
-    IntegrationInfo("ecovacs", "Ecovacs Deebot", DeviceCategory.VACUUM, DiscoveryMethod.CLOUD, brands=("Ecovacs",)),
-
-    # ── Cars ──────────────────────────────────────────────────────
-    IntegrationInfo("tesla_fleet", "Tesla", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("Tesla",)),
-    IntegrationInfo("bmw_connected_drive", "BMW Connected Drive", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("BMW",)),
-    IntegrationInfo("volvo", "Volvo On Call", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("Volvo",)),
-    IntegrationInfo("subaru", "Subaru STARLINK", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("Subaru",)),
-    IntegrationInfo("mbapi2020", "Mercedes-Benz", DeviceCategory.CAR, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Mercedes-Benz",)),
-    IntegrationInfo("fordpass", "Ford", DeviceCategory.CAR, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Ford",)),
-    IntegrationInfo("kia_uvo", "Kia / Hyundai", DeviceCategory.CAR, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Kia", "Hyundai")),
-    IntegrationInfo("polestar_api", "Polestar", DeviceCategory.CAR, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Polestar",)),
-
-    # ── Energy ────────────────────────────────────────────────────
-    IntegrationInfo("powerwall", "Tesla Powerwall", DeviceCategory.ENERGY, DiscoveryMethod.AUTO, brands=("Tesla",)),
-    IntegrationInfo("enphase_envoy", "Enphase Envoy", DeviceCategory.ENERGY, DiscoveryMethod.AUTO, brands=("Enphase",)),
-    IntegrationInfo("tesla_wall_connector", "Tesla Wall Connector", DeviceCategory.ENERGY, DiscoveryMethod.AUTO, brands=("Tesla",)),
-    IntegrationInfo("sense", "Sense Energy Monitor", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD, brands=("Sense",)),
-    IntegrationInfo("solaredge", "SolarEdge", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD, brands=("SolarEdge",)),
-    IntegrationInfo("wallbox", "Wallbox EV Charger", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD, brands=("Wallbox",)),
-    IntegrationInfo("easee", "Easee EV Charger", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Easee",)),
-    IntegrationInfo("emporia_vue", "Emporia Vue", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD, brands=("Emporia",)),
-    IntegrationInfo("iotawatt", "IoTaWatt", DeviceCategory.ENERGY, DiscoveryMethod.AUTO, brands=("IoTaWatt",)),
-    IntegrationInfo("solar_forecast", "Forecast.Solar", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD),
-    IntegrationInfo("opower", "Opower (Utility)", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD),
-
-    # ── IoT Platforms ─────────────────────────────────────────────
-    IntegrationInfo("shelly", "Shelly", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("Shelly",)),
-    IntegrationInfo("esphome", "ESPHome", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("ESPHome",)),
-
-    # ── Protocols ─────────────────────────────────────────────────
-    IntegrationInfo("zha", "Zigbee Home Automation", DeviceCategory.PROTOCOL, DiscoveryMethod.PROTOCOL, notes="Requires Zigbee coordinator USB stick"),
-    IntegrationInfo("zwave_js", "Z-Wave JS", DeviceCategory.PROTOCOL, DiscoveryMethod.PROTOCOL, notes="Requires Z-Wave USB stick + Z-Wave JS server"),
-    IntegrationInfo("matter", "Matter", DeviceCategory.PROTOCOL, DiscoveryMethod.PROTOCOL, notes="Requires Matter server (built into HAOS)"),
-    IntegrationInfo("homekit_controller", "HomeKit Controller", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="Imports HomeKit accessories into HA"),
-
-    # ── Irrigation ────────────────────────────────────────────────
-    IntegrationInfo("rainmachine", "RainMachine", DeviceCategory.IRRIGATION, DiscoveryMethod.AUTO, brands=("RainMachine",)),
-    IntegrationInfo("rachio", "Rachio", DeviceCategory.IRRIGATION, DiscoveryMethod.CLOUD, brands=("Rachio",)),
-
-    # ── Mowers ────────────────────────────────────────────────────
-    IntegrationInfo("husqvarna_automower", "Husqvarna Automower", DeviceCategory.MOWER, DiscoveryMethod.CLOUD, brands=("Husqvarna",)),
-
-    # ── Gaming ────────────────────────────────────────────────────
-    IntegrationInfo("xbox", "Xbox", DeviceCategory.GAMING, DiscoveryMethod.CLOUD, brands=("Microsoft",)),
-    IntegrationInfo("playstation_network", "PlayStation Network", DeviceCategory.GAMING, DiscoveryMethod.CLOUD, brands=("Sony",)),
-
-    # ── Printers / Scanners ────────────────────────────────────
-    IntegrationInfo("ipp", "IPP Printer", DeviceCategory.IOT, DiscoveryMethod.AUTO, notes="Internet Printing Protocol — auto-discovered via mDNS"),
-    IntegrationInfo("brother", "Brother Printer", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("Brother",)),
-    IntegrationInfo("hp_ips", "HP Instant Ink", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("HP",)),
-
-    # ── Network / System ───────────────────────────────────────
-    IntegrationInfo("bluetooth", "Bluetooth", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="Core Bluetooth adapter"),
-    IntegrationInfo("upnp", "UPnP/IGD", DeviceCategory.IOT, DiscoveryMethod.AUTO, notes="Router port mapping"),
-    IntegrationInfo("dhcp", "DHCP Discovery", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="Passive network device discovery"),
-    IntegrationInfo("usb", "USB Discovery", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="USB device auto-detection"),
-    IntegrationInfo("ssdp", "SSDP Discovery", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="Simple Service Discovery Protocol"),
-    IntegrationInfo("zeroconf", "Zeroconf/mDNS", DeviceCategory.PROTOCOL, DiscoveryMethod.AUTO, notes="mDNS service discovery"),
-    IntegrationInfo("network", "Network", DeviceCategory.IOT, DiscoveryMethod.AUTO, notes="Network adapter configuration"),
-
-    # ── Plugs / Outlets ────────────────────────────────────────
-    IntegrationInfo("tuya", "Tuya / Smart Life", DeviceCategory.IOT, DiscoveryMethod.CLOUD, brands=("Tuya",), notes="Covers many white-label smart plugs/switches"),
-    IntegrationInfo("meross", "Meross", DeviceCategory.IOT, DiscoveryMethod.CLOUD, source=IntegrationSource.HACS, brands=("Meross",)),
-    IntegrationInfo("wemo", "Belkin WeMo", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("Belkin",)),
-    IntegrationInfo("myq", "MyQ Garage", DeviceCategory.IOT, DiscoveryMethod.CLOUD, brands=("Chamberlain", "LiftMaster")),
-]}
+KNOWN_INTEGRATIONS: dict[str, IntegrationInfo] = {
+    i.domain: i
+    for i in [
+        # ── Lighting ──────────────────────────────────────────────────
+        IntegrationInfo(
+            "hue", "Philips Hue", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Philips",)
+        ),
+        IntegrationInfo(
+            "lifx", "LIFX", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("LIFX",)
+        ),
+        IntegrationInfo(
+            "nanoleaf",
+            "Nanoleaf",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("Nanoleaf",),
+        ),
+        IntegrationInfo(
+            "wiz", "WiZ", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("WiZ", "Philips")
+        ),
+        IntegrationInfo(
+            "tplink",
+            "TP-Link Kasa/Tapo",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("TP-Link",),
+        ),
+        IntegrationInfo(
+            "lutron_caseta",
+            "Lutron Caseta",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("Lutron",),
+        ),
+        IntegrationInfo(
+            "yeelight",
+            "Yeelight",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("Yeelight", "Xiaomi"),
+        ),
+        IntegrationInfo(
+            "elgato",
+            "Elgato Key Light",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("Elgato",),
+        ),
+        IntegrationInfo(
+            "twinkly", "Twinkly", DeviceCategory.LIGHTING, DiscoveryMethod.AUTO, brands=("Twinkly",)
+        ),
+        IntegrationInfo(
+            "tradfri",
+            "IKEA TRADFRI",
+            DeviceCategory.LIGHTING,
+            DiscoveryMethod.AUTO,
+            brands=("IKEA",),
+        ),
+        IntegrationInfo(
+            "cync", "GE Cync", DeviceCategory.LIGHTING, DiscoveryMethod.CLOUD, brands=("GE", "Cync")
+        ),
+        # ── TVs ───────────────────────────────────────────────────────
+        IntegrationInfo(
+            "samsungtv", "Samsung TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Samsung",)
+        ),
+        IntegrationInfo(
+            "webostv", "LG webOS TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("LG",)
+        ),
+        IntegrationInfo(
+            "braviatv", "Sony Bravia TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Sony",)
+        ),
+        IntegrationInfo("roku", "Roku", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Roku",)),
+        IntegrationInfo(
+            "apple_tv", "Apple TV", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Apple",)
+        ),
+        IntegrationInfo(
+            "vizio", "Vizio SmartCast", DeviceCategory.TV, DiscoveryMethod.AUTO, brands=("Vizio",)
+        ),
+        IntegrationInfo(
+            "androidtv_remote",
+            "Android TV Remote",
+            DeviceCategory.TV,
+            DiscoveryMethod.AUTO,
+            brands=("Google", "Sony", "Nvidia", "Xiaomi"),
+        ),
+        # ── Speakers / Media ──────────────────────────────────────────
+        IntegrationInfo(
+            "cast",
+            "Google Cast / Chromecast",
+            DeviceCategory.SPEAKER,
+            DiscoveryMethod.AUTO,
+            brands=("Google",),
+        ),
+        IntegrationInfo(
+            "sonos", "Sonos", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Sonos",)
+        ),
+        IntegrationInfo(
+            "bang_olufsen",
+            "Bang & Olufsen",
+            DeviceCategory.SPEAKER,
+            DiscoveryMethod.AUTO,
+            brands=("Bang & Olufsen",),
+        ),
+        IntegrationInfo(
+            "denonavr",
+            "Denon AVR",
+            DeviceCategory.SPEAKER,
+            DiscoveryMethod.AUTO,
+            brands=("Denon", "Marantz"),
+        ),
+        IntegrationInfo(
+            "heos", "Denon HEOS", DeviceCategory.SPEAKER, DiscoveryMethod.AUTO, brands=("Denon",)
+        ),
+        IntegrationInfo(
+            "yamaha_musiccast",
+            "Yamaha MusicCast",
+            DeviceCategory.SPEAKER,
+            DiscoveryMethod.AUTO,
+            brands=("Yamaha",),
+        ),
+        IntegrationInfo(
+            "plex",
+            "Plex Media Server",
+            DeviceCategory.MEDIA,
+            DiscoveryMethod.AUTO,
+            brands=("Plex",),
+        ),
+        IntegrationInfo(
+            "kodi", "Kodi", DeviceCategory.MEDIA, DiscoveryMethod.AUTO, brands=("Kodi",)
+        ),
+        IntegrationInfo(
+            "harmony",
+            "Logitech Harmony",
+            DeviceCategory.MEDIA,
+            DiscoveryMethod.AUTO,
+            brands=("Logitech",),
+        ),
+        IntegrationInfo(
+            "alexa_devices",
+            "Alexa Media Player",
+            DeviceCategory.SPEAKER,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Amazon",),
+        ),
+        IntegrationInfo(
+            "dlna_dmr", "DLNA Media Renderer", DeviceCategory.MEDIA, DiscoveryMethod.AUTO
+        ),
+        IntegrationInfo(
+            "spotify", "Spotify", DeviceCategory.MEDIA, DiscoveryMethod.CLOUD, brands=("Spotify",)
+        ),
+        IntegrationInfo(
+            "music_assistant",
+            "Music Assistant",
+            DeviceCategory.MEDIA,
+            DiscoveryMethod.AUTO,
+            source=IntegrationSource.HACS,
+        ),
+        # ── Appliances ────────────────────────────────────────────────
+        IntegrationInfo(
+            "smartthings",
+            "Samsung SmartThings",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            brands=("Samsung",),
+        ),
+        IntegrationInfo(
+            "home_connect",
+            "Home Connect (Bosch/Siemens)",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            brands=("Bosch", "Siemens"),
+        ),
+        IntegrationInfo(
+            "miele", "Miele", DeviceCategory.APPLIANCE, DiscoveryMethod.CLOUD, brands=("Miele",)
+        ),
+        IntegrationInfo(
+            "whirlpool",
+            "Whirlpool",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            brands=("Whirlpool", "Maytag", "KitchenAid"),
+        ),
+        IntegrationInfo(
+            "lg_thinq",
+            "LG ThinQ",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("LG",),
+        ),
+        IntegrationInfo(
+            "ge_home",
+            "GE Home (SmartHQ)",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("GE",),
+        ),
+        IntegrationInfo(
+            "dyson_local",
+            "Dyson",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Dyson",),
+        ),
+        IntegrationInfo(
+            "anova",
+            "Anova Sous Vide",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            brands=("Anova",),
+        ),
+        IntegrationInfo(
+            "meater",
+            "MEATER Thermometer",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.CLOUD,
+            brands=("MEATER",),
+        ),
+        IntegrationInfo(
+            "switchbot",
+            "SwitchBot",
+            DeviceCategory.APPLIANCE,
+            DiscoveryMethod.AUTO,
+            brands=("SwitchBot",),
+        ),
+        # ── Thermostats / Climate ─────────────────────────────────────
+        IntegrationInfo(
+            "ecobee", "ecobee", DeviceCategory.THERMOSTAT, DiscoveryMethod.CLOUD, brands=("ecobee",)
+        ),
+        IntegrationInfo(
+            "nest",
+            "Google Nest",
+            DeviceCategory.THERMOSTAT,
+            DiscoveryMethod.CLOUD,
+            brands=("Google", "Nest"),
+        ),
+        # ── Cameras / Security ────────────────────────────────────────
+        IntegrationInfo(
+            "ring",
+            "Ring",
+            DeviceCategory.SECURITY,
+            DiscoveryMethod.CLOUD,
+            brands=("Ring", "Amazon"),
+        ),
+        IntegrationInfo(
+            "unifiprotect",
+            "UniFi Protect",
+            DeviceCategory.CAMERA,
+            DiscoveryMethod.AUTO,
+            brands=("Ubiquiti",),
+        ),
+        IntegrationInfo(
+            "reolink", "Reolink", DeviceCategory.CAMERA, DiscoveryMethod.AUTO, brands=("Reolink",)
+        ),
+        IntegrationInfo(
+            "blink",
+            "Blink",
+            DeviceCategory.SECURITY,
+            DiscoveryMethod.CLOUD,
+            brands=("Blink", "Amazon"),
+        ),
+        IntegrationInfo(
+            "simplisafe",
+            "SimpliSafe",
+            DeviceCategory.SECURITY,
+            DiscoveryMethod.CLOUD,
+            brands=("SimpliSafe",),
+        ),
+        IntegrationInfo(
+            "frigate",
+            "Frigate NVR",
+            DeviceCategory.CAMERA,
+            DiscoveryMethod.MANUAL,
+            source=IntegrationSource.HACS,
+            brands=("Frigate",),
+        ),
+        IntegrationInfo(
+            "eufy_security",
+            "Eufy Security",
+            DeviceCategory.SECURITY,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Eufy", "Anker"),
+        ),
+        # ── Locks ─────────────────────────────────────────────────────
+        IntegrationInfo(
+            "august",
+            "August / Yale",
+            DeviceCategory.LOCK,
+            DiscoveryMethod.CLOUD,
+            brands=("August", "Yale"),
+        ),
+        # ── Vacuums ───────────────────────────────────────────────────
+        IntegrationInfo(
+            "roomba",
+            "iRobot Roomba",
+            DeviceCategory.VACUUM,
+            DiscoveryMethod.AUTO,
+            brands=("iRobot",),
+        ),
+        IntegrationInfo(
+            "roborock",
+            "Roborock",
+            DeviceCategory.VACUUM,
+            DiscoveryMethod.CLOUD,
+            brands=("Roborock",),
+        ),
+        IntegrationInfo(
+            "sharkiq", "Shark IQ", DeviceCategory.VACUUM, DiscoveryMethod.CLOUD, brands=("Shark",)
+        ),
+        IntegrationInfo(
+            "ecovacs",
+            "Ecovacs Deebot",
+            DeviceCategory.VACUUM,
+            DiscoveryMethod.CLOUD,
+            brands=("Ecovacs",),
+        ),
+        # ── Cars ──────────────────────────────────────────────────────
+        IntegrationInfo(
+            "tesla_fleet", "Tesla", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("Tesla",)
+        ),
+        IntegrationInfo(
+            "bmw_connected_drive",
+            "BMW Connected Drive",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            brands=("BMW",),
+        ),
+        IntegrationInfo(
+            "volvo", "Volvo On Call", DeviceCategory.CAR, DiscoveryMethod.CLOUD, brands=("Volvo",)
+        ),
+        IntegrationInfo(
+            "subaru",
+            "Subaru STARLINK",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            brands=("Subaru",),
+        ),
+        IntegrationInfo(
+            "mbapi2020",
+            "Mercedes-Benz",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Mercedes-Benz",),
+        ),
+        IntegrationInfo(
+            "fordpass",
+            "Ford",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Ford",),
+        ),
+        IntegrationInfo(
+            "kia_uvo",
+            "Kia / Hyundai",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Kia", "Hyundai"),
+        ),
+        IntegrationInfo(
+            "polestar_api",
+            "Polestar",
+            DeviceCategory.CAR,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Polestar",),
+        ),
+        # ── Energy ────────────────────────────────────────────────────
+        IntegrationInfo(
+            "powerwall",
+            "Tesla Powerwall",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.AUTO,
+            brands=("Tesla",),
+        ),
+        IntegrationInfo(
+            "enphase_envoy",
+            "Enphase Envoy",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.AUTO,
+            brands=("Enphase",),
+        ),
+        IntegrationInfo(
+            "tesla_wall_connector",
+            "Tesla Wall Connector",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.AUTO,
+            brands=("Tesla",),
+        ),
+        IntegrationInfo(
+            "sense",
+            "Sense Energy Monitor",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.CLOUD,
+            brands=("Sense",),
+        ),
+        IntegrationInfo(
+            "solaredge",
+            "SolarEdge",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.CLOUD,
+            brands=("SolarEdge",),
+        ),
+        IntegrationInfo(
+            "wallbox",
+            "Wallbox EV Charger",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.CLOUD,
+            brands=("Wallbox",),
+        ),
+        IntegrationInfo(
+            "easee",
+            "Easee EV Charger",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Easee",),
+        ),
+        IntegrationInfo(
+            "emporia_vue",
+            "Emporia Vue",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.CLOUD,
+            brands=("Emporia",),
+        ),
+        IntegrationInfo(
+            "iotawatt",
+            "IoTaWatt",
+            DeviceCategory.ENERGY,
+            DiscoveryMethod.AUTO,
+            brands=("IoTaWatt",),
+        ),
+        IntegrationInfo(
+            "solar_forecast", "Forecast.Solar", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD
+        ),
+        IntegrationInfo("opower", "Opower (Utility)", DeviceCategory.ENERGY, DiscoveryMethod.CLOUD),
+        # ── IoT Platforms ─────────────────────────────────────────────
+        IntegrationInfo(
+            "shelly", "Shelly", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("Shelly",)
+        ),
+        IntegrationInfo(
+            "esphome", "ESPHome", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("ESPHome",)
+        ),
+        # ── Protocols ─────────────────────────────────────────────────
+        IntegrationInfo(
+            "zha",
+            "Zigbee Home Automation",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.PROTOCOL,
+            notes="Requires Zigbee coordinator USB stick",
+        ),
+        IntegrationInfo(
+            "zwave_js",
+            "Z-Wave JS",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.PROTOCOL,
+            notes="Requires Z-Wave USB stick + Z-Wave JS server",
+        ),
+        IntegrationInfo(
+            "matter",
+            "Matter",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.PROTOCOL,
+            notes="Requires Matter server (built into HAOS)",
+        ),
+        IntegrationInfo(
+            "homekit_controller",
+            "HomeKit Controller",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="Imports HomeKit accessories into HA",
+        ),
+        # ── Irrigation ────────────────────────────────────────────────
+        IntegrationInfo(
+            "rainmachine",
+            "RainMachine",
+            DeviceCategory.IRRIGATION,
+            DiscoveryMethod.AUTO,
+            brands=("RainMachine",),
+        ),
+        IntegrationInfo(
+            "rachio", "Rachio", DeviceCategory.IRRIGATION, DiscoveryMethod.CLOUD, brands=("Rachio",)
+        ),
+        # ── Mowers ────────────────────────────────────────────────────
+        IntegrationInfo(
+            "husqvarna_automower",
+            "Husqvarna Automower",
+            DeviceCategory.MOWER,
+            DiscoveryMethod.CLOUD,
+            brands=("Husqvarna",),
+        ),
+        # ── Gaming ────────────────────────────────────────────────────
+        IntegrationInfo(
+            "xbox", "Xbox", DeviceCategory.GAMING, DiscoveryMethod.CLOUD, brands=("Microsoft",)
+        ),
+        IntegrationInfo(
+            "playstation_network",
+            "PlayStation Network",
+            DeviceCategory.GAMING,
+            DiscoveryMethod.CLOUD,
+            brands=("Sony",),
+        ),
+        # ── Printers / Scanners ────────────────────────────────────
+        IntegrationInfo(
+            "ipp",
+            "IPP Printer",
+            DeviceCategory.IOT,
+            DiscoveryMethod.AUTO,
+            notes="Internet Printing Protocol — auto-discovered via mDNS",
+        ),
+        IntegrationInfo(
+            "brother",
+            "Brother Printer",
+            DeviceCategory.IOT,
+            DiscoveryMethod.AUTO,
+            brands=("Brother",),
+        ),
+        IntegrationInfo(
+            "hp_ips", "HP Instant Ink", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("HP",)
+        ),
+        # ── Network / System ───────────────────────────────────────
+        IntegrationInfo(
+            "bluetooth",
+            "Bluetooth",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="Core Bluetooth adapter",
+        ),
+        IntegrationInfo(
+            "upnp",
+            "UPnP/IGD",
+            DeviceCategory.IOT,
+            DiscoveryMethod.AUTO,
+            notes="Router port mapping",
+        ),
+        IntegrationInfo(
+            "dhcp",
+            "DHCP Discovery",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="Passive network device discovery",
+        ),
+        IntegrationInfo(
+            "usb",
+            "USB Discovery",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="USB device auto-detection",
+        ),
+        IntegrationInfo(
+            "ssdp",
+            "SSDP Discovery",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="Simple Service Discovery Protocol",
+        ),
+        IntegrationInfo(
+            "zeroconf",
+            "Zeroconf/mDNS",
+            DeviceCategory.PROTOCOL,
+            DiscoveryMethod.AUTO,
+            notes="mDNS service discovery",
+        ),
+        IntegrationInfo(
+            "network",
+            "Network",
+            DeviceCategory.IOT,
+            DiscoveryMethod.AUTO,
+            notes="Network adapter configuration",
+        ),
+        # ── Plugs / Outlets ────────────────────────────────────────
+        IntegrationInfo(
+            "tuya",
+            "Tuya / Smart Life",
+            DeviceCategory.IOT,
+            DiscoveryMethod.CLOUD,
+            brands=("Tuya",),
+            notes="Covers many white-label smart plugs/switches",
+        ),
+        IntegrationInfo(
+            "meross",
+            "Meross",
+            DeviceCategory.IOT,
+            DiscoveryMethod.CLOUD,
+            source=IntegrationSource.HACS,
+            brands=("Meross",),
+        ),
+        IntegrationInfo(
+            "wemo", "Belkin WeMo", DeviceCategory.IOT, DiscoveryMethod.AUTO, brands=("Belkin",)
+        ),
+        IntegrationInfo(
+            "myq",
+            "MyQ Garage",
+            DeviceCategory.IOT,
+            DiscoveryMethod.CLOUD,
+            brands=("Chamberlain", "LiftMaster"),
+        ),
+    ]
+}
 
 # ── Config Entry Types ──────────────────────────────────────────────
 CONF_ENTRY_TYPE = "entry_type"
@@ -291,10 +764,22 @@ CONF_PUSH_INTERVAL = "push_interval"
 
 # Entity domains the collector includes in snapshots (matches LLM filtering)
 COLLECTOR_DOMAINS = {
-    "light", "switch", "media_player", "climate", "fan",
-    "cover", "lock", "vacuum", "sensor", "binary_sensor",
-    "water_heater", "humidifier", "input_boolean", "input_select",
-    "device_tracker", "person",
+    "light",
+    "switch",
+    "media_player",
+    "climate",
+    "fan",
+    "cover",
+    "lock",
+    "vacuum",
+    "sensor",
+    "binary_sensor",
+    "water_heater",
+    "humidifier",
+    "input_boolean",
+    "input_select",
+    "device_tracker",
+    "person",
 }
 
 # ── LLM Suggestion Limits ───────────────────────────────────────────
@@ -306,13 +791,41 @@ AUTOMATION_ID_PREFIX = "selora_ai_"
 
 # ── Protected Domains (never removed by reset) ──────────────────────
 PROTECTED_DOMAINS = {
-    "homeassistant", "automation", "frontend", "backup", "sun",
-    "shopping_list", "google_translate", "radio_browser",
-    "persistent_notification", "recorder", "logger", "system_log",
-    "default_config", "config", "person", "zone", "script", "scene",
-    "group", "template", "webhook", "conversation", "assist_pipeline",
-    "cloud", "mobile_app", "tag", "blueprint", "ffmpeg", "met",
-    "bluetooth", "dhcp", "ssdp", "zeroconf", "usb", "network",  # core system discovery
+    "homeassistant",
+    "automation",
+    "frontend",
+    "backup",
+    "sun",
+    "shopping_list",
+    "google_translate",
+    "radio_browser",
+    "persistent_notification",
+    "recorder",
+    "logger",
+    "system_log",
+    "default_config",
+    "config",
+    "person",
+    "zone",
+    "script",
+    "scene",
+    "group",
+    "template",
+    "webhook",
+    "conversation",
+    "assist_pipeline",
+    "cloud",
+    "mobile_app",
+    "tag",
+    "blueprint",
+    "ffmpeg",
+    "met",
+    "bluetooth",
+    "dhcp",
+    "ssdp",
+    "zeroconf",
+    "usb",
+    "network",  # core system discovery
     DOMAIN,  # never remove ourselves
 }
 

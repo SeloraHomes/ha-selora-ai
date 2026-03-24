@@ -11,20 +11,22 @@ Update mechanism: 60s poll + immediate dispatcher signal updates.
 
 from __future__ import annotations
 
-import logging
 from collections import deque
 from datetime import datetime, timedelta
+import logging
 from typing import Any
 
 from homeassistant.components.sensor import SensorEntity
-from homeassistant.helpers.entity import EntityCategory
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import area_registry as ar
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
+from homeassistant.helpers.entity import EntityCategory
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
-from homeassistant.helpers import device_registry as dr, entity_registry as er, area_registry as ar
 
 from .const import (
     AUTOMATION_ID_PREFIX,
@@ -52,13 +54,42 @@ _MANAGED_DOMAINS = {
 
 # Integrations to skip when building the device list (system / infra)
 _SKIP_DOMAINS = {
-    DOMAIN, "homeassistant", "automation", "frontend", "backup", "sun",
-    "persistent_notification", "recorder", "logger", "system_log",
-    "default_config", "config", "person", "zone", "script", "scene",
-    "group", "template", "webhook", "conversation", "assist_pipeline",
-    "cloud", "mobile_app", "tag", "blueprint", "ffmpeg", "met",
-    "bluetooth", "dhcp", "ssdp", "zeroconf", "usb", "network",
-    "shopping_list", "google_translate", "radio_browser",
+    DOMAIN,
+    "homeassistant",
+    "automation",
+    "frontend",
+    "backup",
+    "sun",
+    "persistent_notification",
+    "recorder",
+    "logger",
+    "system_log",
+    "default_config",
+    "config",
+    "person",
+    "zone",
+    "script",
+    "scene",
+    "group",
+    "template",
+    "webhook",
+    "conversation",
+    "assist_pipeline",
+    "cloud",
+    "mobile_app",
+    "tag",
+    "blueprint",
+    "ffmpeg",
+    "met",
+    "bluetooth",
+    "dhcp",
+    "ssdp",
+    "zeroconf",
+    "usb",
+    "network",
+    "shopping_list",
+    "google_translate",
+    "radio_browser",
 }
 
 
@@ -153,9 +184,7 @@ class SmartButlerStatusSensor(SensorEntity):
             self.async_write_ha_state()
 
         self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
-        self._unsub_signal = async_dispatcher_connect(
-            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
-        )
+        self._unsub_signal = async_dispatcher_connect(self.hass, SIGNAL_DEVICES_UPDATED, _on_signal)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub_timer:
@@ -206,13 +235,15 @@ def _build_device_categories(hass: HomeAssistant) -> dict[str, list[dict[str, An
                     break
 
             categories.setdefault(category, [])
-            categories[category].append({
-                "name": device.name or "Unknown",
-                "integration": integration_name,
-                "area": area_name,
-                "state": device_state,
-                "entity_id": primary_entity_id,
-            })
+            categories[category].append(
+                {
+                    "name": device.name or "Unknown",
+                    "integration": integration_name,
+                    "area": area_name,
+                    "state": device_state,
+                    "entity_id": primary_entity_id,
+                }
+            )
             break  # one category per device
 
     return categories
@@ -271,9 +302,7 @@ class DeviceListSensor(SensorEntity):
             self.async_write_ha_state()
 
         self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
-        self._unsub_signal = async_dispatcher_connect(
-            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
-        )
+        self._unsub_signal = async_dispatcher_connect(self.hass, SIGNAL_DEVICES_UPDATED, _on_signal)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub_timer:
@@ -318,16 +347,16 @@ class LastActivitySensor(SensorEntity):
     async def async_added_to_hass(self) -> None:
         @callback
         def _on_activity(message: str, action_type: str = "info") -> None:
-            self._log.append({
-                "message": message,
-                "action_type": action_type,
-                "timestamp": datetime.now().isoformat(),
-            })
+            self._log.append(
+                {
+                    "message": message,
+                    "action_type": action_type,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
             self.async_write_ha_state()
 
-        self._unsub_signal = async_dispatcher_connect(
-            self.hass, SIGNAL_ACTIVITY_LOG, _on_activity
-        )
+        self._unsub_signal = async_dispatcher_connect(self.hass, SIGNAL_ACTIVITY_LOG, _on_activity)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub_signal:
@@ -382,11 +411,13 @@ class DiscoverySensor(SensorEntity):
                 continue
             info = KNOWN_INTEGRATIONS.get(handler)
             name = info.name if info else handler
-            self._pending_flows.append({
-                "handler": handler,
-                "name": name,
-                "flow_id": flow["flow_id"],
-            })
+            self._pending_flows.append(
+                {
+                    "handler": handler,
+                    "name": name,
+                    "flow_id": flow["flow_id"],
+                }
+            )
         self._pending_count = len(self._pending_flows)
 
         # Configured count (non-system integrations)
@@ -411,9 +442,7 @@ class DiscoverySensor(SensorEntity):
             self.async_write_ha_state()
 
         self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
-        self._unsub_signal = async_dispatcher_connect(
-            self.hass, SIGNAL_DEVICES_UPDATED, _on_signal
-        )
+        self._unsub_signal = async_dispatcher_connect(self.hass, SIGNAL_DEVICES_UPDATED, _on_signal)
 
     async def async_will_remove_from_hass(self) -> None:
         if self._unsub_timer:

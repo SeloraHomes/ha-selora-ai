@@ -63,6 +63,91 @@ Open http://localhost:8123, then add Selora AI under **Settings → Devices & Se
 
 ---
 
+
+## Git Hooks (Lefthook)
+
+All developers should install Lefthook so the same checks that run in CI also run locally — before the code ever leaves your machine.
+
+### Install
+
+```bash
+# macOS
+brew install lefthook
+
+# Or via npm (cross-platform)
+npm install -g @evilmartians/lefthook
+```
+
+Then activate the hooks in your local clone (one-time):
+
+```bash
+lefthook install
+```
+
+### What runs
+
+| Hook | Commands | Trigger |
+|---|---|---|
+| `pre-commit` | `ruff check` + `ruff format --check` on staged `.py` files | `git commit` |
+| `pre-push` | `ruff check` + `ruff format --check` on full codebase + HACS validation | `git push` |
+
+### Auto-fix before committing
+
+```bash
+# Fix lint issues
+ruff check --fix custom_components/
+
+# Fix formatting
+ruff format custom_components/
+```
+
+### Skip a hook (emergency use only)
+
+```bash
+LEFTHOOK=0 git commit -m "..."
+LEFTHOOK=0 git push
+```
+
+---
+
+## Linting & Formatting
+
+The project uses [ruff](https://docs.astral.sh/ruff/) for both linting and formatting. Configuration lives in `pyproject.toml`.
+
+```bash
+pip install ruff
+
+# Check for issues
+ruff check custom_components/
+
+# Auto-fix safe issues
+ruff check --fix custom_components/
+
+# Check formatting
+ruff format --check custom_components/
+
+# Apply formatting
+ruff format custom_components/
+```
+
+---
+
+## GitLab CI
+
+The `.gitlab-ci.yml` pipeline runs automatically on every merge request and push to `main`:
+
+| Stage | Job | What it does |
+|---|---|---|
+| `lint` | `lint:ruff` | Ruff lint + format check |
+| `validate` | `validate:hacs` | Runs `scripts/validate_hacs.py` |
+| `validate` | `validate:manifest` | Checks all required `manifest.json` fields |
+| `test` | `test:unit` | Runs `pytest tests/` (skips gracefully if no tests exist) |
+| `security` | `sast` | GitLab built-in SAST scanning |
+| `security` | `secret_detection` | GitLab secret detection |
+
+All jobs must pass before a merge request can be accepted.
+
+---
 ## Key Conventions
 
 ### Code Style

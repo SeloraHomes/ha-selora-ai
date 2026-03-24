@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-import uuid
-import yaml
 from pathlib import Path
 from typing import Any
+import uuid
 
 from homeassistant.core import HomeAssistant
+import yaml
+
 from .const import AUTOMATION_ID_PREFIX, AUTOMATION_SOFT_DELETE_DAYS
 
 _LOGGER = logging.getLogger(__name__)
@@ -63,6 +64,7 @@ def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
 def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> None:
     """Write automations list to YAML atomically, preserving formatting."""
     from ruamel.yaml import YAML
+
     ryaml = YAML()
     ryaml.default_flow_style = False
     ryaml.allow_unicode = True
@@ -203,9 +205,7 @@ def assess_automation_risk(automation: dict[str, Any]) -> dict[str, Any]:
         platform = str(trigger.get("platform") or trigger.get("trigger") or "").strip()
         if platform in _ELEVATED_RISK_TRIGGER_PLATFORMS:
             flags.append("remote_ingress_trigger")
-            reasons.append(
-                "uses a webhook trigger, which creates a remotely invokable entry point"
-            )
+            reasons.append("uses a webhook trigger, which creates a remotely invokable entry point")
 
     for action in actions:
         if not isinstance(action, dict):
@@ -270,6 +270,7 @@ def _get_automation_store(hass: HomeAssistant):
     """Return (or lazily create) the AutomationStore from hass.data."""
     from .automation_store import AutomationStore
     from .const import DOMAIN
+
     domain_data = hass.data.setdefault(DOMAIN, {})
     if "_automation_store" not in domain_data:
         domain_data["_automation_store"] = AutomationStore(hass)
@@ -418,16 +419,16 @@ async def async_toggle_automation(
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         service = "turn_on" if enable else "turn_off"
         await hass.services.async_call("automation", service, {"entity_id": entity_id})
-        _LOGGER.info("Toggled automation %s to %s", automation_id, "enabled" if enable else "disabled")
+        _LOGGER.info(
+            "Toggled automation %s to %s", automation_id, "enabled" if enable else "disabled"
+        )
         return True
     except Exception as exc:
         _LOGGER.exception("Failed to toggle automation %s: %s", automation_id, exc)
         return False
 
 
-async def async_soft_delete_automation(
-    hass: HomeAssistant, automation_id: str
-) -> bool:
+async def async_soft_delete_automation(hass: HomeAssistant, automation_id: str) -> bool:
     """Disable the automation in automations.yaml and mark it deleted in the store.
 
     The automation is NOT removed from the file — it is disabled (initial_state: False)
@@ -445,7 +446,9 @@ async def async_soft_delete_automation(
             break
 
     if not found:
-        _LOGGER.error("Automation id %s not found in automations.yaml for soft-delete", automation_id)
+        _LOGGER.error(
+            "Automation id %s not found in automations.yaml for soft-delete", automation_id
+        )
         return False
 
     try:
@@ -458,7 +461,8 @@ async def async_soft_delete_automation(
         # "imported" version entry so the automation is trackable, then mark it deleted.
         if not await store.soft_delete(automation_id):
             _LOGGER.info(
-                "Automation %s has no store record — bootstrapping before soft-delete", automation_id
+                "Automation %s has no store record — bootstrapping before soft-delete",
+                automation_id,
             )
             # Find the automation's current YAML from the (already updated) file
             target = next((a for a in existing if a.get("id") == automation_id), {})
@@ -480,9 +484,7 @@ async def async_soft_delete_automation(
         return False
 
 
-async def async_restore_automation(
-    hass: HomeAssistant, automation_id: str
-) -> bool:
+async def async_restore_automation(hass: HomeAssistant, automation_id: str) -> bool:
     """Re-enable a soft-deleted automation and clear its deleted_at in the store."""
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
