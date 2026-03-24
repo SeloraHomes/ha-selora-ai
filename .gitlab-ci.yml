@@ -5,6 +5,7 @@ stages:
   - lint
   - validate
   - test
+  - release
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
@@ -73,3 +74,38 @@ test:unit:
       else
         echo "No tests/ directory — skipping";
       fi
+
+# =============================================================================
+# STAGE: release  (main branch only)
+# =============================================================================
+# Requires CI variables (Settings -> CI/CD -> Variables, masked + protected):
+#   GL_TOKEN — GitLab project access token (api + write_repository scope)
+#   GH_TOKEN — GitHub personal access token (repo scope) for HACS mirror releases
+
+release:semantic:
+  stage: release
+  image: node:lts-slim
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq python3 git --no-install-recommends
+    - npm install --global --quiet
+      semantic-release
+      @semantic-release/commit-analyzer
+      @semantic-release/release-notes-generator
+      @semantic-release/changelog
+      @semantic-release/exec
+      @semantic-release/git
+      @semantic-release/gitlab
+      @semantic-release/github
+      conventional-changelog-conventionalcommits
+  script:
+    - npx semantic-release
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      when: on_success
+  variables:
+    GL_TOKEN: $GL_TOKEN
+    GH_TOKEN: $GH_TOKEN
+    GIT_AUTHOR_NAME: "semantic-release[bot]"
+    GIT_AUTHOR_EMAIL: "semantic-release@selora.ai"
+    GIT_COMMITTER_NAME: "semantic-release[bot]"
+    GIT_COMMITTER_EMAIL: "semantic-release@selora.ai"

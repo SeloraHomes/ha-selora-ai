@@ -189,6 +189,73 @@ All jobs must pass before a merge request can be accepted.
 
 ---
 
+
+## Release Workflow (semantic-release)
+
+Releases are fully automated. You never manually bump `manifest.json`, create git tags, or write changelog entries — semantic-release handles all of that on every push to `main`.
+
+### How it works
+
+1. You merge a branch into `main` using conventional commits.
+2. The `release:semantic` CI job runs automatically.
+3. semantic-release reads all commits since the last tag and decides the next version:
+
+| Commit prefix | Version bump | Example |
+|---|---|---|
+| `feat:` | minor | `0.1.0 → 0.2.0` |
+| `fix:` / `perf:` / `refactor:` | patch | `0.1.0 → 0.1.1` |
+| `BREAKING CHANGE` (footer) | major | `0.1.0 → 1.0.0` |
+| `docs:` / `chore:` / `style:` / `test:` | no release | — |
+
+4. If a release is warranted, semantic-release:
+   - Bumps `manifest.json` → `version`
+   - Prepends release notes to `CHANGELOG.md`
+   - Commits both files back to `main` with `chore(release): X.Y.Z [skip ci]`
+   - Creates a git tag `vX.Y.Z`
+   - Creates a GitLab Release page with the changelog
+5. HACS picks up the new tag within minutes and distributes the update to users.
+
+### Commit message format
+
+Follow [Conventional Commits](https://www.conventionalcommits.org/):
+
+```
+<type>(<optional scope>): <description>
+
+[optional body]
+
+[optional footer — BREAKING CHANGE: <description>]
+```
+
+Examples:
+
+```
+feat(mcp): add selora_dismiss_suggestion endpoint
+fix(collector): handle missing recorder data gracefully
+perf(pattern_engine): cache device state queries
+docs: update MCP onboarding steps in README
+chore: bump mcp dependency to 1.27.0
+
+feat(api)!: rename /selora_ai/mcp to /api/selora_ai/v2/mcp
+BREAKING CHANGE: MCP endpoint path changed, update client configs
+```
+
+### Manual release (emergency only)
+
+If CI is unavailable and you must release manually:
+
+```bash
+# Install deps
+npm install -g semantic-release @semantic-release/commit-analyzer \
+  @semantic-release/release-notes-generator @semantic-release/changelog \
+  @semantic-release/exec @semantic-release/git @semantic-release/gitlab \
+  conventional-changelog-conventionalcommits
+
+# Run locally (requires GL_TOKEN in environment)
+GL_TOKEN=<your-token> npx semantic-release
+```
+
+---
 ## Next Steps / Roadmap
 
 1. **MQTT Reaction System** — Implement `mqtt_listener.py` to capture and classify point-in-time events for better automation triggers.
