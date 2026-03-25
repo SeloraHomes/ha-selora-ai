@@ -21,6 +21,12 @@ pre-commit:
       run: ruff format --check {staged_files}
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
+    prettier:
+      name: "prettier check"
+      glob: "custom_components/selora_ai/frontend/**/*.js"
+      run: npx --prefix custom_components/selora_ai/frontend prettier --check {staged_files}
+      fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/**/*.js"
+
 pre-push:
   commands:
     lint-all:
@@ -32,6 +38,11 @@ pre-push:
       name: "ruff format check (full codebase)"
       run: ruff format --check custom_components/
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
+
+    prettier-all:
+      name: "prettier check (frontend)"
+      run: npx --prefix custom_components/selora_ai/frontend prettier --check custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js
+      fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js"
 
     validate-hacs:
       name: "HACS validation"

@@ -1,20 +1,29 @@
 // node_modules/@lit/reactive-element/css-tag.js
 var t = window;
-var e = t.ShadowRoot && (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) && "adoptedStyleSheets" in Document.prototype && "replace" in CSSStyleSheet.prototype;
+var e =
+  t.ShadowRoot &&
+  (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
+  "adoptedStyleSheets" in Document.prototype &&
+  "replace" in CSSStyleSheet.prototype;
 var s = Symbol();
 var n = /* @__PURE__ */ new WeakMap();
 var o = class {
   constructor(t3, e4, n5) {
-    if (this._$cssResult$ = true, n5 !== s)
-      throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");
-    this.cssText = t3, this.t = e4;
+    if (((this._$cssResult$ = true), n5 !== s))
+      throw Error(
+        "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
+      );
+    ((this.cssText = t3), (this.t = e4));
   }
   get styleSheet() {
     let t3 = this.o;
     const s5 = this.t;
     if (e && void 0 === t3) {
       const e4 = void 0 !== s5 && 1 === s5.length;
-      e4 && (t3 = n.get(s5)), void 0 === t3 && ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText), e4 && n.set(s5, t3));
+      (e4 && (t3 = n.get(s5)),
+        void 0 === t3 &&
+          ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText),
+          e4 && n.set(s5, t3)));
     }
     return t3;
   }
@@ -24,27 +33,49 @@ var o = class {
 };
 var r = (t3) => new o("string" == typeof t3 ? t3 : t3 + "", void 0, s);
 var i = (t3, ...e4) => {
-  const n5 = 1 === t3.length ? t3[0] : e4.reduce((e5, s5, n6) => e5 + ((t4) => {
-    if (true === t4._$cssResult$)
-      return t4.cssText;
-    if ("number" == typeof t4)
-      return t4;
-    throw Error("Value passed to 'css' function must be a 'css' function result: " + t4 + ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.");
-  })(s5) + t3[n6 + 1], t3[0]);
+  const n5 =
+    1 === t3.length
+      ? t3[0]
+      : e4.reduce(
+          (e5, s5, n6) =>
+            e5 +
+            ((t4) => {
+              if (true === t4._$cssResult$) return t4.cssText;
+              if ("number" == typeof t4) return t4;
+              throw Error(
+                "Value passed to 'css' function must be a 'css' function result: " +
+                  t4 +
+                  ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
+              );
+            })(s5) +
+            t3[n6 + 1],
+          t3[0],
+        );
   return new o(n5, t3, s);
 };
 var S = (s5, n5) => {
-  e ? s5.adoptedStyleSheets = n5.map((t3) => t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet) : n5.forEach((e4) => {
-    const n6 = document.createElement("style"), o5 = t.litNonce;
-    void 0 !== o5 && n6.setAttribute("nonce", o5), n6.textContent = e4.cssText, s5.appendChild(n6);
-  });
+  e
+    ? (s5.adoptedStyleSheets = n5.map((t3) =>
+        t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet,
+      ))
+    : n5.forEach((e4) => {
+        const n6 = document.createElement("style"),
+          o5 = t.litNonce;
+        (void 0 !== o5 && n6.setAttribute("nonce", o5),
+          (n6.textContent = e4.cssText),
+          s5.appendChild(n6));
+      });
 };
-var c = e ? (t3) => t3 : (t3) => t3 instanceof CSSStyleSheet ? ((t4) => {
-  let e4 = "";
-  for (const s5 of t4.cssRules)
-    e4 += s5.cssText;
-  return r(e4);
-})(t3) : t3;
+var c = e
+  ? (t3) => t3
+  : (t3) =>
+      t3 instanceof CSSStyleSheet
+        ? ((t4) => {
+            let e4 = "";
+            for (const s5 of t4.cssRules) e4 += s5.cssText;
+            return r(e4);
+          })(t3)
+        : t3;
 
 // node_modules/@lit/reactive-element/reactive-element.js
 var s2;
@@ -52,108 +83,162 @@ var e2 = window;
 var r2 = e2.trustedTypes;
 var h = r2 ? r2.emptyScript : "";
 var o2 = e2.reactiveElementPolyfillSupport;
-var n2 = { toAttribute(t3, i3) {
-  switch (i3) {
-    case Boolean:
-      t3 = t3 ? h : null;
-      break;
-    case Object:
-    case Array:
-      t3 = null == t3 ? t3 : JSON.stringify(t3);
-  }
-  return t3;
-}, fromAttribute(t3, i3) {
-  let s5 = t3;
-  switch (i3) {
-    case Boolean:
-      s5 = null !== t3;
-      break;
-    case Number:
-      s5 = null === t3 ? null : Number(t3);
-      break;
-    case Object:
-    case Array:
-      try {
-        s5 = JSON.parse(t3);
-      } catch (t4) {
-        s5 = null;
-      }
-  }
-  return s5;
-} };
+var n2 = {
+  toAttribute(t3, i3) {
+    switch (i3) {
+      case Boolean:
+        t3 = t3 ? h : null;
+        break;
+      case Object:
+      case Array:
+        t3 = null == t3 ? t3 : JSON.stringify(t3);
+    }
+    return t3;
+  },
+  fromAttribute(t3, i3) {
+    let s5 = t3;
+    switch (i3) {
+      case Boolean:
+        s5 = null !== t3;
+        break;
+      case Number:
+        s5 = null === t3 ? null : Number(t3);
+        break;
+      case Object:
+      case Array:
+        try {
+          s5 = JSON.parse(t3);
+        } catch (t4) {
+          s5 = null;
+        }
+    }
+    return s5;
+  },
+};
 var a = (t3, i3) => i3 !== t3 && (i3 == i3 || t3 == t3);
-var l = { attribute: true, type: String, converter: n2, reflect: false, hasChanged: a };
+var l = {
+  attribute: true,
+  type: String,
+  converter: n2,
+  reflect: false,
+  hasChanged: a,
+};
 var d = "finalized";
 var u = class extends HTMLElement {
   constructor() {
-    super(), this._$Ei = /* @__PURE__ */ new Map(), this.isUpdatePending = false, this.hasUpdated = false, this._$El = null, this._$Eu();
+    (super(),
+      (this._$Ei = /* @__PURE__ */ new Map()),
+      (this.isUpdatePending = false),
+      (this.hasUpdated = false),
+      (this._$El = null),
+      this._$Eu());
   }
   static addInitializer(t3) {
     var i3;
-    this.finalize(), (null !== (i3 = this.h) && void 0 !== i3 ? i3 : this.h = []).push(t3);
+    (this.finalize(),
+      (null !== (i3 = this.h) && void 0 !== i3 ? i3 : (this.h = [])).push(t3));
   }
   static get observedAttributes() {
     this.finalize();
     const t3 = [];
-    return this.elementProperties.forEach((i3, s5) => {
-      const e4 = this._$Ep(s5, i3);
-      void 0 !== e4 && (this._$Ev.set(e4, s5), t3.push(e4));
-    }), t3;
+    return (
+      this.elementProperties.forEach((i3, s5) => {
+        const e4 = this._$Ep(s5, i3);
+        void 0 !== e4 && (this._$Ev.set(e4, s5), t3.push(e4));
+      }),
+      t3
+    );
   }
   static createProperty(t3, i3 = l) {
-    if (i3.state && (i3.attribute = false), this.finalize(), this.elementProperties.set(t3, i3), !i3.noAccessor && !this.prototype.hasOwnProperty(t3)) {
-      const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3, e4 = this.getPropertyDescriptor(t3, s5, i3);
+    if (
+      (i3.state && (i3.attribute = false),
+      this.finalize(),
+      this.elementProperties.set(t3, i3),
+      !i3.noAccessor && !this.prototype.hasOwnProperty(t3))
+    ) {
+      const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3,
+        e4 = this.getPropertyDescriptor(t3, s5, i3);
       void 0 !== e4 && Object.defineProperty(this.prototype, t3, e4);
     }
   }
   static getPropertyDescriptor(t3, i3, s5) {
-    return { get() {
-      return this[i3];
-    }, set(e4) {
-      const r4 = this[t3];
-      this[i3] = e4, this.requestUpdate(t3, r4, s5);
-    }, configurable: true, enumerable: true };
+    return {
+      get() {
+        return this[i3];
+      },
+      set(e4) {
+        const r4 = this[t3];
+        ((this[i3] = e4), this.requestUpdate(t3, r4, s5));
+      },
+      configurable: true,
+      enumerable: true,
+    };
   }
   static getPropertyOptions(t3) {
     return this.elementProperties.get(t3) || l;
   }
   static finalize() {
-    if (this.hasOwnProperty(d))
-      return false;
+    if (this.hasOwnProperty(d)) return false;
     this[d] = true;
     const t3 = Object.getPrototypeOf(this);
-    if (t3.finalize(), void 0 !== t3.h && (this.h = [...t3.h]), this.elementProperties = new Map(t3.elementProperties), this._$Ev = /* @__PURE__ */ new Map(), this.hasOwnProperty("properties")) {
-      const t4 = this.properties, i3 = [...Object.getOwnPropertyNames(t4), ...Object.getOwnPropertySymbols(t4)];
-      for (const s5 of i3)
-        this.createProperty(s5, t4[s5]);
+    if (
+      (t3.finalize(),
+      void 0 !== t3.h && (this.h = [...t3.h]),
+      (this.elementProperties = new Map(t3.elementProperties)),
+      (this._$Ev = /* @__PURE__ */ new Map()),
+      this.hasOwnProperty("properties"))
+    ) {
+      const t4 = this.properties,
+        i3 = [
+          ...Object.getOwnPropertyNames(t4),
+          ...Object.getOwnPropertySymbols(t4),
+        ];
+      for (const s5 of i3) this.createProperty(s5, t4[s5]);
     }
-    return this.elementStyles = this.finalizeStyles(this.styles), true;
+    return ((this.elementStyles = this.finalizeStyles(this.styles)), true);
   }
   static finalizeStyles(i3) {
     const s5 = [];
     if (Array.isArray(i3)) {
       const e4 = new Set(i3.flat(1 / 0).reverse());
-      for (const i4 of e4)
-        s5.unshift(c(i4));
-    } else
-      void 0 !== i3 && s5.push(c(i3));
+      for (const i4 of e4) s5.unshift(c(i4));
+    } else void 0 !== i3 && s5.push(c(i3));
     return s5;
   }
   static _$Ep(t3, i3) {
     const s5 = i3.attribute;
-    return false === s5 ? void 0 : "string" == typeof s5 ? s5 : "string" == typeof t3 ? t3.toLowerCase() : void 0;
+    return false === s5
+      ? void 0
+      : "string" == typeof s5
+        ? s5
+        : "string" == typeof t3
+          ? t3.toLowerCase()
+          : void 0;
   }
   _$Eu() {
     var t3;
-    this._$E_ = new Promise((t4) => this.enableUpdating = t4), this._$AL = /* @__PURE__ */ new Map(), this._$Eg(), this.requestUpdate(), null === (t3 = this.constructor.h) || void 0 === t3 || t3.forEach((t4) => t4(this));
+    ((this._$E_ = new Promise((t4) => (this.enableUpdating = t4))),
+      (this._$AL = /* @__PURE__ */ new Map()),
+      this._$Eg(),
+      this.requestUpdate(),
+      null === (t3 = this.constructor.h) ||
+        void 0 === t3 ||
+        t3.forEach((t4) => t4(this)));
   }
   addController(t3) {
     var i3, s5;
-    (null !== (i3 = this._$ES) && void 0 !== i3 ? i3 : this._$ES = []).push(t3), void 0 !== this.renderRoot && this.isConnected && (null === (s5 = t3.hostConnected) || void 0 === s5 || s5.call(t3));
+    ((null !== (i3 = this._$ES) && void 0 !== i3 ? i3 : (this._$ES = [])).push(
+      t3,
+    ),
+      void 0 !== this.renderRoot &&
+        this.isConnected &&
+        (null === (s5 = t3.hostConnected) || void 0 === s5 || s5.call(t3)));
   }
   removeController(t3) {
     var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.splice(this._$ES.indexOf(t3) >>> 0, 1);
+    null === (i3 = this._$ES) ||
+      void 0 === i3 ||
+      i3.splice(this._$ES.indexOf(t3) >>> 0, 1);
   }
   _$Eg() {
     this.constructor.elementProperties.forEach((t3, i3) => {
@@ -162,24 +247,36 @@ var u = class extends HTMLElement {
   }
   createRenderRoot() {
     var t3;
-    const s5 = null !== (t3 = this.shadowRoot) && void 0 !== t3 ? t3 : this.attachShadow(this.constructor.shadowRootOptions);
-    return S(s5, this.constructor.elementStyles), s5;
+    const s5 =
+      null !== (t3 = this.shadowRoot) && void 0 !== t3
+        ? t3
+        : this.attachShadow(this.constructor.shadowRootOptions);
+    return (S(s5, this.constructor.elementStyles), s5);
   }
   connectedCallback() {
     var t3;
-    void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()), this.enableUpdating(true), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostConnected) || void 0 === i3 ? void 0 : i3.call(t4);
-    });
+    (void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()),
+      this.enableUpdating(true),
+      null === (t3 = this._$ES) ||
+        void 0 === t3 ||
+        t3.forEach((t4) => {
+          var i3;
+          return null === (i3 = t4.hostConnected) || void 0 === i3
+            ? void 0
+            : i3.call(t4);
+        }));
   }
-  enableUpdating(t3) {
-  }
+  enableUpdating(t3) {}
   disconnectedCallback() {
     var t3;
-    null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-      var i3;
-      return null === (i3 = t4.hostDisconnected) || void 0 === i3 ? void 0 : i3.call(t4);
-    });
+    null === (t3 = this._$ES) ||
+      void 0 === t3 ||
+      t3.forEach((t4) => {
+        var i3;
+        return null === (i3 = t4.hostDisconnected) || void 0 === i3
+          ? void 0
+          : i3.call(t4);
+      });
   }
   attributeChangedCallback(t3, i3, s5) {
     this._$AK(t3, s5);
@@ -188,21 +285,53 @@ var u = class extends HTMLElement {
     var e4;
     const r4 = this.constructor._$Ep(t3, s5);
     if (void 0 !== r4 && true === s5.reflect) {
-      const h3 = (void 0 !== (null === (e4 = s5.converter) || void 0 === e4 ? void 0 : e4.toAttribute) ? s5.converter : n2).toAttribute(i3, s5.type);
-      this._$El = t3, null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3), this._$El = null;
+      const h3 = (
+        void 0 !==
+        (null === (e4 = s5.converter) || void 0 === e4
+          ? void 0
+          : e4.toAttribute)
+          ? s5.converter
+          : n2
+      ).toAttribute(i3, s5.type);
+      ((this._$El = t3),
+        null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3),
+        (this._$El = null));
     }
   }
   _$AK(t3, i3) {
     var s5;
-    const e4 = this.constructor, r4 = e4._$Ev.get(t3);
+    const e4 = this.constructor,
+      r4 = e4._$Ev.get(t3);
     if (void 0 !== r4 && this._$El !== r4) {
-      const t4 = e4.getPropertyOptions(r4), h3 = "function" == typeof t4.converter ? { fromAttribute: t4.converter } : void 0 !== (null === (s5 = t4.converter) || void 0 === s5 ? void 0 : s5.fromAttribute) ? t4.converter : n2;
-      this._$El = r4, this[r4] = h3.fromAttribute(i3, t4.type), this._$El = null;
+      const t4 = e4.getPropertyOptions(r4),
+        h3 =
+          "function" == typeof t4.converter
+            ? { fromAttribute: t4.converter }
+            : void 0 !==
+                (null === (s5 = t4.converter) || void 0 === s5
+                  ? void 0
+                  : s5.fromAttribute)
+              ? t4.converter
+              : n2;
+      ((this._$El = r4),
+        (this[r4] = h3.fromAttribute(i3, t4.type)),
+        (this._$El = null));
     }
   }
   requestUpdate(t3, i3, s5) {
     let e4 = true;
-    void 0 !== t3 && (((s5 = s5 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(this[t3], i3) ? (this._$AL.has(t3) || this._$AL.set(t3, i3), true === s5.reflect && this._$El !== t3 && (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()), this._$EC.set(t3, s5))) : e4 = false), !this.isUpdatePending && e4 && (this._$E_ = this._$Ej());
+    (void 0 !== t3 &&
+      (((s5 = s5 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(
+        this[t3],
+        i3,
+      )
+        ? (this._$AL.has(t3) || this._$AL.set(t3, i3),
+          true === s5.reflect &&
+            this._$El !== t3 &&
+            (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()),
+            this._$EC.set(t3, s5)))
+        : (e4 = false)),
+      !this.isUpdatePending && e4 && (this._$E_ = this._$Ej()));
   }
   async _$Ej() {
     this.isUpdatePending = true;
@@ -212,39 +341,54 @@ var u = class extends HTMLElement {
       Promise.reject(t4);
     }
     const t3 = this.scheduleUpdate();
-    return null != t3 && await t3, !this.isUpdatePending;
+    return (null != t3 && (await t3), !this.isUpdatePending);
   }
   scheduleUpdate() {
     return this.performUpdate();
   }
   performUpdate() {
     var t3;
-    if (!this.isUpdatePending)
-      return;
-    this.hasUpdated, this._$Ei && (this._$Ei.forEach((t4, i4) => this[i4] = t4), this._$Ei = void 0);
+    if (!this.isUpdatePending) return;
+    (this.hasUpdated,
+      this._$Ei &&
+        (this._$Ei.forEach((t4, i4) => (this[i4] = t4)), (this._$Ei = void 0)));
     let i3 = false;
     const s5 = this._$AL;
     try {
-      i3 = this.shouldUpdate(s5), i3 ? (this.willUpdate(s5), null === (t3 = this._$ES) || void 0 === t3 || t3.forEach((t4) => {
-        var i4;
-        return null === (i4 = t4.hostUpdate) || void 0 === i4 ? void 0 : i4.call(t4);
-      }), this.update(s5)) : this._$Ek();
+      ((i3 = this.shouldUpdate(s5)),
+        i3
+          ? (this.willUpdate(s5),
+            null === (t3 = this._$ES) ||
+              void 0 === t3 ||
+              t3.forEach((t4) => {
+                var i4;
+                return null === (i4 = t4.hostUpdate) || void 0 === i4
+                  ? void 0
+                  : i4.call(t4);
+              }),
+            this.update(s5))
+          : this._$Ek());
     } catch (t4) {
-      throw i3 = false, this._$Ek(), t4;
+      throw ((i3 = false), this._$Ek(), t4);
     }
     i3 && this._$AE(s5);
   }
-  willUpdate(t3) {
-  }
+  willUpdate(t3) {}
   _$AE(t3) {
     var i3;
-    null === (i3 = this._$ES) || void 0 === i3 || i3.forEach((t4) => {
-      var i4;
-      return null === (i4 = t4.hostUpdated) || void 0 === i4 ? void 0 : i4.call(t4);
-    }), this.hasUpdated || (this.hasUpdated = true, this.firstUpdated(t3)), this.updated(t3);
+    (null === (i3 = this._$ES) ||
+      void 0 === i3 ||
+      i3.forEach((t4) => {
+        var i4;
+        return null === (i4 = t4.hostUpdated) || void 0 === i4
+          ? void 0
+          : i4.call(t4);
+      }),
+      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t3)),
+      this.updated(t3));
   }
   _$Ek() {
-    this._$AL = /* @__PURE__ */ new Map(), this.isUpdatePending = false;
+    ((this._$AL = /* @__PURE__ */ new Map()), (this.isUpdatePending = false));
   }
   get updateComplete() {
     return this.getUpdateComplete();
@@ -256,14 +400,23 @@ var u = class extends HTMLElement {
     return true;
   }
   update(t3) {
-    void 0 !== this._$EC && (this._$EC.forEach((t4, i3) => this._$EO(i3, this[i3], t4)), this._$EC = void 0), this._$Ek();
+    (void 0 !== this._$EC &&
+      (this._$EC.forEach((t4, i3) => this._$EO(i3, this[i3], t4)),
+      (this._$EC = void 0)),
+      this._$Ek());
   }
-  updated(t3) {
-  }
-  firstUpdated(t3) {
-  }
+  updated(t3) {}
+  firstUpdated(t3) {}
 };
-u[d] = true, u.elementProperties = /* @__PURE__ */ new Map(), u.elementStyles = [], u.shadowRootOptions = { mode: "open" }, null == o2 || o2({ ReactiveElement: u }), (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2 ? s2 : e2.reactiveElementVersions = []).push("1.6.3");
+((u[d] = true),
+  (u.elementProperties = /* @__PURE__ */ new Map()),
+  (u.elementStyles = []),
+  (u.shadowRootOptions = { mode: "open" }),
+  null == o2 || o2({ ReactiveElement: u }),
+  (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2
+    ? s2
+    : (e2.reactiveElementVersions = [])
+  ).push("1.6.3"));
 
 // node_modules/lit-html/lit-html.js
 var t2;
@@ -276,19 +429,26 @@ var l2 = "?" + n3;
 var h2 = `<${l2}>`;
 var r3 = document;
 var u2 = () => r3.createComment("");
-var d2 = (t3) => null === t3 || "object" != typeof t3 && "function" != typeof t3;
+var d2 = (t3) =>
+  null === t3 || ("object" != typeof t3 && "function" != typeof t3);
 var c2 = Array.isArray;
-var v = (t3) => c2(t3) || "function" == typeof (null == t3 ? void 0 : t3[Symbol.iterator]);
+var v = (t3) =>
+  c2(t3) || "function" == typeof (null == t3 ? void 0 : t3[Symbol.iterator]);
 var a2 = "[ 	\n\f\r]";
 var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
 var _ = /-->/g;
 var m = />/g;
-var p = RegExp(`>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
-\f\r"'\`<>=]|("|')|))|$)`, "g");
+var p = RegExp(
+  `>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
+\f\r"'\`<>=]|("|')|))|$)`,
+  "g",
+);
 var g = /'/g;
 var $ = /"/g;
 var y = /^(?:script|style|textarea|title)$/i;
-var w = (t3) => (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
+var w =
+  (t3) =>
+  (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
 var x = w(1);
 var b = w(2);
 var T = Symbol.for("lit-noChange");
@@ -301,15 +461,50 @@ function P(t3, i3) {
   return void 0 !== e3 ? e3.createHTML(i3) : i3;
 }
 var V = (t3, i3) => {
-  const s5 = t3.length - 1, e4 = [];
-  let l4, r4 = 2 === i3 ? "<svg>" : "", u3 = f;
+  const s5 = t3.length - 1,
+    e4 = [];
+  let l4,
+    r4 = 2 === i3 ? "<svg>" : "",
+    u3 = f;
   for (let i4 = 0; i4 < s5; i4++) {
     const s6 = t3[i4];
-    let d3, c3, v2 = -1, a3 = 0;
-    for (; a3 < s6.length && (u3.lastIndex = a3, c3 = u3.exec(s6), null !== c3); )
-      a3 = u3.lastIndex, u3 === f ? "!--" === c3[1] ? u3 = _ : void 0 !== c3[1] ? u3 = m : void 0 !== c3[2] ? (y.test(c3[2]) && (l4 = RegExp("</" + c3[2], "g")), u3 = p) : void 0 !== c3[3] && (u3 = p) : u3 === p ? ">" === c3[0] ? (u3 = null != l4 ? l4 : f, v2 = -1) : void 0 === c3[1] ? v2 = -2 : (v2 = u3.lastIndex - c3[2].length, d3 = c3[1], u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g) : u3 === $ || u3 === g ? u3 = p : u3 === _ || u3 === m ? u3 = f : (u3 = p, l4 = void 0); // nosemgrep
+    let d3,
+      c3,
+      v2 = -1,
+      a3 = 0;
+    for (
+      ;
+      a3 < s6.length && ((u3.lastIndex = a3), (c3 = u3.exec(s6)), null !== c3);
+    )
+      ((a3 = u3.lastIndex),
+        u3 === f
+          ? "!--" === c3[1]
+            ? (u3 = _)
+            : void 0 !== c3[1]
+              ? (u3 = m)
+              : void 0 !== c3[2]
+                ? (y.test(c3[2]) && (l4 = RegExp("</" + c3[2], "g")), (u3 = p))
+                : void 0 !== c3[3] && (u3 = p)
+          : u3 === p
+            ? ">" === c3[0]
+              ? ((u3 = null != l4 ? l4 : f), (v2 = -1))
+              : void 0 === c3[1]
+                ? (v2 = -2)
+                : ((v2 = u3.lastIndex - c3[2].length),
+                  (d3 = c3[1]),
+                  (u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g))
+            : u3 === $ || u3 === g
+              ? (u3 = p)
+              : u3 === _ || u3 === m
+                ? (u3 = f)
+                : ((u3 = p), (l4 = void 0))); // nosemgrep
     const w2 = u3 === p && t3[i4 + 1].startsWith("/>") ? " " : "";
-    r4 += u3 === f ? s6 + h2 : v2 >= 0 ? (e4.push(d3), s6.slice(0, v2) + o3 + s6.slice(v2) + n3 + w2) : s6 + n3 + (-2 === v2 ? (e4.push(void 0), i4) : w2);
+    r4 +=
+      u3 === f
+        ? s6 + h2
+        : v2 >= 0
+          ? (e4.push(d3), s6.slice(0, v2) + o3 + s6.slice(v2) + n3 + w2)
+          : s6 + n3 + (-2 === v2 ? (e4.push(void 0), i4) : w2);
   }
   return [P(t3, r4 + (t3[s5] || "<?>") + (2 === i3 ? "</svg>" : "")), e4];
 };
@@ -317,11 +512,19 @@ var N = class _N {
   constructor({ strings: t3, _$litType$: i3 }, e4) {
     let h3;
     this.parts = [];
-    let r4 = 0, d3 = 0;
-    const c3 = t3.length - 1, v2 = this.parts, [a3, f2] = V(t3, i3);
-    if (this.el = _N.createElement(a3, e4), C.currentNode = this.el.content, 2 === i3) {
-      const t4 = this.el.content, i4 = t4.firstChild;
-      i4.remove(), t4.append(...i4.childNodes);
+    let r4 = 0,
+      d3 = 0;
+    const c3 = t3.length - 1,
+      v2 = this.parts,
+      [a3, f2] = V(t3, i3);
+    if (
+      ((this.el = _N.createElement(a3, e4)),
+      (C.currentNode = this.el.content),
+      2 === i3)
+    ) {
+      const t4 = this.el.content,
+        i4 = t4.firstChild;
+      (i4.remove(), t4.append(...i4.childNodes));
     }
     for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
       if (1 === h3.nodeType) {
@@ -330,51 +533,85 @@ var N = class _N {
           for (const i4 of h3.getAttributeNames())
             if (i4.endsWith(o3) || i4.startsWith(n3)) {
               const s5 = f2[d3++];
-              if (t4.push(i4), void 0 !== s5) {
-                const t5 = h3.getAttribute(s5.toLowerCase() + o3).split(n3), i5 = /([.?@])?(.*)/.exec(s5);
-                v2.push({ type: 1, index: r4, name: i5[2], strings: t5, ctor: "." === i5[1] ? H : "?" === i5[1] ? L : "@" === i5[1] ? z : k });
-              } else
-                v2.push({ type: 6, index: r4 });
+              if ((t4.push(i4), void 0 !== s5)) {
+                const t5 = h3.getAttribute(s5.toLowerCase() + o3).split(n3),
+                  i5 = /([.?@])?(.*)/.exec(s5);
+                v2.push({
+                  type: 1,
+                  index: r4,
+                  name: i5[2],
+                  strings: t5,
+                  ctor:
+                    "." === i5[1]
+                      ? H
+                      : "?" === i5[1]
+                        ? L
+                        : "@" === i5[1]
+                          ? z
+                          : k,
+                });
+              } else v2.push({ type: 6, index: r4 });
             }
-          for (const i4 of t4)
-            h3.removeAttribute(i4);
+          for (const i4 of t4) h3.removeAttribute(i4);
         }
         if (y.test(h3.tagName)) {
-          const t4 = h3.textContent.split(n3), i4 = t4.length - 1;
+          const t4 = h3.textContent.split(n3),
+            i4 = t4.length - 1;
           if (i4 > 0) {
             h3.textContent = s3 ? s3.emptyScript : "";
             for (let s5 = 0; s5 < i4; s5++)
-              h3.append(t4[s5], u2()), C.nextNode(), v2.push({ type: 2, index: ++r4 });
+              (h3.append(t4[s5], u2()),
+                C.nextNode(),
+                v2.push({ type: 2, index: ++r4 }));
             h3.append(t4[i4], u2());
           }
         }
       } else if (8 === h3.nodeType)
-        if (h3.data === l2)
-          v2.push({ type: 2, index: r4 });
+        if (h3.data === l2) v2.push({ type: 2, index: r4 });
         else {
           let t4 = -1;
           for (; -1 !== (t4 = h3.data.indexOf(n3, t4 + 1)); )
-            v2.push({ type: 7, index: r4 }), t4 += n3.length - 1;
+            (v2.push({ type: 7, index: r4 }), (t4 += n3.length - 1));
         }
       r4++;
     }
   }
   static createElement(t3, i3) {
     const s5 = r3.createElement("template");
-    return s5.innerHTML = t3, s5;
+    return ((s5.innerHTML = t3), s5);
   }
 };
 function S2(t3, i3, s5 = t3, e4) {
   var o5, n5, l4, h3;
-  if (i3 === T)
-    return i3;
-  let r4 = void 0 !== e4 ? null === (o5 = s5._$Co) || void 0 === o5 ? void 0 : o5[e4] : s5._$Cl;
+  if (i3 === T) return i3;
+  let r4 =
+    void 0 !== e4
+      ? null === (o5 = s5._$Co) || void 0 === o5
+        ? void 0
+        : o5[e4]
+      : s5._$Cl;
   const u3 = d2(i3) ? void 0 : i3._$litDirective$;
-  return (null == r4 ? void 0 : r4.constructor) !== u3 && (null === (n5 = null == r4 ? void 0 : r4._$AO) || void 0 === n5 || n5.call(r4, false), void 0 === u3 ? r4 = void 0 : (r4 = new u3(t3), r4._$AT(t3, s5, e4)), void 0 !== e4 ? (null !== (l4 = (h3 = s5)._$Co) && void 0 !== l4 ? l4 : h3._$Co = [])[e4] = r4 : s5._$Cl = r4), void 0 !== r4 && (i3 = S2(t3, r4._$AS(t3, i3.values), r4, e4)), i3;
+  return (
+    (null == r4 ? void 0 : r4.constructor) !== u3 &&
+      (null === (n5 = null == r4 ? void 0 : r4._$AO) ||
+        void 0 === n5 ||
+        n5.call(r4, false),
+      void 0 === u3 ? (r4 = void 0) : ((r4 = new u3(t3)), r4._$AT(t3, s5, e4)),
+      void 0 !== e4
+        ? ((null !== (l4 = (h3 = s5)._$Co) && void 0 !== l4
+            ? l4
+            : (h3._$Co = []))[e4] = r4)
+        : (s5._$Cl = r4)),
+    void 0 !== r4 && (i3 = S2(t3, r4._$AS(t3, i3.values), r4, e4)),
+    i3
+  );
 }
 var M = class {
   constructor(t3, i3) {
-    this._$AV = [], this._$AN = void 0, this._$AD = t3, this._$AM = i3;
+    ((this._$AV = []),
+      (this._$AN = void 0),
+      (this._$AD = t3),
+      (this._$AM = i3));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -384,37 +621,77 @@ var M = class {
   }
   u(t3) {
     var i3;
-    const { el: { content: s5 }, parts: e4 } = this._$AD, o5 = (null !== (i3 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i3 ? i3 : r3).importNode(s5, true);
+    const {
+        el: { content: s5 },
+        parts: e4,
+      } = this._$AD,
+      o5 = (
+        null !== (i3 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i3
+          ? i3
+          : r3
+      ).importNode(s5, true);
     C.currentNode = o5;
-    let n5 = C.nextNode(), l4 = 0, h3 = 0, u3 = e4[0];
+    let n5 = C.nextNode(),
+      l4 = 0,
+      h3 = 0,
+      u3 = e4[0];
     for (; void 0 !== u3; ) {
       if (l4 === u3.index) {
         let i4;
-        2 === u3.type ? i4 = new R(n5, n5.nextSibling, this, t3) : 1 === u3.type ? i4 = new u3.ctor(n5, u3.name, u3.strings, this, t3) : 6 === u3.type && (i4 = new Z(n5, this, t3)), this._$AV.push(i4), u3 = e4[++h3];
+        (2 === u3.type
+          ? (i4 = new R(n5, n5.nextSibling, this, t3))
+          : 1 === u3.type
+            ? (i4 = new u3.ctor(n5, u3.name, u3.strings, this, t3))
+            : 6 === u3.type && (i4 = new Z(n5, this, t3)),
+          this._$AV.push(i4),
+          (u3 = e4[++h3]));
       }
-      l4 !== (null == u3 ? void 0 : u3.index) && (n5 = C.nextNode(), l4++);
+      l4 !== (null == u3 ? void 0 : u3.index) && ((n5 = C.nextNode()), l4++);
     }
-    return C.currentNode = r3, o5;
+    return ((C.currentNode = r3), o5);
   }
   v(t3) {
     let i3 = 0;
     for (const s5 of this._$AV)
-      void 0 !== s5 && (void 0 !== s5.strings ? (s5._$AI(t3, s5, i3), i3 += s5.strings.length - 2) : s5._$AI(t3[i3])), i3++;
+      (void 0 !== s5 &&
+        (void 0 !== s5.strings
+          ? (s5._$AI(t3, s5, i3), (i3 += s5.strings.length - 2))
+          : s5._$AI(t3[i3])),
+        i3++);
   }
 };
 var R = class _R {
   constructor(t3, i3, s5, e4) {
     var o5;
-    this.type = 2, this._$AH = A, this._$AN = void 0, this._$AA = t3, this._$AB = i3, this._$AM = s5, this.options = e4, this._$Cp = null === (o5 = null == e4 ? void 0 : e4.isConnected) || void 0 === o5 || o5;
+    ((this.type = 2),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this._$AA = t3),
+      (this._$AB = i3),
+      (this._$AM = s5),
+      (this.options = e4),
+      (this._$Cp =
+        null === (o5 = null == e4 ? void 0 : e4.isConnected) ||
+        void 0 === o5 ||
+        o5));
   }
   get _$AU() {
     var t3, i3;
-    return null !== (i3 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) && void 0 !== i3 ? i3 : this._$Cp;
+    return null !==
+      (i3 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) &&
+      void 0 !== i3
+      ? i3
+      : this._$Cp;
   }
   get parentNode() {
     let t3 = this._$AA.parentNode;
     const i3 = this._$AM;
-    return void 0 !== i3 && 11 === (null == t3 ? void 0 : t3.nodeType) && (t3 = i3.parentNode), t3;
+    return (
+      void 0 !== i3 &&
+        11 === (null == t3 ? void 0 : t3.nodeType) &&
+        (t3 = i3.parentNode),
+      t3
+    );
   }
   get startNode() {
     return this._$AA;
@@ -423,54 +700,98 @@ var R = class _R {
     return this._$AB;
   }
   _$AI(t3, i3 = this) {
-    t3 = S2(this, t3, i3), d2(t3) ? t3 === A || null == t3 || "" === t3 ? (this._$AH !== A && this._$AR(), this._$AH = A) : t3 !== this._$AH && t3 !== T && this._(t3) : void 0 !== t3._$litType$ ? this.g(t3) : void 0 !== t3.nodeType ? this.$(t3) : v(t3) ? this.T(t3) : this._(t3);
+    ((t3 = S2(this, t3, i3)),
+      d2(t3)
+        ? t3 === A || null == t3 || "" === t3
+          ? (this._$AH !== A && this._$AR(), (this._$AH = A))
+          : t3 !== this._$AH && t3 !== T && this._(t3)
+        : void 0 !== t3._$litType$
+          ? this.g(t3)
+          : void 0 !== t3.nodeType
+            ? this.$(t3)
+            : v(t3)
+              ? this.T(t3)
+              : this._(t3));
   }
   k(t3) {
     return this._$AA.parentNode.insertBefore(t3, this._$AB);
   }
   $(t3) {
-    this._$AH !== t3 && (this._$AR(), this._$AH = this.k(t3));
+    this._$AH !== t3 && (this._$AR(), (this._$AH = this.k(t3)));
   }
   _(t3) {
-    this._$AH !== A && d2(this._$AH) ? this._$AA.nextSibling.data = t3 : this.$(r3.createTextNode(t3)), this._$AH = t3;
+    (this._$AH !== A && d2(this._$AH)
+      ? (this._$AA.nextSibling.data = t3)
+      : this.$(r3.createTextNode(t3)),
+      (this._$AH = t3));
   }
   g(t3) {
     var i3;
-    const { values: s5, _$litType$: e4 } = t3, o5 = "number" == typeof e4 ? this._$AC(t3) : (void 0 === e4.el && (e4.el = N.createElement(P(e4.h, e4.h[0]), this.options)), e4);
+    const { values: s5, _$litType$: e4 } = t3,
+      o5 =
+        "number" == typeof e4
+          ? this._$AC(t3)
+          : (void 0 === e4.el &&
+              (e4.el = N.createElement(P(e4.h, e4.h[0]), this.options)),
+            e4);
     if ((null === (i3 = this._$AH) || void 0 === i3 ? void 0 : i3._$AD) === o5)
       this._$AH.v(s5);
     else {
-      const t4 = new M(o5, this), i4 = t4.u(this.options);
-      t4.v(s5), this.$(i4), this._$AH = t4;
+      const t4 = new M(o5, this),
+        i4 = t4.u(this.options);
+      (t4.v(s5), this.$(i4), (this._$AH = t4));
     }
   }
   _$AC(t3) {
     let i3 = E.get(t3.strings);
-    return void 0 === i3 && E.set(t3.strings, i3 = new N(t3)), i3;
+    return (void 0 === i3 && E.set(t3.strings, (i3 = new N(t3))), i3);
   }
   T(t3) {
-    c2(this._$AH) || (this._$AH = [], this._$AR());
+    c2(this._$AH) || ((this._$AH = []), this._$AR());
     const i3 = this._$AH;
-    let s5, e4 = 0;
+    let s5,
+      e4 = 0;
     for (const o5 of t3)
-      e4 === i3.length ? i3.push(s5 = new _R(this.k(u2()), this.k(u2()), this, this.options)) : s5 = i3[e4], s5._$AI(o5), e4++;
-    e4 < i3.length && (this._$AR(s5 && s5._$AB.nextSibling, e4), i3.length = e4);
+      (e4 === i3.length
+        ? i3.push((s5 = new _R(this.k(u2()), this.k(u2()), this, this.options)))
+        : (s5 = i3[e4]),
+        s5._$AI(o5),
+        e4++);
+    e4 < i3.length &&
+      (this._$AR(s5 && s5._$AB.nextSibling, e4), (i3.length = e4));
   }
   _$AR(t3 = this._$AA.nextSibling, i3) {
     var s5;
-    for (null === (s5 = this._$AP) || void 0 === s5 || s5.call(this, false, true, i3); t3 && t3 !== this._$AB; ) {
+    for (
+      null === (s5 = this._$AP) ||
+      void 0 === s5 ||
+      s5.call(this, false, true, i3);
+      t3 && t3 !== this._$AB;
+    ) {
       const i4 = t3.nextSibling;
-      t3.remove(), t3 = i4;
+      (t3.remove(), (t3 = i4));
     }
   }
   setConnected(t3) {
     var i3;
-    void 0 === this._$AM && (this._$Cp = t3, null === (i3 = this._$AP) || void 0 === i3 || i3.call(this, t3));
+    void 0 === this._$AM &&
+      ((this._$Cp = t3),
+      null === (i3 = this._$AP) || void 0 === i3 || i3.call(this, t3));
   }
 };
 var k = class {
   constructor(t3, i3, s5, e4, o5) {
-    this.type = 1, this._$AH = A, this._$AN = void 0, this.element = t3, this.name = i3, this._$AM = e4, this.options = o5, s5.length > 2 || "" !== s5[0] || "" !== s5[1] ? (this._$AH = Array(s5.length - 1).fill(new String()), this.strings = s5) : this._$AH = A;
+    ((this.type = 1),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this.element = t3),
+      (this.name = i3),
+      (this._$AM = e4),
+      (this.options = o5),
+      s5.length > 2 || "" !== s5[0] || "" !== s5[1]
+        ? ((this._$AH = Array(s5.length - 1).fill(new String())),
+          (this.strings = s5))
+        : (this._$AH = A));
   }
   get tagName() {
     return this.element.tagName;
@@ -482,22 +803,32 @@ var k = class {
     const o5 = this.strings;
     let n5 = false;
     if (void 0 === o5)
-      t3 = S2(this, t3, i3, 0), n5 = !d2(t3) || t3 !== this._$AH && t3 !== T, n5 && (this._$AH = t3);
+      ((t3 = S2(this, t3, i3, 0)),
+        (n5 = !d2(t3) || (t3 !== this._$AH && t3 !== T)),
+        n5 && (this._$AH = t3));
     else {
       const e5 = t3;
       let l4, h3;
       for (t3 = o5[0], l4 = 0; l4 < o5.length - 1; l4++)
-        h3 = S2(this, e5[s5 + l4], i3, l4), h3 === T && (h3 = this._$AH[l4]), n5 || (n5 = !d2(h3) || h3 !== this._$AH[l4]), h3 === A ? t3 = A : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l4 + 1]), this._$AH[l4] = h3;
+        ((h3 = S2(this, e5[s5 + l4], i3, l4)),
+          h3 === T && (h3 = this._$AH[l4]),
+          n5 || (n5 = !d2(h3) || h3 !== this._$AH[l4]),
+          h3 === A
+            ? (t3 = A)
+            : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l4 + 1]),
+          (this._$AH[l4] = h3));
     }
     n5 && !e4 && this.j(t3);
   }
   j(t3) {
-    t3 === A ? this.element.removeAttribute(this.name) : this.element.setAttribute(this.name, null != t3 ? t3 : "");
+    t3 === A
+      ? this.element.removeAttribute(this.name)
+      : this.element.setAttribute(this.name, null != t3 ? t3 : "");
   }
 };
 var H = class extends k {
   constructor() {
-    super(...arguments), this.type = 3;
+    (super(...arguments), (this.type = 3));
   }
   j(t3) {
     this.element[this.name] = t3 === A ? void 0 : t3;
@@ -506,31 +837,58 @@ var H = class extends k {
 var I = s3 ? s3.emptyScript : "";
 var L = class extends k {
   constructor() {
-    super(...arguments), this.type = 4;
+    (super(...arguments), (this.type = 4));
   }
   j(t3) {
-    t3 && t3 !== A ? this.element.setAttribute(this.name, I) : this.element.removeAttribute(this.name);
+    t3 && t3 !== A
+      ? this.element.setAttribute(this.name, I)
+      : this.element.removeAttribute(this.name);
   }
 };
 var z = class extends k {
   constructor(t3, i3, s5, e4, o5) {
-    super(t3, i3, s5, e4, o5), this.type = 5;
+    (super(t3, i3, s5, e4, o5), (this.type = 5));
   }
   _$AI(t3, i3 = this) {
     var s5;
-    if ((t3 = null !== (s5 = S2(this, t3, i3, 0)) && void 0 !== s5 ? s5 : A) === T)
+    if (
+      (t3 = null !== (s5 = S2(this, t3, i3, 0)) && void 0 !== s5 ? s5 : A) === T
+    )
       return;
-    const e4 = this._$AH, o5 = t3 === A && e4 !== A || t3.capture !== e4.capture || t3.once !== e4.once || t3.passive !== e4.passive, n5 = t3 !== A && (e4 === A || o5);
-    o5 && this.element.removeEventListener(this.name, this, e4), n5 && this.element.addEventListener(this.name, this, t3), this._$AH = t3;
+    const e4 = this._$AH,
+      o5 =
+        (t3 === A && e4 !== A) ||
+        t3.capture !== e4.capture ||
+        t3.once !== e4.once ||
+        t3.passive !== e4.passive,
+      n5 = t3 !== A && (e4 === A || o5);
+    (o5 && this.element.removeEventListener(this.name, this, e4),
+      n5 && this.element.addEventListener(this.name, this, t3),
+      (this._$AH = t3));
   }
   handleEvent(t3) {
     var i3, s5;
-    "function" == typeof this._$AH ? this._$AH.call(null !== (s5 = null === (i3 = this.options) || void 0 === i3 ? void 0 : i3.host) && void 0 !== s5 ? s5 : this.element, t3) : this._$AH.handleEvent(t3);
+    "function" == typeof this._$AH
+      ? this._$AH.call(
+          null !==
+            (s5 =
+              null === (i3 = this.options) || void 0 === i3
+                ? void 0
+                : i3.host) && void 0 !== s5
+            ? s5
+            : this.element,
+          t3,
+        )
+      : this._$AH.handleEvent(t3);
   }
 };
 var Z = class {
   constructor(t3, i3, s5) {
-    this.element = t3, this.type = 6, this._$AN = void 0, this._$AM = i3, this.options = s5;
+    ((this.element = t3),
+      (this.type = 6),
+      (this._$AN = void 0),
+      (this._$AM = i3),
+      (this.options = s5));
   }
   get _$AU() {
     return this._$AM._$AU;
@@ -540,16 +898,31 @@ var Z = class {
   }
 };
 var B = i2.litHtmlPolyfillSupport;
-null == B || B(N, R), (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2 ? t2 : i2.litHtmlVersions = []).push("2.8.0");
+(null == B || B(N, R),
+  (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2
+    ? t2
+    : (i2.litHtmlVersions = [])
+  ).push("2.8.0"));
 var D = (t3, i3, s5) => {
   var e4, o5;
-  const n5 = null !== (e4 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== e4 ? e4 : i3;
+  const n5 =
+    null !== (e4 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== e4
+      ? e4
+      : i3;
   let l4 = n5._$litPart$;
   if (void 0 === l4) {
-    const t4 = null !== (o5 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== o5 ? o5 : null;
-    n5._$litPart$ = l4 = new R(i3.insertBefore(u2(), t4), t4, void 0, null != s5 ? s5 : {});
+    const t4 =
+      null !== (o5 = null == s5 ? void 0 : s5.renderBefore) && void 0 !== o5
+        ? o5
+        : null;
+    n5._$litPart$ = l4 = new R(
+      i3.insertBefore(u2(), t4),
+      t4,
+      void 0,
+      null != s5 ? s5 : {},
+    );
   }
-  return l4._$AI(t3), l4;
+  return (l4._$AI(t3), l4);
 };
 
 // node_modules/lit-element/lit-element.js
@@ -557,33 +930,51 @@ var l3;
 var o4;
 var s4 = class extends u {
   constructor() {
-    super(...arguments), this.renderOptions = { host: this }, this._$Do = void 0;
+    (super(...arguments),
+      (this.renderOptions = { host: this }),
+      (this._$Do = void 0));
   }
   createRenderRoot() {
     var t3, e4;
     const i3 = super.createRenderRoot();
-    return null !== (t3 = (e4 = this.renderOptions).renderBefore) && void 0 !== t3 || (e4.renderBefore = i3.firstChild), i3;
+    return (
+      (null !== (t3 = (e4 = this.renderOptions).renderBefore) &&
+        void 0 !== t3) ||
+        (e4.renderBefore = i3.firstChild),
+      i3
+    );
   }
   update(t3) {
     const i3 = this.render();
-    this.hasUpdated || (this.renderOptions.isConnected = this.isConnected), super.update(t3), this._$Do = D(i3, this.renderRoot, this.renderOptions);
+    (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
+      super.update(t3),
+      (this._$Do = D(i3, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
     var t3;
-    super.connectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(true);
+    (super.connectedCallback(),
+      null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(true));
   }
   disconnectedCallback() {
     var t3;
-    super.disconnectedCallback(), null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(false);
+    (super.disconnectedCallback(),
+      null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(false));
   }
   render() {
     return T;
   }
 };
-s4.finalized = true, s4._$litElement$ = true, null === (l3 = globalThis.litElementHydrateSupport) || void 0 === l3 || l3.call(globalThis, { LitElement: s4 });
+((s4.finalized = true),
+  (s4._$litElement$ = true),
+  null === (l3 = globalThis.litElementHydrateSupport) ||
+    void 0 === l3 ||
+    l3.call(globalThis, { LitElement: s4 }));
 var n4 = globalThis.litElementPolyfillSupport;
 null == n4 || n4({ LitElement: s4 });
-(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4 ? o4 : globalThis.litElementVersions = []).push("3.3.3");
+(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4
+  ? o4
+  : (globalThis.litElementVersions = [])
+).push("3.3.3");
 
 // src/card.js
 var SeloraAIDashboardCard = class extends s4 {
@@ -606,7 +997,7 @@ var SeloraAIDashboardCard = class extends s4 {
       _generatingName: { type: Boolean },
       _creatingAutomation: { type: Boolean },
       // Error feedback
-      _errorMessage: { type: String }
+      _errorMessage: { type: String },
     };
   }
   constructor() {
@@ -631,7 +1022,13 @@ var SeloraAIDashboardCard = class extends s4 {
     return document.createElement("selora-ai-card-editor");
   }
   static getStubConfig() {
-    return { title: "Selora AI", show_suggestions: true, show_automations: true, max_suggestions: 3, max_automations: 10 };
+    return {
+      title: "Selora AI",
+      show_suggestions: true,
+      show_automations: true,
+      max_suggestions: 3,
+      max_automations: 10,
+    };
   }
   connectedCallback() {
     super.connectedCallback();
@@ -645,12 +1042,8 @@ var SeloraAIDashboardCard = class extends s4 {
     }
   }
   async _loadData() {
-    if (!this.hass)
-      return;
-    await Promise.all([
-      this._loadSuggestions(),
-      this._loadAutomations()
-    ]);
+    if (!this.hass) return;
+    await Promise.all([this._loadSuggestions(), this._loadAutomations()]);
   }
   // -------------------------------------------------------------------------
   // Data loaders
@@ -658,7 +1051,9 @@ var SeloraAIDashboardCard = class extends s4 {
   async _loadSuggestions() {
     this._loadingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/get_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/get_suggestions",
+      });
       this._suggestions = suggestions || [];
     } catch (err) {
       console.error("Selora AI Card: Failed to load suggestions", err);
@@ -670,9 +1065,14 @@ var SeloraAIDashboardCard = class extends s4 {
   async _loadAutomations() {
     this._loadingAutomations = true;
     try {
-      const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
+      const automations = await this.hass.callWS({
+        type: "selora_ai/get_automations",
+      });
       const max = this.config.max_automations || 10;
-      this._automations = (automations || []).filter((a3) => a3.is_selora).reverse().slice(0, max);
+      this._automations = (automations || [])
+        .filter((a3) => a3.is_selora)
+        .reverse()
+        .slice(0, max);
     } catch (err) {
       console.error("Selora AI Card: Failed to load automations", err);
       this._automations = [];
@@ -692,7 +1092,9 @@ var SeloraAIDashboardCard = class extends s4 {
   async _generateSuggestions() {
     this._generatingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/generate_suggestions",
+      });
       this._suggestions = suggestions || [];
     } catch (err) {
       console.error("Selora AI Card: Failed to generate suggestions", err);
@@ -703,17 +1105,18 @@ var SeloraAIDashboardCard = class extends s4 {
   }
   async _acceptSuggestion(suggestion) {
     try {
-      const automationPayload = suggestion.automation_data || suggestion.automation || {
-        alias: suggestion.alias,
-        description: suggestion.description || "",
-        trigger: suggestion.trigger || suggestion.triggers || [],
-        action: suggestion.action || suggestion.actions || [],
-        condition: suggestion.condition || suggestion.conditions || []
-      };
+      const automationPayload = suggestion.automation_data ||
+        suggestion.automation || {
+          alias: suggestion.alias,
+          description: suggestion.description || "",
+          trigger: suggestion.trigger || suggestion.triggers || [],
+          action: suggestion.action || suggestion.actions || [],
+          condition: suggestion.condition || suggestion.conditions || [],
+        };
       automationPayload.initial_state = automationPayload.initial_state ?? true;
       await this.hass.callWS({
         type: "selora_ai/create_automation",
-        automation: automationPayload
+        automation: automationPayload,
       });
       this._suggestions = this._suggestions.filter((s5) => s5 !== suggestion);
       await this._loadAutomations();
@@ -731,7 +1134,7 @@ var SeloraAIDashboardCard = class extends s4 {
       await this.hass.callWS({
         type: "selora_ai/toggle_automation",
         automation_id: automation.automation_id,
-        entity_id: automation.entity_id
+        entity_id: automation.entity_id,
       });
       await this._loadAutomations();
     } catch (err) {
@@ -743,7 +1146,7 @@ var SeloraAIDashboardCard = class extends s4 {
     try {
       await this.hass.callWS({
         type: "selora_ai/soft_delete_automation",
-        automation_id: automation.automation_id
+        automation_id: automation.automation_id,
       });
       await this._loadAutomations();
     } catch (err) {
@@ -756,13 +1159,12 @@ var SeloraAIDashboardCard = class extends s4 {
   }
   async _createAutomation() {
     const name = this._newAutomationName.trim();
-    if (!name)
-      return;
+    if (!name) return;
     this._creatingAutomation = true;
     try {
       const result = await this.hass.callWS({
         type: "selora_ai/quick_create_automation",
-        name
+        name,
       });
       if (result && result.automation_id) {
         this._showNewAutomation = false;
@@ -781,12 +1183,20 @@ var SeloraAIDashboardCard = class extends s4 {
   async _letAIDecide() {
     this._generatingName = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/generate_suggestions",
+      });
       if (suggestions && suggestions.length > 0) {
-        const idx = crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
-        this._newAutomationName = suggestions[idx].alias || suggestions[idx].description || "New Automation";
+        const idx =
+          crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
+        this._newAutomationName =
+          suggestions[idx].alias ||
+          suggestions[idx].description ||
+          "New Automation";
       } else {
-        this._showError("No suggestions available. Try adding more devices first.");
+        this._showError(
+          "No suggestions available. Try adding more devices first.",
+        );
       }
     } catch (err) {
       console.error("Selora AI Card: Failed to generate name", err);
@@ -803,52 +1213,107 @@ var SeloraAIDashboardCard = class extends s4 {
   // Formatting helpers
   // -------------------------------------------------------------------------
   _formatRelativeTime(dateStr) {
-    if (!dateStr)
-      return "Never";
+    if (!dateStr) return "Never";
     const date = new Date(dateStr);
     const now = /* @__PURE__ */ new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 6e4);
-    if (diffMins < 1)
-      return "Just now";
-    if (diffMins < 60)
-      return `${diffMins}m ago`;
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
     const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24)
-      return `${diffHours}h ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
     const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7)
-      return `${diffDays}d ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   }
+  _humanizeToken(value) {
+    if (value == null || value === "") return "";
+    return String(value)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c3) => c3.toUpperCase());
+  }
   _fmtEntity(eid) {
-    if (!eid)
-      return "";
-    if (this.hass?.states?.[eid]) {
-      return this.hass.states[eid].attributes?.friendly_name || eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    if (!eid) return "";
+    const id = String(eid);
+    if (this.hass?.states?.[id]) {
+      return (
+        this.hass.states[id].attributes?.friendly_name ||
+        id
+          .split(".")
+          .pop()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c3) => c3.toUpperCase())
+      );
     }
-    return eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    return id
+      .split(".")
+      .pop()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c3) => c3.toUpperCase());
+  }
+  _fmtState(state) {
+    if (state == null) return null;
+    const s5 = String(state);
+    const friendly = {
+      on: "on",
+      off: "off",
+      home: "home",
+      not_home: "away",
+      open: "open",
+      closed: "closed",
+      locked: "locked",
+      unlocked: "unlocked",
+      playing: "playing",
+      paused: "paused",
+      idle: "idle",
+      unavailable: "unavailable",
+      unknown: "unknown",
+    };
+    return friendly[s5] || s5.replace(/_/g, " ");
+  }
+  _fmtDuration(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value !== "object") return String(value);
+    const parts = [
+      value.hours ? `${value.hours}h` : "",
+      value.minutes ? `${value.minutes}m` : "",
+      value.seconds ? `${value.seconds}s` : "",
+    ].filter(Boolean);
+    if (parts.length) return parts.join(" ");
+    return String(value);
+  }
+  _fmtNumericValue(entityId, value) {
+    if (value == null || value === "") return "";
+    const raw = String(value).trim();
+    const batteryLike = String(entityId || "")
+      .toLowerCase()
+      .includes("battery");
+    if (batteryLike && /^-?\d+(\.\d+)?$/.test(raw) && !raw.includes("%")) {
+      return `${raw}%`;
+    }
+    return raw;
   }
   _fmtTime(val) {
-    if (val == null)
-      return "";
+    if (val == null) return "";
     const s5 = String(val).trim();
     if (s5.includes("{{")) {
       const m2 = s5.match(/states\(['"]([^'"]+)['"]\)/);
-      if (m2)
-        return this._fmtEntity(m2[1]);
+      if (m2) return this._fmtEntity(m2[1]);
       return "a calculated time";
     }
     const num = Number(s5);
     if (!isNaN(num) && num >= 0 && num <= 86400 && !s5.includes(":")) {
-      const h3 = Math.floor(num / 3600), m2 = Math.floor(num % 3600 / 60);
+      const h3 = Math.floor(num / 3600),
+        m2 = Math.floor((num % 3600) / 60);
       const ampm = h3 >= 12 ? "PM" : "AM";
       const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
       return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
     }
     const parts = s5.split(":");
     if (parts.length >= 2) {
-      const h3 = parseInt(parts[0], 10), m2 = parseInt(parts[1], 10);
+      const h3 = parseInt(parts[0], 10),
+        m2 = parseInt(parts[1], 10);
       if (!isNaN(h3) && !isNaN(m2)) {
         const ampm = h3 >= 12 ? "PM" : "AM";
         const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
@@ -860,77 +1325,122 @@ var SeloraAIDashboardCard = class extends s4 {
     return s5;
   }
   _formatTrigger(t3) {
-    if (!t3)
-      return "Unknown trigger";
+    if (!t3) return "Unknown trigger";
     const p2 = t3.platform || t3.trigger;
     if (p2 === "time") {
       const raw = t3.at;
       if (Array.isArray(raw))
-        return `Every day at ${raw.map((v2) => this._fmtTime(v2)).join(", ")}`;
-      return `Every day at ${this._fmtTime(raw)}`;
+        return `When the time is ${raw.map((v2) => this._fmtTime(v2)).join(" or ")}`;
+      return `When the time is ${this._fmtTime(raw)}`;
     }
     if (p2 === "sun") {
-      const ev = t3.event === "sunset" ? "At sunset" : t3.event === "sunrise" ? "At sunrise" : `Sun ${(t3.event || "").replace(/_/g, " ")}`;
-      return `${ev}${t3.offset ? ` (${t3.offset})` : ""}`;
+      const ev =
+        t3.event === "sunset"
+          ? "sunset"
+          : t3.event === "sunrise"
+            ? "sunrise"
+            : this._humanizeToken(t3.event || "sun event").toLowerCase();
+      return `When it is ${ev}${t3.offset ? ` (${t3.offset})` : ""}`;
     }
     if (p2 === "state") {
       const eid = this._fmtEntity(t3.entity_id);
-      if (t3.to === "on")
-        return `When ${eid} turns on`;
-      if (t3.to === "off")
-        return `When ${eid} turns off`;
-      if (t3.to)
-        return `When ${eid} becomes ${t3.to}`;
-      return `When ${eid} changes state`;
+      const fromState = this._fmtState(t3.from);
+      const toState = this._fmtState(t3.to);
+      const duration = this._fmtDuration(t3.for);
+      const dur = duration ? ` for ${duration}` : "";
+      if (toState === "on") return `When ${eid} turns on${dur}`;
+      if (toState === "off") return `When ${eid} turns off${dur}`;
+      if (toState && fromState)
+        return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
+      if (toState) return `When ${eid} becomes ${toState}${dur}`;
+      return `When ${eid} changes state${dur}`;
     }
     if (p2 === "numeric_state") {
       const eid = this._fmtEntity(t3.entity_id);
-      if (t3.above != null)
-        return `When ${eid} rises above ${t3.above}`;
-      if (t3.below != null)
-        return `When ${eid} drops below ${t3.below}`;
+      const above = this._fmtNumericValue(t3.entity_id, t3.above);
+      const below = this._fmtNumericValue(t3.entity_id, t3.below);
+      if (t3.above != null && t3.below != null)
+        return `When ${eid} is between ${above} and ${below}`;
+      if (t3.above != null) return `When ${eid} rises above ${above}`;
+      if (t3.below != null) return `When ${eid} drops below ${below}`;
       return `When ${eid} value changes`;
     }
     if (p2 === "homeassistant")
-      return `Home Assistant ${t3.event === "start" ? "starts up" : "shuts down"}`;
+      return `When Home Assistant ${t3.event === "start" ? "starts" : t3.event === "shutdown" ? "shuts down" : "changes state"}`;
     if (p2 === "template") {
       const tmpl = t3.value_template || "";
       const m2 = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
-      if (m2)
-        return `When ${this._fmtEntity(m2[1])} condition is met`;
-      return "When a condition is met";
+      if (m2) return `When ${this._fmtEntity(m2[1])} condition is met`;
+      return "When a template condition is met";
     }
     if (p2 === "time_pattern") {
+      if (t3.seconds != null)
+        return `Every ${t3.seconds} second${Number(t3.seconds) === 1 ? "" : "s"}`;
       if (t3.minutes != null)
-        return `Every ${t3.minutes} minutes`;
+        return `Every ${t3.minutes} minute${Number(t3.minutes) === 1 ? "" : "s"}`;
       if (t3.hours != null)
-        return `Every ${t3.hours} hours`;
+        return `Every ${t3.hours} hour${Number(t3.hours) === 1 ? "" : "s"}`;
       return "On a time pattern";
     }
-    if (p2)
-      return p2.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    if (p2 === "event")
+      return `When ${t3.event_type ? this._humanizeToken(t3.event_type).toLowerCase() : "an event"} happens`;
+    if (p2 === "device") {
+      const triggerType = t3.type
+        ? this._humanizeToken(t3.type).toLowerCase()
+        : "triggered";
+      return t3.device_id
+        ? `When a device ${triggerType}`
+        : `When a device is ${triggerType}`;
+    }
+    if (p2 === "zone") {
+      const evMap = { enter: "enters", leave: "leaves" };
+      const ev =
+        evMap[String(t3.event || "enter")] ||
+        this._humanizeToken(t3.event || "enter").toLowerCase();
+      const who = this._fmtEntity(t3.entity_id);
+      const zone = this._fmtEntity(t3.zone);
+      return `When ${who} ${ev} ${zone}`;
+    }
+    if (p2 === "mqtt")
+      return t3.topic
+        ? `When a device message arrives (${t3.topic})`
+        : "When a device message arrives";
+    if (p2 === "webhook") return "When an outside service sends an update";
+    if (p2 === "tag")
+      return `When a tag is scanned${t3.tag_id ? ` (${t3.tag_id})` : ""}`;
+    if (p2 === "calendar") {
+      const eventName = t3.event
+        ? this._humanizeToken(t3.event).toLowerCase()
+        : "event";
+      return `When a calendar ${eventName} begins`;
+    }
+    if (p2) return "When this trigger happens";
     return "Trigger";
   }
   _formatAction(a3) {
-    if (!a3)
-      return "Unknown action";
+    if (!a3) return "Unknown action";
     const svc = a3.service || a3.action;
     if (svc) {
       const str = String(svc);
       const [domain = "", name = svc] = str.split(".");
-      if (str === "notify.persistent_notification" || domain === "persistent_notification") {
-        const title = a3.data?.title, msg = a3.data?.message;
-        if (title)
-          return `Notify: "${title}"`;
+      if (
+        str === "notify.persistent_notification" ||
+        domain === "persistent_notification"
+      ) {
+        const title = a3.data?.title,
+          msg = a3.data?.message;
+        if (title) return `Notify: "${title}"`;
         if (msg)
           return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
         return "Send a notification";
       }
       if (domain === "notify") {
-        const target = name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
-        const title = a3.data?.title, msg = a3.data?.message;
-        if (title)
-          return `Notify: "${title}"`;
+        const target = name
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c3) => c3.toUpperCase());
+        const title = a3.data?.title,
+          msg = a3.data?.message;
+        if (title) return `Notify: "${title}"`;
         if (msg && !msg.includes("{{"))
           return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
         return `Notify via ${target}`;
@@ -941,16 +1451,26 @@ var SeloraAIDashboardCard = class extends s4 {
           return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
         return "Text-to-speech";
       }
-      const friendly = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock" };
-      const label = friendly[name] || name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+      const friendly = {
+        turn_on: "Turn on",
+        turn_off: "Turn off",
+        toggle: "Toggle",
+        lock: "Lock",
+        unlock: "Unlock",
+      };
+      const label =
+        friendly[name] ||
+        name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
       const targets = a3.target?.entity_id ?? a3.data?.entity_id;
-      const t3 = targets ? Array.isArray(targets) ? targets.map((e4) => this._fmtEntity(e4)).join(", ") : this._fmtEntity(targets) : "";
+      const t3 = targets
+        ? Array.isArray(targets)
+          ? targets.map((e4) => this._fmtEntity(e4)).join(", ")
+          : this._fmtEntity(targets)
+        : "";
       return t3 ? `${label} ${t3}` : label;
     }
-    if (a3.delay)
-      return `Wait ${typeof a3.delay === "string" ? a3.delay : ""}`;
-    if (a3.scene)
-      return `Activate scene: ${this._fmtEntity(a3.scene)}`;
+    if (a3.delay) return `Wait ${typeof a3.delay === "string" ? a3.delay : ""}`;
+    if (a3.scene) return `Activate scene: ${this._fmtEntity(a3.scene)}`;
     return "Action";
   }
   // -------------------------------------------------------------------------
@@ -965,7 +1485,11 @@ var SeloraAIDashboardCard = class extends s4 {
         <!-- Header -->
         <div class="card-header" @click=${this._openPanel}>
           <div class="header-left">
-            <img src="/api/selora_ai/logo.png" alt="Selora" class="header-logo">
+            <img
+              src="/api/selora_ai/logo.png"
+              alt="Selora"
+              class="header-logo"
+            />
             <span class="header-title">${title}</span>
           </div>
           <ha-icon icon="mdi:open-in-new" class="header-action"></ha-icon>
@@ -973,28 +1497,43 @@ var SeloraAIDashboardCard = class extends s4 {
 
         <div class="card-content">
           <!-- Error banner -->
-          ${this._errorMessage ? x`
-            <div class="error-banner">
-              <span>${this._errorMessage}</span>
-              <ha-icon icon="mdi:close" class="error-dismiss" @click=${() => {
-      this._errorMessage = "";
-    }}></ha-icon>
-            </div>
-          ` : ""}
+          ${
+            this._errorMessage
+              ? x`
+                <div class="error-banner">
+                  <span>${this._errorMessage}</span>
+                  <ha-icon
+                    icon="mdi:close"
+                    class="error-dismiss"
+                    @click=${() => {
+                      this._errorMessage = "";
+                    }}
+                  ></ha-icon>
+                </div>
+              `
+              : ""
+          }
 
           <!-- Quick Actions -->
           <div class="section quick-actions">
-            <button class="action-btn new-btn" @click=${() => {
-      this._showNewAutomation = true;
-    }}>
+            <button
+              class="action-btn new-btn"
+              @click=${() => {
+                this._showNewAutomation = true;
+              }}
+            >
               <ha-icon icon="mdi:plus"></ha-icon>
               <span>New Automation</span>
             </button>
-            <button class="action-btn suggest-btn"
+            <button
+              class="action-btn suggest-btn"
               ?disabled=${this._generatingSuggestions}
-              @click=${this._generateSuggestions}>
+              @click=${this._generateSuggestions}
+            >
               ${this._generatingSuggestions ? x`<span class="spinner"></span>` : x`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
-              <span>${this._generatingSuggestions ? "Analyzing..." : "Generate Suggestions"}</span>
+              <span
+                >${this._generatingSuggestions ? "Analyzing..." : "Generate Suggestions"}</span
+              >
             </button>
           </div>
 
@@ -1007,54 +1546,86 @@ var SeloraAIDashboardCard = class extends s4 {
       </ha-card>
 
       <!-- Modal overlay for New Automation -->
-      ${this._showNewAutomation ? x`
-        <div class="modal-overlay" @click=${(e4) => {
-      if (e4.target === e4.currentTarget)
-        this._showNewAutomation = false;
-    }}>
-          <div class="modal">
-            <div class="modal-title">New Automation</div>
-            <div class="modal-label">Automation name</div>
-            <div class="modal-row ${this._generatingName ? "generating" : ""}">
-              ${this._generatingName ? x`
-                <div class="modal-input generating-placeholder">
-                  <span class="dots-loader"><span></span><span></span><span></span></span>
-                  <span style="opacity:0.5;font-size:13px;">Generating suggestion...</span>
-                </div>
-              ` : x`
-                <input
-                  class="modal-input"
-                  type="text"
-                  placeholder="e.g. Turn off lights at midnight"
-                  .value=${this._newAutomationName}
-                  @input=${(e4) => {
-      this._newAutomationName = e4.target.value;
-    }}
-                  @keydown=${(e4) => {
-      if (e4.key === "Enter")
-        this._createAutomation();
-    }}
+      ${
+        this._showNewAutomation
+          ? x`
+            <div
+              class="modal-overlay"
+              @click=${(e4) => {
+                if (e4.target === e4.currentTarget)
+                  this._showNewAutomation = false;
+              }}
+            >
+              <div class="modal">
+                <div class="modal-title">New Automation</div>
+                <div class="modal-label">Automation name</div>
+                <div
+                  class="modal-row ${this._generatingName ? "generating" : ""}"
                 >
-              `}
-              <button class="modal-magic-btn" title="Let AI decide"
-                ?disabled=${this._generatingName || this._creatingAutomation}
-                @click=${this._letAIDecide}>
-                ${this._generatingName ? x`<span class="spinner"></span>` : x`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
-              </button>
+                  ${
+                    this._generatingName
+                      ? x`
+                        <div class="modal-input generating-placeholder">
+                          <span class="dots-loader"
+                            ><span></span><span></span><span></span
+                          ></span>
+                          <span style="opacity:0.5;font-size:13px;"
+                            >Generating suggestion...</span
+                          >
+                        </div>
+                      `
+                      : x`
+                        <input
+                          class="modal-input"
+                          type="text"
+                          placeholder="e.g. Turn off lights at midnight"
+                          .value=${this._newAutomationName}
+                          @input=${(e4) => {
+                            this._newAutomationName = e4.target.value;
+                          }}
+                          @keydown=${(e4) => {
+                            if (e4.key === "Enter") this._createAutomation();
+                          }}
+                        />
+                      `
+                  }
+                  <button
+                    class="modal-magic-btn"
+                    title="Let AI decide"
+                    ?disabled=${this._generatingName || this._creatingAutomation}
+                    @click=${this._letAIDecide}
+                  >
+                    ${this._generatingName ? x`<span class="spinner"></span>` : x`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
+                  </button>
+                </div>
+                <div class="modal-actions">
+                  <button
+                    class="modal-btn modal-cancel"
+                    @click=${() => {
+                      this._showNewAutomation = false;
+                    }}
+                    ?disabled=${this._creatingAutomation}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="modal-btn modal-create"
+                    @click=${this._createAutomation}
+                    ?disabled=${!this._newAutomationName.trim() || this._creatingAutomation}
+                  >
+                    ${
+                      this._creatingAutomation
+                        ? x`<span class="spinner"></span> Creating...`
+                        : x`<ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                          Create`
+                    }
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="modal-actions">
-              <button class="modal-btn modal-cancel" @click=${() => {
-      this._showNewAutomation = false;
-    }}
-                ?disabled=${this._creatingAutomation}>Cancel</button>
-              <button class="modal-btn modal-create" @click=${this._createAutomation}
-                ?disabled=${!this._newAutomationName.trim() || this._creatingAutomation}>
-                ${this._creatingAutomation ? x`<span class="spinner"></span> Creating...` : x`<ha-icon icon="mdi:plus-circle-outline"></ha-icon> Create`}
-              </button>
-            </div>
-          </div>
-        </div>
-      ` : ""}
+          `
+          : ""
+      }
     `;
   }
   _renderSuggestions() {
@@ -1063,26 +1634,62 @@ var SeloraAIDashboardCard = class extends s4 {
     return x`
       <div class="section">
         <div class="section-header">
-          <ha-icon icon="mdi:lightbulb-on-outline" class="section-icon"></ha-icon>
+          <ha-icon
+            icon="mdi:lightbulb-on-outline"
+            class="section-icon"
+          ></ha-icon>
           <span>Suggestions</span>
           ${this._suggestions.length > 0 ? x`<span class="badge">${this._suggestions.length}</span>` : ""}
         </div>
 
-        ${this._generatingSuggestions ? x`<div class="generating-row"><span class="dots-loader"><span></span><span></span><span></span></span> Generating suggestions...</div>` : this._loadingSuggestions ? x`<div class="loading-row"><span class="spinner"></span> Loading suggestions...</div>` : suggestions.length === 0 ? x`<div class="empty-row">No suggestions yet. Tap "Generate Suggestions" to analyze your home.</div>` : suggestions.map(
-      (s5) => x`
+        ${
+          this._generatingSuggestions
+            ? x`<div class="generating-row">
+              <span class="dots-loader"
+                ><span></span><span></span><span></span
+              ></span>
+              Generating suggestions...
+            </div>`
+            : this._loadingSuggestions
+              ? x`<div class="loading-row">
+                <span class="spinner"></span> Loading suggestions...
+              </div>`
+              : suggestions.length === 0
+                ? x`<div class="empty-row">
+                  No suggestions yet. Tap "Generate Suggestions" to analyze your
+                  home.
+                </div>`
+                : suggestions.map(
+                    (s5) => x`
                     <div class="suggestion-item">
                       <div class="suggestion-info">
-                        <div class="suggestion-name">${s5.automation?.alias || s5.alias || "Untitled"}</div>
-                        <div class="suggestion-desc">${s5.automation?.description || s5.description || ""}</div>
+                        <div class="suggestion-name">
+                          ${s5.automation?.alias || s5.alias || "Untitled"}
+                        </div>
+                        <div class="suggestion-desc">
+                          ${s5.automation?.description || s5.description || ""}
+                        </div>
                       </div>
-                      <button class="accept-btn" @click=${() => this._acceptSuggestion(s5)} title="Accept">
+                      <button
+                        class="accept-btn"
+                        @click=${() => this._acceptSuggestion(s5)}
+                        title="Accept"
+                      >
                         <ha-icon icon="mdi:check"></ha-icon>
                       </button>
                     </div>
-                  `
-    )}
-
-        ${!this._loadingSuggestions && !this._generatingSuggestions && this._suggestions.length > maxSuggestions ? x`<div class="more-link" @click=${this._openPanel}>View all ${this._suggestions.length} suggestions</div>` : ""}
+                  `,
+                  )
+        }
+        ${
+          !this._loadingSuggestions &&
+          !this._generatingSuggestions &&
+          this._suggestions.length > maxSuggestions
+            ? x`<div class="more-link" @click=${this._openPanel}>
+              View all ${this._suggestions.length} suggestions
+            </div>`
+            : ""
+        }
       </div>
     `;
   }
@@ -1095,7 +1702,15 @@ var SeloraAIDashboardCard = class extends s4 {
           ${this._automations.length > 0 ? x`<span class="badge">${this._automations.length}</span>` : ""}
         </div>
 
-        ${this._loadingAutomations ? x`<div class="loading-row"><span class="spinner"></span> Loading automations...</div>` : this._automations.length === 0 ? x`<div class="empty-row">No Selora AI automations yet.</div>` : this._automations.map((a3) => this._renderAutomationItem(a3))}
+        ${
+          this._loadingAutomations
+            ? x`<div class="loading-row">
+              <span class="spinner"></span> Loading automations...
+            </div>`
+            : this._automations.length === 0
+              ? x`<div class="empty-row">No Selora AI automations yet.</div>`
+              : this._automations.map((a3) => this._renderAutomationItem(a3))
+        }
       </div>
     `;
   }
@@ -1106,7 +1721,10 @@ var SeloraAIDashboardCard = class extends s4 {
     const actions = Array.isArray(a3.action) ? a3.action : [];
     return x`
       <div class="automation-item ${isExpanded ? "expanded" : ""}">
-        <div class="automation-row" @click=${() => this._toggleExpanded(a3.automation_id)}>
+        <div
+          class="automation-row"
+          @click=${() => this._toggleExpanded(a3.automation_id)}
+        >
           <div class="activity-indicator ${isOn ? "active" : "inactive"}"></div>
           <div class="activity-info">
             <div class="activity-name">${a3.alias || a3.entity_id}</div>
@@ -1115,11 +1733,14 @@ var SeloraAIDashboardCard = class extends s4 {
               ${a3.last_triggered ? x` · Ran ${this._formatRelativeTime(a3.last_triggered)}` : ""}
             </div>
           </div>
-          <div class="activity-toggle-wrap" @click=${(e4) => {
-      e4.stopPropagation();
-      e4.preventDefault();
-      this._toggleAutomation(a3);
-    }}>
+          <div
+            class="activity-toggle-wrap"
+            @click=${(e4) => {
+              e4.stopPropagation();
+              e4.preventDefault();
+              this._toggleAutomation(a3);
+            }}
+          >
             <ha-icon
               icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
               class="activity-toggle ${isOn ? "on" : "off"}"
@@ -1127,41 +1748,69 @@ var SeloraAIDashboardCard = class extends s4 {
           </div>
         </div>
 
-        ${isExpanded ? x`
-          <div class="automation-details">
-            ${a3.description ? x`<div class="detail-desc">${a3.description}</div>` : ""}
+        ${
+          isExpanded
+            ? x`
+              <div class="automation-details">
+                ${a3.description ? x`<div class="detail-desc">${a3.description}</div>` : ""}
+                ${
+                  triggers.length > 0
+                    ? x`
+                      <div class="detail-section">
+                        <div class="detail-label">Triggers</div>
+                        ${triggers.map(
+                          (t3) => x`
+                            <div class="detail-chip trigger">
+                              ${this._formatTrigger(t3)}
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
+                ${
+                  actions.length > 0
+                    ? x`
+                      <div class="detail-section">
+                        <div class="detail-label">Actions</div>
+                        ${actions.map(
+                          (act) => x`
+                            <div class="detail-chip action">
+                              ${this._formatAction(act)}
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                    : ""
+                }
 
-            ${triggers.length > 0 ? x`
-              <div class="detail-section">
-                <div class="detail-label">Triggers</div>
-                ${triggers.map((t3) => x`
-                  <div class="detail-chip trigger">${this._formatTrigger(t3)}</div>
-                `)}
+                <div class="detail-actions">
+                  <button
+                    class="detail-btn open-btn"
+                    @click=${() => {
+                      history.pushState(
+                        null,
+                        "",
+                        "/selora-ai-architect?tab=automations",
+                      );
+                      window.dispatchEvent(new Event("location-changed"));
+                    }}
+                  >
+                    <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
+                  </button>
+                  <button
+                    class="detail-btn delete-btn"
+                    @click=${() => this._deleteAutomation(a3)}
+                  >
+                    <ha-icon icon="mdi:trash-can-outline"></ha-icon> Delete
+                  </button>
+                </div>
               </div>
-            ` : ""}
-
-            ${actions.length > 0 ? x`
-              <div class="detail-section">
-                <div class="detail-label">Actions</div>
-                ${actions.map((act) => x`
-                  <div class="detail-chip action">${this._formatAction(act)}</div>
-                `)}
-              </div>
-            ` : ""}
-
-            <div class="detail-actions">
-              <button class="detail-btn open-btn" @click=${() => {
-      history.pushState(null, "", "/selora-ai-architect?tab=automations");
-      window.dispatchEvent(new Event("location-changed"));
-    }}>
-                <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
-              </button>
-              <button class="detail-btn delete-btn" @click=${() => this._deleteAutomation(a3)}>
-                <ha-icon icon="mdi:trash-can-outline"></ha-icon> Delete
-              </button>
-            </div>
-          </div>
-        ` : ""}
+            `
+            : ""
+        }
       </div>
     `;
   }
@@ -1278,7 +1927,7 @@ var SeloraAIDashboardCard = class extends s4 {
         font-size: 12px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: normal;
         opacity: 0.7;
         margin-bottom: 8px;
         padding-bottom: 6px;
@@ -1433,7 +2082,7 @@ var SeloraAIDashboardCard = class extends s4 {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: normal;
         opacity: 0.5;
         margin-bottom: 3px;
       }
@@ -1551,11 +2200,23 @@ var SeloraAIDashboardCard = class extends s4 {
         background: var(--selora-accent);
         animation: bounce 1.2s ease-in-out infinite;
       }
-      .dots-loader span:nth-child(2) { animation-delay: 0.2s; }
-      .dots-loader span:nth-child(3) { animation-delay: 0.4s; }
+      .dots-loader span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .dots-loader span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
       @keyframes bounce {
-        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-        30% { transform: translateY(-6px); opacity: 1; }
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        30% {
+          transform: translateY(-6px);
+          opacity: 1;
+        }
       }
 
       /* ---- Spinner (fallback) ---- */
@@ -1570,7 +2231,9 @@ var SeloraAIDashboardCard = class extends s4 {
         animation: spin 0.6s linear infinite;
       }
       @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       /* ---- Generating row ---- */
@@ -1684,9 +2347,11 @@ var SeloraAIDashboardCard = class extends s4 {
         font-family: inherit;
         border: 1.5px solid transparent;
         background: transparent;
-        transition: background 0.15s, opacity 0.15s;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
         user-select: none;
-        letter-spacing: 0.02em;
+        letter-spacing: normal;
       }
       .modal-btn:hover {
         opacity: 0.85;
@@ -1722,7 +2387,7 @@ var SeloraAICardEditor = class extends s4 {
   static get properties() {
     return {
       hass: { type: Object },
-      _config: { type: Object }
+      _config: { type: Object },
     };
   }
   setConfig(config) {
@@ -1731,12 +2396,13 @@ var SeloraAICardEditor = class extends s4 {
   _valueChanged(key, value) {
     const newConfig = { ...this._config, [key]: value };
     this._config = newConfig;
-    const event = new CustomEvent("config-changed", { detail: { config: newConfig } });
+    const event = new CustomEvent("config-changed", {
+      detail: { config: newConfig },
+    });
     this.dispatchEvent(event);
   }
   render() {
-    if (!this._config)
-      return x``;
+    if (!this._config) return x``;
     return x`
       <div style="padding: 16px;">
         <ha-textfield
@@ -1778,8 +2444,9 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "selora-ai-card",
   name: "Selora AI",
-  description: "Dashboard card for Selora AI automation suggestions, quick chat, and activity feed.",
-  preview: true
+  description:
+    "Dashboard card for Selora AI automation suggestions, quick chat, and activity feed.",
+  preview: true,
 });
 /*! Bundled license information:
 

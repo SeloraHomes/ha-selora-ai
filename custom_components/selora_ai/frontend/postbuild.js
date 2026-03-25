@@ -11,13 +11,10 @@ var fs = require("fs");
 function patchCode(code) {
   code = code.replace(
     '(Math.random() + "").slice(9)',
-    'crypto.getRandomValues(new Uint32Array(1))[0].toString(36)'
+    "crypto.getRandomValues(new Uint32Array(1))[0].toString(36)",
   );
 
-  code = code.replace(
-    /^(.*RegExp\(.+)$/gm,
-    '$1 // nosemgrep'
-  );
+  code = code.replace(/^(.*RegExp\(.+)$/gm, "$1 // nosemgrep");
 
   return code;
 }
