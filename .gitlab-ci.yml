@@ -80,6 +80,7 @@ release:
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
   before_script:
+    - echo "GL_TOKEN=${GL_TOKEN:+set} GH_TOKEN=${GH_TOKEN:+set}"
     - apk add --no-cache git
     - npm ci
   script:
