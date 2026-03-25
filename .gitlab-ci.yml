@@ -16,7 +16,7 @@ variables:
     paths:
       - .cache/pip
 
-.default-rules: &default-rules
+workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
@@ -29,7 +29,6 @@ lint:ruff:
   stage: lint
   image: python:3.13-slim
   <<: *pip-cache
-  <<: *default-rules
   before_script:
     - pip install ruff --quiet
   script:
@@ -42,18 +41,11 @@ lint:ruff:
 # STAGE: validate
 # =============================================================================
 
-validate:hacs:
+validate:
   stage: validate
   image: python:3.13-slim
-  <<: *default-rules
   script:
     - python3 scripts/validate_hacs.py
-
-validate:manifest:
-  stage: validate
-  image: python:3.13-slim
-  <<: *default-rules
-  script:
     - python3 scripts/validate_manifest.py
 
 # =============================================================================
@@ -64,7 +56,6 @@ test:unit:
   stage: test
   image: python:3.13-slim
   <<: *pip-cache
-  <<: *default-rules
   before_script:
     - pip install pytest pytest-asyncio --quiet
   script:
@@ -76,32 +67,23 @@ test:unit:
       fi
 
 # =============================================================================
-# STAGE: release  (main branch only)
+# STAGE: release (main branch only)
 # =============================================================================
+
 # Requires CI variables (Settings -> CI/CD -> Variables, masked + protected):
 #   GL_TOKEN — GitLab project access token (api + write_repository scope)
 #   GH_TOKEN — GitHub personal access token (repo scope) for HACS mirror releases
 
-release:semantic:
+release:
   stage: release
-  image: node:lts-slim
-  before_script:
-    - apt-get update -qq && apt-get install -y -qq python3 git --no-install-recommends
-    - npm install --global --quiet
-      semantic-release
-      @semantic-release/commit-analyzer
-      @semantic-release/release-notes-generator
-      @semantic-release/changelog
-      @semantic-release/exec
-      @semantic-release/git
-      @semantic-release/gitlab
-      @semantic-release/github
-      conventional-changelog-conventionalcommits
-  script:
-    - npx semantic-release
+  image: node:lts-alpine
   rules:
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
-      when: on_success
+  before_script:
+    - apk add --no-cache git
+    - npm ci
+  script:
+    - npx semantic-release
   variables:
     GL_TOKEN: $GL_TOKEN
     GH_TOKEN: $GH_TOKEN

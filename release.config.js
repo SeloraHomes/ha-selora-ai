@@ -67,7 +67,7 @@ export default {
       "@semantic-release/exec",
       {
         prepareCmd:
-          "python3 scripts/bump_manifest_version.py ${nextRelease.version}",
+          "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' custom_components/selora_ai/manifest.json",
       },
     ],
 
