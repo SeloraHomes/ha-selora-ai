@@ -138,12 +138,11 @@ The `.gitlab-ci.yml` pipeline runs automatically on every merge request and push
 
 | Stage | Job | What it does |
 |---|---|---|
-| `lint` | `lint:ruff` | Ruff lint + format check |
-| `validate` | `validate:hacs` | Runs `scripts/validate_hacs.py` |
-| `validate` | `validate:manifest` | Checks all required `manifest.json` fields |
-| `test` | `test:unit` | Runs `pytest tests/` (skips gracefully if no tests exist) |
-| `security` | `sast` | GitLab built-in SAST scanning |
-| `security` | `secret_detection` | GitLab secret detection |
+| `lint` | `ruff` | Ruff lint + format check |
+| `validate` | `hacs` | Runs `scripts/validate_hacs.py` |
+| `validate` | `manifest` | Checks all required `manifest.json` fields |
+| `test` | `unit` | Runs `pytest tests/` (skips gracefully if no tests exist) |
+| `release` | `release` | Semantic-release (main branch only) |
 
 All jobs must pass before a merge request can be accepted.
 
@@ -197,7 +196,7 @@ Releases are fully automated. You never manually bump `manifest.json`, create gi
 ### How it works
 
 1. You merge a branch into `main` using conventional commits.
-2. The `release:semantic` CI job runs automatically.
+2. The `release` CI job runs automatically.
 3. semantic-release reads all commits since the last tag and decides the next version:
 
 | Commit prefix | Version bump | Example |
@@ -238,21 +237,6 @@ chore: bump mcp dependency to 1.27.0
 
 feat(api)!: rename /selora_ai/mcp to /api/selora_ai/v2/mcp
 BREAKING CHANGE: MCP endpoint path changed, update client configs
-```
-
-### Manual release (emergency only)
-
-If CI is unavailable and you must release manually:
-
-```bash
-# Install deps
-npm install -g semantic-release @semantic-release/commit-analyzer \
-  @semantic-release/release-notes-generator @semantic-release/changelog \
-  @semantic-release/exec @semantic-release/git @semantic-release/gitlab \
-  conventional-changelog-conventionalcommits
-
-# Run locally (requires GL_TOKEN in environment)
-GL_TOKEN=<your-token> npx semantic-release
 ```
 
 ---
