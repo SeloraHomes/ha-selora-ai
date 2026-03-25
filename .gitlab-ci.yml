@@ -9,12 +9,18 @@ stages:
 
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+  SAST_EXCLUDED_PATHS: "custom_components/selora_ai/frontend/panel.js,custom_components/selora_ai/frontend/card.js"
 
 .pip-cache: &pip-cache
   cache:
     key: "pip-py313-$CI_COMMIT_REF_SLUG"
     paths:
       - .cache/pip
+
+.default-rules: &default-rules
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
 
 workflow:
   rules:
@@ -36,6 +42,15 @@ lint:ruff:
     - ruff check custom_components/
     - echo "ruff format check"
     - ruff format --check custom_components/
+
+lint:prettier:
+  stage: lint
+  image: node:lts-slim
+  <<: *default-rules
+  script:
+    - cd custom_components/selora_ai/frontend
+    - npm ci
+    - npx prettier --check src/**/*.js *.js
 
 # =============================================================================
 # STAGE: validate

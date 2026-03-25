@@ -63,7 +63,13 @@ class SeloraAIDashboardCard extends LitElement {
   }
 
   static getStubConfig() {
-    return { title: "Selora AI", show_suggestions: true, show_automations: true, max_suggestions: 3, max_automations: 10 };
+    return {
+      title: "Selora AI",
+      show_suggestions: true,
+      show_automations: true,
+      max_suggestions: 3,
+      max_automations: 10,
+    };
   }
 
   connectedCallback() {
@@ -84,10 +90,7 @@ class SeloraAIDashboardCard extends LitElement {
 
   async _loadData() {
     if (!this.hass) return;
-    await Promise.all([
-      this._loadSuggestions(),
-      this._loadAutomations(),
-    ]);
+    await Promise.all([this._loadSuggestions(), this._loadAutomations()]);
   }
 
   // -------------------------------------------------------------------------
@@ -97,7 +100,9 @@ class SeloraAIDashboardCard extends LitElement {
   async _loadSuggestions() {
     this._loadingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/get_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/get_suggestions",
+      });
       this._suggestions = suggestions || [];
     } catch (err) {
       console.error("Selora AI Card: Failed to load suggestions", err);
@@ -110,7 +115,9 @@ class SeloraAIDashboardCard extends LitElement {
   async _loadAutomations() {
     this._loadingAutomations = true;
     try {
-      const automations = await this.hass.callWS({ type: "selora_ai/get_automations" });
+      const automations = await this.hass.callWS({
+        type: "selora_ai/get_automations",
+      });
       const max = this.config.max_automations || 10;
       this._automations = (automations || [])
         .filter((a) => a.is_selora)
@@ -130,13 +137,17 @@ class SeloraAIDashboardCard extends LitElement {
 
   _showError(msg) {
     this._errorMessage = msg;
-    setTimeout(() => { this._errorMessage = ""; }, 5000);
+    setTimeout(() => {
+      this._errorMessage = "";
+    }, 5000);
   }
 
   async _generateSuggestions() {
     this._generatingSuggestions = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/generate_suggestions",
+      });
       this._suggestions = suggestions || [];
     } catch (err) {
       console.error("Selora AI Card: Failed to generate suggestions", err);
@@ -149,13 +160,14 @@ class SeloraAIDashboardCard extends LitElement {
   async _acceptSuggestion(suggestion) {
     try {
       // Suggestions have automation_data (validated) or fall back to the raw fields
-      const automationPayload = suggestion.automation_data || suggestion.automation || {
-        alias: suggestion.alias,
-        description: suggestion.description || "",
-        trigger: suggestion.trigger || suggestion.triggers || [],
-        action: suggestion.action || suggestion.actions || [],
-        condition: suggestion.condition || suggestion.conditions || [],
-      };
+      const automationPayload = suggestion.automation_data ||
+        suggestion.automation || {
+          alias: suggestion.alias,
+          description: suggestion.description || "",
+          trigger: suggestion.trigger || suggestion.triggers || [],
+          action: suggestion.action || suggestion.actions || [],
+          condition: suggestion.condition || suggestion.conditions || [],
+        };
       // Respect the LLM's suggested initial_state; default to enabled
       automationPayload.initial_state = automationPayload.initial_state ?? true;
       await this.hass.callWS({
@@ -234,13 +246,21 @@ class SeloraAIDashboardCard extends LitElement {
   async _letAIDecide() {
     this._generatingName = true;
     try {
-      const suggestions = await this.hass.callWS({ type: "selora_ai/generate_suggestions" });
+      const suggestions = await this.hass.callWS({
+        type: "selora_ai/generate_suggestions",
+      });
       if (suggestions && suggestions.length > 0) {
         // Pick a random suggestion name to keep it fresh
-        const idx = crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
-        this._newAutomationName = suggestions[idx].alias || suggestions[idx].description || "New Automation";
+        const idx =
+          crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
+        this._newAutomationName =
+          suggestions[idx].alias ||
+          suggestions[idx].description ||
+          "New Automation";
       } else {
-        this._showError("No suggestions available. Try adding more devices first.");
+        this._showError(
+          "No suggestions available. Try adding more devices first.",
+        );
       }
     } catch (err) {
       console.error("Selora AI Card: Failed to generate name", err);
@@ -274,12 +294,77 @@ class SeloraAIDashboardCard extends LitElement {
     return date.toLocaleDateString();
   }
 
+  _humanizeToken(value) {
+    if (value == null || value === "") return "";
+    return String(value)
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
   _fmtEntity(eid) {
     if (!eid) return "";
-    if (this.hass?.states?.[eid]) {
-      return this.hass.states[eid].attributes?.friendly_name || eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    const id = String(eid);
+    if (this.hass?.states?.[id]) {
+      return (
+        this.hass.states[id].attributes?.friendly_name ||
+        id
+          .split(".")
+          .pop()
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase())
+      );
     }
-    return eid.split(".").pop().replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    return id
+      .split(".")
+      .pop()
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  }
+
+  _fmtState(state) {
+    if (state == null) return null;
+    const s = String(state);
+    const friendly = {
+      on: "on",
+      off: "off",
+      home: "home",
+      not_home: "away",
+      open: "open",
+      closed: "closed",
+      locked: "locked",
+      unlocked: "unlocked",
+      playing: "playing",
+      paused: "paused",
+      idle: "idle",
+      unavailable: "unavailable",
+      unknown: "unknown",
+    };
+    return friendly[s] || s.replace(/_/g, " ");
+  }
+
+  _fmtDuration(value) {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value !== "object") return String(value);
+    const parts = [
+      value.hours ? `${value.hours}h` : "",
+      value.minutes ? `${value.minutes}m` : "",
+      value.seconds ? `${value.seconds}s` : "",
+    ].filter(Boolean);
+    if (parts.length) return parts.join(" ");
+    return String(value);
+  }
+
+  _fmtNumericValue(entityId, value) {
+    if (value == null || value === "") return "";
+    const raw = String(value).trim();
+    const batteryLike = String(entityId || "")
+      .toLowerCase()
+      .includes("battery");
+    if (batteryLike && /^-?\d+(\.\d+)?$/.test(raw) && !raw.includes("%")) {
+      return `${raw}%`;
+    }
+    return raw;
   }
 
   _fmtTime(val) {
@@ -292,21 +377,24 @@ class SeloraAIDashboardCard extends LitElement {
     }
     const num = Number(s);
     if (!isNaN(num) && num >= 0 && num <= 86400 && !s.includes(":")) {
-      const h = Math.floor(num / 3600), m = Math.floor((num % 3600) / 60);
+      const h = Math.floor(num / 3600),
+        m = Math.floor((num % 3600) / 60);
       const ampm = h >= 12 ? "PM" : "AM";
       const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
       return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
     }
     const parts = s.split(":");
     if (parts.length >= 2) {
-      const h = parseInt(parts[0], 10), m = parseInt(parts[1], 10);
+      const h = parseInt(parts[0], 10),
+        m = parseInt(parts[1], 10);
       if (!isNaN(h) && !isNaN(m)) {
         const ampm = h >= 12 ? "PM" : "AM";
         const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
         return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
       }
     }
-    if (s.startsWith("input_datetime.") || s.startsWith("sensor.")) return this._fmtEntity(s);
+    if (s.startsWith("input_datetime.") || s.startsWith("sensor."))
+      return this._fmtEntity(s);
     return s;
   }
 
@@ -315,39 +403,92 @@ class SeloraAIDashboardCard extends LitElement {
     const p = t.platform || t.trigger;
     if (p === "time") {
       const raw = t.at;
-      if (Array.isArray(raw)) return `Every day at ${raw.map(v => this._fmtTime(v)).join(", ")}`;
-      return `Every day at ${this._fmtTime(raw)}`;
+      if (Array.isArray(raw))
+        return `When the time is ${raw.map((v) => this._fmtTime(v)).join(" or ")}`;
+      return `When the time is ${this._fmtTime(raw)}`;
     }
     if (p === "sun") {
-      const ev = t.event === "sunset" ? "At sunset" : t.event === "sunrise" ? "At sunrise" : `Sun ${(t.event || "").replace(/_/g, " ")}`;
-      return `${ev}${t.offset ? ` (${t.offset})` : ""}`;
+      const ev =
+        t.event === "sunset"
+          ? "sunset"
+          : t.event === "sunrise"
+            ? "sunrise"
+            : this._humanizeToken(t.event || "sun event").toLowerCase();
+      return `When it is ${ev}${t.offset ? ` (${t.offset})` : ""}`;
     }
     if (p === "state") {
       const eid = this._fmtEntity(t.entity_id);
-      if (t.to === "on") return `When ${eid} turns on`;
-      if (t.to === "off") return `When ${eid} turns off`;
-      if (t.to) return `When ${eid} becomes ${t.to}`;
-      return `When ${eid} changes state`;
+      const fromState = this._fmtState(t.from);
+      const toState = this._fmtState(t.to);
+      const duration = this._fmtDuration(t.for);
+      const dur = duration ? ` for ${duration}` : "";
+      if (toState === "on") return `When ${eid} turns on${dur}`;
+      if (toState === "off") return `When ${eid} turns off${dur}`;
+      if (toState && fromState)
+        return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
+      if (toState) return `When ${eid} becomes ${toState}${dur}`;
+      return `When ${eid} changes state${dur}`;
     }
     if (p === "numeric_state") {
       const eid = this._fmtEntity(t.entity_id);
-      if (t.above != null) return `When ${eid} rises above ${t.above}`;
-      if (t.below != null) return `When ${eid} drops below ${t.below}`;
+      const above = this._fmtNumericValue(t.entity_id, t.above);
+      const below = this._fmtNumericValue(t.entity_id, t.below);
+      if (t.above != null && t.below != null)
+        return `When ${eid} is between ${above} and ${below}`;
+      if (t.above != null) return `When ${eid} rises above ${above}`;
+      if (t.below != null) return `When ${eid} drops below ${below}`;
       return `When ${eid} value changes`;
     }
-    if (p === "homeassistant") return `Home Assistant ${t.event === "start" ? "starts up" : "shuts down"}`;
+    if (p === "homeassistant")
+      return `When Home Assistant ${t.event === "start" ? "starts" : t.event === "shutdown" ? "shuts down" : "changes state"}`;
     if (p === "template") {
       const tmpl = t.value_template || "";
       const m = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
       if (m) return `When ${this._fmtEntity(m[1])} condition is met`;
-      return "When a condition is met";
+      return "When a template condition is met";
     }
     if (p === "time_pattern") {
-      if (t.minutes != null) return `Every ${t.minutes} minutes`;
-      if (t.hours != null) return `Every ${t.hours} hours`;
+      if (t.seconds != null)
+        return `Every ${t.seconds} second${Number(t.seconds) === 1 ? "" : "s"}`;
+      if (t.minutes != null)
+        return `Every ${t.minutes} minute${Number(t.minutes) === 1 ? "" : "s"}`;
+      if (t.hours != null)
+        return `Every ${t.hours} hour${Number(t.hours) === 1 ? "" : "s"}`;
       return "On a time pattern";
     }
-    if (p) return p.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+    if (p === "event")
+      return `When ${t.event_type ? this._humanizeToken(t.event_type).toLowerCase() : "an event"} happens`;
+    if (p === "device") {
+      const triggerType = t.type
+        ? this._humanizeToken(t.type).toLowerCase()
+        : "triggered";
+      return t.device_id
+        ? `When a device ${triggerType}`
+        : `When a device is ${triggerType}`;
+    }
+    if (p === "zone") {
+      const evMap = { enter: "enters", leave: "leaves" };
+      const ev =
+        evMap[String(t.event || "enter")] ||
+        this._humanizeToken(t.event || "enter").toLowerCase();
+      const who = this._fmtEntity(t.entity_id);
+      const zone = this._fmtEntity(t.zone);
+      return `When ${who} ${ev} ${zone}`;
+    }
+    if (p === "mqtt")
+      return t.topic
+        ? `When a device message arrives (${t.topic})`
+        : "When a device message arrives";
+    if (p === "webhook") return "When an outside service sends an update";
+    if (p === "tag")
+      return `When a tag is scanned${t.tag_id ? ` (${t.tag_id})` : ""}`;
+    if (p === "calendar") {
+      const eventName = t.event
+        ? this._humanizeToken(t.event).toLowerCase()
+        : "event";
+      return `When a calendar ${eventName} begins`;
+    }
+    if (p) return "When this trigger happens";
     return "Trigger";
   }
 
@@ -357,28 +498,50 @@ class SeloraAIDashboardCard extends LitElement {
     if (svc) {
       const str = String(svc);
       const [domain = "", name = svc] = str.split(".");
-      if (str === "notify.persistent_notification" || domain === "persistent_notification") {
-        const title = a.data?.title, msg = a.data?.message;
+      if (
+        str === "notify.persistent_notification" ||
+        domain === "persistent_notification"
+      ) {
+        const title = a.data?.title,
+          msg = a.data?.message;
         if (title) return `Notify: "${title}"`;
-        if (msg) return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        if (msg)
+          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
         return "Send a notification";
       }
       if (domain === "notify") {
-        const target = name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
-        const title = a.data?.title, msg = a.data?.message;
+        const target = name
+          .replace(/_/g, " ")
+          .replace(/\b\w/g, (c) => c.toUpperCase());
+        const title = a.data?.title,
+          msg = a.data?.message;
         if (title) return `Notify: "${title}"`;
-        if (msg && !msg.includes("{{")) return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        if (msg && !msg.includes("{{"))
+          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
         return `Notify via ${target}`;
       }
       if (domain === "tts") {
         const msg = a.data?.message;
-        if (msg && !msg.includes("{{")) return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
+        if (msg && !msg.includes("{{"))
+          return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "…" : msg}"`;
         return "Text-to-speech";
       }
-      const friendly = { turn_on: "Turn on", turn_off: "Turn off", toggle: "Toggle", lock: "Lock", unlock: "Unlock" };
-      const label = friendly[name] || name.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const friendly = {
+        turn_on: "Turn on",
+        turn_off: "Turn off",
+        toggle: "Toggle",
+        lock: "Lock",
+        unlock: "Unlock",
+      };
+      const label =
+        friendly[name] ||
+        name.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase());
       const targets = a.target?.entity_id ?? a.data?.entity_id;
-      const t = targets ? (Array.isArray(targets) ? targets.map(e => this._fmtEntity(e)).join(", ") : this._fmtEntity(targets)) : "";
+      const t = targets
+        ? Array.isArray(targets)
+          ? targets.map((e) => this._fmtEntity(e)).join(", ")
+          : this._fmtEntity(targets)
+        : "";
       return t ? `${label} ${t}` : label;
     }
     if (a.delay) return `Wait ${typeof a.delay === "string" ? a.delay : ""}`;
@@ -400,7 +563,11 @@ class SeloraAIDashboardCard extends LitElement {
         <!-- Header -->
         <div class="card-header" @click=${this._openPanel}>
           <div class="header-left">
-            <img src="/api/selora_ai/logo.png" alt="Selora" class="header-logo">
+            <img
+              src="/api/selora_ai/logo.png"
+              alt="Selora"
+              class="header-logo"
+            />
             <span class="header-title">${title}</span>
           </div>
           <ha-icon icon="mdi:open-in-new" class="header-action"></ha-icon>
@@ -408,26 +575,45 @@ class SeloraAIDashboardCard extends LitElement {
 
         <div class="card-content">
           <!-- Error banner -->
-          ${this._errorMessage ? html`
-            <div class="error-banner">
-              <span>${this._errorMessage}</span>
-              <ha-icon icon="mdi:close" class="error-dismiss" @click=${() => { this._errorMessage = ""; }}></ha-icon>
-            </div>
-          ` : ""}
+          ${this._errorMessage
+            ? html`
+                <div class="error-banner">
+                  <span>${this._errorMessage}</span>
+                  <ha-icon
+                    icon="mdi:close"
+                    class="error-dismiss"
+                    @click=${() => {
+                      this._errorMessage = "";
+                    }}
+                  ></ha-icon>
+                </div>
+              `
+            : ""}
 
           <!-- Quick Actions -->
           <div class="section quick-actions">
-            <button class="action-btn new-btn" @click=${() => { this._showNewAutomation = true; }}>
+            <button
+              class="action-btn new-btn"
+              @click=${() => {
+                this._showNewAutomation = true;
+              }}
+            >
               <ha-icon icon="mdi:plus"></ha-icon>
               <span>New Automation</span>
             </button>
-            <button class="action-btn suggest-btn"
+            <button
+              class="action-btn suggest-btn"
               ?disabled=${this._generatingSuggestions}
-              @click=${this._generateSuggestions}>
+              @click=${this._generateSuggestions}
+            >
               ${this._generatingSuggestions
                 ? html`<span class="spinner"></span>`
                 : html`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
-              <span>${this._generatingSuggestions ? "Analyzing..." : "Generate Suggestions"}</span>
+              <span
+                >${this._generatingSuggestions
+                  ? "Analyzing..."
+                  : "Generate Suggestions"}</span
+              >
             </button>
           </div>
 
@@ -440,48 +626,84 @@ class SeloraAIDashboardCard extends LitElement {
       </ha-card>
 
       <!-- Modal overlay for New Automation -->
-      ${this._showNewAutomation ? html`
-        <div class="modal-overlay" @click=${(e) => { if (e.target === e.currentTarget) this._showNewAutomation = false; }}>
-          <div class="modal">
-            <div class="modal-title">New Automation</div>
-            <div class="modal-label">Automation name</div>
-            <div class="modal-row ${this._generatingName ? "generating" : ""}">
-              ${this._generatingName ? html`
-                <div class="modal-input generating-placeholder">
-                  <span class="dots-loader"><span></span><span></span><span></span></span>
-                  <span style="opacity:0.5;font-size:13px;">Generating suggestion...</span>
-                </div>
-              ` : html`
-                <input
-                  class="modal-input"
-                  type="text"
-                  placeholder="e.g. Turn off lights at midnight"
-                  .value=${this._newAutomationName}
-                  @input=${(e) => { this._newAutomationName = e.target.value; }}
-                  @keydown=${(e) => { if (e.key === "Enter") this._createAutomation(); }}
+      ${this._showNewAutomation
+        ? html`
+            <div
+              class="modal-overlay"
+              @click=${(e) => {
+                if (e.target === e.currentTarget)
+                  this._showNewAutomation = false;
+              }}
+            >
+              <div class="modal">
+                <div class="modal-title">New Automation</div>
+                <div class="modal-label">Automation name</div>
+                <div
+                  class="modal-row ${this._generatingName ? "generating" : ""}"
                 >
-              `}
-              <button class="modal-magic-btn" title="Let AI decide"
-                ?disabled=${this._generatingName || this._creatingAutomation}
-                @click=${this._letAIDecide}>
-                ${this._generatingName
-                  ? html`<span class="spinner"></span>`
-                  : html`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
-              </button>
+                  ${this._generatingName
+                    ? html`
+                        <div class="modal-input generating-placeholder">
+                          <span class="dots-loader"
+                            ><span></span><span></span><span></span
+                          ></span>
+                          <span style="opacity:0.5;font-size:13px;"
+                            >Generating suggestion...</span
+                          >
+                        </div>
+                      `
+                    : html`
+                        <input
+                          class="modal-input"
+                          type="text"
+                          placeholder="e.g. Turn off lights at midnight"
+                          .value=${this._newAutomationName}
+                          @input=${(e) => {
+                            this._newAutomationName = e.target.value;
+                          }}
+                          @keydown=${(e) => {
+                            if (e.key === "Enter") this._createAutomation();
+                          }}
+                        />
+                      `}
+                  <button
+                    class="modal-magic-btn"
+                    title="Let AI decide"
+                    ?disabled=${this._generatingName ||
+                    this._creatingAutomation}
+                    @click=${this._letAIDecide}
+                  >
+                    ${this._generatingName
+                      ? html`<span class="spinner"></span>`
+                      : html`<ha-icon icon="mdi:auto-fix"></ha-icon>`}
+                  </button>
+                </div>
+                <div class="modal-actions">
+                  <button
+                    class="modal-btn modal-cancel"
+                    @click=${() => {
+                      this._showNewAutomation = false;
+                    }}
+                    ?disabled=${this._creatingAutomation}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="modal-btn modal-create"
+                    @click=${this._createAutomation}
+                    ?disabled=${!this._newAutomationName.trim() ||
+                    this._creatingAutomation}
+                  >
+                    ${this._creatingAutomation
+                      ? html`<span class="spinner"></span> Creating...`
+                      : html`<ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                          Create`}
+                  </button>
+                </div>
+              </div>
             </div>
-            <div class="modal-actions">
-              <button class="modal-btn modal-cancel" @click=${() => { this._showNewAutomation = false; }}
-                ?disabled=${this._creatingAutomation}>Cancel</button>
-              <button class="modal-btn modal-create" @click=${this._createAutomation}
-                ?disabled=${!this._newAutomationName.trim() || this._creatingAutomation}>
-                ${this._creatingAutomation
-                  ? html`<span class="spinner"></span> Creating...`
-                  : html`<ha-icon icon="mdi:plus-circle-outline"></ha-icon> Create`}
-              </button>
-            </div>
-          </div>
-        </div>
-      ` : ""}
+          `
+        : ""}
     `;
   }
 
@@ -492,7 +714,10 @@ class SeloraAIDashboardCard extends LitElement {
     return html`
       <div class="section">
         <div class="section-header">
-          <ha-icon icon="mdi:lightbulb-on-outline" class="section-icon"></ha-icon>
+          <ha-icon
+            icon="mdi:lightbulb-on-outline"
+            class="section-icon"
+          ></ha-icon>
           <span>Suggestions</span>
           ${this._suggestions.length > 0
             ? html`<span class="badge">${this._suggestions.length}</span>`
@@ -500,27 +725,48 @@ class SeloraAIDashboardCard extends LitElement {
         </div>
 
         ${this._generatingSuggestions
-          ? html`<div class="generating-row"><span class="dots-loader"><span></span><span></span><span></span></span> Generating suggestions...</div>`
+          ? html`<div class="generating-row">
+              <span class="dots-loader"
+                ><span></span><span></span><span></span
+              ></span>
+              Generating suggestions...
+            </div>`
           : this._loadingSuggestions
-            ? html`<div class="loading-row"><span class="spinner"></span> Loading suggestions...</div>`
+            ? html`<div class="loading-row">
+                <span class="spinner"></span> Loading suggestions...
+              </div>`
             : suggestions.length === 0
-              ? html`<div class="empty-row">No suggestions yet. Tap "Generate Suggestions" to analyze your home.</div>`
+              ? html`<div class="empty-row">
+                  No suggestions yet. Tap "Generate Suggestions" to analyze your
+                  home.
+                </div>`
               : suggestions.map(
                   (s) => html`
                     <div class="suggestion-item">
                       <div class="suggestion-info">
-                        <div class="suggestion-name">${s.automation?.alias || s.alias || "Untitled"}</div>
-                        <div class="suggestion-desc">${s.automation?.description || s.description || ""}</div>
+                        <div class="suggestion-name">
+                          ${s.automation?.alias || s.alias || "Untitled"}
+                        </div>
+                        <div class="suggestion-desc">
+                          ${s.automation?.description || s.description || ""}
+                        </div>
                       </div>
-                      <button class="accept-btn" @click=${() => this._acceptSuggestion(s)} title="Accept">
+                      <button
+                        class="accept-btn"
+                        @click=${() => this._acceptSuggestion(s)}
+                        title="Accept"
+                      >
                         <ha-icon icon="mdi:check"></ha-icon>
                       </button>
                     </div>
-                  `
+                  `,
                 )}
-
-        ${!this._loadingSuggestions && !this._generatingSuggestions && this._suggestions.length > maxSuggestions
-          ? html`<div class="more-link" @click=${this._openPanel}>View all ${this._suggestions.length} suggestions</div>`
+        ${!this._loadingSuggestions &&
+        !this._generatingSuggestions &&
+        this._suggestions.length > maxSuggestions
+          ? html`<div class="more-link" @click=${this._openPanel}>
+              View all ${this._suggestions.length} suggestions
+            </div>`
           : ""}
       </div>
     `;
@@ -538,7 +784,9 @@ class SeloraAIDashboardCard extends LitElement {
         </div>
 
         ${this._loadingAutomations
-          ? html`<div class="loading-row"><span class="spinner"></span> Loading automations...</div>`
+          ? html`<div class="loading-row">
+              <span class="spinner"></span> Loading automations...
+            </div>`
           : this._automations.length === 0
             ? html`<div class="empty-row">No Selora AI automations yet.</div>`
             : this._automations.map((a) => this._renderAutomationItem(a))}
@@ -554,55 +802,96 @@ class SeloraAIDashboardCard extends LitElement {
 
     return html`
       <div class="automation-item ${isExpanded ? "expanded" : ""}">
-        <div class="automation-row" @click=${() => this._toggleExpanded(a.automation_id)}>
+        <div
+          class="automation-row"
+          @click=${() => this._toggleExpanded(a.automation_id)}
+        >
           <div class="activity-indicator ${isOn ? "active" : "inactive"}"></div>
           <div class="activity-info">
             <div class="activity-name">${a.alias || a.entity_id}</div>
             <div class="activity-meta">
               ${isOn ? "Enabled" : "Disabled"}
-              ${a.last_triggered ? html` · Ran ${this._formatRelativeTime(a.last_triggered)}` : ""}
+              ${a.last_triggered
+                ? html` · Ran ${this._formatRelativeTime(a.last_triggered)}`
+                : ""}
             </div>
           </div>
-          <div class="activity-toggle-wrap" @click=${(e) => { e.stopPropagation(); e.preventDefault(); this._toggleAutomation(a); }}>
+          <div
+            class="activity-toggle-wrap"
+            @click=${(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              this._toggleAutomation(a);
+            }}
+          >
             <ha-icon
-              icon=${isOn ? "mdi:toggle-switch" : "mdi:toggle-switch-off-outline"}
+              icon=${isOn
+                ? "mdi:toggle-switch"
+                : "mdi:toggle-switch-off-outline"}
               class="activity-toggle ${isOn ? "on" : "off"}"
             ></ha-icon>
           </div>
         </div>
 
-        ${isExpanded ? html`
-          <div class="automation-details">
-            ${a.description ? html`<div class="detail-desc">${a.description}</div>` : ""}
+        ${isExpanded
+          ? html`
+              <div class="automation-details">
+                ${a.description
+                  ? html`<div class="detail-desc">${a.description}</div>`
+                  : ""}
+                ${triggers.length > 0
+                  ? html`
+                      <div class="detail-section">
+                        <div class="detail-label">Triggers</div>
+                        ${triggers.map(
+                          (t) => html`
+                            <div class="detail-chip trigger">
+                              ${this._formatTrigger(t)}
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : ""}
+                ${actions.length > 0
+                  ? html`
+                      <div class="detail-section">
+                        <div class="detail-label">Actions</div>
+                        ${actions.map(
+                          (act) => html`
+                            <div class="detail-chip action">
+                              ${this._formatAction(act)}
+                            </div>
+                          `,
+                        )}
+                      </div>
+                    `
+                  : ""}
 
-            ${triggers.length > 0 ? html`
-              <div class="detail-section">
-                <div class="detail-label">Triggers</div>
-                ${triggers.map((t) => html`
-                  <div class="detail-chip trigger">${this._formatTrigger(t)}</div>
-                `)}
+                <div class="detail-actions">
+                  <button
+                    class="detail-btn open-btn"
+                    @click=${() => {
+                      history.pushState(
+                        null,
+                        "",
+                        "/selora-ai-architect?tab=automations",
+                      );
+                      window.dispatchEvent(new Event("location-changed"));
+                    }}
+                  >
+                    <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
+                  </button>
+                  <button
+                    class="detail-btn delete-btn"
+                    @click=${() => this._deleteAutomation(a)}
+                  >
+                    <ha-icon icon="mdi:trash-can-outline"></ha-icon> Delete
+                  </button>
+                </div>
               </div>
-            ` : ""}
-
-            ${actions.length > 0 ? html`
-              <div class="detail-section">
-                <div class="detail-label">Actions</div>
-                ${actions.map((act) => html`
-                  <div class="detail-chip action">${this._formatAction(act)}</div>
-                `)}
-              </div>
-            ` : ""}
-
-            <div class="detail-actions">
-              <button class="detail-btn open-btn" @click=${() => { history.pushState(null, "", "/selora-ai-architect?tab=automations"); window.dispatchEvent(new Event("location-changed")); }}>
-                <ha-icon icon="mdi:pencil-outline"></ha-icon> Edit in Panel
-              </button>
-              <button class="detail-btn delete-btn" @click=${() => this._deleteAutomation(a)}>
-                <ha-icon icon="mdi:trash-can-outline"></ha-icon> Delete
-              </button>
-            </div>
-          </div>
-        ` : ""}
+            `
+          : ""}
       </div>
     `;
   }
@@ -721,7 +1010,7 @@ class SeloraAIDashboardCard extends LitElement {
         font-size: 12px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.06em;
+        letter-spacing: normal;
         opacity: 0.7;
         margin-bottom: 8px;
         padding-bottom: 6px;
@@ -876,7 +1165,7 @@ class SeloraAIDashboardCard extends LitElement {
         font-size: 10px;
         font-weight: 600;
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: normal;
         opacity: 0.5;
         margin-bottom: 3px;
       }
@@ -994,11 +1283,23 @@ class SeloraAIDashboardCard extends LitElement {
         background: var(--selora-accent);
         animation: bounce 1.2s ease-in-out infinite;
       }
-      .dots-loader span:nth-child(2) { animation-delay: 0.2s; }
-      .dots-loader span:nth-child(3) { animation-delay: 0.4s; }
+      .dots-loader span:nth-child(2) {
+        animation-delay: 0.2s;
+      }
+      .dots-loader span:nth-child(3) {
+        animation-delay: 0.4s;
+      }
       @keyframes bounce {
-        0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-        30% { transform: translateY(-6px); opacity: 1; }
+        0%,
+        60%,
+        100% {
+          transform: translateY(0);
+          opacity: 0.4;
+        }
+        30% {
+          transform: translateY(-6px);
+          opacity: 1;
+        }
       }
 
       /* ---- Spinner (fallback) ---- */
@@ -1013,7 +1314,9 @@ class SeloraAIDashboardCard extends LitElement {
         animation: spin 0.6s linear infinite;
       }
       @keyframes spin {
-        to { transform: rotate(360deg); }
+        to {
+          transform: rotate(360deg);
+        }
       }
 
       /* ---- Generating row ---- */
@@ -1127,9 +1430,11 @@ class SeloraAIDashboardCard extends LitElement {
         font-family: inherit;
         border: 1.5px solid transparent;
         background: transparent;
-        transition: background 0.15s, opacity 0.15s;
+        transition:
+          background 0.15s,
+          opacity 0.15s;
         user-select: none;
-        letter-spacing: 0.02em;
+        letter-spacing: normal;
       }
       .modal-btn:hover {
         opacity: 0.85;
@@ -1182,7 +1487,9 @@ class SeloraAICardEditor extends LitElement {
   _valueChanged(key, value) {
     const newConfig = { ...this._config, [key]: value };
     this._config = newConfig;
-    const event = new CustomEvent("config-changed", { detail: { config: newConfig } });
+    const event = new CustomEvent("config-changed", {
+      detail: { config: newConfig },
+    });
     this.dispatchEvent(event);
   }
 
@@ -1198,26 +1505,30 @@ class SeloraAICardEditor extends LitElement {
         <ha-formfield label="Show Suggestions">
           <ha-switch
             .checked=${this._config.show_suggestions !== false}
-            @change=${(e) => this._valueChanged("show_suggestions", e.target.checked)}
+            @change=${(e) =>
+              this._valueChanged("show_suggestions", e.target.checked)}
           ></ha-switch>
         </ha-formfield>
         <ha-formfield label="Show Automations">
           <ha-switch
             .checked=${this._config.show_automations !== false}
-            @change=${(e) => this._valueChanged("show_automations", e.target.checked)}
+            @change=${(e) =>
+              this._valueChanged("show_automations", e.target.checked)}
           ></ha-switch>
         </ha-formfield>
         <ha-textfield
           label="Max Suggestions"
           type="number"
           .value=${String(this._config.max_suggestions || 3)}
-          @change=${(e) => this._valueChanged("max_suggestions", parseInt(e.target.value, 10))}
+          @change=${(e) =>
+            this._valueChanged("max_suggestions", parseInt(e.target.value, 10))}
         ></ha-textfield>
         <ha-textfield
           label="Max Automations"
           type="number"
           .value=${String(this._config.max_automations || 10)}
-          @change=${(e) => this._valueChanged("max_automations", parseInt(e.target.value, 10))}
+          @change=${(e) =>
+            this._valueChanged("max_automations", parseInt(e.target.value, 10))}
         ></ha-textfield>
       </div>
     `;
@@ -1235,6 +1546,7 @@ window.customCards = window.customCards || [];
 window.customCards.push({
   type: "selora-ai-card",
   name: "Selora AI",
-  description: "Dashboard card for Selora AI automation suggestions, quick chat, and activity feed.",
+  description:
+    "Dashboard card for Selora AI automation suggestions, quick chat, and activity feed.",
   preview: true,
 });
