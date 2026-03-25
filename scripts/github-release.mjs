@@ -33,9 +33,15 @@ if (!token) {
 function extractNotes() {
   try {
     const changelog = readFileSync("CHANGELOG.md", "utf8");
-    // Match from the first ## heading to the next ## heading (or EOF)
-    const match = changelog.match(/^## .+?\n([\s\S]*?)(?=\n## |\n*$)/m);
-    return match ? match[1].trim() : "";
+    // Split on ## headings, take the first release section
+    const sections = changelog.split(/^## /m);
+    if (sections.length < 2) return "";
+    // sections[1] = "1.0.0 (date)\n\n### Features\n…\n"
+    // Strip the heading line, keep the body
+    let body = sections[1].substring(sections[1].indexOf("\n") + 1).trim();
+    // Remove any trailing "# Changelog" preamble that follows the release notes
+    body = body.replace(/\n# [\s\S]*$/, "").trim();
+    return body;
   } catch {
     return "";
   }
