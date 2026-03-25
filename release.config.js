@@ -94,11 +94,12 @@ export default {
     ],
 
     // 7. Create matching GitHub release (HACS reads tags/releases from the mirror)
+    //    The @semantic-release/github plugin reads the repo from the git origin
+    //    (GitLab nested path) and cannot be overridden per-plugin, so we use exec.
     [
-      "@semantic-release/github",
+      "@semantic-release/exec",
       {
-        githubUrl: "https://api.github.com",
-        repositoryUrl: "https://github.com/SeloraHomes/ha-selora-ai",
+        publishCmd: "node scripts/github-release.mjs ${nextRelease.version}",
       },
     ],
   ],
