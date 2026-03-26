@@ -5,6 +5,10 @@
 #
 # Hooks run automatically on git operations. Skip a hook with:
 #   LEFTHOOK=0 git commit ...
+commit-msg:
+  commands:
+    commitlint:
+      run: sed '/^#/d; /^diff --git/,$d' {1} | sed '/^$/d' | docker run --rm -i -v $(pwd):/workspace -w /workspace commitlint/commitlint:latest
 
 pre-commit:
   parallel: true
