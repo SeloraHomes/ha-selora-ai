@@ -25,6 +25,7 @@ pre-commit:
       fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/**/*.js"
 
 pre-push:
+  parallel: true
   commands:
     lint-all:
       run: ruff check custom_components/
