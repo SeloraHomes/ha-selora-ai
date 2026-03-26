@@ -1,3 +1,10 @@
+## [1.0.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.0...v1.0.1) (2026-03-26)
+
+### Bug Fixes
+
+* extract release notes correctly from CHANGELOG.md ([4baa362](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4baa36253fd99ccefee115ef01f27a8133e4c203))
+* remove invalid name property from lefthook commands and add --yes to npx ([dfb8c91](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/dfb8c912f1bd11912ec0613164a4ccba375b3a8d))
+
 ## 1.0.0 (2026-03-25)
 
 ### Features
