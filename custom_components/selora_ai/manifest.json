@@ -8,5 +8,5 @@
   "issue_tracker": "https://github.com/SeloraHomes/ha-selora-ai/issues",
   "dependencies": ["conversation", "http"],
   "requirements": ["ruamel.yaml>=0.18.0", "mcp==1.26.0"],
-  "version": "1.0.2"
+  "version": "1.0.3"
 }

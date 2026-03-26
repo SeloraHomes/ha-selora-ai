@@ -1,3 +1,9 @@
+## [1.0.3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.2...v1.0.3) (2026-03-26)
+
+### Bug Fixes
+
+* update ADR-001 refs after docs/adr move ([d2e94b4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d2e94b4b673fa840904a999c5edfdc8ea47d7ef5))
+
 ## [1.0.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.1...v1.0.2) (2026-03-26)
 
 ### Performance
