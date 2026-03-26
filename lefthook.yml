@@ -10,42 +10,35 @@ pre-commit:
   parallel: true
   commands:
     lint:
-      name: "ruff lint"
       glob: "custom_components/**/*.py"
       run: ruff check {staged_files}
       fail_text: "Ruff lint errors. Auto-fix with: ruff check --fix custom_components/"
 
     format:
-      name: "ruff format"
       glob: "custom_components/**/*.py"
       run: ruff format --check {staged_files}
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
     prettier:
-      name: "prettier check"
       glob: "custom_components/selora_ai/frontend/**/*.js"
-      run: npx --prefix custom_components/selora_ai/frontend prettier --check {staged_files}
+      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --check {staged_files}
       fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/**/*.js"
 
 pre-push:
   commands:
     lint-all:
-      name: "ruff lint (full codebase)"
       run: ruff check custom_components/
       fail_text: "Ruff lint errors. Auto-fix with: ruff check --fix custom_components/"
 
     format-all:
-      name: "ruff format check (full codebase)"
       run: ruff format --check custom_components/
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
     prettier-all:
-      name: "prettier check (frontend)"
-      run: npx --prefix custom_components/selora_ai/frontend prettier --check custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js
+      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --check custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js
       fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js"
 
     validate-hacs:
-      name: "HACS validation"
       glob: "custom_components/selora_ai/manifest.json"
       run: python3 scripts/validate_hacs.py
       fail_text: "HACS validation failed. See output above."
