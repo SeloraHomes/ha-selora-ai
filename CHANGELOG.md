@@ -1,3 +1,9 @@
+## [1.0.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.1...v1.0.2) (2026-03-26)
+
+### Performance
+
+* run pre-push lefthook commands in parallel ([e638c0b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e638c0bfc8a8ce28f94b610b2d0dd48ddbd4b48d))
+
 ## [1.0.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.0...v1.0.1) (2026-03-26)
 
 ### Bug Fixes
