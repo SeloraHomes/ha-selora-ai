@@ -26,7 +26,7 @@ Security
     regardless of the YAML's origin
   - Automations are created disabled (initial_state: false) by default
 
-See docs/selora-mcp-server.md and ADR-001-selora-mcp-server.md.
+See docs/selora-mcp-server.md and docs/adr/ADR-001-selora-mcp-server.md.
 """
 
 from __future__ import annotations

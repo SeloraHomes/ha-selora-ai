@@ -1,7 +1,7 @@
 # Selora AI MCP Server
 ## Architecture, Protocol, and Implementation Specification
 
-**Status:** Planned — see [ADR-001](../ADR-001-selora-mcp-server.md)
+**Status:** Planned — see [ADR-001](adr/ADR-001-selora-mcp-server.md)
 **Endpoint:** `POST /api/selora_ai/mcp`
 **Protocol:** Model Context Protocol 1.26.0, Streamable HTTP transport
 **Authors:** Selora AI Engineering
@@ -924,7 +924,7 @@ Operational notes:
 
 ## 8. Related Documents
 
-- [ADR-001: Selora MCP Server](../ADR-001-selora-mcp-server.md) — options considered, trade-offs, decision rationale
+- [ADR-001: Selora MCP Server](adr/ADR-001-selora-mcp-server.md) — options considered, trade-offs, decision rationale
 - [HA MCP Server integration](https://www.home-assistant.io/integrations/mcp_server/) — HA's entity-control MCP server (distinct from this)
 - [Model Context Protocol specification](https://modelcontextprotocol.io/specification) — protocol reference
 - [mcp Python SDK](https://github.com/modelcontextprotocol/python-sdk) — SDK used in implementation (`mcp==1.26.0`)
