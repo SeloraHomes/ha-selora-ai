@@ -24,7 +24,7 @@ pre-commit:
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
     prettier:
-      glob: "custom_components/selora_ai/frontend/**/*.js"
+      glob: "custom_components/selora_ai/frontend/src/**/*.js"
       run: npx --yes --prefix custom_components/selora_ai/frontend prettier --write {staged_files}
       stage_fixed: true
 
@@ -32,8 +32,13 @@ pre-push:
   parallel: true
   commands:
     frontend-build:
+      glob:
+        - "custom_components/selora_ai/frontend/src/**/*.js"
+        - "custom_components/selora_ai/frontend/postbuild.js"
+        - "custom_components/selora_ai/frontend/package.json"
+        - "custom_components/selora_ai/frontend/package-lock.json"
       run: cd custom_components/selora_ai/frontend && npm run build && git diff --quiet panel.js card.js
-      fail_text: "Built frontend is out of date. Run 'npm run build' in custom_components/selora_ai/frontend/, commit the output, then push again."
+      fail_text: "Built frontend is out of date. Commit the rebuilt panel.js/card.js from custom_components/selora_ai/frontend/ and push again."
 
     lint-all:
       run: ruff check custom_components/
