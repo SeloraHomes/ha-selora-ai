@@ -14,7 +14,10 @@ from __future__ import annotations
 
 import json
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from .tool_executor import ToolExecutor
 
 import aiohttp
 from homeassistant.core import HomeAssistant
@@ -36,6 +39,7 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OPENAI,
+    MAX_TOOL_CALL_ROUNDS,
     OLLAMA_CHAT_ENDPOINT,
     OPENAI_CHAT_ENDPOINT,
 )
@@ -88,6 +92,24 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
     domain: set(services.keys()) for domain, services in _COMMAND_SERVICE_POLICIES.items()
 }
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
+
+
+# ── Tool policy prompt (loaded from file) ────────────────────────────
+def _load_tool_policy() -> str:
+    """Return the tool usage policy (loaded at module import time)."""
+    return _TOOL_POLICY_TEXT
+
+
+# Load at import time — before the event loop starts — to avoid blocking I/O warnings.
+from pathlib import Path as _Path  # noqa: E402
+
+_policy_path = _Path(__file__).parent / "prompts" / "tool_policy.md"
+try:
+    _TOOL_POLICY_TEXT: str = _policy_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    _LOGGER.warning("Tool policy file not found at %s", _policy_path)
+    _TOOL_POLICY_TEXT = ""
+del _policy_path
 
 
 def _sanitize_untrusted_text(value: Any) -> str:
@@ -185,12 +207,14 @@ class LLMClient:
         entities: list[dict[str, Any]],
         existing_automations: list[dict[str, Any]] | None = None,
         history: list[dict[str, Any]] | None = None,
+        tool_executor: ToolExecutor | None = None,
     ) -> dict[str, Any]:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
         history: prior turns as [{"role": "user"|"assistant", "content": "plain text"}].
                  Only plain content (no entity context blobs) — home context is only injected
                  on the current turn to keep token usage bounded across a long session.
+        tool_executor: optional executor for LLM tool calling (device snapshot, integrations).
 
         Returns a dict with at minimum:
           intent: "command" | "automation" | "clarification" | "answer"
@@ -279,6 +303,36 @@ class LLMClient:
                 messages.append({"role": role, "content": content})
         messages.append({"role": "user", "content": context_prompt})
 
+        # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
+        if tool_executor is not None:
+            from .tool_registry import get_tools_for_provider
+
+            tools = get_tools_for_provider(self._provider)
+            result_text, error, tool_log = await self._send_request_with_tools(
+                system=system_prompt,
+                messages=messages,
+                tool_executor=tool_executor,
+                tools=tools,
+            )
+            if not result_text:
+                is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
+                return {
+                    "intent": "answer",
+                    "response": (
+                        f"I encountered an error communicating with the LLM: "
+                        f"{error or 'Unknown error'}. Please check your settings and logs."
+                    ),
+                    "error": error or "llm_request_failed",
+                    "config_issue": is_config_issue,
+                }
+            parsed = self._apply_command_policy(
+                self._parse_architect_response(result_text), entities
+            )
+            if tool_log:
+                parsed["tool_calls"] = tool_log
+            return parsed
+
+        # Standard path (no tools)
         result, error = await self._send_request(system=system_prompt, messages=messages)
 
         if not result:
@@ -359,6 +413,451 @@ class LLMClient:
             _LOGGER.exception("Request to %s failed", self.provider_name)
             return None, str(exc)
 
+    # ------------------------------------------------------------------
+    # Tool-calling support
+    # ------------------------------------------------------------------
+
+    async def _raw_request(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+    ) -> dict[str, Any]:
+        """Low-level HTTP request returning the full parsed JSON response body.
+
+        Unlike _send_request() which returns extracted text, this returns the
+        raw provider response so callers can inspect tool_use blocks.
+        """
+        session = async_get_clientsession(self._hass)
+
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            payload: dict[str, Any] = {
+                "model": self._model,
+                "max_tokens": 4096,
+                "system": system,
+                "messages": messages,
+            }
+            if tools:
+                payload["tools"] = tools
+        else:
+            # OpenAI / Ollama format
+            payload = {
+                "model": self._model,
+                "messages": [{"role": "system", "content": system}, *messages],
+            }
+            if tools:
+                payload["tools"] = tools
+
+        async with session.post(
+            self._endpoint,
+            headers=self._get_headers(),
+            timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+            json=payload,
+        ) as resp:
+            if resp.status != 200:
+                body = await resp.text()
+                raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
+            return await resp.json()
+
+    async def _send_request_with_tools(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        tool_executor: ToolExecutor,
+        tools: list[dict[str, Any]],
+    ) -> tuple[str | None, str | None, list[dict[str, Any]]]:
+        """Send request with tools and execute a multi-turn tool loop.
+
+        Returns: (final_text, error_message, tool_calls_log)
+        """
+        tool_calls_log: list[dict[str, Any]] = []
+
+        for _round in range(MAX_TOOL_CALL_ROUNDS):
+            try:
+                response_data = await self._raw_request(system, messages, tools=tools)
+            except ConnectionError as exc:
+                return None, str(exc), tool_calls_log
+
+            requested_tools = self._extract_tool_calls(response_data)
+
+            if not requested_tools:
+                text = self._extract_text_response(response_data)
+                return text, None, tool_calls_log
+
+            # Execute each tool and build the result messages
+            for tool_call in requested_tools:
+                _LOGGER.info(
+                    "LLM tool call: %s(%s)",
+                    tool_call["name"],
+                    json.dumps(tool_call["arguments"], default=str)[:200],
+                )
+                result = await tool_executor.execute(tool_call["name"], tool_call["arguments"])
+                tool_calls_log.append(
+                    {
+                        "tool": tool_call["name"],
+                        "arguments": tool_call["arguments"],
+                    }
+                )
+
+                self._append_tool_result(messages, response_data, tool_call, result)
+
+        # Exhausted rounds
+        _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
+        return (
+            "I used several tools but couldn't complete the analysis. "
+            "Please try a more specific request.",
+            None,
+            tool_calls_log,
+        )
+
+    async def _stream_request_with_tools(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        tool_executor: ToolExecutor,
+        tools: list[dict[str, Any]],
+    ):
+        """True streaming with inline tool-call detection.
+
+        Streams the response token-by-token. If the LLM requests tool calls,
+        they are detected from the stream, executed, and then a new stream is
+        started with the tool results — repeating until the LLM produces a
+        pure text response (up to MAX_TOOL_CALL_ROUNDS).
+
+        Yields text chunks (str) directly — same interface as _send_request_stream.
+        """
+        for _round in range(MAX_TOOL_CALL_ROUNDS):
+            session = async_get_clientsession(self._hass)
+
+            if self._provider == LLM_PROVIDER_ANTHROPIC:
+                payload: dict[str, Any] = {
+                    "model": self._model,
+                    "max_tokens": 4096,
+                    "system": system,
+                    "messages": messages,
+                    "stream": True,
+                    "tools": tools,
+                }
+            else:
+                payload = {
+                    "model": self._model,
+                    "messages": [{"role": "system", "content": system}, *messages],
+                    "stream": True,
+                    "tools": tools,
+                }
+
+            tool_calls: list[dict[str, Any]] = []
+            content_blocks: list[dict[str, Any]] = []
+
+            try:
+                async with session.post(
+                    self._endpoint,
+                    headers=self._get_headers(),
+                    timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                    json=payload,
+                ) as resp:
+                    if resp.status != 200:
+                        body = await resp.text()
+                        _LOGGER.error("LLM stream failed: %s", body[:200])
+                        yield f"Error from LLM: {body[:200]}"
+                        return
+
+                    # Stream and yield text tokens in real-time while
+                    # also detecting tool calls inline
+                    if self._provider == LLM_PROVIDER_ANTHROPIC:
+                        async for text in self._stream_anthropic_with_tools(
+                            resp, tool_calls, content_blocks
+                        ):
+                            yield text
+                    else:
+                        async for text in self._stream_openai_with_tools(
+                            resp, tool_calls, content_blocks
+                        ):
+                            yield text
+
+            except Exception as exc:
+                _LOGGER.exception("Streaming request failed")
+                yield f"Error: {exc}"
+                return
+
+            # If no tool calls, we're done — text was already streamed
+            if not tool_calls:
+                return
+
+            # Execute tool calls and append results for next round
+            for tc in tool_calls:
+                _LOGGER.info(
+                    "LLM tool call: %s(%s)",
+                    tc["name"],
+                    json.dumps(tc["arguments"], default=str)[:200],
+                )
+                result = await tool_executor.execute(tc["name"], tc["arguments"])
+
+                if self._provider == LLM_PROVIDER_ANTHROPIC:
+                    messages.append({"role": "assistant", "content": content_blocks})
+                    messages.append(
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "tool_result",
+                                    "tool_use_id": tc["id"],
+                                    "content": json.dumps(result, ensure_ascii=False, default=str),
+                                }
+                            ],
+                        }
+                    )
+                else:
+                    messages.append(
+                        {
+                            "role": "assistant",
+                            "tool_calls": [
+                                {
+                                    "id": tc["id"],
+                                    "type": "function",
+                                    "function": {
+                                        "name": tc["name"],
+                                        "arguments": json.dumps(tc["arguments"]),
+                                    },
+                                }
+                            ],
+                        }
+                    )
+                    messages.append(
+                        {
+                            "role": "tool",
+                            "tool_call_id": tc["id"],
+                            "content": json.dumps(result, ensure_ascii=False, default=str),
+                        }
+                    )
+
+                content_blocks = []
+
+        # Exhausted rounds
+        yield "I used several tools but couldn't complete the analysis."
+
+    async def _stream_anthropic_with_tools(
+        self,
+        resp: aiohttp.ClientResponse,
+        tool_calls: list[dict[str, Any]],
+        content_blocks: list[dict[str, Any]],
+    ):
+        """Stream Anthropic SSE, yielding text tokens and collecting tool calls."""
+        current_block: dict[str, Any] | None = None
+        tool_input_json = ""
+
+        buffer = ""
+        async for raw_chunk in resp.content.iter_any():
+            buffer += raw_chunk.decode("utf-8")
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                try:
+                    event = json.loads(line[6:])
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+                event_type = event.get("type", "")
+
+                if event_type == "content_block_start":
+                    block = event.get("content_block", {})
+                    if block.get("type") == "text":
+                        current_block = {"type": "text", "text": ""}
+                    elif block.get("type") == "tool_use":
+                        current_block = {
+                            "type": "tool_use",
+                            "id": block.get("id", ""),
+                            "name": block.get("name", ""),
+                        }
+                        tool_input_json = ""
+
+                elif event_type == "content_block_delta":
+                    delta = event.get("delta", {})
+                    if delta.get("type") == "text_delta":
+                        text = delta.get("text", "")
+                        if text:
+                            yield text  # Real-time token streaming
+                            if current_block and current_block["type"] == "text":
+                                current_block["text"] += text
+                    elif delta.get("type") == "input_json_delta":
+                        tool_input_json += delta.get("partial_json", "")
+
+                elif event_type == "content_block_stop":
+                    if current_block:
+                        if current_block["type"] == "text":
+                            content_blocks.append(current_block)
+                        elif current_block["type"] == "tool_use":
+                            try:
+                                args = json.loads(tool_input_json) if tool_input_json else {}
+                            except json.JSONDecodeError:
+                                args = {}
+                            content_blocks.append(
+                                {
+                                    "type": "tool_use",
+                                    "id": current_block["id"],
+                                    "name": current_block["name"],
+                                    "input": args,
+                                }
+                            )
+                            tool_calls.append(
+                                {
+                                    "id": current_block["id"],
+                                    "name": current_block["name"],
+                                    "arguments": args,
+                                }
+                            )
+                        current_block = None
+                        tool_input_json = ""
+
+    async def _stream_openai_with_tools(
+        self,
+        resp: aiohttp.ClientResponse,
+        tool_calls: list[dict[str, Any]],
+        content_blocks: list[dict[str, Any]],
+    ):
+        """Stream OpenAI/Ollama SSE, yielding text tokens and collecting tool calls."""
+        tc_accum: dict[int, dict[str, str]] = {}
+
+        buffer = ""
+        async for raw_chunk in resp.content.iter_any():
+            buffer += raw_chunk.decode("utf-8")
+            while "\n" in buffer:
+                line, buffer = buffer.split("\n", 1)
+                line = line.strip()
+                if not line or not line.startswith("data: "):
+                    continue
+                raw = line[6:]
+                if raw.strip() == "[DONE]":
+                    continue
+                try:
+                    event = json.loads(raw)
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+                choices = event.get("choices", [])
+                if not choices:
+                    continue
+                delta = choices[0].get("delta", {})
+
+                content = delta.get("content")
+                if content:
+                    yield content  # Real-time token streaming
+
+                for tc_delta in delta.get("tool_calls", []):
+                    idx = tc_delta.get("index", 0)
+                    if idx not in tc_accum:
+                        tc_accum[idx] = {"id": tc_delta.get("id", ""), "name": "", "arguments": ""}
+                    fn = tc_delta.get("function", {})
+                    if fn.get("name"):
+                        tc_accum[idx]["name"] = fn["name"]
+                    if fn.get("arguments"):
+                        tc_accum[idx]["arguments"] += fn["arguments"]
+
+        # Finalize accumulated tool calls
+        for _idx, tc_data in sorted(tc_accum.items()):
+            try:
+                args = json.loads(tc_data["arguments"]) if tc_data["arguments"] else {}
+            except json.JSONDecodeError:
+                args = {}
+            tool_calls.append(
+                {
+                    "id": tc_data["id"],
+                    "name": tc_data["name"],
+                    "arguments": args,
+                }
+            )
+
+    def _extract_tool_calls(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
+        """Parse tool calls from the LLM response (provider-specific)."""
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            calls = []
+            for block in response_data.get("content", []):
+                if block.get("type") == "tool_use":
+                    calls.append(
+                        {
+                            "id": block["id"],
+                            "name": block["name"],
+                            "arguments": block.get("input", {}),
+                        }
+                    )
+            return calls
+
+        # OpenAI / Ollama format
+        choices = response_data.get("choices", [])
+        if not choices:
+            return []
+        message = choices[0].get("message", {})
+        tool_calls = message.get("tool_calls")
+        if not tool_calls:
+            return []
+        result = []
+        for tc in tool_calls:
+            try:
+                args = json.loads(tc["function"]["arguments"])
+            except (json.JSONDecodeError, KeyError, TypeError):
+                args = {}
+            result.append(
+                {
+                    "id": tc["id"],
+                    "name": tc["function"]["name"],
+                    "arguments": args,
+                }
+            )
+        return result
+
+    def _append_tool_result(
+        self,
+        messages: list[dict[str, Any]],
+        response_data: dict[str, Any],
+        tool_call: dict[str, Any],
+        result: dict[str, Any],
+    ) -> None:
+        """Append the assistant's tool request and our tool result to messages."""
+        result_json = json.dumps(result, ensure_ascii=False, default=str)
+
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            # Anthropic: append assistant content blocks, then user tool_result
+            messages.append({"role": "assistant", "content": response_data["content"]})
+            messages.append(
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": tool_call["id"],
+                            "content": result_json,
+                        }
+                    ],
+                }
+            )
+        else:
+            # OpenAI / Ollama: append assistant message, then tool role message
+            assistant_msg = response_data["choices"][0]["message"]
+            messages.append(assistant_msg)
+            messages.append(
+                {
+                    "role": "tool",
+                    "tool_call_id": tool_call["id"],
+                    "content": result_json,
+                }
+            )
+
+    def _extract_text_response(self, response_data: dict[str, Any]) -> str | None:
+        """Extract the final text content from a provider response."""
+        if self._provider == LLM_PROVIDER_ANTHROPIC:
+            for block in response_data.get("content", []):
+                if block.get("type") == "text":
+                    return block.get("text")
+            return None
+
+        choices = response_data.get("choices", [])
+        if not choices:
+            return None
+        return choices[0].get("message", {}).get("content")
+
     def _build_architect_system_prompt(self) -> str:
         """System prompt for the Smart Home Architect role."""
         return (
@@ -410,6 +909,8 @@ class LLMClient:
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
             "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
+            + "\n"
+            + _load_tool_policy()
         )
 
     def _parse_architect_response(self, text: str) -> dict[str, Any]:
@@ -611,6 +1112,8 @@ class LLMClient:
             "- If no automation or command is needed, just respond with helpful text — no code block required.\n"
             "- For device integration questions, give step-by-step guidance specific to HA.\n"
             "- For troubleshooting, ask targeted diagnostic questions and suggest concrete fixes.\n"
+            + "\n"
+            + _load_tool_policy()
         )
 
     def parse_streamed_response(
@@ -678,12 +1181,16 @@ class LLMClient:
         entities: list[dict[str, Any]],
         existing_automations: list[dict[str, Any]] | None = None,
         history: list[dict[str, Any]] | None = None,
+        tool_executor: ToolExecutor | None = None,
     ):
         """Async generator — streaming version of architect_chat.
 
         history: prior turns as [{"role": "user"|"assistant", "content": "..."}].
                  Only plain content — home context is only injected on the current
                  turn to keep token usage bounded across a long session.
+
+        When tool_executor is provided, runs the tool loop first (non-streaming),
+        then streams the final text response token-by-token.
 
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
@@ -758,6 +1265,20 @@ class LLMClient:
             if role in ("user", "assistant"):
                 messages.append({"role": role, "content": turn["content"]})
         messages.append({"role": "user", "content": context_prompt})
+
+        # Tool-aware streaming: streams text tokens, handles tool calls inline
+        if tool_executor is not None:
+            from .tool_registry import get_tools_for_provider
+
+            tools = get_tools_for_provider(self._provider)
+            async for chunk in self._stream_request_with_tools(
+                system=system_prompt,
+                messages=messages,
+                tool_executor=tool_executor,
+                tools=tools,
+            ):
+                yield chunk
+            return
 
         async for chunk in self._send_request_stream(system_prompt, messages):
             yield chunk

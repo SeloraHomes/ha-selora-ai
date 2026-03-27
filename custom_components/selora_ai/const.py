@@ -758,6 +758,10 @@ DEFAULT_MQTT_ENABLED = False  # Off until implemented
 # ── LLM Timeout ─────────────────────────────────────────────────────
 DEFAULT_LLM_TIMEOUT = 120  # seconds — per-request timeout for LLM calls
 
+# ── Tool Calling ────────────────────────────────────────────────────
+MAX_TOOL_CALL_ROUNDS = 5  # Maximum LLM-tool round trips per chat turn
+MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
+
 # ── Data Collection ──────────────────────────────────────────────────
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"

@@ -5,7 +5,7 @@ var e =
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
-var s = Symbol();
+var s = /* @__PURE__ */ Symbol();
 var n = /* @__PURE__ */ new WeakMap();
 var o = class {
   constructor(t3, e4, n5) {
@@ -156,7 +156,7 @@ var u = class extends HTMLElement {
       this.elementProperties.set(t3, i3),
       !i3.noAccessor && !this.prototype.hasOwnProperty(t3))
     ) {
-      const s5 = "symbol" == typeof t3 ? Symbol() : "__" + t3,
+      const s5 = "symbol" == typeof t3 ? /* @__PURE__ */ Symbol() : "__" + t3,
         e4 = this.getPropertyDescriptor(t3, s5, i3);
       void 0 !== e4 && Object.defineProperty(this.prototype, t3, e4);
     }
@@ -451,8 +451,8 @@ var w =
   (i3, ...s5) => ({ _$litType$: t3, strings: i3, values: s5 });
 var x = w(1);
 var b = w(2);
-var T = Symbol.for("lit-noChange");
-var A = Symbol.for("lit-nothing");
+var T = /* @__PURE__ */ Symbol.for("lit-noChange");
+var A = /* @__PURE__ */ Symbol.for("lit-nothing");
 var E = /* @__PURE__ */ new WeakMap();
 var C = r3.createTreeWalker(r3, 129, null, false);
 function P(t3, i3) {
@@ -2662,19 +2662,7 @@ window.customCards.push({
    *)
 
 @lit/reactive-element/reactive-element.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
 lit-html/lit-html.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
 lit-element/lit-element.js:
   (**
    * @license

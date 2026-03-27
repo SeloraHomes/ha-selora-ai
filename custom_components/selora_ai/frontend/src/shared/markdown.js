@@ -61,14 +61,22 @@ export function renderMarkdown(text) {
   );
   // Bold
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  // Italic
-  escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  // Italic (*text*) — require non-word boundaries
+  escaped = escaped.replace(
+    /(?<!\w)\*([^\s*](?:.*?[^\s*])?)\*(?!\w)/g,
+    "<em>$1</em>",
+  );
+  // Italic (_text_) — underscore style; boundaries avoid matching entity_names
+  escaped = escaped.replace(
+    /(?<![a-zA-Z0-9_])_([^\s_](?:.*?[^\s_])?)_(?![a-zA-Z0-9_])/g,
+    "<em>$1</em>",
+  );
   // Numbered lists: lines starting with "1. ", "2. ", etc.
   escaped = escaped.replace(
     /^(\d+)\.\s+(.+)$/gm,
-    '<div style="margin:4px 0 4px 8px;"><strong>$1.</strong> $2</div>',
+    '<div style="display:flex;gap:6px;margin:2px 0 2px 4px;align-items:baseline;"><span style="opacity:0.55;flex-shrink:0;min-width:18px;">$1.</span><span style="flex:1;">$2</span></div>',
   );
-  // Bullet lists: lines starting with "- "
+  // Bullet lists: lines starting with "- " or "• "
   escaped = escaped.replace(
     /^[-•]\s+(.+)$/gm,
     '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(251,191,36,0.35);">$1</div>',
