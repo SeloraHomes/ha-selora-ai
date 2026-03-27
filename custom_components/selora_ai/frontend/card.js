@@ -976,6 +976,1089 @@ null == n4 || n4({ LitElement: s4 });
   : (globalThis.litElementVersions = [])
 ).push("3.3.3");
 
+// src/shared/formatting.js
+function humanizeToken(value) {
+  if (value == null || value === "") return "";
+  return String(value)
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c3) => c3.toUpperCase());
+}
+function fmtEntity(hass, id) {
+  if (!id) return "";
+  const eid = String(id);
+  const stateObj = hass?.states?.[eid];
+  if (stateObj?.attributes?.friendly_name)
+    return stateObj.attributes.friendly_name;
+  const parts = eid.split(".");
+  const raw = (parts.length > 1 ? parts.slice(1).join(".") : parts[0]).replace(
+    /_/g,
+    " ",
+  );
+  return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
+}
+function fmtEntities(hass, val) {
+  if (!val) return "";
+  const arr = Array.isArray(val) ? val : [val];
+  if (arr.length === 1) return fmtEntity(hass, arr[0]);
+  if (arr.length === 2)
+    return `${fmtEntity(hass, arr[0])} and ${fmtEntity(hass, arr[1])}`;
+  return (
+    arr
+      .slice(0, -1)
+      .map((e4) => fmtEntity(hass, e4))
+      .join(", ") +
+    ", and " +
+    fmtEntity(hass, arr[arr.length - 1])
+  );
+}
+function fmtState(state) {
+  if (state == null) return null;
+  const s5 = String(state);
+  const friendly = {
+    on: "on",
+    off: "off",
+    home: "home",
+    not_home: "away",
+    open: "open",
+    closed: "closed",
+    locked: "locked",
+    unlocked: "unlocked",
+    playing: "playing",
+    paused: "paused",
+    idle: "idle",
+    unavailable: "unavailable",
+    unknown: "unknown",
+  };
+  return friendly[s5] || s5.replace(/_/g, " ");
+}
+function fmtDuration(value) {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+  if (typeof value !== "object") return String(value);
+  const parts = [
+    value.hours ? `${value.hours}h` : "",
+    value.minutes ? `${value.minutes}m` : "",
+    value.seconds ? `${value.seconds}s` : "",
+  ].filter(Boolean);
+  if (parts.length) return parts.join(" ");
+  return String(value);
+}
+function fmtWeekdays(value) {
+  if (!value) return "";
+  const dayMap = {
+    mon: "Mon",
+    tue: "Tue",
+    wed: "Wed",
+    thu: "Thu",
+    fri: "Fri",
+    sat: "Sat",
+    sun: "Sun",
+  };
+  const days = Array.isArray(value) ? value : [value];
+  return days.map((d3) => dayMap[String(d3)] || humanizeToken(d3)).join(", ");
+}
+function fmtNumericValue(entityId, value) {
+  if (value == null || value === "") return "";
+  const raw = String(value).trim();
+  const batteryLike = String(entityId || "")
+    .toLowerCase()
+    .includes("battery");
+  if (batteryLike && /^-?\d+(\.\d+)?$/.test(raw) && !raw.includes("%")) {
+    return `${raw}%`;
+  }
+  return raw;
+}
+function fmtTime(hass, val) {
+  if (val == null) return String(val);
+  const s5 = String(val).trim();
+  if (s5.includes("{{") || s5.includes("{%")) {
+    const m2 = s5.match(/states\(['"]([^'"]+)['"]\)/);
+    if (m2) return fmtEntity(hass, m2[1]);
+    const m22 = s5.match(/state_attr\(['"]([^'"]+)['"]/);
+    if (m22) return fmtEntity(hass, m22[1]);
+    return "a calculated time";
+  }
+  const num = Number(s5);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s5.includes(":")) {
+    const h3 = Math.floor(num / 3600);
+    const m2 = Math.floor((num % 3600) / 60);
+    const ampm = h3 >= 12 ? "PM" : "AM";
+    const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+    return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+  }
+  const parts = s5.split(":");
+  if (parts.length >= 2) {
+    const h3 = parseInt(parts[0], 10);
+    const m2 = parseInt(parts[1], 10);
+    if (!isNaN(h3) && !isNaN(m2)) {
+      const ampm = h3 >= 12 ? "PM" : "AM";
+      const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
+      return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
+    }
+  }
+  if (s5.startsWith("input_datetime.") || s5.startsWith("sensor."))
+    return fmtEntity(hass, s5);
+  return s5;
+}
+
+// src/shared/flow-description.js
+function describeFlowItem(hass, item) {
+  if (!item || typeof item !== "object") return String(item ?? "");
+  const p2 = item.platform || item.trigger;
+  if (p2 === "time") {
+    const raw = item.at;
+    if (Array.isArray(raw)) {
+      return `When the time is ${raw.map((t3) => fmtTime(hass, t3)).join(" or ")}`;
+    }
+    return `When the time is ${fmtTime(hass, raw)}`;
+  }
+  if (p2 === "sun") {
+    const ev =
+      item.event === "sunset"
+        ? "sunset"
+        : item.event === "sunrise"
+          ? "sunrise"
+          : humanizeToken(item.event || "sun event").toLowerCase();
+    const offset = item.offset ? ` (${item.offset})` : "";
+    return `When it is ${ev}${offset}`;
+  }
+  if (p2 === "state") {
+    const eid = fmtEntities(hass, item.entity_id);
+    const fromState = fmtState(item.from);
+    const toState = fmtState(item.to);
+    const duration = fmtDuration(item.for);
+    const dur = duration ? ` for ${duration}` : "";
+    if (toState === "on") return `When ${eid} turns on${dur}`;
+    if (toState === "off") return `When ${eid} turns off${dur}`;
+    if (toState && fromState)
+      return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
+    if (toState) return `When ${eid} becomes ${toState}${dur}`;
+    return `When ${eid} changes state${dur}`;
+  }
+  if (p2 === "numeric_state") {
+    const eid = fmtEntities(hass, item.entity_id);
+    const above = fmtNumericValue(item.entity_id, item.above);
+    const below = fmtNumericValue(item.entity_id, item.below);
+    if (item.above != null && item.below != null)
+      return `When ${eid} is between ${above} and ${below}`;
+    if (item.above != null) return `When ${eid} rises above ${above}`;
+    if (item.below != null) return `When ${eid} drops below ${below}`;
+    return `When ${eid} value changes`;
+  }
+  if (p2 === "homeassistant") {
+    const ev =
+      item.event === "start"
+        ? "starts"
+        : item.event === "shutdown"
+          ? "shuts down"
+          : "changes state";
+    return `When Home Assistant ${ev}`;
+  }
+  if (p2 === "time_pattern") {
+    if (item.seconds != null)
+      return `Every ${item.seconds} second${Number(item.seconds) === 1 ? "" : "s"}`;
+    if (item.minutes != null)
+      return `Every ${item.minutes} minute${Number(item.minutes) === 1 ? "" : "s"}`;
+    if (item.hours != null)
+      return `Every ${item.hours} hour${Number(item.hours) === 1 ? "" : "s"}`;
+    return "On a time pattern";
+  }
+  if (p2 === "template") {
+    const tmpl = item.value_template || "";
+    const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
+    if (entityMatch)
+      return `When ${fmtEntity(hass, entityMatch[1])} condition is met`;
+    return "When a template condition is met";
+  }
+  if (p2 === "event") {
+    const name = item.event_type
+      ? humanizeToken(item.event_type).toLowerCase()
+      : "an event";
+    return `When ${name} happens`;
+  }
+  if (p2 === "device") {
+    const triggerType = item.type
+      ? humanizeToken(item.type).toLowerCase()
+      : "triggered";
+    return item.device_id
+      ? `When a device ${triggerType}`
+      : `When a device is ${triggerType}`;
+  }
+  if (p2 === "zone") {
+    const eid = fmtEntities(hass, item.entity_id);
+    const zone = fmtEntity(hass, item.zone);
+    const eventMap = {
+      enter: "enters",
+      leave: "leaves",
+    };
+    const rawEvent = String(item.event || "enter");
+    const ev = eventMap[rawEvent] || humanizeToken(rawEvent).toLowerCase();
+    return `${eid} ${ev} ${zone}`.trim();
+  }
+  if (p2 === "mqtt")
+    return item.topic
+      ? `When a device message arrives (${item.topic})`
+      : "When a device message arrives";
+  if (p2 === "webhook") return "When an outside service sends an update";
+  if (p2 === "tag")
+    return `When a tag is scanned${item.tag_id ? ` (${item.tag_id})` : ""}`;
+  if (p2 === "geo_location") return "When a location update is received";
+  if (p2 === "calendar") {
+    const eventName = item.event
+      ? humanizeToken(item.event).toLowerCase()
+      : "event";
+    const entity = item.entity_id
+      ? ` on ${fmtEntity(hass, item.entity_id)}`
+      : "";
+    return `When a calendar ${eventName} begins${entity}`;
+  }
+  if (p2) return "When this trigger happens";
+  const cond = item.condition;
+  if (cond === "state") {
+    const eid = fmtEntities(hass, item.entity_id);
+    const st = fmtState(item.state ?? item.to);
+    return `${eid} is ${st}`;
+  }
+  if (cond === "numeric_state") {
+    const eid = fmtEntities(hass, item.entity_id);
+    if (item.above != null && item.below != null)
+      return `${eid} between ${item.above} and ${item.below}`;
+    if (item.above != null) return `${eid} above ${item.above}`;
+    if (item.below != null) return `${eid} below ${item.below}`;
+    return `${eid} numeric check`;
+  }
+  if (cond === "time") {
+    const parts = [];
+    if (item.after) parts.push(`after ${fmtTime(hass, item.after)}`);
+    if (item.before) parts.push(`before ${fmtTime(hass, item.before)}`);
+    if (item.weekday) {
+      parts.push(`on ${fmtWeekdays(item.weekday)}`);
+    }
+    return parts.length ? parts.join(" \xB7 ") : "Time window";
+  }
+  if (cond === "template") return "Template evaluates to true";
+  if (cond === "sun") {
+    const parts = [];
+    if (item.after)
+      parts.push(`after ${String(item.after).replace(/_/g, " ")}`);
+    if (item.before)
+      parts.push(`before ${String(item.before).replace(/_/g, " ")}`);
+    return parts.join(", ") || "Sun position";
+  }
+  if (cond === "and")
+    return `All ${(item.conditions || []).length} conditions must be true`;
+  if (cond === "or")
+    return `Any of ${(item.conditions || []).length} conditions is true`;
+  if (cond === "not") return "None of the conditions are true";
+  if (cond === "zone") {
+    const eid = fmtEntities(hass, item.entity_id);
+    return `${eid} is in ${fmtEntity(hass, item.zone) || "zone"}`;
+  }
+  if (cond === "device")
+    return item.type
+      ? String(item.type).replace(/_/g, " ")
+      : "Device condition";
+  if (cond) return String(cond).replace(/_/g, " ");
+  const svc = item.service || item.action;
+  if (svc) {
+    const svcStr = String(svc);
+    const [domain = "", svcName = svc] = svcStr.split(".");
+    if (
+      svcStr === "notify.persistent_notification" ||
+      domain === "persistent_notification"
+    ) {
+      const title = item.data?.title;
+      const msg = item.data?.message;
+      if (title && msg) return `Notify: "${title}"`;
+      if (title) return `Notify: "${title}"`;
+      if (msg) {
+        const short = msg.length > 60 ? msg.slice(0, 57) + "\u2026" : msg;
+        return `Notify: "${short}"`;
+      }
+      return "Send a notification";
+    }
+    if (domain === "notify") {
+      const target = svcName
+        .replace(/_/g, " ")
+        .replace(/\b\w/g, (c3) => c3.toUpperCase());
+      const msg = item.data?.message;
+      const title = item.data?.title;
+      if (title) return `Notify ${target}: "${title}"`;
+      if (msg) {
+        const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
+        return `Notify ${target}: "${short}"`;
+      }
+      return `Notify via ${target}`;
+    }
+    if (domain === "tts") {
+      const msg = item.data?.message;
+      if (msg) {
+        const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
+        return `Say: "${short}"`;
+      }
+      return "Text-to-speech";
+    }
+    const friendlyActions = {
+      turn_on: "Turn on",
+      turn_off: "Turn off",
+      toggle: "Toggle",
+      lock: "Lock",
+      unlock: "Unlock",
+      open_cover: "Open",
+      close_cover: "Close",
+      set_temperature: "Set temperature for",
+      set_value: "Set value for",
+      send_command: "Send command to",
+      reload: "Reload",
+    };
+    const name =
+      friendlyActions[svcName] ||
+      svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    const targets = item.target?.entity_id ?? item.data?.entity_id;
+    const t3 = fmtEntities(hass, targets);
+    const extras = [];
+    if (item.data?.brightness_pct != null)
+      extras.push(`at ${item.data.brightness_pct}%`);
+    if (item.data?.temperature != null)
+      extras.push(`to ${item.data.temperature}\xB0`);
+    if (item.data?.color_temp != null)
+      extras.push(`color temp ${item.data.color_temp}`);
+    if (item.data?.message && !String(item.data.message).includes("{{")) {
+      const short =
+        item.data.message.length > 50
+          ? item.data.message.slice(0, 47) + "\u2026"
+          : item.data.message;
+      extras.push(`"${short}"`);
+    }
+    if (item.data?.title && !String(item.data.title).includes("{{"))
+      extras.push(item.data.title);
+    const detail = extras.length ? ` (${extras.join(", ")})` : "";
+    return t3 ? `${name} ${t3}${detail}` : `${name}${detail}`;
+  }
+  if (item.delay) {
+    const d3 = item.delay;
+    if (typeof d3 === "string") return `Wait ${d3}`;
+    const parts = [];
+    if (d3.hours) parts.push(`${d3.hours}h`);
+    if (d3.minutes) parts.push(`${d3.minutes}m`);
+    if (d3.seconds) parts.push(`${d3.seconds}s`);
+    return parts.length ? `Wait ${parts.join(" ")}` : "Wait";
+  }
+  if (item.wait_template) return "Wait until condition is met";
+  if (item.wait_for_trigger) return "Wait for a trigger";
+  if (item.scene) return `Activate scene: ${fmtEntity(hass, item.scene)}`;
+  if (item.choose)
+    return `Choose between ${item.choose.length} option${item.choose.length !== 1 ? "s" : ""}`;
+  if (item.repeat) {
+    const r4 = item.repeat;
+    if (r4.count != null)
+      return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
+    if (r4.while) return "Repeat while condition holds";
+    if (r4.until) return "Repeat until condition is met";
+    return "Repeat";
+  }
+  if (item.parallel)
+    return `Run ${(item.parallel || []).length} actions in parallel`;
+  if (item.sequence)
+    return `Run a sequence of ${(item.sequence || []).length} steps`;
+  if (item.variables) return "Set variables";
+  if (item.stop) return `Stop: ${item.stop}`;
+  if (item.event) return `Fire event: ${String(item.event).replace(/_/g, " ")}`;
+  const SKIP = /* @__PURE__ */ new Set([
+    "id",
+    "enabled",
+    "mode",
+    "alias",
+    "description",
+  ]);
+  const readable = Object.entries(item)
+    .filter(([k2, v2]) => !SKIP.has(k2) && v2 != null && v2 !== "")
+    .map(([k2, v2]) => {
+      const label = k2.replace(/_/g, " ");
+      const strVal =
+        typeof v2 === "string"
+          ? v2
+          : Array.isArray(v2)
+            ? v2
+                .map((x2) => (typeof x2 === "object" ? "\u2026" : x2))
+                .join(", ")
+            : String(v2);
+      if (strVal.includes("{{") || strVal.includes("{%")) return null;
+      return `${label}: ${strVal}`;
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+  return readable.length ? readable.join(" \xB7 ") : "Automation step";
+}
+
+// src/shared/date-utils.js
+function formatRelativeTime(dateStr) {
+  if (!dateStr) return "Never";
+  const date = new Date(dateStr);
+  const now = /* @__PURE__ */ new Date();
+  const diffMs = now - date;
+  const diffMins = Math.floor(diffMs / 6e4);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  const diffDays = Math.floor(diffHours / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return date.toLocaleDateString();
+}
+
+// src/shared/design-tokens.css.js
+var seloraTokens = i`
+  :host {
+    --selora-accent: #fbbf24;
+    --selora-accent-dark: #f59e0b;
+    --selora-accent-light: #fde68a;
+    --selora-zinc-900: #18181b;
+    --selora-zinc-800: #27272a;
+    --selora-zinc-700: #3f3f46;
+    --selora-zinc-600: #52525b;
+    --selora-zinc-200: #e4e4e7;
+    --selora-zinc-400: #a1a1aa;
+    --selora-glow: 0 0 20px rgba(251, 191, 36, 0.3);
+    --selora-glow-lg: 0 0 40px rgba(251, 191, 36, 0.4);
+    font-family:
+      Inter,
+      system-ui,
+      -apple-system,
+      BlinkMacSystemFont,
+      "Segoe UI",
+      Roboto,
+      sans-serif;
+  }
+  * {
+    font-family: inherit;
+  }
+`;
+
+// src/card/styles.css.js
+var cardStyles = i`
+  ha-card {
+    overflow: hidden;
+  }
+
+  /* ---- Header ---- */
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--divider-color);
+    transition: background 0.15s;
+  }
+  .card-header:hover {
+    background: var(--secondary-background-color);
+  }
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .header-logo {
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
+  }
+  .header-title {
+    font-size: 16px;
+    font-weight: 600;
+  }
+  .header-action {
+    --mdc-icon-size: 18px;
+    opacity: 0.4;
+    transition: opacity 0.15s;
+  }
+  .card-header:hover .header-action {
+    opacity: 0.8;
+  }
+
+  /* ---- Content ---- */
+  .card-content {
+    padding: 12px 16px 16px;
+  }
+
+  /* ---- Quick Actions ---- */
+  .quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .action-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .action-btn:hover {
+    background: rgba(251, 191, 36, 0.06);
+    border-color: var(--selora-accent);
+    box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
+  }
+  .action-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  .action-btn ha-icon {
+    --mdc-icon-size: 18px;
+  }
+  .new-btn {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #1a1a1a;
+    font-weight: 600;
+  }
+  .new-btn:hover {
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+    box-shadow: var(--selora-glow);
+  }
+
+  /* ---- Sections ---- */
+  .section {
+    margin-bottom: 12px;
+  }
+  .section:last-child {
+    margin-bottom: 0;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: normal;
+    opacity: 0.7;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .section-icon {
+    --mdc-icon-size: 16px;
+  }
+  .badge {
+    background: var(--selora-accent);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 1px 6px;
+    border-radius: 10px;
+    margin-left: auto;
+  }
+
+  /* ---- Suggestion Items ---- */
+  .suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .suggestion-item:last-child {
+    border-bottom: none;
+  }
+  .suggestion-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .suggestion-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .suggestion-desc {
+    font-size: 11px;
+    opacity: 0.6;
+    margin-top: 2px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .accept-btn {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 1px solid var(--selora-accent);
+    background: transparent;
+    color: var(--selora-accent);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+  }
+  .accept-btn:hover {
+    background: var(--selora-accent);
+    color: white;
+  }
+  .accept-btn ha-icon {
+    --mdc-icon-size: 18px;
+  }
+
+  /* ---- Automation Items ---- */
+  .automation-item {
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .automation-item:last-child {
+    border-bottom: none;
+  }
+  .automation-item.expanded {
+    background: rgba(251, 191, 36, 0.04);
+    border-radius: 12px;
+    margin: 4px -8px;
+    padding: 0 8px;
+    border-bottom: none;
+    border: 1px solid rgba(251, 191, 36, 0.15);
+  }
+  .automation-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    cursor: pointer;
+  }
+  .activity-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .activity-indicator.active {
+    background: var(--selora-accent);
+    box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+  }
+  .activity-indicator.inactive {
+    background: var(--disabled-text-color, #999);
+  }
+  .activity-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .activity-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .activity-meta {
+    font-size: 11px;
+    opacity: 0.5;
+    margin-top: 1px;
+  }
+  .activity-toggle-wrap {
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 4px;
+  }
+  .activity-toggle {
+    --mdc-icon-size: 24px;
+    transition: color 0.15s;
+  }
+  .activity-toggle.on {
+    color: var(--selora-accent);
+  }
+  .activity-toggle.off {
+    color: var(--disabled-text-color, #999);
+  }
+
+  /* ---- Expanded Details ---- */
+  .automation-details {
+    padding: 4px 0 10px 18px;
+  }
+  .detail-desc {
+    font-size: 12px;
+    opacity: 0.6;
+    margin-bottom: 8px;
+    font-style: italic;
+  }
+  .detail-section {
+    margin-bottom: 6px;
+  }
+  .detail-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: normal;
+    opacity: 0.5;
+    margin-bottom: 3px;
+  }
+  .detail-chip {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin: 2px 4px 2px 0;
+  }
+  .detail-chip.trigger {
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: var(--primary-text-color);
+  }
+  .detail-chip.action {
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+    border: 1px solid var(--divider-color);
+    color: var(--primary-text-color);
+  }
+  .detail-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .detail-btn {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-family: inherit;
+    transition: all 0.15s;
+  }
+  .detail-btn ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .open-btn:hover {
+    border-color: var(--selora-accent);
+    color: var(--selora-accent);
+  }
+  .delete-btn:hover {
+    border-color: var(--error-color, #f44336);
+    color: var(--error-color, #f44336);
+  }
+
+  /* ---- Error banner ---- */
+  .error-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.1);
+    border: 1px solid var(--error-color, #f44336);
+    color: var(--error-color, #f44336);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .error-dismiss {
+    --mdc-icon-size: 16px;
+    cursor: pointer;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+  .error-dismiss:hover {
+    opacity: 1;
+  }
+
+  /* ---- Common ---- */
+  .loading-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .empty-row {
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.5;
+    font-style: italic;
+  }
+  .more-link {
+    text-align: center;
+    font-size: 12px;
+    color: var(--selora-accent);
+    cursor: pointer;
+    padding: 8px 0 4px;
+    font-weight: 500;
+  }
+  .more-link:hover {
+    text-decoration: underline;
+  }
+
+  /* ---- Bouncing dots loader ---- */
+  .dots-loader {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .dots-loader span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--selora-accent);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .dots-loader span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .dots-loader span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes bounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+
+  /* ---- Spinner (fallback) ---- */
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-top-color: var(--selora-accent);
+    border-left-color: var(--selora-accent);
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* ---- Generating row ---- */
+  .generating-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+
+  /* ---- Modal overlay (matches panel) ---- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10001;
+  }
+  .modal {
+    background: var(--card-background-color, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--selora-zinc-800, rgba(255, 255, 255, 0.1));
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+  .modal-label {
+    font-size: 13px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .modal-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .modal-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal-input:focus {
+    border-color: var(--selora-accent);
+  }
+  .modal-input::placeholder {
+    opacity: 0.35;
+  }
+  .modal-input.generating-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-color: var(--selora-accent);
+  }
+  .modal-row.generating .modal-magic-btn {
+    border-color: var(--selora-accent);
+  }
+  .modal-magic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1.5px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  .modal-magic-btn:hover {
+    opacity: 0.85;
+    border-color: var(--selora-accent);
+    color: var(--selora-accent);
+  }
+  .modal-magic-btn ha-icon {
+    --mdc-icon-size: 20px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1.5px solid transparent;
+    background: transparent;
+    transition:
+      background 0.15s,
+      opacity 0.15s;
+    user-select: none;
+    letter-spacing: normal;
+  }
+  .modal-btn:hover {
+    opacity: 0.85;
+  }
+  .modal-btn ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .modal-cancel {
+    border-color: var(--divider-color);
+    color: var(--primary-text-color);
+    background: var(--card-background-color);
+  }
+  .modal-cancel:hover {
+    border-color: var(--selora-accent);
+    color: var(--selora-accent);
+  }
+  .modal-create {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #1a1a1a;
+  }
+  .modal-create:hover:not(:disabled) {
+    box-shadow: var(--selora-glow);
+    background: var(--selora-accent-light);
+  }
+  .modal-create:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// src/card/editor.js
+var SeloraAICardEditor = class extends s4 {
+  static get properties() {
+    return {
+      hass: { type: Object },
+      _config: { type: Object },
+    };
+  }
+  setConfig(config) {
+    this._config = config;
+  }
+  _valueChanged(key, value) {
+    const newConfig = { ...this._config, [key]: value };
+    this._config = newConfig;
+    const event = new CustomEvent("config-changed", {
+      detail: { config: newConfig },
+    });
+    this.dispatchEvent(event);
+  }
+  render() {
+    if (!this._config) return x``;
+    return x`
+      <div style="padding: 16px;">
+        <ha-textfield
+          label="Title"
+          .value=${this._config.title || "Selora AI"}
+          @change=${(e4) => this._valueChanged("title", e4.target.value)}
+        ></ha-textfield>
+        <ha-formfield label="Show Suggestions">
+          <ha-switch
+            .checked=${this._config.show_suggestions !== false}
+            @change=${(e4) => this._valueChanged("show_suggestions", e4.target.checked)}
+          ></ha-switch>
+        </ha-formfield>
+        <ha-formfield label="Show Automations">
+          <ha-switch
+            .checked=${this._config.show_automations !== false}
+            @change=${(e4) => this._valueChanged("show_automations", e4.target.checked)}
+          ></ha-switch>
+        </ha-formfield>
+        <ha-textfield
+          label="Max Suggestions"
+          type="number"
+          .value=${String(this._config.max_suggestions || 3)}
+          @change=${(e4) => this._valueChanged("max_suggestions", parseInt(e4.target.value, 10))}
+        ></ha-textfield>
+        <ha-textfield
+          label="Max Automations"
+          type="number"
+          .value=${String(this._config.max_automations || 10)}
+          @change=${(e4) => this._valueChanged("max_automations", parseInt(e4.target.value, 10))}
+        ></ha-textfield>
+      </div>
+    `;
+  }
+};
+customElements.define("selora-ai-card-editor", SeloraAICardEditor);
+
 // src/card.js
 var SeloraAIDashboardCard = class extends s4 {
   static get properties() {
@@ -1210,268 +2293,10 @@ var SeloraAIDashboardCard = class extends s4 {
     window.dispatchEvent(new Event("location-changed"));
   }
   // -------------------------------------------------------------------------
-  // Formatting helpers
+  // Styles
   // -------------------------------------------------------------------------
-  _formatRelativeTime(dateStr) {
-    if (!dateStr) return "Never";
-    const date = new Date(dateStr);
-    const now = /* @__PURE__ */ new Date();
-    const diffMs = now - date;
-    const diffMins = Math.floor(diffMs / 6e4);
-    if (diffMins < 1) return "Just now";
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    const diffDays = Math.floor(diffHours / 24);
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  }
-  _humanizeToken(value) {
-    if (value == null || value === "") return "";
-    return String(value)
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c3) => c3.toUpperCase());
-  }
-  _fmtEntity(eid) {
-    if (!eid) return "";
-    const id = String(eid);
-    if (this.hass?.states?.[id]) {
-      return (
-        this.hass.states[id].attributes?.friendly_name ||
-        id
-          .split(".")
-          .pop()
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c3) => c3.toUpperCase())
-      );
-    }
-    return id
-      .split(".")
-      .pop()
-      .replace(/_/g, " ")
-      .replace(/\b\w/g, (c3) => c3.toUpperCase());
-  }
-  _fmtState(state) {
-    if (state == null) return null;
-    const s5 = String(state);
-    const friendly = {
-      on: "on",
-      off: "off",
-      home: "home",
-      not_home: "away",
-      open: "open",
-      closed: "closed",
-      locked: "locked",
-      unlocked: "unlocked",
-      playing: "playing",
-      paused: "paused",
-      idle: "idle",
-      unavailable: "unavailable",
-      unknown: "unknown",
-    };
-    return friendly[s5] || s5.replace(/_/g, " ");
-  }
-  _fmtDuration(value) {
-    if (!value) return "";
-    if (typeof value === "string") return value;
-    if (typeof value !== "object") return String(value);
-    const parts = [
-      value.hours ? `${value.hours}h` : "",
-      value.minutes ? `${value.minutes}m` : "",
-      value.seconds ? `${value.seconds}s` : "",
-    ].filter(Boolean);
-    if (parts.length) return parts.join(" ");
-    return String(value);
-  }
-  _fmtNumericValue(entityId, value) {
-    if (value == null || value === "") return "";
-    const raw = String(value).trim();
-    const batteryLike = String(entityId || "")
-      .toLowerCase()
-      .includes("battery");
-    if (batteryLike && /^-?\d+(\.\d+)?$/.test(raw) && !raw.includes("%")) {
-      return `${raw}%`;
-    }
-    return raw;
-  }
-  _fmtTime(val) {
-    if (val == null) return "";
-    const s5 = String(val).trim();
-    if (s5.includes("{{")) {
-      const m2 = s5.match(/states\(['"]([^'"]+)['"]\)/);
-      if (m2) return this._fmtEntity(m2[1]);
-      return "a calculated time";
-    }
-    const num = Number(s5);
-    if (!isNaN(num) && num >= 0 && num <= 86400 && !s5.includes(":")) {
-      const h3 = Math.floor(num / 3600),
-        m2 = Math.floor((num % 3600) / 60);
-      const ampm = h3 >= 12 ? "PM" : "AM";
-      const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
-      return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
-    }
-    const parts = s5.split(":");
-    if (parts.length >= 2) {
-      const h3 = parseInt(parts[0], 10),
-        m2 = parseInt(parts[1], 10);
-      if (!isNaN(h3) && !isNaN(m2)) {
-        const ampm = h3 >= 12 ? "PM" : "AM";
-        const h12 = h3 === 0 ? 12 : h3 > 12 ? h3 - 12 : h3;
-        return `${h12}:${String(m2).padStart(2, "0")} ${ampm}`;
-      }
-    }
-    if (s5.startsWith("input_datetime.") || s5.startsWith("sensor."))
-      return this._fmtEntity(s5);
-    return s5;
-  }
-  _formatTrigger(t3) {
-    if (!t3) return "Unknown trigger";
-    const p2 = t3.platform || t3.trigger;
-    if (p2 === "time") {
-      const raw = t3.at;
-      if (Array.isArray(raw))
-        return `When the time is ${raw.map((v2) => this._fmtTime(v2)).join(" or ")}`;
-      return `When the time is ${this._fmtTime(raw)}`;
-    }
-    if (p2 === "sun") {
-      const ev =
-        t3.event === "sunset"
-          ? "sunset"
-          : t3.event === "sunrise"
-            ? "sunrise"
-            : this._humanizeToken(t3.event || "sun event").toLowerCase();
-      return `When it is ${ev}${t3.offset ? ` (${t3.offset})` : ""}`;
-    }
-    if (p2 === "state") {
-      const eid = this._fmtEntity(t3.entity_id);
-      const fromState = this._fmtState(t3.from);
-      const toState = this._fmtState(t3.to);
-      const duration = this._fmtDuration(t3.for);
-      const dur = duration ? ` for ${duration}` : "";
-      if (toState === "on") return `When ${eid} turns on${dur}`;
-      if (toState === "off") return `When ${eid} turns off${dur}`;
-      if (toState && fromState)
-        return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
-      if (toState) return `When ${eid} becomes ${toState}${dur}`;
-      return `When ${eid} changes state${dur}`;
-    }
-    if (p2 === "numeric_state") {
-      const eid = this._fmtEntity(t3.entity_id);
-      const above = this._fmtNumericValue(t3.entity_id, t3.above);
-      const below = this._fmtNumericValue(t3.entity_id, t3.below);
-      if (t3.above != null && t3.below != null)
-        return `When ${eid} is between ${above} and ${below}`;
-      if (t3.above != null) return `When ${eid} rises above ${above}`;
-      if (t3.below != null) return `When ${eid} drops below ${below}`;
-      return `When ${eid} value changes`;
-    }
-    if (p2 === "homeassistant")
-      return `When Home Assistant ${t3.event === "start" ? "starts" : t3.event === "shutdown" ? "shuts down" : "changes state"}`;
-    if (p2 === "template") {
-      const tmpl = t3.value_template || "";
-      const m2 = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
-      if (m2) return `When ${this._fmtEntity(m2[1])} condition is met`;
-      return "When a template condition is met";
-    }
-    if (p2 === "time_pattern") {
-      if (t3.seconds != null)
-        return `Every ${t3.seconds} second${Number(t3.seconds) === 1 ? "" : "s"}`;
-      if (t3.minutes != null)
-        return `Every ${t3.minutes} minute${Number(t3.minutes) === 1 ? "" : "s"}`;
-      if (t3.hours != null)
-        return `Every ${t3.hours} hour${Number(t3.hours) === 1 ? "" : "s"}`;
-      return "On a time pattern";
-    }
-    if (p2 === "event")
-      return `When ${t3.event_type ? this._humanizeToken(t3.event_type).toLowerCase() : "an event"} happens`;
-    if (p2 === "device") {
-      const triggerType = t3.type
-        ? this._humanizeToken(t3.type).toLowerCase()
-        : "triggered";
-      return t3.device_id
-        ? `When a device ${triggerType}`
-        : `When a device is ${triggerType}`;
-    }
-    if (p2 === "zone") {
-      const evMap = { enter: "enters", leave: "leaves" };
-      const ev =
-        evMap[String(t3.event || "enter")] ||
-        this._humanizeToken(t3.event || "enter").toLowerCase();
-      const who = this._fmtEntity(t3.entity_id);
-      const zone = this._fmtEntity(t3.zone);
-      return `When ${who} ${ev} ${zone}`;
-    }
-    if (p2 === "mqtt")
-      return t3.topic
-        ? `When a device message arrives (${t3.topic})`
-        : "When a device message arrives";
-    if (p2 === "webhook") return "When an outside service sends an update";
-    if (p2 === "tag")
-      return `When a tag is scanned${t3.tag_id ? ` (${t3.tag_id})` : ""}`;
-    if (p2 === "calendar") {
-      const eventName = t3.event
-        ? this._humanizeToken(t3.event).toLowerCase()
-        : "event";
-      return `When a calendar ${eventName} begins`;
-    }
-    if (p2) return "When this trigger happens";
-    return "Trigger";
-  }
-  _formatAction(a3) {
-    if (!a3) return "Unknown action";
-    const svc = a3.service || a3.action;
-    if (svc) {
-      const str = String(svc);
-      const [domain = "", name = svc] = str.split(".");
-      if (
-        str === "notify.persistent_notification" ||
-        domain === "persistent_notification"
-      ) {
-        const title = a3.data?.title,
-          msg = a3.data?.message;
-        if (title) return `Notify: "${title}"`;
-        if (msg)
-          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
-        return "Send a notification";
-      }
-      if (domain === "notify") {
-        const target = name
-          .replace(/_/g, " ")
-          .replace(/\b\w/g, (c3) => c3.toUpperCase());
-        const title = a3.data?.title,
-          msg = a3.data?.message;
-        if (title) return `Notify: "${title}"`;
-        if (msg && !msg.includes("{{"))
-          return `Notify: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
-        return `Notify via ${target}`;
-      }
-      if (domain === "tts") {
-        const msg = a3.data?.message;
-        if (msg && !msg.includes("{{"))
-          return `Say: "${msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg}"`;
-        return "Text-to-speech";
-      }
-      const friendly = {
-        turn_on: "Turn on",
-        turn_off: "Turn off",
-        toggle: "Toggle",
-        lock: "Lock",
-        unlock: "Unlock",
-      };
-      const label =
-        friendly[name] ||
-        name.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
-      const targets = a3.target?.entity_id ?? a3.data?.entity_id;
-      const t3 = targets
-        ? Array.isArray(targets)
-          ? targets.map((e4) => this._fmtEntity(e4)).join(", ")
-          : this._fmtEntity(targets)
-        : "";
-      return t3 ? `${label} ${t3}` : label;
-    }
-    if (a3.delay) return `Wait ${typeof a3.delay === "string" ? a3.delay : ""}`;
-    if (a3.scene) return `Activate scene: ${this._fmtEntity(a3.scene)}`;
-    return "Action";
+  static get styles() {
+    return [seloraTokens, cardStyles];
   }
   // -------------------------------------------------------------------------
   // Render
@@ -1730,7 +2555,7 @@ var SeloraAIDashboardCard = class extends s4 {
             <div class="activity-name">${a3.alias || a3.entity_id}</div>
             <div class="activity-meta">
               ${isOn ? "Enabled" : "Disabled"}
-              ${a3.last_triggered ? x` · Ran ${this._formatRelativeTime(a3.last_triggered)}` : ""}
+              ${a3.last_triggered ? x` · Ran ${formatRelativeTime(a3.last_triggered)}` : ""}
             </div>
           </div>
           <div
@@ -1761,7 +2586,7 @@ var SeloraAIDashboardCard = class extends s4 {
                         ${triggers.map(
                           (t3) => x`
                             <div class="detail-chip trigger">
-                              ${this._formatTrigger(t3)}
+                              ${describeFlowItem(this.hass, t3)}
                             </div>
                           `,
                         )}
@@ -1777,7 +2602,7 @@ var SeloraAIDashboardCard = class extends s4 {
                         ${actions.map(
                           (act) => x`
                             <div class="detail-chip action">
-                              ${this._formatAction(act)}
+                              ${describeFlowItem(this.hass, act)}
                             </div>
                           `,
                         )}
@@ -1814,658 +2639,11 @@ var SeloraAIDashboardCard = class extends s4 {
       </div>
     `;
   }
-  // -------------------------------------------------------------------------
-  // Styles
-  // -------------------------------------------------------------------------
-  static get styles() {
-    return i`
-      :host {
-        --selora-accent: #fbbf24;
-        --selora-accent-dark: #f59e0b;
-        --selora-accent-light: #fde68a;
-        --selora-zinc-900: #18181b;
-        --selora-zinc-800: #27272a;
-        --selora-zinc-700: #3f3f46;
-        --selora-zinc-200: #e4e4e7;
-        --selora-glow: 0 0 20px rgba(251, 191, 36, 0.3);
-        font-family:
-          Inter,
-          system-ui,
-          -apple-system,
-          BlinkMacSystemFont,
-          "Segoe UI",
-          Roboto,
-          sans-serif;
-      }
-      * {
-        font-family: inherit;
-      }
-
-      ha-card {
-        overflow: hidden;
-      }
-
-      /* ---- Header ---- */
-      .card-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px;
-        cursor: pointer;
-        border-bottom: 1px solid var(--divider-color);
-        transition: background 0.15s;
-      }
-      .card-header:hover {
-        background: var(--secondary-background-color);
-      }
-      .header-left {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-      }
-      .header-logo {
-        width: 26px;
-        height: 26px;
-        border-radius: 6px;
-      }
-      .header-title {
-        font-size: 16px;
-        font-weight: 600;
-      }
-      .header-action {
-        --mdc-icon-size: 18px;
-        opacity: 0.4;
-        transition: opacity 0.15s;
-      }
-      .card-header:hover .header-action {
-        opacity: 0.8;
-      }
-
-      /* ---- Content ---- */
-      .card-content {
-        padding: 12px 16px 16px;
-      }
-
-      /* ---- Quick Actions ---- */
-      .quick-actions {
-        display: flex;
-        gap: 8px;
-        margin-bottom: 16px;
-      }
-      .action-btn {
-        flex: 1;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 6px;
-        padding: 10px 12px;
-        border: 1px solid var(--divider-color);
-        border-radius: 10px;
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font-size: 13px;
-        font-weight: 500;
-        cursor: pointer;
-        transition: all 0.15s;
-        font-family: inherit;
-      }
-      .action-btn:hover {
-        background: rgba(251, 191, 36, 0.06);
-        border-color: var(--selora-accent);
-        box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
-      }
-      .action-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      .action-btn ha-icon {
-        --mdc-icon-size: 18px;
-      }
-      .new-btn {
-        background: var(--selora-accent);
-        border-color: var(--selora-accent);
-        color: #1a1a1a;
-        font-weight: 600;
-      }
-      .new-btn:hover {
-        background: var(--selora-accent-light);
-        border-color: var(--selora-accent-light);
-        box-shadow: var(--selora-glow);
-      }
-
-      /* ---- Sections ---- */
-      .section {
-        margin-bottom: 12px;
-      }
-      .section:last-child {
-        margin-bottom: 0;
-      }
-      .section-header {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: normal;
-        opacity: 0.7;
-        margin-bottom: 8px;
-        padding-bottom: 6px;
-        border-bottom: 1px solid var(--divider-color);
-      }
-      .section-icon {
-        --mdc-icon-size: 16px;
-      }
-      .badge {
-        background: var(--selora-accent);
-        color: white;
-        font-size: 10px;
-        font-weight: 700;
-        padding: 1px 6px;
-        border-radius: 10px;
-        margin-left: auto;
-      }
-
-      /* ---- Suggestion Items ---- */
-      .suggestion-item {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 0;
-        border-bottom: 1px solid var(--divider-color);
-      }
-      .suggestion-item:last-child {
-        border-bottom: none;
-      }
-      .suggestion-info {
-        flex: 1;
-        min-width: 0;
-      }
-      .suggestion-name {
-        font-size: 13px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .suggestion-desc {
-        font-size: 11px;
-        opacity: 0.6;
-        margin-top: 2px;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-      }
-      .accept-btn {
-        flex-shrink: 0;
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        border: 1px solid var(--selora-accent);
-        background: transparent;
-        color: var(--selora-accent);
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.15s;
-      }
-      .accept-btn:hover {
-        background: var(--selora-accent);
-        color: white;
-      }
-      .accept-btn ha-icon {
-        --mdc-icon-size: 18px;
-      }
-
-      /* ---- Automation Items ---- */
-      .automation-item {
-        border-bottom: 1px solid var(--divider-color);
-      }
-      .automation-item:last-child {
-        border-bottom: none;
-      }
-      .automation-item.expanded {
-        background: rgba(251, 191, 36, 0.04);
-        border-radius: 12px;
-        margin: 4px -8px;
-        padding: 0 8px;
-        border-bottom: none;
-        border: 1px solid rgba(251, 191, 36, 0.15);
-      }
-      .automation-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 8px 0;
-        cursor: pointer;
-      }
-      .activity-indicator {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        flex-shrink: 0;
-      }
-      .activity-indicator.active {
-        background: var(--selora-accent);
-        box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
-      }
-      .activity-indicator.inactive {
-        background: var(--disabled-text-color, #999);
-      }
-      .activity-info {
-        flex: 1;
-        min-width: 0;
-      }
-      .activity-name {
-        font-size: 13px;
-        font-weight: 500;
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-      }
-      .activity-meta {
-        font-size: 11px;
-        opacity: 0.5;
-        margin-top: 1px;
-      }
-      .activity-toggle-wrap {
-        cursor: pointer;
-        flex-shrink: 0;
-        padding: 4px;
-      }
-      .activity-toggle {
-        --mdc-icon-size: 24px;
-        transition: color 0.15s;
-      }
-      .activity-toggle.on {
-        color: var(--selora-accent);
-      }
-      .activity-toggle.off {
-        color: var(--disabled-text-color, #999);
-      }
-
-      /* ---- Expanded Details ---- */
-      .automation-details {
-        padding: 4px 0 10px 18px;
-      }
-      .detail-desc {
-        font-size: 12px;
-        opacity: 0.6;
-        margin-bottom: 8px;
-        font-style: italic;
-      }
-      .detail-section {
-        margin-bottom: 6px;
-      }
-      .detail-label {
-        font-size: 10px;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: normal;
-        opacity: 0.5;
-        margin-bottom: 3px;
-      }
-      .detail-chip {
-        display: inline-block;
-        font-size: 11px;
-        padding: 2px 8px;
-        border-radius: 4px;
-        margin: 2px 4px 2px 0;
-      }
-      .detail-chip.trigger {
-        background: rgba(251, 191, 36, 0.1);
-        border: 1px solid rgba(251, 191, 36, 0.3);
-        color: var(--primary-text-color);
-      }
-      .detail-chip.action {
-        background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
-        border: 1px solid var(--divider-color);
-        color: var(--primary-text-color);
-      }
-      .detail-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 8px;
-      }
-      .detail-btn {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        padding: 5px 10px;
-        border-radius: 6px;
-        font-size: 11px;
-        font-weight: 500;
-        cursor: pointer;
-        border: 1px solid var(--divider-color);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font-family: inherit;
-        transition: all 0.15s;
-      }
-      .detail-btn ha-icon {
-        --mdc-icon-size: 14px;
-      }
-      .open-btn:hover {
-        border-color: var(--selora-accent);
-        color: var(--selora-accent);
-      }
-      .delete-btn:hover {
-        border-color: var(--error-color, #f44336);
-        color: var(--error-color, #f44336);
-      }
-
-      /* ---- Error banner ---- */
-      .error-banner {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 8px 12px;
-        margin-bottom: 12px;
-        border-radius: 8px;
-        background: rgba(244, 67, 54, 0.1);
-        border: 1px solid var(--error-color, #f44336);
-        color: var(--error-color, #f44336);
-        font-size: 12px;
-        font-weight: 500;
-      }
-      .error-dismiss {
-        --mdc-icon-size: 16px;
-        cursor: pointer;
-        opacity: 0.7;
-        flex-shrink: 0;
-      }
-      .error-dismiss:hover {
-        opacity: 1;
-      }
-
-      /* ---- Common ---- */
-      .loading-row {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        padding: 12px 0;
-        font-size: 12px;
-        opacity: 0.6;
-      }
-      .empty-row {
-        padding: 12px 0;
-        font-size: 12px;
-        opacity: 0.5;
-        font-style: italic;
-      }
-      .more-link {
-        text-align: center;
-        font-size: 12px;
-        color: var(--selora-accent);
-        cursor: pointer;
-        padding: 8px 0 4px;
-        font-weight: 500;
-      }
-      .more-link:hover {
-        text-decoration: underline;
-      }
-
-      /* ---- Bouncing dots loader ---- */
-      .dots-loader {
-        display: inline-flex;
-        gap: 4px;
-        align-items: center;
-      }
-      .dots-loader span {
-        width: 6px;
-        height: 6px;
-        border-radius: 50%;
-        background: var(--selora-accent);
-        animation: bounce 1.2s ease-in-out infinite;
-      }
-      .dots-loader span:nth-child(2) {
-        animation-delay: 0.2s;
-      }
-      .dots-loader span:nth-child(3) {
-        animation-delay: 0.4s;
-      }
-      @keyframes bounce {
-        0%,
-        60%,
-        100% {
-          transform: translateY(0);
-          opacity: 0.4;
-        }
-        30% {
-          transform: translateY(-6px);
-          opacity: 1;
-        }
-      }
-
-      /* ---- Spinner (fallback) ---- */
-      .spinner {
-        display: inline-block;
-        width: 16px;
-        height: 16px;
-        border: 2px solid transparent;
-        border-top-color: var(--selora-accent);
-        border-left-color: var(--selora-accent);
-        border-radius: 50%;
-        animation: spin 0.6s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
-        }
-      }
-
-      /* ---- Generating row ---- */
-      .generating-row {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 14px 0;
-        font-size: 12px;
-        opacity: 0.7;
-      }
-
-      /* ---- Modal overlay (matches panel) ---- */
-      .modal-overlay {
-        position: fixed;
-        inset: 0;
-        background: rgba(0, 0, 0, 0.5);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        z-index: 10001;
-      }
-      .modal {
-        background: var(--card-background-color, #fff);
-        border-radius: 16px;
-        border: 1px solid var(--selora-zinc-800, rgba(255, 255, 255, 0.1));
-        padding: 24px;
-        max-width: 420px;
-        width: 90%;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      }
-      .modal-title {
-        font-size: 18px;
-        font-weight: 700;
-        margin: 0 0 16px;
-      }
-      .modal-label {
-        font-size: 13px;
-        font-weight: 500;
-        display: block;
-        margin-bottom: 6px;
-      }
-      .modal-row {
-        display: flex;
-        gap: 8px;
-        align-items: center;
-      }
-      .modal-input {
-        flex: 1;
-        padding: 10px 12px;
-        border: 1px solid var(--divider-color);
-        border-radius: 8px;
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        font-size: 14px;
-        font-family: inherit;
-        outline: none;
-        transition: border-color 0.15s;
-      }
-      .modal-input:focus {
-        border-color: var(--selora-accent);
-      }
-      .modal-input::placeholder {
-        opacity: 0.35;
-      }
-      .modal-input.generating-placeholder {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        border-color: var(--selora-accent);
-      }
-      .modal-row.generating .modal-magic-btn {
-        border-color: var(--selora-accent);
-      }
-      .modal-magic-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 8px 10px;
-        flex-shrink: 0;
-        border-radius: 6px;
-        border: 1.5px solid var(--divider-color);
-        background: var(--card-background-color);
-        color: var(--primary-text-color);
-        cursor: pointer;
-        font-weight: 600;
-        transition: opacity 0.15s;
-      }
-      .modal-magic-btn:hover {
-        opacity: 0.85;
-        border-color: var(--selora-accent);
-        color: var(--selora-accent);
-      }
-      .modal-magic-btn ha-icon {
-        --mdc-icon-size: 20px;
-      }
-      .modal-actions {
-        display: flex;
-        gap: 8px;
-        margin-top: 16px;
-        justify-content: flex-end;
-      }
-      .modal-btn {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        padding: 6px 14px;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 600;
-        cursor: pointer;
-        font-family: inherit;
-        border: 1.5px solid transparent;
-        background: transparent;
-        transition:
-          background 0.15s,
-          opacity 0.15s;
-        user-select: none;
-        letter-spacing: normal;
-      }
-      .modal-btn:hover {
-        opacity: 0.85;
-      }
-      .modal-btn ha-icon {
-        --mdc-icon-size: 14px;
-      }
-      .modal-cancel {
-        border-color: var(--divider-color);
-        color: var(--primary-text-color);
-        background: var(--card-background-color);
-      }
-      .modal-cancel:hover {
-        border-color: var(--selora-accent);
-        color: var(--selora-accent);
-      }
-      .modal-create {
-        background: var(--selora-accent);
-        border-color: var(--selora-accent);
-        color: #1a1a1a;
-      }
-      .modal-create:hover:not(:disabled) {
-        box-shadow: var(--selora-glow);
-        background: var(--selora-accent-light);
-      }
-      .modal-create:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-      }
-    `;
-  }
   getCardSize() {
     return 4;
   }
 };
-var SeloraAICardEditor = class extends s4 {
-  static get properties() {
-    return {
-      hass: { type: Object },
-      _config: { type: Object },
-    };
-  }
-  setConfig(config) {
-    this._config = config;
-  }
-  _valueChanged(key, value) {
-    const newConfig = { ...this._config, [key]: value };
-    this._config = newConfig;
-    const event = new CustomEvent("config-changed", {
-      detail: { config: newConfig },
-    });
-    this.dispatchEvent(event);
-  }
-  render() {
-    if (!this._config) return x``;
-    return x`
-      <div style="padding: 16px;">
-        <ha-textfield
-          label="Title"
-          .value=${this._config.title || "Selora AI"}
-          @change=${(e4) => this._valueChanged("title", e4.target.value)}
-        ></ha-textfield>
-        <ha-formfield label="Show Suggestions">
-          <ha-switch
-            .checked=${this._config.show_suggestions !== false}
-            @change=${(e4) => this._valueChanged("show_suggestions", e4.target.checked)}
-          ></ha-switch>
-        </ha-formfield>
-        <ha-formfield label="Show Automations">
-          <ha-switch
-            .checked=${this._config.show_automations !== false}
-            @change=${(e4) => this._valueChanged("show_automations", e4.target.checked)}
-          ></ha-switch>
-        </ha-formfield>
-        <ha-textfield
-          label="Max Suggestions"
-          type="number"
-          .value=${String(this._config.max_suggestions || 3)}
-          @change=${(e4) => this._valueChanged("max_suggestions", parseInt(e4.target.value, 10))}
-        ></ha-textfield>
-        <ha-textfield
-          label="Max Automations"
-          type="number"
-          .value=${String(this._config.max_automations || 10)}
-          @change=${(e4) => this._valueChanged("max_automations", parseInt(e4.target.value, 10))}
-        ></ha-textfield>
-      </div>
-    `;
-  }
-};
 customElements.define("selora-ai-card", SeloraAIDashboardCard);
-customElements.define("selora-ai-card-editor", SeloraAICardEditor);
 window.customCards = window.customCards || [];
 window.customCards.push({
   type: "selora-ai-card",
