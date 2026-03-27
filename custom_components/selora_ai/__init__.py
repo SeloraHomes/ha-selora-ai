@@ -33,6 +33,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 import voluptuous as vol
 import yaml
 
@@ -142,7 +143,7 @@ class ConversationStore:
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
-        now = datetime.utcnow().isoformat()
+        now = dt_util.now().isoformat()
         session: dict[str, Any] = {
             "id": str(uuid.uuid4()),
             "title": "New conversation",
@@ -175,7 +176,7 @@ class ConversationStore:
             raise RuntimeError("Session store failed to load")
 
         if session_id not in self._data["sessions"]:
-            now = datetime.utcnow().isoformat()
+            now = dt_util.now().isoformat()
             self._data["sessions"][session_id] = {
                 "id": session_id,
                 "title": "New conversation",
@@ -188,7 +189,7 @@ class ConversationStore:
         message: dict[str, Any] = {
             "role": role,
             "content": content,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": dt_util.now().isoformat(),
         }
         if intent is not None:
             message["intent"] = intent
@@ -221,7 +222,7 @@ class ConversationStore:
                     session["title"] = m["content"][:60]
                     break
 
-        session["updated_at"] = datetime.utcnow().isoformat()
+        session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return message
 
@@ -237,7 +238,7 @@ class ConversationStore:
         if message_index < 0 or message_index >= len(msgs):
             return False
         msgs[message_index]["automation_status"] = status
-        session["updated_at"] = datetime.utcnow().isoformat()
+        session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
 
@@ -250,7 +251,7 @@ class ConversationStore:
         if not session:
             return False
         session["title"] = title
-        session["updated_at"] = datetime.utcnow().isoformat()
+        session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
 
