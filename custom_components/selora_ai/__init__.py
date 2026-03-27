@@ -1364,7 +1364,7 @@ async def _handle_websocket_get_automations(
                     automation_id = unique_id
 
             # Fallback to description check if unique_id doesn't match
-            description = state.attributes.get("description", "")
+            description = state.attributes.get("description") or ""
             if not is_selora and description and "[Selora AI]" in description:
                 is_selora = True
 
@@ -1413,7 +1413,7 @@ async def _handle_websocket_get_automations(
                     "entity_id": entity_id,
                     "automation_id": automation_id,
                     "alias": state.attributes.get("friendly_name", entity_id),
-                    "description": description,
+                    "description": description or full_config.get("description", ""),
                     "state": state.state,
                     "is_selora": is_selora,
                     "last_triggered": state.attributes.get("last_triggered"),
