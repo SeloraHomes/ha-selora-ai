@@ -645,6 +645,25 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
 # ── Tool: selora_get_home_snapshot ────────────────────────────────────────────
 
 
+def _format_state_value(value: str) -> str:
+    """Format entity state values for human-readable display.
+
+    Converts ISO 8601 timestamps to 12-hour HH:MM AM/PM format.
+    Other values are sanitized normally.
+    """
+    from datetime import datetime
+
+    stripped = value.strip()
+    # Try parsing ISO 8601 datetime (e.g., 2026-03-27T11:05:27+00:00)
+    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S"):
+        try:
+            dt = datetime.strptime(stripped, fmt)
+            return dt.strftime("%I:%M %p").lstrip("0")
+        except ValueError:
+            continue
+    return _sanitize(value, limit=64)
+
+
 async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     """Return current entity states grouped by HA area."""
     from homeassistant.helpers import area_registry as ar
@@ -661,9 +680,8 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     areas: dict[str, list[dict[str, Any]]] = {name: [] for name in area_names.values()}
     unassigned: list[dict[str, Any]] = []
 
-    # Skip domains that are noisy / not useful for automation context
+    # Skip domains that are noisy / not useful for home snapshot context
     _SKIP_DOMAINS = {
-        "automation",
         "scene",
         "script",
         "group",
@@ -684,7 +702,7 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
         entity_entry = {
             "entity_id": state.entity_id,
             "domain": domain,
-            "state": _sanitize(state.state, limit=64),
+            "state": _format_state_value(state.state),
             "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
         }
 

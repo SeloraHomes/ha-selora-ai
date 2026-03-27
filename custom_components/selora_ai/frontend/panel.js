@@ -11,7 +11,7 @@ var e =
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
-var s = Symbol();
+var s = /* @__PURE__ */ Symbol();
 var n = /* @__PURE__ */ new WeakMap();
 var o = class {
   constructor(t3, e5, n5) {
@@ -162,7 +162,7 @@ var u = class extends HTMLElement {
       this.elementProperties.set(t3, i5),
       !i5.noAccessor && !this.prototype.hasOwnProperty(t3))
     ) {
-      const s6 = "symbol" == typeof t3 ? Symbol() : "__" + t3,
+      const s6 = "symbol" == typeof t3 ? /* @__PURE__ */ Symbol() : "__" + t3,
         e5 = this.getPropertyDescriptor(t3, s6, i5);
       void 0 !== e5 && Object.defineProperty(this.prototype, t3, e5);
     }
@@ -457,8 +457,8 @@ var w =
   (i5, ...s6) => ({ _$litType$: t3, strings: i5, values: s6 });
 var x = w(1);
 var b = w(2);
-var T = Symbol.for("lit-noChange");
-var A = Symbol.for("lit-nothing");
+var T = /* @__PURE__ */ Symbol.for("lit-noChange");
+var A = /* @__PURE__ */ Symbol.for("lit-nothing");
 var E = /* @__PURE__ */ new WeakMap();
 var C = r3.createTreeWalker(r3, 129, null, false);
 function P(t3, i5) {
@@ -2942,10 +2942,17 @@ function renderMarkdown(text) {
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
   );
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-  escaped = escaped.replace(/\*(.+?)\*/g, "<em>$1</em>");
+  escaped = escaped.replace(
+    /(?<!\w)\*([^\s*](?:.*?[^\s*])?)\*(?!\w)/g,
+    "<em>$1</em>",
+  );
+  escaped = escaped.replace(
+    /(?<![a-zA-Z0-9_])_([^\s_](?:.*?[^\s_])?)_(?![a-zA-Z0-9_])/g,
+    "<em>$1</em>",
+  );
   escaped = escaped.replace(
     /^(\d+)\.\s+(.+)$/gm,
-    '<div style="margin:4px 0 4px 8px;"><strong>$1.</strong> $2</div>',
+    '<div style="display:flex;gap:6px;margin:2px 0 2px 4px;align-items:baseline;"><span style="opacity:0.55;flex-shrink:0;min-width:18px;">$1.</span><span style="flex:1;">$2</span></div>',
   );
   escaped = escaped.replace(
     /^[-•]\s+(.+)$/gm,
@@ -8192,20 +8199,9 @@ customElements.define("selora-ai-architect", SeloraAIArchitectPanel);
    *)
 
 @lit/reactive-element/reactive-element.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
 lit-html/lit-html.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
 lit-element/lit-element.js:
+lit-html/directive.js:
   (**
    * @license
    * Copyright 2017 Google LLC
@@ -8216,13 +8212,6 @@ lit-html/is-server.js:
   (**
    * @license
    * Copyright 2022 Google LLC
-   * SPDX-License-Identifier: BSD-3-Clause
-   *)
-
-lit-html/directive.js:
-  (**
-   * @license
-   * Copyright 2017 Google LLC
    * SPDX-License-Identifier: BSD-3-Clause
    *)
 

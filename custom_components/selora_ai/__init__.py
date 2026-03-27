@@ -168,6 +168,7 @@ class ConversationStore:
         calls: list[dict[str, Any]] | None = None,
         automation_id: str | None = None,
         risk_assessment: dict[str, Any] | None = None,
+        tool_calls: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -206,6 +207,8 @@ class ConversationStore:
             message["automation_id"] = automation_id
         if risk_assessment is not None:
             message["risk_assessment"] = risk_assessment
+        if tool_calls is not None:
+            message["tool_calls"] = tool_calls
 
         session["messages"].append(message)
 
@@ -289,19 +292,47 @@ def _mask_api_key(key: str) -> str:
 
 
 def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Get current states of all entities for the LLM."""
+    """Get current states of all entities for the LLM.
+
+    Filters out unavailable/unknown entities to avoid sending stale or
+    deleted entities as context (e.g. soft-deleted automations).
+    """
+    _SKIP_STATES = {"unavailable", "unknown"}
     states = []
     for state in hass.states.async_all():
+        if state.state in _SKIP_STATES:
+            continue
         states.append(
             {
                 "entity_id": state.entity_id,
-                "state": state.state,
+                "state": _format_entity_state(state.state),
                 "attributes": {
                     "friendly_name": state.attributes.get("friendly_name", ""),
                 },
             }
         )
     return states
+
+
+def _format_entity_state(value: str) -> str:
+    """Convert ISO 8601 timestamps to 12-hour AM/PM format.
+
+    Non-timestamp values are returned as-is.
+    """
+    from datetime import datetime
+
+    stripped = value.strip()
+    for fmt in (
+        "%Y-%m-%dT%H:%M:%S%z",
+        "%Y-%m-%dT%H:%M:%S.%f%z",
+        "%Y-%m-%dT%H:%M:%S",
+    ):
+        try:
+            dt = datetime.strptime(stripped, fmt)
+            return dt.strftime("%I:%M %p").lstrip("0")
+        except ValueError:
+            continue
+    return value
 
 
 def _require_admin(
@@ -327,6 +358,18 @@ def _sanitize_history_text(value: Any, max_length: int = 200) -> str:
     if len(text) > max_length:
         return text[:max_length] + "..."
     return text
+
+
+def _get_device_manager(hass: HomeAssistant):
+    """Find the DeviceManager from hass.data."""
+    from .device_manager import DeviceManager
+
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and isinstance(
+            entry_data.get("device_manager"), DeviceManager
+        ):
+            return entry_data["device_manager"]
+    return None
 
 
 @websocket_api.async_response
@@ -400,22 +443,47 @@ async def _handle_websocket_chat(
     user_message = msg["message"]
     await store.append_message(session_id, "user", user_message)
 
-    # Gather home context
+    # Gather home context (excluding deleted automations)
     entities = _collect_entity_states(hass)
-    automations = [
-        {
-            "entity_id": state.entity_id,
-            "alias": state.attributes.get("friendly_name", state.entity_id),
-            "state": state.state,
-        }
-        for state in hass.states.async_all("automation")
-    ]
+    auto_store = _get_automation_store(hass)
+    deleted_auto_ids: set[str] = set(await auto_store.list_deleted_ids())
+
+    from homeassistant.helpers import entity_registry as er
+
+    ent_reg = er.async_get(hass)
+    automations = []
+    for state in hass.states.async_all("automation"):
+        entry = ent_reg.async_get(state.entity_id)
+        auto_id = ""
+        if entry and entry.unique_id:
+            auto_id = str(entry.unique_id)
+        if not auto_id:
+            state_id = state.attributes.get("id")
+            if state_id is not None:
+                auto_id = str(state_id)
+        if auto_id in deleted_auto_ids:
+            continue
+        automations.append(
+            {
+                "entity_id": state.entity_id,
+                "alias": state.attributes.get("friendly_name", state.entity_id),
+                "state": state.state,
+            }
+        )
+
+    # Create tool executor for device snapshot / integration management
+    from .tool_executor import ToolExecutor
+
+    device_mgr = _get_device_manager(hass)
+    is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
+    tool_executor = ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
 
     result = await llm.architect_chat(
         user_message,
         entities,
         existing_automations=automations,
         history=history,
+        tool_executor=tool_executor,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -457,6 +525,7 @@ async def _handle_websocket_chat(
         automation_status="pending" if result.get("automation") else None,
         calls=result.get("calls") if intent_type == "command" else None,
         risk_assessment=result.get("risk_assessment"),
+        tool_calls=result.get("tool_calls"),
     )
 
     # Retrieve index of the assistant message just appended (for status updates)
@@ -572,21 +641,48 @@ async def _handle_websocket_chat_stream(
 
     try:
         entities = _collect_entity_states(hass)
-        automations = [
-            {
-                "entity_id": state.entity_id,
-                "alias": state.attributes.get("friendly_name", state.entity_id),
-                "state": state.state,
-            }
-            for state in hass.states.async_all("automation")
-        ]
+
+        # Filter out soft-deleted automations so LLM only sees active ones
+        auto_store = _get_automation_store(hass)
+        deleted_auto_ids: set[str] = set(await auto_store.list_deleted_ids())
+
+        from homeassistant.helpers import entity_registry as er
+
+        ent_reg = er.async_get(hass)
+        automations = []
+        for state in hass.states.async_all("automation"):
+            entry = ent_reg.async_get(state.entity_id)
+            auto_id = ""
+            if entry and entry.unique_id:
+                auto_id = str(entry.unique_id)
+            if not auto_id:
+                state_id = state.attributes.get("id")
+                if state_id is not None:
+                    auto_id = str(state_id)
+            if auto_id in deleted_auto_ids:
+                continue
+            automations.append(
+                {
+                    "entity_id": state.entity_id,
+                    "alias": state.attributes.get("friendly_name", state.entity_id),
+                    "state": state.state,
+                }
+            )
+
+        # --- Streaming path (with tool support) ---
+        from .tool_executor import ToolExecutor
+
+        device_mgr = _get_device_manager(hass)
+        is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
+        tool_executor = ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
 
         full_text = ""
         async for chunk in llm.architect_chat_stream(
-            msg["message"],
+            user_message,
             entities,
             existing_automations=automations,
             history=history,
+            tool_executor=tool_executor,
         ):
             full_text += chunk
             connection.send_message(
@@ -597,7 +693,6 @@ async def _handle_websocket_chat_stream(
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
-        # Persist the assistant response
         await store.append_message(
             session_id,
             "assistant",
@@ -610,7 +705,6 @@ async def _handle_websocket_chat_stream(
             risk_assessment=parsed.get("risk_assessment"),
         )
 
-        # Get message index for automation status tracking
         updated_session = await store.get_session(session_id)
         assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
 
@@ -629,7 +723,6 @@ async def _handle_websocket_chat_stream(
 
             hass.async_create_task(_generate_title())
 
-        # Check if this session is refining an existing automation
         refining_automation_id = None
         for m in stored_messages:
             if m.get("automation_status") == "refining" and m.get("automation_id"):
