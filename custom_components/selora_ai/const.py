@@ -832,7 +832,7 @@ PROTECTED_DOMAINS = {
 # ── Side Panel ──────────────────────────────────────────────────────
 PANEL_NAME = "selora-ai-architect"
 PANEL_TITLE = "Selora AI"
-PANEL_ICON = "mdi:head-lightbulb"
+PANEL_ICON = "mdi:apple-keyboard-command"
 PANEL_PATH = "selora-ai-architect"
 
 # ── HA Recorder ──────────────────────────────────────────────────────

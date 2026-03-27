@@ -25,12 +25,16 @@ pre-commit:
 
     prettier:
       glob: "custom_components/selora_ai/frontend/**/*.js"
-      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --check {staged_files}
-      fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/**/*.js"
+      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --write {staged_files}
+      stage_fixed: true
 
 pre-push:
   parallel: true
   commands:
+    frontend-build:
+      run: cd custom_components/selora_ai/frontend && npm run build && git diff --quiet panel.js card.js
+      fail_text: "Built frontend is out of date. Run 'npm run build' in custom_components/selora_ai/frontend/, commit the output, then push again."
+
     lint-all:
       run: ruff check custom_components/
       fail_text: "Ruff lint errors. Auto-fix with: ruff check --fix custom_components/"
@@ -38,10 +42,6 @@ pre-push:
     format-all:
       run: ruff format --check custom_components/
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
-
-    prettier-all:
-      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --check custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js
-      fail_text: "Prettier check failed. Auto-fix with: npx --prefix custom_components/selora_ai/frontend prettier --write custom_components/selora_ai/frontend/src/**/*.js custom_components/selora_ai/frontend/*.js"
 
     validate-hacs:
       glob: "custom_components/selora_ai/manifest.json"

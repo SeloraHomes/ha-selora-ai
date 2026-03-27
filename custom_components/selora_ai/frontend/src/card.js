@@ -903,7 +903,25 @@ class SeloraAIDashboardCard extends LitElement {
   static get styles() {
     return css`
       :host {
-        --selora-accent: #f59e0b;
+        --selora-accent: #fbbf24;
+        --selora-accent-dark: #f59e0b;
+        --selora-accent-light: #fde68a;
+        --selora-zinc-900: #18181b;
+        --selora-zinc-800: #27272a;
+        --selora-zinc-700: #3f3f46;
+        --selora-zinc-200: #e4e4e7;
+        --selora-glow: 0 0 20px rgba(251, 191, 36, 0.3);
+        font-family:
+          Inter,
+          system-ui,
+          -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+      }
+      * {
+        font-family: inherit;
       }
 
       ha-card {
@@ -975,8 +993,9 @@ class SeloraAIDashboardCard extends LitElement {
         font-family: inherit;
       }
       .action-btn:hover {
-        background: rgba(245, 158, 11, 0.06);
+        background: rgba(251, 191, 36, 0.06);
         border-color: var(--selora-accent);
+        box-shadow: 0 0 10px rgba(251, 191, 36, 0.1);
       }
       .action-btn:disabled {
         opacity: 0.6;
@@ -992,8 +1011,9 @@ class SeloraAIDashboardCard extends LitElement {
         font-weight: 600;
       }
       .new-btn:hover {
-        background: #f7b731;
-        border-color: #f7b731;
+        background: var(--selora-accent-light);
+        border-color: var(--selora-accent-light);
+        box-shadow: var(--selora-glow);
       }
 
       /* ---- Sections ---- */
@@ -1090,11 +1110,12 @@ class SeloraAIDashboardCard extends LitElement {
         border-bottom: none;
       }
       .automation-item.expanded {
-        background: rgba(245, 158, 11, 0.04);
-        border-radius: 8px;
+        background: rgba(251, 191, 36, 0.04);
+        border-radius: 12px;
         margin: 4px -8px;
         padding: 0 8px;
         border-bottom: none;
+        border: 1px solid rgba(251, 191, 36, 0.15);
       }
       .automation-row {
         display: flex;
@@ -1111,7 +1132,7 @@ class SeloraAIDashboardCard extends LitElement {
       }
       .activity-indicator.active {
         background: var(--selora-accent);
-        box-shadow: 0 0 6px rgba(245, 158, 11, 0.5);
+        box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
       }
       .activity-indicator.inactive {
         background: var(--disabled-text-color, #999);
@@ -1177,8 +1198,8 @@ class SeloraAIDashboardCard extends LitElement {
         margin: 2px 4px 2px 0;
       }
       .detail-chip.trigger {
-        background: rgba(245, 158, 11, 0.12);
-        border: 1px solid var(--selora-accent);
+        background: rgba(251, 191, 36, 0.1);
+        border: 1px solid rgba(251, 191, 36, 0.3);
         color: var(--primary-text-color);
       }
       .detail-chip.action {
@@ -1341,7 +1362,8 @@ class SeloraAIDashboardCard extends LitElement {
       }
       .modal {
         background: var(--card-background-color, #fff);
-        border-radius: 12px;
+        border-radius: 16px;
+        border: 1px solid var(--selora-zinc-800, rgba(255, 255, 255, 0.1));
         padding: 24px;
         max-width: 420px;
         width: 90%;
@@ -1406,8 +1428,8 @@ class SeloraAIDashboardCard extends LitElement {
       }
       .modal-magic-btn:hover {
         opacity: 0.85;
-        border-color: #f59e0b;
-        color: #f59e0b;
+        border-color: var(--selora-accent);
+        color: var(--selora-accent);
       }
       .modal-magic-btn ha-icon {
         --mdc-icon-size: 20px;
@@ -1448,13 +1470,17 @@ class SeloraAIDashboardCard extends LitElement {
         background: var(--card-background-color);
       }
       .modal-cancel:hover {
-        border-color: #f59e0b;
-        color: #f59e0b;
+        border-color: var(--selora-accent);
+        color: var(--selora-accent);
       }
       .modal-create {
-        background: #f59e0b;
-        border-color: #f59e0b;
+        background: var(--selora-accent);
+        border-color: var(--selora-accent);
         color: #1a1a1a;
+      }
+      .modal-create:hover:not(:disabled) {
+        box-shadow: var(--selora-glow);
+        background: var(--selora-accent-light);
       }
       .modal-create:disabled {
         opacity: 0.5;
