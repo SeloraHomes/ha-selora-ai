@@ -5,7 +5,7 @@ metadata:
   mcp-server: selora-ai
   phase: 1
   version: 2.0.0
-  compatibility: claude-code,codex,openclaw
+  compatibility: claude-code,codex,openclaw,cursor,windsurf
 ---
 
 # Selora MCP Skill
@@ -126,7 +126,7 @@ After tool calls:
 4. Before mutating calls, provide a concise confirmation prompt.
 
 ## Platform Notes
-- Compatible with Claude Code, Codex, and OpenClaw.
+- Compatible with Claude Code, Codex, OpenClaw, Cursor, and Windsurf.
 - If runtime supports `allowed-tools`, align it with this skill’s read-first and confirmation-gated mutation policy.
 
 ## Synchronization Source of Truth
@@ -136,3 +136,5 @@ Canonical source file:
 Mirror targets that must remain identical:
 - `.codex/skills/selora-mcp/SKILL.md`
 - `.openclaw/skills/selora-mcp/SKILL.md`
+- `.cursor/skills/selora-mcp/SKILL.md`
+- `.windsurf/skills/selora-mcp/SKILL.md`
