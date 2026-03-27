@@ -51,7 +51,7 @@ from mcp.server import Server
 from mcp.shared.message import SessionMessage
 from mcp.types import JSONRPCMessage
 
-from .const import AUTOMATION_ID_PREFIX, DOMAIN
+from .const import AUTOMATION_ID_PREFIX, DOMAIN, LIGHT_ENTITY_EXCLUDE_PATTERNS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -694,6 +694,10 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     for state in hass.states.async_all():
         domain = state.entity_id.split(".")[0]
         if domain in _SKIP_DOMAINS:
+            continue
+        if domain == "light" and any(
+            pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
+        ):
             continue
 
         entry = entity_reg.async_get(state.entity_id)

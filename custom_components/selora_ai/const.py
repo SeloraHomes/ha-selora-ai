@@ -786,6 +786,18 @@ COLLECTOR_DOMAINS = {
     "person",
 }
 
+# Entity-ID substrings that indicate non-room lights (status LEDs, IR emitters, etc.)
+# These are excluded from snapshots so the LLM doesn't treat them as room lighting.
+LIGHT_ENTITY_EXCLUDE_PATTERNS = {
+    "status_led",
+    "ir_led",
+    "ir_light",
+    "indicator",
+    "floodlight_status",
+    "night_vision",
+    "infrared",
+}
+
 # ── LLM Suggestion Limits ───────────────────────────────────────────
 DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
 

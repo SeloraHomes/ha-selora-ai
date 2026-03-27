@@ -39,6 +39,7 @@ from .const import (
     DEFAULT_LLM_TIMEOUT,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
+    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     MODE_SCHEDULED,
 )
 from .llm_client import LLMClient
@@ -542,6 +543,10 @@ class DataCollector:
                 try:
                     domain = state.entity_id.split(".")[0]
                     if domain not in COLLECTOR_DOMAINS:
+                        continue
+                    if domain == "light" and any(
+                        pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
+                    ):
                         continue
 
                     safe_attrs = {
