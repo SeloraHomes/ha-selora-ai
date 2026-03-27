@@ -1,3 +1,14 @@
+## [1.1.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.3...v1.1.0) (2026-03-27)
+
+### Features
+
+* add Cursor and Windsurf mirrors for selora-mcp skill ([e492da8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e492da800d9bb5a1a10583a9601b56c3e3130db5))
+* add LLM tool calling for device snapshots and chat formatting ([32c5c10](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/32c5c1035654c883e8a12f09f15a779bcdf9dbef))
+
+### Bug Fixes
+
+* use tz-aware timestamps, filter non-room light entities ([645aa18](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/645aa1898bdbf66427567aee9b073e01598f6ec8))
+
 ## [1.0.3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.2...v1.0.3) (2026-03-26)
 
 ### Bug Fixes
