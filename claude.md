@@ -81,6 +81,54 @@ custom_components/selora_ai/
 - Do not add `field` from dataclasses unless actually used
 - Do not break the config flow step → strings.json mapping
 
+## Testing
+
+### Python (pytest)
+
+```bash
+# Create venv and install deps
+uv venv .venv --python 3.13
+source .venv/bin/activate
+uv pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents "mcp==1.26.0"
+
+# Run all tests
+pytest tests/ -v
+
+# Run a single file
+pytest tests/test_automation_utils.py -v
+```
+
+Tests live in `tests/` and cover:
+- `test_automation_utils.py` — validation, risk assessment, YAML I/O, async CRUD
+- `test_automation_store.py` — versioning, lifecycle, drafts
+- `test_pattern_engine.py` — time, correlation, sequence detectors
+- `test_pattern_store.py` — ring buffer, pattern/suggestion persistence
+- `test_suggestion_generator.py` — pattern→automation conversion
+- `test_config_flow.py` — multi-step config flow routing
+- `test_sensor.py` — sensor helper functions
+- `test_conversation.py` — HA Assist entity fallbacks
+
+### JavaScript (Vitest)
+
+```bash
+cd custom_components/selora_ai/frontend
+npm ci
+npm test          # vitest run
+npm run test:watch  # vitest (watch mode)
+```
+
+JS tests cover shared utilities in `src/shared/__tests__/`:
+- `date-utils.test.js` — relative time formatting
+- `formatting.test.js` — entity/state/duration formatting
+- `flow-description.test.js` — trigger/condition/action descriptions
+- `markdown.test.js` — markdown rendering, automation block stripping
+
+### CI
+
+GitLab CI runs both test suites in the `test` stage (`unit` + `frontend` jobs).
+GitHub Actions runs HACS validation and hassfest (manifest/strings/translations).
+Lefthook runs tests, lint, and validation on `pre-push` locally (including hassfest via Docker).
+
 ## Running Locally
 
 ```bash

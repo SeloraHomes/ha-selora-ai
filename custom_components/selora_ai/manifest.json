@@ -1,12 +1,13 @@
 {
   "domain": "selora_ai",
   "name": "Selora AI",
+  "after_dependencies": ["recorder"],
   "codeowners": ["@selorahomes"],
   "config_flow": true,
+  "dependencies": ["conversation", "http"],
   "documentation": "https://github.com/SeloraHomes/ha-selora-ai",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/SeloraHomes/ha-selora-ai/issues",
-  "dependencies": ["conversation", "http"],
   "requirements": ["ruamel.yaml>=0.18.0", "mcp==1.26.0"],
   "version": "1.1.0"
 }

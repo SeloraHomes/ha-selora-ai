@@ -2,13 +2,16 @@
   "name": "selora-ai-panel",
   "private": true,
   "scripts": {
-    "build": "esbuild src/panel.js --bundle --format=esm --outfile=panel.js && esbuild src/card.js --bundle --format=esm --outfile=card.js && node postbuild.js && npx prettier --write panel.js card.js"
+    "build": "esbuild src/panel.js --bundle --format=esm --outfile=panel.js && esbuild src/card.js --bundle --format=esm --outfile=card.js && node postbuild.js && npx prettier --write panel.js card.js",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "lit": "^2.8.0"
   },
   "devDependencies": {
     "esbuild": "^0.27.4",
-    "prettier": "^3.8.1"
+    "prettier": "^3.8.1",
+    "vitest": "^3.1.1"
   }
 }
