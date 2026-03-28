@@ -2,13 +2,16 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.core import HomeAssistant
 import yaml
 
 from .const import AUTOMATION_ID_PREFIX, AUTOMATION_SOFT_DELETE_DAYS
+
+if TYPE_CHECKING:
+    from .automation_store import AutomationStore
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -266,7 +269,7 @@ def assess_automation_risk(automation: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def _get_automation_store(hass: HomeAssistant):
+def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     """Return (or lazily create) the AutomationStore from hass.data."""
     from .automation_store import AutomationStore
     from .const import DOMAIN
@@ -514,7 +517,7 @@ async def async_restore_automation(hass: HomeAssistant, automation_id: str) -> b
 
 async def async_hard_delete_automation(
     hass: HomeAssistant,
-    automation_store,
+    automation_store: AutomationStore,
     automation_id: str,
 ) -> None:
     """Permanently delete a soft-deleted automation and all version history.

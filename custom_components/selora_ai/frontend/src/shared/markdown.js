@@ -2,6 +2,10 @@
 // Markdown & automation block helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {string|null|undefined} text
+ * @returns {{ text: string, hasAutomationBlock: boolean, isPartialBlock: boolean }}
+ */
 export function stripAutomationBlock(text) {
   if (!text)
     return { text: "", hasAutomationBlock: false, isPartialBlock: false };
@@ -25,6 +29,7 @@ export function stripAutomationBlock(text) {
   };
 }
 
+/** @param {string|null|undefined} text @returns {string} sanitized HTML */
 export function renderMarkdown(text) {
   if (!text) return "";
   let escaped = text

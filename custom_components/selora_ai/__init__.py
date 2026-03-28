@@ -30,6 +30,7 @@ from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_time_interval
 from homeassistant.helpers.storage import Store
@@ -87,6 +88,7 @@ from .const import (
 _LOGGER = logging.getLogger(__name__)
 
 PLATFORMS = ["conversation"]
+CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
 _CONVERSATIONS_STORAGE_VERSION = 1

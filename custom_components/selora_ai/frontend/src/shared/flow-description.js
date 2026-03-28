@@ -16,6 +16,20 @@ import {
   fmtTime,
 } from "./formatting.js";
 
+/**
+ * Describe a single HA flow item (trigger, condition, or action) as a human-readable string.
+ *
+ * Dispatches on three sections:
+ *   1. Triggers — keyed on `item.platform` or `item.trigger` (e.g. "time", "state", "sun")
+ *   2. Conditions — keyed on `item.condition` (e.g. "state", "time", "sun")
+ *   3. Actions — keyed on `item.service` or `item.action`, then structural keys (delay, choose, etc.)
+ *
+ * Falls back to a readable summary of the item's keys if none of the above match.
+ *
+ * @param {{ states?: Object }} hass - Home Assistant instance for entity name lookups
+ * @param {Object} item - trigger, condition, or action object from an automation
+ * @returns {string} human-readable description
+ */
 export function describeFlowItem(hass, item) {
   if (!item || typeof item !== "object") return String(item ?? "");
 

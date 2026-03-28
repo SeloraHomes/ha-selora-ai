@@ -67,19 +67,24 @@ validate:
 # STAGE: test
 # =============================================================================
 
-test:unit:
+unit:
   stage: test
   image: python:3.13-slim
   <<: *pip-cache
   before_script:
-    - pip install pytest pytest-asyncio --quiet
+    - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
+    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents hassil "mcp==1.26.0" --quiet
   script:
-    - >-
-      if [ -d "tests" ]; then
-        pytest tests/ -v;
-      else
-        echo "No tests/ directory — skipping";
-      fi
+    - pytest tests/ -v
+
+frontend:
+  stage: test
+  image: node:lts-slim
+  <<: *default-rules
+  script:
+    - cd custom_components/selora_ai/frontend
+    - npm ci
+    - npx vitest run
 
 # =============================================================================
 # STAGE: release (main branch only)

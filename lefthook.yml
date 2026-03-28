@@ -31,6 +31,29 @@ pre-commit:
 pre-push:
   parallel: true
   commands:
+    test-python:
+      glob: "**/*.py"
+      run: >-
+        if [ -d ".venv" ]; then
+          .venv/bin/python -m pytest tests/ -q;
+        elif [ -d "venv" ]; then
+          venv/bin/python -m pytest tests/ -q;
+        elif command -v python3 >/dev/null && python3 -c "import pytest" 2>/dev/null; then
+          python3 -m pytest tests/ -q;
+        else
+          echo "⚠ pytest not available — skipping Python tests";
+        fi
+      fail_text: "Python tests failed. Run: pytest tests/ -v"
+
+    test-frontend:
+      glob:
+        - "custom_components/selora_ai/frontend/src/**/*.js"
+        - "custom_components/selora_ai/frontend/vitest.config.js"
+        - "custom_components/selora_ai/frontend/package.json"
+        - "custom_components/selora_ai/frontend/package-lock.json"
+      run: cd custom_components/selora_ai/frontend && npx vitest run
+      fail_text: "Frontend tests failed. Run: cd custom_components/selora_ai/frontend && npx vitest run"
+
     frontend-build:
       glob:
         - "custom_components/selora_ai/frontend/src/**/*.js"
@@ -52,3 +75,8 @@ pre-push:
       glob: "custom_components/selora_ai/manifest.json"
       run: python3 scripts/validate_hacs.py
       fail_text: "HACS validation failed. See output above."
+
+    validate-hassfest:
+      glob: "custom_components/selora_ai/**"
+      run: docker run --rm -v $(pwd)/custom_components:/github/workspace/custom_components ghcr.io/home-assistant/hassfest
+      fail_text: "Hassfest validation failed. See output above."

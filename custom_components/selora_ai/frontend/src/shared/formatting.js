@@ -5,6 +5,7 @@
 // Both panel.js and card.js import from here to avoid duplication.
 // ---------------------------------------------------------------------------
 
+/** @param {*} value @returns {string} title-cased, underscores replaced with spaces */
 export function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
@@ -12,6 +13,7 @@ export function humanizeToken(value) {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** @param {{ states?: Object }} hass @param {string} id @returns {string} friendly name or humanized entity name */
 export function fmtEntity(hass, id) {
   if (!id) return "";
   const eid = String(id);
@@ -26,6 +28,7 @@ export function fmtEntity(hass, id) {
   return raw.replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
+/** @param {{ states?: Object }} hass @param {string|string[]} val @returns {string} comma-separated friendly names with Oxford comma */
 export function fmtEntities(hass, val) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
@@ -42,6 +45,7 @@ export function fmtEntities(hass, val) {
   );
 }
 
+/** @param {string|null} state @returns {string|null} human-friendly state name */
 export function fmtState(state) {
   if (state == null) return null;
   const s = String(state);
@@ -63,6 +67,7 @@ export function fmtState(state) {
   return friendly[s] || s.replace(/_/g, " ");
 }
 
+/** @param {string|{hours?:number,minutes?:number,seconds?:number}|*} value @returns {string} e.g. "1h 30m" */
 export function fmtDuration(value) {
   if (!value) return "";
   if (typeof value === "string") return value;
@@ -76,6 +81,7 @@ export function fmtDuration(value) {
   return String(value);
 }
 
+/** @param {string|string[]} value - e.g. ["mon","tue"] @returns {string} e.g. "Mon, Tue" */
 export function fmtWeekdays(value) {
   if (!value) return "";
   const dayMap = {
@@ -91,6 +97,7 @@ export function fmtWeekdays(value) {
   return days.map((d) => dayMap[String(d)] || humanizeToken(d)).join(", ");
 }
 
+/** @param {string} entityId @param {*} value @returns {string} value with % appended for battery entities */
 export function fmtNumericValue(entityId, value) {
   if (value == null || value === "") return "";
   const raw = String(value).trim();
@@ -103,6 +110,7 @@ export function fmtNumericValue(entityId, value) {
   return raw;
 }
 
+/** @param {{ states?: Object }} hass @param {*} val - HH:MM, seconds, Jinja template, or entity ref @returns {string} 12-hour formatted time */
 export function fmtTime(hass, val) {
   if (val == null) return String(val);
   const s = String(val).trim();

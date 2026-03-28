@@ -2,6 +2,10 @@
 // Shared date/time formatting utilities
 // ---------------------------------------------------------------------------
 
+/**
+ * @param {Date} date
+ * @returns {string} e.g. "just now", "5m ago", "3h ago", "2d ago", or locale date
+ */
 export function relativeTime(date) {
   const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
   if (seconds < 60) return "just now";
@@ -11,6 +15,10 @@ export function relativeTime(date) {
   return date.toLocaleDateString();
 }
 
+/**
+ * @param {string|null|undefined} iso - ISO 8601 timestamp
+ * @returns {string} relative time or empty string on invalid input
+ */
 export function formatDate(iso) {
   if (!iso) return "";
   try {
@@ -26,6 +34,10 @@ export function formatDate(iso) {
   }
 }
 
+/**
+ * @param {string|null|undefined} iso - ISO 8601 timestamp
+ * @returns {string|null} relative time or null on invalid/future input
+ */
 export function formatTimeAgo(iso) {
   if (!iso) return null;
   try {
@@ -43,6 +55,10 @@ export function formatTimeAgo(iso) {
   }
 }
 
+/**
+ * @param {string|null|undefined} iso - ISO 8601 timestamp
+ * @returns {string} locale time (HH:MM) or empty string
+ */
 export function formatTime(iso) {
   if (!iso) return "";
   try {
@@ -55,6 +71,10 @@ export function formatTime(iso) {
   }
 }
 
+/**
+ * @param {string|null|undefined} dateStr - ISO 8601 timestamp
+ * @returns {string} "Never", "Just now", relative time, or locale date
+ */
 export function formatRelativeTime(dateStr) {
   if (!dateStr) return "Never";
   const date = new Date(dateStr);
