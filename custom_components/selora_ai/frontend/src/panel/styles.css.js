@@ -204,10 +204,10 @@ export const panelStyles = css`
     overflow: hidden;
   }
   .header {
-    background: var(--app-header-background-color);
-    color: var(--app-header-text-color);
+    background: var(--app-header-background-color, #1c1c1e);
+    color: var(--app-header-text-color, #e4e4e7);
     box-shadow: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--divider-color);
     z-index: 2;
     flex-shrink: 0;
   }
@@ -248,12 +248,12 @@ export const panelStyles = css`
   }
   .tab:hover {
     opacity: 1;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .tab.active {
     opacity: 1;
     font-weight: 600;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .tab:first-child {
     padding-left: 0;
@@ -268,15 +268,30 @@ export const panelStyles = css`
     margin-bottom: 12px;
   }
   .tab-text {
-    border-bottom: 2px solid transparent;
+    position: relative;
     padding-bottom: 6px;
-    transition: border-color 0.3s;
   }
-  .tab:hover .tab-text {
-    border-bottom-color: var(--selora-accent);
+  /* Shared underline-from-center effect */
+  .tab-text::after,
+  .card-tab::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--selora-accent);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
   }
-  .tab.active .tab-text {
-    border-bottom-color: var(--selora-accent);
+  .tab:hover .tab-text::after,
+  .tab.active .tab-text::after,
+  .card-tab.active::after {
+    transform: scaleX(1);
+  }
+  .card-tab:hover::after {
+    transform: scaleX(0.6);
   }
 
   /* ---- Chat ---- */
@@ -337,6 +352,16 @@ export const panelStyles = css`
   .empty-state.welcome {
     opacity: 1;
     gap: 0;
+    justify-content: flex-start;
+    padding: 12px;
+  }
+  @media (max-width: 600px) {
+    .empty-state.welcome {
+      padding: 4px;
+    }
+    .empty-state.welcome .section-card {
+      padding: 16px;
+    }
   }
   .empty-state.welcome > * {
     animation: fadeInUp 0.5s ease both;
@@ -441,7 +466,7 @@ export const panelStyles = css`
     color: var(--success-color, #4caf50);
   }
   .bubble.assistant strong {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
 
   /* ---- Automation proposal card ---- */
@@ -462,7 +487,7 @@ export const panelStyles = css`
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .proposal-body {
     padding: 14px;
@@ -508,6 +533,11 @@ export const panelStyles = css`
   }
   .yaml-toggle:hover {
     opacity: 1;
+  }
+  ha-code-editor {
+    --code-mirror-font-size: 12px;
+    --code-mirror-height: auto;
+    font-size: 12px;
   }
   textarea.yaml-editor {
     width: 100%;
@@ -698,7 +728,7 @@ export const panelStyles = css`
     color: var(--secondary-text-color);
   }
   .toggle-label.on {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
 
   /* ---- Card action buttons ---- */
@@ -714,17 +744,19 @@ export const panelStyles = css`
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 13px;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     border: 1px solid transparent;
     background: transparent;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: colors 0.2s ease;
     user-select: none;
+    color: var(--primary-text-color);
   }
   .btn:hover {
     opacity: 0.9;
@@ -748,13 +780,12 @@ export const panelStyles = css`
   }
   .btn-outline {
     border-color: var(--selora-zinc-700);
-    color: var(--primary-text-color);
-    background: transparent;
+    color: var(--selora-btn-outline-text);
+    background: var(--selora-section-bg);
   }
   .btn-outline:hover {
-    border-color: rgba(251, 191, 36, 0.5);
-    color: var(--selora-accent);
-    background: rgba(251, 191, 36, 0.06);
+    border-color: var(--selora-zinc-600);
+    background: var(--secondary-background-color, #3f3f46);
   }
   .btn-danger {
     border-color: rgba(239, 68, 68, 0.4);
@@ -767,7 +798,7 @@ export const panelStyles = css`
   }
   .btn-warning {
     border-color: rgba(251, 191, 36, 0.4);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     background: transparent;
   }
   .btn-warning:hover {
@@ -870,6 +901,7 @@ export const panelStyles = css`
     margin: 8px 0 0;
     border-top: 1px solid var(--divider-color);
     padding-top: 8px;
+    padding-bottom: 8px;
     font-size: 12px;
   }
   .card-tabs .label {
@@ -886,19 +918,15 @@ export const panelStyles = css`
     font-weight: 500;
     color: var(--secondary-text-color);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.3s ease;
+    position: relative;
+    transition: color 0.3s ease;
     display: inline-flex;
     align-items: center;
     gap: 4px;
   }
-  .card-tab:hover {
-    color: var(--selora-accent);
-    border-bottom-color: rgba(251, 191, 36, 0.4);
-  }
+  .card-tab:hover,
   .card-tab.active {
-    color: var(--selora-accent);
-    border-bottom-color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .card-chevron {
     display: inline-flex;
@@ -923,47 +951,7 @@ export const panelStyles = css`
   }
 
   /* ---- Filter input ---- */
-  .sub-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 16px;
-  }
-  .sub-tab {
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    font-size: 14px;
-    font-weight: 400;
-    font-family: inherit;
-    color: var(--secondary-text-color);
-    cursor: pointer;
-    transition: color 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .sub-tab:hover {
-    color: var(--selora-accent);
-  }
-  .sub-tab.active {
-    color: var(--selora-accent);
-    font-weight: 600;
-  }
-  .sub-tab-text {
-    border-bottom: 2px solid transparent;
-    padding-bottom: 4px;
-    transition: border-color 0.3s;
-  }
-  .sub-tab:hover .sub-tab-text {
-    border-bottom-color: var(--selora-accent);
-  }
-  .sub-tab.active .sub-tab-text {
-    border-bottom-color: var(--selora-accent);
-  }
-  .sub-tab:first-child {
-    padding-left: 0;
-  }
-  .sub-tab .badge {
+  .badge {
     background: var(--selora-zinc-700);
     color: var(--selora-zinc-200);
     border-radius: 10px;
@@ -975,8 +963,240 @@ export const panelStyles = css`
     line-height: 1;
     display: inline-flex;
     align-items: center;
-    margin-bottom: 4px;
     transition: all 0.25s ease;
+  }
+  .section-card {
+    background: var(--selora-section-bg);
+    color: var(--primary-text-color);
+    border: 1px solid var(--selora-section-border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 36px;
+  }
+  .section-card .card {
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+    border-radius: 14px;
+  }
+  .section-card .automations-list {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card .auto-row {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .section-card-header h3 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .section-card-subtitle {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    margin-bottom: 24px;
+  }
+  @media (max-width: 600px) {
+    .scroll-view {
+      padding: 12px 10px;
+    }
+    .section-card {
+      padding: 14px 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .section-card .card {
+      padding: 12px;
+    }
+  }
+  .suggestions-section {
+  }
+  .show-more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--selora-accent-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font-family: inherit;
+  }
+  .show-more-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Automations list (table-like rows) */
+  .automations-list {
+    border: 1px solid var(--selora-zinc-700);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .auto-row {
+    border-bottom: 1px solid var(--selora-zinc-700);
+  }
+  .auto-row:last-child {
+    border-bottom: none;
+  }
+  .auto-row.disabled {
+    opacity: 0.5;
+  }
+  .auto-row.highlighted {
+    animation: highlightRow 3s ease;
+  }
+  @keyframes highlightRow {
+    0%,
+    30% {
+      background: rgba(251, 191, 36, 0.15);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  .card.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+    pointer-events: none;
+  }
+  @keyframes fadeOutCard {
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+  .suggestions-section .automations-grid .card {
+    animation: slideInCard 0.4s ease both;
+  }
+  @keyframes slideInCard {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  .suggestions-section .automations-grid .card.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+  }
+  .auto-row-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .auto-row-main:hover {
+    background: var(--secondary-background-color);
+  }
+  .auto-row-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .auto-row-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .auto-row-desc {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .auto-row-last-run {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+    cursor: default;
+  }
+  .auto-row-last-run .setting-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    transform: none;
+    width: auto;
+    white-space: nowrap;
+    padding: 10px 12px;
+    background: var(--card-background-color, #1e1e1e);
+    color: var(--primary-text-color);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    pointer-events: none;
+  }
+  .auto-row-last-run .setting-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: auto;
+    right: 12px;
+    transform: none;
+    border: 6px solid transparent;
+    border-top-color: var(--card-background-color, #1e1e1e);
+  }
+  .auto-row-last-run:hover .setting-tooltip {
+    display: block;
+  }
+  .auto-row-expand {
+    padding: 0 16px 16px;
+  }
+  .last-run-prefix {
+    display: none;
+  }
+  .auto-row-mobile-meta {
+    display: none;
+  }
+  @media (max-width: 600px) {
+    .auto-row-main {
+      align-items: flex-start;
+    }
+    .auto-row-title {
+      white-space: normal;
+    }
+    .auto-row-desc {
+      white-space: normal;
+    }
+    .auto-row-last-run {
+      display: none;
+    }
+    .auto-row-mobile-meta {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      opacity: 0.45;
+      color: var(--secondary-text-color);
+      margin-top: 6px;
+    }
+    .auto-row-mobile-meta .card-chevron {
+      position: absolute;
+      right: 16px;
+      bottom: 12px;
+    }
+    .auto-row-main {
+      position: relative;
+      padding-bottom: 8px;
+    }
   }
   .filter-row {
     display: flex;
@@ -984,6 +1204,23 @@ export const panelStyles = css`
     gap: 10px;
     margin-bottom: 12px;
     flex-wrap: wrap;
+  }
+  @media (max-width: 600px) {
+    .filter-row {
+      gap: 8px;
+    }
+    .filter-row .filter-input-wrap {
+      flex: 1 1 100% !important;
+    }
+    .filter-row .status-pills {
+      flex: 1;
+    }
+    .filter-row .sort-select {
+      flex: 1;
+    }
+    .automations-summary span:first-child {
+      display: none;
+    }
   }
   .status-pills {
     display: inline-flex;
@@ -1007,7 +1244,7 @@ export const panelStyles = css`
   }
   .status-pill:hover {
     color: var(--primary-text-color);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--secondary-background-color);
   }
   .status-pill.active {
     background: var(--selora-zinc-700);
@@ -1038,8 +1275,8 @@ export const panelStyles = css`
     display: flex;
     align-items: center;
     gap: 6px;
-    background: transparent;
-    border: 1px solid var(--selora-zinc-700);
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
     border-radius: 10px;
     padding: 6px 12px;
     flex: 0 1 400px;
@@ -1140,7 +1377,7 @@ export const panelStyles = css`
     border-color: var(--divider-color);
   }
   .btn-ghost.active {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     border-color: rgba(251, 191, 36, 0.35);
     background: rgba(251, 191, 36, 0.05);
   }
@@ -1202,8 +1439,8 @@ export const panelStyles = css`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     align-items: stretch;
-    gap: 16px;
-    margin-bottom: 14px;
+    gap: 20px;
+    margin-bottom: 16px;
   }
   .automations-grid .masonry-col {
     display: contents;
@@ -1301,7 +1538,7 @@ export const panelStyles = css`
 
   /* ---- Chat input ---- */
   .chat-input-wrapper {
-    border-top: 1px solid var(--selora-zinc-700, rgba(255, 255, 255, 0.1));
+    border-top: 1px solid var(--divider-color);
     flex-shrink: 0;
   }
   .chat-input {
@@ -1325,7 +1562,7 @@ export const panelStyles = css`
     overflow: hidden;
   }
   .chat-input ha-icon-button {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     opacity: 0.7;
     transition: opacity 0.2s;
   }
@@ -1391,7 +1628,7 @@ export const panelStyles = css`
   .scroll-view {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 24px;
+    padding: 24px 28px;
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
@@ -1399,6 +1636,7 @@ export const panelStyles = css`
   }
   .card {
     background: var(--selora-zinc-800);
+    color: var(--primary-text-color);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 14px;
@@ -1537,18 +1775,13 @@ export const panelStyles = css`
     gap: 20px;
   }
   .settings-section {
-    background: var(--selora-zinc-800);
-    border: 1px solid var(--selora-zinc-700);
-    border-radius: 16px;
-    padding: 24px;
+    /* inherits from .section-card */
   }
   .settings-section-title {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--selora-accent);
-    margin: 0 0 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    margin: 0 0 16px;
   }
   .form-group {
     margin-bottom: 18px;
@@ -1623,18 +1856,20 @@ export const panelStyles = css`
     gap: 14px;
   }
   .advanced-section {
-    padding: 24px;
+    padding: 0;
+    overflow: hidden;
   }
   .advanced-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
-    color: var(--secondary-text-color);
+    color: var(--primary-text-color);
     list-style: none;
-    transition: color 0.2s;
+    padding: 16px 20px;
+    transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
     display: none;
@@ -1644,20 +1879,87 @@ export const panelStyles = css`
     content: "";
   }
   .advanced-toggle:hover {
-    color: var(--selora-accent);
+    background: var(--secondary-background-color);
   }
   .advanced-chevron {
     --mdc-icon-size: 18px;
     transition: transform 0.2s;
+    opacity: 0.5;
   }
   .advanced-section[open] > .advanced-toggle .advanced-chevron {
     transform: rotate(90deg);
+  }
+  .advanced-section[open] > .advanced-toggle {
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .advanced-section .service-row:first-of-type {
+    padding-top: 16px;
+  }
+  .advanced-section .service-row,
+  .advanced-section .service-details,
+  .advanced-section .settings-section-title,
+  .advanced-section .settings-separator {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .advanced-section .service-row:last-of-type {
+    padding-bottom: 16px;
   }
   .settings-form ha-switch {
     --switch-checked-color: var(--selora-accent);
     --switch-checked-button-color: var(--selora-accent);
     --switch-checked-track-color: var(--selora-accent-dark);
     --mdc-theme-secondary: var(--selora-accent);
+  }
+  .service-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .setting-help {
+    position: relative;
+    cursor: help;
+    --mdc-icon-size: 16px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .setting-help:hover {
+    color: var(--primary-text-color);
+  }
+  .setting-help .setting-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    padding: 10px 12px;
+    background: var(--card-background-color, #1e1e1e);
+    color: var(--primary-text-color);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    pointer-events: none;
+  }
+  .setting-help .setting-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--card-background-color, #1e1e1e);
+  }
+  .setting-help:hover .setting-tooltip {
+    display: block;
+  }
+  .settings-separator {
+    border: none;
+    border-top: 1px solid var(--selora-zinc-700);
+    margin: 16px 0 4px;
   }
   .save-bar {
     display: flex;

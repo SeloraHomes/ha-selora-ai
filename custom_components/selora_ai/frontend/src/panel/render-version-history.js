@@ -103,11 +103,14 @@ export function renderVersionHistoryDrawer(host, a) {
                           : ""}
                       </div>
                       ${host._expandedAutomations[`ver_${key}`]
-                        ? html`<pre
-                            style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0 0;white-space:pre-wrap;"
-                          >
-${v.yaml || v.yaml_content || "(no YAML stored)"}</pre
-                          >`
+                        ? html`<ha-code-editor
+                            mode="yaml"
+                            .value=${v.yaml ||
+                            v.yaml_content ||
+                            "(no YAML stored)"}
+                            read-only
+                            style="--code-mirror-font-size:12px;margin-top:6px;"
+                          ></ha-code-editor>`
                         : ""}
                     </div>
                   `;

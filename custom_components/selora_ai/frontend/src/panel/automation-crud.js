@@ -255,8 +255,23 @@ export async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
         automation: auto,
       });
     }
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: true,
+    };
     await this._loadAutomations();
     this._showToast(`Automation "${auto.alias}" created.`, "success");
+    // Wait for fade-out, then remove and scroll
+    await new Promise((r) => setTimeout(r, 650));
+    this._suggestions = this._suggestions.filter((s) => {
+      const a = s.automation || s.automation_data;
+      return `sug_${a?.alias}` !== yamlKey;
+    });
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: false,
+    };
+    this._highlightAndScrollToNew();
   } catch (err) {
     this._showToast("Failed to create automation: " + err.message, "error");
   } finally {

@@ -1591,6 +1591,8 @@ async def _handle_websocket_get_config(
             "discovery_interval": config_data.get(CONF_DISCOVERY_INTERVAL, 14400),
             "discovery_start_time": config_data.get(CONF_DISCOVERY_START_TIME, "00:00"),
             "discovery_end_time": config_data.get(CONF_DISCOVERY_END_TIME, "23:59"),
+            # Developer settings
+            "developer_mode": config_data.get("developer_mode", False),
         },
     )
 
@@ -1641,6 +1643,23 @@ async def _handle_websocket_update_config(
         if key in new_data and not new_data[key]:
             new_data.pop(key, None)
 
+    # Keys that only affect the frontend — no reload needed
+    frontend_only_keys = {"developer_mode"}
+
+    # Check if any backend-relevant keys actually changed
+    old_data = {**entry.data}
+    old_options = {**entry.options}
+    needs_reload = False
+    for k, v in new_data.items():
+        if k not in frontend_only_keys and old_data.get(k) != v:
+            needs_reload = True
+            break
+    if not needs_reload:
+        for k, v in new_options.items():
+            if k not in frontend_only_keys and old_options.get(k) != v:
+                needs_reload = True
+                break
+
     # Update the entry
     hass.config_entries.async_update_entry(
         entry, data={**entry.data, **new_data}, options={**entry.options, **new_options}
@@ -1649,14 +1668,15 @@ async def _handle_websocket_update_config(
     # Send result BEFORE reload so the frontend gets a response
     connection.send_result(msg["id"], {"status": "success"})
 
-    # Schedule the reload as a background task so the WS response arrives first
-    async def _reload() -> None:
-        try:
-            await hass.config_entries.async_reload(entry.entry_id)
-        except Exception:
-            _LOGGER.exception("Failed to reload entry after config update")
+    if needs_reload:
+        # Schedule the reload as a background task so the WS response arrives first
+        async def _reload() -> None:
+            try:
+                await hass.config_entries.async_reload(entry.entry_id)
+            except Exception:
+                _LOGGER.exception("Failed to reload entry after config update")
 
-    hass.async_create_task(_reload())
+        hass.async_create_task(_reload())
 
 
 def _get_automation_store(hass: HomeAssistant):
