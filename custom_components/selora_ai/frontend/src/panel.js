@@ -15,7 +15,7 @@ import {
   toggleYaml,
   masonryColumns,
 } from "./panel/render-automations.js";
-import { renderUnifiedSuggestions } from "./panel/render-suggestions.js";
+import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import {
   renderVersionHistoryDrawer,
@@ -98,6 +98,11 @@ class SeloraAIArchitectPanel extends LitElement {
       _statusFilter: { type: String },
       _sortBy: { type: String },
 
+      // Suggestion filter
+      _suggestionFilter: { type: String },
+      _suggestionSourceFilter: { type: String },
+      _suggestionSortBy: { type: String },
+
       // Burger menu
       _openBurgerMenu: { type: String },
 
@@ -137,8 +142,16 @@ class SeloraAIArchitectPanel extends LitElement {
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
 
-      // Automations sub-tab
-      _automationsSubTab: { type: String },
+      // Suggestions visible count (incremental load)
+      _suggestionsVisibleCount: { type: Number },
+      // Suggestions bulk edit
+      _suggestionBulkMode: { type: Boolean },
+      _selectedSuggestionKeys: { type: Object },
+
+      // Highlight newly accepted automation
+      _highlightedAutomation: { type: String },
+      // Fading out suggestion card keys
+      _fadingOutSuggestions: { type: Object },
 
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
@@ -191,7 +204,11 @@ class SeloraAIArchitectPanel extends LitElement {
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
-    this._automationsSubTab = "my_automations";
+    this._suggestionsVisibleCount = 3;
+    this._suggestionBulkMode = false;
+    this._highlightedAutomation = null;
+    this._fadingOutSuggestions = {};
+    this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
@@ -215,6 +232,9 @@ class SeloraAIArchitectPanel extends LitElement {
     this._automationFilter = "";
     this._statusFilter = "all";
     this._sortBy = "recent";
+    this._suggestionFilter = "";
+    this._suggestionSourceFilter = "all";
+    this._suggestionSortBy = "recent";
     // Burger menu
     this._openBurgerMenu = null;
     // Recently deleted
@@ -352,6 +372,25 @@ class SeloraAIArchitectPanel extends LitElement {
     this.requestUpdate();
   }
 
+  _highlightAndScrollToNew() {
+    // Find the newest automation (last in list after sort by recent)
+    const newest = this._automations[0];
+    if (!newest) return;
+    this._highlightedAutomation = newest.entity_id;
+    this.requestUpdate();
+    requestAnimationFrame(() => {
+      const row = this.shadowRoot.querySelector(
+        `.auto-row[data-entity-id="${newest.entity_id}"]`,
+      );
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+    setTimeout(() => {
+      this._highlightedAutomation = null;
+    }, 3000);
+  }
+
   // -------------------------------------------------------------------------
   // Toast notifications
   // -------------------------------------------------------------------------
@@ -450,8 +489,8 @@ class SeloraAIArchitectPanel extends LitElement {
     return renderAutomations(this);
   }
 
-  _renderUnifiedSuggestions() {
-    return renderUnifiedSuggestions(this);
+  _renderSuggestionsSection() {
+    return renderSuggestionsSection(this);
   }
 
   _renderSettings() {

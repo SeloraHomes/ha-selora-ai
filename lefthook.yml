@@ -23,9 +23,10 @@ pre-commit:
       run: ruff format --check {staged_files}
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
-    prettier:
-      glob: "custom_components/selora_ai/frontend/src/**/*.js"
-      run: npx --yes --prefix custom_components/selora_ai/frontend prettier --write {staged_files}
+    frontend-build:
+      glob: "custom_components/selora_ai/frontend/**/*.js"
+      exclude: "custom_components/selora_ai/frontend/node_modules/**"
+      run: cd custom_components/selora_ai/frontend && npm run build
       stage_fixed: true
 
 pre-push:
@@ -57,6 +58,7 @@ pre-push:
     frontend-build:
       glob:
         - "custom_components/selora_ai/frontend/src/**/*.js"
+        - "custom_components/selora_ai/frontend/build.js"
         - "custom_components/selora_ai/frontend/postbuild.js"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
@@ -78,5 +80,5 @@ pre-push:
 
     validate-hassfest:
       glob: "custom_components/selora_ai/**"
-      run: docker run --rm -v $(pwd)/custom_components:/github/workspace/custom_components ghcr.io/home-assistant/hassfest
+      run: 'mkdir -p .hassfest_tmp && rsync -a --delete --exclude node_modules custom_components/ .hassfest_tmp/custom_components/ && docker run --rm -v "$(pwd)/.hassfest_tmp/custom_components:/github/workspace/custom_components" ghcr.io/home-assistant/hassfest; rc=$?; rm -rf .hassfest_tmp; exit $rc'
       fail_text: "Hassfest validation failed. See output above."

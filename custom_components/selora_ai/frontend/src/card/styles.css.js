@@ -164,7 +164,7 @@ export const cardStyles = css`
     border-radius: 50%;
     border: 1px solid var(--selora-accent);
     background: transparent;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -240,7 +240,7 @@ export const cardStyles = css`
     transition: color 0.15s;
   }
   .activity-toggle.on {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .activity-toggle.off {
     color: var(--disabled-text-color, #999);
@@ -309,7 +309,7 @@ export const cardStyles = css`
   }
   .open-btn:hover {
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .delete-btn:hover {
     border-color: var(--error-color, #f44336);
@@ -359,7 +359,7 @@ export const cardStyles = css`
   .more-link {
     text-align: center;
     font-size: 12px;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     cursor: pointer;
     padding: 8px 0 4px;
     font-weight: 500;
@@ -440,7 +440,7 @@ export const cardStyles = css`
   .modal {
     background: var(--card-background-color, #fff);
     border-radius: 16px;
-    border: 1px solid var(--selora-zinc-800, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--divider-color);
     padding: 24px;
     max-width: 420px;
     width: 90%;
@@ -506,7 +506,7 @@ export const cardStyles = css`
   .modal-magic-btn:hover {
     opacity: 0.85;
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .modal-magic-btn ha-icon {
     --mdc-icon-size: 20px;
@@ -548,7 +548,7 @@ export const cardStyles = css`
   }
   .modal-cancel:hover {
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .modal-create {
     background: var(--selora-accent);

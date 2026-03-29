@@ -122,7 +122,21 @@ export async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
       });
     }
     this._showToast("Suggestion accepted — automation created", "success");
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [`proactive_${suggestionId}`]: true,
+    };
     await this._loadAutomations();
+    // Wait for fade-out animation, then remove and scroll to new
+    await new Promise((r) => setTimeout(r, 650));
+    this._proactiveSuggestions = this._proactiveSuggestions.filter(
+      (s) => s.suggestion_id !== suggestionId,
+    );
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [`proactive_${suggestionId}`]: false,
+    };
+    this._highlightAndScrollToNew();
   } catch (err) {
     console.error("Failed to accept suggestion", err);
     this._showToast("Failed to accept suggestion", "error");

@@ -1410,17 +1410,26 @@ function formatRelativeTime(dateStr) {
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
   :host {
+    color-scheme: light dark;
     --selora-accent: #fbbf24;
+    --selora-accent-text: light-dark(#18181b, #fbbf24);
     --selora-accent-dark: #f59e0b;
     --selora-accent-light: #fde68a;
-    --selora-zinc-900: #18181b;
-    --selora-zinc-800: #27272a;
-    --selora-zinc-700: #3f3f46;
-    --selora-zinc-600: #52525b;
-    --selora-zinc-200: #e4e4e7;
-    --selora-zinc-400: #a1a1aa;
+    --selora-zinc-900: var(--primary-background-color, #18181b);
+    --selora-zinc-800: var(--card-background-color, #27272a);
+    --selora-zinc-700: var(--divider-color, #3f3f46);
+    --selora-zinc-600: var(--secondary-text-color, #52525b);
+    --selora-zinc-200: var(--primary-text-color, #e4e4e7);
+    --selora-zinc-400: var(--secondary-text-color, #a1a1aa);
     --selora-glow: 0 0 20px rgba(251, 191, 36, 0.3);
     --selora-glow-lg: 0 0 40px rgba(251, 191, 36, 0.4);
+    /* Section card = HA card bg, Inner card = HA page bg */
+    --selora-section-bg: var(--card-background-color, #27272a);
+    --selora-section-border: var(--divider-color, #3f3f46);
+    --selora-inner-card-bg: var(--primary-background-color, #18181b);
+    --selora-inner-card-border: var(--divider-color, #3f3f46);
+    --selora-btn-outline-border: var(--divider-color, #3f3f46);
+    --selora-btn-outline-text: var(--primary-text-color, #e4e4e7);
     font-family:
       Inter,
       system-ui,
@@ -1600,7 +1609,7 @@ var cardStyles = i`
     border-radius: 50%;
     border: 1px solid var(--selora-accent);
     background: transparent;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -1676,7 +1685,7 @@ var cardStyles = i`
     transition: color 0.15s;
   }
   .activity-toggle.on {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .activity-toggle.off {
     color: var(--disabled-text-color, #999);
@@ -1745,7 +1754,7 @@ var cardStyles = i`
   }
   .open-btn:hover {
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .delete-btn:hover {
     border-color: var(--error-color, #f44336);
@@ -1795,7 +1804,7 @@ var cardStyles = i`
   .more-link {
     text-align: center;
     font-size: 12px;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     cursor: pointer;
     padding: 8px 0 4px;
     font-weight: 500;
@@ -1876,7 +1885,7 @@ var cardStyles = i`
   .modal {
     background: var(--card-background-color, #fff);
     border-radius: 16px;
-    border: 1px solid var(--selora-zinc-800, rgba(255, 255, 255, 0.1));
+    border: 1px solid var(--divider-color);
     padding: 24px;
     max-width: 420px;
     width: 90%;
@@ -1942,7 +1951,7 @@ var cardStyles = i`
   .modal-magic-btn:hover {
     opacity: 0.85;
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .modal-magic-btn ha-icon {
     --mdc-icon-size: 20px;
@@ -1984,7 +1993,7 @@ var cardStyles = i`
   }
   .modal-cancel:hover {
     border-color: var(--selora-accent);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .modal-create {
     background: var(--selora-accent);

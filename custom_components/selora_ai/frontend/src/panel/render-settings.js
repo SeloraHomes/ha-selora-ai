@@ -18,8 +18,10 @@ export function renderSettings(host) {
   return html`
     <div class="scroll-view">
       <div class="settings-form">
-        <div class="settings-section">
-          <div class="settings-section-title">LLM Provider</div>
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>LLM Provider</h3>
+          </div>
           <div class="form-group">
             <label>Provider</label>
             <select
@@ -118,20 +120,30 @@ export function renderSettings(host) {
                 `}
         </div>
 
-        <details class="settings-section advanced-section">
+        <details class="section-card settings-section advanced-section">
           <summary class="advanced-toggle">
+            Advanced Settings
             <ha-icon
               icon="mdi:chevron-right"
               class="advanced-chevron"
+              style="margin-left:auto;"
             ></ha-icon>
-            Advanced Settings
           </summary>
           <div class="settings-section-title" style="margin-top:20px;">
             Background Services
           </div>
 
           <div class="service-row">
-            <label>Data Collector (AI Analysis)</label>
+            <label
+              >Data Collector (AI Analysis)
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Periodically sends a snapshot of your home state to the
+                  configured LLM to generate automation suggestions.</span
+                >
+              </span>
+            </label>
             <ha-switch
               .checked=${host._config.collector_enabled}
               @change=${(e) =>
@@ -198,7 +210,16 @@ export function renderSettings(host) {
             : ""}
 
           <div class="service-row">
-            <label>Network Discovery</label>
+            <label
+              >Network Discovery
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Scans your network for new devices and suggests adding them
+                  to Home Assistant.</span
+                >
+              </span>
+            </label>
             <ha-switch
               .checked=${host._config.discovery_enabled}
               @change=${(e) =>
@@ -263,6 +284,25 @@ export function renderSettings(host) {
                 </div>
               `
             : ""}
+          <hr class="settings-separator" />
+
+          <div class="service-row">
+            <label
+              >Developer Mode
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Shows advanced controls like manual pattern scanning in the
+                  Suggestions tab. Useful for debugging and development.</span
+                >
+              </span>
+            </label>
+            <ha-switch
+              .checked=${host._config.developer_mode}
+              @change=${(e) =>
+                host._updateConfig("developer_mode", e.target.checked)}
+            ></ha-switch>
+          </div>
         </details>
 
         <div class="save-bar">
@@ -273,6 +313,12 @@ export function renderSettings(host) {
           >
             ${host._savingConfig ? "Saving…" : "Save Settings"}
           </button>
+        </div>
+
+        <div
+          style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
+        >
+          Selora AI v${__SELORA_VERSION__}
         </div>
       </div>
     </div>

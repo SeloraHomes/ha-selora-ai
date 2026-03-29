@@ -1001,17 +1001,26 @@ null == n4 || n4({ LitElement: s4 });
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
   :host {
+    color-scheme: light dark;
     --selora-accent: #fbbf24;
+    --selora-accent-text: light-dark(#18181b, #fbbf24);
     --selora-accent-dark: #f59e0b;
     --selora-accent-light: #fde68a;
-    --selora-zinc-900: #18181b;
-    --selora-zinc-800: #27272a;
-    --selora-zinc-700: #3f3f46;
-    --selora-zinc-600: #52525b;
-    --selora-zinc-200: #e4e4e7;
-    --selora-zinc-400: #a1a1aa;
+    --selora-zinc-900: var(--primary-background-color, #18181b);
+    --selora-zinc-800: var(--card-background-color, #27272a);
+    --selora-zinc-700: var(--divider-color, #3f3f46);
+    --selora-zinc-600: var(--secondary-text-color, #52525b);
+    --selora-zinc-200: var(--primary-text-color, #e4e4e7);
+    --selora-zinc-400: var(--secondary-text-color, #a1a1aa);
     --selora-glow: 0 0 20px rgba(251, 191, 36, 0.3);
     --selora-glow-lg: 0 0 40px rgba(251, 191, 36, 0.4);
+    /* Section card = HA card bg, Inner card = HA page bg */
+    --selora-section-bg: var(--card-background-color, #27272a);
+    --selora-section-border: var(--divider-color, #3f3f46);
+    --selora-inner-card-bg: var(--primary-background-color, #18181b);
+    --selora-inner-card-border: var(--divider-color, #3f3f46);
+    --selora-btn-outline-border: var(--divider-color, #3f3f46);
+    --selora-btn-outline-text: var(--primary-text-color, #e4e4e7);
     font-family:
       Inter,
       system-ui,
@@ -1231,10 +1240,10 @@ var panelStyles = i`
     overflow: hidden;
   }
   .header {
-    background: var(--app-header-background-color);
-    color: var(--app-header-text-color);
+    background: var(--app-header-background-color, #1c1c1e);
+    color: var(--app-header-text-color, #e4e4e7);
     box-shadow: none;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--divider-color);
     z-index: 2;
     flex-shrink: 0;
   }
@@ -1275,12 +1284,12 @@ var panelStyles = i`
   }
   .tab:hover {
     opacity: 1;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .tab.active {
     opacity: 1;
     font-weight: 600;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .tab:first-child {
     padding-left: 0;
@@ -1295,15 +1304,30 @@ var panelStyles = i`
     margin-bottom: 12px;
   }
   .tab-text {
-    border-bottom: 2px solid transparent;
+    position: relative;
     padding-bottom: 6px;
-    transition: border-color 0.3s;
   }
-  .tab:hover .tab-text {
-    border-bottom-color: var(--selora-accent);
+  /* Shared underline-from-center effect */
+  .tab-text::after,
+  .card-tab::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--selora-accent);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
   }
-  .tab.active .tab-text {
-    border-bottom-color: var(--selora-accent);
+  .tab:hover .tab-text::after,
+  .tab.active .tab-text::after,
+  .card-tab.active::after {
+    transform: scaleX(1);
+  }
+  .card-tab:hover::after {
+    transform: scaleX(0.6);
   }
 
   /* ---- Chat ---- */
@@ -1364,6 +1388,16 @@ var panelStyles = i`
   .empty-state.welcome {
     opacity: 1;
     gap: 0;
+    justify-content: flex-start;
+    padding: 12px;
+  }
+  @media (max-width: 600px) {
+    .empty-state.welcome {
+      padding: 4px;
+    }
+    .empty-state.welcome .section-card {
+      padding: 16px;
+    }
   }
   .empty-state.welcome > * {
     animation: fadeInUp 0.5s ease both;
@@ -1468,7 +1502,7 @@ var panelStyles = i`
     color: var(--success-color, #4caf50);
   }
   .bubble.assistant strong {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
 
   /* ---- Automation proposal card ---- */
@@ -1489,7 +1523,7 @@ var panelStyles = i`
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .proposal-body {
     padding: 14px;
@@ -1535,6 +1569,11 @@ var panelStyles = i`
   }
   .yaml-toggle:hover {
     opacity: 1;
+  }
+  ha-code-editor {
+    --code-mirror-font-size: 12px;
+    --code-mirror-height: auto;
+    font-size: 12px;
   }
   textarea.yaml-editor {
     width: 100%;
@@ -1725,7 +1764,7 @@ var panelStyles = i`
     color: var(--secondary-text-color);
   }
   .toggle-label.on {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
 
   /* ---- Card action buttons ---- */
@@ -1741,17 +1780,19 @@ var panelStyles = i`
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border-radius: 10px;
-    font-size: 13px;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     border: 1px solid transparent;
     background: transparent;
     font-family: inherit;
-    transition: all 0.3s ease;
+    transition: colors 0.2s ease;
     user-select: none;
+    color: var(--primary-text-color);
   }
   .btn:hover {
     opacity: 0.9;
@@ -1775,13 +1816,12 @@ var panelStyles = i`
   }
   .btn-outline {
     border-color: var(--selora-zinc-700);
-    color: var(--primary-text-color);
-    background: transparent;
+    color: var(--selora-btn-outline-text);
+    background: var(--selora-section-bg);
   }
   .btn-outline:hover {
-    border-color: rgba(251, 191, 36, 0.5);
-    color: var(--selora-accent);
-    background: rgba(251, 191, 36, 0.06);
+    border-color: var(--selora-zinc-600);
+    background: var(--secondary-background-color, #3f3f46);
   }
   .btn-danger {
     border-color: rgba(239, 68, 68, 0.4);
@@ -1794,7 +1834,7 @@ var panelStyles = i`
   }
   .btn-warning {
     border-color: rgba(251, 191, 36, 0.4);
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     background: transparent;
   }
   .btn-warning:hover {
@@ -1897,6 +1937,7 @@ var panelStyles = i`
     margin: 8px 0 0;
     border-top: 1px solid var(--divider-color);
     padding-top: 8px;
+    padding-bottom: 8px;
     font-size: 12px;
   }
   .card-tabs .label {
@@ -1913,19 +1954,15 @@ var panelStyles = i`
     font-weight: 500;
     color: var(--secondary-text-color);
     cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.3s ease;
+    position: relative;
+    transition: color 0.3s ease;
     display: inline-flex;
     align-items: center;
     gap: 4px;
   }
-  .card-tab:hover {
-    color: var(--selora-accent);
-    border-bottom-color: rgba(251, 191, 36, 0.4);
-  }
+  .card-tab:hover,
   .card-tab.active {
-    color: var(--selora-accent);
-    border-bottom-color: var(--selora-accent);
+    color: var(--selora-accent-text);
   }
   .card-chevron {
     display: inline-flex;
@@ -1950,47 +1987,7 @@ var panelStyles = i`
   }
 
   /* ---- Filter input ---- */
-  .sub-tabs {
-    display: flex;
-    gap: 0;
-    margin-bottom: 16px;
-  }
-  .sub-tab {
-    padding: 8px 16px;
-    border: none;
-    background: none;
-    font-size: 14px;
-    font-weight: 400;
-    font-family: inherit;
-    color: var(--secondary-text-color);
-    cursor: pointer;
-    transition: color 0.3s;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-  .sub-tab:hover {
-    color: var(--selora-accent);
-  }
-  .sub-tab.active {
-    color: var(--selora-accent);
-    font-weight: 600;
-  }
-  .sub-tab-text {
-    border-bottom: 2px solid transparent;
-    padding-bottom: 4px;
-    transition: border-color 0.3s;
-  }
-  .sub-tab:hover .sub-tab-text {
-    border-bottom-color: var(--selora-accent);
-  }
-  .sub-tab.active .sub-tab-text {
-    border-bottom-color: var(--selora-accent);
-  }
-  .sub-tab:first-child {
-    padding-left: 0;
-  }
-  .sub-tab .badge {
+  .badge {
     background: var(--selora-zinc-700);
     color: var(--selora-zinc-200);
     border-radius: 10px;
@@ -2002,8 +1999,240 @@ var panelStyles = i`
     line-height: 1;
     display: inline-flex;
     align-items: center;
-    margin-bottom: 4px;
     transition: all 0.25s ease;
+  }
+  .section-card {
+    background: var(--selora-section-bg);
+    color: var(--primary-text-color);
+    border: 1px solid var(--selora-section-border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 36px;
+  }
+  .section-card .card {
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+    border-radius: 14px;
+  }
+  .section-card .automations-list {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card .auto-row {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .section-card-header h3 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .section-card-subtitle {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    margin-bottom: 24px;
+  }
+  @media (max-width: 600px) {
+    .scroll-view {
+      padding: 12px 10px;
+    }
+    .section-card {
+      padding: 14px 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .section-card .card {
+      padding: 12px;
+    }
+  }
+  .suggestions-section {
+  }
+  .show-more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--selora-accent-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font-family: inherit;
+  }
+  .show-more-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Automations list (table-like rows) */
+  .automations-list {
+    border: 1px solid var(--selora-zinc-700);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .auto-row {
+    border-bottom: 1px solid var(--selora-zinc-700);
+  }
+  .auto-row:last-child {
+    border-bottom: none;
+  }
+  .auto-row.disabled {
+    opacity: 0.5;
+  }
+  .auto-row.highlighted {
+    animation: highlightRow 3s ease;
+  }
+  @keyframes highlightRow {
+    0%,
+    30% {
+      background: rgba(251, 191, 36, 0.15);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  .card.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+    pointer-events: none;
+  }
+  @keyframes fadeOutCard {
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+  .suggestions-section .automations-grid .card {
+    animation: slideInCard 0.4s ease both;
+  }
+  @keyframes slideInCard {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  .suggestions-section .automations-grid .card.fading-out {
+    animation: fadeOutCard 0.6s ease forwards;
+  }
+  .auto-row-main {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .auto-row-main:hover {
+    background: var(--secondary-background-color);
+  }
+  .auto-row-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .auto-row-title {
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .auto-row-desc {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .auto-row-last-run {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    white-space: nowrap;
+    flex-shrink: 0;
+    position: relative;
+    cursor: default;
+  }
+  .auto-row-last-run .setting-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    left: auto;
+    transform: none;
+    width: auto;
+    white-space: nowrap;
+    padding: 10px 12px;
+    background: var(--card-background-color, #1e1e1e);
+    color: var(--primary-text-color);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    pointer-events: none;
+  }
+  .auto-row-last-run .setting-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: auto;
+    right: 12px;
+    transform: none;
+    border: 6px solid transparent;
+    border-top-color: var(--card-background-color, #1e1e1e);
+  }
+  .auto-row-last-run:hover .setting-tooltip {
+    display: block;
+  }
+  .auto-row-expand {
+    padding: 0 16px 16px;
+  }
+  .last-run-prefix {
+    display: none;
+  }
+  .auto-row-mobile-meta {
+    display: none;
+  }
+  @media (max-width: 600px) {
+    .auto-row-main {
+      align-items: flex-start;
+    }
+    .auto-row-title {
+      white-space: normal;
+    }
+    .auto-row-desc {
+      white-space: normal;
+    }
+    .auto-row-last-run {
+      display: none;
+    }
+    .auto-row-mobile-meta {
+      display: flex;
+      align-items: center;
+      font-size: 11px;
+      opacity: 0.45;
+      color: var(--secondary-text-color);
+      margin-top: 6px;
+    }
+    .auto-row-mobile-meta .card-chevron {
+      position: absolute;
+      right: 16px;
+      bottom: 12px;
+    }
+    .auto-row-main {
+      position: relative;
+      padding-bottom: 8px;
+    }
   }
   .filter-row {
     display: flex;
@@ -2011,6 +2240,23 @@ var panelStyles = i`
     gap: 10px;
     margin-bottom: 12px;
     flex-wrap: wrap;
+  }
+  @media (max-width: 600px) {
+    .filter-row {
+      gap: 8px;
+    }
+    .filter-row .filter-input-wrap {
+      flex: 1 1 100% !important;
+    }
+    .filter-row .status-pills {
+      flex: 1;
+    }
+    .filter-row .sort-select {
+      flex: 1;
+    }
+    .automations-summary span:first-child {
+      display: none;
+    }
   }
   .status-pills {
     display: inline-flex;
@@ -2034,7 +2280,7 @@ var panelStyles = i`
   }
   .status-pill:hover {
     color: var(--primary-text-color);
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--secondary-background-color);
   }
   .status-pill.active {
     background: var(--selora-zinc-700);
@@ -2065,8 +2311,8 @@ var panelStyles = i`
     display: flex;
     align-items: center;
     gap: 6px;
-    background: transparent;
-    border: 1px solid var(--selora-zinc-700);
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
     border-radius: 10px;
     padding: 6px 12px;
     flex: 0 1 400px;
@@ -2167,7 +2413,7 @@ var panelStyles = i`
     border-color: var(--divider-color);
   }
   .btn-ghost.active {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     border-color: rgba(251, 191, 36, 0.35);
     background: rgba(251, 191, 36, 0.05);
   }
@@ -2229,8 +2475,8 @@ var panelStyles = i`
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     align-items: stretch;
-    gap: 16px;
-    margin-bottom: 14px;
+    gap: 20px;
+    margin-bottom: 16px;
   }
   .automations-grid .masonry-col {
     display: contents;
@@ -2328,7 +2574,7 @@ var panelStyles = i`
 
   /* ---- Chat input ---- */
   .chat-input-wrapper {
-    border-top: 1px solid var(--selora-zinc-700, rgba(255, 255, 255, 0.1));
+    border-top: 1px solid var(--divider-color);
     flex-shrink: 0;
   }
   .chat-input {
@@ -2352,7 +2598,7 @@ var panelStyles = i`
     overflow: hidden;
   }
   .chat-input ha-icon-button {
-    color: var(--selora-accent);
+    color: var(--selora-accent-text);
     opacity: 0.7;
     transition: opacity 0.2s;
   }
@@ -2418,7 +2664,7 @@ var panelStyles = i`
   .scroll-view {
     flex: 1;
     overflow-y: auto;
-    padding: 16px 24px;
+    padding: 24px 28px;
     max-width: 1200px;
     margin: 0 auto;
     width: 100%;
@@ -2426,6 +2672,7 @@ var panelStyles = i`
   }
   .card {
     background: var(--selora-zinc-800);
+    color: var(--primary-text-color);
     border-radius: 16px;
     padding: 24px;
     margin-bottom: 14px;
@@ -2564,18 +2811,13 @@ var panelStyles = i`
     gap: 20px;
   }
   .settings-section {
-    background: var(--selora-zinc-800);
-    border: 1px solid var(--selora-zinc-700);
-    border-radius: 16px;
-    padding: 24px;
+    /* inherits from .section-card */
   }
   .settings-section-title {
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--selora-accent);
-    margin: 0 0 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    margin: 0 0 16px;
   }
   .form-group {
     margin-bottom: 18px;
@@ -2650,18 +2892,20 @@ var panelStyles = i`
     gap: 14px;
   }
   .advanced-section {
-    padding: 24px;
+    padding: 0;
+    overflow: hidden;
   }
   .advanced-toggle {
     display: flex;
     align-items: center;
-    gap: 6px;
+    gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 500;
-    color: var(--secondary-text-color);
+    color: var(--primary-text-color);
     list-style: none;
-    transition: color 0.2s;
+    padding: 16px 20px;
+    transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
     display: none;
@@ -2671,20 +2915,87 @@ var panelStyles = i`
     content: "";
   }
   .advanced-toggle:hover {
-    color: var(--selora-accent);
+    background: var(--secondary-background-color);
   }
   .advanced-chevron {
     --mdc-icon-size: 18px;
     transition: transform 0.2s;
+    opacity: 0.5;
   }
   .advanced-section[open] > .advanced-toggle .advanced-chevron {
     transform: rotate(90deg);
+  }
+  .advanced-section[open] > .advanced-toggle {
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .advanced-section .service-row:first-of-type {
+    padding-top: 16px;
+  }
+  .advanced-section .service-row,
+  .advanced-section .service-details,
+  .advanced-section .settings-section-title,
+  .advanced-section .settings-separator {
+    margin-left: 20px;
+    margin-right: 20px;
+  }
+  .advanced-section .service-row:last-of-type {
+    padding-bottom: 16px;
   }
   .settings-form ha-switch {
     --switch-checked-color: var(--selora-accent);
     --switch-checked-button-color: var(--selora-accent);
     --switch-checked-track-color: var(--selora-accent-dark);
     --mdc-theme-secondary: var(--selora-accent);
+  }
+  .service-row label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .setting-help {
+    position: relative;
+    cursor: help;
+    --mdc-icon-size: 16px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .setting-help:hover {
+    color: var(--primary-text-color);
+  }
+  .setting-help .setting-tooltip {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 240px;
+    padding: 10px 12px;
+    background: var(--card-background-color, #1e1e1e);
+    color: var(--primary-text-color);
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1.5;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    z-index: 10;
+    pointer-events: none;
+  }
+  .setting-help .setting-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-top-color: var(--card-background-color, #1e1e1e);
+  }
+  .setting-help:hover .setting-tooltip {
+    display: block;
+  }
+  .settings-separator {
+    border: none;
+    border-top: 1px solid var(--selora-zinc-700);
+    margin: 16px 0 4px;
   }
   .save-bar {
     display: flex;
@@ -3060,157 +3371,167 @@ function renderChat(host) {
                 x`
                 <div
                   class="empty-state welcome"
-                  style="max-width:520px;margin:0 auto;text-align:center;"
+                  style="max-width:560px;margin:0 auto;padding:24px;"
                 >
-                  <img
-                    src="/api/selora_ai/logo.png"
-                    alt="Selora AI"
-                    style="width:56px;height:56px;border-radius:12px;margin-bottom:8px;"
-                  />
-                  <div
-                    style="font-size:20px;font-weight:600;margin-bottom:4px;"
-                  >
-                    Welcome to <span class="gold-text">Selora AI</span>
-                  </div>
-                  <div
-                    style="font-size:14px;opacity:0.7;margin-bottom:20px;line-height:1.5;"
-                  >
-                    Your intelligent home automation architect. I analyze your
-                    devices, detect patterns, and help you build automations
-                    using natural language.
-                  </div>
-                  <div
-                    style="display:grid;grid-template-columns:1fr 1fr;gap:10px;text-align:left;margin-bottom:20px;"
-                  >
+                  <div class="section-card" style="text-align:center;">
+                    <img
+                      src="/api/selora_ai/logo.png"
+                      alt="Selora AI"
+                      style="width:56px;height:56px;border-radius:12px;margin-bottom:12px;"
+                    />
                     <div
-                      class="welcome-card"
-                      style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
-                      @click=${() => host._quickStart("Create an automation for my home")}
+                      style="font-size:20px;font-weight:700;margin-bottom:6px;"
                     >
-                      <ha-icon
-                        icon="mdi:lightning-bolt"
-                        style="--mdc-icon-size:18px;color:#fbbf24;flex-shrink:0;margin-top:1px;"
-                      ></ha-icon>
-                      <div>
-                        <div style="font-size:13px;font-weight:600;">
-                          Create Automations
+                      Welcome to
+                      <span class="gold-text">Selora AI</span>
+                    </div>
+                    <div class="section-card-subtitle">
+                      Your intelligent home automation architect. I analyze your
+                      devices, detect patterns, and help you build automations
+                      using natural language.
+                    </div>
+                    <div
+                      style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:24px;"
+                    >
+                      <div
+                        class="welcome-card"
+                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                        @click=${() => host._quickStart("Create an automation for my home")}
+                      >
+                        <div
+                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                        >
+                          <ha-icon
+                            icon="mdi:lightning-bolt"
+                            style="--mdc-icon-size:18px;color:#fbbf24;"
+                          ></ha-icon>
+                          <div style="font-size:13px;font-weight:600;">
+                            Create Automations
+                          </div>
                         </div>
                         <div style="font-size:12px;opacity:0.6;">
                           Describe what you want in plain English
                         </div>
                       </div>
-                    </div>
-                    <div
-                      class="welcome-card"
-                      style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(59,130,246,0.08);border:1px solid rgba(59,130,246,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
-                      @click=${() =>
-                        host._quickStart(
-                          "Analyze my device usage patterns and suggest automations",
-                        )}
-                    >
-                      <ha-icon
-                        icon="mdi:magnify-scan"
-                        style="--mdc-icon-size:18px;color:#3b82f6;flex-shrink:0;margin-top:1px;"
-                      ></ha-icon>
-                      <div>
-                        <div style="font-size:13px;font-weight:600;">
-                          Detect Patterns
+                      <div
+                        class="welcome-card"
+                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                        @click=${() =>
+                          host._quickStart(
+                            "Analyze my device usage patterns and suggest automations",
+                          )}
+                      >
+                        <div
+                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                        >
+                          <ha-icon
+                            icon="mdi:magnify-scan"
+                            style="--mdc-icon-size:18px;color:#3b82f6;"
+                          ></ha-icon>
+                          <div style="font-size:13px;font-weight:600;">
+                            Detect Patterns
+                          </div>
                         </div>
                         <div style="font-size:12px;opacity:0.6;">
                           AI spots your routines and suggests automations
                         </div>
                       </div>
-                    </div>
-                    <div
-                      class="welcome-card"
-                      style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
-                      @click=${() =>
-                        host._quickStart(
-                          "What devices do I have and how are they organized?",
-                        )}
-                    >
-                      <ha-icon
-                        icon="mdi:home-search-outline"
-                        style="--mdc-icon-size:18px;color:#22c55e;flex-shrink:0;margin-top:1px;"
-                      ></ha-icon>
-                      <div>
-                        <div style="font-size:13px;font-weight:600;">
-                          Manage Devices
+                      <div
+                        class="welcome-card"
+                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                        @click=${() =>
+                          host._quickStart(
+                            "What devices do I have and how are they organized?",
+                          )}
+                      >
+                        <div
+                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                        >
+                          <ha-icon
+                            icon="mdi:home-search-outline"
+                            style="--mdc-icon-size:18px;color:#22c55e;"
+                          ></ha-icon>
+                          <div style="font-size:13px;font-weight:600;">
+                            Manage Devices
+                          </div>
                         </div>
                         <div style="font-size:12px;opacity:0.6;">
                           Discover, organize, and control your smart home
                         </div>
                       </div>
-                    </div>
-                    <div
-                      class="welcome-card"
-                      style="display:flex;align-items:flex-start;gap:8px;padding:10px;border-radius:8px;background:rgba(168,85,247,0.08);border:1px solid rgba(168,85,247,0.15);cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;"
-                      @click=${() => host._quickStart("What can you help me with?")}
-                    >
-                      <ha-icon
-                        icon="mdi:chat-question-outline"
-                        style="--mdc-icon-size:18px;color:#a855f7;flex-shrink:0;margin-top:1px;"
-                      ></ha-icon>
-                      <div>
-                        <div style="font-size:13px;font-weight:600;">
-                          Ask Anything
+                      <div
+                        class="welcome-card"
+                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                        @click=${() => host._quickStart("What can you help me with?")}
+                      >
+                        <div
+                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                        >
+                          <ha-icon
+                            icon="mdi:chat-question-outline"
+                            style="--mdc-icon-size:18px;color:#a855f7;"
+                          ></ha-icon>
+                          <div style="font-size:13px;font-weight:600;">
+                            Ask Anything
+                          </div>
                         </div>
                         <div style="font-size:12px;opacity:0.6;">
                           Get answers about your home setup
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    style="font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:normal;opacity:0.4;margin-bottom:10px;"
-                  >
-                    Quick start
-                  </div>
-                  <div
-                    style="display:flex;flex-direction:column;gap:8px;width:100%;"
-                  >
-                    <button
-                      class="btn btn-outline"
-                      style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
-                      @click=${() =>
-                        host._quickStart(
-                          "Create an automation that turns off all lights at midnight",
-                        )}
+                    <div
+                      class="section-card-subtitle"
+                      style="margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
                     >
-                      <ha-icon
-                        icon="mdi:lightbulb-off-outline"
-                        style="--mdc-icon-size:16px;"
-                      ></ha-icon>
-                      Turn off all lights at midnight
-                    </button>
-                    <button
-                      class="btn btn-outline"
-                      style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
-                      @click=${() =>
-                        host._quickStart(
-                          "What devices do I have and which ones are currently on?",
-                        )}
+                      Quick start
+                    </div>
+                    <div
+                      style="display:flex;flex-direction:column;gap:8px;width:100%;"
                     >
-                      <ha-icon
-                        icon="mdi:devices"
-                        style="--mdc-icon-size:16px;"
-                      ></ha-icon>
-                      What devices do I have?
-                    </button>
-                    <button
-                      class="btn btn-outline"
-                      style="width:100%;justify-content:flex-start;gap:8px;padding:10px 14px;font-size:13px;"
-                      @click=${() =>
-                        host._quickStart(
-                          "Suggest useful automations based on my devices and usage patterns",
-                        )}
-                    >
-                      <ha-icon
-                        icon="mdi:auto-fix"
-                        style="--mdc-icon-size:16px;"
-                      ></ha-icon>
-                      Suggest automations for my home
-                    </button>
+                      <button
+                        class="btn btn-outline"
+                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                        @click=${() =>
+                          host._quickStart(
+                            "Create an automation that turns off all lights at midnight",
+                          )}
+                      >
+                        <ha-icon
+                          icon="mdi:lightbulb-off-outline"
+                          style="--mdc-icon-size:16px;"
+                        ></ha-icon>
+                        Turn off all lights at midnight
+                      </button>
+                      <button
+                        class="btn btn-outline"
+                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                        @click=${() =>
+                          host._quickStart(
+                            "What devices do I have and which ones are currently on?",
+                          )}
+                      >
+                        <ha-icon
+                          icon="mdi:devices"
+                          style="--mdc-icon-size:16px;"
+                        ></ha-icon>
+                        What devices do I have?
+                      </button>
+                      <button
+                        class="btn btn-outline"
+                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                        @click=${() =>
+                          host._quickStart(
+                            "Suggest useful automations based on my devices and usage patterns",
+                          )}
+                      >
+                        <ha-icon
+                          icon="mdi:auto-fix"
+                          style="--mdc-icon-size:16px;"
+                        ></ha-icon>
+                        Suggest automations for my home
+                      </button>
+                    </div>
                   </div>
                 </div>
               `,
@@ -3359,18 +3680,15 @@ function renderYamlEditor(host, key, originalYaml, onSave = null) {
   const isDirty = current !== originalYaml;
   const saving = !!host._savingYaml[key];
   return x`
-    <textarea
-      class="yaml-editor"
+    <ha-code-editor
+      mode="yaml"
       .value=${current}
-      @input=${(e5) => {
-        host._onYamlInput(key, e5.target.value);
-        e5.target.style.height = "auto";
-        e5.target.style.height = e5.target.scrollHeight + "px";
+      @value-changed=${(e5) => {
+        host._onYamlInput(key, e5.detail.value);
       }}
-      spellcheck="false"
-      autocomplete="off"
-      rows="${Math.max(8, (current || "").split("\n").length + 1)}"
-    ></textarea>
+      autocomplete-entities
+      style="--code-mirror-font-size:12px;"
+    ></ha-code-editor>
     ${
       isDirty || onSave
         ? x`
@@ -3827,6 +4145,507 @@ function describeFlowItem(hass, item) {
   return readable.length ? readable.join(" \xB7 ") : "Automation step";
 }
 
+// src/panel/render-suggestions.js
+var MIN_CONF = 0.8;
+var COLLAPSED_COUNT = 3;
+function normalizeProactive(s6) {
+  return {
+    type: "proactive",
+    cardKey: `proactive_${s6.suggestion_id}`,
+    title: s6.description,
+    subtitle: s6.evidence_summary || null,
+    risk: null,
+    automationYaml: s6.automation_yaml || "",
+    automationData: s6.automation_data || null,
+    _original: s6,
+    _suggestionId: s6.suggestion_id,
+  };
+}
+function normalizeLLM(item) {
+  const auto = item.automation || item.automation_data;
+  return {
+    type: "llm",
+    cardKey: `sug_${auto.alias}`,
+    title: auto.alias,
+    subtitle: auto.description || null,
+    risk: item.risk_assessment || auto?.risk_assessment || null,
+    automationYaml: item.automation_yaml || "",
+    automationData: auto,
+    _original: item,
+    _auto: auto,
+  };
+}
+function buildQualified(host) {
+  const seenKeys = /* @__PURE__ */ new Set();
+  const qualified = [];
+  for (const s6 of host._proactiveSuggestions || []) {
+    if ((s6.confidence || 0) < MIN_CONF) continue;
+    const key = (s6.description || "").toLowerCase().trim();
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    qualified.push(normalizeProactive(s6));
+  }
+  for (const item of host._suggestions || []) {
+    const auto = item.automation || item.automation_data;
+    if (!auto) continue;
+    const key = (auto.alias || "").toLowerCase().trim();
+    if (seenKeys.has(key)) continue;
+    seenKeys.add(key);
+    qualified.push(normalizeLLM(item));
+  }
+  return qualified;
+}
+function applyFilters(host, qualified) {
+  const filterText = (host._suggestionFilter || "").toLowerCase().trim();
+  const sourceFilter = host._suggestionSourceFilter || "all";
+  const sortBy = host._suggestionSortBy || "recent";
+  const filtered = qualified.filter((item) => {
+    if (filterText) {
+      const text = `${item.title} ${item.subtitle || ""}`.toLowerCase();
+      if (!text.includes(filterText)) return false;
+    }
+    if (sourceFilter === "pattern" && item.type !== "proactive") return false;
+    if (sourceFilter === "ai" && item.type !== "llm") return false;
+    return true;
+  });
+  if (sortBy === "alpha") {
+    filtered.sort((a4, b2) => (a4.title || "").localeCompare(b2.title || ""));
+  } else {
+    filtered.sort((a4, b2) => {
+      if (a4.type !== b2.type) return a4.type === "llm" ? -1 : 1;
+      const confA = a4._original?.confidence || 0;
+      const confB = b2._original?.confidence || 0;
+      return confB - confA;
+    });
+  }
+  return filtered;
+}
+function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
+  const { cardKey, automationData } = item;
+  const editedYaml = host._editedYaml[cardKey];
+  const displayYaml = editedYaml !== void 0 ? editedYaml : item.automationYaml;
+  const hasFlow =
+    automationData &&
+    (automationData.trigger?.length ||
+      automationData.triggers?.length ||
+      automationData.action?.length ||
+      automationData.actions?.length);
+  const activeTab =
+    host._cardActiveTab[cardKey] !== void 0
+      ? host._cardActiveTab[cardKey]
+      : null;
+  const isProactive = item.type === "proactive";
+  const accepting = isProactive
+    ? !!host._acceptingProactive[item._suggestionId]
+    : !!host._savingYaml[cardKey];
+  const dismissing = isProactive
+    ? !!host._dismissingProactive[item._suggestionId]
+    : false;
+  const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
+  return x`
+    <div
+      class="card${fadingOut ? " fading-out" : ""}"
+      style="padding:16px 18px;display:flex;flex-direction:column;"
+    >
+      <div class="card-header" style="margin-bottom:0;">
+        ${
+          bulkMode
+            ? x`
+              <label class="card-select">
+                <input
+                  type="checkbox"
+                  .checked=${!!selectedKeys[cardKey]}
+                  @change=${(e5) => {
+                    host._selectedSuggestionKeys = {
+                      ...host._selectedSuggestionKeys,
+                      [cardKey]: e5.target.checked,
+                    };
+                  }}
+                />
+              </label>
+            `
+            : ""
+        }
+        <h3 style="flex:1;font-size:14px;margin:0;">${item.title}</h3>
+      </div>
+
+      ${
+        item.subtitle
+          ? x`
+            <div
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+            >
+              ${item.subtitle}
+            </div>
+          `
+          : ""
+      }
+      ${
+        item.risk?.level === "elevated"
+          ? x`
+            <div
+              class="proposal-status"
+              style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
+            >
+              <ha-icon icon="mdi:alert-outline"></ha-icon>
+              <span>${item.risk.summary}</span>
+            </div>
+          `
+          : ""
+      }
+
+      <div class="card-tabs" style="margin-top:12px;">
+        ${
+          hasFlow
+            ? x`
+              <button
+                class="card-tab ${activeTab === "flow" ? "active" : ""}"
+                @click=${() => {
+                  host._cardActiveTab = {
+                    ...host._cardActiveTab,
+                    [cardKey]: activeTab === "flow" ? null : "flow",
+                  };
+                }}
+              >
+                <ha-icon
+                  icon="mdi:sitemap-outline"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                Flow
+              </button>
+              <span class="card-tab-sep">|</span>
+            `
+            : ""
+        }
+        <button
+          class="card-tab ${activeTab === "yaml" ? "active" : ""}"
+          @click=${() => {
+            host._cardActiveTab = {
+              ...host._cardActiveTab,
+              [cardKey]: activeTab === "yaml" ? null : "yaml",
+            };
+          }}
+        >
+          <ha-icon
+            icon="mdi:code-braces"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          YAML
+        </button>
+        <ha-icon
+          icon="mdi:chevron-down"
+          class="card-chevron ${activeTab ? "open" : ""}"
+          style="margin-left:auto;"
+          @click=${() => {
+            host._cardActiveTab = {
+              ...host._cardActiveTab,
+              [cardKey]: activeTab ? null : hasFlow ? "flow" : "yaml",
+            };
+          }}
+        ></ha-icon>
+      </div>
+
+      ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
+      ${
+        activeTab === "yaml"
+          ? x`
+            <div style="margin-top:6px;">
+              <ha-code-editor
+                mode="yaml"
+                .value=${displayYaml}
+                @value-changed=${(e5) => {
+                  host._editedYaml = {
+                    ...host._editedYaml,
+                    [cardKey]: e5.detail.value,
+                  };
+                }}
+                autocomplete-entities
+                style="--code-mirror-font-size:12px;"
+              ></ha-code-editor>
+            </div>
+          `
+          : ""
+      }
+
+      <div
+        style="display:flex;align-items:center;gap:6px;margin-top:auto;padding-top:12px;"
+      >
+        <button
+          class="btn btn-primary"
+          style="flex:1;justify-content:center;"
+          ?disabled=${accepting}
+          @click=${() =>
+            isProactive
+              ? host._acceptProactiveSuggestion(item._suggestionId, editedYaml)
+              : host._createSuggestionWithEdits(
+                  item._auto,
+                  cardKey,
+                  item.automationYaml,
+                )}
+        >
+          <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
+          ${accepting ? "Creating\u2026" : "Accept"}
+        </button>
+        <button
+          class="btn btn-outline"
+          style="flex:1;justify-content:center;"
+          ?disabled=${dismissing}
+          @click=${() => (isProactive ? host._dismissProactiveSuggestion(item._suggestionId) : host._discardSuggestion(item._original))}
+        >
+          <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
+          ${dismissing ? "Dismissing\u2026" : "Dismiss"}
+        </button>
+      </div>
+    </div>
+  `;
+}
+function renderSuggestionsSection(host) {
+  const qualified = buildQualified(host);
+  const filtered = applyFilters(host, qualified);
+  const totalCount = qualified.length;
+  const isDev = !!host._config?.developer_mode;
+  const visibleCount = host._suggestionsVisibleCount || COLLAPSED_COUNT;
+  const visibleItems = filtered.slice(0, visibleCount);
+  const remainingCount = filtered.length - visibleCount;
+  const expanded = visibleCount > COLLAPSED_COUNT;
+  const bulkMode = !!host._suggestionBulkMode;
+  const selectedKeys = host._selectedSuggestionKeys || {};
+  const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
+  return x`
+    <div class="section-card suggestions-section">
+      <div class="section-card-header">
+        <h3>Suggested for you</h3>
+        ${totalCount > 0 ? x`<span class="badge">${totalCount} new</span>` : ""}
+        ${
+          isDev
+            ? x`
+              <div
+                style="margin-left:auto;display:flex;align-items:center;gap:8px;"
+              >
+                <button
+                  class="btn"
+                  ?disabled=${host._loadingProactive}
+                  @click=${() => host._triggerPatternScan()}
+                >
+                  <ha-icon
+                    icon="mdi:refresh"
+                    style="--mdc-icon-size:13px;"
+                  ></ha-icon>
+                  ${host._loadingProactive ? "Scanning\u2026" : "Scan Now"}
+                </button>
+                <button
+                  class="btn btn-primary"
+                  style="white-space:nowrap;"
+                  ?disabled=${host._generatingSuggestions}
+                  @click=${() => host._triggerGenerateSuggestions()}
+                >
+                  ${
+                    host._generatingSuggestions
+                      ? x`<span
+                        class="spinner"
+                        style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
+                      ></span>`
+                      : x`<ha-icon
+                        icon="mdi:auto-fix"
+                        style="--mdc-icon-size:13px;"
+                      ></ha-icon>`
+                  }
+                  ${host._generatingSuggestions ? "Analyzing\u2026" : "Generate"}
+                </button>
+              </div>
+            `
+            : ""
+        }
+      </div>
+
+      <div class="section-card-subtitle">
+        Based on observed patterns and AI analysis in your home.
+      </div>
+
+      ${
+        totalCount === 0
+          ? x`
+            <p style="opacity:0.45;margin:0;font-size:13px;">
+              No suggestions yet. Tap "Generate" to analyze your home.
+            </p>
+          `
+          : x`
+            ${
+              expanded
+                ? x`<div class="filter-row" style="margin-bottom:12px;">
+                  <div class="filter-input-wrap" style="flex:0 1 260px;">
+                    <ha-icon icon="mdi:magnify"></ha-icon>
+                    <input
+                      type="text"
+                      placeholder="Filter suggestions…"
+                      .value=${host._suggestionFilter}
+                      @input=${(e5) => {
+                        host._suggestionFilter = e5.target.value;
+                        host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                      }}
+                    />
+                    ${
+                      host._suggestionFilter
+                        ? x`<ha-icon
+                          icon="mdi:close-circle"
+                          style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                          @click=${() => {
+                            host._suggestionFilter = "";
+                            host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                          }}
+                        ></ha-icon>`
+                        : ""
+                    }
+                  </div>
+                  ${
+                    isDev
+                      ? x`
+                        <div class="status-pills">
+                          ${[
+                            ["all", "All"],
+                            ["pattern", "Patterns"],
+                            ["ai", "AI"],
+                          ].map(
+                            ([val, label]) => x`
+                              <button
+                                class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
+                                @click=${() => {
+                                  host._suggestionSourceFilter = val;
+                                  host._suggestionsVisibleCount =
+                                    COLLAPSED_COUNT;
+                                }}
+                              >
+                                ${label}
+                              </button>
+                            `,
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+                  <select
+                    class="sort-select"
+                    .value=${host._suggestionSortBy || "recent"}
+                    @change=${(e5) => {
+                      host._suggestionSortBy = e5.target.value;
+                    }}
+                  >
+                    <option value="recent">Recent</option>
+                    <option value="alpha">Alphabetical</option>
+                  </select>
+                  <div
+                    style="margin-left:auto;display:flex;align-items:center;gap:8px;"
+                  >
+                    ${
+                      bulkMode
+                        ? x`
+                          <span style="font-size:12px;opacity:0.7;">
+                            ${selectedCount} selected
+                          </span>
+                          <button
+                            class="btn btn-primary"
+                            ?disabled=${selectedCount === 0}
+                            @click=${() => {
+                              for (const item of filtered) {
+                                if (selectedKeys[item.cardKey]) {
+                                  if (item.type === "proactive") {
+                                    host._acceptProactiveSuggestion(
+                                      item._suggestionId,
+                                    );
+                                  } else {
+                                    host._createSuggestionWithEdits(
+                                      item._auto,
+                                      item.cardKey,
+                                      item.automationYaml,
+                                    );
+                                  }
+                                }
+                              }
+                              host._selectedSuggestionKeys = {};
+                              host._suggestionBulkMode = false;
+                            }}
+                          >
+                            Accept selected
+                          </button>
+                          <button
+                            class="btn btn-outline"
+                            ?disabled=${selectedCount === 0}
+                            @click=${() => {
+                              for (const item of filtered) {
+                                if (selectedKeys[item.cardKey]) {
+                                  if (item.type === "proactive") {
+                                    host._dismissProactiveSuggestion(
+                                      item._suggestionId,
+                                    );
+                                  } else {
+                                    host._discardSuggestion(item._original);
+                                  }
+                                }
+                              }
+                              host._selectedSuggestionKeys = {};
+                              host._suggestionBulkMode = false;
+                            }}
+                          >
+                            Dismiss selected
+                          </button>
+                          <button
+                            class="btn btn-outline"
+                            @click=${() => {
+                              host._suggestionBulkMode = false;
+                              host._selectedSuggestionKeys = {};
+                            }}
+                          >
+                            Done
+                          </button>
+                        `
+                        : x`
+                          <button
+                            class="btn btn-outline"
+                            @click=${() => {
+                              host._suggestionBulkMode = true;
+                            }}
+                          >
+                            <ha-icon
+                              icon="mdi:checkbox-multiple-outline"
+                              style="--mdc-icon-size:14px;"
+                            ></ha-icon>
+                            Bulk edit
+                          </button>
+                        `
+                    }
+                  </div>
+                </div>`
+                : ""
+            }
+
+            <div class="automations-grid">
+              ${masonryColumns(
+                visibleItems.map((item) =>
+                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
+                ),
+              )}
+            </div>
+
+            ${
+              remainingCount > 0
+                ? x`
+                  <button
+                    class="show-more-link"
+                    @click=${() => {
+                      host._suggestionsVisibleCount = visibleCount + 10;
+                    }}
+                  >
+                    Show more suggestions
+                  </button>
+                `
+                : ""
+            }
+          `
+      }
+    </div>
+  `;
+}
+
 // src/panel/render-automations.js
 function renderAutomationFlowchart(host, auto) {
   if (!auto) return x``;
@@ -4127,767 +4946,71 @@ function renderAutomations(host) {
   const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
   return x`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
-      <div class="sub-tabs">
-        <button
-          class="sub-tab ${host._automationsSubTab === "my_automations" ? "active" : ""}"
-          @click=${() => {
-            host._automationsSubTab = "my_automations";
-          }}
-        >
-          <span class="sub-tab-text">My Automations</span>
-        </button>
-        <button
-          class="sub-tab ${host._automationsSubTab === "suggestions" ? "active" : ""}"
-          @click=${() => {
-            host._automationsSubTab = "suggestions";
-          }}
-        >
-          <span class="sub-tab-text">Suggestions</span>
-          ${(() => {
-            const qualCount =
-              (host._proactiveSuggestions || []).filter(
-                (s6) => (s6.confidence || 0) >= 0.8,
-              ).length + (host._suggestions || []).length;
-            return qualCount > 0
-              ? x`<span class="badge">${qualCount} new</span>`
-              : "";
-          })()}
-        </button>
-      </div>
-      ${
-        host._automationsSubTab === "my_automations"
-          ? x`
-            ${
-              host._automations.length > 0
-                ? x`
-                  <div class="filter-row">
-                    <div class="filter-input-wrap" style="flex:0 1 260px;">
-                      <ha-icon icon="mdi:magnify"></ha-icon>
-                      <input
-                        type="text"
-                        placeholder="Filter automations…"
-                        .value=${host._automationFilter}
-                        @input=${(e5) => {
-                          host._automationFilter = e5.target.value;
+      ${renderSuggestionsSection(host)}
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3>Your Automations</h3>
+        </div>
+        ${
+          host._automations.length > 0
+            ? x`
+              <div class="filter-row" style="margin-top:12px;">
+                <div class="filter-input-wrap" style="flex:0 1 260px;">
+                  <ha-icon icon="mdi:magnify"></ha-icon>
+                  <input
+                    type="text"
+                    placeholder="Filter automations…"
+                    .value=${host._automationFilter}
+                    @input=${(e5) => {
+                      host._automationFilter = e5.target.value;
+                      host._automationsPage = 1;
+                    }}
+                  />
+                  ${
+                    host._automationFilter
+                      ? x`<ha-icon
+                        icon="mdi:close-circle"
+                        style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                        @click=${() => {
+                          host._automationFilter = "";
                           host._automationsPage = 1;
                         }}
-                      />
-                      ${
-                        host._automationFilter
-                          ? x`<ha-icon
-                            icon="mdi:close-circle"
-                            style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
-                            @click=${() => {
-                              host._automationFilter = "";
-                              host._automationsPage = 1;
-                            }}
-                          ></ha-icon>`
-                          : ""
-                      }
-                    </div>
-                    <div class="status-pills">
-                      ${["all", "enabled", "disabled", "deleted"].map(
-                        (s6) => x`
-                          <button
-                            class="status-pill ${host._statusFilter === s6 ? "active" : ""}"
-                            @click=${() => {
-                              host._statusFilter = s6;
-                              host._automationsPage = 1;
-                            }}
-                          >
-                            ${s6.charAt(0).toUpperCase() + s6.slice(1)}
-                          </button>
-                        `,
-                      )}
-                    </div>
-                    <select
-                      class="sort-select"
-                      .value=${host._sortBy}
-                      @change=${(e5) => {
-                        host._sortBy = e5.target.value;
-                      }}
-                    >
-                      <option value="recent">Recent activity</option>
-                      <option value="alpha">Alphabetical</option>
-                      <option value="enabled_first">Enabled first</option>
-                    </select>
-                    <div
-                      style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                    >
+                      ></ha-icon>`
+                      : ""
+                  }
+                </div>
+                <div class="status-pills">
+                  ${["all", "enabled", "disabled", "deleted"].map(
+                    (s6) => x`
                       <button
-                        class="btn btn-primary"
-                        style="white-space:nowrap;"
+                        class="status-pill ${host._statusFilter === s6 ? "active" : ""}"
                         @click=${() => {
-                          host._newAutoName = "";
-                          host._showNewAutoDialog = true;
+                          host._statusFilter = s6;
+                          host._automationsPage = 1;
                         }}
                       >
-                        <ha-icon
-                          icon="mdi:plus"
-                          style="--mdc-icon-size:13px;"
-                        ></ha-icon>
-                        New Automation
+                        ${s6.charAt(0).toUpperCase() + s6.slice(1)}
                       </button>
-                    </div>
-                  </div>
-                  <div
-                    class="automations-summary"
-                    style="display:flex;align-items:center;justify-content:space-between;"
-                  >
-                    <span>
-                      ${filteredAutomations.length}
-                      automation${filteredAutomations.length !== 1 ? "s" : ""}
-                      (${enabledCount} enabled, ${disabledCount}
-                      disabled${deletedCount > 0 ? `, ${deletedCount} deleted` : ""})
-                    </span>
-                    ${
-                      host._bulkEditMode
-                        ? x`
-                          <div
-                            style="display:flex;align-items:center;gap:10px;"
-                          >
-                            <label class="bulk-select-all">
-                              <input
-                                type="checkbox"
-                                ?checked=${allVisibleSelected}
-                                .indeterminate=${partiallyVisibleSelected}
-                                ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
-                                @change=${(e5) =>
-                                  host._toggleSelectAllFiltered(
-                                    filteredAutomations,
-                                    e5.target.checked,
-                                  )}
-                              />
-                              <span>Select all</span>
-                            </label>
-                            <button
-                              class="btn btn-outline"
-                              @click=${() => {
-                                host._bulkEditMode = false;
-                                host._clearAutomationSelection();
-                              }}
-                            >
-                              Done
-                            </button>
-                          </div>
-                        `
-                        : x`
-                          <button
-                            class="btn btn-outline"
-                            @click=${() => {
-                              host._bulkEditMode = true;
-                            }}
-                          >
-                            <ha-icon
-                              icon="mdi:checkbox-multiple-outline"
-                              style="--mdc-icon-size:14px;"
-                            ></ha-icon>
-                            Bulk edit
-                          </button>
-                        `
-                    }
-                  </div>
-                  ${
-                    host._bulkEditMode && selectedIds.length > 0
-                      ? x`
-                        <div class="bulk-actions-row">
-                          <div class="left">
-                            ${selectedIds.length}
-                            selected${
-                              hiddenSelectedCount > 0
-                                ? x` <span
-                                  style="opacity:0.65;font-weight:500;"
-                                  >(${hiddenSelectedCount} hidden by
-                                  filter)</span
-                                >`
-                                : ""
-                            }
-                            ${
-                              host._bulkActionInProgress
-                                ? x`<span
-                                  style="opacity:0.75;font-weight:500;"
-                                >
-                                  · ${host._bulkActionLabel}</span
-                                >`
-                                : ""
-                            }
-                          </div>
-                          <div class="actions">
-                            <button
-                              class="btn btn-outline"
-                              ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkToggleSelected(true)}
-                            >
-                              ${host._bulkActionInProgress ? "Working\u2026" : "Enable all"}
-                            </button>
-                            <button
-                              class="btn btn-outline"
-                              ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkToggleSelected(false)}
-                            >
-                              ${host._bulkActionInProgress ? "Working\u2026" : "Disable all"}
-                            </button>
-                            <button
-                              class="btn btn-outline btn-danger"
-                              ?disabled=${bulkDisabled}
-                              @click=${() => host._bulkSoftDeleteSelected()}
-                            >
-                              ${host._bulkActionInProgress ? "Working\u2026" : "Soft-delete selected"}
-                            </button>
-                            <button
-                              class="btn btn-ghost"
-                              ?disabled=${host._bulkActionInProgress}
-                              @click=${() => host._clearAutomationSelection()}
-                            >
-                              Clear
-                            </button>
-                          </div>
-                        </div>
-                      `
-                      : ""
-                  }
-                  <div class="automations-grid">
-                    ${masonryColumns(
-                      pagedAutomations.map((a4) => {
-                        const isDraft = !!a4._draft;
-                        const expanded =
-                          !!host._expandedAutomations[a4.entity_id];
-                        const isOn = host._automationIsEnabled(a4);
-                        const automationId = a4.automation_id || "";
-                        const hasAutomationId = !!automationId;
-                        const canToggle =
-                          hasAutomationId && !host._bulkActionInProgress;
-                        const versionCount = a4.version_count || null;
-                        const deleting = host._deletingAutomation[automationId];
-                        const loadingChat = host._loadingToChat[automationId];
-                        const burgerOpen =
-                          host._openBurgerMenu === automationId;
-                        const cardExpanded =
-                          !!host._cardActiveTab[a4.entity_id];
-                        return x`
-                          <div
-                            class="card${cardExpanded ? " expanded" : ""}"
-                            style="padding:16px 18px;cursor:pointer;${!isDraft && !isOn ? "opacity:0.5;background:transparent;border-color:var(--selora-zinc-800);" : ""}"
-                            @click=${(e5) => {
-                              if (
-                                e5.target.closest(
-                                  ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .card-select, .rename-input, .rename-save-btn, .btn, .card-tab, .card-chevron",
-                                )
-                              )
-                                return;
-                              const current = host._cardActiveTab[a4.entity_id];
-                              if (current) {
-                                host._cardActiveTab = {
-                                  ...host._cardActiveTab,
-                                  [a4.entity_id]: null,
-                                };
-                              } else {
-                                const defaultTab =
-                                  a4.trigger?.length || a4.action?.length
-                                    ? "flow"
-                                    : a4.yaml_text
-                                      ? "yaml"
-                                      : hasAutomationId
-                                        ? "history"
-                                        : null;
-                                host._cardActiveTab = {
-                                  ...host._cardActiveTab,
-                                  [a4.entity_id]: defaultTab,
-                                };
-                              }
-                            }}
-                          >
-                            <!-- Row 1: Title + Toggle -->
-                            <div class="card-header" style="margin-bottom:0;">
-                              ${
-                                host._bulkEditMode && hasAutomationId
-                                  ? x`
-                                    <label class="card-select">
-                                      <input
-                                        type="checkbox"
-                                        .checked=${!!host._selectedAutomationIds[automationId]}
-                                        ?disabled=${host._bulkActionInProgress}
-                                        @click=${(e5) => e5.stopPropagation()}
-                                        @change=${(e5) =>
-                                          host._toggleAutomationSelection(
-                                            automationId,
-                                            e5,
-                                          )}
-                                      />
-                                    </label>
-                                  `
-                                  : ""
-                              }
-                              ${
-                                host._editingAlias === automationId
-                                  ? x`
-                                    <input
-                                      class="rename-input"
-                                      data-id="${automationId}"
-                                      .value=${host._editingAliasValue}
-                                      @input=${(e5) => {
-                                        host._editingAliasValue =
-                                          e5.target.value;
-                                      }}
-                                      @keydown=${(e5) => {
-                                        if (e5.key === "Enter")
-                                          host._saveRenameAutomation(
-                                            automationId,
-                                          );
-                                        if (e5.key === "Escape")
-                                          host._cancelRenameAutomation();
-                                      }}
-                                    />
-                                    <button
-                                      class="rename-save-btn"
-                                      title="Save"
-                                      @click=${() =>
-                                        host._saveRenameAutomation(
-                                          automationId,
-                                        )}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:check"
-                                        style="--mdc-icon-size:16px;"
-                                      ></ha-icon>
-                                    </button>
-                                  `
-                                  : x`
-                                    <h3 style="flex:1;font-size:14px;margin:0;">
-                                      ${a4.alias}
-                                    </h3>
-                                  `
-                              }
-                              <label
-                                class="toggle-switch"
-                                title="${canToggle ? (isOn ? "Enabled" : "Disabled") : "Unavailable"}"
-                                style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
-                                @click=${() => {
-                                  if (!canToggle) {
-                                    host._showToast(
-                                      "Unable to toggle: automation id was not resolved. Reload and try again.",
-                                      "error",
-                                    );
-                                  }
-                                }}
-                              >
-                                <input
-                                  type="checkbox"
-                                  .checked=${isOn}
-                                  ?disabled=${!canToggle}
-                                  @click=${(e5) => e5.stopPropagation()}
-                                  @change=${(e5) => {
-                                    if (!canToggle) return;
-                                    host._toggleAutomation(
-                                      a4.entity_id,
-                                      automationId,
-                                      e5.target.checked,
-                                    );
-                                  }}
-                                />
-                                <div class="toggle-track ${isOn ? "on" : ""}">
-                                  <div class="toggle-thumb"></div>
-                                </div>
-                              </label>
-                            </div>
-
-                            <!-- Row 2: Description / Actions swap -->
-                            <div
-                              class="card-row2"
-                              style="margin-top:12px;flex:1;position:relative;"
-                            >
-                              <div
-                                class="card-desc"
-                                style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;display:flex;flex-direction:column;height:100%;"
-                              >
-                                ${
-                                  a4.description
-                                    ? x`<div
-                                      style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
-                                    >
-                                      ${a4.description.replace(
-                                        /^\[Selora AI\]\s*/,
-                                        "",
-                                      )}
-                                    </div>`
-                                    : ""
-                                }
-                                <div
-                                  style="font-size:11px;opacity:0.5;margin-top:auto;padding-top:6px;"
-                                >
-                                  ${(() => {
-                                    const ago = formatTimeAgo(
-                                      a4.last_triggered,
-                                    );
-                                    if (ago) return `Last run: ${ago}`;
-                                    if (!host._automationIsEnabled(a4))
-                                      return "Disabled";
-                                    return "Never ran";
-                                  })()}
-                                </div>
-                              </div>
-                              <div
-                                class="card-actions-row ${cardExpanded ? "visible" : ""}"
-                                style="display:flex;align-items:center;gap:8px;"
-                              >
-                                ${
-                                  isDraft
-                                    ? x` <button
-                                        class="btn btn-primary"
-                                        style="font-size:12px;padding:6px 12px;"
-                                        @click=${() => {
-                                          host._activeSessionId =
-                                            a4._linked_session;
-                                          host._activeTab = "chat";
-                                          host._openSession(a4._linked_session);
-                                        }}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:chat-processing-outline"
-                                          style="--mdc-icon-size:14px;"
-                                        ></ha-icon>
-                                        Define in Chat
-                                      </button>
-                                      <button
-                                        class="btn btn-outline"
-                                        style="font-size:12px;padding:6px 12px;"
-                                        @click=${() => host._dismissDraft(a4._draft_id)}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:close"
-                                          style="--mdc-icon-size:14px;"
-                                        ></ha-icon>
-                                        Dismiss
-                                      </button>`
-                                    : x` <button
-                                      class="btn btn-outline refine-btn"
-                                      style="font-size:12px;padding:6px 12px;"
-                                      ?disabled=${!hasAutomationId || loadingChat || host._bulkActionInProgress}
-                                      @click=${() =>
-                                        host._loadAutomationToChat(
-                                          automationId,
-                                        )}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:chat-processing-outline"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      ${loadingChat ? "Loading\u2026" : "Refine in chat"}
-                                    </button>`
-                                }
-                                <div
-                                  style="margin-left:auto;display:flex;align-items:center;gap:6px;"
-                                >
-                                  <ha-icon
-                                    icon="mdi:chevron-down"
-                                    class="card-chevron ${cardExpanded ? "open" : ""}"
-                                    title="Expand details"
-                                    @click=${(e5) => {
-                                      e5.stopPropagation();
-                                      const current =
-                                        host._cardActiveTab[a4.entity_id];
-                                      if (current) {
-                                        host._cardActiveTab = {
-                                          ...host._cardActiveTab,
-                                          [a4.entity_id]: null,
-                                        };
-                                      } else {
-                                        const defaultTab =
-                                          a4.trigger?.length ||
-                                          a4.action?.length
-                                            ? "flow"
-                                            : a4.yaml_text
-                                              ? "yaml"
-                                              : hasAutomationId
-                                                ? "history"
-                                                : null;
-                                        host._cardActiveTab = {
-                                          ...host._cardActiveTab,
-                                          [a4.entity_id]: defaultTab,
-                                        };
-                                      }
-                                    }}
-                                  ></ha-icon>
-                                  ${
-                                    hasAutomationId
-                                      ? x`
-                                        <div class="burger-menu-wrapper">
-                                          <button
-                                            class="burger-btn"
-                                            @click=${(e5) =>
-                                              host._toggleBurgerMenu(
-                                                automationId,
-                                                e5,
-                                              )}
-                                            ?disabled=${host._bulkActionInProgress}
-                                            title="More actions"
-                                          >
-                                            <ha-icon
-                                              icon="mdi:dots-vertical"
-                                              style="--mdc-icon-size:16px;"
-                                            ></ha-icon>
-                                          </button>
-                                          ${
-                                            burgerOpen
-                                              ? x`
-                                                <div class="burger-dropdown">
-                                                  <button
-                                                    class="burger-item"
-                                                    @click=${(e5) => {
-                                                      e5.stopPropagation();
-                                                      host._startRenameAutomation(
-                                                        automationId,
-                                                        a4.alias,
-                                                      );
-                                                    }}
-                                                  >
-                                                    <ha-icon
-                                                      icon="mdi:pencil-outline"
-                                                      style="--mdc-icon-size:14px;"
-                                                    ></ha-icon>
-                                                    Rename
-                                                  </button>
-                                                  <button
-                                                    class="burger-item"
-                                                    @click=${(e5) => {
-                                                      e5.stopPropagation();
-                                                      host._openBurgerMenu =
-                                                        null;
-                                                      window.history.pushState(
-                                                        null,
-                                                        "",
-                                                        `/config/automation/edit/${automationId}`,
-                                                      );
-                                                      window.dispatchEvent(
-                                                        new Event(
-                                                          "location-changed",
-                                                        ),
-                                                      );
-                                                    }}
-                                                  >
-                                                    <ha-icon
-                                                      icon="mdi:open-in-new"
-                                                      style="--mdc-icon-size:14px;"
-                                                    ></ha-icon>
-                                                    Edit in HA
-                                                  </button>
-                                                  <button
-                                                    class="burger-item danger"
-                                                    ?disabled=${deleting}
-                                                    @click=${(e5) => {
-                                                      e5.stopPropagation();
-                                                      host._openBurgerMenu =
-                                                        null;
-                                                      host._softDeleteAutomation(
-                                                        automationId,
-                                                      );
-                                                    }}
-                                                  >
-                                                    <ha-icon
-                                                      icon="mdi:trash-can-outline"
-                                                      style="--mdc-icon-size:14px;"
-                                                    ></ha-icon>
-                                                    ${deleting ? "Deleting\u2026" : "Delete"}
-                                                  </button>
-                                                </div>
-                                              `
-                                              : ""
-                                          }
-                                        </div>
-                                      `
-                                      : ""
-                                  }
-                                </div>
-                              </div>
-                            </div>
-                            <!-- Expand section: View tabs + content -->
-                            ${
-                              cardExpanded
-                                ? x`<div
-                                    class="card-tabs"
-                                    style="margin-top:12px;"
-                                  >
-                                    <span class="label">View:</span>
-                                    ${
-                                      a4.trigger?.length || a4.action?.length
-                                        ? x`
-                                          <button
-                                            class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
-                                            @click=${() => {
-                                              host._cardActiveTab = {
-                                                ...host._cardActiveTab,
-                                                [a4.entity_id]:
-                                                  host._cardActiveTab[
-                                                    a4.entity_id
-                                                  ] === "flow"
-                                                    ? null
-                                                    : "flow",
-                                              };
-                                            }}
-                                          >
-                                            <ha-icon
-                                              icon="mdi:sitemap-outline"
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                            Flow
-                                          </button>
-                                          <span class="card-tab-sep">|</span>
-                                        `
-                                        : ""
-                                    }
-                                    ${
-                                      a4.yaml_text
-                                        ? x`
-                                          <button
-                                            class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
-                                            @click=${() => {
-                                              host._cardActiveTab = {
-                                                ...host._cardActiveTab,
-                                                [a4.entity_id]:
-                                                  host._cardActiveTab[
-                                                    a4.entity_id
-                                                  ] === "yaml"
-                                                    ? null
-                                                    : "yaml",
-                                              };
-                                            }}
-                                          >
-                                            <ha-icon
-                                              icon="mdi:code-braces"
-                                              style="--mdc-icon-size:14px;"
-                                            ></ha-icon>
-                                            YAML
-                                          </button>
-                                          <span class="card-tab-sep">|</span>
-                                        `
-                                        : ""
-                                    }
-                                    ${
-                                      hasAutomationId
-                                        ? x`
-                                          <button
-                                            class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
-                                            @click=${() => {
-                                              const isActive =
-                                                host._cardActiveTab[
-                                                  a4.entity_id
-                                                ] === "history";
-                                              host._cardActiveTab = {
-                                                ...host._cardActiveTab,
-                                                [a4.entity_id]: isActive
-                                                  ? null
-                                                  : "history",
-                                              };
-                                              if (
-                                                !isActive &&
-                                                !host._versions[automationId]
-                                              ) {
-                                                host._versionHistoryOpen = {
-                                                  ...host._versionHistoryOpen,
-                                                  [automationId]: true,
-                                                };
-                                                host._loadVersionHistory(
-                                                  automationId,
-                                                );
-                                              }
-                                            }}
-                                          >
-                                            History
-                                          </button>
-                                        `
-                                        : ""
-                                    }
-                                  </div>
-                                  ${host._cardActiveTab[a4.entity_id] === "flow" && (a4.trigger?.length || a4.action?.length) ? renderAutomationFlowchart(host, a4) : ""}
-                                  ${
-                                    host._cardActiveTab[a4.entity_id] ===
-                                      "yaml" && a4.yaml_text
-                                      ? host._renderYamlEditor(
-                                          `yaml_${a4.entity_id}`,
-                                          a4.yaml_text,
-                                          (key) =>
-                                            host._saveActiveAutomationYaml(
-                                              a4.automation_id,
-                                              key,
-                                            ),
-                                        )
-                                      : ""
-                                  }
-                                  ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}`
-                                : ""
-                            }
-                          </div>
-                        `;
-                      }),
-                      3,
-                    )}
-                  </div>
-                  ${
-                    totalAutoPages > 1
-                      ? x`
-                        <div class="pagination">
-                          <button
-                            class="btn btn-outline"
-                            ?disabled=${safeAutoPage <= 1}
-                            @click=${() => {
-                              host._automationsPage = safeAutoPage - 1;
-                            }}
-                          >
-                            ‹ Prev
-                          </button>
-                          <span class="page-info"
-                            >Page ${safeAutoPage} of ${totalAutoPages} ·
-                            ${filteredAutomations.length} automations</span
-                          >
-                          <label class="per-page-label"
-                            >Per page:
-                            <select
-                              class="per-page-select"
-                              .value=${String(host._autosPerPage)}
-                              @change=${(e5) => {
-                                host._autosPerPage = Number(e5.target.value);
-                                host._automationsPage = 1;
-                              }}
-                            >
-                              <option value="10">10</option>
-                              <option value="20">20</option>
-                              <option value="50">50</option>
-                            </select>
-                          </label>
-                          <button
-                            class="btn btn-outline"
-                            ?disabled=${safeAutoPage >= totalAutoPages}
-                            @click=${() => {
-                              host._automationsPage = safeAutoPage + 1;
-                            }}
-                          >
-                            Next ›
-                          </button>
-                        </div>
-                      `
-                      : ""
-                  }
-                  ${
-                    filteredAutomations.length === 0 &&
-                    host._automations.length > 0
-                      ? x`<div
-                        style="text-align:center;opacity:0.45;padding:24px 0;"
-                      >
-                        No automations match "${host._automationFilter}"
-                      </div>`
-                      : ""
-                  }
-                `
-                : x`<div style="text-align:center;padding:32px 0;">
-                  <ha-icon
-                    icon="mdi:robot-vacuum-variant"
-                    style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
-                  ></ha-icon>
-                  <p style="opacity:0.45;margin:0 0 12px;">
-                    No automations yet.
-                  </p>
+                    `,
+                  )}
+                </div>
+                <select
+                  class="sort-select"
+                  .value=${host._sortBy}
+                  @change=${(e5) => {
+                    host._sortBy = e5.target.value;
+                  }}
+                >
+                  <option value="recent">Recent activity</option>
+                  <option value="alpha">Alphabetical</option>
+                  <option value="enabled_first">Enabled first</option>
+                </select>
+                <div
+                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
+                >
                   <button
                     class="btn btn-primary"
+                    style="white-space:nowrap;"
                     @click=${() => {
                       host._newAutoName = "";
                       host._showNewAutoDialog = true;
@@ -4895,537 +5018,588 @@ function renderAutomations(host) {
                   >
                     <ha-icon
                       icon="mdi:plus"
-                      style="--mdc-icon-size:14px;"
+                      style="--mdc-icon-size:13px;"
                     ></ha-icon>
                     New Automation
                   </button>
-                </div>`
-            }
-          `
-          : ""
-      }
-      ${
-        host._automationsSubTab === "suggestions"
-          ? x`
-            ${host._renderUnifiedSuggestions()}
-            ${
-              host._suggestions.length > 0
-                ? x`
-                  <div class="automations-grid">
-                    ${masonryColumns(
-                      host._suggestions.map((item) => {
-                        const auto = item.automation || item.automation_data;
-                        const risk =
-                          item.risk_assessment || auto?.risk_assessment || null;
-                        const cardKey = `sug_${auto.alias}`;
-                        const origYaml = item.automation_yaml || "";
-                        const editedYaml = host._editedYaml[cardKey];
-                        const displayYaml =
-                          editedYaml !== void 0 ? editedYaml : origYaml;
-                        const hasFlow =
-                          auto &&
-                          (auto.trigger?.length ||
-                            auto.triggers?.length ||
-                            auto.action?.length ||
-                            auto.actions?.length);
-                        const defaultTab = hasFlow ? "flow" : "yaml";
-                        const activeTab =
-                          host._cardActiveTab[cardKey] !== void 0
-                            ? host._cardActiveTab[cardKey]
-                            : defaultTab;
-                        return x`
-                          <div
-                            class="card"
-                            style="padding:24px;text-align:center;"
-                          >
-                            <div
-                              class="card-header"
-                              style="margin-bottom:6px;justify-content:center;"
-                            >
-                              <h3 style="font-size:14px;margin:0;">
-                                ${auto.alias}
-                              </h3>
-                            </div>
-                            ${
-                              auto.description
-                                ? x`<div
-                                  style="font-size:11px;opacity:0.55;margin-bottom:6px;"
-                                >
-                                  ${auto.description}
-                                </div>`
-                                : ""
-                            }
-                            ${
-                              risk?.level === "elevated"
-                                ? x`
-                                  <div
-                                    class="proposal-status"
-                                    style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-bottom:8px;font-size:12px;"
-                                  >
-                                    <ha-icon icon="mdi:alert-outline"></ha-icon>
-                                    <span>${risk.summary}</span>
-                                  </div>
-                                `
-                                : ""
-                            }
-
-                            <div
-                              style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"
-                            >
-                              <button
-                                class="btn btn-primary"
-                                style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;"
-                                ?disabled=${!!host._savingYaml[cardKey]}
-                                @click=${() =>
-                                  host._createSuggestionWithEdits(
-                                    auto,
-                                    cardKey,
-                                    origYaml,
-                                  )}
-                              >
-                                <ha-icon
-                                  icon="mdi:check"
-                                  style="--mdc-icon-size:13px;"
-                                ></ha-icon>
-                                ${host._savingYaml[cardKey] ? "Creating\u2026" : "Accept"}
-                              </button>
-                              <button
-                                class="btn btn-outline"
-                                style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;"
-                                @click=${() => host._discardSuggestion(item)}
-                              >
-                                <ha-icon
-                                  icon="mdi:close"
-                                  style="--mdc-icon-size:13px;"
-                                ></ha-icon>
-                                Discard
-                              </button>
-                            </div>
-
-                            <div class="card-tabs">
-                              <span class="label">View:</span>
-                              ${
-                                hasFlow
-                                  ? x`
-                                    <button
-                                      class="card-tab ${activeTab === "flow" ? "active" : ""}"
-                                      @click=${() => {
-                                        host._cardActiveTab = {
-                                          ...host._cardActiveTab,
-                                          [cardKey]:
-                                            activeTab === "flow"
-                                              ? null
-                                              : "flow",
-                                        };
-                                      }}
-                                    >
-                                      <ha-icon
-                                        icon="mdi:sitemap-outline"
-                                        style="--mdc-icon-size:14px;"
-                                      ></ha-icon>
-                                      Flow
-                                    </button>
-                                    <span class="card-tab-sep">|</span>
-                                  `
-                                  : ""
-                              }
-                              <button
-                                class="card-tab ${activeTab === "yaml" ? "active" : ""}"
-                                @click=${() => {
-                                  host._cardActiveTab = {
-                                    ...host._cardActiveTab,
-                                    [cardKey]:
-                                      activeTab === "yaml" ? null : "yaml",
-                                  };
-                                }}
-                              >
-                                <ha-icon
-                                  icon="mdi:code-braces"
-                                  style="--mdc-icon-size:14px;"
-                                ></ha-icon>
-                                YAML
-                              </button>
-                              <ha-icon
-                                icon="mdi:chevron-down"
-                                class="card-chevron ${activeTab ? "open" : ""}"
-                                style="margin-left:auto;"
-                                @click=${() => {
-                                  host._cardActiveTab = {
-                                    ...host._cardActiveTab,
-                                    [cardKey]: activeTab
-                                      ? null
-                                      : hasFlow
-                                        ? "flow"
-                                        : "yaml",
-                                  };
-                                }}
-                              ></ha-icon>
-                            </div>
-
-                            ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, auto) : ""}
-                            ${
-                              activeTab === "yaml"
-                                ? x`
-                                  <div style="margin-top:6px;">
-                                    <textarea
-                                      class="yaml-editor"
-                                      style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
-                                      .value=${displayYaml}
-                                      @input=${(e5) => {
-                                        host._editedYaml = {
-                                          ...host._editedYaml,
-                                          [cardKey]: e5.target.value,
-                                        };
-                                        e5.target.style.height = "auto";
-                                        e5.target.style.height =
-                                          e5.target.scrollHeight + "px";
-                                      }}
-                                      @focus=${(e5) => {
-                                        e5.target.style.height = "auto";
-                                        e5.target.style.height =
-                                          e5.target.scrollHeight + "px";
-                                      }}
-                                    >
-                                    </textarea>
-                                  </div>
-                                `
-                                : ""
-                            }
-                          </div>
-                        `;
-                      }),
-                    )}
-                  </div>
-                `
-                : ""
-            }
-          `
-          : ""
-      }
-      ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
-    </div>
-  `;
-}
-
-// src/panel/render-suggestions.js
-function renderUnifiedSuggestions(host) {
-  const MIN_CONF = 0.8;
-  const SPAGE_SIZE = host._suggestionsPerPage || 10;
-  const seenDescs = /* @__PURE__ */ new Set();
-  const qualified = (host._proactiveSuggestions || []).filter((s6) => {
-    if ((s6.confidence || 0) < MIN_CONF) return false;
-    const key = (s6.description || "").toLowerCase().trim();
-    if (seenDescs.has(key)) return false;
-    seenDescs.add(key);
-    return true;
-  });
-  const totalItems = qualified.length + (host._suggestions || []).length;
-  return x`
-    <div style="margin-bottom:16px;">
-      <div class="filter-row" style="margin-bottom:12px;">
-        <div
-          style="display:flex;align-items:center;gap:8px;justify-content:center;"
-        >
-          <button
-            class="btn"
-            style="font-size:11px;"
-            ?disabled=${host._loadingProactive}
-            @click=${() => host._triggerPatternScan()}
-          >
-            <ha-icon icon="mdi:refresh" style="--mdc-icon-size:13px;"></ha-icon>
-            ${host._loadingProactive ? "Scanning\u2026" : "Scan Now"}
-          </button>
-          <button
-            class="btn btn-primary"
-            style="font-size:11px;"
-            ?disabled=${host._generatingSuggestions}
-            @click=${() => host._triggerGenerateSuggestions()}
-          >
-            ${
-              host._generatingSuggestions
-                ? x`<span
-                  class="spinner"
-                  style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
-                ></span>`
-                : x`<ha-icon
-                  icon="mdi:auto-fix"
-                  style="--mdc-icon-size:13px;"
-                ></ha-icon>`
-            }
-            ${host._generatingSuggestions ? "Analyzing\u2026" : "Generate"}
-          </button>
-          <label class="per-page-label"
-            >Show Per Page:
-            <select
-              class="per-page-select"
-              .value=${String(host._suggestionsPerPage)}
-              @change=${(e5) => {
-                host._suggestionsPerPage = Number(e5.target.value);
-                host._suggestionsPage = 1;
-              }}
-            >
-              <option value="10">10</option>
-              <option value="20">20</option>
-              <option value="50">50</option>
-            </select>
-          </label>
-        </div>
-      </div>
-
-      ${
-        totalItems === 0
-          ? x`
-            <div
-              style="display:flex;flex-direction:column;align-items:center;padding:32px 0;gap:12px;"
-            >
-              <ha-icon
-                icon="mdi:lightbulb-auto-outline"
-                style="--mdc-icon-size:48px;opacity:0.3;"
-              ></ha-icon>
-              <p style="opacity:0.45;margin:0;font-size:13px;">
-                No suggestions yet. Tap "Generate" to analyze your home.
-              </p>
-            </div>
-          `
-          : ""
-      }
-      ${
-        qualified.length > 0
-          ? x`
-            ${(() => {
-              const sTotalPages = Math.max(
-                1,
-                Math.ceil(qualified.length / SPAGE_SIZE),
-              );
-              const sSafePage = Math.min(host._suggestionsPage, sTotalPages);
-              const sPaged = qualified.slice(
-                (sSafePage - 1) * SPAGE_SIZE,
-                sSafePage * SPAGE_SIZE,
-              );
-              return x`
-                <div class="automations-grid">
-                  ${masonryColumns(
-                    sPaged.map((s6) => {
-                      const accepting =
-                        !!host._acceptingProactive[s6.suggestion_id];
-                      const dismissing =
-                        !!host._dismissingProactive[s6.suggestion_id];
-                      const cardKey = `proactive_${s6.suggestion_id}`;
-                      const editedYaml = host._editedYaml[cardKey];
-                      const displayYaml =
-                        editedYaml !== void 0 ? editedYaml : s6.automation_yaml;
-                      const parsedAuto = s6.automation_data || null;
-                      const hasFlow =
-                        parsedAuto &&
-                        (parsedAuto.trigger?.length ||
-                          parsedAuto.triggers?.length ||
-                          parsedAuto.action?.length ||
-                          parsedAuto.actions?.length);
-                      const defaultTab = hasFlow ? "flow" : "yaml";
-                      const activeTab =
-                        host._cardActiveTab[cardKey] !== void 0
-                          ? host._cardActiveTab[cardKey]
-                          : defaultTab;
-                      return x`
-                        <div
-                          class="card"
-                          style="padding:24px;text-align:center;"
-                        >
-                          <div
-                            class="card-header"
-                            style="margin-bottom:6px;justify-content:center;"
-                          >
-                            <h3 style="font-size:14px;margin:0;">
-                              ${s6.description}
-                            </h3>
-                          </div>
-
-                          ${
-                            s6.evidence_summary
-                              ? x`
-                                <div
-                                  style="font-size:11px;opacity:0.55;margin-bottom:6px;"
-                                >
-                                  ${s6.evidence_summary}
-                                </div>
-                              `
-                              : ""
-                          }
-
-                          <div
-                            style="display:flex;align-items:center;gap:6px;margin-bottom:2px;"
-                          >
-                            <button
-                              class="btn btn-primary"
-                              style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;"
-                              ?disabled=${accepting}
-                              @click=${() =>
-                                host._acceptProactiveSuggestion(
-                                  s6.suggestion_id,
-                                  editedYaml,
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:check"
-                                style="--mdc-icon-size:13px;"
-                              ></ha-icon>
-                              ${accepting ? "Creating\u2026" : "Accept"}
-                            </button>
-                            <button
-                              class="btn btn-outline"
-                              style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;"
-                              ?disabled=${dismissing}
-                              @click=${() =>
-                                host._dismissProactiveSuggestion(
-                                  s6.suggestion_id,
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:close"
-                                style="--mdc-icon-size:13px;"
-                              ></ha-icon>
-                              ${dismissing ? "Dismissing\u2026" : "Dismiss"}
-                            </button>
-                            <button
-                              class="btn btn-outline"
-                              style="flex:1;font-size:11px;padding:5px 8px;justify-content:center;"
-                              ?disabled=${dismissing}
-                              @click=${() =>
-                                host._snoozeProactiveSuggestion(
-                                  s6.suggestion_id,
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:clock-outline"
-                                style="--mdc-icon-size:13px;"
-                              ></ha-icon>
-                              Snooze
-                            </button>
-                          </div>
-
-                          <div class="card-tabs">
-                            <span class="label">View:</span>
-                            ${
-                              hasFlow
-                                ? x`
-                                  <button
-                                    class="card-tab ${activeTab === "flow" ? "active" : ""}"
-                                    @click=${() => {
-                                      host._cardActiveTab = {
-                                        ...host._cardActiveTab,
-                                        [cardKey]:
-                                          activeTab === "flow" ? null : "flow",
-                                      };
-                                    }}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:sitemap-outline"
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                    Flow
-                                  </button>
-                                  <span class="card-tab-sep">|</span>
-                                `
-                                : ""
-                            }
-                            <button
-                              class="card-tab ${activeTab === "yaml" ? "active" : ""}"
-                              @click=${() => {
-                                host._cardActiveTab = {
-                                  ...host._cardActiveTab,
-                                  [cardKey]:
-                                    activeTab === "yaml" ? null : "yaml",
-                                };
-                              }}
-                            >
-                              <ha-icon
-                                icon="mdi:code-braces"
-                                style="--mdc-icon-size:14px;"
-                              ></ha-icon>
-                              YAML
-                            </button>
-                            <ha-icon
-                              icon="mdi:chevron-down"
-                              class="card-chevron ${activeTab ? "open" : ""}"
-                              style="margin-left:auto;"
-                              @click=${() => {
-                                host._cardActiveTab = {
-                                  ...host._cardActiveTab,
-                                  [cardKey]: activeTab ? null : "yaml",
-                                };
-                              }}
-                            ></ha-icon>
-                          </div>
-
-                          ${activeTab === "flow" && hasFlow ? host._renderAutomationFlowchart(parsedAuto) : ""}
-                          ${
-                            activeTab === "yaml"
-                              ? x`
-                                <div style="margin-top:6px;">
-                                  <textarea
-                                    class="yaml-editor"
-                                    style="width:100%;font-family:monospace;font-size:12px;background:var(--primary-background-color);color:var(--primary-text-color);border:1px solid var(--divider-color);border-radius:6px;padding:8px;resize:none;overflow:hidden;field-sizing:content;"
-                                    .value=${displayYaml}
-                                    @input=${(e5) => {
-                                      host._editedYaml = {
-                                        ...host._editedYaml,
-                                        [cardKey]: e5.target.value,
-                                      };
-                                      e5.target.style.height = "auto";
-                                      e5.target.style.height =
-                                        e5.target.scrollHeight + "px";
-                                    }}
-                                    @focus=${(e5) => {
-                                      e5.target.style.height = "auto";
-                                      e5.target.style.height =
-                                        e5.target.scrollHeight + "px";
-                                    }}
-                                  >
-                                  </textarea>
-                                </div>
-                              `
-                              : ""
-                          }
-                        </div>
-                      `;
-                    }),
-                  )}
                 </div>
+              </div>
+              <div
+                class="automations-summary"
+                style="display:flex;align-items:center;justify-content:space-between;"
+              >
+                <span>
+                  ${filteredAutomations.length} existing
+                  automation${filteredAutomations.length !== 1 ? "s" : ""}
+                  (${enabledCount} enabled, ${disabledCount}
+                  disabled${deletedCount > 0 ? `, ${deletedCount} deleted` : ""})
+                </span>
                 ${
-                  sTotalPages > 1
+                  host._bulkEditMode
                     ? x`
-                      <div class="pagination">
+                      <div style="display:flex;align-items:center;gap:10px;">
+                        <label class="bulk-select-all">
+                          <input
+                            type="checkbox"
+                            ?checked=${allVisibleSelected}
+                            .indeterminate=${partiallyVisibleSelected}
+                            ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
+                            @change=${(e5) =>
+                              host._toggleSelectAllFiltered(
+                                filteredAutomations,
+                                e5.target.checked,
+                              )}
+                          />
+                          <span>Select all</span>
+                        </label>
                         <button
                           class="btn btn-outline"
-                          ?disabled=${sSafePage <= 1}
                           @click=${() => {
-                            host._suggestionsPage = sSafePage - 1;
+                            host._bulkEditMode = false;
+                            host._clearAutomationSelection();
                           }}
                         >
-                          ‹ Prev
-                        </button>
-                        <span class="page-info"
-                          >Page ${sSafePage} of ${sTotalPages} ·
-                          ${qualified.length} suggestions</span
-                        >
-                        <button
-                          class="btn btn-outline"
-                          ?disabled=${sSafePage >= sTotalPages}
-                          @click=${() => {
-                            host._suggestionsPage = sSafePage + 1;
-                          }}
-                        >
-                          Next ›
+                          Done
                         </button>
                       </div>
                     `
-                    : ""
+                    : x`
+                      <button
+                        class="btn btn-outline"
+                        @click=${() => {
+                          host._bulkEditMode = true;
+                        }}
+                      >
+                        <ha-icon
+                          icon="mdi:checkbox-multiple-outline"
+                          style="--mdc-icon-size:14px;"
+                        ></ha-icon>
+                        Bulk edit
+                      </button>
+                    `
                 }
-              `;
-            })()}
-          `
-          : ""
-      }
+              </div>
+              ${
+                host._bulkEditMode && selectedIds.length > 0
+                  ? x`
+                    <div class="bulk-actions-row">
+                      <div class="left">
+                        ${selectedIds.length}
+                        selected${
+                          hiddenSelectedCount > 0
+                            ? x` <span style="opacity:0.65;font-weight:500;"
+                              >(${hiddenSelectedCount} hidden by filter)</span
+                            >`
+                            : ""
+                        }
+                        ${
+                          host._bulkActionInProgress
+                            ? x`<span style="opacity:0.75;font-weight:500;">
+                              · ${host._bulkActionLabel}</span
+                            >`
+                            : ""
+                        }
+                      </div>
+                      <div class="actions">
+                        <button
+                          class="btn btn-outline"
+                          ?disabled=${bulkDisabled}
+                          @click=${() => host._bulkToggleSelected(true)}
+                        >
+                          ${host._bulkActionInProgress ? "Working\u2026" : "Enable all"}
+                        </button>
+                        <button
+                          class="btn btn-outline"
+                          ?disabled=${bulkDisabled}
+                          @click=${() => host._bulkToggleSelected(false)}
+                        >
+                          ${host._bulkActionInProgress ? "Working\u2026" : "Disable all"}
+                        </button>
+                        <button
+                          class="btn btn-outline btn-danger"
+                          ?disabled=${bulkDisabled}
+                          @click=${() => host._bulkSoftDeleteSelected()}
+                        >
+                          ${host._bulkActionInProgress ? "Working\u2026" : "Soft-delete selected"}
+                        </button>
+                        <button
+                          class="btn btn-ghost"
+                          ?disabled=${host._bulkActionInProgress}
+                          @click=${() => host._clearAutomationSelection()}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                  `
+                  : ""
+              }
+              <div class="automations-list">
+                ${pagedAutomations.map((a4) => {
+                  const isDraft = !!a4._draft;
+                  const isOn = host._automationIsEnabled(a4);
+                  const automationId = a4.automation_id || "";
+                  const hasAutomationId = !!automationId;
+                  const canToggle =
+                    hasAutomationId && !host._bulkActionInProgress;
+                  const deleting = host._deletingAutomation[automationId];
+                  const loadingChat = host._loadingToChat[automationId];
+                  const burgerOpen = host._openBurgerMenu === automationId;
+                  const cardExpanded = !!host._cardActiveTab[a4.entity_id];
+                  const ago = formatTimeAgo(a4.last_triggered);
+                  const lastRun = ago ? ago : !isOn ? "Disabled" : "Never";
+                  return x`
+                    <div
+                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
+                      data-entity-id="${a4.entity_id}"
+                    >
+                      <div
+                        class="auto-row-main"
+                        @click=${(e5) => {
+                          if (
+                            e5.target.closest(
+                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .card-select, .rename-input, .rename-save-btn, .btn",
+                            )
+                          )
+                            return;
+                          const current = host._cardActiveTab[a4.entity_id];
+                          if (current) {
+                            host._cardActiveTab = {
+                              ...host._cardActiveTab,
+                              [a4.entity_id]: null,
+                            };
+                          } else {
+                            const defaultTab =
+                              a4.trigger?.length || a4.action?.length
+                                ? "flow"
+                                : a4.yaml_text
+                                  ? "yaml"
+                                  : hasAutomationId
+                                    ? "history"
+                                    : null;
+                            host._cardActiveTab = {
+                              ...host._cardActiveTab,
+                              [a4.entity_id]: defaultTab,
+                            };
+                          }
+                        }}
+                      >
+                        ${
+                          host._bulkEditMode && hasAutomationId
+                            ? x`
+                              <label class="card-select">
+                                <input
+                                  type="checkbox"
+                                  .checked=${!!host._selectedAutomationIds[automationId]}
+                                  ?disabled=${host._bulkActionInProgress}
+                                  @click=${(e5) => e5.stopPropagation()}
+                                  @change=${(e5) =>
+                                    host._toggleAutomationSelection(
+                                      automationId,
+                                      e5,
+                                    )}
+                                />
+                              </label>
+                            `
+                            : ""
+                        }
+                        <div
+                          class="auto-row-name"
+                          data-last-run="Last run: ${lastRun}"
+                        >
+                          ${
+                            host._editingAlias === automationId
+                              ? x`
+                                <input
+                                  class="rename-input"
+                                  data-id="${automationId}"
+                                  .value=${host._editingAliasValue}
+                                  @input=${(e5) => {
+                                    host._editingAliasValue = e5.target.value;
+                                  }}
+                                  @click=${(e5) => e5.stopPropagation()}
+                                  @keydown=${(e5) => {
+                                    if (e5.key === "Enter")
+                                      host._saveRenameAutomation(automationId);
+                                    if (e5.key === "Escape")
+                                      host._cancelRenameAutomation();
+                                  }}
+                                />
+                                <button
+                                  class="rename-save-btn"
+                                  title="Save"
+                                  @click=${() => host._saveRenameAutomation(automationId)}
+                                >
+                                  <ha-icon
+                                    icon="mdi:check"
+                                    style="--mdc-icon-size:16px;"
+                                  ></ha-icon>
+                                </button>
+                              `
+                              : x`<span class="auto-row-title"
+                                >${a4.alias}</span
+                              >`
+                          }
+                          ${
+                            a4.description
+                              ? x`<span class="auto-row-desc"
+                                >${a4.description.replace(
+                                  /^\[Selora AI\]\s*/,
+                                  "",
+                                )}</span
+                              >`
+                              : ""
+                          }
+                          <span class="auto-row-mobile-meta">
+                            <span>Last run: ${lastRun}</span>
+                            <ha-icon
+                              icon="mdi:chevron-down"
+                              class="card-chevron ${cardExpanded ? "open" : ""}"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                        <span class="auto-row-last-run"
+                          ><span class="last-run-prefix">Last run: </span
+                          >${lastRun}${
+                            a4.last_triggered
+                              ? x`<span class="setting-tooltip"
+                                >Last run:
+                                ${new Date(
+                                  a4.last_triggered,
+                                ).toLocaleString()}</span
+                              >`
+                              : ""
+                          }
+                        </span>
+                        <label
+                          class="toggle-switch"
+                          title="${canToggle ? (isOn ? "Enabled" : "Disabled") : "Unavailable"}"
+                          style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
+                          @click=${(e5) => {
+                            e5.stopPropagation();
+                            if (!canToggle) {
+                              host._showToast(
+                                "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                "error",
+                              );
+                            }
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            .checked=${isOn}
+                            ?disabled=${!canToggle}
+                            @click=${(e5) => e5.stopPropagation()}
+                            @change=${(e5) => {
+                              if (!canToggle) return;
+                              host._toggleAutomation(
+                                a4.entity_id,
+                                automationId,
+                                e5.target.checked,
+                              );
+                            }}
+                          />
+                          <div class="toggle-track ${isOn ? "on" : ""}">
+                            <div class="toggle-thumb"></div>
+                          </div>
+                        </label>
+                        ${
+                          hasAutomationId
+                            ? x`
+                              <div class="burger-menu-wrapper">
+                                <button
+                                  class="burger-btn"
+                                  @click=${(e5) => host._toggleBurgerMenu(automationId, e5)}
+                                  ?disabled=${host._bulkActionInProgress}
+                                  title="More actions"
+                                >
+                                  <ha-icon
+                                    icon="mdi:dots-vertical"
+                                    style="--mdc-icon-size:16px;"
+                                  ></ha-icon>
+                                </button>
+                                ${
+                                  burgerOpen
+                                    ? x`
+                                      <div class="burger-dropdown">
+                                        <button
+                                          class="burger-item"
+                                          @click=${(e5) => {
+                                            e5.stopPropagation();
+                                            host._openBurgerMenu = null;
+                                            host._loadAutomationToChat(
+                                              automationId,
+                                            );
+                                          }}
+                                          ?disabled=${loadingChat}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:chat-processing-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${loadingChat ? "Loading\u2026" : "Refine in chat"}
+                                        </button>
+                                        <button
+                                          class="burger-item"
+                                          @click=${(e5) => {
+                                            e5.stopPropagation();
+                                            host._startRenameAutomation(
+                                              automationId,
+                                              a4.alias,
+                                            );
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:pencil-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          Rename
+                                        </button>
+                                        <button
+                                          class="burger-item"
+                                          @click=${(e5) => {
+                                            e5.stopPropagation();
+                                            host._openBurgerMenu = null;
+                                            window.history.pushState(
+                                              null,
+                                              "",
+                                              `/config/automation/edit/${automationId}`,
+                                            );
+                                            window.dispatchEvent(
+                                              new Event("location-changed"),
+                                            );
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:open-in-new"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          Edit in HA
+                                        </button>
+                                        <button
+                                          class="burger-item danger"
+                                          ?disabled=${deleting}
+                                          @click=${(e5) => {
+                                            e5.stopPropagation();
+                                            host._openBurgerMenu = null;
+                                            host._softDeleteAutomation(
+                                              automationId,
+                                            );
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:trash-can-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${deleting ? "Deleting\u2026" : "Delete"}
+                                        </button>
+                                      </div>
+                                    `
+                                    : ""
+                                }
+                              </div>
+                            `
+                            : ""
+                        }
+                      </div>
+                      ${
+                        cardExpanded
+                          ? x`
+                            <div class="auto-row-expand">
+                              <div class="card-tabs" style="margin-top:0;">
+                                ${
+                                  a4.trigger?.length || a4.action?.length
+                                    ? x`
+                                      <button
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
+                                        @click=${() => {
+                                          host._cardActiveTab = {
+                                            ...host._cardActiveTab,
+                                            [a4.entity_id]:
+                                              host._cardActiveTab[
+                                                a4.entity_id
+                                              ] === "flow"
+                                                ? null
+                                                : "flow",
+                                          };
+                                        }}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:sitemap-outline"
+                                          style="--mdc-icon-size:14px;"
+                                        ></ha-icon>
+                                        Flow
+                                      </button>
+                                      <span class="card-tab-sep">|</span>
+                                    `
+                                    : ""
+                                }
+                                ${
+                                  a4.yaml_text
+                                    ? x`
+                                      <button
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
+                                        @click=${() => {
+                                          host._cardActiveTab = {
+                                            ...host._cardActiveTab,
+                                            [a4.entity_id]:
+                                              host._cardActiveTab[
+                                                a4.entity_id
+                                              ] === "yaml"
+                                                ? null
+                                                : "yaml",
+                                          };
+                                        }}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:code-braces"
+                                          style="--mdc-icon-size:14px;"
+                                        ></ha-icon>
+                                        YAML
+                                      </button>
+                                      <span class="card-tab-sep">|</span>
+                                    `
+                                    : ""
+                                }
+                                ${
+                                  hasAutomationId
+                                    ? x`
+                                      <button
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
+                                        @click=${() => {
+                                          const isActive =
+                                            host._cardActiveTab[
+                                              a4.entity_id
+                                            ] === "history";
+                                          host._cardActiveTab = {
+                                            ...host._cardActiveTab,
+                                            [a4.entity_id]: isActive
+                                              ? null
+                                              : "history",
+                                          };
+                                          if (
+                                            !isActive &&
+                                            !host._versions[automationId]
+                                          ) {
+                                            host._versionHistoryOpen = {
+                                              ...host._versionHistoryOpen,
+                                              [automationId]: true,
+                                            };
+                                            host._loadVersionHistory(
+                                              automationId,
+                                            );
+                                          }
+                                        }}
+                                      >
+                                        History
+                                      </button>
+                                    `
+                                    : ""
+                                }
+                              </div>
+                              ${host._cardActiveTab[a4.entity_id] === "flow" && (a4.trigger?.length || a4.action?.length) ? renderAutomationFlowchart(host, a4) : ""}
+                              ${
+                                host._cardActiveTab[a4.entity_id] === "yaml" &&
+                                a4.yaml_text
+                                  ? host._renderYamlEditor(
+                                      `yaml_${a4.entity_id}`,
+                                      a4.yaml_text,
+                                      (key) =>
+                                        host._saveActiveAutomationYaml(
+                                          a4.automation_id,
+                                          key,
+                                        ),
+                                    )
+                                  : ""
+                              }
+                              ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}
+                            </div>
+                          `
+                          : ""
+                      }
+                    </div>
+                  `;
+                })}
+              </div>
+              ${
+                totalAutoPages > 1
+                  ? x`
+                    <div class="pagination">
+                      <button
+                        class="btn btn-outline"
+                        ?disabled=${safeAutoPage <= 1}
+                        @click=${() => {
+                          host._automationsPage = safeAutoPage - 1;
+                        }}
+                      >
+                        ‹ Prev
+                      </button>
+                      <span class="page-info"
+                        >Page ${safeAutoPage} of ${totalAutoPages} ·
+                        ${filteredAutomations.length} automations</span
+                      >
+                      <label class="per-page-label"
+                        >Per page:
+                        <select
+                          class="per-page-select"
+                          .value=${String(host._autosPerPage)}
+                          @change=${(e5) => {
+                            host._autosPerPage = Number(e5.target.value);
+                            host._automationsPage = 1;
+                          }}
+                        >
+                          <option value="10">10</option>
+                          <option value="20">20</option>
+                          <option value="50">50</option>
+                        </select>
+                      </label>
+                      <button
+                        class="btn btn-outline"
+                        ?disabled=${safeAutoPage >= totalAutoPages}
+                        @click=${() => {
+                          host._automationsPage = safeAutoPage + 1;
+                        }}
+                      >
+                        Next ›
+                      </button>
+                    </div>
+                  `
+                  : ""
+              }
+              ${
+                filteredAutomations.length === 0 && host._automations.length > 0
+                  ? x`<div
+                    style="text-align:center;opacity:0.45;padding:24px 0;"
+                  >
+                    No automations match "${host._automationFilter}"
+                  </div>`
+                  : ""
+              }
+            `
+            : x`<div style="text-align:center;padding:32px 0;">
+              <ha-icon
+                icon="mdi:robot-vacuum-variant"
+                style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
+              ></ha-icon>
+              <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
+              <button
+                class="btn btn-primary"
+                @click=${() => {
+                  host._newAutoName = "";
+                  host._showNewAutoDialog = true;
+                }}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                New Automation
+              </button>
+            </div>`
+        }
+      </div>
+      ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
     </div>
   `;
 }
@@ -5447,8 +5621,10 @@ function renderSettings(host) {
   return x`
     <div class="scroll-view">
       <div class="settings-form">
-        <div class="settings-section">
-          <div class="settings-section-title">LLM Provider</div>
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>LLM Provider</h3>
+          </div>
           <div class="form-group">
             <label>Provider</label>
             <select
@@ -5544,20 +5720,30 @@ function renderSettings(host) {
           }
         </div>
 
-        <details class="settings-section advanced-section">
+        <details class="section-card settings-section advanced-section">
           <summary class="advanced-toggle">
+            Advanced Settings
             <ha-icon
               icon="mdi:chevron-right"
               class="advanced-chevron"
+              style="margin-left:auto;"
             ></ha-icon>
-            Advanced Settings
           </summary>
           <div class="settings-section-title" style="margin-top:20px;">
             Background Services
           </div>
 
           <div class="service-row">
-            <label>Data Collector (AI Analysis)</label>
+            <label
+              >Data Collector (AI Analysis)
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Periodically sends a snapshot of your home state to the
+                  configured LLM to generate automation suggestions.</span
+                >
+              </span>
+            </label>
             <ha-switch
               .checked=${host._config.collector_enabled}
               @change=${(e5) => host._updateConfig("collector_enabled", e5.target.checked)}
@@ -5626,7 +5812,16 @@ function renderSettings(host) {
           }
 
           <div class="service-row">
-            <label>Network Discovery</label>
+            <label
+              >Network Discovery
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Scans your network for new devices and suggests adding them
+                  to Home Assistant.</span
+                >
+              </span>
+            </label>
             <ha-switch
               .checked=${host._config.discovery_enabled}
               @change=${(e5) => host._updateConfig("discovery_enabled", e5.target.checked)}
@@ -5693,6 +5888,24 @@ function renderSettings(host) {
               `
               : ""
           }
+          <hr class="settings-separator" />
+
+          <div class="service-row">
+            <label
+              >Developer Mode
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Shows advanced controls like manual pattern scanning in the
+                  Suggestions tab. Useful for debugging and development.</span
+                >
+              </span>
+            </label>
+            <ha-switch
+              .checked=${host._config.developer_mode}
+              @change=${(e5) => host._updateConfig("developer_mode", e5.target.checked)}
+            ></ha-switch>
+          </div>
         </details>
 
         <div class="save-bar">
@@ -5703,6 +5916,12 @@ function renderSettings(host) {
           >
             ${host._savingConfig ? "Saving\u2026" : "Save Settings"}
           </button>
+        </div>
+
+        <div
+          style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
+        >
+          Selora AI v${"1.1.0"}
         </div>
       </div>
     </div>
@@ -5810,11 +6029,12 @@ function renderVersionHistoryDrawer(host, a4) {
                       </div>
                       ${
                         host._expandedAutomations[`ver_${key}`]
-                          ? x`<pre
-                            style="font-size:11px;background:#1a1a2e;color:#e0e0e0;padding:8px;border-radius:6px;overflow-x:auto;margin:6px 0 0;white-space:pre-wrap;"
-                          >
-${v2.yaml || v2.yaml_content || "(no YAML stored)"}</pre
-                          >`
+                          ? x`<ha-code-editor
+                            mode="yaml"
+                            .value=${v2.yaml || v2.yaml_content || "(no YAML stored)"}
+                            read-only
+                            style="--code-mirror-font-size:12px;margin-top:6px;"
+                          ></ha-code-editor>`
                           : ""
                       }
                     </div>
@@ -6511,7 +6731,20 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
       });
     }
     this._showToast("Suggestion accepted \u2014 automation created", "success");
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [`proactive_${suggestionId}`]: true,
+    };
     await this._loadAutomations();
+    await new Promise((r4) => setTimeout(r4, 650));
+    this._proactiveSuggestions = this._proactiveSuggestions.filter(
+      (s6) => s6.suggestion_id !== suggestionId,
+    );
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [`proactive_${suggestionId}`]: false,
+    };
+    this._highlightAndScrollToNew();
   } catch (err) {
     console.error("Failed to accept suggestion", err);
     this._showToast("Failed to accept suggestion", "error");
@@ -6944,8 +7177,22 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
         automation: auto,
       });
     }
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: true,
+    };
     await this._loadAutomations();
     this._showToast(`Automation "${auto.alias}" created.`, "success");
+    await new Promise((r4) => setTimeout(r4, 650));
+    this._suggestions = this._suggestions.filter((s6) => {
+      const a4 = s6.automation || s6.automation_data;
+      return `sug_${a4?.alias}` !== yamlKey;
+    });
+    this._fadingOutSuggestions = {
+      ...this._fadingOutSuggestions,
+      [yamlKey]: false,
+    };
+    this._highlightAndScrollToNew();
   } catch (err) {
     this._showToast("Failed to create automation: " + err.message, "error");
   } finally {
@@ -7521,6 +7768,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       _automationFilter: { type: String },
       _statusFilter: { type: String },
       _sortBy: { type: String },
+      // Suggestion filter
+      _suggestionFilter: { type: String },
+      _suggestionSourceFilter: { type: String },
+      _suggestionSortBy: { type: String },
       // Burger menu
       _openBurgerMenu: { type: String },
       // Recently deleted section
@@ -7551,8 +7802,15 @@ var SeloraAIArchitectPanel = class extends s4 {
       _suggestingName: { type: Boolean },
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
-      // Automations sub-tab
-      _automationsSubTab: { type: String },
+      // Suggestions visible count (incremental load)
+      _suggestionsVisibleCount: { type: Number },
+      // Suggestions bulk edit
+      _suggestionBulkMode: { type: Boolean },
+      _selectedSuggestionKeys: { type: Object },
+      // Highlight newly accepted automation
+      _highlightedAutomation: { type: String },
+      // Fading out suggestion card keys
+      _fadingOutSuggestions: { type: Object },
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
       // Bulk edit mode
@@ -7597,7 +7855,11 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
-    this._automationsSubTab = "my_automations";
+    this._suggestionsVisibleCount = 3;
+    this._suggestionBulkMode = false;
+    this._highlightedAutomation = null;
+    this._fadingOutSuggestions = {};
+    this._selectedSuggestionKeys = {};
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
@@ -7618,6 +7880,9 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._automationFilter = "";
     this._statusFilter = "all";
     this._sortBy = "recent";
+    this._suggestionFilter = "";
+    this._suggestionSourceFilter = "all";
+    this._suggestionSortBy = "recent";
     this._openBurgerMenu = null;
     this._showDeleted = false;
     this._deletedAutomations = [];
@@ -7737,6 +8002,23 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._config = { ...this._config, [key]: value };
     this.requestUpdate();
   }
+  _highlightAndScrollToNew() {
+    const newest = this._automations[0];
+    if (!newest) return;
+    this._highlightedAutomation = newest.entity_id;
+    this.requestUpdate();
+    requestAnimationFrame(() => {
+      const row = this.shadowRoot.querySelector(
+        `.auto-row[data-entity-id="${newest.entity_id}"]`,
+      );
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+    setTimeout(() => {
+      this._highlightedAutomation = null;
+    }, 3e3);
+  }
   // -------------------------------------------------------------------------
   // Toast notifications
   // -------------------------------------------------------------------------
@@ -7817,8 +8099,8 @@ var SeloraAIArchitectPanel = class extends s4 {
   _renderAutomations() {
     return renderAutomations(this);
   }
-  _renderUnifiedSuggestions() {
-    return renderUnifiedSuggestions(this);
+  _renderSuggestionsSection() {
+    return renderSuggestionsSection(this);
   }
   _renderSettings() {
     return renderSettings(this);
