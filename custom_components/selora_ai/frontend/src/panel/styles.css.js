@@ -420,7 +420,7 @@ export const panelStyles = css`
     align-self: flex-start;
     background: var(--card-background-color);
     box-shadow: var(--card-box-shadow);
-    border: 1px solid var(--selora-zinc-800);
+    border: 1px solid var(--selora-zinc-700);
     border-bottom-left-radius: 4px;
   }
   .bubble-meta {

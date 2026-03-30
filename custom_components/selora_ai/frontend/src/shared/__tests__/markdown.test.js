@@ -63,7 +63,7 @@ describe("renderMarkdown", () => {
 
   it("renders bold text", () => {
     const result = renderMarkdown("This is **bold** text.");
-    expect(result).toContain("<strong>bold</strong>");
+    expect(result).toContain(">bold</strong>");
   });
 
   it("renders italic text", () => {

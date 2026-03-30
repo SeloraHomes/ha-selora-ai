@@ -86,6 +86,14 @@ class SeloraAIDashboardCard extends LitElement {
 
   updated(changedProps) {
     if (changedProps.has("hass") && this.hass) {
+      // Set accent text color based on HA dark mode (gold on dark, black on light)
+      const dark = this.hass.themes?.darkMode;
+      if (dark !== undefined) {
+        this.style.setProperty(
+          "--selora-accent-text",
+          dark ? "#fbbf24" : "#18181b",
+        );
+      }
       if (!this._initialLoaded) {
         this._initialLoaded = true;
         this._loadData();
