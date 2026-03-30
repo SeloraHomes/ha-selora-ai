@@ -1,3 +1,9 @@
+## [1.1.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.1.0...v1.1.1) (2026-03-30)
+
+### Bug Fixes
+
+* resolve dark theme accent text color ([a1faabe](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a1faabee5abb880a56fc370a40a495b712c9fbfb))
+
 ## [1.1.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.3...v1.1.0) (2026-03-27)
 
 ### Features
