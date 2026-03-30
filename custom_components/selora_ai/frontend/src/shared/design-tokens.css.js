@@ -7,7 +7,7 @@ export const seloraTokens = css`
   :host {
     color-scheme: light dark;
     --selora-accent: #fbbf24;
-    --selora-accent-text: light-dark(#18181b, #fbbf24);
+    --selora-accent-text: #fbbf24;
     --selora-accent-dark: #f59e0b;
     --selora-accent-light: #fde68a;
     --selora-zinc-900: var(--primary-background-color, #18181b);

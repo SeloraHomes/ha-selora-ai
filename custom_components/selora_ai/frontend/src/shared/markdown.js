@@ -40,12 +40,12 @@ export function renderMarkdown(text) {
   // Code blocks (```)
   escaped = escaped.replace(
     /```([\s\S]*?)```/g,
-    '<pre style="background:#18181b;color:#e4e4e7;padding:10px;border-radius:8px;border:1px solid #27272a;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
+    '<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
   );
   // Inline code
   escaped = escaped.replace(
     /`([^`]+)`/g,
-    '<code style="background:rgba(255,255,255,0.08);padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid rgba(255,255,255,0.06);">$1</code>',
+    '<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">$1</code>',
   );
   // Headings (#### → h6, ### → h5, ## → h4, # → h3) — sized for chat bubbles
   escaped = escaped.replace(
@@ -64,8 +64,11 @@ export function renderMarkdown(text) {
     /^#\s+(.+)$/gm,
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
   );
-  // Bold
-  escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  // Bold — inline accent color so it works regardless of theme resolution
+  escaped = escaped.replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong style="color:var(--selora-accent-text,#fbbf24);">$1</strong>',
+  );
   // Italic (*text*) — require non-word boundaries
   escaped = escaped.replace(
     /(?<!\w)\*([^\s*](?:.*?[^\s*])?)\*(?!\w)/g,

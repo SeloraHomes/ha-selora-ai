@@ -1003,7 +1003,7 @@ var seloraTokens = i`
   :host {
     color-scheme: light dark;
     --selora-accent: #fbbf24;
-    --selora-accent-text: light-dark(#18181b, #fbbf24);
+    --selora-accent-text: #fbbf24;
     --selora-accent-dark: #f59e0b;
     --selora-accent-light: #fde68a;
     --selora-zinc-900: var(--primary-background-color, #18181b);
@@ -1456,7 +1456,7 @@ var panelStyles = i`
     align-self: flex-start;
     background: var(--card-background-color);
     box-shadow: var(--card-box-shadow);
-    border: 1px solid var(--selora-zinc-800);
+    border: 1px solid var(--selora-zinc-700);
     border-bottom-left-radius: 4px;
   }
   .bubble-meta {
@@ -3230,11 +3230,11 @@ function renderMarkdown(text) {
     .replace(/>/g, "&gt;");
   escaped = escaped.replace(
     /```([\s\S]*?)```/g,
-    '<pre style="background:#18181b;color:#e4e4e7;padding:10px;border-radius:8px;border:1px solid #27272a;font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
+    '<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
   );
   escaped = escaped.replace(
     /`([^`]+)`/g,
-    '<code style="background:rgba(255,255,255,0.08);padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid rgba(255,255,255,0.06);">$1</code>',
+    '<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">$1</code>',
   );
   escaped = escaped.replace(
     /^####\s+(.+)$/gm,
@@ -3252,7 +3252,10 @@ function renderMarkdown(text) {
     /^#\s+(.+)$/gm,
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
   );
-  escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  escaped = escaped.replace(
+    /\*\*(.+?)\*\*/g,
+    '<strong style="color:var(--selora-accent-text,#fbbf24);">$1</strong>',
+  );
   escaped = escaped.replace(
     /(?<!\w)\*([^\s*](?:.*?[^\s*])?)\*(?!\w)/g,
     "<em>$1</em>",
@@ -8052,6 +8055,13 @@ var SeloraAIArchitectPanel = class extends s4 {
   updated(changedProps) {
     if (changedProps.has("hass")) {
       this._checkTabParam();
+      const dark = this.hass?.themes?.darkMode;
+      if (dark !== void 0) {
+        this.style.setProperty(
+          "--selora-accent-text",
+          dark ? "#fbbf24" : "#18181b",
+        );
+      }
     }
     if (this.hass && this._pendingNewAutomation) {
       const name = this._pendingNewAutomation;
