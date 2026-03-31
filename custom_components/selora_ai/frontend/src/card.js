@@ -2,6 +2,10 @@ import { LitElement, html } from "lit";
 import { describeFlowItem } from "./shared/flow-description.js";
 import { formatRelativeTime } from "./shared/date-utils.js";
 import { seloraTokens } from "./shared/design-tokens.css.js";
+import { sharedAnimations } from "./shared/styles/animations.css.js";
+import { sharedModals } from "./shared/styles/modals.css.js";
+import { sharedBadges } from "./shared/styles/badges.css.js";
+import { sharedLoaders } from "./shared/styles/loaders.css.js";
 import { cardStyles } from "./card/styles.css.js";
 import "./card/editor.js";
 
@@ -293,7 +297,14 @@ class SeloraAIDashboardCard extends LitElement {
   // -------------------------------------------------------------------------
 
   static get styles() {
-    return [seloraTokens, cardStyles];
+    return [
+      seloraTokens,
+      sharedAnimations,
+      sharedModals,
+      sharedBadges,
+      sharedLoaders,
+      cardStyles,
+    ];
   }
 
   // -------------------------------------------------------------------------

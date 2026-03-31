@@ -1444,6 +1444,355 @@ var seloraTokens = i`
   }
 `;
 
+// src/shared/styles/animations.css.js
+var sharedAnimations = i`
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes logoEntrance {
+    0% {
+      opacity: 0;
+      transform: scale(0.6) translateY(12px);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.06) translateY(-2px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  @keyframes highlightRow {
+    0%,
+    30% {
+      background: rgba(251, 191, 36, 0.15);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  @keyframes fadeOutCard {
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+  @keyframes slideInCard {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes typingBounce {
+    0%,
+    80%,
+    100% {
+      transform: scale(0.6);
+      opacity: 0.4;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes bounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+  @keyframes gold-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+`;
+
+// src/shared/styles/modals.css.js
+var sharedModals = i`
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: var(--card-background-color, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--selora-zinc-800);
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 90%;
+  }
+  .modal {
+    background: var(--card-background-color, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--divider-color);
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+  .modal-label {
+    font-size: 13px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .modal-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .modal-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal-input:focus {
+    border-color: var(--selora-accent);
+  }
+  .modal-input::placeholder {
+    opacity: 0.35;
+  }
+  .modal-input.generating-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-color: var(--selora-accent);
+  }
+  .modal-row.generating .modal-magic-btn {
+    border-color: var(--selora-accent);
+  }
+  .modal-magic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1.5px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  .modal-magic-btn:hover {
+    opacity: 0.85;
+    border-color: var(--selora-accent);
+    color: var(--selora-accent-text);
+  }
+  .modal-magic-btn ha-icon {
+    --mdc-icon-size: 20px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1.5px solid transparent;
+    background: transparent;
+    transition:
+      background 0.15s,
+      opacity 0.15s;
+    user-select: none;
+    letter-spacing: normal;
+  }
+  .modal-btn:hover {
+    opacity: 0.85;
+  }
+  .modal-btn ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .modal-cancel {
+    border-color: var(--divider-color);
+    color: var(--primary-text-color);
+    background: var(--card-background-color);
+  }
+  .modal-cancel:hover {
+    border-color: var(--selora-accent);
+    color: var(--selora-accent-text);
+  }
+  .modal-create {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #1a1a1a;
+  }
+  .modal-create:hover:not(:disabled) {
+    box-shadow: var(--selora-glow);
+    background: var(--selora-accent-light);
+  }
+  .modal-create:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// src/shared/styles/badges.css.js
+var sharedBadges = i`
+  .badge {
+    background: var(--selora-zinc-700);
+    color: var(--selora-zinc-200);
+    border-radius: 10px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.25s ease;
+  }
+  .chip {
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+  }
+  .chip.ai-managed {
+    background: var(--selora-accent);
+  }
+  .chip.user-managed {
+    background: var(--selora-zinc-600);
+  }
+  .chip.suggestion {
+    background: var(--selora-accent);
+  }
+  .status-indicator {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .status-indicator.on {
+    color: var(--success-color, #4caf50);
+    background: rgba(76, 175, 80, 0.12);
+  }
+  .status-indicator.off {
+    color: var(--secondary-text-color);
+    background: rgba(158, 158, 158, 0.12);
+  }
+`;
+
+// src/shared/styles/loaders.css.js
+var sharedLoaders = i`
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--selora-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  .spinner.green {
+    border-color: rgba(76, 175, 80, 0.2);
+    border-top-color: var(--success-color, #4caf50);
+  }
+  .dots-loader {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .dots-loader span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--selora-accent);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .dots-loader span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .dots-loader span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  .loading-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .empty-row {
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.5;
+    font-style: italic;
+  }
+  .generating-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+`;
+
 // src/card/styles.css.js
 var cardStyles = i`
   ha-card {
@@ -1787,20 +2136,6 @@ var cardStyles = i`
   }
 
   /* ---- Common ---- */
-  .loading-row {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 0;
-    font-size: 12px;
-    opacity: 0.6;
-  }
-  .empty-row {
-    padding: 12px 0;
-    font-size: 12px;
-    opacity: 0.5;
-    font-style: italic;
-  }
   .more-link {
     text-align: center;
     font-size: 12px;
@@ -1811,202 +2146,6 @@ var cardStyles = i`
   }
   .more-link:hover {
     text-decoration: underline;
-  }
-
-  /* ---- Bouncing dots loader ---- */
-  .dots-loader {
-    display: inline-flex;
-    gap: 4px;
-    align-items: center;
-  }
-  .dots-loader span {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--selora-accent);
-    animation: bounce 1.2s ease-in-out infinite;
-  }
-  .dots-loader span:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-  .dots-loader span:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-  @keyframes bounce {
-    0%,
-    60%,
-    100% {
-      transform: translateY(0);
-      opacity: 0.4;
-    }
-    30% {
-      transform: translateY(-6px);
-      opacity: 1;
-    }
-  }
-
-  /* ---- Spinner (fallback) ---- */
-  .spinner {
-    display: inline-block;
-    width: 16px;
-    height: 16px;
-    border: 2px solid transparent;
-    border-top-color: var(--selora-accent);
-    border-left-color: var(--selora-accent);
-    border-radius: 50%;
-    animation: spin 0.6s linear infinite;
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* ---- Generating row ---- */
-  .generating-row {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 14px 0;
-    font-size: 12px;
-    opacity: 0.7;
-  }
-
-  /* ---- Modal overlay (matches panel) ---- */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 10001;
-  }
-  .modal {
-    background: var(--card-background-color, #fff);
-    border-radius: 16px;
-    border: 1px solid var(--divider-color);
-    padding: 24px;
-    max-width: 420px;
-    width: 90%;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  }
-  .modal-title {
-    font-size: 18px;
-    font-weight: 700;
-    margin: 0 0 16px;
-  }
-  .modal-label {
-    font-size: 13px;
-    font-weight: 500;
-    display: block;
-    margin-bottom: 6px;
-  }
-  .modal-row {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-  }
-  .modal-input {
-    flex: 1;
-    padding: 10px 12px;
-    border: 1px solid var(--divider-color);
-    border-radius: 8px;
-    background: var(--card-background-color);
-    color: var(--primary-text-color);
-    font-size: 14px;
-    font-family: inherit;
-    outline: none;
-    transition: border-color 0.15s;
-  }
-  .modal-input:focus {
-    border-color: var(--selora-accent);
-  }
-  .modal-input::placeholder {
-    opacity: 0.35;
-  }
-  .modal-input.generating-placeholder {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-color: var(--selora-accent);
-  }
-  .modal-row.generating .modal-magic-btn {
-    border-color: var(--selora-accent);
-  }
-  .modal-magic-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 8px 10px;
-    flex-shrink: 0;
-    border-radius: 6px;
-    border: 1.5px solid var(--divider-color);
-    background: var(--card-background-color);
-    color: var(--primary-text-color);
-    cursor: pointer;
-    font-weight: 600;
-    transition: opacity 0.15s;
-  }
-  .modal-magic-btn:hover {
-    opacity: 0.85;
-    border-color: var(--selora-accent);
-    color: var(--selora-accent-text);
-  }
-  .modal-magic-btn ha-icon {
-    --mdc-icon-size: 20px;
-  }
-  .modal-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 16px;
-    justify-content: flex-end;
-  }
-  .modal-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    padding: 6px 14px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 600;
-    cursor: pointer;
-    font-family: inherit;
-    border: 1.5px solid transparent;
-    background: transparent;
-    transition:
-      background 0.15s,
-      opacity 0.15s;
-    user-select: none;
-    letter-spacing: normal;
-  }
-  .modal-btn:hover {
-    opacity: 0.85;
-  }
-  .modal-btn ha-icon {
-    --mdc-icon-size: 14px;
-  }
-  .modal-cancel {
-    border-color: var(--divider-color);
-    color: var(--primary-text-color);
-    background: var(--card-background-color);
-  }
-  .modal-cancel:hover {
-    border-color: var(--selora-accent);
-    color: var(--selora-accent-text);
-  }
-  .modal-create {
-    background: var(--selora-accent);
-    border-color: var(--selora-accent);
-    color: #1a1a1a;
-  }
-  .modal-create:hover:not(:disabled) {
-    box-shadow: var(--selora-glow);
-    background: var(--selora-accent-light);
-  }
-  .modal-create:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
   }
 `;
 
@@ -2312,7 +2451,14 @@ var SeloraAIDashboardCard = class extends s4 {
   // Styles
   // -------------------------------------------------------------------------
   static get styles() {
-    return [seloraTokens, cardStyles];
+    return [
+      seloraTokens,
+      sharedAnimations,
+      sharedModals,
+      sharedBadges,
+      sharedLoaders,
+      cardStyles,
+    ];
   }
   // -------------------------------------------------------------------------
   // Render
