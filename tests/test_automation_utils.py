@@ -11,7 +11,9 @@ import yaml
 
 from custom_components.selora_ai.automation_utils import (
     _parse_automation_yaml,
+    _quote_yaml_booleans,
     _read_automations_yaml,
+    _write_automations_yaml,
     assess_automation_risk,
     async_create_automation,
     async_hard_delete_automation,
@@ -249,6 +251,60 @@ class TestValidateAutomationPayload:
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
         assert result["mode"] == "queued"
+
+    def test_invalid_mode_falls_back_to_single(self) -> None:
+        payload = {
+            "alias": "BadMode",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+            "mode": "bogus_mode",
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["mode"] == "single"
+
+    def test_preserves_initial_state_true(self) -> None:
+        payload = {
+            "alias": "Enabled",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+            "initial_state": True,
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["initial_state"] is True
+
+    def test_preserves_initial_state_false(self) -> None:
+        payload = {
+            "alias": "Disabled",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+            "initial_state": False,
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["initial_state"] is False
+
+    def test_omits_initial_state_when_not_provided(self) -> None:
+        payload = {
+            "alias": "NoState",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert "initial_state" not in result
+
+    def test_omits_initial_state_when_non_bool(self) -> None:
+        payload = {
+            "alias": "StringState",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "light.turn_on"}],
+            "initial_state": "yes",
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert "initial_state" not in result
 
 
 # ===================================================================
@@ -596,6 +652,292 @@ class TestAsyncUpdateAutomation:
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         match = [a for a in content if a.get("id") == "selora_ai_existing1"]
         assert "initial_state" in match[0]
+
+
+class TestQuoteYamlBooleans:
+    """Tests for _quote_yaml_booleans — wraps YAML-boolean strings for ruamel."""
+
+    def test_wraps_on_off_in_double_quoted_scalar(self) -> None:
+        from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+        automations = [
+            {"trigger": [{"platform": "state", "to": "on", "from": "off"}]}
+        ]
+        _quote_yaml_booleans(automations)
+        assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
+        assert isinstance(automations[0]["trigger"][0]["from"], DoubleQuotedScalarString)
+
+    def test_wraps_all_yaml_boolean_variants(self) -> None:
+        from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+        automations = [
+            {"trigger": [
+                {"platform": "state", "to": "yes", "from": "no"},
+                {"platform": "state", "to": "true", "from": "false"},
+                {"platform": "state", "to": "y", "from": "n"},
+            ]}
+        ]
+        _quote_yaml_booleans(automations)
+        for trig in automations[0]["trigger"]:
+            assert isinstance(trig["to"], DoubleQuotedScalarString)
+            assert isinstance(trig["from"], DoubleQuotedScalarString)
+
+    def test_leaves_non_boolean_strings_alone(self) -> None:
+        from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+        automations = [
+            {"trigger": [{"platform": "state", "to": "home", "from": "away"}]}
+        ]
+        _quote_yaml_booleans(automations)
+        assert not isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
+        assert not isinstance(automations[0]["trigger"][0]["from"], DoubleQuotedScalarString)
+
+    def test_coerces_bool_values_to_quoted_strings(self) -> None:
+        from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+        automations = [
+            {"trigger": [{"platform": "state", "to": True, "from": False}]}
+        ]
+        _quote_yaml_booleans(automations)
+        assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
+        assert str(automations[0]["trigger"][0]["to"]) == "on"
+        assert isinstance(automations[0]["trigger"][0]["from"], DoubleQuotedScalarString)
+        assert str(automations[0]["trigger"][0]["from"]) == "off"
+
+    def test_case_insensitive(self) -> None:
+        from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+        automations = [
+            {"trigger": [{"platform": "state", "to": "ON", "from": "Off"}]}
+        ]
+        _quote_yaml_booleans(automations)
+        assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
+        assert str(automations[0]["trigger"][0]["to"]) == "ON"
+
+
+class TestWriteAutomationsYamlQuoting:
+    """Tests that _write_automations_yaml quotes boolean-like trigger values in YAML output."""
+
+    def test_on_off_survive_ruamel_round_trip(self, tmp_path: Path) -> None:
+        from ruamel.yaml import YAML
+
+        path = tmp_path / "automations.yaml"
+        automations = [
+            {
+                "id": "test_1",
+                "alias": "Round trip test",
+                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "action": [{"action": "notify.notify"}],
+            }
+        ]
+        _write_automations_yaml(path, automations)
+
+        reparsed = YAML().load(path)
+        assert reparsed[0]["trigger"][0]["from"] == "on"
+        assert reparsed[0]["trigger"][0]["to"] == "off"
+
+    def test_raw_yaml_contains_double_quotes(self, tmp_path: Path) -> None:
+        path = tmp_path / "automations.yaml"
+        automations = [
+            {
+                "id": "test_q",
+                "alias": "Quote check",
+                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "action": [{"action": "notify.notify"}],
+            }
+        ]
+        _write_automations_yaml(path, automations)
+
+        raw = path.read_text(encoding="utf-8")
+        assert '"on"' in raw
+        assert '"off"' in raw
+
+    def test_double_round_trip(self, tmp_path: Path) -> None:
+        from ruamel.yaml import YAML
+
+        path = tmp_path / "automations.yaml"
+        automations = [
+            {
+                "id": "test_drt",
+                "alias": "Double round trip",
+                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "action": [{"action": "notify.notify"}],
+            }
+        ]
+        _write_automations_yaml(path, automations)
+        first_read = YAML().load(path)
+        _write_automations_yaml(path, list(first_read))
+        second_read = YAML().load(path)
+        assert second_read[0]["trigger"][0]["from"] == "on"
+        assert second_read[0]["trigger"][0]["to"] == "off"
+
+
+    def test_read_write_round_trip_quotes_bare_booleans(self, tmp_path: Path) -> None:
+        """Simulates HA writing bare on/off (no quotes), then our code re-reading and re-writing.
+
+        Previously _read_automations_yaml used yaml.safe_load which turned bare
+        on/off into Python bools True/False, and _quote_yaml_booleans only handled
+        str values — so the re-written file would still have bare on/off.
+        """
+        from ruamel.yaml import YAML
+
+        path = tmp_path / "automations.yaml"
+        # Write a file with bare on/off (as HA's own dumper would)
+        path.write_text(
+            "- id: test_ha\n"
+            "  alias: HA wrote this\n"
+            "  trigger:\n"
+            "  - platform: state\n"
+            "    entity_id: sensor.x\n"
+            "    from: off\n"
+            "    to: on\n"
+            "  action:\n"
+            "  - action: notify.notify\n",
+            encoding="utf-8",
+        )
+
+        # Our read + write cycle should add quotes
+        data = _read_automations_yaml(path)
+        _write_automations_yaml(path, data)
+
+        raw = path.read_text(encoding="utf-8")
+        assert '"on"' in raw
+        assert '"off"' in raw
+
+        reparsed = YAML().load(path)
+        assert reparsed[0]["trigger"][0]["from"] == "off"
+        assert reparsed[0]["trigger"][0]["to"] == "on"
+
+
+class TestCreateAutomationValidation:
+    """Tests that async_create_automation validates and coerces trigger values."""
+
+    @pytest.mark.asyncio
+    async def test_boolean_triggers_coerced_in_yaml(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        suggestion = {
+            "alias": "Dryer Done",
+            "trigger": [{"platform": "state", "entity_id": "sensor.dryer", "from": True, "to": False}],
+            "action": [{"action": "notify.notify", "data": {"message": "done"}}],
+        }
+        result = await async_create_automation(hass, suggestion)
+        assert result["success"] is True
+
+        # yaml.safe_load proves coercion: bare on/off would parse as bool True/False
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if a["id"].startswith(AUTOMATION_ID_PREFIX) and "Dryer" in a["alias"]]
+        assert new[0]["trigger"][0]["from"] == "on"
+        assert new[0]["trigger"][0]["to"] == "off"
+
+        # Also verify the raw file text contains double-quoted values
+        raw = tmp_automations_yaml.read_text(encoding="utf-8")
+        assert '"on"' in raw
+        assert '"off"' in raw
+
+    @pytest.mark.asyncio
+    async def test_null_from_stripped(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        suggestion = {
+            "alias": "Null From Test",
+            "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": None, "to": "on"}],
+            "action": [{"action": "notify.notify"}],
+        }
+        result = await async_create_automation(hass, suggestion)
+        assert result["success"] is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Null From" in a.get("alias", "")]
+        assert "from" not in new[0]["trigger"][0]
+
+    @pytest.mark.asyncio
+    async def test_initial_state_defaults_to_false(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        suggestion = {
+            "alias": "Default State Test",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "notify.notify"}],
+        }
+        result = await async_create_automation(hass, suggestion)
+        assert result["success"] is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Default State" in a.get("alias", "")]
+        assert new[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_initial_state_true_preserved_through_normalized(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        """Regression: quick-create sets initial_state=True, validates, then passes
+        normalized dict to async_create_automation. The created automation must be enabled."""
+        suggestion = {
+            "alias": "Quick Create Enabled",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "notify.notify"}],
+            "initial_state": True,
+        }
+        # Simulate __init__.py quick-create flow: validate then pass normalized
+        ok, _, normalized = validate_automation_payload(suggestion)
+        assert ok is True
+        result = await async_create_automation(hass, normalized)
+        assert result["success"] is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Quick Create" in a.get("alias", "")]
+        assert new[0]["initial_state"] is True
+
+    @pytest.mark.asyncio
+    async def test_invalid_suggestion_rejected(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        result = await async_create_automation(
+            hass, {"alias": "", "trigger": [], "action": []}
+        )
+        assert result["success"] is False
+
+
+class TestUpdateAutomationValidation:
+    """Tests that async_update_automation validates and coerces trigger values."""
+
+    @pytest.mark.asyncio
+    async def test_boolean_triggers_coerced_on_update(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        updated = {
+            "alias": "Updated Automation",
+            "trigger": [{"platform": "state", "entity_id": "sensor.test", "from": True, "to": False}],
+            "action": [{"action": "notify.notify", "data": {"message": "updated"}}],
+        }
+        result = await async_update_automation(hass, "selora_ai_existing1", updated)
+        assert result is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
+        assert match[0]["trigger"][0]["from"] == "on"
+        assert match[0]["trigger"][0]["to"] == "off"
+
+    @pytest.mark.asyncio
+    async def test_invalid_update_rejected(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        result = await async_update_automation(
+            hass, "selora_ai_existing1", {"alias": "", "trigger": [], "action": []}
+        )
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_invalid_update_does_not_modify_yaml(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        before = tmp_automations_yaml.read_text(encoding="utf-8")
+        await async_update_automation(
+            hass, "selora_ai_existing1", {"alias": "", "trigger": [], "action": []}
+        )
+        after = tmp_automations_yaml.read_text(encoding="utf-8")
+        assert before == after
 
 
 class TestAsyncToggleAutomation:
