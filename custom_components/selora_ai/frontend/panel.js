@@ -1264,6 +1264,22 @@ var panelStyles = i`
     display: inline-flex;
     opacity: 0.55;
   }
+  .feedback-link {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--primary-text-color);
+    opacity: 0.45;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .feedback-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
   .tabs {
     display: flex;
     padding: 0 24px;
@@ -5924,7 +5940,7 @@ function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${"1.1.0"}
+          Selora AI v${"0.2.1"}
         </div>
       </div>
     </div>
@@ -7842,6 +7858,13 @@ var SeloraAIArchitectPanel = class extends s4 {
       _suggestionsPage: { type: Number },
       _autosPerPage: { type: Number },
       _suggestionsPerPage: { type: Number },
+      // Feedback modal
+      _showFeedbackModal: { type: Boolean },
+      _feedbackText: { type: String },
+      _feedbackRating: { type: String },
+      _feedbackCategory: { type: String },
+      _feedbackEmail: { type: String },
+      _submittingFeedback: { type: Boolean },
     };
   }
   constructor() {
@@ -7925,6 +7948,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._suggestionsPage = 1;
     this._autosPerPage = 20;
     this._suggestionsPerPage = 10;
+    this._showFeedbackModal = false;
+    this._feedbackText = "";
+    this._feedbackRating = "";
+    this._feedbackCategory = "";
+    this._feedbackEmail = "";
+    this._submittingFeedback = false;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -7942,11 +7971,25 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._loadAutomations();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
+    this._keyDownHandler = (e5) => {
+      if (
+        e5.key === "Escape" &&
+        this._showFeedbackModal &&
+        !this._submittingFeedback
+      ) {
+        this._closeFeedback();
+      }
+    };
+    window.addEventListener("keydown", this._keyDownHandler);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
+    }
+    if (this._keyDownHandler) {
+      window.removeEventListener("keydown", this._keyDownHandler);
+      this._keyDownHandler = null;
     }
   }
   // -------------------------------------------------------------------------
@@ -8049,6 +8092,81 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._toastType = "info";
     this.requestUpdate();
   }
+  _t(key, fallback) {
+    return (
+      this.hass?.localize?.(`component.selora_ai.common.${key}`) || fallback
+    );
+  }
+  _openFeedback() {
+    this._showFeedbackModal = true;
+  }
+  _closeFeedback() {
+    if (this._submittingFeedback) return;
+    this._showFeedbackModal = false;
+    this._feedbackText = "";
+    this._feedbackRating = "";
+    this._feedbackCategory = "";
+    this._feedbackEmail = "";
+  }
+  async _submitFeedback() {
+    if (this._submittingFeedback) return;
+    const text = (this._feedbackText || "").trim();
+    if (text.length < 10) {
+      this._showToast(
+        this._t(
+          "feedback_min_length_error",
+          "Please enter at least 10 characters.",
+        ),
+        "error",
+      );
+      return;
+    }
+    this._submittingFeedback = true;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 1e4);
+    try {
+      const payload = {
+        message: text,
+        ha_version: this.hass?.config?.version || "unknown",
+        integration_version: true ? "0.2.1" : "unknown",
+      };
+      if (this._feedbackRating) payload.rating = this._feedbackRating;
+      if (this._feedbackCategory) payload.category = this._feedbackCategory;
+      const email = (this._feedbackEmail || "").trim();
+      if (email) payload.email = email;
+      const res = await fetch(
+        "https://qiob98god6.execute-api.us-east-1.amazonaws.com/api/feedback",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+          signal: controller.signal,
+        },
+      );
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      this._showToast(
+        this._t("feedback_success", "Thanks for your feedback!"),
+        "success",
+      );
+      this._showFeedbackModal = false;
+      this._feedbackText = "";
+      this._feedbackRating = "";
+      this._feedbackCategory = "";
+      this._feedbackEmail = "";
+    } catch (err) {
+      this._showToast(
+        err?.message ||
+          this._t(
+            "feedback_error",
+            "Couldn\u2019t send feedback \u2014 please try again.",
+          ),
+        "error",
+      );
+    } finally {
+      clearTimeout(timeout);
+      this._submittingFeedback = false;
+    }
+  }
   // -------------------------------------------------------------------------
   // Scroll to bottom on new messages
   // -------------------------------------------------------------------------
@@ -8127,6 +8245,171 @@ var SeloraAIArchitectPanel = class extends s4 {
   _renderHardDeleteDialog() {
     return renderHardDeleteDialog(this);
   }
+  _renderFeedbackModal() {
+    if (!this._showFeedbackModal) return "";
+    const textLength = (this._feedbackText || "").length;
+    const tooShort = (this._feedbackText || "").trim().length < 10;
+    const ratingOptions = [
+      {
+        value: "thumbsup",
+        icon: "mdi:thumb-up-outline",
+        label: this._t("feedback_rating_thumbsup", "Thumbs up"),
+      },
+      {
+        value: "thumbsdown",
+        icon: "mdi:thumb-down-outline",
+        label: this._t("feedback_rating_thumbsdown", "Thumbs down"),
+      },
+    ];
+    const categoryOptions = [
+      {
+        value: "bug",
+        label: this._t("feedback_category_bug", "Bug"),
+      },
+      {
+        value: "feature",
+        label: this._t("feedback_category_feature", "Feature Request"),
+      },
+      {
+        value: "general",
+        label: this._t("feedback_category_general", "General"),
+      },
+    ];
+    return x`
+      <div
+        class="modal-overlay"
+        @click=${(e5) => {
+          if (e5.target === e5.currentTarget) this._closeFeedback();
+        }}
+      >
+        <div
+          class="modal-content"
+          role="dialog"
+          aria-modal="true"
+          @keydown=${(e5) => {
+            if (e5.key === "Enter" && e5.target.tagName !== "TEXTAREA") {
+              e5.preventDefault();
+              this._submitFeedback();
+            }
+          }}
+          aria-labelledby="selora-feedback-title"
+          style="max-width:520px;"
+        >
+          <div
+            id="selora-feedback-title"
+            style="font-size:18px;font-weight:600;margin-bottom:8px;"
+          >
+            ${this._t("feedback_modal_title", "Share Feedback")}
+          </div>
+          <div style="font-size:12px;opacity:0.7;margin-bottom:14px;">
+            ${this._t(
+              "feedback_privacy_notice",
+              "Feedback is anonymous and contains no personal data.",
+            )}
+          </div>
+
+          <textarea
+            maxlength="2000"
+            style="width:100%;min-height:120px;resize:vertical;padding:10px 12px;border-radius:8px;border:1px solid var(--divider-color);background:var(--card-background-color);color:var(--primary-text-color);font:inherit;box-sizing:border-box;margin-bottom:6px;"
+            placeholder=${this._t(
+              "feedback_textarea_placeholder",
+              "What's on your mind? (10 characters minimum)",
+            )}
+            .value=${this._feedbackText}
+            @input=${(e5) => {
+              this._feedbackText = e5.target.value;
+            }}
+          ></textarea>
+          <div
+            style="font-size:11px;opacity:0.6;text-align:right;margin-bottom:12px;"
+          >
+            ${textLength}/2000
+          </div>
+
+          <div style="font-size:12px;opacity:0.7;margin-bottom:6px;">
+            ${this._t("feedback_rating_label", "Rating:")}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
+            ${ratingOptions.map(
+              (opt) => x`
+                <button
+                  class="btn btn-outline"
+                  style="padding:6px 10px;${this._feedbackRating === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
+                  aria-pressed=${this._feedbackRating === opt.value ? "true" : "false"}
+                  title=${opt.label}
+                  @click=${() => {
+                    this._feedbackRating =
+                      this._feedbackRating === opt.value ? "" : opt.value;
+                  }}
+                >
+                  <ha-icon
+                    icon=${opt.icon}
+                    style="--mdc-icon-size:18px;"
+                  ></ha-icon>
+                </button>
+              `,
+            )}
+          </div>
+
+          <div style="font-size:12px;opacity:0.7;margin-bottom:6px;">
+            ${this._t("feedback_category_label", "Category (optional):")}
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+            ${categoryOptions.map(
+              (opt) => x`
+                <button
+                  class="btn btn-outline"
+                  style="padding:6px 10px;${this._feedbackCategory === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
+                  aria-pressed=${this._feedbackCategory === opt.value ? "true" : "false"}
+                  @click=${() => {
+                    this._feedbackCategory =
+                      this._feedbackCategory === opt.value ? "" : opt.value;
+                  }}
+                >
+                  ${opt.label}
+                </button>
+              `,
+            )}
+          </div>
+
+          <div style="margin-bottom:14px;">
+            <div style="font-size:12px;opacity:0.7;margin-bottom:6px;">
+              ${this._t("feedback_email_label", "Email (optional):")}
+            </div>
+            <input
+              type="email"
+              style="width:100%;box-sizing:border-box;padding:8px 12px;border-radius:8px;border:1px solid var(--divider-color);background:var(--card-background-color);color:var(--primary-text-color);font:inherit;font-size:13px;"
+              placeholder=${this._t(
+                "feedback_email_placeholder",
+                "your@email.com \u2014 only if you'd like a reply",
+              )}
+              .value=${this._feedbackEmail}
+              @input=${(e5) => {
+                this._feedbackEmail = e5.target.value;
+              }}
+            />
+          </div>
+
+          <div style="display:flex;justify-content:flex-end;gap:8px;">
+            <button
+              class="btn btn-outline"
+              ?disabled=${this._submittingFeedback}
+              @click=${() => this._closeFeedback()}
+            >
+              ${this._t("feedback_cancel", "Cancel")}
+            </button>
+            <button
+              class="btn btn-primary"
+              ?disabled=${this._submittingFeedback || tooShort}
+              @click=${() => this._submitFeedback()}
+            >
+              ${this._submittingFeedback ? this._t("feedback_submitting", "Sending\u2026") : this._t("feedback_submit", "Send Feedback")}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   // -------------------------------------------------------------------------
   // Render
   // -------------------------------------------------------------------------
@@ -8140,6 +8423,9 @@ var SeloraAIArchitectPanel = class extends s4 {
             style="width:28px;height:28px;border-radius:6px;"
           />
           <span class="gold-text">Selora AI</span>
+          <button class="feedback-link" @click=${() => this._openFeedback()}>
+            ${this._t("feedback_button_label", "Give Feedback")}
+          </button>
         </div>
         <div class="tabs">
           <div
@@ -8366,7 +8652,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
       </div>
 
-      ${this._renderHardDeleteDialog()}
+      ${this._renderFeedbackModal()} ${this._renderHardDeleteDialog()}
       ${
         this._deleteConfirmSessionId
           ? x`

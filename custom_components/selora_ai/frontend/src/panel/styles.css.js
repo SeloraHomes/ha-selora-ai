@@ -228,6 +228,22 @@ export const panelStyles = css`
     display: inline-flex;
     opacity: 0.55;
   }
+  .feedback-link {
+    margin-left: auto;
+    background: none;
+    border: none;
+    color: var(--primary-text-color);
+    opacity: 0.45;
+    font-size: 12px;
+    cursor: pointer;
+    padding: 4px 0;
+    font-family: inherit;
+    transition: opacity 0.15s;
+  }
+  .feedback-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+  }
   .tabs {
     display: flex;
     padding: 0 24px;
