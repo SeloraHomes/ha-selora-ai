@@ -6164,7 +6164,7 @@ function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${"0.3.0"}
+          Selora AI v${"0.3.1"}
         </div>
       </div>
     </div>
@@ -8352,7 +8352,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.3.0" : "unknown",
+        integration_version: true ? "0.3.1" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;

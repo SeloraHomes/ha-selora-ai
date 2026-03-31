@@ -49,14 +49,21 @@ _SCRUTINY_SERVICE_DOMAINS = {
 
 
 def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
-    """Read and parse automations.yaml (runs in executor)."""
+    """Read and parse automations.yaml (runs in executor).
+
+    Uses ruamel.yaml to preserve scalar styles (especially double-quoted
+    on/off/yes/no strings) across read→write round-trips.
+    """
+    from ruamel.yaml import YAML
+
     if not path.exists():
         return []
     try:
         text = path.read_text(encoding="utf-8").strip()
         if not text or text == "[]":
             return []
-        data = yaml.safe_load(text)
+        ryaml = YAML()
+        data = ryaml.load(text)
         if isinstance(data, list):
             return data
     except Exception as exc:
@@ -64,9 +71,49 @@ def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
     return []
 
 
+def _quote_yaml_booleans(automations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Wrap trigger to/from string values that YAML would parse as booleans.
+
+    YAML 1.1 treats bare on/off/yes/no/true/false as booleans.  Wrapping
+    these in DoubleQuotedScalarString forces ruamel.yaml to emit them
+    with double-quotes so they survive a round-trip as strings.
+    """
+    from ruamel.yaml.scalarstring import DoubleQuotedScalarString
+
+    _YAML_BOOL_STRINGS = frozenset(
+        {
+            "true",
+            "false",
+            "yes",
+            "no",
+            "on",
+            "off",
+            "y",
+            "n",
+        }
+    )
+
+    for auto in automations:
+        triggers = auto.get("trigger") or auto.get("triggers") or []
+        if not isinstance(triggers, list):
+            triggers = [triggers]
+        for trig in triggers:
+            if not isinstance(trig, dict):
+                continue
+            for key in ("to", "from"):
+                val = trig.get(key)
+                if isinstance(val, bool):
+                    trig[key] = DoubleQuotedScalarString("on" if val else "off")
+                elif isinstance(val, str) and val.lower() in _YAML_BOOL_STRINGS:
+                    trig[key] = DoubleQuotedScalarString(val)
+    return automations
+
+
 def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> None:
     """Write automations list to YAML atomically, preserving formatting."""
     from ruamel.yaml import YAML
+
+    _quote_yaml_booleans(automations)
 
     ryaml = YAML()
     ryaml.default_flow_style = False
@@ -146,14 +193,24 @@ def validate_automation_payload(
 
         normalized_triggers.append(fixed_trigger)
 
-    normalized = {
+    _VALID_MODES = {"single", "restart", "queued", "parallel"}
+    mode = str(automation.get("mode", "single")).strip().lower()
+    if mode not in _VALID_MODES:
+        mode = "single"
+
+    raw_initial_state = automation.get("initial_state")
+    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else None
+
+    normalized: dict[str, Any] = {
         "alias": alias,
         "description": str(automation.get("description", "")).strip(),
         "trigger": normalized_triggers,
         "condition": conditions,
         "action": actions,
-        "mode": automation.get("mode", "single"),
+        "mode": mode,
     }
+    if initial_state is not None:
+        normalized["initial_state"] = initial_state
 
     try:
         yaml_text = yaml.safe_dump(normalized, allow_unicode=True, default_flow_style=False)
@@ -289,6 +346,17 @@ async def async_update_automation(
     version_message: str = "Updated via YAML editor",
 ) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload."""
+    # Validate and normalize trigger values (coerces boolean to/from → "on"/"off")
+    is_valid, reason, normalized = validate_automation_payload(updated)
+    if not is_valid or normalized is None:
+        _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
+        return False
+
+    # Merge normalized trigger/action/condition back while preserving other fields
+    updated["trigger"] = normalized["trigger"]
+    updated["action"] = normalized["action"]
+    updated["condition"] = normalized.get("condition", [])
+
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
@@ -338,31 +406,22 @@ async def async_create_automation(
     # Read existing automations
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    alias = suggestion.get("alias", "").strip()
-    if not alias:
+    # Validate and normalize the suggestion (coerces boolean to/from → "on"/"off", etc.)
+    is_valid, reason, normalized = validate_automation_payload(suggestion)
+    if not is_valid or normalized is None:
+        _LOGGER.error("Invalid automation suggestion: %s", reason)
         return {"success": False, "automation_id": None}
 
-    # Normalize trigger/action
-    triggers = suggestion.get("triggers") or suggestion.get("trigger", [])
-    actions = suggestion.get("actions") or suggestion.get("action", [])
-    conditions = suggestion.get("conditions") or suggestion.get("condition", [])
-
-    if not triggers or not actions:
-        _LOGGER.error("Automation suggestion missing triggers or actions: %s", alias)
-        return {"success": False, "automation_id": None}
-
-    # Ensure lists
-    if not isinstance(triggers, list):
-        triggers = [triggers]
-    if not isinstance(actions, list):
-        actions = [actions]
-    if conditions and not isinstance(conditions, list):
-        conditions = [conditions]
+    alias = normalized["alias"]
+    triggers = normalized["trigger"]
+    actions = normalized["action"]
+    conditions = normalized.get("condition", [])
 
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
-    raw_initial_state = suggestion.get("initial_state", True)
-    initial_state = raw_initial_state if isinstance(raw_initial_state, bool) else True
+    initial_state = normalized.get("initial_state", suggestion.get("initial_state", False))
+    if not isinstance(initial_state, bool):
+        initial_state = False
     automation = {
         "id": automation_id,
         "alias": alias,
@@ -371,7 +430,7 @@ async def async_create_automation(
         "trigger": triggers,
         "condition": conditions or [],
         "action": actions,
-        "mode": "single",
+        "mode": normalized.get("mode", "single"),
     }
 
     existing.append(automation)
