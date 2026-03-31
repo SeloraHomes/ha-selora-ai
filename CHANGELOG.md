@@ -1,10 +1,10 @@
-## [1.1.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.1.0...v1.1.1) (2026-03-30)
+## [0.2.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.2.0...v0.2.1) (2026-03-30)
 
 ### Bug Fixes
 
 * resolve dark theme accent text color ([a1faabe](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a1faabee5abb880a56fc370a40a495b712c9fbfb))
 
-## [1.1.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.3...v1.1.0) (2026-03-27)
+## [0.2.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.1.3...v0.2.0) (2026-03-27)
 
 ### Features
 
@@ -15,26 +15,26 @@
 
 * use tz-aware timestamps, filter non-room light entities ([645aa18](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/645aa1898bdbf66427567aee9b073e01598f6ec8))
 
-## [1.0.3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.2...v1.0.3) (2026-03-26)
+## [0.1.3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.1.2...v0.1.3) (2026-03-26)
 
 ### Bug Fixes
 
 * update ADR-001 refs after docs/adr move ([d2e94b4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d2e94b4b673fa840904a999c5edfdc8ea47d7ef5))
 
-## [1.0.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.1...v1.0.2) (2026-03-26)
+## [0.1.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.1.1...v0.1.2) (2026-03-26)
 
 ### Performance
 
 * run pre-push lefthook commands in parallel ([e638c0b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e638c0bfc8a8ce28f94b610b2d0dd48ddbd4b48d))
 
-## [1.0.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v1.0.0...v1.0.1) (2026-03-26)
+## [0.1.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.1.0...v0.1.1) (2026-03-26)
 
 ### Bug Fixes
 
 * extract release notes correctly from CHANGELOG.md ([4baa362](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4baa36253fd99ccefee115ef01f27a8133e4c203))
 * remove invalid name property from lefthook commands and add --yes to npx ([dfb8c91](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/dfb8c912f1bd11912ec0613164a4ccba375b3a8d))
 
-## 1.0.0 (2026-03-25)
+## 0.1.0 (2026-03-25)
 
 ### Features
 
