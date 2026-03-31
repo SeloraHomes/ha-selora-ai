@@ -49,6 +49,7 @@ function extractNotes() {
 
 const body = JSON.stringify({
   tag_name: `v${version}`,
+  target_commitish: "main",
   name: `v${version}`,
   body: extractNotes(),
 });
