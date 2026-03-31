@@ -1,3 +1,9 @@
+## [0.3.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.2.1...v0.3.0) (2026-03-31)
+
+### Features
+
+* give feedback button — backend, modal, and strings ([#42](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/42)) ([99da068](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/99da068dbd65894ddd2e2137f01eb3ecb921d4e3))
+
 ## [0.2.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.2.0...v0.2.1) (2026-03-30)
 
 ### Bug Fixes
