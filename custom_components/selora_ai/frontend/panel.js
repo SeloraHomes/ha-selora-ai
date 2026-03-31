@@ -1035,8 +1035,482 @@ var seloraTokens = i`
   }
 `;
 
-// src/panel/styles.css.js
-var panelStyles = i`
+// src/shared/styles/animations.css.js
+var sharedAnimations = i`
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes logoEntrance {
+    0% {
+      opacity: 0;
+      transform: scale(0.6) translateY(12px);
+    }
+    60% {
+      opacity: 1;
+      transform: scale(1.06) translateY(-2px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  @keyframes highlightRow {
+    0%,
+    30% {
+      background: rgba(251, 191, 36, 0.15);
+    }
+    100% {
+      background: transparent;
+    }
+  }
+  @keyframes fadeOutCard {
+    to {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+  }
+  @keyframes slideInCard {
+    from {
+      opacity: 0;
+      transform: translateX(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  @keyframes typingBounce {
+    0%,
+    80%,
+    100% {
+      transform: scale(0.6);
+      opacity: 0.4;
+    }
+    40% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+  @keyframes blink {
+    50% {
+      opacity: 0;
+    }
+  }
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+  @keyframes bounce {
+    0%,
+    60%,
+    100% {
+      transform: translateY(0);
+      opacity: 0.4;
+    }
+    30% {
+      transform: translateY(-6px);
+      opacity: 1;
+    }
+  }
+  @keyframes gold-shift {
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+    50% {
+      background-position: 100% 50%;
+    }
+  }
+`;
+
+// src/shared/styles/buttons.css.js
+var sharedButtons = i`
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    font-family: inherit;
+    transition: colors 0.2s ease;
+    user-select: none;
+    color: var(--primary-text-color);
+  }
+  .btn:hover {
+    opacity: 0.9;
+  }
+  .btn-primary {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #000;
+    font-weight: 500;
+  }
+  .btn-primary:hover {
+    box-shadow: var(--selora-glow);
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+    opacity: 1;
+  }
+  .btn-success {
+    background: var(--success-color, #4caf50);
+    border-color: var(--success-color, #4caf50);
+    color: white;
+  }
+  .btn-outline {
+    border-color: var(--selora-zinc-700);
+    color: var(--selora-btn-outline-text);
+    background: var(--selora-section-bg);
+  }
+  .btn-outline:hover {
+    border-color: var(--selora-zinc-600);
+    background: var(--secondary-background-color, #3f3f46);
+  }
+  .btn-danger {
+    border-color: rgba(239, 68, 68, 0.4);
+    color: var(--error-color, #ef4444);
+    background: transparent;
+  }
+  .btn-danger:hover {
+    background: rgba(239, 68, 68, 0.1);
+    border-color: var(--error-color, #ef4444);
+  }
+  .btn-warning {
+    border-color: rgba(251, 191, 36, 0.4);
+    color: var(--selora-accent-text);
+    background: transparent;
+  }
+  .btn-warning:hover {
+    background: rgba(251, 191, 36, 0.08);
+    border-color: var(--selora-accent);
+  }
+  .btn-ghost {
+    border-color: transparent;
+    color: var(--secondary-text-color);
+    background: transparent;
+    font-size: 11px;
+    padding: 4px 8px;
+  }
+  .btn-ghost:hover {
+    color: var(--primary-text-color);
+    background: rgba(0, 0, 0, 0.06);
+    border-color: var(--divider-color);
+  }
+  .btn-ghost.active {
+    color: var(--selora-accent-text);
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.05);
+  }
+`;
+
+// src/shared/styles/modals.css.js
+var sharedModals = i`
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .modal-content {
+    background: var(--card-background-color, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--selora-zinc-800);
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    width: 90%;
+  }
+  .modal {
+    background: var(--card-background-color, #fff);
+    border-radius: 16px;
+    border: 1px solid var(--divider-color);
+    padding: 24px;
+    max-width: 420px;
+    width: 90%;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+  .modal-title {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0 0 16px;
+  }
+  .modal-label {
+    font-size: 13px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 6px;
+  }
+  .modal-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .modal-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    font-size: 14px;
+    font-family: inherit;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  .modal-input:focus {
+    border-color: var(--selora-accent);
+  }
+  .modal-input::placeholder {
+    opacity: 0.35;
+  }
+  .modal-input.generating-placeholder {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-color: var(--selora-accent);
+  }
+  .modal-row.generating .modal-magic-btn {
+    border-color: var(--selora-accent);
+  }
+  .modal-magic-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 10px;
+    flex-shrink: 0;
+    border-radius: 6px;
+    border: 1.5px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    font-weight: 600;
+    transition: opacity 0.15s;
+  }
+  .modal-magic-btn:hover {
+    opacity: 0.85;
+    border-color: var(--selora-accent);
+    color: var(--selora-accent-text);
+  }
+  .modal-magic-btn ha-icon {
+    --mdc-icon-size: 20px;
+  }
+  .modal-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 16px;
+    justify-content: flex-end;
+  }
+  .modal-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    border: 1.5px solid transparent;
+    background: transparent;
+    transition:
+      background 0.15s,
+      opacity 0.15s;
+    user-select: none;
+    letter-spacing: normal;
+  }
+  .modal-btn:hover {
+    opacity: 0.85;
+  }
+  .modal-btn ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .modal-cancel {
+    border-color: var(--divider-color);
+    color: var(--primary-text-color);
+    background: var(--card-background-color);
+  }
+  .modal-cancel:hover {
+    border-color: var(--selora-accent);
+    color: var(--selora-accent-text);
+  }
+  .modal-create {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #1a1a1a;
+  }
+  .modal-create:hover:not(:disabled) {
+    box-shadow: var(--selora-glow);
+    background: var(--selora-accent-light);
+  }
+  .modal-create:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+// src/shared/styles/badges.css.js
+var sharedBadges = i`
+  .badge {
+    background: var(--selora-zinc-700);
+    color: var(--selora-zinc-200);
+    border-radius: 10px;
+    padding: 3px 8px;
+    font-size: 12px;
+    font-weight: 500;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    transition: all 0.25s ease;
+  }
+  .chip {
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    color: white;
+  }
+  .chip.ai-managed {
+    background: var(--selora-accent);
+  }
+  .chip.user-managed {
+    background: var(--selora-zinc-600);
+  }
+  .chip.suggestion {
+    background: var(--selora-accent);
+  }
+  .status-indicator {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+  }
+  .status-indicator.on {
+    color: var(--success-color, #4caf50);
+    background: rgba(76, 175, 80, 0.12);
+  }
+  .status-indicator.off {
+    color: var(--secondary-text-color);
+    background: rgba(158, 158, 158, 0.12);
+  }
+`;
+
+// src/shared/styles/loaders.css.js
+var sharedLoaders = i`
+  .spinner {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    border: 2.5px solid rgba(0, 0, 0, 0.1);
+    border-top-color: var(--selora-accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  .spinner.green {
+    border-color: rgba(76, 175, 80, 0.2);
+    border-top-color: var(--success-color, #4caf50);
+  }
+  .dots-loader {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+  }
+  .dots-loader span {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--selora-accent);
+    animation: bounce 1.2s ease-in-out infinite;
+  }
+  .dots-loader span:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .dots-loader span:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  .loading-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.6;
+  }
+  .empty-row {
+    padding: 12px 0;
+    font-size: 12px;
+    opacity: 0.5;
+    font-style: italic;
+  }
+  .generating-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 0;
+    font-size: 12px;
+    opacity: 0.7;
+  }
+`;
+
+// src/shared/styles/scrollbar.css.js
+var sharedScrollbar = i`
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--selora-accent);
+    border-radius: 4px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--selora-accent-light);
+  }
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--selora-accent) transparent;
+  }
+  ::selection {
+    background: rgba(251, 191, 36, 0.3);
+    color: inherit;
+  }
+  .gold-text {
+    background-image: linear-gradient(
+      90deg,
+      #f59e0b,
+      #fbbf24,
+      #fde68a,
+      #f59e0b
+    );
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: gold-shift 20s ease-in-out infinite;
+  }
+`;
+
+// src/panel/styles/layout.css.js
+var layoutStyles = i`
   :host {
     display: flex;
     flex-direction: column;
@@ -1045,7 +1519,160 @@ var panelStyles = i`
     color: var(--primary-text-color);
   }
 
-  /* ---- Sidebar (session list) ---- */
+  /* ---- Main area ---- */
+  .body {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+  }
+  .main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---- Scroll view (automations / settings) ---- */
+  .scroll-view {
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px 28px;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  /* ---- Section cards ---- */
+  .section-card {
+    background: var(--selora-section-bg);
+    color: var(--primary-text-color);
+    border: 1px solid var(--selora-section-border);
+    border-radius: 20px;
+    padding: 28px 32px;
+    margin-bottom: 36px;
+  }
+  .section-card .card {
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+    border-radius: 14px;
+  }
+  .section-card .automations-list {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card .auto-row {
+    border-color: var(--selora-inner-card-border);
+  }
+  .section-card-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .section-card-header h3 {
+    font-size: 20px;
+    margin: 0;
+    font-weight: 700;
+  }
+  .section-card-subtitle {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    margin-bottom: 24px;
+  }
+  @media (max-width: 600px) {
+    .scroll-view {
+      padding: 12px 10px;
+    }
+    .section-card {
+      padding: 14px 12px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+    }
+    .section-card .card {
+      padding: 12px;
+    }
+  }
+  .suggestions-section {
+  }
+  .show-more-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--selora-accent-text);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 8px 0;
+    font-family: inherit;
+  }
+  .show-more-link:hover {
+    text-decoration: underline;
+  }
+
+  /* Narrow overrides — sidebar overlays on small screens */
+  :host([narrow]) .body {
+    position: relative;
+  }
+  :host([narrow]) .sidebar {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+    width: 0;
+    min-width: 0;
+    transform: translateX(-100%);
+    transition:
+      transform 0.25s ease,
+      width 0.25s ease,
+      min-width 0.25s ease;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
+  }
+  :host([narrow]) .sidebar.open {
+    width: 260px;
+    min-width: 260px;
+    transform: translateX(0);
+  }
+
+  .toast {
+    position: fixed;
+    right: 16px;
+    bottom: 16px;
+    z-index: 10050;
+    max-width: min(420px, calc(100vw - 32px));
+    padding: 10px 12px;
+    border-radius: 10px;
+    color: #fff;
+    font-size: 13px;
+    line-height: 1.4;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .toast.info {
+    background: #1f6feb;
+  }
+  .toast.success {
+    background: #198754;
+  }
+  .toast.error {
+    background: #dc3545;
+  }
+  .toast-close {
+    margin-left: auto;
+    cursor: pointer;
+    opacity: 0.85;
+  }
+  .toast-close:hover {
+    opacity: 1;
+  }
+`;
+
+// src/panel/styles/sidebar.css.js
+var sidebarStyles = i`
   .sidebar {
     width: 0;
     min-width: 0;
@@ -1226,19 +1853,10 @@ var panelStyles = i`
     margin: 12px;
     display: block;
   }
+`;
 
-  /* ---- Main area ---- */
-  .body {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-  }
-  .main {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    overflow: hidden;
-  }
+// src/panel/styles/header.css.js
+var headerStyles = i`
   .header {
     background: var(--app-header-background-color, #1c1c1e);
     color: var(--app-header-text-color, #e4e4e7);
@@ -1345,8 +1963,10 @@ var panelStyles = i`
   .card-tab:hover::after {
     transform: scaleX(0.6);
   }
+`;
 
-  /* ---- Chat ---- */
+// src/panel/styles/chat.css.js
+var chatStyles = i`
   .chat-pane {
     flex: 1;
     display: flex;
@@ -1364,30 +1984,6 @@ var panelStyles = i`
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
-  }
-  @keyframes fadeInUp {
-    from {
-      opacity: 0;
-      transform: translateY(18px);
-    }
-    to {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-  @keyframes logoEntrance {
-    0% {
-      opacity: 0;
-      transform: scale(0.6) translateY(12px);
-    }
-    60% {
-      opacity: 1;
-      transform: scale(1.06) translateY(-2px);
-    }
-    100% {
-      opacity: 1;
-      transform: scale(1) translateY(0);
-    }
   }
   .empty-state {
     flex: 1;
@@ -1521,6 +2117,80 @@ var panelStyles = i`
     color: var(--selora-accent-text);
   }
 
+  /* ---- Chat input ---- */
+  .chat-input-wrapper {
+    border-top: 1px solid var(--divider-color);
+    flex-shrink: 0;
+  }
+  .chat-input {
+    padding: 16px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    box-sizing: border-box;
+    width: 100%;
+    background: transparent;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .chat-input ha-textfield {
+    --mdc-text-field-fill-color: var(--selora-zinc-800, #27272a);
+    --mdc-text-field-ink-color: var(--primary-text-color);
+    --mdc-text-field-label-ink-color: var(--secondary-text-color);
+    --mdc-text-field-idle-line-color: var(--selora-zinc-700, #3f3f46);
+    --mdc-text-field-hover-line-color: var(--selora-accent);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .chat-input ha-icon-button {
+    color: var(--selora-accent-text);
+    opacity: 0.7;
+    transition: opacity 0.2s;
+  }
+  .chat-input ha-icon-button:hover {
+    opacity: 1;
+  }
+  .typing-bubble {
+    align-self: flex-start;
+    background-color: var(--card-background-color);
+    box-shadow: var(--card-box-shadow);
+    border-radius: 18px;
+    border-bottom-left-radius: 4px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .typing-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: var(--secondary-text-color);
+    animation: typingBounce 1.4s infinite ease-in-out both;
+  }
+  .typing-dot:nth-child(1) {
+    animation-delay: 0s;
+  }
+  .typing-dot:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dot:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  .streaming-cursor::after {
+    content: "";
+    display: inline-block;
+    width: 2px;
+    height: 1em;
+    background-color: var(--primary-text-color);
+    margin-left: 2px;
+    vertical-align: text-bottom;
+    animation: blink 0.7s step-end infinite;
+  }
+`;
+
+// src/panel/styles/proposals.css.js
+var proposalStyles = i`
   /* ---- Automation proposal card ---- */
   .proposal-card {
     margin-top: 12px;
@@ -1782,7 +2452,10 @@ var panelStyles = i`
   .toggle-label.on {
     color: var(--selora-accent-text);
   }
+`;
 
+// src/panel/styles/cards.css.js
+var cardElementStyles = i`
   /* ---- Card action buttons ---- */
   .card-actions {
     display: flex;
@@ -1792,70 +2465,6 @@ var panelStyles = i`
     margin-top: 12px;
     padding-top: 12px;
     border-top: 1px solid var(--divider-color);
-  }
-  .btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    padding: 10px 20px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    border: 1px solid transparent;
-    background: transparent;
-    font-family: inherit;
-    transition: colors 0.2s ease;
-    user-select: none;
-    color: var(--primary-text-color);
-  }
-  .btn:hover {
-    opacity: 0.9;
-  }
-  .btn-primary {
-    background: var(--selora-accent);
-    border-color: var(--selora-accent);
-    color: #000;
-    font-weight: 500;
-  }
-  .btn-primary:hover {
-    box-shadow: var(--selora-glow);
-    background: var(--selora-accent-light);
-    border-color: var(--selora-accent-light);
-    opacity: 1;
-  }
-  .btn-success {
-    background: var(--success-color, #4caf50);
-    border-color: var(--success-color, #4caf50);
-    color: white;
-  }
-  .btn-outline {
-    border-color: var(--selora-zinc-700);
-    color: var(--selora-btn-outline-text);
-    background: var(--selora-section-bg);
-  }
-  .btn-outline:hover {
-    border-color: var(--selora-zinc-600);
-    background: var(--secondary-background-color, #3f3f46);
-  }
-  .btn-danger {
-    border-color: rgba(239, 68, 68, 0.4);
-    color: var(--error-color, #ef4444);
-    background: transparent;
-  }
-  .btn-danger:hover {
-    background: rgba(239, 68, 68, 0.1);
-    border-color: var(--error-color, #ef4444);
-  }
-  .btn-warning {
-    border-color: rgba(251, 191, 36, 0.4);
-    color: var(--selora-accent-text);
-    background: transparent;
-  }
-  .btn-warning:hover {
-    background: rgba(251, 191, 36, 0.08);
-    border-color: var(--selora-accent);
   }
 
   /* ---- Burger menu ---- */
@@ -2002,88 +2611,140 @@ var panelStyles = i`
     user-select: none;
   }
 
-  /* ---- Filter input ---- */
-  .badge {
-    background: var(--selora-zinc-700);
-    color: var(--selora-zinc-200);
-    border-radius: 10px;
-    padding: 3px 8px;
-    font-size: 12px;
-    font-weight: 500;
-    min-width: 16px;
-    text-align: center;
-    line-height: 1;
-    display: inline-flex;
-    align-items: center;
-    transition: all 0.25s ease;
-  }
-  .section-card {
-    background: var(--selora-section-bg);
-    color: var(--primary-text-color);
-    border: 1px solid var(--selora-section-border);
-    border-radius: 20px;
-    padding: 28px 32px;
-    margin-bottom: 36px;
-  }
-  .section-card .card {
-    background: var(--selora-inner-card-bg);
-    border: 1px solid var(--selora-inner-card-border);
-    border-radius: 14px;
-  }
-  .section-card .automations-list {
-    border-color: var(--selora-inner-card-border);
-  }
-  .section-card .auto-row {
-    border-color: var(--selora-inner-card-border);
-  }
-  .section-card-header {
+  .expand-toggle {
+    font-size: 11px;
+    opacity: 0.55;
+    cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-bottom: 8px;
-  }
-  .section-card-header h3 {
-    font-size: 20px;
-    margin: 0;
-    font-weight: 700;
-  }
-  .section-card-subtitle {
-    font-size: 13px;
-    color: var(--secondary-text-color);
-    margin-bottom: 24px;
-  }
-  @media (max-width: 600px) {
-    .scroll-view {
-      padding: 12px 10px;
-    }
-    .section-card {
-      padding: 14px 12px;
-      border-radius: 12px;
-      margin-bottom: 16px;
-    }
-    .section-card .card {
-      padding: 12px;
-    }
-  }
-  .suggestions-section {
-  }
-  .show-more-link {
-    display: inline-flex;
-    align-items: center;
     gap: 4px;
-    color: var(--selora-accent-text);
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    background: none;
-    border: none;
-    padding: 8px 0;
-    font-family: inherit;
+    user-select: none;
+    padding: 4px 0;
   }
-  .show-more-link:hover {
-    text-decoration: underline;
+  .expand-toggle:hover {
+    opacity: 1;
   }
 
+  /* ---- Card base ---- */
+  .card {
+    background: var(--selora-zinc-800);
+    color: var(--primary-text-color);
+    border-radius: 16px;
+    padding: 24px;
+    margin-bottom: 14px;
+    box-shadow: none;
+    border: 1px solid var(--selora-zinc-700);
+    transition: border-color 0.3s ease;
+  }
+  .card:hover {
+    border-color: rgba(251, 191, 36, 0.3);
+  }
+  .card-row2 {
+    position: relative;
+  }
+  .card .card-desc {
+    transition: opacity 0.2s;
+  }
+  .card .card-actions-row {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    left: 0;
+    right: 0;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s;
+  }
+  .card:hover .card-desc {
+    opacity: 0;
+  }
+  .card:hover .card-actions-row,
+  .card .card-actions-row.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  .card.expanded .card-desc {
+    opacity: 0;
+  }
+  @media (max-width: 600px) {
+    .card-row2 {
+      position: static !important;
+      flex: none !important;
+    }
+    .card .card-desc {
+      opacity: 1 !important;
+      height: auto !important;
+    }
+    .card:hover .card-desc {
+      opacity: 1 !important;
+    }
+    .card.expanded .card-desc {
+      display: none;
+    }
+    .card .card-actions-row {
+      position: static;
+      top: auto;
+      transform: none;
+      opacity: 1;
+      pointer-events: auto;
+      margin-top: 10px;
+    }
+    .card .card-chevron {
+      --mdc-icon-size: 22px;
+      padding: 6px;
+    }
+    .card .burger-btn {
+      width: 36px;
+      height: 36px;
+    }
+    .card .card-actions-row > div:last-child {
+      gap: 14px !important;
+    }
+    .card .refine-btn {
+      font-size: 14px !important;
+      padding: 10px 16px !important;
+    }
+    .burger-dropdown {
+      min-width: 180px;
+    }
+    .burger-item {
+      padding: 14px 18px;
+      font-size: 15px;
+      gap: 10px;
+    }
+    .burger-item ha-icon {
+      --mdc-icon-size: 18px;
+    }
+  }
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+    gap: 10px;
+  }
+  .card h3 {
+    margin: 0;
+    font-size: 16px;
+  }
+  .card p {
+    margin: 6px 0;
+    color: var(--secondary-text-color);
+    font-size: 13px;
+  }
+  pre {
+    background: var(--selora-zinc-900);
+    color: var(--selora-zinc-200);
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid var(--selora-zinc-800);
+    font-size: 11px;
+    overflow-x: auto;
+  }
+`;
+
+// src/panel/styles/automations.css.js
+var automationsStyles = i`
   /* Automations list (table-like rows) */
   .automations-list {
     border: 1px solid var(--selora-zinc-700);
@@ -2102,37 +2763,12 @@ var panelStyles = i`
   .auto-row.highlighted {
     animation: highlightRow 3s ease;
   }
-  @keyframes highlightRow {
-    0%,
-    30% {
-      background: rgba(251, 191, 36, 0.15);
-    }
-    100% {
-      background: transparent;
-    }
-  }
   .card.fading-out {
     animation: fadeOutCard 0.6s ease forwards;
     pointer-events: none;
   }
-  @keyframes fadeOutCard {
-    to {
-      opacity: 0;
-      transform: scale(0.95);
-    }
-  }
   .suggestions-section .automations-grid .card {
     animation: slideInCard 0.4s ease both;
-  }
-  @keyframes slideInCard {
-    from {
-      opacity: 0;
-      transform: translateX(30px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
   }
   .suggestions-section .automations-grid .card.fading-out {
     animation: fadeOutCard 0.6s ease forwards;
@@ -2400,92 +3036,6 @@ var panelStyles = i`
     cursor: pointer;
   }
 
-  /* ---- Status indicator (inline) ---- */
-  .status-indicator {
-    font-size: 11px;
-    font-weight: 600;
-    padding: 2px 8px;
-    border-radius: 10px;
-    flex-shrink: 0;
-  }
-  .status-indicator.on {
-    color: var(--success-color, #4caf50);
-    background: rgba(76, 175, 80, 0.12);
-  }
-  .status-indicator.off {
-    color: var(--secondary-text-color);
-    background: rgba(158, 158, 158, 0.12);
-  }
-  .btn-ghost {
-    border-color: transparent;
-    color: var(--secondary-text-color);
-    background: transparent;
-    font-size: 11px;
-    padding: 4px 8px;
-  }
-  .btn-ghost:hover {
-    color: var(--primary-text-color);
-    background: rgba(0, 0, 0, 0.06);
-    border-color: var(--divider-color);
-  }
-  .btn-ghost.active {
-    color: var(--selora-accent-text);
-    border-color: rgba(251, 191, 36, 0.35);
-    background: rgba(251, 191, 36, 0.05);
-  }
-  .expand-toggle {
-    font-size: 11px;
-    opacity: 0.55;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    user-select: none;
-    padding: 4px 0;
-  }
-  .expand-toggle:hover {
-    opacity: 1;
-  }
-
-  /* ---- Spinner ---- */
-  .spinner {
-    display: inline-block;
-    width: 18px;
-    height: 18px;
-    border: 2.5px solid rgba(0, 0, 0, 0.1);
-    border-top-color: var(--selora-accent);
-    border-radius: 50%;
-    animation: spin 0.7s linear infinite;
-  }
-  .spinner.green {
-    border-color: rgba(76, 175, 80, 0.2);
-    border-top-color: var(--success-color, #4caf50);
-  }
-  @keyframes spin {
-    to {
-      transform: rotate(360deg);
-    }
-  }
-
-  /* ---- Modal overlay ---- */
-  .modal-overlay {
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 10001;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .modal-content {
-    background: var(--card-background-color, #fff);
-    border-radius: 16px;
-    border: 1px solid var(--selora-zinc-800);
-    padding: 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    width: 90%;
-  }
-
   /* ---- Automations grid (flex columns for independent heights) ---- */
   .automations-grid {
     display: grid;
@@ -2587,238 +3137,10 @@ var panelStyles = i`
     margin: 0;
     font-size: 16px;
   }
+`;
 
-  /* ---- Chat input ---- */
-  .chat-input-wrapper {
-    border-top: 1px solid var(--divider-color);
-    flex-shrink: 0;
-  }
-  .chat-input {
-    padding: 16px 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-    box-sizing: border-box;
-    width: 100%;
-    background: transparent;
-    display: flex;
-    gap: 10px;
-    align-items: center;
-  }
-  .chat-input ha-textfield {
-    --mdc-text-field-fill-color: var(--selora-zinc-800, #27272a);
-    --mdc-text-field-ink-color: var(--primary-text-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-idle-line-color: var(--selora-zinc-700, #3f3f46);
-    --mdc-text-field-hover-line-color: var(--selora-accent);
-    border-radius: 12px;
-    overflow: hidden;
-  }
-  .chat-input ha-icon-button {
-    color: var(--selora-accent-text);
-    opacity: 0.7;
-    transition: opacity 0.2s;
-  }
-  .chat-input ha-icon-button:hover {
-    opacity: 1;
-  }
-  .typing-bubble {
-    align-self: flex-start;
-    background-color: var(--card-background-color);
-    box-shadow: var(--card-box-shadow);
-    border-radius: 18px;
-    border-bottom-left-radius: 4px;
-    padding: 16px 22px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-  .typing-dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background-color: var(--secondary-text-color);
-    animation: typingBounce 1.4s infinite ease-in-out both;
-  }
-  .typing-dot:nth-child(1) {
-    animation-delay: 0s;
-  }
-  .typing-dot:nth-child(2) {
-    animation-delay: 0.2s;
-  }
-  .typing-dot:nth-child(3) {
-    animation-delay: 0.4s;
-  }
-  @keyframes typingBounce {
-    0%,
-    80%,
-    100% {
-      transform: scale(0.6);
-      opacity: 0.4;
-    }
-    40% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
-  .streaming-cursor::after {
-    content: "";
-    display: inline-block;
-    width: 2px;
-    height: 1em;
-    background-color: var(--primary-text-color);
-    margin-left: 2px;
-    vertical-align: text-bottom;
-    animation: blink 0.7s step-end infinite;
-  }
-  @keyframes blink {
-    50% {
-      opacity: 0;
-    }
-  }
-
-  /* ---- Scroll view (automations / settings) ---- */
-  .scroll-view {
-    flex: 1;
-    overflow-y: auto;
-    padding: 24px 28px;
-    max-width: 1200px;
-    margin: 0 auto;
-    width: 100%;
-    box-sizing: border-box;
-  }
-  .card {
-    background: var(--selora-zinc-800);
-    color: var(--primary-text-color);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 14px;
-    box-shadow: none;
-    border: 1px solid var(--selora-zinc-700);
-    transition: border-color 0.3s ease;
-  }
-  .card:hover {
-    border-color: rgba(251, 191, 36, 0.3);
-  }
-  .card-row2 {
-    position: relative;
-  }
-  .card .card-desc {
-    transition: opacity 0.2s;
-  }
-  .card .card-actions-row {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    left: 0;
-    right: 0;
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.2s;
-  }
-  .card:hover .card-desc {
-    opacity: 0;
-  }
-  .card:hover .card-actions-row,
-  .card .card-actions-row.visible {
-    opacity: 1;
-    pointer-events: auto;
-  }
-  .card.expanded .card-desc {
-    opacity: 0;
-  }
-  @media (max-width: 600px) {
-    .card-row2 {
-      position: static !important;
-      flex: none !important;
-    }
-    .card .card-desc {
-      opacity: 1 !important;
-      height: auto !important;
-    }
-    .card:hover .card-desc {
-      opacity: 1 !important;
-    }
-    .card.expanded .card-desc {
-      display: none;
-    }
-    .card .card-actions-row {
-      position: static;
-      top: auto;
-      transform: none;
-      opacity: 1;
-      pointer-events: auto;
-      margin-top: 10px;
-    }
-    .card .card-chevron {
-      --mdc-icon-size: 22px;
-      padding: 6px;
-    }
-    .card .burger-btn {
-      width: 36px;
-      height: 36px;
-    }
-    .card .card-actions-row > div:last-child {
-      gap: 14px !important;
-    }
-    .card .refine-btn {
-      font-size: 14px !important;
-      padding: 10px 16px !important;
-    }
-    .burger-dropdown {
-      min-width: 180px;
-    }
-    .burger-item {
-      padding: 14px 18px;
-      font-size: 15px;
-      gap: 10px;
-    }
-    .burger-item ha-icon {
-      --mdc-icon-size: 18px;
-    }
-  }
-  .card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 10px;
-    gap: 10px;
-  }
-  .card h3 {
-    margin: 0;
-    font-size: 16px;
-  }
-  .card p {
-    margin: 6px 0;
-    color: var(--secondary-text-color);
-    font-size: 13px;
-  }
-  .chip {
-    padding: 3px 9px;
-    border-radius: 10px;
-    font-size: 10px;
-    font-weight: 700;
-    color: white;
-  }
-  .chip.ai-managed {
-    background: var(--selora-accent);
-  }
-  .chip.user-managed {
-    background: var(--selora-zinc-600);
-  }
-  .chip.suggestion {
-    background: var(--selora-accent);
-  }
-  pre {
-    background: var(--selora-zinc-900);
-    color: var(--selora-zinc-200);
-    padding: 10px;
-    border-radius: 8px;
-    border: 1px solid var(--selora-zinc-800);
-    font-size: 11px;
-    overflow-x: auto;
-  }
-
-  /* ---- Settings ---- */
+// src/panel/styles/settings.css.js
+var settingsStyles = i`
   .settings-form {
     max-width: 640px;
     margin: 0 auto;
@@ -3017,117 +3339,19 @@ var panelStyles = i`
     display: flex;
     justify-content: flex-end;
   }
-
-  /* Narrow overrides — sidebar overlays on small screens */
-  :host([narrow]) .body {
-    position: relative;
-  }
-  :host([narrow]) .sidebar {
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    z-index: 10;
-    width: 0;
-    min-width: 0;
-    transform: translateX(-100%);
-    transition:
-      transform 0.25s ease,
-      width 0.25s ease,
-      min-width 0.25s ease;
-    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.2);
-  }
-  :host([narrow]) .sidebar.open {
-    width: 260px;
-    min-width: 260px;
-    transform: translateX(0);
-  }
-
-  .toast {
-    position: fixed;
-    right: 16px;
-    bottom: 16px;
-    z-index: 10050;
-    max-width: min(420px, calc(100vw - 32px));
-    padding: 10px 12px;
-    border-radius: 10px;
-    color: #fff;
-    font-size: 13px;
-    line-height: 1.4;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-  }
-  .toast.info {
-    background: #1f6feb;
-  }
-  .toast.success {
-    background: #198754;
-  }
-  .toast.error {
-    background: #dc3545;
-  }
-  .toast-close {
-    margin-left: auto;
-    cursor: pointer;
-    opacity: 0.85;
-  }
-  .toast-close:hover {
-    opacity: 1;
-  }
-
-  /* ---- Connect-style scrollbar ---- */
-  ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
-  ::-webkit-scrollbar-track {
-    background: transparent;
-  }
-  ::-webkit-scrollbar-thumb {
-    background: var(--selora-accent);
-    border-radius: 4px;
-  }
-  ::-webkit-scrollbar-thumb:hover {
-    background: var(--selora-accent-light);
-  }
-  * {
-    scrollbar-width: thin;
-    scrollbar-color: var(--selora-accent) transparent;
-  }
-
-  /* ---- Gold gradient text (Connect brand) ---- */
-  /* ---- Text selection ---- */
-  ::selection {
-    background: rgba(251, 191, 36, 0.3);
-    color: inherit;
-  }
-
-  .gold-text {
-    background-image: linear-gradient(
-      90deg,
-      #f59e0b,
-      #fbbf24,
-      #fde68a,
-      #f59e0b
-    );
-    background-size: 300% 100%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
-    animation: gold-shift 20s ease-in-out infinite;
-  }
-  @keyframes gold-shift {
-    0%,
-    100% {
-      background-position: 0% 50%;
-    }
-    50% {
-      background-position: 100% 50%;
-    }
-  }
 `;
+
+// src/panel/styles/index.css.js
+var allPanelStyles = [
+  layoutStyles,
+  sidebarStyles,
+  headerStyles,
+  chatStyles,
+  proposalStyles,
+  cardElementStyles,
+  automationsStyles,
+  settingsStyles,
+];
 
 // src/shared/date-utils.js
 function relativeTime(date) {
@@ -5940,7 +6164,7 @@ function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${"0.2.1"}
+          Selora AI v${"0.3.0"}
         </div>
       </div>
     </div>
@@ -8128,7 +8352,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.2.1" : "unknown",
+        integration_version: true ? "0.3.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -8195,7 +8419,16 @@ var SeloraAIArchitectPanel = class extends s4 {
   // Styles
   // -------------------------------------------------------------------------
   static get styles() {
-    return [seloraTokens, panelStyles];
+    return [
+      seloraTokens,
+      sharedAnimations,
+      sharedButtons,
+      sharedModals,
+      sharedBadges,
+      sharedLoaders,
+      sharedScrollbar,
+      ...allPanelStyles,
+    ];
   }
   // -------------------------------------------------------------------------
   // Render delegation wrappers

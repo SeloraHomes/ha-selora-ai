@@ -1,6 +1,12 @@
 import { LitElement, html } from "lit";
 import { seloraTokens } from "./shared/design-tokens.css.js";
-import { panelStyles } from "./panel/styles.css.js";
+import { sharedAnimations } from "./shared/styles/animations.css.js";
+import { sharedButtons } from "./shared/styles/buttons.css.js";
+import { sharedModals } from "./shared/styles/modals.css.js";
+import { sharedBadges } from "./shared/styles/badges.css.js";
+import { sharedLoaders } from "./shared/styles/loaders.css.js";
+import { sharedScrollbar } from "./shared/styles/scrollbar.css.js";
+import { allPanelStyles } from "./panel/styles/index.css.js";
 import { formatDate } from "./shared/date-utils.js";
 import {
   renderChat,
@@ -566,7 +572,16 @@ class SeloraAIArchitectPanel extends LitElement {
   // -------------------------------------------------------------------------
 
   static get styles() {
-    return [seloraTokens, panelStyles];
+    return [
+      seloraTokens,
+      sharedAnimations,
+      sharedButtons,
+      sharedModals,
+      sharedBadges,
+      sharedLoaders,
+      sharedScrollbar,
+      ...allPanelStyles,
+    ];
   }
 
   // -------------------------------------------------------------------------
