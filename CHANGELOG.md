@@ -1,3 +1,9 @@
+## [0.3.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.0...v0.3.1) (2026-03-31)
+
+### Code Refactoring
+
+* split css files ([d3ddfbb](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d3ddfbb8564443cf2e03214cba9d0256fed37c9b))
+
 ## [0.3.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.2.1...v0.3.0) (2026-03-31)
 
 ### Features
