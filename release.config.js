@@ -26,7 +26,7 @@ export default {
           { type: "feat",     release: "minor" },
           { type: "fix",      release: "patch" },
           { type: "perf",     release: "patch" },
-          { type: "refactor", release: "patch" },
+          { type: "refactor", release: false   },
           { type: "revert",   release: "patch" },
           { type: "docs",     release: false   },
           { type: "chore",    release: false   },
