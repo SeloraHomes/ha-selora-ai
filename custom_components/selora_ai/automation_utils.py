@@ -48,11 +48,21 @@ _SCRUTINY_SERVICE_DOMAINS = {
 }
 
 
+def _to_plain_types(obj: Any) -> Any:
+    """Convert ruamel.yaml rich types (CommentedMap, CommentedSeq, etc.) to plain Python."""
+    if isinstance(obj, dict):
+        return {k: _to_plain_types(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_to_plain_types(item) for item in obj]
+    return obj
+
+
 def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
     """Read and parse automations.yaml (runs in executor).
 
-    Uses ruamel.yaml to preserve scalar styles (especially double-quoted
-    on/off/yes/no strings) across read→write round-trips.
+    Uses ruamel.yaml to correctly parse double-quoted on/off/yes/no as
+    strings (not booleans), then converts the result to plain Python types
+    so ruamel internals never leak into HA or other serialisation paths.
     """
     from ruamel.yaml import YAML
 
@@ -65,7 +75,7 @@ def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
         ryaml = YAML()
         data = ryaml.load(text)
         if isinstance(data, list):
-            return data
+            return _to_plain_types(data)
     except Exception as exc:
         _LOGGER.error("Error reading automations.yaml: %s", exc)
     return []
