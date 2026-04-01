@@ -13,7 +13,8 @@ export const automationsStyles = css`
   .auto-row:last-child {
     border-bottom: none;
   }
-  .auto-row.disabled {
+  .auto-row.disabled > .auto-row-main > :not(.burger-menu-wrapper),
+  .auto-row.disabled > .auto-row-expand {
     opacity: 0.5;
   }
   .auto-row.highlighted {
