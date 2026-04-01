@@ -3633,148 +3633,192 @@ function renderChat(host) {
                       devices, detect patterns, and help you build automations
                       using natural language.
                     </div>
-                    <div
-                      style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:24px;"
-                    >
-                      <div
-                        class="welcome-card"
-                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                        @click=${() => host._quickStart("Create an automation for my home")}
-                      >
-                        <div
-                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                        >
-                          <ha-icon
-                            icon="mdi:lightning-bolt"
-                            style="--mdc-icon-size:18px;color:#fbbf24;"
-                          ></ha-icon>
-                          <div style="font-size:13px;font-weight:600;">
-                            Create Automations
+                    ${
+                      host._llmNeedsSetup
+                        ? x`
+                          <div
+                            style="margin-top:8px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;"
+                            @click=${() => host._goToSettings()}
+                          >
+                            <ha-icon
+                              icon="mdi:rocket-launch-outline"
+                              style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
+                            ></ha-icon>
+                            <div
+                              style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                            >
+                              Get started
+                            </div>
+                            <div
+                              style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                            >
+                              ${
+                                host._config?.llm_provider
+                                  ? x`Add your
+                                  ${host._config.llm_provider === "openai" ? "OpenAI" : "Anthropic"}
+                                  API key to start chatting with your home.`
+                                  : "Choose an AI provider and add your credentials to start chatting with your home."
+                              }
+                            </div>
+                            <span
+                              style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                            >
+                              Open Settings
+                              <ha-icon
+                                icon="mdi:arrow-right"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </span>
                           </div>
-                        </div>
-                        <div style="font-size:12px;opacity:0.6;">
-                          Describe what you want in plain English
-                        </div>
-                      </div>
-                      <div
-                        class="welcome-card"
-                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                        @click=${() =>
-                          host._quickStart(
-                            "Analyze my device usage patterns and suggest automations",
-                          )}
-                      >
-                        <div
-                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                        >
-                          <ha-icon
-                            icon="mdi:magnify-scan"
-                            style="--mdc-icon-size:18px;color:#3b82f6;"
-                          ></ha-icon>
-                          <div style="font-size:13px;font-weight:600;">
-                            Detect Patterns
+                        `
+                        : x`
+                          <div
+                            style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:24px;"
+                          >
+                            <div
+                              class="welcome-card"
+                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "Create an automation for my home",
+                                )}
+                            >
+                              <div
+                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                              >
+                                <ha-icon
+                                  icon="mdi:lightning-bolt"
+                                  style="--mdc-icon-size:18px;color:#fbbf24;"
+                                ></ha-icon>
+                                <div style="font-size:13px;font-weight:600;">
+                                  Create Automations
+                                </div>
+                              </div>
+                              <div style="font-size:12px;opacity:0.6;">
+                                Describe what you want in plain English
+                              </div>
+                            </div>
+                            <div
+                              class="welcome-card"
+                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "Analyze my device usage patterns and suggest automations",
+                                )}
+                            >
+                              <div
+                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                              >
+                                <ha-icon
+                                  icon="mdi:magnify-scan"
+                                  style="--mdc-icon-size:18px;color:#3b82f6;"
+                                ></ha-icon>
+                                <div style="font-size:13px;font-weight:600;">
+                                  Detect Patterns
+                                </div>
+                              </div>
+                              <div style="font-size:12px;opacity:0.6;">
+                                AI spots your routines and suggests automations
+                              </div>
+                            </div>
+                            <div
+                              class="welcome-card"
+                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "What devices do I have and how are they organized?",
+                                )}
+                            >
+                              <div
+                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                              >
+                                <ha-icon
+                                  icon="mdi:home-search-outline"
+                                  style="--mdc-icon-size:18px;color:#22c55e;"
+                                ></ha-icon>
+                                <div style="font-size:13px;font-weight:600;">
+                                  Manage Devices
+                                </div>
+                              </div>
+                              <div style="font-size:12px;opacity:0.6;">
+                                Discover, organize, and control your smart home
+                              </div>
+                            </div>
+                            <div
+                              class="welcome-card"
+                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
+                              @click=${() => host._quickStart("What can you help me with?")}
+                            >
+                              <div
+                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
+                              >
+                                <ha-icon
+                                  icon="mdi:chat-question-outline"
+                                  style="--mdc-icon-size:18px;color:#a855f7;"
+                                ></ha-icon>
+                                <div style="font-size:13px;font-weight:600;">
+                                  Ask Anything
+                                </div>
+                              </div>
+                              <div style="font-size:12px;opacity:0.6;">
+                                Get answers about your home setup
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div style="font-size:12px;opacity:0.6;">
-                          AI spots your routines and suggests automations
-                        </div>
-                      </div>
-                      <div
-                        class="welcome-card"
-                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                        @click=${() =>
-                          host._quickStart(
-                            "What devices do I have and how are they organized?",
-                          )}
-                      >
-                        <div
-                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                        >
-                          <ha-icon
-                            icon="mdi:home-search-outline"
-                            style="--mdc-icon-size:18px;color:#22c55e;"
-                          ></ha-icon>
-                          <div style="font-size:13px;font-weight:600;">
-                            Manage Devices
+                          <div
+                            class="section-card-subtitle"
+                            style="margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
+                          >
+                            Quick start
                           </div>
-                        </div>
-                        <div style="font-size:12px;opacity:0.6;">
-                          Discover, organize, and control your smart home
-                        </div>
-                      </div>
-                      <div
-                        class="welcome-card"
-                        style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                        @click=${() => host._quickStart("What can you help me with?")}
-                      >
-                        <div
-                          style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                        >
-                          <ha-icon
-                            icon="mdi:chat-question-outline"
-                            style="--mdc-icon-size:18px;color:#a855f7;"
-                          ></ha-icon>
-                          <div style="font-size:13px;font-weight:600;">
-                            Ask Anything
+                          <div
+                            style="display:flex;flex-direction:column;gap:8px;width:100%;"
+                          >
+                            <button
+                              class="btn btn-outline"
+                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "Create an automation that turns off all lights at midnight",
+                                )}
+                            >
+                              <ha-icon
+                                icon="mdi:lightbulb-off-outline"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                              Turn off all lights at midnight
+                            </button>
+                            <button
+                              class="btn btn-outline"
+                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "What devices do I have and which ones are currently on?",
+                                )}
+                            >
+                              <ha-icon
+                                icon="mdi:devices"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                              What devices do I have?
+                            </button>
+                            <button
+                              class="btn btn-outline"
+                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
+                              @click=${() =>
+                                host._quickStart(
+                                  "Suggest useful automations based on my devices and usage patterns",
+                                )}
+                            >
+                              <ha-icon
+                                icon="mdi:auto-fix"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                              Suggest automations for my home
+                            </button>
                           </div>
-                        </div>
-                        <div style="font-size:12px;opacity:0.6;">
-                          Get answers about your home setup
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      class="section-card-subtitle"
-                      style="margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
-                    >
-                      Quick start
-                    </div>
-                    <div
-                      style="display:flex;flex-direction:column;gap:8px;width:100%;"
-                    >
-                      <button
-                        class="btn btn-outline"
-                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                        @click=${() =>
-                          host._quickStart(
-                            "Create an automation that turns off all lights at midnight",
-                          )}
-                      >
-                        <ha-icon
-                          icon="mdi:lightbulb-off-outline"
-                          style="--mdc-icon-size:16px;"
-                        ></ha-icon>
-                        Turn off all lights at midnight
-                      </button>
-                      <button
-                        class="btn btn-outline"
-                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                        @click=${() =>
-                          host._quickStart(
-                            "What devices do I have and which ones are currently on?",
-                          )}
-                      >
-                        <ha-icon
-                          icon="mdi:devices"
-                          style="--mdc-icon-size:16px;"
-                        ></ha-icon>
-                        What devices do I have?
-                      </button>
-                      <button
-                        class="btn btn-outline"
-                        style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                        @click=${() =>
-                          host._quickStart(
-                            "Suggest useful automations based on my devices and usage patterns",
-                          )}
-                      >
-                        <ha-icon
-                          icon="mdi:auto-fix"
-                          style="--mdc-icon-size:16px;"
-                        ></ha-icon>
-                        Suggest automations for my home
-                      </button>
-                    </div>
+                        `
+                    }
                   </div>
                 </div>
               `,
@@ -5865,8 +5909,23 @@ function renderSettings(host) {
     <div class="scroll-view">
       <div class="settings-form">
         <div class="section-card settings-section">
-          <div class="section-card-header">
+          <div
+            class="section-card-header"
+            style="display:flex;align-items:center;justify-content:space-between;"
+          >
             <h3>LLM Provider</h3>
+            <a
+              href="https://selorahomes.com/docs/selora-ai/configuration/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--secondary-text-color);text-decoration:none;"
+            >
+              <ha-icon
+                icon="mdi:book-open-variant"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              Documentation
+            </a>
           </div>
           <div class="form-group">
             <label>Provider</label>
@@ -5893,7 +5952,7 @@ function renderSettings(host) {
                       ? x`<div class="key-hint">
                         ${host._config.anthropic_api_key_hint}
                       </div>`
-                      : x`<div class="key-not-set">No API key set</div>`
+                      : ""
                   }
                   <ha-textfield
                     label="${host._config.anthropic_api_key_set ? "Enter new key to replace" : "Enter API key"}"
@@ -5922,7 +5981,7 @@ function renderSettings(host) {
                         ? x`<div class="key-hint">
                           ${host._config.openai_api_key_hint}
                         </div>`
-                        : x`<div class="key-not-set">No API key set</div>`
+                        : ""
                     }
                     <ha-textfield
                       label="${host._config.openai_api_key_set ? "Enter new key to replace" : "Enter API key"}"
@@ -8193,6 +8252,7 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._loadConfig();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e5) => {
@@ -8267,6 +8327,14 @@ var SeloraAIArchitectPanel = class extends s4 {
   _goToSettings() {
     this._activeTab = "settings";
     this._loadConfig();
+  }
+  get _llmNeedsSetup() {
+    if (!this._config) return false;
+    const provider = this._config.llm_provider;
+    if (!provider) return true;
+    if (provider === "anthropic") return !this._config.anthropic_api_key_set;
+    if (provider === "openai") return !this._config.openai_api_key_set;
+    return false;
   }
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };

@@ -320,6 +320,7 @@ class SeloraAIArchitectPanel extends LitElement {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._loadConfig();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e) => {
@@ -400,6 +401,15 @@ class SeloraAIArchitectPanel extends LitElement {
   _goToSettings() {
     this._activeTab = "settings";
     this._loadConfig();
+  }
+
+  get _llmNeedsSetup() {
+    if (!this._config) return false;
+    const provider = this._config.llm_provider;
+    if (!provider) return true; // No provider selected at all
+    if (provider === "anthropic") return !this._config.anthropic_api_key_set;
+    if (provider === "openai") return !this._config.openai_api_key_set;
+    return false; // Ollama doesn't require an API key
   }
 
   _updateConfig(key, value) {

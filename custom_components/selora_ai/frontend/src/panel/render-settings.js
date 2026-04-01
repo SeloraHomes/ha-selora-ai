@@ -19,8 +19,23 @@ export function renderSettings(host) {
     <div class="scroll-view">
       <div class="settings-form">
         <div class="section-card settings-section">
-          <div class="section-card-header">
+          <div
+            class="section-card-header"
+            style="display:flex;align-items:center;justify-content:space-between;"
+          >
             <h3>LLM Provider</h3>
+            <a
+              href="https://selorahomes.com/docs/selora-ai/configuration/"
+              target="_blank"
+              rel="noopener noreferrer"
+              style="display:inline-flex;align-items:center;gap:4px;font-size:12px;color:var(--secondary-text-color);text-decoration:none;"
+            >
+              <ha-icon
+                icon="mdi:book-open-variant"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              Documentation
+            </a>
           </div>
           <div class="form-group">
             <label>Provider</label>
@@ -46,7 +61,7 @@ export function renderSettings(host) {
                     ? html`<div class="key-hint">
                         ${host._config.anthropic_api_key_hint}
                       </div>`
-                    : html`<div class="key-not-set">No API key set</div>`}
+                    : ""}
                   <ha-textfield
                     label="${host._config.anthropic_api_key_set
                       ? "Enter new key to replace"
@@ -76,7 +91,7 @@ export function renderSettings(host) {
                       ? html`<div class="key-hint">
                           ${host._config.openai_api_key_hint}
                         </div>`
-                      : html`<div class="key-not-set">No API key set</div>`}
+                      : ""}
                     <ha-textfield
                       label="${host._config.openai_api_key_set
                         ? "Enter new key to replace"
