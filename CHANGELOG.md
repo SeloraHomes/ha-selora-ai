@@ -1,3 +1,13 @@
+## [0.3.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.1...v0.3.2) (2026-04-02)
+
+### Bug Fixes
+
+* disabled expand area opacity ([3f17795](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3f177955fbe8a5a626999d3668bcff4cbcc28cb8))
+* disabled row menu opacity ([56389c7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/56389c7e01fabcb079a71a7a6abd700bf22a84d1))
+* release pipeline and GitHub mirror ([7b7e70e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7b7e70ea2c45462741b27844a0839ed7c2caff48))
+* strip ruamel types after YAML read ([205e1cb](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/205e1cb67ea6859cc0adb8dce5b7a1a3e0f5d682))
+* validate automation trigger boolean coercion ([7ad1313](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7ad1313fa294e78afa055c58522cf4633ae935e9))
+
 ## [0.3.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.0...v0.3.1) (2026-03-31)
 
 ### Code Refactoring
