@@ -1,6 +1,8 @@
 # Selora AI — Home Assistant Integration
 # Run `just` to see all available recipes.
 
+set dotenv-load
+
 frontend_dir := "custom_components/selora_ai/frontend"
 
 # List available recipes
@@ -74,6 +76,21 @@ validate-hassfest:
       && rsync -a --delete --exclude node_modules custom_components/ .hassfest_tmp/custom_components/ \
       && docker run --rm -v "$(pwd)/.hassfest_tmp/custom_components:/github/workspace/custom_components" ghcr.io/home-assistant/hassfest; \
     rc=$?; rm -rf .hassfest_tmp; exit $rc
+
+# ── Deploy ──────────────────────────────────────────────────────────────────
+
+ha_host := env_var_or_default("HA_HOST", "root@homeassistant.local")
+ha_path := "~/config/custom_components/"
+
+# Deploy to dev HA instance and restart
+deploy: build (_sync-to-ha)
+    -ssh {{ ha_host }} -t 'ha core restart'
+
+# Deploy to dev HA instance without restart
+deploy-no-restart: build (_sync-to-ha)
+
+_sync-to-ha:
+    rsync -az --delete --exclude node_modules custom_components/selora_ai/ {{ ha_host }}:{{ ha_path }}selora_ai/
 
 # ── CI (mirrors pre-push checks) ────────────────────────────────────────────
 

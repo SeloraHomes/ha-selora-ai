@@ -129,6 +129,27 @@ GitLab CI runs both test suites in the `test` stage (`unit` + `frontend` jobs).
 GitHub Actions runs HACS validation and hassfest (manifest/strings/translations).
 Lefthook runs tests, lint, and validation on `pre-push` locally (including hassfest via Docker).
 
+## Deploying to Dev
+
+`just deploy` builds the frontend and syncs files to a dev HA instance over SSH, then restarts HA.
+`just deploy-no-restart` does the same without restarting.
+
+### Prerequisites
+
+1. Install the **Advanced SSH & Web Terminal** add-on in HA (Settings → Add-ons)
+2. In the add-on configuration, add your SSH public key and enable SFTP
+3. Copy `.env.example` to `.env` and set `HA_HOST` to your HA instance (e.g. `root@192.168.x.x`)
+
+```bash
+cp .env.example .env
+# Edit .env with your HA IP address
+
+just deploy            # build + sync + restart
+just deploy-no-restart # build + sync only
+```
+
+> Use the IP address rather than `homeassistant.local` — mDNS resolution adds latency on every SSH/SCP connection.
+
 ## Running Locally
 
 ```bash
