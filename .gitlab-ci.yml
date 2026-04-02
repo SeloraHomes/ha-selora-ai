@@ -3,7 +3,6 @@
 
 stages:
   - lint
-  - validate
   - test
   - release
 
@@ -53,19 +52,15 @@ lint:prettier:
     - npx prettier --check src/**/*.js *.js
 
 # =============================================================================
-# STAGE: validate
+# STAGE: test
 # =============================================================================
 
 validate:
-  stage: validate
+  stage: test
   image: python:3.13-slim
   script:
     - python3 scripts/validate_hacs.py
     - python3 scripts/validate_manifest.py
-
-# =============================================================================
-# STAGE: test
-# =============================================================================
 
 unit:
   stage: test
