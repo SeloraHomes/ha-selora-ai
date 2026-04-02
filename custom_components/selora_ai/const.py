@@ -800,6 +800,9 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
 
 # ── LLM Suggestion Limits ───────────────────────────────────────────
 DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
+DEFAULT_MIN_SUGGESTIONS = 3  # Floor: always allow at least this many
+DEFAULT_MAX_SUGGESTIONS_CEILING = 10  # Ceiling: never exceed this many
+DEFAULT_DEVICES_PER_SUGGESTION = 5  # Scaling factor: 1 extra suggestion per N uncovered devices
 
 # ── Automation Creation ──────────────────────────────────────────────
 # Prefix for auto-created automation IDs (easy to find/filter).

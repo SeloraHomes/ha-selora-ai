@@ -15,12 +15,14 @@ from datetime import UTC, datetime, timedelta
 import hashlib
 import json
 import logging
+from math import ceil
 from pathlib import Path
 from typing import Any
 import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
 import yaml
 
@@ -36,7 +38,10 @@ from .const import (
     DEFAULT_COLLECTOR_ENABLED,
     DEFAULT_COLLECTOR_INTERVAL,
     DEFAULT_COLLECTOR_MODE,
+    DEFAULT_DEVICES_PER_SUGGESTION,
     DEFAULT_LLM_TIMEOUT,
+    DEFAULT_MAX_SUGGESTIONS_CEILING,
+    DEFAULT_MIN_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
@@ -147,6 +152,61 @@ class DataCollector:
             _LOGGER.error("Invalid time format in settings: %s or %s", start_time, end_time)
             return True  # Default to allowed if config is broken
 
+    async def _calculate_dynamic_cap(self) -> int:
+        """Calculate suggestion cap proportional to uncovered devices.
+
+        Uses the entity registry to map devices → entities, then reads
+        automations.yaml to determine which entity_ids are already
+        covered by triggers, actions, and conditions.
+        """
+        device_reg = dr.async_get(self._hass)
+        entity_reg = er.async_get(self._hass)
+
+        total_devices = len(device_reg.devices)
+
+        # Build device_id → set[entity_id] from the entity registry
+        device_entities: dict[str, set[str]] = {}
+        for entry in entity_reg.entities.values():
+            if entry.device_id:
+                device_entities.setdefault(entry.device_id, set()).add(entry.entity_id)
+
+        # Read the full automation configs from automations.yaml.
+        # State attributes only carry friendly_name/last_triggered/id,
+        # not the trigger/action/condition entity_ids we need.
+        from .automation_utils import _read_automations_yaml
+
+        automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
+        automations = await self._hass.async_add_executor_job(
+            _read_automations_yaml, automations_path
+        )
+
+        covered_list: list[str] = []
+        for automation in automations:
+            self._extract_entity_ids(automation, covered_list)
+        covered_entity_ids = set(covered_list)
+
+        # Count devices whose entities are NOT covered by any automation
+        uncovered_count = 0
+        for device_id in device_reg.devices:
+            entities = device_entities.get(device_id, set())
+            if not entities or not entities & covered_entity_ids:
+                uncovered_count += 1
+
+        cap = max(
+            DEFAULT_MIN_SUGGESTIONS,
+            min(
+                ceil(uncovered_count / DEFAULT_DEVICES_PER_SUGGESTION),
+                DEFAULT_MAX_SUGGESTIONS_CEILING,
+            ),
+        )
+        _LOGGER.debug(
+            "Dynamic suggestion cap: %d (uncovered devices: %d/%d)",
+            cap,
+            uncovered_count,
+            total_devices,
+        )
+        return cap
+
     async def _collect_analyze_log(self) -> None:
         """Full cycle: collect → LLM analysis → log suggestions."""
         if not self._llm:
@@ -176,6 +236,12 @@ class DataCollector:
                 "No recorder history available — suggestions will be based on "
                 "current state only (is the recorder integration enabled?)"
             )
+
+        # Compute the dynamic suggestion cap and propagate it to the LLM
+        # client so the prompt asks for the right amount and parsing allows
+        # them through.
+        dynamic_cap = await self._calculate_dynamic_cap()
+        self._llm._max_suggestions = dynamic_cap
 
         # Step 2: Feed snapshot to the configured LLM (with timeout)
         try:
@@ -265,6 +331,15 @@ class DataCollector:
             filtered_out = len(unique_suggestions) - len(enriched)
             if filtered_out:
                 _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
+
+            # Apply dynamic suggestion cap (computed before the LLM call)
+            if len(enriched) > dynamic_cap:
+                _LOGGER.info(
+                    "Capping suggestions from %d to %d (dynamic cap based on home size)",
+                    len(enriched),
+                    dynamic_cap,
+                )
+                enriched = enriched[:dynamic_cap]
 
             # Store in hass.data for the side panel to fetch
             self._hass.data.setdefault(DOMAIN, {})
