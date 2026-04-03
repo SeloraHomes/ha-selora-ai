@@ -868,7 +868,7 @@ class LLMClient:
             "1. IMMEDIATE COMMAND — control a device right now (turn on/off, set level, query state):\n"
             "{\n"
             '  "intent": "command",\n'
-            '  "response": "Short confirmation, e.g. Turning on the kitchen lights.",\n'
+            '  "response": "1-sentence confirmation. e.g. Turning on the kitchen lights.",\n'
             '  "calls": [\n'
             '    {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}, "data": {"brightness_pct": 80}}\n'
             "  ]\n"
@@ -876,7 +876,7 @@ class LLMClient:
             "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
             "{\n"
             '  "intent": "automation",\n'
-            '  "response": "Conversational explanation of what you built and any trade-offs.",\n'
+            '  "response": "1-2 sentence explanation of the automation. Mention any trade-off only if important.",\n'
             '  "description": "Precise plain-English summary for the user to verify — e.g. \'Every weekday at 7am: turn on light.bedroom and start media_player.kitchen_speaker.\'",\n'
             '  "automation": {\n'
             '    "alias": "Short Name (max 4 words)",\n'
@@ -889,12 +889,12 @@ class LLMClient:
             "3. CLARIFICATION — the request is ambiguous; ask a focused follow-up question:\n"
             "{\n"
             '  "intent": "clarification",\n'
-            '  "response": "The specific question you need answered before proceeding."\n'
+            '  "response": "One specific question — no filler."\n'
             "}\n\n"
             "4. ANSWER — general question or conversation that needs no device control or automation:\n"
             "{\n"
             '  "intent": "answer",\n'
-            '  "response": "Your answer."\n'
+            '  "response": "Your answer. For tool-backed data, follow the tool policy Output Formatting rules."\n'
             "}\n\n"
             "RULES:\n"
             "- Only use entity_ids from the AVAILABLE ENTITIES list.\n"
@@ -911,6 +911,22 @@ class LLMClient:
             "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
             + "\n"
             + _load_tool_policy()
+            + "\n"
+            "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
+            "When a tool returns structured data, follow the Output Formatting rules above instead.\n"
+            "For all other responses:\n"
+            "- Command confirmations: 1 sentence.\n"
+            "- Automation explanations: summarize what the automation does and mention all targeted entities "
+            "so the caller can verify without parsing the YAML.\n"
+            "- Simple questions: 1-3 sentences. Only add detail the user actually asked for.\n"
+            "- Device integration / setup: use numbered steps when the task has multiple actions. Keep each step to one sentence.\n"
+            "- Troubleshooting: ask one diagnostic question or give one concrete fix. Use numbered steps if multiple actions are needed.\n"
+            "- Clarifications: 1 focused question, no filler.\n"
+            "- NEVER open with filler like 'Sure!', 'Great question!', 'I can help with that'.\n"
+            "- Do NOT echo the user's full request, but DO name the targeted entities in command confirmations "
+            "so the user can verify what was acted on.\n"
+            '- The structured "description" field MUST remain a precise, complete summary '
+            "including all targeted entities so the user can verify before enabling.\n"
         )
 
     def _parse_architect_response(self, text: str) -> dict[str, Any]:
@@ -1083,9 +1099,8 @@ class LLMClient:
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n\n"
             "You have access to the current entity states and conversation history.\n\n"
             "RESPONSE FORMAT:\n"
-            "BE CONCISE. Keep responses short — 2-4 sentences for simple answers, a short paragraph for "
-            "explanations. This is a chat, not an essay. Get to the point quickly.\n"
-            "Use markdown formatting sparingly: bold (**text**) and short bullet lists only when needed.\n\n"
+            "Use markdown sparingly in conversational replies: bold (**text**) for emphasis only.\n"
+            "For tool-backed answers, follow the Output Formatting rules in the tool policy below.\n\n"
             "If your response involves creating or updating an automation, append the full automation JSON\n"
             "inside a fenced code block with the language tag 'automation' at the END of your response:\n\n"
             "```automation\n"
@@ -1114,6 +1129,23 @@ class LLMClient:
             "- For troubleshooting, ask targeted diagnostic questions and suggest concrete fixes.\n"
             + "\n"
             + _load_tool_policy()
+            + "\n"
+            "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
+            "When a tool returns structured data, follow the Output Formatting rules above instead.\n"
+            "For all other responses:\n"
+            "- Device commands: 1 sentence confirming the action.\n"
+            "- Automations: 1-2 sentences explaining what it does. The automation card shows the details.\n"
+            "- Simple questions: 1-3 sentences.\n"
+            "- Device integration / setup: use numbered steps when the task has multiple actions. Keep each step to one sentence.\n"
+            "- Troubleshooting: ask one diagnostic question or give one concrete fix. Use numbered steps if multiple actions are needed.\n"
+            "- NEVER open with filler ('Sure!', 'Great question!', 'Absolutely!', 'I can help with that').\n"
+            "- Do NOT echo the user's full request, but DO name the targeted entities in command confirmations "
+            "so the user can verify what was acted on.\n"
+            "- In chat text, do NOT list every entity or service call in automations — the automation card shows "
+            'the details. But the automation JSON "description" field MUST remain a precise, complete summary '
+            "including all targeted entities so the user can verify before enabling.\n"
+            "- Skip bullet lists unless comparing options or giving step-by-step instructions. "
+            "For simple answers, prefer a single flowing sentence.\n"
         )
 
     def parse_streamed_response(
