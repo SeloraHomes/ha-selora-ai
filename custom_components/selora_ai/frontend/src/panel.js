@@ -194,6 +194,10 @@ class SeloraAIArchitectPanel extends LitElement {
       _autosPerPage: { type: Number },
       _suggestionsPerPage: { type: Number },
 
+      // Unavailable automation modal
+      _unavailableAutoId: { type: String },
+      _unavailableAutoName: { type: String },
+
       // Feedback modal
       _showFeedbackModal: { type: Boolean },
       _feedbackText: { type: String },
@@ -273,6 +277,8 @@ class SeloraAIArchitectPanel extends LitElement {
     this._showNewAutoDialog = false;
     this._newAutoName = "";
     this._suggestingName = false;
+    this._unavailableAutoId = null;
+    this._unavailableAutoName = null;
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};

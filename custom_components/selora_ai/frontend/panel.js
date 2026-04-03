@@ -2757,7 +2757,14 @@ var automationsStyles = i`
   .auto-row:last-child {
     border-bottom: none;
   }
-  .auto-row.disabled > .auto-row-main > :not(.burger-menu-wrapper) {
+  .auto-row.disabled
+    > .auto-row-main
+    > :not(.burger-menu-wrapper):not(.auto-row-name) {
+    opacity: 0.5;
+  }
+  .auto-row.disabled .auto-row-title,
+  .auto-row.disabled .auto-row-desc,
+  .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;
   }
   .auto-row.highlighted {
@@ -2797,6 +2804,26 @@ var automationsStyles = i`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .auto-row-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .needs-attention-pill {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 12px;
+    background: #d32f2f;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .needs-attention-pill:hover {
+    background: #c62828;
   }
   .auto-row-desc {
     font-size: 12px;
@@ -5425,6 +5452,7 @@ function renderAutomations(host) {
                 ${pagedAutomations.map((a4) => {
                   const isDraft = !!a4._draft;
                   const isOn = host._automationIsEnabled(a4);
+                  const isUnavailable = a4.state === "unavailable";
                   const automationId = a4.automation_id || "";
                   const hasAutomationId = !!automationId;
                   const canToggle =
@@ -5523,9 +5551,22 @@ function renderAutomations(host) {
                                   ></ha-icon>
                                 </button>
                               `
-                              : x`<span class="auto-row-title"
-                                >${a4.alias}</span
-                              >`
+                              : x`<div class="auto-row-title-row">
+                                <span class="auto-row-title">${a4.alias}</span
+                                >${
+                                  isUnavailable
+                                    ? x`<span
+                                      class="needs-attention-pill"
+                                      @click=${(e5) => {
+                                        e5.stopPropagation();
+                                        host._unavailableAutoId = automationId;
+                                        host._unavailableAutoName = a4.alias;
+                                      }}
+                                      >Needs attention</span
+                                    >`
+                                    : ""
+                                }
+                              </div>`
                           }
                           ${
                             a4.description
@@ -5887,6 +5928,92 @@ function renderAutomations(host) {
         }
       </div>
       ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
+      ${renderUnavailableModal(host)}
+    </div>
+  `;
+}
+function renderUnavailableModal(host) {
+  if (!host._unavailableAutoId) return "";
+  return x`
+    <div
+      class="modal-overlay"
+      @click=${() => {
+        host._unavailableAutoId = null;
+        host._unavailableAutoName = null;
+      }}
+    >
+      <div
+        class="modal-content"
+        style="max-width:440px;border:1px solid var(--selora-accent);"
+        @click=${(e5) => e5.stopPropagation()}
+      >
+        <h3 class="modal-title">
+          <ha-icon
+            icon="mdi:alert-circle-outline"
+            style="--mdc-icon-size:22px;color:#ef4444;vertical-align:middle;margin-right:6px;"
+          ></ha-icon>
+          Automation Unavailable
+        </h3>
+        <p
+          style="font-size:14px;line-height:1.6;margin:0 0 8px;color:var(--primary-text-color);"
+        >
+          <strong>${host._unavailableAutoName || "This automation"}</strong>
+          is marked as unavailable by Home Assistant. This usually means:
+        </p>
+        <ul
+          style="font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:20px;color:var(--secondary-text-color);"
+        >
+          <li>
+            A trigger or condition references an entity that no longer exists
+          </li>
+          <li>The automation YAML has a configuration error</li>
+          <li>A required integration was removed or is not loaded</li>
+        </ul>
+        <p
+          style="font-size:13px;margin:0 0 16px;color:var(--secondary-text-color);"
+        >
+          Open the automation in Home Assistant Settings to review and fix the
+          configuration.
+        </p>
+        <div class="modal-actions" style="justify-content:center;gap:12px;">
+          <button
+            class="modal-btn modal-cancel"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            Close
+          </button>
+          <a
+            class="modal-btn modal-create"
+            href="/developer-tools/state"
+            style="text-decoration:none;"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            <ha-icon
+              icon="mdi:code-tags"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            Edit States
+          </a>
+          <a
+            class="modal-btn modal-create"
+            href="/config/automation/dashboard"
+            style="text-decoration:none;"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            <ha-icon icon="mdi:robot" style="--mdc-icon-size:14px;"></ha-icon>
+            Open in Automations
+          </a>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -7579,13 +7706,7 @@ function _getSelectedAutomationIds() {
 function _automationIsEnabled(automation) {
   if (!automation) return false;
   if (automation.state === "on") return true;
-  if (automation.state === "off") return false;
-  if (
-    automation.state === "unavailable" &&
-    typeof automation.persisted_enabled === "boolean"
-  ) {
-    return automation.persisted_enabled;
-  }
+  if (automation.state === "unavailable") return false;
   return false;
 }
 function _toggleAutomationSelection(automationId, evt) {
@@ -8141,6 +8262,9 @@ var SeloraAIArchitectPanel = class extends s4 {
       _suggestionsPage: { type: Number },
       _autosPerPage: { type: Number },
       _suggestionsPerPage: { type: Number },
+      // Unavailable automation modal
+      _unavailableAutoId: { type: String },
+      _unavailableAutoName: { type: String },
       // Feedback modal
       _showFeedbackModal: { type: Boolean },
       _feedbackText: { type: String },
@@ -8213,6 +8337,8 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._showNewAutoDialog = false;
     this._newAutoName = "";
     this._suggestingName = false;
+    this._unavailableAutoId = null;
+    this._unavailableAutoName = null;
     this._generatingSuggestions = false;
     this._cardActiveTab = {};
     this._bulkEditMode = false;

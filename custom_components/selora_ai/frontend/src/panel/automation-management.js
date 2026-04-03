@@ -17,13 +17,9 @@ export function _getSelectedAutomationIds() {
 export function _automationIsEnabled(automation) {
   if (!automation) return false;
   if (automation.state === "on") return true;
-  if (automation.state === "off") return false;
-  if (
-    automation.state === "unavailable" &&
-    typeof automation.persisted_enabled === "boolean"
-  ) {
-    return automation.persisted_enabled;
-  }
+  // "unavailable" means HA could not load the automation (e.g. invalid triggers).
+  // Always show as disabled so the UI reflects the real HA state.
+  if (automation.state === "unavailable") return false;
   return false;
 }
 
