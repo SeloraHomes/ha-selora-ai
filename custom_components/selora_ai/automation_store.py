@@ -11,7 +11,7 @@ Data layout in storage:
                 "automation_id": str,
                 "current_version_id": str,
                 "versions": [AutomationVersion, ...],
-                "deleted_at": str | None,
+                # Note: "deleted_at" may exist in legacy records but is no longer used.
                 "lineage": [LineageEntry, ...],  # ordered chronologically
             }
         },
@@ -41,7 +41,7 @@ import uuid
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import AUTOMATION_SOFT_DELETE_DAYS, AUTOMATION_STORE_KEY
+from .const import AUTOMATION_STORE_KEY
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -118,7 +118,6 @@ class AutomationStore:
                 "automation_id": automation_id,
                 "current_version_id": version_id,
                 "versions": [version],
-                "deleted_at": None,
                 "lineage": [],
             }
         else:
@@ -186,26 +185,6 @@ class AutomationStore:
 
     # ── Lifecycle ────────────────────────────────────────────────────────
 
-    async def soft_delete(self, automation_id: str) -> bool:
-        """Mark an automation as soft-deleted. Returns False if not tracked."""
-        data_store = await self._get_loaded_data()
-        record = data_store["records"].get(automation_id)
-        if not record:
-            return False
-        record["deleted_at"] = datetime.now(UTC).isoformat()
-        await self._store.async_save(data_store)
-        return True
-
-    async def restore(self, automation_id: str) -> bool:
-        """Clear deleted_at, marking the automation as active again."""
-        data_store = await self._get_loaded_data()
-        record = data_store["records"].get(automation_id)
-        if not record:
-            return False
-        record["deleted_at"] = None
-        await self._store.async_save(data_store)
-        return True
-
     async def purge_record(self, automation_id: str) -> bool:
         """Permanently remove one automation record and all versions."""
         data_store = await self._get_loaded_data()
@@ -215,34 +194,6 @@ class AutomationStore:
         del records[automation_id]
         await self._store.async_save(data_store)
         return True
-
-    async def purge_old_deleted(
-        self, older_than_days: int = AUTOMATION_SOFT_DELETE_DAYS
-    ) -> list[str]:
-        """Permanently remove records soft-deleted more than `older_than_days` ago.
-
-        Returns the list of purged automation_ids so the caller can remove them
-        from automations.yaml as well.
-        """
-        data_store = await self._get_loaded_data()
-        now = datetime.now(UTC)
-        to_purge: list[str] = []
-        for automation_id, record in data_store["records"].items():
-            deleted_at = record.get("deleted_at")
-            if not deleted_at:
-                continue
-            try:
-                dt = datetime.fromisoformat(deleted_at)
-                if (now - dt).days >= older_than_days:
-                    to_purge.append(automation_id)
-            except ValueError:
-                _LOGGER.warning("Invalid deleted_at value for %s: %s", automation_id, deleted_at)
-        for automation_id in to_purge:
-            del data_store["records"][automation_id]
-        if to_purge:
-            await self._store.async_save(data_store)
-            _LOGGER.info("Purged %d expired soft-deleted automations", len(to_purge))
-        return to_purge
 
     # ── Metadata helpers ─────────────────────────────────────────────────
 
@@ -255,14 +206,7 @@ class AutomationStore:
             "automation_id": automation_id,
             "version_count": len(record["versions"]),
             "current_version_id": record["current_version_id"],
-            "deleted_at": record.get("deleted_at"),
-            "is_deleted": record.get("deleted_at") is not None,
         }
-
-    async def list_deleted_ids(self) -> list[str]:
-        """Return automation_ids that are currently soft-deleted."""
-        data_store = await self._get_loaded_data()
-        return [aid for aid, rec in data_store["records"].items() if rec.get("deleted_at")]
 
     # ── Lineage ──────────────────────────────────────────────────────────
 

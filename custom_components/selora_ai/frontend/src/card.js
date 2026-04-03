@@ -221,7 +221,7 @@ class SeloraAIDashboardCard extends LitElement {
   async _deleteAutomation(automation) {
     try {
       await this.hass.callWS({
-        type: "selora_ai/soft_delete_automation",
+        type: "selora_ai/delete_automation",
         automation_id: automation.automation_id,
       });
       await this._loadAutomations();

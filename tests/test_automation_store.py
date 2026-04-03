@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
 import pytest
@@ -141,7 +140,6 @@ async def test_add_version_creates_new_record(automation_store):
     assert record["automation_id"] == "auto_new"
     assert record["current_version_id"] == vid
     assert len(record["versions"]) == 1
-    assert record["deleted_at"] is None
     assert record["lineage"][0]["action"] == "created"
     assert len(mock.saved_data) == 1
 
@@ -227,32 +225,6 @@ async def test_get_diff_returns_none_for_missing_version(automation_store):
     assert await store.get_diff("auto_d", "fake_id_a", "fake_id_b") is None
 
 
-# ── soft_delete / restore ────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_soft_delete_and_restore(prefilled_store):
-    store, mock = prefilled_store
-    assert await store.soft_delete("auto_1") is True
-    record = store._data["records"]["auto_1"]
-    assert record["deleted_at"] is not None
-
-    assert await store.restore("auto_1") is True
-    assert record["deleted_at"] is None
-
-
-@pytest.mark.asyncio
-async def test_soft_delete_unknown_returns_false(automation_store):
-    store, _ = automation_store
-    assert await store.soft_delete("nope") is False
-
-
-@pytest.mark.asyncio
-async def test_restore_unknown_returns_false(automation_store):
-    store, _ = automation_store
-    assert await store.restore("nope") is False
-
-
 # ── purge_record ──────────────────────────────────────────────────────
 
 
@@ -267,81 +239,6 @@ async def test_purge_record_removes_permanently(prefilled_store):
 async def test_purge_record_unknown_returns_false(automation_store):
     store, _ = automation_store
     assert await store.purge_record("nope") is False
-
-
-# ── purge_old_deleted ─────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_purge_old_deleted_removes_expired(hass):
-    """Records soft-deleted more than N days ago are purged."""
-    old_date = (datetime.now(UTC) - timedelta(days=31)).isoformat()
-    recent_date = (datetime.now(UTC) - timedelta(days=5)).isoformat()
-    initial_data = {
-        "records": {
-            "old": {"automation_id": "old", "versions": [], "deleted_at": old_date, "lineage": []},
-            "recent": {
-                "automation_id": "recent",
-                "versions": [],
-                "deleted_at": recent_date,
-                "lineage": [],
-            },
-            "active": {
-                "automation_id": "active",
-                "versions": [],
-                "deleted_at": None,
-                "lineage": [],
-            },
-        },
-        "session_index": {},
-        "drafts": {},
-    }
-    with patch("custom_components.selora_ai.automation_store.Store") as Cls:
-        ms = MockStore(initial_data)
-        Cls.return_value = ms
-        store = AutomationStore(hass)
-        store._store = ms
-        purged = await store.purge_old_deleted(older_than_days=30)
-        assert purged == ["old"]
-        assert "old" not in store._data["records"]
-        assert "recent" in store._data["records"]
-        assert "active" in store._data["records"]
-        assert len(ms.saved_data) == 1
-
-
-@pytest.mark.asyncio
-async def test_purge_old_deleted_does_not_save_when_nothing_to_purge(automation_store):
-    """No save call when there is nothing to purge."""
-    store, mock = automation_store
-    purged = await store.purge_old_deleted()
-    assert purged == []
-    assert len(mock.saved_data) == 0
-
-
-@pytest.mark.asyncio
-async def test_purge_old_deleted_skips_invalid_dates(hass):
-    """Invalid deleted_at values are logged and skipped, not raised."""
-    initial_data = {
-        "records": {
-            "bad": {
-                "automation_id": "bad",
-                "versions": [],
-                "deleted_at": "not-a-date",
-                "lineage": [],
-            },
-        },
-        "session_index": {},
-        "drafts": {},
-    }
-    with patch("custom_components.selora_ai.automation_store.Store") as Cls:
-        ms = MockStore(initial_data)
-        Cls.return_value = ms
-        store = AutomationStore(hass)
-        store._store = ms
-        purged = await store.purge_old_deleted()
-        assert purged == []
-        # Record still exists
-        assert "bad" in store._data["records"]
 
 
 # ── Draft operations ──────────────────────────────────────────────────

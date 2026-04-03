@@ -40,6 +40,13 @@ Data layout:
                 "snooze_until": str | None,
             }
         },
+        "deleted_hashes": {
+            "<content_hash>": {
+                "hash": str,
+                "alias": str,
+                "deleted_at": str,
+            }
+        },
         "meta": {
             "last_history_collection": str,
             "last_pattern_scan": str,
@@ -86,12 +93,14 @@ class PatternStore:
             self._data.setdefault("state_history", {})
             self._data.setdefault("patterns", {})
             self._data.setdefault("suggestions", {})
+            self._data.setdefault("deleted_hashes", {})
             self._data.setdefault("meta", {})
         else:
             self._data = {
                 "state_history": {},
                 "patterns": {},
                 "suggestions": {},
+                "deleted_hashes": {},
                 "meta": {},
             }
 
@@ -522,3 +531,20 @@ class PatternStore:
             if s["pattern_id"] == pattern_id and s["status"] in ("pending", "snoozed"):
                 return True
         return False
+
+    # ── Deleted automation hashes ───────────────────────────────────────
+
+    async def record_deleted_automation(self, content_hash: str, alias: str) -> None:
+        """Record a deleted automation's content hash so it is never re-suggested."""
+        data = await self._get_loaded_data()
+        data["deleted_hashes"][content_hash] = {
+            "hash": content_hash,
+            "alias": alias,
+            "deleted_at": datetime.now(UTC).isoformat(),
+        }
+        await self._save()
+
+    async def get_deleted_hashes(self) -> set[str]:
+        """Return all content hashes of previously deleted automations."""
+        data = await self._get_loaded_data()
+        return set(data["deleted_hashes"].keys())

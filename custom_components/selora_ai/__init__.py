@@ -298,7 +298,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Get current states of all entities for the LLM.
 
     Filters out unavailable/unknown entities to avoid sending stale or
-    deleted entities as context (e.g. soft-deleted automations).
+    deleted entities as context.
     """
     _SKIP_STATES = {"unavailable", "unknown"}
     states = []
@@ -446,26 +446,10 @@ async def _handle_websocket_chat(
     user_message = msg["message"]
     await store.append_message(session_id, "user", user_message)
 
-    # Gather home context (excluding deleted automations)
+    # Gather home context
     entities = _collect_entity_states(hass)
-    auto_store = _get_automation_store(hass)
-    deleted_auto_ids: set[str] = set(await auto_store.list_deleted_ids())
-
-    from homeassistant.helpers import entity_registry as er
-
-    ent_reg = er.async_get(hass)
     automations = []
     for state in hass.states.async_all("automation"):
-        entry = ent_reg.async_get(state.entity_id)
-        auto_id = ""
-        if entry and entry.unique_id:
-            auto_id = str(entry.unique_id)
-        if not auto_id:
-            state_id = state.attributes.get("id")
-            if state_id is not None:
-                auto_id = str(state_id)
-        if auto_id in deleted_auto_ids:
-            continue
         automations.append(
             {
                 "entity_id": state.entity_id,
@@ -645,25 +629,8 @@ async def _handle_websocket_chat_stream(
     try:
         entities = _collect_entity_states(hass)
 
-        # Filter out soft-deleted automations so LLM only sees active ones
-        auto_store = _get_automation_store(hass)
-        deleted_auto_ids: set[str] = set(await auto_store.list_deleted_ids())
-
-        from homeassistant.helpers import entity_registry as er
-
-        ent_reg = er.async_get(hass)
         automations = []
         for state in hass.states.async_all("automation"):
-            entry = ent_reg.async_get(state.entity_id)
-            auto_id = ""
-            if entry and entry.unique_id:
-                auto_id = str(entry.unique_id)
-            if not auto_id:
-                state_id = state.attributes.get("id")
-                if state_id is not None:
-                    auto_id = str(state_id)
-            if auto_id in deleted_auto_ids:
-                continue
             automations.append(
                 {
                     "entity_id": state.entity_id,
@@ -1401,7 +1368,6 @@ async def _handle_websocket_remove_draft(
 @decorators.websocket_command(
     {
         vol.Required("type"): "selora_ai/get_automations",
-        vol.Optional("include_deleted", default=False): bool,
     }
 )
 async def _handle_websocket_get_automations(
@@ -1411,9 +1377,8 @@ async def _handle_websocket_get_automations(
 ) -> None:
     """Return all existing automations and flag Selora-managed ones, including full config.
 
-    Pass include_deleted=true to also return soft-deleted automations.
     Each automation is enriched with AutomationStore metadata when available:
-    version_count, current_version_id, deleted_at, is_deleted.
+    version_count, current_version_id.
     """
     if not _require_admin(connection, msg):
         return
@@ -1424,8 +1389,6 @@ async def _handle_websocket_get_automations(
         from homeassistant.helpers import entity_registry as er
 
         from .automation_utils import _read_automations_yaml
-
-        include_deleted: bool = msg.get("include_deleted", False)
 
         registry = er.async_get(hass)
 
@@ -1441,9 +1404,7 @@ async def _handle_websocket_get_automations(
             str(a.get("alias", "")): a for a in yaml_automations if a.get("id") and a.get("alias")
         }
 
-        # Preload store metadata for all tracked automations
         store = _get_automation_store(hass)
-        deleted_ids: set[str] = set(await store.list_deleted_ids())
 
         automations = []
 
@@ -1486,10 +1447,6 @@ async def _handle_websocket_get_automations(
                 if alias_match:
                     automation_id = str(alias_match.get("id", ""))
 
-            is_deleted = automation_id in deleted_ids
-            if is_deleted and not include_deleted:
-                continue
-
             # Merge full config (trigger/condition/action) from automations.yaml
             full_config = yaml_by_id.get(automation_id, {})
 
@@ -1527,8 +1484,6 @@ async def _handle_websocket_get_automations(
                     # Lifecycle metadata (None for automations not tracked by the store)
                     "version_count": meta["version_count"] if meta else None,
                     "current_version_id": meta["current_version_id"] if meta else None,
-                    "deleted_at": meta["deleted_at"] if meta else None,
-                    "is_deleted": is_deleted,
                 }
             )
 
@@ -1799,87 +1754,59 @@ async def _handle_websocket_toggle_automation(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
-        vol.Required("type"): "selora_ai/soft_delete_automation",
+        vol.Required("type"): "selora_ai/delete_automation",
         vol.Required("automation_id"): str,
     }
 )
-async def _handle_websocket_soft_delete_automation(
+async def _handle_websocket_delete_automation(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Soft-delete an automation: disable it in HA and set deleted_at in the store."""
+    """Permanently delete a Selora-managed automation and all version history."""
     if not _require_admin(connection, msg):
         return
 
     try:
-        from .automation_utils import async_soft_delete_automation
+        from pathlib import Path
 
-        success = await async_soft_delete_automation(hass, msg["automation_id"])
+        from .automation_utils import _read_automations_yaml
+
+        automation_id = msg["automation_id"]
+
+        # Only allow deletion of Selora-managed automations
+        automations_path = Path(hass.config.config_dir) / "automations.yaml"
+        yaml_automations = await hass.async_add_executor_job(
+            _read_automations_yaml, automations_path
+        )
+        target = next((a for a in yaml_automations if a.get("id") == automation_id), None)
+        if not target:
+            connection.send_error(msg["id"], "not_found", "Automation not found")
+            return
+
+        aid = str(target.get("id", ""))
+        desc = str(target.get("description", ""))
+        alias = str(target.get("alias", ""))
+        is_selora = (
+            aid.startswith(AUTOMATION_ID_PREFIX)
+            or "[Selora AI]" in desc
+            or alias.startswith("[Selora AI]")
+        )
+        if not is_selora:
+            connection.send_error(
+                msg["id"], "not_allowed", "Only Selora-managed automations can be deleted"
+            )
+            return
+
+        from .automation_utils import async_delete_automation
+
+        success = await async_delete_automation(hass, automation_id)
         if success:
             connection.send_result(msg["id"], {"status": "deleted"})
         else:
             connection.send_error(msg["id"], "not_found", "Automation not found")
     except Exception as exc:
-        _LOGGER.exception("Error in soft_delete_automation")
-        connection.send_error(msg["id"], "unknown_error", str(exc))
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/restore_automation",
-        vol.Required("automation_id"): str,
-    }
-)
-async def _handle_websocket_restore_automation(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Restore a soft-deleted automation: re-enable it and clear deleted_at."""
-    if not _require_admin(connection, msg):
-        return
-
-    try:
-        from .automation_utils import async_restore_automation
-
-        success = await async_restore_automation(hass, msg["automation_id"])
-        if success:
-            connection.send_result(msg["id"], {"status": "restored"})
-        else:
-            connection.send_error(msg["id"], "not_found", "Automation not found")
-    except Exception as exc:
-        _LOGGER.exception("Error in restore_automation")
-        connection.send_error(msg["id"], "unknown_error", str(exc))
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/hard_delete_automation",
-        vol.Required("automation_id"): str,
-    }
-)
-async def _handle_websocket_hard_delete_automation(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Permanently delete a soft-deleted automation and all version history."""
-    if not _require_admin(connection, msg):
-        return
-
-    try:
-        from .automation_utils import async_hard_delete_automation
-
-        store = _get_automation_store(hass)
-        await async_hard_delete_automation(hass, store, msg["automation_id"])
-        connection.send_result(msg["id"], {"status": "hard_deleted"})
-    except ValueError as exc:
-        connection.send_error(msg["id"], "invalid_state", str(exc))
-    except Exception as exc:
-        _LOGGER.exception("Error in hard_delete_automation")
+        _LOGGER.exception("Error in delete_automation")
         connection.send_error(msg["id"], "unknown_error", str(exc))
 
 
@@ -2607,9 +2534,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_versions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)
     websocket_api.async_register_command(hass, _handle_websocket_toggle_automation)
-    websocket_api.async_register_command(hass, _handle_websocket_soft_delete_automation)
-    websocket_api.async_register_command(hass, _handle_websocket_restore_automation)
-    websocket_api.async_register_command(hass, _handle_websocket_hard_delete_automation)
+    websocket_api.async_register_command(hass, _handle_websocket_delete_automation)
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_lineage)
     websocket_api.async_register_command(hass, _handle_websocket_get_session_automations)
     websocket_api.async_register_command(hass, _handle_websocket_load_automation_to_session)
@@ -2899,6 +2824,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI started (%s)", llm.provider_name)
     else:
         _LOGGER.info("Selora AI started (unconfigured mode)")
+
+    # One-time startup cleanup: remove orphaned entity registry entries
+    async def _cleanup_orphaned_entities() -> None:
+        try:
+            from .automation_utils import async_cleanup_orphaned_entities
+
+            orphaned = await async_cleanup_orphaned_entities(hass)
+            if orphaned:
+                _LOGGER.info(
+                    "Startup cleanup removed %d orphaned entity entries: %s",
+                    len(orphaned),
+                    orphaned,
+                )
+        except Exception:
+            _LOGGER.exception("Startup entity cleanup failed")
+
+    hass.async_create_task(_cleanup_orphaned_entities())
 
     if pattern_enabled:
         from .pattern_store import PatternStore

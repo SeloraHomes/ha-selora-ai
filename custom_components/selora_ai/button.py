@@ -142,7 +142,9 @@ class CleanupButton(_HubActionButton):
         removed_entities = result.get("removed_entities", [])
 
         _LOGGER.info(
-            "Cleanup: removed %d devices, %d entities", len(removed_devices), len(removed_entities)
+            "Cleanup: removed %d devices, %d entities",
+            len(removed_devices),
+            len(removed_entities),
         )
         async_dispatcher_send(self.hass, SIGNAL_DEVICES_UPDATED)
         async_dispatcher_send(
