@@ -17,6 +17,7 @@ import json
 import logging
 from math import ceil
 from pathlib import Path
+import re
 from typing import Any
 import uuid
 
@@ -67,6 +68,17 @@ class DataCollector:
         self._lookback_days = lookback_days
         self._settings = settings or {}
         self._unsub_timer = None
+
+    def _get_pattern_store(self):
+        """Find the PatternStore from any active config entry."""
+        domain_data = self._hass.data.get(DOMAIN, {})
+        for key, val in domain_data.items():
+            if key.startswith("_") or not isinstance(val, dict):
+                continue
+            store = val.get("pattern_store")
+            if store is not None:
+                return store
+        return None
 
     async def async_start(self) -> None:
         """Start the periodic collection → analysis → log cycle."""
@@ -341,6 +353,71 @@ class DataCollector:
                     dynamic_cap,
                 )
                 enriched = enriched[:dynamic_cap]
+
+            # Filter suggestions that match recently dismissed ones
+            # (by content hash or normalized alias)
+            pattern_store = self._get_pattern_store()
+            if pattern_store:
+                recently_dismissed = await pattern_store.get_recently_dismissed_suggestions()
+                if recently_dismissed:
+                    dismissed_hashes: set[str] = set()
+                    dismissed_aliases: set[str] = set()
+                    for d in recently_dismissed:
+                        # Build content hash from dismissed automation data
+                        auto_data = d.get("automation_data")
+                        if auto_data:
+                            dismissed_hashes.add(self._suggestion_hash(auto_data))
+                        # Normalize dismissed alias
+                        alias = d.get("automation_data", {}).get("alias") or d.get(
+                            "description", ""
+                        )
+                        if alias:
+                            dismissed_aliases.add(self._normalize_alias(alias))
+
+                    pre_dismiss_count = len(enriched)
+                    filtered = []
+                    for s in enriched:
+                        # Check content hash
+                        auto_data = s.get("automation_data", s)
+                        content_hash = self._suggestion_hash(auto_data)
+                        if content_hash in dismissed_hashes:
+                            _LOGGER.info(
+                                "Suppressing previously dismissed suggestion (content match): '%s'",
+                                s.get("alias", "<no alias>"),
+                            )
+                            continue
+
+                        # Check normalized alias
+                        alias = self._normalize_alias(s.get("alias", ""))
+                        if alias and alias in dismissed_aliases:
+                            _LOGGER.info(
+                                "Suppressing previously dismissed suggestion (alias match): '%s'",
+                                s.get("alias", "<no alias>"),
+                            )
+                            continue
+
+                        filtered.append(s)
+                    enriched = filtered
+
+                    if len(enriched) < pre_dismiss_count:
+                        _LOGGER.info(
+                            "Dismissal filter removed %d re-suggested automation(s)",
+                            pre_dismiss_count - len(enriched),
+                        )
+
+            # Validate service/entity compatibility
+            compat_filtered = []
+            for s in enriched:
+                is_compat, reason = self._validate_service_entity_compat(s)
+                if not is_compat:
+                    _LOGGER.warning(
+                        "Filtering suggestion '%s': %s",
+                        s.get("alias", "<no alias>"),
+                        reason,
+                    )
+                    continue
+                compat_filtered.append(s)
+            enriched = compat_filtered
 
             # Store in hass.data for the side panel to fetch
             self._hass.data.setdefault(DOMAIN, {})
@@ -679,6 +756,74 @@ class DataCollector:
         key = {"trigger": trigger, "action": action}
         raw = json.dumps(key, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()
+
+    @staticmethod
+    def _normalize_alias(alias: str) -> str:
+        """Normalize an alias for comparison: strip prefix, lowercase, collapse whitespace."""
+        normalized = alias.strip().lower()
+        # Strip [Selora AI] or [selora ai] prefix
+        normalized = re.sub(r"^\[selora\s*ai\]\s*", "", normalized)
+        # Collapse whitespace
+        normalized = re.sub(r"\s+", " ", normalized)
+        return normalized
+
+    def _validate_service_entity_compat(self, suggestion: dict[str, Any]) -> tuple[bool, str]:
+        """Check that action services are valid for the target entity domains."""
+        automation = suggestion.get("automation_data", suggestion)
+        actions = automation.get("action") or automation.get("actions") or []
+        if isinstance(actions, dict):
+            actions = [actions]
+
+        for act in actions:
+            if not isinstance(act, dict):
+                continue
+            service = act.get("service", "")
+            if "." not in service:
+                continue
+            service_domain = service.split(".")[0]
+
+            # Get target entity_id(s)
+            entity_id = act.get("entity_id")
+            target = act.get("target", {})
+            if not entity_id and isinstance(target, dict):
+                entity_id = target.get("entity_id")
+
+            if not entity_id:
+                continue
+
+            if isinstance(entity_id, str):
+                entity_ids = [entity_id]
+            elif isinstance(entity_id, list):
+                entity_ids = entity_id
+            else:
+                continue
+
+            for eid in entity_ids:
+                if not isinstance(eid, str) or "." not in eid:
+                    continue
+                entity_domain = eid.split(".")[0]
+
+                # Service domain must match entity domain
+                # (or be a generic service like homeassistant, notify, etc.)
+                _GENERIC_DOMAINS = {
+                    "homeassistant",
+                    "notify",
+                    "persistent_notification",
+                    "script",
+                    "scene",
+                    "input_boolean",
+                    "input_number",
+                    "input_select",
+                    "input_text",
+                    "input_datetime",
+                }
+                if service_domain not in _GENERIC_DOMAINS and service_domain != entity_domain:
+                    return False, (
+                        f"Service '{service}' incompatible with entity '{eid}' "
+                        f"(domain mismatch: {service_domain} != {entity_domain})"
+                    )
+
+        return True, ""
 
     def _validate_entity_ids(self, automation: dict[str, Any]) -> None:
         """Warn about entity IDs in a suggestion that don't exist in HA."""
