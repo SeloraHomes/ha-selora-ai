@@ -13,7 +13,14 @@ export const automationsStyles = css`
   .auto-row:last-child {
     border-bottom: none;
   }
-  .auto-row.disabled > .auto-row-main > :not(.burger-menu-wrapper) {
+  .auto-row.disabled
+    > .auto-row-main
+    > :not(.burger-menu-wrapper):not(.auto-row-name) {
+    opacity: 0.5;
+  }
+  .auto-row.disabled .auto-row-title,
+  .auto-row.disabled .auto-row-desc,
+  .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;
   }
   .auto-row.highlighted {
@@ -53,6 +60,26 @@ export const automationsStyles = css`
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+  .auto-row-title-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .needs-attention-pill {
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    border-radius: 12px;
+    background: #d32f2f;
+    color: #fff;
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .needs-attention-pill:hover {
+    background: #c62828;
   }
   .auto-row-desc {
     font-size: 12px;

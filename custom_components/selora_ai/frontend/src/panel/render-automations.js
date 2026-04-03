@@ -529,6 +529,7 @@ export function renderAutomations(host) {
                 ${pagedAutomations.map((a) => {
                   const isDraft = !!a._draft;
                   const isOn = host._automationIsEnabled(a);
+                  const isUnavailable = a.state === "unavailable";
                   const automationId = a.automation_id || "";
                   const hasAutomationId = !!automationId;
                   const canToggle =
@@ -634,9 +635,20 @@ export function renderAutomations(host) {
                                   ></ha-icon>
                                 </button>
                               `
-                            : html`<span class="auto-row-title"
-                                >${a.alias}</span
-                              >`}
+                            : html`<div class="auto-row-title-row">
+                                <span class="auto-row-title">${a.alias}</span
+                                >${isUnavailable
+                                  ? html`<span
+                                      class="needs-attention-pill"
+                                      @click=${(e) => {
+                                        e.stopPropagation();
+                                        host._unavailableAutoId = automationId;
+                                        host._unavailableAutoName = a.alias;
+                                      }}
+                                      >Needs attention</span
+                                    >`
+                                  : ""}
+                              </div>`}
                           ${a.description
                             ? html`<span class="auto-row-desc"
                                 >${a.description.replace(
@@ -1000,6 +1012,97 @@ export function renderAutomations(host) {
             </div>`}
       </div>
       ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
+      ${renderUnavailableModal(host)}
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
+// "Needs attention" modal — explains unavailable state and links to HA
+// ---------------------------------------------------------------------------
+
+function renderUnavailableModal(host) {
+  if (!host._unavailableAutoId) return "";
+  return html`
+    <div
+      class="modal-overlay"
+      @click=${() => {
+        host._unavailableAutoId = null;
+        host._unavailableAutoName = null;
+      }}
+    >
+      <div
+        class="modal-content"
+        style="max-width:440px;border:1px solid var(--selora-accent);"
+        @click=${(e) => e.stopPropagation()}
+      >
+        <h3 class="modal-title">
+          <ha-icon
+            icon="mdi:alert-circle-outline"
+            style="--mdc-icon-size:22px;color:#ef4444;vertical-align:middle;margin-right:6px;"
+          ></ha-icon>
+          Automation Unavailable
+        </h3>
+        <p
+          style="font-size:14px;line-height:1.6;margin:0 0 8px;color:var(--primary-text-color);"
+        >
+          <strong>${host._unavailableAutoName || "This automation"}</strong>
+          is marked as unavailable by Home Assistant. This usually means:
+        </p>
+        <ul
+          style="font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:20px;color:var(--secondary-text-color);"
+        >
+          <li>
+            A trigger or condition references an entity that no longer exists
+          </li>
+          <li>The automation YAML has a configuration error</li>
+          <li>A required integration was removed or is not loaded</li>
+        </ul>
+        <p
+          style="font-size:13px;margin:0 0 16px;color:var(--secondary-text-color);"
+        >
+          Open the automation in Home Assistant Settings to review and fix the
+          configuration.
+        </p>
+        <div class="modal-actions" style="justify-content:center;gap:12px;">
+          <button
+            class="modal-btn modal-cancel"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            Close
+          </button>
+          <a
+            class="modal-btn modal-create"
+            href="/developer-tools/state"
+            style="text-decoration:none;"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            <ha-icon
+              icon="mdi:code-tags"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            Edit States
+          </a>
+          <a
+            class="modal-btn modal-create"
+            href="/config/automation/dashboard"
+            style="text-decoration:none;"
+            @click=${() => {
+              host._unavailableAutoId = null;
+              host._unavailableAutoName = null;
+            }}
+          >
+            <ha-icon icon="mdi:robot" style="--mdc-icon-size:14px;"></ha-icon>
+            Open in Automations
+          </a>
+        </div>
+      </div>
     </div>
   `;
 }
