@@ -375,6 +375,7 @@ async def test_ensure_loaded_initialises_empty_store(hass):
             "state_history": {},
             "patterns": {},
             "suggestions": {},
+            "deleted_hashes": {},
             "meta": {},
         }
 
@@ -406,3 +407,37 @@ async def test_ensure_loaded_migrates_suggestion_fields(hass):
         s = data["suggestions"]["s1"]
         assert s["dismissed_at"] is None
         assert s["dismissal_reason"] is None
+
+
+# ── Deleted hash persistence ──────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_get_deleted_hashes_returns_old_entries(pattern_store):
+    """get_deleted_hashes returns all hashes regardless of age."""
+    ps, _mock_st = pattern_store
+    data = await ps._get_loaded_data()
+
+    fresh = datetime.now(UTC).isoformat()
+    old = (datetime.now(UTC) - timedelta(days=90)).isoformat()
+
+    data["deleted_hashes"] = {
+        "hash_fresh": {"hash": "hash_fresh", "alias": "Fresh", "deleted_at": fresh},
+        "hash_old": {"hash": "hash_old", "alias": "Old", "deleted_at": old},
+    }
+
+    result = await ps.get_deleted_hashes()
+    assert result == {"hash_fresh", "hash_old"}
+
+
+@pytest.mark.asyncio
+async def test_record_deleted_automation_persists(pattern_store):
+    """record_deleted_automation saves the new hash to the store."""
+    ps, mock_st = pattern_store
+
+    await ps.record_deleted_automation("hash_abc", "Test Automation")
+
+    data = await ps._get_loaded_data()
+    assert "hash_abc" in data["deleted_hashes"]
+    assert data["deleted_hashes"]["hash_abc"]["alias"] == "Test Automation"
+    assert mock_st.saved_data

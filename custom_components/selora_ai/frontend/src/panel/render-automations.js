@@ -258,19 +258,15 @@ export function renderAutomations(host) {
 
   let filteredAutomations = [...host._automations];
 
-  // Status filter — "all" hides deleted unless explicitly filtered
-  if (statusFilter === "all") {
-    filteredAutomations = filteredAutomations.filter((a) => !a.is_deleted);
-  } else if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter(
-      (a) => !a.is_deleted && host._automationIsEnabled(a),
+  // Status filter
+  if (statusFilter === "enabled") {
+    filteredAutomations = filteredAutomations.filter((a) =>
+      host._automationIsEnabled(a),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a) => !a.is_deleted && !host._automationIsEnabled(a),
+      (a) => !host._automationIsEnabled(a),
     );
-  } else if (statusFilter === "deleted") {
-    filteredAutomations = filteredAutomations.filter((a) => a.is_deleted);
   }
 
   // Text filter
@@ -304,9 +300,8 @@ export function renderAutomations(host) {
     host._automationIsEnabled(a),
   ).length;
   const disabledCount = host._automations.filter(
-    (a) => !host._automationIsEnabled(a) && !a.is_deleted,
+    (a) => !host._automationIsEnabled(a),
   ).length;
-  const deletedCount = host._automations.filter((a) => a.is_deleted).length;
   const perPage = host._autosPerPage || 10;
   const totalAutoPages = Math.max(
     1,
@@ -368,7 +363,7 @@ export function renderAutomations(host) {
                     : ""}
                 </div>
                 <div class="status-pills">
-                  ${["all", "enabled", "disabled", "deleted"].map(
+                  ${["all", "enabled", "disabled"].map(
                     (s) => html`
                       <button
                         class="status-pill ${host._statusFilter === s
@@ -421,10 +416,7 @@ export function renderAutomations(host) {
                 <span>
                   ${filteredAutomations.length} existing
                   automation${filteredAutomations.length !== 1 ? "s" : ""}
-                  (${enabledCount} enabled, ${disabledCount}
-                  disabled${deletedCount > 0
-                    ? `, ${deletedCount} deleted`
-                    : ""})
+                  (${enabledCount} enabled, ${disabledCount} disabled)
                 </span>
                 ${host._bulkEditMode
                   ? html`
@@ -512,7 +504,7 @@ export function renderAutomations(host) {
                         >
                           ${host._bulkActionInProgress
                             ? "Working…"
-                            : "Soft-delete selected"}
+                            : "Delete selected"}
                         </button>
                         <button
                           class="btn btn-ghost"
@@ -795,7 +787,7 @@ export function renderAutomations(host) {
                                           @click=${(e) => {
                                             e.stopPropagation();
                                             host._openBurgerMenu = null;
-                                            host._softDeleteAutomation(
+                                            host._deleteAutomation(
                                               automationId,
                                             );
                                           }}

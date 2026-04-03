@@ -8,7 +8,7 @@ import uuid
 from homeassistant.core import HomeAssistant
 import yaml
 
-from .const import AUTOMATION_ID_PREFIX, AUTOMATION_SOFT_DELETE_DAYS
+from .const import AUTOMATION_ID_PREFIX
 
 if TYPE_CHECKING:
     from .automation_store import AutomationStore
@@ -500,147 +500,117 @@ async def async_toggle_automation(
         return False
 
 
-async def async_soft_delete_automation(hass: HomeAssistant, automation_id: str) -> bool:
-    """Disable the automation in automations.yaml and mark it deleted in the store.
+async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bool:
+    """Permanently delete an automation from automations.yaml and the store.
 
-    The automation is NOT removed from the file — it is disabled (initial_state: False)
-    so HA hides it from the active automations list. Permanent removal happens only
-    after the 30-day retention window via async_purge_deleted_automations().
+    Records the automation's trigger/action content hash in PatternStore so the
+    collector will not re-suggest a similar automation.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    found = False
-    for automation in existing:
-        if automation.get("id") == automation_id:
-            automation["initial_state"] = False
-            found = True
-            break
-
-    if not found:
-        _LOGGER.error(
-            "Automation id %s not found in automations.yaml for soft-delete", automation_id
-        )
+    target = next((a for a in existing if a.get("id") == automation_id), None)
+    if target is None:
+        _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
         return False
-
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        await hass.services.async_call("automation", "reload")
-        store = _get_automation_store(hass)
-
-        # Bootstrap a store record for automations created before store tracking was introduced.
-        # soft_delete() returns False when no record exists; in that case we create a minimal
-        # "imported" version entry so the automation is trackable, then mark it deleted.
-        if not await store.soft_delete(automation_id):
-            _LOGGER.info(
-                "Automation %s has no store record — bootstrapping before soft-delete",
-                automation_id,
-            )
-            # Find the automation's current YAML from the (already updated) file
-            target = next((a for a in existing if a.get("id") == automation_id), {})
-            yaml_text = yaml.dump(target, allow_unicode=True, default_flow_style=False)
-            await store.add_version(
-                automation_id,
-                yaml_text,
-                target,
-                "imported",
-                session_id=None,
-                action="created",
-            )
-            await store.soft_delete(automation_id)
-
-        _LOGGER.info("Soft-deleted automation: %s", automation_id)
-        return True
-    except Exception as exc:
-        _LOGGER.exception("Failed to soft-delete automation %s: %s", automation_id, exc)
-        return False
-
-
-async def async_restore_automation(hass: HomeAssistant, automation_id: str) -> bool:
-    """Re-enable a soft-deleted automation and clear its deleted_at in the store."""
-    automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
-
-    found = False
-    for automation in existing:
-        if automation.get("id") == automation_id:
-            automation["initial_state"] = True
-            found = True
-            break
-
-    if not found:
-        _LOGGER.error("Automation id %s not found in automations.yaml for restore", automation_id)
-        return False
-
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        await hass.services.async_call("automation", "reload")
-        store = _get_automation_store(hass)
-        await store.restore(automation_id)
-        _LOGGER.info("Restored automation: %s", automation_id)
-        return True
-    except Exception as exc:
-        _LOGGER.exception("Failed to restore automation %s: %s", automation_id, exc)
-        return False
-
-
-async def async_hard_delete_automation(
-    hass: HomeAssistant,
-    automation_store: AutomationStore,
-    automation_id: str,
-) -> None:
-    """Permanently delete a soft-deleted automation and all version history.
-
-    Raises ValueError if the automation is not soft-deleted.
-    """
-    record = await automation_store.get_record(automation_id)
-    if not record or not record.get("deleted_at"):
-        raise ValueError("Automation must be soft-deleted before hard delete")
-
-    automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
     remaining = [a for a in existing if a.get("id") != automation_id]
-    if len(remaining) == len(existing):
-        raise ValueError("Automation not found in automations.yaml")
 
-    await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-    await automation_store.purge_record(automation_id)
-    await hass.services.async_call("automation", "reload")
-    _LOGGER.info("Hard-deleted automation: %s", automation_id)
+    try:
+        # Record the content hash before deleting so the LLM won't re-suggest it
+        await _record_deletion_hash(hass, target)
+
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+        await hass.services.async_call("automation", "reload")
+        store = _get_automation_store(hass)
+        await store.purge_record(automation_id)
+
+        from homeassistant.helpers import entity_registry as er
+
+        entity_reg = er.async_get(hass)
+        for entity in list(entity_reg.entities.values()):
+            if entity.platform != "automation":
+                continue
+            if entity.unique_id == automation_id:
+                entity_reg.async_remove(entity.entity_id)
+                break
+
+        alias = target.get("alias", automation_id)
+        _LOGGER.info("Deleted automation: %s (%s)", alias, automation_id)
+        return True
+    except Exception as exc:
+        _LOGGER.exception("Failed to delete automation %s: %s", automation_id, exc)
+        return False
 
 
-async def async_purge_deleted_automations(
-    hass: HomeAssistant,
-    older_than_days: int = AUTOMATION_SOFT_DELETE_DAYS,
-) -> list[str]:
-    """Permanently remove automations whose soft-delete window has expired.
+async def _record_deletion_hash(hass: HomeAssistant, automation: dict) -> None:
+    """Store the trigger+action content hash of a deleted automation in PatternStore."""
+    import hashlib
+    import json
 
-    Removes both the store record and the automations.yaml entry.
-    Returns the list of purged automation_ids.
+    trigger = automation.get("trigger") or automation.get("triggers")
+    action = automation.get("action") or automation.get("actions")
+    key = {"trigger": trigger, "action": action}
+    raw = json.dumps(key, sort_keys=True, default=str)
+    content_hash = hashlib.sha256(raw.encode()).hexdigest()
+    alias = str(automation.get("alias", ""))
+
+    try:
+        from .pattern_store import PatternStore
+
+        store = PatternStore(hass)
+        await store.record_deleted_automation(content_hash, alias)
+        _LOGGER.debug("Recorded deletion hash for '%s': %s", alias, content_hash[:12])
+    except Exception:
+        _LOGGER.warning("Failed to record deletion hash for '%s'", alias)
+
+
+async def async_cleanup_orphaned_entities(hass: HomeAssistant) -> list[str]:
+    """Remove orphaned Selora entity registry entries on startup.
+
+    Finds automation entities whose unique_id starts with the Selora prefix
+    but have no matching entry in automations.yaml. This is always safe —
+    it only removes entity registrations for automations whose YAML was
+    already deleted.
+
+    Returns the list of removed entity unique_ids.
     """
-    store = _get_automation_store(hass)
-    purged_ids = await store.purge_old_deleted(older_than_days)
+    from homeassistant.helpers import entity_registry as er
 
-    if not purged_ids:
-        return []
-
-    # Remove purged entries from automations.yaml
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
-    purged_set = set(purged_ids)
-    remaining = [a for a in existing if a.get("id") not in purged_set]
 
-    if len(remaining) != len(existing):
+    # If the file exists and has non-trivial content but parsed as empty,
+    # it's likely a YAML error — bail out to avoid deleting valid entities.
+    if not existing and automations_path.exists():
         try:
-            await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-            await hass.services.async_call("automation", "reload")
-            _LOGGER.info(
-                "Purged %d expired automations from automations.yaml: %s",
-                len(purged_ids),
-                purged_ids,
-            )
-        except Exception as exc:
-            _LOGGER.exception("Failed to write automations.yaml during purge: %s", exc)
+            raw = automations_path.read_text(encoding="utf-8").strip()
+        except OSError:
+            raw = ""
+        if raw and raw != "[]":
+            _LOGGER.warning("Skipping orphan cleanup: automations.yaml may be unreadable")
+            return []
 
-    return purged_ids
+    yaml_ids = {str(a.get("id", "")) for a in existing}
+
+    entity_reg = er.async_get(hass)
+    orphaned: list[str] = []
+
+    for entity in list(entity_reg.entities.values()):
+        if entity.platform != "automation":
+            continue
+        uid = entity.unique_id or ""
+        if not uid.startswith(AUTOMATION_ID_PREFIX):
+            continue
+        if uid not in yaml_ids:
+            orphaned.append(uid)
+            entity_reg.async_remove(entity.entity_id)
+
+    if orphaned:
+        _LOGGER.info(
+            "Removed %d orphaned Selora entity registry entries: %s",
+            len(orphaned),
+            orphaned,
+        )
+
+    return orphaned

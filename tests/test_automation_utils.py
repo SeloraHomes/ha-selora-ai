@@ -16,9 +16,7 @@ from custom_components.selora_ai.automation_utils import (
     _write_automations_yaml,
     assess_automation_risk,
     async_create_automation,
-    async_hard_delete_automation,
-    async_restore_automation,
-    async_soft_delete_automation,
+    async_delete_automation,
     async_toggle_automation,
     async_update_automation,
     validate_automation_payload,
@@ -34,9 +32,6 @@ def _mock_automation_store() -> MagicMock:
     """Return a mock AutomationStore with the methods used by CRUD functions."""
     store = MagicMock()
     store.add_version = AsyncMock()
-    store.soft_delete = AsyncMock(return_value=True)
-    store.restore = AsyncMock()
-    store.get_record = AsyncMock(return_value={"deleted_at": "2026-01-01T00:00:00"})
     store.purge_record = AsyncMock()
     return store
 
@@ -988,122 +983,29 @@ class TestAsyncToggleAutomation:
         assert match[0]["initial_state"] is False
 
 
-class TestAsyncSoftDeleteAutomation:
-    """Tests for async_soft_delete_automation."""
+class TestAsyncDeleteAutomation:
+    """Tests for async_delete_automation."""
 
     @pytest.mark.asyncio
-    async def test_soft_delete_disables(
+    async def test_delete_removes_from_yaml(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:
-        result = await async_soft_delete_automation(hass, "selora_ai_existing1")
+        result = await async_delete_automation(hass, "selora_ai_existing1")
         assert result is True
-        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
-        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
-        assert match[0]["initial_state"] is False
-
-    @pytest.mark.asyncio
-    async def test_soft_delete_marks_store(
-        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
-    ) -> None:
-        await async_soft_delete_automation(hass, "selora_ai_existing1")
-        _patch_store.soft_delete.assert_awaited()
-
-    @pytest.mark.asyncio
-    async def test_soft_delete_missing_id(
-        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
-    ) -> None:
-        result = await async_soft_delete_automation(hass, "nonexistent")
-        assert result is False
-
-    @pytest.mark.asyncio
-    async def test_soft_delete_bootstraps_when_no_record(
-        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
-    ) -> None:
-        """When soft_delete returns False (no record), it bootstraps then retries."""
-        _patch_store.soft_delete = AsyncMock(side_effect=[False, True])
-        result = await async_soft_delete_automation(hass, "selora_ai_existing1")
-        assert result is True
-        _patch_store.add_version.assert_awaited_once()
-        assert _patch_store.soft_delete.await_count == 2
-
-
-class TestAsyncHardDeleteAutomation:
-    """Tests for async_hard_delete_automation."""
-
-    @pytest.mark.asyncio
-    async def test_hard_delete_removes_from_yaml(
-        self, hass, tmp_automations_yaml: Path, automation_service_calls
-    ) -> None:
-        store = _mock_automation_store()
-        await async_hard_delete_automation(hass, store, "selora_ai_existing1")
-
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         ids = [a.get("id") for a in content]
         assert "selora_ai_existing1" not in ids
 
     @pytest.mark.asyncio
-    async def test_hard_delete_purges_store(
-        self, hass, tmp_automations_yaml: Path, automation_service_calls
-    ) -> None:
-        store = _mock_automation_store()
-        await async_hard_delete_automation(hass, store, "selora_ai_existing1")
-        store.purge_record.assert_awaited_once_with("selora_ai_existing1")
-
-    @pytest.mark.asyncio
-    async def test_hard_delete_raises_if_not_soft_deleted(
-        self, hass, tmp_automations_yaml: Path
-    ) -> None:
-        store = _mock_automation_store()
-        store.get_record = AsyncMock(return_value={"deleted_at": None})
-        with pytest.raises(ValueError, match="must be soft-deleted"):
-            await async_hard_delete_automation(hass, store, "selora_ai_existing1")
-
-    @pytest.mark.asyncio
-    async def test_hard_delete_raises_if_no_record(self, hass, tmp_automations_yaml: Path) -> None:
-        store = _mock_automation_store()
-        store.get_record = AsyncMock(return_value=None)
-        with pytest.raises(ValueError, match="must be soft-deleted"):
-            await async_hard_delete_automation(hass, store, "selora_ai_existing1")
-
-    @pytest.mark.asyncio
-    async def test_hard_delete_raises_if_not_in_yaml(
-        self, hass, tmp_automations_yaml: Path
-    ) -> None:
-        store = _mock_automation_store()
-        with pytest.raises(ValueError, match="not found in automations.yaml"):
-            await async_hard_delete_automation(hass, store, "nonexistent_in_yaml")
-
-
-class TestAsyncRestoreAutomation:
-    """Tests for async_restore_automation."""
-
-    @pytest.mark.asyncio
-    async def test_restore_enables(
+    async def test_delete_purges_store(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:
-        result = await async_restore_automation(hass, "selora_ai_existing1")
-        assert result is True
-        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
-        match = [a for a in content if a.get("id") == "selora_ai_existing1"]
-        assert match[0]["initial_state"] is True
+        await async_delete_automation(hass, "selora_ai_existing1")
+        _patch_store.purge_record.assert_awaited_once_with("selora_ai_existing1")
 
     @pytest.mark.asyncio
-    async def test_restore_calls_reload(
+    async def test_delete_missing_id(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:
-        await async_restore_automation(hass, "selora_ai_existing1")
-        assert ("automation", "reload", {}) in _patch_store._service_calls
-
-    @pytest.mark.asyncio
-    async def test_restore_clears_deleted_at(
-        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
-    ) -> None:
-        await async_restore_automation(hass, "selora_ai_existing1")
-        _patch_store.restore.assert_awaited_once_with("selora_ai_existing1")
-
-    @pytest.mark.asyncio
-    async def test_restore_missing_id(
-        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
-    ) -> None:
-        result = await async_restore_automation(hass, "nonexistent")
+        result = await async_delete_automation(hass, "nonexistent")
         assert result is False

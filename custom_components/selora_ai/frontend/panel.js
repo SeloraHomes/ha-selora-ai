@@ -5185,18 +5185,14 @@ function renderAutomations(host) {
   const statusFilter = host._statusFilter || "all";
   const sortBy = host._sortBy || "recent";
   let filteredAutomations = [...host._automations];
-  if (statusFilter === "all") {
-    filteredAutomations = filteredAutomations.filter((a4) => !a4.is_deleted);
-  } else if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter(
-      (a4) => !a4.is_deleted && host._automationIsEnabled(a4),
+  if (statusFilter === "enabled") {
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a4) => !a4.is_deleted && !host._automationIsEnabled(a4),
+      (a4) => !host._automationIsEnabled(a4),
     );
-  } else if (statusFilter === "deleted") {
-    filteredAutomations = filteredAutomations.filter((a4) => a4.is_deleted);
   }
   if (filterText) {
     filteredAutomations = filteredAutomations.filter((a4) =>
@@ -5228,9 +5224,8 @@ function renderAutomations(host) {
     host._automationIsEnabled(a4),
   ).length;
   const disabledCount = host._automations.filter(
-    (a4) => !host._automationIsEnabled(a4) && !a4.is_deleted,
+    (a4) => !host._automationIsEnabled(a4),
   ).length;
-  const deletedCount = host._automations.filter((a4) => a4.is_deleted).length;
   const perPage = host._autosPerPage || 10;
   const totalAutoPages = Math.max(
     1,
@@ -5294,7 +5289,7 @@ function renderAutomations(host) {
                   }
                 </div>
                 <div class="status-pills">
-                  ${["all", "enabled", "disabled", "deleted"].map(
+                  ${["all", "enabled", "disabled"].map(
                     (s6) => x`
                       <button
                         class="status-pill ${host._statusFilter === s6 ? "active" : ""}"
@@ -5345,8 +5340,7 @@ function renderAutomations(host) {
                 <span>
                   ${filteredAutomations.length} existing
                   automation${filteredAutomations.length !== 1 ? "s" : ""}
-                  (${enabledCount} enabled, ${disabledCount}
-                  disabled${deletedCount > 0 ? `, ${deletedCount} deleted` : ""})
+                  (${enabledCount} enabled, ${disabledCount} disabled)
                 </span>
                 ${
                   host._bulkEditMode
@@ -5434,7 +5428,7 @@ function renderAutomations(host) {
                           ?disabled=${bulkDisabled}
                           @click=${() => host._bulkSoftDeleteSelected()}
                         >
-                          ${host._bulkActionInProgress ? "Working\u2026" : "Soft-delete selected"}
+                          ${host._bulkActionInProgress ? "Working\u2026" : "Delete selected"}
                         </button>
                         <button
                           class="btn btn-ghost"
@@ -5711,7 +5705,7 @@ function renderAutomations(host) {
                                           @click=${(e5) => {
                                             e5.stopPropagation();
                                             host._openBurgerMenu = null;
-                                            host._softDeleteAutomation(
+                                            host._deleteAutomation(
                                               automationId,
                                             );
                                           }}
@@ -6350,7 +6344,7 @@ function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${"0.3.1"}
+          Selora AI v${"0.3.2"}
         </div>
       </div>
     </div>
@@ -6590,172 +6584,6 @@ ${host._diffResult.map((line) => {
 })}</pre
                 >`
           }
-        </div>
-      </div>
-    </div>
-  `;
-}
-function renderDeletedSection(host) {
-  const daysRemaining = (deletedAt) => {
-    const elapsed =
-      (Date.now() - new Date(deletedAt).getTime()) / (1e3 * 60 * 60 * 24);
-    return Math.max(0, Math.round(30 - elapsed));
-  };
-  return x`
-    <div style="margin-top:16px;">
-      <div
-        class="expand-toggle"
-        style="display:flex;align-items:center;gap:6px;"
-        @click=${() => host._toggleDeletedSection()}
-      >
-        <ha-icon
-          icon="mdi:trash-can-outline"
-          style="--mdc-icon-size:14px;opacity:0.6;"
-        ></ha-icon>
-        <span>Recently Deleted</span>
-        <ha-icon
-          icon="mdi:chevron-${host._showDeleted ? "up" : "down"}"
-          style="--mdc-icon-size:14px;margin-left:auto;"
-        ></ha-icon>
-      </div>
-      ${
-        host._showDeleted
-          ? x`
-            <div style="margin-top:8px;">
-              ${
-                host._loadingDeleted
-                  ? x`<div style="opacity:0.5;font-size:12px;padding:8px 0;">
-                    Loading…
-                  </div>`
-                  : host._deletedAutomations.length === 0
-                    ? x`<div
-                      style="opacity:0.45;font-size:12px;padding:8px 0;"
-                    >
-                      No recently deleted automations.
-                    </div>`
-                    : host._deletedAutomations.map((a4) => {
-                        const automationId = a4.automation_id || a4.entity_id;
-                        const days = daysRemaining(a4.deleted_at);
-                        const restoring =
-                          host._restoringAutomation[automationId];
-                        const hardDeleting =
-                          host._hardDeletingAutomation[automationId];
-                        return x`
-                        <div
-                          class="card"
-                          style="opacity:0.8;border-left:3px solid var(--error-color);"
-                        >
-                          <div class="card-header">
-                            <h3 style="flex:1;">${a4.alias}</h3>
-                            ${
-                              days <= 3
-                                ? x`<span
-                                  style="font-size:10px;background:var(--error-color);color:#fff;border-radius:4px;padding:2px 6px;"
-                                  >⚠ ${days}d left</span
-                                >`
-                                : x`<span style="font-size:11px;opacity:0.6;"
-                                  >${days} days until purge</span
-                                >`
-                            }
-                          </div>
-                          <p style="font-size:11px;opacity:0.6;margin:4px 0;">
-                            Deleted ${relativeTime(new Date(a4.deleted_at))}
-                          </p>
-                          <div class="card-actions">
-                            <button
-                              class="btn btn-outline"
-                              ?disabled=${restoring || hardDeleting}
-                              @click=${() => host._restoreDeletedAutomation(automationId)}
-                            >
-                              <ha-icon
-                                icon="mdi:restore"
-                                style="--mdc-icon-size:13px;"
-                              ></ha-icon>
-                              ${restoring ? "Restoring\u2026" : "Restore"}
-                            </button>
-                            <button
-                              class="btn btn-outline btn-danger"
-                              ?disabled=${restoring || hardDeleting}
-                              @click=${() =>
-                                host._openHardDeleteDialog(
-                                  automationId,
-                                  a4.alias,
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:trash-can"
-                                style="--mdc-icon-size:13px;"
-                              ></ha-icon>
-                              ${hardDeleting ? "Deleting\u2026" : "Permanently Delete"}
-                            </button>
-                          </div>
-                        </div>
-                      `;
-                      })
-              }
-            </div>
-          `
-          : ""
-      }
-    </div>
-  `;
-}
-function renderHardDeleteDialog(host) {
-  if (!host._hardDeleteTarget) return "";
-  const { automationId, alias } = host._hardDeleteTarget;
-  const hardDeleting = !!host._hardDeletingAutomation[automationId];
-  const canConfirm = host._hardDeleteAliasInput === alias;
-  return x`
-    <div
-      style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:10000;display:flex;align-items:center;justify-content:center;"
-      @click=${(e5) => {
-        if (e5.target === e5.currentTarget && !hardDeleting) {
-          host._closeHardDeleteDialog();
-        }
-      }}
-    >
-      <div
-        style="background:var(--card-background-color);border-radius:12px;width:90%;max-width:520px;padding:18px;box-shadow:0 8px 32px rgba(0,0,0,0.4);border:1px solid var(--divider-color);"
-      >
-        <div
-          style="font-size:16px;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:8px;color:var(--error-color);"
-        >
-          <ha-icon icon="mdi:alert-octagon"></ha-icon>
-          Permanently Delete Automation
-        </div>
-        <p
-          style="font-size:13px;opacity:0.85;margin:0 0 10px;line-height:1.45;"
-        >
-          This action cannot be undone. Type the automation alias to confirm
-          permanent deletion.
-        </p>
-        <p style="font-size:12px;opacity:0.75;margin:0 0 8px;">
-          Alias: <strong>${alias}</strong>
-        </p>
-        <ha-textfield
-          .value=${host._hardDeleteAliasInput}
-          @input=${(e5) => (host._hardDeleteAliasInput = e5.target.value)}
-          placeholder="Type alias exactly"
-          ?disabled=${hardDeleting}
-          style="width:100%;"
-        ></ha-textfield>
-        <div
-          style="display:flex;justify-content:flex-end;gap:10px;margin-top:14px;"
-        >
-          <button
-            class="btn btn-outline"
-            ?disabled=${hardDeleting}
-            @click=${() => host._closeHardDeleteDialog()}
-          >
-            Cancel
-          </button>
-          <button
-            class="btn btn-danger"
-            ?disabled=${hardDeleting || !canConfirm}
-            @click=${() => host._confirmHardDelete()}
-          >
-            ${hardDeleting ? "Deleting\u2026" : "Permanently Delete"}
-          </button>
         </div>
       </div>
     </div>
@@ -7104,7 +6932,6 @@ async function _loadAutomations() {
   try {
     const automations = await this.hass.callWS({
       type: "selora_ai/get_automations",
-      include_deleted: true,
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(
@@ -7669,25 +7496,19 @@ __export(automation_management_exports, {
   _cancelRenameAutomation: () => _cancelRenameAutomation,
   _clearAutomationSelection: () => _clearAutomationSelection,
   _closeBurgerMenus: () => _closeBurgerMenus,
-  _closeHardDeleteDialog: () => _closeHardDeleteDialog,
-  _confirmHardDelete: () => _confirmHardDelete,
+  _deleteAutomation: () => _deleteAutomation,
   _getSelectedAutomationIds: () => _getSelectedAutomationIds,
   _loadAutomationToChat: () => _loadAutomationToChat,
-  _loadDeletedAutomations: () => _loadDeletedAutomations,
   _loadDiff: () => _loadDiff,
   _loadVersionHistory: () => _loadVersionHistory,
   _openDiffViewer: () => _openDiffViewer,
-  _openHardDeleteDialog: () => _openHardDeleteDialog,
   _openVersionHistory: () => _openVersionHistory,
-  _restoreDeletedAutomation: () => _restoreDeletedAutomation,
   _restoreVersion: () => _restoreVersion,
   _saveRenameAutomation: () => _saveRenameAutomation,
-  _softDeleteAutomation: () => _softDeleteAutomation,
   _startRenameAutomation: () => _startRenameAutomation,
   _toggleAutomation: () => _toggleAutomation,
   _toggleAutomationSelection: () => _toggleAutomationSelection,
   _toggleBurgerMenu: () => _toggleBurgerMenu,
-  _toggleDeletedSection: () => _toggleDeletedSection,
   _toggleExpandAutomation: () => _toggleExpandAutomation,
   _toggleSelectAllFiltered: () => _toggleSelectAllFiltered,
 });
@@ -7800,30 +7621,30 @@ async function _bulkSoftDeleteSelected() {
     .map((id) => byId.get(id))
     .filter((a4) => a4 && !a4._draft && a4.automation_id);
   if (!targets.length) return;
-  if (!confirm(`Soft-delete ${targets.length} selected automation(s)?`)) return;
+  if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
-  this._bulkActionLabel = `Soft-deleting ${targets.length} automation(s)\u2026`;
+  this._bulkActionLabel = `Deleting ${targets.length} automation(s)\u2026`;
   let successCount = 0;
   try {
     for (const auto of targets) {
       try {
         await this.hass.callWS({
-          type: "selora_ai/soft_delete_automation",
+          type: "selora_ai/delete_automation",
           automation_id: auto.automation_id,
         });
         successCount += 1;
       } catch (err) {
-        console.error("Bulk soft-delete failed", auto.automation_id, err);
+        console.error("Bulk delete failed", auto.automation_id, err);
       }
     }
     this._selectedAutomationIds = {};
     await this._loadAutomations();
     const failedCount = targets.length - successCount;
     if (failedCount === 0) {
-      this._showToast(`Soft-deleted ${successCount} automation(s).`, "success");
+      this._showToast(`Deleted ${successCount} automation(s).`, "success");
     } else {
       this._showToast(
-        `Soft-delete completed: ${successCount} succeeded, ${failedCount} failed.`,
+        `Delete completed: ${successCount} succeeded, ${failedCount} failed.`,
         "error",
       );
     }
@@ -7991,18 +7812,19 @@ async function _restoreVersion(automationId, versionId, yamlText) {
   }
   this.requestUpdate();
 }
-async function _softDeleteAutomation(automationId) {
+async function _deleteAutomation(automationId) {
+  if (!confirm("Delete this automation permanently?")) return;
   this._deletingAutomation = {
     ...this._deletingAutomation,
     [automationId]: true,
   };
   try {
     await this.hass.callWS({
-      type: "selora_ai/soft_delete_automation",
+      type: "selora_ai/delete_automation",
       automation_id: automationId,
     });
     await this._loadAutomations();
-    this._showToast("Automation moved to Recently Deleted.", "success");
+    this._showToast("Automation deleted.", "success");
   } catch (err) {
     console.error("Failed to delete automation", err);
     this._showToast("Failed to delete automation: " + err.message, "error");
@@ -8011,98 +7833,6 @@ async function _softDeleteAutomation(automationId) {
       ...this._deletingAutomation,
       [automationId]: false,
     };
-  }
-  this.requestUpdate();
-}
-async function _restoreDeletedAutomation(automationId) {
-  this._restoringAutomation = {
-    ...this._restoringAutomation,
-    [automationId]: true,
-  };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/restore_automation",
-      automation_id: automationId,
-    });
-    await this._loadDeletedAutomations();
-    await this._loadAutomations();
-    this._showToast("Automation restored.", "success");
-  } catch (err) {
-    console.error("Failed to restore automation", err);
-    this._showToast("Failed to restore automation: " + err.message, "error");
-  } finally {
-    this._restoringAutomation = {
-      ...this._restoringAutomation,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-function _openHardDeleteDialog(automationId, alias) {
-  this._hardDeleteTarget = { automationId, alias };
-  this._hardDeleteAliasInput = "";
-  this.requestUpdate();
-}
-function _closeHardDeleteDialog() {
-  this._hardDeleteTarget = null;
-  this._hardDeleteAliasInput = "";
-  this.requestUpdate();
-}
-async function _confirmHardDelete() {
-  const target = this._hardDeleteTarget;
-  if (!target) return;
-  const { automationId, alias } = target;
-  if (this._hardDeleteAliasInput !== alias) return;
-  this._hardDeletingAutomation = {
-    ...this._hardDeletingAutomation,
-    [automationId]: true,
-  };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/hard_delete_automation",
-      automation_id: automationId,
-    });
-    this._closeHardDeleteDialog();
-    await this._loadDeletedAutomations();
-    await this._loadAutomations();
-    this._showToast("Automation permanently deleted.", "success");
-  } catch (err) {
-    console.error("Failed to hard delete automation", err);
-    this._showToast(
-      "Failed to permanently delete automation: " + err.message,
-      "error",
-    );
-  } finally {
-    this._hardDeletingAutomation = {
-      ...this._hardDeletingAutomation,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-async function _toggleDeletedSection() {
-  this._showDeleted = !this._showDeleted;
-  if (this._showDeleted && this._deletedAutomations.length === 0) {
-    await this._loadDeletedAutomations();
-  }
-  this.requestUpdate();
-}
-async function _loadDeletedAutomations() {
-  this._loadingDeleted = true;
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/get_automations",
-      include_deleted: true,
-    });
-    this._deletedAutomations = (result || []).filter((a4) => a4.is_deleted);
-  } catch (err) {
-    console.error("Failed to load deleted automations", err);
-    this._showToast(
-      "Failed to load deleted automations: " + err.message,
-      "error",
-    );
-  } finally {
-    this._loadingDeleted = false;
   }
   this.requestUpdate();
 }
@@ -8197,23 +7927,14 @@ var SeloraAIArchitectPanel = class extends s4 {
       _suggestionSortBy: { type: String },
       // Burger menu
       _openBurgerMenu: { type: String },
-      // Recently deleted section
-      _showDeleted: { type: Boolean },
-      _deletedAutomations: { type: Array },
-      _loadingDeleted: { type: Boolean },
       // Action loading states
       _deletingAutomation: { type: Object },
-      _restoringAutomation: { type: Object },
-      _hardDeletingAutomation: { type: Object },
       _restoringVersion: { type: Object },
       _loadingToChat: { type: Object },
       // Bulk automation actions
       _selectedAutomationIds: { type: Object },
       _bulkActionInProgress: { type: Boolean },
       _bulkActionLabel: { type: String },
-      // Hard delete confirmation modal
-      _hardDeleteTarget: { type: Object },
-      _hardDeleteAliasInput: { type: String },
       // Toast notifications
       _toast: { type: String },
       _toastType: { type: String },
@@ -8317,19 +8038,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
     this._openBurgerMenu = null;
-    this._showDeleted = false;
-    this._deletedAutomations = [];
-    this._loadingDeleted = false;
     this._deletingAutomation = {};
-    this._restoringAutomation = {};
-    this._hardDeletingAutomation = {};
     this._restoringVersion = {};
     this._loadingToChat = {};
     this._selectedAutomationIds = {};
     this._bulkActionInProgress = false;
     this._bulkActionLabel = "";
-    this._hardDeleteTarget = null;
-    this._hardDeleteAliasInput = "";
     this._toast = "";
     this._toastType = "info";
     this._toastTimer = null;
@@ -8546,7 +8260,7 @@ var SeloraAIArchitectPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.3.1" : "unknown",
+        integration_version: true ? "0.3.2" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -8665,12 +8379,6 @@ var SeloraAIArchitectPanel = class extends s4 {
   }
   _renderDiffViewer() {
     return renderDiffViewer(this);
-  }
-  _renderDeletedSection() {
-    return renderDeletedSection(this);
-  }
-  _renderHardDeleteDialog() {
-    return renderHardDeleteDialog(this);
   }
   _renderFeedbackModal() {
     if (!this._showFeedbackModal) return "";
@@ -9079,7 +8787,7 @@ var SeloraAIArchitectPanel = class extends s4 {
         </div>
       </div>
 
-      ${this._renderFeedbackModal()} ${this._renderHardDeleteDialog()}
+      ${this._renderFeedbackModal()}
       ${
         this._deleteConfirmSessionId
           ? x`

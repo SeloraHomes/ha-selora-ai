@@ -62,7 +62,6 @@ export async function _loadAutomations() {
   try {
     const automations = await this.hass.callWS({
       type: "selora_ai/get_automations",
-      include_deleted: true,
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(

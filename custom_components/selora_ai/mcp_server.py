@@ -11,7 +11,7 @@ Phase 1 tools
   selora_validate_automation  Validate + risk-assess YAML without writing anything
   selora_create_automation    Create automation from externally-generated YAML
   selora_accept_automation    Enable/commit a pending automation
-  selora_delete_automation    Soft-delete a Selora-managed automation
+  selora_delete_automation    Delete a Selora-managed automation
   selora_get_home_snapshot    Current entity states grouped by area
   selora_chat                 Natural-language chat with Selora's LLM
   selora_list_sessions        Recent conversation sessions
@@ -355,7 +355,6 @@ async def _tool_list_automations(
     status_filter: str | None = arguments.get("status")
     yaml_automations = await _read_yaml_automations(hass)
     store = _get_automation_store(hass)
-    deleted_ids = set(await store.list_deleted_ids())
 
     # Build a live state lookup (enabled/disabled) from HA state machine
     live_states: dict[str, str] = {}
@@ -371,15 +370,12 @@ async def _tool_list_automations(
 
         automation_id = str(auto.get("id", ""))
         alias = _sanitize(auto.get("alias", ""))
-        is_deleted = automation_id in deleted_ids
 
         meta = await store.get_metadata(automation_id)
         record = await store.get_record(automation_id)
 
         # Determine display status
-        if is_deleted:
-            status = "deleted"
-        elif _is_pending_automation(auto, record):
+        if _is_pending_automation(auto, record):
             status = "pending"
         else:
             # Cross-reference live HA state
@@ -398,7 +394,6 @@ async def _tool_list_automations(
                 "status": status,
                 "version_count": meta["version_count"] if meta else 1,
                 "current_version_id": meta["current_version_id"] if meta else None,
-                "deleted_at": meta["deleted_at"] if meta else None,
                 "risk_assessment": _sanitize_risk(risk),
             }
         )
@@ -455,8 +450,8 @@ async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -
         "automation_id": automation_id,
         "alias": _sanitize(auto.get("alias", "")),
         "yaml": yaml_text,
-        "status": "deleted"
-        if (record and record.get("deleted_at"))
+        "status": "pending"
+        if _is_pending_automation(auto, record)
         else ("disabled" if not auto.get("initial_state", True) else "enabled"),
         "version_count": len(versions),
         "versions": versions,
@@ -623,8 +618,8 @@ async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
 
 async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Soft-delete a Selora-managed automation."""
-    from .automation_utils import async_soft_delete_automation
+    """Delete a Selora-managed automation."""
+    from .automation_utils import async_delete_automation
 
     automation_id = str(arguments.get("automation_id", ""))
     if not automation_id:
@@ -635,7 +630,7 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
     if auto is None or not _is_selora(auto):
         return {"error": f"Selora automation {automation_id} not found"}
 
-    success = await async_soft_delete_automation(hass, automation_id)
+    success = await async_delete_automation(hass, automation_id)
     if not success:
         return {"error": "Failed to delete automation"}
 
@@ -1247,14 +1242,14 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
         name=TOOL_LIST_AUTOMATIONS,
         description=(
             "List Selora AI-managed automations with their status and risk assessment. "
-            "Filter by status: pending, enabled, disabled, or deleted."
+            "Filter by status: pending, enabled, or disabled."
         ),
         inputSchema={
             "type": "object",
             "properties": {
                 "status": {
                     "type": "string",
-                    "enum": ["pending", "enabled", "disabled", "deleted"],
+                    "enum": ["pending", "enabled", "disabled"],
                     "description": "Filter by automation status. Omit to return all.",
                 }
             },
@@ -1338,10 +1333,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
     ),
     types.Tool(
         name=TOOL_DELETE_AUTOMATION,
-        description=(
-            "Soft-delete a Selora-managed automation. Version history is preserved. "
-            "Requires admin access."
-        ),
+        description=("Delete a Selora-managed automation permanently. Requires admin access."),
         inputSchema={
             "type": "object",
             "required": ["automation_id"],

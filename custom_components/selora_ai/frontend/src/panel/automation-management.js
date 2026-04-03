@@ -123,31 +123,31 @@ export async function _bulkSoftDeleteSelected() {
     .filter((a) => a && !a._draft && a.automation_id);
 
   if (!targets.length) return;
-  if (!confirm(`Soft-delete ${targets.length} selected automation(s)?`)) return;
+  if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
 
   this._bulkActionInProgress = true;
-  this._bulkActionLabel = `Soft-deleting ${targets.length} automation(s)…`;
+  this._bulkActionLabel = `Deleting ${targets.length} automation(s)…`;
   let successCount = 0;
   try {
     for (const auto of targets) {
       try {
         await this.hass.callWS({
-          type: "selora_ai/soft_delete_automation",
+          type: "selora_ai/delete_automation",
           automation_id: auto.automation_id,
         });
         successCount += 1;
       } catch (err) {
-        console.error("Bulk soft-delete failed", auto.automation_id, err);
+        console.error("Bulk delete failed", auto.automation_id, err);
       }
     }
     this._selectedAutomationIds = {};
     await this._loadAutomations();
     const failedCount = targets.length - successCount;
     if (failedCount === 0) {
-      this._showToast(`Soft-deleted ${successCount} automation(s).`, "success");
+      this._showToast(`Deleted ${successCount} automation(s).`, "success");
     } else {
       this._showToast(
-        `Soft-delete completed: ${successCount} succeeded, ${failedCount} failed.`,
+        `Delete completed: ${successCount} succeeded, ${failedCount} failed.`,
         "error",
       );
     }
@@ -337,21 +337,22 @@ export async function _restoreVersion(automationId, versionId, yamlText) {
 }
 
 // -------------------------------------------------------------------------
-// Soft delete / restore methods
+// Delete methods
 // -------------------------------------------------------------------------
 
-export async function _softDeleteAutomation(automationId) {
+export async function _deleteAutomation(automationId) {
+  if (!confirm("Delete this automation permanently?")) return;
   this._deletingAutomation = {
     ...this._deletingAutomation,
     [automationId]: true,
   };
   try {
     await this.hass.callWS({
-      type: "selora_ai/soft_delete_automation",
+      type: "selora_ai/delete_automation",
       automation_id: automationId,
     });
     await this._loadAutomations();
-    this._showToast("Automation moved to Recently Deleted.", "success");
+    this._showToast("Automation deleted.", "success");
   } catch (err) {
     console.error("Failed to delete automation", err);
     this._showToast("Failed to delete automation: " + err.message, "error");
@@ -360,106 +361,6 @@ export async function _softDeleteAutomation(automationId) {
       ...this._deletingAutomation,
       [automationId]: false,
     };
-  }
-  this.requestUpdate();
-}
-
-export async function _restoreDeletedAutomation(automationId) {
-  this._restoringAutomation = {
-    ...this._restoringAutomation,
-    [automationId]: true,
-  };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/restore_automation",
-      automation_id: automationId,
-    });
-    await this._loadDeletedAutomations();
-    await this._loadAutomations();
-    this._showToast("Automation restored.", "success");
-  } catch (err) {
-    console.error("Failed to restore automation", err);
-    this._showToast("Failed to restore automation: " + err.message, "error");
-  } finally {
-    this._restoringAutomation = {
-      ...this._restoringAutomation,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-
-export function _openHardDeleteDialog(automationId, alias) {
-  this._hardDeleteTarget = { automationId, alias };
-  this._hardDeleteAliasInput = "";
-  this.requestUpdate();
-}
-
-export function _closeHardDeleteDialog() {
-  this._hardDeleteTarget = null;
-  this._hardDeleteAliasInput = "";
-  this.requestUpdate();
-}
-
-export async function _confirmHardDelete() {
-  const target = this._hardDeleteTarget;
-  if (!target) return;
-
-  const { automationId, alias } = target;
-  if (this._hardDeleteAliasInput !== alias) return;
-
-  this._hardDeletingAutomation = {
-    ...this._hardDeletingAutomation,
-    [automationId]: true,
-  };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/hard_delete_automation",
-      automation_id: automationId,
-    });
-    this._closeHardDeleteDialog();
-    await this._loadDeletedAutomations();
-    await this._loadAutomations();
-    this._showToast("Automation permanently deleted.", "success");
-  } catch (err) {
-    console.error("Failed to hard delete automation", err);
-    this._showToast(
-      "Failed to permanently delete automation: " + err.message,
-      "error",
-    );
-  } finally {
-    this._hardDeletingAutomation = {
-      ...this._hardDeletingAutomation,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-
-export async function _toggleDeletedSection() {
-  this._showDeleted = !this._showDeleted;
-  if (this._showDeleted && this._deletedAutomations.length === 0) {
-    await this._loadDeletedAutomations();
-  }
-  this.requestUpdate();
-}
-
-export async function _loadDeletedAutomations() {
-  this._loadingDeleted = true;
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/get_automations",
-      include_deleted: true,
-    });
-    this._deletedAutomations = (result || []).filter((a) => a.is_deleted);
-  } catch (err) {
-    console.error("Failed to load deleted automations", err);
-    this._showToast(
-      "Failed to load deleted automations: " + err.message,
-      "error",
-    );
-  } finally {
-    this._loadingDeleted = false;
   }
   this.requestUpdate();
 }

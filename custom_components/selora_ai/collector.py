@@ -67,7 +67,6 @@ class DataCollector:
         self._lookback_days = lookback_days
         self._settings = settings or {}
         self._unsub_timer = None
-        self._unsub_purge_timer = None
 
     async def async_start(self) -> None:
         """Start the periodic collection → analysis → log cycle."""
@@ -90,32 +89,11 @@ class DataCollector:
         )
         _LOGGER.info("Data collector started (interval: %ss)", interval)
 
-        # Daily purge of expired soft-deleted automations
-        self._unsub_purge_timer = async_track_time_interval(
-            self._hass,
-            self._scheduled_purge,
-            timedelta(days=1),
-        )
-
     async def async_stop(self) -> None:
         """Stop the periodic timers."""
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
-        if self._unsub_purge_timer:
-            self._unsub_purge_timer()
-            self._unsub_purge_timer = None
-
-    async def _scheduled_purge(self, _now: datetime) -> None:
-        """Daily timer callback: purge expired soft-deleted automations."""
-        try:
-            from .automation_utils import async_purge_deleted_automations
-
-            purged = await async_purge_deleted_automations(self._hass)
-            if purged:
-                _LOGGER.info("Daily purge removed %d expired automations: %s", len(purged), purged)
-        except Exception:
-            _LOGGER.exception("Daily automation purge failed")
 
     async def _scheduled_cycle(self, _now: datetime) -> None:
         """Timer callback."""
@@ -285,11 +263,29 @@ class DataCollector:
                     len(suggestions) - len(novel),
                 )
 
-            # Deduplicate remaining by trigger+action content
+            # Deduplicate remaining by trigger+action content,
+            # also filtering out hashes matching previously deleted automations
+            deleted_hashes: set[str] = set()
+            try:
+                from .pattern_store import PatternStore
+
+                pattern_store = PatternStore(self._hass)
+                deleted_hashes = await pattern_store.get_deleted_hashes()
+            except Exception:
+                _LOGGER.debug("Could not load deleted automation hashes")
+
             seen_hashes: set[str] = set()
             unique_suggestions: list[dict[str, Any]] = []
+            deleted_count = 0
             for s in novel:
                 h = self._suggestion_hash(s)
+                if h in deleted_hashes:
+                    _LOGGER.debug(
+                        "Skipping suggestion matching deleted automation: %s",
+                        s.get("alias", "<no alias>"),
+                    )
+                    deleted_count += 1
+                    continue
                 if h in seen_hashes:
                     _LOGGER.debug(
                         "Skipping duplicate suggestion: %s",
@@ -299,10 +295,15 @@ class DataCollector:
                 seen_hashes.add(h)
                 unique_suggestions.append(s)
 
-            if len(unique_suggestions) < len(novel):
+            if deleted_count:
+                _LOGGER.info(
+                    "Filtered %d suggestions matching previously deleted automations",
+                    deleted_count,
+                )
+            if len(unique_suggestions) < len(novel) - deleted_count:
                 _LOGGER.info(
                     "Removed %d duplicate suggestions",
-                    len(novel) - len(unique_suggestions),
+                    len(novel) - deleted_count - len(unique_suggestions),
                 )
 
             # Enrich suggestions with YAML for UI preview
@@ -668,11 +669,14 @@ class DataCollector:
 
     @staticmethod
     def _suggestion_hash(automation: dict[str, Any]) -> str:
-        """Return a content hash of trigger+action for deduplication."""
-        key = {
-            "trigger": automation.get("trigger"),
-            "action": automation.get("action"),
-        }
+        """Return a content hash of trigger+action for deduplication.
+
+        Handles both singular (trigger/action) and plural (triggers/actions)
+        key names so raw LLM output and normalized YAML produce the same hash.
+        """
+        trigger = automation.get("trigger") or automation.get("triggers")
+        action = automation.get("action") or automation.get("actions")
+        key = {"trigger": trigger, "action": action}
         raw = json.dumps(key, sort_keys=True, default=str)
         return hashlib.sha256(raw.encode()).hexdigest()
 

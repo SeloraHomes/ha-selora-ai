@@ -862,7 +862,6 @@ CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
-AUTOMATION_SOFT_DELETE_DAYS = 30
 
 # ── Pattern Detection ────────────────────────────────────────────────
 PATTERN_STORE_KEY = "selora_ai_patterns"

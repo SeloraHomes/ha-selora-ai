@@ -26,8 +26,6 @@ import { renderSettings } from "./panel/render-settings.js";
 import {
   renderVersionHistoryDrawer,
   renderDiffViewer,
-  renderDeletedSection,
-  renderHardDeleteDialog,
 } from "./panel/render-version-history.js";
 import * as sessionActions from "./panel/session-actions.js";
 import * as suggestionActions from "./panel/suggestion-actions.js";
@@ -112,15 +110,8 @@ class SeloraAIArchitectPanel extends LitElement {
       // Burger menu
       _openBurgerMenu: { type: String },
 
-      // Recently deleted section
-      _showDeleted: { type: Boolean },
-      _deletedAutomations: { type: Array },
-      _loadingDeleted: { type: Boolean },
-
       // Action loading states
       _deletingAutomation: { type: Object },
-      _restoringAutomation: { type: Object },
-      _hardDeletingAutomation: { type: Object },
       _restoringVersion: { type: Object },
       _loadingToChat: { type: Object },
 
@@ -128,10 +119,6 @@ class SeloraAIArchitectPanel extends LitElement {
       _selectedAutomationIds: { type: Object },
       _bulkActionInProgress: { type: Boolean },
       _bulkActionLabel: { type: String },
-
-      // Hard delete confirmation modal
-      _hardDeleteTarget: { type: Object },
-      _hardDeleteAliasInput: { type: String },
 
       // Toast notifications
       _toast: { type: String },
@@ -255,21 +242,13 @@ class SeloraAIArchitectPanel extends LitElement {
     this._suggestionSortBy = "recent";
     // Burger menu
     this._openBurgerMenu = null;
-    // Recently deleted
-    this._showDeleted = false;
-    this._deletedAutomations = [];
-    this._loadingDeleted = false;
     // Action loading states
     this._deletingAutomation = {};
-    this._restoringAutomation = {};
-    this._hardDeletingAutomation = {};
     this._restoringVersion = {};
     this._loadingToChat = {};
     this._selectedAutomationIds = {};
     this._bulkActionInProgress = false;
     this._bulkActionLabel = "";
-    this._hardDeleteTarget = null;
-    this._hardDeleteAliasInput = "";
     this._toast = "";
     this._toastType = "info";
     this._toastTimer = null;
@@ -654,14 +633,6 @@ class SeloraAIArchitectPanel extends LitElement {
 
   _renderDiffViewer() {
     return renderDiffViewer(this);
-  }
-
-  _renderDeletedSection() {
-    return renderDeletedSection(this);
-  }
-
-  _renderHardDeleteDialog() {
-    return renderHardDeleteDialog(this);
   }
 
   _renderFeedbackModal() {
@@ -1077,7 +1048,7 @@ class SeloraAIArchitectPanel extends LitElement {
         </div>
       </div>
 
-      ${this._renderFeedbackModal()} ${this._renderHardDeleteDialog()}
+      ${this._renderFeedbackModal()}
       ${this._deleteConfirmSessionId
         ? html`
             <div
