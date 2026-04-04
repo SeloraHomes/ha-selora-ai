@@ -82,40 +82,43 @@ def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
 
 
 def _quote_yaml_booleans(automations: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Wrap trigger to/from string values that YAML would parse as booleans.
+    """Quote string values that YAML 1.1 would silently reinterpret.
 
-    YAML 1.1 treats bare on/off/yes/no/true/false as booleans.  Wrapping
-    these in DoubleQuotedScalarString forces ruamel.yaml to emit them
-    with double-quotes so they survive a round-trip as strings.
+    YAML 1.1 treats bare on/off/yes/no/true/false as booleans and
+    bare HH:MM:SS patterns as sexagesimal integers (e.g. ``23:46:00``
+    becomes ``85560``).  This walks the entire automation tree and wraps
+    any such value in ``DoubleQuotedScalarString`` so ruamel.yaml emits
+    them with double-quotes, surviving a PyYAML round-trip as strings.
     """
+    import re
+
     from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-    _YAML_BOOL_STRINGS = frozenset(
-        {
-            "true",
-            "false",
-            "yes",
-            "no",
-            "on",
-            "off",
-            "y",
-            "n",
-        }
-    )
+    _YAML_BOOL_STRINGS = frozenset({"true", "false", "yes", "no", "on", "off", "y", "n"})
+    _SEXAGESIMAL_RE = re.compile(r"^\d{1,2}:\d{2}(:\d{2})?$")
+
+    # Keys whose boolean values are intentional (not state strings)
+    _BOOL_KEYS = frozenset({"initial_state", "enabled", "hide_entity"})
+
+    def _walk(obj: Any, key: str | None = None) -> Any:
+        if isinstance(obj, dict):
+            for k, v in obj.items():
+                obj[k] = _walk(v, k)
+            return obj
+        if isinstance(obj, list):
+            for i, v in enumerate(obj):
+                obj[i] = _walk(v)
+            return obj
+        if isinstance(obj, bool) and key not in _BOOL_KEYS:
+            return DoubleQuotedScalarString("on" if obj else "off")
+        if isinstance(obj, str) and (
+            obj.lower() in _YAML_BOOL_STRINGS or _SEXAGESIMAL_RE.match(obj)
+        ):
+            return DoubleQuotedScalarString(obj)
+        return obj
 
     for auto in automations:
-        triggers = auto.get("trigger") or auto.get("triggers") or []
-        if not isinstance(triggers, list):
-            triggers = [triggers]
-        for trig in triggers:
-            if not isinstance(trig, dict):
-                continue
-            for key in ("to", "from"):
-                val = trig.get(key)
-                if isinstance(val, bool):
-                    trig[key] = DoubleQuotedScalarString("on" if val else "off")
-                elif isinstance(val, str) and val.lower() in _YAML_BOOL_STRINGS:
-                    trig[key] = DoubleQuotedScalarString(val)
+        _walk(auto)
     return automations
 
 
@@ -143,6 +146,164 @@ def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
     except yaml.YAMLError as exc:
         _LOGGER.error("YAML parse error: %s", exc)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Pattern-based value coercion
+#
+# Instead of hardcoding which fields need fixing, we detect the *type* of
+# mistake and fix it based on context.  This catches LLM errors on any
+# field -- even ones we haven't seen yet -- as long as the mistake fits
+# a known pattern (wrong type for the context).
+# ---------------------------------------------------------------------------
+
+# Keys where HA expects a time string ("HH:MM:SS").
+_TIME_KEYS = frozenset({"at", "after", "before"})
+
+# Keys where HA expects a duration (dict or "HH:MM:SS").
+_DURATION_KEYS = frozenset({"for", "delay"})
+
+# Keys where HA expects a state string ("on"/"off"/"home"/etc.).
+_STATE_KEYS = frozenset({"to", "from", "state"})
+
+# Keys where boolean values are intentional (not state strings).
+_BOOL_KEYS = frozenset({"initial_state", "enabled", "hide_entity", "continue_on_error"})
+
+
+def _coerce_time_value(value: Any) -> Any:
+    """Coerce a value to ``HH:MM:SS`` time string.
+
+    - Integers/floats in 0..86399 are treated as seconds since midnight.
+    - Out-of-range numbers are stringified as a fallback.
+    - Strings pass through unchanged.
+    - ``None`` is returned as ``None`` (caller should remove the key).
+    """
+    if value is None:
+        return None
+    if isinstance(value, str):
+        return value
+    if isinstance(value, bool):
+        return None  # bool is nonsensical for time; drop it
+    if isinstance(value, (int, float)):
+        total = int(value)
+        if total < 0 or total >= 86400:
+            return str(value)
+        hours = total // 3600
+        minutes = (total % 3600) // 60
+        seconds = total % 60
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return str(value)
+
+
+def _coerce_duration_value(value: Any) -> Any:
+    """Coerce a raw number to a duration dict ``{"seconds": N}``."""
+    if isinstance(value, bool):
+        return value  # don't misinterpret booleans
+    if isinstance(value, (int, float)):
+        return {"seconds": int(value)}
+    return value
+
+
+def _coerce_state_string(value: Any) -> Any:
+    """Coerce a value that HA expects to be a state string.
+
+    - Booleans become ``"on"``/``"off"``.
+    - Other non-strings are stringified.
+    - ``None`` is returned as ``None`` (caller should remove the key).
+    """
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return "on" if value else "off"
+    if not isinstance(value, str):
+        return str(value)
+    return value
+
+
+def _normalize_item(item: dict[str, Any]) -> dict[str, Any]:
+    """Apply pattern-based coercion to a single trigger or condition dict.
+
+    Detection is by *key name* and *value type*, not by which section
+    the item lives in.  This lets us catch the same class of mistake
+    in triggers, conditions, or any future HA automation section.
+    """
+    fixed = dict(item)
+
+    for key in list(fixed.keys()):
+        if key in _BOOL_KEYS:
+            continue  # intentional boolean -- leave it alone
+
+        val = fixed[key]
+
+        # --- Time keys: integers are seconds-since-midnight ----------------
+        if key in _TIME_KEYS:
+            result = _coerce_time_value(val)
+            if result is None:
+                fixed.pop(key, None)
+            else:
+                fixed[key] = result
+            continue
+
+        # --- Duration keys: raw numbers -> {"seconds": N} -----------------
+        if key in _DURATION_KEYS:
+            fixed[key] = _coerce_duration_value(val)
+            continue
+
+        # --- State keys: must always be strings ----------------------------
+        if key in _STATE_KEYS:
+            result = _coerce_state_string(val)
+            if result is None:
+                fixed.pop(key, None)
+            else:
+                fixed[key] = result
+            continue
+
+    return fixed
+
+
+def validate_action_services(
+    hass: HomeAssistant,
+    automation: dict[str, Any],
+) -> bool:
+    """Check that all action services in the automation exist on this HA instance.
+
+    Returns ``True`` if every service is available (or the automation has no
+    service calls).  Returns ``False`` if any ``domain.service`` is missing.
+
+    **Timing caveat**: HA loads services lazily.  If called too early in
+    the boot sequence, legitimate services may not yet be registered and
+    this function will return a false negative.  Callers should only use
+    this after integrations have finished loading (e.g. not in the
+    collector's initial cycle).
+    """
+    available = hass.services.async_services()
+    actions = automation.get("action") or automation.get("actions") or []
+    if not isinstance(actions, list):
+        actions = [actions]
+
+    for act in actions:
+        if not isinstance(act, dict):
+            continue
+        service = act.get("action") or act.get("service")
+        if not service or not isinstance(service, str):
+            continue
+        parts = service.split(".", 1)
+        if len(parts) != 2:
+            _LOGGER.warning(
+                "Automation '%s' has malformed service: %s",
+                automation.get("alias", "<no alias>"),
+                service,
+            )
+            return False
+        domain, service_name = parts
+        if domain not in available or service_name not in available[domain]:
+            _LOGGER.warning(
+                "Automation '%s' uses non-existent service: %s",
+                automation.get("alias", "<no alias>"),
+                service,
+            )
+            return False
+    return True
 
 
 def validate_automation_payload(
@@ -179,29 +340,30 @@ def validate_automation_payload(
     if not all(isinstance(c, dict) for c in conditions):
         return False, "all conditions must be objects", None
 
+    # --- Trigger normalization ---------------------------------------------
     normalized_triggers: list[dict[str, Any]] = []
     for trig in triggers:
-        fixed_trigger = dict(trig)
-        if not fixed_trigger.get("platform") and fixed_trigger.get("trigger"):
-            fixed_trigger["platform"] = fixed_trigger.pop("trigger")
-        if not fixed_trigger.get("platform"):
+        fixed = _normalize_item(trig)
+        # Fix LLM using "trigger" key instead of "platform"
+        if not fixed.get("platform") and fixed.get("trigger"):
+            fixed["platform"] = fixed.pop("trigger")
+        if not fixed.get("platform"):
             return False, "each trigger must include a platform", None
-
-        # HA state triggers require 'to' and 'from' to be strings.
-        # LLMs often produce boolean values (true/false) instead of the
-        # string equivalents ("on"/"off").  Coerce them here so the
-        # automation passes HA schema validation at runtime.
+        # Remove None-valued to/from (LLM sometimes emits explicit nulls)
         for key in ("to", "from"):
-            if key in fixed_trigger and not isinstance(fixed_trigger[key], str):
-                val = fixed_trigger[key]
-                if isinstance(val, bool):
-                    fixed_trigger[key] = "on" if val else "off"
-                elif val is None:
-                    fixed_trigger.pop(key, None)
-                else:
-                    fixed_trigger[key] = str(val)
+            if key in fixed and fixed[key] is None:
+                fixed.pop(key)
+        normalized_triggers.append(fixed)
 
-        normalized_triggers.append(fixed_trigger)
+    # --- Condition normalization -------------------------------------------
+    normalized_conditions: list[dict[str, Any]] = []
+    for cond in conditions:
+        normalized_conditions.append(_normalize_item(cond))
+
+    # --- Action normalization ----------------------------------------------
+    normalized_actions: list[dict[str, Any]] = []
+    for act in actions:
+        normalized_actions.append(_normalize_item(act))
 
     _VALID_MODES = {"single", "restart", "queued", "parallel"}
     mode = str(automation.get("mode", "single")).strip().lower()
@@ -215,8 +377,8 @@ def validate_automation_payload(
         "alias": alias,
         "description": str(automation.get("description", "")).strip(),
         "trigger": normalized_triggers,
-        "condition": conditions,
-        "action": actions,
+        "condition": normalized_conditions,
+        "action": normalized_actions,
         "mode": mode,
     }
     if initial_state is not None:

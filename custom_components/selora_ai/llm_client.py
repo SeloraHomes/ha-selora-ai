@@ -903,6 +903,9 @@ class LLMClient:
             "- Automation alias MUST be short — max 4 words (e.g. 'Sunset Alert', 'Morning Briefing').\n"
             "- For service calls in both commands and automation actions, use the 'service' key (e.g. 'light.turn_on').\n"
             "- For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
+            "- Time values ('at' in triggers, 'after'/'before' in conditions) MUST be \"HH:MM:SS\" strings (e.g. \"07:00:00\"). NEVER use integer seconds since midnight.\n"
+            '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
+            "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
@@ -1119,6 +1122,9 @@ class LLMClient:
             "- Automation alias MUST be short — max 4 words (e.g. 'Sunset Alert', 'Morning Briefing').\n"
             "- For service calls, use the 'service' key (e.g. 'light.turn_on').\n"
             "- For state triggers, 'to' and 'from' MUST be strings, never booleans. Use \"on\"/\"off\" (not true/false).\n"
+            "- Time values ('at' in triggers, 'after'/'before' in conditions) MUST be \"HH:MM:SS\" strings (e.g. \"07:00:00\"). NEVER use integer seconds since midnight.\n"
+            '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
+            "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly: 'kitchen lights' -> 'light.kitchen', etc.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
@@ -1343,7 +1349,13 @@ class LLMClient:
             "6. For actions, use 'action' key (not 'service') for the service call. "
             "Include 'data' for parameters.\n"
             "7. For state triggers, the 'to' and 'from' fields MUST be strings, never booleans. "
-            'Use "on"/"off" (not true/false).\n\n'
+            'Use "on"/"off" (not true/false).\n'
+            "8. Time values (trigger 'at', condition 'after'/'before') MUST be \"HH:MM:SS\" strings "
+            '(e.g. "07:00:00", "21:30:00"). NEVER use integer seconds since midnight.\n'
+            "9. In state conditions, the 'state' field MUST be a string: "
+            '"on"/"off", "home"/"away", "locked"/"unlocked", etc. Never a boolean.\n'
+            "10. Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like "
+            '{"seconds": 300}. Never a raw integer.\n\n'
             "EXAMPLE OUTPUT:\n"
             "[\n"
             "  {\n"
@@ -1357,6 +1369,13 @@ class LLMClient:
             '    "description": "Send a notification at 7 AM with a morning summary",\n'
             '    "triggers": [{"platform": "time", "at": "07:00:00"}],\n'
             '    "actions": [{"action": "notify.persistent_notification", "data": {"message": "Good morning! Time to check your dashboard.", "title": "Morning Briefing"}}]\n'
+            "  },\n"
+            "  {\n"
+            '    "alias": "Night motion alert",\n'
+            '    "description": "Notify when motion is detected between 10 PM and 6 AM",\n'
+            '    "triggers": [{"platform": "state", "entity_id": "binary_sensor.motion", "to": "on"}],\n'
+            '    "conditions": [{"condition": "time", "after": "22:00:00", "before": "06:00:00"}],\n'
+            '    "actions": [{"action": "notify.persistent_notification", "data": {"message": "Motion detected!", "title": "Alert"}}]\n'
             "  }\n"
             "]\n\n"
             "Respond with ONLY the JSON array. No markdown fences. No explanation."
