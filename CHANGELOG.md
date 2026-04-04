@@ -1,3 +1,19 @@
+## [0.4.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.2...v0.4.0) (2026-04-04)
+
+### Features
+
+* add deploy and deploy-no-restart just targets ([e5e43ff](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e5e43ffdc4445b2272e86625465461e3da9637a1))
+* add GitHub and GitLab icon links to panel header ([c13efd3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c13efd3f32edff7659b4e005c1751f41568b0a06))
+
+### Bug Fixes
+
+* add dismissal dedup and service/entity validation for LLM suggestions ([56e707d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/56e707d28dbd1d49edeca0e520c4609ebc5c3af1))
+* enforce dynamic suggestion cap based on home size ([ee8a65d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ee8a65d573ee891686239636b948a2c56ff619e0))
+* normalize LLM automation values ([8b28f9e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8b28f9e8b980b81d83579d2801da4cd915d02d52))
+* purge stale Selora automations on startup ([b2144c7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b2144c79c042c36b760985d300570c053f9bb2f8))
+* reduce LLM response verbosity in web chat ([83cef68](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/83cef68e1c59fd7586155df7afd35f10bafae09f))
+* sync panel state with HA for unavailable automations ([54797cb](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/54797cb94c83ff57b0e3fba5693ef840714a625c))
+
 ## [0.3.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.1...v0.3.2) (2026-04-02)
 
 ### Bug Fixes
