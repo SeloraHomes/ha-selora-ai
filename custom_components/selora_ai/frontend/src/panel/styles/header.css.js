@@ -42,6 +42,16 @@ export const headerStyles = css`
     opacity: 0.8;
     text-decoration: underline;
   }
+  .header-icon-link {
+    color: var(--primary-text-color);
+    opacity: 0.45;
+    transition: opacity 0.15s;
+    display: flex;
+    align-items: center;
+  }
+  .header-icon-link:hover {
+    opacity: 0.8;
+  }
   .tabs {
     display: flex;
     padding: 0 24px;
