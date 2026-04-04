@@ -19,6 +19,7 @@ from custom_components.selora_ai.automation_utils import (
     async_delete_automation,
     async_toggle_automation,
     async_update_automation,
+    validate_action_services,
     validate_automation_payload,
 )
 from custom_components.selora_ai.const import AUTOMATION_ID_PREFIX
@@ -300,6 +301,202 @@ class TestValidateAutomationPayload:
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
         assert "initial_state" not in result
+
+    # -- condition state coercion -----------------------------------------
+
+    def test_coerces_condition_state_true_to_on(self) -> None:
+        payload = {
+            "alias": "CondBool",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [
+                {"condition": "state", "entity_id": "binary_sensor.motion", "state": True}
+            ],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["state"] == "on"
+
+    def test_coerces_condition_state_false_to_off(self) -> None:
+        payload = {
+            "alias": "CondBool",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [
+                {"condition": "state", "entity_id": "binary_sensor.motion", "state": False}
+            ],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["state"] == "off"
+
+    def test_leaves_condition_state_string_unchanged(self) -> None:
+        payload = {
+            "alias": "CondStr",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [{"condition": "state", "entity_id": "sensor.temp", "state": "25.5"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["state"] == "25.5"
+
+    # -- time condition coercion ------------------------------------------
+
+    def test_coerces_time_condition_integer_after_before(self) -> None:
+        payload = {
+            "alias": "TimeInt",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [{"condition": "time", "after": 75600, "before": 79200}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["after"] == "21:00:00"
+        assert result["condition"][0]["before"] == "22:00:00"
+
+    def test_leaves_time_condition_string_unchanged(self) -> None:
+        payload = {
+            "alias": "TimeStr",
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [{"condition": "time", "after": "21:00:00", "before": "22:00:00"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["after"] == "21:00:00"
+        assert result["condition"][0]["before"] == "22:00:00"
+
+    # -- time trigger `at` coercion ---------------------------------------
+
+    def test_coerces_time_trigger_integer_at(self) -> None:
+        payload = {
+            "alias": "TrigTimeInt",
+            "trigger": [{"platform": "time", "at": 81000}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["trigger"][0]["at"] == "22:30:00"
+
+    def test_coerces_time_trigger_at_midnight(self) -> None:
+        payload = {
+            "alias": "Midnight",
+            "trigger": [{"platform": "time", "at": 0}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["trigger"][0]["at"] == "00:00:00"
+
+    def test_leaves_time_trigger_string_at_unchanged(self) -> None:
+        payload = {
+            "alias": "TrigTimeStr",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["trigger"][0]["at"] == "07:00:00"
+
+    # -- duration `for` coercion ------------------------------------------
+
+    def test_coerces_duration_for_integer_to_dict_in_trigger(self) -> None:
+        payload = {
+            "alias": "ForInt",
+            "trigger": [{"platform": "state", "entity_id": "light.x", "to": "on", "for": 300}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["trigger"][0]["for"] == {"seconds": 300}
+
+    def test_coerces_duration_for_integer_to_dict_in_condition(self) -> None:
+        payload = {
+            "alias": "ForCond",
+            "trigger": [{"platform": "state", "entity_id": "light.x"}],
+            "action": [{"action": "light.turn_on"}],
+            "condition": [
+                {"condition": "state", "entity_id": "light.x", "state": "on", "for": 600}
+            ],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["condition"][0]["for"] == {"seconds": 600}
+
+
+# ===================================================================
+# validate_action_services
+# ===================================================================
+
+
+class TestValidateActionServices:
+    """Tests for validate_action_services."""
+
+    @staticmethod
+    def _mock_hass(services: dict[str, list[str]]) -> MagicMock:
+        hass = MagicMock()
+        hass.services.async_services.return_value = {
+            domain: {svc: None for svc in svcs} for domain, svcs in services.items()
+        }
+        return hass
+
+    def test_valid_service_passes(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on", "turn_off"]})
+        auto = {"alias": "Test", "action": [{"action": "light.turn_on"}]}
+        assert validate_action_services(hass, auto) is True
+
+    def test_nonexistent_service_rejected(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Bad", "action": [{"action": "tts.google_translate_en_com"}]}
+        assert validate_action_services(hass, auto) is False
+
+    def test_nonexistent_domain_rejected(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Bad", "action": [{"action": "tts.speak"}]}
+        assert validate_action_services(hass, auto) is False
+
+    def test_malformed_service_rejected(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Bad", "action": [{"action": "no_dot_here"}]}
+        assert validate_action_services(hass, auto) is False
+
+    def test_no_actions_passes(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Empty", "action": []}
+        assert validate_action_services(hass, auto) is True
+
+    def test_multiple_actions_all_valid(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"], "notify": ["persistent_notification"]})
+        auto = {
+            "alias": "Multi",
+            "action": [
+                {"action": "light.turn_on"},
+                {"action": "notify.persistent_notification"},
+            ],
+        }
+        assert validate_action_services(hass, auto) is True
+
+    def test_multiple_actions_one_invalid(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {
+            "alias": "Mixed",
+            "action": [
+                {"action": "light.turn_on"},
+                {"action": "tts.google_translate_en_com"},
+            ],
+        }
+        assert validate_action_services(hass, auto) is False
+
+    def test_uses_service_key_fallback(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Old", "action": [{"service": "light.turn_on"}]}
+        assert validate_action_services(hass, auto) is True
+
+    def test_non_string_service_skipped(self) -> None:
+        hass = self._mock_hass({"light": ["turn_on"]})
+        auto = {"alias": "Weird", "action": [{"action": 123}]}
+        assert validate_action_services(hass, auto) is True
 
 
 # ===================================================================
@@ -655,9 +852,7 @@ class TestQuoteYamlBooleans:
     def test_wraps_on_off_in_double_quoted_scalar(self) -> None:
         from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-        automations = [
-            {"trigger": [{"platform": "state", "to": "on", "from": "off"}]}
-        ]
+        automations = [{"trigger": [{"platform": "state", "to": "on", "from": "off"}]}]
         _quote_yaml_booleans(automations)
         assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
         assert isinstance(automations[0]["trigger"][0]["from"], DoubleQuotedScalarString)
@@ -666,11 +861,13 @@ class TestQuoteYamlBooleans:
         from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
         automations = [
-            {"trigger": [
-                {"platform": "state", "to": "yes", "from": "no"},
-                {"platform": "state", "to": "true", "from": "false"},
-                {"platform": "state", "to": "y", "from": "n"},
-            ]}
+            {
+                "trigger": [
+                    {"platform": "state", "to": "yes", "from": "no"},
+                    {"platform": "state", "to": "true", "from": "false"},
+                    {"platform": "state", "to": "y", "from": "n"},
+                ]
+            }
         ]
         _quote_yaml_booleans(automations)
         for trig in automations[0]["trigger"]:
@@ -680,9 +877,7 @@ class TestQuoteYamlBooleans:
     def test_leaves_non_boolean_strings_alone(self) -> None:
         from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-        automations = [
-            {"trigger": [{"platform": "state", "to": "home", "from": "away"}]}
-        ]
+        automations = [{"trigger": [{"platform": "state", "to": "home", "from": "away"}]}]
         _quote_yaml_booleans(automations)
         assert not isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
         assert not isinstance(automations[0]["trigger"][0]["from"], DoubleQuotedScalarString)
@@ -690,9 +885,7 @@ class TestQuoteYamlBooleans:
     def test_coerces_bool_values_to_quoted_strings(self) -> None:
         from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-        automations = [
-            {"trigger": [{"platform": "state", "to": True, "from": False}]}
-        ]
+        automations = [{"trigger": [{"platform": "state", "to": True, "from": False}]}]
         _quote_yaml_booleans(automations)
         assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
         assert str(automations[0]["trigger"][0]["to"]) == "on"
@@ -702,9 +895,7 @@ class TestQuoteYamlBooleans:
     def test_case_insensitive(self) -> None:
         from ruamel.yaml.scalarstring import DoubleQuotedScalarString
 
-        automations = [
-            {"trigger": [{"platform": "state", "to": "ON", "from": "Off"}]}
-        ]
+        automations = [{"trigger": [{"platform": "state", "to": "ON", "from": "Off"}]}]
         _quote_yaml_booleans(automations)
         assert isinstance(automations[0]["trigger"][0]["to"], DoubleQuotedScalarString)
         assert str(automations[0]["trigger"][0]["to"]) == "ON"
@@ -721,7 +912,9 @@ class TestWriteAutomationsYamlQuoting:
             {
                 "id": "test_1",
                 "alias": "Round trip test",
-                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "trigger": [
+                    {"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}
+                ],
                 "action": [{"action": "notify.notify"}],
             }
         ]
@@ -737,7 +930,9 @@ class TestWriteAutomationsYamlQuoting:
             {
                 "id": "test_q",
                 "alias": "Quote check",
-                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "trigger": [
+                    {"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}
+                ],
                 "action": [{"action": "notify.notify"}],
             }
         ]
@@ -755,7 +950,9 @@ class TestWriteAutomationsYamlQuoting:
             {
                 "id": "test_drt",
                 "alias": "Double round trip",
-                "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}],
+                "trigger": [
+                    {"platform": "state", "entity_id": "sensor.x", "from": "on", "to": "off"}
+                ],
                 "action": [{"action": "notify.notify"}],
             }
         ]
@@ -765,7 +962,6 @@ class TestWriteAutomationsYamlQuoting:
         second_read = YAML().load(path)
         assert second_read[0]["trigger"][0]["from"] == "on"
         assert second_read[0]["trigger"][0]["to"] == "off"
-
 
     def test_read_write_round_trip_quotes_bare_booleans(self, tmp_path: Path) -> None:
         """Simulates HA writing bare on/off (no quotes), then our code re-reading and re-writing.
@@ -803,6 +999,35 @@ class TestWriteAutomationsYamlQuoting:
         assert reparsed[0]["trigger"][0]["from"] == "off"
         assert reparsed[0]["trigger"][0]["to"] == "on"
 
+    def test_time_strings_survive_pyyaml_round_trip(self, tmp_path: Path) -> None:
+        """Time strings like 23:46:00 must be quoted to survive PyYAML.
+
+        YAML 1.1 treats bare HH:MM:SS as sexagesimal integers
+        (23:46:00 → 85560).  Our writer must double-quote them.
+        """
+        path = tmp_path / "automations.yaml"
+        automations = [
+            {
+                "id": "test_time",
+                "alias": "Night Lock",
+                "trigger": [{"platform": "time", "at": "23:46:00"}],
+                "condition": [{"condition": "time", "after": "22:00:00", "before": "06:00:00"}],
+                "action": [{"action": "lock.lock", "target": {"entity_id": "lock.yale"}}],
+            }
+        ]
+        _write_automations_yaml(path, automations)
+
+        raw = path.read_text(encoding="utf-8")
+        assert '"23:46:00"' in raw
+        assert '"22:00:00"' in raw
+        assert '"06:00:00"' in raw
+
+        # Verify PyYAML reads them back as strings, not integers
+        loaded = yaml.safe_load(raw)
+        assert loaded[0]["trigger"][0]["at"] == "23:46:00"
+        assert loaded[0]["condition"][0]["after"] == "22:00:00"
+        assert loaded[0]["condition"][0]["before"] == "06:00:00"
+
 
 class TestCreateAutomationValidation:
     """Tests that async_create_automation validates and coerces trigger values."""
@@ -813,7 +1038,9 @@ class TestCreateAutomationValidation:
     ) -> None:
         suggestion = {
             "alias": "Dryer Done",
-            "trigger": [{"platform": "state", "entity_id": "sensor.dryer", "from": True, "to": False}],
+            "trigger": [
+                {"platform": "state", "entity_id": "sensor.dryer", "from": True, "to": False}
+            ],
             "action": [{"action": "notify.notify", "data": {"message": "done"}}],
         }
         result = await async_create_automation(hass, suggestion)
@@ -821,7 +1048,9 @@ class TestCreateAutomationValidation:
 
         # yaml.safe_load proves coercion: bare on/off would parse as bool True/False
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
-        new = [a for a in content if a["id"].startswith(AUTOMATION_ID_PREFIX) and "Dryer" in a["alias"]]
+        new = [
+            a for a in content if a["id"].startswith(AUTOMATION_ID_PREFIX) and "Dryer" in a["alias"]
+        ]
         assert new[0]["trigger"][0]["from"] == "on"
         assert new[0]["trigger"][0]["to"] == "off"
 
@@ -831,9 +1060,7 @@ class TestCreateAutomationValidation:
         assert '"off"' in raw
 
     @pytest.mark.asyncio
-    async def test_null_from_stripped(
-        self, hass, tmp_automations_yaml: Path, _patch_store
-    ) -> None:
+    async def test_null_from_stripped(self, hass, tmp_automations_yaml: Path, _patch_store) -> None:
         suggestion = {
             "alias": "Null From Test",
             "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": None, "to": "on"}],
@@ -888,9 +1115,7 @@ class TestCreateAutomationValidation:
     async def test_invalid_suggestion_rejected(
         self, hass, tmp_automations_yaml: Path, _patch_store
     ) -> None:
-        result = await async_create_automation(
-            hass, {"alias": "", "trigger": [], "action": []}
-        )
+        result = await async_create_automation(hass, {"alias": "", "trigger": [], "action": []})
         assert result["success"] is False
 
 
@@ -903,7 +1128,9 @@ class TestUpdateAutomationValidation:
     ) -> None:
         updated = {
             "alias": "Updated Automation",
-            "trigger": [{"platform": "state", "entity_id": "sensor.test", "from": True, "to": False}],
+            "trigger": [
+                {"platform": "state", "entity_id": "sensor.test", "from": True, "to": False}
+            ],
             "action": [{"action": "notify.notify", "data": {"message": "updated"}}],
         }
         result = await async_update_automation(hass, "selora_ai_existing1", updated)
