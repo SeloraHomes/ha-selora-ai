@@ -46,7 +46,13 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
+    MIN_RELEVANCE_SCORE,
     MODE_SCHEDULED,
+    RELEVANCE_WEIGHT_ACTIVITY,
+    RELEVANCE_WEIGHT_CATEGORY,
+    RELEVANCE_WEIGHT_COMPLEXITY,
+    RELEVANCE_WEIGHT_COVERAGE,
+    RELEVANCE_WEIGHT_CROSS_DEVICE,
 )
 from .llm_client import LLMClient
 
@@ -170,10 +176,9 @@ class DataCollector:
             _read_automations_yaml, automations_path
         )
 
-        covered_list: list[str] = []
+        covered_entity_ids: set[str] = set()
         for automation in automations:
-            self._extract_entity_ids(automation, covered_list)
-        covered_entity_ids = set(covered_list)
+            covered_entity_ids.update(self._extract_entity_ids(automation))
 
         # Count devices whose entities are NOT covered by any automation
         uncovered_count = 0
@@ -344,6 +349,46 @@ class DataCollector:
             filtered_out = len(unique_suggestions) - len(enriched)
             if filtered_out:
                 _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
+
+            # Build set of entity_ids referenced by existing automations for scoring
+            # Read from automations.yaml (state attributes don't contain full config)
+            existing_auto_entity_ids: set[str] = set()
+            try:
+                automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
+                existing_automations = await self._hass.async_add_executor_job(
+                    self._read_automations_yaml, automations_path
+                )
+                for auto in existing_automations:
+                    existing_auto_entity_ids.update(self._extract_entity_ids(auto))
+            except Exception:
+                _LOGGER.debug("Could not read automations.yaml for coverage scoring")
+
+            # Score and filter suggestions by relevance
+            pre_score_count = len(enriched)
+            scored: list[dict[str, Any]] = []
+            for s in enriched:
+                score = self._score_suggestion(s, snapshot, existing_auto_entity_ids)
+                s["relevance_score"] = score
+                if score < MIN_RELEVANCE_SCORE:
+                    _LOGGER.info(
+                        "Filtering low-relevance suggestion '%s' (score: %.2f < %.2f)",
+                        s.get("alias", "<no alias>"),
+                        score,
+                        MIN_RELEVANCE_SCORE,
+                    )
+                    continue
+                scored.append(s)
+
+            # Sort by relevance (highest first) so any downstream cap keeps the best
+            scored.sort(key=lambda s: s.get("relevance_score", 0), reverse=True)
+            enriched = scored
+
+            if len(enriched) < pre_score_count:
+                _LOGGER.info(
+                    "Relevance filtering kept %d of %d suggestions",
+                    len(enriched),
+                    pre_score_count,
+                )
 
             # Apply dynamic suggestion cap (computed before the LLM call)
             if len(enriched) > dynamic_cap:
@@ -827,8 +872,7 @@ class DataCollector:
 
     def _validate_entity_ids(self, automation: dict[str, Any]) -> None:
         """Warn about entity IDs in a suggestion that don't exist in HA."""
-        found: list[str] = []
-        self._extract_entity_ids(automation, found)
+        found = self._extract_entity_ids(automation)
         if not found:
             return
 
@@ -842,20 +886,112 @@ class DataCollector:
                 )
 
     @staticmethod
-    def _extract_entity_ids(obj: Any, found: list[str]) -> None:
-        """Recursively walk a dict/list to find all entity_id values."""
-        if isinstance(obj, dict):
-            for key, value in obj.items():
+    def _extract_entity_ids(config: Any) -> set[str]:
+        """Recursively extract entity_id values from any nested config structure."""
+        entity_ids: set[str] = set()
+        if config is None:
+            return entity_ids
+        if isinstance(config, list):
+            for item in config:
+                entity_ids.update(DataCollector._extract_entity_ids(item))
+        elif isinstance(config, dict):
+            for key, value in config.items():
                 if key == "entity_id":
                     if isinstance(value, str):
-                        found.append(value)
+                        entity_ids.add(value)
                     elif isinstance(value, list):
-                        found.extend(v for v in value if isinstance(v, str))
-                else:
-                    DataCollector._extract_entity_ids(value, found)
-        elif isinstance(obj, list):
-            for item in obj:
-                DataCollector._extract_entity_ids(item, found)
+                        entity_ids.update(e for e in value if isinstance(e, str))
+                elif isinstance(value, (dict, list)):
+                    entity_ids.update(DataCollector._extract_entity_ids(value))
+        return entity_ids
+
+    def _score_suggestion(
+        self,
+        suggestion: dict[str, Any],
+        snapshot: dict[str, Any],
+        existing_entity_ids: set[str],
+    ) -> float:
+        """Score a suggestion 0.0-1.0 based on multiple relevance factors."""
+        automation = suggestion.get("automation_data", suggestion)
+        scores: dict[str, float] = {}
+
+        # 1. Cross-device: trigger and action reference different domains/devices
+        trigger_config = (
+            automation.get("trigger") if "trigger" in automation else automation.get("triggers")
+        )
+        action_config = (
+            automation.get("action") if "action" in automation else automation.get("actions")
+        )
+        trigger_entities = self._extract_entity_ids(trigger_config)
+        action_entities = self._extract_entity_ids(action_config)
+        trigger_domains = {e.split(".")[0] for e in trigger_entities if "." in e}
+        action_domains = {e.split(".")[0] for e in action_entities if "." in e}
+
+        if trigger_entities and action_entities:
+            if trigger_entities.isdisjoint(action_entities):
+                scores["cross_device"] = 1.0  # Different entities
+            elif trigger_domains != action_domains:
+                scores["cross_device"] = 0.7  # Different domains at least
+            else:
+                scores["cross_device"] = 0.1  # Same device acting on itself
+        else:
+            scores["cross_device"] = 0.5  # Can't determine, neutral
+
+        # 2. Activity-aligned: trigger entities have state changes in history
+        history = snapshot.get("recorder_history", [])
+        history_entities = {h.get("entity_id") for h in history if h.get("entity_id")}
+        if trigger_entities:
+            active_count = sum(1 for e in trigger_entities if e in history_entities)
+            scores["activity"] = active_count / len(trigger_entities)
+        else:
+            scores["activity"] = 0.3  # No triggers identifiable, slight penalty
+
+        # 3. Coverage: entities not already covered by existing automations
+        all_entities = trigger_entities | action_entities
+        if all_entities:
+            novel_count = sum(1 for e in all_entities if e not in existing_entity_ids)
+            scores["coverage"] = novel_count / len(all_entities)
+        else:
+            scores["coverage"] = 0.0
+
+        # 4. Category: safety/security/energy automations get a boost
+        boosted_domains = {
+            "alarm_control_panel",
+            "lock",
+            "binary_sensor",
+            "climate",
+            "water_heater",
+            "cover",
+        }
+        all_domains = trigger_domains | action_domains
+        if all_domains & boosted_domains:
+            scores["category"] = 1.0
+        else:
+            scores["category"] = 0.4  # Not penalized, just not boosted
+
+        # 5. Complexity: conditions, multiple actions, time constraints
+        condition_config = (
+            automation.get("condition")
+            if "condition" in automation
+            else automation.get("conditions")
+        )
+        has_conditions = bool(condition_config)
+        action_list = action_config or []
+        multi_action = isinstance(action_list, list) and len(action_list) > 1
+        has_mode = automation.get("mode") in ("queued", "restart", "parallel")
+
+        complexity_signals = sum([has_conditions, multi_action, has_mode])
+        scores["complexity"] = min(complexity_signals / 2, 1.0)
+
+        # Weighted average
+        weighted = (
+            scores.get("cross_device", 0) * RELEVANCE_WEIGHT_CROSS_DEVICE
+            + scores.get("activity", 0) * RELEVANCE_WEIGHT_ACTIVITY
+            + scores.get("coverage", 0) * RELEVANCE_WEIGHT_COVERAGE
+            + scores.get("category", 0) * RELEVANCE_WEIGHT_CATEGORY
+            + scores.get("complexity", 0) * RELEVANCE_WEIGHT_COMPLEXITY
+        )
+        return round(weighted, 3)
 
     async def _collect_recorder_history(self) -> list[dict[str, Any]]:
         """Pull historical state changes from HA Recorder (SQLite).
