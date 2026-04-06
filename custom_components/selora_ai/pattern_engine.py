@@ -17,12 +17,16 @@ from collections.abc import Callable, Coroutine
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
+import statistics
 from typing import Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
 
 from .const import (
+    CAUSALITY_DIRECTIONALITY_PENALTY,
+    CAUSALITY_MAX_DELAY_STDDEV,
+    CAUSALITY_MIN_DIRECTIONALITY,
     CONFIDENCE_MEDIUM,
     DEFAULT_PATTERN_INTERVAL,
     PATTERN_TYPE_CORRELATION,
@@ -286,6 +290,36 @@ class PatternEngine:
             if confidence < CONFIDENCE_MEDIUM:
                 continue
 
+            # -- Causality guardrail: delay variance penalty --
+            stddev = statistics.stdev(delays) if len(delays) >= 2 else 0.0
+            if stddev > CAUSALITY_MAX_DELAY_STDDEV:
+                confidence *= max(
+                    0.0,
+                    1.0
+                    - (stddev - CAUSALITY_MAX_DELAY_STDDEV) / (CAUSALITY_MAX_DELAY_STDDEV * 1.5),
+                )
+
+            # -- Causality guardrail: directionality check --
+            reverse_key = (eid_b, state_b, eid_a, state_a)
+            reverse_delays = pair_counts.get(reverse_key, [])
+            forward_count = len(delays)
+            reverse_count = len(reverse_delays)
+            directionality = (
+                forward_count / (forward_count + reverse_count)
+                if (forward_count + reverse_count) > 0
+                else 1.0
+            )
+            if directionality <= 0.5:
+                confidence = 0.0
+            elif directionality < CAUSALITY_MIN_DIRECTIONALITY:
+                confidence *= (
+                    directionality / CAUSALITY_MIN_DIRECTIONALITY * CAUSALITY_DIRECTIONALITY_PENALTY
+                )
+
+            # Re-check confidence after causality penalties
+            if confidence < CONFIDENCE_MEDIUM:
+                continue
+
             avg_delay = sum(delays) / len(delays)
             name_a = eid_a.split(".")[-1].replace("_", " ").title()
             name_b = eid_b.split(".")[-1].replace("_", " ").title()
@@ -313,6 +347,8 @@ class PatternEngine:
                     "avg_delay_seconds": round(avg_delay, 1),
                     "co_occurrences": len(delays),
                     "window_minutes": _CORRELATION_WINDOW_SECS // 60,
+                    "delay_stddev": round(stddev, 1),
+                    "directionality": round(directionality, 2),
                 },
                 "confidence": confidence,
             }

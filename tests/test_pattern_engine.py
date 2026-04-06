@@ -456,3 +456,137 @@ class TestDetectSequences:
         result = await engine._detect_sequences(history)
         seq = [p for p in result if p["type"] == "sequence"]
         assert seq == []
+
+
+# ===========================================================================
+# Causality Guardrails
+# ===========================================================================
+
+
+class TestCausalityGuardrails:
+    """Tests for causality guardrails in correlation detection."""
+
+    @pytest.mark.asyncio
+    async def test_high_delay_variance_penalizes_confidence(self, hass: MagicMock) -> None:
+        """Wildly varying delays should reduce confidence or filter pattern out."""
+        engine = _make_engine(hass)
+
+        # Build A events at consistent times, B events at wildly varying delays
+        # Delays: 5s, 250s, 10s, 290s, 15s — stddev >> 60s
+        delays_seconds = [5, 250, 10, 290, 15]
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d, delay in enumerate(delays_seconds):
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(
+                _change(
+                    "on",
+                    day_offset=d,
+                    hour=9,
+                    minute=delay // 60,
+                    second=delay % 60,
+                )
+            )
+        history = {"sensor.door": changes_a, "light.hall": changes_b}
+        erratic_result = await engine._detect_correlations(history)
+
+        # Now build a consistent-delay equivalent (all 30s apart)
+        engine_consistent = _make_engine(hass)
+        changes_a2: list[dict[str, str]] = []
+        changes_b2: list[dict[str, str]] = []
+        for d in range(5):
+            changes_a2.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b2.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+        history2 = {"sensor.door": changes_a2, "light.hall": changes_b2}
+        consistent_result = await engine_consistent._detect_correlations(history2)
+
+        # Erratic delays should be filtered out entirely
+        assert erratic_result == [], "Erratic delay pattern should be rejected"
+        assert consistent_result, "Consistent-delay should still produce a pattern"
+
+    @pytest.mark.asyncio
+    async def test_bidirectional_correlation_penalized(self, hass: MagicMock) -> None:
+        """A->B and B->A happening equally should reduce confidence or filter out."""
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+
+        # On even days: A fires first, then B (A->B)
+        # On odd days: B fires first, then A (B->A)
+        for d in range(10):
+            if d % 2 == 0:
+                changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+                changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+            else:
+                changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+                changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+
+        history = {"light.x": changes_a, "light.y": changes_b}
+        result = await engine._detect_correlations(history)
+
+        # Both directions have directionality ~0.5, well below 0.65
+        # Symmetric patterns should be filtered out entirely
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations == [], "Bidirectional patterns should be rejected"
+
+    @pytest.mark.asyncio
+    async def test_symmetric_high_confidence_rejected(self, hass: MagicMock) -> None:
+        """Perfectly symmetric pair with raw confidence 1.0 must still be rejected."""
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+
+        # Every event is correlated — raw confidence will be 1.0
+        # But direction alternates, so directionality = 0.5
+        for d in range(6):
+            if d % 2 == 0:
+                changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+                changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+            else:
+                changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+                changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+
+        history = {"switch.a": changes_a, "switch.b": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations == [], "Symmetric pair with high raw confidence should be rejected"
+
+    @pytest.mark.asyncio
+    async def test_consistent_unidirectional_passes(self, hass: MagicMock) -> None:
+        """A consistently preceding B with steady delays should pass guardrails."""
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        # A fires, then B 30s later — consistent, unidirectional
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+        history = {"sensor.motion": changes_a, "light.room": changes_b}
+        result = await engine._detect_correlations(history)
+
+        assert len(result) >= 1
+        pat = result[0]
+        assert pat["type"] == "correlation"
+        assert pat["confidence"] >= 0.50
+
+    @pytest.mark.asyncio
+    async def test_causality_metrics_in_evidence(self, hass: MagicMock) -> None:
+        """Detected correlation patterns should include delay_stddev and directionality."""
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+        history = {"sensor.motion": changes_a, "light.room": changes_b}
+        result = await engine._detect_correlations(history)
+
+        assert len(result) >= 1
+        evidence = result[0]["evidence"]
+        assert "delay_stddev" in evidence
+        assert "directionality" in evidence
+        assert isinstance(evidence["delay_stddev"], float)
+        assert isinstance(evidence["directionality"], float)
+        assert evidence["directionality"] > 0.0
+        assert evidence["directionality"] <= 1.0

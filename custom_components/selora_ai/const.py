@@ -796,6 +796,7 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
     "illuminator",
     "camera_light",
     "floodlight",
+    "floodlight_status",
     "night_vision",
     "infrared",
 }
@@ -886,6 +887,17 @@ PATTERN_TYPE_SEQUENCE = "sequence"
 
 CONFIDENCE_HIGH = 0.75
 CONFIDENCE_MEDIUM = 0.50
+
+# ── Causality Guardrails ─────────────────────────────────────────────
+# Maximum allowed standard deviation of delay (seconds) for a correlation
+# to be considered causal. High variance suggests coincidence.
+CAUSALITY_MAX_DELAY_STDDEV = 60.0
+# Minimum ratio of directional consistency (A→B vs B→A) to treat as causal.
+CAUSALITY_MIN_DIRECTIONALITY = 0.65
+# Extra penalty multiplier applied when directionality is below the minimum.
+# Ensures bidirectional (common-cause) patterns are penalised harder than the
+# raw ratio alone would achieve.
+CAUSALITY_DIRECTIONALITY_PENALTY = 0.8
 
 # How long a dismissed suggestion suppresses re-surfacing of the same pattern
 DISMISSAL_SUPPRESSION_WINDOW_DAYS = 7
