@@ -51,7 +51,12 @@ from mcp.server import Server
 from mcp.shared.message import SessionMessage
 from mcp.types import JSONRPCMessage
 
-from .const import AUTOMATION_ID_PREFIX, DOMAIN, LIGHT_ENTITY_EXCLUDE_PATTERNS
+from .const import (
+    AUTOMATION_ID_PREFIX,
+    COLLECTOR_DOMAINS,
+    DOMAIN,
+    LIGHT_ENTITY_EXCLUDE_PATTERNS,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -675,20 +680,11 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     areas: dict[str, list[dict[str, Any]]] = {name: [] for name in area_names.values()}
     unassigned: list[dict[str, Any]] = []
 
-    # Skip domains that are noisy / not useful for home snapshot context
-    _SKIP_DOMAINS = {
-        "scene",
-        "script",
-        "group",
-        "sun",
-        "zone",
-        "persistent_notification",
-        "device_tracker",
-    }
+    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
 
     for state in hass.states.async_all():
         domain = state.entity_id.split(".")[0]
-        if domain in _SKIP_DOMAINS:
+        if domain not in _ALLOWED_DOMAINS:
             continue
         if domain == "light" and any(
             pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
