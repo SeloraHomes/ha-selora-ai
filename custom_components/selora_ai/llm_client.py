@@ -37,6 +37,7 @@ from .const import (
     DEFAULT_OPENAI_HOST,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OPENAI,
     MAX_TOOL_CALL_ROUNDS,
@@ -261,6 +262,8 @@ class LLMClient:
             eid = e.get("entity_id", "")
             domain = eid.split(".")[0]
             if domain not in interesting_domains:
+                continue
+            if domain == "light" and any(pat in eid for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS):
                 continue
             state = e.get("state", "unknown")
             friendly = _format_untrusted_text(e.get("attributes", {}).get("friendly_name", ""))
@@ -1265,6 +1268,8 @@ class LLMClient:
             eid = e.get("entity_id", "")
             domain = eid.split(".")[0]
             if domain not in interesting_domains:
+                continue
+            if domain == "light" and any(pat in eid for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS):
                 continue
             state = e.get("state", "unknown")
             friendly = _format_untrusted_text(e.get("attributes", {}).get("friendly_name", ""))

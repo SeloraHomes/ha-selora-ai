@@ -13,6 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
+from custom_components.selora_ai import _collect_entity_states
 from custom_components.selora_ai.const import DOMAIN
 from custom_components.selora_ai.conversation import SeloraConversationEntity
 
@@ -139,3 +140,66 @@ class TestSeloraConversationEntity:
             result = await entity._async_handle_message(user_input, chat_log)
 
         assert result.response.error_code is not None
+
+    async def test_filters_camera_illuminator_entities(self, hass) -> None:
+        """Camera illuminator / IR LED light entities are excluded from LLM context.
+
+        Cameras often create light.* entities for IR LEDs, illuminators, and
+        floodlights. These are not room lights and should not be sent to the
+        LLM as controllable lighting.
+        """
+        # Camera-generated light entities (should be excluded)
+        hass.states.async_set(
+            "light.camera_illuminator",
+            "on",
+            {"friendly_name": "Camera Illuminator"},
+        )
+        hass.states.async_set(
+            "light.front_door_ir_led",
+            "on",
+            {"friendly_name": "Front Door IR LED"},
+        )
+        hass.states.async_set(
+            "light.garage_floodlight",
+            "on",
+            {"friendly_name": "Garage Floodlight"},
+        )
+        hass.states.async_set(
+            "light.driveway_camera_light",
+            "on",
+            {"friendly_name": "Driveway Camera Light"},
+        )
+        # Real room light (should be included)
+        hass.states.async_set(
+            "light.living_room",
+            "on",
+            {"friendly_name": "Living Room"},
+        )
+        # Non-light entity (should be included)
+        hass.states.async_set(
+            "switch.kitchen_outlet",
+            "off",
+            {"friendly_name": "Kitchen Outlet"},
+        )
+        # Entity in a non-collector domain (should be excluded)
+        hass.states.async_set(
+            "weather.home",
+            "sunny",
+            {"friendly_name": "Home Weather"},
+        )
+
+        states = _collect_entity_states(hass)
+        entity_ids = [s["entity_id"] for s in states]
+
+        # Controllable entities are included
+        assert "light.living_room" in entity_ids
+        assert "switch.kitchen_outlet" in entity_ids
+
+        # Camera light entities are excluded
+        assert "light.camera_illuminator" not in entity_ids
+        assert "light.front_door_ir_led" not in entity_ids
+        assert "light.garage_floodlight" not in entity_ids
+        assert "light.driveway_camera_light" not in entity_ids
+
+        # Non-collector domain is excluded
+        assert "weather.home" not in entity_ids

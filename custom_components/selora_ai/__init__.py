@@ -72,6 +72,7 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
+    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
@@ -298,12 +299,22 @@ def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Get current states of all entities for the LLM.
 
     Filters out unavailable/unknown entities to avoid sending stale or
-    deleted entities as context.
+    deleted entities as context (e.g. soft-deleted automations).
+    Also restricts to COLLECTOR_DOMAINS + automation, and excludes
+    non-controllable light entities (IR LEDs, camera illuminators, etc.).
     """
     _SKIP_STATES = {"unavailable", "unknown"}
+    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
     states = []
     for state in hass.states.async_all():
         if state.state in _SKIP_STATES:
+            continue
+        domain = state.entity_id.split(".")[0]
+        if domain not in _ALLOWED_DOMAINS:
+            continue
+        if domain == "light" and any(
+            pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
+        ):
             continue
         states.append(
             {

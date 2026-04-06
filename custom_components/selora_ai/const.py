@@ -793,7 +793,9 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
     "ir_led",
     "ir_light",
     "indicator",
-    "floodlight_status",
+    "illuminator",
+    "camera_light",
+    "floodlight",
     "night_vision",
     "infrared",
 }
