@@ -1,10 +1,5 @@
 ## [0.4.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.2...v0.4.0) (2026-04-04)
 
-### Features
-
-* add deploy and deploy-no-restart just targets ([e5e43ff](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e5e43ffdc4445b2272e86625465461e3da9637a1))
-* add GitHub and GitLab icon links to panel header ([c13efd3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c13efd3f32edff7659b4e005c1751f41568b0a06))
-
 ### Bug Fixes
 
 * add dismissal dedup and service/entity validation for LLM suggestions ([56e707d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/56e707d28dbd1d49edeca0e520c4609ebc5c3af1))
