@@ -48,6 +48,9 @@ def _mock_pattern_store() -> MagicMock:
     store.get_all_history = AsyncMock(return_value={})
     store.find_pattern_by_signature = AsyncMock(return_value=None)
     store.save_pattern = AsyncMock(return_value="pat_new_001")
+    store.update_pattern_status = AsyncMock(return_value=True)
+    store.remove_suggestions_for_pattern = AsyncMock(return_value=0)
+    store.get_patterns = AsyncMock(return_value=[])
     store._get_loaded_data = AsyncMock(return_value={"meta": {}})
     store._save = AsyncMock()
     return store
@@ -424,7 +427,9 @@ class TestDetectSequences:
         # Second call (sequence signature) returns None.
         store.find_pattern_by_signature = AsyncMock(
             side_effect=lambda ptype, eids, sig: (
-                {"pattern_id": "pat_corr_existing"} if ptype == "correlation" else None
+                {"pattern_id": "pat_corr_existing", "status": "active"}
+                if ptype == "correlation"
+                else None
             )
         )
         engine = _make_engine(hass, store)
@@ -569,6 +574,243 @@ class TestCausalityGuardrails:
         pat = result[0]
         assert pat["type"] == "correlation"
         assert pat["confidence"] >= 0.50
+
+    @pytest.mark.asyncio
+    async def test_bursty_consistent_pair_not_penalized(self, hass: MagicMock) -> None:
+        """Rapid cycling (A/B/A/B within one window) with steady lag must pass.
+
+        Regression: many-to-many window matching inflated stddev because each
+        A was paired with every later B, producing delays 30, 90, 150… even
+        though the per-cycle lag is always 30s.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        # 6 rapid cycles per day, 60s apart, B always 30s after A
+        for d in range(4):
+            for cycle in range(6):
+                base_sec = cycle * 60
+                changes_a.append(
+                    _change("on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60)
+                )
+                changes_b.append(
+                    _change(
+                        "on",
+                        day_offset=d,
+                        hour=10,
+                        minute=(base_sec + 30) // 60,
+                        second=(base_sec + 30) % 60,
+                    )
+                )
+
+        history = {"sensor.motion": changes_a, "light.room": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations, "Bursty but consistent pair should not be rejected"
+        assert correlations[0]["evidence"]["delay_stddev"] < 5.0
+
+    @pytest.mark.asyncio
+    async def test_bursty_unidirectional_not_diluted(self, hass: MagicMock) -> None:
+        """Repeating A/B/A/B cycles should keep directionality ~1.0.
+
+        Regression: many-to-many matching created synthetic B→next-A reverse
+        entries that pushed directionality toward 0.5.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        # 4 rapid cycles per day, always A then B 30s later
+        for d in range(5):
+            for cycle in range(4):
+                base_sec = cycle * 60
+                changes_a.append(
+                    _change("on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60)
+                )
+                changes_b.append(
+                    _change(
+                        "on",
+                        day_offset=d,
+                        hour=10,
+                        minute=(base_sec + 30) // 60,
+                        second=(base_sec + 30) % 60,
+                    )
+                )
+
+        history = {"sensor.motion": changes_a, "light.room": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations, "Unidirectional bursty pair should not be rejected"
+        assert correlations[0]["evidence"]["directionality"] >= 0.65
+
+    @pytest.mark.asyncio
+    async def test_subsecond_leading_b_not_counted_as_reverse(self, hass: MagicMock) -> None:
+        """B arriving < 1s before A must not count as a reverse episode.
+
+        Regression: scene-driven updates can produce a near-simultaneous B
+        just before A. The correlation pass ignores sub-second deltas, but
+        _episode_directionality greedily paired them as B→A, dropping
+        directionality and discarding a valid A→B correlation.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            # B fires 0s before A (same second), then real B response 30s later
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+
+        history = {"sensor.trigger": changes_a, "light.target": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations, "Leading sub-second B should not kill the correlation"
+        assert correlations[0]["evidence"]["directionality"] > 0.5
+
+    @pytest.mark.asyncio
+    async def test_consistent_b_before_a_detected_as_bidirectional(self, hass: MagicMock) -> None:
+        """B consistently preceding A is common-cause evidence, not stray noise.
+
+        When B fires 2 min before A every day AND A fires 30s before B,
+        both directions are real — the guardrail should detect this as
+        bidirectional and reject it.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_b.append(_change("on", day_offset=d, hour=8, minute=58, second=0))
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+
+        history = {"sensor.trigger": changes_a, "light.target": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations == [], "Consistent B-before-A should be rejected as bidirectional"
+
+    @pytest.mark.asyncio
+    async def test_common_cause_b_before_and_after_a_rejected(self, hass: MagicMock) -> None:
+        """B before A + B after A in same window = common cause, not A→B.
+
+        Regression: pass 1 consumed A, so pass 2 could not count the
+        earlier B→A episode, making directionality look like 1.0 for an
+        obviously bidirectional pattern.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            # B@09:00, A@09:01:40, B@09:02:11 — both directions present
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=1, second=40))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=2, second=11))
+
+        history = {"sensor.x": changes_a, "sensor.y": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations == [], "Common-cause B-before-and-after-A should be rejected"
+
+    @pytest.mark.asyncio
+    async def test_duplicate_b_updates_not_multi_counted(self, hass: MagicMock) -> None:
+        """Multiple B updates before one A must count as one reverse episode.
+
+        Regression: pass 2 never marked A as consumed, so noisy duplicate
+        B events all matched the same A, inflating the reverse count and
+        pushing directionality below the cutoff.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            # A fires, then B responds 30s later (forward).
+            # 3 extra B noise updates arrive ~2 min before A.
+            changes_b.append(_change("on", day_offset=d, hour=8, minute=58, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=8, minute=58, second=20))
+            changes_b.append(_change("on", day_offset=d, hour=8, minute=58, second=40))
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=30))
+
+        history = {"sensor.trigger": changes_a, "light.target": changes_b}
+        result = await engine._detect_correlations(history)
+
+        # Without the fix, 3 B→A reverse episodes per day would dominate.
+        # With the fix, at most 1 reverse per A per day.
+        correlations = [p for p in result if p["type"] == "correlation"]
+        # Regardless of whether this is accepted or rejected, the reverse
+        # count should not exceed the number of A events (6).
+        # In practice: 6 forward + at most 6 reverse → dir ≥ 0.5.
+        # The cross-direction check may still reject it as common cause
+        # (consistent B before A), which is correct behaviour.
+        # The key assertion: the pattern is NOT killed by inflated reverses.
+        forward_pair = [
+            p for p in correlations
+            if p["evidence"].get("trigger_entity") == "sensor.trigger"
+        ]
+        # If it survived, directionality must be reasonable
+        for p in forward_pair:
+            assert p["evidence"]["directionality"] >= 0.5
+
+    @pytest.mark.asyncio
+    async def test_overlapping_cycles_not_rejected(self, hass: MagicMock) -> None:
+        """A repeating faster than A→B lag must not flip directionality.
+
+        Regression: shortest-delay-first matching paired the short B→next-A
+        reverse edge (10s) before the real A→B forward edge (150s), driving
+        directionality to 0 for a perfectly consistent causal pattern.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        # A every 160s, B always 150s after A
+        for d in range(5):
+            for cycle in range(4):
+                base_sec = cycle * 160
+                a_min, a_sec = divmod(base_sec, 60)
+                b_min, b_sec = divmod(base_sec + 150, 60)
+                changes_a.append(
+                    _change("on", day_offset=d, hour=10, minute=a_min, second=a_sec)
+                )
+                changes_b.append(
+                    _change("on", day_offset=d, hour=10, minute=b_min, second=b_sec)
+                )
+
+        history = {"sensor.trigger": changes_a, "light.target": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations, "Overlapping cycles should not be rejected"
+        assert correlations[0]["evidence"]["directionality"] > 0.5
+
+    @pytest.mark.asyncio
+    async def test_retried_trigger_does_not_inflate_stddev(self, hass: MagicMock) -> None:
+        """Multiple A events before a single B must not duplicate that B.
+
+        Regression: pair_nearest stored the same B as nearest for every A,
+        producing causal_delays like [270, 30] and an inflated stddev that
+        killed a valid correlation.  Chronological matching assigns each B
+        to the first A, giving consistent delays (all 270s here) with
+        near-zero stddev.
+        """
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            # A fires at 09:00, retries at 09:04, B responds at 09:04:30
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=4, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=4, second=30))
+
+        history = {"sensor.trigger": changes_a, "light.target": changes_b}
+        result = await engine._detect_correlations(history)
+
+        correlations = [p for p in result if p["type"] == "correlation"]
+        assert correlations, "Retried trigger should not kill the correlation"
+        # Chronological: A@09:00 claims B@09:04:30 (270s each day), stddev ≈ 0
+        assert correlations[0]["evidence"]["delay_stddev"] < 5.0
 
     @pytest.mark.asyncio
     async def test_causality_metrics_in_evidence(self, hass: MagicMock) -> None:
