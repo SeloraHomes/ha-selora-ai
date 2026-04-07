@@ -14,7 +14,7 @@ jobs:
   validate-hacs:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v5"
       - name: HACS validation
         uses: "hacs/action@main"
         with:
@@ -23,6 +23,6 @@ jobs:
   validate-hassfest:
     runs-on: "ubuntu-latest"
     steps:
-      - uses: "actions/checkout@v4"
+      - uses: "actions/checkout@v5"
       - name: Hassfest validation
         uses: "home-assistant/actions/hassfest@master"
