@@ -346,6 +346,9 @@ class PatternStore:
             existing["last_seen"] = now
             existing["occurrence_count"] = existing.get("occurrence_count", 0) + 1
             existing["evidence"] = pattern.get("evidence", existing["evidence"])
+            # Reactivate patterns that were previously rejected but now pass
+            if existing["status"] == "rejected":
+                existing["status"] = "active"
         else:
             data["patterns"][pattern_id] = {
                 "pattern_id": pattern_id,
@@ -501,13 +504,34 @@ class PatternStore:
         await self._save()
         return True
 
+    async def remove_suggestions_for_pattern(self, pattern_id: str) -> int:
+        """Remove pending suggestions linked to a rejected pattern.
+
+        Only targets ``pending`` suggestions — snoozed suggestions are
+        preserved so the user's snooze deadline is honored.
+        Deletes rather than dismissing so the removal doesn't pollute the
+        recently-dismissed list used by the collector for alias suppression.
+        """
+        data = await self._get_loaded_data()
+        to_remove = [
+            sid
+            for sid, s in data["suggestions"].items()
+            if s.get("pattern_id") == pattern_id and s["status"] == "pending"
+        ]
+        for sid in to_remove:
+            del data["suggestions"][sid]
+        if to_remove:
+            await self._save()
+        return len(to_remove)
+
     async def get_recently_dismissed_suggestions(
         self, window_days: int = DISMISSAL_SUPPRESSION_WINDOW_DAYS
     ) -> list[dict[str, Any]]:
         """Return suggestions dismissed within the suppression window.
 
         Used by SuggestionGenerator to avoid re-surfacing recently rejected
-        patterns and to pass dismissal context to the LLM.
+        patterns and to pass dismissal context to the LLM, and by the
+        collector to suppress LLM-generated automations by alias/hash.
         """
         data = await self._get_loaded_data()
         cutoff = (datetime.now(UTC) - timedelta(days=window_days)).isoformat()

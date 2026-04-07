@@ -59,6 +59,97 @@ _YIELD_EVERY = 500  # Yield to event loop every N iterations
 _SKIP_STATES = frozenset({"unavailable", "unknown", ""})
 
 
+def _match_causal_episodes(
+    timeline: list[tuple[datetime, str, str]],
+    eid_a: str,
+    state_a: str,
+    eid_b: str,
+    state_b: str,
+    window_secs: float,
+    *,
+    min_ts: datetime | None = None,
+) -> tuple[float, list[float]]:
+    """Two-pass forward matching returning directionality and causal delays.
+
+    Pass 1: each A claims its nearest unclaimed B (forward episodes).
+    Pass 2: remaining B events claim their nearest unclaimed A (reverse).
+
+    A-first priority correctly handles cycling (all forward), overlapping
+    cycles where A repeats faster than the lag, and stray B events.
+    Chronological processing ensures each B is attributed to the A that
+    started the episode, not the closest A by delay.
+    Runs in O(n_A * n_B) on the entity-filtered event lists, not the
+    full timeline.
+
+    Args:
+        min_ts: ignore events before this timestamp so the metrics stay
+                on the same recency window as the capped delay stats.
+
+    Returns (directionality, forward_delays) where directionality is the
+    fraction of episodes where A fired first (1.0 = purely A→B).
+    """
+    a_events: list[datetime] = []
+    b_events: list[datetime] = []
+    for ts, eid, state in timeline:
+        if min_ts is not None and ts < min_ts:
+            continue
+        if eid == eid_a and state == state_a:
+            a_events.append(ts)
+        elif eid == eid_b and state == state_b:
+            b_events.append(ts)
+    # Both already sorted since timeline is sorted.
+
+    forward = 0
+    reverse = 0
+    forward_delays: list[float] = []
+    matched_b: set[int] = set()
+
+    # Pass 1: for each A, find nearest unclaimed B response (B after A).
+    for _ai, a_ts in enumerate(a_events):
+        for bi, b_ts in enumerate(b_events):
+            if bi in matched_b:
+                continue
+            delta = (b_ts - a_ts).total_seconds()
+            if delta < 0:
+                continue
+            if delta > window_secs:
+                break
+            if delta < 1:
+                continue
+            matched_b.add(bi)
+            forward += 1
+            forward_delays.append(delta)
+            break
+
+    # Pass 2: remaining B events look for an A that follows them.
+    # A events consumed in pass 1 are NOT excluded — a consumed A was a
+    # *trigger* that can still be a *target* of an earlier unclaimed B.
+    # Only consumed B events are excluded (already counted as responses).
+    # Each A can only be claimed once in pass 2 so that duplicate B
+    # updates don't inflate the reverse count against a single A.
+    matched_a_p2: set[int] = set()
+    for bi, b_ts in enumerate(b_events):
+        if bi in matched_b:
+            continue
+        for ai, a_ts in enumerate(a_events):
+            if ai in matched_a_p2:
+                continue
+            delta = (a_ts - b_ts).total_seconds()
+            if delta < 0:
+                continue
+            if delta > window_secs:
+                break
+            if delta < 1:
+                continue
+            matched_a_p2.add(ai)
+            reverse += 1
+            break
+
+    total = forward + reverse
+    directionality = forward / total if total > 0 else 1.0
+    return directionality, forward_delays
+
+
 class PatternEngine:
     """Lightweight local pattern detection — no ML dependencies."""
 
@@ -247,6 +338,11 @@ class PatternEngine:
 
         # Count co-occurrences within the time window using sliding window
         pair_counts: dict[tuple[str, str, str, str], list[float]] = defaultdict(list)
+        # Which A-event timeline indices contributed each entry in
+        # pair_counts (parallel list, trimmed together so the recency
+        # window for causality metrics stays aligned with co-occurrence
+        # counts).
+        pair_contrib: dict[tuple[str, str, str, str], list[int]] = defaultdict(list)
 
         window_start = 0
         for i, (ts_a, eid_a, state_a) in enumerate(timeline):
@@ -267,16 +363,17 @@ class PatternEngine:
 
                 key = (eid_a, state_a, eid_b, state_b)
                 pair_counts[key].append(delta)
+                pair_contrib[key].append(i)
                 # Cap per-pair storage to avoid unbounded list growth
                 if len(pair_counts[key]) > _MAX_PAIR_SAMPLES:
                     pair_counts[key] = pair_counts[key][-_MAX_PAIR_SAMPLES:]
+                    pair_contrib[key] = pair_contrib[key][-_MAX_PAIR_SAMPLES:]
 
             # Yield to event loop periodically to avoid blocking HA
             if i % _YIELD_EVERY == 0 and i > 0:
                 await asyncio.sleep(0)
 
         patterns: list[dict[str, Any]] = []
-
         for (eid_a, state_a, eid_b, state_b), delays in pair_counts.items():
             if len(delays) < _MIN_COOCCURRENCES:
                 continue
@@ -290,8 +387,58 @@ class PatternEngine:
             if confidence < CONFIDENCE_MEDIUM:
                 continue
 
-            # -- Causality guardrail: delay variance penalty --
-            stddev = statistics.stdev(delays) if len(delays) >= 2 else 0.0
+            # -- Causality guardrails --
+            # Compute one-to-one causal delays AND directionality in a
+            # single two-pass forward match (A claims B first, then
+            # remaining B claims A).  Chronological processing preserves
+            # event order so overlapping cycles get the correct delay.
+            # Limit to the same recency window as pair_counts via
+            # pair_contrib so old bidirectional history can't suppress a
+            # now-unidirectional pattern.
+            contrib = pair_contrib.get((eid_a, state_a, eid_b, state_b), [])
+            min_ts = None
+            if contrib:
+                min_ts = timeline[contrib[0]][0] - timedelta(seconds=_CORRELATION_WINDOW_SECS)
+            directionality, causal_delays = _match_causal_episodes(
+                timeline,
+                eid_a,
+                state_a,
+                eid_b,
+                state_b,
+                _CORRELATION_WINDOW_SECS,
+                min_ts=min_ts,
+            )
+
+            # Cross-direction check: if the reverse pair (B→A) also has
+            # enough co-occurrences, run the episode matcher on it.  When
+            # the reverse direction itself is bidirectional (rev_dir ≤ 0.5)
+            # both directions are common-cause, not causal.  Cycling is
+            # safe because its reverse direction has high forward
+            # directionality (~0.75+), well above 0.5.
+            reverse_key = (eid_b, state_b, eid_a, state_a)
+            if directionality > 0.5 and len(pair_counts.get(reverse_key, [])) >= _MIN_COOCCURRENCES:
+                # Derive the reverse cutoff from the reverse pair's own
+                # retained samples so stale B→A history doesn't leak in.
+                rev_contrib = pair_contrib.get(reverse_key, [])
+                rev_min_ts = None
+                if rev_contrib:
+                    rev_min_ts = timeline[rev_contrib[0]][0] - timedelta(
+                        seconds=_CORRELATION_WINDOW_SECS
+                    )
+                rev_dir, _ = _match_causal_episodes(
+                    timeline,
+                    eid_b,
+                    state_b,
+                    eid_a,
+                    state_a,
+                    _CORRELATION_WINDOW_SECS,
+                    min_ts=rev_min_ts,
+                )
+                if rev_dir <= 0.5:
+                    directionality = min(directionality, 0.5)
+
+            # Delay variance penalty
+            stddev = statistics.stdev(causal_delays) if len(causal_delays) >= 2 else 0.0
             if stddev > CAUSALITY_MAX_DELAY_STDDEV:
                 confidence *= max(
                     0.0,
@@ -299,16 +446,7 @@ class PatternEngine:
                     - (stddev - CAUSALITY_MAX_DELAY_STDDEV) / (CAUSALITY_MAX_DELAY_STDDEV * 1.5),
                 )
 
-            # -- Causality guardrail: directionality check --
-            reverse_key = (eid_b, state_b, eid_a, state_a)
-            reverse_delays = pair_counts.get(reverse_key, [])
-            forward_count = len(delays)
-            reverse_count = len(reverse_delays)
-            directionality = (
-                forward_count / (forward_count + reverse_count)
-                if (forward_count + reverse_count) > 0
-                else 1.0
-            )
+            # Directionality penalty
             if directionality <= 0.5:
                 confidence = 0.0
             elif directionality < CAUSALITY_MIN_DIRECTIONALITY:
@@ -318,9 +456,20 @@ class PatternEngine:
 
             # Re-check confidence after causality penalties
             if confidence < CONFIDENCE_MEDIUM:
+                sig = f"{eid_a}:{state_a}->{eid_b}:{state_b}"
+                existing = await self._store.find_pattern_by_signature(
+                    PATTERN_TYPE_CORRELATION, [eid_a, eid_b], sig
+                )
+                if existing and existing.get("status") == "active":
+                    await self._store.update_pattern_status(existing["pattern_id"], "rejected")
+                    await self._store.remove_suggestions_for_pattern(existing["pattern_id"])
                 continue
 
-            avg_delay = sum(delays) / len(delays)
+            avg_delay = (
+                sum(causal_delays) / len(causal_delays)
+                if causal_delays
+                else sum(delays) / len(delays)
+            )
             name_a = eid_a.split(".")[-1].replace("_", " ").title()
             name_b = eid_b.split(".")[-1].replace("_", " ").title()
 
@@ -353,21 +502,45 @@ class PatternEngine:
                 "confidence": confidence,
             }
 
+            # save_pattern reactivates rejected patterns, so include
+            # both new and reactivated patterns in the return list so the
+            # suggestion pipeline can create fresh suggestions for them.
+            was_rejected = existing and existing.get("status") == "rejected"
             pid = await self._store.save_pattern(pattern)
             pattern["pattern_id"] = pid
-            if not existing:
+            if not existing or was_rejected:
                 patterns.append(pattern)
+
+            # When a correlation is reactivated, retire any fallback
+            # sequence that was allowed while it was rejected.
+            if was_rejected:
+                sig = f"{eid_a}:{state_a}->{eid_b}:{state_b}"
+                seq_patterns = await self._store.get_patterns(
+                    status="active", pattern_type=PATTERN_TYPE_SEQUENCE
+                )
+                for sp in seq_patterns:
+                    sp_sig = sp.get("evidence", {}).get("_signature", "")
+                    # Sequence sig format: eid_a:prev->state_a=>eid_b:state_b
+                    # Match on trigger state AND response, not just entity pair.
+                    if (
+                        set(sp["entity_ids"]) == {eid_a, eid_b}
+                        and f"->{state_a}=>{eid_b}:{state_b}" in sp_sig
+                    ):
+                        await self._store.update_pattern_status(sp["pattern_id"], "rejected")
+                        await self._store.remove_suggestions_for_pattern(sp["pattern_id"])
 
         return patterns
 
     async def _detect_sequences(
-        self, history: dict[str, list[dict[str, Any]]]
+        self,
+        history: dict[str, list[dict[str, Any]]],
     ) -> list[dict[str, Any]]:
         """Detect ordered A→B event sequences.
 
         Similar to correlation detection but specifically tracks directional
         cause-effect relationships where A consistently precedes B.
-        Only produces patterns not already captured by correlation detection.
+        Only produces patterns not already captured by active
+        correlation detection.
         """
         # Build sorted timeline — cap per entity
         timeline: list[tuple[datetime, str, str, str]] = []
@@ -423,13 +596,18 @@ class PatternEngine:
             if confidence < CONFIDENCE_MEDIUM:
                 continue
 
-            # Check if a correlation pattern already covers this pair
+            # Skip if a correlation exists for this pair unless it was
+            # rejected by causality guardrails.  Active, snoozed, and
+            # dismissed correlations all block sequences so that
+            # user hide/snooze controls aren't bypassed via a separate
+            # pattern type.  Only "rejected" (guardrails evaluated and
+            # failed) lets the more precise sequence detector try.
             corr_sig = f"{eid_a}:{state_a}->{eid_b}:{state_b}"
             existing_corr = await self._store.find_pattern_by_signature(
                 PATTERN_TYPE_CORRELATION, [eid_a, eid_b], corr_sig
             )
-            if existing_corr:
-                continue  # Already captured as a correlation
+            if existing_corr and existing_corr.get("status") != "rejected":
+                continue
 
             name_a = eid_a.split(".")[-1].replace("_", " ").title()
             name_b = eid_b.split(".")[-1].replace("_", " ").title()
@@ -460,9 +638,10 @@ class PatternEngine:
                 "confidence": confidence,
             }
 
+            was_rejected = existing and existing.get("status") == "rejected"
             pid = await self._store.save_pattern(pattern)
             pattern["pattern_id"] = pid
-            if not existing:
+            if not existing or was_rejected:
                 patterns.append(pattern)
 
         return patterns
