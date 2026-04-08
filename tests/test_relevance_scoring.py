@@ -5,7 +5,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from custom_components.selora_ai.const import MIN_RELEVANCE_SCORE
+from custom_components.selora_ai.const import (
+    CATEGORY_LINK_WEIGHTS,
+    DEFAULT_CATEGORY_LINK_WEIGHT,
+    MIN_RELEVANCE_SCORE,
+)
 
 
 class TestRelevanceScoring:
@@ -175,3 +179,145 @@ class TestExtractEntityIds:
         # _extract_entity_ids on the trigger key should yield empty set
         result = DataCollector._extract_entity_ids(config.get("trigger") if "trigger" in config else config.get("triggers"))
         assert result == set()
+
+
+class TestCategoryLinkWeighting:
+    """Test category link weights in suggestion scoring (#79)."""
+
+    def _make_collector(self):
+        from custom_components.selora_ai.collector import DataCollector
+
+        collector = DataCollector.__new__(DataCollector)
+        collector._hass = MagicMock()
+        collector._hass.states.async_all.return_value = []
+        return collector
+
+    def test_strong_link_scores_higher_than_weak(self):
+        """motion → light (strong) scores higher than vacuum → lock (weak)."""
+        collector = self._make_collector()
+        strong = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "binary_sensor.motion"},
+                "action": {"service": "light.turn_on", "entity_id": "light.room"},
+            }
+        }
+        weak = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "vacuum.roomba"},
+                "action": {"service": "lock.lock", "entity_id": "lock.front"},
+            }
+        }
+        snapshot = {"recorder_history": []}
+        assert collector._score_suggestion(strong, snapshot, set()) > collector._score_suggestion(
+            weak, snapshot, set()
+        )
+
+    def test_presence_climate_scores_well(self):
+        """person → climate (strong link) should score above threshold."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "person.john"},
+                "action": {"service": "climate.set_temperature", "entity_id": "climate.hvac"},
+            }
+        }
+        history = [{"entity_id": "person.john"} for _ in range(30)]
+        score = collector._score_suggestion(suggestion, {"recorder_history": history}, set())
+        assert score >= MIN_RELEVANCE_SCORE
+
+    def test_same_domain_neutral_link(self):
+        """Two lights (same domain) get neutral category_link (0.5)."""
+        collector = self._make_collector()
+        same = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "light.a"},
+                "action": {"service": "light.turn_on", "entity_id": "light.b"},
+            }
+        }
+        cross = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "binary_sensor.motion"},
+                "action": {"service": "light.turn_on", "entity_id": "light.b"},
+            }
+        }
+        snapshot = {"recorder_history": []}
+        # Cross-category (strong link) should beat same-domain
+        assert collector._score_suggestion(cross, snapshot, set()) > collector._score_suggestion(
+            same, snapshot, set()
+        )
+
+    def test_unknown_pairing_gets_default(self):
+        """Unlisted domain pair falls back to DEFAULT_CATEGORY_LINK_WEIGHT."""
+        pair = frozenset({"input_boolean", "input_select"})
+        assert pair not in CATEGORY_LINK_WEIGHTS
+        assert DEFAULT_CATEGORY_LINK_WEIGHT == 0.3
+
+    def test_all_weights_use_frozenset(self):
+        """All keys in CATEGORY_LINK_WEIGHTS are 2-element frozensets."""
+        for key in CATEGORY_LINK_WEIGHTS:
+            assert isinstance(key, frozenset)
+            assert len(key) == 2
+
+    def test_weights_sum_to_one(self):
+        """Relevance weights still sum to 1.0 after adding category_link."""
+        from custom_components.selora_ai.const import (
+            RELEVANCE_WEIGHT_ACTIVITY,
+            RELEVANCE_WEIGHT_CATEGORY,
+            RELEVANCE_WEIGHT_CATEGORY_LINK,
+            RELEVANCE_WEIGHT_COMPLEXITY,
+            RELEVANCE_WEIGHT_COVERAGE,
+            RELEVANCE_WEIGHT_CROSS_DEVICE,
+        )
+
+        total = (
+            RELEVANCE_WEIGHT_CROSS_DEVICE
+            + RELEVANCE_WEIGHT_ACTIVITY
+            + RELEVANCE_WEIGHT_COVERAGE
+            + RELEVANCE_WEIGHT_CATEGORY
+            + RELEVANCE_WEIGHT_COMPLEXITY
+            + RELEVANCE_WEIGHT_CATEGORY_LINK
+        )
+        assert abs(total - 1.0) < 0.001
+
+
+class TestCategorySection:
+    """Test the LLM prompt category section builder (#79)."""
+
+    def test_groups_entities_by_category(self):
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        entities = [
+            {"entity_id": "light.kitchen", "state": "on"},
+            {"entity_id": "light.bedroom", "state": "off"},
+            {"entity_id": "binary_sensor.motion", "state": "off"},
+            {"entity_id": "climate.hvac", "state": "heat"},
+        ]
+        section = LLMClient._build_category_section(entities)
+        assert "Lighting: 2 entities" in section
+        assert "Sensors (binary): 1 entities" in section
+        assert "Climate/HVAC: 1 entities" in section
+
+    def test_cross_category_hints_shown(self):
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        entities = [
+            {"entity_id": "light.kitchen", "state": "on"},
+            {"entity_id": "binary_sensor.motion", "state": "off"},
+        ]
+        section = LLMClient._build_category_section(entities)
+        assert "motion-activated lights" in section
+
+    def test_no_irrelevant_hints(self):
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        entities = [
+            {"entity_id": "light.a", "state": "on"},
+            {"entity_id": "light.b", "state": "off"},
+        ]
+        section = LLMClient._build_category_section(entities)
+        assert "motion-activated" not in section
+
+    def test_empty_returns_empty(self):
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        assert LLMClient._build_category_section([]) == ""

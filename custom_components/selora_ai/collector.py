@@ -30,12 +30,14 @@ import yaml
 from .automation_utils import assess_automation_risk, validate_automation_payload
 from .const import (
     AUTOMATION_ID_PREFIX,
+    CATEGORY_LINK_WEIGHTS,
     COLLECTOR_DOMAINS,
     CONF_COLLECTOR_ENABLED,
     CONF_COLLECTOR_END_TIME,
     CONF_COLLECTOR_INTERVAL,
     CONF_COLLECTOR_MODE,
     CONF_COLLECTOR_START_TIME,
+    DEFAULT_CATEGORY_LINK_WEIGHT,
     DEFAULT_COLLECTOR_ENABLED,
     DEFAULT_COLLECTOR_INTERVAL,
     DEFAULT_COLLECTOR_MODE,
@@ -50,6 +52,7 @@ from .const import (
     MODE_SCHEDULED,
     RELEVANCE_WEIGHT_ACTIVITY,
     RELEVANCE_WEIGHT_CATEGORY,
+    RELEVANCE_WEIGHT_CATEGORY_LINK,
     RELEVANCE_WEIGHT_COMPLEXITY,
     RELEVANCE_WEIGHT_COVERAGE,
     RELEVANCE_WEIGHT_CROSS_DEVICE,
@@ -983,6 +986,23 @@ class DataCollector:
         complexity_signals = sum([has_conditions, multi_action, has_mode])
         scores["complexity"] = min(complexity_signals / 2, 1.0)
 
+        # 6. Category link quality (#79): score based on how well
+        # trigger/action domain pairs work together in automations.
+        if trigger_domains and action_domains:
+            pair_scores: list[float] = []
+            for t_domain in trigger_domains:
+                for a_domain in action_domains:
+                    if t_domain == a_domain:
+                        pair_scores.append(0.5)  # Same domain, neutral
+                    else:
+                        pair_key = frozenset({t_domain, a_domain})
+                        pair_scores.append(
+                            CATEGORY_LINK_WEIGHTS.get(pair_key, DEFAULT_CATEGORY_LINK_WEIGHT)
+                        )
+            scores["category_link"] = sum(pair_scores) / len(pair_scores)
+        else:
+            scores["category_link"] = DEFAULT_CATEGORY_LINK_WEIGHT
+
         # Weighted average
         weighted = (
             scores.get("cross_device", 0) * RELEVANCE_WEIGHT_CROSS_DEVICE
@@ -990,6 +1010,7 @@ class DataCollector:
             + scores.get("coverage", 0) * RELEVANCE_WEIGHT_COVERAGE
             + scores.get("category", 0) * RELEVANCE_WEIGHT_CATEGORY
             + scores.get("complexity", 0) * RELEVANCE_WEIGHT_COMPLEXITY
+            + scores.get("category_link", 0) * RELEVANCE_WEIGHT_CATEGORY_LINK
         )
         return round(weighted, 3)
 

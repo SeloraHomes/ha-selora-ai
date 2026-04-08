@@ -805,9 +805,54 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
 MIN_RELEVANCE_SCORE = 0.3  # Suggestions below this are filtered out
 RELEVANCE_WEIGHT_CROSS_DEVICE = 0.30  # Connects multiple devices/domains
 RELEVANCE_WEIGHT_ACTIVITY = 0.25  # Trigger entity has recent state changes
-RELEVANCE_WEIGHT_COVERAGE = 0.25  # Covers entities not in existing automations
+RELEVANCE_WEIGHT_COVERAGE = 0.20  # Covers entities not in existing automations
 RELEVANCE_WEIGHT_CATEGORY = 0.10  # Safety/security/energy bonus
-RELEVANCE_WEIGHT_COMPLEXITY = 0.10  # Has conditions, multiple actions, etc.
+RELEVANCE_WEIGHT_COMPLEXITY = 0.05  # Has conditions, multiple actions, etc.
+RELEVANCE_WEIGHT_CATEGORY_LINK = 0.10  # Cross-category pairing quality (#79)
+
+# ── Category Link Weights (#79) ─────────────────────────────────────
+# Defines how well entity domain pairs work together in automations.
+# 1.0 = strong natural link, 0.0 = nonsensical pairing.
+# Pairs not listed default to DEFAULT_CATEGORY_LINK_WEIGHT.
+DEFAULT_CATEGORY_LINK_WEIGHT = 0.3
+
+# Keyed by frozenset of (trigger_domain, action_domain) → weight.
+# Use frozenset so order doesn't matter (A→B == B→A).
+CATEGORY_LINK_WEIGHTS: dict[frozenset[str], float] = {
+    # ── Strong links — natural automation pairings ───────────────
+    frozenset({"binary_sensor", "light"}): 1.0,  # motion → lights
+    frozenset({"binary_sensor", "lock"}): 1.0,  # door sensor → lock
+    frozenset({"binary_sensor", "cover"}): 0.9,  # sensor → blinds
+    frozenset({"binary_sensor", "fan"}): 0.8,  # sensor → fan
+    frozenset({"binary_sensor", "switch"}): 0.8,  # sensor → switch
+    frozenset({"sensor", "climate"}): 1.0,  # temp sensor → HVAC
+    frozenset({"sensor", "fan"}): 0.8,  # humidity → fan
+    frozenset({"sensor", "light"}): 0.7,  # lux → lights
+    frozenset({"sensor", "cover"}): 0.7,  # lux → blinds
+    frozenset({"person", "light"}): 0.9,  # presence → lights
+    frozenset({"person", "lock"}): 0.9,  # presence → lock
+    frozenset({"person", "climate"}): 0.9,  # presence → HVAC
+    frozenset({"person", "cover"}): 0.7,  # presence → blinds
+    frozenset({"device_tracker", "light"}): 0.9,  # tracker → lights
+    frozenset({"device_tracker", "lock"}): 0.9,  # tracker → lock
+    frozenset({"device_tracker", "climate"}): 0.9,  # tracker → HVAC
+    # ── Moderate links ───────────────────────────────────────────
+    frozenset({"light", "switch"}): 0.6,  # light ↔ switch
+    frozenset({"climate", "humidifier"}): 0.8,  # HVAC ↔ humidifier
+    frozenset({"climate", "fan"}): 0.7,  # HVAC ↔ fan
+    frozenset({"media_player", "light"}): 0.6,  # media → movie mode
+    frozenset({"lock", "light"}): 0.7,  # lock → arrival lights
+    frozenset({"cover", "light"}): 0.6,  # blinds ↔ lights
+    frozenset({"vacuum", "person"}): 0.7,  # vacuum when away
+    frozenset({"vacuum", "device_tracker"}): 0.7,
+    # ── Weak / nonsensical links — penalized ─────────────────────
+    frozenset({"vacuum", "lock"}): 0.2,
+    frozenset({"media_player", "climate"}): 0.2,
+    frozenset({"media_player", "lock"}): 0.1,
+    frozenset({"vacuum", "climate"}): 0.1,
+    frozenset({"water_heater", "light"}): 0.2,
+    frozenset({"water_heater", "media_player"}): 0.1,
+}
 
 # ── LLM Suggestion Limits ───────────────────────────────────────────
 DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
