@@ -81,6 +81,21 @@ frontend:
     - npm ci
     - npx vitest run
 
+release-script:
+  stage: test
+  image: node:lts-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - scripts/github-release.mjs
+        - scripts/github-release.test.mjs
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - scripts/github-release.mjs
+        - scripts/github-release.test.mjs
+  script:
+    - node --test scripts/github-release.test.mjs
+
 # =============================================================================
 # STAGE: release (main branch only)
 # =============================================================================

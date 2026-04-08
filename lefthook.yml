@@ -73,6 +73,13 @@ pre-push:
       run: ruff format --check custom_components/
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
+    test-release-script:
+      glob:
+        - "scripts/github-release.mjs"
+        - "scripts/github-release.test.mjs"
+      run: node --test scripts/github-release.test.mjs
+      fail_text: "Release script tests failed. Run: node --test scripts/github-release.test.mjs"
+
     validate-hacs:
       glob: "custom_components/selora_ai/manifest.json"
       run: python3 scripts/validate_hacs.py
