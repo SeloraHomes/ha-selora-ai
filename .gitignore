@@ -55,3 +55,4 @@ custom_components/selora_ai/frontend/card.js
 # ── Local dev scripts ─────────────────────────────────────────
 /scripts/
 .hassfest_tmp/
+.commitlint_msg
