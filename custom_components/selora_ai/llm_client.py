@@ -1332,6 +1332,10 @@ class LLMClient:
             "You are Selora AI, a Home Assistant automation expert. "
             "Given a summary of a user's smart home, you suggest useful automations.\n\n"
             "PRIORITIES:\n"
+            "- Prefer CROSS-CATEGORY automations that link different device types "
+            "(e.g. motion sensor → light, door sensor → lock, temperature → climate). "
+            "These provide the most value. Avoid nonsensical pairings like "
+            "vacuum → lock or media_player → climate.\n"
             "- If the user has physical devices (lights, switches, climate, locks, etc.), "
             "prioritize automations that control those devices.\n"
             "- Use sun events (sunrise, sunset) as triggers for time-based automations.\n"
@@ -1422,11 +1426,20 @@ class LLMClient:
             for eid, count in sorted(history_counts.items(), key=lambda x: -x[1])
         ]
 
+        # Build device category section for cross-category hints
+        category_section = self._build_category_section(entities)
+
         prompt = (
             "Here is a summary of my Home Assistant setup. "
             "Suggest useful automations I should create.\n\n"
             f"DEVICES ({len(devices)}):\n" + "\n".join(device_lines or ["  None"]) + "\n\n"
             f"ENTITIES ({len(entities)}):\n" + "\n".join(entity_lines or ["  None"]) + "\n\n"
+        )
+
+        if category_section:
+            prompt += f"{category_section}\n\n"
+
+        prompt += (
             f"{auto_section}\n\n"
             f"RECENT ACTIVITY (last {self._lookback_days} days):\n"
             + "\n".join(history_lines or ["  No history"])
@@ -1438,6 +1451,70 @@ class LLMClient:
             f"Suggest up to {self._max_suggestions} practical Home Assistant automations as a JSON array."
         )
         return prompt
+
+    @staticmethod
+    def _build_category_section(entities: list[dict[str, Any]]) -> str:
+        """Build a DEVICE CATEGORIES section mapping entity domains to categories.
+
+        Helps the LLM understand device relationships and suggest
+        cross-category automations (e.g. binary_sensor → light).
+        """
+        domain_categories: dict[str, str] = {
+            "light": "Lighting",
+            "switch": "Switches/Plugs",
+            "binary_sensor": "Sensors (binary)",
+            "sensor": "Sensors (numeric)",
+            "climate": "Climate/HVAC",
+            "cover": "Covers/Blinds",
+            "lock": "Security/Locks",
+            "fan": "Fans",
+            "vacuum": "Vacuums",
+            "media_player": "Media",
+            "device_tracker": "Presence",
+            "person": "Presence",
+            "water_heater": "Water/Energy",
+            "humidifier": "Climate/HVAC",
+            "input_boolean": "Virtual Inputs",
+            "input_select": "Virtual Inputs",
+        }
+
+        cross_category_hints = [
+            ("Sensors (binary)", "Lighting", "motion-activated lights"),
+            ("Sensors (binary)", "Security/Locks", "auto-lock on door close"),
+            ("Presence", "Lighting", "lights on/off when arriving/leaving"),
+            ("Presence", "Climate/HVAC", "thermostat by occupancy"),
+            ("Sensors (numeric)", "Climate/HVAC", "temperature-based climate"),
+            ("Sensors (binary)", "Media", "pause media on doorbell"),
+        ]
+
+        categories: dict[str, list[str]] = {}
+        for e in entities:
+            eid = e.get("entity_id", "")
+            domain = eid.split(".")[0] if "." in eid else ""
+            cat = domain_categories.get(domain)
+            if cat:
+                categories.setdefault(cat, []).append(eid)
+
+        if not categories:
+            return ""
+
+        lines = ["DEVICE CATEGORIES (prefer cross-category automations):"]
+        for cat, eids in sorted(categories.items()):
+            lines.append(f"  {cat}: {len(eids)} entities")
+
+        present_cats = set(categories.keys())
+        relevant = [
+            hint
+            for cat_a, cat_b, hint in cross_category_hints
+            if cat_a in present_cats and cat_b in present_cats
+        ]
+
+        if relevant:
+            lines.append("  Good cross-category patterns:")
+            for hint in relevant[:5]:
+                lines.append(f"    - {hint}")
+
+        return "\n".join(lines)
 
     def _parse_suggestions(self, text: str) -> list[dict[str, Any]]:
         """Parse the LLM response into automation configs."""
