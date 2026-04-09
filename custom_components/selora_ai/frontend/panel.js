@@ -6354,7 +6354,14 @@ function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${"0.4.0"}
+          <a
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.4.0"}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="color:inherit;text-decoration:none;"
+          >
+            Selora AI v${"0.4.0"}
+          </a>
         </div>
       </div>
     </div>
