@@ -333,7 +333,14 @@ export function renderSettings(host) {
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
-          Selora AI v${__SELORA_VERSION__}
+          <a
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${__SELORA_VERSION__}"
+            target="_blank"
+            rel="noopener noreferrer"
+            style="color:inherit;text-decoration:none;"
+          >
+            Selora AI v${__SELORA_VERSION__}
+          </a>
         </div>
       </div>
     </div>
