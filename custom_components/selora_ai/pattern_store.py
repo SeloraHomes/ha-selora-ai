@@ -572,3 +572,35 @@ class PatternStore:
         """Return all content hashes of previously deleted automations."""
         data = await self._get_loaded_data()
         return set(data["deleted_hashes"].keys())
+
+    async def get_feedback_summary(self, *, limit: int = 8) -> dict[str, list[dict[str, str]]]:
+        """Return lightweight summaries of user accept/decline decisions (#80).
+
+        Only extracts the fields the LLM prompt needs, capped at *limit*
+        per category (most-recent first) to bound both memory and token cost.
+        """
+        _FIELDS_ACCEPTED = ("description", "created_at")
+        _FIELDS_DECLINED = ("description", "created_at", "dismissed_at", "dismissal_reason")
+
+        data = await self._get_loaded_data()
+        accepted: list[dict[str, str]] = []
+        declined: list[dict[str, str]] = []
+
+        for s in data["suggestions"].values():
+            status = s.get("status")
+            if status == "accepted":
+                accepted.append({k: s[k] for k in _FIELDS_ACCEPTED if k in s})
+            elif status == "dismissed":
+                declined.append({k: s[k] for k in _FIELDS_DECLINED if k in s})
+
+        # Sort most-recent first, then trim
+        accepted.sort(key=lambda s: s.get("created_at", ""), reverse=True)
+        declined.sort(
+            key=lambda s: s.get("dismissed_at", s.get("created_at", "")),
+            reverse=True,
+        )
+
+        return {
+            "accepted": accepted[:limit],
+            "declined": declined[:limit],
+        }
