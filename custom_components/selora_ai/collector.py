@@ -18,6 +18,7 @@ import logging
 from math import ceil
 from pathlib import Path
 import re
+import time
 from typing import Any
 import uuid
 
@@ -77,6 +78,8 @@ class DataCollector:
         self._lookback_days = lookback_days
         self._settings = settings or {}
         self._unsub_timer = None
+        self._feedback_cache: str | None = None
+        self._feedback_cache_time: float = 0.0
 
     def _get_pattern_store(self):
         """Find the PatternStore from any active config entry."""
@@ -240,6 +243,11 @@ class DataCollector:
         # them through.
         dynamic_cap = await self._calculate_dynamic_cap()
         self._llm._max_suggestions = dynamic_cap
+
+        # Inject user feedback context into snapshot for LLM prompt (#80)
+        feedback_summary = await self._build_feedback_summary()
+        if feedback_summary:
+            snapshot["_feedback_summary"] = feedback_summary
 
         # Step 2: Feed snapshot to the configured LLM (with timeout)
         try:
@@ -1013,6 +1021,80 @@ class DataCollector:
             + scores.get("category_link", 0) * RELEVANCE_WEIGHT_CATEGORY_LINK
         )
         return round(weighted, 3)
+
+    _FEEDBACK_CACHE_TTL = 300  # seconds — feedback rarely changes mid-cycle
+
+    async def _build_feedback_summary(self) -> str:
+        """Build an LLM-readable summary of user decisions (#80).
+
+        Retrieves accepted and declined suggestions from the PatternStore
+        and formats them so the LLM can learn user preferences.  The result
+        is cached for ``_FEEDBACK_CACHE_TTL`` seconds to avoid re-reading
+        the store on every analysis cycle.
+        """
+        now = time.monotonic()
+        if (
+            self._feedback_cache is not None
+            and now - self._feedback_cache_time < self._FEEDBACK_CACHE_TTL
+        ):
+            return self._feedback_cache
+
+        result = await self._fetch_feedback_summary()
+        self._feedback_cache = result
+        self._feedback_cache_time = now
+        return result
+
+    async def _fetch_feedback_summary(self) -> str:
+        """Fetch and format feedback from the PatternStore (uncached)."""
+        pattern_store = self._get_pattern_store()
+        if not pattern_store:
+            return ""
+
+        try:
+            feedback = await pattern_store.get_feedback_summary()
+        except Exception:
+            _LOGGER.debug("Could not load feedback summary from pattern store")
+            return ""
+
+        accepted = feedback.get("accepted", [])
+        declined = feedback.get("declined", [])
+
+        if not accepted and not declined:
+            return ""
+
+        lines = ["USER FEEDBACK (learn from past decisions):"]
+
+        if accepted:
+            lines.append(
+                f"  Accepted automations ({len(accepted)} total) — suggest MORE like these:"
+            )
+            seen: set[str] = set()
+            for s in accepted:
+                desc = self._truncate(s.get("description", ""), 80)
+                if desc and desc not in seen:
+                    seen.add(desc)
+                    lines.append(f"    + {desc}")
+
+        if declined:
+            lines.append(
+                f"  Declined automations ({len(declined)} total) — suggest FEWER like these:"
+            )
+            seen_d: set[str] = set()
+            for s in declined:
+                desc = self._truncate(s.get("description", ""), 80)
+                reason = s.get("dismissal_reason") or "no reason given"
+                if desc and desc not in seen_d:
+                    seen_d.add(desc)
+                    lines.append(f"    - {desc} (reason: {reason})")
+
+        return "\n".join(lines)
+
+    @staticmethod
+    def _truncate(text: str, limit: int) -> str:
+        """Truncate *text* to *limit* chars, adding '…' if shortened."""
+        if len(text) <= limit:
+            return text
+        return text[: limit - 1] + "…"
 
     async def _collect_recorder_history(self) -> list[dict[str, Any]]:
         """Pull historical state changes from HA Recorder (SQLite).

@@ -1345,7 +1345,9 @@ class LLMClient:
             "always available. NEVER use 'notify.notify', 'tts.*', or 'media_player.*' for TTS "
             "as those require specific hardware.\n"
             "- Always suggest SOMETHING useful, even if the home has limited devices. Sun events, "
-            "time-based reminders, and state monitoring are always useful.\n\n"
+            "time-based reminders, and state monitoring are always useful.\n"
+            "- If a USER FEEDBACK section is provided, learn from it: suggest more automations "
+            "similar to accepted ones and avoid patterns similar to declined ones.\n\n"
             "RULES:\n"
             f"1. Suggest up to {self._max_suggestions} practical automations. Quality over quantity.\n"
             "2. ONLY use entity_ids that appear in the provided data.\n"
@@ -1444,6 +1446,14 @@ class LLMClient:
             f"RECENT ACTIVITY (last {self._lookback_days} days):\n"
             + "\n".join(history_lines or ["  No history"])
             + "\n\n"
+        )
+
+        # Include user feedback from accepted/declined suggestions (#80)
+        feedback_summary = snapshot.get("_feedback_summary", "")
+        if feedback_summary:
+            prompt += f"{feedback_summary}\n\n"
+
+        prompt += (
             "CRITICAL: Only use entity_ids that are listed in ENTITIES above. "
             "For any notification actions, use 'notify.persistent_notification' (always available). "
             "NEVER use 'notify.notify', 'tts.*', or 'media_player.*' for notifications.\n"

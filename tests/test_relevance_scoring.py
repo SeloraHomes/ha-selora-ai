@@ -321,3 +321,161 @@ class TestCategorySection:
         from custom_components.selora_ai.llm_client import LLMClient
 
         assert LLMClient._build_category_section([]) == ""
+
+
+class TestFeedbackSummary:
+    """Test the accept/decline feedback loop (#80)."""
+
+    @staticmethod
+    def _make_collector():
+        from custom_components.selora_ai.collector import DataCollector
+
+        collector = DataCollector.__new__(DataCollector)
+        collector._hass = MagicMock()
+        collector._feedback_cache = None
+        collector._feedback_cache_time = 0.0
+        return collector
+
+    @pytest.mark.asyncio
+    async def test_feedback_with_accepted(self):
+        """Accepted suggestions appear as positive feedback."""
+        from unittest.mock import AsyncMock
+
+        collector = self._make_collector()
+        mock_store = MagicMock()
+        mock_store.get_feedback_summary = AsyncMock(
+            return_value={
+                "accepted": [
+                    {"description": "Turn on lights when motion detected"},
+                    {"description": "Lock door at night"},
+                ],
+                "declined": [],
+            }
+        )
+        collector._get_pattern_store = MagicMock(return_value=mock_store)
+        result = await collector._build_feedback_summary()
+        assert "USER FEEDBACK" in result
+        assert "Accepted automations (2 total)" in result
+        assert "Turn on lights when motion detected" in result
+        assert "suggest MORE like these" in result
+
+    @pytest.mark.asyncio
+    async def test_feedback_with_declined(self):
+        """Declined suggestions appear as negative feedback with reasons."""
+        from unittest.mock import AsyncMock
+
+        collector = self._make_collector()
+        mock_store = MagicMock()
+        mock_store.get_feedback_summary = AsyncMock(
+            return_value={
+                "accepted": [],
+                "declined": [
+                    {
+                        "description": "Play music when garage opens",
+                        "dismissal_reason": "not useful",
+                    },
+                ],
+            }
+        )
+        collector._get_pattern_store = MagicMock(return_value=mock_store)
+        result = await collector._build_feedback_summary()
+        assert "USER FEEDBACK" in result
+        assert "Declined automations (1 total)" in result
+        assert "suggest FEWER like these" in result
+        assert "not useful" in result
+
+    @pytest.mark.asyncio
+    async def test_feedback_empty_returns_empty(self):
+        """No feedback returns empty string."""
+        from unittest.mock import AsyncMock
+
+        collector = self._make_collector()
+        mock_store = MagicMock()
+        mock_store.get_feedback_summary = AsyncMock(
+            return_value={"accepted": [], "declined": []}
+        )
+        collector._get_pattern_store = MagicMock(return_value=mock_store)
+        result = await collector._build_feedback_summary()
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_feedback_no_store_returns_empty(self):
+        """No pattern store returns empty string."""
+        collector = self._make_collector()
+        collector._get_pattern_store = MagicMock(return_value=None)
+        result = await collector._build_feedback_summary()
+        assert result == ""
+
+    @pytest.mark.asyncio
+    async def test_feedback_deduplicates_descriptions(self):
+        """Duplicate descriptions are not repeated."""
+        from unittest.mock import AsyncMock
+
+        collector = self._make_collector()
+        mock_store = MagicMock()
+        mock_store.get_feedback_summary = AsyncMock(
+            return_value={
+                "accepted": [
+                    {"description": "Turn on lights"},
+                    {"description": "Turn on lights"},
+                    {"description": "Lock door"},
+                ],
+                "declined": [],
+            }
+        )
+        collector._get_pattern_store = MagicMock(return_value=mock_store)
+        result = await collector._build_feedback_summary()
+        assert result.count("Turn on lights") == 1
+        assert "Lock door" in result
+
+
+class TestFeedbackInPrompt:
+    """Test that feedback is injected into the LLM analysis prompt (#80)."""
+
+    @staticmethod
+    def _make_llm_client():
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        client = LLMClient.__new__(LLMClient)
+        client._max_suggestions = 3
+        client._lookback_days = 7
+        return client
+
+    @staticmethod
+    def _make_snapshot(**overrides):
+        base = {
+            "devices": [],
+            "entity_states": [{"entity_id": "light.test", "state": "on"}],
+            "automations": [],
+            "recorder_history": [],
+        }
+        base.update(overrides)
+        return base
+
+    def test_feedback_block_included_in_prompt(self):
+        """When _feedback_summary is in the snapshot, it appears in the prompt."""
+        client = self._make_llm_client()
+        snapshot = self._make_snapshot(
+            _feedback_summary="USER FEEDBACK (learn from past decisions):\n  Accepted automations (1 total)"
+        )
+        prompt = client._build_analysis_prompt(snapshot)
+        assert "USER FEEDBACK (learn from past decisions)" in prompt
+        assert "Accepted automations (1 total)" in prompt
+
+    def test_no_feedback_block_when_absent(self):
+        """When _feedback_summary is absent, the prompt has no USER FEEDBACK section."""
+        client = self._make_llm_client()
+        snapshot = self._make_snapshot()
+        prompt = client._build_analysis_prompt(snapshot)
+        assert "USER FEEDBACK" not in prompt
+
+    def test_feedback_block_before_critical_reminder(self):
+        """Feedback block appears before the CRITICAL entity validation reminder."""
+        client = self._make_llm_client()
+        snapshot = self._make_snapshot(
+            _feedback_summary="USER FEEDBACK (learn from past decisions):\n  test"
+        )
+        prompt = client._build_analysis_prompt(snapshot)
+        fb_pos = prompt.index("USER FEEDBACK")
+        critical_pos = prompt.index("CRITICAL: Only use entity_ids")
+        assert fb_pos < critical_pos
