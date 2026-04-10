@@ -961,3 +961,15 @@ CAUSALITY_DIRECTIONALITY_PENALTY = 0.8
 DISMISSAL_SUPPRESSION_WINDOW_DAYS = 7
 
 SIGNAL_PROACTIVE_SUGGESTIONS = f"{DOMAIN}_proactive_suggestions"
+
+# ── Selora Connect (OAuth 2.0) ────────────────────────────────────────
+CONF_SELORA_CONNECT_ENABLED = "selora_connect_enabled"
+CONF_SELORA_CONNECT_URL = "selora_connect_url"
+CONF_SELORA_INSTALLATION_ID = "selora_installation_id"
+CONF_SELORA_JWT_KEY = "selora_jwt_key"  # base64-encoded per-installation derived key
+SELORA_JWT_ALGORITHM = "HS256"
+DEFAULT_SELORA_CONNECT_URL = "https://connect.selorahomes.com"
+SELORA_JWT_ISSUER = DEFAULT_SELORA_CONNECT_URL  # default; overridden by entry data
+SELORA_JWT_MAX_SIZE = 8192  # bytes — reject tokens larger than this before decode
+SELORA_JWT_LEEWAY_SECONDS = 30  # clock skew tolerance for exp/nbf
+SELORA_ADMIN_ROLES = frozenset({"owner", "member"})

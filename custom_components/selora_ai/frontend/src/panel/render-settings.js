@@ -135,6 +135,57 @@ export function renderSettings(host) {
                 `}
         </div>
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>Remote Access &amp; MCP Authentication</h3>
+          </div>
+          <div class="service-row">
+            <label
+              >Selora Connect
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Link your Selora Connect account to enable OAuth
+                  authentication for MCP clients instead of HA long-lived
+                  tokens.</span
+                >
+              </span>
+            </label>
+            <ha-switch
+              .checked=${host._config.selora_connect_enabled}
+              @change=${(e) => {
+                if (e.target.checked) {
+                  host._startOAuthLink();
+                } else {
+                  host._unlinkConnect();
+                }
+              }}
+              ?disabled=${host._linkingConnect}
+            ></ha-switch>
+          </div>
+          ${host._connectError
+            ? html`<div
+                style="color:var(--error-color,#d32f2f);font-size:13px;margin-top:4px;padding:0 0 8px;"
+              >
+                ${host._connectError}
+              </div>`
+            : ""}
+          ${host._config.developer_mode && !host._config.selora_connect_enabled
+            ? html`
+                <div class="service-details" style="margin-top:8px;">
+                  <ha-textfield
+                    label="Connect Server URL"
+                    .value=${host._config.selora_connect_url ||
+                    "https://connect.selorahomes.com"}
+                    @input=${(e) =>
+                      host._updateConfig("selora_connect_url", e.target.value)}
+                    style="width:100%;"
+                  ></ha-textfield>
+                </div>
+              `
+            : ""}
+        </div>
+
         <details class="section-card settings-section advanced-section">
           <summary class="advanced-toggle">
             Advanced Settings
@@ -333,8 +384,18 @@ export function renderSettings(host) {
             </label>
             <ha-switch
               .checked=${host._config.developer_mode}
-              @change=${(e) =>
-                host._updateConfig("developer_mode", e.target.checked)}
+              @change=${async (e) => {
+                const val = e.target.checked;
+                host._updateConfig("developer_mode", val);
+                try {
+                  await host.hass.callWS({
+                    type: "selora_ai/update_config",
+                    config: { developer_mode: val },
+                  });
+                } catch (err) {
+                  host._showToast("Failed to save developer mode.", "error");
+                }
+              }}
             ></ha-switch>
           </div>
         </details>

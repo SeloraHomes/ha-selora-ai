@@ -80,17 +80,18 @@ validate-hassfest:
 # ── Deploy ──────────────────────────────────────────────────────────────────
 
 ha_host := env_var_or_default("HA_HOST", "root@homeassistant.local")
+ha_port := env_var_or_default("HA_PORT", "22")
 ha_path := "~/config/custom_components/"
 
 # Deploy to dev HA instance and restart
 deploy: build (_sync-to-ha)
-    -ssh {{ ha_host }} -t 'ha core restart'
+    -ssh -p {{ ha_port }} {{ ha_host }} -t 'ha core restart'
 
 # Deploy to dev HA instance without restart
 deploy-no-restart: build (_sync-to-ha)
 
 _sync-to-ha:
-    rsync -az --delete --exclude node_modules custom_components/selora_ai/ {{ ha_host }}:{{ ha_path }}selora_ai/
+    rsync -az -e 'ssh -p {{ ha_port }}' --delete --exclude node_modules custom_components/selora_ai/ {{ ha_host }}:{{ ha_path }}selora_ai/
 
 # ── CI (mirrors pre-push checks) ────────────────────────────────────────────
 

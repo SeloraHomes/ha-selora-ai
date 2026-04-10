@@ -113,7 +113,7 @@ custom_components/selora_ai/
 # Create venv and install deps
 uv venv .venv --python 3.13
 source .venv/bin/activate
-uv pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents "mcp==1.26.0"
+uv pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents
 
 # Run all tests
 pytest tests/ -v

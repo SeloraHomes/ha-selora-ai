@@ -68,7 +68,7 @@ unit:
   <<: *pip-cache
   before_script:
     - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
-    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents hassil "mcp==1.26.0" --quiet
+    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents hassil PyJWT --quiet
   script:
     - pytest tests/ -v
 
