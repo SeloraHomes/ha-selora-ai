@@ -95,22 +95,25 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
 
 
-# ── Tool policy prompt (loaded from file) ────────────────────────────
+# ── Tool policy prompt (loaded eagerly to avoid blocking I/O on the event loop)
 def _load_tool_policy() -> str:
-    """Return the tool usage policy (loaded at module import time)."""
+    """Return the tool usage policy text."""
     return _TOOL_POLICY_TEXT
 
 
-# Load at import time — before the event loop starts — to avoid blocking I/O warnings.
-from pathlib import Path as _Path  # noqa: E402
+def _read_tool_policy() -> str:
+    """Read tool_policy.md from disk (called at import time)."""
+    from pathlib import Path
 
-_policy_path = _Path(__file__).parent / "prompts" / "tool_policy.md"
-try:
-    _TOOL_POLICY_TEXT: str = _policy_path.read_text(encoding="utf-8")
-except FileNotFoundError:
-    _LOGGER.warning("Tool policy file not found at %s", _policy_path)
-    _TOOL_POLICY_TEXT = ""
-del _policy_path
+    policy_path = Path(__file__).parent / "prompts" / "tool_policy.md"
+    try:
+        return policy_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        _LOGGER.warning("Tool policy file not found at %s", policy_path)
+        return ""
+
+
+_TOOL_POLICY_TEXT: str = _read_tool_policy()
 
 
 def _sanitize_untrusted_text(value: Any) -> str:

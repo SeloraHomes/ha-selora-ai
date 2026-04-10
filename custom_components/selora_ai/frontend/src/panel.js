@@ -34,6 +34,80 @@ import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
 
 // ---------------------------------------------------------------------------
+// Pure JS SHA-256 (RFC 6234) — fallback when crypto.subtle is unavailable
+// (HA panels served over HTTP lack SubtleCrypto / secure context).
+// ---------------------------------------------------------------------------
+const _SHA256_K = new Uint32Array([
+  0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1,
+  0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3,
+  0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786,
+  0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da,
+  0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147,
+  0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13,
+  0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b,
+  0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+  0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a,
+  0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208,
+  0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2,
+]);
+
+function _sha256(msgBytes) {
+  const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+  const len = msgBytes.length;
+  const bitLen = len * 8;
+  const blocks = Math.ceil((len + 9) / 64);
+  const padded = new Uint8Array(blocks * 64);
+  padded.set(msgBytes);
+  padded[len] = 0x80;
+  const dv = new DataView(padded.buffer);
+  dv.setUint32(padded.length - 4, bitLen, false);
+  let [h0, h1, h2, h3, h4, h5, h6, h7] = [
+    0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c,
+    0x1f83d9ab, 0x5be0cd19,
+  ];
+  const w = new Uint32Array(64);
+  for (let i = 0; i < padded.length; i += 64) {
+    for (let t = 0; t < 16; t++) w[t] = dv.getUint32(i + t * 4, false);
+    for (let t = 16; t < 64; t++) {
+      const s0 = rotr(w[t - 15], 7) ^ rotr(w[t - 15], 18) ^ (w[t - 15] >>> 3);
+      const s1 = rotr(w[t - 2], 17) ^ rotr(w[t - 2], 19) ^ (w[t - 2] >>> 10);
+      w[t] = (w[t - 16] + s0 + w[t - 7] + s1) | 0;
+    }
+    let [a, b, c, d, e, f, g, h] = [h0, h1, h2, h3, h4, h5, h6, h7];
+    for (let t = 0; t < 64; t++) {
+      const S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25);
+      const ch = (e & f) ^ (~e & g);
+      const t1 = (h + S1 + ch + _SHA256_K[t] + w[t]) | 0;
+      const S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22);
+      const maj = (a & b) ^ (a & c) ^ (b & c);
+      const t2 = (S0 + maj) | 0;
+      h = g;
+      g = f;
+      f = e;
+      e = (d + t1) | 0;
+      d = c;
+      c = b;
+      b = a;
+      a = (t1 + t2) | 0;
+    }
+    h0 = (h0 + a) | 0;
+    h1 = (h1 + b) | 0;
+    h2 = (h2 + c) | 0;
+    h3 = (h3 + d) | 0;
+    h4 = (h4 + e) | 0;
+    h5 = (h5 + f) | 0;
+    h6 = (h6 + g) | 0;
+    h7 = (h7 + h) | 0;
+  }
+  const out = new Uint8Array(32);
+  const ov = new DataView(out.buffer);
+  [h0, h1, h2, h3, h4, h5, h6, h7].forEach((v, i) =>
+    ov.setUint32(i * 4, v, false),
+  );
+  return out;
+}
+
+// ---------------------------------------------------------------------------
 // Selora AI Architect Panel
 // ---------------------------------------------------------------------------
 // Layout: two-pane when wide, single-pane when narrow.
@@ -339,6 +413,10 @@ class SeloraAIArchitectPanel extends LitElement {
       window.removeEventListener("keydown", this._keyDownHandler);
       this._keyDownHandler = null;
     }
+    if (this._oauthPollTimer) {
+      clearInterval(this._oauthPollTimer);
+      this._oauthPollTimer = null;
+    }
   }
 
   // -------------------------------------------------------------------------
@@ -410,6 +488,174 @@ class SeloraAIArchitectPanel extends LitElement {
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };
     this.requestUpdate();
+  }
+
+  // ── OAuth PKCE helpers ──────────────────────────────────────────────
+
+  _generateRandomString(length) {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const arr = new Uint8Array(length);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (b) => chars[b % chars.length]).join("");
+  }
+
+  async _generateCodeChallenge(verifier) {
+    const data = new TextEncoder().encode(verifier);
+    let digest;
+    if (typeof crypto !== "undefined" && crypto.subtle) {
+      digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+    } else {
+      // HTTP context — crypto.subtle unavailable, use pure JS SHA-256
+      digest = _sha256(data);
+    }
+    return btoa(String.fromCharCode(...digest))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  }
+
+  // ── OAuth Link flow ───────────────────────────────────────────────
+
+  async _startOAuthLink() {
+    if (this._linkingConnect) return;
+    this._linkingConnect = true;
+    this._connectError = "";
+    this.requestUpdate();
+
+    // Open popup synchronously in the user-gesture call stack to avoid
+    // browser popup blockers (the async PKCE hash would break the chain).
+    const popup = window.open(
+      "about:blank",
+      "selora_connect_oauth",
+      "width=500,height=700,menubar=no,toolbar=no",
+    );
+    if (!popup) {
+      this._connectError = "Popup blocked. Please allow popups for this site.";
+      this._linkingConnect = false;
+      this.requestUpdate();
+      return;
+    }
+
+    try {
+      const connectUrl = (
+        this._config.selora_connect_url || "https://connect.selorahomes.com"
+      ).replace(/\/+$/, "");
+
+      // PKCE: generate code_verifier and S256 challenge
+      const codeVerifier = this._generateRandomString(64);
+      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+      const state = this._generateRandomString(32);
+
+      // redirect_uri = client_id per MCP spec
+      // Use the current panel URL to handle reverse proxy path prefixes
+      const redirectUri = `${location.origin}${location.pathname}`;
+
+      // Build authorize URL
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: redirectUri,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        state,
+        scope: "mcp:provision",
+      });
+
+      // Navigate the already-open popup to the authorize URL
+      popup.location.href = `${connectUrl}/oauth/authorize?${params}`;
+
+      // Store PKCE state for callback
+      this._oauthState = { codeVerifier, state, connectUrl, redirectUri };
+
+      // Poll for popup redirect back to our origin
+      let polling = false;
+      this._oauthPollTimer = setInterval(async () => {
+        if (polling) return; // previous tick still in-flight
+        polling = true;
+        try {
+          if (popup.closed) {
+            clearInterval(this._oauthPollTimer);
+            this._oauthPollTimer = null;
+            if (this._linkingConnect) {
+              this._linkingConnect = false;
+              this._connectError = "Authorization cancelled.";
+              this.requestUpdate();
+            }
+            return;
+          }
+          // Check if popup navigated back to our redirect_uri
+          const popupUrl = popup.location.href;
+          if (!popupUrl.startsWith(this._oauthState.redirectUri)) return;
+
+          // Parse the auth code from the URL
+          clearInterval(this._oauthPollTimer);
+          this._oauthPollTimer = null;
+          popup.close();
+
+          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
+          const code = callbackParams.get("code");
+          const returnedState = callbackParams.get("state");
+          const error = callbackParams.get("error");
+
+          if (error) {
+            this._connectError = `Authorization failed: ${error}`;
+            this._linkingConnect = false;
+            this.requestUpdate();
+            return;
+          }
+
+          if (!code || returnedState !== this._oauthState.state) {
+            this._connectError = "Invalid authorization response.";
+            this._linkingConnect = false;
+            this.requestUpdate();
+            return;
+          }
+
+          // Exchange code for credentials via backend
+          await this.hass.callWS({
+            type: "selora_ai/exchange_connect_code",
+            code,
+            code_verifier: this._oauthState.codeVerifier,
+            redirect_uri: this._oauthState.redirectUri,
+            connect_url: this._oauthState.connectUrl,
+          });
+
+          this._oauthState = null;
+          await this._loadConfig();
+          this._showToast("Selora Connect linked successfully.", "success");
+        } catch (err) {
+          // Cross-origin access to popup.location throws — that's expected
+          // while the popup is still on Connect's domain. Ignore silently.
+          if (err.name !== "SecurityError" && err.name !== "DOMException") {
+            clearInterval(this._oauthPollTimer);
+            this._oauthPollTimer = null;
+            popup.close();
+            this._connectError = err.message || "Failed to link.";
+          }
+        } finally {
+          polling = false;
+          if (!this._oauthPollTimer) {
+            this._linkingConnect = false;
+            this.requestUpdate();
+          }
+        }
+      }, 500);
+    } catch (err) {
+      this._connectError = err.message || "Failed to start OAuth flow.";
+      this._linkingConnect = false;
+      this.requestUpdate();
+    }
+  }
+
+  async _unlinkConnect() {
+    try {
+      await this.hass.callWS({ type: "selora_ai/unlink_connect" });
+      await this._loadConfig();
+      this._showToast("Selora Connect unlinked.", "success");
+    } catch (err) {
+      this._showToast("Failed to unlink: " + err.message, "error");
+    }
   }
 
   _highlightAndScrollToNew() {

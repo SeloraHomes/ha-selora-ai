@@ -155,6 +155,13 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── Helpers ────────────────────────────────────────────────────────
 
+    def _is_developer_mode(self) -> bool:
+        """Check if developer mode is enabled on the existing LLM entry."""
+        for entry in self._async_current_entries():
+            if entry.data.get("developer_mode", False):
+                return True
+        return False
+
     def _has_llm_entry(self) -> bool:
         """Check if an LLM config entry already exists."""
         for entry in self._async_current_entries():
@@ -254,8 +261,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     **user_input,
                     "_title": info["title"],
                 }
-                # Chain to device discovery
-                return await self.async_step_discover()
+                # Chain to Selora Connect linking (optional), then discovery
+                return await self.async_step_selora_connect()
 
         return self.async_show_form(
             step_id="anthropic",
@@ -290,7 +297,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     **user_input,
                     "_title": info["title"],
                 }
-                return await self.async_step_discover()
+                return await self.async_step_selora_connect()
 
         return self.async_show_form(
             step_id="openai",
@@ -326,8 +333,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     **user_input,
                     "_title": info["title"],
                 }
-                # Chain to device discovery
-                return await self.async_step_discover()
+                # Chain to Selora Connect linking (optional), then discovery
+                return await self.async_step_selora_connect()
 
         return self.async_show_form(
             step_id="ollama",
@@ -345,6 +352,17 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
             errors=errors,
         )
+
+    # ── Selora Connect ──────────────────────────────────────────────────
+    # Connect linking is handled post-setup via the Selora AI panel's
+    # OAuth flow (Settings → Remote Access & MCP Authentication).
+    # This step just chains through to device discovery.
+
+    async def async_step_selora_connect(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Skip to device discovery — Connect linking is done via the panel."""
+        return await self.async_step_discover()
 
     # ── Device Discovery & Onboarding ─────────────────────────────────
 

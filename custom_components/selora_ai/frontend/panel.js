@@ -6525,6 +6525,59 @@ function renderSettings(host) {
           }
         </div>
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>Remote Access &amp; MCP Authentication</h3>
+          </div>
+          <div class="service-row">
+            <label
+              >Selora Connect
+              <span class="setting-help">
+                <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                <span class="setting-tooltip"
+                  >Link your Selora Connect account to enable OAuth
+                  authentication for MCP clients instead of HA long-lived
+                  tokens.</span
+                >
+              </span>
+            </label>
+            <ha-switch
+              .checked=${host._config.selora_connect_enabled}
+              @change=${(e5) => {
+                if (e5.target.checked) {
+                  host._startOAuthLink();
+                } else {
+                  host._unlinkConnect();
+                }
+              }}
+              ?disabled=${host._linkingConnect}
+            ></ha-switch>
+          </div>
+          ${
+            host._connectError
+              ? x`<div
+                style="color:var(--error-color,#d32f2f);font-size:13px;margin-top:4px;padding:0 0 8px;"
+              >
+                ${host._connectError}
+              </div>`
+              : ""
+          }
+          ${
+            host._config.developer_mode && !host._config.selora_connect_enabled
+              ? x`
+                <div class="service-details" style="margin-top:8px;">
+                  <ha-textfield
+                    label="Connect Server URL"
+                    .value=${host._config.selora_connect_url || "https://connect.selorahomes.com"}
+                    @input=${(e5) => host._updateConfig("selora_connect_url", e5.target.value)}
+                    style="width:100%;"
+                  ></ha-textfield>
+                </div>
+              `
+              : ""
+          }
+        </div>
+
         <details class="section-card settings-section advanced-section">
           <summary class="advanced-toggle">
             Advanced Settings
@@ -6726,7 +6779,18 @@ function renderSettings(host) {
             </label>
             <ha-switch
               .checked=${host._config.developer_mode}
-              @change=${(e5) => host._updateConfig("developer_mode", e5.target.checked)}
+              @change=${async (e5) => {
+                const val = e5.target.checked;
+                host._updateConfig("developer_mode", val);
+                try {
+                  await host.hass.callWS({
+                    type: "selora_ai/update_config",
+                    config: { developer_mode: val },
+                  });
+                } catch (err) {
+                  host._showToast("Failed to save developer mode.", "error");
+                }
+              }}
             ></ha-switch>
           </div>
         </details>
@@ -8278,6 +8342,76 @@ async function _loadAutomationToChat(automationId) {
 }
 
 // src/panel.js
+var _SHA256_K = new Uint32Array([
+  1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993,
+  2453635748, 2870763221, 3624381080, 310598401, 607225278, 1426881987,
+  1925078388, 2162078206, 2614888103, 3248222580, 3835390401, 4022224774,
+  264347078, 604807628, 770255983, 1249150122, 1555081692, 1996064986,
+  2554220882, 2821834349, 2952996808, 3210313671, 3336571891, 3584528711,
+  113926993, 338241895, 666307205, 773529912, 1294757372, 1396182291,
+  1695183700, 1986661051, 2177026350, 2456956037, 2730485921, 2820302411,
+  3259730800, 3345764771, 3516065817, 3600352804, 4094571909, 275423344,
+  430227734, 506948616, 659060556, 883997877, 958139571, 1322822218, 1537002063,
+  1747873779, 1955562222, 2024104815, 2227730452, 2361852424, 2428436474,
+  2756734187, 3204031479, 3329325298,
+]);
+function _sha256(msgBytes) {
+  const rotr = (x2, n5) => (x2 >>> n5) | (x2 << (32 - n5));
+  const len = msgBytes.length;
+  const bitLen = len * 8;
+  const blocks = Math.ceil((len + 9) / 64);
+  const padded = new Uint8Array(blocks * 64);
+  padded.set(msgBytes);
+  padded[len] = 128;
+  const dv = new DataView(padded.buffer);
+  dv.setUint32(padded.length - 4, bitLen, false);
+  let [h0, h1, h22, h3, h4, h5, h6, h7] = [
+    1779033703, 3144134277, 1013904242, 2773480762, 1359893119, 2600822924,
+    528734635, 1541459225,
+  ];
+  const w2 = new Uint32Array(64);
+  for (let i5 = 0; i5 < padded.length; i5 += 64) {
+    for (let t3 = 0; t3 < 16; t3++) w2[t3] = dv.getUint32(i5 + t3 * 4, false);
+    for (let t3 = 16; t3 < 64; t3++) {
+      const s0 =
+        rotr(w2[t3 - 15], 7) ^ rotr(w2[t3 - 15], 18) ^ (w2[t3 - 15] >>> 3);
+      const s1 =
+        rotr(w2[t3 - 2], 17) ^ rotr(w2[t3 - 2], 19) ^ (w2[t3 - 2] >>> 10);
+      w2[t3] = (w2[t3 - 16] + s0 + w2[t3 - 7] + s1) | 0;
+    }
+    let [a4, b2, c3, d3, e5, f2, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    for (let t3 = 0; t3 < 64; t3++) {
+      const S1 = rotr(e5, 6) ^ rotr(e5, 11) ^ rotr(e5, 25);
+      const ch = (e5 & f2) ^ (~e5 & g2);
+      const t1 = (h8 + S1 + ch + _SHA256_K[t3] + w2[t3]) | 0;
+      const S0 = rotr(a4, 2) ^ rotr(a4, 13) ^ rotr(a4, 22);
+      const maj = (a4 & b2) ^ (a4 & c3) ^ (b2 & c3);
+      const t22 = (S0 + maj) | 0;
+      h8 = g2;
+      g2 = f2;
+      f2 = e5;
+      e5 = (d3 + t1) | 0;
+      d3 = c3;
+      c3 = b2;
+      b2 = a4;
+      a4 = (t1 + t22) | 0;
+    }
+    h0 = (h0 + a4) | 0;
+    h1 = (h1 + b2) | 0;
+    h22 = (h22 + c3) | 0;
+    h3 = (h3 + d3) | 0;
+    h4 = (h4 + e5) | 0;
+    h5 = (h5 + f2) | 0;
+    h6 = (h6 + g2) | 0;
+    h7 = (h7 + h8) | 0;
+  }
+  const out = new Uint8Array(32);
+  const ov = new DataView(out.buffer);
+  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i5) =>
+    ov.setUint32(i5 * 4, v2, false),
+  );
+  return out;
+}
 var SeloraAIArchitectPanel = class extends s4 {
   static get properties() {
     return {
@@ -8531,6 +8665,10 @@ var SeloraAIArchitectPanel = class extends s4 {
       window.removeEventListener("keydown", this._keyDownHandler);
       this._keyDownHandler = null;
     }
+    if (this._oauthPollTimer) {
+      clearInterval(this._oauthPollTimer);
+      this._oauthPollTimer = null;
+    }
   }
   // -------------------------------------------------------------------------
   // Config
@@ -8595,6 +8733,139 @@ var SeloraAIArchitectPanel = class extends s4 {
   _updateConfig(key, value) {
     this._config = { ...this._config, [key]: value };
     this.requestUpdate();
+  }
+  // ── OAuth PKCE helpers ──────────────────────────────────────────────
+  _generateRandomString(length) {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
+    const arr = new Uint8Array(length);
+    crypto.getRandomValues(arr);
+    return Array.from(arr, (b2) => chars[b2 % chars.length]).join("");
+  }
+  async _generateCodeChallenge(verifier) {
+    const data = new TextEncoder().encode(verifier);
+    let digest;
+    if (typeof crypto !== "undefined" && crypto.subtle) {
+      digest = new Uint8Array(await crypto.subtle.digest("SHA-256", data));
+    } else {
+      digest = _sha256(data);
+    }
+    return btoa(String.fromCharCode(...digest))
+      .replace(/\+/g, "-")
+      .replace(/\//g, "_")
+      .replace(/=+$/, "");
+  }
+  // ── OAuth Link flow ───────────────────────────────────────────────
+  async _startOAuthLink() {
+    if (this._linkingConnect) return;
+    this._linkingConnect = true;
+    this._connectError = "";
+    this.requestUpdate();
+    const popup = window.open(
+      "about:blank",
+      "selora_connect_oauth",
+      "width=500,height=700,menubar=no,toolbar=no",
+    );
+    if (!popup) {
+      this._connectError = "Popup blocked. Please allow popups for this site.";
+      this._linkingConnect = false;
+      this.requestUpdate();
+      return;
+    }
+    try {
+      const connectUrl = (
+        this._config.selora_connect_url || "https://connect.selorahomes.com"
+      ).replace(/\/+$/, "");
+      const codeVerifier = this._generateRandomString(64);
+      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+      const state = this._generateRandomString(32);
+      const redirectUri = `${location.origin}${location.pathname}`;
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: redirectUri,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        state,
+        scope: "mcp:provision",
+      });
+      popup.location.href = `${connectUrl}/oauth/authorize?${params}`;
+      this._oauthState = { codeVerifier, state, connectUrl, redirectUri };
+      let polling = false;
+      this._oauthPollTimer = setInterval(async () => {
+        if (polling) return;
+        polling = true;
+        try {
+          if (popup.closed) {
+            clearInterval(this._oauthPollTimer);
+            this._oauthPollTimer = null;
+            if (this._linkingConnect) {
+              this._linkingConnect = false;
+              this._connectError = "Authorization cancelled.";
+              this.requestUpdate();
+            }
+            return;
+          }
+          const popupUrl = popup.location.href;
+          if (!popupUrl.startsWith(this._oauthState.redirectUri)) return;
+          clearInterval(this._oauthPollTimer);
+          this._oauthPollTimer = null;
+          popup.close();
+          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
+          const code = callbackParams.get("code");
+          const returnedState = callbackParams.get("state");
+          const error = callbackParams.get("error");
+          if (error) {
+            this._connectError = `Authorization failed: ${error}`;
+            this._linkingConnect = false;
+            this.requestUpdate();
+            return;
+          }
+          if (!code || returnedState !== this._oauthState.state) {
+            this._connectError = "Invalid authorization response.";
+            this._linkingConnect = false;
+            this.requestUpdate();
+            return;
+          }
+          await this.hass.callWS({
+            type: "selora_ai/exchange_connect_code",
+            code,
+            code_verifier: this._oauthState.codeVerifier,
+            redirect_uri: this._oauthState.redirectUri,
+            connect_url: this._oauthState.connectUrl,
+          });
+          this._oauthState = null;
+          await this._loadConfig();
+          this._showToast("Selora Connect linked successfully.", "success");
+        } catch (err) {
+          if (err.name !== "SecurityError" && err.name !== "DOMException") {
+            clearInterval(this._oauthPollTimer);
+            this._oauthPollTimer = null;
+            popup.close();
+            this._connectError = err.message || "Failed to link.";
+          }
+        } finally {
+          polling = false;
+          if (!this._oauthPollTimer) {
+            this._linkingConnect = false;
+            this.requestUpdate();
+          }
+        }
+      }, 500);
+    } catch (err) {
+      this._connectError = err.message || "Failed to start OAuth flow.";
+      this._linkingConnect = false;
+      this.requestUpdate();
+    }
+  }
+  async _unlinkConnect() {
+    try {
+      await this.hass.callWS({ type: "selora_ai/unlink_connect" });
+      await this._loadConfig();
+      this._showToast("Selora Connect unlinked.", "success");
+    } catch (err) {
+      this._showToast("Failed to unlink: " + err.message, "error");
+    }
   }
   _highlightAndScrollToNew() {
     const newest = this._automations[0];

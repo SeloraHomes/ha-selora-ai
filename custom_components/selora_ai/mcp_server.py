@@ -2,7 +2,7 @@
 
 Endpoint: POST /api/selora_ai/mcp
 Protocol: Model Context Protocol 1.26.0, Streamable HTTP (stateless)
-Auth:     Bearer token via HomeAssistantView.requires_auth = True
+Auth:     HA Bearer token or Selora Connect JWT (dual-auth)
 
 Phase 1 tools
 ─────────────
@@ -18,7 +18,8 @@ Phase 1 tools
 
 Security
 ────────
-  - All requests require HA Bearer token (HomeAssistantView.requires_auth)
+  - Dual auth: HA Bearer token (middleware) OR Selora Connect JWT (HS256)
+  - HA auth is checked first (set by HA middleware); Selora JWT is fallback
   - Write tools enforce admin-level authorization
   - All user-controlled string fields pass through _sanitize_untrusted_text()
     before inclusion in responses (prompt-injection boundary)
@@ -32,7 +33,8 @@ See docs/selora-mcp-server.md and docs/adr/ADR-001-selora-mcp-server.md.
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Sequence
+import contextlib
+from dataclasses import dataclass
 from datetime import UTC, datetime
 import hashlib
 from http import HTTPStatus
@@ -41,28 +43,85 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import aiohttp
 from aiohttp import web
-import anyio
 from homeassistant.components.http import KEY_HASS, HomeAssistantView
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import Unauthorized
-from mcp import types
-from mcp.server import Server
-from mcp.shared.message import SessionMessage
-from mcp.types import JSONRPCMessage
 
 from .const import (
     AUTOMATION_ID_PREFIX,
     COLLECTOR_DOMAINS,
     DOMAIN,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
+    SELORA_JWT_ISSUER,
 )
+from .selora_auth import AuthenticationError, authenticate_request
 
 _LOGGER = logging.getLogger(__name__)
 
+
+# ── Vendored MCP types (no pydantic dependency) ──────────────────────────────
+
+
+@dataclass
+class MCPTool:
+    """MCP tool definition (replaces mcp.MCPTool)."""
+
+    name: str
+    description: str
+    inputSchema: dict[str, Any]
+
+
+@dataclass
+class MCPTextContent:
+    """MCP text content block (replaces mcp.MCPTextContent)."""
+
+    type: str = "text"
+    text: str = ""
+
+
 _MCP_URL = "/api/selora_ai/mcp"
+_PROTECTED_RESOURCE_URL = "/.well-known/oauth-protected-resource/api/selora_ai/mcp"
+_OAUTH_AS_METADATA_URL = "/.well-known/oauth-authorization-server/api/selora_ai/mcp"
+_OAUTH_TOKEN_PROXY_URL = "/api/selora_ai/oauth/token"
 _TIMEOUT_SECS = 60
 _CONTENT_TYPE_JSON = "application/json"
+
+# ── CORS for browser-based MCP clients ───────────────────────────────────────
+# MCP Streamable HTTP requires CORS so browser-based clients (mcp-inspector,
+# web-hosted agents) can reach the endpoint.  HA's built-in aiohttp_cors only
+# allows a fixed set of headers and we cannot inject middleware after startup,
+# so each view has an options() handler and on_response_prepare adds CORS
+# headers to all responses.
+
+_MCP_CORS_HEADERS = "Origin, Accept, Content-Type, Authorization, Mcp-Protocol-Version"
+_MCP_CORS_METHODS = "GET, POST, OPTIONS"
+_MCP_CORS_MAX_AGE = "86400"
+
+
+def _cors_headers(origin: str) -> dict[str, str]:
+    """Build CORS response headers for the given origin."""
+    return {
+        "Access-Control-Allow-Origin": origin,
+        "Access-Control-Allow-Methods": _MCP_CORS_METHODS,
+        "Access-Control-Allow-Headers": _MCP_CORS_HEADERS,
+        "Access-Control-Max-Age": _MCP_CORS_MAX_AGE,
+    }
+
+
+async def _cors_preflight(request: web.Request) -> web.Response:
+    """Return a 204 CORS preflight response."""
+    origin = request.headers.get("Origin", "*")
+    return web.Response(status=204, headers=_cors_headers(origin))
+
+
+def _add_cors(request: web.Request, response: web.Response) -> web.Response:
+    """Add CORS headers to a response and return it."""
+    origin = request.headers.get("Origin", "*")
+    response.headers.update(_cors_headers(origin))
+    return response
+
 
 # ── Tool name constants ────────────────────────────────────────────────────────
 
@@ -87,14 +146,220 @@ TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 
 
 def register_mcp_server(hass: HomeAssistant) -> None:
-    """Register the Selora AI MCP HTTP view with HA's HTTP server.
+    """Register the Selora AI MCP HTTP views with HA's HTTP server.
 
-    Stores and the LLM client are retrieved lazily from hass.data at
-    request time so this can be called during async_setup_entry before
-    all stores are fully initialised.
+    Each view is registered independently so a reload/upgrade that already
+    has one view registered doesn't prevent the other from being added.
+
+    CORS: each view has an options() handler for preflight, and
+    on_response_prepare adds CORS headers to all responses on MCP paths.
     """
-    hass.http.register_view(SeloraAIMCPView())
+    app: web.Application = hass.http.app
+
+    # Views under /api/ — registered via HA's standard mechanism.
+    for view in (
+        SeloraAIMCPView(),
+        OAuthTokenProxyView(),
+    ):
+        try:
+            hass.http.register_view(view)
+        except ValueError:
+            _LOGGER.debug("View %s already registered, skipping", view.name)
+
+    # RFC 9728 protected resource metadata at the domain root — HA doesn't
+    # allow HomeAssistantView outside /api/, so register as raw aiohttp route.
+    # Use a closure to capture `hass` since raw routes don't have KEY_HASS on
+    # request.app (HA only sets that for its own view system).
+    async def _protected_resource_get(request: web.Request) -> web.Response:
+        base_url = _get_external_base_url(hass, request)
+        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
+        return _add_cors(
+            request,
+            web.json_response(
+                {
+                    "resource": f"{base_url}{_MCP_URL}",
+                    "authorization_servers": [connect_url],
+                    "bearer_methods_supported": ["header"],
+                    "scopes_supported": [],
+                }
+            ),
+        )
+
+    for method, handler in [("GET", _protected_resource_get), ("OPTIONS", _cors_preflight)]:
+        with contextlib.suppress(Exception):
+            app.router.add_route(method, _PROTECTED_RESOURCE_URL, handler)
+
     _LOGGER.info("Selora AI MCP server registered at %s", _MCP_URL)
+
+
+# ── Helpers ───────────────────────────────────────────────────────────────────
+
+
+def _get_external_base_url(hass: HomeAssistant, request: web.Request) -> str:
+    """Return the external base URL, respecting reverse-proxy path prefixes.
+
+    Prefers the request's X-Forwarded headers (set by reverse proxies like
+    Cloudflare/ngrok) so that URLs work for the actual caller. Falls back
+    to HA's configured external URL, then internal URL.
+    """
+    # If behind a reverse proxy, trust the forwarded headers
+    fwd_host = request.headers.get("X-Forwarded-Host")
+    if fwd_host:
+        scheme = request.headers.get("X-Forwarded-Proto", "https")
+        prefix = request.headers.get("X-Forwarded-Prefix", "").rstrip("/")
+        return f"{scheme}://{fwd_host}{prefix}"
+
+    # Otherwise use HA's configured URL
+    try:
+        from homeassistant.helpers.network import get_url
+
+        return get_url(hass, allow_internal=True).rstrip("/")
+    except Exception:
+        return f"{request.scheme}://{request.host}"
+
+
+# ── OAuth Protected Resource Metadata (RFC 9728) ─────────────────────────────
+
+
+class OAuthProtectedResourceView(HomeAssistantView):
+    """Serve RFC 9728 protected-resource metadata.
+
+    GET /api/selora_ai/mcp/.well-known/oauth-protected-resource
+
+    Unauthenticated — MCP/OAuth clients fetch this to discover the
+    authorization server before they have any credentials.
+    All well-known paths live under /api/selora_ai/mcp/ because HA only
+    allows custom components to register views under /api/.
+    """
+
+    name = "selora_ai:oauth_protected_resource"
+    url = _PROTECTED_RESOURCE_URL
+    requires_auth = False
+
+    async def options(self, request: web.Request) -> web.Response:
+        """CORS preflight."""
+        return await _cors_preflight(request)
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return protected-resource metadata JSON."""
+        hass: HomeAssistant = request.app[KEY_HASS]
+        base_url = _get_external_base_url(hass, request)
+        # authorization_servers points to Connect (not HA) because HA's
+        # built-in auth owns /.well-known/oauth-authorization-server and
+        # we can't register a sub-path there. Connect already serves
+        # the AS metadata at its own /.well-known/oauth-authorization-server.
+        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
+        return _add_cors(
+            request,
+            web.json_response(
+                {
+                    "resource": f"{base_url}{_MCP_URL}",
+                    "authorization_servers": [connect_url],
+                    "bearer_methods_supported": ["header"],
+                    "scopes_supported": [],
+                }
+            ),
+        )
+
+
+class OAuthAuthorizationServerView(HomeAssistantView):
+    """OAuth Authorization Server Metadata (RFC 8414).
+
+    GET /.well-known/oauth-authorization-server/api/selora_ai/mcp
+
+    MCP clients discover this URL from the protected-resource metadata.
+    The token_endpoint points to our local proxy (/api/selora_ai/oauth/token)
+    rather than directly to Connect, because some clients (mcp-remote)
+    re-fetch the root /.well-known/oauth-authorization-server for the
+    token exchange step and would hit HA's built-in /auth/token instead.
+    """
+
+    name = "selora_ai:oauth_as_metadata"
+    url = _OAUTH_AS_METADATA_URL
+    requires_auth = False
+
+    async def options(self, request: web.Request) -> web.Response:
+        """CORS preflight."""
+        return await _cors_preflight(request)
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Return Connect's OAuth AS metadata, or 404 if Connect is not linked."""
+        hass: HomeAssistant = request.app[KEY_HASS]
+        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        if jwt_validator is None:
+            return _add_cors(request, web.Response(status=HTTPStatus.NOT_FOUND))
+        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
+        base_url = _get_external_base_url(hass, request)
+        return _add_cors(
+            request,
+            web.json_response(
+                {
+                    "issuer": base_url,
+                    "authorization_endpoint": f"{connect_url}/oauth/authorize",
+                    "token_endpoint": f"{base_url}{_OAUTH_TOKEN_PROXY_URL}",
+                    "registration_endpoint": f"{connect_url}/oauth/register",
+                    "response_types_supported": ["code"],
+                    "grant_types_supported": ["authorization_code"],
+                    "code_challenge_methods_supported": ["S256"],
+                    "scopes_supported": [],
+                }
+            ),
+        )
+
+
+class OAuthTokenProxyView(HomeAssistantView):
+    """Proxy token requests to Selora Connect.
+
+    POST /api/selora_ai/oauth/token
+
+    Some clients (mcp-remote) re-fetch the root
+    /.well-known/oauth-authorization-server for the token exchange step,
+    which returns HA's built-in /auth/token. To work around this, the
+    AS metadata points token_endpoint here and we forward to Connect.
+    """
+
+    name = "selora_ai:oauth_token_proxy"
+    url = _OAUTH_TOKEN_PROXY_URL
+    requires_auth = False
+
+    async def options(self, request: web.Request) -> web.Response:
+        """CORS preflight."""
+        return await _cors_preflight(request)
+
+    async def post(self, request: web.Request) -> web.Response:
+        """Forward the token request to Connect."""
+        hass: HomeAssistant = request.app[KEY_HASS]
+        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
+        body = await request.read()
+        headers = {
+            "Content-Type": request.content_type,
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    f"{connect_url}/oauth/token",
+                    data=body,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=30),
+                ) as resp:
+                    resp_body = await resp.read()
+                    return _add_cors(
+                        request,
+                        web.Response(
+                            status=resp.status,
+                            body=resp_body,
+                            content_type=resp.content_type,
+                        ),
+                    )
+        except (aiohttp.ClientError, TimeoutError):
+            _LOGGER.exception("Failed to proxy token request to Connect")
+            return _add_cors(
+                request,
+                web.json_response(
+                    {"error": "server_error", "error_description": "Connect unreachable"},
+                    status=HTTPStatus.BAD_GATEWAY,
+                ),
+            )
 
 
 # ── HTTP view ──────────────────────────────────────────────────────────────────
@@ -105,11 +370,56 @@ class SeloraAIMCPView(HomeAssistantView):
 
     name = "selora_ai:mcp"
     url = _MCP_URL
-    requires_auth = True  # Enforces Bearer token via HA auth subsystem
+    requires_auth = False  # Dual-auth: handled manually in post()
+
+    async def options(self, request: web.Request) -> web.Response:
+        """CORS preflight."""
+        return await _cors_preflight(request)
+
+    def _build_unauthorized_response(
+        self, hass: HomeAssistant, request: web.Request
+    ) -> web.Response:
+        """Return a 401 with OAuth metadata if Connect is linked."""
+        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        www_auth = 'Bearer realm="selora-ai"'
+        if jwt_validator is not None:
+            base_url = _get_external_base_url(hass, request)
+            resource_meta = f"{base_url}{_PROTECTED_RESOURCE_URL}"
+            www_auth += f', resource_metadata="{resource_meta}"'
+        return _add_cors(
+            request,
+            web.Response(
+                status=HTTPStatus.UNAUTHORIZED,
+                text="Authentication required",
+                headers={"WWW-Authenticate": www_auth},
+            ),
+        )
+
+    async def get(self, request: web.Request) -> web.Response:
+        """Handle GET — used by MCP clients to probe auth requirements."""
+        hass: HomeAssistant = request.app[KEY_HASS]
+        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        try:
+            await authenticate_request(hass, request, jwt_validator)
+        except AuthenticationError:
+            return self._build_unauthorized_response(hass, request)
+        return _add_cors(request, web.Response(status=HTTPStatus.OK, text="Selora AI MCP endpoint"))
 
     async def post(self, request: web.Request) -> web.Response:
         """Handle a single MCP JSON-RPC request."""
+        response = await self._handle_post(request)
+        return _add_cors(request, response)
+
+    async def _handle_post(self, request: web.Request) -> web.Response:
+        """Internal post handler — CORS headers added by the wrapper."""
         hass: HomeAssistant = request.app[KEY_HASS]
+
+        # ── Authentication (HA token or Selora Connect JWT) ──
+        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        try:
+            auth_ctx = await authenticate_request(hass, request, jwt_validator)
+        except AuthenticationError:
+            return self._build_unauthorized_response(hass, request)
 
         # Content-type negotiation
         if _CONTENT_TYPE_JSON not in request.headers.get("accept", ""):
@@ -126,82 +436,93 @@ class SeloraAIMCPView(HomeAssistantView):
         # Parse JSON-RPC message
         try:
             json_data = await request.json()
-            message = JSONRPCMessage.model_validate(json_data)
-        except Exception as err:
-            _LOGGER.debug("Failed to parse MCP message: %s", err)
+        except Exception:
+            return web.Response(status=HTTPStatus.BAD_REQUEST, text="Invalid JSON")
+
+        method = json_data.get("method")
+        req_id = json_data.get("id")
+        params = json_data.get("params")
+
+        if json_data.get("jsonrpc") != "2.0" or not isinstance(method, str):
             return web.Response(
                 status=HTTPStatus.BAD_REQUEST,
-                text="Request must be a valid JSON-RPC message",
+                text="Request must be a valid JSON-RPC 2.0 message",
             )
 
-        # For notifications/responses (no id field), return 202 Accepted
-        if not hasattr(message.root, "id") or message.root.id is None:
-            _LOGGER.debug("MCP notification received, returning 202")
+        # Notifications (no id) get 202 Accepted
+        if req_id is None:
+            _LOGGER.debug("MCP notification received (%s), returning 202", method)
             return web.Response(status=HTTPStatus.ACCEPTED)
 
-        # Build a stateless server for this request
-        user = request.get(KEY_HASS_USER, None)
-        is_admin = bool(user and getattr(user, "is_admin", False))
-        server, init_options = _create_selora_mcp_server(hass, is_admin=is_admin)
-
-        # Stream pair for stateless request-response cycle
-        read_writer, read_stream = anyio.create_memory_object_stream(0)
-        write_stream, write_reader = anyio.create_memory_object_stream(0)
-
-        async def _run() -> None:
-            await server.run(read_stream, write_stream, init_options, stateless=True)
-
+        # Dispatch
+        is_admin = auth_ctx.is_admin
         try:
-            async with asyncio.timeout(_TIMEOUT_SECS), anyio.create_task_group() as tg:
-                tg.start_soon(_run)
-                await read_writer.send(SessionMessage(message))
-                response_msg = await anext(aiter(write_reader))
-                tg.cancel_scope.cancel()
+            async with asyncio.timeout(_TIMEOUT_SECS):
+                result = await _jsonrpc_dispatch(hass, method, params, is_admin)
         except TimeoutError:
             _LOGGER.warning("MCP request timed out after %ss", _TIMEOUT_SECS)
-            return web.Response(
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32000, "message": "Request timed out"},
+                },
                 status=HTTPStatus.GATEWAY_TIMEOUT,
-                text="MCP request timed out",
+            )
+        except ValueError as exc:
+            return web.json_response(
+                {"jsonrpc": "2.0", "id": req_id, "error": {"code": -32601, "message": str(exc)}},
             )
         except Exception:
             _LOGGER.exception("MCP request failed")
-            return web.Response(
+            return web.json_response(
+                {
+                    "jsonrpc": "2.0",
+                    "id": req_id,
+                    "error": {"code": -32603, "message": "Internal error"},
+                },
                 status=HTTPStatus.INTERNAL_SERVER_ERROR,
-                text="Internal server error",
             )
 
-        return web.json_response(
-            data=response_msg.message.model_dump(by_alias=True, exclude_none=True)
-        )
+        return web.json_response({"jsonrpc": "2.0", "id": req_id, "result": result})
 
 
-# Need KEY_HASS_USER for admin check — import safely
-try:
-    from homeassistant.components.http import KEY_HASS_USER
-except ImportError:
-    KEY_HASS_USER = "hass_user"  # type: ignore[assignment]
+# ── JSON-RPC dispatch (stateless, no mcp dependency) ────────────────────────
 
 
-# ── MCP server factory ────────────────────────────────────────────────────────
+_MCP_PROTOCOL_VERSION = "2025-03-26"
+_MCP_SERVER_NAME = "selora-ai"
+_MCP_SERVER_VERSION = "0.3.2"
 
 
-def _create_selora_mcp_server(
+async def _jsonrpc_dispatch(
     hass: HomeAssistant,
-    is_admin: bool = False,
-) -> tuple[Server, Any]:
-    """Instantiate and configure a Selora MCP server for one stateless request."""
-
-    server: Server = Server("selora-ai")
-
-    @server.list_tools()  # type: ignore[no-untyped-call]
-    async def _list_tools() -> list[types.Tool]:
-        return _TOOL_DEFINITIONS
-
-    @server.call_tool()  # type: ignore[no-untyped-call]
-    async def _call_tool(name: str, arguments: dict[str, Any]) -> Sequence[types.TextContent]:
-        return await _dispatch(hass, name, arguments, is_admin=is_admin)
-
-    return server, server.create_initialization_options()
+    method: str,
+    params: dict[str, Any] | None,
+    is_admin: bool,
+) -> dict[str, Any]:
+    """Dispatch a JSON-RPC method and return the result payload."""
+    if method == "initialize":
+        return {
+            "protocolVersion": _MCP_PROTOCOL_VERSION,
+            "capabilities": {"tools": {}},
+            "serverInfo": {"name": _MCP_SERVER_NAME, "version": _MCP_SERVER_VERSION},
+        }
+    if method == "ping":
+        return {}
+    if method == "tools/list":
+        return {
+            "tools": [
+                {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
+                for t in _TOOL_DEFINITIONS
+            ]
+        }
+    if method == "tools/call":
+        tool_name = (params or {}).get("name", "")
+        arguments = (params or {}).get("arguments", {})
+        content = await _dispatch(hass, tool_name, arguments, is_admin=is_admin)
+        return {"content": [{"type": c.type, "text": c.text} for c in content]}
+    raise ValueError(f"Unknown method: {method}")
 
 
 # ── Tool dispatch ──────────────────────────────────────────────────────────────
@@ -213,7 +534,7 @@ async def _dispatch(
     arguments: dict[str, Any],
     *,
     is_admin: bool,
-) -> list[types.TextContent]:
+) -> list[MCPTextContent]:
     """Route a tool call to its handler and return MCP TextContent."""
     try:
         if name == TOOL_LIST_AUTOMATIONS:
@@ -261,7 +582,7 @@ async def _dispatch(
         _LOGGER.exception("Tool %s raised an exception", name)
         result = {"error": "Tool execution failed"}
 
-    return [types.TextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
+    return [MCPTextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
 
 
 def _require_admin(is_admin: bool) -> None:
@@ -1233,8 +1554,8 @@ def _sanitize_risk(risk: dict[str, Any]) -> dict[str, Any]:
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
-_TOOL_DEFINITIONS: list[types.Tool] = [
-    types.Tool(
+_TOOL_DEFINITIONS: list[MCPTool] = [
+    MCPTool(
         name=TOOL_LIST_AUTOMATIONS,
         description=(
             "List Selora AI-managed automations with their status and risk assessment. "
@@ -1251,7 +1572,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_GET_AUTOMATION,
         description=(
             "Return full detail for a single Selora automation: YAML, version history, "
@@ -1265,7 +1586,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_VALIDATE_AUTOMATION,
         description=(
             "Validate and risk-assess a YAML string representing a Home Assistant automation "
@@ -1283,7 +1604,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_CREATE_AUTOMATION,
         description=(
             "Create a new Home Assistant automation from a YAML string. "
@@ -1308,7 +1629,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_ACCEPT_AUTOMATION,
         description=(
             "Enable or update a Selora automation that is currently disabled. "
@@ -1327,7 +1648,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_DELETE_AUTOMATION,
         description=("Delete a Selora-managed automation permanently. Requires admin access."),
         inputSchema={
@@ -1336,7 +1657,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             "properties": {"automation_id": {"type": "string"}},
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_GET_HOME_SNAPSHOT,
         description=(
             "Return current Home Assistant entity states grouped by area. "
@@ -1345,7 +1666,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
         ),
         inputSchema={"type": "object", "properties": {}},
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_CHAT,
         description=(
             "Send a natural-language message to Selora's internal LLM in the context of "
@@ -1373,12 +1694,12 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_LIST_SESSIONS,
         description="Return recent Selora chat sessions (title, id, timestamp). No messages included.",
         inputSchema={"type": "object", "properties": {}},
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_LIST_PATTERNS,
         description=(
             "List detected behavior patterns derived from Selora suggestions. "
@@ -1403,7 +1724,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_GET_PATTERN,
         description="Return full detail for one pattern, including linked suggestions.",
         inputSchema={
@@ -1412,7 +1733,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             "properties": {"pattern_id": {"type": "string"}},
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_LIST_SUGGESTIONS,
         description=(
             "List proactive automation suggestions with YAML previews and risk assessment. "
@@ -1428,7 +1749,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_ACCEPT_SUGGESTION,
         description=(
             "Create an automation from a pending suggestion and mark it accepted. "
@@ -1446,7 +1767,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_DISMISS_SUGGESTION,
         description=(
             "Mark a suggestion as dismissed. Optionally include a reason. Requires admin access."
@@ -1460,7 +1781,7 @@ _TOOL_DEFINITIONS: list[types.Tool] = [
             },
         },
     ),
-    types.Tool(
+    MCPTool(
         name=TOOL_TRIGGER_SCAN,
         description=(
             "Trigger an immediate suggestion scan. Rate-limited to 60 seconds and returns "
