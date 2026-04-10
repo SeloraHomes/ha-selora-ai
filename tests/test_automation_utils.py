@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -19,10 +20,18 @@ from custom_components.selora_ai.automation_utils import (
     async_delete_automation,
     async_toggle_automation,
     async_update_automation,
+    count_selora_automations,
+    find_stale_automations,
+    get_selora_automation_cap,
     validate_action_services,
     validate_automation_payload,
 )
-from custom_components.selora_ai.const import AUTOMATION_ID_PREFIX
+from custom_components.selora_ai.const import (
+    AUTOMATION_CAP_CEILING,
+    AUTOMATION_CAP_FLOOR,
+    AUTOMATION_ID_PREFIX,
+    AUTOMATIONS_PER_DEVICE,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -1236,3 +1245,285 @@ class TestAsyncDeleteAutomation:
     ) -> None:
         result = await async_delete_automation(hass, "nonexistent")
         assert result is False
+
+
+# ===================================================================
+# Automation Cap & Stale Detection
+# ===================================================================
+
+
+def _make_automation_state(
+    entity_id: str,
+    uid: str,
+    last_triggered: str | datetime | None = None,
+    friendly_name: str = "Test",
+    state_value: str = "on",
+    last_updated: datetime | None = None,
+) -> MagicMock:
+    """Create a mock HA automation state object."""
+    from datetime import UTC, datetime as _dt, timedelta
+
+    state = MagicMock()
+    state.entity_id = entity_id
+    state.state = state_value
+    # Default last_updated to 30 days ago so never-triggered automations
+    # are old enough to be flagged as stale by default.
+    state.last_updated = last_updated or (_dt.now(UTC) - timedelta(days=30))
+    state.attributes = {
+        "id": uid,
+        "friendly_name": friendly_name,
+        "last_triggered": last_triggered,
+    }
+    return state
+
+
+def _make_registries(device_count: int):
+    """Create mock device and entity registries with N devices, each having an entity."""
+    device_reg = MagicMock()
+    device_reg.devices = {f"dev_{i}": MagicMock() for i in range(device_count)}
+
+    entity_reg = MagicMock()
+    # Each device gets one entity so it counts towards the cap
+    entities = {}
+    for i in range(device_count):
+        entry = MagicMock()
+        entry.device_id = f"dev_{i}"
+        entities[f"entity_{i}"] = entry
+    entity_reg.entities = entities
+
+    return device_reg, entity_reg
+
+
+class TestAutomationCap:
+    """Tests for get_selora_automation_cap."""
+
+    def _get_cap(self, device_count: int) -> int:
+        hass = MagicMock()
+        dev_reg, ent_reg = _make_registries(device_count)
+        with (
+            patch("homeassistant.helpers.device_registry.async_get", return_value=dev_reg),
+            patch("homeassistant.helpers.entity_registry.async_get", return_value=ent_reg),
+        ):
+            return get_selora_automation_cap(hass)
+
+    def test_cap_scales_with_devices(self) -> None:
+        assert self._get_cap(10) == 15  # floor(1.5 * 10)
+
+    def test_cap_floor_on_zero_devices(self) -> None:
+        assert self._get_cap(0) == AUTOMATION_CAP_FLOOR
+
+    def test_cap_floor_on_small_home(self) -> None:
+        assert self._get_cap(2) == AUTOMATION_CAP_FLOOR  # floor(1.5 * 2) = 3 < 5
+
+    def test_cap_large_home(self) -> None:
+        assert self._get_cap(60) == 90  # floor(1.5 * 60)
+
+    def test_cap_ceiling_on_very_large_home(self) -> None:
+        assert self._get_cap(500) == AUTOMATION_CAP_CEILING
+
+    def test_cap_odd_device_count(self) -> None:
+        assert self._get_cap(7) == 10  # floor(1.5 * 7) = floor(10.5) = 10
+
+    def test_devices_without_entities_not_counted(self) -> None:
+        """Infrastructure devices with no entities shouldn't inflate the cap."""
+        hass = MagicMock()
+        device_reg = MagicMock()
+        # 20 devices in registry
+        device_reg.devices = {f"dev_{i}": MagicMock() for i in range(20)}
+
+        entity_reg = MagicMock()
+        # Only 10 devices have entities
+        entities = {}
+        for i in range(10):
+            entry = MagicMock()
+            entry.device_id = f"dev_{i}"
+            entities[f"entity_{i}"] = entry
+        entity_reg.entities = entities
+
+        with (
+            patch("homeassistant.helpers.device_registry.async_get", return_value=device_reg),
+            patch("homeassistant.helpers.entity_registry.async_get", return_value=entity_reg),
+        ):
+            cap = get_selora_automation_cap(hass)
+        assert cap == 15  # floor(1.5 * 10), not floor(1.5 * 20)
+
+
+class TestCountSeloraAutomations:
+    """Tests for count_selora_automations."""
+
+    def test_counts_only_selora_automations(self) -> None:
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state("automation.a", "selora_ai_abc123"),
+            _make_automation_state("automation.b", "selora_ai_def456"),
+            _make_automation_state("automation.c", "user_custom_123"),
+        ]
+        assert count_selora_automations(hass) == 2
+
+    def test_counts_zero_when_none(self) -> None:
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state("automation.c", "user_custom_123"),
+        ]
+        assert count_selora_automations(hass) == 0
+
+    def test_enabled_only_skips_disabled(self) -> None:
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state("automation.a", "selora_ai_aaa", state_value="on"),
+            _make_automation_state("automation.b", "selora_ai_bbb", state_value="off"),
+            _make_automation_state("automation.c", "selora_ai_ccc", state_value="on"),
+        ]
+        assert count_selora_automations(hass, enabled_only=True) == 2
+        assert count_selora_automations(hass) == 3
+
+
+class TestFindStaleAutomations:
+    """Tests for find_stale_automations."""
+
+    def test_enabled_never_triggered_is_stale(self) -> None:
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.a", "selora_ai_abc123",
+                last_triggered=None,
+                friendly_name="Never triggered",
+                state_value="on",
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 1
+        assert stale[0]["automation_id"] == "selora_ai_abc123"
+        assert stale[0]["last_triggered"] is None
+
+    def test_disabled_never_triggered_not_stale(self) -> None:
+        """Disabled automations can't trigger — they shouldn't be flagged as stale."""
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.a", "selora_ai_abc123",
+                last_triggered=None,
+                state_value="off",
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0
+
+    def test_recently_triggered_not_stale(self) -> None:
+        from datetime import UTC, datetime
+
+        recent = datetime.now(UTC).isoformat()
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.a", "selora_ai_abc123",
+                last_triggered=recent,
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0
+
+    def test_old_trigger_is_stale(self) -> None:
+        from datetime import UTC, datetime, timedelta
+
+        old = (datetime.now(UTC) - timedelta(days=10)).isoformat()
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.a", "selora_ai_abc123",
+                last_triggered=old,
+                friendly_name="Old automation",
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 1
+        assert stale[0]["alias"] == "Old automation"
+
+    def test_ignores_non_selora_automations(self) -> None:
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.user", "user_custom",
+                last_triggered=None,
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0
+
+    def test_mixed_stale_and_active(self) -> None:
+        from datetime import UTC, datetime, timedelta
+
+        recent = datetime.now(UTC).isoformat()
+        old = (datetime.now(UTC) - timedelta(days=10)).isoformat()
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state("automation.a", "selora_ai_aaa", last_triggered=recent),
+            _make_automation_state("automation.b", "selora_ai_bbb", last_triggered=old),
+            _make_automation_state("automation.c", "selora_ai_ccc", last_triggered=None),
+            _make_automation_state("automation.d", "user_custom", last_triggered=None),
+            _make_automation_state("automation.e", "selora_ai_eee", last_triggered=None, state_value="off"),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 2
+        stale_ids = {s["automation_id"] for s in stale}
+        assert stale_ids == {"selora_ai_bbb", "selora_ai_ccc"}
+
+    def test_unparseable_last_triggered_skipped(self) -> None:
+        """Automations with unparseable last_triggered strings are skipped."""
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.bad", "selora_ai_bad",
+                last_triggered="not-a-date",
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0
+
+    def test_native_datetime_last_triggered(self) -> None:
+        """HA typically provides last_triggered as a native datetime object."""
+        from datetime import UTC, datetime, timedelta
+
+        old_dt = datetime.now(UTC) - timedelta(days=10)
+        hass = MagicMock()
+        state = _make_automation_state("automation.a", "selora_ai_aaa")
+        state.attributes["last_triggered"] = old_dt
+        hass.states.async_all.return_value = [state]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 1
+
+    def test_naive_datetime_last_triggered(self) -> None:
+        """Naive datetimes (no tzinfo) should be treated as UTC."""
+        from datetime import datetime, timedelta
+
+        old_naive = datetime.now() - timedelta(days=10)
+        hass = MagicMock()
+        state = _make_automation_state("automation.a", "selora_ai_aaa")
+        state.attributes["last_triggered"] = old_naive
+        hass.states.async_all.return_value = [state]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 1
+
+    def test_unexpected_last_triggered_type_skipped(self) -> None:
+        """Unexpected types for last_triggered are skipped with a warning."""
+        hass = MagicMock()
+        state = _make_automation_state("automation.a", "selora_ai_aaa")
+        state.attributes["last_triggered"] = 12345  # not str, datetime, or None
+        hass.states.async_all.return_value = [state]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0
+
+    def test_newly_created_never_triggered_not_stale(self) -> None:
+        """An automation created recently that hasn't triggered yet is not stale."""
+        from datetime import UTC, datetime
+
+        hass = MagicMock()
+        hass.states.async_all.return_value = [
+            _make_automation_state(
+                "automation.new", "selora_ai_new",
+                last_triggered=None,
+                last_updated=datetime.now(UTC),  # just created
+            ),
+        ]
+        stale = find_stale_automations(hass)
+        assert len(stale) == 0

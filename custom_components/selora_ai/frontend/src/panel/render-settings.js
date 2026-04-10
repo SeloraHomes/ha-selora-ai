@@ -221,6 +221,25 @@ export function renderSettings(host) {
                       `
                     : ""}
                 </div>
+                <div class="service-row" style="margin-top:12px;">
+                  <label
+                    >Auto-remove stale automations
+                    <span class="setting-help">
+                      <ha-icon icon="mdi:help-circle-outline"></ha-icon>
+                      <span class="setting-tooltip"
+                        >Automatically remove Selora automations that haven't
+                        triggered in ${host._config.stale_days || 5} days when
+                        the automation cap is reached. A notification lists what
+                        was removed.</span
+                      >
+                    </span>
+                  </label>
+                  <ha-switch
+                    .checked=${host._config.auto_purge_stale || false}
+                    @change=${(e) =>
+                      host._updateConfig("auto_purge_stale", e.target.checked)}
+                  ></ha-switch>
+                </div>
               `
             : ""}
 

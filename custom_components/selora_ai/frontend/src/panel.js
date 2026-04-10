@@ -185,6 +185,12 @@ class SeloraAIArchitectPanel extends LitElement {
       _unavailableAutoId: { type: String },
       _unavailableAutoName: { type: String },
 
+      // Stale automations modal
+      _staleModalOpen: { type: Boolean },
+      _staleSelected: { type: Object },
+      _staleDetailAuto: { type: Object },
+      _staleBulkDeleting: { type: Boolean },
+
       // Feedback modal
       _showFeedbackModal: { type: Boolean },
       _feedbackText: { type: String },
@@ -258,6 +264,10 @@ class SeloraAIArchitectPanel extends LitElement {
     this._suggestingName = false;
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
+    this._staleModalOpen = false;
+    this._staleSelected = {};
+    this._staleDetailAuto = null;
+    this._staleBulkDeleting = false;
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
