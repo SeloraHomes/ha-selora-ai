@@ -40,9 +40,11 @@ import yaml
 
 from .const import (
     AUTOMATION_ID_PREFIX,
+    AUTOMATION_STALE_DAYS,
     COLLECTOR_DOMAINS,
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
+    CONF_AUTO_PURGE_STALE,
     CONF_COLLECTOR_ENABLED,
     CONF_COLLECTOR_END_TIME,
     CONF_COLLECTOR_INTERVAL,
@@ -62,6 +64,7 @@ from .const import (
     CONF_PATTERN_ENABLED,
     CONF_RECORDER_LOOKBACK_DAYS,
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_DISCOVERY_ENABLED,
     DEFAULT_DISCOVERY_INTERVAL,
     DEFAULT_DISCOVERY_MODE,
@@ -1481,6 +1484,7 @@ async def _handle_websocket_get_automations(
                     "state": state.state,
                     "is_selora": is_selora,
                     "last_triggered": state.attributes.get("last_triggered"),
+                    "last_updated": state.last_updated.isoformat() if state.last_updated else None,
                     "persisted_enabled": (
                         full_config.get("initial_state")
                         if isinstance(full_config.get("initial_state"), bool)
@@ -1552,6 +1556,8 @@ async def _handle_websocket_get_config(
             "collector_interval": config_data.get(CONF_COLLECTOR_INTERVAL, 3600),
             "collector_start_time": config_data.get(CONF_COLLECTOR_START_TIME, "09:00"),
             "collector_end_time": config_data.get(CONF_COLLECTOR_END_TIME, "17:00"),
+            "auto_purge_stale": config_data.get(CONF_AUTO_PURGE_STALE, DEFAULT_AUTO_PURGE_STALE),
+            "stale_days": AUTOMATION_STALE_DAYS,
             "discovery_enabled": config_data.get(CONF_DISCOVERY_ENABLED, True),
             "discovery_mode": config_data.get(CONF_DISCOVERY_MODE, "continuous"),
             "discovery_interval": config_data.get(CONF_DISCOVERY_INTERVAL, 14400),

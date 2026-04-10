@@ -684,6 +684,8 @@ CONF_COLLECTOR_MODE = "collector_mode"
 CONF_COLLECTOR_START_TIME = "collector_start_time"
 CONF_COLLECTOR_END_TIME = "collector_end_time"
 CONF_COLLECTOR_INTERVAL = "collector_interval"
+CONF_AUTO_PURGE_STALE = "auto_purge_stale"
+DEFAULT_AUTO_PURGE_STALE = False
 
 CONF_DISCOVERY_ENABLED = "discovery_enabled"
 CONF_DISCOVERY_MODE = "discovery_mode"
@@ -859,6 +861,17 @@ DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
 DEFAULT_MIN_SUGGESTIONS = 3  # Floor: always allow at least this many
 DEFAULT_MAX_SUGGESTIONS_CEILING = 10  # Ceiling: never exceed this many
 DEFAULT_DEVICES_PER_SUGGESTION = 5  # Scaling factor: 1 extra suggestion per N uncovered devices
+
+# ── Automation Cap ──────────────────────────────────────────────────
+# Dynamic cap on background-suggested automations: 1.5 × number of devices.
+# User-created automations are never capped.
+AUTOMATIONS_PER_DEVICE = 1.5
+# Minimum floor so fresh installs or small homes still get suggestions.
+AUTOMATION_CAP_FLOOR = 5
+# Hard ceiling to prevent unbounded growth on very large installs.
+AUTOMATION_CAP_CEILING = 200
+# Automations that haven't triggered in this many days are stale candidates.
+AUTOMATION_STALE_DAYS = 5
 
 # ── Automation Creation ──────────────────────────────────────────────
 # Prefix for auto-created automation IDs (easy to find/filter).

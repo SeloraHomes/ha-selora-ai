@@ -1,14 +1,24 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 import logging
+from math import floor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
+from homeassistant.helpers import entity_registry as er
 import yaml
 
-from .const import AUTOMATION_ID_PREFIX
+from .const import (
+    AUTOMATION_CAP_CEILING,
+    AUTOMATION_CAP_FLOOR,
+    AUTOMATION_ID_PREFIX,
+    AUTOMATION_STALE_DAYS,
+    AUTOMATIONS_PER_DEVICE,
+)
 
 if TYPE_CHECKING:
     from .automation_store import AutomationStore
@@ -705,6 +715,61 @@ async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bo
         return False
 
 
+async def async_delete_automations_batch(
+    hass: HomeAssistant, automation_ids: list[str]
+) -> list[str]:
+    """Delete multiple automations in a single read/write/reload cycle.
+
+    Returns the list of aliases that were successfully removed.
+    """
+    if not automation_ids:
+        return []
+
+    ids_to_remove = set(automation_ids)
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+
+    targets = [a for a in existing if a.get("id") in ids_to_remove]
+    if not targets:
+        return []
+
+    remaining = [a for a in existing if a.get("id") not in ids_to_remove]
+    removed_aliases: list[str] = []
+
+    # Record deletion hashes before removing
+    for target in targets:
+        await _record_deletion_hash(hass, target)
+
+    try:
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+    except (OSError, yaml.YAMLError) as exc:
+        _LOGGER.exception("Failed to write automations YAML during batch delete: %s", exc)
+        return removed_aliases
+
+    try:
+        await hass.services.async_call("automation", "reload", blocking=True)
+    except Exception:
+        _LOGGER.warning("automation.reload failed after batch delete; states may be stale")
+
+    store = _get_automation_store(hass)
+    entity_reg = er.async_get(hass)
+
+    for target in targets:
+        aid = target.get("id", "")
+        try:
+            await store.purge_record(aid)
+        except Exception:
+            _LOGGER.warning("Failed to purge store record for %s", aid)
+        for entity in list(entity_reg.entities.values()):
+            if entity.platform == "automation" and entity.unique_id == aid:
+                entity_reg.async_remove(entity.entity_id)
+                break
+        removed_aliases.append(target.get("alias", aid))
+
+    _LOGGER.info("Batch-deleted %d automations", len(removed_aliases))
+    return removed_aliases
+
+
 async def _record_deletion_hash(hass: HomeAssistant, automation: dict) -> None:
     """Store the trigger+action content hash of a deleted automation in PatternStore."""
     import hashlib
@@ -776,3 +841,118 @@ async def async_cleanup_orphaned_entities(hass: HomeAssistant) -> list[str]:
         )
 
     return orphaned
+
+
+def get_selora_automation_cap(hass: HomeAssistant) -> int:
+    """Return the dynamic cap on background-suggested automations.
+
+    Cap = clamp(floor(AUTOMATIONS_PER_DEVICE × devices_with_entities), FLOOR, CEILING).
+    Only counts devices that have at least one entity (skips infrastructure
+    devices like coordinators, supervisors, etc.).
+    """
+    device_reg = dr.async_get(hass)
+    entity_reg = er.async_get(hass)
+
+    devices_with_entities: set[str] = set()
+    for entry in entity_reg.entities.values():
+        if entry.device_id:
+            devices_with_entities.add(entry.device_id)
+
+    device_count = len(devices_with_entities & set(device_reg.devices))
+    raw = floor(AUTOMATIONS_PER_DEVICE * device_count)
+    return max(AUTOMATION_CAP_FLOOR, min(raw, AUTOMATION_CAP_CEILING))
+
+
+def count_selora_automations(hass: HomeAssistant, *, enabled_only: bool = False) -> int:
+    """Count existing Selora-created automations via HA state machine.
+
+    When enabled_only is True, only automations in the "on" state are counted.
+    """
+    count = 0
+    for state in hass.states.async_all("automation"):
+        uid = state.attributes.get("id", "")
+        if not str(uid).startswith(AUTOMATION_ID_PREFIX):
+            continue
+        if enabled_only and state.state != "on":
+            continue
+        count += 1
+    return count
+
+
+def find_stale_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Find Selora automations that haven't triggered in AUTOMATION_STALE_DAYS.
+
+    Only considers enabled automations — disabled automations are skipped
+    because they can never trigger and shouldn't be flagged as stale.
+
+    Returns a list of dicts with automation_id, entity_id, alias, and
+    last_triggered for each stale automation.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=AUTOMATION_STALE_DAYS)
+    stale: list[dict[str, Any]] = []
+
+    for state in hass.states.async_all("automation"):
+        uid = str(state.attributes.get("id", ""))
+        if not uid.startswith(AUTOMATION_ID_PREFIX):
+            continue
+
+        # Skip disabled automations — they can't trigger
+        if state.state != "on":
+            continue
+
+        last_triggered = state.attributes.get("last_triggered")
+        if last_triggered is None:
+            # Enabled but never triggered — only flag if the automation has
+            # existed long enough (use last_updated as a proxy for creation time)
+            last_updated = state.last_updated
+            if not isinstance(last_updated, datetime):
+                _LOGGER.warning(
+                    "Unexpected last_updated type for %s: %r",
+                    state.entity_id,
+                    last_updated,
+                )
+                continue
+            if last_updated >= cutoff:
+                continue
+            stale.append(
+                {
+                    "automation_id": uid,
+                    "entity_id": state.entity_id,
+                    "alias": state.attributes.get("friendly_name", uid),
+                    "last_triggered": None,
+                }
+            )
+            continue
+
+        if isinstance(last_triggered, str):
+            try:
+                last_triggered = datetime.fromisoformat(last_triggered)
+            except ValueError:
+                _LOGGER.warning(
+                    "Unparseable last_triggered for %s: %s",
+                    state.entity_id,
+                    state.attributes.get("last_triggered"),
+                )
+                continue
+        elif not isinstance(last_triggered, datetime):
+            _LOGGER.warning(
+                "Unexpected last_triggered type for %s: %r",
+                state.entity_id,
+                last_triggered,
+            )
+            continue
+
+        if hasattr(last_triggered, "tzinfo") and last_triggered.tzinfo is None:
+            last_triggered = last_triggered.replace(tzinfo=UTC)
+
+        if last_triggered < cutoff:
+            stale.append(
+                {
+                    "automation_id": uid,
+                    "entity_id": state.entity_id,
+                    "alias": state.attributes.get("friendly_name", uid),
+                    "last_triggered": last_triggered.isoformat(),
+                }
+            )
+
+    return stale

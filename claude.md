@@ -39,7 +39,23 @@ custom_components/selora_ai/
 ├── manifest.json        # HA integration manifest
 ├── strings.json         # UI strings for config flow
 ├── translations/en.json # English translations (must match strings.json)
-└── brand/               # Logo and icon assets
+├── brand/               # Logo and icon assets
+└── frontend/
+    └── src/
+        ├── panel.js                  # LitElement host (properties, lifecycle, render dispatch)
+        └── panel/
+            ├── render-automations.js # Automation list, cards, flowchart, unavailable modal
+            ├── render-chat.js        # Chat messages, YAML editor, new-automation dialog
+            ├── render-settings.js    # Settings tab
+            ├── render-suggestions.js # Suggestion cards
+            ├── render-version-history.js # Version history drawer + diff viewer
+            ├── stale-automations.js  # Stale detection helpers + stale modal/detail
+            ├── automation-crud.js    # CRUD websocket calls
+            ├── automation-management.js # Bulk edit, enable/disable, filter
+            ├── session-actions.js    # Session list actions
+            ├── suggestion-actions.js # Accept/dismiss/snooze suggestion actions
+            ├── chat-actions.js       # Send message, streaming
+            └── styles/               # CSS-in-JS style modules
 ```
 
 ## Key Conventions
@@ -64,6 +80,14 @@ custom_components/selora_ai/
 - Anthropic step shows a form for the user's API key (never auto-configure)
 - `strings.json` and `translations/en.json` must always stay in sync
 - Step IDs must match keys in strings.json: `user`, `anthropic`, `ollama`, `select_devices`, `results`
+
+### Frontend File Organization
+- `panel.js` is the LitElement host — it owns properties, lifecycle, and render dispatch only. Do not add feature logic or templates here.
+- Each tab/feature has its own `render-*.js` file under `panel/`. New features (modals, sections, views) go in dedicated files, not appended to existing render files.
+- Action helpers (websocket calls, state mutations) go in `*-actions.js` or `*-crud.js` files, not inline in templates.
+- Configurable values (like stale days threshold) should come from `host._config` (populated via websocket), not hardcoded as JS constants. This keeps the backend `const.py` as the single source of truth.
+- Keep individual `panel/` files under ~400 lines. If a file grows past that, split the new feature into its own module.
+- Run `node build.js` from `frontend/` after any source change — the bundled `panel.js` is committed.
 
 ### Git & Branching
 - Main branch: `main`

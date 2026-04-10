@@ -2,6 +2,7 @@ import { html } from "lit";
 import { describeFlowItem } from "../shared/flow-description.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
+import { getStaleAutomations, renderStaleModal } from "./stale-automations.js";
 
 // ---------------------------------------------------------------------------
 // Automation flowchart renderer
@@ -417,6 +418,20 @@ export function renderAutomations(host) {
                   ${filteredAutomations.length} existing
                   automation${filteredAutomations.length !== 1 ? "s" : ""}
                   (${enabledCount} enabled, ${disabledCount} disabled)
+                  ${(() => {
+                    const staleCount = getStaleAutomations(host).length;
+                    return staleCount > 0
+                      ? html`<span
+                          class="needs-attention-pill"
+                          style="margin-left:8px;cursor:pointer;"
+                          @click=${(e) => {
+                            e.stopPropagation();
+                            host._staleModalOpen = true;
+                          }}
+                          >${staleCount} stale</span
+                        >`
+                      : "";
+                  })()}
                 </span>
                 ${host._bulkEditMode
                   ? html`
@@ -1004,7 +1019,7 @@ export function renderAutomations(host) {
             </div>`}
       </div>
       ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
-      ${renderUnavailableModal(host)}
+      ${renderUnavailableModal(host)} ${renderStaleModal(host)}
     </div>
   `;
 }

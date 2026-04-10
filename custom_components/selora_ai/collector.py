@@ -11,6 +11,7 @@ Data sources:
 from __future__ import annotations
 
 import asyncio
+import contextlib
 from datetime import UTC, datetime, timedelta
 import hashlib
 import json
@@ -28,16 +29,25 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
 import yaml
 
-from .automation_utils import assess_automation_risk, validate_automation_payload
+from .automation_utils import (
+    assess_automation_risk,
+    count_selora_automations,
+    find_stale_automations,
+    get_selora_automation_cap,
+    validate_automation_payload,
+)
 from .const import (
     AUTOMATION_ID_PREFIX,
+    AUTOMATION_STALE_DAYS,
     CATEGORY_LINK_WEIGHTS,
     COLLECTOR_DOMAINS,
+    CONF_AUTO_PURGE_STALE,
     CONF_COLLECTOR_ENABLED,
     CONF_COLLECTOR_END_TIME,
     CONF_COLLECTOR_INTERVAL,
     CONF_COLLECTOR_MODE,
     CONF_COLLECTOR_START_TIME,
+    DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_CATEGORY_LINK_WEIGHT,
     DEFAULT_COLLECTOR_ENABLED,
     DEFAULT_COLLECTOR_INTERVAL,
@@ -61,6 +71,7 @@ from .const import (
 from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
+_STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
 
 
 class DataCollector:
@@ -213,6 +224,90 @@ class DataCollector:
         if not self._llm:
             _LOGGER.debug("Skipping collection cycle: No LLM configured")
             return
+
+        # Step 0: Check automation cap before doing any work
+        cap = get_selora_automation_cap(self._hass)
+        current_count = count_selora_automations(self._hass, enabled_only=True)
+        if current_count >= cap:
+            stale = find_stale_automations(self._hass)
+            _LOGGER.info(
+                "Selora automation cap reached (%d/%d). "
+                "%d stale automations found (not triggered in %d days)",
+                current_count,
+                cap,
+                len(stale),
+                AUTOMATION_STALE_DAYS,
+            )
+            if stale:
+                auto_purge = self._settings.get(CONF_AUTO_PURGE_STALE, DEFAULT_AUTO_PURGE_STALE)
+
+                if auto_purge:
+                    from .automation_utils import async_delete_automations_batch
+
+                    # Only delete enough to drop below the cap
+                    excess = current_count - cap + 1
+                    to_purge = stale[:excess]
+                    ids_to_purge = [s["automation_id"] for s in to_purge]
+
+                    removed = await async_delete_automations_batch(self._hass, ids_to_purge)
+                    if removed:
+                        removed_lines = "\n".join(f"- {name}" for name in removed)
+                        _LOGGER.info("Auto-purged %d stale automations", len(removed))
+                        with contextlib.suppress(Exception):
+                            await self._hass.services.async_call(
+                                "persistent_notification",
+                                "create",
+                                {
+                                    "title": "Selora AI: stale automations removed",
+                                    "message": (
+                                        f"Selora auto-removed {len(removed)} "
+                                        f"automation{'s' if len(removed) != 1 else ''} "
+                                        f"that hadn't triggered in "
+                                        f"{AUTOMATION_STALE_DAYS} days:"
+                                        f"\n\n{removed_lines}"
+                                    ),
+                                    "notification_id": _STALE_NOTIFICATION_ID,
+                                },
+                            )
+
+                    # Re-check: if still at cap after purge, skip LLM
+                    if count_selora_automations(self._hass, enabled_only=True) >= cap:
+                        return
+                else:
+                    stale_lines = "\n".join(
+                        f"- **{s['alias']}** (last triggered: {s['last_triggered'] or 'never'})"
+                        for s in stale
+                    )
+                    with contextlib.suppress(Exception):
+                        await self._hass.services.async_call(
+                            "persistent_notification",
+                            "create",
+                            {
+                                "title": "Selora AI: automation cap reached",
+                                "message": (
+                                    f"Selora has reached its automation cap "
+                                    f"({current_count}/{cap}). "
+                                    f"New suggestions are paused until space "
+                                    f"is freed up."
+                                    f"\n\nThe following automations haven't "
+                                    f"triggered in {AUTOMATION_STALE_DAYS} "
+                                    f"days and can be removed:"
+                                    f"\n\n{stale_lines}"
+                                ),
+                                "notification_id": _STALE_NOTIFICATION_ID,
+                            },
+                        )
+                    return
+            else:
+                return
+
+        # Cap not reached — dismiss any leftover stale notification
+        with contextlib.suppress(Exception):
+            await self._hass.services.async_call(
+                "persistent_notification",
+                "dismiss",
+                {"notification_id": _STALE_NOTIFICATION_ID},
+            )
 
         # Step 1: Build the home data snapshot
         snapshot = {
