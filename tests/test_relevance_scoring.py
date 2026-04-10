@@ -123,6 +123,109 @@ class TestRelevanceScoring:
         score_novel = collector._score_suggestion(suggestion, snapshot, set())
         assert score_novel > score_covered
 
+    def test_high_activity_entity_scores_higher(self):
+        """Trigger entity with many state changes scores higher than one with few."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "sensor.motion"},
+                "action": {"service": "light.turn_on", "entity_id": "light.room"},
+            }
+        }
+        # 50 state changes = high activity
+        high_history = [{"entity_id": "sensor.motion"} for _ in range(50)]
+        # 2 state changes = low activity
+        low_history = [{"entity_id": "sensor.motion"} for _ in range(2)]
+
+        score_high = collector._score_suggestion(
+            suggestion, {"recorder_history": high_history}, set()
+        )
+        score_low = collector._score_suggestion(
+            suggestion, {"recorder_history": low_history}, set()
+        )
+        assert score_high > score_low
+
+    def test_zero_activity_scores_zero(self):
+        """Trigger entity with no state changes gets activity score of 0."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "sensor.temp"},
+                "action": {"service": "climate.set_temperature", "entity_id": "climate.hvac"},
+            }
+        }
+        # History exists but not for trigger entity
+        snapshot = self._make_snapshot(history_entities=["light.other"])
+        score = collector._score_suggestion(suggestion, snapshot, set())
+        # With high activity, score should be higher
+        high_history = [{"entity_id": "sensor.temp"} for _ in range(50)]
+        score_active = collector._score_suggestion(
+            suggestion, {"recorder_history": high_history}, set()
+        )
+        assert score_active > score
+
+    def test_activity_scales_proportionally(self):
+        """Activity score scales linearly with state change count up to cap."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "sensor.motion"},
+                "action": {"service": "light.turn_on", "entity_id": "light.room"},
+            }
+        }
+        scores = []
+        for count in [5, 25, 50, 100]:
+            history = [{"entity_id": "sensor.motion"} for _ in range(count)]
+            s = collector._score_suggestion(
+                suggestion, {"recorder_history": history}, set()
+            )
+            scores.append(s)
+        # Each level should be >= previous (with cap at 50)
+        assert scores[0] < scores[1] < scores[2]
+        # 50 and 100 both hit the cap, so scores should be equal
+        assert scores[2] == scores[3]
+
+    def test_multiple_trigger_entities_averaged(self):
+        """Activity score averages across multiple trigger entities."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": [
+                    {"platform": "state", "entity_id": "sensor.motion"},
+                    {"platform": "state", "entity_id": "sensor.door"},
+                ],
+                "action": {"service": "light.turn_on", "entity_id": "light.room"},
+            }
+        }
+        # motion has 50 changes (score 1.0), door has 0 (score 0.0) → avg 0.5
+        history = [{"entity_id": "sensor.motion"} for _ in range(50)]
+        score_mixed = collector._score_suggestion(
+            suggestion, {"recorder_history": history}, set()
+        )
+        # Both have 50 changes → avg 1.0
+        history_both = history + [{"entity_id": "sensor.door"} for _ in range(50)]
+        score_both = collector._score_suggestion(
+            suggestion, {"recorder_history": history_both}, set()
+        )
+        assert score_both > score_mixed
+
+    def test_low_activity_not_excluded(self):
+        """Low-activity entities still score above zero — not excluded, just ranked lower."""
+        collector = self._make_collector()
+        suggestion = {
+            "automation_data": {
+                "trigger": {"platform": "state", "entity_id": "sensor.temp"},
+                "action": {"service": "climate.set_temperature", "entity_id": "climate.hvac"},
+            }
+        }
+        # Only 1 state change — very low activity
+        low_history = [{"entity_id": "sensor.temp"}]
+        score = collector._score_suggestion(
+            suggestion, {"recorder_history": low_history}, set()
+        )
+        # Should still be positive (low activity, not zero)
+        assert score > 0
+
 
 class TestExtractEntityIds:
     """Test the _extract_entity_ids helper."""

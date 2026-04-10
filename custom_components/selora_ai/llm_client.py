@@ -1426,10 +1426,8 @@ class LLMClient:
         for h in history:
             eid = h.get("entity_id", "")
             history_counts[eid] = history_counts.get(eid, 0) + 1
-        history_lines = [
-            f"  - {eid}: {count} state changes"
-            for eid, count in sorted(history_counts.items(), key=lambda x: -x[1])
-        ]
+        sorted_by_activity = sorted(history_counts.items(), key=lambda x: -x[1])
+        history_lines = [f"  - {eid}: {count} state changes" for eid, count in sorted_by_activity]
 
         # Build device category section for cross-category hints
         category_section = self._build_category_section(entities)

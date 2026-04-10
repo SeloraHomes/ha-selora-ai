@@ -807,6 +807,9 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
 MIN_RELEVANCE_SCORE = 0.3  # Suggestions below this are filtered out
 RELEVANCE_WEIGHT_CROSS_DEVICE = 0.30  # Connects multiple devices/domains
 RELEVANCE_WEIGHT_ACTIVITY = 0.25  # Trigger entity has recent state changes
+# State changes per entity that maps to a perfect activity score (1.0).
+# Entities with fewer changes score proportionally lower.
+ACTIVITY_HIGH_THRESHOLD = 50
 RELEVANCE_WEIGHT_COVERAGE = 0.20  # Covers entities not in existing automations
 RELEVANCE_WEIGHT_CATEGORY = 0.10  # Safety/security/energy bonus
 RELEVANCE_WEIGHT_COMPLEXITY = 0.05  # Has conditions, multiple actions, etc.
