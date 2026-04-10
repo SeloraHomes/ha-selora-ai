@@ -37,6 +37,7 @@ from .automation_utils import (
     validate_automation_payload,
 )
 from .const import (
+    ACTIVITY_HIGH_THRESHOLD,
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     CATEGORY_LINK_WEIGHTS,
@@ -469,11 +470,21 @@ class DataCollector:
             except Exception:
                 _LOGGER.debug("Could not read automations.yaml for coverage scoring")
 
+            # Pre-compute entity change counts once for all suggestions
+            history = snapshot.get("recorder_history", [])
+            entity_change_counts: dict[str, int] = {}
+            for h in history:
+                eid = h.get("entity_id")
+                if eid:
+                    entity_change_counts[eid] = entity_change_counts.get(eid, 0) + 1
+
             # Score and filter suggestions by relevance
             pre_score_count = len(enriched)
             scored: list[dict[str, Any]] = []
             for s in enriched:
-                score = self._score_suggestion(s, snapshot, existing_auto_entity_ids)
+                score = self._score_suggestion(
+                    s, snapshot, existing_auto_entity_ids, entity_change_counts
+                )
                 s["relevance_score"] = score
                 if score < MIN_RELEVANCE_SCORE:
                     _LOGGER.info(
@@ -1016,6 +1027,7 @@ class DataCollector:
         suggestion: dict[str, Any],
         snapshot: dict[str, Any],
         existing_entity_ids: set[str],
+        entity_change_counts: dict[str, int] | None = None,
     ) -> float:
         """Score a suggestion 0.0-1.0 based on multiple relevance factors."""
         automation = suggestion.get("automation_data", suggestion)
@@ -1043,12 +1055,23 @@ class DataCollector:
         else:
             scores["cross_device"] = 0.5  # Can't determine, neutral
 
-        # 2. Activity-aligned: trigger entities have state changes in history
-        history = snapshot.get("recorder_history", [])
-        history_entities = {h.get("entity_id") for h in history if h.get("entity_id")}
+        # 2. Activity-aligned: score based on how frequently trigger entities
+        # change state. More frequent = higher score (capped at ACTIVITY_HIGH_THRESHOLD).
+        if entity_change_counts is None:
+            # Fallback: build counts from snapshot (used by tests)
+            history = snapshot.get("recorder_history", [])
+            entity_change_counts = {}
+            for h in history:
+                eid = h.get("entity_id")
+                if eid:
+                    entity_change_counts[eid] = entity_change_counts.get(eid, 0) + 1
+
         if trigger_entities:
-            active_count = sum(1 for e in trigger_entities if e in history_entities)
-            scores["activity"] = active_count / len(trigger_entities)
+            entity_scores = []
+            for e in trigger_entities:
+                count = entity_change_counts.get(e, 0)
+                entity_scores.append(min(count / ACTIVITY_HIGH_THRESHOLD, 1.0))
+            scores["activity"] = sum(entity_scores) / len(entity_scores)
         else:
             scores["activity"] = 0.3  # No triggers identifiable, slight penalty
 
