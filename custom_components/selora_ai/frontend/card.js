@@ -2444,7 +2444,7 @@ var SeloraAIDashboardCard = class extends s4 {
     }
   }
   _openPanel() {
-    history.pushState(null, "", "/selora-ai-architect?tab=automations");
+    history.pushState(null, "", "/selora-ai?tab=automations");
     window.dispatchEvent(new Event("location-changed"));
   }
   // -------------------------------------------------------------------------
@@ -2777,11 +2777,7 @@ var SeloraAIDashboardCard = class extends s4 {
                   <button
                     class="detail-btn open-btn"
                     @click=${() => {
-                      history.pushState(
-                        null,
-                        "",
-                        "/selora-ai-architect?tab=automations",
-                      );
+                      history.pushState(null, "", "/selora-ai?tab=automations");
                       window.dispatchEvent(new Event("location-changed"));
                     }}
                   >

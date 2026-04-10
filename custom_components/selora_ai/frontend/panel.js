@@ -8412,7 +8412,7 @@ function _sha256(msgBytes) {
   );
   return out;
 }
-var SeloraAIArchitectPanel = class extends s4 {
+var SeloraAIPanel = class extends s4 {
   static get properties() {
     return {
       hass: { type: Object },
@@ -9609,12 +9609,12 @@ var SeloraAIArchitectPanel = class extends s4 {
     `;
   }
 };
-Object.assign(SeloraAIArchitectPanel.prototype, session_actions_exports);
-Object.assign(SeloraAIArchitectPanel.prototype, suggestion_actions_exports);
-Object.assign(SeloraAIArchitectPanel.prototype, chat_actions_exports);
-Object.assign(SeloraAIArchitectPanel.prototype, automation_crud_exports);
-Object.assign(SeloraAIArchitectPanel.prototype, automation_management_exports);
-customElements.define("selora-ai-architect", SeloraAIArchitectPanel);
+Object.assign(SeloraAIPanel.prototype, session_actions_exports);
+Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
+Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
+Object.assign(SeloraAIPanel.prototype, automation_crud_exports);
+Object.assign(SeloraAIPanel.prototype, automation_management_exports);
+customElements.define("selora-ai", SeloraAIPanel);
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

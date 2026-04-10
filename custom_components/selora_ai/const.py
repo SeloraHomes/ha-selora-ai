@@ -921,10 +921,10 @@ PROTECTED_DOMAINS = {
 }
 
 # ── Side Panel ──────────────────────────────────────────────────────
-PANEL_NAME = "selora-ai-architect"
+PANEL_NAME = "selora-ai"
 PANEL_TITLE = "Selora AI"
 PANEL_ICON = "mdi:apple-keyboard-command"
-PANEL_PATH = "selora-ai-architect"
+PANEL_PATH = "selora-ai"
 
 # ── HA Recorder ──────────────────────────────────────────────────────
 # Historical data source (SQLite) for pattern detection.

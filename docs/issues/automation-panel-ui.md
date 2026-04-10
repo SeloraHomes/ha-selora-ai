@@ -15,7 +15,7 @@ Expose the version history, diff comparison, soft delete, and restore capabiliti
 
 ## Background / Current State
 
-The side panel (`/selora-ai-architect`) is websocket-driven. The `get_automations` handler (`__init__.py:729–796`) currently returns live HA automation state. With the lifecycle backend in place, it will also return `version_count`, `current_version_id`, `deleted_at`, and `is_deleted` per automation. The panel has no UI today for surfacing any of this metadata.
+The side panel (`/selora-ai`) is websocket-driven. The `get_automations` handler (`__init__.py:729–796`) currently returns live HA automation state. With the lifecycle backend in place, it will also return `version_count`, `current_version_id`, `deleted_at`, and `is_deleted` per automation. The panel has no UI today for surfacing any of this metadata.
 
 ---
 

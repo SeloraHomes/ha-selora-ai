@@ -288,7 +288,7 @@ class SeloraAIDashboardCard extends LitElement {
   }
 
   _openPanel() {
-    history.pushState(null, "", "/selora-ai-architect?tab=automations");
+    history.pushState(null, "", "/selora-ai?tab=automations");
     window.dispatchEvent(new Event("location-changed"));
   }
 
@@ -630,11 +630,7 @@ class SeloraAIDashboardCard extends LitElement {
                   <button
                     class="detail-btn open-btn"
                     @click=${() => {
-                      history.pushState(
-                        null,
-                        "",
-                        "/selora-ai-architect?tab=automations",
-                      );
+                      history.pushState(null, "", "/selora-ai?tab=automations");
                       window.dispatchEvent(new Event("location-changed"));
                     }}
                   >

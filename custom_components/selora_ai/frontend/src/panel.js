@@ -117,7 +117,7 @@ function _sha256(msgBytes) {
 // Tabs within right pane: Chat | Automations | Settings
 // ---------------------------------------------------------------------------
 
-class SeloraAIArchitectPanel extends LitElement {
+class SeloraAIPanel extends LitElement {
   static get properties() {
     return {
       hass: { type: Object },
@@ -1433,10 +1433,10 @@ class SeloraAIArchitectPanel extends LitElement {
 }
 
 // Attach extracted business logic to prototype
-Object.assign(SeloraAIArchitectPanel.prototype, sessionActions);
-Object.assign(SeloraAIArchitectPanel.prototype, suggestionActions);
-Object.assign(SeloraAIArchitectPanel.prototype, chatActions);
-Object.assign(SeloraAIArchitectPanel.prototype, automationCrud);
-Object.assign(SeloraAIArchitectPanel.prototype, automationManagement);
+Object.assign(SeloraAIPanel.prototype, sessionActions);
+Object.assign(SeloraAIPanel.prototype, suggestionActions);
+Object.assign(SeloraAIPanel.prototype, chatActions);
+Object.assign(SeloraAIPanel.prototype, automationCrud);
+Object.assign(SeloraAIPanel.prototype, automationManagement);
 
-customElements.define("selora-ai-architect", SeloraAIArchitectPanel);
+customElements.define("selora-ai", SeloraAIPanel);
