@@ -95,25 +95,37 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
 
 
-# ── Tool policy prompt (loaded eagerly to avoid blocking I/O on the event loop)
+# ── Prompt files (loaded from disk at import time) ──────────────────
 def _load_tool_policy() -> str:
     """Return the tool usage policy text."""
     return _TOOL_POLICY_TEXT
 
 
-def _read_tool_policy() -> str:
-    """Read tool_policy.md from disk (called at import time)."""
-    from pathlib import Path
-
-    policy_path = Path(__file__).parent / "prompts" / "tool_policy.md"
-    try:
-        return policy_path.read_text(encoding="utf-8")
-    except FileNotFoundError:
-        _LOGGER.warning("Tool policy file not found at %s", policy_path)
-        return ""
+def _load_device_knowledge() -> str:
+    """Return the smart device domain knowledge (loaded at module import time)."""
+    return _DEVICE_KNOWLEDGE_TEXT
 
 
-_TOOL_POLICY_TEXT: str = _read_tool_policy()
+# Load at import time — before the event loop starts — to avoid blocking I/O warnings.
+from pathlib import Path as _Path  # noqa: E402
+
+_prompts_dir = _Path(__file__).parent / "prompts"
+
+_policy_path = _prompts_dir / "tool_policy.md"
+try:
+    _TOOL_POLICY_TEXT: str = _policy_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    _LOGGER.warning("Tool policy file not found at %s", _policy_path)
+    _TOOL_POLICY_TEXT = ""
+
+_knowledge_path = _prompts_dir / "device_knowledge.md"
+try:
+    _DEVICE_KNOWLEDGE_TEXT: str = _knowledge_path.read_text(encoding="utf-8")
+except FileNotFoundError:
+    _LOGGER.warning("Device knowledge file not found at %s", _knowledge_path)
+    _DEVICE_KNOWLEDGE_TEXT = ""
+
+del _policy_path, _knowledge_path, _prompts_dir
 
 
 def _sanitize_untrusted_text(value: Any) -> str:
@@ -936,6 +948,8 @@ class LLMClient:
             "so the user can verify what was acted on.\n"
             '- The structured "description" field MUST remain a precise, complete summary '
             "including all targeted entities so the user can verify before enabling.\n"
+            + "\n"
+            + _load_device_knowledge()
         )
 
     def _parse_architect_response(self, text: str) -> dict[str, Any]:
@@ -1158,6 +1172,8 @@ class LLMClient:
             "including all targeted entities so the user can verify before enabling.\n"
             "- Skip bullet lists unless comparing options or giving step-by-step instructions. "
             "For simple answers, prefer a single flowing sentence.\n"
+            + "\n"
+            + _load_device_knowledge()
         )
 
     def parse_streamed_response(

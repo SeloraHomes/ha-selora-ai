@@ -733,6 +733,7 @@ async def _handle_websocket_chat_stream(
                     else None,
                     "validation_error": parsed.get("validation_error"),
                     "refining_automation_id": refining_automation_id,
+                    "devices": tool_executor.device_results if tool_executor else None,
                 },
             )
         )

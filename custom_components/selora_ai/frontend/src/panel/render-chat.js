@@ -409,6 +409,9 @@ export function renderMessage(host, msg, idx) {
                     `
                   : ""}
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                ${msg.devices && msg.devices.length
+                  ? renderDeviceCards(msg.devices)
+                  : ""}
               </div>
               <div
                 class="bubble-meta"
@@ -433,6 +436,144 @@ export function renderMessage(host, msg, idx) {
             You · ${formatTime(msg.timestamp)}
           </div>`
         : ""}
+    </div>
+  `;
+}
+
+// ── Device cards ──────────────────────────────────────────────────────
+
+const DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  climate: "mdi:thermostat",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  vacuum: "mdi:robot-vacuum",
+  sensor: "mdi:eye",
+  binary_sensor: "mdi:motion-sensor",
+  water_heater: "mdi:water-boiler",
+  humidifier: "mdi:air-humidifier",
+  camera: "mdi:cctv",
+  device_tracker: "mdi:map-marker",
+};
+
+function _deviceIcon(domains) {
+  for (const d of domains || []) {
+    if (DOMAIN_ICONS[d]) return DOMAIN_ICONS[d];
+  }
+  return "mdi:devices";
+}
+
+function _stateColor(state) {
+  if (!state) return "var(--selora-zinc-400)";
+  const s = state.toLowerCase();
+  if (
+    [
+      "on",
+      "home",
+      "open",
+      "unlocked",
+      "playing",
+      "heating",
+      "cooling",
+      "cleaning",
+    ].includes(s)
+  )
+    return "var(--selora-accent)";
+  if (
+    [
+      "off",
+      "closed",
+      "locked",
+      "docked",
+      "idle",
+      "standby",
+      "not_home",
+      "paused",
+    ].includes(s)
+  )
+    return "var(--selora-zinc-400)";
+  if (["unavailable", "unknown", "error", "jammed"].includes(s))
+    return "#ef4444";
+  return "var(--selora-zinc-200)";
+}
+
+function _primaryState(device) {
+  // Show the state of the first entity
+  if (device.entities && device.entities.length > 0) {
+    return device.entities[0].state || "unknown";
+  }
+  // For list_devices results, entities are just IDs — no state available
+  return null;
+}
+
+export function renderDeviceCards(devices) {
+  if (!devices || !devices.length) return "";
+  return html`
+    <div
+      class="device-cards"
+      style="
+      display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;
+    "
+    >
+      ${devices.map((d) => {
+        const state = _primaryState(d);
+        return html`
+          <div
+            style="
+            flex:1 1 180px;max-width:240px;
+            border:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+            border-radius:12px;
+            background:var(--selora-inner-card-bg, var(--primary-background-color, #18181b));
+            padding:10px 12px;
+            display:flex;flex-direction:column;gap:4px;
+          "
+          >
+            <div style="display:flex;align-items:center;gap:6px;">
+              <ha-icon
+                icon=${_deviceIcon(d.domains)}
+                style="--mdc-icon-size:18px;color:var(--selora-accent);"
+              ></ha-icon>
+              <span
+                style="font-weight:600;font-size:13px;color:var(--selora-zinc-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+              >
+                ${d.name || "Unknown"}
+              </span>
+            </div>
+            ${d.area
+              ? html`
+                  <span style="font-size:11px;color:var(--selora-zinc-400);">
+                    ${d.area}
+                  </span>
+                `
+              : ""}
+            <div
+              style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"
+            >
+              ${d.manufacturer
+                ? html`
+                    <span style="font-size:11px;color:var(--selora-zinc-400);">
+                      ${d.manufacturer}${d.model ? ` · ${d.model}` : ""}
+                    </span>
+                  `
+                : ""}
+              ${state
+                ? html`
+                    <span
+                      style="font-size:11px;font-weight:600;color:${_stateColor(
+                        state,
+                      )};"
+                    >
+                      ${state}
+                    </span>
+                  `
+                : ""}
+            </div>
+          </div>
+        `;
+      })}
     </div>
   `;
 }

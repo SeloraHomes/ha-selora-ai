@@ -32,6 +32,12 @@ class ToolExecutor:
         self._hass = hass
         self._device_manager = device_manager
         self._is_admin = is_admin
+        self._device_results: dict[str, dict[str, Any]] = {}
+
+    @property
+    def device_results(self) -> list[dict[str, Any]]:
+        """Return deduplicated device data collected during tool execution."""
+        return list(self._device_results.values())
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return a JSON-serialisable result."""
@@ -54,7 +60,17 @@ class ToolExecutor:
             _LOGGER.exception("Tool %s execution failed", tool_name)
             return {"error": f"Tool execution failed: {exc}"}
 
-        return _truncate_result(result)
+        truncated = _truncate_result(result)
+
+        # Capture device data for frontend rendering (dedup by device_id)
+        if tool_name == "list_devices" and "devices" in truncated:
+            for dev in truncated["devices"]:
+                if did := dev.get("device_id"):
+                    self._device_results[did] = dev
+        elif tool_name == "get_device" and (did := truncated.get("device_id")):
+            self._device_results[did] = truncated
+
+        return truncated
 
     @property
     def _handlers(self) -> dict[str, Any]:
@@ -65,6 +81,8 @@ class ToolExecutor:
             "list_discovered_flows": self._list_discovered_flows,
             "start_device_flow": self._start_device_flow,
             "accept_device_flow": self._accept_device_flow,
+            "list_devices": self._list_devices,
+            "get_device": self._get_device,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -80,6 +98,16 @@ class ToolExecutor:
     async def _list_discovered_flows(self, _arguments: dict[str, Any]) -> dict[str, Any]:
         flows = await self._device_manager.list_discovered()
         return {"flows": flows}
+
+    async def _list_devices(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_list_devices
+
+        return await _tool_list_devices(self._hass, arguments)
+
+    async def _get_device(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_get_device
+
+        return await _tool_get_device(self._hass, arguments)
 
     # ── Write tools (admin-only, checked in execute()) ──────────────
 

@@ -16,6 +16,11 @@ Phase 1 tools
   selora_chat                 Natural-language chat with Selora's LLM
   selora_list_sessions        Recent conversation sessions
 
+Phase 2 tools (device data)
+───────────────────────────
+  selora_list_devices         List HA devices with area/domain filters
+  selora_get_device           Full device detail with entities and current states
+
 Security
 ────────
   - Dual auth: HA Bearer token (middleware) OR Selora Connect JWT (HS256)
@@ -140,6 +145,8 @@ TOOL_LIST_SUGGESTIONS = "selora_list_suggestions"
 TOOL_ACCEPT_SUGGESTION = "selora_accept_suggestion"
 TOOL_DISMISS_SUGGESTION = "selora_dismiss_suggestion"
 TOOL_TRIGGER_SCAN = "selora_trigger_scan"
+TOOL_LIST_DEVICES = "selora_list_devices"
+TOOL_GET_DEVICE = "selora_get_device"
 
 
 # ── Registration ───────────────────────────────────────────────────────────────
@@ -574,6 +581,10 @@ async def _dispatch(
         elif name == TOOL_TRIGGER_SCAN:
             _require_admin(is_admin)
             result = await _tool_trigger_scan(hass)
+        elif name == TOOL_LIST_DEVICES:
+            result = await _tool_list_devices(hass, arguments)
+        elif name == TOOL_GET_DEVICE:
+            result = await _tool_get_device(hass, arguments)
         else:
             result = {"error": f"Unknown tool: {name}"}
     except Unauthorized as exc:
@@ -1031,6 +1042,175 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     areas = {k: v for k, v in areas.items() if v}
 
     return {"areas": areas, "unassigned": unassigned}
+
+
+# ── Tool: selora_list_devices ──────────────────────────────────────────────────
+
+
+async def _tool_list_devices(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """List HA devices with optional area and domain filters."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    area_reg = ar.async_get(hass)
+
+    area_filter = (arguments.get("area") or "").strip().lower()
+    domain_filter = (arguments.get("domain") or "").strip().lower()
+
+    # Build area_id → area_name map
+    area_names: dict[str, str] = {area.id: area.name for area in area_reg.async_list_areas()}
+
+    # Build config_entry_id → domain map for O(1) integration lookup
+    entry_domains: dict[str, str] = {
+        ce.entry_id: ce.domain for ce in hass.config_entries.async_entries()
+    }
+
+    devices: list[dict[str, Any]] = []
+    for device in dev_reg.devices.values():
+        # Resolve area name
+        area_name = area_names.get(device.area_id or "") or ""
+
+        # Apply area filter (case-insensitive substring match)
+        if area_filter and area_filter not in area_name.lower():
+            continue
+
+        # Collect entities for this device in collector domains
+        entities: list[dict[str, str]] = []
+        device_domains: set[str] = set()
+        for entity in er.async_entries_for_device(ent_reg, device.id):
+            domain = entity.entity_id.split(".")[0]
+            if domain in COLLECTOR_DOMAINS:
+                state_obj = hass.states.get(entity.entity_id)
+                entities.append(
+                    {
+                        "entity_id": entity.entity_id,
+                        "state": _format_state_value(state_obj.state) if state_obj else "unknown",
+                    }
+                )
+                device_domains.add(domain)
+
+        # Skip devices with no entities in collector domains
+        if not entities:
+            continue
+
+        # Apply domain filter
+        if domain_filter and domain_filter not in device_domains:
+            continue
+
+        integration = _sanitize(entry_domains.get(device.primary_config_entry or "", ""))
+
+        devices.append(
+            {
+                "device_id": device.id,
+                "name": _sanitize(device.name or device.name_by_user or "Unknown"),
+                "area": _sanitize(area_name) if area_name else None,
+                "manufacturer": _sanitize(device.manufacturer or ""),
+                "model": _sanitize(device.model or ""),
+                "integration": integration,
+                "domains": sorted(device_domains),
+                "entities": entities,
+            }
+        )
+
+    return {"devices": devices, "count": len(devices)}
+
+
+# ── Tool: selora_get_device ────────────────────────────────────────────────────
+
+
+async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Return full detail for a single device with entity states."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    device_id = str(arguments.get("device_id", "")).strip()
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get(device_id)
+    if device is None:
+        return {"error": f"Device {_sanitize(device_id)} not found"}
+
+    ent_reg = er.async_get(hass)
+    area_reg = ar.async_get(hass)
+
+    # Resolve area
+    area_name = ""
+    if device.area_id:
+        area = area_reg.async_get_area(device.area_id)
+        area_name = area.name if area else ""
+
+    # Resolve integration domain
+    integration = ""
+    if device.primary_config_entry:
+        ce = hass.config_entries.async_get_entry(device.primary_config_entry)
+        if ce is not None:
+            integration = ce.domain
+
+    # Collect entities with current states
+    entities: list[dict[str, Any]] = []
+    for entity in er.async_entries_for_device(ent_reg, device.id):
+        domain = entity.entity_id.split(".")[0]
+        if domain not in COLLECTOR_DOMAINS:
+            continue
+
+        state = hass.states.get(entity.entity_id)
+        entity_entry: dict[str, Any] = {
+            "entity_id": entity.entity_id,
+            "domain": domain,
+            "name": _sanitize(entity.name or entity.original_name or entity.entity_id),
+            "state": _format_state_value(state.state) if state else "unavailable",
+        }
+
+        # Include key attributes based on domain
+        if state and state.attributes:
+            attrs = state.attributes
+            filtered: dict[str, Any] = {}
+            if "friendly_name" in attrs:
+                filtered["friendly_name"] = _sanitize(attrs["friendly_name"])
+            if "device_class" in attrs:
+                filtered["device_class"] = str(attrs["device_class"])
+            if "unit_of_measurement" in attrs:
+                filtered["unit_of_measurement"] = str(attrs["unit_of_measurement"])
+            # Domain-specific attributes
+            if domain == "climate":
+                for key in ("temperature", "current_temperature", "hvac_action"):
+                    if key in attrs:
+                        filtered[key] = attrs[key]
+            elif domain == "light":
+                for key in ("brightness", "color_temp", "color_mode"):
+                    if key in attrs:
+                        filtered[key] = attrs[key]
+            elif domain == "cover":
+                for key in ("current_position",):
+                    if key in attrs:
+                        filtered[key] = attrs[key]
+            elif domain == "fan":
+                for key in ("percentage", "preset_mode"):
+                    if key in attrs:
+                        filtered[key] = attrs[key]
+            if filtered:
+                entity_entry["attributes"] = filtered
+
+        entities.append(entity_entry)
+
+    return {
+        "device_id": device.id,
+        "name": _sanitize(device.name or device.name_by_user or "Unknown"),
+        "area": _sanitize(area_name) if area_name else None,
+        "manufacturer": _sanitize(device.manufacturer or ""),
+        "model": _sanitize(device.model or ""),
+        "sw_version": _sanitize(device.sw_version or ""),
+        "hw_version": _sanitize(device.hw_version or ""),
+        "integration": _sanitize(integration),
+        "via_device_id": device.via_device_id,
+        "entities": entities,
+    }
 
 
 # ── Tool: selora_chat ─────────────────────────────────────────────────────────
@@ -1788,5 +1968,43 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
             "cached metadata when called too frequently. Requires admin access."
         ),
         inputSchema={"type": "object", "properties": {}},
+    ),
+    # ── Phase 2: Device data ──
+    MCPTool(
+        name=TOOL_LIST_DEVICES,
+        description=(
+            "List Home Assistant devices tracked by Selora AI with their area, manufacturer, "
+            "model, integration, and entity IDs. Supports optional area and domain filters."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "area": {
+                    "type": "string",
+                    "description": "Filter by area name (case-insensitive substring match).",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": ("Filter by entity domain (e.g. light, climate, lock)."),
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_GET_DEVICE,
+        description=(
+            "Return full detail for a single Home Assistant device: metadata, "
+            "all associated entities, and their current states and key attributes."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["device_id"],
+            "properties": {
+                "device_id": {
+                    "type": "string",
+                    "description": "The HA device registry ID.",
+                }
+            },
+        },
     ),
 ]
