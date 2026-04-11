@@ -313,3 +313,169 @@ class TestAuthenticateRequest:
 
         assert ctx.auth_type == "ha_token"
         assert ctx.is_admin is False
+
+    @pytest.mark.asyncio
+    async def test_mcp_token_auth(self) -> None:
+        """MCP token (smt_ prefix) should be validated via the token store."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        hass.auth.async_validate_access_token.return_value = None
+
+        token_meta = {
+            "id": "tok-1",
+            "name": "Test",
+            "permission_level": "admin",
+            "allowed_tools": None,
+            "created_by_user_id": "user-1",
+        }
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock(return_value=token_meta)
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": False,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_test_token_value"}
+
+        ctx = await authenticate_request(hass, request, None, mock_store)
+
+        assert ctx.auth_type == "mcp_token"
+        assert ctx.is_admin is True
+        assert ctx.token_id == "tok-1"
+        mock_store.async_validate_token.assert_called_once_with("smt_test_token_value")
+
+    @pytest.mark.asyncio
+    async def test_mcp_token_read_only(self) -> None:
+        """Read-only MCP token should have is_admin=False."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        hass.auth.async_validate_access_token.return_value = None
+
+        token_meta = {
+            "id": "tok-2",
+            "name": "ReadOnly",
+            "permission_level": "read_only",
+            "allowed_tools": None,
+            "created_by_user_id": "user-1",
+        }
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock(return_value=token_meta)
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": False,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_readonly_token"}
+
+        ctx = await authenticate_request(hass, request, None, mock_store)
+
+        assert ctx.auth_type == "mcp_token"
+        assert ctx.is_admin is False
+
+    @pytest.mark.asyncio
+    async def test_mcp_token_custom_tools(self) -> None:
+        """Custom MCP token should carry allowed_tools."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        hass.auth.async_validate_access_token.return_value = None
+
+        token_meta = {
+            "id": "tok-3",
+            "name": "Custom",
+            "permission_level": "custom",
+            "allowed_tools": ["selora_list_automations", "selora_get_automation"],
+            "created_by_user_id": "user-1",
+        }
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock(return_value=token_meta)
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": False,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_custom_token"}
+
+        ctx = await authenticate_request(hass, request, None, mock_store)
+
+        assert ctx.auth_type == "mcp_token"
+        assert ctx.allowed_tools == frozenset({"selora_list_automations", "selora_get_automation"})
+
+    @pytest.mark.asyncio
+    async def test_mcp_token_invalid_raises(self) -> None:
+        """Invalid MCP token should raise AuthenticationError."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        hass.auth.async_validate_access_token.return_value = None
+
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock(return_value=None)
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": False,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_bad_token"}
+
+        with pytest.raises(AuthenticationError, match="Invalid or expired MCP token"):
+            await authenticate_request(hass, request, None, mock_store)
+
+    @pytest.mark.asyncio
+    async def test_ha_token_takes_priority_over_mcp_token(self) -> None:
+        """HA token should be preferred even when smt_ token is present."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        user = MagicMock()
+        user.id = "ha-user-789"
+        user.is_admin = True
+
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock()
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": True,
+            "hass_user": user,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_should_not_be_checked"}
+
+        ctx = await authenticate_request(hass, request, None, mock_store)
+
+        assert ctx.auth_type == "ha_token"
+        mock_store.async_validate_token.assert_not_called()
+
+    @pytest.mark.asyncio
+    async def test_read_only_token_ignores_allowed_tools(self) -> None:
+        """A read_only token with allowed_tools set should ignore the allowlist."""
+        from unittest.mock import AsyncMock
+
+        hass = MagicMock()
+        hass.auth.async_validate_access_token.return_value = None
+
+        # Attacker crafted: read_only but with admin tools in allowed_tools
+        token_meta = {
+            "id": "tok-evil",
+            "name": "Sneaky",
+            "permission_level": "read_only",
+            "allowed_tools": ["selora_trigger_scan", "selora_delete_automation"],
+            "created_by_user_id": "user-1",
+        }
+        mock_store = MagicMock()
+        mock_store.async_validate_token = AsyncMock(return_value=token_meta)
+
+        request = MagicMock()
+        request.get = lambda key, default=None: {
+            "ha_authenticated": False,
+        }.get(key, default)
+        request.headers = {"Authorization": "Bearer smt_sneaky_token"}
+
+        ctx = await authenticate_request(hass, request, None, mock_store)
+
+        assert ctx.auth_type == "mcp_token"
+        assert ctx.is_admin is False
+        # allowed_tools must be None — read_only ignores any stored allowlist
+        assert ctx.allowed_tools is None

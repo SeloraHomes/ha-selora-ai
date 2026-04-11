@@ -979,3 +979,15 @@ SELORA_JWT_ISSUER = DEFAULT_SELORA_CONNECT_URL  # default; overridden by entry d
 SELORA_JWT_MAX_SIZE = 8192  # bytes — reject tokens larger than this before decode
 SELORA_JWT_LEEWAY_SECONDS = 30  # clock skew tolerance for exp/nbf
 SELORA_ADMIN_ROLES = frozenset({"owner", "member"})
+
+# ── Selora MCP Tokens (local API keys) ───────────────────────────────
+MCP_TOKEN_STORE_KEY = f"{DOMAIN}.mcp_tokens"
+MCP_TOKEN_STORE_VERSION = 1
+MCP_TOKEN_PREFIX = "smt_"
+MCP_TOKEN_MAX_COUNT = 50
+MCP_TOKEN_PERMISSION_READ_ONLY = "read_only"
+MCP_TOKEN_PERMISSION_ADMIN = "admin"
+MCP_TOKEN_PERMISSION_CUSTOM = "custom"
+MCP_TOKEN_VALID_PERMISSIONS = frozenset(
+    {MCP_TOKEN_PERMISSION_READ_ONLY, MCP_TOKEN_PERMISSION_ADMIN, MCP_TOKEN_PERMISSION_CUSTOM}
+)

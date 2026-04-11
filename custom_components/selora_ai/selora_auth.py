@@ -1,11 +1,13 @@
-"""Selora Connect OAuth 2.0 — JWT validation and dual-auth orchestration.
+"""Selora Connect OAuth 2.0 — JWT validation and multi-auth orchestration.
 
-MCP clients can authenticate via either:
+MCP clients can authenticate via:
   1. Home Assistant long-lived access token (existing path)
-  2. Selora Connect JWT (OAuth 2.0 access token, per-installation HS256)
+  2. Selora MCP token (locally-created API key with per-tool permissions)
+  3. Selora Connect JWT (OAuth 2.0 access token, per-installation HS256)
 
 The authenticate_request() function tries HA auth first (set by HA middleware),
-then falls back to Selora JWT validation if a validator is configured.
+then checks for a Selora MCP token (``smt_`` prefix), and finally falls back
+to Selora JWT validation if a validator is configured.
 
 Key derivation (done by Connect, stored in config entry):
   HMAC-SHA256(jwtSecret, "mcp-auth:" + installationID)
@@ -16,12 +18,18 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from aiohttp import web
 from homeassistant.core import HomeAssistant
 
+if TYPE_CHECKING:
+    from .mcp_token_store import MCPTokenStore
+
 from .const import (
+    MCP_TOKEN_PERMISSION_ADMIN,
+    MCP_TOKEN_PERMISSION_CUSTOM,
+    MCP_TOKEN_PREFIX,
     SELORA_ADMIN_ROLES,
     SELORA_JWT_ALGORITHM,
     SELORA_JWT_ISSUER,
@@ -59,7 +67,9 @@ class SeloraAuthContext:
     user_id: str
     email: str | None
     is_admin: bool
-    auth_type: str  # "ha_token" or "selora_jwt"
+    auth_type: str  # "ha_token", "selora_jwt", or "mcp_token"
+    allowed_tools: frozenset[str] | None = None  # None → use is_admin logic
+    token_id: str | None = None  # set only for mcp_token
 
 
 # ── JWT Validator ─────────────────────────────────────────────────────────────
@@ -140,10 +150,11 @@ async def authenticate_request(
     hass: HomeAssistant,
     request: web.Request,
     jwt_validator: SeloraJWTValidator | None,
+    mcp_token_store: MCPTokenStore | None = None,
 ) -> SeloraAuthContext:
-    """Authenticate an MCP request using HA token or Selora JWT.
+    """Authenticate an MCP request.
 
-    Priority: HA token (set by middleware) > manual HA token check > Selora JWT.
+    Priority: HA token (middleware) > manual HA token > Selora MCP token > Selora JWT.
 
     The MCP view uses ``requires_auth = False`` so that Selora-JWT requests
     are not rejected by the HA dispatch layer.  HA's auth middleware still
@@ -181,13 +192,41 @@ async def authenticate_request(
                 auth_type="ha_token",
             )
 
-    # Path 2: Try Selora JWT
+    # Path 2: Selora MCP token (prefix-gated for fast routing)
+    if mcp_token_store is not None and token is not None and token.startswith(MCP_TOKEN_PREFIX):
+        meta = await mcp_token_store.async_validate_token(token)
+        if meta is None:
+            raise AuthenticationError("Invalid or expired MCP token")
+        return _build_mcp_token_context(meta)
+
+    # Path 3: Try Selora JWT
     if jwt_validator is not None and token is not None:
         ctx = jwt_validator.validate(token)
         _LOGGER.debug("Selora Connect auth succeeded for user %s", ctx.user_id)
         return ctx
 
     raise AuthenticationError("Authentication required")
+
+
+def _build_mcp_token_context(meta: dict[str, Any]) -> SeloraAuthContext:
+    """Build an auth context from validated MCP token metadata."""
+    permission = meta["permission_level"]
+    is_admin = permission == MCP_TOKEN_PERMISSION_ADMIN
+
+    # Only honor allowed_tools for custom tokens.  read_only and admin
+    # tokens ignore any stored allowlist to prevent privilege escalation.
+    allowed_tools: frozenset[str] | None = None
+    if permission == MCP_TOKEN_PERMISSION_CUSTOM and meta.get("allowed_tools") is not None:
+        allowed_tools = frozenset(meta["allowed_tools"])
+
+    return SeloraAuthContext(
+        user_id=f"mcp_token:{meta['id']}",
+        email=None,
+        is_admin=is_admin,
+        auth_type="mcp_token",
+        allowed_tools=allowed_tools,
+        token_id=meta["id"],
+    )
 
 
 def _extract_bearer_token(request: web.Request) -> str | None:

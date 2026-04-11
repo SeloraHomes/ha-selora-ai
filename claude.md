@@ -35,6 +35,8 @@ custom_components/selora_ai/
 ├── device_manager.py    # Device discovery, pairing, area assignment, dashboard generation
 ├── button.py            # Hub action buttons (Discover, Scan, Cleanup, Reset)
 ├── sensor.py            # Hub sensors (Status, Devices, Discovery, Last Activity)
+├── selora_auth.py       # Multi-auth orchestration (HA token, MCP token, Selora JWT)
+├── mcp_token_store.py   # Local MCP API token store (CRUD, hash-only storage)
 ├── const.py             # Constants, config keys, known integrations database
 ├── manifest.json        # HA integration manifest
 ├── strings.json         # UI strings for config flow
@@ -131,6 +133,8 @@ Tests live in `tests/` and cover:
 - `test_config_flow.py` — multi-step config flow routing
 - `test_sensor.py` — sensor helper functions
 - `test_conversation.py` — HA Assist entity fallbacks
+- `test_selora_auth.py` — JWT validation, dual/multi-auth, MCP token auth path
+- `test_mcp_token_store.py` — token CRUD, hash validation, expiry, revocation
 
 ### JavaScript (Vitest)
 
