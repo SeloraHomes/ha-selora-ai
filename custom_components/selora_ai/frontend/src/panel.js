@@ -560,6 +560,7 @@ class SeloraAIPanel extends LitElement {
         code_challenge_method: "S256",
         state,
         scope: "mcp:provision",
+        device_name: this.hass?.config?.location_name || "Home Assistant",
       });
 
       // Navigate the already-open popup to the authorize URL

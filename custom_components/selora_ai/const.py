@@ -970,6 +970,9 @@ CONF_SELORA_CONNECT_ENABLED = "selora_connect_enabled"
 CONF_SELORA_CONNECT_URL = "selora_connect_url"
 CONF_SELORA_INSTALLATION_ID = "selora_installation_id"
 CONF_SELORA_JWT_KEY = "selora_jwt_key"  # base64-encoded per-installation derived key
+CONF_SELORA_MCP_URL = (
+    "selora_mcp_url"  # MCP endpoint URL (e.g. https://mcp-xxx.selorabox.com/api/selora_ai/mcp)
+)
 SELORA_JWT_ALGORITHM = "HS256"
 DEFAULT_SELORA_CONNECT_URL = "https://connect.selorahomes.com"
 SELORA_JWT_ISSUER = DEFAULT_SELORA_CONNECT_URL  # default; overridden by entry data
