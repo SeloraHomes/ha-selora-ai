@@ -1,3 +1,27 @@
+## [0.5.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.4.0...v0.5.0) (2026-04-11)
+
+### Features
+
+* add category link weights to scoring ([1ab4682](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1ab4682a4d4f736a9133efc363005aa4549d4434))
+* add MCP tokens with per-tool permissions ([82ec66d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/82ec66dc43206f86b4352e536876e5bfdb418c95))
+* expose MCP URL and relax JWT scopes ([524ba08](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/524ba087e431fd425ae2257b8a98c74b4b817a54))
+* per-device detail view in chat ([ffea725](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ffea7259c6efdb434f7f0e4566b0a5d1e8fa6ee3))
+* render device cards inline in chat ([bff6b4a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/bff6b4ab42b90639d6c6d9ca948b1601bd748064))
+* Selora Connect OAuth PKCE flow for MCP authentication ([e4bc64c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e4bc64c7a289e8b961faffe1eac92d9523a19607))
+* suggest automations based on most active devices ([ecb266b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ecb266b466097376601919ade790ef928c1527f8))
+* use accept/decline as LLM feedback ([f1d45c2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f1d45c2a6e56eddf38771d021a81b8e36720f5c0))
+
+### Bug Fixes
+
+* add correlation vs causality guardrails to pattern detection ([b17e4a0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b17e4a071ce0e3a0158f382ad1e3c86b0d32bd02))
+* add multi-factor relevance scoring for suggestions ([315c4af](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/315c4af41261aca5876c4348e5f4e84a3ac820fc))
+* cap background automation suggestions ([f17fa40](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f17fa4016fe4936740d986ab757a83ca71a1d9c3))
+* causality guardrail lifecycle and matching ([0f2ebcb](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0f2ebcbc3e87a448484470bc2db4b087fcd31ca2))
+* **ci:** upgrade GitHub Actions to Node.js 24 ([9a5985f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9a5985f896d9406d1fbebfe3d9f997152ca73ec8))
+* filter camera/light entities from LLM context ([998e6b6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/998e6b6a4819ad1b8cd1a0b3704dada60cb8c3f8))
+* redact API keys in LLM error messages ([7ee3c05](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7ee3c0580c5f39a880bdd68b204fe742fb3f3085))
+* **release:** remove non-feature items from v0.4.0 changelog ([93c6d81](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/93c6d812f36cf34acbd96b8fc87343700e3fa461))
+
 ## [0.4.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.3.2...v0.4.0) (2026-04-04)
 
 ### Bug Fixes
