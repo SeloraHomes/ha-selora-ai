@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -127,6 +128,21 @@ except FileNotFoundError:
     _DEVICE_KNOWLEDGE_TEXT = ""
 
 del _policy_path, _knowledge_path, _prompts_dir
+
+
+_API_KEY_RE = re.compile(
+    r"(sk-(?:ant-)?[A-Za-z0-9]{2})[A-Za-z0-9_-]{10,}",
+)
+_PROVIDER_KEY_ECHO_RE = re.compile(
+    r"(Incorrect API key provided: )[^\s\"',}]+",
+)
+
+
+def _sanitize_error(text: str) -> str:
+    """Strip API keys / bearer tokens from error bodies before logging or display."""
+    text = _PROVIDER_KEY_ECHO_RE.sub(r"\1[REDACTED]", text)
+    text = _API_KEY_RE.sub(r"\1***", text)
+    return text
 
 
 def _sanitize_untrusted_text(value: Any) -> str:
@@ -398,13 +414,13 @@ class LLMClient:
                 json=payload,
             ) as resp:
                 if resp.status != 200:
-                    body = await resp.text()
+                    body = _sanitize_error(await resp.text())
                     error_msg = f"HTTP {resp.status}: {body[:200]}"
                     _LOGGER.error(
                         "LLM Request failed: %s returned %s: %s",
                         self.provider_name,
                         resp.status,
-                        body,
+                        body[:500],
                     )
                     return None, error_msg
 
@@ -429,7 +445,7 @@ class LLMClient:
 
         except Exception as exc:
             _LOGGER.exception("Request to %s failed", self.provider_name)
-            return None, str(exc)
+            return None, _sanitize_error(str(exc))
 
     # ------------------------------------------------------------------
     # Tool-calling support
@@ -474,7 +490,7 @@ class LLMClient:
             json=payload,
         ) as resp:
             if resp.status != 200:
-                body = await resp.text()
+                body = _sanitize_error(await resp.text())
                 raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
             return await resp.json()
 
@@ -576,7 +592,7 @@ class LLMClient:
                     json=payload,
                 ) as resp:
                     if resp.status != 200:
-                        body = await resp.text()
+                        body = _sanitize_error(await resp.text())
                         _LOGGER.error("LLM stream failed: %s", body[:200])
                         yield f"Error from LLM: {body[:200]}"
                         return
@@ -1035,7 +1051,7 @@ class LLMClient:
                 json=payload,
             ) as resp:
                 if resp.status != 200:
-                    body = await resp.text()
+                    body = _sanitize_error(await resp.text())
                     _LOGGER.error(
                         "LLM stream failed: %s returned %s: %s",
                         self.provider_name,
@@ -1065,7 +1081,9 @@ class LLMClient:
                             yield text
         except Exception as exc:
             _LOGGER.exception("Streaming request to %s failed", self.provider_name)
-            raise ConnectionError(f"Failed to connect to {self.provider_name}: {exc}") from exc
+            raise ConnectionError(
+                f"Failed to connect to {self.provider_name}: {_sanitize_error(str(exc))}"
+            ) from exc
 
     def _parse_stream_line(self, line: str) -> str | None:
         """Extract text content from a single SSE line."""
