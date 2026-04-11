@@ -2,6 +2,8 @@
 
 Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM backend (Anthropic Claude, OpenAI, or a local Ollama model), learns your home's patterns, and proactively generates automations — all while keeping you in full control.
 
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=Integration&repository=ha-selora-ai&owner=SeloraHomes)
+
 **[Documentation](https://selorahomes.com/docs/selora-ai/)**
 
 ---
@@ -30,8 +32,6 @@ Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM ba
 ---
 
 ## Installation
-
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?category=Integration&repository=ha-selora-ai&owner=SeloraHomes)
 
 See the [installation guide](https://selorahomes.com/docs/selora-ai/installation/) for detailed instructions.
 
