@@ -147,6 +147,46 @@ TOOL_ACCEPT_FLOW = ToolDef(
     requires_admin=True,
 )
 
+TOOL_LIST_DEVICES = ToolDef(
+    name="list_devices",
+    description=(
+        "List Home Assistant devices tracked by Selora AI with their area, "
+        "manufacturer, model, integration, and entity IDs. Use this when the user "
+        "asks about their devices, wants to know what's in a room, or asks about "
+        "device status. Supports optional area and domain filters."
+    ),
+    params=(
+        ToolParam(
+            name="area",
+            type="string",
+            description="Filter by area name (case-insensitive substring match)",
+        ),
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Filter by entity domain (e.g. light, climate, lock)",
+        ),
+    ),
+)
+
+TOOL_GET_DEVICE = ToolDef(
+    name="get_device",
+    description=(
+        "Return full detail for a single Home Assistant device: metadata, "
+        "all associated entities, and their current states and key attributes. "
+        "Use this when the user asks about a specific device's state, configuration, "
+        "or health. Requires a device_id from list_devices."
+    ),
+    params=(
+        ToolParam(
+            name="device_id",
+            type="string",
+            description="The HA device registry ID from list_devices",
+            required=True,
+        ),
+    ),
+)
+
 
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
@@ -155,6 +195,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_LIST_DISCOVERED,
     TOOL_START_DEVICE_FLOW,
     TOOL_ACCEPT_FLOW,
+    TOOL_LIST_DEVICES,
+    TOOL_GET_DEVICE,
 )
 
 # Name → ToolDef lookup for admin checks in the executor

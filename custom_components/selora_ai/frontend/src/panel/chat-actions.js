@@ -40,6 +40,7 @@ export async function _sendMessage() {
           event.automation_message_index ?? null;
         assistantMsg.refining_automation_id =
           event.refining_automation_id || null;
+        assistantMsg.devices = event.devices || null;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
