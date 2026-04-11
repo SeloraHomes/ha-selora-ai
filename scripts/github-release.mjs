@@ -144,16 +144,18 @@ export async function uploadAsset({ repo, releaseId, filename, zipData, token, a
 /** Main entry point — only runs when executed directly (not imported). */
 export async function main(version, token) {
   // 1. Build the zip first — fail early before touching GitHub
-  //    Uses `zip` instead of `git archive` because panel.js/card.js are
-  //    build artifacts not tracked in git — they are built in CI before this runs.
+  //    Zips from inside the integration dir so paths are relative (no selora_ai/ prefix).
+  //    HACS extracts directly into custom_components/selora_ai/, so the zip must be flat.
   execSync(
-    `cd custom_components && zip -r ../${ZIP_FILENAME} selora_ai` +
-    ` -x "selora_ai/frontend/node_modules/*"` +
-    ` -x "selora_ai/frontend/src/*"` +
-    ` -x "selora_ai/frontend/build.js"` +
-    ` -x "selora_ai/frontend/postbuild.js"` +
-    ` -x "selora_ai/frontend/package*.json"` +
-    ` -x "selora_ai/frontend/vitest.config.js"`,
+    `cd ${INTEGRATION_DIR} && zip -r ../../${ZIP_FILENAME} .` +
+    ` -x "./frontend/node_modules/*"` +
+    ` -x "./frontend/src/*"` +
+    ` -x "./frontend/build.js"` +
+    ` -x "./frontend/postbuild.js"` +
+    ` -x "./frontend/package*.json"` +
+    ` -x "./frontend/vitest.config.js"` +
+    ` -x "./__pycache__/*"` +
+    ` -x "./.git*"`,
     { stdio: "inherit" }
   );
   const zipData = readFileSync(ZIP_FILENAME);
