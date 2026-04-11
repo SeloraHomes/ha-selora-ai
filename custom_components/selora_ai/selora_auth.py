@@ -111,12 +111,15 @@ class SeloraJWTValidator:
         except jwt.InvalidTokenError as err:
             raise AuthenticationError(f"Selora token validation failed: {err}") from err
 
-        # Verify scope contains this installation
+        # Verify scope contains an MCP grant. The JWT signature already proves
+        # the token belongs to this installation (key is derived per-installation),
+        # so we only check that some MCP scope is present — not a specific format.
+        # Connect may issue mcp:<subdomain>, mcp:device:<id>, etc.
         scope = payload.get("scope", "")
-        expected_scope = f"mcp:{self._installation_id}"
         scopes = scope.split() if isinstance(scope, str) else []
-        if expected_scope not in scopes:
-            raise AuthenticationError(f"Selora token scope does not include {expected_scope}")
+        has_mcp_scope = any(s.startswith("mcp:") for s in scopes)
+        if not has_mcp_scope:
+            raise AuthenticationError("Selora token has no MCP scope")
 
         # Map role to admin status
         role = payload.get("role", "viewer")

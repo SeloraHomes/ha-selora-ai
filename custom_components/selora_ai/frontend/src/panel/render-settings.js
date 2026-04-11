@@ -170,6 +170,39 @@ export function renderSettings(host) {
                 ${host._connectError}
               </div>`
             : ""}
+          ${host._config.selora_connect_enabled
+            ? html`
+                <div class="service-details" style="margin-top:8px;">
+                  <div
+                    style="font-size:13px;color:var(--secondary-text-color);"
+                  >
+                    MCP Server URL
+                  </div>
+                  <div
+                    style="display:flex;align-items:center;gap:8px;margin-top:4px;"
+                  >
+                    <code
+                      style="font-size:12px;word-break:break-all;flex:1;padding:6px 8px;background:var(--card-background-color);border-radius:4px;border:1px solid var(--divider-color);"
+                      >${host._config.selora_mcp_url ||
+                      `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`}</code
+                    >
+                    <ha-icon-button
+                      .path=${"M19,21H8V7H19M19,5H8A2,2 0 0,0 6,7V21A2,2 0 0,0 8,23H19A2,2 0 0,0 21,21V7A2,2 0 0,0 19,5M16,1H4A2,2 0 0,0 2,3V17H4V3H16V1Z"}
+                      @click=${() => {
+                        const mcpUrl =
+                          host._config.selora_mcp_url ||
+                          `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
+                        navigator.clipboard.writeText(mcpUrl);
+                        host._showToast(
+                          "MCP URL copied to clipboard",
+                          "success",
+                        );
+                      }}
+                    ></ha-icon-button>
+                  </div>
+                </div>
+              `
+            : ""}
           ${host._config.developer_mode && !host._config.selora_connect_enabled
             ? html`
                 <div class="service-details" style="margin-top:8px;">

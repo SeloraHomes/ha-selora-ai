@@ -107,7 +107,7 @@ class TestSeloraJWTValidator:
             validator.validate(token)
 
     def test_wrong_scope(self) -> None:
-        token = _make_jwt({"scope": "mcp:other-installation"})
+        token = _make_jwt({"scope": "read:something write:other"})
         validator = _make_validator()
 
         with pytest.raises(AuthenticationError, match="scope"):

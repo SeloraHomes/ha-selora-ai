@@ -67,6 +67,7 @@ from .const import (
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
+    CONF_SELORA_MCP_URL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_DISCOVERY_ENABLED,
@@ -1576,6 +1577,7 @@ async def _handle_websocket_get_config(
                 CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL
             ),
             "selora_installation_id": config_data.get(CONF_SELORA_INSTALLATION_ID, ""),
+            "selora_mcp_url": config_data.get(CONF_SELORA_MCP_URL, ""),
         },
     )
 
@@ -2604,7 +2606,7 @@ async def _handle_websocket_exchange_connect_code(
         try:
             async with session.post(
                 f"{connect_url}/api/v1/mcp/devices/register",
-                json={"device_name": "Home Assistant"},
+                json={"device_name": hass.config.location_name or "Home Assistant"},
                 headers={"Authorization": f"Bearer {access_token}"},
                 timeout=timeout,
             ) as resp:
