@@ -50,6 +50,7 @@ requirements.txt
 
 # ── Frontend build artifacts ──────────────────────────────────
 node_modules/
+custom_components/selora_ai/frontend/panel.js
 custom_components/selora_ai/frontend/card.js
 
 # ── Local dev scripts ─────────────────────────────────────────

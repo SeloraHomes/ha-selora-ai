@@ -23,27 +23,18 @@ pre-commit:
       run: ruff format --check {staged_files}
       fail_text: "Formatting issues. Auto-fix with: ruff format custom_components/"
 
-    frontend-build:
-      glob: "custom_components/selora_ai/frontend/**/*.js"
-      exclude: "custom_components/selora_ai/frontend/node_modules/**"
-      run: cd custom_components/selora_ai/frontend && npm run build
-      stage_fixed: true
-
 pre-push:
   parallel: true
   commands:
     test-python:
       glob: "**/*.py"
       run: >-
-        if [ -d ".venv" ]; then
-          .venv/bin/python -m pytest tests/ -q;
-        elif [ -d "venv" ]; then
-          venv/bin/python -m pytest tests/ -q;
-        elif command -v python3 >/dev/null && python3 -c "import pytest" 2>/dev/null; then
-          python3 -m pytest tests/ -q;
-        else
-          echo "⚠ pytest not available — skipping Python tests";
-        fi
+        if [ ! -d ".venv" ]; then
+          echo "⚙ No .venv found — creating one...";
+          uv venv .venv --python 3.13 &&
+          uv pip install --python .venv/bin/python pytest pytest-asyncio pytest-homeassistant-custom-component 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
+        fi &&
+        .venv/bin/python -m pytest tests/ -q
       fail_text: "Python tests failed. Run: pytest tests/ -v"
 
     test-frontend:
@@ -62,8 +53,8 @@ pre-push:
         - "custom_components/selora_ai/frontend/postbuild.js"
         - "custom_components/selora_ai/frontend/package.json"
         - "custom_components/selora_ai/frontend/package-lock.json"
-      run: cd custom_components/selora_ai/frontend && npm run build && git diff --quiet panel.js card.js
-      fail_text: "Built frontend is out of date. Commit the rebuilt panel.js/card.js from custom_components/selora_ai/frontend/ and push again."
+      run: cd custom_components/selora_ai/frontend && npm run build
+      fail_text: "Frontend build failed."
 
     lint-all:
       run: ruff check custom_components/

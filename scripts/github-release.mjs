@@ -144,7 +144,18 @@ export async function uploadAsset({ repo, releaseId, filename, zipData, token, a
 /** Main entry point — only runs when executed directly (not imported). */
 export async function main(version, token) {
   // 1. Build the zip first — fail early before touching GitHub
-  execSync(`git archive HEAD -o ${ZIP_FILENAME} -- ${INTEGRATION_DIR}`, { stdio: "inherit" });
+  //    Uses `zip` instead of `git archive` because panel.js/card.js are
+  //    build artifacts not tracked in git — they are built in CI before this runs.
+  execSync(
+    `cd custom_components && zip -r ../${ZIP_FILENAME} selora_ai` +
+    ` -x "selora_ai/frontend/node_modules/*"` +
+    ` -x "selora_ai/frontend/src/*"` +
+    ` -x "selora_ai/frontend/build.js"` +
+    ` -x "selora_ai/frontend/postbuild.js"` +
+    ` -x "selora_ai/frontend/package*.json"` +
+    ` -x "selora_ai/frontend/vitest.config.js"`,
+    { stdio: "inherit" }
+  );
   const zipData = readFileSync(ZIP_FILENAME);
   console.log(`Built ${ZIP_FILENAME} (${zipData.length} bytes)`);
 
