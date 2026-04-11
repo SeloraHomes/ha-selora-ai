@@ -61,7 +61,11 @@ export function renderSettings(host) {
                 <div class="form-group">
                   <label>API Key</label>
                   ${host._config.anthropic_api_key_set
-                    ? html`<div class="key-hint">
+                    ? html`<div class="key-hint key-set">
+                        <ha-icon
+                          icon="mdi:check-circle"
+                          style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                        ></ha-icon>
                         ${host._config.anthropic_api_key_hint}
                       </div>`
                     : ""}
@@ -91,7 +95,11 @@ export function renderSettings(host) {
                   <div class="form-group">
                     <label>API Key</label>
                     ${host._config.openai_api_key_set
-                      ? html`<div class="key-hint">
+                      ? html`<div class="key-hint key-set">
+                          <ha-icon
+                            icon="mdi:check-circle"
+                            style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                          ></ha-icon>
                           ${host._config.openai_api_key_hint}
                         </div>`
                       : ""}

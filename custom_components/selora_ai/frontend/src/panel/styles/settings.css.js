@@ -113,8 +113,21 @@ export const settingsStyles = css`
     background: var(--selora-zinc-900);
     border: 1px solid var(--selora-zinc-700);
     border-radius: 8px;
-    display: inline-block;
+    display: inline-flex;
+    align-items: center;
     margin-top: 4px;
+  }
+  .key-hint.key-set {
+    border-color: color-mix(
+      in srgb,
+      var(--success-color, #22c55e) 40%,
+      transparent
+    );
+    background: color-mix(
+      in srgb,
+      var(--success-color, #22c55e) 6%,
+      var(--selora-zinc-900)
+    );
   }
   .key-not-set {
     font-size: 12px;

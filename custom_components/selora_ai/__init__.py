@@ -182,6 +182,7 @@ class ConversationStore:
         automation_id: str | None = None,
         risk_assessment: dict[str, Any] | None = None,
         tool_calls: list[dict[str, Any]] | None = None,
+        devices: list[dict[str, Any]] | None = None,
     ) -> dict[str, Any]:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -222,6 +223,8 @@ class ConversationStore:
             message["risk_assessment"] = risk_assessment
         if tool_calls is not None:
             message["tool_calls"] = tool_calls
+        if devices:
+            message["devices"] = devices
 
         session["messages"].append(message)
 
@@ -683,6 +686,7 @@ async def _handle_websocket_chat_stream(
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
+        device_data = tool_executor.device_results if tool_executor else None
         await store.append_message(
             session_id,
             "assistant",
@@ -693,6 +697,7 @@ async def _handle_websocket_chat_stream(
             description=parsed.get("description"),
             automation_status="pending" if parsed.get("automation") else None,
             risk_assessment=parsed.get("risk_assessment"),
+            devices=device_data if device_data else None,
         )
 
         updated_session = await store.get_session(session_id)
@@ -733,7 +738,7 @@ async def _handle_websocket_chat_stream(
                     else None,
                     "validation_error": parsed.get("validation_error"),
                     "refining_automation_id": refining_automation_id,
-                    "devices": tool_executor.device_results if tool_executor else None,
+                    "devices": device_data,
                 },
             )
         )
@@ -1547,7 +1552,7 @@ async def _handle_websocket_get_config(
     connection.send_result(
         msg["id"],
         {
-            "llm_provider": config_data.get(CONF_LLM_PROVIDER),
+            "llm_provider": config_data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER,
             # Never send the raw key to the frontend — only a safe display hint.
             "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),
             "anthropic_api_key_set": bool(config_data.get(CONF_ANTHROPIC_API_KEY)),
@@ -1625,6 +1630,10 @@ async def _handle_websocket_update_config(
 
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
     new_options = {k: v for k, v in new_config.items() if k not in data_keys}
+
+    # Never store a null/empty provider — fall back to the existing value.
+    if CONF_LLM_PROVIDER in new_data and not new_data[CONF_LLM_PROVIDER]:
+        new_data[CONF_LLM_PROVIDER] = entry.data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER
 
     # Only overwrite the stored API keys if the frontend sent a new non-empty value.
     # The frontend sends an empty string when the user hasn't touched the key field,
@@ -2876,6 +2885,149 @@ async def _handle_websocket_revoke_mcp_token(
     connection.send_result(msg["id"], {"success": True})
 
 
+# ── Device Detail (WebSocket) ─────────────────────────────────────────────────
+
+
+def _automation_references_device(obj: Any, identifiers: set[str]) -> bool:
+    """Check if an automation dict references any of the given identifiers.
+
+    *identifiers* should include both entity IDs and the device_id so that
+    device-based triggers/actions (ZHA, remotes, MQTT) are caught too.
+
+    Walks the dict/list structure checking string values:
+    - Exact match catches bare ``entity_id`` / ``device_id`` fields.
+    - Word-boundary regex catches references inside Jinja templates
+      (``{{ is_state('light.kitchen', 'on') }}``) and comma-separated
+      entity lists (``entity_id: light.kitchen, light.dining``).
+    """
+    if isinstance(obj, str):
+        if obj in identifiers:
+            return True
+        # Word-boundary check for templates and CSV entity strings
+        import re
+
+        for ident in identifiers:
+            if re.search(r"(?<![.\w])" + re.escape(ident) + r"(?![.\w])", obj):
+                return True
+        return False
+    if isinstance(obj, dict):
+        return any(_automation_references_device(v, identifiers) for v in obj.values())
+    if isinstance(obj, list):
+        return any(_automation_references_device(item, identifiers) for item in obj)
+    return False
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/get_device_detail",
+        vol.Required("device_id"): str,
+    }
+)
+async def _handle_websocket_get_device_detail(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return full device detail with state history, linked automations, and patterns."""
+    if not _require_admin(connection, msg):
+        return
+
+    try:
+        device_id = msg["device_id"]
+
+        # 1. Device metadata + entity states (reuse MCP tool)
+        from .mcp_server import _tool_get_device
+
+        device_data = await _tool_get_device(hass, {"device_id": device_id})
+        if "error" in device_data:
+            connection.send_error(msg["id"], "not_found", device_data["error"])
+            return
+
+        # 2. State history (last 24h for device entities)
+        entity_ids = [e["entity_id"] for e in device_data.get("entities", [])]
+        state_history: list[dict[str, Any]] = []
+        if entity_ids:
+            try:
+                from homeassistant.components.recorder import get_instance
+                from homeassistant.components.recorder.history import (
+                    get_significant_states,
+                )
+
+                now = datetime.now(UTC)
+                start = now - timedelta(hours=24)
+                states = await get_instance(hass).async_add_executor_job(
+                    get_significant_states, hass, start, now, entity_ids
+                )
+                for eid, eid_states in states.items():
+                    for state in eid_states[-20:]:  # Last 20 per entity
+                        state_history.append(
+                            {
+                                "entity_id": eid,
+                                "state": state.state,
+                                "last_changed": state.last_changed.isoformat()
+                                if state.last_changed
+                                else None,
+                            }
+                        )
+            except (ImportError, KeyError):
+                _LOGGER.debug("Recorder not available for device detail history")
+
+        # 3. Linked automations (scan for entity references)
+        linked_automations: list[dict[str, Any]] = []
+        from pathlib import Path
+
+        from .automation_utils import _read_automations_yaml
+
+        automations_path = Path(hass.config.config_dir) / "automations.yaml"
+        try:
+            yaml_autos = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+            identifiers = set(entity_ids) | {device_id}
+            for auto in yaml_autos:
+                if _automation_references_device(auto, identifiers):
+                    linked_automations.append(
+                        {
+                            "id": auto.get("id", ""),
+                            "alias": auto.get("alias", ""),
+                            "description": auto.get("description", ""),
+                        }
+                    )
+        except (FileNotFoundError, OSError):
+            _LOGGER.debug("Could not read automations for device detail")
+
+        # 4. Related patterns
+        related_patterns: list[dict[str, Any]] = []
+        pattern_store = _get_pattern_store(hass)
+        if pattern_store:
+            all_patterns = await pattern_store.get_patterns()
+            entity_set = set(entity_ids)
+            for p in all_patterns:
+                pattern_entities = set(p.get("entity_ids", []))
+                if pattern_entities & entity_set:
+                    related_patterns.append(
+                        {
+                            "pattern_id": p.get("pattern_id", ""),
+                            "type": p.get("type", ""),
+                            "description": p.get("description", ""),
+                            "confidence": p.get("confidence", 0),
+                            "status": p.get("status", ""),
+                        }
+                    )
+
+        connection.send_result(
+            msg["id"],
+            {
+                **device_data,
+                "state_history": state_history,
+                "linked_automations": linked_automations,
+                "related_patterns": related_patterns,
+            },
+        )
+    except Exception as exc:
+        _LOGGER.exception("Error in get_device_detail")
+        connection.send_error(msg["id"], "unknown_error", str(exc))
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -2927,6 +3079,8 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_create_mcp_token)
     websocket_api.async_register_command(hass, _handle_websocket_list_mcp_tokens)
     websocket_api.async_register_command(hass, _handle_websocket_revoke_mcp_token)
+    # Device detail
+    websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
@@ -3031,7 +3185,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
         return True
 
-    provider = entry.data.get(CONF_LLM_PROVIDER, DEFAULT_LLM_PROVIDER)
+    provider = entry.data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER
 
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
 

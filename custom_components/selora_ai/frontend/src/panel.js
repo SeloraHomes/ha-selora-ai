@@ -283,6 +283,10 @@ class SeloraAIPanel extends LitElement {
       _createdToken: { type: String },
       _creatingToken: { type: Boolean },
       _revokingTokenId: { type: String },
+
+      // Device detail drawer
+      _deviceDetail: { type: Object },
+      _deviceDetailLoading: { type: Boolean },
     };
   }
 
@@ -393,6 +397,9 @@ class SeloraAIPanel extends LitElement {
     this._createdToken = "";
     this._creatingToken = false;
     this._revokingTokenId = null;
+    // Device detail drawer
+    this._deviceDetail = null;
+    this._deviceDetailLoading = false;
   }
 
   connectedCallback() {
@@ -965,6 +972,25 @@ class SeloraAIPanel extends LitElement {
 
   _renderProposalCard(msg, msgIndex) {
     return renderProposalCard(this, msg, msgIndex);
+  }
+
+  async _openDeviceDetail(deviceId) {
+    if (!deviceId || !this.hass) return;
+    this._deviceDetail = { name: "Loading..." };
+    this._deviceDetailLoading = true;
+    try {
+      const result = await this.hass.connection.sendMessagePromise({
+        type: "selora_ai/get_device_detail",
+        device_id: deviceId,
+      });
+      this._deviceDetail = result;
+    } catch (err) {
+      this._deviceDetail = { name: "Error loading device", error: err.message };
+    }
+    this._deviceDetailLoading = false;
+    await this.updateComplete;
+    const detail = this.shadowRoot?.querySelector(".device-detail-drawer");
+    if (detail) detail.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }
 
   _toggleYaml(msgIndex) {
