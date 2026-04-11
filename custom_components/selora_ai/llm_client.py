@@ -39,6 +39,7 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     MAX_TOOL_CALL_ROUNDS,
     OLLAMA_CHAT_ENDPOINT,
@@ -242,11 +243,10 @@ class LLMClient:
         For "command":
           calls: list of HA service call dicts
         """
-        if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
-            provider_label = "Anthropic" if self._provider == LLM_PROVIDER_ANTHROPIC else "OpenAI"
+        if self._provider != LLM_PROVIDER_OLLAMA and not self._api_key:
             return {
                 "intent": "answer",
-                "response": f"Please configure your {provider_label} API Key in the Settings tab to start chatting.",
+                "response": "Please configure your LLM provider credentials in the Settings tab to start chatting.",
                 "config_issue": True,
             }
 
@@ -1255,9 +1255,8 @@ class LLMClient:
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
         """
-        if self._provider in (LLM_PROVIDER_ANTHROPIC, LLM_PROVIDER_OPENAI) and not self._api_key:
-            provider_label = "Anthropic" if self._provider == LLM_PROVIDER_ANTHROPIC else "OpenAI"
-            yield f"Please configure your {provider_label} API Key in the Settings tab to start chatting."
+        if self._provider != LLM_PROVIDER_OLLAMA and not self._api_key:
+            yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
         system_prompt = self._build_architect_stream_system_prompt()

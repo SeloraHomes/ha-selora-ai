@@ -7,14 +7,29 @@ These tools follow the same patterns defined in the Selora MCP SKILL.md — iden
 
 You MUST use tools instead of guessing or using general knowledge when the user asks about:
 
-### `get_home_snapshot` — Home state and device info
+### `list_devices` — Device inventory and status
 Trigger phrases:
+- "What devices do I have?"
 - "What devices are in my home?"
+- "Show me my devices"
+- "What's in the living room?" (use area filter)
+- "What lights / sensors / switches do I have?" (use domain filter)
+- "How many devices do I have?"
+- Any question about devices, their areas, manufacturers, or models
+
+### `get_device` — Single device detail
+Trigger phrases:
+- "Tell me about the [device name]"
+- "What's the status of my thermostat?"
+- "Show me details for [device]"
+- Any follow-up about a specific device after `list_devices`
+- Requires a `device_id` from a prior `list_devices` call
+
+### `get_home_snapshot` — Entity states overview
+Trigger phrases:
 - "Show me all my entities"
 - "What's the status of my home?"
-- "How many devices do I have?"
 - "What rooms are set up?"
-- "What lights / sensors / switches do I have?"
 - "Give me an overview of my setup"
 - "What's currently on or off?"
 - Any question about specific entity states, counts, or areas
@@ -62,10 +77,11 @@ NEVER answer questions about what devices, entities, or integrations the user ha
 
 ### Multi-tool scenarios
 Some questions require more than one tool call:
-- "Give me a full picture of my smart home" → call `get_home_snapshot` AND `discover_network_devices`
-- "What do I have and what can I add?" → call `get_home_snapshot` AND `discover_network_devices`
+- "Give me a full picture of my smart home" → call `list_devices` AND `get_home_snapshot`
+- "What do I have and what can I add?" → call `list_devices` AND `discover_network_devices`
 - "Are there new devices I should set up?" → call `discover_network_devices` AND `list_discovered_flows`
 - "What's on my network that I haven't configured?" → call `discover_network_devices` AND `list_discovered_flows`
+- "Tell me everything about the living room" → call `list_devices` with area filter, then `get_device` for each
 
 ## When NOT to Use Tools
 
@@ -78,8 +94,9 @@ Some questions require more than one tool call:
 Follows the same patterns as SKILL.md:
 
 ### Home context and discovery
-1. Call `get_home_snapshot` first to understand the home layout.
-2. If the user asks about integrations, call `discover_network_devices` for the full picture.
+1. Call `list_devices` first for device-level questions (areas, manufacturers, status).
+2. Call `get_home_snapshot` for entity-level detail (exact states, counts by domain).
+3. If the user asks about integrations, call `discover_network_devices` for the full picture.
 
 ### Device integration flow
 1. Call `discover_network_devices` to see what is discovered, configured, and available.
@@ -133,6 +150,15 @@ Group entities by domain. For each domain, use a header with exact counts from t
 - ... (list every single one)
 
 If areas exist in the data, group by area first, then by domain within each area.
+
+### Device list (`list_devices` results)
+
+Device data is rendered as interactive visual cards in the UI. Do NOT list individual devices in your text response — the cards already show name, manufacturer, model, area, and state. Instead, write a brief summary:
+- Total device count
+- Breakdown by area if multiple areas exist
+- Any notable observations (many unavailable, battery low, etc.)
+
+Example: "You have **12 devices** across 3 areas — 4 in the Living Room, 5 in the Bedroom, and 3 unassigned. Everything looks online except your Sonos speaker."
 
 ### Device integrations (`discover_network_devices` results)
 

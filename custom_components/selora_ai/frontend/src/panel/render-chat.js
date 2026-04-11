@@ -2,6 +2,7 @@ import { html } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { renderMarkdown, stripAutomationBlock } from "../shared/markdown.js";
 import { formatTime } from "../shared/date-utils.js";
+import { renderDeviceDetail } from "./render-device-detail.js";
 
 export function renderNewAutomationDialog(host) {
   if (!host._showNewAutoDialog) return "";
@@ -132,13 +133,7 @@ export function renderChat(host) {
                             <div
                               style="font-size:13px;opacity:0.6;margin-bottom:16px;"
                             >
-                              ${host._config?.llm_provider
-                                ? html`Add your
-                                  ${host._config.llm_provider === "openai"
-                                    ? "OpenAI"
-                                    : "Anthropic"}
-                                  API key to start chatting with your home.`
-                                : "Choose an AI provider and add your credentials to start chatting with your home."}
+                              ${"Configure your LLM provider in the Settings tab to start chatting with your home."}
                             </div>
                             <span
                               style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
@@ -304,6 +299,7 @@ export function renderChat(host) {
               `,
             )
           : host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
+        ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${host._loading
           ? html`
               <div class="typing-bubble">
@@ -410,7 +406,7 @@ export function renderMessage(host, msg, idx) {
                   : ""}
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                 ${msg.devices && msg.devices.length
-                  ? renderDeviceCards(msg.devices)
+                  ? renderDeviceCards(host, msg.devices)
                   : ""}
               </div>
               <div
@@ -509,71 +505,131 @@ function _primaryState(device) {
   return null;
 }
 
-export function renderDeviceCards(devices) {
+function _renderDeviceCard(host, d) {
+  const state = _primaryState(d);
+  return html`
+    <div
+      style="
+        flex:1 1 180px;max-width:240px;cursor:pointer;
+        border:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+        border-radius:12px;
+        background:var(--selora-inner-card-bg, var(--primary-background-color, #18181b));
+        padding:10px 12px;display:flex;flex-direction:column;gap:4px;
+        transition:border-color 0.15s;
+      "
+      @click=${() => host._openDeviceDetail(d.device_id)}
+      @mouseenter=${(e) =>
+        (e.currentTarget.style.borderColor = "var(--selora-accent)")}
+      @mouseleave=${(e) =>
+        (e.currentTarget.style.borderColor =
+          "var(--selora-inner-card-border, var(--divider-color, #3f3f46))")}
+    >
+      <div style="display:flex;align-items:center;gap:6px;">
+        <ha-icon
+          icon=${_deviceIcon(d.domains)}
+          style="--mdc-icon-size:18px;color:var(--selora-accent);"
+        ></ha-icon>
+        <span
+          style="font-weight:600;font-size:13px;color:var(--selora-zinc-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+        >
+          ${d.name || "Unknown"}
+        </span>
+      </div>
+      <div
+        style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"
+      >
+        ${d.manufacturer
+          ? html`<span style="font-size:11px;color:var(--selora-zinc-400);"
+              >${d.manufacturer}${d.model ? ` · ${d.model}` : ""}</span
+            >`
+          : ""}
+        ${state
+          ? html`
+              <span
+                style="font-size:11px;font-weight:600;color:${_stateColor(
+                  state,
+                )};"
+              >
+                ${state}
+              </span>
+            `
+          : ""}
+      </div>
+    </div>
+  `;
+}
+
+export function renderDeviceCards(host, devices) {
   if (!devices || !devices.length) return "";
+
+  // Group devices by area
+  const groups = new Map();
+  for (const d of devices) {
+    const area = d.area || null;
+    if (!groups.has(area)) groups.set(area, []);
+    groups.get(area).push(d);
+  }
+
+  // If all devices are in one group, skip the area header
+  if (groups.size === 1) {
+    const [area, devs] = [...groups.entries()][0];
+    return html`
+      <div class="device-cards" style="margin-top:12px;">
+        ${area
+          ? html`<div
+              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
+            >
+              <ha-icon
+                icon="mdi:home-floor-a"
+                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
+              ></ha-icon>
+              <span
+                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
+                >${area}</span
+              >
+            </div>`
+          : ""}
+        <div style="display:flex;flex-wrap:wrap;gap:8px;">
+          ${devs.map((d) => _renderDeviceCard(host, d))}
+        </div>
+      </div>
+    `;
+  }
+
+  // Sort: named areas first (alphabetically), then unassigned
+  const sorted = [...groups.entries()].sort((a, b) => {
+    if (!a[0]) return 1;
+    if (!b[0]) return -1;
+    return a[0].localeCompare(b[0]);
+  });
+
   return html`
     <div
       class="device-cards"
-      style="
-      display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;
-    "
+      style="margin-top:12px;display:flex;flex-direction:column;gap:12px;"
     >
-      ${devices.map((d) => {
-        const state = _primaryState(d);
-        return html`
-          <div
-            style="
-            flex:1 1 180px;max-width:240px;
-            border:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-            border-radius:12px;
-            background:var(--selora-inner-card-bg, var(--primary-background-color, #18181b));
-            padding:10px 12px;
-            display:flex;flex-direction:column;gap:4px;
-          "
-          >
-            <div style="display:flex;align-items:center;gap:6px;">
+      ${sorted.map(
+        ([area, devs]) => html`
+          <div>
+            <div
+              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
+            >
               <ha-icon
-                icon=${_deviceIcon(d.domains)}
-                style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                icon=${area ? "mdi:home-floor-a" : "mdi:help-circle-outline"}
+                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
               ></ha-icon>
               <span
-                style="font-weight:600;font-size:13px;color:var(--selora-zinc-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
               >
-                ${d.name || "Unknown"}
+                ${area || "No area assigned"}
               </span>
             </div>
-            ${d.area
-              ? html`
-                  <span style="font-size:11px;color:var(--selora-zinc-400);">
-                    ${d.area}
-                  </span>
-                `
-              : ""}
-            <div
-              style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"
-            >
-              ${d.manufacturer
-                ? html`
-                    <span style="font-size:11px;color:var(--selora-zinc-400);">
-                      ${d.manufacturer}${d.model ? ` · ${d.model}` : ""}
-                    </span>
-                  `
-                : ""}
-              ${state
-                ? html`
-                    <span
-                      style="font-size:11px;font-weight:600;color:${_stateColor(
-                        state,
-                      )};"
-                    >
-                      ${state}
-                    </span>
-                  `
-                : ""}
+            <div style="display:flex;flex-wrap:wrap;gap:8px;">
+              ${devs.map((d) => _renderDeviceCard(host, d))}
             </div>
           </div>
-        `;
-      })}
+        `,
+      )}
     </div>
   `;
 }
