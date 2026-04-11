@@ -2746,6 +2746,136 @@ async def _handle_websocket_unlink_connect(
     hass.async_create_task(_reload())
 
 
+# ── MCP Token Management (WebSocket) ─────────────────────────────────────────
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/create_mcp_token",
+        vol.Required("name"): str,
+        vol.Required("permission_level"): str,
+        vol.Optional("allowed_tools"): [str],
+        vol.Optional("expires_in_days"): vol.Coerce(int),
+    }
+)
+async def _handle_websocket_create_mcp_token(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Create a new MCP token with the specified permissions."""
+    if not _require_admin(connection, msg):
+        return
+
+    store = hass.data.get(DOMAIN, {}).get("mcp_token_store")
+    if store is None:
+        connection.send_error(msg["id"], "not_ready", "MCP token store not initialized")
+        return
+
+    from .const import MCP_TOKEN_PERMISSION_CUSTOM
+
+    permission_level = msg["permission_level"]
+    allowed_tools = msg.get("allowed_tools")
+
+    # Validate: custom permission requires allowed_tools
+    if permission_level == MCP_TOKEN_PERMISSION_CUSTOM and not allowed_tools:
+        connection.send_error(
+            msg["id"],
+            "invalid_params",
+            "Custom permission level requires 'allowed_tools' list",
+        )
+        return
+
+    # Ignore allowed_tools for non-custom tokens (prevent privilege escalation)
+    if permission_level != MCP_TOKEN_PERMISSION_CUSTOM:
+        allowed_tools = None
+
+    # Compute expiration
+    expires_at: str | None = None
+    expires_in_days = msg.get("expires_in_days")
+    if expires_in_days is not None:
+        from datetime import UTC, datetime, timedelta
+
+        expires_at = (datetime.now(UTC) + timedelta(days=expires_in_days)).isoformat()
+
+    user = getattr(connection, "user", None)
+    user_id = getattr(user, "id", "unknown") if user else "unknown"
+
+    try:
+        raw_token, meta = await store.async_create_token(
+            name=msg["name"],
+            permission_level=permission_level,
+            allowed_tools=allowed_tools,
+            expires_at=expires_at,
+            created_by_user_id=user_id,
+        )
+    except ValueError as exc:
+        connection.send_error(msg["id"], "invalid_params", str(exc))
+        return
+
+    connection.send_result(
+        msg["id"],
+        {
+            "token": raw_token,
+            "id": meta["id"],
+            "name": meta["name"],
+            "permission_level": meta["permission_level"],
+            "allowed_tools": meta["allowed_tools"],
+            "expires_at": meta["expires_at"],
+        },
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command({vol.Required("type"): "selora_ai/list_mcp_tokens"})
+async def _handle_websocket_list_mcp_tokens(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """List all MCP tokens (metadata only, no secrets)."""
+    if not _require_admin(connection, msg):
+        return
+
+    store = hass.data.get(DOMAIN, {}).get("mcp_token_store")
+    if store is None:
+        connection.send_error(msg["id"], "not_ready", "MCP token store not initialized")
+        return
+
+    tokens = await store.async_list_tokens()
+    connection.send_result(msg["id"], {"tokens": tokens})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/revoke_mcp_token",
+        vol.Required("token_id"): str,
+    }
+)
+async def _handle_websocket_revoke_mcp_token(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Revoke an MCP token by ID."""
+    if not _require_admin(connection, msg):
+        return
+
+    store = hass.data.get(DOMAIN, {}).get("mcp_token_store")
+    if store is None:
+        connection.send_error(msg["id"], "not_ready", "MCP token store not initialized")
+        return
+
+    revoked = await store.async_revoke_token(msg["token_id"])
+    if not revoked:
+        connection.send_error(msg["id"], "not_found", "Token not found")
+        return
+
+    connection.send_result(msg["id"], {"success": True})
+
+
 async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
@@ -2793,6 +2923,10 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_trigger_pattern_scan)
     websocket_api.async_register_command(hass, _handle_websocket_exchange_connect_code)
     websocket_api.async_register_command(hass, _handle_websocket_unlink_connect)
+    # MCP token management
+    websocket_api.async_register_command(hass, _handle_websocket_create_mcp_token)
+    websocket_api.async_register_command(hass, _handle_websocket_list_mcp_tokens)
+    websocket_api.async_register_command(hass, _handle_websocket_revoke_mcp_token)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
@@ -2980,6 +3114,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora Connect JWT validator initialized (%s)", connect_url)
     else:
         hass.data[DOMAIN]["selora_jwt_validator"] = None
+
+    # Selora MCP token store (locally-created API keys with per-tool permissions)
+    from .mcp_token_store import MCPTokenStore
+
+    mcp_token_store = MCPTokenStore(hass)
+    await mcp_token_store.async_load()
+    hass.data[DOMAIN]["mcp_token_store"] = mcp_token_store
 
     # One-time cleanup: remove the legacy Hub device and its entities if present
     from homeassistant.helpers import device_registry as dr
@@ -3198,6 +3339,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Clear Selora Connect JWT validator so stale credentials can't be used
     hass.data[DOMAIN].pop("selora_jwt_validator", None)
+    hass.data[DOMAIN].pop("mcp_token_store", None)
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

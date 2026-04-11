@@ -61,7 +61,7 @@ from .const import (
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
     SELORA_JWT_ISSUER,
 )
-from .selora_auth import AuthenticationError, authenticate_request
+from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -147,6 +147,66 @@ TOOL_DISMISS_SUGGESTION = "selora_dismiss_suggestion"
 TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 TOOL_LIST_DEVICES = "selora_list_devices"
 TOOL_GET_DEVICE = "selora_get_device"
+
+# Tools that require admin privileges (write/mutating operations)
+_ADMIN_TOOLS = frozenset(
+    {
+        TOOL_CREATE_AUTOMATION,
+        TOOL_ACCEPT_AUTOMATION,
+        TOOL_DELETE_AUTOMATION,
+        TOOL_CHAT,
+        TOOL_ACCEPT_SUGGESTION,
+        TOOL_DISMISS_SUGGESTION,
+        TOOL_TRIGGER_SCAN,
+    }
+)
+
+# All read-only tools (complement of _ADMIN_TOOLS)
+_READ_ONLY_TOOLS = frozenset(
+    {
+        TOOL_LIST_AUTOMATIONS,
+        TOOL_GET_AUTOMATION,
+        TOOL_VALIDATE_AUTOMATION,
+        TOOL_GET_HOME_SNAPSHOT,
+        TOOL_LIST_SESSIONS,
+        TOOL_LIST_PATTERNS,
+        TOOL_GET_PATTERN,
+        TOOL_LIST_SUGGESTIONS,
+        TOOL_LIST_DEVICES,
+        TOOL_GET_DEVICE,
+    }
+)
+
+
+def _check_tool_access(auth_ctx: SeloraAuthContext, tool_name: str) -> None:
+    """Raise Unauthorized if *auth_ctx* does not grant access to *tool_name*.
+
+    For MCP tokens with ``allowed_tools`` set, only those tools are accessible.
+    For MCP tokens with ``read_only`` permission, only read-only tools are accessible.
+    For all other auth types, the existing is_admin check applies.
+    """
+    if auth_ctx.auth_type == "mcp_token":
+        if auth_ctx.allowed_tools is not None:
+            # Custom permission: explicit tool allowlist
+            if tool_name not in auth_ctx.allowed_tools:
+                raise Unauthorized(f"Token does not grant access to {tool_name}")
+            return
+        if not auth_ctx.is_admin and tool_name in _ADMIN_TOOLS:
+            raise Unauthorized(f"Read-only token cannot access {tool_name}")
+        return
+
+    # HA token / Selora JWT: binary admin check
+    if tool_name in _ADMIN_TOOLS and not auth_ctx.is_admin:
+        raise Unauthorized("Admin access is required for this Selora MCP tool")
+
+
+def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
+    """Return True if *auth_ctx* grants access to *tool_name*."""
+    if auth_ctx.auth_type == "mcp_token":
+        if auth_ctx.allowed_tools is not None:
+            return tool_name in auth_ctx.allowed_tools
+        return auth_ctx.is_admin or tool_name not in _ADMIN_TOOLS
+    return auth_ctx.is_admin or tool_name not in _ADMIN_TOOLS
 
 
 # ── Registration ───────────────────────────────────────────────────────────────
@@ -405,9 +465,11 @@ class SeloraAIMCPView(HomeAssistantView):
     async def get(self, request: web.Request) -> web.Response:
         """Handle GET — used by MCP clients to probe auth requirements."""
         hass: HomeAssistant = request.app[KEY_HASS]
-        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        domain_data = hass.data.get(DOMAIN, {})
+        jwt_validator = domain_data.get("selora_jwt_validator")
+        mcp_token_store = domain_data.get("mcp_token_store")
         try:
-            await authenticate_request(hass, request, jwt_validator)
+            await authenticate_request(hass, request, jwt_validator, mcp_token_store)
         except AuthenticationError:
             return self._build_unauthorized_response(hass, request)
         return _add_cors(request, web.Response(status=HTTPStatus.OK, text="Selora AI MCP endpoint"))
@@ -421,10 +483,12 @@ class SeloraAIMCPView(HomeAssistantView):
         """Internal post handler — CORS headers added by the wrapper."""
         hass: HomeAssistant = request.app[KEY_HASS]
 
-        # ── Authentication (HA token or Selora Connect JWT) ──
-        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
+        # ── Authentication (HA token, Selora MCP token, or Selora Connect JWT) ──
+        domain_data = hass.data.get(DOMAIN, {})
+        jwt_validator = domain_data.get("selora_jwt_validator")
+        mcp_token_store = domain_data.get("mcp_token_store")
         try:
-            auth_ctx = await authenticate_request(hass, request, jwt_validator)
+            auth_ctx = await authenticate_request(hass, request, jwt_validator, mcp_token_store)
         except AuthenticationError:
             return self._build_unauthorized_response(hass, request)
 
@@ -462,10 +526,9 @@ class SeloraAIMCPView(HomeAssistantView):
             return web.Response(status=HTTPStatus.ACCEPTED)
 
         # Dispatch
-        is_admin = auth_ctx.is_admin
         try:
             async with asyncio.timeout(_TIMEOUT_SECS):
-                result = await _jsonrpc_dispatch(hass, method, params, is_admin)
+                result = await _jsonrpc_dispatch(hass, method, params, auth_ctx)
         except TimeoutError:
             _LOGGER.warning("MCP request timed out after %ss", _TIMEOUT_SECS)
             return web.json_response(
@@ -506,7 +569,7 @@ async def _jsonrpc_dispatch(
     hass: HomeAssistant,
     method: str,
     params: dict[str, Any] | None,
-    is_admin: bool,
+    auth_ctx: SeloraAuthContext,
 ) -> dict[str, Any]:
     """Dispatch a JSON-RPC method and return the result payload."""
     if method == "initialize":
@@ -522,12 +585,13 @@ async def _jsonrpc_dispatch(
             "tools": [
                 {"name": t.name, "description": t.description, "inputSchema": t.inputSchema}
                 for t in _TOOL_DEFINITIONS
+                if _can_access_tool(auth_ctx, t.name)
             ]
         }
     if method == "tools/call":
         tool_name = (params or {}).get("name", "")
         arguments = (params or {}).get("arguments", {})
-        content = await _dispatch(hass, tool_name, arguments, is_admin=is_admin)
+        content = await _dispatch(hass, tool_name, arguments, auth_ctx=auth_ctx)
         return {"content": [{"type": c.type, "text": c.text} for c in content]}
     raise ValueError(f"Unknown method: {method}")
 
@@ -540,10 +604,12 @@ async def _dispatch(
     name: str,
     arguments: dict[str, Any],
     *,
-    is_admin: bool,
+    auth_ctx: SeloraAuthContext,
 ) -> list[MCPTextContent]:
     """Route a tool call to its handler and return MCP TextContent."""
     try:
+        _check_tool_access(auth_ctx, name)
+
         if name == TOOL_LIST_AUTOMATIONS:
             result = await _tool_list_automations(hass, arguments)
         elif name == TOOL_GET_AUTOMATION:
@@ -551,18 +617,14 @@ async def _dispatch(
         elif name == TOOL_VALIDATE_AUTOMATION:
             result = await _tool_validate_automation(hass, arguments)
         elif name == TOOL_CREATE_AUTOMATION:
-            _require_admin(is_admin)
             result = await _tool_create_automation(hass, arguments)
         elif name == TOOL_ACCEPT_AUTOMATION:
-            _require_admin(is_admin)
             result = await _tool_accept_automation(hass, arguments)
         elif name == TOOL_DELETE_AUTOMATION:
-            _require_admin(is_admin)
             result = await _tool_delete_automation(hass, arguments)
         elif name == TOOL_GET_HOME_SNAPSHOT:
             result = await _tool_get_home_snapshot(hass)
         elif name == TOOL_CHAT:
-            _require_admin(is_admin)
             result = await _tool_chat(hass, arguments)
         elif name == TOOL_LIST_SESSIONS:
             result = await _tool_list_sessions(hass)
@@ -573,13 +635,10 @@ async def _dispatch(
         elif name == TOOL_LIST_SUGGESTIONS:
             result = await _tool_list_suggestions(hass, arguments)
         elif name == TOOL_ACCEPT_SUGGESTION:
-            _require_admin(is_admin)
             result = await _tool_accept_suggestion(hass, arguments)
         elif name == TOOL_DISMISS_SUGGESTION:
-            _require_admin(is_admin)
             result = await _tool_dismiss_suggestion(hass, arguments)
         elif name == TOOL_TRIGGER_SCAN:
-            _require_admin(is_admin)
             result = await _tool_trigger_scan(hass)
         elif name == TOOL_LIST_DEVICES:
             result = await _tool_list_devices(hass, arguments)
@@ -594,12 +653,6 @@ async def _dispatch(
         result = {"error": "Tool execution failed"}
 
     return [MCPTextContent(type="text", text=json.dumps(result, ensure_ascii=False))]
-
-
-def _require_admin(is_admin: bool) -> None:
-    """Raise Unauthorized if the caller is not an HA admin."""
-    if not is_admin:
-        raise Unauthorized("Admin access is required for this Selora MCP tool")
 
 
 # ── Helpers ────────────────────────────────────────────────────────────────────

@@ -272,6 +272,17 @@ class SeloraAIPanel extends LitElement {
       _feedbackCategory: { type: String },
       _feedbackEmail: { type: String },
       _submittingFeedback: { type: Boolean },
+
+      // MCP tokens
+      _mcpTokens: { type: Array },
+      _showCreateTokenDialog: { type: Boolean },
+      _newTokenName: { type: String },
+      _newTokenPermission: { type: String },
+      _newTokenTools: { type: Object },
+      _newTokenExpiry: { type: String },
+      _createdToken: { type: String },
+      _creatingToken: { type: Boolean },
+      _revokingTokenId: { type: String },
     };
   }
 
@@ -372,6 +383,16 @@ class SeloraAIPanel extends LitElement {
     this._feedbackCategory = "";
     this._feedbackEmail = "";
     this._submittingFeedback = false;
+    // MCP tokens
+    this._mcpTokens = [];
+    this._showCreateTokenDialog = false;
+    this._newTokenName = "";
+    this._newTokenPermission = "read_only";
+    this._newTokenTools = {};
+    this._newTokenExpiry = "";
+    this._createdToken = "";
+    this._creatingToken = false;
+    this._revokingTokenId = null;
   }
 
   connectedCallback() {
@@ -390,6 +411,7 @@ class SeloraAIPanel extends LitElement {
     this._loadSuggestions();
     this._loadAutomations();
     this._loadConfig();
+    this._loadMcpTokens();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e) => {
@@ -474,6 +496,7 @@ class SeloraAIPanel extends LitElement {
   _goToSettings() {
     this._activeTab = "settings";
     this._loadConfig();
+    this._loadMcpTokens();
   }
 
   get _llmNeedsSetup() {
@@ -657,6 +680,86 @@ class SeloraAIPanel extends LitElement {
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // MCP Token Management
+  // -------------------------------------------------------------------------
+
+  async _loadMcpTokens() {
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/list_mcp_tokens",
+      });
+      this._mcpTokens = result.tokens || [];
+    } catch (err) {
+      console.error("Failed to load MCP tokens", err);
+    }
+  }
+
+  async _createMcpToken() {
+    if (this._creatingToken) return;
+    this._creatingToken = true;
+    this.requestUpdate();
+    try {
+      const payload = {
+        type: "selora_ai/create_mcp_token",
+        name: this._newTokenName,
+        permission_level: this._newTokenPermission,
+      };
+      if (this._newTokenPermission === "custom") {
+        payload.allowed_tools = Object.keys(this._newTokenTools).filter(
+          (t) => this._newTokenTools[t],
+        );
+      }
+      if (this._newTokenExpiry) {
+        payload.expires_in_days = parseInt(this._newTokenExpiry, 10);
+      }
+      const result = await this.hass.callWS(payload);
+      this._createdToken = result.token;
+      await this._loadMcpTokens();
+      this._showToast("MCP token created.", "success");
+    } catch (err) {
+      this._showToast("Failed to create token: " + err.message, "error");
+      this._showCreateTokenDialog = false;
+    } finally {
+      this._creatingToken = false;
+      this.requestUpdate();
+    }
+  }
+
+  async _revokeMcpToken(tokenId) {
+    this._revokingTokenId = tokenId;
+    this.requestUpdate();
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/revoke_mcp_token",
+        token_id: tokenId,
+      });
+      await this._loadMcpTokens();
+      this._showToast("Token revoked.", "success");
+    } catch (err) {
+      this._showToast("Failed to revoke token: " + err.message, "error");
+    } finally {
+      this._revokingTokenId = null;
+      this.requestUpdate();
+    }
+  }
+
+  _openCreateTokenDialog() {
+    this._newTokenName = "";
+    this._newTokenPermission = "read_only";
+    this._newTokenTools = {};
+    this._newTokenExpiry = "";
+    this._createdToken = "";
+    this._showCreateTokenDialog = true;
+    this.requestUpdate();
+  }
+
+  _closeCreateTokenDialog() {
+    this._showCreateTokenDialog = false;
+    this._createdToken = "";
+    this.requestUpdate();
   }
 
   _highlightAndScrollToNew() {
