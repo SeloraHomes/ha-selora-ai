@@ -62,12 +62,13 @@ export default {
       { changelogFile: "CHANGELOG.md" },
     ],
 
-    // 4. Bump the version field in manifest.json to match the new tag
+    // 4. Bump manifest.json then rebuild the frontend so the bundle picks up the new version
     [
       "@semantic-release/exec",
       {
         prepareCmd:
-          "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' custom_components/selora_ai/manifest.json",
+          "sed -i 's/\"version\": \".*\"/\"version\": \"${nextRelease.version}\"/' custom_components/selora_ai/manifest.json" +
+          " && cd custom_components/selora_ai/frontend && npm run build && cd ../../..",
       },
     ],
 
