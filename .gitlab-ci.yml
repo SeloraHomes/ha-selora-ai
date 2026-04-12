@@ -112,7 +112,7 @@ release:
   before_script:
     - apk add --no-cache git zip
     - npm ci
-    - cd custom_components/selora_ai/frontend && npm ci && npm run build && cd ../../..
+    - cd custom_components/selora_ai/frontend && npm ci && cd ../../..
   script:
     - npx semantic-release
   variables:
