@@ -1678,6 +1678,64 @@ async def _handle_websocket_update_config(
         hass.async_create_task(_reload())
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/validate_llm_key",
+        vol.Required("provider"): str,
+        vol.Optional("api_key"): str,
+        vol.Optional("model"): str,
+        vol.Optional("host"): str,
+    }
+)
+async def _handle_websocket_validate_llm_key(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Validate an LLM provider key/connection without saving."""
+    if not _require_admin(connection, msg):
+        return
+
+    from .llm_client import LLMClient
+
+    provider = msg["provider"]
+    api_key = msg.get("api_key", "")
+    model = msg.get("model", "")
+    host = msg.get("host", "")
+
+    # Apply defaults for missing model/host
+    if provider == LLM_PROVIDER_ANTHROPIC:
+        model = model or DEFAULT_ANTHROPIC_MODEL
+    elif provider == LLM_PROVIDER_OPENAI:
+        model = model or DEFAULT_OPENAI_MODEL
+    elif provider == LLM_PROVIDER_OLLAMA:
+        model = model or DEFAULT_OLLAMA_MODEL
+        host = host or DEFAULT_OLLAMA_HOST
+
+    try:
+        client = LLMClient(
+            hass,
+            provider=provider,
+            api_key=api_key,
+            model=model,
+            host=host,
+        )
+        valid = await client.health_check()
+        if valid:
+            connection.send_result(msg["id"], {"valid": True})
+        else:
+            connection.send_result(
+                msg["id"],
+                {"valid": False, "error": "API key invalid or provider unreachable."},
+            )
+    except Exception as exc:
+        connection.send_result(
+            msg["id"],
+            {"valid": False, "error": str(exc) or "Validation failed."},
+        )
+
+
 def _get_automation_store(hass: HomeAssistant):
     """Return (or lazily create) the AutomationStore from hass.data."""
     from .automation_store import AutomationStore
@@ -3043,6 +3101,7 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_automations)
     websocket_api.async_register_command(hass, _handle_websocket_get_config)
     websocket_api.async_register_command(hass, _handle_websocket_update_config)
+    websocket_api.async_register_command(hass, _handle_websocket_validate_llm_key)
     # Conversation sessions
     websocket_api.async_register_command(hass, _handle_websocket_get_sessions)
     websocket_api.async_register_command(hass, _handle_websocket_get_session)

@@ -224,10 +224,14 @@ export const settingsStyles = css`
     margin-bottom: 4px;
     border-bottom: 1px solid var(--selora-zinc-700);
   }
-  .advanced-section .service-group:last-child {
+  .advanced-section .service-group:last-of-type {
     border-bottom: none;
     padding-bottom: 0;
     margin-bottom: 0;
+  }
+  .advanced-section > .card-save-bar {
+    margin: 16px 0 0;
+    padding: 0 28px;
   }
   .advanced-section .service-row,
   .advanced-section .service-details,
@@ -295,9 +299,55 @@ export const settingsStyles = css`
     border-top: 1px solid var(--selora-zinc-700);
     margin: 16px 0 4px;
   }
-  .save-bar {
+  .card-save-bar {
     display: flex;
     justify-content: flex-end;
+    margin-top: 16px;
+  }
+  .save-feedback {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    border-radius: 8px;
+  }
+  .save-feedback--success {
+    color: var(--success-color, #22c55e);
+    background: color-mix(
+      in srgb,
+      var(--success-color, #22c55e) 8%,
+      transparent
+    );
+  }
+  .save-feedback--error {
+    color: var(--error-color, #ef4444);
+    background: color-mix(in srgb, var(--error-color, #ef4444) 8%, transparent);
+  }
+  .key-hint-btn {
+    cursor: pointer;
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+  }
+  .key-hint-btn:hover {
+    border-color: var(--selora-accent);
+    background: color-mix(
+      in srgb,
+      var(--success-color, #22c55e) 10%,
+      var(--selora-zinc-900)
+    );
+  }
+  .key-hint-action {
+    --mdc-icon-size: 13px;
+    opacity: 0.45;
+    margin-left: 8px;
+    color: var(--secondary-text-color);
+    transition: opacity 0.15s;
+  }
+  .key-hint-btn:hover .key-hint-action {
+    opacity: 0.8;
   }
 
   /* ── MCP Token Management ───────────────────────────── */

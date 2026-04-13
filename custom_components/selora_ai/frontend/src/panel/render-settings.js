@@ -45,8 +45,12 @@ export function renderSettings(host) {
             <select
               class="form-select"
               .value=${host._config.llm_provider}
-              @change=${(e) =>
-                host._updateConfig("llm_provider", e.target.value)}
+              @change=${(e) => {
+                host._updateConfig("llm_provider", e.target.value);
+                host._showApiKeyInput = false;
+                host._newApiKey = "";
+                host._llmSaveStatus = null;
+              }}
             >
               <option value="anthropic">Anthropic (Claude)</option>
               <option value="openai">OpenAI</option>
@@ -61,24 +65,42 @@ export function renderSettings(host) {
                 <div class="form-group">
                   <label>API Key</label>
                   ${host._config.anthropic_api_key_set
-                    ? html`<div class="key-hint key-set">
+                    ? html`<button
+                        class="key-hint key-set key-hint-btn"
+                        title="Click to replace key"
+                        @click=${() => {
+                          host._showApiKeyInput = !host._showApiKeyInput;
+                          if (!host._showApiKeyInput) host._newApiKey = "";
+                          host.requestUpdate();
+                        }}
+                      >
                         <ha-icon
                           icon="mdi:check-circle"
                           style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                         ></ha-icon>
                         ${host._config.anthropic_api_key_hint}
-                      </div>`
+                        <ha-icon
+                          icon="${host._showApiKeyInput
+                            ? "mdi:close"
+                            : "mdi:pencil"}"
+                          class="key-hint-action"
+                        ></ha-icon>
+                      </button>`
                     : ""}
-                  <ha-textfield
-                    label="${host._config.anthropic_api_key_set
-                      ? "Enter new key to replace"
-                      : "Enter API key"}"
-                    type="password"
-                    .value=${host._newApiKey}
-                    @input=${(e) => (host._newApiKey = e.target.value)}
-                    placeholder="sk-ant-..."
-                    style="margin-top:8px;width:100%;"
-                  ></ha-textfield>
+                  ${!host._config.anthropic_api_key_set || host._showApiKeyInput
+                    ? html`
+                        <ha-textfield
+                          label="${host._config.anthropic_api_key_set
+                            ? "Enter new key"
+                            : "Enter API key"}"
+                          type="password"
+                          .value=${host._newApiKey}
+                          @input=${(e) => (host._newApiKey = e.target.value)}
+                          placeholder="sk-ant-..."
+                          style="margin-top:8px;width:100%;"
+                        ></ha-textfield>
+                      `
+                    : ""}
                 </div>
                 <div class="form-group">
                   <ha-textfield
@@ -95,24 +117,42 @@ export function renderSettings(host) {
                   <div class="form-group">
                     <label>API Key</label>
                     ${host._config.openai_api_key_set
-                      ? html`<div class="key-hint key-set">
+                      ? html`<button
+                          class="key-hint key-set key-hint-btn"
+                          title="Click to replace key"
+                          @click=${() => {
+                            host._showApiKeyInput = !host._showApiKeyInput;
+                            if (!host._showApiKeyInput) host._newApiKey = "";
+                            host.requestUpdate();
+                          }}
+                        >
                           <ha-icon
                             icon="mdi:check-circle"
                             style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                           ></ha-icon>
                           ${host._config.openai_api_key_hint}
-                        </div>`
+                          <ha-icon
+                            icon="${host._showApiKeyInput
+                              ? "mdi:close"
+                              : "mdi:pencil"}"
+                            class="key-hint-action"
+                          ></ha-icon>
+                        </button>`
                       : ""}
-                    <ha-textfield
-                      label="${host._config.openai_api_key_set
-                        ? "Enter new key to replace"
-                        : "Enter API key"}"
-                      type="password"
-                      .value=${host._newApiKey}
-                      @input=${(e) => (host._newApiKey = e.target.value)}
-                      placeholder="sk-..."
-                      style="margin-top:8px;width:100%;"
-                    ></ha-textfield>
+                    ${!host._config.openai_api_key_set || host._showApiKeyInput
+                      ? html`
+                          <ha-textfield
+                            label="${host._config.openai_api_key_set
+                              ? "Enter new key"
+                              : "Enter API key"}"
+                            type="password"
+                            .value=${host._newApiKey}
+                            @input=${(e) => (host._newApiKey = e.target.value)}
+                            placeholder="sk-..."
+                            style="margin-top:8px;width:100%;"
+                          ></ha-textfield>
+                        `
+                      : ""}
                   </div>
                   <div class="form-group">
                     <ha-textfield
@@ -144,6 +184,35 @@ export function renderSettings(host) {
                     ></ha-textfield>
                   </div>
                 `}
+
+          <div class="card-save-bar">
+            <button
+              class="btn btn-primary"
+              @click=${host._saveLlmConfig}
+              ?disabled=${host._savingLlmConfig}
+            >
+              ${host._savingLlmConfig
+                ? html`<span
+                      class="spinner"
+                      style="width:14px;height:14px;"
+                    ></span>
+                    Validating…`
+                : "Save"}
+            </button>
+          </div>
+          ${host._llmSaveStatus
+            ? html`<div
+                class="save-feedback save-feedback--${host._llmSaveStatus.type}"
+              >
+                <ha-icon
+                  icon="${host._llmSaveStatus.type === "success"
+                    ? "mdi:check-circle"
+                    : "mdi:alert-circle"}"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${host._llmSaveStatus.message}
+              </div>`
+            : ""}
         </div>
 
         <div class="section-card settings-section">
@@ -530,17 +599,17 @@ export function renderSettings(host) {
               ></ha-switch>
             </div>
           </div>
-        </details>
 
-        <div class="save-bar">
-          <button
-            class="btn btn-primary"
-            @click=${host._saveConfig}
-            ?disabled=${host._savingConfig}
-          >
-            ${host._savingConfig ? "Saving…" : "Save Settings"}
-          </button>
-        </div>
+          <div class="card-save-bar">
+            <button
+              class="btn btn-primary"
+              @click=${host._saveAdvancedConfig}
+              ?disabled=${host._savingAdvancedConfig}
+            >
+              ${host._savingAdvancedConfig ? "Saving…" : "Save"}
+            </button>
+          </div>
+        </details>
 
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"

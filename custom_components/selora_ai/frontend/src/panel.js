@@ -148,7 +148,10 @@ class SeloraAIPanel extends LitElement {
 
       // Settings tab
       _config: { type: Object },
-      _savingConfig: { type: Boolean },
+      _savingLlmConfig: { type: Boolean },
+      _savingAdvancedConfig: { type: Boolean },
+      _llmSaveStatus: { type: Object },
+      _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
 
       // Editable YAML state (keyed by msgIndex or suggestion key)
@@ -312,7 +315,10 @@ class SeloraAIPanel extends LitElement {
     this._editedYaml = {};
     this._savingYaml = {};
     this._config = null;
-    this._savingConfig = false;
+    this._savingLlmConfig = false;
+    this._savingAdvancedConfig = false;
+    this._llmSaveStatus = null;
+    this._showApiKeyInput = false;
     this._newApiKey = "";
     // Version history
     this._versionHistoryOpen = {};
@@ -462,41 +468,105 @@ class SeloraAIPanel extends LitElement {
     }
   }
 
-  async _saveConfig() {
-    if (!this._config || this._savingConfig) return;
-    this._savingConfig = true;
+  async _saveLlmConfig() {
+    if (!this._config || this._savingLlmConfig) return;
+    this._savingLlmConfig = true;
+    this._llmSaveStatus = null;
     try {
-      const payload = { ...this._config };
       const provider = this._config.llm_provider;
-      if (provider === "openai") {
-        if (this._newApiKey.trim()) {
-          payload.openai_api_key = this._newApiKey.trim();
-        } else {
-          delete payload.openai_api_key;
-        }
+      const newKey = this._newApiKey.trim();
+
+      // Build LLM-only payload
+      const payload = { llm_provider: provider };
+      if (provider === "anthropic") {
+        payload.anthropic_model = this._config.anthropic_model;
+        if (newKey) payload.anthropic_api_key = newKey;
+      } else if (provider === "openai") {
+        payload.openai_model = this._config.openai_model;
+        if (newKey) payload.openai_api_key = newKey;
       } else {
-        if (this._newApiKey.trim()) {
-          payload.anthropic_api_key = this._newApiKey.trim();
+        payload.ollama_host = this._config.ollama_host;
+        payload.ollama_model = this._config.ollama_model;
+      }
+
+      // Validate if a new key was entered or for Ollama (always validate connectivity)
+      const needsValidation = newKey || provider === "ollama";
+      if (needsValidation) {
+        const validatePayload = {
+          type: "selora_ai/validate_llm_key",
+          provider,
+        };
+        if (provider === "ollama") {
+          validatePayload.host = this._config.ollama_host;
+          validatePayload.model = this._config.ollama_model;
         } else {
-          delete payload.anthropic_api_key;
+          validatePayload.api_key = newKey;
+          validatePayload.model =
+            provider === "anthropic"
+              ? this._config.anthropic_model
+              : this._config.openai_model;
+        }
+        const result = await this.hass.callWS(validatePayload);
+        if (!result.valid) {
+          this._llmSaveStatus = {
+            type: "error",
+            message: result.error || "Invalid API key or provider unreachable.",
+          };
+          return;
         }
       }
-      delete payload.anthropic_api_key_hint;
-      delete payload.anthropic_api_key_set;
-      delete payload.openai_api_key_hint;
-      delete payload.openai_api_key_set;
 
       await this.hass.callWS({
         type: "selora_ai/update_config",
         config: payload,
       });
       this._newApiKey = "";
+      this._showApiKeyInput = false;
       await this._loadConfig();
-      this._showToast("Configuration saved.", "success");
+      this._llmSaveStatus = { type: "success", message: "LLM settings saved." };
+      setTimeout(() => {
+        this._llmSaveStatus = null;
+        this.requestUpdate();
+      }, 4000);
     } catch (err) {
-      this._showToast("Failed to save configuration: " + err.message, "error");
+      this._llmSaveStatus = {
+        type: "error",
+        message: "Failed to save: " + err.message,
+      };
     } finally {
-      this._savingConfig = false;
+      this._savingLlmConfig = false;
+    }
+  }
+
+  async _saveAdvancedConfig() {
+    if (!this._config || this._savingAdvancedConfig) return;
+    this._savingAdvancedConfig = true;
+    try {
+      const payload = {
+        collector_enabled: this._config.collector_enabled,
+        collector_mode: this._config.collector_mode,
+        collector_interval: this._config.collector_interval,
+        collector_start_time: this._config.collector_start_time,
+        collector_end_time: this._config.collector_end_time,
+        discovery_enabled: this._config.discovery_enabled,
+        discovery_mode: this._config.discovery_mode,
+        discovery_interval: this._config.discovery_interval,
+        discovery_start_time: this._config.discovery_start_time,
+        discovery_end_time: this._config.discovery_end_time,
+        auto_purge_stale: this._config.auto_purge_stale || false,
+        // Developer-only: Connect Server URL (editable when Connect is unlinked)
+        selora_connect_url: this._config.selora_connect_url,
+      };
+      await this.hass.callWS({
+        type: "selora_ai/update_config",
+        config: payload,
+      });
+      await this._loadConfig();
+      this._showToast("Advanced settings saved.", "success");
+    } catch (err) {
+      this._showToast("Failed to save: " + err.message, "error");
+    } finally {
+      this._savingAdvancedConfig = false;
     }
   }
 
