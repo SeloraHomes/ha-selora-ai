@@ -38,6 +38,7 @@ from homeassistant.util import dt as dt_util
 import voluptuous as vol
 import yaml
 
+from .automation_utils import suggestion_content_fingerprint
 from .const import (
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
@@ -1190,20 +1191,34 @@ async def _handle_websocket_generate_suggestions(
                 existing_aliases.add(alias)
 
         # 4. Return combined results: proactive first, then collector — skip existing
+        #    Deduplicate by both alias AND content fingerprint (#46)
         all_suggestions = []
         seen_aliases: set[str] = set()
+        seen_fingerprints: set[str] = set()
         for s in list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])):
             alias = (s.get("alias") or "").strip().lower()
-            if alias in existing_aliases or alias in seen_aliases:
+            if alias and (alias in existing_aliases or alias in seen_aliases):
+                continue
+            auto_data = s.get("automation_data", s)
+            fp = suggestion_content_fingerprint(auto_data)
+            if fp in seen_fingerprints:
                 continue
             all_suggestions.append(s)
-            seen_aliases.add(alias)
+            if alias:
+                seen_aliases.add(alias)
+            seen_fingerprints.add(fp)
         for s in hass.data.get(DOMAIN, {}).get("latest_suggestions", []):
             alias = (s.get("alias") or "").strip().lower()
-            if alias in existing_aliases or alias in seen_aliases:
+            if alias and (alias in existing_aliases or alias in seen_aliases):
+                continue
+            auto_data = s.get("automation_data", s)
+            fp = suggestion_content_fingerprint(auto_data)
+            if fp in seen_fingerprints:
                 continue
             all_suggestions.append(s)
-            seen_aliases.add(alias)
+            if alias:
+                seen_aliases.add(alias)
+            seen_fingerprints.add(fp)
 
         connection.send_result(msg["id"], all_suggestions)
     except Exception as exc:
@@ -3501,7 +3516,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             suggestions = await suggestion_generator.generate_from_patterns(patterns)
             if suggestions:
                 existing = hass.data[DOMAIN].get("proactive_suggestions", [])
-                existing.extend(suggestions)
+
+                # Deduplicate against already-queued suggestions by content (#46)
+                existing_fps: set[str] = set()
+                for s in existing:
+                    auto_data = s.get("automation_data", {})
+                    if auto_data:
+                        existing_fps.add(suggestion_content_fingerprint(auto_data))
+                for s in suggestions:
+                    fp = suggestion_content_fingerprint(s.get("automation_data", {}))
+                    if fp not in existing_fps:
+                        existing.append(s)
+                        existing_fps.add(fp)
+
                 hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
                 async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 

@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+from custom_components.selora_ai.automation_utils import suggestion_content_fingerprint
 from custom_components.selora_ai.collector import DataCollector
 
 
@@ -117,8 +118,8 @@ class TestDismissalFiltering:
         dismissed_auto = {"trigger": trigger, "action": action, "alias": "Old Name"}
         new_suggestion = {"trigger": trigger, "action": action, "alias": "New Name"}
 
-        hash1 = DataCollector._suggestion_hash(dismissed_auto)
-        hash2 = DataCollector._suggestion_hash(new_suggestion)
+        hash1 = suggestion_content_fingerprint(dismissed_auto)
+        hash2 = suggestion_content_fingerprint(new_suggestion)
         assert hash1 == hash2  # Same content = same hash
 
     def test_different_content_different_hash(self):
@@ -131,7 +132,7 @@ class TestDismissalFiltering:
             "trigger": {"platform": "state", "entity_id": "binary_sensor.door"},
             "action": {"service": "lock.lock", "entity_id": "lock.front"},
         }
-        assert DataCollector._suggestion_hash(auto1) != DataCollector._suggestion_hash(auto2)
+        assert suggestion_content_fingerprint(auto1) != suggestion_content_fingerprint(auto2)
 
     def test_alias_variant_caught_by_normalization(self):
         """Slightly different alias naming still matches after normalization."""
