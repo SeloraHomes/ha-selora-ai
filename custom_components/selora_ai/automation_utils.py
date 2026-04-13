@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import hashlib
+import json
 import logging
 from math import floor
 from pathlib import Path
@@ -24,6 +26,23 @@ if TYPE_CHECKING:
     from .automation_store import AutomationStore
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def suggestion_content_fingerprint(automation: dict[str, Any]) -> str:
+    """SHA-256 fingerprint of trigger+condition+action for suggestion deduplication.
+
+    Handles both singular (trigger/action/condition) and plural
+    (triggers/actions/conditions) key names so raw LLM output and normalized
+    YAML produce the same hash.  Conditions are included because time-based
+    patterns can share trigger+action but differ by weekday/weekend condition.
+    """
+    trigger = automation.get("trigger") or automation.get("triggers")
+    condition = automation.get("condition") or automation.get("conditions")
+    action = automation.get("action") or automation.get("actions")
+    key = {"trigger": trigger, "condition": condition, "action": action}
+    raw = json.dumps(key, sort_keys=True, default=str)
+    return hashlib.sha256(raw.encode()).hexdigest()
+
 
 _ELEVATED_RISK_SERVICE_DOMAINS = {
     "shell_command",

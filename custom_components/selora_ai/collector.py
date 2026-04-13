@@ -13,8 +13,6 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from datetime import UTC, datetime, timedelta
-import hashlib
-import json
 import logging
 from math import ceil
 from pathlib import Path
@@ -34,6 +32,7 @@ from .automation_utils import (
     count_selora_automations,
     find_stale_automations,
     get_selora_automation_cap,
+    suggestion_content_fingerprint,
     validate_automation_payload,
 )
 from .const import (
@@ -402,7 +401,7 @@ class DataCollector:
             unique_suggestions: list[dict[str, Any]] = []
             deleted_count = 0
             for s in novel:
-                h = self._suggestion_hash(s)
+                h = suggestion_content_fingerprint(s)
                 if h in deleted_hashes:
                     _LOGGER.debug(
                         "Skipping suggestion matching deleted automation: %s",
@@ -528,7 +527,7 @@ class DataCollector:
                         # Build content hash from dismissed automation data
                         auto_data = d.get("automation_data")
                         if auto_data:
-                            dismissed_hashes.add(self._suggestion_hash(auto_data))
+                            dismissed_hashes.add(suggestion_content_fingerprint(auto_data))
                         # Normalize dismissed alias
                         alias = d.get("automation_data", {}).get("alias") or d.get(
                             "description", ""
@@ -541,7 +540,7 @@ class DataCollector:
                     for s in enriched:
                         # Check content hash
                         auto_data = s.get("automation_data", s)
-                        content_hash = self._suggestion_hash(auto_data)
+                        content_hash = suggestion_content_fingerprint(auto_data)
                         if content_hash in dismissed_hashes:
                             _LOGGER.info(
                                 "Suppressing previously dismissed suggestion (content match): '%s'",
@@ -905,19 +904,6 @@ class DataCollector:
             )
 
         return automations
-
-    @staticmethod
-    def _suggestion_hash(automation: dict[str, Any]) -> str:
-        """Return a content hash of trigger+action for deduplication.
-
-        Handles both singular (trigger/action) and plural (triggers/actions)
-        key names so raw LLM output and normalized YAML produce the same hash.
-        """
-        trigger = automation.get("trigger") or automation.get("triggers")
-        action = automation.get("action") or automation.get("actions")
-        key = {"trigger": trigger, "action": action}
-        raw = json.dumps(key, sort_keys=True, default=str)
-        return hashlib.sha256(raw.encode()).hexdigest()
 
     @staticmethod
     def _normalize_alias(alias: str) -> str:

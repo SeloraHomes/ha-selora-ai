@@ -20,6 +20,7 @@ def _make_pattern_store() -> MagicMock:
     store = MagicMock()
     store.has_suggestion_for_pattern = AsyncMock(return_value=False)
     store.get_recently_dismissed_suggestions = AsyncMock(return_value=[])
+    store.get_suggestions = AsyncMock(return_value=[])
     store.save_suggestion = AsyncMock(return_value="sugg_id_001")
     return store
 
@@ -351,3 +352,122 @@ class TestGenerateFromPatterns:
         assert saved["source"] == "pattern"
         assert saved["confidence"] == 0.71
         assert result[0]["suggestion_id"] == "sugg_id_001"
+
+    @pytest.mark.asyncio
+    async def test_deduplicates_batch_by_content(self, hass: MagicMock):
+        """Two patterns that produce identical trigger+action should yield only one suggestion (#46)."""
+        pattern_a = {
+            "pattern_id": "pat_corr_001",
+            "type": "correlation",
+            "confidence": 0.8,
+            "description": "Fridge express mode → kitchen cam on",
+            "entity_ids": ["switch.fridge_express", "switch.kitchen_cam"],
+            "evidence": {
+                "trigger_entity": "switch.fridge_express",
+                "trigger_state": "on",
+                "response_entity": "switch.kitchen_cam",
+                "response_state": "on",
+            },
+        }
+        # Same trigger+action, different pattern_id and description
+        pattern_b = {
+            "pattern_id": "pat_corr_002",
+            "type": "correlation",
+            "confidence": 0.75,
+            "description": "Fridge express → kitchen camera turns on",
+            "entity_ids": ["switch.fridge_express", "switch.kitchen_cam"],
+            "evidence": {
+                "trigger_entity": "switch.fridge_express",
+                "trigger_state": "on",
+                "response_entity": "switch.kitchen_cam",
+                "response_state": "on",
+            },
+        }
+
+        store = _make_pattern_store()
+        gen = SuggestionGenerator(hass, store)
+
+        with patch(
+            "custom_components.selora_ai.suggestion_generator.validate_automation_payload",
+        ) as mock_validate:
+            normalized = {
+                "alias": "[Selora AI] Fridge express mode → kitchen cam on",
+                "description": "Fridge express mode → kitchen cam on",
+                "trigger": [
+                    {
+                        "platform": "state",
+                        "entity_id": "switch.fridge_express",
+                        "to": "on",
+                    }
+                ],
+                "condition": [],
+                "action": [
+                    {
+                        "action": "switch.turn_on",
+                        "target": {"entity_id": "switch.kitchen_cam"},
+                    }
+                ],
+                "mode": "single",
+            }
+            mock_validate.return_value = (True, "ok", normalized)
+
+            result = await gen.generate_from_patterns([pattern_a, pattern_b])
+
+        # Only the first should be kept; the duplicate is skipped
+        assert len(result) == 1
+        assert store.save_suggestion.await_count == 1
+
+    @pytest.mark.asyncio
+    async def test_deduplicates_against_stored_suggestions(self, hass: MagicMock):
+        """A new pattern should be skipped if an identical suggestion already exists in the store (#46)."""
+        normalized = {
+            "alias": "[Selora AI] Kitchen motion on",
+            "description": "Kitchen motion on",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.kitchen_motion",
+                    "to": "on",
+                }
+            ],
+            "condition": [],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "light.kitchen"},
+                }
+            ],
+            "mode": "single",
+        }
+
+        store = _make_pattern_store()
+        # Simulate an already-stored suggestion with the same content
+        stored = [{"automation_data": normalized, "status": "pending"}]
+        store.get_suggestions = AsyncMock(
+            side_effect=lambda status="pending": stored if status == "pending" else []
+        )
+
+        pattern = {
+            "pattern_id": "pat_corr_new",
+            "type": "correlation",
+            "confidence": 0.8,
+            "description": "Kitchen motion → light on",
+            "entity_ids": ["binary_sensor.kitchen_motion", "light.kitchen"],
+            "evidence": {
+                "trigger_entity": "binary_sensor.kitchen_motion",
+                "trigger_state": "on",
+                "response_entity": "light.kitchen",
+                "response_state": "on",
+            },
+        }
+
+        gen = SuggestionGenerator(hass, store)
+
+        with patch(
+            "custom_components.selora_ai.suggestion_generator.validate_automation_payload",
+        ) as mock_validate:
+            mock_validate.return_value = (True, "ok", normalized)
+            result = await gen.generate_from_patterns([pattern])
+
+        assert len(result) == 0
+        store.save_suggestion.assert_not_awaited()

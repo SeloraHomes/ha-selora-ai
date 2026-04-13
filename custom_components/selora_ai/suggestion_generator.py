@@ -14,7 +14,7 @@ from typing import Any
 from homeassistant.core import HomeAssistant
 import yaml
 
-from .automation_utils import validate_automation_payload
+from .automation_utils import suggestion_content_fingerprint, validate_automation_payload
 from .const import (
     CONFIDENCE_MEDIUM,
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
@@ -49,11 +49,19 @@ class SuggestionGenerator:
         3. Build a valid HA automation payload
         4. Validate through automation_utils
         5. Deduplicate against existing automations
-        6. Optionally enrich description via LLM (with dismissal context, #45)
-        7. Save to pattern store
+        6. Deduplicate against other suggestions in this batch by content (#46)
+        7. Deduplicate against already-stored suggestions by content (#46)
+        8. Optionally enrich description via LLM (with dismissal context, #45)
+        9. Save to pattern store
         """
         suggestions: list[dict[str, Any]] = []
         existing_aliases = self._get_existing_aliases()
+
+        # Build content fingerprints of already-stored suggestions (#46)
+        stored_fingerprints = await self._get_stored_suggestion_fingerprints()
+
+        # Track fingerprints within this batch to prevent intra-batch duplicates (#46)
+        batch_fingerprints: set[str] = set()
 
         # Fetch recently dismissed suggestions once for the whole batch (#44 + #45)
         recently_dismissed = await self._store.get_recently_dismissed_suggestions()
@@ -103,6 +111,22 @@ class SuggestionGenerator:
                 )
                 continue
 
+            # Deduplicate by trigger+action content fingerprint (#46)
+            fingerprint = suggestion_content_fingerprint(normalized)
+            if fingerprint in batch_fingerprints:
+                _LOGGER.debug(
+                    "Skipping duplicate suggestion in batch (same trigger+action): %s",
+                    alias_lower,
+                )
+                continue
+            if fingerprint in stored_fingerprints:
+                _LOGGER.debug(
+                    "Skipping suggestion that duplicates an already-stored suggestion: %s",
+                    alias_lower,
+                )
+                continue
+            batch_fingerprints.add(fingerprint)
+
             yaml_text = yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
 
             suggestion: dict[str, Any] = {
@@ -138,6 +162,19 @@ class SuggestionGenerator:
             if alias:
                 aliases.add(alias.lower())
         return aliases
+
+    async def _get_stored_suggestion_fingerprints(self) -> set[str]:
+        """Build content fingerprints of all pending/snoozed suggestions in the store."""
+        fingerprints: set[str] = set()
+        for s in await self._store.get_suggestions(status="pending"):
+            auto_data = s.get("automation_data", {})
+            if auto_data:
+                fingerprints.add(suggestion_content_fingerprint(auto_data))
+        for s in await self._store.get_suggestions(status="snoozed"):
+            auto_data = s.get("automation_data", {})
+            if auto_data:
+                fingerprints.add(suggestion_content_fingerprint(auto_data))
+        return fingerprints
 
     def _pattern_to_automation(self, pattern: dict[str, Any]) -> dict[str, Any] | None:
         """Convert a pattern into a valid HA automation dict."""
