@@ -97,10 +97,8 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     editedYaml !== undefined ? editedYaml : item.automationYaml;
   const hasFlow =
     automationData &&
-    (automationData.trigger?.length ||
-      automationData.triggers?.length ||
-      automationData.action?.length ||
-      automationData.actions?.length);
+    ((automationData.triggers ?? automationData.trigger)?.length ||
+      (automationData.actions ?? automationData.action)?.length);
   const activeTab =
     host._cardActiveTab[cardKey] !== undefined
       ? host._cardActiveTab[cardKey]

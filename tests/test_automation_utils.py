@@ -134,9 +134,9 @@ class TestValidateAutomationPayload:
         assert result is not None
         assert result["alias"] == "Test automation"
         assert result["mode"] == "single"
-        assert isinstance(result["trigger"], list)
-        assert isinstance(result["action"], list)
-        assert isinstance(result["condition"], list)
+        assert isinstance(result["triggers"], list)
+        assert isinstance(result["actions"], list)
+        assert isinstance(result["conditions"], list)
 
     def test_uses_triggers_key(self) -> None:
         payload = {
@@ -146,7 +146,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert len(result["trigger"]) == 1
+        assert len(result["triggers"]) == 1
 
     def test_wraps_single_trigger_in_list(self) -> None:
         payload = {
@@ -156,8 +156,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert isinstance(result["trigger"], list)
-        assert len(result["trigger"]) == 1
+        assert isinstance(result["triggers"], list)
+        assert len(result["triggers"]) == 1
 
     def test_wraps_single_action_in_list(self) -> None:
         payload = {
@@ -167,7 +167,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert isinstance(result["action"], list)
+        assert isinstance(result["actions"], list)
 
     def test_wraps_single_condition_in_list(self) -> None:
         payload = {
@@ -178,8 +178,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert isinstance(result["condition"], list)
-        assert len(result["condition"]) == 1
+        assert isinstance(result["conditions"], list)
+        assert len(result["conditions"]) == 1
 
     def test_renames_trigger_key_to_platform(self) -> None:
         payload = {
@@ -189,8 +189,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["platform"] == "state"
-        assert "trigger" not in result["trigger"][0]
+        assert result["triggers"][0]["platform"] == "state"
+        assert "trigger" not in result["triggers"][0]
 
     # -- boolean / None / numeric coercion --------------------------------
 
@@ -202,7 +202,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["to"] == "on"
+        assert result["triggers"][0]["to"] == "on"
 
     def test_coerces_boolean_false_to_off(self) -> None:
         payload = {
@@ -212,7 +212,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["from"] == "off"
+        assert result["triggers"][0]["from"] == "off"
 
     def test_removes_none_to_from(self) -> None:
         payload = {
@@ -222,8 +222,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert "to" not in result["trigger"][0]
-        assert "from" not in result["trigger"][0]
+        assert "to" not in result["triggers"][0]
+        assert "from" not in result["triggers"][0]
 
     def test_stringifies_numeric_to_from(self) -> None:
         payload = {
@@ -233,8 +233,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["to"] == "42"
-        assert result["trigger"][0]["from"] == "3.14"
+        assert result["triggers"][0]["to"] == "42"
+        assert result["triggers"][0]["from"] == "3.14"
 
     def test_default_mode_is_single(self) -> None:
         payload = {
@@ -324,7 +324,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["state"] == "on"
+        assert result["conditions"][0]["state"] == "on"
 
     def test_coerces_condition_state_false_to_off(self) -> None:
         payload = {
@@ -337,7 +337,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["state"] == "off"
+        assert result["conditions"][0]["state"] == "off"
 
     def test_leaves_condition_state_string_unchanged(self) -> None:
         payload = {
@@ -348,7 +348,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["state"] == "25.5"
+        assert result["conditions"][0]["state"] == "25.5"
 
     # -- time condition coercion ------------------------------------------
 
@@ -361,8 +361,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["after"] == "21:00:00"
-        assert result["condition"][0]["before"] == "22:00:00"
+        assert result["conditions"][0]["after"] == "21:00:00"
+        assert result["conditions"][0]["before"] == "22:00:00"
 
     def test_leaves_time_condition_string_unchanged(self) -> None:
         payload = {
@@ -373,8 +373,8 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["after"] == "21:00:00"
-        assert result["condition"][0]["before"] == "22:00:00"
+        assert result["conditions"][0]["after"] == "21:00:00"
+        assert result["conditions"][0]["before"] == "22:00:00"
 
     # -- time trigger `at` coercion ---------------------------------------
 
@@ -386,7 +386,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["at"] == "22:30:00"
+        assert result["triggers"][0]["at"] == "22:30:00"
 
     def test_coerces_time_trigger_at_midnight(self) -> None:
         payload = {
@@ -396,7 +396,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["at"] == "00:00:00"
+        assert result["triggers"][0]["at"] == "00:00:00"
 
     def test_leaves_time_trigger_string_at_unchanged(self) -> None:
         payload = {
@@ -406,7 +406,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["at"] == "07:00:00"
+        assert result["triggers"][0]["at"] == "07:00:00"
 
     # -- duration `for` coercion ------------------------------------------
 
@@ -418,7 +418,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["trigger"][0]["for"] == {"seconds": 300}
+        assert result["triggers"][0]["for"] == {"seconds": 300}
 
     def test_coerces_duration_for_integer_to_dict_in_condition(self) -> None:
         payload = {
@@ -431,7 +431,7 @@ class TestValidateAutomationPayload:
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["condition"][0]["for"] == {"seconds": 600}
+        assert result["conditions"][0]["for"] == {"seconds": 600}
 
 
 # ===================================================================
@@ -1060,8 +1060,8 @@ class TestCreateAutomationValidation:
         new = [
             a for a in content if a["id"].startswith(AUTOMATION_ID_PREFIX) and "Dryer" in a["alias"]
         ]
-        assert new[0]["trigger"][0]["from"] == "on"
-        assert new[0]["trigger"][0]["to"] == "off"
+        assert new[0]["triggers"][0]["from"] == "on"
+        assert new[0]["triggers"][0]["to"] == "off"
 
         # Also verify the raw file text contains double-quoted values
         raw = tmp_automations_yaml.read_text(encoding="utf-8")
@@ -1080,7 +1080,7 @@ class TestCreateAutomationValidation:
 
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         new = [a for a in content if "Null From" in a.get("alias", "")]
-        assert "from" not in new[0]["trigger"][0]
+        assert "from" not in new[0]["triggers"][0]
 
     @pytest.mark.asyncio
     async def test_initial_state_defaults_to_false(
@@ -1147,8 +1147,8 @@ class TestUpdateAutomationValidation:
 
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         match = [a for a in content if a.get("id") == "selora_ai_existing1"]
-        assert match[0]["trigger"][0]["from"] == "on"
-        assert match[0]["trigger"][0]["to"] == "off"
+        assert match[0]["triggers"][0]["from"] == "on"
+        assert match[0]["triggers"][0]["to"] == "off"
 
     @pytest.mark.asyncio
     async def test_invalid_update_rejected(

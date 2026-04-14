@@ -218,9 +218,9 @@ class SuggestionGenerator:
         return {
             "alias": f"[Selora AI] {pattern['description']}",
             "description": pattern["description"],
-            "trigger": [{"platform": "time", "at": time_slot}],
-            "condition": conditions,
-            "action": [action],
+            "triggers": [{"platform": "time", "at": time_slot}],
+            "conditions": conditions,
+            "actions": [action],
             "mode": "single",
         }
 
@@ -240,15 +240,15 @@ class SuggestionGenerator:
         return {
             "alias": f"[Selora AI] {pattern['description']}",
             "description": pattern["description"],
-            "trigger": [
+            "triggers": [
                 {
                     "platform": "state",
                     "entity_id": trigger_entity,
                     "to": trigger_state,
                 }
             ],
-            "condition": [],
-            "action": [action],
+            "conditions": [],
+            "actions": [action],
             "mode": "single",
         }
 
@@ -277,9 +277,9 @@ class SuggestionGenerator:
         return {
             "alias": f"[Selora AI] {pattern['description']}",
             "description": pattern["description"],
-            "trigger": [trigger],
-            "condition": [],
-            "action": [action],
+            "triggers": [trigger],
+            "conditions": [],
+            "actions": [action],
             "mode": "single",
         }
 

@@ -405,9 +405,9 @@ def validate_automation_payload(
     normalized: dict[str, Any] = {
         "alias": alias,
         "description": str(automation.get("description", "")).strip(),
-        "trigger": normalized_triggers,
-        "condition": normalized_conditions,
-        "action": normalized_actions,
+        "triggers": normalized_triggers,
+        "conditions": normalized_conditions,
+        "actions": normalized_actions,
         "mode": mode,
     }
     if initial_state is not None:
@@ -553,10 +553,14 @@ async def async_update_automation(
         _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
         return False
 
-    # Merge normalized trigger/action/condition back while preserving other fields
-    updated["trigger"] = normalized["trigger"]
-    updated["action"] = normalized["action"]
-    updated["condition"] = normalized.get("condition", [])
+    # Merge normalized trigger/action/condition back using plural keys (HA 2024+)
+    updated["triggers"] = normalized["triggers"]
+    updated["actions"] = normalized["actions"]
+    updated["conditions"] = normalized.get("conditions", [])
+    # Remove old singular keys if present
+    updated.pop("trigger", None)
+    updated.pop("action", None)
+    updated.pop("condition", None)
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
@@ -614,9 +618,9 @@ async def async_create_automation(
         return {"success": False, "automation_id": None}
 
     alias = normalized["alias"]
-    triggers = normalized["trigger"]
-    actions = normalized["action"]
-    conditions = normalized.get("condition", [])
+    triggers = normalized["triggers"]
+    actions = normalized["actions"]
+    conditions = normalized.get("conditions", [])
 
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
@@ -628,9 +632,9 @@ async def async_create_automation(
         "alias": alias,
         "description": f"[Selora AI] {suggestion.get('description', alias)}",
         "initial_state": initial_state,
-        "trigger": triggers,
-        "condition": conditions or [],
-        "action": actions,
+        "triggers": triggers,
+        "conditions": conditions or [],
+        "actions": actions,
         "mode": normalized.get("mode", "single"),
     }
 

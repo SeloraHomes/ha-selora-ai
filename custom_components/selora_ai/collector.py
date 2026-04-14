@@ -624,9 +624,9 @@ class DataCollector:
                 _LOGGER.debug("Skipping duplicate automation: %s", alias)
                 continue
 
-            triggers = normalized["trigger"]
-            actions = normalized["action"]
-            conditions = normalized["condition"]
+            triggers = normalized["triggers"]
+            actions = normalized["actions"]
+            conditions = normalized["conditions"]
             short_id = uuid.uuid4().hex[:8]
             description = normalized.get("description") or alias
             automation = {
@@ -634,9 +634,9 @@ class DataCollector:
                 "alias": alias,
                 "description": f"[Selora AI] {description}",
                 "initial_state": False,
-                "trigger": triggers,
-                "condition": conditions or [],
-                "action": actions,
+                "triggers": triggers,
+                "conditions": conditions or [],
+                "actions": actions,
                 "mode": normalized.get("mode", "single"),
             }
 
