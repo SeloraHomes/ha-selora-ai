@@ -165,19 +165,19 @@ class TestPatternToAutomation:
         gen = self._make_gen(hass)
         result = gen._pattern_to_automation(sample_time_pattern)
         assert result is not None
-        assert result["trigger"][0]["platform"] == "time"
+        assert result["triggers"][0]["platform"] == "time"
 
     def test_routes_correlation(self, hass: MagicMock, sample_correlation_pattern: dict[str, Any]):
         gen = self._make_gen(hass)
         result = gen._pattern_to_automation(sample_correlation_pattern)
         assert result is not None
-        assert result["trigger"][0]["platform"] == "state"
+        assert result["triggers"][0]["platform"] == "state"
 
     def test_routes_sequence(self, hass: MagicMock, sample_sequence_pattern: dict[str, Any]):
         gen = self._make_gen(hass)
         result = gen._pattern_to_automation(sample_sequence_pattern)
         assert result is not None
-        assert result["trigger"][0]["platform"] == "state"
+        assert result["triggers"][0]["platform"] == "state"
 
     def test_unknown_type_returns_none(self, hass: MagicMock):
         gen = self._make_gen(hass)
@@ -200,15 +200,15 @@ class TestTimePatternToAutomation:
         gen = self._make_gen(hass)
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
-        assert len(result["condition"]) == 1
-        assert result["condition"][0]["weekday"] == ["mon", "tue", "wed", "thu", "fri"]
+        assert len(result["conditions"]) == 1
+        assert result["conditions"][0]["weekday"] == ["mon", "tue", "wed", "thu", "fri"]
 
     def test_weekend_condition(self, hass: MagicMock, sample_time_pattern: dict[str, Any]):
         sample_time_pattern["evidence"]["is_weekday"] = False
         gen = self._make_gen(hass)
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
-        assert result["condition"][0]["weekday"] == ["sat", "sun"]
+        assert result["conditions"][0]["weekday"] == ["sat", "sun"]
 
     def test_no_weekday_flag_means_no_condition(
         self, hass: MagicMock, sample_time_pattern: dict[str, Any]
@@ -217,7 +217,7 @@ class TestTimePatternToAutomation:
         gen = self._make_gen(hass)
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
-        assert result["condition"] == []
+        assert result["conditions"] == []
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -230,10 +230,10 @@ class TestCorrelationToAutomation:
         gen = SuggestionGenerator(hass, _make_pattern_store())
         result = gen._correlation_to_automation(sample_correlation_pattern)
         assert result is not None
-        trigger = result["trigger"][0]
+        trigger = result["triggers"][0]
         assert trigger["entity_id"] == "binary_sensor.front_door"
         assert trigger["to"] == "on"
-        action = result["action"][0]
+        action = result["actions"][0]
         assert action["action"] == "light.turn_on"
         assert action["target"]["entity_id"] == "light.hallway"
 
@@ -250,7 +250,7 @@ class TestSequenceToAutomation:
         gen = SuggestionGenerator(hass, _make_pattern_store())
         result = gen._sequence_to_automation(sample_sequence_pattern)
         assert result is not None
-        trigger = result["trigger"][0]
+        trigger = result["triggers"][0]
         assert trigger["from"] == "off"
         assert trigger["to"] == "on"
 
@@ -261,7 +261,7 @@ class TestSequenceToAutomation:
         gen = SuggestionGenerator(hass, _make_pattern_store())
         result = gen._sequence_to_automation(sample_sequence_pattern)
         assert result is not None
-        assert "from" not in result["trigger"][0]
+        assert "from" not in result["triggers"][0]
 
 
 # ═══════════════════════════════════════════════════════════════════════

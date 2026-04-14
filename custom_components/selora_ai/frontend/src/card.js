@@ -181,9 +181,9 @@ class SeloraAIDashboardCard extends LitElement {
         suggestion.automation || {
           alias: suggestion.alias,
           description: suggestion.description || "",
-          trigger: suggestion.trigger || suggestion.triggers || [],
-          action: suggestion.action || suggestion.actions || [],
-          condition: suggestion.condition || suggestion.conditions || [],
+          triggers: suggestion.triggers || suggestion.trigger || [],
+          actions: suggestion.actions || suggestion.action || [],
+          conditions: suggestion.conditions || suggestion.condition || [],
         };
       // Respect the LLM's suggested initial_state; default to enabled
       automationPayload.initial_state = automationPayload.initial_state ?? true;
@@ -555,8 +555,12 @@ class SeloraAIDashboardCard extends LitElement {
   _renderAutomationItem(a) {
     const isOn = a.state === "on";
     const isExpanded = this._expandedId === a.automation_id;
-    const triggers = Array.isArray(a.trigger) ? a.trigger : [];
-    const actions = Array.isArray(a.action) ? a.action : [];
+    const triggers = Array.isArray(a.triggers ?? a.trigger)
+      ? (a.triggers ?? a.trigger)
+      : [];
+    const actions = Array.isArray(a.actions ?? a.action)
+      ? (a.actions ?? a.action)
+      : [];
 
     return html`
       <div class="automation-item ${isExpanded ? "expanded" : ""}">

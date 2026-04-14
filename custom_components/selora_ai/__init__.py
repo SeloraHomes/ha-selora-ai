@@ -1313,7 +1313,7 @@ async def _handle_websocket_quick_create_automation(
             return
 
         # Sanitize triggers — strip null values that HA rejects
-        triggers = normalized.get("trigger") or normalized.get("triggers") or []
+        triggers = normalized.get("triggers") or []
         for t in triggers if isinstance(triggers, list) else [triggers]:
             for key in list(t.keys()):
                 if t[key] is None:
@@ -1517,11 +1517,11 @@ async def _handle_websocket_get_automations(
                         if isinstance(full_config.get("initial_state"), bool)
                         else None
                     ),
-                    "trigger": full_config.get("trigger") or full_config.get("triggers") or [],
-                    "condition": full_config.get("condition")
-                    or full_config.get("conditions")
+                    "triggers": full_config.get("triggers") or full_config.get("trigger") or [],
+                    "conditions": full_config.get("conditions")
+                    or full_config.get("condition")
                     or [],
-                    "action": full_config.get("action") or full_config.get("actions") or [],
+                    "actions": full_config.get("actions") or full_config.get("action") or [],
                     "yaml_text": yaml_text,
                     # Lifecycle metadata (None for automations not tracked by the store)
                     "version_count": meta["version_count"] if meta else None,

@@ -576,7 +576,8 @@ export function renderAutomations(host) {
                             };
                           } else {
                             const defaultTab =
-                              a.trigger?.length || a.action?.length
+                              (a.triggers ?? a.trigger)?.length ||
+                              (a.actions ?? a.action)?.length
                                 ? "flow"
                                 : a.yaml_text
                                   ? "yaml"
@@ -824,7 +825,8 @@ export function renderAutomations(host) {
                         ? html`
                             <div class="auto-row-expand">
                               <div class="card-tabs" style="margin-top:0;">
-                                ${a.trigger?.length || a.action?.length
+                                ${(a.triggers ?? a.trigger)?.length ||
+                                (a.actions ?? a.action)?.length
                                   ? html`
                                       <button
                                         class="card-tab ${host._cardActiveTab[
@@ -920,7 +922,8 @@ export function renderAutomations(host) {
                                   : ""}
                               </div>
                               ${host._cardActiveTab[a.entity_id] === "flow" &&
-                              (a.trigger?.length || a.action?.length)
+                              ((a.triggers ?? a.trigger)?.length ||
+                                (a.actions ?? a.action)?.length)
                                 ? renderAutomationFlowchart(host, a)
                                 : ""}
                               ${host._cardActiveTab[a.entity_id] === "yaml" &&
