@@ -97,37 +97,54 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
 
 
-# ── Prompt files (loaded from disk at import time) ──────────────────
+# ── Prompt files (preloaded via executor, cached) ─────────────────────
+# The module is imported lazily from async_setup_entry (inside the event
+# loop).  Reading files synchronously here or on first use would trigger
+# HA's blocking-call detector.  Instead, async_preload_prompts() reads
+# them through the executor during setup, and the getters return the
+# cached result.
+
+from pathlib import Path as _Path  # noqa: E402
+
+_PROMPTS_DIR = _Path(__file__).parent / "prompts"
+
+_TOOL_POLICY_TEXT: str = ""
+_DEVICE_KNOWLEDGE_TEXT: str = ""
+
+
+def _read_prompt_files() -> tuple[str, str]:
+    """Read prompt files from disk (runs in executor thread)."""
+    policy = ""
+    knowledge = ""
+    policy_path = _PROMPTS_DIR / "tool_policy.md"
+    knowledge_path = _PROMPTS_DIR / "device_knowledge.md"
+    try:
+        policy = policy_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        _LOGGER.warning("Tool policy file not found at %s", policy_path)
+    try:
+        knowledge = knowledge_path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        _LOGGER.warning("Device knowledge file not found at %s", knowledge_path)
+    return policy, knowledge
+
+
+async def async_preload_prompts(hass: HomeAssistant) -> None:
+    """Preload prompt files via the executor so they're cached before first use."""
+    global _TOOL_POLICY_TEXT, _DEVICE_KNOWLEDGE_TEXT  # noqa: PLW0603
+    _TOOL_POLICY_TEXT, _DEVICE_KNOWLEDGE_TEXT = await hass.async_add_executor_job(
+        _read_prompt_files
+    )
+
+
 def _load_tool_policy() -> str:
     """Return the tool usage policy text."""
     return _TOOL_POLICY_TEXT
 
 
 def _load_device_knowledge() -> str:
-    """Return the smart device domain knowledge (loaded at module import time)."""
+    """Return the smart device domain knowledge."""
     return _DEVICE_KNOWLEDGE_TEXT
-
-
-# Load at import time — before the event loop starts — to avoid blocking I/O warnings.
-from pathlib import Path as _Path  # noqa: E402
-
-_prompts_dir = _Path(__file__).parent / "prompts"
-
-_policy_path = _prompts_dir / "tool_policy.md"
-try:
-    _TOOL_POLICY_TEXT: str = _policy_path.read_text(encoding="utf-8")
-except FileNotFoundError:
-    _LOGGER.warning("Tool policy file not found at %s", _policy_path)
-    _TOOL_POLICY_TEXT = ""
-
-_knowledge_path = _prompts_dir / "device_knowledge.md"
-try:
-    _DEVICE_KNOWLEDGE_TEXT: str = _knowledge_path.read_text(encoding="utf-8")
-except FileNotFoundError:
-    _LOGGER.warning("Device knowledge file not found at %s", _knowledge_path)
-    _DEVICE_KNOWLEDGE_TEXT = ""
-
-del _policy_path, _knowledge_path, _prompts_dir
 
 
 _API_KEY_RE = re.compile(

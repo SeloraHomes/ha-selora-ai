@@ -3169,11 +3169,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
                     False,
                 ),
                 StaticPathConfig(
-                    f"/api/{DOMAIN}/card.js",
-                    hass.config.path(f"custom_components/{DOMAIN}/frontend/card.js"),
-                    False,
-                ),
-                StaticPathConfig(
                     f"/api/{DOMAIN}/logo.png",
                     hass.config.path(f"custom_components/{DOMAIN}/brand/logo.png"),
                     True,
@@ -3185,11 +3180,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
         hass.http.register_static_path(
             f"/api/{DOMAIN}/panel.js",
             hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js"),
-            False,
-        )
-        hass.http.register_static_path(
-            f"/api/{DOMAIN}/card.js",
-            hass.config.path(f"custom_components/{DOMAIN}/frontend/card.js"),
             False,
         )
         hass.http.register_static_path(
@@ -3238,15 +3228,6 @@ async def async_setup(hass: HomeAssistant, config: dict) -> bool:
             "Neither async_register_panel nor async_register_built_in_panel found in frontend"
         )
 
-    # Register card.js as a Lovelace resource so HA loads it as a custom card
-    card_url = f"/api/{DOMAIN}/card.js"
-    if hasattr(frontend, "async_register_extra_module_url"):
-        frontend.async_register_extra_module_url(hass, card_url)
-    else:
-        _LOGGER.warning(
-            "async_register_extra_module_url not available; card may not load automatically"
-        )
-
     _LOGGER.info("Selora AI initialized (awaiting entry)")
 
     return True
@@ -3264,7 +3245,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
 
     from .device_manager import DeviceManager
-    from .llm_client import LLMClient
+    from .llm_client import LLMClient, async_preload_prompts
+
+    await async_preload_prompts(hass)
 
     if provider == LLM_PROVIDER_ANTHROPIC:
         llm = LLMClient(

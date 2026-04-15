@@ -20,17 +20,10 @@ async function build() {
     outfile: "panel.js",
     define,
   });
-  await esbuild.build({
-    entryPoints: ["src/card.js"],
-    bundle: true,
-    format: "esm",
-    outfile: "card.js",
-    define,
-  });
   require("./postbuild.js");
 
   // Format built output
-  execSync("npx prettier --write panel.js card.js", { stdio: "inherit" });
+  execSync("npx prettier --write panel.js", { stdio: "inherit" });
 }
 
 build();

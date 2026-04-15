@@ -2,7 +2,7 @@
 // Shared formatting utilities
 // ---------------------------------------------------------------------------
 // Pure functions — pass `hass` explicitly where needed.
-// Both panel.js and card.js import from here to avoid duplication.
+// panel.js imports from here to keep formatting logic in one place.
 // ---------------------------------------------------------------------------
 
 /** @param {*} value @returns {string} title-cased, underscores replaced with spaces */
