@@ -268,8 +268,7 @@ class SeloraAIDashboardCard extends LitElement {
       });
       if (suggestions && suggestions.length > 0) {
         // Pick a random suggestion name to keep it fresh
-        const idx =
-          crypto.getRandomValues(new Uint32Array(1))[0] % suggestions.length;
+        const idx = Math.floor(Math.random() * suggestions.length);
         this._newAutomationName =
           suggestions[idx].alias ||
           suggestions[idx].description ||
