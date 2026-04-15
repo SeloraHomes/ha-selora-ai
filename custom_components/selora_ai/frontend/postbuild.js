@@ -23,8 +23,3 @@ if (fs.existsSync("panel.js")) {
   var panelCode = fs.readFileSync("panel.js", "utf8");
   fs.writeFileSync("panel.js", patchCode(panelCode), "utf8");
 }
-
-if (fs.existsSync("card.js")) {
-  var cardCode = fs.readFileSync("card.js", "utf8");
-  fs.writeFileSync("card.js", patchCode(cardCode), "utf8");
-}
