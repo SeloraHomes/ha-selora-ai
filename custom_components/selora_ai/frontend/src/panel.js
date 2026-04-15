@@ -595,9 +595,18 @@ class SeloraAIPanel extends LitElement {
   _generateRandomString(length) {
     const chars =
       "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~";
-    const arr = new Uint8Array(length);
-    crypto.getRandomValues(arr);
-    return Array.from(arr, (b) => chars[b % chars.length]).join("");
+    const limit = 256 - (256 % chars.length);
+    const result = [];
+    while (result.length < length) {
+      const arr = new Uint8Array(length - result.length);
+      crypto.getRandomValues(arr);
+      for (const b of arr) {
+        if (b < limit && result.length < length) {
+          result.push(chars[b % chars.length]);
+        }
+      }
+    }
+    return result.join("");
   }
 
   async _generateCodeChallenge(verifier) {
