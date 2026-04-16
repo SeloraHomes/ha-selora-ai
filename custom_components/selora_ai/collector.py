@@ -659,7 +659,7 @@ class DataCollector:
 
         # Reload HA automations so they appear immediately
         try:
-            await self._hass.services.async_call("automation", "reload")
+            await self._hass.services.async_call("automation", "reload", blocking=True)
         except Exception:
             _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
 

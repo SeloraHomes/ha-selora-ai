@@ -1097,7 +1097,7 @@ async def _handle_websocket_rename_automation(
             connection.send_error(msg["id"], "not_found", "Automation not found")
             return
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        await hass.services.async_call("automation", "reload")
+        await hass.services.async_call("automation", "reload", blocking=True)
         connection.send_result(msg["id"], {"status": "renamed"})
     except Exception as exc:
         _LOGGER.exception("Error renaming automation")

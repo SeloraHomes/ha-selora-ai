@@ -5,7 +5,15 @@ export const automationsStyles = css`
   .automations-list {
     border: 1px solid var(--selora-zinc-700);
     border-radius: 12px;
-    overflow: hidden;
+  }
+  .auto-row:first-child .auto-row-main {
+    border-radius: 12px 12px 0 0;
+  }
+  .auto-row:last-child .auto-row-main {
+    border-radius: 0 0 12px 12px;
+  }
+  .auto-row:only-child .auto-row-main {
+    border-radius: 12px;
   }
   .auto-row {
     border-bottom: 1px solid var(--selora-zinc-700);

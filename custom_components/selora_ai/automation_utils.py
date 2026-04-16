@@ -582,7 +582,7 @@ async def async_update_automation(
     try:
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         _LOGGER.info("Updated automation: %s", automation_id)
-        await hass.services.async_call("automation", "reload")
+        await hass.services.async_call("automation", "reload", blocking=True)
 
         # Record version
         yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
@@ -644,8 +644,8 @@ async def async_create_automation(
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
         _LOGGER.info("Created new automation: %s", alias)
 
-        # Reload HA automations
-        await hass.services.async_call("automation", "reload")
+        # Reload HA automations (blocking so entities exist before we return)
+        await hass.services.async_call("automation", "reload", blocking=True)
 
         # Record first version
         yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
@@ -716,7 +716,7 @@ async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bo
         await _record_deletion_hash(hass, target)
 
         await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-        await hass.services.async_call("automation", "reload")
+        await hass.services.async_call("automation", "reload", blocking=True)
         store = _get_automation_store(hass)
         await store.purge_record(automation_id)
 
