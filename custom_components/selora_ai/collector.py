@@ -337,7 +337,7 @@ class DataCollector:
         # client so the prompt asks for the right amount and parsing allows
         # them through.
         dynamic_cap = await self._calculate_dynamic_cap()
-        self._llm._max_suggestions = dynamic_cap
+        self._llm.set_max_suggestions(dynamic_cap)
 
         # Inject user feedback context into snapshot for LLM prompt (#80)
         feedback_summary = await self._build_feedback_summary()

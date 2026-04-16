@@ -175,11 +175,13 @@ class TestParseSuggestionsPassthrough:
 
     def test_all_valid_returned(self):
         """All valid suggestions are returned regardless of _max_suggestions."""
+        from unittest.mock import MagicMock
+
         from custom_components.selora_ai.llm_client import LLMClient
 
         client = LLMClient.__new__(LLMClient)
         client._max_suggestions = 3
-        client._provider = "anthropic"
+        client._provider = MagicMock(provider_name="Anthropic (test)")
 
         suggestions = [
             {
@@ -196,11 +198,13 @@ class TestParseSuggestionsPassthrough:
 
     def test_invalid_filtered_valid_kept(self):
         """Invalid suggestions are filtered but valid ones are not truncated."""
+        from unittest.mock import MagicMock
+
         from custom_components.selora_ai.llm_client import LLMClient
 
         client = LLMClient.__new__(LLMClient)
         client._max_suggestions = 2
-        client._provider = "anthropic"
+        client._provider = MagicMock(provider_name="Anthropic (test)")
 
         suggestions = [
             {"alias": "Good 1", "trigger": {"platform": "state"}, "action": {"service": "light.turn_on"}},

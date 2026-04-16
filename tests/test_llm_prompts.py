@@ -12,6 +12,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.providers import create_provider
 
 
 @pytest.fixture(autouse=True)
@@ -21,7 +22,8 @@ def _enable_custom_component(enable_custom_integrations):
 
 def _make_client(hass) -> LLMClient:
     """Create an LLMClient with dummy config for prompt inspection."""
-    return LLMClient(hass, provider="anthropic", api_key="test-key")
+    provider = create_provider("anthropic", hass, api_key="test-key")
+    return LLMClient(hass, provider)
 
 
 class TestArchitectPromptVerbosity:

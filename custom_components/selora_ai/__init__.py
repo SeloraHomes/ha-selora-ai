@@ -1712,7 +1712,7 @@ async def _handle_websocket_validate_llm_key(
     if not _require_admin(connection, msg):
         return
 
-    from .llm_client import LLMClient
+    from .providers import create_provider
 
     provider = msg["provider"]
     api_key = msg.get("api_key", "")
@@ -1729,14 +1729,14 @@ async def _handle_websocket_validate_llm_key(
         host = host or DEFAULT_OLLAMA_HOST
 
     try:
-        client = LLMClient(
+        llm_provider = create_provider(
+            provider,
             hass,
-            provider=provider,
             api_key=api_key,
             model=model,
             host=host,
         )
-        valid = await client.health_check()
+        valid = await llm_provider.health_check()
         if valid:
             connection.send_result(msg["id"], {"valid": True})
         else:
@@ -3246,36 +3246,35 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     from .device_manager import DeviceManager
     from .llm_client import LLMClient, async_preload_prompts
+    from .providers import create_provider
 
     await async_preload_prompts(hass)
 
+    llm: LLMClient | None = None
     if provider == LLM_PROVIDER_ANTHROPIC:
-        llm = LLMClient(
+        llm_provider = create_provider(
+            provider,
             hass,
-            provider=provider,
             api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
-            lookback_days=lookback,
         )
+        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
     elif provider == LLM_PROVIDER_OPENAI:
-        llm = LLMClient(
+        llm_provider = create_provider(
+            provider,
             hass,
-            provider=provider,
             api_key=entry.data.get(CONF_OPENAI_API_KEY, ""),
             model=entry.data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
-            lookback_days=lookback,
         )
+        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
     elif provider == LLM_PROVIDER_OLLAMA:
-        llm = LLMClient(
+        llm_provider = create_provider(
+            provider,
             hass,
-            provider=provider,
             host=entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
-            lookback_days=lookback,
         )
-    else:
-        # Provider is NONE (skipped)
-        llm = None
+        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
 
     # Verify LLM is healthy on startup
     if llm and not await llm.health_check():

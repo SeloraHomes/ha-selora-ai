@@ -82,15 +82,15 @@ _LOGGER = logging.getLogger(__name__)
 
 async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate the Anthropic API key works."""
-    from .llm_client import LLMClient
+    from .providers import create_provider
 
-    client = LLMClient(
+    provider = create_provider(
+        LLM_PROVIDER_ANTHROPIC,
         hass,
-        provider=LLM_PROVIDER_ANTHROPIC,
         api_key=data[CONF_ANTHROPIC_API_KEY],
         model=data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
     )
-    if not await client.health_check():
+    if not await provider.health_check():
         raise ConnectionError("Anthropic API key invalid or unreachable")
     model = data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL)
     return {"title": f"Selora AI (Claude — {model})"}
@@ -98,15 +98,15 @@ async def _validate_anthropic(hass: HomeAssistant, data: dict[str, Any]) -> dict
 
 async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that Ollama is reachable and the model is available."""
-    from .llm_client import LLMClient
+    from .providers import create_provider
 
-    client = LLMClient(
+    provider = create_provider(
+        LLM_PROVIDER_OLLAMA,
         hass,
-        provider=LLM_PROVIDER_OLLAMA,
         host=data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
         model=data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
     )
-    if not await client.health_check():
+    if not await provider.health_check():
         raise ConnectionError("Ollama not reachable or model not found")
     model = data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL)
     return {"title": f"Selora AI (Ollama — {model})"}
@@ -114,15 +114,15 @@ async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
 
 async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that the OpenAI API key works."""
-    from .llm_client import LLMClient
+    from .providers import create_provider
 
-    client = LLMClient(
+    provider = create_provider(
+        LLM_PROVIDER_OPENAI,
         hass,
-        provider=LLM_PROVIDER_OPENAI,
         api_key=data[CONF_OPENAI_API_KEY],
         model=data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
     )
-    if not await client.health_check():
+    if not await provider.health_check():
         raise ConnectionError("OpenAI API key invalid or unreachable")
     model = data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL)
     return {"title": f"Selora AI (OpenAI — {model})"}
