@@ -397,7 +397,7 @@ class SuggestionGenerator:
                 f"{dismissal_context}"
             )
             result, _ = await asyncio.wait_for(
-                self._llm._send_request(
+                self._llm.send_request(
                     system=(
                         "You rewrite smart home automation descriptions. "
                         "Reply with just the improved description."

@@ -10,8 +10,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
-from .const import LLM_PROVIDER_ANTHROPIC
-
 
 @dataclass(frozen=True)
 class ToolParam:
@@ -204,8 +202,12 @@ TOOL_MAP: dict[str, ToolDef] = {t.name: t for t in CHAT_TOOLS}
 
 
 def get_tools_for_provider(provider: str) -> list[dict[str, Any]]:
-    """Return tool definitions formatted for the given LLM provider."""
-    if provider == LLM_PROVIDER_ANTHROPIC:
+    """Return tool definitions formatted for the given LLM provider.
+
+    .. deprecated::
+        Use ``LLMClient._get_tools_for_provider()`` or
+        ``provider.format_tool()`` instead. Kept for backward compatibility.
+    """
+    if provider == "anthropic":
         return [t.to_anthropic() for t in CHAT_TOOLS]
-    # OpenAI and Ollama share the same format
     return [t.to_openai() for t in CHAT_TOOLS]
