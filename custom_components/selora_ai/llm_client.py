@@ -1010,7 +1010,9 @@ class LLMClient:
                     data["intent"] = "answer"
 
             if data.get("automation"):
-                is_valid, reason, normalized = validate_automation_payload(data["automation"])
+                is_valid, reason, normalized = validate_automation_payload(
+                    data["automation"], self._hass
+                )
                 if not is_valid or normalized is None:
                     _LOGGER.warning("Discarding invalid architect automation payload: %s", reason)
                     data.pop("automation", None)
@@ -1234,7 +1236,7 @@ class LLMClient:
             json_text = match.group(1).strip()
             try:
                 automation = json.loads(json_text)
-                is_valid, reason, normalized = validate_automation_payload(automation)
+                is_valid, reason, normalized = validate_automation_payload(automation, self._hass)
                 if not is_valid or normalized is None:
                     _LOGGER.warning("Discarding invalid streamed automation payload: %s", reason)
                     return {

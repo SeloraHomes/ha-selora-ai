@@ -788,6 +788,7 @@ COLLECTOR_DOMAINS = {
     "person",
 }
 
+
 # Entity-ID substrings that indicate non-room lights (status LEDs, IR emitters, etc.)
 # These are excluded from snapshots so the LLM doesn't treat them as room lighting.
 LIGHT_ENTITY_EXCLUDE_PATTERNS = {

@@ -439,15 +439,152 @@ class TestValidateAutomationPayload:
 # ===================================================================
 
 
+class TestValidateActionDomains:
+    """Tests for non-actionable domain rejection in validate_automation_payload (#91).
+
+    When ``hass`` is passed, the validator rejects actions that target domains
+    with no services registered in HA's service registry (sensor, binary_sensor,
+    device_tracker, person, etc.).  When ``hass`` is ``None`` the check is
+    skipped — callers must either pass hass or call ``validate_action_services``.
+    """
+
+    @staticmethod
+    def _hass_with_services() -> MagicMock:
+        registry: dict[str, set[str]] = {
+            "light": {"turn_on", "turn_off"},
+            "switch": {"turn_on", "turn_off"},
+            "notify": {"persistent_notification", "notify"},
+            "homeassistant": {"turn_on", "turn_off", "toggle"},
+        }
+        mock_hass = MagicMock()
+        mock_hass.services.has_service.side_effect = (
+            lambda domain, service: service in registry.get(domain, set())
+        )
+        mock_hass.services.async_services_for_domain.side_effect = (
+            lambda domain: {svc: {} for svc in registry[domain]} if domain in registry else {}
+        )
+        return mock_hass
+
+    def test_binary_sensor_action_target_rejected(self) -> None:
+        """Action targeting binary_sensor entity should be rejected."""
+        payload = {
+            "alias": "Bad",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "binary_sensor.turn_on",
+                    "target": {"entity_id": "binary_sensor.motion"},
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert not valid
+        assert "non-existent service" in reason.lower()
+
+    def test_sensor_action_target_rejected(self) -> None:
+        """Action targeting sensor entity should be rejected."""
+        payload = {
+            "alias": "Bad",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "sensor.turn_on",
+                    "target": {"entity_id": "sensor.temperature"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert not valid
+
+    def test_notify_action_allowed(self) -> None:
+        """notify.* services should be allowed (always available in HA)."""
+        payload = {
+            "alias": "Good",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "notify.persistent_notification",
+                    "data": {"message": "hello"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert valid
+
+    def test_light_action_allowed(self) -> None:
+        """light.* actions with light entity targets should be accepted."""
+        payload = {
+            "alias": "Good",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "light.kitchen"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert valid
+
+    def test_no_hass_skips_domain_check(self) -> None:
+        """Without hass, the domain check is skipped (structural validation only)."""
+        payload = {
+            "alias": "Skips domain check",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "sensor.turn_on",
+                    "target": {"entity_id": "sensor.temperature"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload)
+        assert valid
+
+    def test_cross_domain_action_targeting_read_only_entity_rejected(self) -> None:
+        """homeassistant.turn_on targeting binary_sensor.motion should be rejected."""
+        payload = {
+            "alias": "Cross-domain bad",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "homeassistant.turn_on",
+                    "target": {"entity_id": "binary_sensor.motion"},
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert not valid
+        assert "read-only domain" in reason.lower()
+
+    def test_cross_domain_action_targeting_actionable_entity_allowed(self) -> None:
+        """homeassistant.turn_on targeting light.kitchen should be accepted."""
+        payload = {
+            "alias": "Cross-domain good",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "homeassistant.turn_on",
+                    "target": {"entity_id": "light.kitchen"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload, self._hass_with_services())
+        assert valid
+
+
 class TestValidateActionServices:
     """Tests for validate_action_services."""
 
     @staticmethod
     def _mock_hass(services: dict[str, list[str]]) -> MagicMock:
-        hass = MagicMock()
-        hass.services.async_services.return_value = {
-            domain: {svc: None for svc in svcs} for domain, svcs in services.items()
+        registry = {
+            domain: set(svcs) for domain, svcs in services.items()
         }
+        hass = MagicMock()
+        hass.services.has_service.side_effect = (
+            lambda domain, service: service in registry.get(domain, set())
+        )
         return hass
 
     def test_valid_service_passes(self) -> None:

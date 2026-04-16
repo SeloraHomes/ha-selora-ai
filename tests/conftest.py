@@ -145,6 +145,60 @@ def sample_sequence_pattern() -> dict[str, Any]:
     }
 
 
+# ── Common HA services ────────────────────────────────────────────────
+#
+# Production code (validate_automation_payload, _build_action) now uses
+# hass.services.has_service() to verify a domain supports the target
+# service.  The real ``hass`` fixture from pytest-homeassistant-custom-
+# component starts with an empty service registry, so we register common
+# domain services here.  The autouse fixture runs whenever ``hass`` is
+# injected.
+
+
+def _register_common_services(hass) -> None:
+    """Register the services that production code treats as actionable."""
+
+    async def _noop(*_args, **_kwargs):
+        pass
+
+    _SERVICES: dict[str, list[str]] = {
+        "light": ["turn_on", "turn_off", "toggle"],
+        "switch": ["turn_on", "turn_off", "toggle"],
+        "fan": ["turn_on", "turn_off", "toggle"],
+        "cover": ["open_cover", "close_cover", "stop_cover"],
+        "lock": ["lock", "unlock"],
+        "climate": ["turn_on", "turn_off", "set_temperature"],
+        "media_player": ["turn_on", "turn_off"],
+        "notify": ["notify", "persistent_notification"],
+        "automation": ["reload", "turn_on", "turn_off"],
+        "input_boolean": ["turn_on", "turn_off", "toggle"],
+    }
+    for domain, services in _SERVICES.items():
+        for service in services:
+            if not hass.services.has_service(domain, service):
+                hass.services.async_register(domain, service, _noop)
+
+
+@pytest.fixture(autouse=True)
+def _hass_with_common_services(request):
+    """Auto-register common services on any test that uses the ``hass`` fixture.
+
+    This is autouse so individual tests don't need to remember to use
+    ``hass_with_services``.  It's a no-op for tests that never request
+    ``hass`` (since ``hass`` isn't instantiated).
+    """
+    if "hass" in request.fixturenames:
+        hass = request.getfixturevalue("hass")
+        _register_common_services(hass)
+
+
+@pytest.fixture
+def hass_with_services(hass):
+    """Explicit variant: returns hass with common services registered."""
+    _register_common_services(hass)
+    return hass
+
+
 # ── Store mock (still needed: we don't want tests to hit real disk) ──
 
 

@@ -102,7 +102,7 @@ class SuggestionGenerator:
             if alias_lower in existing_aliases:
                 continue
 
-            is_valid, reason, normalized = validate_automation_payload(automation)
+            is_valid, reason, normalized = validate_automation_payload(automation, self._hass)
             if not is_valid or normalized is None:
                 _LOGGER.debug(
                     "Pattern %s produced invalid automation: %s",
@@ -283,37 +283,47 @@ class SuggestionGenerator:
             "mode": "single",
         }
 
-    @staticmethod
-    def _build_action(domain: str, entity_id: str, target_state: str) -> dict[str, Any] | None:
-        """Build an HA action dict for common state transitions."""
-        if target_state == "on":
+    def _build_action(
+        self, domain: str, entity_id: str, target_state: str
+    ) -> dict[str, Any] | None:
+        """Build an HA action dict for common state transitions.
+
+        Checks the HA service registry at runtime to verify the domain
+        actually supports the resolved service, rather than maintaining a
+        static domain allowlist.  Read-only domains (sensor, binary_sensor,
+        device_tracker, person, …) are automatically rejected because they
+        have no turn_on / turn_off / etc. services registered.
+        """
+        has = self._hass.services.has_service
+
+        if target_state == "on" and has(domain, "turn_on"):
             return {
                 "action": f"{domain}.turn_on",
                 "target": {"entity_id": entity_id},
             }
-        if target_state == "off":
+        if target_state == "off" and has(domain, "turn_off"):
             return {
                 "action": f"{domain}.turn_off",
                 "target": {"entity_id": entity_id},
             }
         if domain == "cover":
-            if target_state == "open":
+            if target_state == "open" and has("cover", "open_cover"):
                 return {
                     "action": "cover.open_cover",
                     "target": {"entity_id": entity_id},
                 }
-            if target_state == "closed":
+            if target_state == "closed" and has("cover", "close_cover"):
                 return {
                     "action": "cover.close_cover",
                     "target": {"entity_id": entity_id},
                 }
         if domain == "lock":
-            if target_state == "locked":
+            if target_state == "locked" and has("lock", "lock"):
                 return {
                     "action": "lock.lock",
                     "target": {"entity_id": entity_id},
                 }
-            if target_state == "unlocked":
+            if target_state == "unlocked" and has("lock", "unlock"):
                 return {
                     "action": "lock.unlock",
                     "target": {"entity_id": entity_id},

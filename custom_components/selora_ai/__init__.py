@@ -1303,7 +1303,7 @@ async def _handle_websocket_quick_create_automation(
         # Validate before saving — reject broken automations
         from .automation_utils import async_create_automation, validate_automation_payload
 
-        is_valid, reason, normalized = validate_automation_payload(automation)
+        is_valid, reason, normalized = validate_automation_payload(automation, hass)
         if not is_valid or normalized is None:
             connection.send_error(
                 msg["id"],
@@ -2293,7 +2293,7 @@ async def _handle_websocket_accept_suggestion_with_edits(
 
     from .automation_utils import async_create_automation, validate_automation_payload
 
-    is_valid, reason, normalized = validate_automation_payload(automation_data)
+    is_valid, reason, normalized = validate_automation_payload(automation_data, hass)
     if not is_valid or normalized is None:
         connection.send_error(msg["id"], "invalid_automation", reason or "Validation failed")
         return
@@ -2528,7 +2528,7 @@ async def _handle_websocket_accept_suggestion_with_edits(
 
     from .automation_utils import async_create_automation, validate_automation_payload
 
-    is_valid, reason, normalized = validate_automation_payload(automation_data)
+    is_valid, reason, normalized = validate_automation_payload(automation_data, hass)
     if not is_valid or normalized is None:
         connection.send_error(msg["id"], "invalid_automation", reason or "Validation failed")
         return

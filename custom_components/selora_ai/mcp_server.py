@@ -890,7 +890,7 @@ async def _tool_validate_automation(
         }
 
     # Validate
-    is_valid, reason, normalized = validate_automation_payload(parsed)
+    is_valid, reason, normalized = validate_automation_payload(parsed, hass)
     if not is_valid or normalized is None:
         return {
             "valid": False,
@@ -942,7 +942,7 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
     if not isinstance(parsed, dict):
         return {"error": "YAML must be a mapping"}
 
-    is_valid, reason, normalized = validate_automation_payload(parsed)
+    is_valid, reason, normalized = validate_automation_payload(parsed, hass)
     if not is_valid or normalized is None:
         return {"error": f"Invalid automation: {reason}"}
 

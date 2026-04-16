@@ -432,7 +432,7 @@ class DataCollector:
             # Enrich suggestions with YAML for UI preview
             enriched = []
             for s in unique_suggestions:
-                is_valid, reason, automation_preview = validate_automation_payload(s)
+                is_valid, reason, automation_preview = validate_automation_payload(s, self._hass)
                 if not is_valid or automation_preview is None:
                     _LOGGER.warning(
                         "Skipping invalid collector suggestion '%s': %s",
@@ -612,7 +612,7 @@ class DataCollector:
             if not isinstance(suggestion, dict):
                 continue
 
-            is_valid, reason, normalized = validate_automation_payload(suggestion)
+            is_valid, reason, normalized = validate_automation_payload(suggestion, self._hass)
             if not is_valid or normalized is None:
                 _LOGGER.debug("Skipping invalid suggestion: %s", reason)
                 continue
