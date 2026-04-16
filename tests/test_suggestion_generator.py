@@ -14,6 +14,18 @@ from custom_components.selora_ai.suggestion_generator import SuggestionGenerator
 
 # ── Helpers ──────────────────────────────────────────────────────────────
 
+# Minimal HA service registry used by _build_action to verify that a
+# domain actually supports the service being generated.
+_REGISTERED_SERVICES: dict[str, set[str]] = {
+    "light": {"turn_on", "turn_off", "toggle"},
+    "switch": {"turn_on", "turn_off", "toggle"},
+    "fan": {"turn_on", "turn_off", "toggle"},
+    "cover": {"open_cover", "close_cover", "stop_cover"},
+    "lock": {"lock", "unlock"},
+    "climate": {"turn_on", "turn_off", "set_temperature"},
+    "media_player": {"turn_on", "turn_off"},
+}
+
 
 def _make_pattern_store() -> MagicMock:
     """Create a mock PatternStore with sensible defaults."""
@@ -25,8 +37,21 @@ def _make_pattern_store() -> MagicMock:
     return store
 
 
+def _make_gen_with_services(
+    services: dict[str, set[str]] | None = None,
+    store: MagicMock | None = None,
+) -> SuggestionGenerator:
+    """Create a SuggestionGenerator whose hass mock exposes *services*."""
+    registry = services or _REGISTERED_SERVICES
+    mock_hass = MagicMock()
+    mock_hass.services.has_service.side_effect = (
+        lambda domain, service: service in registry.get(domain, set())
+    )
+    return SuggestionGenerator(mock_hass, store or _make_pattern_store())
+
+
 # ═══════════════════════════════════════════════════════════════════════
-# _build_action  (static, pure logic)
+# _build_action  (instance method — checks HA service registry)
 # ═══════════════════════════════════════════════════════════════════════
 
 
@@ -34,57 +59,67 @@ class TestBuildAction:
     """Tests for SuggestionGenerator._build_action."""
 
     def test_light_on(self):
-        result = SuggestionGenerator._build_action("light", "light.living_room", "on")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("light", "light.living_room", "on") == {
             "action": "light.turn_on",
             "target": {"entity_id": "light.living_room"},
         }
 
     def test_light_off(self):
-        result = SuggestionGenerator._build_action("light", "light.living_room", "off")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("light", "light.living_room", "off") == {
             "action": "light.turn_off",
             "target": {"entity_id": "light.living_room"},
         }
 
     def test_cover_open(self):
-        result = SuggestionGenerator._build_action("cover", "cover.blinds", "open")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("cover", "cover.blinds", "open") == {
             "action": "cover.open_cover",
             "target": {"entity_id": "cover.blinds"},
         }
 
     def test_cover_closed(self):
-        result = SuggestionGenerator._build_action("cover", "cover.blinds", "closed")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("cover", "cover.blinds", "closed") == {
             "action": "cover.close_cover",
             "target": {"entity_id": "cover.blinds"},
         }
 
     def test_lock_locked(self):
-        result = SuggestionGenerator._build_action("lock", "lock.front", "locked")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("lock", "lock.front", "locked") == {
             "action": "lock.lock",
             "target": {"entity_id": "lock.front"},
         }
 
     def test_lock_unlocked(self):
-        result = SuggestionGenerator._build_action("lock", "lock.front", "unlocked")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("lock", "lock.front", "unlocked") == {
             "action": "lock.unlock",
             "target": {"entity_id": "lock.front"},
         }
 
     def test_unknown_state_returns_none(self):
-        result = SuggestionGenerator._build_action("light", "light.x", "dim")
-        assert result is None
+        gen = _make_gen_with_services()
+        assert gen._build_action("light", "light.x", "dim") is None
 
     def test_generic_on_off_for_switch(self):
-        result = SuggestionGenerator._build_action("switch", "switch.x", "on")
-        assert result == {
+        gen = _make_gen_with_services()
+        assert gen._build_action("switch", "switch.x", "on") == {
             "action": "switch.turn_on",
             "target": {"entity_id": "switch.x"},
         }
+
+    def test_read_only_domain_returns_none(self):
+        """Domains without services (sensor, binary_sensor, etc.) are rejected (#91)."""
+        gen = _make_gen_with_services()
+        assert gen._build_action("binary_sensor", "binary_sensor.motion", "on") is None
+        assert gen._build_action("binary_sensor", "binary_sensor.door", "off") is None
+        assert gen._build_action("sensor", "sensor.temperature", "on") is None
+        assert gen._build_action("device_tracker", "device_tracker.phone", "on") is None
+        assert gen._build_action("person", "person.john", "on") is None
+        assert gen._build_action("input_select", "input_select.mode", "on") is None
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -158,29 +193,26 @@ class TestBuildDismissedSummary:
 class TestPatternToAutomation:
     """Tests for _pattern_to_automation routing and sub-methods."""
 
-    def _make_gen(self, hass: MagicMock) -> SuggestionGenerator:
-        return SuggestionGenerator(hass, _make_pattern_store())
-
-    def test_routes_time_based(self, hass: MagicMock, sample_time_pattern: dict[str, Any]):
-        gen = self._make_gen(hass)
+    def test_routes_time_based(self, sample_time_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._pattern_to_automation(sample_time_pattern)
         assert result is not None
         assert result["triggers"][0]["platform"] == "time"
 
-    def test_routes_correlation(self, hass: MagicMock, sample_correlation_pattern: dict[str, Any]):
-        gen = self._make_gen(hass)
+    def test_routes_correlation(self, sample_correlation_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._pattern_to_automation(sample_correlation_pattern)
         assert result is not None
         assert result["triggers"][0]["platform"] == "state"
 
-    def test_routes_sequence(self, hass: MagicMock, sample_sequence_pattern: dict[str, Any]):
-        gen = self._make_gen(hass)
+    def test_routes_sequence(self, sample_sequence_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._pattern_to_automation(sample_sequence_pattern)
         assert result is not None
         assert result["triggers"][0]["platform"] == "state"
 
-    def test_unknown_type_returns_none(self, hass: MagicMock):
-        gen = self._make_gen(hass)
+    def test_unknown_type_returns_none(self):
+        gen = _make_gen_with_services()
         pattern = {"type": "unknown", "evidence": {}}
         assert gen._pattern_to_automation(pattern) is None
 
@@ -193,31 +225,47 @@ class TestPatternToAutomation:
 class TestTimePatternToAutomation:
     """Tests for _time_pattern_to_automation conditions."""
 
-    def _make_gen(self, hass: MagicMock) -> SuggestionGenerator:
-        return SuggestionGenerator(hass, _make_pattern_store())
-
-    def test_weekday_condition(self, hass: MagicMock, sample_time_pattern: dict[str, Any]):
-        gen = self._make_gen(hass)
+    def test_weekday_condition(self, sample_time_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
         assert len(result["conditions"]) == 1
         assert result["conditions"][0]["weekday"] == ["mon", "tue", "wed", "thu", "fri"]
 
-    def test_weekend_condition(self, hass: MagicMock, sample_time_pattern: dict[str, Any]):
+    def test_weekend_condition(self, sample_time_pattern: dict[str, Any]):
         sample_time_pattern["evidence"]["is_weekday"] = False
-        gen = self._make_gen(hass)
+        gen = _make_gen_with_services()
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
         assert result["conditions"][0]["weekday"] == ["sat", "sun"]
 
-    def test_no_weekday_flag_means_no_condition(
-        self, hass: MagicMock, sample_time_pattern: dict[str, Any]
-    ):
+    def test_no_weekday_flag_means_no_condition(self, sample_time_pattern: dict[str, Any]):
         del sample_time_pattern["evidence"]["is_weekday"]
-        gen = self._make_gen(hass)
+        gen = _make_gen_with_services()
         result = gen._time_pattern_to_automation(sample_time_pattern)
         assert result is not None
         assert result["conditions"] == []
+
+    def test_binary_sensor_time_pattern_rejected(self):
+        """A time pattern targeting a binary_sensor must return None (#91)."""
+        gen = _make_gen_with_services()
+        pattern = {
+            "pattern_id": "pat_bad_time",
+            "type": "time_based",
+            "entity_ids": ["binary_sensor.motion"],
+            "description": "Motion sensor turns on around 07:00",
+            "evidence": {
+                "_signature": "binary_sensor.motion:on:28:True",
+                "time_slot": "07:00",
+                "is_weekday": True,
+                "target_state": "on",
+                "occurrences": 5,
+                "total_days": 7,
+            },
+            "confidence": 0.71,
+        }
+        result = gen._time_pattern_to_automation(pattern)
+        assert result is None, "binary_sensor should never be used as an action target"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -226,8 +274,8 @@ class TestTimePatternToAutomation:
 
 
 class TestCorrelationToAutomation:
-    def test_trigger_and_action(self, hass: MagicMock, sample_correlation_pattern: dict[str, Any]):
-        gen = SuggestionGenerator(hass, _make_pattern_store())
+    def test_trigger_and_action(self, sample_correlation_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._correlation_to_automation(sample_correlation_pattern)
         assert result is not None
         trigger = result["triggers"][0]
@@ -237,6 +285,29 @@ class TestCorrelationToAutomation:
         assert action["action"] == "light.turn_on"
         assert action["target"]["entity_id"] == "light.hallway"
 
+    def test_binary_sensor_as_response_rejected(self):
+        """A correlation where the response (action) entity is a binary_sensor must be rejected (#91)."""
+        gen = _make_gen_with_services()
+        bad_pattern = {
+            "pattern_id": "pat_bad_001",
+            "type": "correlation",
+            "entity_ids": ["light.hallway", "binary_sensor.motion"],
+            "description": "Motion detected after hallway light on",
+            "evidence": {
+                "_signature": "light.hallway:on->binary_sensor.motion:on",
+                "trigger_entity": "light.hallway",
+                "trigger_state": "on",
+                "response_entity": "binary_sensor.motion",
+                "response_state": "on",
+                "avg_delay_seconds": 5.0,
+                "co_occurrences": 10,
+                "window_minutes": 5,
+            },
+            "confidence": 0.8,
+        }
+        result = gen._correlation_to_automation(bad_pattern)
+        assert result is None, "binary_sensor should never be used as an action target"
+
 
 # ═══════════════════════════════════════════════════════════════════════
 # _sequence_to_automation
@@ -244,10 +315,8 @@ class TestCorrelationToAutomation:
 
 
 class TestSequenceToAutomation:
-    def test_trigger_has_from_and_to(
-        self, hass: MagicMock, sample_sequence_pattern: dict[str, Any]
-    ):
-        gen = SuggestionGenerator(hass, _make_pattern_store())
+    def test_trigger_has_from_and_to(self, sample_sequence_pattern: dict[str, Any]):
+        gen = _make_gen_with_services()
         result = gen._sequence_to_automation(sample_sequence_pattern)
         assert result is not None
         trigger = result["triggers"][0]
@@ -255,13 +324,36 @@ class TestSequenceToAutomation:
         assert trigger["to"] == "on"
 
     def test_no_from_key_when_trigger_from_empty(
-        self, hass: MagicMock, sample_sequence_pattern: dict[str, Any]
+        self, sample_sequence_pattern: dict[str, Any]
     ):
         sample_sequence_pattern["evidence"]["trigger_from"] = ""
-        gen = SuggestionGenerator(hass, _make_pattern_store())
+        gen = _make_gen_with_services()
         result = gen._sequence_to_automation(sample_sequence_pattern)
         assert result is not None
         assert "from" not in result["triggers"][0]
+
+    def test_binary_sensor_as_sequence_response_rejected(self):
+        """Sequence pattern with binary_sensor as response entity must return None (#91)."""
+        gen = _make_gen_with_services()
+        pattern = {
+            "pattern_id": "pat_bad_seq",
+            "type": "sequence",
+            "entity_ids": ["light.living_room", "binary_sensor.occupancy"],
+            "description": "When light turns on, occupancy follows",
+            "evidence": {
+                "_signature": "light.living_room:off->on=>binary_sensor.occupancy:on",
+                "trigger_entity": "light.living_room",
+                "trigger_from": "off",
+                "trigger_to": "on",
+                "response_entity": "binary_sensor.occupancy",
+                "response_state": "on",
+                "occurrences": 4,
+                "window_minutes": 5,
+            },
+            "confidence": 0.75,
+        }
+        result = gen._sequence_to_automation(pattern)
+        assert result is None, "binary_sensor should never be used as an action target"
 
 
 # ═══════════════════════════════════════════════════════════════════════
@@ -273,28 +365,24 @@ class TestGenerateFromPatterns:
     """Tests for the main generate_from_patterns pipeline."""
 
     @pytest.mark.asyncio
-    async def test_skips_low_confidence(self, hass: MagicMock, sample_time_pattern: dict[str, Any]):
+    async def test_skips_low_confidence(self, sample_time_pattern: dict[str, Any]):
         sample_time_pattern["confidence"] = CONFIDENCE_MEDIUM - 0.01
         store = _make_pattern_store()
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
         result = await gen.generate_from_patterns([sample_time_pattern])
         assert result == []
         store.save_suggestion.assert_not_awaited()
 
     @pytest.mark.asyncio
-    async def test_skips_existing_suggestion(
-        self, hass: MagicMock, sample_time_pattern: dict[str, Any]
-    ):
+    async def test_skips_existing_suggestion(self, sample_time_pattern: dict[str, Any]):
         store = _make_pattern_store()
         store.has_suggestion_for_pattern = AsyncMock(return_value=True)
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
         result = await gen.generate_from_patterns([sample_time_pattern])
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_skips_dismissed_pattern(
-        self, hass: MagicMock, sample_time_pattern: dict[str, Any]
-    ):
+    async def test_skips_dismissed_pattern(self, sample_time_pattern: dict[str, Any]):
         store = _make_pattern_store()
         store.get_recently_dismissed_suggestions = AsyncMock(
             return_value=[
@@ -305,16 +393,14 @@ class TestGenerateFromPatterns:
                 }
             ]
         )
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
         result = await gen.generate_from_patterns([sample_time_pattern])
         assert result == []
 
     @pytest.mark.asyncio
-    async def test_saves_valid_suggestion(
-        self, hass: MagicMock, sample_time_pattern: dict[str, Any]
-    ):
+    async def test_saves_valid_suggestion(self, sample_time_pattern: dict[str, Any]):
         store = _make_pattern_store()
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
 
         with patch(
             "custom_components.selora_ai.suggestion_generator.validate_automation_payload",
@@ -354,7 +440,7 @@ class TestGenerateFromPatterns:
         assert result[0]["suggestion_id"] == "sugg_id_001"
 
     @pytest.mark.asyncio
-    async def test_deduplicates_batch_by_content(self, hass: MagicMock):
+    async def test_deduplicates_batch_by_content(self):
         """Two patterns that produce identical trigger+action should yield only one suggestion (#46)."""
         pattern_a = {
             "pattern_id": "pat_corr_001",
@@ -385,7 +471,7 @@ class TestGenerateFromPatterns:
         }
 
         store = _make_pattern_store()
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
 
         with patch(
             "custom_components.selora_ai.suggestion_generator.validate_automation_payload",
@@ -418,7 +504,7 @@ class TestGenerateFromPatterns:
         assert store.save_suggestion.await_count == 1
 
     @pytest.mark.asyncio
-    async def test_deduplicates_against_stored_suggestions(self, hass: MagicMock):
+    async def test_deduplicates_against_stored_suggestions(self):
         """A new pattern should be skipped if an identical suggestion already exists in the store (#46)."""
         normalized = {
             "alias": "[Selora AI] Kitchen motion on",
@@ -461,7 +547,7 @@ class TestGenerateFromPatterns:
             },
         }
 
-        gen = SuggestionGenerator(hass, store)
+        gen = _make_gen_with_services(store=store)
 
         with patch(
             "custom_components.selora_ai.suggestion_generator.validate_automation_payload",

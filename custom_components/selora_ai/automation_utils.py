@@ -305,7 +305,6 @@ def validate_action_services(
     this after integrations have finished loading (e.g. not in the
     collector's initial cycle).
     """
-    available = hass.services.async_services()
     actions = automation.get("action") or automation.get("actions") or []
     if not isinstance(actions, list):
         actions = [actions]
@@ -325,7 +324,7 @@ def validate_action_services(
             )
             return False
         domain, service_name = parts
-        if domain not in available or service_name not in available[domain]:
+        if not hass.services.has_service(domain, service_name):
             _LOGGER.warning(
                 "Automation '%s' uses non-existent service: %s",
                 automation.get("alias", "<no alias>"),
@@ -337,8 +336,15 @@ def validate_action_services(
 
 def validate_automation_payload(
     automation: dict[str, Any] | None,
+    hass: HomeAssistant | None = None,
 ) -> tuple[bool, str, dict[str, Any] | None]:
-    """Validate and normalize automation payload before it is shown or persisted."""
+    """Validate and normalize automation payload before it is shown or persisted.
+
+    When *hass* is provided, action domains are validated against the HA
+    service registry (rejects domains with no registered services).  When
+    *hass* is ``None`` the domain check is skipped — callers should rely on
+    :func:`validate_action_services` for runtime verification.
+    """
     if not isinstance(automation, dict):
         return False, "automation payload must be an object", None
 
@@ -390,9 +396,40 @@ def validate_automation_payload(
         normalized_conditions.append(_normalize_item(cond))
 
     # --- Action normalization ----------------------------------------------
+    # When hass is available, validate actions against the service registry:
+    # 1. The action's domain.service must exist (rejects e.g. binary_sensor.turn_on).
+    # 2. Target entity domains must have *some* service registered — this catches
+    #    cross-domain calls like homeassistant.turn_on targeting binary_sensor.motion
+    #    (binary_sensor has no services at all, so it's read-only).
     normalized_actions: list[dict[str, Any]] = []
     for act in actions:
-        normalized_actions.append(_normalize_item(act))
+        norm_act = _normalize_item(act)
+        if hass is not None:
+            action_service = str(norm_act.get("action", norm_act.get("service", "")))
+            if "." in action_service and "{{" not in action_service:
+                svc_domain, svc_name = action_service.split(".", 1)
+                if svc_domain and not hass.services.has_service(svc_domain, svc_name):
+                    return (
+                        False,
+                        f"action uses non-existent service '{action_service}'",
+                        None,
+                    )
+            # Reject targets in read-only domains (no services registered at all)
+            target = norm_act.get("target", {})
+            entity_ids = target.get("entity_id", "") if isinstance(target, dict) else ""
+            if isinstance(entity_ids, str):
+                entity_ids = [entity_ids] if entity_ids else []
+            for eid in entity_ids:
+                if "{{" in eid:
+                    continue
+                eid_domain = eid.split(".")[0] if "." in eid else ""
+                if eid_domain and not hass.services.async_services_for_domain(eid_domain):
+                    return (
+                        False,
+                        f"action targets read-only domain '{eid_domain}' ({eid})",
+                        None,
+                    )
+        normalized_actions.append(norm_act)
 
     _VALID_MODES = {"single", "restart", "queued", "parallel"}
     mode = str(automation.get("mode", "single")).strip().lower()
@@ -548,7 +585,7 @@ async def async_update_automation(
 ) -> bool:
     """Replace an existing automation (by id) in automations.yaml and reload."""
     # Validate and normalize trigger values (coerces boolean to/from → "on"/"off")
-    is_valid, reason, normalized = validate_automation_payload(updated)
+    is_valid, reason, normalized = validate_automation_payload(updated, hass)
     if not is_valid or normalized is None:
         _LOGGER.error("Invalid automation update for %s: %s", automation_id, reason)
         return False
@@ -612,7 +649,7 @@ async def async_create_automation(
     existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
     # Validate and normalize the suggestion (coerces boolean to/from → "on"/"off", etc.)
-    is_valid, reason, normalized = validate_automation_payload(suggestion)
+    is_valid, reason, normalized = validate_automation_payload(suggestion, hass)
     if not is_valid or normalized is None:
         _LOGGER.error("Invalid automation suggestion: %s", reason)
         return {"success": False, "automation_id": None}

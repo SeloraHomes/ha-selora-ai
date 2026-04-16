@@ -70,9 +70,9 @@ def engine(hass, pattern_store: PatternStore) -> PatternEngine:
 
 
 @pytest.fixture
-def generator(hass, pattern_store: PatternStore) -> SuggestionGenerator:
+def generator(hass_with_services, pattern_store: PatternStore) -> SuggestionGenerator:
     """Create a SuggestionGenerator with no LLM."""
-    return SuggestionGenerator(hass, pattern_store)
+    return SuggestionGenerator(hass_with_services, pattern_store)
 
 
 # ---------------------------------------------------------------------------
