@@ -15,11 +15,13 @@ from homeassistant.core import HomeAssistant
 
 from .anthropic import AnthropicProvider
 from .base import LLMProvider
+from .gemini import GeminiProvider
 from .ollama import OllamaProvider
 from .openai import OpenAIProvider
 
 __all__ = [
     "AnthropicProvider",
+    "GeminiProvider",
     "LLMProvider",
     "OllamaProvider",
     "OpenAIProvider",
@@ -28,6 +30,7 @@ __all__ = [
 
 PROVIDER_REGISTRY: dict[str, type[LLMProvider]] = {
     "anthropic": AnthropicProvider,
+    "gemini": GeminiProvider,
     "openai": OpenAIProvider,
     "ollama": OllamaProvider,
 }

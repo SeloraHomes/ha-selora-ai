@@ -17,6 +17,14 @@
           "anthropic_model": "Model"
         }
       },
+      "gemini": {
+        "title": "Google Gemini Configuration",
+        "description": "Enter your Google Gemini API key. Get one at aistudio.google.com.",
+        "data": {
+          "gemini_api_key": "API Key",
+          "gemini_model": "Model"
+        }
+      },
       "openai": {
         "title": "OpenAI Configuration",
         "description": "Enter your OpenAI API key. Get one at platform.openai.com.",

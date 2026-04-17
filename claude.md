@@ -6,7 +6,7 @@
 ## What This Is
 
 A custom Home Assistant integration (`custom_components/selora_ai/`) that acts as a "smart butler":
-- Analyzes device states and usage patterns via LLM (Anthropic Claude or local Ollama)
+- Analyzes device states and usage patterns via LLM (Anthropic Claude, Google Gemini, OpenAI, or local Ollama)
 - Auto-generates HA automations (disabled, prefixed `[Selora AI]` for user review)
 - Accepts natural language commands via the Selora panel and Home Assistant Assist
 - Discovers and onboards network devices during initial setup
@@ -17,7 +17,7 @@ A custom Home Assistant integration (`custom_components/selora_ai/`) that acts a
 HA entity registry / state machine / recorder (SQLite)
     |
     v
-DataCollector  ──snapshot──>  LLMClient (Anthropic API or local Ollama)
+DataCollector  ──snapshot──>  LLMClient (Anthropic / Gemini / OpenAI / Ollama)
     |                              |
     |                         suggestions
     v                              v
@@ -31,7 +31,8 @@ custom_components/selora_ai/
 ├── __init__.py          # Integration setup/teardown, entry routing
 ├── config_flow.py       # UI config flow (LLM setup → device discovery → area assignment → results)
 ├── collector.py         # Hourly data collection + LLM automation writer
-├── llm_client.py        # Unified LLM client (Anthropic + Ollama)
+├── llm_client.py        # Business-logic LLM facade (prompts, parsing, tool orchestration)
+├── providers/           # Pluggable LLM backends (Anthropic, Gemini, OpenAI, Ollama)
 ├── device_manager.py    # Device discovery, pairing, area assignment, dashboard generation
 ├── button.py            # Hub action buttons (Discover, Scan, Cleanup, Reset)
 ├── sensor.py            # Hub sensors (Status, Devices, Discovery, Last Activity)
@@ -197,4 +198,6 @@ Open http://localhost:8123, add the Selora AI integration under Settings > Devic
 | Provider | Config Key | Default Model | Notes |
 |----------|-----------|---------------|-------|
 | Anthropic | `anthropic_api_key` + `anthropic_model` | `claude-sonnet-4-6` | Cloud, recommended |
-| Ollama | `ollama_host` + `ollama_model` | `llama3.1` at `localhost:11434` | Local, no data leaves network |
+| Google Gemini | `gemini_api_key` + `gemini_model` | `gemini-2.5-flash` | Cloud, uses native REST API (not OpenAI-compat) |
+| OpenAI | `openai_api_key` + `openai_model` | `gpt-5.4` | Cloud, OpenAI chat completions format |
+| Ollama | `ollama_host` + `ollama_model` | `llama4` at `localhost:11434` | Local, no data leaves network |

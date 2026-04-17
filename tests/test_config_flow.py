@@ -15,16 +15,20 @@ import pytest
 from custom_components.selora_ai.const import (
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
+    CONF_GEMINI_API_KEY,
+    CONF_GEMINI_MODEL,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
     CONF_OPENAI_MODEL,
     DEFAULT_ANTHROPIC_MODEL,
+    DEFAULT_GEMINI_MODEL,
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
     DOMAIN,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_NONE,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
@@ -83,6 +87,15 @@ class TestStepUser:
         )
         assert result["type"] == "form"
         assert result["step_id"] == "ollama"
+
+    async def test_selecting_gemini_routes_to_gemini_step(self, hass) -> None:
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_LLM_PROVIDER: LLM_PROVIDER_GEMINI},
+        )
+        assert result["type"] == "form"
+        assert result["step_id"] == "gemini"
 
     async def test_selecting_openai_routes_to_openai_step(self, hass) -> None:
         result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
@@ -186,6 +199,55 @@ class TestStepOllama:
 
 
 # ── Step: openai ─────────────────────────────────────────────────────
+
+
+class TestStepGemini:
+    """Tests for the Gemini configuration step."""
+
+    async def _reach_gemini_step(self, hass):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        return await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_LLM_PROVIDER: LLM_PROVIDER_GEMINI},
+        )
+
+    async def test_shows_form(self, hass) -> None:
+        result = await self._reach_gemini_step(hass)
+        assert result["type"] == "form"
+        assert result["step_id"] == "gemini"
+
+    async def test_invalid_key_shows_error(self, hass) -> None:
+        result = await self._reach_gemini_step(hass)
+        with patch(
+            "custom_components.selora_ai.config_flow._validate_gemini",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("Gemini API key invalid"),
+        ):
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input={
+                    CONF_GEMINI_API_KEY: "bad-key",
+                    CONF_GEMINI_MODEL: DEFAULT_GEMINI_MODEL,
+                },
+            )
+        assert result["type"] == "form"
+        assert result["errors"] == {"base": "cannot_connect"}
+
+    async def test_valid_key_chains_forward(self, hass) -> None:
+        result = await self._reach_gemini_step(hass)
+        with patch(
+            "custom_components.selora_ai.config_flow._validate_gemini",
+            new_callable=AsyncMock,
+            return_value={"title": f"Selora AI (Gemini — {DEFAULT_GEMINI_MODEL})"},
+        ):
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input={
+                    CONF_GEMINI_API_KEY: "AIza-test-key",
+                    CONF_GEMINI_MODEL: DEFAULT_GEMINI_MODEL,
+                },
+            )
+        assert result["type"] in ("form", "create_entry", "abort")
 
 
 class TestStepOpenai:
