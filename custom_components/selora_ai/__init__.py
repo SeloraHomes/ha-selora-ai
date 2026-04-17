@@ -539,7 +539,7 @@ async def _handle_websocket_chat(
                     domain_part, service_name, {**data, **target}, blocking=True
                 )
                 executed.append(service)
-            except Exception as exc:
+            except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
                 _LOGGER.error("Failed to execute %s: %s", service, exc)
                 response_text += f" (Failed: {service}: {exc})"
 
@@ -616,8 +616,16 @@ async def _handle_websocket_chat_stream(
 
     from .llm_client import LLMClient
 
-    # Set up subscription pattern
-    connection.subscriptions[msg["id"]] = lambda: None
+    # Set up subscription with cancellation support — when the frontend
+    # calls _stopStreaming() the unsubscribe cancels the running task so
+    # we stop consuming LLM tokens and never execute pending service calls.
+    current_task = asyncio.current_task()
+
+    def _cancel_stream() -> None:
+        if current_task is not None and not current_task.done():
+            current_task.cancel()
+
+    connection.subscriptions[msg["id"]] = _cancel_stream
     connection.send_result(msg["id"])
 
     # Find the LLM client
@@ -706,6 +714,26 @@ async def _handle_websocket_chat_stream(
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
+        # --- Execute immediate commands (mirrors non-streaming handler) ---
+        executed: list[str] = []
+        if intent_type == "command":
+            calls = parsed.get("calls", [])
+            for call in calls:
+                service = call.get("service", "")
+                if not service or "." not in service:
+                    continue
+                domain_part, service_name = service.split(".", 1)
+                target = call.get("target", {})
+                data = call.get("data", {})
+                try:
+                    await hass.services.async_call(
+                        domain_part, service_name, {**data, **target}, blocking=True
+                    )
+                    executed.append(service)
+                except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
+                    _LOGGER.error("Failed to execute %s: %s", service, exc)
+                    response_text += f" (Failed: {service}: {exc})"
+
         device_data = tool_executor.device_results if tool_executor else None
         await store.append_message(
             session_id,
@@ -716,6 +744,7 @@ async def _handle_websocket_chat_stream(
             automation_yaml=parsed.get("automation_yaml"),
             description=parsed.get("description"),
             automation_status="pending" if parsed.get("automation") else None,
+            calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
             devices=device_data if device_data else None,
         )
@@ -749,6 +778,7 @@ async def _handle_websocket_chat_stream(
                 {
                     "type": "done",
                     "session_id": session_id,
+                    "intent": intent_type,
                     "response": response_text,
                     "automation": parsed.get("automation"),
                     "automation_yaml": parsed.get("automation_yaml"),
@@ -758,10 +788,13 @@ async def _handle_websocket_chat_stream(
                     else None,
                     "validation_error": parsed.get("validation_error"),
                     "refining_automation_id": refining_automation_id,
+                    "executed": executed,
                     "devices": device_data,
                 },
             )
         )
+    except asyncio.CancelledError:
+        _LOGGER.debug("Streaming chat cancelled by client")
     except Exception as exc:
         _LOGGER.exception("Streaming chat failed")
         connection.send_message(

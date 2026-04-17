@@ -577,8 +577,10 @@ class LLMClient:
         # No fenced block — try the old JSON-only parser
         result = self._parse_architect_response(text)
 
-        # Apply command safety policy if entities are available
-        if entities is not None and result.get("calls"):
+        # Apply command safety policy if entities are available.
+        # Always run the policy — even when calls is empty — so that
+        # command intents with no calls get downgraded to "answer".
+        if entities is not None:
             result = self._apply_command_policy(result, entities)
 
         return result
@@ -799,13 +801,11 @@ class LLMClient:
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n"
             "You have access to the current entity states and can see the conversation history for context.\n\n"
             "CLASSIFY the user's intent and respond with one of these JSON formats:\n\n"
-            "1. IMMEDIATE COMMAND — control a device right now. This is ACTION-BASED: when the user "
-            "asks to control a device, ALWAYS execute immediately. NEVER ask which device or for confirmation. "
+            "1. IMMEDIATE COMMAND — control a device right now. Use entity states to resolve ambiguity "
+            "(e.g. if the user says 'turn off the light' and only one is on, turn off that one). "
             "If multiple entities match (e.g. 'turn off the living room lights'), include them all — use "
             f"at most {_MAX_TARGET_ENTITIES} entity_ids per call and split into multiple calls if needed "
-            f"(max {_MAX_COMMAND_CALLS} calls). "
-            "If the user says 'turn off the light' and only one is on, turn off that one. "
-            "Always act, never ask.\n"
+            f"(max {_MAX_COMMAND_CALLS} calls).\n"
             "{\n"
             '  "intent": "command",\n'
             '  "response": "1-sentence confirmation naming the targeted entities.",\n'
@@ -826,8 +826,7 @@ class LLMClient:
             '    "actions": [...]\n'
             "  }\n"
             "}\n\n"
-            "3. CLARIFICATION — ONLY for non-device requests where the intent is genuinely unclear "
-            "(e.g. ambiguous automation schedule). NEVER use this for device commands — always execute those.\n"
+            "3. CLARIFICATION — the request is genuinely ambiguous AND you cannot resolve it from entity states:\n"
             "{\n"
             '  "intent": "clarification",\n'
             '  "response": "One specific question — no filler."\n'
@@ -848,13 +847,15 @@ class LLMClient:
             '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
             "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
-            "- BE ACTION-BASED: when the user asks to control a device, ALWAYS execute the command immediately. "
-            "NEVER ask for clarification. Use the AVAILABLE ENTITIES list and their current states to determine "
-            "which entities to target. If multiple entities match, include them all — split into multiple calls "
-            f"with at most {_MAX_TARGET_ENTITIES} entity_ids per call (max {_MAX_COMMAND_CALLS} calls total). "
-            "Always act, never ask.\n"
+            "- BE ACTION-ORIENTED: always prefer executing a command over asking for clarification. "
+            "Use the AVAILABLE ENTITIES list and their current states to resolve ambiguity yourself. "
+            "For example, if the user says 'turn off the living room light' and multiple living room lights exist "
+            "but only one is currently on, turn off the one that is on — do not ask which one. "
+            "Only use intent 'clarification' when you truly cannot determine what the user wants.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
+            '- When intent is "command", you MUST include a non-empty "calls" array with valid service calls. '
+            "Never describe what you would do without providing the calls to execute it.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
             "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
@@ -929,13 +930,16 @@ class LLMClient:
             '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
             "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly: 'kitchen lights' -> 'light.kitchen', etc.\n"
-            "- BE ACTION-BASED: when the user asks to control a device, ALWAYS execute the command immediately. "
-            "NEVER ask for clarification. Use the AVAILABLE ENTITIES list and their current states to determine "
-            "which entities to target. If multiple entities match, include them all — split into multiple calls "
-            f"with at most {_MAX_TARGET_ENTITIES} entity_ids per call (max {_MAX_COMMAND_CALLS} calls total). "
-            "Always act, never ask.\n"
+            "- BE ACTION-ORIENTED: always prefer executing a command over asking for clarification. "
+            "Use the AVAILABLE ENTITIES list and their current states to resolve ambiguity yourself. "
+            "For example, if the user says 'turn off the living room light' and multiple living room lights exist "
+            "but only one is currently on, turn off the one that is on — do not ask which one. "
+            "Only use intent 'clarification' when you truly cannot determine what the user wants.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
+            "- When the user asks to control a device, you MUST return a JSON object with "
+            '"intent": "command" and a non-empty "calls" array containing the service calls. '
+            "Never just describe what you would do — always include the calls so the action is executed.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
             "- When refining an existing automation, return the full updated automation JSON.\n"
             "- If no automation or command is needed, just respond with helpful text — no code block required.\n"
@@ -1306,6 +1310,10 @@ class LLMClient:
 
         calls = result.get("calls")
         if not calls:
+            # If the LLM classified as "command" but provided no calls,
+            # downgrade to "answer" so callers don't treat it as executed.
+            if result.get("intent") == "command":
+                result = dict(result, intent="answer")
             return result
 
         allowed_entities = {e.get("entity_id", "") for e in entities if e.get("entity_id")}

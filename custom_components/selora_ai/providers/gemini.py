@@ -138,10 +138,10 @@ class GeminiProvider(LLMProvider):
 
         payload: dict[str, Any] = {"contents": contents}
         if system_instruction:
-            payload["system_instruction"] = system_instruction
+            payload["systemInstruction"] = system_instruction
         if tools:
-            # Gemini expects [{"function_declarations": [decl1, decl2, ...]}]
-            payload["tools"] = [{"function_declarations": tools}]
+            # Gemini expects [{"functionDeclarations": [decl1, decl2, ...]}]
+            payload["tools"] = [{"functionDeclarations": tools}]
 
         return payload
 
