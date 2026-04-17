@@ -13,12 +13,11 @@ Single continuous flow:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -26,6 +25,9 @@ from homeassistant.helpers.selector import (
     SelectSelectorMode,
 )
 import voluptuous as vol
+
+if TYPE_CHECKING:
+    from .device_manager import DeviceManager
 
 from .const import (
     CONF_ANTHROPIC_API_KEY,
@@ -192,14 +194,14 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return True
         return False
 
-    def _get_device_manager(self):
+    def _get_device_manager(self) -> DeviceManager | None:
         """Retrieve the DeviceManager from the running LLM entry."""
         for entry_data in self.hass.data.get(DOMAIN, {}).values():
             if isinstance(entry_data, dict) and "device_manager" in entry_data:
                 return entry_data["device_manager"]
         return None
 
-    def _get_or_create_device_manager(self):
+    def _get_or_create_device_manager(self) -> DeviceManager | None:
         """Get existing DeviceManager or create a temporary one for initial setup."""
         dm = self._get_device_manager()
         if dm is not None:
@@ -217,7 +219,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── Entry Point ───────────────────────────────────────────────────
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Entry point — choose LLM provider or route to device discovery."""
         if self._has_llm_entry():
             # Add Entry mode: skip LLM config, go straight to discovery
@@ -264,7 +268,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     # ── LLM Configuration (store config, chain to discovery) ──────────
 
-    async def async_step_anthropic(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_anthropic(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Configure Anthropic API key, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -301,7 +307,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_gemini(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_gemini(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Configure Google Gemini API key, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -336,7 +344,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_openai(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_openai(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Configure OpenAI API key, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -371,7 +381,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def async_step_ollama(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_ollama(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Configure local Ollama, then chain to discovery."""
         errors: dict[str, str] = {}
 
@@ -418,7 +430,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_selora_connect(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """Skip to device discovery — Connect linking is done via the panel."""
         return await self.async_step_discover()
 
@@ -450,7 +462,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return f"{name} — {unique_id}"
         return name
 
-    async def async_step_discover(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_discover(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Run discovery, show per-device area dropdowns."""
         dm = self._get_or_create_device_manager()
         if dm is None:
@@ -511,7 +525,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def async_step_select_devices(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> config_entries.ConfigFlowResult:
         """User submitted area assignments — orchestrate device setup."""
         if user_input is None:
             return await self.async_step_discover()
@@ -599,7 +613,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         for device in dr.async_entries_for_config_entry(dev_reg, entry_id):
             dev_reg.async_update_device(device.id, area_id=area_id)
 
-    async def _create_llm_entry(self) -> FlowResult:
+    async def _create_llm_entry(self) -> config_entries.ConfigFlowResult:
         """Create the LLM config entry (initial setup, no devices found or selected)."""
         await self.async_set_unique_id(f"{DOMAIN}_llm")
         self._abort_if_unique_id_configured()
@@ -607,7 +621,9 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         title = self._llm_data.pop("_title", "Selora AI")
         return self.async_create_entry(title=title, data=self._llm_data)
 
-    async def async_step_results(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_results(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Show setup results and create the appropriate config entry."""
         if user_input is not None:
             if self._llm_data:
@@ -677,7 +693,9 @@ class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
         """Initialize options flow."""
         self.config_entry = config_entry
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
         """Manage the background services options."""
         if user_input is not None:
             return self.async_create_entry(title="", data=user_input)

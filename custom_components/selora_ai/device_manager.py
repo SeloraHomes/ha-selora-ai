@@ -14,11 +14,21 @@ All devices go through the same generic flow:
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
+
+if TYPE_CHECKING:
+    from .types import (
+        AreaAssignmentResult,
+        AutoSetupResult,
+        CleanupResult,
+        FlowResult,
+        NetworkDiscoveryResult,
+        ResetResult,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -50,12 +60,12 @@ class DeviceManager:
             )
         return results
 
-    async def accept_flow(self, flow_id: str) -> dict[str, Any]:
+    async def accept_flow(self, flow_id: str) -> FlowResult:
         """Confirm a discovered flow with empty user input (single-step)."""
         result = await self.hass.config_entries.flow.async_configure(flow_id, user_input={})
         return self._normalise_result(result)
 
-    async def start_device_flow(self, domain: str, host: str) -> dict[str, Any]:
+    async def start_device_flow(self, domain: str, host: str) -> FlowResult:
         """Manually kick off a config flow by domain + host IP."""
         result = await self.hass.config_entries.flow.async_init(
             domain,
@@ -64,14 +74,14 @@ class DeviceManager:
         )
         return self._normalise_result(result)
 
-    async def submit_pin(self, flow_id: str, pin: str) -> dict[str, Any]:
+    async def submit_pin(self, flow_id: str, pin: str) -> FlowResult:
         """Submit a PIN for a pairing step (e.g. Android TV)."""
         result = await self.hass.config_entries.flow.async_configure(
             flow_id, user_input={"pin": pin}
         )
         return self._normalise_result(result)
 
-    async def configure_step(self, flow_id: str, user_input: dict[str, Any]) -> dict[str, Any]:
+    async def configure_step(self, flow_id: str, user_input: dict[str, Any]) -> FlowResult:
         """Generic escape-hatch: progress any flow step with arbitrary input."""
         result = await self.hass.config_entries.flow.async_configure(flow_id, user_input=user_input)
         return self._normalise_result(result)
@@ -86,7 +96,7 @@ class DeviceManager:
         """
         return []
 
-    async def discover_network_devices(self) -> dict[str, Any]:
+    async def discover_network_devices(self) -> NetworkDiscoveryResult:
         """Full network status: discovered, configured, and available integrations.
 
         First triggers active discovery to find devices that passive mDNS/SSDP
@@ -193,7 +203,7 @@ class DeviceManager:
                 return dict(ce.data)
         return None
 
-    async def auto_setup_discovered(self) -> dict[str, Any]:
+    async def auto_setup_discovered(self) -> AutoSetupResult:
         """Auto-accept ALL pending discovery flows — aggressive mode.
 
         Strategy:
@@ -286,7 +296,7 @@ class DeviceManager:
 
     # ── Area auto-assignment ────────────────────────────────────
 
-    async def auto_assign_areas(self) -> dict[str, Any]:
+    async def auto_assign_areas(self) -> AreaAssignmentResult:
         """Match device names to existing HA areas and assign them.
 
         Uses case-insensitive substring matching:
@@ -337,7 +347,7 @@ class DeviceManager:
 
     # ── Reset & cleanup ──────────────────────────────────────────
 
-    async def reset_integrations(self) -> dict[str, Any]:
+    async def reset_integrations(self) -> ResetResult:
         """Remove all config entries not in PROTECTED_DOMAINS."""
         from .const import PROTECTED_DOMAINS
 
@@ -354,7 +364,7 @@ class DeviceManager:
 
         return {"removed_integrations": removed}
 
-    async def cleanup_mirror_devices(self) -> dict[str, Any]:
+    async def cleanup_mirror_devices(self) -> CleanupResult:
         """Remove all Selora AI-owned devices and orphaned entities."""
         from .const import DOMAIN
 
@@ -396,7 +406,7 @@ class DeviceManager:
         }
 
     @staticmethod
-    def _normalise_result(result: dict[str, Any]) -> dict[str, Any]:
+    def _normalise_result(result: dict[str, Any]) -> FlowResult:
         """Trim a FlowResult to JSON-safe fields we care about."""
         out: dict[str, Any] = {
             "type": result.get("type", ""),

@@ -36,6 +36,7 @@ from .const import (
     SELORA_JWT_LEEWAY_SECONDS,
     SELORA_JWT_MAX_SIZE,
 )
+from .types import MCPTokenMeta
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -208,7 +209,7 @@ async def authenticate_request(
     raise AuthenticationError("Authentication required")
 
 
-def _build_mcp_token_context(meta: dict[str, Any]) -> SeloraAuthContext:
+def _build_mcp_token_context(meta: MCPTokenMeta) -> SeloraAuthContext:
     """Build an auth context from validated MCP token metadata."""
     permission = meta["permission_level"]
     is_admin = permission == MCP_TOKEN_PERMISSION_ADMIN

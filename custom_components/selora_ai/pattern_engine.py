@@ -18,10 +18,13 @@ from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
 import statistics
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
-from homeassistant.core import HomeAssistant
+from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers.event import async_track_time_interval
+
+if TYPE_CHECKING:
+    from .types import PatternDict, PatternEvidence, StateChange
 
 from .const import (
     CAUSALITY_DIRECTIONALITY_PENALTY,
@@ -68,7 +71,7 @@ def _match_causal_episodes(
     window_secs: float,
     *,
     min_ts: datetime | None = None,
-) -> tuple[float, list[float]]:
+) -> tuple[float, list[float]]:  # (directionality, forward_delays)
     """Two-pass forward matching returning directionality and causal delays.
 
     Pass 1: each A claims its nearest unclaimed B (forward episodes).
@@ -160,10 +163,10 @@ class PatternEngine:
     ) -> None:
         self._hass = hass
         self._store = pattern_store
-        self._unsub_timer: Callable | None = None
-        self._initial_scan_task: asyncio.Task | None = None
+        self._unsub_timer: CALLBACK_TYPE | None = None
+        self._initial_scan_task: asyncio.Task[None] | None = None
         self.on_patterns_detected: (
-            Callable[[list[dict[str, Any]]], Coroutine[Any, Any, None]] | None
+            Callable[[list[PatternDict]], Coroutine[Any, Any, None]] | None
         ) = None
 
     async def async_start(self) -> None:
@@ -177,7 +180,6 @@ class PatternEngine:
             self._initial_scan_task = self._hass.async_create_task(self._delayed_initial_scan())
 
     async def _delayed_initial_scan(self) -> None:
-        """Wait 60 seconds after startup, then run the first scan."""
         await asyncio.sleep(60)
         await self._scheduled_scan(None)
 
@@ -193,8 +195,7 @@ class PatternEngine:
                 await self._initial_scan_task
         self._initial_scan_task = None
 
-    async def _scheduled_scan(self, _now: Any) -> None:
-        """Periodic scan callback."""
+    async def _scheduled_scan(self, _now: datetime | None) -> None:
         try:
             new_patterns = await self.scan()
             if new_patterns and self.on_patterns_detected:
@@ -202,13 +203,12 @@ class PatternEngine:
         except Exception:
             _LOGGER.exception("Pattern scan failed")
 
-    async def scan(self) -> list[dict[str, Any]]:
-        """Run all pattern detectors and return new/updated patterns."""
+    async def scan(self) -> list[PatternDict]:
         history = await self._store.get_all_history()
         if not history:
             return []
 
-        new_patterns: list[dict[str, Any]] = []
+        new_patterns: list[PatternDict] = []
         new_patterns.extend(await self._detect_time_patterns(history))
         new_patterns.extend(await self._detect_correlations(history))
         new_patterns.extend(await self._detect_sequences(history))
@@ -224,8 +224,8 @@ class PatternEngine:
         return new_patterns
 
     async def _detect_time_patterns(
-        self, history: dict[str, list[dict[str, Any]]]
-    ) -> list[dict[str, Any]]:
+        self, history: dict[str, list[StateChange]]
+    ) -> list[PatternDict]:
         """Detect recurring time-based state changes.
 
         Algorithm:
@@ -234,7 +234,7 @@ class PatternEngine:
         3. Buckets with 3+ days are patterns
         4. Confidence = distinct_days / total_days_observed
         """
-        patterns: list[dict[str, Any]] = []
+        patterns: list[PatternDict] = []
 
         for entity_id, changes in history.items():
             if len(changes) < _MIN_TIME_OCCURRENCES:
@@ -281,22 +281,23 @@ class PatternEngine:
                     PATTERN_TYPE_TIME_BASED, [entity_id], signature
                 )
 
-                pattern: dict[str, Any] = {
+                evidence: PatternEvidence = {
+                    "_signature": signature,
+                    "time_slot": f"{hour:02d}:{minute:02d}",
+                    "is_weekday": is_weekday,
+                    "target_state": state,
+                    "occurrences": distinct_days,
+                    "total_days": total_days,
+                    "timestamps": [ts.isoformat() for ts in timestamps[-5:]],
+                }
+                pattern: PatternDict = {
                     "pattern_id": existing["pattern_id"] if existing else None,
                     "type": PATTERN_TYPE_TIME_BASED,
                     "entity_ids": [entity_id],
                     "description": (
                         f"{entity_name} turns {state} around {hour:02d}:{minute:02d} on {day_type}"
                     ),
-                    "evidence": {
-                        "_signature": signature,
-                        "time_slot": f"{hour:02d}:{minute:02d}",
-                        "is_weekday": is_weekday,
-                        "target_state": state,
-                        "occurrences": distinct_days,
-                        "total_days": total_days,
-                        "timestamps": [ts.isoformat() for ts in timestamps[-5:]],
-                    },
+                    "evidence": evidence,
                     "confidence": confidence,
                 }
 
@@ -308,8 +309,8 @@ class PatternEngine:
         return patterns
 
     async def _detect_correlations(
-        self, history: dict[str, list[dict[str, Any]]]
-    ) -> list[dict[str, Any]]:
+        self, history: dict[str, list[StateChange]]
+    ) -> list[PatternDict]:
         """Detect device pairs that change state within a short window.
 
         Algorithm:
@@ -373,7 +374,7 @@ class PatternEngine:
             if i % _YIELD_EVERY == 0 and i > 0:
                 await asyncio.sleep(0)
 
-        patterns: list[dict[str, Any]] = []
+        patterns: list[PatternDict] = []
         for (eid_a, state_a, eid_b, state_b), delays in pair_counts.items():
             if len(delays) < _MIN_COOCCURRENCES:
                 continue
@@ -479,7 +480,19 @@ class PatternEngine:
                 PATTERN_TYPE_CORRELATION, [eid_a, eid_b], signature
             )
 
-            pattern: dict[str, Any] = {
+            evidence: PatternEvidence = {
+                "_signature": signature,
+                "trigger_entity": eid_a,
+                "trigger_state": state_a,
+                "response_entity": eid_b,
+                "response_state": state_b,
+                "avg_delay_seconds": round(avg_delay, 1),
+                "co_occurrences": len(delays),
+                "window_minutes": _CORRELATION_WINDOW_SECS // 60,
+                "delay_stddev": round(stddev, 1),
+                "directionality": round(directionality, 2),
+            }
+            pattern: PatternDict = {
                 "pattern_id": existing["pattern_id"] if existing else None,
                 "type": PATTERN_TYPE_CORRELATION,
                 "entity_ids": [eid_a, eid_b],
@@ -487,18 +500,7 @@ class PatternEngine:
                     f"{name_b} turns {state_b} within "
                     f"{int(avg_delay)}s of {name_a} turning {state_a}"
                 ),
-                "evidence": {
-                    "_signature": signature,
-                    "trigger_entity": eid_a,
-                    "trigger_state": state_a,
-                    "response_entity": eid_b,
-                    "response_state": state_b,
-                    "avg_delay_seconds": round(avg_delay, 1),
-                    "co_occurrences": len(delays),
-                    "window_minutes": _CORRELATION_WINDOW_SECS // 60,
-                    "delay_stddev": round(stddev, 1),
-                    "directionality": round(directionality, 2),
-                },
+                "evidence": evidence,
                 "confidence": confidence,
             }
 
@@ -533,8 +535,8 @@ class PatternEngine:
 
     async def _detect_sequences(
         self,
-        history: dict[str, list[dict[str, Any]]],
-    ) -> list[dict[str, Any]]:
+        history: dict[str, list[StateChange]],
+    ) -> list[PatternDict]:
         """Detect ordered A→B event sequences.
 
         Similar to correlation detection but specifically tracks directional
@@ -584,7 +586,7 @@ class PatternEngine:
             if i % _YIELD_EVERY == 0 and i > 0:
                 await asyncio.sleep(0)
 
-        patterns: list[dict[str, Any]] = []
+        patterns: list[PatternDict] = []
 
         for (eid_a, prev_a, state_a, eid_b, state_b), count in seq_counts.items():
             if count < _MIN_COOCCURRENCES:
@@ -618,23 +620,24 @@ class PatternEngine:
                 PATTERN_TYPE_SEQUENCE, [eid_a, eid_b], signature
             )
 
-            pattern: dict[str, Any] = {
+            evidence: PatternEvidence = {
+                "_signature": signature,
+                "trigger_entity": eid_a,
+                "trigger_from": prev_a,
+                "trigger_to": state_a,
+                "response_entity": eid_b,
+                "response_state": state_b,
+                "occurrences": count,
+                "window_minutes": _CORRELATION_WINDOW_SECS // 60,
+            }
+            pattern: PatternDict = {
                 "pattern_id": existing["pattern_id"] if existing else None,
                 "type": PATTERN_TYPE_SEQUENCE,
                 "entity_ids": [eid_a, eid_b],
                 "description": (
                     f"When {name_a} changes from {prev_a} to {state_a}, {name_b} turns {state_b}"
                 ),
-                "evidence": {
-                    "_signature": signature,
-                    "trigger_entity": eid_a,
-                    "trigger_from": prev_a,
-                    "trigger_to": state_a,
-                    "response_entity": eid_b,
-                    "response_state": state_b,
-                    "occurrences": count,
-                    "window_minutes": _CORRELATION_WINDOW_SECS // 60,
-                },
+                "evidence": evidence,
                 "confidence": confidence,
             }
 
@@ -648,15 +651,13 @@ class PatternEngine:
 
 
 def _parse_timestamp(ts: str) -> datetime | None:
-    """Parse ISO timestamp string to datetime."""
     try:
         return datetime.fromisoformat(ts)
     except (ValueError, TypeError):
         return None
 
 
-def _count_distinct_days(changes: list[dict[str, Any]]) -> int:
-    """Count the number of distinct calendar days in a change list."""
+def _count_distinct_days(changes: list[StateChange]) -> int:
     dates: set[str] = set()
     for change in changes:
         ts = _parse_timestamp(change["ts"])

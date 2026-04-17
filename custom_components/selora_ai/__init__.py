@@ -23,7 +23,7 @@ from __future__ import annotations
 import asyncio
 from datetime import UTC, datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.components import websocket_api
@@ -37,6 +37,21 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 import voluptuous as vol
 import yaml
+
+if TYPE_CHECKING:
+    from .automation_store import AutomationStore
+    from .device_manager import DeviceManager
+    from .pattern_store import PatternStore
+    from .types import (
+        AutomationDict,
+        ChatMessage,
+        EntitySnapshot,
+        RiskAssessment,
+        ServiceCallDict,
+        SessionData,
+        SessionSummary,
+        ToolCallLog,
+    )
 
 from .automation_utils import suggestion_content_fingerprint
 from .const import (
@@ -102,7 +117,7 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["conversation"]
+PLATFORMS: list[str] = ["conversation"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
@@ -117,7 +132,7 @@ class ConversationStore:
     """Thin wrapper around HA's Store for persisting chat sessions."""
 
     def __init__(self, hass: HomeAssistant) -> None:
-        self._store: Store = Store(
+        self._store: Store[dict[str, Any]] = Store(
             hass,
             version=_CONVERSATIONS_STORAGE_VERSION,
             key=_CONVERSATIONS_STORAGE_KEY,
@@ -129,7 +144,7 @@ class ConversationStore:
             raw = await self._store.async_load()
             self._data = raw if isinstance(raw, dict) else {"sessions": {}}
 
-    async def list_sessions(self) -> list[dict[str, Any]]:
+    async def list_sessions(self) -> list[SessionSummary]:
         """Return session summaries (no messages) sorted by updated_at descending."""
         await self._ensure_loaded()
         if self._data is None:
@@ -148,20 +163,20 @@ class ConversationStore:
         summaries.sort(key=lambda s: s["updated_at"], reverse=True)
         return summaries
 
-    async def get_session(self, session_id: str) -> dict[str, Any] | None:
+    async def get_session(self, session_id: str) -> SessionData | None:
         """Return a full session including messages, or None if not found."""
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
         return self._data["sessions"].get(session_id)
 
-    async def create_session(self) -> dict[str, Any]:
+    async def create_session(self) -> SessionData:
         """Create a new empty session and persist it."""
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
         now = dt_util.now().isoformat()
-        session: dict[str, Any] = {
+        session: SessionData = {
             "id": str(uuid.uuid4()),
             "title": "New conversation",
             "created_at": now,
@@ -178,17 +193,17 @@ class ConversationStore:
         role: str,
         content: str,
         *,
-        automation: dict[str, Any] | None = None,
+        automation: AutomationDict | None = None,
         automation_yaml: str | None = None,
         description: str | None = None,
         automation_status: str | None = None,
         intent: str | None = None,
-        calls: list[dict[str, Any]] | None = None,
+        calls: list[ServiceCallDict] | None = None,
         automation_id: str | None = None,
-        risk_assessment: dict[str, Any] | None = None,
-        tool_calls: list[dict[str, Any]] | None = None,
+        risk_assessment: RiskAssessment | None = None,
+        tool_calls: list[ToolCallLog] | None = None,
         devices: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
+    ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
         if self._data is None:
@@ -205,7 +220,7 @@ class ConversationStore:
             }
 
         session = self._data["sessions"][session_id]
-        message: dict[str, Any] = {
+        message: ChatMessage = {
             "role": role,
             "content": content,
             "timestamp": dt_util.now().isoformat(),
@@ -312,7 +327,7 @@ def _mask_api_key(key: str) -> str:
     return f"{key[:8]}..."
 
 
-def _collect_entity_states(hass: HomeAssistant) -> list[dict[str, Any]]:
+def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     """Get current states of all entities for the LLM.
 
     Filters out unavailable/unknown entities to avoid sending stale or
@@ -391,7 +406,7 @@ def _sanitize_history_text(value: Any, max_length: int = 200) -> str:
     return text
 
 
-def _get_device_manager(hass: HomeAssistant):
+def _get_device_manager(hass: HomeAssistant) -> DeviceManager | None:
     """Find the DeviceManager from hass.data."""
     from .device_manager import DeviceManager
 
@@ -1762,7 +1777,7 @@ async def _handle_websocket_validate_llm_key(
         )
 
 
-def _get_automation_store(hass: HomeAssistant):
+def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     """Return (or lazily create) the AutomationStore from hass.data."""
     from .automation_store import AutomationStore
 
@@ -2619,7 +2634,7 @@ async def _handle_websocket_get_state_history_summary(
     connection.send_result(msg["id"], summary)
 
 
-def _get_pattern_store(hass: HomeAssistant):
+def _get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
     """Find the PatternStore from any active config entry."""
     domain_data = hass.data.get(DOMAIN, {})
     for key, val in domain_data.items():
@@ -3112,7 +3127,7 @@ async def _handle_websocket_get_device_detail(
         connection.send_error(msg["id"], "unknown_error", str(exc))
 
 
-async def async_setup(hass: HomeAssistant, config: dict) -> bool:
+async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
 

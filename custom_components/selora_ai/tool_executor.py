@@ -6,6 +6,7 @@ functions. No logic is duplicated — all tool execution calls existing code.
 
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
 import json
 import logging
 from typing import Any
@@ -73,7 +74,7 @@ class ToolExecutor:
         return truncated
 
     @property
-    def _handlers(self) -> dict[str, Any]:
+    def _handlers(self) -> dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]]:
         """Map tool names to handler coroutines."""
         return {
             "get_home_snapshot": self._get_home_snapshot,

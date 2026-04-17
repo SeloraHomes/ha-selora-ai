@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from typing import TYPE_CHECKING
 
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry
@@ -22,6 +23,9 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_ACTIVITY_LOG, SIGNAL_DEVICES_UPDATED
+
+if TYPE_CHECKING:
+    from .device_manager import DeviceManager
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,7 +62,7 @@ class _HubActionButton(ButtonEntity):
             identifiers={(DOMAIN, "selora_ai_hub")},
         )
 
-    def _get_device_manager(self):
+    def _get_device_manager(self) -> DeviceManager | None:
         data = self.hass.data.get(DOMAIN, {}).get(self._entry.entry_id, {})
         return data.get("device_manager")
 

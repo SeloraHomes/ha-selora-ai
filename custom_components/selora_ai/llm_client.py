@@ -11,6 +11,7 @@ tool-call serialisation) live in `providers/`.  This module owns:
 
 from __future__ import annotations
 
+from collections.abc import AsyncIterator
 import json
 import logging
 import re
@@ -30,6 +31,12 @@ from .const import (
     MAX_TOOL_CALL_ROUNDS,
 )
 from .providers.base import LLMProvider
+from .types import (
+    ArchitectResponse,
+    EntitySnapshot,
+    HomeSnapshot,
+    ToolCallLog,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -98,8 +105,8 @@ _DEVICE_KNOWLEDGE_TEXT: str = ""
 
 def _read_prompt_files() -> tuple[str, str]:
     """Read prompt files from disk (runs in executor thread)."""
-    policy = ""
-    knowledge = ""
+    policy: str = ""
+    knowledge: str = ""
     policy_path = _PROMPTS_DIR / "tool_policy.md"
     knowledge_path = _PROMPTS_DIR / "device_knowledge.md"
     try:
@@ -131,7 +138,7 @@ def _load_device_knowledge() -> str:
     return _DEVICE_KNOWLEDGE_TEXT
 
 
-def _sanitize_untrusted_text(value: Any) -> str:
+def _sanitize_untrusted_text(value: object) -> str:
     """Normalize untrusted metadata before it is shown to the model."""
     text = " ".join(str(value or "").split())
     if len(text) > _UNTRUSTED_TEXT_LIMIT:
@@ -139,7 +146,7 @@ def _sanitize_untrusted_text(value: Any) -> str:
     return text
 
 
-def _format_untrusted_text(value: Any) -> str:
+def _format_untrusted_text(value: object) -> str:
     """Render untrusted metadata as a quoted data value."""
     return json.dumps(_sanitize_untrusted_text(value), ensure_ascii=True)
 
@@ -186,7 +193,7 @@ class LLMClient:
     # Public API
     # ------------------------------------------------------------------
 
-    async def analyze_home_data(self, home_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    async def analyze_home_data(self, home_snapshot: HomeSnapshot) -> list[dict[str, Any]]:
         """Send collected HA data to LLM for automation analysis."""
         if self._provider.requires_api_key and not self._provider.has_api_key:
             _LOGGER.warning("Skipping analysis: %s API key not configured", self.provider_name)
@@ -207,11 +214,11 @@ class LLMClient:
     async def architect_chat(
         self,
         user_message: str,
-        entities: list[dict[str, Any]],
+        entities: list[EntitySnapshot],
         existing_automations: list[dict[str, Any]] | None = None,
-        history: list[dict[str, Any]] | None = None,
+        history: list[dict[str, str]] | None = None,
         tool_executor: ToolExecutor | None = None,
-    ) -> dict[str, Any]:
+    ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
         history: prior turns as [{"role": "user"|"assistant", "content": "plain text"}].
@@ -286,11 +293,11 @@ class LLMClient:
     async def architect_chat_stream(
         self,
         user_message: str,
-        entities: list[dict[str, Any]],
+        entities: list[EntitySnapshot],
         existing_automations: list[dict[str, Any]] | None = None,
-        history: list[dict[str, Any]] | None = None,
+        history: list[dict[str, str]] | None = None,
         tool_executor: ToolExecutor | None = None,
-    ):
+    ) -> AsyncIterator[str]:
         """Async generator — streaming version of architect_chat.
 
         history: prior turns as [{"role": "user"|"assistant", "content": "..."}].
@@ -325,7 +332,9 @@ class LLMClient:
         async for chunk in self._provider.send_request_stream(system_prompt, messages):
             yield chunk
 
-    async def execute_command(self, command: str, entities: list[dict[str, Any]]) -> dict[str, Any]:
+    async def execute_command(
+        self, command: str, entities: list[EntitySnapshot]
+    ) -> ArchitectResponse:
         """Process a natural language command and return HA service calls to execute.
 
         Returns: {"calls": [...], "response": "human-readable response"}
@@ -404,8 +413,8 @@ class LLMClient:
     def parse_streamed_response(
         self,
         text: str,
-        entities: list[dict[str, Any]] | None = None,
-    ) -> dict[str, Any]:
+        entities: list[EntitySnapshot] | None = None,
+    ) -> ArchitectResponse:
         """Parse completed streamed text.
 
         Looks for a ```automation ... ``` fenced block.  Text before it is the
@@ -473,12 +482,12 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tool_executor: ToolExecutor,
         tools: list[dict[str, Any]],
-    ) -> tuple[str | None, str | None, list[dict[str, Any]]]:
+    ) -> tuple[str | None, str | None, list[ToolCallLog]]:
         """Send request with tools and execute a multi-turn tool loop.
 
         Returns: (final_text, error_message, tool_calls_log)
         """
-        tool_calls_log: list[dict[str, Any]] = []
+        tool_calls_log: list[ToolCallLog] = []
 
         for _round in range(MAX_TOOL_CALL_ROUNDS):
             try:
@@ -524,7 +533,7 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tool_executor: ToolExecutor,
         tools: list[dict[str, Any]],
-    ):
+    ) -> AsyncIterator[str]:
         """True streaming with inline tool-call detection.
 
         Streams the response token-by-token. If the LLM requests tool calls,
@@ -590,9 +599,9 @@ class LLMClient:
     def _build_chat_messages(
         self,
         user_message: str,
-        entities: list[dict[str, Any]],
+        entities: list[EntitySnapshot],
         existing_automations: list[dict[str, Any]] | None,
-        history: list[dict[str, Any]] | None,
+        history: list[dict[str, str]] | None,
     ) -> list[dict[str, str]]:
         """Build the message list for architect chat / stream."""
         interesting_domains = {
@@ -886,7 +895,7 @@ class LLMClient:
             "Respond with ONLY the JSON array. No markdown fences. No explanation."
         )
 
-    def _build_analysis_prompt(self, snapshot: dict[str, Any]) -> str:
+    def _build_analysis_prompt(self, snapshot: HomeSnapshot) -> str:
         """Build a summarized prompt — avoid overwhelming the model with raw data."""
         devices = snapshot.get("devices", [])
         device_lines = []
@@ -955,7 +964,7 @@ class LLMClient:
         return prompt
 
     @staticmethod
-    def _build_category_section(entities: list[dict[str, Any]]) -> str:
+    def _build_category_section(entities: list[EntitySnapshot]) -> str:
         """Build a DEVICE CATEGORIES section mapping entity domains to categories.
 
         Helps the LLM understand device relationships and suggest
@@ -1022,7 +1031,7 @@ class LLMClient:
     # Response parsing
     # ------------------------------------------------------------------
 
-    def _parse_architect_response(self, text: str) -> dict[str, Any]:
+    def _parse_architect_response(self, text: str) -> ArchitectResponse:
         """Parse the JSON response from the architect LLM.
 
         Normalises the result to always include 'intent' and 'response'.
@@ -1119,7 +1128,7 @@ class LLMClient:
             _LOGGER.warning("Failed to parse %s response: %s", self.provider_name, exc)
             return []
 
-    def _parse_command_response_text(self, text: str) -> dict[str, Any]:
+    def _parse_command_response_text(self, text: str) -> ArchitectResponse:
         """Parse LLM response text into service calls."""
         try:
             text = text.strip()
@@ -1153,9 +1162,9 @@ class LLMClient:
 
     def _apply_command_policy(
         self,
-        result: dict[str, Any],
-        entities: list[dict[str, Any]],
-    ) -> dict[str, Any]:
+        result: ArchitectResponse,
+        entities: list[EntitySnapshot],
+    ) -> ArchitectResponse:
         """Reject unsafe immediate commands before any caller can execute them."""
         if not isinstance(result, dict):
             return {"intent": "answer", "response": "Invalid command response"}
@@ -1270,8 +1279,8 @@ class LLMClient:
     def _blocked_command_result(
         self,
         reason: str,
-        result: dict[str, Any] | None = None,
-    ) -> dict[str, Any]:
+        result: ArchitectResponse | None = None,
+    ) -> ArchitectResponse:
         """Return a safe response when a command proposal is rejected."""
         _LOGGER.warning("Blocked unsafe LLM command proposal: %s", reason)
         response = (

@@ -303,7 +303,7 @@ class GeminiProvider(LLMProvider):
         *,
         tools: list[dict[str, Any]] | None = None,
         max_tokens: int = 4096,
-    ) -> AsyncIterator[tuple[aiohttp.ClientResponse, None]]:
+    ) -> AsyncIterator[aiohttp.ClientResponse]:
         """Open a streaming connection to the native Gemini endpoint."""
         session = self._get_session()
         payload = self.build_payload(

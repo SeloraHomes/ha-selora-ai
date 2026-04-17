@@ -11,12 +11,16 @@ select = [
     "UP",   # pyupgrade
     "B",    # flake8-bugbear
     "SIM",  # flake8-simplify
+    "ANN",  # flake8-annotations — enforce type annotations
 ]
 ignore = [
     "E501",   # line too long — formatter handles it
     "B008",   # function calls in argument defaults (common in HA)
     "SIM117", # nested with statements (readability preference)
     "UP007",  # X | Y union syntax (keep Optional for HA compat)
+    "ANN002", # *args — typing is often impractical
+    "ANN003", # **kwargs — typing is often impractical
+    "ANN401", # Dynamically typed expressions (typing.Any) — allowed for HA store data
 ]
 
 [tool.ruff.lint.isort]
