@@ -274,13 +274,12 @@ export function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div style="margin-bottom:16px;">
-            <h3 style="font-size:20px;font-weight:700;margin:0;">
-              Remote access &amp; MCP authentication
-            </h3>
+            <h3 style="font-size:20px;font-weight:700;margin:0;">MCP Server</h3>
             <p
               style="font-size:13px;color:var(--secondary-text-color);margin:4px 0 0;"
             >
-              Manage external connectivity and API token access.
+              Expose your home to external AI tools like Openclaw, Claude
+              Desktop, Cursor, or Windsurf.
             </p>
           </div>
 
@@ -290,8 +289,10 @@ export function renderSettings(host) {
               style="border-bottom:none;padding-bottom:0;"
             >
               <div class="service-label-group">
-                <label>Selora Connect</label>
-                <span class="service-desc">Secure tunnel via Pangolin</span>
+                <label>Connect via Selora account</label>
+                <span class="service-desc"
+                  >Makes your MCP server reachable by external tools</span
+                >
               </div>
               <ha-switch
                 .checked=${host._config.selora_connect_enabled}
@@ -363,6 +364,13 @@ export function renderSettings(host) {
           </div>
 
           <div class="settings-section-title">MCP TOKENS</div>
+          <p
+            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
+          >
+            MCP tokens are an alternative to Selora Connect. Use them for tools
+            that don't support OAuth or when you prefer token-based
+            authentication.
+          </p>
           ${host._mcpTokens.length === 0
             ? html`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
