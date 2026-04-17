@@ -63,6 +63,11 @@ class LLMProvider(ABC):
 
     @property
     @abstractmethod
+    def provider_type(self) -> str:
+        """Provider key matching a ``LLM_PROVIDER_*`` constant, e.g. ``'anthropic'``."""
+
+    @property
+    @abstractmethod
     def provider_name(self) -> str:
         """Human-readable name, e.g. 'Anthropic (claude-sonnet-4-6)'."""
 

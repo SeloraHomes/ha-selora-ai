@@ -46,6 +46,10 @@ class GeminiProvider(LLMProvider):
     # -- Identity ----------------------------------------------------------
 
     @property
+    def provider_type(self) -> str:
+        return "gemini"
+
+    @property
     def provider_name(self) -> str:
         return f"Google Gemini ({self._model})"
 

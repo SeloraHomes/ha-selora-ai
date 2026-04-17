@@ -45,6 +45,10 @@ class AnthropicProvider(LLMProvider):
     # -- Identity ----------------------------------------------------------
 
     @property
+    def provider_type(self) -> str:
+        return "anthropic"
+
+    @property
     def provider_name(self) -> str:
         return f"Anthropic ({self._model})"
 
