@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import conversation
 from homeassistant.components.conversation import ChatLog, ConversationEntityFeature
@@ -12,6 +13,9 @@ from homeassistant.helpers import intent
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
+
+if TYPE_CHECKING:
+    from .llm_client import LLMClient
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,7 +52,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         chat_log: ChatLog,
     ) -> conversation.ConversationResult:
         """Handle a sentence via HA Assist pipeline."""
-        llm_data = self.hass.data[DOMAIN].get(self.entry.entry_id)
+        llm_data: dict[str, Any] | None = self.hass.data[DOMAIN].get(self.entry.entry_id)
         if not llm_data or "llm" not in llm_data:
             _LOGGER.warning("Selora AI LLM not initialized for entry %s", self.entry.entry_id)
             response = intent.IntentResponse(language=user_input.language)
@@ -58,7 +62,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 conversation_id=user_input.conversation_id,
             )
 
-        llm = llm_data["llm"]
+        llm: LLMClient | None = llm_data["llm"]
         if llm is None:
             response = intent.IntentResponse(language=user_input.language)
             response.async_set_speech("Selora AI is currently in unconfigured mode.")
@@ -70,10 +74,10 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         # Get current entity states for context
         from . import _collect_entity_states
 
-        entities = _collect_entity_states(self.hass)
+        entities: list[dict[str, Any]] = _collect_entity_states(self.hass)
 
         # Get existing automations for context
-        automations = []
+        automations: list[dict[str, Any]] = []
         for state in self.hass.states.async_all("automation"):
             automations.append(
                 {
@@ -85,7 +89,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
 
         # Use architect_chat for rich responses and automation generation
         _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
-        result = await llm.architect_chat(
+        result: dict[str, Any] = await llm.architect_chat(
             user_input.text,
             entities,
             existing_automations=automations,
@@ -104,19 +108,21 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 conversation_id=user_input.conversation_id,
             )
 
-        response_text = result.get("response", "I'm not sure how to help with that.")
-        intent_type = result.get("intent", "answer")
+        response_text: str = result.get("response", "I'm not sure how to help with that.")
+        intent_type: str = result.get("intent", "answer")
 
         if intent_type == "command":
             # Execute immediate commands via HA Assist context
-            calls = result.get("calls", [])
+            calls: list[dict[str, Any]] = result.get("calls", [])
             for call in calls:
-                service = call.get("service", "")
+                service: str = call.get("service", "")
                 if not service or "." not in service:
                     continue
+                domain_part: str
+                service_name: str
                 domain_part, service_name = service.split(".", 1)
-                target = call.get("target", {})
-                data = call.get("data", {})
+                target: dict[str, Any] = call.get("target", {})
+                data: dict[str, Any] = call.get("data", {})
                 try:
                     await self.hass.services.async_call(
                         domain_part,
@@ -128,7 +134,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                     _LOGGER.error("Failed to execute %s via Assist: %s", service, exc)
 
         elif intent_type == "automation" and result.get("automation"):
-            desc = result.get("description", "")
+            desc: str = result.get("description", "")
             if desc:
                 response_text += f"\n\nAutomation summary: {desc}"
             response_text += "\n\n(Draft automation created — review and enable it in the Selora AI sidebar panel.)"

@@ -35,13 +35,23 @@ from __future__ import annotations
 from datetime import UTC, datetime
 import difflib
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import AUTOMATION_STORE_KEY
+
+if TYPE_CHECKING:
+    from .types import (
+        AutomationMetadata,
+        AutomationRecord,
+        AutomationStoreData,
+        AutomationVersion,
+        DraftAutomation,
+        LineageEntry,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,8 +62,10 @@ class AutomationStore:
     """Version and lifecycle store for Selora-managed automations."""
 
     def __init__(self, hass: HomeAssistant) -> None:
-        self._store: Store = Store(hass, version=_STORE_VERSION, key=AUTOMATION_STORE_KEY)
-        self._data: dict[str, Any] | None = None
+        self._store: Store[AutomationStoreData] = Store(
+            hass, version=_STORE_VERSION, key=AUTOMATION_STORE_KEY
+        )
+        self._data: AutomationStoreData | None = None
 
     async def _ensure_loaded(self) -> None:
         if self._data is None:
@@ -71,7 +83,7 @@ class AutomationStore:
                 self._data = {"records": {}, "session_index": {}}
             self._data.setdefault("drafts", {})
 
-    async def _get_loaded_data(self) -> dict[str, Any]:
+    async def _get_loaded_data(self) -> AutomationStoreData:
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Automation store data failed to load")
@@ -102,7 +114,7 @@ class AutomationStore:
         data_store = await self._get_loaded_data()
         version_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
-        version: dict[str, Any] = {
+        version: AutomationVersion = {
             "version_id": version_id,
             "automation_id": automation_id,
             "created_at": now,
@@ -111,8 +123,8 @@ class AutomationStore:
             "message": message,
             "session_id": session_id,
         }
-        records = data_store["records"]
-        is_new = automation_id not in records
+        records: dict[str, AutomationRecord] = data_store["records"]
+        is_new: bool = automation_id not in records
         if is_new:
             records[automation_id] = {
                 "automation_id": automation_id,
@@ -133,7 +145,7 @@ class AutomationStore:
         )
 
         # Append lineage entry (always — even for non-session edits)
-        lineage_entry: dict[str, Any] = {
+        lineage_entry: LineageEntry = {
             "version_id": version_id,
             "session_id": session_id,
             "message_index": message_index,
@@ -152,12 +164,12 @@ class AutomationStore:
         await self._store.async_save(data_store)
         return version_id
 
-    async def get_record(self, automation_id: str) -> dict[str, Any] | None:
+    async def get_record(self, automation_id: str) -> AutomationRecord | None:
         """Return the full record for an automation, or None if not tracked."""
         data_store = await self._get_loaded_data()
         return data_store["records"].get(automation_id)
 
-    async def get_versions(self, automation_id: str) -> list[dict[str, Any]]:
+    async def get_versions(self, automation_id: str) -> list[AutomationVersion]:
         """Return ordered version list for an automation (oldest first)."""
         record = await self.get_record(automation_id)
         return record["versions"] if record else []
@@ -197,7 +209,7 @@ class AutomationStore:
 
     # ── Metadata helpers ─────────────────────────────────────────────────
 
-    async def get_metadata(self, automation_id: str) -> dict[str, Any] | None:
+    async def get_metadata(self, automation_id: str) -> AutomationMetadata | None:
         """Return lightweight metadata (no version YAML). None if not tracked."""
         record = await self.get_record(automation_id)
         if not record:
@@ -210,7 +222,7 @@ class AutomationStore:
 
     # ── Lineage ──────────────────────────────────────────────────────────
 
-    async def get_automation_lineage(self, automation_id: str) -> list[dict[str, Any]]:
+    async def get_automation_lineage(self, automation_id: str) -> list[LineageEntry]:
         """Return the chronological lineage list for an automation."""
         record = await self.get_record(automation_id)
         if not record:
@@ -224,12 +236,12 @@ class AutomationStore:
 
     # ── Draft automations ─────────────────────────────────────────────────
 
-    async def create_draft(self, alias: str, session_id: str) -> dict[str, Any]:
+    async def create_draft(self, alias: str, session_id: str) -> DraftAutomation:
         """Create a draft automation linked to a chat session."""
         data_store = await self._get_loaded_data()
         draft_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
-        draft = {
+        draft: DraftAutomation = {
             "draft_id": draft_id,
             "alias": alias,
             "session_id": session_id,
@@ -239,7 +251,7 @@ class AutomationStore:
         await self._store.async_save(data_store)
         return draft
 
-    async def list_drafts(self) -> list[dict[str, Any]]:
+    async def list_drafts(self) -> list[DraftAutomation]:
         """Return all draft automations."""
         data_store = await self._get_loaded_data()
         return list(data_store.get("drafts", {}).values())

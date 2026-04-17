@@ -9,12 +9,17 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from homeassistant.core import HomeAssistant
 import yaml
 
 from .automation_utils import suggestion_content_fingerprint, validate_automation_payload
+
+if TYPE_CHECKING:
+    from .llm_client import LLMClient
+    from .types import AutomationDict, PatternDict, SuggestionDict
+
 from .const import (
     CONFIDENCE_MEDIUM,
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
@@ -34,13 +39,13 @@ class SuggestionGenerator:
         self,
         hass: HomeAssistant,
         pattern_store: PatternStore,
-        llm: Any | None = None,
+        llm: LLMClient | None = None,
     ) -> None:
         self._hass = hass
         self._store = pattern_store
         self._llm = llm
 
-    async def generate_from_patterns(self, patterns: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    async def generate_from_patterns(self, patterns: list[PatternDict]) -> list[SuggestionDict]:
         """Convert patterns into automation suggestions.
 
         For each pattern above CONFIDENCE_MEDIUM:
@@ -54,7 +59,7 @@ class SuggestionGenerator:
         8. Optionally enrich description via LLM (with dismissal context, #45)
         9. Save to pattern store
         """
-        suggestions: list[dict[str, Any]] = []
+        suggestions: list[SuggestionDict] = []
         existing_aliases = self._get_existing_aliases()
 
         # Build content fingerprints of already-stored suggestions (#46)
@@ -63,12 +68,13 @@ class SuggestionGenerator:
         # Track fingerprints within this batch to prevent intra-batch duplicates (#46)
         batch_fingerprints: set[str] = set()
 
-        # Fetch recently dismissed suggestions once for the whole batch (#44 + #45)
-        recently_dismissed = await self._store.get_recently_dismissed_suggestions()
+        recently_dismissed: list[
+            SuggestionDict
+        ] = await self._store.get_recently_dismissed_suggestions()
         dismissed_pattern_ids: set[str] = {
             s["pattern_id"] for s in recently_dismissed if s.get("pattern_id")
         }
-        dismissed_summary = self._build_dismissed_summary(recently_dismissed)
+        dismissed_summary: str = self._build_dismissed_summary(recently_dismissed)
         if dismissed_pattern_ids:
             _LOGGER.debug(
                 "Dismissal suppression active for %d pattern(s) within %d-day window",
@@ -129,7 +135,7 @@ class SuggestionGenerator:
 
             yaml_text = yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
 
-            suggestion: dict[str, Any] = {
+            suggestion: SuggestionDict = {
                 "pattern_id": pattern_id,
                 "source": "pattern",
                 "confidence": pattern["confidence"],
@@ -176,7 +182,7 @@ class SuggestionGenerator:
                 fingerprints.add(suggestion_content_fingerprint(auto_data))
         return fingerprints
 
-    def _pattern_to_automation(self, pattern: dict[str, Any]) -> dict[str, Any] | None:
+    def _pattern_to_automation(self, pattern: PatternDict) -> AutomationDict | None:
         """Convert a pattern into a valid HA automation dict."""
         ptype = pattern["type"]
         if ptype == PATTERN_TYPE_TIME_BASED:
@@ -187,7 +193,7 @@ class SuggestionGenerator:
             return self._sequence_to_automation(pattern)
         return None
 
-    def _time_pattern_to_automation(self, pattern: dict[str, Any]) -> dict[str, Any] | None:
+    def _time_pattern_to_automation(self, pattern: PatternDict) -> AutomationDict | None:
         """Convert a time-based pattern to a time-trigger automation."""
         evidence = pattern.get("evidence", {})
         entity_id = pattern["entity_ids"][0]
@@ -224,7 +230,7 @@ class SuggestionGenerator:
             "mode": "single",
         }
 
-    def _correlation_to_automation(self, pattern: dict[str, Any]) -> dict[str, Any] | None:
+    def _correlation_to_automation(self, pattern: PatternDict) -> AutomationDict | None:
         """Convert a correlation pattern to a state-trigger automation."""
         evidence = pattern.get("evidence", {})
         trigger_entity = evidence.get("trigger_entity", "")
@@ -252,7 +258,7 @@ class SuggestionGenerator:
             "mode": "single",
         }
 
-    def _sequence_to_automation(self, pattern: dict[str, Any]) -> dict[str, Any] | None:
+    def _sequence_to_automation(self, pattern: PatternDict) -> AutomationDict | None:
         """Convert a sequence pattern to a state-trigger automation with from/to."""
         evidence = pattern.get("evidence", {})
         trigger_entity = evidence.get("trigger_entity", "")
@@ -331,7 +337,7 @@ class SuggestionGenerator:
         return None
 
     @staticmethod
-    def _build_dismissed_summary(dismissed: list[dict[str, Any]]) -> str:
+    def _build_dismissed_summary(dismissed: list[SuggestionDict]) -> str:
         """Build a short dismissal context string for the LLM prompt (#45).
 
         Groups dismissed suggestions by pattern type and reason so the model
@@ -351,7 +357,7 @@ class SuggestionGenerator:
         return "\n".join(lines[:10])  # cap at 10 to keep prompt manageable
 
     @staticmethod
-    def _build_evidence_summary(pattern: dict[str, Any]) -> str:
+    def _build_evidence_summary(pattern: PatternDict) -> str:
         """Human-readable summary of pattern evidence."""
         evidence = pattern.get("evidence", {})
         ptype = pattern["type"]
@@ -374,10 +380,10 @@ class SuggestionGenerator:
 
     async def _enrich_with_llm(
         self,
-        suggestion: dict[str, Any],
-        pattern: dict[str, Any],
+        suggestion: SuggestionDict,
+        pattern: PatternDict,
         dismissed_summary: str = "",
-    ) -> dict[str, Any]:
+    ) -> SuggestionDict:
         """Ask the LLM for a better human description (best-effort).
 
         Passes a summary of recently dismissed patterns so the LLM avoids

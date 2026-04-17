@@ -24,11 +24,17 @@ from .const import (
 
 if TYPE_CHECKING:
     from .automation_store import AutomationStore
+    from .types import (
+        AutomationCreateResult,
+        AutomationDict,
+        RiskAssessment,
+        StaleAutomation,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
 
-def suggestion_content_fingerprint(automation: dict[str, Any]) -> str:
+def suggestion_content_fingerprint(automation: AutomationDict | dict[str, Any]) -> str:
     """SHA-256 fingerprint of trigger+condition+action for suggestion deduplication.
 
     Handles both singular (trigger/action/condition) and plural
@@ -86,7 +92,7 @@ def _to_plain_types(obj: Any) -> Any:
     return obj
 
 
-def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
+def _read_automations_yaml(path: Path) -> list[AutomationDict]:
     """Read and parse automations.yaml (runs in executor).
 
     Uses ruamel.yaml to correctly parse double-quoted on/off/yes/no as
@@ -166,7 +172,7 @@ def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> No
     tmp_path.replace(path)
 
 
-def _parse_automation_yaml(yaml_text: str) -> dict[str, Any] | None:
+def _parse_automation_yaml(yaml_text: str) -> AutomationDict | None:
     """Parse a YAML string into an automation dict (runs in executor). Returns None on error."""
     try:
         data = yaml.safe_load(yaml_text)
@@ -199,7 +205,7 @@ _STATE_KEYS = frozenset({"to", "from", "state"})
 _BOOL_KEYS = frozenset({"initial_state", "enabled", "hide_entity", "continue_on_error"})
 
 
-def _coerce_time_value(value: Any) -> Any:
+def _coerce_time_value(value: Any) -> str | None:
     """Coerce a value to ``HH:MM:SS`` time string.
 
     - Integers/floats in 0..86399 are treated as seconds since midnight.
@@ -233,7 +239,7 @@ def _coerce_duration_value(value: Any) -> Any:
     return value
 
 
-def _coerce_state_string(value: Any) -> Any:
+def _coerce_state_string(value: Any) -> str | None:
     """Coerce a value that HA expects to be a state string.
 
     - Booleans become ``"on"``/``"off"``.
@@ -292,7 +298,7 @@ def _normalize_item(item: dict[str, Any]) -> dict[str, Any]:
 
 def validate_action_services(
     hass: HomeAssistant,
-    automation: dict[str, Any],
+    automation: AutomationDict | dict[str, Any],
 ) -> bool:
     """Check that all action services in the automation exist on this HA instance.
 
@@ -337,7 +343,7 @@ def validate_action_services(
 def validate_automation_payload(
     automation: dict[str, Any] | None,
     hass: HomeAssistant | None = None,
-) -> tuple[bool, str, dict[str, Any] | None]:
+) -> tuple[bool, str, AutomationDict | None]:
     """Validate and normalize automation payload before it is shown or persisted.
 
     When *hass* is provided, action domains are validated against the HA
@@ -461,7 +467,7 @@ def validate_automation_payload(
     return True, "", normalized
 
 
-def assess_automation_risk(automation: dict[str, Any]) -> dict[str, Any]:
+def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskAssessment:
     """Classify automation proposals that could expand HA compute/control risk."""
     flags: list[str] = []
     reasons: list[str] = []
@@ -634,11 +640,11 @@ async def async_update_automation(
 
 async def async_create_automation(
     hass: HomeAssistant,
-    suggestion: dict[str, Any],
+    suggestion: AutomationDict | dict[str, Any],
     *,
     session_id: str | None = None,
     version_message: str = "Created",
-) -> dict[str, Any]:
+) -> AutomationCreateResult:
     """Write a single automation suggestion to automations.yaml and reload.
 
     Returns a dict with keys: success (bool), automation_id (str | None).
@@ -830,7 +836,7 @@ async def async_delete_automations_batch(
     return removed_aliases
 
 
-async def _record_deletion_hash(hass: HomeAssistant, automation: dict) -> None:
+async def _record_deletion_hash(hass: HomeAssistant, automation: dict[str, Any]) -> None:
     """Store the trigger+action content hash of a deleted automation in PatternStore."""
     import hashlib
     import json
@@ -940,7 +946,7 @@ def count_selora_automations(hass: HomeAssistant, *, enabled_only: bool = False)
     return count
 
 
-def find_stale_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
+def find_stale_automations(hass: HomeAssistant) -> list[StaleAutomation]:
     """Find Selora automations that haven't triggered in AUTOMATION_STALE_DAYS.
 
     Only considers enabled automations — disabled automations are skipped
@@ -950,7 +956,7 @@ def find_stale_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
     last_triggered for each stale automation.
     """
     cutoff = datetime.now(UTC) - timedelta(days=AUTOMATION_STALE_DAYS)
-    stale: list[dict[str, Any]] = []
+    stale: list[StaleAutomation] = []
 
     for state in hass.states.async_all("automation"):
         uid = str(state.attributes.get("id", ""))

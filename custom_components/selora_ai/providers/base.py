@@ -247,7 +247,7 @@ class LLMProvider(ABC):
         *,
         tools: list[dict[str, Any]] | None = None,
         max_tokens: int = 4096,
-    ) -> AsyncIterator[tuple[aiohttp.ClientResponse, None]]:
+    ) -> AsyncIterator[aiohttp.ClientResponse]:
         """Open a streaming HTTP connection and yield the response context.
 
         This is a single-item async generator that yields the open response

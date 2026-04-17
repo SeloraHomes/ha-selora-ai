@@ -45,6 +45,7 @@ from .const import (
     MCP_TOKEN_STORE_VERSION,
     MCP_TOKEN_VALID_PERMISSIONS,
 )
+from .types import MCPTokenMeta
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,7 +113,7 @@ class MCPTokenStore:
         allowed_tools: list[str] | None = None,
         expires_at: str | None = None,
         created_by_user_id: str,
-    ) -> tuple[str, dict[str, Any]]:
+    ) -> tuple[str, MCPTokenMeta]:
         """Create a new MCP token.
 
         Returns ``(plaintext_token, metadata_dict)``.  The plaintext token is
@@ -136,7 +137,7 @@ class MCPTokenStore:
         token_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        meta: dict[str, Any] = {
+        meta: MCPTokenMeta = {
             "id": token_id,
             "name": name,
             "token_hash": token_hash,
@@ -184,7 +185,7 @@ class MCPTokenStore:
 
     # ── Validation (called on every MCP request) ─────────────────────────
 
-    async def async_validate_token(self, raw_token: str) -> dict[str, Any] | None:
+    async def async_validate_token(self, raw_token: str) -> MCPTokenMeta | None:
         """Validate a raw token string.
 
         Returns token metadata if valid, ``None`` otherwise.

@@ -38,6 +38,7 @@ custom_components/selora_ai/
 ├── sensor.py            # Hub sensors (Status, Devices, Discovery, Last Activity)
 ├── selora_auth.py       # Multi-auth orchestration (HA token, MCP token, Selora JWT)
 ├── mcp_token_store.py   # Local MCP API token store (CRUD, hash-only storage)
+├── types.py             # Shared TypedDict definitions (automations, patterns, suggestions, etc.)
 ├── const.py             # Constants, config keys, known integrations database
 ├── manifest.json        # HA integration manifest
 ├── strings.json         # UI strings for config flow
@@ -66,7 +67,11 @@ custom_components/selora_ai/
 ### Code Style
 - Python 3.12+, async/await throughout
 - `from __future__ import annotations` in every file
+- **Fully typed**: every function/method must have parameter and return type annotations
 - Type hints using modern syntax (`str | None`, not `Optional[str]`)
+- Use TypedDicts from `types.py` instead of `dict[str, Any]` for known data structures (automations, patterns, suggestions, snapshots, etc.)
+- Import types under `TYPE_CHECKING` guard when only needed for annotations
+- Avoid bare `Any` — use concrete types or TypedDicts. `Any` is acceptable only for truly dynamic data (e.g. raw JSON from external APIs, HA store loads)
 - Logging via `_LOGGER = logging.getLogger(__name__)`
 - No hardcoded secrets — API keys come from user config entry, never from constants
 
@@ -107,6 +112,8 @@ custom_components/selora_ai/
 - Do not write to Lovelace files directly — use the HA Lovelace API
 - Do not add `field` from dataclasses unless actually used
 - Do not break the config flow step → strings.json mapping
+- Do not use `dict[str, Any]` for data structures that have a TypedDict in `types.py` — import and use the TypedDict
+- Do not add untyped functions — every new function/method must have full parameter and return type annotations
 
 ## Testing
 

@@ -58,11 +58,22 @@ from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+
+if TYPE_CHECKING:
+    from .types import (
+        FeedbackSummary,
+        HistorySummary,
+        PatternDict,
+        PatternStoreData,
+        StateChange,
+        SuggestionDict,
+        TopState,
+    )
 
 from .const import (
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
@@ -80,9 +91,11 @@ class PatternStore:
     """Persistent store for state history, patterns, and proactive suggestions."""
 
     def __init__(self, hass: HomeAssistant) -> None:
-        self._store: Store = Store(hass, version=_STORE_VERSION, key=PATTERN_STORE_KEY)
-        self._data: dict[str, Any] | None = None
-        self._pending_state_changes = 0
+        self._store: Store[dict[str, Any]] = Store(
+            hass, version=_STORE_VERSION, key=PATTERN_STORE_KEY
+        )
+        self._data: PatternStoreData | None = None
+        self._pending_state_changes: int = 0
 
     async def _ensure_loaded(self) -> None:
         if self._data is not None:
@@ -109,7 +122,7 @@ class PatternStore:
             s.setdefault("dismissed_at", None)
             s.setdefault("dismissal_reason", None)
 
-    async def _get_loaded_data(self) -> dict[str, Any]:
+    async def _get_loaded_data(self) -> PatternStoreData:
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Pattern store data failed to load")
@@ -153,7 +166,7 @@ class PatternStore:
 
     async def get_entity_history(
         self, entity_id: str, since: datetime | None = None
-    ) -> list[dict[str, Any]]:
+    ) -> list[StateChange]:
         """Return state history for a single entity, optionally filtered by time."""
         data = await self._get_loaded_data()
         entries = data["state_history"].get(entity_id, [])
@@ -162,9 +175,7 @@ class PatternStore:
         cutoff = since.isoformat()
         return [e for e in entries if e["ts"] >= cutoff]
 
-    async def get_all_history(
-        self, since: datetime | None = None
-    ) -> dict[str, list[dict[str, Any]]]:
+    async def get_all_history(self, since: datetime | None = None) -> dict[str, list[StateChange]]:
         """Return state history for all entities."""
         data = await self._get_loaded_data()
         history = data["state_history"]
@@ -204,14 +215,9 @@ class PatternStore:
             )
         return removed
 
-    async def get_history_summary(self) -> list[dict[str, Any]]:
-        """Aggregated state history stats per entity for automations tab.
-
-        Returns a list of per-entity summaries with change count,
-        distinct days active, most common states, and date range.
-        """
+    async def get_history_summary(self) -> list[HistorySummary]:
         data = await self._get_loaded_data()
-        summaries: list[dict[str, Any]] = []
+        summaries: list[HistorySummary] = []
 
         for entity_id, changes in data["state_history"].items():
             if not changes:
@@ -230,6 +236,7 @@ class PatternStore:
             top_states = sorted(state_counts.items(), key=lambda x: x[1], reverse=True)[:5]
 
             timestamps = [c["ts"] for c in changes if c.get("ts")]
+            top_state_list: list[TopState] = [{"state": s, "count": c} for s, c in top_states]
             summaries.append(
                 {
                     "entity_id": entity_id,
@@ -237,7 +244,7 @@ class PatternStore:
                     "active_days": len(dates),
                     "first_seen": min(timestamps) if timestamps else None,
                     "last_seen": max(timestamps) if timestamps else None,
-                    "top_states": [{"state": s, "count": c} for s, c in top_states],
+                    "top_states": top_state_list,
                 }
             )
 
@@ -245,13 +252,12 @@ class PatternStore:
         return summaries
 
     async def get_pattern_detail(self, pattern_id: str) -> dict[str, Any] | None:
-        """Return a single pattern with entity history context for detail view."""
         data = await self._get_loaded_data()
         pattern = data["patterns"].get(pattern_id)
         if not pattern:
             return None
 
-        entity_history: dict[str, list[dict[str, Any]]] = {}
+        entity_history: dict[str, list[StateChange]] = {}
         for eid in pattern.get("entity_ids", []):
             history = data["state_history"].get(eid, [])
             entity_history[eid] = history[-20:]
@@ -308,7 +314,7 @@ class PatternStore:
         count = 0
         history = data["state_history"]
         for entity_id, entity_states in states.items():
-            entries: list[dict[str, Any]] = []
+            entries: list[StateChange] = []
             prev_state = ""
             for state in entity_states:
                 if state.state == prev_state:
@@ -333,8 +339,7 @@ class PatternStore:
 
     # ── Patterns ─────────────────────────────────────────────────────────
 
-    async def save_pattern(self, pattern: dict[str, Any]) -> str:
-        """Save or update a detected pattern. Returns the pattern_id."""
+    async def save_pattern(self, pattern: PatternDict) -> str:
         data = await self._get_loaded_data()
         now = datetime.now(UTC).isoformat()
 
@@ -371,11 +376,10 @@ class PatternStore:
         self,
         status: str | None = None,
         pattern_type: str | None = None,
-    ) -> list[dict[str, Any]]:
-        """Return patterns, optionally filtered by status and/or type."""
+    ) -> list[PatternDict]:
         data = await self._get_loaded_data()
         now = datetime.now(UTC).isoformat()
-        results: list[dict[str, Any]] = []
+        results: list[PatternDict] = []
         did_unsnooze = False
 
         for p in data["patterns"].values():
@@ -419,8 +423,7 @@ class PatternStore:
         pattern_type: str,
         entity_ids: list[str],
         evidence_key: str,
-    ) -> dict[str, Any] | None:
-        """Find an existing pattern by type + entities + evidence key for dedup."""
+    ) -> PatternDict | None:
         data = await self._get_loaded_data()
         entity_set = set(entity_ids)
         for p in data["patterns"].values():
@@ -435,8 +438,7 @@ class PatternStore:
 
     # ── Suggestions ──────────────────────────────────────────────────────
 
-    async def save_suggestion(self, suggestion: dict[str, Any]) -> str:
-        """Save a proactive suggestion. Returns the suggestion_id."""
+    async def save_suggestion(self, suggestion: SuggestionDict) -> str:
         data = await self._get_loaded_data()
         suggestion_id = suggestion.get("suggestion_id") or str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
@@ -460,11 +462,10 @@ class PatternStore:
         await self._save()
         return suggestion_id
 
-    async def get_suggestions(self, status: str | None = None) -> list[dict[str, Any]]:
-        """Return proactive suggestions, optionally filtered by status."""
+    async def get_suggestions(self, status: str | None = None) -> list[SuggestionDict]:
         data = await self._get_loaded_data()
         now = datetime.now(UTC).isoformat()
-        results: list[dict[str, Any]] = []
+        results: list[SuggestionDict] = []
         did_unsnooze = False
 
         for s in data["suggestions"].values():
@@ -526,7 +527,7 @@ class PatternStore:
 
     async def get_recently_dismissed_suggestions(
         self, window_days: int = DISMISSAL_SUPPRESSION_WINDOW_DAYS
-    ) -> list[dict[str, Any]]:
+    ) -> list[SuggestionDict]:
         """Return suggestions dismissed within the suppression window.
 
         Used by SuggestionGenerator to avoid re-surfacing recently rejected
@@ -543,8 +544,7 @@ class PatternStore:
             and s["dismissed_at"] >= cutoff
         ]
 
-    async def get_suggestion(self, suggestion_id: str) -> dict[str, Any] | None:
-        """Return a single suggestion by ID."""
+    async def get_suggestion(self, suggestion_id: str) -> SuggestionDict | None:
         data = await self._get_loaded_data()
         return data["suggestions"].get(suggestion_id)
 
@@ -573,12 +573,7 @@ class PatternStore:
         data = await self._get_loaded_data()
         return set(data["deleted_hashes"].keys())
 
-    async def get_feedback_summary(self, *, limit: int = 8) -> dict[str, list[dict[str, str]]]:
-        """Return lightweight summaries of user accept/decline decisions (#80).
-
-        Only extracts the fields the LLM prompt needs, capped at *limit*
-        per category (most-recent first) to bound both memory and token cost.
-        """
+    async def get_feedback_summary(self, *, limit: int = 8) -> FeedbackSummary:
         _FIELDS_ACCEPTED = ("description", "created_at")
         _FIELDS_DECLINED = ("description", "created_at", "dismissed_at", "dismissal_reason")
 

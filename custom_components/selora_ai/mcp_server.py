@@ -46,7 +46,7 @@ from http import HTTPStatus
 import json
 import logging
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from aiohttp import web
@@ -62,6 +62,19 @@ from .const import (
     SELORA_JWT_ISSUER,
 )
 from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
+
+if TYPE_CHECKING:
+    from . import ConversationStore
+    from .automation_store import AutomationStore
+    from .collector import DataCollector
+    from .llm_client import LLMClient
+    from .types import (
+        ArchitectResponse,
+        AutomationDict,
+        AutomationMetadata,
+        AutomationRecord,
+        RiskAssessment,
+    )
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -607,6 +620,7 @@ async def _dispatch(
     auth_ctx: SeloraAuthContext,
 ) -> list[MCPTextContent]:
     """Route a tool call to its handler and return MCP TextContent."""
+    result: dict[str, Any] | list[dict[str, Any]]
     try:
         _check_tool_access(auth_ctx, name)
 
@@ -671,7 +685,7 @@ def _sanitize(value: Any, limit: int = 200) -> str:
     return text
 
 
-def _get_automation_store(hass: HomeAssistant):
+def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     """Return (or lazily create) the AutomationStore singleton."""
     from .automation_store import AutomationStore
 
@@ -681,7 +695,7 @@ def _get_automation_store(hass: HomeAssistant):
     return domain_data["_automation_store"]
 
 
-def _get_conv_store(hass: HomeAssistant):
+def _get_conv_store(hass: HomeAssistant) -> ConversationStore:
     """Return (or lazily create) the ConversationStore singleton."""
     from . import ConversationStore
 
@@ -689,7 +703,7 @@ def _get_conv_store(hass: HomeAssistant):
     return domain_data.setdefault("_conv_store", ConversationStore(hass))
 
 
-def _get_llm(hass: HomeAssistant):
+def _get_llm(hass: HomeAssistant) -> LLMClient | None:
     """Return the LLMClient from the first active LLM config entry, or None."""
     domain_data = hass.data.get(DOMAIN, {})
     for entry in hass.config_entries.async_loaded_entries(DOMAIN):
@@ -743,8 +757,8 @@ async def _tool_list_automations(
     from .automation_utils import assess_automation_risk
 
     status_filter: str | None = arguments.get("status")
-    yaml_automations = await _read_yaml_automations(hass)
-    store = _get_automation_store(hass)
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    store: AutomationStore = _get_automation_store(hass)
 
     # Build a live state lookup (enabled/disabled) from HA state machine
     live_states: dict[str, str] = {}
@@ -761,8 +775,8 @@ async def _tool_list_automations(
         automation_id = str(auto.get("id", ""))
         alias = _sanitize(auto.get("alias", ""))
 
-        meta = await store.get_metadata(automation_id)
-        record = await store.get_record(automation_id)
+        meta: AutomationMetadata | None = await store.get_metadata(automation_id)
+        record: AutomationRecord | None = await store.get_record(automation_id)
 
         # Determine display status
         if _is_pending_automation(auto, record):
@@ -775,7 +789,7 @@ async def _tool_list_automations(
         if status_filter and status != status_filter:
             continue
 
-        risk = assess_automation_risk(auto)
+        risk: RiskAssessment = assess_automation_risk(auto)
 
         result.append(
             {
@@ -800,17 +814,19 @@ async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -
 
     from .automation_utils import assess_automation_risk
 
-    automation_id = str(arguments.get("automation_id", ""))
+    automation_id: str = str(arguments.get("automation_id", ""))
     if not automation_id:
         return {"error": "automation_id is required"}
 
-    yaml_automations = await _read_yaml_automations(hass)
-    auto = next((a for a in yaml_automations if str(a.get("id")) == automation_id), None)
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    auto: dict[str, Any] | None = next(
+        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
+    )
     if auto is None:
         return {"error": f"Automation {automation_id} not found"}
 
-    store = _get_automation_store(hass)
-    record = await store.get_record(automation_id)
+    store: AutomationStore = _get_automation_store(hass)
+    record: AutomationRecord | None = await store.get_record(automation_id)
     versions: list[dict[str, Any]] = []
     lineage: list[dict[str, Any]] = []
     if record:
@@ -833,8 +849,8 @@ async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -
             for le in record.get("lineage", [])
         ]
 
-    yaml_text = _yaml.dump(auto, allow_unicode=True, default_flow_style=False)
-    risk = assess_automation_risk(auto)
+    yaml_text: str = _yaml.dump(auto, allow_unicode=True, default_flow_style=False)
+    risk: RiskAssessment = assess_automation_risk(auto)
 
     return {
         "automation_id": automation_id,
@@ -861,7 +877,7 @@ async def _tool_validate_automation(
 
     from .automation_utils import assess_automation_risk, validate_automation_payload
 
-    yaml_text = str(arguments.get("yaml", ""))
+    yaml_text: str = str(arguments.get("yaml", ""))
     if not yaml_text.strip():
         return {
             "valid": False,
@@ -872,7 +888,7 @@ async def _tool_validate_automation(
 
     # Parse
     try:
-        parsed = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
+        parsed: Any = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
     except _yaml.YAMLError as exc:
         return {
             "valid": False,
@@ -890,6 +906,9 @@ async def _tool_validate_automation(
         }
 
     # Validate
+    is_valid: bool
+    reason: str
+    normalized: AutomationDict | None
     is_valid, reason, normalized = validate_automation_payload(parsed, hass)
     if not is_valid or normalized is None:
         return {
@@ -899,8 +918,8 @@ async def _tool_validate_automation(
             "risk_assessment": None,
         }
 
-    normalized_yaml = _yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
-    risk = assess_automation_risk(normalized)
+    normalized_yaml: str = _yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
+    risk: RiskAssessment = assess_automation_risk(normalized)
 
     return {
         "valid": True,
@@ -927,7 +946,7 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
         validate_automation_payload,
     )
 
-    yaml_text = str(arguments.get("yaml", ""))
+    yaml_text: str = str(arguments.get("yaml", ""))
     enabled: bool = bool(arguments.get("enabled", False))
     version_message: str = _sanitize(arguments.get("version_message", "Created via MCP"))
 
@@ -935,34 +954,37 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
         return {"error": "yaml field is required"}
 
     try:
-        parsed = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
+        parsed: Any = await hass.async_add_executor_job(lambda: _yaml.safe_load(yaml_text))
     except _yaml.YAMLError as exc:
         return {"error": f"YAML parse error: {exc}"}
 
     if not isinstance(parsed, dict):
         return {"error": "YAML must be a mapping"}
 
+    is_valid: bool
+    reason: str
+    normalized: AutomationDict | None
     is_valid, reason, normalized = validate_automation_payload(parsed, hass)
     if not is_valid or normalized is None:
         return {"error": f"Invalid automation: {reason}"}
 
-    risk = assess_automation_risk(normalized)
+    risk: RiskAssessment = assess_automation_risk(normalized)
 
     # Enforce disabled-by-default
     normalized["initial_state"] = enabled
 
-    success = await async_create_automation(hass, normalized, version_message=version_message)
+    success: bool = await async_create_automation(hass, normalized, version_message=version_message)
     if not success:
         return {"error": "Failed to write automation to automations.yaml"}
 
     # Retrieve the automation_id that was assigned during creation
-    yaml_automations = await _read_yaml_automations(hass)
-    alias = normalized.get("alias", "")
-    created = next(
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    alias: str = normalized.get("alias", "")
+    created: dict[str, Any] | None = next(
         (a for a in yaml_automations if a.get("alias") == alias and _is_selora(a)),
         None,
     )
-    automation_id = str(created.get("id", "")) if created else ""
+    automation_id: str = str(created.get("id", "")) if created else ""
 
     return {
         "automation_id": automation_id,
@@ -978,21 +1000,23 @@ async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]
     """Enable/commit a pending Selora automation."""
     from .automation_utils import async_update_automation
 
-    automation_id = str(arguments.get("automation_id", ""))
+    automation_id: str = str(arguments.get("automation_id", ""))
     enabled: bool = bool(arguments.get("enabled", False))
 
     if not automation_id:
         return {"error": "automation_id is required"}
 
-    yaml_automations = await _read_yaml_automations(hass)
-    auto = next((a for a in yaml_automations if str(a.get("id")) == automation_id), None)
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    auto: dict[str, Any] | None = next(
+        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
+    )
     if auto is None or not _is_selora(auto):
         return {"error": f"Selora automation {automation_id} not found"}
 
-    updated = dict(auto)
+    updated: dict[str, Any] = dict(auto)
     updated["initial_state"] = enabled
 
-    success = await async_update_automation(
+    success: bool = await async_update_automation(
         hass,
         automation_id,
         updated,
@@ -1011,16 +1035,18 @@ async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]
     """Delete a Selora-managed automation."""
     from .automation_utils import async_delete_automation
 
-    automation_id = str(arguments.get("automation_id", ""))
+    automation_id: str = str(arguments.get("automation_id", ""))
     if not automation_id:
         return {"error": "automation_id is required"}
 
-    yaml_automations = await _read_yaml_automations(hass)
-    auto = next((a for a in yaml_automations if str(a.get("id")) == automation_id), None)
+    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    auto: dict[str, Any] | None = next(
+        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
+    )
     if auto is None or not _is_selora(auto):
         return {"error": f"Selora automation {automation_id} not found"}
 
-    success = await async_delete_automation(hass, automation_id)
+    success: bool = await async_delete_automation(hass, automation_id)
     if not success:
         return {"error": "Failed to delete automation"}
 
@@ -1065,7 +1091,7 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
     areas: dict[str, list[dict[str, Any]]] = {name: [] for name in area_names.values()}
     unassigned: list[dict[str, Any]] = []
 
-    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
+    _ALLOWED_DOMAINS: set[str] = COLLECTOR_DOMAINS | {"automation"}
 
     for state in hass.states.async_all():
         domain = state.entity_id.split(".")[0]
@@ -1110,8 +1136,8 @@ async def _tool_list_devices(hass: HomeAssistant, arguments: dict[str, Any]) -> 
     ent_reg = er.async_get(hass)
     area_reg = ar.async_get(hass)
 
-    area_filter = (arguments.get("area") or "").strip().lower()
-    domain_filter = (arguments.get("domain") or "").strip().lower()
+    area_filter: str = (arguments.get("area") or "").strip().lower()
+    domain_filter: str = (arguments.get("domain") or "").strip().lower()
 
     # Build area_id → area_name map
     area_names: dict[str, str] = {area.id: area.name for area in area_reg.async_list_areas()}
@@ -1277,24 +1303,26 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     LLM advances the automation artifact using home-grounded generation.
     """
 
-    message = str(arguments.get("message", "")).strip()
+    message: str = str(arguments.get("message", "")).strip()
     if not message:
         return {"error": "message is required"}
 
     session_id: str | None = arguments.get("session_id")
     refine_automation_id: str | None = arguments.get("refine_automation_id")
 
-    llm = _get_llm(hass)
+    llm: LLMClient | None = _get_llm(hass)
     if llm is None:
         return {"error": "Selora AI LLM is not configured"}
 
-    conv_store = _get_conv_store(hass)
+    conv_store: ConversationStore = _get_conv_store(hass)
 
     # Get or create session
+    session: dict[str, Any]
     if session_id:
-        session = await conv_store.get_session(session_id)
-        if session is None:
+        session_or_none: dict[str, Any] | None = await conv_store.get_session(session_id)
+        if session_or_none is None:
             return {"error": f"Session {session_id} not found"}
+        session = session_or_none
     else:
         session = await conv_store.create_session()
         session_id = session["id"]
@@ -1313,23 +1341,23 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         history.append({"role": role, "content": content})
 
     # Collect existing automation aliases for dedup
-    existing_aliases = [
+    existing_aliases: list[str] = [
         str(s.attributes.get("friendly_name", "")) for s in hass.states.async_all("automation")
     ]
 
     # Call Selora's LLM
-    result = await llm.architect_chat(
+    llm_result: ArchitectResponse = await llm.architect_chat(
         message=message,
         history=history,
         existing_automations=existing_aliases,
         refining_automation_id=refine_automation_id,
     )
 
-    intent = result.get("intent", "answer")
-    response_text = _sanitize(result.get("response", ""), limit=2000)
-    automation = result.get("automation")
-    automation_yaml = result.get("automation_yaml")
-    risk_assessment = result.get("risk_assessment")
+    intent: str = llm_result.get("intent", "answer")
+    response_text: str = _sanitize(llm_result.get("response", ""), limit=2000)
+    automation: AutomationDict | None = llm_result.get("automation")
+    automation_yaml: str | None = llm_result.get("automation_yaml")
+    risk_assessment: RiskAssessment | None = llm_result.get("risk_assessment")
 
     # Persist messages
     await conv_store.append_message(session_id, "user", message)
@@ -1381,8 +1409,8 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
 
 async def _tool_list_sessions(hass: HomeAssistant) -> list[dict[str, Any]]:
     """Return recent conversation sessions (title + id, no messages)."""
-    conv_store = _get_conv_store(hass)
-    sessions = await conv_store.list_sessions()
+    conv_store: ConversationStore = _get_conv_store(hass)
+    sessions: list[dict[str, Any]] = await conv_store.list_sessions()
     return [
         {
             "session_id": s["id"],
@@ -1394,7 +1422,7 @@ async def _tool_list_sessions(hass: HomeAssistant) -> list[dict[str, Any]]:
     ]
 
 
-def _find_collector(hass: HomeAssistant):
+def _find_collector(hass: HomeAssistant) -> DataCollector | None:
     domain_data = hass.data.get(DOMAIN, {})
     for key, value in domain_data.items():
         if key.startswith("_"):
@@ -1433,9 +1461,9 @@ def _collect_entity_ids(value: Any) -> list[str]:
 
 
 def _suggestion_identity(raw: dict[str, Any], index: int) -> tuple[str, str]:
-    automation_yaml = str(raw.get("automation_yaml", ""))
-    alias = str(raw.get("alias", ""))
-    digest_source = automation_yaml or json.dumps(
+    automation_yaml: str = str(raw.get("automation_yaml", ""))
+    alias: str = str(raw.get("alias", ""))
+    digest_source: str = automation_yaml or json.dumps(
         {
             "alias": alias,
             "trigger": raw.get("trigger"),
@@ -1447,34 +1475,37 @@ def _suggestion_identity(raw: dict[str, Any], index: int) -> tuple[str, str]:
         sort_keys=True,
         default=str,
     )
-    digest = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
+    digest: str = hashlib.sha256(digest_source.encode("utf-8")).hexdigest()[:16]
     return f"sugg_{digest}", f"pattern_{digest}"
 
 
 def _normalize_suggestion(
     raw: dict[str, Any], *, index: int, status_store: dict[str, dict[str, Any]]
 ) -> dict[str, Any]:
+    suggestion_id: str
+    fallback_pattern_id: str
     suggestion_id, fallback_pattern_id = _suggestion_identity(raw, index)
-    persisted = status_store.get(suggestion_id, {})
-    status = persisted.get("status", "pending")
-    created_at = (
+    persisted: dict[str, Any] = status_store.get(suggestion_id, {})
+    status: str = persisted.get("status", "pending")
+    created_at: str = (
         persisted.get("created_at") or raw.get("created_at") or datetime.now(UTC).isoformat()
     )
-    automation_yaml = str(raw.get("automation_yaml", ""))
-    description = _sanitize(raw.get("description", raw.get("alias", "")), limit=400)
-    confidence_raw = raw.get("confidence", 0.7)
+    automation_yaml: str = str(raw.get("automation_yaml", ""))
+    description: str = _sanitize(raw.get("description", raw.get("alias", "")), limit=400)
+    confidence_raw: Any = raw.get("confidence", 0.7)
     try:
-        confidence = max(0.0, min(1.0, float(confidence_raw)))
+        confidence: float = max(0.0, min(1.0, float(confidence_raw)))
     except (TypeError, ValueError):
         confidence = 0.7
 
-    entity_ids = _collect_entity_ids(raw.get("automation_data") or raw)
-    evidence_summary = _sanitize(
+    entity_ids: list[str] = _collect_entity_ids(raw.get("automation_data") or raw)
+    evidence_summary: str = _sanitize(
         raw.get("evidence_summary") or raw.get("evidence") or description,
         limit=500,
     )
 
-    risk_assessment = raw.get("risk_assessment")
+    risk_assessment: dict[str, Any] | None = raw.get("risk_assessment")
+    risk: RiskAssessment
     if isinstance(risk_assessment, dict):
         risk = _sanitize_risk(risk_assessment)
     else:
@@ -1486,7 +1517,7 @@ def _normalize_suggestion(
             "summary": "No risk assessment available.",
         }
 
-    suggestion = {
+    suggestion: dict[str, Any] = {
         "suggestion_id": suggestion_id,
         "pattern_id": str(raw.get("pattern_id") or fallback_pattern_id),
         "description": description,
@@ -1509,8 +1540,8 @@ def _normalize_suggestion(
 
 
 async def _phase2_suggestions(hass: HomeAssistant) -> list[dict[str, Any]]:
-    raw_items = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
-    status_store = _get_suggestion_status_store(hass)
+    raw_items: list[Any] = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+    status_store: dict[str, dict[str, Any]] = _get_suggestion_status_store(hass)
     results: list[dict[str, Any]] = []
     for index, raw in enumerate(raw_items):
         if not isinstance(raw, dict):
@@ -1522,8 +1553,8 @@ async def _phase2_suggestions(hass: HomeAssistant) -> list[dict[str, Any]]:
 async def _tool_list_suggestions(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> list[dict[str, Any]]:
-    status_filter = str(arguments.get("status", "")).strip()
-    suggestions = await _phase2_suggestions(hass)
+    status_filter: str = str(arguments.get("status", "")).strip()
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
     if status_filter:
         suggestions = [s for s in suggestions if s.get("status") == status_filter]
     return [
@@ -1545,9 +1576,9 @@ async def _tool_list_suggestions(
 async def _tool_list_patterns(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> list[dict[str, Any]]:
-    type_filter = str(arguments.get("type", "")).strip()
-    status_filter = str(arguments.get("status", "")).strip()
-    min_confidence_raw = arguments.get("min_confidence")
+    type_filter: str = str(arguments.get("type", "")).strip()
+    status_filter: str = str(arguments.get("status", "")).strip()
+    min_confidence_raw: Any = arguments.get("min_confidence")
     min_confidence: float | None = None
     if min_confidence_raw is not None:
         try:
@@ -1555,9 +1586,9 @@ async def _tool_list_patterns(
         except (TypeError, ValueError):
             min_confidence = None
 
-    suggestions = await _phase2_suggestions(hass)
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
     patterns: dict[str, dict[str, Any]] = {}
-    status_rank = {
+    status_rank: dict[str, int] = {
         "pending": 4,
         "active": 4,
         "accepted": 3,
@@ -1603,7 +1634,7 @@ async def _tool_list_patterns(
         if candidate_rank > current_rank:
             current["status"] = suggestion_status
 
-    result = list(patterns.values())
+    result: list[dict[str, Any]] = list(patterns.values())
 
     if type_filter:
         result = [p for p in result if p.get("type") == type_filter]
@@ -1616,17 +1647,19 @@ async def _tool_list_patterns(
 
 
 async def _tool_get_pattern(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    pattern_id = str(arguments.get("pattern_id", "")).strip()
+    pattern_id: str = str(arguments.get("pattern_id", "")).strip()
     if not pattern_id:
         return {"error": "pattern_id is required"}
 
-    patterns = await _tool_list_patterns(hass, {})
-    pattern = next((p for p in patterns if p.get("pattern_id") == pattern_id), None)
+    patterns: list[dict[str, Any]] = await _tool_list_patterns(hass, {})
+    pattern: dict[str, Any] | None = next(
+        (p for p in patterns if p.get("pattern_id") == pattern_id), None
+    )
     if pattern is None:
         return {"error": f"Pattern {pattern_id} not found"}
 
-    suggestions = await _phase2_suggestions(hass)
-    linked = [
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
+    linked: list[dict[str, Any]] = [
         {
             "suggestion_id": s["suggestion_id"],
             "description": s["description"],
@@ -1645,20 +1678,22 @@ async def _tool_get_pattern(hass: HomeAssistant, arguments: dict[str, Any]) -> d
 
 
 async def _tool_accept_suggestion(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    suggestion_id = str(arguments.get("suggestion_id", "")).strip()
-    enabled = bool(arguments.get("enabled", False))
+    suggestion_id: str = str(arguments.get("suggestion_id", "")).strip()
+    enabled: bool = bool(arguments.get("enabled", False))
     if not suggestion_id:
         return {"error": "suggestion_id is required"}
 
-    suggestions = await _phase2_suggestions(hass)
-    target = next((s for s in suggestions if s.get("suggestion_id") == suggestion_id), None)
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
+    target: dict[str, Any] | None = next(
+        (s for s in suggestions if s.get("suggestion_id") == suggestion_id), None
+    )
     if target is None:
         return {"error": f"Suggestion {suggestion_id} not found"}
 
     if not target.get("automation_yaml"):
         return {"error": "Suggestion does not include automation_yaml"}
 
-    created = await _tool_create_automation(
+    created: dict[str, Any] = await _tool_create_automation(
         hass,
         {
             "yaml": target["automation_yaml"],
@@ -1687,21 +1722,23 @@ async def _tool_accept_suggestion(hass: HomeAssistant, arguments: dict[str, Any]
 async def _tool_dismiss_suggestion(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> dict[str, Any]:
-    suggestion_id = str(arguments.get("suggestion_id", "")).strip()
-    reason = _sanitize(arguments.get("reason", ""), limit=300)
+    suggestion_id: str = str(arguments.get("suggestion_id", "")).strip()
+    reason: str = _sanitize(arguments.get("reason", ""), limit=300)
     if not suggestion_id:
         return {"error": "suggestion_id is required"}
 
-    suggestions = await _phase2_suggestions(hass)
-    target = next((s for s in suggestions if s.get("suggestion_id") == suggestion_id), None)
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
+    target: dict[str, Any] | None = next(
+        (s for s in suggestions if s.get("suggestion_id") == suggestion_id), None
+    )
     if target is None:
         return {"error": f"Suggestion {suggestion_id} not found"}
 
-    now_iso = datetime.now(UTC).isoformat()
-    dismissal_reason = reason if reason else "user-declined"
+    now_iso: str = datetime.now(UTC).isoformat()
+    dismissal_reason: str = reason if reason else "user-declined"
 
     # Update in-memory status overlay (used by phase-2 suggestion rendering)
-    status_store = _get_suggestion_status_store(hass)
+    status_store: dict[str, dict[str, Any]] = _get_suggestion_status_store(hass)
     status_store[suggestion_id] = {
         "status": "dismissed",
         "reason": dismissal_reason,
@@ -1732,16 +1769,16 @@ async def _tool_dismiss_suggestion(
 
 
 async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    now = datetime.now(UTC)
-    last_scan_iso = domain_data.get("_mcp_last_scan_at")
+    domain_data: dict[str, Any] = hass.data.setdefault(DOMAIN, {})
+    now: datetime = datetime.now(UTC)
+    last_scan_iso: str | None = domain_data.get("_mcp_last_scan_at")
 
     if isinstance(last_scan_iso, str):
         try:
-            last_scan = datetime.fromisoformat(last_scan_iso)
-            delta = (now - last_scan).total_seconds()
+            last_scan: datetime = datetime.fromisoformat(last_scan_iso)
+            delta: float = (now - last_scan).total_seconds()
             if delta < 60:
-                suggestions = await _phase2_suggestions(hass)
+                suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
                 return {
                     "patterns_detected": len({s["pattern_id"] for s in suggestions}),
                     "suggestions_generated": len(suggestions),
@@ -1751,16 +1788,16 @@ async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
         except ValueError:
             pass
 
-    collector = _find_collector(hass)
+    collector: DataCollector | None = _find_collector(hass)
     if collector is None:
         return {"error": "No collector available — check LLM configuration"}
 
-    started = datetime.now(UTC)
+    started: datetime = datetime.now(UTC)
     await collector._collect_analyze_log()
-    finished = datetime.now(UTC)
+    finished: datetime = datetime.now(UTC)
 
     domain_data["_mcp_last_scan_at"] = finished.isoformat()
-    suggestions = await _phase2_suggestions(hass)
+    suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
 
     return {
         "patterns_detected": len({s["pattern_id"] for s in suggestions}),
@@ -1773,7 +1810,7 @@ async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
 # ── Risk assessment sanitizer ─────────────────────────────────────────────────
 
 
-def _sanitize_risk(risk: dict[str, Any]) -> dict[str, Any]:
+def _sanitize_risk(risk: RiskAssessment | dict[str, Any]) -> RiskAssessment:
     """Return a copy of a risk_assessment dict with all strings sanitized."""
     return {
         "level": risk.get("level", "normal"),

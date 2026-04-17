@@ -18,7 +18,7 @@ from math import ceil
 from pathlib import Path
 import re
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.core import HomeAssistant
@@ -70,6 +70,12 @@ from .const import (
 )
 from .llm_client import LLMClient
 
+if TYPE_CHECKING:
+    from collections.abc import Callable
+
+    from .pattern_store import PatternStore
+    from .types import AutomationDict, HomeSnapshot
+
 _LOGGER = logging.getLogger(__name__)
 _STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
 
@@ -84,15 +90,15 @@ class DataCollector:
         lookback_days: int = DEFAULT_RECORDER_LOOKBACK_DAYS,
         settings: dict[str, Any] | None = None,
     ) -> None:
-        self._hass = hass
-        self._llm = llm
-        self._lookback_days = lookback_days
-        self._settings = settings or {}
-        self._unsub_timer = None
+        self._hass: HomeAssistant = hass
+        self._llm: LLMClient = llm
+        self._lookback_days: int = lookback_days
+        self._settings: dict[str, Any] = settings or {}
+        self._unsub_timer: Callable[[], None] | None = None
         self._feedback_cache: str | None = None
         self._feedback_cache_time: float = 0.0
 
-    def _get_pattern_store(self):
+    def _get_pattern_store(self) -> PatternStore | None:
         """Find the PatternStore from any active config entry."""
         domain_data = self._hass.data.get(DOMAIN, {})
         for key, val in domain_data.items():
@@ -310,7 +316,7 @@ class DataCollector:
             )
 
         # Step 1: Build the home data snapshot
-        snapshot = {
+        snapshot: HomeSnapshot = {  # type: ignore[typeddict-unknown-key]
             "devices": self._collect_devices(),
             "entity_states": self._collect_entity_states(),
             "automations": self._collect_automations(),
@@ -588,7 +594,7 @@ class DataCollector:
         else:
             _LOGGER.info("No new automation suggestions from LLM")
 
-    async def _create_automations(self, suggestions: list[dict[str, Any]]) -> list[dict[str, str]]:
+    async def _create_automations(self, suggestions: list[AutomationDict]) -> list[dict[str, str]]:
         """Write valid suggestions to automations.yaml and reload HA automations.
 
         Automations are created **disabled** so the user can review first.
@@ -724,7 +730,7 @@ class DataCollector:
         )
 
     @staticmethod
-    def _humanize_trigger(t: Any) -> str:
+    def _humanize_trigger(t: dict[str, Any] | Any) -> str:
         """Convert a trigger dict to a readable string."""
         if not isinstance(t, dict):
             return str(t)
@@ -762,7 +768,7 @@ class DataCollector:
         return f"{platform}: {t.get('entity_id', '')}" if platform else str(t)
 
     @staticmethod
-    def _humanize_action(a: Any) -> str:
+    def _humanize_action(a: dict[str, Any] | Any) -> str:
         """Convert an action dict to a readable string."""
         if not isinstance(a, dict):
             return str(a)
@@ -989,7 +995,7 @@ class DataCollector:
                 )
 
     @staticmethod
-    def _extract_entity_ids(config: Any) -> set[str]:
+    def _extract_entity_ids(config: dict[str, Any] | list[Any] | Any) -> set[str]:
         """Recursively extract entity_id values from any nested config structure."""
         entity_ids: set[str] = set()
         if config is None:
@@ -1011,7 +1017,7 @@ class DataCollector:
     def _score_suggestion(
         self,
         suggestion: dict[str, Any],
-        snapshot: dict[str, Any],
+        snapshot: HomeSnapshot,
         existing_entity_ids: set[str],
         entity_change_counts: dict[str, int] | None = None,
     ) -> float:

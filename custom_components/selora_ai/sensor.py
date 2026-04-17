@@ -12,6 +12,7 @@ Update mechanism: 60s poll + immediate dispatcher signal updates.
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Callable
 from datetime import datetime, timedelta
 import logging
 from typing import Any
@@ -130,11 +131,11 @@ class SmartButlerStatusSensor(SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self._entry = entry
-        self._unsub_timer = None
-        self._unsub_signal = None
-        self._device_count = 0
-        self._pending_automations = 0
-        self._devices_by_category: dict[str, list[dict[str, str]]] = {}
+        self._unsub_timer: Callable[[], None] | None = None
+        self._unsub_signal: Callable[[], None] | None = None
+        self._device_count: int = 0
+        self._pending_automations: int = 0
+        self._devices_by_category: dict[str, list[dict[str, Any]]] = {}
         self._attr_device_info = _hub_device_info()
 
     @property
@@ -174,7 +175,7 @@ class SmartButlerStatusSensor(SensorEntity):
         self._refresh()
 
         @callback
-        def _tick(_now) -> None:
+        def _tick(_now: datetime) -> None:
             self._refresh()
             self.async_write_ha_state()
 
@@ -249,7 +250,7 @@ def _build_device_categories(hass: HomeAssistant) -> dict[str, list[dict[str, An
     return categories
 
 
-def _summarise_categories(cats: dict[str, list]) -> str:
+def _summarise_categories(cats: dict[str, list[dict[str, Any]]]) -> str:
     """Build a human-readable summary like '3 TVs, 1 speaker, 1 light'."""
     if not cats:
         return "No devices"
@@ -272,9 +273,9 @@ class DeviceListSensor(SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self._entry = entry
-        self._unsub_timer = None
-        self._unsub_signal = None
-        self._categories: dict[str, list[dict[str, str]]] = {}
+        self._unsub_timer: Callable[[], None] | None = None
+        self._unsub_signal: Callable[[], None] | None = None
+        self._categories: dict[str, list[dict[str, Any]]] = {}
         self._attr_device_info = _hub_device_info()
 
     @property
@@ -292,7 +293,7 @@ class DeviceListSensor(SensorEntity):
         self._refresh()
 
         @callback
-        def _tick(_now) -> None:
+        def _tick(_now: datetime) -> None:
             self._refresh()
             self.async_write_ha_state()
 
@@ -326,7 +327,7 @@ class LastActivitySensor(SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self._entry = entry
-        self._unsub_signal = None
+        self._unsub_signal: Callable[[], None] | None = None
         self._log: deque[dict[str, str]] = deque(maxlen=20)
         self._attr_device_info = _hub_device_info()
 
@@ -377,10 +378,10 @@ class DiscoverySensor(SensorEntity):
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
         self._entry = entry
-        self._unsub_timer = None
-        self._unsub_signal = None
-        self._pending_count = 0
-        self._configured_count = 0
+        self._unsub_timer: Callable[[], None] | None = None
+        self._unsub_signal: Callable[[], None] | None = None
+        self._pending_count: int = 0
+        self._configured_count: int = 0
         self._pending_flows: list[dict[str, str]] = []
         self._last_scan: str | None = None
         self._attr_device_info = _hub_device_info()
@@ -432,7 +433,7 @@ class DiscoverySensor(SensorEntity):
         self._refresh()
 
         @callback
-        def _tick(_now) -> None:
+        def _tick(_now: datetime) -> None:
             self._refresh()
             self.async_write_ha_state()
 
