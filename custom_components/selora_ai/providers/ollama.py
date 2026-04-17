@@ -33,6 +33,10 @@ class OllamaProvider(OpenAICompatibleProvider):
         )
 
     @property
+    def provider_type(self) -> str:
+        return "ollama"
+
+    @property
     def provider_name(self) -> str:
         return f"Ollama ({self._model})"
 

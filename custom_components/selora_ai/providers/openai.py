@@ -30,5 +30,9 @@ class OpenAIProvider(OpenAICompatibleProvider):
         )
 
     @property
+    def provider_type(self) -> str:
+        return "openai"
+
+    @property
     def provider_name(self) -> str:
         return f"OpenAI ({self._model})"

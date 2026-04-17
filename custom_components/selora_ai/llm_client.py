@@ -28,6 +28,10 @@ from .const import (
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
+    LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_GEMINI,
+    LLM_PROVIDER_OLLAMA,
+    LLM_PROVIDER_OPENAI,
     MAX_TOOL_CALL_ROUNDS,
 )
 from .providers.base import LLMProvider
@@ -43,6 +47,28 @@ _LOGGER = logging.getLogger(__name__)
 _MAX_COMMAND_CALLS = 5
 _MAX_TARGET_ENTITIES = 3
 _UNTRUSTED_TEXT_LIMIT = 160
+
+# ── Conversation history budget ────────────────────────────────────────
+# Maximum turns to keep in the LLM message list. Must be large enough
+# to retain multi-turn context but bounded so we don't blow the model's
+# context window.  A per-provider *token* budget is enforced separately
+# (see _trim_history_to_budget) — this constant is just the upper-bound
+# on the slice taken from the session store.
+_MAX_HISTORY_TURNS = 50
+
+# Rough chars-per-token ratio used to *estimate* message size before
+# sending to the LLM.  Errs on the generous side so we trim before
+# hitting real limits.
+_CHARS_PER_TOKEN = 3.5
+
+# Conservative token limits per provider (input only).  We leave room
+# for the response (max_tokens = 1024) and for tool definitions.
+_PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
+    LLM_PROVIDER_ANTHROPIC: 180_000,  # Sonnet 4.6: 200K ctx
+    LLM_PROVIDER_GEMINI: 90_000,  # Gemini 2.5 Flash: ~1M ctx but keep modest
+    LLM_PROVIDER_OPENAI: 110_000,  # GPT-5.4: ~128K ctx
+    LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
+}
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {
         "turn_on": {"brightness_pct", "color_temp", "kelvin"},
@@ -171,6 +197,85 @@ class LLMClient:
     def provider_name(self) -> str:
         return self._provider.provider_name
 
+    # ── Shared history helpers ──────────────────────────────────────────
+
+    @staticmethod
+    def _build_history_messages(
+        history: list[dict[str, Any]] | None,
+    ) -> list[dict[str, str]]:
+        """Convert raw session history into a clean message list.
+
+        Applies consistent sanitisation across both the JSON-mode and
+        streaming architect paths:
+        - Limits to the most recent ``_MAX_HISTORY_TURNS`` turns.
+        - Strips whitespace and coerces content to ``str``.
+        - Drops empty messages and non-user/assistant roles.
+        """
+        messages: list[dict[str, str]] = []
+        for turn in (history or [])[-_MAX_HISTORY_TURNS:]:
+            role = turn.get("role", "")
+            content = str(turn.get("content", "")).strip()
+            if role in ("user", "assistant") and content:
+                messages.append({"role": role, "content": content})
+        return messages
+
+    def _trim_history_to_budget(
+        self,
+        messages: list[dict[str, str]],
+        system_prompt: str,
+        context_prompt: str,
+    ) -> list[dict[str, str]]:
+        """Drop the oldest history turns until the estimated token count fits.
+
+        Preserves the most recent messages (which carry the most relevant
+        context) and drops from the front.  A condensed summary of dropped
+        turns is prepended so the LLM retains awareness of prior topics.
+        """
+        budget = _PROVIDER_TOKEN_BUDGETS.get(self._provider.provider_type, 28_000)
+
+        # Fixed cost: system prompt + current-turn user message
+        fixed_chars = len(system_prompt) + len(context_prompt)
+        fixed_tokens = int(fixed_chars / _CHARS_PER_TOKEN)
+
+        available = budget - fixed_tokens
+        if available <= 0:
+            # Even without history, the prompt is at the limit — send nothing
+            return []
+
+        # Walk backwards, keeping messages until we exhaust the budget
+        kept: list[dict[str, str]] = []
+        used = 0
+        for msg in reversed(messages):
+            msg_tokens = int(len(msg["content"]) / _CHARS_PER_TOKEN)
+            if used + msg_tokens > available:
+                break
+            kept.append(msg)
+            used += msg_tokens
+
+        kept.reverse()
+
+        # Drop leading assistant messages so the history starts with a user
+        # turn — Gemini requires user-first alternation.
+        while kept and kept[0]["role"] != "user":
+            kept.pop(0)
+
+        # If we dropped messages, prepend a summary to the first kept user
+        # message so the LLM is aware of prior context.  We fold it into an
+        # existing user turn (rather than inserting a new assistant turn) to
+        # preserve user-first alternation required by some providers (Gemini).
+        dropped_count = len(messages) - len(kept)
+        if dropped_count > 0 and kept:
+            summary = (
+                f"[Earlier conversation: {dropped_count} messages about prior "
+                f"topics were condensed. Focus on the recent context below.]\n\n"
+            )
+            for i, msg in enumerate(kept):
+                if msg["role"] == "user":
+                    kept[i] = {"role": "user", "content": summary + msg["content"]}
+                    break
+
+        return kept
+
     def set_max_suggestions(self, n: int) -> None:
         """Update the maximum number of suggestions per analysis cycle."""
         self._max_suggestions = n
@@ -227,7 +332,7 @@ class LLMClient:
         tool_executor: optional executor for LLM tool calling (device snapshot, integrations).
 
         Returns a dict with at minimum:
-          intent: "command" | "automation" | "clarification" | "answer"
+          intent: "command" | "automation" | "answer"
           response: conversational text for the chat bubble
         For "automation":
           automation: HA automation JSON
@@ -244,7 +349,13 @@ class LLMClient:
             }
 
         system_prompt = self._build_architect_system_prompt()
-        messages = self._build_chat_messages(user_message, entities, existing_automations, history)
+        messages = self._build_chat_messages(
+            user_message,
+            entities,
+            existing_automations,
+            history,
+            system_prompt=system_prompt,
+        )
 
         # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
         if tool_executor is not None:
@@ -315,7 +426,13 @@ class LLMClient:
             return
 
         system_prompt = self._build_architect_stream_system_prompt()
-        messages = self._build_chat_messages(user_message, entities, existing_automations, history)
+        messages = self._build_chat_messages(
+            user_message,
+            entities,
+            existing_automations,
+            history,
+            system_prompt=system_prompt,
+        )
 
         # Tool-aware streaming: streams text tokens, handles tool calls inline
         if tool_executor is not None:
@@ -602,6 +719,8 @@ class LLMClient:
         entities: list[EntitySnapshot],
         existing_automations: list[dict[str, Any]] | None,
         history: list[dict[str, str]] | None,
+        *,
+        system_prompt: str = "",
     ) -> list[dict[str, str]]:
         """Build the message list for architect chat / stream."""
         interesting_domains = {
@@ -660,12 +779,11 @@ class LLMClient:
             "AVAILABLE ENTITIES:\n" + "\n".join(entity_lines)
         )
 
-        messages: list[dict[str, str]] = []
-        for turn in (history or [])[-10:]:
-            role = turn.get("role", "")
-            content = str(turn.get("content", "")).strip()
-            if role in ("user", "assistant") and content:
-                messages.append({"role": role, "content": content})
+        # Multi-turn messages: prior history (plain text only) + current turn with full context.
+        # History entries should only carry the human-readable content — not the entity blobs —
+        # so the LLM can follow the conversational thread without ballooning the prompt.
+        messages = self._build_history_messages(history)
+        messages = self._trim_history_to_budget(messages, system_prompt, context_prompt)
         messages.append({"role": "user", "content": context_prompt})
 
         return messages
@@ -681,10 +799,16 @@ class LLMClient:
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n"
             "You have access to the current entity states and can see the conversation history for context.\n\n"
             "CLASSIFY the user's intent and respond with one of these JSON formats:\n\n"
-            "1. IMMEDIATE COMMAND — control a device right now (turn on/off, set level, query state):\n"
+            "1. IMMEDIATE COMMAND — control a device right now. This is ACTION-BASED: when the user "
+            "asks to control a device, ALWAYS execute immediately. NEVER ask which device or for confirmation. "
+            "If multiple entities match (e.g. 'turn off the living room lights'), include them all — use "
+            f"at most {_MAX_TARGET_ENTITIES} entity_ids per call and split into multiple calls if needed "
+            f"(max {_MAX_COMMAND_CALLS} calls). "
+            "If the user says 'turn off the light' and only one is on, turn off that one. "
+            "Always act, never ask.\n"
             "{\n"
             '  "intent": "command",\n'
-            '  "response": "1-sentence confirmation. e.g. Turning on the kitchen lights.",\n'
+            '  "response": "1-sentence confirmation naming the targeted entities.",\n'
             '  "calls": [\n'
             '    {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}, "data": {"brightness_pct": 80}}\n'
             "  ]\n"
@@ -702,7 +826,8 @@ class LLMClient:
             '    "actions": [...]\n'
             "  }\n"
             "}\n\n"
-            "3. CLARIFICATION — the request is ambiguous; ask a focused follow-up question:\n"
+            "3. CLARIFICATION — ONLY for non-device requests where the intent is genuinely unclear "
+            "(e.g. ambiguous automation schedule). NEVER use this for device commands — always execute those.\n"
             "{\n"
             '  "intent": "clarification",\n'
             '  "response": "One specific question — no filler."\n'
@@ -723,6 +848,11 @@ class LLMClient:
             '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
             "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly — 'kitchen lights' → 'light.kitchen', etc.\n"
+            "- BE ACTION-BASED: when the user asks to control a device, ALWAYS execute the command immediately. "
+            "NEVER ask for clarification. Use the AVAILABLE ENTITIES list and their current states to determine "
+            "which entities to target. If multiple entities match, include them all — split into multiple calls "
+            f"with at most {_MAX_TARGET_ENTITIES} entity_ids per call (max {_MAX_COMMAND_CALLS} calls total). "
+            "Always act, never ask.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
@@ -799,6 +929,11 @@ class LLMClient:
             '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
             "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
             "- Match entity names flexibly: 'kitchen lights' -> 'light.kitchen', etc.\n"
+            "- BE ACTION-BASED: when the user asks to control a device, ALWAYS execute the command immediately. "
+            "NEVER ask for clarification. Use the AVAILABLE ENTITIES list and their current states to determine "
+            "which entities to target. If multiple entities match, include them all — split into multiple calls "
+            f"with at most {_MAX_TARGET_ENTITIES} entity_ids per call (max {_MAX_COMMAND_CALLS} calls total). "
+            "Always act, never ask.\n"
             "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
             f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             "- Use conversation history to interpret follow-ups and refine previous automations.\n"
