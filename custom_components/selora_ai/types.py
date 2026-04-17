@@ -404,6 +404,50 @@ class DeletedHashEntry(TypedDict):
     deleted_at: str
 
 
+# ── Analytics query results ──────────────────────────────────────────
+
+
+class EntityActivity(TypedDict):
+    """A single entity's activity ranking entry."""
+
+    entity_id: str
+    change_count: int
+    active_days: int
+    domain: str
+
+
+class UsageWindow(TypedDict):
+    """Hourly usage bucket for a single entity."""
+
+    hour: int
+    count: int
+    primary_state: str
+
+
+StateTransitionCount = TypedDict(
+    "StateTransitionCount",
+    {"from": str, "to": str, "count": int},
+)
+
+
+class EntityAnalytics(TypedDict):
+    """Per-entity analytics response (usage windows + transitions)."""
+
+    entity_id: str
+    usage_windows: list[UsageWindow]
+    state_transitions: list[StateTransitionCount]
+
+
+class AnalyticsSummary(TypedDict):
+    """Home-wide analytics summary."""
+
+    total_entities_tracked: int
+    total_state_changes: int
+    most_active: list[EntityActivity]
+    busiest_hour: int | None
+    tracking_since: str | None
+
+
 # ── Pattern Store top-level data ──────────────────────────────────────
 
 

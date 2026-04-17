@@ -63,20 +63,26 @@ import uuid
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
+from homeassistant.util import dt as dt_util
 
 if TYPE_CHECKING:
     from .types import (
+        AnalyticsSummary,
+        EntityActivity,
         FeedbackSummary,
         HistorySummary,
         PatternDict,
         PatternStoreData,
         StateChange,
+        StateTransitionCount,
         SuggestionDict,
         TopState,
+        UsageWindow,
     )
 
 from .const import (
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
+    DOMAIN,
     PATTERN_HISTORY_MAX_PER_ENTITY,
     PATTERN_HISTORY_RETENTION_DAYS,
     PATTERN_STORE_KEY,
@@ -91,6 +97,7 @@ class PatternStore:
     """Persistent store for state history, patterns, and proactive suggestions."""
 
     def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
         self._store: Store[dict[str, Any]] = Store(
             hass, version=_STORE_VERSION, key=PATTERN_STORE_KEY
         )
@@ -250,6 +257,160 @@ class PatternStore:
 
         summaries.sort(key=lambda x: x["change_count"], reverse=True)
         return summaries
+
+    # ── Analytics Queries ─────────────────────────────────────────────────
+
+    def _local_hour(self, ts: str) -> int | None:
+        """Parse an ISO-8601 timestamp and return the hour in HA's local timezone."""
+        try:
+            dt = datetime.fromisoformat(ts)
+            local_dt = dt_util.as_local(dt)
+            return local_dt.hour
+        except (ValueError, TypeError):
+            return None
+
+    def _rank_entities(
+        self,
+        history: dict[str, list[StateChange]],
+        limit: int,
+    ) -> list[EntityActivity]:
+        """Rank entities by state change count (sync, no I/O)."""
+        results: list[EntityActivity] = []
+        for entity_id, changes in history.items():
+            if not changes:
+                continue
+            dates: set[str] = set()
+            for change in changes:
+                ts = change.get("ts", "")
+                if ts:
+                    dates.add(ts[:10])
+            results.append(
+                {
+                    "entity_id": entity_id,
+                    "change_count": len(changes),
+                    "active_days": len(dates),
+                    "domain": entity_id.split(".")[0] if "." in entity_id else "",
+                }
+            )
+        results.sort(key=lambda x: x["change_count"], reverse=True)
+        return results[:limit]
+
+    async def get_most_active_entities(self, limit: int = 10) -> list[EntityActivity]:
+        """Return the top N entities by state change count.
+
+        Each entry includes entity_id, change_count, active_days, and domain.
+        Sorted by change_count descending.
+        """
+        data = await self._get_loaded_data()
+        return self._rank_entities(data["state_history"], limit)
+
+    async def get_usage_windows(self, entity_id: str) -> list[UsageWindow]:
+        """Group an entity's state changes by hour-of-day.
+
+        Returns a list of hourly buckets with count and primary (most common) state.
+        Shows when the entity is most active.
+        """
+        data = await self._get_loaded_data()
+        entries = data["state_history"].get(entity_id, [])
+
+        hour_counts: dict[int, int] = {}
+        hour_states: dict[int, dict[str, int]] = {}
+
+        for entry in entries:
+            ts = entry.get("ts", "")
+            state = entry.get("state", "")
+            if not ts:
+                continue
+            hour = self._local_hour(ts)
+            if hour is None:
+                continue
+
+            hour_counts[hour] = hour_counts.get(hour, 0) + 1
+            if state and state not in ("unavailable", "unknown"):
+                states = hour_states.setdefault(hour, {})
+                states[state] = states.get(state, 0) + 1
+
+        results: list[UsageWindow] = []
+        for hour in sorted(hour_counts):
+            states = hour_states.get(hour, {})
+            primary_state = ""
+            if states:
+                primary_state = max(states, key=lambda s: states[s])
+            results.append(
+                {
+                    "hour": hour,
+                    "count": hour_counts[hour],
+                    "primary_state": primary_state,
+                }
+            )
+
+        return results
+
+    async def get_state_transition_counts(self, entity_id: str) -> list[StateTransitionCount]:
+        """Count distinct state transitions for an entity.
+
+        Returns a list of from/to/count dicts sorted by count descending.
+        Example: [{"from": "off", "to": "on", "count": 45}, ...]
+        """
+        data = await self._get_loaded_data()
+        entries = data["state_history"].get(entity_id, [])
+
+        transition_counts: dict[tuple[str, str], int] = {}
+        for entry in entries:
+            prev = entry.get("prev", "")
+            state = entry.get("state", "")
+            if prev and state and prev != state:
+                key = (prev, state)
+                transition_counts[key] = transition_counts.get(key, 0) + 1
+
+        results: list[StateTransitionCount] = [
+            {"from": k[0], "to": k[1], "count": v} for k, v in transition_counts.items()
+        ]
+        results.sort(key=lambda x: x["count"], reverse=True)
+        return results
+
+    async def get_analytics_summary(self) -> AnalyticsSummary:
+        """Return a high-level home analytics summary.
+
+        Includes total entities tracked, total state changes, top 5 most
+        active entities, busiest hour of day, and earliest tracking timestamp.
+        """
+        data = await self._get_loaded_data()
+        history = data["state_history"]
+
+        total_entities = 0
+        total_changes = 0
+        earliest_ts: str | None = None
+        hour_totals: dict[int, int] = {}
+
+        for entries in history.values():
+            if not entries:
+                continue
+            total_entities += 1
+            total_changes += len(entries)
+
+            for entry in entries:
+                ts = entry.get("ts", "")
+                if ts:
+                    if earliest_ts is None or ts < earliest_ts:
+                        earliest_ts = ts
+                    hour = self._local_hour(ts)
+                    if hour is not None:
+                        hour_totals[hour] = hour_totals.get(hour, 0) + 1
+
+        busiest_hour: int | None = None
+        if hour_totals:
+            busiest_hour = max(hour_totals, key=lambda h: hour_totals[h])
+
+        most_active = self._rank_entities(history, limit=5)
+
+        return {
+            "total_entities_tracked": total_entities,
+            "total_state_changes": total_changes,
+            "most_active": most_active,
+            "busiest_hour": busiest_hour,
+            "tracking_since": earliest_ts,
+        }
 
     async def get_pattern_detail(self, pattern_id: str) -> dict[str, Any] | None:
         data = await self._get_loaded_data()
@@ -599,3 +760,18 @@ class PatternStore:
             "accepted": accepted[:limit],
             "declined": declined[:limit],
         }
+
+
+# ── Module-level helper ─────────────────────────────────────────────────
+
+
+def get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
+    """Find the PatternStore from any active config entry."""
+    domain_data = hass.data.get(DOMAIN, {})
+    for key, val in domain_data.items():
+        if key.startswith("_") or not isinstance(val, dict):
+            continue
+        store = val.get("pattern_store")
+        if store is not None:
+            return store
+    return None
