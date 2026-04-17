@@ -7,7 +7,7 @@ and that those directives do not conflict with tool-policy formatting rules.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -95,28 +95,23 @@ class TestArchitectPromptVerbosity:
         assert tool_policy_pos < brevity_pos
 
 
-class TestActionBased:
-    """Both prompts must instruct the LLM to always act on device commands."""
+class TestActionOriented:
+    """Both prompts must instruct the LLM to act rather than ask for clarification."""
 
-    def test_json_prompt_action_based(self, hass) -> None:
+    def test_json_prompt_action_oriented(self, hass) -> None:
         prompt = _make_client(hass)._build_architect_system_prompt()
-        assert "ACTION-BASED" in prompt
-        assert "never ask" in prompt.lower()
+        assert "ACTION-ORIENTED" in prompt
+        assert "resolve ambiguity" in prompt.lower()
 
-    def test_stream_prompt_action_based(self, hass) -> None:
+    def test_stream_prompt_action_oriented(self, hass) -> None:
         prompt = _make_client(hass)._build_architect_stream_system_prompt()
-        assert "ACTION-BASED" in prompt
-        assert "never ask" in prompt.lower()
+        assert "ACTION-ORIENTED" in prompt
+        assert "resolve ambiguity" in prompt.lower()
 
-    def test_command_intent_always_executes(self, hass) -> None:
-        """Command intent description must say to always execute immediately."""
+    def test_clarification_requires_genuine_ambiguity(self, hass) -> None:
+        """Clarification intent should only fire when truly ambiguous."""
         prompt = _make_client(hass)._build_architect_system_prompt()
-        assert "ALWAYS execute immediately" in prompt
-
-    def test_clarification_never_for_devices(self, hass) -> None:
-        """Clarification intent must explicitly exclude device commands."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
-        assert "NEVER use this for device commands" in prompt
+        assert "genuinely ambiguous" in prompt.lower() or "cannot resolve" in prompt.lower()
 
 
 class TestStreamPromptVerbosity:
@@ -297,3 +292,252 @@ class TestConversationHistoryManagement:
         from custom_components.selora_ai.llm_client import LLMClient
 
         assert LLMClient._build_history_messages(None) == []
+
+
+class TestCommandPolicyEnforcement:
+    """Verify command intent handling and execution enforcement (#90)."""
+
+    def test_command_without_calls_downgraded_to_answer(self, hass) -> None:
+        """intent=command with no calls should be downgraded to answer."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {"intent": "command", "response": "Turning on the lights."},
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+
+    def test_command_with_empty_calls_downgraded(self, hass) -> None:
+        """intent=command with calls=[] should also be downgraded."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {"intent": "command", "response": "Turning on the lights.", "calls": []},
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+
+    def test_answer_without_calls_unchanged(self, hass) -> None:
+        """intent=answer with no calls should pass through unchanged."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {"intent": "answer", "response": "Here is some info."},
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+
+    def test_command_prompt_requires_calls(self, hass) -> None:
+        """Both system prompts must instruct the LLM to always include calls for commands."""
+        json_prompt = _make_client(hass)._build_architect_system_prompt()
+        stream_prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        for prompt in (json_prompt, stream_prompt):
+            assert "non-empty" in prompt.lower() and "calls" in prompt.lower(), (
+                "System prompt must instruct LLM to include non-empty calls for commands"
+            )
+
+    def test_parse_streamed_response_applies_policy_even_without_calls(self, hass) -> None:
+        """parse_streamed_response must run _apply_command_policy even when calls is empty."""
+        client = _make_client(hass)
+        # Simulate LLM returning command intent with no calls
+        text = '{"intent": "command", "response": "I would turn on the lights."}'
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "light.kitchen"}])
+        # Should be downgraded since there are no calls
+        assert result["intent"] == "answer"
+
+
+class TestConversationHistoryManagement:
+    """Verify conversation history is handled correctly (#89)."""
+
+    def test_history_window_is_at_least_40(self) -> None:
+        """The history window must be large enough for multi-turn conversations."""
+        from custom_components.selora_ai.llm_client import _MAX_HISTORY_TURNS
+
+        assert _MAX_HISTORY_TURNS >= 40, (
+            f"_MAX_HISTORY_TURNS={_MAX_HISTORY_TURNS} is too small; "
+            "users lose context in long conversations"
+        )
+
+    def test_build_history_messages_filters_and_strips(self) -> None:
+        """_build_history_messages strips whitespace, rejects non-user/assistant roles, coerces types."""
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        history = [
+            {"role": "user", "content": "  hello  "},
+            {"role": "system", "content": "ignored"},
+            {"role": "assistant", "content": "hi there"},
+            {"role": "user", "content": "   "},  # whitespace-only -> dropped
+            {"role": "assistant", "content": 42},  # non-str -> coerced to '42'
+        ]
+        result = LLMClient._build_history_messages(history)
+        assert len(result) == 3
+        assert result[0] == {"role": "user", "content": "hello"}
+        assert result[1] == {"role": "assistant", "content": "hi there"}
+        assert result[2] == {"role": "assistant", "content": "42"}
+
+    def test_build_history_messages_respects_max_turns(self) -> None:
+        """Only the most recent _MAX_HISTORY_TURNS turns are kept."""
+        from custom_components.selora_ai.llm_client import LLMClient, _MAX_HISTORY_TURNS
+
+        history = [
+            {"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)
+        ]
+        result = LLMClient._build_history_messages(history)
+        assert len(result) == _MAX_HISTORY_TURNS
+        assert result[0]["content"] == f"msg-20"  # oldest 20 dropped
+
+    def test_trim_history_drops_oldest_first(self, hass) -> None:
+        """When messages exceed the token budget, oldest turns are dropped."""
+        client = _make_client(hass)
+        # Force the smallest budget by using a real OllamaProvider instance
+        client._provider = create_provider("ollama", hass)
+        messages = [
+            {"role": "user", "content": "x" * 10_000}  # ~2857 tokens
+            for _ in range(30)
+        ]
+        trimmed = client._trim_history_to_budget(
+            messages, system_prompt="sys", context_prompt="ctx"
+        )
+        assert len(trimmed) < len(messages), "Some messages should have been dropped"
+        # The last message in the original should be the last in trimmed (minus summary)
+        assert trimmed[-1]["content"] == "x" * 10_000
+
+    def test_trim_history_adds_summary_when_dropping(self, hass) -> None:
+        """A condensed summary is folded into the first kept user message."""
+        client = _make_client(hass)
+        client._provider = create_provider("ollama", hass)  # smallest budget
+        messages = [{"role": "user", "content": "x" * 10_000} for _ in range(30)]
+        trimmed = client._trim_history_to_budget(
+            messages, system_prompt="sys", context_prompt="ctx"
+        )
+        if len(trimmed) < len(messages):
+            # Summary is prepended to the first user message, not a separate turn
+            first_user = next(m for m in trimmed if m["role"] == "user")
+            assert "condensed" in first_user["content"].lower()
+            # Must preserve user-first ordering (required by Gemini)
+            assert trimmed[0]["role"] == "user"
+
+    def test_trim_history_no_drop_when_within_budget(self, hass) -> None:
+        """Small history within budget is returned as-is."""
+        client = _make_client(hass)
+        messages = [
+            {"role": "user", "content": "hello"},
+            {"role": "assistant", "content": "hi"},
+        ]
+        trimmed = client._trim_history_to_budget(
+            messages, system_prompt="sys", context_prompt="ctx"
+        )
+        assert trimmed == messages
+
+    def test_trim_history_drops_leading_assistant(self, hass) -> None:
+        """Leading assistant messages are stripped to preserve user-first ordering."""
+        client = _make_client(hass)
+        client._provider = create_provider("ollama", hass)
+        # Simulate a trim that keeps an assistant reply but drops its user message:
+        # large user msg (won't fit) followed by small assistant + small user + small assistant
+        messages = [
+            {"role": "user", "content": "x" * 100_000},  # too large to keep
+            {"role": "assistant", "content": "reply"},
+            {"role": "user", "content": "follow-up"},
+            {"role": "assistant", "content": "answer"},
+        ]
+        trimmed = client._trim_history_to_budget(
+            messages, system_prompt="sys", context_prompt="ctx"
+        )
+        assert trimmed, "Should keep at least some messages"
+        assert trimmed[0]["role"] == "user", "Must start with a user message"
+
+    def test_build_history_messages_handles_none(self) -> None:
+        """None history returns empty list."""
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        assert LLMClient._build_history_messages(None) == []
+
+
+class TestChatCommandExecution:
+    """Verify that the websocket chat handler actually calls hass.services.async_call (#90)."""
+
+    @staticmethod
+    def _get_inner_handler(decorated_fn):
+        """Unwrap websocket decorators to get the raw async handler."""
+        fn = decorated_fn
+        while hasattr(fn, "__wrapped__"):
+            fn = fn.__wrapped__
+        return fn
+
+    @pytest.mark.asyncio
+    async def test_chat_handler_executes_command_calls(self, hass) -> None:
+        """_handle_websocket_chat calls hass.services.async_call for command intents."""
+        from custom_components.selora_ai import _handle_websocket_chat
+        from custom_components.selora_ai.const import DOMAIN
+
+        # Track calls made to the light.turn_on service
+        service_calls: list[dict] = []
+
+        async def _track_call(call) -> None:
+            service_calls.append(
+                {"domain": "light", "service": "turn_on", "data": dict(call.data)}
+            )
+
+        hass.services.async_register("light", "turn_on", _track_call)
+
+        mock_llm = AsyncMock()
+        mock_llm.architect_chat = AsyncMock(
+            return_value={
+                "intent": "command",
+                "response": "Turning on the kitchen light.",
+                "calls": [
+                    {
+                        "service": "light.turn_on",
+                        "target": {"entity_id": "light.kitchen"},
+                        "data": {},
+                    }
+                ],
+            }
+        )
+
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
+
+        connection = MagicMock()
+        connection.user = MagicMock(is_admin=True)
+
+        msg = {"id": 1, "type": "selora_ai/chat", "message": "Turn on the kitchen light"}
+
+        handler = self._get_inner_handler(_handle_websocket_chat)
+        await handler(hass, connection, msg)
+
+        assert len(service_calls) == 1
+        assert service_calls[0]["data"]["entity_id"] == "light.kitchen"
+
+        result = connection.send_result.call_args[0][1]
+        assert "light.turn_on" in result["executed"]
+
+    @pytest.mark.asyncio
+    async def test_chat_handler_reports_service_not_found(self, hass) -> None:
+        """Failed service calls are reported in the response, not swallowed."""
+        from custom_components.selora_ai import _handle_websocket_chat
+        from custom_components.selora_ai.const import DOMAIN
+
+        mock_llm = AsyncMock()
+        mock_llm.architect_chat = AsyncMock(
+            return_value={
+                "intent": "command",
+                "response": "Running bogus service.",
+                "calls": [
+                    {"service": "bogus.nonexistent", "target": {}, "data": {}},
+                ],
+            }
+        )
+
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
+
+        connection = MagicMock()
+        connection.user = MagicMock(is_admin=True)
+
+        msg = {"id": 1, "type": "selora_ai/chat", "message": "Do something bogus"}
+
+        handler = self._get_inner_handler(_handle_websocket_chat)
+        await handler(hass, connection, msg)
+
+        result = connection.send_result.call_args[0][1]
+        assert result["executed"] == []
+        assert "Failed" in result["response"]

@@ -58,7 +58,7 @@ class TestGeminiPayload:
             system="Be helpful.",
             messages=[{"role": "user", "content": "Hello"}],
         )
-        assert payload["system_instruction"] == {"parts": [{"text": "Be helpful."}]}
+        assert payload["systemInstruction"] == {"parts": [{"text": "Be helpful."}]}
         assert len(payload["contents"]) == 1
         assert payload["contents"][0]["role"] == "user"
         assert payload["contents"][0]["parts"] == [{"text": "Hello"}]
@@ -68,7 +68,7 @@ class TestGeminiPayload:
             system="",
             messages=[{"role": "user", "content": "Hi"}],
         )
-        assert "system_instruction" not in payload
+        assert "systemInstruction" not in payload
 
     def test_assistant_role_mapped_to_model(self, provider) -> None:
         payload = provider.build_payload(
@@ -94,7 +94,7 @@ class TestGeminiPayload:
             tools=tools,
         )
         assert len(payload["tools"]) == 1
-        assert payload["tools"][0]["function_declarations"] == tools
+        assert payload["tools"][0]["functionDeclarations"] == tools
 
 
 class TestGeminiResponseParsing:
