@@ -2634,16 +2634,49 @@ async def _handle_websocket_get_state_history_summary(
     connection.send_result(msg["id"], summary)
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/get_analytics",
+        vol.Optional("entity_id"): cv.string,
+    }
+)
+async def _handle_websocket_get_analytics(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return device analytics — summary or per-entity details."""
+    if not _require_admin(connection, msg):
+        return
+
+    pattern_store = _get_pattern_store(hass)
+    if not pattern_store:
+        connection.send_error(msg["id"], "no_store", "Pattern store not available")
+        return
+
+    entity_id = msg.get("entity_id")
+    if entity_id:
+        usage_windows = await pattern_store.get_usage_windows(entity_id)
+        state_transitions = await pattern_store.get_state_transition_counts(entity_id)
+        connection.send_result(
+            msg["id"],
+            {
+                "entity_id": entity_id,
+                "usage_windows": usage_windows,
+                "state_transitions": state_transitions,
+            },
+        )
+    else:
+        summary = await pattern_store.get_analytics_summary()
+        connection.send_result(msg["id"], summary)
+
+
 def _get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
     """Find the PatternStore from any active config entry."""
-    domain_data = hass.data.get(DOMAIN, {})
-    for key, val in domain_data.items():
-        if key.startswith("_") or not isinstance(val, dict):
-            continue
-        store = val.get("pattern_store")
-        if store is not None:
-            return store
-    return None
+    from .pattern_store import get_pattern_store  # noqa: PLC0415
+
+    return get_pattern_store(hass)
 
 
 @websocket_api.async_response
@@ -3167,6 +3200,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_proactive_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)
     websocket_api.async_register_command(hass, _handle_websocket_get_state_history_summary)
+    websocket_api.async_register_command(hass, _handle_websocket_get_analytics)
     websocket_api.async_register_command(hass, _handle_websocket_get_patterns)
     websocket_api.async_register_command(hass, _handle_websocket_get_pattern_detail)
     websocket_api.async_register_command(hass, _handle_websocket_update_pattern_status)

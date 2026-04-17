@@ -160,6 +160,7 @@ TOOL_DISMISS_SUGGESTION = "selora_dismiss_suggestion"
 TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 TOOL_LIST_DEVICES = "selora_list_devices"
 TOOL_GET_DEVICE = "selora_get_device"
+TOOL_HOME_ANALYTICS = "selora_home_analytics"
 
 # Tools that require admin privileges (write/mutating operations)
 _ADMIN_TOOLS = frozenset(
@@ -187,6 +188,7 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_SUGGESTIONS,
         TOOL_LIST_DEVICES,
         TOOL_GET_DEVICE,
+        TOOL_HOME_ANALYTICS,
     }
 )
 
@@ -658,6 +660,8 @@ async def _dispatch(
             result = await _tool_list_devices(hass, arguments)
         elif name == TOOL_GET_DEVICE:
             result = await _tool_get_device(hass, arguments)
+        elif name == TOOL_HOME_ANALYTICS:
+            result = await _tool_home_analytics(hass, arguments)
         else:
             result = {"error": f"Unknown tool: {name}"}
     except Unauthorized as exc:
@@ -1821,6 +1825,41 @@ def _sanitize_risk(risk: RiskAssessment | dict[str, Any]) -> RiskAssessment:
     }
 
 
+# ── Tool: selora_home_analytics ──────────────────────────────────────────────
+
+
+async def _tool_home_analytics(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Get analytics about device usage patterns and state changes."""
+    from .pattern_store import get_pattern_store  # noqa: PLC0415
+
+    pattern_store = get_pattern_store(hass)
+    if pattern_store is None:
+        return {"error": "Pattern store not available"}
+
+    entity_id = str(arguments.get("entity_id", "")).strip() or None
+
+    if entity_id:
+        usage_windows = await pattern_store.get_usage_windows(entity_id)
+        state_transitions = await pattern_store.get_state_transition_counts(entity_id)
+        return {
+            "entity_id": entity_id,
+            "usage_windows": [
+                {**w, "primary_state": _sanitize(w["primary_state"], limit=64)}
+                for w in usage_windows
+            ],
+            "state_transitions": [
+                {
+                    "from": _sanitize(t["from"], limit=64),
+                    "to": _sanitize(t["to"], limit=64),
+                    "count": t["count"],
+                }
+                for t in state_transitions
+            ],
+        }
+
+    return await pattern_store.get_analytics_summary()
+
+
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
@@ -2093,6 +2132,26 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                 "device_id": {
                     "type": "string",
                     "description": "The HA device registry ID.",
+                }
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_HOME_ANALYTICS,
+        description=(
+            "Get analytics about device usage patterns and state changes. "
+            "Without entity_id returns a home-wide summary (top entities, busiest hour, totals). "
+            "With entity_id returns hourly usage windows and state transition counts for that entity."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": (
+                        "Optional entity ID. If provided, returns per-entity analytics. "
+                        "If omitted, returns a home-wide summary."
+                    ),
                 }
             },
         },

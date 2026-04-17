@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import zoneinfo
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 
+from homeassistant.util import dt as dt_util
 import pytest
 
 from custom_components.selora_ai.pattern_store import PatternStore
@@ -441,3 +443,198 @@ async def test_record_deleted_automation_persists(pattern_store):
     assert "hash_abc" in data["deleted_hashes"]
     assert data["deleted_hashes"]["hash_abc"]["alias"] == "Test Automation"
     assert mock_st.saved_data
+
+
+# ── Analytics Queries ───────────────────────────────────────────────────
+
+
+class TestAnalyticsQueries:
+    """Tests for the analytics query methods on PatternStore."""
+
+    @pytest.mark.asyncio
+    async def test_most_active_entities(self, pattern_store):
+        """Store history for 3 entities with different change counts, verify ordering."""
+        ps, _ = pattern_store
+
+        # Entity A: 5 changes
+        for i in range(5):
+            await ps.record_state_change(
+                "light.living_room", "on", "off", f"2026-03-01T{10 + i}:00:00+00:00"
+            )
+
+        # Entity B: 10 changes
+        for i in range(10):
+            await ps.record_state_change(
+                "switch.kitchen", "on", "off", f"2026-03-01T{10 + i}:00:00+00:00"
+            )
+
+        # Entity C: 2 changes
+        for i in range(2):
+            await ps.record_state_change(
+                "sensor.temperature", "22", "21", f"2026-03-01T{10 + i}:00:00+00:00"
+            )
+
+        result = await ps.get_most_active_entities(limit=10)
+
+        assert len(result) == 3
+        assert result[0]["entity_id"] == "switch.kitchen"
+        assert result[0]["change_count"] == 10
+        assert result[0]["domain"] == "switch"
+        assert result[1]["entity_id"] == "light.living_room"
+        assert result[1]["change_count"] == 5
+        assert result[1]["domain"] == "light"
+        assert result[2]["entity_id"] == "sensor.temperature"
+        assert result[2]["change_count"] == 2
+
+        # Test limit
+        result_limited = await ps.get_most_active_entities(limit=2)
+        assert len(result_limited) == 2
+        assert result_limited[0]["entity_id"] == "switch.kitchen"
+
+    @pytest.mark.asyncio
+    async def test_usage_windows(self, pattern_store):
+        """Store changes at various hours, verify hourly grouping."""
+        ps, _ = pattern_store
+
+        # Use UTC timezone so hour assertions are predictable
+        dt_util.set_default_time_zone(zoneinfo.ZoneInfo("UTC"))
+        try:
+            # 3 changes at hour 8, 2 changes at hour 20, 1 at hour 12
+            for i in range(3):
+                await ps.record_state_change(
+                    "light.kitchen", "on", "off", f"2026-03-0{i + 1}T08:15:00+00:00"
+                )
+            for i in range(2):
+                await ps.record_state_change(
+                    "light.kitchen", "off", "on", f"2026-03-0{i + 1}T20:30:00+00:00"
+                )
+            await ps.record_state_change(
+                "light.kitchen", "on", "off", "2026-03-01T12:00:00+00:00"
+            )
+
+            result = await ps.get_usage_windows("light.kitchen")
+
+            # Should have 3 hourly buckets: 8, 12, 20
+            assert len(result) == 3
+            hours = {entry["hour"]: entry for entry in result}
+
+            assert hours[8]["count"] == 3
+            assert hours[8]["primary_state"] == "on"
+            assert hours[20]["count"] == 2
+            assert hours[20]["primary_state"] == "off"
+            assert hours[12]["count"] == 1
+
+            # Non-existent entity returns empty
+            empty = await ps.get_usage_windows("light.nonexistent")
+            assert empty == []
+        finally:
+            dt_util.set_default_time_zone(zoneinfo.ZoneInfo("US/Pacific"))
+
+    @pytest.mark.asyncio
+    async def test_state_transition_counts(self, pattern_store):
+        """Store on->off and off->on transitions, verify counts."""
+        ps, _ = pattern_store
+
+        # Record 5 off->on transitions
+        for i in range(5):
+            await ps.record_state_change(
+                "light.bedroom", "on", "off", f"2026-03-01T{10 + i}:00:00+00:00"
+            )
+        # Record 3 on->off transitions
+        for i in range(3):
+            await ps.record_state_change(
+                "light.bedroom", "off", "on", f"2026-03-01T{15 + i}:00:00+00:00"
+            )
+
+        result = await ps.get_state_transition_counts("light.bedroom")
+
+        assert len(result) == 2
+        # Sorted by count descending
+        assert result[0]["from"] == "off"
+        assert result[0]["to"] == "on"
+        assert result[0]["count"] == 5
+        assert result[1]["from"] == "on"
+        assert result[1]["to"] == "off"
+        assert result[1]["count"] == 3
+
+        # Non-existent entity returns empty
+        empty = await ps.get_state_transition_counts("light.nonexistent")
+        assert empty == []
+
+    @pytest.mark.asyncio
+    async def test_analytics_summary(self, pattern_store):
+        """Verify total counts, busiest hour, most active list."""
+        ps, _ = pattern_store
+
+        # Use UTC timezone so hour assertions are predictable
+        dt_util.set_default_time_zone(zoneinfo.ZoneInfo("UTC"))
+        try:
+            # Entity A: 6 changes mostly at hour 9
+            for i in range(6):
+                await ps.record_state_change(
+                    "light.living_room",
+                    "on",
+                    "off",
+                    f"2026-03-01T09:{10 + i:02d}:00+00:00",
+                )
+
+            # Entity B: 4 changes at hour 21
+            for i in range(4):
+                await ps.record_state_change(
+                    "switch.fan", "on", "off", f"2026-03-02T21:{10 + i:02d}:00+00:00"
+                )
+
+            summary = await ps.get_analytics_summary()
+
+            assert summary["total_entities_tracked"] == 2
+            assert summary["total_state_changes"] == 10
+            assert summary["busiest_hour"] == 9  # 6 changes at hour 9 vs 4 at hour 21
+            assert summary["tracking_since"] == "2026-03-01T09:10:00+00:00"
+
+            # most_active should have 2 entries, living_room first
+            assert len(summary["most_active"]) == 2
+            assert summary["most_active"][0]["entity_id"] == "light.living_room"
+            assert summary["most_active"][0]["change_count"] == 6
+            assert summary["most_active"][1]["entity_id"] == "switch.fan"
+            assert summary["most_active"][1]["change_count"] == 4
+        finally:
+            dt_util.set_default_time_zone(zoneinfo.ZoneInfo("US/Pacific"))
+
+    @pytest.mark.asyncio
+    async def test_usage_windows_local_timezone(self, pattern_store):
+        """Hours should reflect HA's configured local timezone, not UTC."""
+        ps, _ = pattern_store
+
+        # Record a change at 02:00 UTC
+        await ps.record_state_change(
+            "light.porch", "on", "off", "2026-03-15T02:00:00+00:00"
+        )
+
+        # With US/Pacific (-7 in March / PDT), 02:00 UTC = 19:00 previous day
+        pacific = zoneinfo.ZoneInfo("US/Pacific")
+        dt_util.set_default_time_zone(pacific)
+        try:
+            result = await ps.get_usage_windows("light.porch")
+            assert len(result) == 1
+            assert result[0]["hour"] == 19  # not 2
+        finally:
+            dt_util.set_default_time_zone(zoneinfo.ZoneInfo("US/Pacific"))
+
+    @pytest.mark.asyncio
+    async def test_busiest_hour_local_timezone(self, pattern_store):
+        """busiest_hour in summary should use local timezone."""
+        ps, _ = pattern_store
+
+        # 5 changes at 03:00 UTC
+        for i in range(5):
+            await ps.record_state_change(
+                "light.hall", "on", "off", f"2026-03-{10 + i}T03:00:00+00:00"
+            )
+
+        pacific = zoneinfo.ZoneInfo("US/Pacific")
+        dt_util.set_default_time_zone(pacific)
+        try:
+            summary = await ps.get_analytics_summary()
+            assert summary["busiest_hour"] == 20  # 03:00 UTC = 20:00 PDT
+        finally:
+            dt_util.set_default_time_zone(zoneinfo.ZoneInfo("US/Pacific"))
