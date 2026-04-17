@@ -547,11 +547,17 @@ class LLMClient:
 
             except ConnectionError as exc:
                 _LOGGER.error("LLM stream failed: %s", exc)
-                yield f"Error from LLM: {exc}"
+                yield (
+                    "Sorry, I couldn't reach the LLM provider. "
+                    "Please check your API key and connection in Settings."
+                )
                 return
-            except Exception as exc:
+            except Exception:
                 _LOGGER.exception("Streaming request failed")
-                yield f"Error: {exc}"
+                yield (
+                    "Sorry, something went wrong while communicating with "
+                    "the LLM provider. Check the Home Assistant logs for details."
+                )
                 return
 
             # If no tool calls, we're done — text was already streamed

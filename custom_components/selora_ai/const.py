@@ -716,6 +716,7 @@ CONF_LLM_PROVIDER = "llm_provider"
 LLM_PROVIDER_ANTHROPIC = "anthropic"
 LLM_PROVIDER_OLLAMA = "ollama"
 LLM_PROVIDER_OPENAI = "openai"
+LLM_PROVIDER_GEMINI = "gemini"
 LLM_PROVIDER_NONE = "none"
 DEFAULT_LLM_PROVIDER = LLM_PROVIDER_ANTHROPIC
 
@@ -743,6 +744,13 @@ CONF_OPENAI_MODEL = "openai_model"
 
 DEFAULT_OPENAI_HOST = "https://api.openai.com"
 DEFAULT_OPENAI_MODEL = "gpt-5.4"
+
+# ── Google Gemini ──────────────────────────────────────────────────
+CONF_GEMINI_API_KEY = "gemini_api_key"
+CONF_GEMINI_MODEL = "gemini_model"
+
+DEFAULT_GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta"
+DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"

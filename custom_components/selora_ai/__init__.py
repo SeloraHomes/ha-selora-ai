@@ -57,6 +57,8 @@ from .const import (
     CONF_DISCOVERY_MODE,
     CONF_DISCOVERY_START_TIME,
     CONF_ENTRY_TYPE,
+    CONF_GEMINI_API_KEY,
+    CONF_GEMINI_MODEL,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
@@ -74,6 +76,7 @@ from .const import (
     DEFAULT_DISCOVERY_ENABLED,
     DEFAULT_DISCOVERY_INTERVAL,
     DEFAULT_DISCOVERY_MODE,
+    DEFAULT_GEMINI_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
@@ -84,6 +87,7 @@ from .const import (
     ENTRY_TYPE_DEVICE,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     MODE_SCHEDULED,
@@ -1572,6 +1576,9 @@ async def _handle_websocket_get_config(
             "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),
             "anthropic_api_key_set": bool(config_data.get(CONF_ANTHROPIC_API_KEY)),
             "anthropic_model": config_data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+            "gemini_api_key_hint": _mask_api_key(config_data.get(CONF_GEMINI_API_KEY, "")),
+            "gemini_api_key_set": bool(config_data.get(CONF_GEMINI_API_KEY)),
+            "gemini_model": config_data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL),
             "openai_api_key_hint": _mask_api_key(config_data.get(CONF_OPENAI_API_KEY, "")),
             "openai_api_key_set": bool(config_data.get(CONF_OPENAI_API_KEY)),
             "openai_model": config_data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
@@ -1632,6 +1639,8 @@ async def _handle_websocket_update_config(
         CONF_LLM_PROVIDER,
         CONF_ANTHROPIC_API_KEY,
         CONF_ANTHROPIC_MODEL,
+        CONF_GEMINI_API_KEY,
+        CONF_GEMINI_MODEL,
         CONF_OPENAI_API_KEY,
         CONF_OPENAI_MODEL,
         CONF_OLLAMA_HOST,
@@ -1653,7 +1662,7 @@ async def _handle_websocket_update_config(
     # Only overwrite the stored API keys if the frontend sent a new non-empty value.
     # The frontend sends an empty string when the user hasn't touched the key field,
     # so we must not clobber the existing key in that case.
-    for key in (CONF_ANTHROPIC_API_KEY, CONF_OPENAI_API_KEY):
+    for key in (CONF_ANTHROPIC_API_KEY, CONF_GEMINI_API_KEY, CONF_OPENAI_API_KEY):
         if key in new_data and not new_data[key]:
             new_data.pop(key, None)
 
@@ -1722,6 +1731,8 @@ async def _handle_websocket_validate_llm_key(
     # Apply defaults for missing model/host
     if provider == LLM_PROVIDER_ANTHROPIC:
         model = model or DEFAULT_ANTHROPIC_MODEL
+    elif provider == LLM_PROVIDER_GEMINI:
+        model = model or DEFAULT_GEMINI_MODEL
     elif provider == LLM_PROVIDER_OPENAI:
         model = model or DEFAULT_OPENAI_MODEL
     elif provider == LLM_PROVIDER_OLLAMA:
@@ -3257,6 +3268,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
+        )
+        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+    elif provider == LLM_PROVIDER_GEMINI:
+        llm_provider = create_provider(
+            provider,
+            hass,
+            api_key=entry.data.get(CONF_GEMINI_API_KEY, ""),
+            model=entry.data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL),
         )
         llm = LLMClient(hass, llm_provider, lookback_days=lookback)
     elif provider == LLM_PROVIDER_OPENAI:

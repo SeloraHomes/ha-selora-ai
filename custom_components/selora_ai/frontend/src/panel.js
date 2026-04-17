@@ -481,6 +481,9 @@ class SeloraAIPanel extends LitElement {
       if (provider === "anthropic") {
         payload.anthropic_model = this._config.anthropic_model;
         if (newKey) payload.anthropic_api_key = newKey;
+      } else if (provider === "gemini") {
+        payload.gemini_model = this._config.gemini_model;
+        if (newKey) payload.gemini_api_key = newKey;
       } else if (provider === "openai") {
         payload.openai_model = this._config.openai_model;
         if (newKey) payload.openai_api_key = newKey;
@@ -501,10 +504,7 @@ class SeloraAIPanel extends LitElement {
           validatePayload.model = this._config.ollama_model;
         } else {
           validatePayload.api_key = newKey;
-          validatePayload.model =
-            provider === "anthropic"
-              ? this._config.anthropic_model
-              : this._config.openai_model;
+          validatePayload.model = this._config[`${provider}_model`];
         }
         const result = await this.hass.callWS(validatePayload);
         if (!result.valid) {
@@ -581,6 +581,7 @@ class SeloraAIPanel extends LitElement {
     const provider = this._config.llm_provider;
     if (!provider) return true; // No provider selected at all
     if (provider === "anthropic") return !this._config.anthropic_api_key_set;
+    if (provider === "gemini") return !this._config.gemini_api_key_set;
     if (provider === "openai") return !this._config.openai_api_key_set;
     return false; // Ollama doesn't require an API key
   }

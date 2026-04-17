@@ -41,6 +41,8 @@ from .const import (
     CONF_DISCOVERY_MODE,
     CONF_DISCOVERY_START_TIME,
     CONF_ENTRY_TYPE,
+    CONF_GEMINI_API_KEY,
+    CONF_GEMINI_MODEL,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
@@ -59,6 +61,7 @@ from .const import (
     DEFAULT_DISCOVERY_INTERVAL,
     DEFAULT_DISCOVERY_MODE,
     DEFAULT_DISCOVERY_START_TIME,
+    DEFAULT_GEMINI_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
@@ -67,6 +70,7 @@ from .const import (
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
     LLM_PROVIDER_ANTHROPIC,
+    LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_NONE,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
@@ -110,6 +114,22 @@ async def _validate_ollama(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
         raise ConnectionError("Ollama not reachable or model not found")
     model = data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL)
     return {"title": f"Selora AI (Ollama — {model})"}
+
+
+async def _validate_gemini(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
+    """Validate that the Gemini API key works."""
+    from .providers import create_provider
+
+    provider = create_provider(
+        LLM_PROVIDER_GEMINI,
+        hass,
+        api_key=data[CONF_GEMINI_API_KEY],
+        model=data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL),
+    )
+    if not await provider.health_check():
+        raise ConnectionError("Gemini API key invalid or unreachable")
+    model = data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL)
+    return {"title": f"Selora AI (Gemini — {model})"}
 
 
 async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
@@ -208,6 +228,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._provider = user_input[CONF_LLM_PROVIDER]
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 return await self.async_step_anthropic()
+            if self._provider == LLM_PROVIDER_GEMINI:
+                return await self.async_step_gemini()
             if self._provider == LLM_PROVIDER_OPENAI:
                 return await self.async_step_openai()
             if self._provider == LLM_PROVIDER_OLLAMA:
@@ -230,6 +252,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     ): vol.In(
                         {
                             LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude) — Recommended",
+                            LLM_PROVIDER_GEMINI: "Google Gemini",
                             LLM_PROVIDER_OPENAI: "OpenAI",
                             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
                             LLM_PROVIDER_NONE: "Skip for now (Configure later)",
@@ -272,6 +295,41 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_ANTHROPIC_MODEL,
                         default=DEFAULT_ANTHROPIC_MODEL,
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_gemini(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        """Configure Google Gemini API key, then chain to discovery."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                info = await _validate_gemini(self.hass, user_input)
+            except ConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Failed to validate Gemini API key")
+                errors["base"] = "unknown"
+            else:
+                self._llm_data = {
+                    CONF_ENTRY_TYPE: ENTRY_TYPE_LLM,
+                    CONF_LLM_PROVIDER: LLM_PROVIDER_GEMINI,
+                    **user_input,
+                    "_title": info["title"],
+                }
+                return await self.async_step_selora_connect()
+
+        return self.async_show_form(
+            step_id="gemini",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_GEMINI_API_KEY): str,
+                    vol.Required(
+                        CONF_GEMINI_MODEL,
+                        default=DEFAULT_GEMINI_MODEL,
                     ): str,
                 }
             ),
