@@ -448,14 +448,17 @@ class PatternStore:
             return 0
 
         from .const import COLLECTOR_DOMAINS
+        from .entity_filter import EntityFilter
 
         now = datetime.now(UTC)
         start = now - timedelta(days=lookback_days)
 
+        all_states = hass.states.async_all()
+        ef = EntityFilter(hass, [s.entity_id for s in all_states])
         entity_ids = [
             s.entity_id
-            for s in hass.states.async_all()
-            if s.entity_id.split(".")[0] in COLLECTOR_DOMAINS
+            for s in all_states
+            if s.entity_id.split(".")[0] in COLLECTOR_DOMAINS and ef.is_active(s.entity_id)
         ]
         if not entity_ids:
             return 0

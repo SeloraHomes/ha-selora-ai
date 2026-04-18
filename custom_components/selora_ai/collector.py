@@ -854,15 +854,22 @@ class DataCollector:
 
         Only includes domains in COLLECTOR_DOMAINS and safe, non-PII attributes
         to avoid leaking sensitive data (e.g. GPS coordinates, tokens, IP
-        addresses) to the LLM.
+        addresses) to the LLM.  Disabled entities (e.g. switches converted to
+        lights via HA's "Show as" feature) are excluded.
         """
         try:
+            from .entity_filter import EntityFilter
+
+            all_states = self._hass.states.async_all()
+            ef = EntityFilter(self._hass, [s.entity_id for s in all_states])
             states = []
 
-            for state in self._hass.states.async_all():
+            for state in all_states:
                 try:
                     domain = state.entity_id.split(".")[0]
                     if domain not in COLLECTOR_DOMAINS:
+                        continue
+                    if not ef.is_active(state.entity_id):
                         continue
                     if domain == "light" and any(
                         pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
