@@ -3266,6 +3266,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                     hass.config.path(f"custom_components/{DOMAIN}/brand/logo.png"),
                     True,
                 ),
+                StaticPathConfig(
+                    f"/api/{DOMAIN}/logo-light.png",
+                    hass.config.path(f"custom_components/{DOMAIN}/brand/logo-light.png"),
+                    True,
+                ),
             ]
         )
     except (ImportError, AttributeError):
@@ -3278,6 +3283,11 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         hass.http.register_static_path(
             f"/api/{DOMAIN}/logo.png",
             hass.config.path(f"custom_components/{DOMAIN}/brand/logo.png"),
+            True,
+        )
+        hass.http.register_static_path(
+            f"/api/{DOMAIN}/logo-light.png",
+            hass.config.path(f"custom_components/{DOMAIN}/brand/logo-light.png"),
             True,
         )
 
