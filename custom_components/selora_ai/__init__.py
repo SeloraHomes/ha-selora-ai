@@ -332,17 +332,24 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
 
     Filters out unavailable/unknown entities to avoid sending stale or
     deleted entities as context (e.g. soft-deleted automations).
-    Also restricts to COLLECTOR_DOMAINS + automation, and excludes
-    non-controllable light entities (IR LEDs, camera illuminators, etc.).
+    Also filters disabled entities (e.g. switches converted to lights via
+    HA's "Show as" feature) and restricts to COLLECTOR_DOMAINS + automation.
+    Excludes non-controllable light entities (IR LEDs, camera illuminators).
     """
+    from .entity_filter import EntityFilter
+
     _SKIP_STATES = {"unavailable", "unknown"}
     _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
+    all_states = hass.states.async_all()
+    ef = EntityFilter(hass, [s.entity_id for s in all_states])
     states = []
-    for state in hass.states.async_all():
+    for state in all_states:
         if state.state in _SKIP_STATES:
             continue
         domain = state.entity_id.split(".")[0]
         if domain not in _ALLOWED_DOMAINS:
+            continue
+        if not ef.is_active(state.entity_id):
             continue
         if domain == "light" and any(
             pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS

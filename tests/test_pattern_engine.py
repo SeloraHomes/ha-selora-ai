@@ -355,6 +355,67 @@ class TestDetectCorrelations:
         result = await engine._detect_correlations(history)
         assert result == []
 
+    @pytest.mark.asyncio
+    async def test_same_device_entities_skipped(self, hass: MagicMock) -> None:
+        """Entities sharing a device_id must not produce correlations (#93).
+
+        Reproduces the bug where HA's 'Show switch as Light' creates both
+        switch.closet and light.closet from the same device, and the engine
+        wrongly correlates them.
+        """
+        from unittest.mock import patch
+
+        mock_entry_switch = MagicMock(device_id="device_123", disabled=False)
+        mock_entry_light = MagicMock(device_id="device_123", disabled=False)
+        mock_reg = MagicMock()
+        mock_reg.async_get.side_effect = lambda eid: {
+            "switch.closet": mock_entry_switch,
+            "light.closet": mock_entry_light,
+        }.get(eid)
+
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9, minute=0, second=0))
+            changes_b.append(_change("on", day_offset=d, hour=9, minute=0, second=2))
+        history = {"switch.closet": changes_a, "light.closet": changes_b}
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_reg,
+        ):
+            result = await engine._detect_correlations(history)
+        assert result == [], "Same-device entities must not produce correlation patterns"
+
+    @pytest.mark.asyncio
+    async def test_disabled_entity_skipped_in_correlation(self, hass: MagicMock) -> None:
+        """Disabled entities must be excluded from correlation detection (#93)."""
+        from unittest.mock import patch
+
+        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False)
+        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True)
+        mock_reg = MagicMock()
+        mock_reg.async_get.side_effect = lambda eid: {
+            "light.hallway": mock_entry_ok,
+            "switch.old_closet": mock_entry_disabled,
+        }.get(eid)
+
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9))
+            changes_b.append(_change("on", day_offset=d, hour=9, second=30))
+        history = {"light.hallway": changes_a, "switch.old_closet": changes_b}
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_reg,
+        ):
+            result = await engine._detect_correlations(history)
+        assert result == [], "Disabled entities must not appear in correlations"
+
 
 # ===========================================================================
 # _detect_sequences
@@ -417,6 +478,62 @@ class TestDetectSequences:
         history = {"light.a": changes_a, "light.b": changes_b}
         result = await engine._detect_sequences(history)
         assert result == []
+
+    @pytest.mark.asyncio
+    async def test_same_device_entities_skipped_in_sequence(self, hass: MagicMock) -> None:
+        """Entities sharing a device_id must not produce sequences (#93)."""
+        from unittest.mock import patch
+
+        mock_entry_switch = MagicMock(device_id="device_123", disabled=False)
+        mock_entry_light = MagicMock(device_id="device_123", disabled=False)
+        mock_reg = MagicMock()
+        mock_reg.async_get.side_effect = lambda eid: {
+            "switch.closet": mock_entry_switch,
+            "light.closet": mock_entry_light,
+        }.get(eid)
+
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9, second=0, prev="off"))
+            changes_b.append(_change("on", day_offset=d, hour=9, second=2, prev="off"))
+        history = {"switch.closet": changes_a, "light.closet": changes_b}
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_reg,
+        ):
+            result = await engine._detect_sequences(history)
+        assert result == [], "Same-device entities must not produce sequence patterns"
+
+    @pytest.mark.asyncio
+    async def test_disabled_entity_skipped_in_sequence(self, hass: MagicMock) -> None:
+        """Disabled entities must be excluded from sequence detection (#93)."""
+        from unittest.mock import patch
+
+        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False)
+        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True)
+        mock_reg = MagicMock()
+        mock_reg.async_get.side_effect = lambda eid: {
+            "light.hallway": mock_entry_ok,
+            "switch.old_closet": mock_entry_disabled,
+        }.get(eid)
+
+        engine = _make_engine(hass)
+        changes_a: list[dict[str, str]] = []
+        changes_b: list[dict[str, str]] = []
+        for d in range(6):
+            changes_a.append(_change("on", day_offset=d, hour=9, prev="off"))
+            changes_b.append(_change("on", day_offset=d, hour=9, second=30, prev="off"))
+        history = {"light.hallway": changes_a, "switch.old_closet": changes_b}
+
+        with patch(
+            "homeassistant.helpers.entity_registry.async_get",
+            return_value=mock_reg,
+        ):
+            result = await engine._detect_sequences(history)
+        assert result == [], "Disabled entities must not appear in sequences"
 
     @pytest.mark.asyncio
     async def test_deduplicated_against_existing_correlation(self, hass: MagicMock) -> None:
@@ -591,7 +708,9 @@ class TestCausalityGuardrails:
             for cycle in range(6):
                 base_sec = cycle * 60
                 changes_a.append(
-                    _change("on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60)
+                    _change(
+                        "on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60
+                    )
                 )
                 changes_b.append(
                     _change(
@@ -625,7 +744,9 @@ class TestCausalityGuardrails:
             for cycle in range(4):
                 base_sec = cycle * 60
                 changes_a.append(
-                    _change("on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60)
+                    _change(
+                        "on", day_offset=d, hour=10, minute=base_sec // 60, second=base_sec % 60
+                    )
                 )
                 changes_b.append(
                     _change(
@@ -747,8 +868,7 @@ class TestCausalityGuardrails:
         # (consistent B before A), which is correct behaviour.
         # The key assertion: the pattern is NOT killed by inflated reverses.
         forward_pair = [
-            p for p in correlations
-            if p["evidence"].get("trigger_entity") == "sensor.trigger"
+            p for p in correlations if p["evidence"].get("trigger_entity") == "sensor.trigger"
         ]
         # If it survived, directionality must be reasonable
         for p in forward_pair:
@@ -771,12 +891,8 @@ class TestCausalityGuardrails:
                 base_sec = cycle * 160
                 a_min, a_sec = divmod(base_sec, 60)
                 b_min, b_sec = divmod(base_sec + 150, 60)
-                changes_a.append(
-                    _change("on", day_offset=d, hour=10, minute=a_min, second=a_sec)
-                )
-                changes_b.append(
-                    _change("on", day_offset=d, hour=10, minute=b_min, second=b_sec)
-                )
+                changes_a.append(_change("on", day_offset=d, hour=10, minute=a_min, second=a_sec))
+                changes_b.append(_change("on", day_offset=d, hour=10, minute=b_min, second=b_sec))
 
         history = {"sensor.trigger": changes_a, "light.target": changes_b}
         result = await engine._detect_correlations(history)

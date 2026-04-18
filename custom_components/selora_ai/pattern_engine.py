@@ -36,6 +36,7 @@ from .const import (
     PATTERN_TYPE_SEQUENCE,
     PATTERN_TYPE_TIME_BASED,
 )
+from .entity_filter import EntityFilter
 from .pattern_store import PatternStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -234,9 +235,13 @@ class PatternEngine:
         3. Buckets with 3+ days are patterns
         4. Confidence = distinct_days / total_days_observed
         """
+        ef = EntityFilter(self._hass, history)
+
         patterns: list[PatternDict] = []
 
         for entity_id, changes in history.items():
+            if not ef.is_active(entity_id):
+                continue
             if len(changes) < _MIN_TIME_OCCURRENCES:
                 continue
 
@@ -319,9 +324,16 @@ class PatternEngine:
         3. Count co-occurrence pairs (A_state → B_state within window)
         4. Pairs with 4+ matches are patterns
         """
+        # EntityFilter pre-computes disabled + device-id lookups in one pass.
+        # Skips disabled entities (e.g. original switch after "Show as Light")
+        # and same-device pairs that change state in lockstep.
+        ef = EntityFilter(self._hass, history)
+
         # Build sorted timeline — cap per entity to avoid memory explosion
         timeline: list[tuple[datetime, str, str]] = []
         for entity_id, changes in history.items():
+            if not ef.is_active(entity_id):
+                continue
             recent = changes[-_MAX_HISTORY_PER_ENTITY_SCAN:]
             for change in recent:
                 ts = _parse_timestamp(change["ts"])
@@ -360,6 +372,8 @@ class PatternEngine:
                 if delta > _CORRELATION_WINDOW_SECS:
                     break
                 if delta < 1 or eid_a == eid_b:
+                    continue
+                if ef.same_device(eid_a, eid_b):
                     continue
 
                 key = (eid_a, state_a, eid_b, state_b)
@@ -544,9 +558,13 @@ class PatternEngine:
         Only produces patterns not already captured by active
         correlation detection.
         """
-        # Build sorted timeline — cap per entity
+        ef = EntityFilter(self._hass, history)
+
+        # Build sorted timeline — cap per entity, skip disabled entities
         timeline: list[tuple[datetime, str, str, str]] = []
         for entity_id, changes in history.items():
+            if not ef.is_active(entity_id):
+                continue
             recent = changes[-_MAX_HISTORY_PER_ENTITY_SCAN:]
             for change in recent:
                 ts = _parse_timestamp(change["ts"])
@@ -576,6 +594,8 @@ class PatternEngine:
                 if delta > _CORRELATION_WINDOW_SECS:
                     break
                 if delta < 1 or eid_a == eid_b:
+                    continue
+                if ef.same_device(eid_a, eid_b):
                     continue
 
                 # Track the full transition: A(prev→state) → B turns state_b
