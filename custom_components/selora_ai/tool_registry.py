@@ -186,6 +186,25 @@ TOOL_GET_DEVICE = ToolDef(
 )
 
 
+TOOL_LIST_SUGGESTIONS = ToolDef(
+    name="list_suggestions",
+    description=(
+        "List pending automation suggestions that Selora AI has generated "
+        "based on observed device usage patterns. Use this when the user asks "
+        "for ideas, suggestions, or what automations they could set up. "
+        "Returns descriptions, confidence scores, and evidence summaries."
+    ),
+    params=(
+        ToolParam(
+            name="status",
+            type="string",
+            description="Filter by status. Default: pending.",
+            enum=("pending", "accepted", "dismissed", "snoozed"),
+        ),
+    ),
+)
+
+
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_HOME_SNAPSHOT,
@@ -195,6 +214,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ACCEPT_FLOW,
     TOOL_LIST_DEVICES,
     TOOL_GET_DEVICE,
+    TOOL_LIST_SUGGESTIONS,
 )
 
 # Name → ToolDef lookup for admin checks in the executor
