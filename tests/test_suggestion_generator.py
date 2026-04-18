@@ -34,6 +34,12 @@ def _make_pattern_store() -> MagicMock:
     store.get_recently_dismissed_suggestions = AsyncMock(return_value=[])
     store.get_suggestions = AsyncMock(return_value=[])
     store.save_suggestion = AsyncMock(return_value="sugg_id_001")
+    # Default: no active patterns to backfill (#67)
+    store.get_patterns = AsyncMock(return_value=[])
+    # Default: enough history to pass hardening checks (#67)
+    store.get_entity_history = AsyncMock(
+        return_value=[{"state": "on", "ts": "t1"}, {"state": "off", "ts": "t2"}]
+    )
     return store
 
 
@@ -44,9 +50,13 @@ def _make_gen_with_services(
     """Create a SuggestionGenerator whose hass mock exposes *services*."""
     registry = services or _REGISTERED_SERVICES
     mock_hass = MagicMock()
-    mock_hass.services.has_service.side_effect = (
-        lambda domain, service: service in registry.get(domain, set())
+    mock_hass.services.has_service.side_effect = lambda domain, service: (
+        service in registry.get(domain, set())
     )
+    # Default: states.get returns a valid "on" state for hardening checks (#67)
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    mock_hass.states.get.return_value = mock_state
     return SuggestionGenerator(mock_hass, store or _make_pattern_store())
 
 
@@ -323,9 +333,7 @@ class TestSequenceToAutomation:
         assert trigger["from"] == "off"
         assert trigger["to"] == "on"
 
-    def test_no_from_key_when_trigger_from_empty(
-        self, sample_sequence_pattern: dict[str, Any]
-    ):
+    def test_no_from_key_when_trigger_from_empty(self, sample_sequence_pattern: dict[str, Any]):
         sample_sequence_pattern["evidence"]["trigger_from"] = ""
         gen = _make_gen_with_services()
         result = gen._sequence_to_automation(sample_sequence_pattern)
@@ -354,6 +362,155 @@ class TestSequenceToAutomation:
         }
         result = gen._sequence_to_automation(pattern)
         assert result is None, "binary_sensor should never be used as an action target"
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# _validate_suggestion_entities  (hardening checks, #67)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestValidateSuggestionEntities:
+    """Tests for suggestion entity hardening (#67)."""
+
+    @pytest.mark.asyncio
+    async def test_missing_entity_rejected(self) -> None:
+        """Suggestions for entities that don't exist should be skipped."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        gen._hass.states.get.return_value = None
+        pattern = {
+            "entity_ids": ["light.nonexistent"],
+            "evidence": {"trigger_entity": "light.nonexistent"},
+        }
+        result = await gen._validate_suggestion_entities(pattern)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_unavailable_entity_rejected(self) -> None:
+        """Suggestions for unavailable entities should be skipped."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        mock_state = MagicMock()
+        mock_state.state = "unavailable"
+        gen._hass.states.get.return_value = mock_state
+        pattern = {
+            "entity_ids": ["light.broken"],
+            "evidence": {"trigger_entity": "light.broken"},
+        }
+        result = await gen._validate_suggestion_entities(pattern)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_no_history_rejected(self) -> None:
+        """Suggestions for entities with no recent history should be skipped."""
+        store = _make_pattern_store()
+        store.get_entity_history = AsyncMock(return_value=[])
+        gen = _make_gen_with_services(store=store)
+        pattern = {
+            "entity_ids": ["light.hallway"],
+            "evidence": {"trigger_entity": "light.hallway"},
+        }
+        result = await gen._validate_suggestion_entities(pattern)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_valid_entity_passes(self) -> None:
+        """Entities that exist, are available, and have history should pass."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        pattern = {
+            "entity_ids": ["light.hallway"],
+            "evidence": {"trigger_entity": "light.hallway"},
+        }
+        result = await gen._validate_suggestion_entities(pattern)
+        assert result is True
+
+    @pytest.mark.asyncio
+    async def test_empty_entity_ids_rejected(self) -> None:
+        """Patterns with no entity_ids should be rejected."""
+        gen = _make_gen_with_services()
+        pattern = {"entity_ids": [], "evidence": {}}
+        result = await gen._validate_suggestion_entities(pattern)
+        assert result is False
+
+    @pytest.mark.asyncio
+    async def test_history_query_uses_recency_window(self) -> None:
+        """get_entity_history must be called with a `since` cutoff, not unbounded."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)
+        pattern = {
+            "entity_ids": ["light.hallway"],
+            "evidence": {"trigger_entity": "light.hallway"},
+        }
+        await gen._validate_suggestion_entities(pattern)
+        store.get_entity_history.assert_awaited_once()
+        call_kwargs = store.get_entity_history.call_args
+        assert call_kwargs.kwargs.get("since") is not None
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# _backfill_unsugested_patterns  (retry after transient failures, #67)
+# ═══════════════════════════════════════════════════════════════════════
+
+
+class TestBackfillUnsugestedPatterns:
+    """Ensure active patterns that previously failed validation are retried."""
+
+    @pytest.mark.asyncio
+    async def test_backfills_active_pattern_without_suggestion(self) -> None:
+        """An active pattern missing a suggestion should be added to the candidate list."""
+        store = _make_pattern_store()
+        orphan: dict[str, Any] = {
+            "pattern_id": "pat_orphan",
+            "type": "time_based",
+            "confidence": 0.8,
+            "entity_ids": ["light.hallway"],
+            "evidence": {},
+        }
+        store.get_patterns = AsyncMock(return_value=[orphan])
+        # No suggestion exists for this pattern
+        store.has_suggestion_for_pattern = AsyncMock(return_value=False)
+
+        gen = _make_gen_with_services(store=store)
+        result = await gen._backfill_unsugested_patterns([])
+        assert any(p["pattern_id"] == "pat_orphan" for p in result)
+
+    @pytest.mark.asyncio
+    async def test_does_not_duplicate_incoming_pattern(self) -> None:
+        """A pattern already in the incoming list should not be added twice."""
+        store = _make_pattern_store()
+        incoming: dict[str, Any] = {
+            "pattern_id": "pat_existing",
+            "type": "time_based",
+            "confidence": 0.8,
+            "entity_ids": ["light.hallway"],
+            "evidence": {},
+        }
+        store.get_patterns = AsyncMock(return_value=[incoming])
+        store.has_suggestion_for_pattern = AsyncMock(return_value=False)
+
+        gen = _make_gen_with_services(store=store)
+        result = await gen._backfill_unsugested_patterns([incoming])
+        ids = [p["pattern_id"] for p in result]
+        assert ids.count("pat_existing") == 1
+
+    @pytest.mark.asyncio
+    async def test_skips_pattern_with_existing_suggestion(self) -> None:
+        """Active patterns that already have a suggestion should not be backfilled."""
+        store = _make_pattern_store()
+        pattern: dict[str, Any] = {
+            "pattern_id": "pat_suggested",
+            "type": "time_based",
+            "confidence": 0.8,
+            "entity_ids": ["light.hallway"],
+            "evidence": {},
+        }
+        store.get_patterns = AsyncMock(return_value=[pattern])
+        store.has_suggestion_for_pattern = AsyncMock(return_value=True)
+
+        gen = _make_gen_with_services(store=store)
+        result = await gen._backfill_unsugested_patterns([])
+        assert result == []
 
 
 # ═══════════════════════════════════════════════════════════════════════

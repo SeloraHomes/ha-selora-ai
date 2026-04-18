@@ -199,7 +199,10 @@ class PatternEngine:
     async def _scheduled_scan(self, _now: datetime | None) -> None:
         try:
             new_patterns = await self.scan()
-            if new_patterns and self.on_patterns_detected:
+            if self.on_patterns_detected:
+                # Always invoke the callback so the suggestion generator can
+                # retry orphaned active patterns whose entities were transiently
+                # unavailable on a previous cycle (#67).
                 await self.on_patterns_detected(new_patterns)
         except Exception:
             _LOGGER.exception("Pattern scan failed")
