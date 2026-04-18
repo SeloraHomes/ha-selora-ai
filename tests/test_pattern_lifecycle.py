@@ -22,7 +22,10 @@ from .conftest import MockStore
 # Helpers (same conventions as test_pattern_engine.py)
 # ---------------------------------------------------------------------------
 
-BASE_DATE = datetime(2025, 1, 6, tzinfo=UTC)  # Monday
+# Use a recent date so history passes the recency filter in hardening checks (#67).
+# Round down to the most recent Monday for deterministic weekday-based tests.
+_now = datetime.now(tz=UTC)
+BASE_DATE = (_now - timedelta(days=_now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def _ts(day_offset: int = 0, hour: int = 18, minute: int = 0, second: int = 0) -> str:
@@ -71,7 +74,12 @@ def engine(hass, pattern_store: PatternStore) -> PatternEngine:
 
 @pytest.fixture
 def generator(hass_with_services, pattern_store: PatternStore) -> SuggestionGenerator:
-    """Create a SuggestionGenerator with no LLM."""
+    """Create a SuggestionGenerator with no LLM.
+
+    Registers mock entity states so hardening checks pass (#67).
+    """
+    hass_with_services.states.async_set("binary_sensor.door", "on")
+    hass_with_services.states.async_set("light.hallway", "on")
     return SuggestionGenerator(hass_with_services, pattern_store)
 
 
@@ -146,9 +154,7 @@ class TestScanRejectRescan:
         corr_patterns = [p for p in new_patterns if p["type"] == "correlation"]
         assert len(corr_patterns) >= 1
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert len(active_corrs) >= 1
         corr_id = active_corrs[0]["pattern_id"]
 
@@ -165,9 +171,7 @@ class TestScanRejectRescan:
         )
         assert any(p["pattern_id"] == corr_id for p in rejected_corrs)
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert active_corrs == []
 
         # Phase 3: unidirectional history again — rejected pattern reactivates
@@ -178,9 +182,7 @@ class TestScanRejectRescan:
         corr_patterns = [p for p in new_patterns if p["type"] == "correlation"]
         assert len(corr_patterns) >= 1
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert any(p["pattern_id"] == corr_id for p in active_corrs)
 
 
@@ -204,9 +206,7 @@ class TestRejectedCorrelationAllowsSequence:
 
         await engine.scan()
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert len(active_corrs) >= 1
 
         # Now switch to bidirectional data — correlation gets rejected
@@ -216,9 +216,7 @@ class TestRejectedCorrelationAllowsSequence:
         await engine.scan()
 
         # Verify the correlation is now rejected
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert active_corrs == []
 
         rejected_corrs = await pattern_store.get_patterns(
@@ -230,9 +228,7 @@ class TestRejectedCorrelationAllowsSequence:
         # Whether a sequence is actually detected depends on the data meeting
         # the sequence detector's own thresholds.  The key assertion is that
         # no active-correlation filter prevented sequences from being considered.
-        active_seqs = await pattern_store.get_patterns(
-            status="active", pattern_type="sequence"
-        )
+        active_seqs = await pattern_store.get_patterns(status="active", pattern_type="sequence")
         assert isinstance(active_seqs, list)
 
 
@@ -251,9 +247,7 @@ class TestReactivatedCorrelationRetiresSequence:
 
         await engine.scan()
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert len(active_corrs) >= 1
 
         # Phase 1b: reject it with bidirectional data
@@ -282,9 +276,7 @@ class TestReactivatedCorrelationRetiresSequence:
         }
         seq_id = await pattern_store.save_pattern(seq_pattern)
 
-        active_seqs = await pattern_store.get_patterns(
-            status="active", pattern_type="sequence"
-        )
+        active_seqs = await pattern_store.get_patterns(status="active", pattern_type="sequence")
         assert any(s["pattern_id"] == seq_id for s in active_seqs)
 
         # Phase 2: replace with unidirectional data — correlation reactivates
@@ -294,9 +286,7 @@ class TestReactivatedCorrelationRetiresSequence:
         await engine.scan()
 
         # The fallback sequence should now be retired (rejected)
-        active_seqs = await pattern_store.get_patterns(
-            status="active", pattern_type="sequence"
-        )
+        active_seqs = await pattern_store.get_patterns(status="active", pattern_type="sequence")
         seq_still_active = [s for s in active_seqs if s["pattern_id"] == seq_id]
         assert seq_still_active == []
 
@@ -319,9 +309,7 @@ class TestSnoozedPatternSurvivesRejection:
 
         await engine.scan()
 
-        active_corrs = await pattern_store.get_patterns(
-            status="active", pattern_type="correlation"
-        )
+        active_corrs = await pattern_store.get_patterns(status="active", pattern_type="correlation")
         assert len(active_corrs) >= 1
         corr_id = active_corrs[0]["pattern_id"]
 
@@ -407,9 +395,7 @@ class TestSnoozedSuggestionOnRejection:
 
         # User snoozes the suggestion
         future = (datetime.now(UTC) + timedelta(days=3)).isoformat()
-        await pattern_store.update_suggestion_status(
-            suggestion_id, "snoozed", snooze_until=future
-        )
+        await pattern_store.update_suggestion_status(suggestion_id, "snoozed", snooze_until=future)
         s = await pattern_store.get_suggestion(suggestion_id)
         assert s is not None
         assert s["status"] == "snoozed"

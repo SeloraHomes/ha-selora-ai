@@ -948,3 +948,39 @@ class TestCausalityGuardrails:
         assert isinstance(evidence["directionality"], float)
         assert evidence["directionality"] > 0.0
         assert evidence["directionality"] <= 1.0
+
+
+# ===========================================================================
+# _scheduled_scan — callback invocation
+# ===========================================================================
+
+
+class TestScheduledScanCallback:
+    """Verify _scheduled_scan always invokes the callback, even on empty scans."""
+
+    @pytest.mark.asyncio
+    async def test_callback_called_on_empty_scan(self) -> None:
+        """The callback must fire even when scan() returns [] so the suggestion
+        generator can retry orphaned patterns (#67)."""
+        store = _mock_pattern_store()
+        store.get_all_history = AsyncMock(return_value={})
+        hass = MagicMock()
+        engine = _make_engine(hass, store)
+        callback = AsyncMock()
+        engine.on_patterns_detected = callback
+
+        await engine._scheduled_scan(None)
+
+        callback.assert_awaited_once_with([])
+
+    @pytest.mark.asyncio
+    async def test_callback_not_called_when_unset(self) -> None:
+        """No error when on_patterns_detected is None."""
+        store = _mock_pattern_store()
+        store.get_all_history = AsyncMock(return_value={})
+        hass = MagicMock()
+        engine = _make_engine(hass, store)
+        engine.on_patterns_detected = None
+
+        # Should not raise
+        await engine._scheduled_scan(None)

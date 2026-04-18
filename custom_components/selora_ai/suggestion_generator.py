@@ -8,6 +8,7 @@ suggestion with confidence score and human-readable evidence summary.
 from __future__ import annotations
 
 import asyncio
+from datetime import UTC, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -23,6 +24,7 @@ if TYPE_CHECKING:
 from .const import (
     CONFIDENCE_MEDIUM,
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
+    PATTERN_HISTORY_RETENTION_DAYS,
     PATTERN_TYPE_CORRELATION,
     PATTERN_TYPE_SEQUENCE,
     PATTERN_TYPE_TIME_BASED,
@@ -68,6 +70,12 @@ class SuggestionGenerator:
         # Track fingerprints within this batch to prevent intra-batch duplicates (#46)
         batch_fingerprints: set[str] = set()
 
+        # Retry active patterns that failed validation on a previous cycle (#67).
+        # scan() only returns newly detected or reactivated patterns, so an active
+        # pattern whose entities were transiently unavailable would never be retried
+        # without this backfill.
+        patterns = await self._backfill_unsugested_patterns(patterns)
+
         recently_dismissed: list[
             SuggestionDict
         ] = await self._store.get_recently_dismissed_suggestions()
@@ -96,6 +104,14 @@ class SuggestionGenerator:
                     "Suppressing suggestion for pattern %s — dismissed within %d-day window",
                     pattern_id,
                     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
+                )
+                continue
+
+            # Hardening: verify entities are valid and have recent activity (#67)
+            if not await self._validate_suggestion_entities(pattern):
+                _LOGGER.debug(
+                    "Skipping pattern %s — entities failed hardening checks",
+                    pattern_id,
                 )
                 continue
 
@@ -181,6 +197,67 @@ class SuggestionGenerator:
             if auto_data:
                 fingerprints.add(suggestion_content_fingerprint(auto_data))
         return fingerprints
+
+    async def _backfill_unsugested_patterns(self, patterns: list[PatternDict]) -> list[PatternDict]:
+        """Merge active patterns that lack suggestions into the candidate list.
+
+        PatternEngine.scan() only returns newly detected or reactivated patterns.
+        If a previous validation failed transiently (entity unavailable at HA
+        startup, brief device outage), the active pattern won't be emitted again.
+        This backfills those orphaned patterns so they are retried each cycle.
+        """
+        incoming_ids = {p.get("pattern_id") for p in patterns if p.get("pattern_id")}
+        active_patterns = await self._store.get_patterns(status="active")
+        backfilled = list(patterns)
+        for p in active_patterns:
+            pid = p.get("pattern_id", "")
+            if (
+                pid
+                and pid not in incoming_ids
+                and not await self._store.has_suggestion_for_pattern(pid)
+            ):
+                backfilled.append(p)
+        return backfilled
+
+    async def _validate_suggestion_entities(self, pattern: PatternDict) -> bool:
+        """Validate that a pattern's entities are real, controllable, and recently active.
+
+        Returns True if the suggestion is valid, False if it should be skipped.
+        This prevents suggesting automations for entities that:
+        - No longer exist in HA
+        - Are unavailable or disabled
+        - Have no recent activity (stale patterns from old data)
+        """
+        entity_ids = pattern.get("entity_ids", [])
+        if not entity_ids:
+            return False
+
+        evidence = pattern.get("evidence", {})
+
+        for entity_id in entity_ids:
+            # Check entity exists in the state machine
+            state = self._hass.states.get(entity_id)
+            if state is None:
+                _LOGGER.debug("Entity %s not found in state machine", entity_id)
+                return False
+            if state.state in ("unavailable", "unknown"):
+                _LOGGER.debug("Entity %s is %s", entity_id, state.state)
+                return False
+
+        # Check trigger entity has recent activity within the retention window
+        trigger_entity = evidence.get("trigger_entity", entity_ids[0])
+        since = datetime.now(tz=UTC) - timedelta(days=PATTERN_HISTORY_RETENTION_DAYS)
+        history = await self._store.get_entity_history(trigger_entity, since=since)
+        if len(history) < 2:
+            _LOGGER.debug(
+                "Trigger entity %s has insufficient recent history (%d entries in last %d days)",
+                trigger_entity,
+                len(history),
+                PATTERN_HISTORY_RETENTION_DAYS,
+            )
+            return False
+
+        return True
 
     def _pattern_to_automation(self, pattern: PatternDict) -> AutomationDict | None:
         """Convert a pattern into a valid HA automation dict."""
