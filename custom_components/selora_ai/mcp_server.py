@@ -55,7 +55,6 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import Unauthorized
 
 from .const import (
-    AUTOMATION_ID_PREFIX,
     COLLECTOR_DOMAINS,
     DOMAIN,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
@@ -300,95 +299,6 @@ def _get_external_base_url(hass: HomeAssistant, request: web.Request) -> str:
         return f"{request.scheme}://{request.host}"
 
 
-# ── OAuth Protected Resource Metadata (RFC 9728) ─────────────────────────────
-
-
-class OAuthProtectedResourceView(HomeAssistantView):
-    """Serve RFC 9728 protected-resource metadata.
-
-    GET /api/selora_ai/mcp/.well-known/oauth-protected-resource
-
-    Unauthenticated — MCP/OAuth clients fetch this to discover the
-    authorization server before they have any credentials.
-    All well-known paths live under /api/selora_ai/mcp/ because HA only
-    allows custom components to register views under /api/.
-    """
-
-    name = "selora_ai:oauth_protected_resource"
-    url = _PROTECTED_RESOURCE_URL
-    requires_auth = False
-
-    async def options(self, request: web.Request) -> web.Response:
-        """CORS preflight."""
-        return await _cors_preflight(request)
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Return protected-resource metadata JSON."""
-        hass: HomeAssistant = request.app[KEY_HASS]
-        base_url = _get_external_base_url(hass, request)
-        # authorization_servers points to Connect (not HA) because HA's
-        # built-in auth owns /.well-known/oauth-authorization-server and
-        # we can't register a sub-path there. Connect already serves
-        # the AS metadata at its own /.well-known/oauth-authorization-server.
-        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
-        return _add_cors(
-            request,
-            web.json_response(
-                {
-                    "resource": f"{base_url}{_MCP_URL}",
-                    "authorization_servers": [connect_url],
-                    "bearer_methods_supported": ["header"],
-                    "scopes_supported": [],
-                }
-            ),
-        )
-
-
-class OAuthAuthorizationServerView(HomeAssistantView):
-    """OAuth Authorization Server Metadata (RFC 8414).
-
-    GET /.well-known/oauth-authorization-server/api/selora_ai/mcp
-
-    MCP clients discover this URL from the protected-resource metadata.
-    The token_endpoint points to our local proxy (/api/selora_ai/oauth/token)
-    rather than directly to Connect, because some clients (mcp-remote)
-    re-fetch the root /.well-known/oauth-authorization-server for the
-    token exchange step and would hit HA's built-in /auth/token instead.
-    """
-
-    name = "selora_ai:oauth_as_metadata"
-    url = _OAUTH_AS_METADATA_URL
-    requires_auth = False
-
-    async def options(self, request: web.Request) -> web.Response:
-        """CORS preflight."""
-        return await _cors_preflight(request)
-
-    async def get(self, request: web.Request) -> web.Response:
-        """Return Connect's OAuth AS metadata, or 404 if Connect is not linked."""
-        hass: HomeAssistant = request.app[KEY_HASS]
-        jwt_validator = hass.data.get(DOMAIN, {}).get("selora_jwt_validator")
-        if jwt_validator is None:
-            return _add_cors(request, web.Response(status=HTTPStatus.NOT_FOUND))
-        connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
-        base_url = _get_external_base_url(hass, request)
-        return _add_cors(
-            request,
-            web.json_response(
-                {
-                    "issuer": base_url,
-                    "authorization_endpoint": f"{connect_url}/oauth/authorize",
-                    "token_endpoint": f"{base_url}{_OAUTH_TOKEN_PROXY_URL}",
-                    "registration_endpoint": f"{connect_url}/oauth/register",
-                    "response_types_supported": ["code"],
-                    "grant_types_supported": ["authorization_code"],
-                    "code_challenge_methods_supported": ["S256"],
-                    "scopes_supported": [],
-                }
-            ),
-        )
-
-
 class OAuthTokenProxyView(HomeAssistantView):
     """Proxy token requests to Selora Connect.
 
@@ -614,6 +524,34 @@ async def _jsonrpc_dispatch(
 # ── Tool dispatch ──────────────────────────────────────────────────────────────
 
 
+# Tools that take only (hass) — no arguments parameter
+_NO_ARGS_TOOLS = frozenset({TOOL_GET_HOME_SNAPSHOT, TOOL_LIST_SESSIONS, TOOL_TRIGGER_SCAN})
+
+
+def _get_tool_handlers() -> dict[str, Any]:
+    """Return the tool handler registry (lazy to avoid forward-reference issues)."""
+    return {
+        TOOL_LIST_AUTOMATIONS: _tool_list_automations,
+        TOOL_GET_AUTOMATION: _tool_get_automation,
+        TOOL_VALIDATE_AUTOMATION: _tool_validate_automation,
+        TOOL_CREATE_AUTOMATION: _tool_create_automation,
+        TOOL_ACCEPT_AUTOMATION: _tool_accept_automation,
+        TOOL_DELETE_AUTOMATION: _tool_delete_automation,
+        TOOL_GET_HOME_SNAPSHOT: _tool_get_home_snapshot,
+        TOOL_CHAT: _tool_chat,
+        TOOL_LIST_SESSIONS: _tool_list_sessions,
+        TOOL_LIST_PATTERNS: _tool_list_patterns,
+        TOOL_GET_PATTERN: _tool_get_pattern,
+        TOOL_LIST_SUGGESTIONS: _tool_list_suggestions,
+        TOOL_ACCEPT_SUGGESTION: _tool_accept_suggestion,
+        TOOL_DISMISS_SUGGESTION: _tool_dismiss_suggestion,
+        TOOL_TRIGGER_SCAN: _tool_trigger_scan,
+        TOOL_LIST_DEVICES: _tool_list_devices,
+        TOOL_GET_DEVICE: _tool_get_device,
+        TOOL_HOME_ANALYTICS: _tool_home_analytics,
+    }
+
+
 async def _dispatch(
     hass: HomeAssistant,
     name: str,
@@ -626,44 +564,13 @@ async def _dispatch(
     try:
         _check_tool_access(auth_ctx, name)
 
-        if name == TOOL_LIST_AUTOMATIONS:
-            result = await _tool_list_automations(hass, arguments)
-        elif name == TOOL_GET_AUTOMATION:
-            result = await _tool_get_automation(hass, arguments)
-        elif name == TOOL_VALIDATE_AUTOMATION:
-            result = await _tool_validate_automation(hass, arguments)
-        elif name == TOOL_CREATE_AUTOMATION:
-            result = await _tool_create_automation(hass, arguments)
-        elif name == TOOL_ACCEPT_AUTOMATION:
-            result = await _tool_accept_automation(hass, arguments)
-        elif name == TOOL_DELETE_AUTOMATION:
-            result = await _tool_delete_automation(hass, arguments)
-        elif name == TOOL_GET_HOME_SNAPSHOT:
-            result = await _tool_get_home_snapshot(hass)
-        elif name == TOOL_CHAT:
-            result = await _tool_chat(hass, arguments)
-        elif name == TOOL_LIST_SESSIONS:
-            result = await _tool_list_sessions(hass)
-        elif name == TOOL_LIST_PATTERNS:
-            result = await _tool_list_patterns(hass, arguments)
-        elif name == TOOL_GET_PATTERN:
-            result = await _tool_get_pattern(hass, arguments)
-        elif name == TOOL_LIST_SUGGESTIONS:
-            result = await _tool_list_suggestions(hass, arguments)
-        elif name == TOOL_ACCEPT_SUGGESTION:
-            result = await _tool_accept_suggestion(hass, arguments)
-        elif name == TOOL_DISMISS_SUGGESTION:
-            result = await _tool_dismiss_suggestion(hass, arguments)
-        elif name == TOOL_TRIGGER_SCAN:
-            result = await _tool_trigger_scan(hass)
-        elif name == TOOL_LIST_DEVICES:
-            result = await _tool_list_devices(hass, arguments)
-        elif name == TOOL_GET_DEVICE:
-            result = await _tool_get_device(hass, arguments)
-        elif name == TOOL_HOME_ANALYTICS:
-            result = await _tool_home_analytics(hass, arguments)
-        else:
+        handler = _get_tool_handlers().get(name)
+        if handler is None:
             result = {"error": f"Unknown tool: {name}"}
+        elif name in _NO_ARGS_TOOLS:
+            result = await handler(hass)
+        else:
+            result = await handler(hass, arguments)
     except Unauthorized as exc:
         result = {"error": str(exc)}
     except Exception:
@@ -677,26 +584,17 @@ async def _dispatch(
 
 
 def _sanitize(value: Any, limit: int = 200) -> str:
-    """Normalize and truncate untrusted string fields before including in responses.
+    """Normalize and truncate untrusted string fields before including in responses."""
+    from .helpers import sanitize_untrusted_text
 
-    Prevents prompt-injection via entity friendly names, automation aliases,
-    or other user-controlled strings that flow into MCP tool responses and
-    may subsequently be used as LLM context by the calling agent.
-    """
-    text = " ".join(str(value or "").split())
-    if len(text) > limit:
-        text = text[: limit - 3] + "..."
-    return text
+    return sanitize_untrusted_text(value, limit=limit)
 
 
 def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     """Return (or lazily create) the AutomationStore singleton."""
-    from .automation_store import AutomationStore
+    from .helpers import get_automation_store
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    if "_automation_store" not in domain_data:
-        domain_data["_automation_store"] = AutomationStore(hass)
-    return domain_data["_automation_store"]
+    return get_automation_store(hass)
 
 
 def _get_conv_store(hass: HomeAssistant) -> ConversationStore:
@@ -728,14 +626,9 @@ async def _read_yaml_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
 
 def _is_selora(automation: dict[str, Any]) -> bool:
     """Return True if this automation was created by Selora AI."""
-    aid = str(automation.get("id", ""))
-    desc = str(automation.get("description", ""))
-    alias = str(automation.get("alias", ""))
-    return (
-        aid.startswith(AUTOMATION_ID_PREFIX)
-        or "[Selora AI]" in desc
-        or alias.startswith("[Selora AI]")
-    )
+    from .helpers import is_selora_automation
+
+    return is_selora_automation(automation)
 
 
 def _is_pending_automation(auto: dict[str, Any], record: dict[str, Any] | None) -> bool:
@@ -1066,17 +959,16 @@ def _format_state_value(value: str) -> str:
     Converts ISO 8601 timestamps to 12-hour HH:MM AM/PM format.
     Other values are sanitized normally.
     """
-    from datetime import datetime
+    from .helpers import format_entity_state
 
-    stripped = value.strip()
-    # Try parsing ISO 8601 datetime (e.g., 2026-03-27T11:05:27+00:00)
-    for fmt in ("%Y-%m-%dT%H:%M:%S%z", "%Y-%m-%dT%H:%M:%S.%f%z", "%Y-%m-%dT%H:%M:%S"):
-        try:
-            dt = datetime.strptime(stripped, fmt)
-            return dt.strftime("%I:%M %p").lstrip("0")
-        except ValueError:
-            continue
-    return _sanitize(value, limit=64)
+    raw = value.strip()
+    result = format_entity_state(value)
+    # format_entity_state returns the stripped input unchanged for
+    # non-timestamps.  In that case, apply MCP sanitization to enforce
+    # the 64-char limit on user-controlled state strings.
+    if result == raw:
+        return _sanitize(raw, limit=64)
+    return result
 
 
 async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
@@ -1442,26 +1334,9 @@ def _get_suggestion_status_store(hass: HomeAssistant) -> dict[str, dict[str, Any
 
 
 def _collect_entity_ids(value: Any) -> list[str]:
-    found: set[str] = set()
+    from .helpers import collect_entity_ids
 
-    def _walk(node: Any) -> None:
-        if isinstance(node, dict):
-            for key, child in node.items():
-                if key == "entity_id":
-                    if isinstance(child, str):
-                        found.add(child)
-                    elif isinstance(child, list):
-                        for item in child:
-                            if isinstance(item, str):
-                                found.add(item)
-                else:
-                    _walk(child)
-        elif isinstance(node, list):
-            for item in node:
-                _walk(item)
-
-    _walk(value)
-    return sorted(found)
+    return sorted(collect_entity_ids(value))
 
 
 def _suggestion_identity(raw: dict[str, Any], index: int) -> tuple[str, str]:
