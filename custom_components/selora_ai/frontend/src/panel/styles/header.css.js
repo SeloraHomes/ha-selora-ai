@@ -2,73 +2,77 @@ import { css } from "lit";
 
 export const headerStyles = css`
   .header {
-    background: var(--app-header-background-color, #1c1c1e);
-    color: var(--app-header-text-color, #e4e4e7);
-    box-shadow: none;
-    border-bottom: 1px solid var(--divider-color);
+    background: var(--app-header-background-color);
+    border-bottom: var(--app-header-border-bottom, none);
     z-index: 2;
     flex-shrink: 0;
+    height: var(--header-height, 56px);
+    box-sizing: border-box;
   }
-  .header-top {
-    padding: 14px 24px;
-    font-size: 20px;
-    font-weight: 500;
+  .header-toolbar {
+    position: relative;
     display: flex;
     align-items: center;
-    gap: 10px;
-    max-width: 1200px;
-    margin: 0 auto;
+    height: var(--header-height, 56px);
+    padding: 0 12px;
     box-sizing: border-box;
     width: 100%;
+    font-family: var(--ha-font-family-body, Roboto, Noto, sans-serif);
+    color: var(--app-header-text-color, var(--primary-text-color));
+    -webkit-font-smoothing: var(--ha-font-smoothing, antialiased);
+    -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing, grayscale);
   }
-  .header-top ha-icon-button {
-    margin-right: 4px;
-    display: inline-flex;
-    opacity: 0.55;
+  .header-logo {
+    width: 20px;
+    height: 20px;
+    margin-left: 8px;
+    flex-shrink: 0;
   }
-  .feedback-link {
-    margin-left: auto;
-    background: none;
-    border: none;
-    color: var(--primary-text-color);
-    opacity: 0.45;
-    font-size: 12px;
-    cursor: pointer;
-    padding: 4px 0;
-    font-family: inherit;
-    transition: opacity 0.15s;
+  .header-title {
+    margin-inline-start: var(--ha-space-6, 24px);
+    margin-right: 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    font-size: var(--ha-font-size-xl, 20px);
+    font-weight: var(--ha-font-weight-normal, 400);
   }
-  .feedback-link:hover {
-    opacity: 0.8;
-    text-decoration: underline;
-  }
-  .header-icon-link {
-    color: var(--primary-text-color);
-    opacity: 0.45;
-    transition: opacity 0.15s;
+  .tabs-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
     display: flex;
     align-items: center;
+    height: 100%;
+    pointer-events: auto;
   }
-  .header-icon-link:hover {
-    opacity: 0.8;
-  }
-  .tabs {
-    display: flex;
-    padding: 0 24px;
-    max-width: 1200px;
-    margin: 0 auto;
-    box-sizing: border-box;
-    width: 100%;
+  @media (max-width: 600px) {
+    .header-title,
+    .header-logo {
+      display: none;
+    }
+    .tabs-center {
+      position: static;
+      transform: none;
+      flex: 1;
+      justify-content: center;
+    }
   }
   .tab {
-    padding: 10px 16px;
+    position: relative;
+    padding: 0 10px;
+    height: var(--header-height, 56px);
     cursor: pointer;
-    font-weight: 400;
     font-size: 16px;
+    font-weight: 400;
+    color: var(--app-header-text-color, var(--primary-text-color));
     opacity: 0.55;
     transition:
       opacity 0.3s,
       color 0.3s;
+    white-space: nowrap;
+    user-select: none;
+    display: flex;
+    align-items: center;
   }
   .tab:hover {
     opacity: 1;
@@ -79,8 +83,27 @@ export const headerStyles = css`
     font-weight: 600;
     color: var(--selora-accent-text);
   }
-  .tab:first-child {
-    padding-left: 0;
+  /* Light mode: keep text dark, only underline is gold */
+  :host(:not([dark])) .tab:hover,
+  :host(:not([dark])) .tab.active {
+    color: var(--primary-text-color);
+  }
+  /* Underline pinned to bottom of tab */
+  .tab::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--selora-accent);
+    transform: scaleX(0);
+    transform-origin: center;
+    transition: transform 0.3s ease;
+  }
+  .tab:hover::after,
+  .tab.active::after {
+    transform: scaleX(1);
   }
   .tab-inner {
     display: inline-flex;
@@ -89,14 +112,69 @@ export const headerStyles = css`
   }
   .tab-icon {
     --mdc-icon-size: 16px;
-    margin-bottom: 12px;
   }
-  .tab-text {
+  .header-spacer {
+    flex: 1;
+  }
+  /* Overflow (3-dot) menu */
+  .overflow-btn-wrap {
     position: relative;
-    padding-bottom: 6px;
   }
-  /* Shared underline-from-center effect */
-  .tab-text::after,
+  .overflow-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(
+      --sidebar-icon-color,
+      var(--app-header-text-color, var(--primary-text-color))
+    );
+    --mdc-icon-size: 24px;
+  }
+  .overflow-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    min-width: 200px;
+    background: var(--card-background-color, #fff);
+    border-radius: 4px;
+    box-shadow:
+      0 2px 4px -1px rgba(0, 0, 0, 0.2),
+      0 4px 5px rgba(0, 0, 0, 0.14),
+      0 1px 10px rgba(0, 0, 0, 0.12);
+    padding: 8px 0;
+    z-index: 10;
+  }
+  .overflow-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    width: 100%;
+    padding: 0 16px;
+    height: 48px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: var(--ha-font-size-m, 14px);
+    font-family: var(--ha-font-family-body, Roboto, Noto, sans-serif);
+    color: var(--primary-text-color);
+    text-decoration: none;
+    transition: background 0.1s;
+    box-sizing: border-box;
+    --mdc-icon-size: 24px;
+  }
+  .overflow-item:hover {
+    background: rgba(128, 128, 128, 0.12);
+  }
+  .overflow-item ha-icon {
+    color: var(--secondary-text-color);
+  }
+  /* card-tab underline used elsewhere — keep */
   .card-tab::after {
     content: "";
     position: absolute;
@@ -109,8 +187,6 @@ export const headerStyles = css`
     transform-origin: center;
     transition: transform 0.3s ease;
   }
-  .tab:hover .tab-text::after,
-  .tab.active .tab-text::after,
   .card-tab.active::after {
     transform: scaleX(1);
   }

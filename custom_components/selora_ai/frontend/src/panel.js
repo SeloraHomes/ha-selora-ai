@@ -290,6 +290,12 @@ class SeloraAIPanel extends LitElement {
       // Device detail drawer
       _deviceDetail: { type: Object },
       _deviceDetailLoading: { type: Boolean },
+
+      // Theme
+      _isDark: { type: Boolean },
+
+      // Overflow menu
+      _showOverflowMenu: { type: Boolean },
     };
   }
 
@@ -437,12 +443,19 @@ class SeloraAIPanel extends LitElement {
       }
     };
     window.addEventListener("keydown", this._keyDownHandler);
+    this._closeOverflowHandler = () => {
+      if (this._showOverflowMenu) this._showOverflowMenu = false;
+    };
+    document.addEventListener("click", this._closeOverflowHandler);
   }
 
   disconnectedCallback() {
     super.disconnectedCallback();
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
+    }
+    if (this._closeOverflowHandler) {
+      document.removeEventListener("click", this._closeOverflowHandler);
     }
     if (this._keyDownHandler) {
       window.removeEventListener("keydown", this._keyDownHandler);
@@ -988,13 +1001,11 @@ class SeloraAIPanel extends LitElement {
   updated(changedProps) {
     if (changedProps.has("hass")) {
       this._checkTabParam();
-      // Set accent text color based on HA dark mode (gold on dark, black on light)
+      // Track dark mode for conditional rendering (gold branding only in dark)
       const dark = this.hass?.themes?.darkMode;
       if (dark !== undefined) {
-        this.style.setProperty(
-          "--selora-accent-text",
-          dark ? "#fbbf24" : "#18181b",
-        );
+        this._isDark = dark;
+        this.toggleAttribute("dark", dark);
       }
     }
     // Process deferred "Create in Chat" once hass becomes available
@@ -1285,85 +1296,122 @@ class SeloraAIPanel extends LitElement {
   render() {
     return html`
       <div class="header">
-        <div class="header-top">
+        <div class="header-toolbar">
+          <span class="header-title ${this._isDark ? "gold-text" : ""}"
+            >Selora AI</span
+          >
           <img
-            src="/api/selora_ai/logo.png"
-            alt="Selora"
-            style="width:28px;height:28px;border-radius:6px;"
+            src="/api/selora_ai/${this._isDark ? "logo" : "logo-light"}.png"
+            alt=""
+            class="header-logo"
           />
-          <span class="gold-text">Selora AI</span>
-          <button class="feedback-link" @click=${() => this._openFeedback()}>
-            ${this._t("feedback_button_label", "Give Feedback")}
-          </button>
-          <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/issues"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GitHub Issues"
-            class="header-icon-link"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-              />
-            </svg>
-          </a>
-          <a
-            href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
-            target="_blank"
-            rel="noopener noreferrer"
-            title="GitLab Repository"
-            class="header-icon-link"
-          >
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-              <path
-                d="m23.6 9.593-.033-.086L20.3.98a.851.851 0 0 0-.336-.405.87.87 0 0 0-.52-.155.86.86 0 0 0-.52.164.86.86 0 0 0-.324.413L16.6 6.544H7.4L5.4 1.003A.86.86 0 0 0 5.07.583a.87.87 0 0 0-.52-.164.86.86 0 0 0-.52.155.85.85 0 0 0-.336.405L.428 9.5l-.033.09a6.07 6.07 0 0 0 2.012 7.01l.01.008.028.02 4.97 3.722 2.458 1.86 1.496 1.13a1.01 1.01 0 0 0 1.22 0l1.497-1.13 2.457-1.86 5-3.743.012-.01a6.07 6.07 0 0 0 2.005-7.003"
-              />
-            </svg>
-          </a>
-        </div>
-        <div class="tabs">
-          <div
-            class="tab ${this._activeTab === "chat" ? "active" : ""}"
-            @click=${() => {
-              if (this._activeTab === "chat") {
-                this._showSidebar = !this._showSidebar;
-              } else {
-                this._activeTab = "chat";
-                this._showSidebar = true;
-              }
-            }}
-          >
-            <span class="tab-inner"
-              ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
-              ><span class="tab-text">Chat</span></span
+          <div class="tabs-center">
+            <div
+              class="tab ${this._activeTab === "chat" ? "active" : ""}"
+              @click=${() => {
+                if (this._activeTab === "chat") {
+                  this._showSidebar = !this._showSidebar;
+                } else {
+                  this._activeTab = "chat";
+                  this._showSidebar = true;
+                }
+              }}
             >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
+                >Chat</span
+              >
+            </div>
+            <div
+              class="tab ${this._activeTab === "automations" ? "active" : ""}"
+              @click=${() => {
+                this._activeTab = "automations";
+                this._showSidebar = false;
+                this._loadAutomations();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:robot-outline" class="tab-icon"></ha-icon
+                >Automations</span
+              >
+            </div>
+            <div
+              class="tab ${this._activeTab === "settings" ? "active" : ""}"
+              @click=${() => {
+                this._activeTab = "settings";
+                this._showSidebar = false;
+                this._loadConfig();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:cog-outline" class="tab-icon"></ha-icon
+                >Settings</span
+              >
+            </div>
           </div>
-          <div
-            class="tab ${this._activeTab === "automations" ? "active" : ""}"
-            @click=${() => {
-              this._activeTab = "automations";
-              this._showSidebar = false;
-              this._loadAutomations();
-            }}
-          >
-            <span class="tab-inner"
-              ><ha-icon icon="mdi:robot-outline" class="tab-icon"></ha-icon
-              ><span class="tab-text">Automations</span></span
+          <span class="header-spacer"></span>
+          <div class="overflow-btn-wrap">
+            <button
+              class="overflow-btn"
+              @click=${(e) => {
+                e.stopPropagation();
+                this._showOverflowMenu = !this._showOverflowMenu;
+              }}
             >
-          </div>
-          <div
-            class="tab ${this._activeTab === "settings" ? "active" : ""}"
-            @click=${() => {
-              this._activeTab = "settings";
-              this._showSidebar = false;
-              this._loadConfig();
-            }}
-          >
-            <span class="tab-inner"
-              ><ha-icon icon="mdi:cog-outline" class="tab-icon"></ha-icon
-              ><span class="tab-text">Settings</span></span
-            >
+              <ha-icon icon="mdi:dots-vertical"></ha-icon>
+            </button>
+            ${this._showOverflowMenu
+              ? html`
+                  <div class="overflow-menu">
+                    <a
+                      class="overflow-item"
+                      href="https://selorahomes.com/docs/selora-ai/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                      }}
+                    >
+                      <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                      Documentation
+                    </a>
+                    <button
+                      class="overflow-item"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                        this._openFeedback();
+                      }}
+                    >
+                      <ha-icon icon="mdi:message-alert-outline"></ha-icon>
+                      Give Feedback
+                    </button>
+                    <a
+                      class="overflow-item"
+                      href="https://github.com/SeloraHomes/ha-selora-ai/issues"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                      }}
+                    >
+                      <ha-icon icon="mdi:github"></ha-icon>
+                      GitHub Issues
+                    </a>
+                    <a
+                      class="overflow-item"
+                      href="https://gitlab.com/selorahomes/products/selora-ai/ha-integration/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                      }}
+                    >
+                      <ha-icon icon="mdi:gitlab"></ha-icon>
+                      GitLab Repository
+                    </a>
+                  </div>
+                `
+              : ""}
           </div>
         </div>
       </div>
