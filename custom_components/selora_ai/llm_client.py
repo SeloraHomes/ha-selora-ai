@@ -164,6 +164,18 @@ def _load_device_knowledge() -> str:
     return _DEVICE_KNOWLEDGE_TEXT
 
 
+def _suggestions_prompt() -> str:
+    """Shared SUGGESTIONS prompt block used in both architect system prompts."""
+    return (
+        "SUGGESTIONS:\n"
+        "When the user asks for ideas, suggestions, or what automations they could set up "
+        "(e.g. 'any ideas?', 'what can you do?', 'suggest something'), use the list_suggestions "
+        "tool to retrieve pending automation suggestions from the pattern engine. Present the top "
+        "results conversationally — explain what each automation would do, why it was suggested "
+        "(using the evidence_summary), and which devices are involved. Do not dump raw data.\n\n"
+    )
+
+
 def _sanitize_untrusted_text(value: object) -> str:
     """Normalize untrusted metadata before it is shown to the model."""
     text = " ".join(str(value or "").split())
@@ -348,7 +360,9 @@ class LLMClient:
                 "config_issue": True,
             }
 
-        system_prompt = self._build_architect_system_prompt()
+        system_prompt = self._build_architect_system_prompt(
+            tools_available=tool_executor is not None,
+        )
         messages = self._build_chat_messages(
             user_message,
             entities,
@@ -425,7 +439,9 @@ class LLMClient:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
-        system_prompt = self._build_architect_stream_system_prompt()
+        system_prompt = self._build_architect_stream_system_prompt(
+            tools_available=tool_executor is not None,
+        )
         messages = self._build_chat_messages(
             user_message,
             entities,
@@ -794,7 +810,7 @@ class LLMClient:
     # System prompts
     # ------------------------------------------------------------------
 
-    def _build_architect_system_prompt(self) -> str:
+    def _build_architect_system_prompt(self, *, tools_available: bool = False) -> str:
         """System prompt for the Smart Home Architect role."""
         return (
             "You are Selora AI, an intelligent home automation architect.\n"
@@ -862,7 +878,8 @@ class LLMClient:
             + "\n"
             + _load_tool_policy()
             + "\n"
-            "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
+            + (_suggestions_prompt() if tools_available else "")
+            + "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
             "When a tool returns structured data, follow the Output Formatting rules above instead.\n"
             "For all other responses:\n"
             "- Command confirmations: 1 sentence.\n"
@@ -881,7 +898,7 @@ class LLMClient:
             + _load_device_knowledge()
         )
 
-    def _build_architect_stream_system_prompt(self) -> str:
+    def _build_architect_stream_system_prompt(self, *, tools_available: bool = False) -> str:
         """Streaming-optimised system prompt.
 
         Instead of requiring pure JSON (impossible to parse mid-stream), the LLM
@@ -948,7 +965,8 @@ class LLMClient:
             + "\n"
             + _load_tool_policy()
             + "\n"
-            "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
+            + (_suggestions_prompt() if tools_available else "")
+            + "TONE & LENGTH (applies to conversational responses, NOT tool-backed answers):\n"
             "When a tool returns structured data, follow the Output Formatting rules above instead.\n"
             "For all other responses:\n"
             "- Device commands: 1 sentence confirming the action.\n"

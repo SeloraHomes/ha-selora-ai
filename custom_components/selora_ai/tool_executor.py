@@ -84,6 +84,7 @@ class ToolExecutor:
             "accept_device_flow": self._accept_device_flow,
             "list_devices": self._list_devices,
             "get_device": self._get_device,
+            "list_suggestions": self._list_suggestions,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -109,6 +110,42 @@ class ToolExecutor:
         from .mcp_server import _tool_get_device
 
         return await _tool_get_device(self._hass, arguments)
+
+    _VALID_SUGGESTION_STATUSES = frozenset({"pending", "accepted", "dismissed", "snoozed"})
+
+    async def _list_suggestions(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Return pending automation suggestions from the pattern store."""
+        from . import _get_pattern_store
+        from .types import SuggestionDict
+
+        store = _get_pattern_store(self._hass)
+        if store is None:
+            return {"suggestions": [], "message": "No suggestion data available yet."}
+
+        status = str(arguments.get("status", "pending")).strip()
+        if status not in self._VALID_SUGGESTION_STATUSES:
+            return {
+                "error": f"Invalid status '{status}'. Must be one of: {', '.join(sorted(self._VALID_SUGGESTION_STATUSES))}"
+            }
+
+        suggestions: list[SuggestionDict] = await store.get_suggestions(status=status)
+
+        # Return a concise view for the LLM to present conversationally
+        result = []
+        for s in suggestions[:10]:  # Cap at 10 to keep token usage bounded
+            result.append(
+                {
+                    "suggestion_id": s.get("suggestion_id", ""),
+                    "description": s.get("description", ""),
+                    "confidence": round(s.get("confidence", 0), 2),
+                    "evidence_summary": s.get("evidence_summary", ""),
+                }
+            )
+
+        return {
+            "suggestions": result,
+            "total": len(suggestions),
+        }
 
     # ── Write tools (admin-only, checked in execute()) ──────────────
 
