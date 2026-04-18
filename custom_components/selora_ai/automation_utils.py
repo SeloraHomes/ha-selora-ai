@@ -571,14 +571,14 @@ def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskA
 
 
 def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
-    """Return (or lazily create) the AutomationStore from hass.data."""
-    from .automation_store import AutomationStore
-    from .const import DOMAIN
+    """Return (or lazily create) the AutomationStore from hass.data.
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    if "_automation_store" not in domain_data:
-        domain_data["_automation_store"] = AutomationStore(hass)
-    return domain_data["_automation_store"]
+    .. deprecated:: Use :func:`helpers.get_automation_store` instead.
+       Kept as a module-level alias for backward compatibility.
+    """
+    from .helpers import get_automation_store
+
+    return get_automation_store(hass)
 
 
 async def async_update_automation(

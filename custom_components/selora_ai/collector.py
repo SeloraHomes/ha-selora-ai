@@ -225,6 +225,308 @@ class DataCollector:
         )
         return cap
 
+    async def _check_and_enforce_cap(self) -> bool:
+        """Check automation cap and handle stale automations.
+
+        Returns True if the collection cycle should proceed, False if capped.
+        """
+        cap = get_selora_automation_cap(self._hass)
+        current_count = count_selora_automations(self._hass, enabled_only=True)
+        if current_count < cap:
+            # Cap not reached — dismiss any leftover stale notification
+            with contextlib.suppress(Exception):
+                await self._hass.services.async_call(
+                    "persistent_notification",
+                    "dismiss",
+                    {"notification_id": _STALE_NOTIFICATION_ID},
+                )
+            return True
+
+        stale = find_stale_automations(self._hass)
+        _LOGGER.info(
+            "Selora automation cap reached (%d/%d). "
+            "%d stale automations found (not triggered in %d days)",
+            current_count,
+            cap,
+            len(stale),
+            AUTOMATION_STALE_DAYS,
+        )
+        if not stale:
+            return False
+
+        auto_purge = self._settings.get(CONF_AUTO_PURGE_STALE, DEFAULT_AUTO_PURGE_STALE)
+        if auto_purge:
+            from .automation_utils import async_delete_automations_batch
+
+            excess = current_count - cap + 1
+            to_purge = stale[:excess]
+            ids_to_purge = [s["automation_id"] for s in to_purge]
+
+            removed = await async_delete_automations_batch(self._hass, ids_to_purge)
+            if removed:
+                removed_lines = "\n".join(f"- {name}" for name in removed)
+                _LOGGER.info("Auto-purged %d stale automations", len(removed))
+                with contextlib.suppress(Exception):
+                    await self._hass.services.async_call(
+                        "persistent_notification",
+                        "create",
+                        {
+                            "title": "Selora AI: stale automations removed",
+                            "message": (
+                                f"Selora auto-removed {len(removed)} "
+                                f"automation{'s' if len(removed) != 1 else ''} "
+                                f"that hadn't triggered in "
+                                f"{AUTOMATION_STALE_DAYS} days:"
+                                f"\n\n{removed_lines}"
+                            ),
+                            "notification_id": _STALE_NOTIFICATION_ID,
+                        },
+                    )
+
+            # Re-check: if still at cap after purge, skip LLM
+            return count_selora_automations(self._hass, enabled_only=True) < cap
+
+        stale_lines = "\n".join(
+            f"- **{s['alias']}** (last triggered: {s['last_triggered'] or 'never'})" for s in stale
+        )
+        with contextlib.suppress(Exception):
+            await self._hass.services.async_call(
+                "persistent_notification",
+                "create",
+                {
+                    "title": "Selora AI: automation cap reached",
+                    "message": (
+                        f"Selora has reached its automation cap "
+                        f"({current_count}/{cap}). "
+                        f"New suggestions are paused until space "
+                        f"is freed up."
+                        f"\n\nThe following automations haven't "
+                        f"triggered in {AUTOMATION_STALE_DAYS} "
+                        f"days and can be removed:"
+                        f"\n\n{stale_lines}"
+                    ),
+                    "notification_id": _STALE_NOTIFICATION_ID,
+                },
+            )
+        return False
+
+    async def _filter_and_score_suggestions(
+        self,
+        suggestions: list[dict[str, Any]],
+        snapshot: HomeSnapshot,
+        dynamic_cap: int,
+    ) -> list[dict[str, Any]]:
+        """Deduplicate, validate, score, and filter raw LLM suggestions.
+
+        Returns enriched suggestions ready for storage, sorted by relevance.
+        """
+        # Build set of existing automation aliases to prevent re-suggesting
+        existing_aliases: set[str] = set()
+        for state in self._hass.states.async_all("automation"):
+            alias = (state.attributes.get("friendly_name") or "").strip().lower()
+            if alias:
+                existing_aliases.add(alias)
+
+        # Filter out suggestions that duplicate existing automations
+        novel: list[dict[str, Any]] = []
+        for s in suggestions:
+            alias = (s.get("alias") or "").strip().lower()
+            if alias in existing_aliases:
+                _LOGGER.debug("Skipping suggestion that already exists: %s", s.get("alias"))
+                continue
+            novel.append(s)
+
+        if len(novel) < len(suggestions):
+            _LOGGER.info(
+                "Filtered %d suggestions that duplicate existing automations",
+                len(suggestions) - len(novel),
+            )
+
+        # Deduplicate remaining by trigger+action content,
+        # also filtering out hashes matching previously deleted automations
+        deleted_hashes: set[str] = set()
+        try:
+            from .pattern_store import PatternStore
+
+            pattern_store = PatternStore(self._hass)
+            deleted_hashes = await pattern_store.get_deleted_hashes()
+        except Exception:
+            _LOGGER.debug("Could not load deleted automation hashes")
+
+        seen_hashes: set[str] = set()
+        unique_suggestions: list[dict[str, Any]] = []
+        deleted_count = 0
+        for s in novel:
+            h = suggestion_content_fingerprint(s)
+            if h in deleted_hashes:
+                _LOGGER.debug(
+                    "Skipping suggestion matching deleted automation: %s",
+                    s.get("alias", "<no alias>"),
+                )
+                deleted_count += 1
+                continue
+            if h in seen_hashes:
+                _LOGGER.debug(
+                    "Skipping duplicate suggestion: %s",
+                    s.get("alias", "<no alias>"),
+                )
+                continue
+            seen_hashes.add(h)
+            unique_suggestions.append(s)
+
+        if deleted_count:
+            _LOGGER.info(
+                "Filtered %d suggestions matching previously deleted automations",
+                deleted_count,
+            )
+        if len(unique_suggestions) < len(novel) - deleted_count:
+            _LOGGER.info(
+                "Removed %d duplicate suggestions",
+                len(novel) - deleted_count - len(unique_suggestions),
+            )
+
+        # Enrich suggestions with YAML for UI preview
+        enriched = []
+        for s in unique_suggestions:
+            is_valid, reason, automation_preview = validate_automation_payload(s, self._hass)
+            if not is_valid or automation_preview is None:
+                _LOGGER.warning(
+                    "Skipping invalid collector suggestion '%s': %s",
+                    s.get("alias", "<missing alias>"),
+                    reason,
+                )
+                continue
+
+            self._validate_entity_ids(s)
+
+            suggestion = dict(s)
+            suggestion["automation_yaml"] = yaml.dump(
+                automation_preview, default_flow_style=False, allow_unicode=True
+            )
+            suggestion["automation_data"] = automation_preview
+            suggestion["risk_assessment"] = assess_automation_risk(automation_preview)
+            enriched.append(suggestion)
+
+        filtered_out = len(unique_suggestions) - len(enriched)
+        if filtered_out:
+            _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
+
+        # Build entity coverage set for scoring
+        existing_auto_entity_ids: set[str] = set()
+        try:
+            automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
+            existing_automations = await self._hass.async_add_executor_job(
+                self._read_automations_yaml, automations_path
+            )
+            for auto in existing_automations:
+                existing_auto_entity_ids.update(self._extract_entity_ids(auto))
+        except Exception:
+            _LOGGER.debug("Could not read automations.yaml for coverage scoring")
+
+        # Pre-compute entity change counts once for all suggestions
+        history = snapshot.get("recorder_history", [])
+        entity_change_counts: dict[str, int] = {}
+        for h in history:
+            eid = h.get("entity_id")
+            if eid:
+                entity_change_counts[eid] = entity_change_counts.get(eid, 0) + 1
+
+        # Score and filter suggestions by relevance
+        pre_score_count = len(enriched)
+        scored: list[dict[str, Any]] = []
+        for s in enriched:
+            score = self._score_suggestion(
+                s, snapshot, existing_auto_entity_ids, entity_change_counts
+            )
+            s["relevance_score"] = score
+            if score < MIN_RELEVANCE_SCORE:
+                _LOGGER.info(
+                    "Filtering low-relevance suggestion '%s' (score: %.2f < %.2f)",
+                    s.get("alias", "<no alias>"),
+                    score,
+                    MIN_RELEVANCE_SCORE,
+                )
+                continue
+            scored.append(s)
+
+        scored.sort(key=lambda s: s.get("relevance_score", 0), reverse=True)
+        enriched = scored
+
+        if len(enriched) < pre_score_count:
+            _LOGGER.info(
+                "Relevance filtering kept %d of %d suggestions",
+                len(enriched),
+                pre_score_count,
+            )
+
+        # Apply dynamic suggestion cap
+        if len(enriched) > dynamic_cap:
+            _LOGGER.info(
+                "Capping suggestions from %d to %d (dynamic cap based on home size)",
+                len(enriched),
+                dynamic_cap,
+            )
+            enriched = enriched[:dynamic_cap]
+
+        # Filter suggestions that match recently dismissed ones
+        pattern_store_inst = self._get_pattern_store()
+        if pattern_store_inst:
+            recently_dismissed = await pattern_store_inst.get_recently_dismissed_suggestions()
+            if recently_dismissed:
+                dismissed_hashes: set[str] = set()
+                dismissed_aliases: set[str] = set()
+                for d in recently_dismissed:
+                    auto_data = d.get("automation_data")
+                    if auto_data:
+                        dismissed_hashes.add(suggestion_content_fingerprint(auto_data))
+                    alias = d.get("automation_data", {}).get("alias") or d.get("description", "")
+                    if alias:
+                        dismissed_aliases.add(self._normalize_alias(alias))
+
+                pre_dismiss_count = len(enriched)
+                filtered: list[dict[str, Any]] = []
+                for s in enriched:
+                    auto_data = s.get("automation_data", s)
+                    content_hash = suggestion_content_fingerprint(auto_data)
+                    if content_hash in dismissed_hashes:
+                        _LOGGER.info(
+                            "Suppressing previously dismissed suggestion (content match): '%s'",
+                            s.get("alias", "<no alias>"),
+                        )
+                        continue
+
+                    alias = self._normalize_alias(s.get("alias", ""))
+                    if alias and alias in dismissed_aliases:
+                        _LOGGER.info(
+                            "Suppressing previously dismissed suggestion (alias match): '%s'",
+                            s.get("alias", "<no alias>"),
+                        )
+                        continue
+
+                    filtered.append(s)
+                enriched = filtered
+
+                if len(enriched) < pre_dismiss_count:
+                    _LOGGER.info(
+                        "Dismissal filter removed %d re-suggested automation(s)",
+                        pre_dismiss_count - len(enriched),
+                    )
+
+        # Validate service/entity compatibility
+        compat_filtered = []
+        for s in enriched:
+            is_compat, reason = self._validate_service_entity_compat(s)
+            if not is_compat:
+                _LOGGER.warning(
+                    "Filtering suggestion '%s': %s",
+                    s.get("alias", "<no alias>"),
+                    reason,
+                )
+                continue
+            compat_filtered.append(s)
+
+        return compat_filtered
+
     async def _collect_analyze_log(self) -> None:
         """Full cycle: collect → LLM analysis → log suggestions."""
         if not self._llm:
@@ -232,88 +534,8 @@ class DataCollector:
             return
 
         # Step 0: Check automation cap before doing any work
-        cap = get_selora_automation_cap(self._hass)
-        current_count = count_selora_automations(self._hass, enabled_only=True)
-        if current_count >= cap:
-            stale = find_stale_automations(self._hass)
-            _LOGGER.info(
-                "Selora automation cap reached (%d/%d). "
-                "%d stale automations found (not triggered in %d days)",
-                current_count,
-                cap,
-                len(stale),
-                AUTOMATION_STALE_DAYS,
-            )
-            if stale:
-                auto_purge = self._settings.get(CONF_AUTO_PURGE_STALE, DEFAULT_AUTO_PURGE_STALE)
-
-                if auto_purge:
-                    from .automation_utils import async_delete_automations_batch
-
-                    # Only delete enough to drop below the cap
-                    excess = current_count - cap + 1
-                    to_purge = stale[:excess]
-                    ids_to_purge = [s["automation_id"] for s in to_purge]
-
-                    removed = await async_delete_automations_batch(self._hass, ids_to_purge)
-                    if removed:
-                        removed_lines = "\n".join(f"- {name}" for name in removed)
-                        _LOGGER.info("Auto-purged %d stale automations", len(removed))
-                        with contextlib.suppress(Exception):
-                            await self._hass.services.async_call(
-                                "persistent_notification",
-                                "create",
-                                {
-                                    "title": "Selora AI: stale automations removed",
-                                    "message": (
-                                        f"Selora auto-removed {len(removed)} "
-                                        f"automation{'s' if len(removed) != 1 else ''} "
-                                        f"that hadn't triggered in "
-                                        f"{AUTOMATION_STALE_DAYS} days:"
-                                        f"\n\n{removed_lines}"
-                                    ),
-                                    "notification_id": _STALE_NOTIFICATION_ID,
-                                },
-                            )
-
-                    # Re-check: if still at cap after purge, skip LLM
-                    if count_selora_automations(self._hass, enabled_only=True) >= cap:
-                        return
-                else:
-                    stale_lines = "\n".join(
-                        f"- **{s['alias']}** (last triggered: {s['last_triggered'] or 'never'})"
-                        for s in stale
-                    )
-                    with contextlib.suppress(Exception):
-                        await self._hass.services.async_call(
-                            "persistent_notification",
-                            "create",
-                            {
-                                "title": "Selora AI: automation cap reached",
-                                "message": (
-                                    f"Selora has reached its automation cap "
-                                    f"({current_count}/{cap}). "
-                                    f"New suggestions are paused until space "
-                                    f"is freed up."
-                                    f"\n\nThe following automations haven't "
-                                    f"triggered in {AUTOMATION_STALE_DAYS} "
-                                    f"days and can be removed:"
-                                    f"\n\n{stale_lines}"
-                                ),
-                                "notification_id": _STALE_NOTIFICATION_ID,
-                            },
-                        )
-                    return
-            else:
-                return
-
-        # Cap not reached — dismiss any leftover stale notification
-        with contextlib.suppress(Exception):
-            await self._hass.services.async_call(
-                "persistent_notification",
-                "dismiss",
-                {"notification_id": _STALE_NOTIFICATION_ID},
-            )
+        if not await self._check_and_enforce_cap():
+            return
 
         # Step 1: Build the home data snapshot
         snapshot: HomeSnapshot = {  # type: ignore[typeddict-unknown-key]
@@ -370,221 +592,7 @@ class DataCollector:
                 len(suggestions),
             )
 
-            # Build set of existing automation aliases to prevent re-suggesting
-            existing_aliases: set[str] = set()
-            for state in self._hass.states.async_all("automation"):
-                alias = (state.attributes.get("friendly_name") or "").strip().lower()
-                if alias:
-                    existing_aliases.add(alias)
-
-            # Filter out suggestions that duplicate existing automations
-            novel: list[dict[str, Any]] = []
-            for s in suggestions:
-                alias = (s.get("alias") or "").strip().lower()
-                if alias in existing_aliases:
-                    _LOGGER.debug("Skipping suggestion that already exists: %s", s.get("alias"))
-                    continue
-                novel.append(s)
-
-            if len(novel) < len(suggestions):
-                _LOGGER.info(
-                    "Filtered %d suggestions that duplicate existing automations",
-                    len(suggestions) - len(novel),
-                )
-
-            # Deduplicate remaining by trigger+action content,
-            # also filtering out hashes matching previously deleted automations
-            deleted_hashes: set[str] = set()
-            try:
-                from .pattern_store import PatternStore
-
-                pattern_store = PatternStore(self._hass)
-                deleted_hashes = await pattern_store.get_deleted_hashes()
-            except Exception:
-                _LOGGER.debug("Could not load deleted automation hashes")
-
-            seen_hashes: set[str] = set()
-            unique_suggestions: list[dict[str, Any]] = []
-            deleted_count = 0
-            for s in novel:
-                h = suggestion_content_fingerprint(s)
-                if h in deleted_hashes:
-                    _LOGGER.debug(
-                        "Skipping suggestion matching deleted automation: %s",
-                        s.get("alias", "<no alias>"),
-                    )
-                    deleted_count += 1
-                    continue
-                if h in seen_hashes:
-                    _LOGGER.debug(
-                        "Skipping duplicate suggestion: %s",
-                        s.get("alias", "<no alias>"),
-                    )
-                    continue
-                seen_hashes.add(h)
-                unique_suggestions.append(s)
-
-            if deleted_count:
-                _LOGGER.info(
-                    "Filtered %d suggestions matching previously deleted automations",
-                    deleted_count,
-                )
-            if len(unique_suggestions) < len(novel) - deleted_count:
-                _LOGGER.info(
-                    "Removed %d duplicate suggestions",
-                    len(novel) - deleted_count - len(unique_suggestions),
-                )
-
-            # Enrich suggestions with YAML for UI preview
-            enriched = []
-            for s in unique_suggestions:
-                is_valid, reason, automation_preview = validate_automation_payload(s, self._hass)
-                if not is_valid or automation_preview is None:
-                    _LOGGER.warning(
-                        "Skipping invalid collector suggestion '%s': %s",
-                        s.get("alias", "<missing alias>"),
-                        reason,
-                    )
-                    continue
-
-                # Validate entity IDs referenced in the suggestion
-                self._validate_entity_ids(s)
-
-                suggestion = dict(s)
-                suggestion["automation_yaml"] = yaml.dump(
-                    automation_preview, default_flow_style=False, allow_unicode=True
-                )
-                suggestion["automation_data"] = automation_preview
-                suggestion["risk_assessment"] = assess_automation_risk(automation_preview)
-                enriched.append(suggestion)
-
-            filtered_out = len(unique_suggestions) - len(enriched)
-            if filtered_out:
-                _LOGGER.warning("Filtered out %d invalid automation suggestions", filtered_out)
-
-            # Build set of entity_ids referenced by existing automations for scoring
-            # Read from automations.yaml (state attributes don't contain full config)
-            existing_auto_entity_ids: set[str] = set()
-            try:
-                automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
-                existing_automations = await self._hass.async_add_executor_job(
-                    self._read_automations_yaml, automations_path
-                )
-                for auto in existing_automations:
-                    existing_auto_entity_ids.update(self._extract_entity_ids(auto))
-            except Exception:
-                _LOGGER.debug("Could not read automations.yaml for coverage scoring")
-
-            # Pre-compute entity change counts once for all suggestions
-            history = snapshot.get("recorder_history", [])
-            entity_change_counts: dict[str, int] = {}
-            for h in history:
-                eid = h.get("entity_id")
-                if eid:
-                    entity_change_counts[eid] = entity_change_counts.get(eid, 0) + 1
-
-            # Score and filter suggestions by relevance
-            pre_score_count = len(enriched)
-            scored: list[dict[str, Any]] = []
-            for s in enriched:
-                score = self._score_suggestion(
-                    s, snapshot, existing_auto_entity_ids, entity_change_counts
-                )
-                s["relevance_score"] = score
-                if score < MIN_RELEVANCE_SCORE:
-                    _LOGGER.info(
-                        "Filtering low-relevance suggestion '%s' (score: %.2f < %.2f)",
-                        s.get("alias", "<no alias>"),
-                        score,
-                        MIN_RELEVANCE_SCORE,
-                    )
-                    continue
-                scored.append(s)
-
-            # Sort by relevance (highest first) so any downstream cap keeps the best
-            scored.sort(key=lambda s: s.get("relevance_score", 0), reverse=True)
-            enriched = scored
-
-            if len(enriched) < pre_score_count:
-                _LOGGER.info(
-                    "Relevance filtering kept %d of %d suggestions",
-                    len(enriched),
-                    pre_score_count,
-                )
-
-            # Apply dynamic suggestion cap (computed before the LLM call)
-            if len(enriched) > dynamic_cap:
-                _LOGGER.info(
-                    "Capping suggestions from %d to %d (dynamic cap based on home size)",
-                    len(enriched),
-                    dynamic_cap,
-                )
-                enriched = enriched[:dynamic_cap]
-
-            # Filter suggestions that match recently dismissed ones
-            # (by content hash or normalized alias)
-            pattern_store = self._get_pattern_store()
-            if pattern_store:
-                recently_dismissed = await pattern_store.get_recently_dismissed_suggestions()
-                if recently_dismissed:
-                    dismissed_hashes: set[str] = set()
-                    dismissed_aliases: set[str] = set()
-                    for d in recently_dismissed:
-                        # Build content hash from dismissed automation data
-                        auto_data = d.get("automation_data")
-                        if auto_data:
-                            dismissed_hashes.add(suggestion_content_fingerprint(auto_data))
-                        # Normalize dismissed alias
-                        alias = d.get("automation_data", {}).get("alias") or d.get(
-                            "description", ""
-                        )
-                        if alias:
-                            dismissed_aliases.add(self._normalize_alias(alias))
-
-                    pre_dismiss_count = len(enriched)
-                    filtered = []
-                    for s in enriched:
-                        # Check content hash
-                        auto_data = s.get("automation_data", s)
-                        content_hash = suggestion_content_fingerprint(auto_data)
-                        if content_hash in dismissed_hashes:
-                            _LOGGER.info(
-                                "Suppressing previously dismissed suggestion (content match): '%s'",
-                                s.get("alias", "<no alias>"),
-                            )
-                            continue
-
-                        # Check normalized alias
-                        alias = self._normalize_alias(s.get("alias", ""))
-                        if alias and alias in dismissed_aliases:
-                            _LOGGER.info(
-                                "Suppressing previously dismissed suggestion (alias match): '%s'",
-                                s.get("alias", "<no alias>"),
-                            )
-                            continue
-
-                        filtered.append(s)
-                    enriched = filtered
-
-                    if len(enriched) < pre_dismiss_count:
-                        _LOGGER.info(
-                            "Dismissal filter removed %d re-suggested automation(s)",
-                            pre_dismiss_count - len(enriched),
-                        )
-
-            # Validate service/entity compatibility
-            compat_filtered = []
-            for s in enriched:
-                is_compat, reason = self._validate_service_entity_compat(s)
-                if not is_compat:
-                    _LOGGER.warning(
-                        "Filtering suggestion '%s': %s",
-                        s.get("alias", "<no alias>"),
-                        reason,
-                    )
-                    continue
-                compat_filtered.append(s)
-            enriched = compat_filtered
+            enriched = await self._filter_and_score_suggestions(suggestions, snapshot, dynamic_cap)
 
             # Store in hass.data for the side panel to fetch
             self._hass.data.setdefault(DOMAIN, {})
@@ -691,33 +699,23 @@ class DataCollector:
 
     @staticmethod
     def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
-        """Read and parse automations.yaml (runs in executor)."""
-        if not path.exists():
-            return []
-        text = path.read_text(encoding="utf-8").strip()
-        if not text or text == "[]":
-            return []
-        data = yaml.safe_load(text)
-        if isinstance(data, list):
-            return data
-        return []
+        """Read and parse automations.yaml (runs in executor).
+
+        Delegates to the canonical implementation in automation_utils.
+        """
+        from .automation_utils import _read_automations_yaml
+
+        return _read_automations_yaml(path)
 
     @staticmethod
     def _write_automations_yaml(path: Path, automations: list[dict[str, Any]]) -> None:
-        """Write automations list to YAML atomically, preserving formatting (runs in executor).
+        """Write automations list to YAML atomically (runs in executor).
 
-        Writes to a temp file first, then renames — prevents corruption
-        if the process crashes mid-write.
+        Delegates to the canonical implementation in automation_utils.
         """
-        from ruamel.yaml import YAML
+        from .automation_utils import _write_automations_yaml
 
-        ryaml = YAML()
-        ryaml.default_flow_style = False
-        ryaml.allow_unicode = True
-        tmp_path = path.with_suffix(".yaml.tmp")
-        with tmp_path.open("w", encoding="utf-8") as fh:
-            ryaml.dump(automations, fh)
-        tmp_path.replace(path)  # atomic on POSIX
+        _write_automations_yaml(path, automations)
 
     def _notify_suggestions(
         self, suggestions: list[dict[str, Any]], created_count: int = 0
@@ -1004,22 +1002,9 @@ class DataCollector:
     @staticmethod
     def _extract_entity_ids(config: dict[str, Any] | list[Any] | Any) -> set[str]:
         """Recursively extract entity_id values from any nested config structure."""
-        entity_ids: set[str] = set()
-        if config is None:
-            return entity_ids
-        if isinstance(config, list):
-            for item in config:
-                entity_ids.update(DataCollector._extract_entity_ids(item))
-        elif isinstance(config, dict):
-            for key, value in config.items():
-                if key == "entity_id":
-                    if isinstance(value, str):
-                        entity_ids.add(value)
-                    elif isinstance(value, list):
-                        entity_ids.update(e for e in value if isinstance(e, str))
-                elif isinstance(value, (dict, list)):
-                    entity_ids.update(DataCollector._extract_entity_ids(value))
-        return entity_ids
+        from .helpers import collect_entity_ids
+
+        return collect_entity_ids(config)
 
     def _score_suggestion(
         self,

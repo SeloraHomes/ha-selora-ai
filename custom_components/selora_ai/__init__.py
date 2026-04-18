@@ -368,24 +368,10 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
 
 
 def _format_entity_state(value: str) -> str:
-    """Convert ISO 8601 timestamps to 12-hour AM/PM format.
+    """Convert ISO 8601 timestamps to 12-hour AM/PM format."""
+    from .helpers import format_entity_state
 
-    Non-timestamp values are returned as-is.
-    """
-    from datetime import datetime
-
-    stripped = value.strip()
-    for fmt in (
-        "%Y-%m-%dT%H:%M:%S%z",
-        "%Y-%m-%dT%H:%M:%S.%f%z",
-        "%Y-%m-%dT%H:%M:%S",
-    ):
-        try:
-            dt = datetime.strptime(stripped, fmt)
-            return dt.strftime("%I:%M %p").lstrip("0")
-        except ValueError:
-            continue
-    return value
+    return format_entity_state(value)
 
 
 def _require_admin(
@@ -407,10 +393,9 @@ def _require_admin(
 
 def _sanitize_history_text(value: Any, max_length: int = 200) -> str:
     """Normalize and truncate untrusted conversation context before sending it back to the LLM."""
-    text = " ".join(str(value or "").split())
-    if len(text) > max_length:
-        return text[:max_length] + "..."
-    return text
+    from .helpers import sanitize_untrusted_text
+
+    return sanitize_untrusted_text(value, limit=max_length)
 
 
 def _get_device_manager(hass: HomeAssistant) -> DeviceManager | None:
@@ -423,6 +408,108 @@ def _get_device_manager(hass: HomeAssistant) -> DeviceManager | None:
         ):
             return entry_data["device_manager"]
     return None
+
+
+# ── Shared chat handler helpers ──────────────────────────────────────────────
+
+
+def _find_llm(hass: HomeAssistant) -> Any:
+    """Find the LLMClient from any active config entry, or None."""
+    for entry_data in hass.data.get(DOMAIN, {}).values():
+        if isinstance(entry_data, dict) and "llm" in entry_data:
+            return entry_data["llm"]
+    return None
+
+
+async def _resolve_or_create_session(
+    store: ConversationStore,
+    session_id: str,
+) -> tuple[Any, str]:
+    """Resolve an existing session or create a new one.
+
+    Returns (session_dict, session_id).
+    """
+    if session_id:
+        session = await store.get_session(session_id)
+        if session:
+            return session, session_id
+    session = await store.create_session()
+    return session, session["id"]
+
+
+def _build_history_from_session(stored_messages: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Build LLM history from stored session messages.
+
+    For assistant messages that proposed an automation, appends the YAML so the
+    LLM has full context when the user asks to refine it.
+    """
+    history: list[dict[str, str]] = []
+    for m in stored_messages:
+        if m.get("role") not in ("user", "assistant"):
+            continue
+        content = m["content"]
+        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
+            alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
+            description = _sanitize_history_text(m.get("description", ""))
+            header = f"[Untrusted automation reference data for context only: {alias}"
+            if description:
+                header += f" — {description}"
+            header += f"]\n{m['automation_yaml']}"
+            content = f"{content}\n\n{header}"
+        history.append({"role": m["role"], "content": content})
+    return history
+
+
+def _collect_existing_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
+    """Collect existing automation summaries for LLM context."""
+    return [
+        {
+            "entity_id": state.entity_id,
+            "alias": state.attributes.get("friendly_name", state.entity_id),
+            "state": state.state,
+        }
+        for state in hass.states.async_all("automation")
+    ]
+
+
+async def _execute_command_calls(
+    hass: HomeAssistant,
+    calls: list[dict[str, Any]],
+) -> tuple[list[str], str]:
+    """Execute HA service calls from an LLM command response.
+
+    Returns (executed_services, error_suffix).
+    """
+    executed: list[str] = []
+    error_suffix = ""
+    for call in calls:
+        service = call.get("service", "")
+        if not service or "." not in service:
+            continue
+        domain_part, service_name = service.split(".", 1)
+        target = call.get("target", {})
+        data = call.get("data", {})
+        try:
+            await hass.services.async_call(
+                domain_part, service_name, {**data, **target}, blocking=True
+            )
+            executed.append(service)
+        except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
+            _LOGGER.error("Failed to execute %s: %s", service, exc)
+            error_suffix += f" (Failed: {service}: {exc})"
+    return executed, error_suffix
+
+
+def _create_tool_executor(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+) -> Any:
+    """Create a ToolExecutor if a DeviceManager is available."""
+    from .tool_executor import ToolExecutor
+
+    device_mgr = _get_device_manager(hass)
+    is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
+    return ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
 
 
 @websocket_api.async_response
@@ -447,73 +534,22 @@ async def _handle_websocket_chat(
     if not _require_admin(connection, msg):
         return
 
-    from .llm_client import LLMClient
-
-    llm: LLMClient | None = None
-    for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "llm" in entry_data:
-            llm = entry_data["llm"]
-            break
-
+    llm = _find_llm(hass)
     if llm is None:
         connection.send_error(msg["id"], "not_initialized", "Selora AI LLM not initialized")
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-
-    # Resolve or create session
-    session_id = msg.get("session_id") or ""
-    if session_id:
-        session = await store.get_session(session_id)
-        if not session:
-            # Stale id — start fresh
-            session = await store.create_session()
-            session_id = session["id"]
-    else:
-        session = await store.create_session()
-        session_id = session["id"]
-
-    # Build history from stored messages.
-    # For assistant messages that proposed an automation, append the YAML so the
-    # LLM has full context when the user asks to refine it.
+    session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
     stored_messages = (session or {}).get("messages", [])
-    history = []
-    for m in stored_messages:
-        if m.get("role") not in ("user", "assistant"):
-            continue
-        content = m["content"]
-        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
-            alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
-            description = _sanitize_history_text(m.get("description", ""))
-            header = f"[Untrusted automation reference data for context only: {alias}"
-            if description:
-                header += f" — {description}"
-            header += f"]\n{m['automation_yaml']}"
-            content = f"{content}\n\n{header}"
-        history.append({"role": m["role"], "content": content})
+    history = _build_history_from_session(stored_messages)
 
-    # Persist the user's message
     user_message = msg["message"]
     await store.append_message(session_id, "user", user_message)
 
-    # Gather home context
     entities = _collect_entity_states(hass)
-    automations = []
-    for state in hass.states.async_all("automation"):
-        automations.append(
-            {
-                "entity_id": state.entity_id,
-                "alias": state.attributes.get("friendly_name", state.entity_id),
-                "state": state.state,
-            }
-        )
-
-    # Create tool executor for device snapshot / integration management
-    from .tool_executor import ToolExecutor
-
-    device_mgr = _get_device_manager(hass)
-    is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
-    tool_executor = ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
+    automations = _collect_existing_automations(hass)
+    tool_executor = _create_tool_executor(hass, connection)
 
     result = await llm.architect_chat(
         user_message,
@@ -530,27 +566,12 @@ async def _handle_websocket_chat(
     intent_type = result.get("intent", "answer")
     response_text = result.get("response", "I'm not sure how to help with that.")
 
-    # --- Execute immediate commands ---
+    # Execute immediate commands
     executed: list[str] = []
     if intent_type == "command":
-        calls = result.get("calls", [])
-        for call in calls:
-            service = call.get("service", "")
-            if not service or "." not in service:
-                continue
-            domain_part, service_name = service.split(".", 1)
-            target = call.get("target", {})
-            data = call.get("data", {})
-            try:
-                await hass.services.async_call(
-                    domain_part, service_name, {**data, **target}, blocking=True
-                )
-                executed.append(service)
-            except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
-                _LOGGER.error("Failed to execute %s: %s", service, exc)
-                response_text += f" (Failed: {service}: {exc})"
+        executed, error_suffix = await _execute_command_calls(hass, result.get("calls", []))
+        response_text += error_suffix
 
-    # Persist the assistant response
     await store.append_message(
         session_id,
         "assistant",
@@ -565,11 +586,9 @@ async def _handle_websocket_chat(
         tool_calls=result.get("tool_calls"),
     )
 
-    # Retrieve index of the assistant message just appended (for status updates)
     updated_session = await store.get_session(session_id)
     assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
 
-    # Check if this session is refining an existing automation
     refining_automation_id = None
     for m in stored_messages:
         if m.get("automation_status") == "refining" and m.get("automation_id"):
@@ -621,8 +640,6 @@ async def _handle_websocket_chat_stream(
     if not _require_admin(connection, msg):
         return
 
-    from .llm_client import LLMClient
-
     # Set up subscription with cancellation support — when the frontend
     # calls _stopStreaming() the unsubscribe cancels the running task so
     # we stop consuming LLM tokens and never execute pending service calls.
@@ -635,13 +652,7 @@ async def _handle_websocket_chat_stream(
     connection.subscriptions[msg["id"]] = _cancel_stream
     connection.send_result(msg["id"])
 
-    # Find the LLM client
-    llm: LLMClient | None = None
-    for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "llm" in entry_data:
-            llm = entry_data["llm"]
-            break
-
+    llm = _find_llm(hass)
     if llm is None:
         connection.send_message(
             websocket_api.event_message(
@@ -650,59 +661,18 @@ async def _handle_websocket_chat_stream(
         )
         return
 
-    # ---- Session management ----
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-
-    session_id = msg.get("session_id") or ""
-    if session_id:
-        session = await store.get_session(session_id)
-        if not session:
-            session = await store.create_session()
-            session_id = session["id"]
-    else:
-        session = await store.create_session()
-        session_id = session["id"]
-
-    # Build history from stored messages (same logic as non-streaming chat)
+    session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
     stored_messages = (session or {}).get("messages", [])
-    history: list[dict[str, str]] = []
-    for m in stored_messages:
-        if m.get("role") not in ("user", "assistant"):
-            continue
-        content = m["content"]
-        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
-            alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
-            description = _sanitize_history_text(m.get("description", ""))
-            header = f"[Untrusted automation reference data for context only: {alias}"
-            if description:
-                header += f" — {description}"
-            header += f"]\n{m['automation_yaml']}"
-            content = f"{content}\n\n{header}"
-        history.append({"role": m["role"], "content": content})
+    history = _build_history_from_session(stored_messages)
 
-    # Persist the user message
     user_message = msg["message"]
     await store.append_message(session_id, "user", user_message)
 
     try:
         entities = _collect_entity_states(hass)
-
-        automations = []
-        for state in hass.states.async_all("automation"):
-            automations.append(
-                {
-                    "entity_id": state.entity_id,
-                    "alias": state.attributes.get("friendly_name", state.entity_id),
-                    "state": state.state,
-                }
-            )
-
-        # --- Streaming path (with tool support) ---
-        from .tool_executor import ToolExecutor
-
-        device_mgr = _get_device_manager(hass)
-        is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
-        tool_executor = ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
+        automations = _collect_existing_automations(hass)
+        tool_executor = _create_tool_executor(hass, connection)
 
         full_text = ""
         async for chunk in llm.architect_chat_stream(
@@ -721,25 +691,11 @@ async def _handle_websocket_chat_stream(
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
-        # --- Execute immediate commands (mirrors non-streaming handler) ---
+        # Execute immediate commands
         executed: list[str] = []
         if intent_type == "command":
-            calls = parsed.get("calls", [])
-            for call in calls:
-                service = call.get("service", "")
-                if not service or "." not in service:
-                    continue
-                domain_part, service_name = service.split(".", 1)
-                target = call.get("target", {})
-                data = call.get("data", {})
-                try:
-                    await hass.services.async_call(
-                        domain_part, service_name, {**data, **target}, blocking=True
-                    )
-                    executed.append(service)
-                except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
-                    _LOGGER.error("Failed to execute %s: %s", service, exc)
-                    response_text += f" (Failed: {service}: {exc})"
+            executed, error_suffix = await _execute_command_calls(hass, parsed.get("calls", []))
+            response_text += error_suffix
 
         device_data = tool_executor.device_results if tool_executor else None
         await store.append_message(
@@ -1306,14 +1262,7 @@ async def _handle_websocket_quick_create_automation(
         connection.send_error(msg["id"], "invalid_name", "Automation name is required")
         return
 
-    from .llm_client import LLMClient
-
-    llm: LLMClient | None = None
-    for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "llm" in entry_data:
-            llm = entry_data["llm"]
-            break
-
+    llm = _find_llm(hass)
     if llm is None:
         connection.send_error(msg["id"], "no_llm", "No LLM provider configured")
         return
@@ -1819,12 +1768,9 @@ async def _handle_websocket_validate_llm_key(
 
 def _get_automation_store(hass: HomeAssistant) -> AutomationStore:
     """Return (or lazily create) the AutomationStore from hass.data."""
-    from .automation_store import AutomationStore
+    from .helpers import get_automation_store
 
-    domain_data = hass.data.setdefault(DOMAIN, {})
-    if "_automation_store" not in domain_data:
-        domain_data["_automation_store"] = AutomationStore(hass)
-    return domain_data["_automation_store"]
+    return get_automation_store(hass)
 
 
 @websocket_api.async_response
@@ -1967,15 +1913,9 @@ async def _handle_websocket_delete_automation(
             connection.send_error(msg["id"], "not_found", "Automation not found")
             return
 
-        aid = str(target.get("id", ""))
-        desc = str(target.get("description", ""))
-        alias = str(target.get("alias", ""))
-        is_selora = (
-            aid.startswith(AUTOMATION_ID_PREFIX)
-            or "[Selora AI]" in desc
-            or alias.startswith("[Selora AI]")
-        )
-        if not is_selora:
+        from .helpers import is_selora_automation
+
+        if not is_selora_automation(target):
             connection.send_error(
                 msg["id"], "not_allowed", "Only Selora-managed automations can be deleted"
             )
@@ -2513,142 +2453,6 @@ async def _handle_websocket_update_pattern_status(
         connection.send_error(msg["id"], "not_found", "Pattern not found")
         return
     connection.send_result(msg["id"], {"status": msg["status"]})
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/get_suggestion_detail",
-        vol.Required("suggestion_id"): str,
-    }
-)
-async def _handle_websocket_get_suggestion_detail(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Return full suggestion detail with YAML preview and pattern context."""
-    if not _require_admin(connection, msg):
-        return
-
-    pattern_store = _get_pattern_store(hass)
-    if not pattern_store:
-        connection.send_error(msg["id"], "no_store", "Pattern store not available")
-        return
-
-    suggestion = await pattern_store.get_suggestion(msg["suggestion_id"])
-    if not suggestion:
-        connection.send_error(msg["id"], "not_found", "Suggestion not found")
-        return
-
-    pattern_id = suggestion.get("pattern_id", "")
-    pattern_detail = None
-    if pattern_id:
-        pattern_detail = await pattern_store.get_pattern_detail(pattern_id)
-
-    connection.send_result(
-        msg["id"],
-        {
-            **suggestion,
-            "pattern_detail": pattern_detail,
-        },
-    )
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/accept_suggestion_with_edits",
-        vol.Required("suggestion_id"): str,
-        vol.Required("automation_yaml"): str,
-    }
-)
-async def _handle_websocket_accept_suggestion_with_edits(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Accept a suggestion with user-edited YAML (automations tab editing)."""
-    if not _require_admin(connection, msg):
-        return
-
-    pattern_store = _get_pattern_store(hass)
-    if not pattern_store:
-        connection.send_error(msg["id"], "no_store", "Pattern store not available")
-        return
-
-    suggestion = await pattern_store.get_suggestion(msg["suggestion_id"])
-    if not suggestion:
-        connection.send_error(msg["id"], "not_found", "Suggestion not found")
-        return
-
-    try:
-        automation_data = yaml.safe_load(msg["automation_yaml"])
-    except yaml.YAMLError as exc:
-        connection.send_error(msg["id"], "invalid_yaml", str(exc))
-        return
-
-    if not isinstance(automation_data, dict):
-        connection.send_error(msg["id"], "invalid_yaml", "YAML must be a mapping")
-        return
-
-    from .automation_utils import async_create_automation, validate_automation_payload
-
-    is_valid, reason, normalized = validate_automation_payload(automation_data, hass)
-    if not is_valid or normalized is None:
-        connection.send_error(msg["id"], "invalid_automation", reason or "Validation failed")
-        return
-
-    result = await async_create_automation(hass, normalized)
-    await pattern_store.update_suggestion_status(msg["suggestion_id"], "accepted")
-
-    connection.send_result(
-        msg["id"],
-        {
-            "status": "accepted",
-            "automation_created": result.get("success", False),
-            "automation_id": result.get("automation_id"),
-        },
-    )
-
-
-@websocket_api.async_response
-@decorators.websocket_command(
-    {
-        vol.Required("type"): "selora_ai/trigger_pattern_scan",
-    }
-)
-async def _handle_websocket_trigger_pattern_scan(
-    hass: HomeAssistant,
-    connection: websocket_api.ActiveConnection,
-    msg: dict[str, Any],
-) -> None:
-    """Manually trigger a pattern scan (automations tab refresh)."""
-    if not _require_admin(connection, msg):
-        return
-
-    domain_data = hass.data.get(DOMAIN, {})
-    engine = None
-    for key, val in domain_data.items():
-        if key.startswith("_") or not isinstance(val, dict):
-            continue
-        e = val.get("pattern_engine")
-        if e is not None:
-            engine = e
-            break
-
-    if engine is None:
-        connection.send_error(msg["id"], "no_engine", "Pattern engine not available")
-        return
-
-    new_patterns = await engine.scan()
-    connection.send_result(
-        msg["id"],
-        {
-            "patterns_found": len(new_patterns),
-            "patterns": new_patterns,
-        },
-    )
 
 
 @websocket_api.async_response
