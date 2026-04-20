@@ -1,3 +1,34 @@
+## [0.6.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.5.0...v0.6.0) (2026-04-20)
+
+### Features
+
+* [#67](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/67) harden suggestions with entity validation ([4fdce77](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4fdce77edc7fc4aa0c904fa7ea2810febe3af346))
+* [#69](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/69) offer to act after state queries ([ea096b8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ea096b80dbde43c5a29dc12d85840452087612c8))
+* add Google Gemini LLM provider ([e32e643](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e32e643c2d8587565225119db84667f9c64f0702))
+* surface proactive suggestions in chat ([8221416](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8221416538dc70324a1809e63f99fa5fcab3235d))
+* validate API keys on save ([3150c35](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3150c3581e68a5b19306f8e8a7ae7e65da50106e))
+
+### Bug Fixes
+
+* [#89](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/89) retain conversation context across chat messages ([db6c273](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/db6c273ecc429d26fc758c3966d9ae690a86297b))
+* [#90](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/90) execute device commands from streaming chat ([b1204ee](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b1204ee261d2e7cab8be36554b83fc82e60b7309))
+* [#91](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/91) reject binary_sensor entities as automation actions ([60c4c3b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/60c4c3b972410403754d8e2142f236dea5578fbe))
+* [#93](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/93) filter disabled entities and skip same-device correlations ([83df8d6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/83df8d676f3cb3455d67d8a88e5a05daff297b57))
+* blocking automation reload and clipped burger menu ([b0515ca](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b0515ca30b7d833efc4d38e1597ff3597bc482c1))
+* clarify MCP server settings labels ([caf15ca](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/caf15cad377a78d2e1a06c4f0be0d722bcc0baae))
+* deduplicate suggestions by content hash ([5501bac](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5501bac9fd9c9c122b6146ed15098befd5a38190))
+* flatten zip paths for HACS zip_release extraction ([60ef90a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/60ef90a08a759919e1b681b3be524015d835fc0e))
+* harden security and fix memory leaks ([7a2334e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7a2334e356a1fa6e335f23dbbbbb322b964dc0fe))
+* load prompt files via executor ([855a7a3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/855a7a374f4e6fcb448f8533fcfddec6427a40f8))
+* rebuild frontend after version bump ([397d0f8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/397d0f81c127029cf6d84b22acb07412d0e8c3e9))
+* use plural HA 2024+ automation keys ([69925c1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/69925c14c51e23203782ea6b6bcda7b3e45fd33e))
+
+### Code Refactoring
+
+* add full type annotations across the integration ([a6c3187](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a6c31876f277b5f13602adae50c06a889a9eb710))
+* deduplicate utilities, split methods ([6a6243f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6a6243ff71bc42ef11e4b8d9c7744bfcf2fb8f42))
+* extract LLM provider abstraction layer ([b81e21f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b81e21fd5d9427d4933290dae351bc57a92da0de))
+
 ## [0.5.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.4.0...v0.5.0) (2026-04-11)
 
 ### Features
