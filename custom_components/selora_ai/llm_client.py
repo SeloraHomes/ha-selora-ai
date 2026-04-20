@@ -194,7 +194,7 @@ def _format_untrusted_text(value: object) -> str:
 def _format_entity_line(entity: EntitySnapshot) -> str:
     """Serialize an entity snapshot into a prompt line with whitelisted attributes."""
     eid = entity.get("entity_id", "")
-    state = entity.get("state", "unknown")
+    state = _format_untrusted_text(entity.get("state", "unknown"))
     attrs = entity.get("attributes", {})
     friendly = _format_untrusted_text(attrs.get("friendly_name", eid))
     parts = [f"entity_id={eid}", f"state={state}", f"friendly_name={friendly}"]
@@ -450,11 +450,12 @@ class LLMClient:
             )
             if not result_text:
                 is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
+                _LOGGER.warning("LLM tool-calling request failed: %s", error)
                 return {
                     "intent": "answer",
                     "response": (
-                        f"I encountered an error communicating with the LLM: "
-                        f"{error or 'Unknown error'}. Please check your settings and logs."
+                        "I encountered an error communicating with the LLM. "
+                        "Please check your settings and logs."
                     ),
                     "error": error or "llm_request_failed",
                     "config_issue": is_config_issue,
@@ -471,10 +472,11 @@ class LLMClient:
 
         if not result:
             is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
+            _LOGGER.warning("LLM request failed: %s", error)
             return {
                 "intent": "answer",
                 "response": (
-                    f"I encountered an error communicating with the LLM: {error or 'Unknown error'}. "
+                    "I encountered an error communicating with the LLM. "
                     "Please check your settings and logs."
                 ),
                 "error": error or "llm_request_failed",

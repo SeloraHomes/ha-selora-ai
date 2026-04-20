@@ -103,6 +103,19 @@ class MCPTokenStore:
         self._save_timer = None
         await self._save()
 
+    async def async_close(self) -> None:
+        """Flush pending writes and cancel the deferred save timer.
+
+        Called during integration unload.  Saves first so that
+        ``last_used_at`` updates buffered in the 30-second window are
+        not lost, then cancels the timer to prevent it from firing
+        after the store has been torn down.
+        """
+        if self._save_timer is not None:
+            self._save_timer.cancel()
+            self._save_timer = None
+            await self._save()
+
     # ── CRUD ─────────────────────────────────────────────────────────────
 
     async def async_create_token(

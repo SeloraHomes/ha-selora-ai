@@ -362,7 +362,7 @@ export function renderMessage(host, msg, idx) {
       ${isUser
         ? html`
             <div class="bubble user">
-              <span class="msg-content" .innerHTML=${msg.content}></span>
+              <span class="msg-content" .textContent=${msg.content}></span>
             </div>
           `
         : html`
