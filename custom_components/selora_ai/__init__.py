@@ -704,6 +704,7 @@ async def _handle_websocket_chat_stream(
         tool_executor = _create_tool_executor(hass, connection)
 
         full_text = ""
+        looks_like_json = False
         async for chunk in llm.architect_chat_stream(
             user_message,
             entities,
@@ -712,9 +713,15 @@ async def _handle_websocket_chat_stream(
             tool_executor=tool_executor,
         ):
             full_text += chunk
-            connection.send_message(
-                websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
-            )
+            # Suppress streaming tokens when the LLM is emitting raw JSON
+            # (command intents). The "done" event carries the parsed response.
+            if not looks_like_json:
+                if full_text.lstrip().startswith("{"):
+                    looks_like_json = True
+                else:
+                    connection.send_message(
+                        websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
+                    )
 
         parsed = llm.parse_streamed_response(full_text, entities=entities)
         intent_type = parsed.get("intent", "answer")
