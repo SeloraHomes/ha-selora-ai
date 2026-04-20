@@ -342,6 +342,39 @@ class TestCommandPolicyEnforcement:
         # Should be downgraded since there are no calls
         assert result["intent"] == "answer"
 
+    def test_command_no_response_no_calls_not_false_confirmation(self, hass) -> None:
+        """Command with no calls and no response must NOT say 'Done' (#94 P2)."""
+        client = _make_client(hass)
+        text = '{"intent": "command"}'
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "light.kitchen"}])
+        # Policy downgrades to "answer" — must not say "Done"
+        assert result["intent"] == "answer"
+        assert "Done" not in result.get("response", "")
+
+    def test_command_without_response_field_gets_confirmation(self, hass) -> None:
+        """Command intent missing 'response' must get a human-readable fallback (#94)."""
+        client = _make_client(hass)
+        text = '{"intent":"command","calls":[{"service":"light.turn_on","target":{"entity_id":"light.living_room_kitchen"}}]}'
+        result = client.parse_streamed_response(
+            text, entities=[{"entity_id": "light.living_room_kitchen"}]
+        )
+        assert result["intent"] == "command"
+        assert "response" in result
+        # Must be human-readable, not raw JSON
+        assert "{" not in result["response"]
+        assert "living room kitchen" in result["response"]
+
+    def test_command_without_response_field_turn_off(self, hass) -> None:
+        """Turn-off command without 'response' also gets a readable fallback (#94)."""
+        client = _make_client(hass)
+        text = '{"intent":"command","calls":[{"service":"light.turn_off","target":{"entity_id":"light.living_room_table_ronde"}}]}'
+        result = client.parse_streamed_response(
+            text, entities=[{"entity_id": "light.living_room_table_ronde"}]
+        )
+        assert result["intent"] == "command"
+        assert "{" not in result["response"]
+        assert "living room table ronde" in result["response"]
+
 
 class TestConversationHistoryManagement:
     """Verify conversation history is handled correctly (#89)."""
@@ -541,3 +574,45 @@ class TestChatCommandExecution:
         result = connection.send_result.call_args[0][1]
         assert result["executed"] == []
         assert "Failed" in result["response"]
+
+
+class TestBuildCommandConfirmation:
+    """Unit tests for _build_command_confirmation (#94)."""
+
+    def test_single_call(self) -> None:
+        from custom_components.selora_ai.llm_client import _build_command_confirmation
+
+        calls = [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}]
+        result = _build_command_confirmation(calls)
+        assert "kitchen" in result
+        assert "light turn on" in result
+        assert result.startswith("Done")
+
+    def test_multiple_calls(self) -> None:
+        from custom_components.selora_ai.llm_client import _build_command_confirmation
+
+        calls = [
+            {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
+            {"service": "light.turn_off", "target": {"entity_id": "light.bedroom"}},
+        ]
+        result = _build_command_confirmation(calls)
+        assert "kitchen" in result
+        assert "bedroom" in result
+
+    def test_empty_calls(self) -> None:
+        from custom_components.selora_ai.llm_client import _build_command_confirmation
+
+        assert _build_command_confirmation([]) == "Done."
+
+    def test_multiple_entities_in_one_call(self) -> None:
+        from custom_components.selora_ai.llm_client import _build_command_confirmation
+
+        calls = [
+            {
+                "service": "light.turn_on",
+                "target": {"entity_id": ["light.kitchen", "light.bedroom"]},
+            }
+        ]
+        result = _build_command_confirmation(calls)
+        assert "kitchen" in result
+        assert "bedroom" in result

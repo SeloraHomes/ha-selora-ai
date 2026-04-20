@@ -205,6 +205,40 @@ def _format_entity_line(entity: EntitySnapshot) -> str:
     return "  - " + "; ".join(parts)
 
 
+def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
+    """Build a human-readable confirmation from a list of validated service calls.
+
+    Only called after ``_apply_command_policy`` has validated the calls,
+    so types are guaranteed.  Used as fallback when the LLM returns a
+    command intent without a ``response`` field (#94).
+    """
+    if not isinstance(calls, list) or not calls:
+        return "Done."
+    parts: list[str] = []
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        service = str(call.get("service", ""))
+        target = call.get("target")
+        if not isinstance(target, dict):
+            target = {}
+        entity_ids = target.get("entity_id", [])
+        if isinstance(entity_ids, str):
+            entity_ids = [entity_ids]
+        elif not isinstance(entity_ids, list):
+            entity_ids = []
+        # Pretty-print entity IDs: "light.kitchen" → "kitchen"
+        names = [str(eid).split(".", 1)[-1].replace("_", " ") for eid in entity_ids]
+        action = service.replace(".", " ").replace("_", " ")
+        if names:
+            parts.append(f"{action} ({', '.join(names)})")
+        elif action:
+            parts.append(action)
+    if not parts:
+        return "Done."
+    return "Done — " + "; ".join(parts) + "."
+
+
 # ── Shared prompt blocks ────────────────────────────────────────────────────
 # Extracted from the JSON-mode and streaming architect system prompts which
 # shared ~80% identical rule text.
@@ -1450,6 +1484,10 @@ class LLMClient:
             )
 
         result["calls"] = validated_calls
+        # Generate a human-readable fallback so callers never show raw JSON (#94).
+        # Only set after policy validation confirms the calls are safe.
+        if "response" not in result:
+            result["response"] = _build_command_confirmation(validated_calls)
         return result
 
     def _blocked_command_result(
