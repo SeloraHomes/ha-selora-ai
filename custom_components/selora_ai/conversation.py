@@ -6,7 +6,11 @@ import logging
 from typing import TYPE_CHECKING, Any
 
 from homeassistant.components import conversation
-from homeassistant.components.conversation import ChatLog, ConversationEntityFeature
+from homeassistant.components.conversation import (
+    AssistantContent,
+    ChatLog,
+    ConversationEntityFeature,
+)
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import intent
@@ -87,12 +91,23 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 }
             )
 
+        # Convert ChatLog into the history format architect_chat expects
+        # so that confirmation follow-ups ("yes", "do it") work in Assist.
+        history: list[dict[str, str]] = []
+        for entry in chat_log.content:
+            if entry.role in ("user", "assistant") and entry.content:
+                history.append({"role": entry.role, "content": entry.content})
+        # Drop the last user entry — architect_chat receives it as user_message
+        if history and history[-1]["role"] == "user":
+            history.pop()
+
         # Use architect_chat for rich responses and automation generation
         _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
         result: dict[str, Any] = await llm.architect_chat(
             user_input.text,
             entities,
             existing_automations=automations,
+            history=history or None,
         )
 
         response = intent.IntentResponse(language=user_input.language)
@@ -105,7 +120,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             )
             return conversation.ConversationResult(
                 response=response,
-                conversation_id=user_input.conversation_id,
+                conversation_id=chat_log.conversation_id,
             )
 
         response_text: str = result.get("response", "I'm not sure how to help with that.")
@@ -141,7 +156,14 @@ class SeloraConversationEntity(conversation.ConversationEntity):
 
         response.async_set_speech(response_text)
 
+        # Persist the assistant turn so subsequent messages in the same
+        # conversation see the full history (enables confirmation follow-ups).
+        chat_log.async_add_assistant_content_without_tools(
+            AssistantContent(agent_id=self.entity_id, content=response_text)
+        )
+
         return conversation.ConversationResult(
             response=response,
-            conversation_id=user_input.conversation_id,
+            conversation_id=chat_log.conversation_id,
+            continue_conversation=chat_log.continue_conversation,
         )

@@ -27,6 +27,7 @@ from .automation_utils import assess_automation_risk, validate_automation_payloa
 from .const import (
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    ENTITY_SNAPSHOT_ATTRS,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
@@ -190,6 +191,20 @@ def _format_untrusted_text(value: object) -> str:
     return format_untrusted_text(value)
 
 
+def _format_entity_line(entity: EntitySnapshot) -> str:
+    """Serialize an entity snapshot into a prompt line with whitelisted attributes."""
+    eid = entity.get("entity_id", "")
+    state = entity.get("state", "unknown")
+    attrs = entity.get("attributes", {})
+    friendly = _format_untrusted_text(attrs.get("friendly_name", eid))
+    parts = [f"entity_id={eid}", f"state={state}", f"friendly_name={friendly}"]
+    for key in sorted(ENTITY_SNAPSHOT_ATTRS):
+        val = attrs.get(key)
+        if val is not None:
+            parts.append(f"{key}={_format_untrusted_text(val) if isinstance(val, str) else val}")
+    return "  - " + "; ".join(parts)
+
+
 # ── Shared prompt blocks ────────────────────────────────────────────────────
 # Extracted from the JSON-mode and streaming architect system prompts which
 # shared ~80% identical rule text.
@@ -213,6 +228,20 @@ _SHARED_AUTOMATION_RULES = (
     "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
     "- Use conversation history to interpret follow-ups and refine previous automations.\n"
     "- When refining an existing automation, return the full updated automation JSON.\n"
+)
+
+_SHARED_STATE_QUERY_RULES = (
+    "- For state queries ('are the lights on?', 'what temperature is it?', 'is the door locked?'), "
+    "use the AVAILABLE ENTITIES list to give a specific, accurate answer with real values from "
+    "entity state and attributes (brightness, temperature, battery level, etc.).\n"
+    "- After answering a state query, offer a relevant follow-up action ONLY when the entity's "
+    "domain is in the safe command list (light, switch, fan, media_player, climate, input_boolean) "
+    "AND the state suggests the user might want to change it (e.g. lights left on, temperature too high). "
+    "Do NOT offer actions for domains outside the safe list (e.g. lock, cover, alarm) or when none is "
+    "useful (e.g. battery level reports, sensor readings the user can't change).\n"
+    "- When you offer an action, phrase it as a question (e.g. 'Want me to turn them off?'). "
+    "If the user confirms ('yes', 'do it', 'please'), respond with intent \"command\" and include "
+    "the service calls to execute it immediately.\n"
 )
 
 _SHARED_TONE_RULES = (
@@ -537,12 +566,7 @@ class LLMClient:
             "Respond with ONLY the JSON object. No markdown fences. No explanation."
         )
 
-        entity_lines = []
-        for e in entities:
-            eid = e.get("entity_id", "")
-            state = e.get("state", "unknown")
-            name = _format_untrusted_text(e.get("attributes", {}).get("friendly_name", eid))
-            entity_lines.append(f"  - entity_id={eid}; state={state}; friendly_name={name}")
+        entity_lines = [_format_entity_line(e) for e in entities]
 
         user_prompt = f"COMMAND: {command}\n\nAVAILABLE ENTITIES ({len(entities)}):\n" + "\n".join(
             entity_lines
@@ -807,9 +831,7 @@ class LLMClient:
                 continue
             if domain == "light" and any(pat in eid for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS):
                 continue
-            state = e.get("state", "unknown")
-            friendly = _format_untrusted_text(e.get("attributes", {}).get("friendly_name", ""))
-            entity_lines.append(f"  - entity_id={eid}; state={state}; friendly_name={friendly}")
+            entity_lines.append(_format_entity_line(e))
 
         if len(entity_lines) > 500:
             entity_lines = entity_lines[:500]
@@ -886,13 +908,14 @@ class LLMClient:
             '  "intent": "clarification",\n'
             '  "response": "One specific question — no filler."\n'
             "}\n\n"
-            "4. ANSWER — general question or conversation that needs no device control or automation:\n"
+            "4. ANSWER — general question or conversation that needs no device control or automation.\n"
             "{\n"
             '  "intent": "answer",\n'
-            '  "response": "Your answer. For tool-backed data, follow the tool policy Output Formatting rules."\n'
+            '  "response": "Your answer. For state queries, include real values and offer to act when appropriate."\n'
             "}\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
+            + _SHARED_STATE_QUERY_RULES
             + f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             '- When intent is "command", you MUST include a non-empty "calls" array with valid service calls. '
             "Never describe what you would do without providing the calls to execute it.\n"
@@ -952,6 +975,7 @@ class LLMClient:
             "```\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
+            + _SHARED_STATE_QUERY_RULES
             + f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             "- When the user asks to control a device, you MUST return a JSON object with "
             '"intent": "command" and a non-empty "calls" array containing the service calls. '

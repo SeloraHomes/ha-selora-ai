@@ -99,6 +99,7 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DEFAULT_SELORA_CONNECT_URL,
     DOMAIN,
+    ENTITY_SNAPSHOT_ATTRS,
     ENTRY_TYPE_DEVICE,
     LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
@@ -355,13 +356,20 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
         ):
             continue
+        # Include key attributes for state-aware responses (#68)
+        attrs: dict[str, Any] = {
+            "friendly_name": state.attributes.get("friendly_name", ""),
+        }
+        for attr_key in ENTITY_SNAPSHOT_ATTRS:
+            val = state.attributes.get(attr_key)
+            if val is not None:
+                attrs[attr_key] = val
+
         states.append(
             {
                 "entity_id": state.entity_id,
                 "state": _format_entity_state(state.state),
-                "attributes": {
-                    "friendly_name": state.attributes.get("friendly_name", ""),
-                },
+                "attributes": attrs,
             }
         )
     return states

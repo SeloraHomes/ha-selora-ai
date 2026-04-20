@@ -812,6 +812,27 @@ LIGHT_ENTITY_EXCLUDE_PATTERNS = {
     "infrared",
 }
 
+# Domain-specific entity attributes included in snapshots for state-aware
+# LLM responses (brightness, temperature, battery, etc.).
+ENTITY_SNAPSHOT_ATTRS = frozenset(
+    {
+        "brightness",
+        "color_temp",
+        "temperature",
+        "current_temperature",
+        "target_temperature",
+        "hvac_mode",
+        "battery_level",
+        "battery",
+        "volume_level",
+        "media_title",
+        "source",
+        "percentage",
+        "preset_mode",
+        "current_position",
+    }
+)
+
 # ── Relevance Scoring ────────────────────────────────────────────────
 MIN_RELEVANCE_SCORE = 0.3  # Suggestions below this are filtered out
 RELEVANCE_WEIGHT_CROSS_DEVICE = 0.30  # Connects multiple devices/domains
