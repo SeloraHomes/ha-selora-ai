@@ -38,6 +38,7 @@ See docs/selora-mcp-server.md and docs/adr/ADR-001-selora-mcp-server.md.
 from __future__ import annotations
 
 import asyncio
+from collections import defaultdict
 import contextlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -46,6 +47,7 @@ from http import HTTPStatus
 import json
 import logging
 from pathlib import Path
+import time
 from typing import TYPE_CHECKING, Any
 
 import aiohttp
@@ -127,17 +129,99 @@ def _cors_headers(origin: str) -> dict[str, str]:
     }
 
 
+def _validate_cors_origin(request: web.Request) -> str:
+    """Return the Origin header only if it matches a trusted pattern.
+
+    Allows same-host origins (HA frontend), localhost development,
+    and mDNS .local addresses.  Returns empty string for untrusted origins
+    so the Access-Control-Allow-Origin header is omitted.
+    """
+    origin = request.headers.get("Origin", "")
+    if not origin:
+        return ""
+    try:
+        from urllib.parse import urlparse
+
+        parsed = urlparse(origin)
+        host = parsed.hostname or ""
+    except Exception:
+        return ""
+    # Allow localhost / loopback and .local (mDNS) origins unconditionally
+    if host in ("localhost", "127.0.0.1", "::1") or host.endswith(".local"):
+        return origin
+    # Allow when the Origin matches the Host header (same-origin)
+    request_host = request.host.split(":")[0] if request.host else ""
+    if host == request_host:
+        return origin
+    # Allow private-network IPs (RFC 1918)
+    try:
+        import ipaddress
+
+        addr = ipaddress.ip_address(host)
+        if addr.is_private:
+            return origin
+    except ValueError:
+        pass
+    return ""
+
+
 async def _cors_preflight(request: web.Request) -> web.Response:
     """Return a 204 CORS preflight response."""
-    origin = request.headers.get("Origin", "*")
+    origin = _validate_cors_origin(request)
+    if not origin:
+        return web.Response(status=204)
     return web.Response(status=204, headers=_cors_headers(origin))
 
 
 def _add_cors(request: web.Request, response: web.Response) -> web.Response:
     """Add CORS headers to a response and return it."""
-    origin = request.headers.get("Origin", "*")
-    response.headers.update(_cors_headers(origin))
+    origin = _validate_cors_origin(request)
+    if origin:
+        response.headers.update(_cors_headers(origin))
     return response
+
+
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+
+# Per-IP sliding window: max requests in the window before returning 429.
+_RATE_LIMIT_WINDOW = 60  # seconds
+_RATE_LIMIT_MAX_REQUESTS = 30  # max requests per IP per window
+_RATE_LIMIT_AUTH_FAILURES = 5  # max auth failures per IP per window
+
+
+class _RateLimiter:
+    """Simple per-key sliding-window rate limiter (in-memory, no persistence)."""
+
+    def __init__(self, window: int, max_hits: int) -> None:
+        self._window = window
+        self._max_hits = max_hits
+        self._hits: dict[str, list[float]] = defaultdict(list)
+
+    def is_allowed(self, key: str) -> bool:
+        """Return True if the key is within the rate limit."""
+        now = time.monotonic()
+        bucket = self._hits[key]
+        # Prune expired entries
+        cutoff = now - self._window
+        self._hits[key] = bucket = [t for t in bucket if t > cutoff]
+        if len(bucket) >= self._max_hits:
+            return False
+        bucket.append(now)
+        return True
+
+
+_request_limiter = _RateLimiter(_RATE_LIMIT_WINDOW, _RATE_LIMIT_MAX_REQUESTS)
+_auth_fail_limiter = _RateLimiter(_RATE_LIMIT_WINDOW, _RATE_LIMIT_AUTH_FAILURES)
+
+
+def _get_client_ip(request: web.Request) -> str:
+    """Return the client IP using HA's trusted-proxy-aware remote address.
+
+    ``request.remote`` is set by HA's ``async_setup_forwarded`` middleware,
+    which only trusts ``X-Forwarded-For`` from configured trusted proxies.
+    This prevents callers from spoofing the header to bypass rate limits.
+    """
+    return request.remote or "unknown"
 
 
 # ── Tool name constants ────────────────────────────────────────────────────────
@@ -327,22 +411,24 @@ class OAuthTokenProxyView(HomeAssistantView):
             "Content-Type": request.content_type,
         }
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(
-                    f"{connect_url}/oauth/token",
-                    data=body,
-                    headers=headers,
-                    timeout=aiohttp.ClientTimeout(total=30),
-                ) as resp:
-                    resp_body = await resp.read()
-                    return _add_cors(
-                        request,
-                        web.Response(
-                            status=resp.status,
-                            body=resp_body,
-                            content_type=resp.content_type,
-                        ),
-                    )
+            from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+            session = async_get_clientsession(hass)
+            async with session.post(
+                f"{connect_url}/oauth/token",
+                data=body,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=30),
+            ) as resp:
+                resp_body = await resp.read()
+                return _add_cors(
+                    request,
+                    web.Response(
+                        status=resp.status,
+                        body=resp_body,
+                        content_type=resp.content_type,
+                    ),
+                )
         except (aiohttp.ClientError, TimeoutError):
             _LOGGER.exception("Failed to proxy token request to Connect")
             return _add_cors(
@@ -389,6 +475,13 @@ class SeloraAIMCPView(HomeAssistantView):
 
     async def get(self, request: web.Request) -> web.Response:
         """Handle GET — used by MCP clients to probe auth requirements."""
+        client_ip = _get_client_ip(request)
+        if not _request_limiter.is_allowed(client_ip):
+            return web.Response(
+                status=HTTPStatus.TOO_MANY_REQUESTS,
+                text="Rate limit exceeded",
+                headers={"Retry-After": str(_RATE_LIMIT_WINDOW)},
+            )
         hass: HomeAssistant = request.app[KEY_HASS]
         domain_data = hass.data.get(DOMAIN, {})
         jwt_validator = domain_data.get("selora_jwt_validator")
@@ -407,6 +500,15 @@ class SeloraAIMCPView(HomeAssistantView):
     async def _handle_post(self, request: web.Request) -> web.Response:
         """Internal post handler — CORS headers added by the wrapper."""
         hass: HomeAssistant = request.app[KEY_HASS]
+        client_ip = _get_client_ip(request)
+
+        # ── Rate limiting ──
+        if not _request_limiter.is_allowed(client_ip):
+            return web.Response(
+                status=HTTPStatus.TOO_MANY_REQUESTS,
+                text="Rate limit exceeded",
+                headers={"Retry-After": str(_RATE_LIMIT_WINDOW)},
+            )
 
         # ── Authentication (HA token, Selora MCP token, or Selora Connect JWT) ──
         domain_data = hass.data.get(DOMAIN, {})
@@ -415,6 +517,12 @@ class SeloraAIMCPView(HomeAssistantView):
         try:
             auth_ctx = await authenticate_request(hass, request, jwt_validator, mcp_token_store)
         except AuthenticationError:
+            if not _auth_fail_limiter.is_allowed(client_ip):
+                return web.Response(
+                    status=HTTPStatus.TOO_MANY_REQUESTS,
+                    text="Too many authentication failures",
+                    headers={"Retry-After": str(_RATE_LIMIT_WINDOW)},
+                )
             return self._build_unauthorized_response(hass, request)
 
         # Content-type negotiation

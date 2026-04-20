@@ -85,6 +85,9 @@ from .const import (
     DOMAIN,
     PATTERN_HISTORY_MAX_PER_ENTITY,
     PATTERN_HISTORY_RETENTION_DAYS,
+    PATTERN_MAX_DELETED_HASHES,
+    PATTERN_MAX_PATTERNS,
+    PATTERN_MAX_SUGGESTIONS,
     PATTERN_STORE_KEY,
 )
 
@@ -138,6 +141,15 @@ class PatternStore:
     async def _save(self) -> None:
         if self._data is not None:
             await self._store.async_save(self._data)
+
+    @staticmethod
+    def _evict_oldest(items: dict[str, Any], max_size: int, time_key: str = "detected_at") -> None:
+        """Remove the oldest entries in-place when the dict exceeds max_size."""
+        if len(items) <= max_size:
+            return
+        sorted_keys = sorted(items, key=lambda k: items[k].get(time_key, ""))
+        for key in sorted_keys[: len(items) - max_size]:
+            del items[key]
 
     # ── State History ────────────────────────────────────────────────────
 
@@ -533,6 +545,7 @@ class PatternStore:
                 "snooze_until": None,
             }
 
+        self._evict_oldest(data["patterns"], PATTERN_MAX_PATTERNS)
         await self._save()
         return pattern_id
 
@@ -623,6 +636,7 @@ class PatternStore:
             "dismissal_reason": None,
         }
 
+        self._evict_oldest(data["suggestions"], PATTERN_MAX_SUGGESTIONS, time_key="created_at")
         await self._save()
         return suggestion_id
 
@@ -730,6 +744,9 @@ class PatternStore:
             "alias": alias,
             "deleted_at": datetime.now(UTC).isoformat(),
         }
+        self._evict_oldest(
+            data["deleted_hashes"], PATTERN_MAX_DELETED_HASHES, time_key="deleted_at"
+        )
         await self._save()
 
     async def get_deleted_hashes(self) -> set[str]:

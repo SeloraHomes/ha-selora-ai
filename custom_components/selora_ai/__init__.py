@@ -128,6 +128,10 @@ _CONVERSATIONS_STORAGE_VERSION = 1
 # keeping the first message for context and the latest N-1 for recency).
 _SESSION_MAX_MESSAGES = 100
 
+# Maximum number of chat sessions retained.  When exceeded the oldest
+# sessions (by updated_at) are evicted to stay within budget.
+_SESSION_MAX_COUNT = 200
+
 
 class ConversationStore:
     """Thin wrapper around HA's Store for persisting chat sessions."""
@@ -171,6 +175,21 @@ class ConversationStore:
             raise RuntimeError("Session store failed to load")
         return self._data["sessions"].get(session_id)
 
+    def _evict_oldest_sessions(self) -> None:
+        """Remove oldest sessions when count exceeds the cap."""
+        if self._data is None:
+            return
+        sessions = self._data["sessions"]
+        if len(sessions) <= _SESSION_MAX_COUNT:
+            return
+        sorted_ids = sorted(
+            sessions,
+            key=lambda sid: sessions[sid].get("updated_at", ""),
+        )
+        to_remove = len(sessions) - _SESSION_MAX_COUNT
+        for sid in sorted_ids[:to_remove]:
+            del sessions[sid]
+
     async def create_session(self) -> SessionData:
         """Create a new empty session and persist it."""
         await self._ensure_loaded()
@@ -185,6 +204,7 @@ class ConversationStore:
             "messages": [],
         }
         self._data["sessions"][session["id"]] = session
+        self._evict_oldest_sessions()
         await self._store.async_save(self._data)
         return session
 
@@ -219,6 +239,7 @@ class ConversationStore:
                 "updated_at": now,
                 "messages": [],
             }
+            self._evict_oldest_sessions()
 
         session = self._data["sessions"][session_id]
         message: ChatMessage = {
@@ -3231,6 +3252,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         "collector": collector,
         "device_manager": device_mgr,
         "unsub_discovery": None,  # Will be set below
+        "_background_tasks": [],  # Tracked for cancellation on unload
     }
 
     from .mcp_server import register_mcp_server
@@ -3344,7 +3366,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         if discovery_enabled:
             await _run_discovery()
 
-    hass.async_create_task(_delayed_discovery())
+    _bg = hass.data[DOMAIN][entry.entry_id]["_background_tasks"]
+    _bg.append(hass.async_create_task(_delayed_discovery()))
 
     # Periodic discovery timer
     unsub_discovery = None
@@ -3381,7 +3404,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         except Exception:
             _LOGGER.exception("Startup entity cleanup failed")
 
-    hass.async_create_task(_cleanup_orphaned_entities())
+    _bg.append(hass.async_create_task(_cleanup_orphaned_entities()))
 
     if pattern_enabled:
         from .pattern_store import PatternStore
@@ -3411,7 +3434,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         hass.data[DOMAIN][entry.entry_id]["pattern_store"] = pattern_store
         hass.data[DOMAIN][entry.entry_id]["unsub_state_listener"] = unsub_state_listener
 
-        hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback))
+        _bg.append(hass.async_create_task(pattern_store.backfill_from_recorder(hass, lookback)))
 
         from .pattern_engine import PatternEngine
 
@@ -3478,6 +3501,11 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unsub_discovery:
         unsub_discovery()
 
+    # Cancel tracked background tasks
+    for task in data.get("_background_tasks", []):
+        if not task.done():
+            task.cancel()
+
     # Stop pattern detection
     pattern_engine = data.get("pattern_engine")
     if pattern_engine:
@@ -3489,9 +3517,19 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if pattern_store:
         await pattern_store.flush()
 
+    # Flush pending writes and cancel MCP token store deferred-save timer
+    mcp_token_store = hass.data[DOMAIN].get("mcp_token_store")
+    if mcp_token_store is not None:
+        await mcp_token_store.async_close()
+
     # Clear Selora Connect JWT validator so stale credentials can't be used
     hass.data[DOMAIN].pop("selora_jwt_validator", None)
     hass.data[DOMAIN].pop("mcp_token_store", None)
+
+    # Clean up shared in-memory caches
+    hass.data[DOMAIN].pop("proactive_suggestions", None)
+    hass.data[DOMAIN].pop("latest_suggestions", None)
+    hass.data[DOMAIN].pop("_conv_store", None)
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

@@ -373,7 +373,7 @@ class TestFormatEntityLine:
         assert "temperature" not in line
         # Core fields are always present
         assert "entity_id=switch.outlet" in line
-        assert "state=off" in line
+        assert 'state="off"' in line
 
     def test_sanitizes_string_attrs(self) -> None:
         """String attributes (media_title, source, etc.) must be sanitized."""
