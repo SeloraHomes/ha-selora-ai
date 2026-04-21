@@ -1,3 +1,10 @@
+## [0.6.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.6.0...v0.6.1) (2026-04-21)
+
+### Bug Fixes
+
+* [#94](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/94) command responses shown as raw JSON ([5204a2a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5204a2a8f15961e5cd5dacf2d56912f92c70794b))
+* light mode UI, settings UX, and refinement ([b79ad1f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b79ad1f2dcf1e3c8ace0dcfd10127e82cf620c6c))
+
 ## [0.6.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.5.0...v0.6.0) (2026-04-20)
 
 ### Features
