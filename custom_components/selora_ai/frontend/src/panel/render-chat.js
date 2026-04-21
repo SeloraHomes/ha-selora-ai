@@ -318,6 +318,9 @@ export function renderChat(host) {
             @input=${(e) => (host._input = e.target.value)}
             @keydown=${(e) =>
               e.key === "Enter" && !e.shiftKey && host._sendMessage()}
+            @focus=${() => {
+              requestAnimationFrame(() => host._requestScrollChat());
+            }}
             placeholder="Describe an automation or ask a question…"
             ?disabled=${host._loading || host._streaming}
             style="flex:1;"
