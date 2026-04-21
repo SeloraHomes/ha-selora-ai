@@ -156,9 +156,11 @@ export const chatStyles = css`
   .chat-input-wrapper {
     border-top: 1px solid var(--divider-color);
     flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--primary-background-color);
   }
   .chat-input {
-    padding: 16px 24px;
+    padding: 12px 24px;
     max-width: 1200px;
     margin: 0 auto;
     box-sizing: border-box;
@@ -167,6 +169,11 @@ export const chatStyles = css`
     display: flex;
     gap: 10px;
     align-items: center;
+  }
+  @media (max-width: 600px) {
+    .chat-input {
+      padding: 10px 12px;
+    }
   }
   .chat-input ha-textfield {
     --mdc-text-field-fill-color: var(--selora-zinc-800, #27272a);

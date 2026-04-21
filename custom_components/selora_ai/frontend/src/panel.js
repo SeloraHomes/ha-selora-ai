@@ -447,6 +447,38 @@ class SeloraAIPanel extends LitElement {
       if (this._showOverflowMenu) this._showOverflowMenu = false;
     };
     document.addEventListener("click", this._closeOverflowHandler);
+
+    // Mobile keyboard: use visualViewport to keep the chat input visible
+    this._keyboardOpen = false;
+    if (window.visualViewport) {
+      this._viewportHandler = () => {
+        if (!this.isConnected) return;
+        const vp = window.visualViewport;
+        const keyboardHeight = window.innerHeight - vp.height;
+        const host = this.shadowRoot?.host;
+        if (!host) return;
+        const isOpen = keyboardHeight > 80;
+        if (isOpen) {
+          host.style.height = `${vp.height}px`;
+          host.style.position = "fixed";
+          host.style.top = `${vp.offsetTop}px`;
+          host.style.left = "0";
+          host.style.right = "0";
+        } else {
+          host.style.height = "";
+          host.style.position = "";
+          host.style.top = "";
+          host.style.left = "";
+          host.style.right = "";
+        }
+        if (isOpen !== this._keyboardOpen) {
+          this._keyboardOpen = isOpen;
+          this._requestScrollChat();
+        }
+      };
+      window.visualViewport.addEventListener("resize", this._viewportHandler);
+      window.visualViewport.addEventListener("scroll", this._viewportHandler);
+    }
   }
 
   disconnectedCallback() {
@@ -460,6 +492,20 @@ class SeloraAIPanel extends LitElement {
     if (this._keyDownHandler) {
       window.removeEventListener("keydown", this._keyDownHandler);
       this._keyDownHandler = null;
+    }
+    const vpHandler = this._viewportHandler;
+    this._viewportHandler = null;
+    if (vpHandler && window.visualViewport) {
+      window.visualViewport.removeEventListener("resize", vpHandler);
+      window.visualViewport.removeEventListener("scroll", vpHandler);
+      const host = this.shadowRoot?.host;
+      if (host) {
+        host.style.height = "";
+        host.style.position = "";
+        host.style.top = "";
+        host.style.left = "";
+        host.style.right = "";
+      }
     }
     if (this._oauthPollTimer) {
       clearInterval(this._oauthPollTimer);
