@@ -472,15 +472,13 @@ def _find_active_refining_yaml(
 ) -> tuple[str, str] | None:
     """Return (sanitized_alias, yaml) for the active refining automation.
 
-    Only returns a result when:
-    1. The most recent automation status is "refining" (no newer proposal).
-    2. The user message starts with the ``Refine "`` prefix set by the
-       frontend Refine button — this is the only explicit marker.
-
-    This prevents stale YAML from leaking into unrelated turns.
+    Returns a result when the most recent automation status in the session
+    is "refining" — meaning the user loaded an automation for refinement
+    and all subsequent messages in the session are part of that refinement
+    conversation.  A newer "pending", "saved", or "declined" status means
+    the refinement ended.
     """
-    if not user_message.startswith('Refine "'):
-        return None
+    del user_message
     for m in reversed(stored_messages):
         status = m.get("automation_status")
         if status in ("pending", "saved", "declined"):
