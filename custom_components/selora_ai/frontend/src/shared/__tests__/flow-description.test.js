@@ -28,7 +28,7 @@ describe("Triggers", () => {
       at: "08:00",
     });
     expect(result).toContain("When the time is");
-    expect(result).toContain("8:00 AM");
+    expect(result).toContain("08:00");
   });
 
   it("describes time trigger with array of times", () => {

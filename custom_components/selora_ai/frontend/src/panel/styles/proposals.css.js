@@ -10,7 +10,8 @@ export const proposalStyles = css`
     background: var(--primary-background-color);
   }
   .proposal-header {
-    background: rgba(251, 191, 36, 0.08);
+    background: transparent;
+    border-bottom: 1px solid var(--divider-color);
     padding: 10px 14px;
     font-size: 12px;
     font-weight: 700;
@@ -19,16 +20,16 @@ export const proposalStyles = css`
     display: flex;
     align-items: center;
     gap: 6px;
-    color: var(--selora-accent-text);
+    color: var(--primary-text-color);
   }
   .proposal-body {
     padding: 14px;
   }
   .proposal-body .flow-chart {
-    align-items: flex-start;
+    align-items: center;
   }
   .proposal-body .flow-section {
-    text-align: left;
+    text-align: center;
   }
   .proposal-name {
     font-weight: 600;

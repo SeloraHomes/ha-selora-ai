@@ -5,6 +5,29 @@ import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, renderStaleModal } from "./stale-automations.js";
 
 // ---------------------------------------------------------------------------
+// Shared card header (used by proposal + refining cards)
+// ---------------------------------------------------------------------------
+
+function _cardHeader(name, badge) {
+  return html`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <ha-icon
+        icon="mdi:robot-outline"
+        style="color:var(--primary-text-color);--mdc-icon-size:18px;display:flex;flex-shrink:0;"
+      ></ha-icon>
+      <span
+        style="font-weight:700;font-size:14px;color:var(--primary-text-color);"
+        >${name}</span
+      >
+      <span
+        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;"
+        >${badge}</span
+      >
+    </div>
+  `;
+}
+
+// ---------------------------------------------------------------------------
 // Automation flowchart renderer
 // ---------------------------------------------------------------------------
 
@@ -111,19 +134,14 @@ export function renderProposalCard(host, msg, msgIndex) {
 
   if (status === "refining") {
     return html`
-      <div class="proposal-card" style="margin-top:12px; opacity:0.75;">
-        <div class="proposal-header" style="color:var(--selora-accent);">
-          <ha-icon icon="mdi:pencil-circle-outline"></ha-icon>
-          Being Refined
-        </div>
-        <div class="proposal-body">
-          <div class="proposal-name">${automation.alias}</div>
+      <div style="margin-top:12px;padding:14px 0 0;">
+        ${_cardHeader(automation.alias, "Being Refined")}
+        <div class="proposal-body" style="padding:0;">
+          ${renderAutomationFlowchart(host, automation)}
           <div
-            class="proposal-status"
-            style="background:var(--selora-zinc-800); color:var(--selora-accent); border:1px solid var(--selora-zinc-700); border-radius:8px; padding:8px 12px;"
+            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
           >
-            <ha-icon icon="mdi:arrow-down"></ha-icon>
-            Refinement requested — see the updated proposal below.
+            What changes would you like to make?
           </div>
         </div>
       </div>
@@ -137,14 +155,9 @@ export function renderProposalCard(host, msg, msgIndex) {
     host._editedYaml[yamlKey] !== undefined &&
     host._editedYaml[yamlKey] !== yaml;
   return html`
-    <div class="proposal-card">
-      <div class="proposal-header">
-        <ha-icon icon="mdi:lightning-bolt"></ha-icon>
-        Automation Proposal
-      </div>
-      <div class="proposal-body">
-        <div class="proposal-name">${automation.alias}</div>
-
+    <div style="margin-top:12px;padding:14px 0 0;">
+      ${_cardHeader(automation.alias, "Proposal")}
+      <div class="proposal-body" style="padding:0;">
         ${msg.description
           ? html`
               <div class="proposal-description-label">

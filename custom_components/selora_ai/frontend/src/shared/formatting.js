@@ -122,24 +122,20 @@ export function fmtTime(hass, val) {
     if (m2) return fmtEntity(hass, m2[1]);
     return "a calculated time";
   }
-  // Handle raw seconds (e.g. 43200 => "12:00 PM")
+  // Handle raw seconds (e.g. 43200 => "12:00")
   const num = Number(s);
   if (!isNaN(num) && num >= 0 && num <= 86400 && !s.includes(":")) {
     const h = Math.floor(num / 3600);
     const m = Math.floor((num % 3600) / 60);
-    const ampm = h >= 12 ? "PM" : "AM";
-    const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-    return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
   }
-  // Handle HH:MM:SS or HH:MM (e.g. "12:00:00" => "12:00 PM")
+  // Handle HH:MM:SS or HH:MM (e.g. "23:30:00" => "23:30")
   const parts = s.split(":");
   if (parts.length >= 2) {
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     if (!isNaN(h) && !isNaN(m)) {
-      const ampm = h >= 12 ? "PM" : "AM";
-      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h;
-      return `${h12}:${String(m).padStart(2, "0")} ${ampm}`;
+      return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
     }
   }
   // Entity reference like input_datetime.xxx

@@ -60,6 +60,8 @@ export async function _openSession(sessionId) {
     });
     this._activeSessionId = session.id;
     this._messages = session.messages || [];
+    this._deviceDetail = null;
+    this._deviceDetailLoading = false;
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -74,6 +76,8 @@ export async function _newSession() {
     });
     this._activeSessionId = session_id;
     this._messages = [];
+    this._deviceDetail = null;
+    this._deviceDetailLoading = false;
     this._activeTab = "chat";
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();

@@ -65,10 +65,7 @@ export function renderMarkdown(text) {
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
   );
   // Bold — inline accent color so it works regardless of theme resolution
-  escaped = escaped.replace(
-    /\*\*(.+?)\*\*/g,
-    '<strong style="color:var(--selora-accent-text,#fbbf24);">$1</strong>',
-  );
+  escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   // Italic (*text*) — require non-word boundaries
   escaped = escaped.replace(
     /(?<!\w)\*([^\s*](?:.*?[^\s*])?)\*(?!\w)/g,
