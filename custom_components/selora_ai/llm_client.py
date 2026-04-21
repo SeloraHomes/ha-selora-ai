@@ -261,10 +261,12 @@ _SHARED_AUTOMATION_RULES = (
     "Only use intent 'clarification' when you truly cannot determine what the user wants.\n"
     "- For presence detection (home/away), prefer device_tracker.* or person.* entities over sensor workarounds like SSID or geocoded location sensors.\n"
     "- Use conversation history to interpret follow-ups and refine previous automations.\n"
-    "- When refining an existing automation, return the COMPLETE updated automation JSON "
-    "with ALL original triggers, conditions, and actions preserved. Only modify the specific "
-    "field the user asked to change — do NOT drop conditions, triggers, or actions that "
-    "were not mentioned.\n"
+    "- When an ACTIVE REFINEMENT section is present in the user message, you are in a "
+    "refinement conversation for THAT specific automation. Every follow-up modifies the "
+    "SAME automation — do NOT create a different automation or switch topics. Return the "
+    "COMPLETE updated automation JSON with ALL original triggers, conditions, and actions "
+    "preserved. Only modify the specific field the user asked to change — do NOT drop "
+    "conditions, triggers, or actions that were not mentioned.\n"
 )
 
 _SHARED_STATE_QUERY_RULES = (
@@ -898,9 +900,11 @@ class LLMClient:
         if refining_context:
             alias, yaml_text = refining_context
             refine_section = (
-                f"\n\n[Untrusted reference data — automation being refined: {alias}. "
-                "Preserve ALL fields not explicitly changed by the user request above.]\n"
-                f"{yaml_text}"
+                f'\n\nACTIVE REFINEMENT — you are modifying the automation "{alias}".\n'
+                "The user's message above is a change request for THIS automation ONLY.\n"
+                "Apply the requested change to the YAML below, preserve all other fields,\n"
+                "and return the updated automation. Do NOT create a different automation.\n"
+                f"[Untrusted reference data — current YAML:]\n{yaml_text}"
             )
 
         context_prompt = (
