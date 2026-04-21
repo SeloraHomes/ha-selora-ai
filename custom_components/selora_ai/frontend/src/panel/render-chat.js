@@ -355,6 +355,10 @@ export function renderMessage(host, msg, idx) {
     const { text, isPartialBlock } = stripAutomationBlock(msg.content);
     displayContent = text;
     showAutomationSpinner = isPartialBlock && msg._streaming;
+    // Hide message text for refining cards — it's folded into the card body
+    if (msg.automation_status === "refining" && msg.automation) {
+      displayContent = "";
+    }
   }
 
   return html`

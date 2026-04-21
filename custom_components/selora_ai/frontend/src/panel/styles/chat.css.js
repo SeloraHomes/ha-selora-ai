@@ -148,7 +148,8 @@ export const chatStyles = css`
     color: var(--success-color, #4caf50);
   }
   .bubble.assistant strong {
-    color: var(--selora-accent-text);
+    color: var(--primary-text-color);
+    font-weight: 700;
   }
 
   /* ---- Chat input ---- */

@@ -1,5 +1,78 @@
 import { html } from "lit";
 
+const _PROVIDERS = [
+  { value: "anthropic", label: "Anthropic (Claude)" },
+  { value: "gemini", label: "Google Gemini" },
+  { value: "openai", label: "OpenAI" },
+  { value: "ollama", label: "Ollama (Local)" },
+  { value: "", label: "Selora AI Local (Coming soon)", disabled: true },
+  { value: "", label: "Selora AI Cloud (Coming soon)", disabled: true },
+];
+
+function _renderProviderPicker(host) {
+  const current = _PROVIDERS.find((p) => p.value === host._config.llm_provider);
+  const open = host._providerDropdownOpen || false;
+  return html`
+    <div style="position:relative;">
+      <button
+        class="form-select"
+        style="text-align:left;width:100%;display:flex;align-items:center;justify-content:space-between;"
+        @click=${() => {
+          host._providerDropdownOpen = !open;
+          host.requestUpdate();
+        }}
+      >
+        <span>${current ? current.label : "Select..."}</span>
+        <ha-icon
+          icon="mdi:chevron-down"
+          style="--mdc-icon-size:18px;opacity:0.6;"
+        ></ha-icon>
+      </button>
+      ${open
+        ? html`
+            <div
+              style="position:fixed;inset:0;z-index:9;"
+              @click=${() => {
+                host._providerDropdownOpen = false;
+                host.requestUpdate();
+              }}
+            ></div>
+            <div
+              style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
+            >
+              ${_PROVIDERS.map(
+                (p) => html`
+                  <button
+                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p.value ===
+                    host._config.llm_provider
+                      ? "var(--selora-accent)"
+                      : "transparent"};color:${p.disabled
+                      ? "var(--disabled-text-color, #999)"
+                      : p.value === host._config.llm_provider
+                        ? "#000"
+                        : "var(--primary-text-color)"};font-size:14px;cursor:${p.disabled
+                      ? "default"
+                      : "pointer"};opacity:${p.disabled ? "0.5" : "1"};"
+                    @click=${() => {
+                      if (p.disabled) return;
+                      host._providerDropdownOpen = false;
+                      host._updateConfig("llm_provider", p.value);
+                      host._showApiKeyInput = false;
+                      host._newApiKey = "";
+                      host._llmSaveStatus = null;
+                    }}
+                  >
+                    ${p.label}
+                  </button>
+                `,
+              )}
+            </div>
+          `
+        : ""}
+    </div>
+  `;
+}
+
 export function renderSettings(host) {
   if (!host._config) {
     return html`
@@ -43,23 +116,7 @@ export function renderSettings(host) {
           </div>
           <div class="form-group">
             <label>Provider</label>
-            <select
-              class="form-select"
-              .value=${host._config.llm_provider}
-              @change=${(e) => {
-                host._updateConfig("llm_provider", e.target.value);
-                host._showApiKeyInput = false;
-                host._newApiKey = "";
-                host._llmSaveStatus = null;
-              }}
-            >
-              <option value="anthropic">Anthropic (Claude)</option>
-              <option value="gemini">Google Gemini</option>
-              <option value="openai">OpenAI</option>
-              <option value="ollama">Ollama (Local)</option>
-              <option disabled>Selora AI Local (Coming soon)</option>
-              <option disabled>Selora AI Cloud (Coming soon)</option>
-            </select>
+            ${_renderProviderPicker(host)}
           </div>
 
           ${isGemini

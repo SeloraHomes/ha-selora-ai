@@ -466,7 +466,37 @@ async def _resolve_or_create_session(
     return session, session["id"]
 
 
-def _build_history_from_session(stored_messages: list[dict[str, Any]]) -> list[dict[str, str]]:
+def _find_active_refining_yaml(
+    stored_messages: list[dict[str, Any]],
+    user_message: str,
+) -> tuple[str, str] | None:
+    """Return (sanitized_alias, yaml) for the active refining automation.
+
+    Only returns a result when:
+    1. The most recent automation status is "refining" (no newer proposal).
+    2. The user message starts with the ``Refine "`` prefix set by the
+       frontend Refine button — this is the only explicit marker.
+
+    This prevents stale YAML from leaking into unrelated turns.
+    """
+    if not user_message.startswith('Refine "'):
+        return None
+    for m in reversed(stored_messages):
+        status = m.get("automation_status")
+        if status in ("pending", "saved", "declined"):
+            return None
+        if status == "refining" and m.get("automation_yaml"):
+            alias = (m.get("automation") or {}).get("alias", "")
+            safe_alias = _sanitize_history_text(alias, max_length=100)
+            return safe_alias, m["automation_yaml"]
+    return None
+
+
+def _build_history_from_session(
+    stored_messages: list[dict[str, Any]],
+    *,
+    skip_refining_yaml: bool = False,
+) -> list[dict[str, str]]:
     """Build LLM history from stored session messages.
 
     For assistant messages that proposed an automation, appends the YAML so the
@@ -477,7 +507,11 @@ def _build_history_from_session(stored_messages: list[dict[str, Any]]) -> list[d
         if m.get("role") not in ("user", "assistant"):
             continue
         content = m["content"]
-        if m.get("automation_yaml") and m.get("automation_status") in ("pending", "refining"):
+        if (
+            m.get("automation_yaml")
+            and m.get("automation_status") in ("pending", "refining")
+            and not (skip_refining_yaml and m.get("automation_status") == "refining")
+        ):
             alias = _sanitize_history_text((m.get("automation") or {}).get("alias", ""))
             description = _sanitize_history_text(m.get("description", ""))
             header = f"[Untrusted automation reference data for context only: {alias}"
@@ -571,9 +605,13 @@ async def _handle_websocket_chat(
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
     session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
     stored_messages = (session or {}).get("messages", [])
-    history = _build_history_from_session(stored_messages)
-
     user_message = msg["message"]
+
+    # Build history and check for active refinement BEFORE appending the new
+    # user turn — append_message() mutates stored_messages in place.
+    refining = _find_active_refining_yaml(stored_messages, user_message)
+    history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
+
     await store.append_message(session_id, "user", user_message)
 
     entities = _collect_entity_states(hass)
@@ -586,6 +624,7 @@ async def _handle_websocket_chat(
         existing_automations=automations,
         history=history,
         tool_executor=tool_executor,
+        refining_context=refining,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -693,11 +732,17 @@ async def _handle_websocket_chat_stream(
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
     session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
     stored_messages = (session or {}).get("messages", [])
-    history = _build_history_from_session(stored_messages)
-
     user_message = msg["message"]
+
+    # Build history and check for active refinement BEFORE appending the new
+    # user turn — append_message() mutates stored_messages in place.
+    refining = _find_active_refining_yaml(stored_messages, user_message)
+    history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
+
     await store.append_message(session_id, "user", user_message)
 
+    # Inject the active refining automation's YAML into the user message so
+    # the LLM always sees the full definition even if history gets trimmed.
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -711,6 +756,7 @@ async def _handle_websocket_chat_stream(
             existing_automations=automations,
             history=history,
             tool_executor=tool_executor,
+            refining_context=refining,
         ):
             full_text += chunk
             # Suppress streaming tokens when the LLM is emitting raw JSON

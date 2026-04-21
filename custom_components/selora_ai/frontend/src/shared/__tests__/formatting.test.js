@@ -192,18 +192,18 @@ describe("fmtTime", () => {
     expect(fmtTime(null, null)).toBe("null");
   });
 
-  it("formats HH:MM to 12-hour time", () => {
-    expect(fmtTime(null, "14:30")).toBe("2:30 PM");
-    expect(fmtTime(null, "08:00")).toBe("8:00 AM");
+  it("formats HH:MM to 24-hour time", () => {
+    expect(fmtTime(null, "14:30")).toBe("14:30");
+    expect(fmtTime(null, "08:00")).toBe("08:00");
   });
 
   it("formats midnight correctly", () => {
-    expect(fmtTime(null, "00:00")).toBe("12:00 AM");
+    expect(fmtTime(null, "00:00")).toBe("00:00");
   });
 
   it("formats raw seconds", () => {
-    // 43200 seconds = 12:00 PM
-    expect(fmtTime(null, "43200")).toBe("12:00 PM");
+    // 43200 seconds = 12:00
+    expect(fmtTime(null, "43200")).toBe("12:00");
   });
 
   it("handles Jinja template with states() reference", () => {
