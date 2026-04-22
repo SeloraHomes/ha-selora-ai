@@ -20,6 +20,34 @@ export const layoutStyles = css`
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+  }
+
+  /* ---- Particle band under header ---- */
+  selora-particles {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 220px;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+    pointer-events: none;
+    overflow: hidden;
+    mask-image: radial-gradient(
+      ellipse 70% 90% at top center,
+      black 10%,
+      transparent 70%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 90% at top center,
+      black 10%,
+      transparent 70%
+    );
+  }
+  selora-particles.visible {
+    opacity: 1;
   }
 
   /* ---- Scroll view (automations / settings) ---- */
@@ -29,6 +57,8 @@ export const layoutStyles = css`
     padding: 24px 28px;
     max-width: 1200px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
     width: 100%;
     box-sizing: border-box;
   }

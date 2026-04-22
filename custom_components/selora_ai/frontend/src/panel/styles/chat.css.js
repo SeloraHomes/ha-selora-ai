@@ -6,6 +6,8 @@ export const chatStyles = css`
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
+    z-index: 1;
   }
   .chat-messages {
     flex: 1;
@@ -45,7 +47,7 @@ export const chatStyles = css`
       padding: 16px;
     }
   }
-  .empty-state.welcome > * {
+  .empty-state.welcome > *:not(selora-particles) {
     animation: fadeInUp 0.5s ease both;
   }
   .empty-state.welcome > img:first-child {
