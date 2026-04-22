@@ -8,6 +8,40 @@ export const headerStyles = css`
     flex-shrink: 0;
     height: var(--header-height, 56px);
     box-sizing: border-box;
+    position: relative;
+  }
+  /* Golden glow line at bottom of header (dark mode only) */
+  :host([dark]) .header::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 5%,
+      #f59e0b 50%,
+      transparent 95%
+    );
+    z-index: 3;
+  }
+  :host([dark]) .header::before {
+    content: "";
+    position: absolute;
+    bottom: -24px;
+    left: 10%;
+    right: 10%;
+    height: 24px;
+    background: radial-gradient(
+      ellipse 40% 100% at center top,
+      rgba(251, 191, 36, 0.6) 0%,
+      rgba(245, 158, 11, 0.3) 30%,
+      rgba(245, 158, 11, 0.08) 60%,
+      transparent 100%
+    );
+    filter: blur(4px);
+    z-index: 3;
   }
   .header-toolbar {
     position: relative;
@@ -42,6 +76,7 @@ export const headerStyles = css`
     transform: translateX(-50%);
     display: flex;
     align-items: center;
+    gap: 6px;
     height: 100%;
     pointer-events: auto;
   }
@@ -59,51 +94,52 @@ export const headerStyles = css`
   }
   .tab {
     position: relative;
-    padding: 0 10px;
-    height: var(--header-height, 56px);
+    padding: 8px 16px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 400;
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
     color: var(--app-header-text-color, var(--primary-text-color));
     opacity: 0.55;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
     transition:
-      opacity 0.3s,
-      color 0.3s;
+      opacity 0.25s,
+      background 0.25s,
+      border-color 0.25s,
+      color 0.25s;
     white-space: nowrap;
     user-select: none;
     display: flex;
     align-items: center;
   }
   .tab:hover {
-    opacity: 1;
-    color: var(--selora-accent-text);
+    opacity: 0.85;
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.12);
   }
   .tab.active {
     opacity: 1;
     font-weight: 600;
     color: var(--selora-accent-text);
+    background: rgba(251, 191, 36, 0.1);
+    border-color: rgba(251, 191, 36, 0.25);
   }
-  /* Light mode: keep text dark, only underline is gold */
-  :host(:not([dark])) .tab:hover,
+  /* Light mode */
+  :host(:not([dark])) .tab {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+  :host(:not([dark])) .tab:hover {
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.15);
+  }
   :host(:not([dark])) .tab.active {
     color: var(--primary-text-color);
-  }
-  /* Underline pinned to bottom of tab */
-  .tab::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 2px;
-    background: var(--selora-accent);
-    transform: scaleX(0);
-    transform-origin: center;
-    transition: transform 0.3s ease;
-  }
-  .tab:hover::after,
-  .tab.active::after {
-    transform: scaleX(1);
+    background: rgba(0, 0, 0, 0.08);
+    border-color: rgba(0, 0, 0, 0.2);
   }
   .tab-inner {
     display: inline-flex;

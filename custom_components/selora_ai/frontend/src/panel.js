@@ -7,6 +7,7 @@ import { sharedBadges } from "./shared/styles/badges.css.js";
 import { sharedLoaders } from "./shared/styles/loaders.css.js";
 import { sharedScrollbar } from "./shared/styles/scrollbar.css.js";
 import { allPanelStyles } from "./panel/styles/index.css.js";
+import "./shared/particles.js";
 import { formatDate } from "./shared/date-utils.js";
 import {
   renderChat,
@@ -1343,13 +1344,24 @@ class SeloraAIPanel extends LitElement {
     return html`
       <div class="header">
         <div class="header-toolbar">
-          <span class="header-title ${this._isDark ? "gold-text" : ""}"
+          <span
+            class="header-title ${this._isDark ? "gold-text" : ""}"
+            @click=${() => {
+              this._activeTab = "chat";
+              if (this._messages.length > 0) this._newSession();
+            }}
+            style="cursor:pointer;"
             >Selora AI</span
           >
           <img
             src="/api/selora_ai/${this._isDark ? "logo" : "logo-light"}.png"
             alt=""
             class="header-logo"
+            @click=${() => {
+              this._activeTab = "chat";
+              if (this._messages.length > 0) this._newSession();
+            }}
+            style="cursor:pointer;"
           />
           <div class="tabs-center">
             <div
@@ -1628,6 +1640,11 @@ class SeloraAIPanel extends LitElement {
             if (this.narrow && this._showSidebar) this._showSidebar = false;
           }}
         >
+          <selora-particles
+            .count=${this._isDark ? 1200 : 400}
+            .color=${this._isDark ? "#C7AE6A" : "#B8860B"}
+            .maxOpacity=${this._isDark ? 1.0 : 0.5}
+          ></selora-particles>
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
