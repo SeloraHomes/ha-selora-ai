@@ -51,8 +51,18 @@ export function describeFlowItem(hass, item) {
         : item.event === "sunrise"
           ? "sunrise"
           : humanizeToken(item.event || "sun event").toLowerCase();
-    const offset = item.offset ? ` (${item.offset})` : "";
-    return `When it is ${ev}${offset}`;
+    if (item.offset) {
+      const neg = item.offset.startsWith("-");
+      const raw = neg ? item.offset.slice(1) : item.offset;
+      const [h, m, s] = raw.split(":").map(Number);
+      const parts = [];
+      if (h) parts.push(`${h}h`);
+      if (m) parts.push(`${m}min`);
+      if (s) parts.push(`${s}s`);
+      const label = parts.join(" ") || item.offset;
+      return `${label} ${neg ? "before" : "after"} ${ev}`;
+    }
+    return `When it is ${ev}`;
   }
   if (p === "state") {
     const eid = fmtEntities(hass, item.entity_id);
