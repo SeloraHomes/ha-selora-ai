@@ -87,14 +87,49 @@ describe("Triggers", () => {
     expect(result).toBe("When it is sunset");
   });
 
-  it("describes sun trigger with offset", () => {
+  it("describes sun trigger with positive offset", () => {
+    const result = describeFlowItem(mockHass, {
+      platform: "sun",
+      event: "sunset",
+      offset: "01:00:00",
+    });
+    expect(result).toBe("1h after sunset");
+  });
+
+  it("describes sun trigger with negative offset", () => {
     const result = describeFlowItem(mockHass, {
       platform: "sun",
       event: "sunrise",
       offset: "-00:30:00",
     });
-    expect(result).toContain("sunrise");
-    expect(result).toContain("-00:30:00");
+    expect(result).toBe("30min before sunrise");
+  });
+
+  it("describes sun trigger with hours and minutes offset", () => {
+    const result = describeFlowItem(mockHass, {
+      platform: "sun",
+      event: "sunset",
+      offset: "-01:30:00",
+    });
+    expect(result).toBe("1h 30min before sunset");
+  });
+
+  it("describes sun trigger with seconds offset", () => {
+    const result = describeFlowItem(mockHass, {
+      platform: "sun",
+      event: "sunrise",
+      offset: "-00:00:30",
+    });
+    expect(result).toBe("30s before sunrise");
+  });
+
+  it("describes sun trigger with minutes and seconds offset", () => {
+    const result = describeFlowItem(mockHass, {
+      platform: "sun",
+      event: "sunset",
+      offset: "00:05:30",
+    });
+    expect(result).toBe("5min 30s after sunset");
   });
 
   it("describes numeric_state trigger — above", () => {
