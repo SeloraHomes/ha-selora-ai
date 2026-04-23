@@ -56,6 +56,23 @@ export const headerStyles = css`
     -webkit-font-smoothing: var(--ha-font-smoothing, antialiased);
     -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing, grayscale);
   }
+  .menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(
+      --sidebar-icon-color,
+      var(--app-header-text-color, var(--primary-text-color))
+    );
+    --mdc-icon-size: 24px;
+    flex-shrink: 0;
+  }
   .header-logo {
     width: 20px;
     height: 20px;
@@ -209,6 +226,11 @@ export const headerStyles = css`
   }
   .overflow-item ha-icon {
     color: var(--secondary-text-color);
+  }
+  .overflow-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--divider-color, rgba(0, 0, 0, 0.12));
   }
   /* card-tab underline used elsewhere — keep */
   .card-tab::after {

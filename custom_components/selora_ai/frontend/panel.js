@@ -1544,7 +1544,7 @@ var layoutStyles = i`
     opacity: 0;
     transition: opacity 1s ease;
     pointer-events: none;
-    overflow: hidden;
+    touch-action: none;
     mask-image: radial-gradient(
       ellipse 70% 90% at top center,
       black 10%,
@@ -1942,6 +1942,23 @@ var headerStyles = i`
     -webkit-font-smoothing: var(--ha-font-smoothing, antialiased);
     -moz-osx-font-smoothing: var(--ha-moz-osx-font-smoothing, grayscale);
   }
+  .menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(
+      --sidebar-icon-color,
+      var(--app-header-text-color, var(--primary-text-color))
+    );
+    --mdc-icon-size: 24px;
+    flex-shrink: 0;
+  }
   .header-logo {
     width: 20px;
     height: 20px;
@@ -2095,6 +2112,11 @@ var headerStyles = i`
   }
   .overflow-item ha-icon {
     color: var(--secondary-text-color);
+  }
+  .overflow-divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--divider-color, rgba(0, 0, 0, 0.12));
   }
   /* card-tab underline used elsewhere — keep */
   .card-tab::after {
@@ -3896,7 +3918,7 @@ var SeloraParticles = class extends HTMLElement {
     canvas.setAttribute("aria-hidden", "true");
     canvas.setAttribute("role", "presentation");
     canvas.style.cssText =
-      "position:absolute;inset:0;width:100%;height:100%;display:block;";
+      "position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;touch-action:none;";
     this.appendChild(canvas);
     this._canvas = canvas;
     const count = this.count || 400;
@@ -11033,6 +11055,22 @@ var SeloraAIPanel = class extends s4 {
     return x`
       <div class="header">
         <div class="header-toolbar">
+          ${
+            this.narrow
+              ? x`<button
+                class="menu-btn"
+                @click=${() =>
+                  this.dispatchEvent(
+                    new Event("hass-toggle-menu", {
+                      bubbles: true,
+                      composed: true,
+                    }),
+                  )}
+              >
+                <ha-icon icon="mdi:menu"></ha-icon>
+              </button>`
+              : ""
+          }
           <span
             class="header-title ${this._isDark ? "gold-text" : ""}"
             @click=${() => {
@@ -11082,19 +11120,6 @@ var SeloraAIPanel = class extends s4 {
                 >Automations</span
               >
             </div>
-            <div
-              class="tab ${this._activeTab === "settings" ? "active" : ""}"
-              @click=${() => {
-                this._activeTab = "settings";
-                this._showSidebar = false;
-                this._loadConfig();
-              }}
-            >
-              <span class="tab-inner"
-                ><ha-icon icon="mdi:cog-outline" class="tab-icon"></ha-icon
-                >Settings</span
-              >
-            </div>
           </div>
           <span class="header-spacer"></span>
           <div class="overflow-btn-wrap">
@@ -11111,6 +11136,19 @@ var SeloraAIPanel = class extends s4 {
               this._showOverflowMenu
                 ? x`
                   <div class="overflow-menu">
+                    <button
+                      class="overflow-item"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                        this._activeTab = "settings";
+                        this._showSidebar = false;
+                        this._loadConfig();
+                      }}
+                    >
+                      <ha-icon icon="mdi:cog-outline"></ha-icon>
+                      Settings
+                    </button>
+                    <div class="overflow-divider"></div>
                     <a
                       class="overflow-item"
                       href="https://selorahomes.com/docs/selora-ai/"

@@ -1344,6 +1344,20 @@ class SeloraAIPanel extends LitElement {
     return html`
       <div class="header">
         <div class="header-toolbar">
+          ${this.narrow
+            ? html`<button
+                class="menu-btn"
+                @click=${() =>
+                  this.dispatchEvent(
+                    new Event("hass-toggle-menu", {
+                      bubbles: true,
+                      composed: true,
+                    }),
+                  )}
+              >
+                <ha-icon icon="mdi:menu"></ha-icon>
+              </button>`
+            : ""}
           <span
             class="header-title ${this._isDark ? "gold-text" : ""}"
             @click=${() => {
@@ -1393,19 +1407,6 @@ class SeloraAIPanel extends LitElement {
                 >Automations</span
               >
             </div>
-            <div
-              class="tab ${this._activeTab === "settings" ? "active" : ""}"
-              @click=${() => {
-                this._activeTab = "settings";
-                this._showSidebar = false;
-                this._loadConfig();
-              }}
-            >
-              <span class="tab-inner"
-                ><ha-icon icon="mdi:cog-outline" class="tab-icon"></ha-icon
-                >Settings</span
-              >
-            </div>
           </div>
           <span class="header-spacer"></span>
           <div class="overflow-btn-wrap">
@@ -1421,6 +1422,19 @@ class SeloraAIPanel extends LitElement {
             ${this._showOverflowMenu
               ? html`
                   <div class="overflow-menu">
+                    <button
+                      class="overflow-item"
+                      @click=${() => {
+                        this._showOverflowMenu = false;
+                        this._activeTab = "settings";
+                        this._showSidebar = false;
+                        this._loadConfig();
+                      }}
+                    >
+                      <ha-icon icon="mdi:cog-outline"></ha-icon>
+                      Settings
+                    </button>
+                    <div class="overflow-divider"></div>
                     <a
                       class="overflow-item"
                       href="https://selorahomes.com/docs/selora-ai/"

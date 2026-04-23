@@ -136,7 +136,7 @@ class SeloraParticles extends HTMLElement {
     canvas.setAttribute("aria-hidden", "true");
     canvas.setAttribute("role", "presentation");
     canvas.style.cssText =
-      "position:absolute;inset:0;width:100%;height:100%;display:block;";
+      "position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none;touch-action:none;";
     this.appendChild(canvas);
     this._canvas = canvas;
 
