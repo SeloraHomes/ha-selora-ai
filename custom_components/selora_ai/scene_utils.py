@@ -103,13 +103,6 @@ def validate_scene_payload(
         domains.add(entity_id.split(".")[0])
         normalized_entities[entity_id] = state_data
 
-    if len(domains) > 1:
-        return (
-            False,
-            f"Scene must contain entities from a single domain, got: {', '.join(sorted(domains))}",
-            None,
-        )
-
     normalized: dict[str, Any] = {
         "name": name,
         "entities": normalized_entities,

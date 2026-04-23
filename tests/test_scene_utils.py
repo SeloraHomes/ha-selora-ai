@@ -135,17 +135,18 @@ class TestValidateScenePayload:
         assert is_valid
         assert "light.living_room" in normalized["entities"]
 
-    def test_rejects_multi_domain_entities(self) -> None:
+    def test_accepts_multi_domain_entities(self) -> None:
         scene = {
-            "name": "Test",
+            "name": "Movie Night",
             "entities": {
-                "light.living_room": {"state": "on"},
+                "light.living_room": {"state": "on", "brightness": 80},
                 "media_player.tv": {"state": "on"},
             },
         }
-        is_valid, reason, _ = validate_scene_payload(scene)
-        assert not is_valid
-        assert "single domain" in reason.lower()
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "light.living_room" in normalized["entities"]
+        assert "media_player.tv" in normalized["entities"]
 
     def test_accepts_single_domain_multiple_entities(self) -> None:
         scene = {
@@ -590,11 +591,11 @@ class TestScenePromptInstructions:
         assert '"intent": "scene"' in prompt
         assert '"scene"' in prompt
         assert "SCENE RULES" in prompt
-        assert "SAME domain" in prompt
+        assert "multiple domains" in prompt
 
     def test_stream_prompt_has_scene_block(self, hass) -> None:
         prompt = self._make_client(hass)._build_architect_stream_system_prompt()
         assert "```scene" in prompt
         assert "SCENE RULES" in prompt
         assert '"name"' in prompt
-        assert "SAME domain" in prompt
+        assert "multiple domains" in prompt
