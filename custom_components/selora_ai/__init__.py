@@ -224,6 +224,9 @@ class ConversationStore:
         risk_assessment: RiskAssessment | None = None,
         tool_calls: list[ToolCallLog] | None = None,
         devices: list[dict[str, Any]] | None = None,
+        scene: dict[str, Any] | None = None,
+        scene_yaml: str | None = None,
+        scene_id: str | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -267,8 +270,24 @@ class ConversationStore:
             message["tool_calls"] = tool_calls
         if devices:
             message["devices"] = devices
+        if scene is not None:
+            message["scene"] = scene
+        if scene_yaml is not None:
+            message["scene_yaml"] = scene_yaml
+        if scene_id is not None:
+            message["scene_id"] = scene_id
 
         session["messages"].append(message)
+
+        # Maintain a session-level scene index so scene context survives
+        # message pruning.  Keyed by scene_id → {name, yaml}.
+        if scene_id and scene_yaml:
+            if "scenes" not in session:
+                session["scenes"] = {}
+            session["scenes"][scene_id] = {
+                "name": (scene or {}).get("name", ""),
+                "yaml": scene_yaml,
+            }
 
         # Prune if too long (keep first + latest N-1)
         msgs = session["messages"]
@@ -490,6 +509,43 @@ def _find_active_refining_yaml(
     return None
 
 
+def _find_active_scenes(
+    session: dict[str, Any] | None,
+    stored_messages: list[dict[str, Any]],
+) -> list[tuple[str, str, str]]:
+    """Return the latest (scene_id, name, yaml) for every scene in the session.
+
+    Reads from the session-level ``scenes`` index first (survives message
+    pruning), falling back to scanning ``stored_messages`` for sessions
+    created before the index was introduced.
+
+    This context is injected into the current turn so that the LLM always has
+    the scene_id and YAML available, even after older messages are pruned from
+    the conversation history.
+    """
+    scene_index: dict[str, dict[str, str]] = (session or {}).get("scenes", {})
+    if scene_index:
+        return [
+            (
+                sid,
+                _sanitize_history_text(data.get("name", ""), max_length=100),
+                data.get("yaml", ""),
+            )
+            for sid, data in scene_index.items()
+            if data.get("yaml")
+        ]
+
+    # Fallback: scan messages for sessions without the scenes index.
+    latest: dict[str, tuple[str, str]] = {}
+    for m in stored_messages:
+        sid = m.get("scene_id")
+        yaml_text = m.get("scene_yaml")
+        if sid and yaml_text:
+            name = _sanitize_history_text((m.get("scene") or {}).get("name", ""), max_length=100)
+            latest[sid] = (name, yaml_text)
+    return [(sid, name, yaml) for sid, (name, yaml) in latest.items()]
+
+
 def _build_history_from_session(
     stored_messages: list[dict[str, Any]],
     *,
@@ -497,11 +553,24 @@ def _build_history_from_session(
 ) -> list[dict[str, str]]:
     """Build LLM history from stored session messages.
 
-    For assistant messages that proposed an automation, appends the YAML so the
-    LLM has full context when the user asks to refine it.
+    For assistant messages that proposed an automation or scene, appends the
+    YAML so the LLM has full context when the user asks to refine it.
+
+    For each unique ``scene_id``, only the *latest* YAML version is attached
+    so the LLM has current context for every scene in the session, while
+    superseded versions (including renames) are omitted.
     """
+    # For each unique scene_id, find the index of its latest YAML so
+    # refinements (including renames) see the current version and
+    # multi-scene sessions retain context for every scene.
+    latest_scene_by_id: dict[str, int] = {}
+    for i, m in enumerate(stored_messages):
+        if m.get("scene_yaml") and m.get("scene_id"):
+            latest_scene_by_id[m["scene_id"]] = i
+    latest_scene_indices: set[int] = set(latest_scene_by_id.values())
+
     history: list[dict[str, str]] = []
-    for m in stored_messages:
+    for i, m in enumerate(stored_messages):
         if m.get("role") not in ("user", "assistant"):
             continue
         content = m["content"]
@@ -516,6 +585,11 @@ def _build_history_from_session(
             if description:
                 header += f" — {description}"
             header += f"]\n{m['automation_yaml']}"
+            content = f"{content}\n\n{header}"
+        elif i in latest_scene_indices:
+            scene_name = _sanitize_history_text((m.get("scene") or {}).get("name", ""))
+            sid = m.get("scene_id", "")
+            header = f"[Untrusted scene reference data for context only: {scene_name} (scene_id: {sid})]\n{m['scene_yaml']}"
             content = f"{content}\n\n{header}"
         history.append({"role": m["role"], "content": content})
     return history
@@ -605,9 +679,10 @@ async def _handle_websocket_chat(
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
 
-    # Build history and check for active refinement BEFORE appending the new
-    # user turn — append_message() mutates stored_messages in place.
+    # Build history and collect context BEFORE appending the new user turn —
+    # append_message() mutates stored_messages in place.
     refining = _find_active_refining_yaml(stored_messages, user_message)
+    scenes = _find_active_scenes(session, stored_messages)
     history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
 
     await store.append_message(session_id, "user", user_message)
@@ -623,6 +698,7 @@ async def _handle_websocket_chat(
         history=history,
         tool_executor=tool_executor,
         refining_context=refining,
+        scene_context=scenes or None,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -638,6 +714,28 @@ async def _handle_websocket_chat(
         executed, error_suffix = await _execute_command_calls(hass, result.get("calls", []))
         response_text += error_suffix
 
+    # --- Create scene if scene intent ---
+    # The LLM includes refine_scene_id when modifying an existing scene.
+    scene_result: dict[str, Any] | None = None
+    if intent_type == "scene" and result.get("scene"):
+        try:
+            from .scene_utils import async_create_scene
+
+            scene_result = await async_create_scene(
+                hass,
+                result["scene"],
+                existing_scene_id=result.get("refine_scene_id"),
+                session_scene_ids={s[0] for s in scenes},
+            )
+        except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
+            _LOGGER.error("Failed to create scene: %s", exc)
+            response_text += f" (Scene creation failed: {exc})"
+            # Clear scene metadata so the client doesn't think a scene was created
+            result.pop("scene", None)
+            result.pop("scene_yaml", None)
+            intent_type = "answer"
+
+    # Persist the assistant response
     await store.append_message(
         session_id,
         "assistant",
@@ -650,6 +748,9 @@ async def _handle_websocket_chat(
         calls=result.get("calls") if intent_type == "command" else None,
         risk_assessment=result.get("risk_assessment"),
         tool_calls=result.get("tool_calls"),
+        scene=result.get("scene"),
+        scene_yaml=result.get("scene_yaml"),
+        scene_id=scene_result["scene_id"] if scene_result else None,
     )
 
     updated_session = await store.get_session(session_id)
@@ -676,7 +777,11 @@ async def _handle_websocket_chat(
             "executed": executed,
             "config_issue": result.get("config_issue", False),
             "validation_error": result.get("validation_error"),
+            "validation_target": result.get("validation_target"),
             "refining_automation_id": refining_automation_id,
+            "scene": result.get("scene"),
+            "scene_yaml": result.get("scene_yaml"),
+            "scene_id": scene_result["scene_id"] if scene_result else None,
         },
     )
 
@@ -732,15 +837,16 @@ async def _handle_websocket_chat_stream(
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
 
-    # Build history and check for active refinement BEFORE appending the new
-    # user turn — append_message() mutates stored_messages in place.
+    # Build history and collect context BEFORE appending the new user turn —
+    # append_message() mutates stored_messages in place.
     refining = _find_active_refining_yaml(stored_messages, user_message)
+    scenes = _find_active_scenes(session, stored_messages)
     history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
 
     await store.append_message(session_id, "user", user_message)
 
-    # Inject the active refining automation's YAML into the user message so
-    # the LLM always sees the full definition even if history gets trimmed.
+    # Inject active context (automation refinement, known scenes) into the
+    # current turn so the LLM always sees it even if history gets trimmed.
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -755,6 +861,7 @@ async def _handle_websocket_chat_stream(
             history=history,
             tool_executor=tool_executor,
             refining_context=refining,
+            scene_context=scenes or None,
         ):
             full_text += chunk
             # Suppress streaming tokens when the LLM is emitting raw JSON
@@ -778,6 +885,27 @@ async def _handle_websocket_chat_stream(
             response_text += error_suffix
 
         device_data = tool_executor.device_results if tool_executor else None
+
+        # The LLM includes refine_scene_id when modifying an existing scene.
+        scene_result: dict[str, Any] | None = None
+        if intent_type == "scene" and parsed.get("scene"):
+            try:
+                from .scene_utils import async_create_scene
+
+                scene_result = await async_create_scene(
+                    hass,
+                    parsed["scene"],
+                    existing_scene_id=parsed.get("refine_scene_id"),
+                    session_scene_ids={s[0] for s in scenes},
+                )
+            except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
+                _LOGGER.error("Failed to create scene: %s", exc)
+                response_text += f" (Scene creation failed: {exc})"
+                # Clear scene metadata so the client doesn't think a scene was created
+                parsed.pop("scene", None)
+                parsed.pop("scene_yaml", None)
+                intent_type = "answer"
+
         await store.append_message(
             session_id,
             "assistant",
@@ -790,6 +918,9 @@ async def _handle_websocket_chat_stream(
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
             devices=device_data if device_data else None,
+            scene=parsed.get("scene"),
+            scene_yaml=parsed.get("scene_yaml"),
+            scene_id=scene_result["scene_id"] if scene_result else None,
         )
 
         updated_session = await store.get_session(session_id)
@@ -830,9 +961,13 @@ async def _handle_websocket_chat_stream(
                     if parsed.get("automation")
                     else None,
                     "validation_error": parsed.get("validation_error"),
+                    "validation_target": parsed.get("validation_target"),
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
                     "devices": device_data,
+                    "scene": parsed.get("scene"),
+                    "scene_yaml": parsed.get("scene_yaml"),
+                    "scene_id": scene_result["scene_id"] if scene_result else None,
                 },
             )
         )

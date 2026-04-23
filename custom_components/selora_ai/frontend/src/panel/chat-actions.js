@@ -41,14 +41,19 @@ export async function _sendMessage() {
         assistantMsg.refining_automation_id =
           event.refining_automation_id || null;
         assistantMsg.devices = event.devices || null;
+        assistantMsg.scene = event.scene || null;
+        assistantMsg.scene_yaml = event.scene_yaml || null;
+        assistantMsg.scene_id = event.scene_id || null;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
         this._streaming = false;
         this._streamUnsub = null;
         if (event.validation_error) {
+          const label =
+            event.validation_target === "scene" ? "Scene" : "Automation";
           this._showToast(
-            `Automation validation failed: ${event.validation_error}`,
+            `${label} validation failed: ${event.validation_error}`,
             "error",
           );
         }

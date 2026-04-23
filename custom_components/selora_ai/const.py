@@ -910,6 +910,10 @@ AUTOMATION_STALE_DAYS = 5
 # Prefix for auto-created automation IDs (easy to find/filter).
 AUTOMATION_ID_PREFIX = "selora_ai_"
 
+# ── Scene Creation ───────────────────────────────────────────────────
+# Prefix for auto-created scene IDs (easy to find/filter).
+SCENE_ID_PREFIX = "selora_ai_"
+
 # ── Protected Domains (never removed by reset) ──────────────────────
 PROTECTED_DOMAINS = {
     "homeassistant",

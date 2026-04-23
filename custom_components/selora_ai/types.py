@@ -89,6 +89,16 @@ class AutomationCreateResult(TypedDict):
     automation_id: str | None
 
 
+# ── Scene structures ─────────────────────────────────────────────────
+
+
+class ScenePayload(TypedDict):
+    """A validated scene payload from the LLM."""
+
+    name: str
+    entities: dict[str, dict[str, Any]]
+
+
 # ── Version & lineage structures ──────────────────────────────────────
 
 
@@ -544,6 +554,9 @@ class ChatMessage(TypedDict, total=False):
     risk_assessment: RiskAssessment
     tool_calls: list[ToolCallLog]
     devices: list[dict[str, Any]]
+    scene: ScenePayload
+    scene_yaml: str
+    scene_id: str
 
 
 class SessionData(TypedDict):

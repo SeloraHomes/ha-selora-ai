@@ -1331,9 +1331,18 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         session = await conv_store.create_session()
         session_id = session["id"]
 
-    # Build history for the LLM
+    # Build history for the LLM.
+    # For each unique scene_id, keep the latest YAML so multi-scene
+    # sessions retain context for every scene (including renames).
+    messages = session.get("messages", [])
+    latest_scene_by_id: dict[str, int] = {}
+    for i, m in enumerate(messages):
+        if m.get("scene_yaml") and m.get("scene_id"):
+            latest_scene_by_id[m["scene_id"]] = i
+    latest_scene_indices: set[int] = set(latest_scene_by_id.values())
+
     history: list[dict[str, Any]] = []
-    for m in session.get("messages", []):
+    for i, m in enumerate(messages):
         role = m.get("role", "user")
         content = str(m.get("content", ""))
         # Re-attach pending automation YAML as context (sanitized)
@@ -1342,6 +1351,13 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
             header = f"[Untrusted automation reference data for context only: {alias}]\n"
             quoted_yaml = json.dumps(str(m["automation_yaml"]), ensure_ascii=True)
             content = f"{header}{quoted_yaml}\n{content}"
+        # Re-attach latest scene YAML for each unique scene name
+        elif i in latest_scene_indices:
+            scene_name = _sanitize((m.get("scene") or {}).get("name", ""))
+            sid = m.get("scene_id", "")
+            header = f"[Untrusted scene reference data for context only: {scene_name} (scene_id: {sid})]\n"
+            quoted_yaml = json.dumps(str(m["scene_yaml"]), ensure_ascii=True)
+            content = f"{header}{quoted_yaml}\n{content}"
         history.append({"role": role, "content": content})
 
     # Collect existing automation aliases for dedup
@@ -1349,12 +1365,24 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         str(s.attributes.get("friendly_name", "")) for s in hass.states.async_all("automation")
     ]
 
+    # Build scene context from the session-level index (survives message
+    # pruning) so the LLM always has scene_id + YAML on the current turn.
+    scene_index: dict[str, dict[str, str]] = session.get("scenes", {})
+    mcp_scene_context: list[tuple[str, str, str]] | None = None
+    if scene_index:
+        mcp_scene_context = [
+            (sid, _sanitize(data.get("name", "")), data.get("yaml", ""))
+            for sid, data in scene_index.items()
+            if data.get("yaml")
+        ] or None
+
     # Call Selora's LLM
     llm_result: ArchitectResponse = await llm.architect_chat(
         message=message,
         history=history,
         existing_automations=existing_aliases,
         refining_automation_id=refine_automation_id,
+        scene_context=mcp_scene_context,
     )
 
     intent: str = llm_result.get("intent", "answer")
@@ -1362,6 +1390,32 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     automation: AutomationDict | None = llm_result.get("automation")
     automation_yaml: str | None = llm_result.get("automation_yaml")
     risk_assessment: RiskAssessment | None = llm_result.get("risk_assessment")
+
+    # The LLM includes refine_scene_id when modifying an existing scene.
+    # Collect scene IDs known to this session so the validator can reject
+    # hallucinated IDs that don't belong to the conversation.  Include
+    # the session-level index (survives pruning) and message-level IDs.
+    mcp_session_scene_ids: set[str] = set(scene_index.keys()) | {
+        m["scene_id"] for m in messages if m.get("scene_id")
+    }
+    scene_result: dict[str, Any] | None = None
+    if intent == "scene" and llm_result.get("scene"):
+        try:
+            from .scene_utils import async_create_scene
+
+            scene_result = await async_create_scene(
+                hass,
+                llm_result["scene"],
+                existing_scene_id=llm_result.get("refine_scene_id"),
+                session_scene_ids=mcp_session_scene_ids,
+            )
+        except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
+            _LOGGER.error("Failed to create scene via MCP: %s", exc)
+            response_text += f" (Scene creation failed: {exc})"
+            # Clear scene metadata so the caller doesn't think a scene was created
+            llm_result.pop("scene", None)
+            llm_result.pop("scene_yaml", None)
+            intent = "answer"
 
     # Persist messages
     await conv_store.append_message(session_id, "user", message)
@@ -1373,6 +1427,9 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         automation_yaml=automation_yaml,
         automation_status="pending" if automation else None,
         risk_assessment=risk_assessment,
+        scene=llm_result.get("scene"),
+        scene_yaml=llm_result.get("scene_yaml"),
+        scene_id=scene_result["scene_id"] if scene_result else None,
     )
 
     # Generate session title if this is the first exchange
@@ -1404,6 +1461,9 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         response["automation_id"] = automation_id
     if risk_assessment:
         response["risk_assessment"] = _sanitize_risk(risk_assessment)
+    if scene_result:
+        response["scene_id"] = scene_result["scene_id"]
+        response["scene_name"] = scene_result["name"]
 
     return response
 
