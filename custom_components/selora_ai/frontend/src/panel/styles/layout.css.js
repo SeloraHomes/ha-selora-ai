@@ -34,7 +34,7 @@ export const layoutStyles = css`
     opacity: 0;
     transition: opacity 1s ease;
     pointer-events: none;
-    overflow: hidden;
+    touch-action: none;
     mask-image: radial-gradient(
       ellipse 70% 90% at top center,
       black 10%,
