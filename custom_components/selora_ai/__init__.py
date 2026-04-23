@@ -115,6 +115,7 @@ from .const import (
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
 )
+from .scene_discovery import get_area_names
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -376,14 +377,26 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     Also filters disabled entities (e.g. switches converted to lights via
     HA's "Show as" feature) and restricts to COLLECTOR_DOMAINS + automation.
     Excludes non-controllable light entities (IR LEDs, camera illuminators).
+    Each entity is annotated with its area name (resolved from the entity's
+    direct area assignment or inherited from its device).
     """
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
     from .entity_filter import EntityFilter
 
     _SKIP_STATES = {"unavailable", "unknown"}
     _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
     all_states = hass.states.async_all()
     ef = EntityFilter(hass, [s.entity_id for s in all_states])
-    states = []
+
+    entity_reg = er.async_get(hass)
+    device_reg = dr.async_get(hass)
+    area_reg = ar.async_get(hass)
+    area_id_to_name: dict[str, str] = {area.id: area.name for area in area_reg.async_list_areas()}
+
+    states: list[EntitySnapshot] = []
     for state in all_states:
         if state.state in _SKIP_STATES:
             continue
@@ -405,13 +418,26 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             if val is not None:
                 attrs[attr_key] = val
 
-        states.append(
-            {
-                "entity_id": state.entity_id,
-                "state": _format_entity_state(state.state),
-                "attributes": attrs,
-            }
-        )
+        # Resolve area: entity direct assignment, then device fallback
+        area_name = ""
+        entry = entity_reg.async_get(state.entity_id)
+        if entry:
+            area_id = entry.area_id
+            if not area_id and entry.device_id:
+                device = device_reg.async_get(entry.device_id)
+                if device:
+                    area_id = device.area_id
+            if area_id:
+                area_name = area_id_to_name.get(area_id, "")
+
+        snapshot: EntitySnapshot = {
+            "entity_id": state.entity_id,
+            "state": _format_entity_state(state.state),
+            "attributes": attrs,
+        }
+        if area_name:
+            snapshot["area_name"] = area_name
+        states.append(snapshot)
     return states
 
 
@@ -690,6 +716,7 @@ async def _handle_websocket_chat(
     entities = _collect_entity_states(hass)
     automations = _collect_existing_automations(hass)
     tool_executor = _create_tool_executor(hass, connection)
+    area_names = await get_area_names(hass)
 
     result = await llm.architect_chat(
         user_message,
@@ -699,6 +726,7 @@ async def _handle_websocket_chat(
         tool_executor=tool_executor,
         refining_context=refining,
         scene_context=scenes or None,
+        areas=area_names,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -851,6 +879,7 @@ async def _handle_websocket_chat_stream(
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
         tool_executor = _create_tool_executor(hass, connection)
+        area_names = await get_area_names(hass)
 
         full_text = ""
         looks_like_json = False
@@ -862,6 +891,7 @@ async def _handle_websocket_chat_stream(
             tool_executor=tool_executor,
             refining_context=refining,
             scene_context=scenes or None,
+            areas=area_names,
         ):
             full_text += chunk
             # Suppress streaming tokens when the LLM is emitting raw JSON
