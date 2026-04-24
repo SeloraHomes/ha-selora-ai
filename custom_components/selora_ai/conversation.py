@@ -13,11 +13,12 @@ from homeassistant.components.conversation import (
     ConversationEntityFeature,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import intent
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
-from .const import DOMAIN
+from .const import DOMAIN, SIGNAL_SCENE_DELETED, SIGNAL_SCENE_REFRESHED, SIGNAL_SCENE_RESTORED
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
@@ -55,6 +56,58 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         # Per-conversation scene index that survives chat_log truncation.
         # Keyed by conversation_id → {scene_id: (name, yaml)}.
         self._scene_index: dict[str, dict[str, tuple[str, str]]] = {}
+        # Scene IDs that have been deleted during this process lifetime.
+        # Prevents chat_log markers from reseeding deleted scenes.
+        self._deleted_scene_ids: set[str] = set()
+        # Reverse index: scene_id → set of conversation_ids that had it.
+        # Populated on delete so restore can precisely re-inject.
+        self._deleted_scene_convs: dict[str, set[str]] = {}
+
+    async def async_added_to_hass(self) -> None:
+        """Subscribe to scene lifecycle signals when added to HA."""
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, SIGNAL_SCENE_DELETED, self._handle_scene_deleted)
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(
+                self.hass, SIGNAL_SCENE_REFRESHED, self._handle_scene_refreshed
+            )
+        )
+        self.async_on_remove(
+            async_dispatcher_connect(self.hass, SIGNAL_SCENE_RESTORED, self._handle_scene_restored)
+        )
+
+    @callback
+    def _handle_scene_deleted(self, scene_id: str) -> None:
+        """Remove a deleted scene from every conversation's in-memory index."""
+        self._deleted_scene_ids.add(scene_id)
+        affected: set[str] = set()
+        for conv_id, conv_scenes in self._scene_index.items():
+            if scene_id in conv_scenes:
+                conv_scenes.pop(scene_id)
+                affected.add(conv_id)
+        if affected:
+            self._deleted_scene_convs[scene_id] = affected
+
+    @callback
+    def _handle_scene_refreshed(self, scene_id: str, name: str, yaml_repr: str) -> None:
+        """Update a scene's cached YAML in every conversation that has it."""
+        for conv_scenes in self._scene_index.values():
+            if scene_id in conv_scenes:
+                conv_scenes[scene_id] = (name, yaml_repr)
+
+    @callback
+    def _handle_scene_restored(self, scene_id: str, name: str, yaml_repr: str) -> None:
+        """Clear the tombstone and re-inject into originally affected conversations."""
+        self._deleted_scene_ids.discard(scene_id)
+        affected = self._deleted_scene_convs.pop(scene_id, set())
+        for conv_id in affected:
+            conv_scenes = self._scene_index.get(conv_id)
+            if conv_scenes is not None:
+                conv_scenes[scene_id] = (name, yaml_repr)
+            else:
+                # Conversation was emptied on delete — recreate its index
+                self._scene_index[conv_id] = {scene_id: (name, yaml_repr)}
 
     @property
     def supported_languages(self) -> list[str]:
@@ -86,6 +139,11 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 conversation_id=user_input.conversation_id,
             )
 
+        # Reconcile scene store so context reflects external edits
+        from .helpers import get_scene_store  # noqa: PLC0415
+
+        await get_scene_store(self.hass).async_reconcile_yaml()
+
         # Get current entity states for context
         from . import _collect_entity_states
 
@@ -108,22 +166,35 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         # Scene markers are deduplicated by scene_id: for each id, only the
         # latest revision's YAML is kept so the LLM doesn't see conflicting
         # snapshots after repeated refinements or renames.
+        conv_id = chat_log.conversation_id
+
         latest_scene_entry: dict[str, int] = {}
         for idx, entry in enumerate(chat_log.content):
             if entry.role == "assistant" and entry.content:
                 m = _SCENE_MARKER_RE.search(entry.content)
-                if m:
+                if m and m.group(1) not in self._deleted_scene_ids:
                     latest_scene_entry[m.group(1)] = idx
+
+        # Identify scene_ids already in _scene_index from a signal refresh
+        # (these have fresher YAML than what the chat-log marker carries).
+        signal_refreshed_ids: set[str] = set()
+        if conv_id is not None:
+            existing_index = self._scene_index.get(conv_id, {})
+            signal_refreshed_ids = set(existing_index.keys())
 
         history: list[dict[str, str]] = []
         for idx, entry in enumerate(chat_log.content):
             if entry.role in ("user", "assistant") and entry.content:
                 content = entry.content
-                # Strip superseded scene markers so only the latest
-                # revision of each scene_id appears in LLM history.
+                # Strip scene YAML blocks when superseded by a later
+                # revision OR when the scene was refreshed via signal
+                # (the fresh YAML is provided in scene_context instead).
                 if entry.role == "assistant":
                     m = _SCENE_MARKER_RE.search(content)
-                    if m and latest_scene_entry.get(m.group(1)) != idx:
+                    if m and (
+                        latest_scene_entry.get(m.group(1)) != idx
+                        or m.group(1) in signal_refreshed_ids
+                    ):
                         content = _SCENE_BLOCK_RE.sub("", content)
                 history.append({"role": entry.role, "content": content})
         # Drop the last user entry — architect_chat receives it as user_message
@@ -131,15 +202,20 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             history.pop()
 
         # Build scene context from the entity-level index (survives
-        # chat_log truncation).  Seed from chat_log markers for
-        # conversations started before the index was populated.
-        conv_id = chat_log.conversation_id
-        conv_scenes = self._scene_index.setdefault(conv_id, {})
+        # chat_log truncation).  Seed from chat_log markers only for
+        # scene_ids not already in the index — existing entries may have
+        # been updated by SIGNAL_SCENE_REFRESHED or SIGNAL_SCENE_RESTORED
+        # and must not be overwritten by stale chat-log snapshots.
+        # For stateless flows (conv_id is None), use a local dict that is
+        # not stored in _scene_index to avoid unbounded memory growth.
+        conv_scenes: dict[str, tuple[str, str]] = (
+            self._scene_index.setdefault(conv_id, {}) if conv_id is not None else {}
+        )
         for idx in latest_scene_entry.values():
             entry = chat_log.content[idx]
             if entry.content:
                 cm = _SCENE_CONTEXT_RE.search(entry.content)
-                if cm:
+                if cm and cm.group(1) not in conv_scenes:
                     conv_scenes[cm.group(1)] = (cm.group(2), cm.group(3) or "")
 
         assist_scenes: list[tuple[str, str, str]] = [
@@ -219,7 +295,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 # Known scene IDs come from the entity-level index
                 # (survives chat_log truncation).
                 try:
-                    from .scene_utils import async_create_scene
+                    from .scene_utils import async_create_scene  # noqa: PLC0415
 
                     scene_result = await async_create_scene(
                         self.hass,
@@ -239,6 +315,24 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
                     _LOGGER.error("Failed to create scene via Assist: %s", exc)
                     response_text += f"\n\n(Scene creation failed: {exc})"
+                    scene_result = None
+
+                if scene_result is not None:
+                    try:
+                        from .helpers import get_scene_store  # noqa: PLC0415
+
+                        scene_store = get_scene_store(self.hass)
+                        await scene_store.async_add_scene(
+                            scene_result["scene_id"],
+                            scene_result["name"],
+                            scene_result["entity_count"],
+                            entity_id=scene_result.get("entity_id"),
+                            content_hash=scene_result.get("content_hash"),
+                        )
+                    except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
+                        _LOGGER.warning(
+                            "Failed to record scene %s in store", scene_result["scene_id"]
+                        )
 
         # Speech gets clean text only — no internal markers or YAML.
         response.async_set_speech(response_text)

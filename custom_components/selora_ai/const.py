@@ -969,6 +969,9 @@ CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
 
+# ── Scene Lifecycle ─────────────────────────────────────────────────
+SCENE_STORE_KEY = "selora_ai_scenes"
+
 # ── Pattern Detection ────────────────────────────────────────────────
 PATTERN_STORE_KEY = "selora_ai_patterns"
 DEFAULT_PATTERN_INTERVAL = 900  # 15 minutes
@@ -1001,6 +1004,9 @@ CAUSALITY_DIRECTIONALITY_PENALTY = 0.8
 DISMISSAL_SUPPRESSION_WINDOW_DAYS = 7
 
 SIGNAL_PROACTIVE_SUGGESTIONS = f"{DOMAIN}_proactive_suggestions"
+SIGNAL_SCENE_DELETED = f"{DOMAIN}_scene_deleted"
+SIGNAL_SCENE_REFRESHED = f"{DOMAIN}_scene_refreshed"
+SIGNAL_SCENE_RESTORED = f"{DOMAIN}_scene_restored"
 
 # ── Selora Connect (OAuth 2.0) ────────────────────────────────────────
 CONF_SELORA_CONNECT_ENABLED = "selora_connect_enabled"

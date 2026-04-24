@@ -99,6 +99,25 @@ class ScenePayload(TypedDict):
     entities: dict[str, dict[str, Any]]
 
 
+class SceneRecord(TypedDict):
+    """A single Selora-managed scene lifecycle record."""
+
+    scene_id: str
+    name: str
+    entity_count: int
+    entity_id: str | None
+    session_id: str | None
+    created_at: str
+    updated_at: str
+    deleted_at: str | None
+
+
+class SceneStoreData(TypedDict):
+    """Top-level data layout for SceneStore."""
+
+    scenes: dict[str, SceneRecord]
+
+
 # ── Version & lineage structures ──────────────────────────────────────
 
 

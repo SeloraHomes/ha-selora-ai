@@ -1331,6 +1331,11 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         session = await conv_store.create_session()
         session_id = session["id"]
 
+    # Reconcile scene store so session context reflects external edits
+    from .helpers import get_scene_store  # noqa: PLC0415
+
+    await get_scene_store(hass).async_reconcile_yaml()
+
     # Build history for the LLM.
     # For each unique scene_id, keep the latest YAML so multi-scene
     # sessions retain context for every scene (including renames).
@@ -1401,7 +1406,7 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
     scene_result: dict[str, Any] | None = None
     if intent == "scene" and llm_result.get("scene"):
         try:
-            from .scene_utils import async_create_scene
+            from .scene_utils import async_create_scene  # noqa: PLC0415
 
             scene_result = await async_create_scene(
                 hass,
@@ -1416,6 +1421,22 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
             llm_result.pop("scene", None)
             llm_result.pop("scene_yaml", None)
             intent = "answer"
+
+        if scene_result is not None:
+            try:
+                from .helpers import get_scene_store  # noqa: PLC0415
+
+                scene_store = get_scene_store(hass)
+                await scene_store.async_add_scene(
+                    scene_result["scene_id"],
+                    scene_result["name"],
+                    scene_result["entity_count"],
+                    session_id=session_id,
+                    entity_id=scene_result.get("entity_id"),
+                    content_hash=scene_result.get("content_hash"),
+                )
+            except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
+                _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
 
     # Persist messages
     await conv_store.append_message(session_id, "user", message)
