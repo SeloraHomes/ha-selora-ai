@@ -42,6 +42,7 @@ if TYPE_CHECKING:
     from .automation_store import AutomationStore
     from .device_manager import DeviceManager
     from .pattern_store import PatternStore
+    from .scene_store import SceneStore
     from .types import (
         AutomationDict,
         ChatMessage,
@@ -114,6 +115,7 @@ from .const import (
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
+    SIGNAL_SCENE_DELETED,
 )
 from .scene_discovery import get_area_names
 
@@ -334,6 +336,82 @@ class ConversationStore:
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
+
+    async def remove_scene_from_sessions(self, scene_id: str) -> None:
+        """Purge all traces of a scene from every session.
+
+        Removes the scene from session-level indexes *and* scrubs
+        ``scene_id`` / ``scene_yaml`` / ``scene`` fields from individual
+        messages.  This prevents both ``_find_active_scenes`` (message-scan
+        fallback) and ``_build_history_from_session`` from reattaching the
+        deleted scene's YAML to future LLM turns.
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            return
+        dirty = False
+        for session in self._data["sessions"].values():
+            # 1. Session-level scene index
+            scene_index = session.get("scenes")
+            if scene_index and scene_id in scene_index:
+                del scene_index[scene_id]
+                dirty = True
+            # 2. Individual message fields
+            for m in session.get("messages", []):
+                if m.get("scene_id") == scene_id:
+                    m.pop("scene_id", None)
+                    m.pop("scene_yaml", None)
+                    m.pop("scene", None)
+                    dirty = True
+        if dirty:
+            await self._store.async_save(self._data)
+
+    async def update_scene_in_sessions(self, scene_id: str, name: str, yaml_repr: str) -> None:
+        """Update a scene's YAML in every session that already references it.
+
+        Updates both the session-level ``scenes`` index *and* message-level
+        ``scene_yaml`` fields so that ``_find_active_scenes`` (index path),
+        ``_build_history_from_session`` (message path), and MCP history all
+        serve the current definition instead of a stale snapshot.
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            return
+        dirty = False
+        for session in self._data["sessions"].values():
+            # 1. Session-level scene index
+            scene_index = session.get("scenes")
+            if scene_index is not None and scene_id in scene_index:
+                scene_index[scene_id] = {"name": name, "yaml": yaml_repr}
+                dirty = True
+            # 2. Message-level fields used by _build_history_from_session
+            for m in session.get("messages", []):
+                if m.get("scene_id") == scene_id and m.get("scene_yaml"):
+                    m["scene_yaml"] = yaml_repr
+                    if m.get("scene"):
+                        m["scene"]["name"] = name
+                    dirty = True
+        if dirty:
+            await self._store.async_save(self._data)
+
+    async def add_scene_to_session(
+        self, session_id: str, scene_id: str, name: str, yaml_repr: str
+    ) -> None:
+        """Add a scene to a specific session's scene index.
+
+        Used by the restore path to rehydrate context for a scene that
+        was previously purged by ``remove_scene_from_sessions``.
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            return
+        session = self._data["sessions"].get(session_id)
+        if session is None:
+            return
+        if "scenes" not in session:
+            session["scenes"] = {}
+        session["scenes"][scene_id] = {"name": name, "yaml": yaml_repr}
+        await self._store.async_save(self._data)
 
     async def delete_session(self, session_id: str) -> bool:
         """Delete a session. Returns True if it existed."""
@@ -705,6 +783,10 @@ async def _handle_websocket_chat(
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
 
+    # Reconcile scene store so session context reflects external edits
+    scene_store = _get_scene_store(hass)
+    await scene_store.async_reconcile_yaml()
+
     # Build history and collect context BEFORE appending the new user turn —
     # append_message() mutates stored_messages in place.
     refining = _find_active_refining_yaml(stored_messages, user_message)
@@ -747,7 +829,7 @@ async def _handle_websocket_chat(
     scene_result: dict[str, Any] | None = None
     if intent_type == "scene" and result.get("scene"):
         try:
-            from .scene_utils import async_create_scene
+            from .scene_utils import async_create_scene  # noqa: PLC0415
 
             scene_result = await async_create_scene(
                 hass,
@@ -762,6 +844,20 @@ async def _handle_websocket_chat(
             result.pop("scene", None)
             result.pop("scene_yaml", None)
             intent_type = "answer"
+
+        if scene_result is not None:
+            try:
+                scene_store = _get_scene_store(hass)
+                await scene_store.async_add_scene(
+                    scene_result["scene_id"],
+                    scene_result["name"],
+                    scene_result["entity_count"],
+                    session_id=session_id,
+                    entity_id=scene_result.get("entity_id"),
+                    content_hash=scene_result.get("content_hash"),
+                )
+            except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
+                _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
 
     # Persist the assistant response
     await store.append_message(
@@ -865,6 +961,10 @@ async def _handle_websocket_chat_stream(
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
 
+    # Reconcile scene store so session context reflects external edits
+    scene_store = _get_scene_store(hass)
+    await scene_store.async_reconcile_yaml()
+
     # Build history and collect context BEFORE appending the new user turn —
     # append_message() mutates stored_messages in place.
     refining = _find_active_refining_yaml(stored_messages, user_message)
@@ -920,7 +1020,7 @@ async def _handle_websocket_chat_stream(
         scene_result: dict[str, Any] | None = None
         if intent_type == "scene" and parsed.get("scene"):
             try:
-                from .scene_utils import async_create_scene
+                from .scene_utils import async_create_scene  # noqa: PLC0415
 
                 scene_result = await async_create_scene(
                     hass,
@@ -935,6 +1035,20 @@ async def _handle_websocket_chat_stream(
                 parsed.pop("scene", None)
                 parsed.pop("scene_yaml", None)
                 intent_type = "answer"
+
+            if scene_result is not None:
+                try:
+                    scene_store = _get_scene_store(hass)
+                    await scene_store.async_add_scene(
+                        scene_result["scene_id"],
+                        scene_result["name"],
+                        scene_result["entity_count"],
+                        session_id=session_id,
+                        entity_id=scene_result.get("entity_id"),
+                        content_hash=scene_result.get("content_hash"),
+                    )
+                except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
+                    _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
 
         await store.append_message(
             session_id,
@@ -2768,6 +2882,157 @@ def _get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
     return get_pattern_store(hass)
 
 
+# ── Scene management websocket handlers ─────────────────────────────
+
+
+def _get_scene_store(hass: HomeAssistant) -> SceneStore:
+    """Return (or lazily create) the SceneStore from hass.data."""
+    from .helpers import get_scene_store  # noqa: PLC0415
+
+    return get_scene_store(hass)
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/get_scenes",
+    }
+)
+async def _handle_websocket_get_scenes(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return all Selora-managed scenes (force-reconciles with scenes.yaml)."""
+    if not _require_admin(connection, msg):
+        return
+
+    store = _get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+    scenes = await store.async_list_scenes()
+    connection.send_result(msg["id"], {"scenes": scenes})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/delete_scene",
+        vol.Required("scene_id"): str,
+    }
+)
+async def _handle_websocket_delete_scene(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Soft-delete a Selora-managed scene and remove from scenes.yaml."""
+    if not _require_admin(connection, msg):
+        return
+
+    scene_id = msg["scene_id"]
+    store = _get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+
+    try:
+        from .scene_utils import async_remove_scene_yaml  # noqa: PLC0415
+
+        found, removed = await store.async_delete_with_yaml(
+            scene_id,
+            lambda sid: async_remove_scene_yaml(hass, sid),
+        )
+    except Exception as exc:  # noqa: BLE001 — propagate failure and undo soft-delete
+        _LOGGER.warning("Failed to delete scene %s: %s", scene_id, exc)
+        await store.async_restore(scene_id)
+        connection.send_error(msg["id"], "delete_failed", str(exc))
+        return
+
+    if not found:
+        connection.send_error(msg["id"], "not_found", "Scene not found")
+        return
+
+    if not removed:
+        # The YAML entry is already gone (external edit, another tool, or
+        # stale backfill record).  Force a scene.reload so HA unloads the
+        # entity if it's still active from a prior load.
+        _LOGGER.info("Scene %s already absent from scenes.yaml — reloading scenes", scene_id)
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — HA may still have the scene loaded
+            _LOGGER.warning("scene.reload failed after confirming %s removal: %s", scene_id, exc)
+            await store.async_restore(scene_id)
+            connection.send_error(msg["id"], "reload_failed", f"Scene reload failed: {exc}")
+            return
+
+    # Purge the deleted scene from all persisted session data (indexes +
+    # message fields) and notify in-memory Assist indexes via dispatcher.
+    conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    await conv_store.remove_scene_from_sessions(scene_id)
+    async_dispatcher_send(hass, SIGNAL_SCENE_DELETED, scene_id)
+
+    connection.send_result(msg["id"], {"success": True})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/activate_scene",
+        vol.Required("scene_id"): str,
+    }
+)
+async def _handle_websocket_activate_scene(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Activate a Selora-managed scene by calling scene.turn_on."""
+    if not _require_admin(connection, msg):
+        return
+
+    scene_id = msg["scene_id"]
+
+    store = _get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+    record = await store.async_get_scene(scene_id)
+    if record is None:
+        connection.send_error(msg["id"], "not_found", "Scene not tracked by Selora")
+        return
+    if record.get("deleted_at") is not None:
+        connection.send_error(msg["id"], "deleted", "Scene has been deleted")
+        return
+
+    # Always resolve the entity_id from the registry — the cached value may
+    # be stale after a scene.reload reassigns slugs due to name collisions.
+    from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+
+    entity_id = resolve_scene_entity_id(hass, scene_id, record.get("name"))
+    if entity_id is None:
+        # Fall back to the cached entity_id only if it still has a state
+        cached = record.get("entity_id")
+        if cached and hass.states.get(cached) is not None:
+            entity_id = cached
+
+    if entity_id is None:
+        # Scene may exist in YAML but HA hasn't loaded it yet — reload and retry
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception:  # noqa: BLE001 — best-effort reload
+            _LOGGER.debug("scene.reload failed before activation of %s", scene_id)
+        entity_id = resolve_scene_entity_id(hass, scene_id, record.get("name"))
+
+    if entity_id is None:
+        connection.send_error(msg["id"], "not_found", "Scene entity not found in Home Assistant")
+        return
+
+    try:
+        await hass.services.async_call("scene", "turn_on", {"entity_id": entity_id}, blocking=True)
+        connection.send_result(msg["id"], {"success": True, "entity_id": entity_id})
+    except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
+        _LOGGER.error("Failed to activate scene %s: %s", scene_id, exc)
+        connection.send_error(msg["id"], "activation_failed", str(exc))
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -3304,6 +3569,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_revoke_mcp_token)
     # Device detail
     websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
+    # Scene management
+    websocket_api.async_register_command(hass, _handle_websocket_get_scenes)
+    websocket_api.async_register_command(hass, _handle_websocket_delete_scene)
+    websocket_api.async_register_command(hass, _handle_websocket_activate_scene)
 
     # Register static path for frontend
     # Modern way to register static paths (2024.7+)
@@ -3746,6 +4015,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data[DOMAIN].pop("proactive_suggestions", None)
     hass.data[DOMAIN].pop("latest_suggestions", None)
     hass.data[DOMAIN].pop("_conv_store", None)
+    hass.data[DOMAIN].pop("_scene_store", None)
 
     # Unload entity platforms
     await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

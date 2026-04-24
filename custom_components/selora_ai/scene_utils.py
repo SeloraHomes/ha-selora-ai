@@ -324,12 +324,19 @@ async def async_create_scene(
         # lookup.  Fall back to probing both ``scene.<id>`` and
         # ``scene.<slug(name)>`` to cover environments where the entity
         # platform isn't fully wired up.
+        # Resolve the authoritative entity_id.  The entity registry is the
+        # single source of truth (HA may suffix the slug when names collide).
+        # Fall back to probing ``scene.<id>`` and ``scene.<slug(name)>``.
         registry = er.async_get(hass)
-        registered = registry.async_get_entity_id("scene", "homeassistant", scene_id)
-        if registered is None and (
-            hass.states.get(f"scene.{scene_id}") is None
-            and hass.states.get(f"scene.{slugify(f'[Selora AI] {name}')}") is None
-        ):
+        resolved_entity_id = registry.async_get_entity_id("scene", "homeassistant", scene_id)
+        if resolved_entity_id is None:
+            # Not in the entity registry — try state-based probes
+            for candidate in (f"scene.{scene_id}", f"scene.{slugify(f'[Selora AI] {name}')}"):
+                if hass.states.get(candidate) is not None:
+                    resolved_entity_id = candidate
+                    break
+
+        if resolved_entity_id is None:
             await hass.async_add_executor_job(_rollback)
             _LOGGER.error(
                 "Scene '%s' (id=%s) was written to scenes.yaml but no entity "
@@ -342,9 +349,89 @@ async def async_create_scene(
                 "Ensure 'scene:' is included in your configuration.yaml."
             )
 
+    from .scene_store import scene_content_hash  # noqa: PLC0415
+
     return {
         "success": True,
         "scene_id": scene_id,
         "name": name,
         "entity_count": len(entities),
+        "entity_id": resolved_entity_id,
+        "content_hash": scene_content_hash(scene_id, f"[Selora AI] {name}", entities),
     }
+
+
+def resolve_scene_entity_id(
+    hass: HomeAssistant,
+    scene_id: str,
+    name: str | None = None,
+) -> str | None:
+    """Resolve the actual HA entity_id for a scene.
+
+    Checks the entity registry first (authoritative), then falls back to
+    state-based probes.  The name-based probe uses both the prefixed name
+    (``[Selora AI] <name>``, which is how scenes are written to YAML) and
+    the bare name.  Returns ``None`` when the scene is not loaded.
+    """
+    registry = er.async_get(hass)
+    entity_id = registry.async_get_entity_id("scene", "homeassistant", scene_id)
+    if entity_id is not None:
+        return entity_id
+    # State-based fallback
+    candidate = f"scene.{scene_id}"
+    if hass.states.get(candidate) is not None:
+        return candidate
+    if name:
+        # async_create_scene writes "[Selora AI] <name>" to scenes.yaml, so
+        # the HA entity slug may be based on that prefixed name.
+        for variant in (f"[Selora AI] {name}", name):
+            candidate = f"scene.{slugify(variant)}"
+            if hass.states.get(candidate) is not None:
+                return candidate
+    return None
+
+
+class SceneDeleteError(Exception):
+    """Raised when a scene cannot be cleanly removed from scenes.yaml."""
+
+
+async def async_remove_scene_yaml(
+    hass: HomeAssistant,
+    scene_id: str,
+) -> bool:
+    """Remove a scene from scenes.yaml and reload.
+
+    Returns True if the scene was found and removed, False if it wasn't
+    present in the YAML file.  Raises ``ScenesYamlError`` if the file
+    cannot be parsed, or ``SceneDeleteError`` if the reload fails (the
+    file is rolled back in that case).
+    """
+    scenes_path = _get_scenes_path(hass)
+
+    async with _SCENES_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+
+        # Tolerate non-dict items from manual edits — keep them as-is,
+        # only match dict entries by id for removal.
+        filtered = [s for s in existing if not isinstance(s, dict) or s.get("id") != scene_id]
+        if len(filtered) == len(existing):
+            return False
+
+        # Keep the pre-write state so we can roll back on reload failure
+        previous = list(existing)
+
+        await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, filtered)
+        _LOGGER.info("Removed scene id=%s from scenes.yaml", scene_id)
+
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
+            await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
+            _LOGGER.error(
+                "scene.reload failed after removing scene %s — rolled back: %s",
+                scene_id,
+                exc,
+            )
+            raise SceneDeleteError(f"Scene reload failed after removal: {exc}") from exc
+
+    return True

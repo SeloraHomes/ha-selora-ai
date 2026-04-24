@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
     from .automation_store import AutomationStore
+    from .scene_store import SceneStore
 
 from .const import AUTOMATION_ID_PREFIX, DOMAIN
 
@@ -121,3 +122,13 @@ def get_automation_store(hass: HomeAssistant) -> AutomationStore:
     if "_automation_store" not in domain_data:
         domain_data["_automation_store"] = AutomationStore(hass)
     return domain_data["_automation_store"]
+
+
+def get_scene_store(hass: HomeAssistant) -> SceneStore:
+    """Return (or lazily create) the SceneStore from hass.data."""
+    from .scene_store import SceneStore
+
+    domain_data = hass.data.setdefault(DOMAIN, {})
+    if "_scene_store" not in domain_data:
+        domain_data["_scene_store"] = SceneStore(hass)
+    return domain_data["_scene_store"]
