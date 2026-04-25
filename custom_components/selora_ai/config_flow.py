@@ -12,6 +12,8 @@ Single continuous flow:
 
 from __future__ import annotations
 
+import asyncio
+from collections.abc import Callable
 import logging
 from typing import TYPE_CHECKING, Any
 import uuid
@@ -81,6 +83,81 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Total wall-time budget for accepting all selected device flows
+# concurrently.  Individual flows that finish within this window are
+# processed normally; those still running are reported as in-progress
+# and left for the user to complete via Settings > Devices.
+_DEVICE_ACCEPT_TIMEOUT = 90
+
+
+# ── Deferred area assignment for timed-out flows ─────────────────────
+
+
+def _make_deferred_area_callback(
+    hass: HomeAssistant,
+    flow_id: str,
+    display_name: str,
+    area_id: str | None,
+) -> Callable[[asyncio.Task[dict[str, Any]]], None]:
+    """Return a task done-callback that assigns *area_id* when the flow completes.
+
+    Also drains the task exception (if any) so asyncio does not log
+    "Task exception was never retrieved".
+    """
+
+    def _on_done(task: asyncio.Task[dict[str, Any]]) -> None:
+        if task.cancelled():
+            _LOGGER.debug(
+                "Deferred flow %s (%s) was cancelled (likely HA shutdown)",
+                display_name,
+                flow_id,
+            )
+            return
+
+        exc = task.exception()
+        if exc is not None:
+            _LOGGER.warning(
+                "Deferred flow %s (%s) failed: %s",
+                display_name,
+                flow_id,
+                exc,
+            )
+            return
+
+        result = task.result()
+        if result.get("type") != "create_entry":
+            _LOGGER.info(
+                "Deferred flow %s (%s) did not create an entry (type=%s)",
+                display_name,
+                flow_id,
+                result.get("type", ""),
+            )
+            return
+
+        entry_id = result.get("entry_id")
+        if not entry_id or not area_id:
+            return
+
+        from homeassistant.helpers import device_registry as dr
+
+        try:
+            dev_reg = dr.async_get(hass)
+            for device in dr.async_entries_for_config_entry(dev_reg, entry_id):
+                dev_reg.async_update_device(device.id, area_id=area_id)
+            _LOGGER.info(
+                "Deferred area assignment: %s → area %s",
+                display_name,
+                area_id,
+            )
+        except (KeyError, ValueError) as err:
+            _LOGGER.warning(
+                "Deferred area assignment failed for %s: %s",
+                display_name,
+                err,
+            )
+
+    return _on_done
 
 
 # ── Validation helpers ────────────────────────────────────────────────
@@ -443,23 +520,15 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         ctx = dev.get("context", {})
         title_name = ctx.get("title_placeholders", {}).get("name", "")
         unique_id = ctx.get("unique_id", "")
-
-        # Try to get IP from the flow handler
-        host = ""
-        try:
-            flow_id = dev["flow_id"]
-            flow_obj = self.hass.config_entries.flow._progress.get(flow_id)
-            if flow_obj and hasattr(flow_obj, "host"):
-                host = flow_obj.host or ""
-        except (AttributeError, KeyError, TypeError) as err:
-            _LOGGER.debug("Unable to resolve discovered device host: %s", err)
+        flow_id = dev.get("flow_id", "")
 
         if title_name:
             return f"{title_name} ({name})"
-        if host:
-            return f"{name} — {host}"
         if unique_id:
             return f"{name} — {unique_id}"
+        # Use short flow_id suffix to disambiguate multiple same-type devices
+        if flow_id:
+            return f"{name} — {flow_id[:4].upper()}"
         return name
 
     async def async_step_discover(
@@ -536,68 +605,91 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Parse selections: device_0 -> area_id, device_1 -> "skip", etc.
         self._setup_results = []
-        any_selected = False
+        selected: list[tuple[dict[str, Any], str]] = []
 
         for i, dev in enumerate(self._discovered_devices):
             area_choice = user_input.get(f"device_{i}", "skip")
-            if area_choice == "skip":
-                continue
+            if area_choice != "skip":
+                selected.append((dev, area_choice))
 
-            any_selected = True
-            flow_id = dev["flow_id"]
-            display_name = self._build_device_label(dev)
-            area_id = area_choice if area_choice != "no_area" else None
+        if selected:
+            # Accept all flows concurrently so wall time = slowest flow,
+            # not the sum.  asyncio.wait returns pending tasks without
+            # cancelling them, so slow flows keep running in HA.
+            tasks = {
+                asyncio.create_task(
+                    dm.accept_flow(dev["flow_id"]),
+                    name=dev["flow_id"],
+                ): (dev, area_choice)
+                for dev, area_choice in selected
+            }
 
-            try:
-                result = await dm.accept_flow(flow_id)
+            done, pending = await asyncio.wait(tasks, timeout=_DEVICE_ACCEPT_TIMEOUT)
 
-                if result.get("type") == "create_entry":
-                    # Assign area to the newly created device
-                    if area_id:
-                        entry_id = result.get("entry_id")
-                        if entry_id:
-                            await self._assign_area_to_entry(entry_id, area_id)
+            # Process completed flows
+            for task in done:
+                dev, area_choice = tasks[task]
+                flow_id = dev["flow_id"]
+                display_name = self._build_device_label(dev)
+                area_id = area_choice if area_choice != "no_area" else None
 
-                    self._setup_results.append(
-                        {
-                            "flow_id": flow_id,
-                            "name": display_name,
-                            "status": "success",
-                            "title": result.get("title", display_name),
-                            "area_id": area_id,
-                        }
+                exc = task.exception()
+                if exc is not None:
+                    _LOGGER.error(
+                        "Setup failed for %s (%s): %s",
+                        display_name,
+                        flow_id,
+                        exc,
                     )
-                elif result.get("error"):
                     self._setup_results.append(
                         {
                             "flow_id": flow_id,
                             "name": display_name,
                             "status": "error",
-                            "message": result["error"],
+                            "message": str(exc),
                         }
                     )
-                else:
-                    self._setup_results.append(
-                        {
-                            "flow_id": result.get("flow_id", flow_id),
-                            "name": display_name,
-                            "status": "needs_attention",
-                            "step_id": result.get("step_id", ""),
-                            "message": f"Requires manual setup: step '{result.get('step_id', 'unknown')}'",
-                        }
-                    )
-            except Exception as exc:
-                _LOGGER.error("Setup failed for %s (%s): %s", display_name, flow_id, exc)
+                    continue
+
+                result = task.result()
+                self._setup_results.append(
+                    self._build_setup_result(flow_id, display_name, area_id, result)
+                )
+                # Assign area after successful creation
+                if result.get("type") == "create_entry" and area_id and result.get("entry_id"):
+                    await self._assign_area_to_entry(result["entry_id"], area_id)
+
+            # Flows still running — attach a callback that assigns the
+            # user-chosen area once the flow completes (and drains any
+            # exception so asyncio doesn't log "never retrieved").
+            for task in pending:
+                dev, area_choice = tasks[task]
+                flow_id = dev["flow_id"]
+                display_name = self._build_device_label(dev)
+                area_id = area_choice if area_choice != "no_area" else None
+
+                task.add_done_callback(
+                    _make_deferred_area_callback(self.hass, flow_id, display_name, area_id)
+                )
+
+                _LOGGER.info(
+                    "Flow %s (%s) still in progress after %ds — "
+                    "area will be assigned when the flow completes",
+                    display_name,
+                    flow_id,
+                    _DEVICE_ACCEPT_TIMEOUT,
+                )
                 self._setup_results.append(
                     {
                         "flow_id": flow_id,
                         "name": display_name,
-                        "status": "error",
-                        "message": str(exc),
+                        "status": "needs_attention",
+                        "area_id": area_id,
+                        "message": "Still in progress — finish setup via Settings > Devices",
                     }
                 )
 
-        if not any_selected:
+        if not selected:
             if self._llm_data:
                 # Initial setup with no devices selected — still create LLM entry
                 return await self._create_llm_entry()
@@ -605,13 +697,57 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return await self.async_step_results()
 
+    @staticmethod
+    def _build_setup_result(
+        flow_id: str,
+        display_name: str,
+        area_id: str | None,
+        result: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Turn a normalised flow result into a setup-result dict."""
+        result_type = result.get("type", "")
+
+        if result_type == "create_entry":
+            return {
+                "flow_id": flow_id,
+                "name": display_name,
+                "status": "success",
+                "title": result.get("title", display_name),
+                "area_id": area_id,
+            }
+        if result_type == "form":
+            return {
+                "flow_id": result.get("flow_id", flow_id),
+                "name": display_name,
+                "status": "needs_attention",
+                "step_id": result.get("step_id", ""),
+                "message": (f"Requires manual setup: step '{result.get('step_id', 'unknown')}'"),
+            }
+        if result.get("errors"):
+            return {
+                "flow_id": flow_id,
+                "name": display_name,
+                "status": "error",
+                "message": str(result["errors"]),
+            }
+        return {
+            "flow_id": result.get("flow_id", flow_id),
+            "name": display_name,
+            "status": "needs_attention",
+            "step_id": result.get("step_id", ""),
+            "message": (f"Requires manual setup: step '{result.get('step_id', 'unknown')}'"),
+        }
+
     async def _assign_area_to_entry(self, entry_id: str, area_id: str) -> None:
         """Assign all devices from a config entry to an area."""
         from homeassistant.helpers import device_registry as dr
 
-        dev_reg = dr.async_get(self.hass)
-        for device in dr.async_entries_for_config_entry(dev_reg, entry_id):
-            dev_reg.async_update_device(device.id, area_id=area_id)
+        try:
+            dev_reg = dr.async_get(self.hass)
+            for device in dr.async_entries_for_config_entry(dev_reg, entry_id):
+                dev_reg.async_update_device(device.id, area_id=area_id)
+        except (KeyError, ValueError) as exc:
+            _LOGGER.warning("Could not assign area %s to entry %s: %s", area_id, entry_id, exc)
 
     async def _create_llm_entry(self) -> config_entries.ConfigFlowResult:
         """Create the LLM config entry (initial setup, no devices found or selected)."""
