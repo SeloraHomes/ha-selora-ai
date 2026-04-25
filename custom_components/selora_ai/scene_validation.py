@@ -16,7 +16,9 @@ _LOGGER = logging.getLogger(__name__)
 
 _MAX_SCENE_NAME_LEN = 100
 _MAX_ENTITIES_PER_SCENE = 50
-_ENTITY_ID_RE = re.compile(r"^[a-z_]+\.[a-z0-9_]+$")
+# Domain part: lowercase letters/underscores.  Object ID: letters, digits,
+# underscores, hyphens — matches the pattern accepted by scene_utils.
+_ENTITY_ID_RE = re.compile(r"^[a-z_][a-z0-9_]*\.[a-z0-9][a-z0-9_-]*$")
 
 # Characters that could indicate injection attempts in scene names
 _UNSAFE_NAME_RE = re.compile(r"[<>&\"'`;\{\}\[\]\\]")
@@ -28,7 +30,7 @@ def sanitize_scene_name(name: str) -> str:
     clean = _UNSAFE_NAME_RE.sub("", clean)
     if len(clean) > _MAX_SCENE_NAME_LEN:
         clean = clean[:_MAX_SCENE_NAME_LEN]
-    return clean
+    return clean.strip()
 
 
 async def validate_entities_exist(
@@ -62,10 +64,12 @@ async def validate_entities_in_area(
     Returns (in_area_ids, out_of_area_ids).
     """
     from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
     area_reg = ar.async_get(hass)
     entity_reg = er.async_get(hass)
+    device_reg = dr.async_get(hass)
 
     # Find the area ID for the expected area name
     target_area_id: str | None = None
@@ -83,7 +87,18 @@ async def validate_entities_in_area(
 
     for eid in entity_ids:
         entry = entity_reg.async_get(eid)
-        if entry and entry.area_id == target_area_id:
+        if entry is None:
+            out_of_area.append(eid)
+            continue
+
+        # Check entity's own area first, then fall back to its parent device
+        entity_area = entry.area_id
+        if entity_area is None and entry.device_id:
+            device = device_reg.async_get(entry.device_id)
+            if device is not None:
+                entity_area = device.area_id
+
+        if entity_area == target_area_id:
             in_area.append(eid)
         else:
             out_of_area.append(eid)
@@ -105,9 +120,13 @@ def validate_scene_security(
         return False, ["Scene payload is not a dict"]
 
     # Check name
-    name = scene.get("name", "")
+    name = scene.get("name")
+    if name is None:
+        return False, ["Scene payload is missing 'name' key"]
     if not isinstance(name, str):
         return False, ["Scene name must be a string"]
+    if not name.strip():
+        return False, ["Scene name must not be empty"]
 
     if _UNSAFE_NAME_RE.search(name):
         warnings.append(f"Scene name contains unsafe characters: {name!r}")

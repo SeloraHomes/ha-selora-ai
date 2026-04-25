@@ -1448,8 +1448,8 @@ async def _tool_chat(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str
         automation_yaml=automation_yaml,
         automation_status="pending" if automation else None,
         risk_assessment=risk_assessment,
-        scene=llm_result.get("scene"),
-        scene_yaml=llm_result.get("scene_yaml"),
+        scene=scene_result["scene"] if scene_result else llm_result.get("scene"),
+        scene_yaml=scene_result["scene_yaml"] if scene_result else llm_result.get("scene_yaml"),
         scene_id=scene_result["scene_id"] if scene_result else None,
     )
 

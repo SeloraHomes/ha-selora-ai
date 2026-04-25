@@ -872,8 +872,8 @@ async def _handle_websocket_chat(
         calls=result.get("calls") if intent_type == "command" else None,
         risk_assessment=result.get("risk_assessment"),
         tool_calls=result.get("tool_calls"),
-        scene=result.get("scene"),
-        scene_yaml=result.get("scene_yaml"),
+        scene=scene_result["scene"] if scene_result else result.get("scene"),
+        scene_yaml=scene_result["scene_yaml"] if scene_result else result.get("scene_yaml"),
         scene_id=scene_result["scene_id"] if scene_result else None,
     )
 
@@ -903,8 +903,8 @@ async def _handle_websocket_chat(
             "validation_error": result.get("validation_error"),
             "validation_target": result.get("validation_target"),
             "refining_automation_id": refining_automation_id,
-            "scene": result.get("scene"),
-            "scene_yaml": result.get("scene_yaml"),
+            "scene": scene_result["scene"] if scene_result else result.get("scene"),
+            "scene_yaml": scene_result["scene_yaml"] if scene_result else result.get("scene_yaml"),
             "scene_id": scene_result["scene_id"] if scene_result else None,
         },
     )
@@ -1062,8 +1062,8 @@ async def _handle_websocket_chat_stream(
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
             devices=device_data if device_data else None,
-            scene=parsed.get("scene"),
-            scene_yaml=parsed.get("scene_yaml"),
+            scene=scene_result["scene"] if scene_result else parsed.get("scene"),
+            scene_yaml=scene_result["scene_yaml"] if scene_result else parsed.get("scene_yaml"),
             scene_id=scene_result["scene_id"] if scene_result else None,
         )
 
@@ -1109,8 +1109,10 @@ async def _handle_websocket_chat_stream(
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
                     "devices": device_data,
-                    "scene": parsed.get("scene"),
-                    "scene_yaml": parsed.get("scene_yaml"),
+                    "scene": scene_result["scene"] if scene_result else parsed.get("scene"),
+                    "scene_yaml": scene_result["scene_yaml"]
+                    if scene_result
+                    else parsed.get("scene_yaml"),
                     "scene_id": scene_result["scene_id"] if scene_result else None,
                 },
             )
