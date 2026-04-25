@@ -13,7 +13,7 @@ import asyncio
 import logging
 from pathlib import Path
 import re
-from typing import Any
+from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant.config import SCENE_CONFIG_PATH
@@ -22,6 +22,9 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from .const import SCENE_ID_PREFIX
+
+if TYPE_CHECKING:
+    from .types import ScenePayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -259,9 +262,45 @@ async def async_create_scene(
                 f"Cannot refine scene {existing_scene_id!r}: not part of the current session."
             )
 
+    # --- Security validation (scene_validation.py) ---
+    from .scene_validation import (  # noqa: PLC0415
+        sanitize_scene_name,
+        validate_entities_exist,
+        validate_scene_security,
+    )
+
+    is_safe, sec_warnings = validate_scene_security(scene_data)
+    if not is_safe:
+        raise SceneCreateError(f"Scene rejected by security validation: {sec_warnings[0]}")
+    for warning in sec_warnings:
+        _LOGGER.warning("Scene security warning: %s", warning)
+
+    # Sanitize the name (strips unsafe characters and truncates)
+    scene_data = dict(scene_data)
+    scene_data["name"] = sanitize_scene_name(scene_data.get("name", ""))
+    if not scene_data["name"]:
+        raise SceneCreateError("Scene name is empty after sanitization")
+
+    # Reject entities that don't exist in HA — fail loudly so the caller
+    # can surface the error instead of silently creating a partial scene.
+    entity_ids = list(scene_data.get("entities", {}).keys())
+    _, missing_ids = await validate_entities_exist(hass, entity_ids)
+    if missing_ids:
+        raise SceneCreateError(f"Entities not found in Home Assistant: {', '.join(missing_ids)}")
+
     scene_id = existing_scene_id or generate_scene_id()
     name = scene_data["name"]
     entities = scene_data["entities"]
+
+    # Snapshot the sanitized payload *before* the YAML writer mutates
+    # shared dicts (ruamel's _quote_unsafe_strings converts "on"/"off"
+    # to DoubleQuotedScalarString in-place, which PyYAML would emit as
+    # Python-specific tags).
+    import json as _json  # noqa: PLC0415
+
+    sanitized_scene: ScenePayload = _json.loads(
+        _json.dumps({"name": name, "entities": entities}, default=str)
+    )
 
     scenes_path = _get_scenes_path(hass)
 
@@ -349,6 +388,8 @@ async def async_create_scene(
                 "Ensure 'scene:' is included in your configuration.yaml."
             )
 
+    import yaml  # noqa: PLC0415
+
     from .scene_store import scene_content_hash  # noqa: PLC0415
 
     return {
@@ -358,6 +399,8 @@ async def async_create_scene(
         "entity_count": len(entities),
         "entity_id": resolved_entity_id,
         "content_hash": scene_content_hash(scene_id, f"[Selora AI] {name}", entities),
+        "scene": sanitized_scene,
+        "scene_yaml": yaml.dump(sanitized_scene, default_flow_style=False, allow_unicode=True),
     }
 
 

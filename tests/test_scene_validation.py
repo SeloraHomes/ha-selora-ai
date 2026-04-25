@@ -10,16 +10,6 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-def _has_scene_modules() -> bool:
-    """Check if scene_utils and scene_state_mapper are available (merged from !103-!105)."""
-    try:
-        import custom_components.selora_ai.scene_utils  # noqa: F401
-        import custom_components.selora_ai.scene_state_mapper  # noqa: F401
-        return True
-    except ImportError:
-        return False
-
-
 from custom_components.selora_ai.scene_validation import (
     _MAX_ENTITIES_PER_SCENE,
     _MAX_SCENE_NAME_LEN,
@@ -84,6 +74,11 @@ class TestSanitizeSceneName:
 
     def test_handles_only_unsafe_chars(self) -> None:
         assert sanitize_scene_name("<>\"'`;{}[]\\") == ""
+
+    def test_strips_trailing_spaces_after_removal(self) -> None:
+        # Removing unsafe chars at end of word could leave trailing space
+        assert sanitize_scene_name("Scene <evil>") == "Scene evil"
+        assert sanitize_scene_name("Test [") == "Test"
 
 
 # ── validate_entities_exist ──────────────────────────────────────────
@@ -215,6 +210,65 @@ class TestValidateEntitiesInArea:
         assert in_area == ["light.living_room"]
         assert out_of_area == ["light.bedroom"]
 
+    async def test_entity_inherits_area_from_device(self, hass) -> None:
+        """Entity with no area_id should inherit from its parent device."""
+        mock_area = MagicMock()
+        mock_area.id = "area_lr"
+        mock_area.name = "Living Room"
+        mock_area_reg = MagicMock()
+        mock_area_reg.async_list_areas.return_value = [mock_area]
+
+        entry = MagicMock()
+        entry.area_id = None  # entity has no direct area
+        entry.device_id = "device_123"
+        mock_entity_reg = MagicMock()
+        mock_entity_reg.async_get.return_value = entry
+
+        device = MagicMock()
+        device.area_id = "area_lr"  # but device is in Living Room
+        mock_device_reg = MagicMock()
+        mock_device_reg.async_get.return_value = device
+
+        with (
+            patch("homeassistant.helpers.area_registry.async_get", return_value=mock_area_reg),
+            patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_reg),
+            patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_reg),
+        ):
+            in_area, out_of_area = await validate_entities_in_area(
+                hass, ["light.living_room"], "Living Room"
+            )
+
+        assert in_area == ["light.living_room"]
+        assert out_of_area == []
+
+    async def test_entity_no_area_no_device(self, hass) -> None:
+        """Entity with no area_id and no device should be out of area."""
+        mock_area = MagicMock()
+        mock_area.id = "area_lr"
+        mock_area.name = "Living Room"
+        mock_area_reg = MagicMock()
+        mock_area_reg.async_list_areas.return_value = [mock_area]
+
+        entry = MagicMock()
+        entry.area_id = None
+        entry.device_id = None
+        mock_entity_reg = MagicMock()
+        mock_entity_reg.async_get.return_value = entry
+
+        mock_device_reg = MagicMock()
+
+        with (
+            patch("homeassistant.helpers.area_registry.async_get", return_value=mock_area_reg),
+            patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_reg),
+            patch("homeassistant.helpers.device_registry.async_get", return_value=mock_device_reg),
+        ):
+            in_area, out_of_area = await validate_entities_in_area(
+                hass, ["light.orphan"], "Living Room"
+            )
+
+        assert in_area == []
+        assert out_of_area == ["light.orphan"]
+
     async def test_case_insensitive_area_matching(self, hass) -> None:
         mock_area = MagicMock()
         mock_area.id = "area_lr"
@@ -251,8 +305,33 @@ class TestValidateSceneSecurity:
         assert is_safe
         assert warnings == []
 
+    def test_accepts_hyphenated_entity_ids(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"light.living-room": {"state": "on"}},
+        }
+        is_safe, warnings = validate_scene_security(scene)
+        assert is_safe
+
     def test_rejects_non_dict_payload(self) -> None:
         is_safe, warnings = validate_scene_security("not a dict")
+        assert not is_safe
+
+    def test_rejects_missing_name_key(self) -> None:
+        scene = {"entities": {"light.x": {"state": "on"}}}
+        is_safe, warnings = validate_scene_security(scene)
+        assert not is_safe
+        assert any("missing" in w.lower() for w in warnings)
+
+    def test_rejects_empty_name(self) -> None:
+        scene = {"name": "", "entities": {"light.x": {"state": "on"}}}
+        is_safe, warnings = validate_scene_security(scene)
+        assert not is_safe
+        assert any("empty" in w.lower() for w in warnings)
+
+    def test_rejects_whitespace_only_name(self) -> None:
+        scene = {"name": "   ", "entities": {"light.x": {"state": "on"}}}
+        is_safe, warnings = validate_scene_security(scene)
         assert not is_safe
 
     def test_rejects_non_string_name(self) -> None:
@@ -375,10 +454,6 @@ class TestValidateSceneSecurity:
 # ── Integration: full pipeline validation ────────────────────────────
 
 
-@pytest.mark.skipif(
-    not _has_scene_modules(),
-    reason="scene_utils/scene_state_mapper not yet merged (requires !103-!105)",
-)
 class TestFullPipelineValidation:
     """End-to-end tests combining scene_utils, scene_state_mapper, and scene_validation.
 
@@ -387,8 +462,14 @@ class TestFullPipelineValidation:
     """
 
     async def test_valid_scene_passes_all_checks(self, hass) -> None:
-        from custom_components.selora_ai.scene_state_mapper import validate_entity_states
-        from custom_components.selora_ai.scene_utils import validate_scene_payload
+        scene_state_mapper = pytest.importorskip(
+            "custom_components.selora_ai.scene_state_mapper",
+            reason="scene_state_mapper not yet merged (requires !103-!105)",
+        )
+        scene_utils = pytest.importorskip(
+            "custom_components.selora_ai.scene_utils",
+            reason="scene_utils not yet merged (requires !103-!105)",
+        )
 
         hass.states.async_set("light.living_room", "on")
 
@@ -398,7 +479,7 @@ class TestFullPipelineValidation:
         }
 
         # Step 1: payload validation
-        is_valid, reason, normalized = validate_scene_payload(scene)
+        is_valid, reason, normalized = scene_utils.validate_scene_payload(scene)
         assert is_valid
 
         # Step 2: security checks
@@ -407,7 +488,7 @@ class TestFullPipelineValidation:
         assert warnings == []
 
         # Step 3: state validation
-        is_valid, reason, validated_entities = validate_entity_states(
+        is_valid, reason, validated_entities = scene_state_mapper.validate_entity_states(
             normalized["entities"]
         )
         assert is_valid
@@ -419,14 +500,17 @@ class TestFullPipelineValidation:
         assert missing == []
 
     async def test_nonexistent_entity_caught(self, hass) -> None:
-        from custom_components.selora_ai.scene_utils import validate_scene_payload
+        scene_utils = pytest.importorskip(
+            "custom_components.selora_ai.scene_utils",
+            reason="scene_utils not yet merged (requires !103-!105)",
+        )
 
         scene = {
             "name": "Bad Scene",
             "entities": {"light.does_not_exist": {"state": "on"}},
         }
 
-        is_valid, _, normalized = validate_scene_payload(scene)
+        is_valid, _, normalized = scene_utils.validate_scene_payload(scene)
         assert is_valid  # format is valid
 
         # But entity doesn't exist in HA
@@ -436,10 +520,13 @@ class TestFullPipelineValidation:
         assert "light.does_not_exist" in missing
 
     async def test_invalid_brightness_caught_by_state_mapper(self, hass) -> None:
-        from custom_components.selora_ai.scene_state_mapper import validate_entity_states
+        scene_state_mapper = pytest.importorskip(
+            "custom_components.selora_ai.scene_state_mapper",
+            reason="scene_state_mapper not yet merged (requires !103-!105)",
+        )
 
         entities = {"light.x": {"state": "on", "brightness": 999}}
-        is_valid, _, normalized = validate_entity_states(entities)
+        is_valid, _, normalized = scene_state_mapper.validate_entity_states(entities)
         assert is_valid  # valid but clamped
         assert normalized["light.x"]["brightness"] == 255
 

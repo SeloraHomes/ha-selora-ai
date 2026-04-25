@@ -310,6 +310,9 @@ class TestAsyncCreateScene:
         fixed_id = su.generate_scene_id()  # unique per run
         monkeypatch.setattr(su, "generate_scene_id", lambda: fixed_id)
 
+        # Entity must exist in HA for scene validation to accept it
+        hass.states.async_set("light.living_room", "on")
+
         service_calls: list[tuple[str, str, dict]] = []
 
         async def _track_reload(call):
@@ -358,6 +361,9 @@ class TestAsyncCreateScene:
         fixed_id = "selora_ai_scene_noapply"
         monkeypatch.setattr(su, "generate_scene_id", lambda: fixed_id)
 
+        # Entity must exist in HA for scene validation to accept it
+        hass.states.async_set("light.living_room", "off")
+
         service_calls: list[tuple[str, str, dict]] = []
 
         async def _track(call):
@@ -391,6 +397,9 @@ class TestAsyncCreateScene:
             _read_scenes_yaml,
         )
 
+        # Entity must exist in HA for scene validation to accept it
+        hass.states.async_set("light.living_room", "on")
+
         # Reload is a no-op — doesn't register the scene entity
         hass.services.async_register("scene", "reload", lambda _: None)
 
@@ -414,6 +423,9 @@ class TestAsyncCreateScene:
     async def test_rollback_deletes_file_when_it_did_not_exist(self, hass, tmp_path) -> None:
         """If scenes.yaml didn't exist before, rollback removes it entirely."""
         from custom_components.selora_ai.scene_utils import SceneCreateError
+
+        # Entity must exist in HA for scene validation to accept it
+        hass.states.async_set("light.living_room", "on")
 
         # Point hass config at a clean tmp dir with no scenes.yaml
         hass.config.config_dir = str(tmp_path)

@@ -308,9 +308,11 @@ class SeloraConversationEntity(conversation.ConversationEntity):
 
                     # Update the entity-level scene index so future
                     # turns see this scene even after chat_log trims.
+                    # Use the sanitized scene from scene_result so the
+                    # refinement context matches what was written.
                     conv_scenes[scene_result["scene_id"]] = (
                         scene_name,
-                        result.get("scene_yaml", ""),
+                        scene_result.get("scene_yaml", ""),
                     )
                 except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
                     _LOGGER.error("Failed to create scene via Assist: %s", exc)
@@ -347,7 +349,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             # that _SCENE_MARKER_RE / _SCENE_BLOCK_RE rely on.
             s_name: str = scene_result.get("name", "").replace("[", "(").replace("]", ")")
             log_content += f"\n\n[Selora scene: id={sid}, name={s_name}]"
-            scene_yaml: str = result.get("scene_yaml", "")
+            scene_yaml: str = scene_result.get("scene_yaml", "")
             if scene_yaml:
                 log_content += f"\n{scene_yaml}"
 
