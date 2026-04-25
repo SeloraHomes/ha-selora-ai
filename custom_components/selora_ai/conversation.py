@@ -336,6 +336,42 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                             "Failed to record scene %s in store", scene_result["scene_id"]
                         )
 
+        elif intent_type in ("delayed_command", "cancel"):
+            # Persisted schedules (scheduled_time → automation) and cancel
+            # of automation-backed tasks modify automations.yaml — require
+            # admin, same gate as scene creation above.  Relative delays
+            # and cancelling in-memory timers are safe for all users.
+            needs_admin = False
+            if result.get("scheduled_time") is not None:
+                needs_admin = True
+            elif intent_type == "cancel":
+                # Check whether the task being cancelled is automation-backed
+                from .scheduled_actions import ScheduledTaskTracker  # noqa: PLC0415
+
+                _tracker = self.hass.data.get(DOMAIN, {}).get("_scheduled_tasks")
+                if isinstance(_tracker, ScheduledTaskTracker):
+                    _latest = _tracker.get_latest_pending(chat_log.conversation_id)
+                    needs_admin = _latest is not None and _latest.automation_id is not None
+
+            if needs_admin:
+                is_sched_admin = True
+                sched_user_id: str | None = user_input.context.user_id
+                if sched_user_id:
+                    sched_user = await self.hass.auth.async_get_user(sched_user_id)
+                    is_sched_admin = sched_user is not None and sched_user.is_admin
+                if not is_sched_admin:
+                    response_text = (
+                        "Scheduling actions at a specific time requires an administrator account."
+                    )
+                    intent_type = "answer"
+
+            if intent_type in ("delayed_command", "cancel"):
+                from . import _handle_scheduled_intent  # noqa: PLC0415
+
+                intent_type, response_text, _schedule_id = await _handle_scheduled_intent(
+                    self.hass, intent_type, result, chat_log.conversation_id
+                )
+
         # Speech gets clean text only — no internal markers or YAML.
         response.async_set_speech(response_text)
 

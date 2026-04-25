@@ -358,7 +358,9 @@ class CleanupResult(TypedDict):
 class ArchitectResponse(TypedDict, total=False):
     """Structured response from the LLM architect chat."""
 
-    intent: Required[str]  # "command" | "automation" | "clarification" | "answer"
+    intent: Required[
+        str
+    ]  # "command" | "automation" | "clarification" | "answer" | "delayed_command" | "cancel" | "scene"
     response: Required[str]
     automation: AutomationDict
     automation_yaml: str
@@ -369,6 +371,10 @@ class ArchitectResponse(TypedDict, total=False):
     config_issue: bool
     validation_error: str
     tool_calls: list[ToolCallLog]
+    # Delayed/scheduled command fields
+    delay_seconds: int | float
+    scheduled_time: str
+    schedule_id: str
 
 
 class ServiceCallDict(TypedDict, total=False):

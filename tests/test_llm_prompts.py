@@ -375,6 +375,35 @@ class TestCommandPolicyEnforcement:
         assert "{" not in result["response"]
         assert "living room table ronde" in result["response"]
 
+    def test_delayed_command_example_not_executed(self, hass) -> None:
+        """An informational delayed_command example mid-text must NOT be parsed as intent."""
+        client = _make_client(hass)
+        text = (
+            'Here is an example of how to schedule a delayed command:\n\n'
+            '```delayed_command\n'
+            '{"calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}], '
+            '"delay_seconds": 600}\n'
+            '```\n\n'
+            'You can use this format in your requests.'
+        )
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "light.porch"}])
+        # Must NOT be parsed as a delayed_command — it's an example followed by more text
+        assert result["intent"] != "delayed_command"
+
+    def test_delayed_command_terminal_block_is_executed(self, hass) -> None:
+        """A terminal delayed_command block must be parsed as an executable intent."""
+        client = _make_client(hass)
+        text = (
+            'Scheduling the porch light.\n\n'
+            '```delayed_command\n'
+            '{"calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}], '
+            '"delay_seconds": 600}\n'
+            '```'
+        )
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "light.porch"}])
+        assert result["intent"] == "delayed_command"
+        assert result["delay_seconds"] == 600
+
 
 class TestConversationHistoryManagement:
     """Verify conversation history is handled correctly (#89)."""

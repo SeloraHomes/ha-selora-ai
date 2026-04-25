@@ -681,6 +681,45 @@ class LLMClient:
         through ``_apply_command_policy`` so that unsafe calls are blocked
         even on the streaming path.
         """
+        # Check for delayed_command fenced block first
+        # Check for cancel fenced block — anchored to end so informational
+        # examples don't trigger real cancellation.
+        cancel_match = re.search(r"```cancel\s*\n?([\s\S]*?)```\s*$", text)
+        if cancel_match:
+            response_text = text[: cancel_match.start()].strip()
+            try:
+                data = json.loads(cancel_match.group(1).strip())
+                return {
+                    "intent": "cancel",
+                    "response": data.get("response", response_text or "Cancelled."),
+                }
+            except (json.JSONDecodeError, ValueError):
+                # Malformed cancel block — fall through to avoid destructive action
+                _LOGGER.warning("Failed to parse cancel block, ignoring")
+
+        # Check for delayed_command fenced block — anchored to end so
+        # informational examples don't trigger real scheduling.
+        delay_match = re.search(r"```delayed_command\s*\n?([\s\S]*?)```\s*$", text)
+        if delay_match:
+            response_text = text[: delay_match.start()].strip()
+            json_text = delay_match.group(1).strip()
+            try:
+                data = json.loads(json_text)
+                result: ArchitectResponse = {
+                    "intent": "delayed_command",
+                    "response": response_text or "Scheduling that action.",
+                    "calls": data.get("calls", []),
+                }
+                if "delay_seconds" in data:
+                    result["delay_seconds"] = data["delay_seconds"]
+                if "scheduled_time" in data:
+                    result["scheduled_time"] = data["scheduled_time"]
+                if entities is not None:
+                    result = self._apply_command_policy(result, entities)
+                return result
+            except (json.JSONDecodeError, ValueError):
+                _LOGGER.warning("Failed to parse delayed_command block: %s", json_text[:200])
+
         # Check for scene fenced block — must be the terminal block in the
         # response (anchored to end) so informational examples don't trigger
         # real scene creation.
@@ -700,7 +739,7 @@ class LLMClient:
                         "validation_error": reason,
                         "validation_target": "scene",
                     }
-                result: dict[str, Any] = {
+                scene_result: dict[str, Any] = {
                     "intent": "scene",
                     "response": response_text or "Scene created.",
                     "scene": normalized,
@@ -711,8 +750,8 @@ class LLMClient:
                 # Preserve refine_scene_id so the streaming handler can
                 # update the existing scene instead of creating a new one.
                 if scene_data.get("refine_scene_id"):
-                    result["refine_scene_id"] = scene_data["refine_scene_id"]
-                return result
+                    scene_result["refine_scene_id"] = scene_data["refine_scene_id"]
+                return scene_result
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse scene block: %s", json_text[:200])
 
@@ -1076,6 +1115,26 @@ class LLMClient:
             "(use the 'area' field on each entity in AVAILABLE ENTITIES to identify them).\n"
             '- When modifying an existing scene, include "refine_scene_id" with the scene_id from the reference data '
             "in the history. Omit this field when creating a brand-new scene.\n\n"
+            "6. DELAYED COMMAND — execute a device command after a delay or at a specific time:\n"
+            "{\n"
+            '  "intent": "delayed_command",\n'
+            '  "response": "Confirmation of what will happen and when.",\n'
+            '  "calls": [\n'
+            '    {"service": "light.turn_on", "target": {"entity_id": "light.porch"}}\n'
+            "  ],\n"
+            '  "delay_seconds": 600\n'
+            "}\n"
+            "Use delay_seconds for relative times ('in 10 minutes' = 600, 'in an hour' = 3600).\n"
+            "Use scheduled_time (HH:MM:SS) for absolute times ('at 11 PM' = '23:00:00').\n"
+            "Never include both delay_seconds and scheduled_time. The calls array follows "
+            "the same rules and safe domains as immediate commands.\n\n"
+            "7. CANCEL — cancel a previously scheduled delayed action:\n"
+            "{\n"
+            '  "intent": "cancel",\n'
+            '  "response": "Confirmation of what was cancelled."\n'
+            "}\n"
+            'Use when the user says "cancel that", "never mind", "forget it", or explicitly '
+            "cancels a scheduled action.\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
             + _SHARED_STATE_QUERY_RULES
@@ -1156,6 +1215,20 @@ class LLMClient:
             "(use the 'area' field on each entity in AVAILABLE ENTITIES to identify them).\n"
             '- When modifying an existing scene, include "refine_scene_id" with the scene_id from the reference data '
             "in the history. Omit this field when creating a brand-new scene.\n\n"
+            "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
+            "```delayed_command\n"
+            "{\n"
+            '  "calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}],\n'
+            '  "delay_seconds": 600\n'
+            "}\n"
+            "```\n"
+            "Use delay_seconds for relative times ('in 10 minutes' = 600). "
+            "Use scheduled_time (HH:MM:SS) for absolute times ('at 11 PM' = '23:00:00'). "
+            "Never include both. Same safe domains as immediate commands.\n\n"
+            "For CANCELLATION of a scheduled action, return a JSON block with the tag 'cancel':\n\n"
+            "```cancel\n"
+            '{"response": "Cancelled the porch light timer."}\n'
+            "```\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
             + _SHARED_STATE_QUERY_RULES
@@ -1549,9 +1622,9 @@ class LLMClient:
 
         calls = result.get("calls")
         if not calls:
-            # If the LLM classified as "command" but provided no calls,
-            # downgrade to "answer" so callers don't treat it as executed.
-            if result.get("intent") == "command":
+            # If the LLM classified as "command" or "delayed_command" but
+            # provided no calls, downgrade to "answer".
+            if result.get("intent") in ("command", "delayed_command"):
                 result = dict(result, intent="answer")
             return result
 
