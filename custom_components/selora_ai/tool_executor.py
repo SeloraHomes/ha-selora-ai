@@ -85,6 +85,8 @@ class ToolExecutor:
             "list_devices": self._list_devices,
             "get_device": self._get_device,
             "list_suggestions": self._list_suggestions,
+            "accept_suggestion": self._accept_suggestion,
+            "dismiss_suggestion": self._dismiss_suggestion,
         }
 
     # ── Read tools ──────────────────────────────────────────────────
@@ -148,6 +150,75 @@ class ToolExecutor:
         }
 
     # ── Write tools (admin-only, checked in execute()) ──────────────
+
+    async def _accept_suggestion(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Accept a PatternStore suggestion and create the automation in HA."""
+        from . import _get_pattern_store
+        from .automation_utils import assess_automation_risk, async_create_automation
+
+        suggestion_id = str(arguments.get("suggestion_id", "")).strip()
+        if not suggestion_id:
+            return {"error": "suggestion_id is required"}
+
+        store = _get_pattern_store(self._hass)
+        if store is None:
+            return {"error": "Suggestion store not available yet"}
+
+        suggestions = await store.get_suggestions(status="pending")
+        target = next((s for s in suggestions if s.get("suggestion_id") == suggestion_id), None)
+        if target is None:
+            return {"error": f"Suggestion {suggestion_id} not found or not pending"}
+
+        automation_data = target.get("automation_data", {})
+        if not automation_data:
+            return {"error": "Suggestion does not include automation data"}
+
+        created = await async_create_automation(
+            self._hass,
+            automation_data,
+            version_message=f"Created from suggestion {suggestion_id}",
+        )
+        if not created["success"]:
+            return {"error": "Failed to create automation from suggestion"}
+
+        await store.update_suggestion_status(suggestion_id, status="accepted")
+
+        return {
+            "suggestion_id": suggestion_id,
+            "status": "accepted",
+            "automation_id": created.get("automation_id", ""),
+            "risk_assessment": assess_automation_risk(automation_data),
+        }
+
+    async def _dismiss_suggestion(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        """Dismiss a PatternStore suggestion the user doesn't want."""
+        from datetime import UTC, datetime
+
+        from . import _get_pattern_store
+
+        suggestion_id = str(arguments.get("suggestion_id", "")).strip()
+        reason = str(arguments.get("reason", "")).strip() or "user-declined"
+        if not suggestion_id:
+            return {"error": "suggestion_id is required"}
+
+        store = _get_pattern_store(self._hass)
+        if store is None:
+            return {"error": "Suggestion store not available yet"}
+
+        updated = await store.update_suggestion_status(
+            suggestion_id,
+            status="dismissed",
+            dismissed_at=datetime.now(UTC).isoformat(),
+            dismissal_reason=reason,
+        )
+        if not updated:
+            return {"error": f"Suggestion {suggestion_id} not found"}
+
+        return {
+            "suggestion_id": suggestion_id,
+            "status": "dismissed",
+            "reason": reason,
+        }
 
     async def _start_device_flow(self, arguments: dict[str, Any]) -> dict[str, Any]:
         domain = str(arguments.get("domain", "")).strip()

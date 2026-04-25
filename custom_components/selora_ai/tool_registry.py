@@ -205,6 +205,47 @@ TOOL_LIST_SUGGESTIONS = ToolDef(
 )
 
 
+TOOL_ACCEPT_SUGGESTION = ToolDef(
+    name="accept_suggestion",
+    description=(
+        "Accept a pending automation suggestion and create the automation in Home Assistant. "
+        "The automation is created disabled with a [Selora AI] prefix for user review. "
+        "Use this when the user confirms they want a suggested automation set up."
+    ),
+    params=(
+        ToolParam(
+            name="suggestion_id",
+            type="string",
+            description="The suggestion_id from list_suggestions to accept.",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_DISMISS_SUGGESTION = ToolDef(
+    name="dismiss_suggestion",
+    description=(
+        "Dismiss a pending automation suggestion the user does not want. "
+        "Use when the user says no, declines, or indicates they are not interested."
+    ),
+    params=(
+        ToolParam(
+            name="suggestion_id",
+            type="string",
+            description="The suggestion_id from list_suggestions to dismiss.",
+            required=True,
+        ),
+        ToolParam(
+            name="reason",
+            type="string",
+            description="Brief reason for dismissal (e.g. 'not useful', 'already have this').",
+        ),
+    ),
+    requires_admin=True,
+)
+
+
 # Single registry of all chat tools
 CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_GET_HOME_SNAPSHOT,
@@ -215,6 +256,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_LIST_DEVICES,
     TOOL_GET_DEVICE,
     TOOL_LIST_SUGGESTIONS,
+    TOOL_ACCEPT_SUGGESTION,
+    TOOL_DISMISS_SUGGESTION,
 )
 
 # Name → ToolDef lookup for admin checks in the executor

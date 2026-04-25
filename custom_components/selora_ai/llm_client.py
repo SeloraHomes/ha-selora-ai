@@ -173,7 +173,12 @@ def _suggestions_prompt() -> str:
         "(e.g. 'any ideas?', 'what can you do?', 'suggest something'), use the list_suggestions "
         "tool to retrieve pending automation suggestions from the pattern engine. Present the top "
         "results conversationally — explain what each automation would do, why it was suggested "
-        "(using the evidence_summary), and which devices are involved. Do not dump raw data.\n\n"
+        "(using the evidence_summary), and which devices are involved. Do not dump raw data.\n"
+        "When the user confirms they want a suggestion set up (e.g. 'yes', 'set that up', 'do it'), "
+        "first call list_suggestions to get the current suggestion_id values (previous tool results "
+        "are not available across turns), then call accept_suggestion with the matching suggestion_id. "
+        "When the user declines (e.g. 'no', 'skip', 'not that one'), call list_suggestions first, "
+        "then dismiss_suggestion with the matching suggestion_id.\n\n"
     )
 
 
