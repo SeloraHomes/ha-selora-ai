@@ -438,6 +438,77 @@ class ConversationStore:
         return session.get("title", "")[:60]
 
 
+async def _handle_scheduled_intent(
+    hass: HomeAssistant,
+    intent_type: str,
+    parsed: dict[str, Any],
+    session_id: str,
+) -> tuple[str, str, str | None]:
+    """Handle delayed_command and cancel intents.
+
+    Returns (updated_intent_type, response_text, schedule_id).
+    """
+    schedule_id: str | None = None
+    response_text = parsed.get("response", "")
+
+    if intent_type == "delayed_command":
+        from .scheduled_actions import (
+            ScheduledTaskTracker,
+            validate_delay_seconds,
+        )
+
+        tracker: ScheduledTaskTracker = hass.data[DOMAIN].setdefault(
+            "_scheduled_tasks", ScheduledTaskTracker(hass)
+        )
+        calls = parsed.get("calls", [])
+        delay_seconds = parsed.get("delay_seconds")
+        scheduled_time = parsed.get("scheduled_time")
+
+        try:
+            if delay_seconds is not None and calls:
+                ok, reason = validate_delay_seconds(delay_seconds)
+                if ok:
+                    task = await tracker.schedule_delayed(
+                        session_id, calls, delay_seconds, response_text
+                    )
+                    schedule_id = task.schedule_id
+                else:
+                    response_text = f"Could not schedule: {reason}"
+                    intent_type = "answer"
+            elif scheduled_time is not None and calls:
+                task = await tracker.schedule_at_time(
+                    session_id, calls, scheduled_time, response_text
+                )
+                schedule_id = task.schedule_id
+            else:
+                intent_type = "answer"
+        except RuntimeError as exc:
+            response_text = str(exc)
+            intent_type = "answer"
+
+    elif intent_type == "cancel":
+        from .scheduled_actions import ScheduledTaskTracker
+
+        tracker = hass.data[DOMAIN].get("_scheduled_tasks")
+        if tracker:
+            latest = tracker.get_latest_pending(session_id)
+            if latest:
+                cancelled = await tracker.async_cancel_task(latest.schedule_id)
+                if cancelled:
+                    response_text = parsed.get("response", f"Cancelled: {latest.description}")
+                else:
+                    response_text = (
+                        "I couldn't cancel that action — the scheduled automation "
+                        "could not be removed. Please check Settings → Automations."
+                    )
+            else:
+                response_text = "No pending scheduled actions to cancel."
+        else:
+            response_text = "No pending scheduled actions to cancel."
+
+    return intent_type, response_text, schedule_id
+
+
 def _mask_api_key(key: str) -> str:
     """Return a safe display hint — first 8 chars + ellipsis."""
     if not key:
@@ -820,6 +891,7 @@ async def _handle_websocket_chat(
 
     # Execute immediate commands
     executed: list[str] = []
+    schedule_id: str | None = None
     if intent_type == "command":
         executed, error_suffix = await _execute_command_calls(hass, result.get("calls", []))
         response_text += error_suffix
@@ -858,6 +930,10 @@ async def _handle_websocket_chat(
                 )
             except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
                 _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
+    elif intent_type in ("delayed_command", "cancel"):
+        intent_type, response_text, schedule_id = await _handle_scheduled_intent(
+            hass, intent_type, result, session_id
+        )
 
     # Persist the assistant response
     await store.append_message(
@@ -899,6 +975,7 @@ async def _handle_websocket_chat(
             if result.get("automation")
             else None,
             "executed": executed,
+            "schedule_id": schedule_id,
             "config_issue": result.get("config_issue", False),
             "validation_error": result.get("validation_error"),
             "validation_target": result.get("validation_target"),
@@ -1010,9 +1087,14 @@ async def _handle_websocket_chat_stream(
 
         # Execute immediate commands
         executed: list[str] = []
+        schedule_id: str | None = None
         if intent_type == "command":
             executed, error_suffix = await _execute_command_calls(hass, parsed.get("calls", []))
             response_text += error_suffix
+        elif intent_type in ("delayed_command", "cancel"):
+            intent_type, response_text, schedule_id = await _handle_scheduled_intent(
+                hass, intent_type, parsed, session_id
+            )
 
         device_data = tool_executor.device_results if tool_executor else None
 
@@ -1108,6 +1190,7 @@ async def _handle_websocket_chat_stream(
                     "validation_target": parsed.get("validation_target"),
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
+                    "schedule_id": schedule_id,
                     "devices": device_data,
                     "scene": scene_result["scene"] if scene_result else parsed.get("scene"),
                     "scene_yaml": scene_result["scene_yaml"]
@@ -3893,6 +3976,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _bg.append(hass.async_create_task(_cleanup_orphaned_entities()))
 
+    # One-time startup cleanup: remove stale one-shot scheduled automations
+    # whose fire date has passed (cleanup callback lost across restart).
+    async def _cleanup_stale_schedules() -> None:
+        try:
+            from .scheduled_actions import ScheduledTaskTracker
+
+            tracker: ScheduledTaskTracker = hass.data[DOMAIN].setdefault(
+                "_scheduled_tasks", ScheduledTaskTracker(hass)
+            )
+            await tracker.async_cleanup_stale_automations()
+        except Exception:
+            _LOGGER.exception("Startup scheduled automation cleanup failed")
+
+    _bg.append(hass.async_create_task(_cleanup_stale_schedules()))
+
     if pattern_enabled:
         from .pattern_store import PatternStore
 
@@ -4012,6 +4110,13 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Clear Selora Connect JWT validator so stale credentials can't be used
     hass.data[DOMAIN].pop("selora_jwt_validator", None)
     hass.data[DOMAIN].pop("mcp_token_store", None)
+
+    # Cancel pending scheduled tasks so stale timers don't fire after teardown
+    scheduled_tracker = hass.data[DOMAIN].pop("_scheduled_tasks", None)
+    if scheduled_tracker:
+        cancelled = scheduled_tracker.cancel_all_pending()
+        if cancelled:
+            _LOGGER.info("Cancelled %d pending scheduled tasks on unload", cancelled)
 
     # Clean up shared in-memory caches
     hass.data[DOMAIN].pop("proactive_suggestions", None)
