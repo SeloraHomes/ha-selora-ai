@@ -12,6 +12,8 @@ import math
 import re
 from typing import Any
 
+from .entity_capabilities import SCENE_CAPABLE_DOMAINS
+
 _LOGGER = logging.getLogger(__name__)
 
 # Matches the entity-id pattern used by scene_utils.validate_scene_payload():
@@ -83,6 +85,12 @@ DOMAIN_STATE_SCHEMAS: dict[str, dict[str, type]] = {
         "position": int,  # service-call alias — normalized to current_position
     },
 }
+
+# Ensure domain schemas stay in sync with the entity_capabilities module.
+assert set(DOMAIN_STATE_SCHEMAS) == SCENE_CAPABLE_DOMAINS, (
+    f"DOMAIN_STATE_SCHEMAS keys {set(DOMAIN_STATE_SCHEMAS)} != "
+    f"SCENE_CAPABLE_DOMAINS {SCENE_CAPABLE_DOMAINS}"
+)
 
 # Common scene intent keywords -> domain-specific state defaults.
 # These fill in attributes the LLM omitted.
@@ -227,28 +235,12 @@ def validate_entity_states(
         schema = DOMAIN_STATE_SCHEMAS.get(domain)
 
         if schema is None:
-            # Unknown domain -- pass through but still require 'state' and
-            # normalize it to a string (matches scene_utils expectations).
-            if "state" not in state_data:
-                return False, f"Entity {entity_id} missing required 'state' attribute", None
-            passthrough = dict(state_data)
-            raw_state = passthrough["state"]
-            if isinstance(raw_state, bool):
-                passthrough["state"] = "on" if raw_state else "off"
-            elif isinstance(raw_state, (int, float)):
-                passthrough["state"] = str(raw_state)
-            elif not isinstance(raw_state, str):
-                return (
-                    False,
-                    f"Invalid state value for {entity_id}: expected a string, bool, or number",
-                    None,
-                )
-            # Apply the same string-length cap as known domains
-            for key, val in passthrough.items():
-                if isinstance(val, str) and len(val) > _MAX_STATE_VALUE_LEN:
-                    passthrough[key] = val[:_MAX_STATE_VALUE_LEN]
-            normalized[entity_id] = passthrough
-            continue
+            return (
+                False,
+                f"Entity {entity_id} belongs to unsupported domain '{domain}'. "
+                f"Scene-capable domains: {', '.join(sorted(DOMAIN_STATE_SCHEMAS))}",
+                None,
+            )
 
         # Detect conflicting snapshot/target aliases before iteration — the
         # LLM may emit both with different values; whichever is iterated

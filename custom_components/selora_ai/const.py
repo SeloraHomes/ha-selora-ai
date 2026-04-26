@@ -776,41 +776,15 @@ MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosio
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"
 
-# Entity domains the collector includes in snapshots (matches LLM filtering)
-COLLECTOR_DOMAINS = {
-    "light",
-    "switch",
-    "media_player",
-    "climate",
-    "fan",
-    "cover",
-    "lock",
-    "vacuum",
-    "sensor",
-    "binary_sensor",
-    "water_heater",
-    "humidifier",
-    "input_boolean",
-    "input_select",
-    "device_tracker",
-    "person",
-}
+# Entity domains & exclude patterns — canonical definitions live in
+# entity_capabilities.py; re-exported here for backward compatibility.
+from .entity_capabilities import (  # noqa: E402, F401
+    COLLECTOR_DOMAINS,
+    DOMAIN_PROFILES,
+    SCENE_CAPABLE_DOMAINS,
+)
 
-
-# Entity-ID substrings that indicate non-room lights (status LEDs, IR emitters, etc.)
-# These are excluded from snapshots so the LLM doesn't treat them as room lighting.
-LIGHT_ENTITY_EXCLUDE_PATTERNS = {
-    "status_led",
-    "ir_led",
-    "ir_light",
-    "indicator",
-    "illuminator",
-    "camera_light",
-    "floodlight",
-    "floodlight_status",
-    "night_vision",
-    "infrared",
-}
+LIGHT_ENTITY_EXCLUDE_PATTERNS = DOMAIN_PROFILES["light"].exclude_patterns
 
 # Domain-specific entity attributes included in snapshots for state-aware
 # LLM responses (brightness, temperature, battery, etc.).

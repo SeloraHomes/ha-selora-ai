@@ -7495,6 +7495,12 @@ function _formatBrightness(val) {
   if (isNaN(num)) return null;
   return `${Math.round((num / 255) * 100)}%`;
 }
+function _formatPosition(val) {
+  if (val == null) return null;
+  const num = Number(val);
+  if (isNaN(num)) return null;
+  return `${Math.round(num)}%`;
+}
 function _formatEntityAttrs(stateData) {
   const parts = [];
   const brightness = _formatBrightness(stateData.brightness);
@@ -7502,6 +7508,15 @@ function _formatEntityAttrs(stateData) {
   if (stateData.color_temp != null)
     parts.push(`${stateData.color_temp} mireds`);
   if (stateData.temperature != null) parts.push(`${stateData.temperature}\xB0`);
+  const position = _formatPosition(
+    stateData.position ?? stateData.current_position,
+  );
+  if (position) parts.push(position);
+  const fanSpeed = _formatPosition(stateData.percentage);
+  if (fanSpeed) parts.push(fanSpeed);
+  if (stateData.volume_level != null)
+    parts.push(`vol ${Math.round(stateData.volume_level * 100)}%`);
+  if (stateData.source != null) parts.push(stateData.source);
   return parts.join(" \xB7 ");
 }
 function _renderEntityList(host, entities) {

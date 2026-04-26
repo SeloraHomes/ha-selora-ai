@@ -102,7 +102,6 @@ from .const import (
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
     ENTRY_TYPE_DEVICE,
-    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
@@ -533,6 +532,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
+    from .entity_capabilities import is_actionable_entity
     from .entity_filter import EntityFilter
 
     _SKIP_STATES = {"unavailable", "unknown"}
@@ -554,9 +554,7 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             continue
         if not ef.is_active(state.entity_id):
             continue
-        if domain == "light" and any(
-            pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
-        ):
+        if not is_actionable_entity(state.entity_id):
             continue
         # Include key attributes for state-aware responses (#68)
         attrs: dict[str, Any] = {

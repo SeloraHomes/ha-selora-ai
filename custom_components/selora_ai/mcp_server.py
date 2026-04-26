@@ -59,9 +59,9 @@ from homeassistant.exceptions import Unauthorized
 from .const import (
     COLLECTOR_DOMAINS,
     DOMAIN,
-    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     SELORA_JWT_ISSUER,
 )
+from .entity_capabilities import is_actionable_entity
 from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
 
 if TYPE_CHECKING:
@@ -1101,9 +1101,7 @@ async def _tool_get_home_snapshot(hass: HomeAssistant) -> dict[str, Any]:
         domain = state.entity_id.split(".")[0]
         if domain not in _ALLOWED_DOMAINS:
             continue
-        if domain == "light" and any(
-            pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
-        ):
+        if not is_actionable_entity(state.entity_id):
             continue
 
         entry = entity_reg.async_get(state.entity_id)

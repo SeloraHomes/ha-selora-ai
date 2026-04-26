@@ -22,6 +22,7 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.util import slugify
 
 from .const import SCENE_ID_PREFIX
+from .entity_capabilities import is_scene_capable
 
 if TYPE_CHECKING:
     from .types import ScenePayload
@@ -74,7 +75,6 @@ def validate_scene_payload(
     if hass is not None:
         known_entity_ids = {s.entity_id for s in hass.states.async_all()}
 
-    # Single-domain constraint: all entity IDs must share the same domain.
     domains: set[str] = set()
     normalized_entities: dict[str, dict[str, Any]] = {}
     for entity_id, state_data in entities.items():
@@ -82,6 +82,11 @@ def validate_scene_payload(
         entity_id = entity_id.lower()
         if not isinstance(entity_id, str) or not _ENTITY_ID_RE.match(entity_id):
             return False, f"Invalid entity_id format: {entity_id!r}", None
+        # Strip entities that aren't scene-capable (wrong domain or
+        # config/diagnostic switches) instead of rejecting the whole scene.
+        if not is_scene_capable(entity_id):
+            _LOGGER.debug("Stripping non-scene entity %s", entity_id)
+            continue
         if known_entity_ids is not None and entity_id not in known_entity_ids:
             return False, f"Entity {entity_id!r} does not exist in Home Assistant", None
         if not isinstance(state_data, dict):
@@ -105,6 +110,9 @@ def validate_scene_payload(
             )
         domains.add(entity_id.split(".")[0])
         normalized_entities[entity_id] = state_data
+
+    if not normalized_entities:
+        return False, "No scene-capable entities remain after filtering", None
 
     normalized: dict[str, Any] = {
         "name": name,

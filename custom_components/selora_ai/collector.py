@@ -58,7 +58,6 @@ from .const import (
     DEFAULT_MIN_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
-    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     MIN_RELEVANCE_SCORE,
     MODE_SCHEDULED,
     RELEVANCE_WEIGHT_ACTIVITY,
@@ -856,6 +855,7 @@ class DataCollector:
         lights via HA's "Show as" feature) are excluded.
         """
         try:
+            from .entity_capabilities import is_actionable_entity
             from .entity_filter import EntityFilter
 
             all_states = self._hass.states.async_all()
@@ -869,9 +869,7 @@ class DataCollector:
                         continue
                     if not ef.is_active(state.entity_id):
                         continue
-                    if domain == "light" and any(
-                        pat in state.entity_id for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS
-                    ):
+                    if not is_actionable_entity(state.entity_id):
                         continue
 
                     safe_attrs = {

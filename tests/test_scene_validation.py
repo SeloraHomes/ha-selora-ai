@@ -441,6 +441,32 @@ class TestValidateSceneSecurity:
         is_safe, warnings = validate_scene_security(scene)
         assert is_safe  # empty is technically safe, upstream validation rejects it
 
+    def test_rejects_non_scene_domain(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"sensor.temperature": {"state": "22.5"}},
+        }
+        is_safe, warnings = validate_scene_security(scene)
+        assert not is_safe
+        assert any("not scene-capable" in w for w in warnings)
+
+    def test_rejects_config_switch(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"switch.cam_ftp_upload": {"state": "on"}},
+        }
+        is_safe, warnings = validate_scene_security(scene)
+        assert not is_safe
+        assert any("not scene-capable" in w for w in warnings)
+
+    def test_accepts_regular_switch(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {"switch.living_room_outlet": {"state": "on"}},
+        }
+        is_safe, warnings = validate_scene_security(scene)
+        assert is_safe
+
     def test_multiple_warnings_accumulated(self) -> None:
         scene = {
             "name": "A" * 200 + "<script>",
