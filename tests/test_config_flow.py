@@ -22,16 +22,20 @@ from custom_components.selora_ai.const import (
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
     CONF_OPENAI_MODEL,
+    CONF_OPENROUTER_API_KEY,
+    CONF_OPENROUTER_MODEL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENROUTER_MODEL,
     DOMAIN,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_NONE,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
+    LLM_PROVIDER_OPENROUTER,
 )
 
 
@@ -105,6 +109,15 @@ class TestStepUser:
         )
         assert result["type"] == "form"
         assert result["step_id"] == "openai"
+
+    async def test_selecting_openrouter_routes_to_openrouter_step(self, hass) -> None:
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_LLM_PROVIDER: LLM_PROVIDER_OPENROUTER},
+        )
+        assert result["type"] == "form"
+        assert result["step_id"] == "openrouter"
 
 
 # ── Step: anthropic ──────────────────────────────────────────────────
@@ -271,6 +284,55 @@ class TestStepOpenai:
                 user_input={
                     CONF_OPENAI_API_KEY: "sk-openai-test-key",
                     CONF_OPENAI_MODEL: DEFAULT_OPENAI_MODEL,
+                },
+            )
+        assert result["type"] in ("form", "create_entry", "abort")
+
+
+class TestStepOpenRouter:
+    """Tests for the OpenRouter configuration step."""
+
+    async def _reach_openrouter_step(self, hass):
+        result = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        return await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={CONF_LLM_PROVIDER: LLM_PROVIDER_OPENROUTER},
+        )
+
+    async def test_shows_form(self, hass) -> None:
+        result = await self._reach_openrouter_step(hass)
+        assert result["type"] == "form"
+        assert result["step_id"] == "openrouter"
+
+    async def test_invalid_key_shows_error(self, hass) -> None:
+        result = await self._reach_openrouter_step(hass)
+        with patch(
+            "custom_components.selora_ai.config_flow._validate_openrouter",
+            new_callable=AsyncMock,
+            side_effect=ConnectionError("OpenRouter API key invalid"),
+        ):
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input={
+                    CONF_OPENROUTER_API_KEY: "bad-key",
+                    CONF_OPENROUTER_MODEL: DEFAULT_OPENROUTER_MODEL,
+                },
+            )
+        assert result["type"] == "form"
+        assert result["errors"] == {"base": "cannot_connect"}
+
+    async def test_valid_key_chains_forward(self, hass) -> None:
+        result = await self._reach_openrouter_step(hass)
+        with patch(
+            "custom_components.selora_ai.config_flow._validate_openrouter",
+            new_callable=AsyncMock,
+            return_value={"title": f"Selora AI (OpenRouter — {DEFAULT_OPENROUTER_MODEL})"},
+        ):
+            result = await hass.config_entries.flow.async_configure(
+                result["flow_id"],
+                user_input={
+                    CONF_OPENROUTER_API_KEY: "sk-or-test-key",
+                    CONF_OPENROUTER_MODEL: DEFAULT_OPENROUTER_MODEL,
                 },
             )
         assert result["type"] in ("form", "create_entry", "abort")

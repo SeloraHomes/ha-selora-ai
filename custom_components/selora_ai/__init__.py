@@ -80,6 +80,8 @@ from .const import (
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
     CONF_OPENAI_MODEL,
+    CONF_OPENROUTER_API_KEY,
+    CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_RECORDER_LOOKBACK_DAYS,
     CONF_SELORA_CONNECT_ENABLED,
@@ -97,6 +99,8 @@ from .const import (
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENROUTER_HOST,
+    DEFAULT_OPENROUTER_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DEFAULT_SELORA_CONNECT_URL,
     DOMAIN,
@@ -106,6 +110,7 @@ from .const import (
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
+    LLM_PROVIDER_OPENROUTER,
     MODE_SCHEDULED,
     PANEL_ICON,
     PANEL_NAME,
@@ -2028,6 +2033,9 @@ async def _handle_websocket_get_config(
             "openai_api_key_hint": _mask_api_key(config_data.get(CONF_OPENAI_API_KEY, "")),
             "openai_api_key_set": bool(config_data.get(CONF_OPENAI_API_KEY)),
             "openai_model": config_data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
+            "openrouter_api_key_hint": _mask_api_key(config_data.get(CONF_OPENROUTER_API_KEY, "")),
+            "openrouter_api_key_set": bool(config_data.get(CONF_OPENROUTER_API_KEY)),
+            "openrouter_model": config_data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
             "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
             # Background Services
@@ -2089,6 +2097,8 @@ async def _handle_websocket_update_config(
         CONF_GEMINI_MODEL,
         CONF_OPENAI_API_KEY,
         CONF_OPENAI_MODEL,
+        CONF_OPENROUTER_API_KEY,
+        CONF_OPENROUTER_MODEL,
         CONF_OLLAMA_HOST,
         CONF_OLLAMA_MODEL,
         CONF_ENTRY_TYPE,
@@ -2108,7 +2118,12 @@ async def _handle_websocket_update_config(
     # Only overwrite the stored API keys if the frontend sent a new non-empty value.
     # The frontend sends an empty string when the user hasn't touched the key field,
     # so we must not clobber the existing key in that case.
-    for key in (CONF_ANTHROPIC_API_KEY, CONF_GEMINI_API_KEY, CONF_OPENAI_API_KEY):
+    for key in (
+        CONF_ANTHROPIC_API_KEY,
+        CONF_GEMINI_API_KEY,
+        CONF_OPENAI_API_KEY,
+        CONF_OPENROUTER_API_KEY,
+    ):
         if key in new_data and not new_data[key]:
             new_data.pop(key, None)
 
@@ -2181,6 +2196,9 @@ async def _handle_websocket_validate_llm_key(
         model = model or DEFAULT_GEMINI_MODEL
     elif provider == LLM_PROVIDER_OPENAI:
         model = model or DEFAULT_OPENAI_MODEL
+    elif provider == LLM_PROVIDER_OPENROUTER:
+        model = model or DEFAULT_OPENROUTER_MODEL
+        host = host or DEFAULT_OPENROUTER_HOST
     elif provider == LLM_PROVIDER_OLLAMA:
         model = model or DEFAULT_OLLAMA_MODEL
         host = host or DEFAULT_OLLAMA_HOST
@@ -3784,6 +3802,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             api_key=entry.data.get(CONF_OPENAI_API_KEY, ""),
             model=entry.data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
+        )
+        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+    elif provider == LLM_PROVIDER_OPENROUTER:
+        llm_provider = create_provider(
+            provider,
+            hass,
+            api_key=entry.data.get(CONF_OPENROUTER_API_KEY, ""),
+            model=entry.data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
         )
         llm = LLMClient(hass, llm_provider, lookback_days=lookback)
     elif provider == LLM_PROVIDER_OLLAMA:

@@ -548,6 +548,9 @@ class SeloraAIPanel extends LitElement {
       } else if (provider === "openai") {
         payload.openai_model = this._config.openai_model;
         if (newKey) payload.openai_api_key = newKey;
+      } else if (provider === "openrouter") {
+        payload.openrouter_model = this._config.openrouter_model;
+        if (newKey) payload.openrouter_api_key = newKey;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -644,6 +647,7 @@ class SeloraAIPanel extends LitElement {
     if (provider === "anthropic") return !this._config.anthropic_api_key_set;
     if (provider === "gemini") return !this._config.gemini_api_key_set;
     if (provider === "openai") return !this._config.openai_api_key_set;
+    if (provider === "openrouter") return !this._config.openrouter_api_key_set;
     return false; // Ollama doesn't require an API key
   }
 

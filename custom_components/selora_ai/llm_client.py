@@ -32,6 +32,7 @@ from .const import (
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
+    LLM_PROVIDER_OPENROUTER,
     MAX_TOOL_CALL_ROUNDS,
 )
 from .entity_capabilities import is_actionable_entity
@@ -68,6 +69,7 @@ _PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
     LLM_PROVIDER_ANTHROPIC: 180_000,  # Sonnet 4.6: 200K ctx
     LLM_PROVIDER_GEMINI: 90_000,  # Gemini 2.5 Flash: ~1M ctx but keep modest
     LLM_PROVIDER_OPENAI: 110_000,  # GPT-5.4: ~128K ctx
+    LLM_PROVIDER_OPENROUTER: 110_000,  # Routes to many models, conservative budget
     LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
 }
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {

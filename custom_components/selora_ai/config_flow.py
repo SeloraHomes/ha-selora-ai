@@ -52,6 +52,8 @@ from .const import (
     CONF_OLLAMA_MODEL,
     CONF_OPENAI_API_KEY,
     CONF_OPENAI_MODEL,
+    CONF_OPENROUTER_API_KEY,
+    CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_SELECTED_DEVICES,
     DEFAULT_ANTHROPIC_MODEL,
@@ -70,6 +72,7 @@ from .const import (
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
+    DEFAULT_OPENROUTER_MODEL,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
@@ -78,6 +81,7 @@ from .const import (
     LLM_PROVIDER_NONE,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
+    LLM_PROVIDER_OPENROUTER,
     MODE_CONTINUOUS,
     MODE_SCHEDULED,
 )
@@ -227,6 +231,22 @@ async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
     return {"title": f"Selora AI (OpenAI — {model})"}
 
 
+async def _validate_openrouter(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
+    """Validate that the OpenRouter API key works."""
+    from .providers import create_provider
+
+    provider = create_provider(
+        LLM_PROVIDER_OPENROUTER,
+        hass,
+        api_key=data[CONF_OPENROUTER_API_KEY],
+        model=data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
+    )
+    if not await provider.health_check():
+        raise ConnectionError("OpenRouter API key invalid or unreachable")
+    model = data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL)
+    return {"title": f"Selora AI (OpenRouter — {model})"}
+
+
 class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Selora AI.
 
@@ -313,6 +333,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_gemini()
             if self._provider == LLM_PROVIDER_OPENAI:
                 return await self.async_step_openai()
+            if self._provider == LLM_PROVIDER_OPENROUTER:
+                return await self.async_step_openrouter()
             if self._provider == LLM_PROVIDER_OLLAMA:
                 return await self.async_step_ollama()
 
@@ -335,6 +357,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude) — Recommended",
                             LLM_PROVIDER_GEMINI: "Google Gemini",
                             LLM_PROVIDER_OPENAI: "OpenAI",
+                            LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
                             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
                             LLM_PROVIDER_NONE: "Skip for now (Configure later)",
                         }
@@ -452,6 +475,43 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_OPENAI_MODEL,
                         default=DEFAULT_OPENAI_MODEL,
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_openrouter(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Configure OpenRouter API key, then chain to discovery."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                info = await _validate_openrouter(self.hass, user_input)
+            except ConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Failed to validate OpenRouter API key")
+                errors["base"] = "unknown"
+            else:
+                self._llm_data = {
+                    CONF_ENTRY_TYPE: ENTRY_TYPE_LLM,
+                    CONF_LLM_PROVIDER: LLM_PROVIDER_OPENROUTER,
+                    **user_input,
+                    "_title": info["title"],
+                }
+                return await self.async_step_selora_connect()
+
+        return self.async_show_form(
+            step_id="openrouter",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_OPENROUTER_API_KEY): str,
+                    vol.Required(
+                        CONF_OPENROUTER_MODEL,
+                        default=DEFAULT_OPENROUTER_MODEL,
                     ): str,
                 }
             ),

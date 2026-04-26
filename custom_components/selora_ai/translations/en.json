@@ -33,6 +33,14 @@
           "openai_model": "Model"
         }
       },
+      "openrouter": {
+        "title": "OpenRouter Configuration",
+        "description": "Enter your OpenRouter API key. Get one at openrouter.ai/keys. Use vendor-prefixed model names like 'anthropic/claude-sonnet-4.5'.",
+        "data": {
+          "openrouter_api_key": "API Key",
+          "openrouter_model": "Model"
+        }
+      },
       "ollama": {
         "title": "Ollama (Local) Configuration",
         "description": "Enter your local Ollama server details. Make sure the model is pulled.",
