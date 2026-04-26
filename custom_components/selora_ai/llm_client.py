@@ -28,13 +28,13 @@ from .const import (
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     ENTITY_SNAPSHOT_ATTRS,
-    LIGHT_ENTITY_EXCLUDE_PATTERNS,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     MAX_TOOL_CALL_ROUNDS,
 )
+from .entity_capabilities import is_actionable_entity
 from .providers.base import LLMProvider
 from .types import (
     ArchitectResponse,
@@ -967,7 +967,7 @@ class LLMClient:
             domain = eid.split(".")[0]
             if domain not in interesting_domains:
                 continue
-            if domain == "light" and any(pat in eid for pat in LIGHT_ENTITY_EXCLUDE_PATTERNS):
+            if not is_actionable_entity(eid):
                 continue
             entity_lines.append(_format_entity_line(e))
 
@@ -1110,7 +1110,13 @@ class LLMClient:
             "- Only create a scene when the user explicitly asks for one (e.g. 'create a scene', 'save this as a scene').\n"
             "- Each entity in the scene must have a 'state' key (string: 'on', 'off', etc.).\n"
             "- Scene 'name' should be short and descriptive (2-4 words).\n"
-            "- Scenes may include entities from multiple domains (light, switch, media_player, climate, fan, cover).\n"
+            "- Scenes may ONLY include entities from these scene-capable domains: "
+            "light, switch, media_player, climate, fan, cover. "
+            "NEVER include sensor, binary_sensor, camera, number, select, button, or any other domain.\n"
+            "- Do NOT include configuration or diagnostic switches in scenes "
+            "(e.g. camera FTP upload, privacy mode, record toggles, push notification toggles, "
+            "appliance express/sabbath/eco modes, firmware update switches). "
+            "Only include switches that directly control a physical device the user would want in an ambiance.\n"
             "- When the user mentions a room or area, include all relevant scene-capable entities from that area "
             "(use the 'area' field on each entity in AVAILABLE ENTITIES to identify them).\n"
             '- When modifying an existing scene, include "refine_scene_id" with the scene_id from the reference data '
@@ -1210,7 +1216,13 @@ class LLMClient:
             "- Only create a scene when the user explicitly asks for one.\n"
             "- Each entity must have a 'state' key (string: 'on', 'off', etc.).\n"
             "- Scene 'name' should be short and descriptive (2-4 words).\n"
-            "- Scenes may include entities from multiple domains (light, switch, media_player, climate, fan, cover).\n"
+            "- Scenes may ONLY include entities from these scene-capable domains: "
+            "light, switch, media_player, climate, fan, cover. "
+            "NEVER include sensor, binary_sensor, camera, number, select, button, or any other domain.\n"
+            "- Do NOT include configuration or diagnostic switches in scenes "
+            "(e.g. camera FTP upload, privacy mode, record toggles, push notification toggles, "
+            "appliance express/sabbath/eco modes, firmware update switches). "
+            "Only include switches that directly control a physical device the user would want in an ambiance.\n"
             "- When the user mentions a room or area, include all relevant scene-capable entities from that area "
             "(use the 'area' field on each entity in AVAILABLE ENTITIES to identify them).\n"
             '- When modifying an existing scene, include "refine_scene_id" with the scene_id from the reference data '

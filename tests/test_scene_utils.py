@@ -118,10 +118,10 @@ class TestValidateScenePayload:
         assert normalized["entities"]["light.living_room"]["state"] == "off"
 
     def test_coerces_numeric_state_to_string(self) -> None:
-        scene = {"name": "Test", "entities": {"sensor.temperature": {"state": 23.5}}}
+        scene = {"name": "Test", "entities": {"climate.thermostat": {"state": 23.5}}}
         is_valid, _, normalized = validate_scene_payload(scene)
         assert is_valid
-        assert normalized["entities"]["sensor.temperature"]["state"] == "23.5"
+        assert normalized["entities"]["climate.thermostat"]["state"] == "23.5"
 
     def test_accepts_hyphens_in_entity_id(self) -> None:
         scene = {"name": "Test", "entities": {"light.living-room": {"state": "on"}}}
@@ -159,6 +159,100 @@ class TestValidateScenePayload:
         is_valid, _, normalized = validate_scene_payload(scene)
         assert is_valid
         assert len(normalized["entities"]) == 2
+
+
+# ── validate_scene_payload — entity filtering ────────────────────────
+
+
+class TestValidateScenePayloadFiltering:
+    """Tests that validate_scene_payload strips non-scene-capable entities."""
+
+    def test_strips_sensor_entities(self) -> None:
+        scene = {
+            "name": "Cozy Kitchen",
+            "entities": {
+                "light.kitchen": {"state": "on", "brightness": 128},
+                "sensor.temperature": {"state": "22.5"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "light.kitchen" in normalized["entities"]
+        assert "sensor.temperature" not in normalized["entities"]
+
+    def test_strips_binary_sensor_entities(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "light.kitchen": {"state": "on"},
+                "binary_sensor.motion": {"state": "off"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "binary_sensor.motion" not in normalized["entities"]
+
+    def test_strips_config_switch(self) -> None:
+        scene = {
+            "name": "Cozy Kitchen",
+            "entities": {
+                "light.kitchen": {"state": "on"},
+                "switch.reolink_kitchen_ftp_upload": {"state": "on"},
+                "switch.reolink_kitchen_privacy_mode": {"state": "off"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "light.kitchen" in normalized["entities"]
+        assert "switch.reolink_kitchen_ftp_upload" not in normalized["entities"]
+        assert "switch.reolink_kitchen_privacy_mode" not in normalized["entities"]
+
+    def test_keeps_regular_switch(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "switch.living_room_outlet": {"state": "on"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "switch.living_room_outlet" in normalized["entities"]
+
+    def test_rejects_all_non_scene_entities(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "sensor.temperature": {"state": "22.5"},
+                "binary_sensor.motion": {"state": "off"},
+            },
+        }
+        is_valid, reason, _ = validate_scene_payload(scene)
+        assert not is_valid
+        assert "no scene-capable entities" in reason.lower()
+
+    def test_strips_camera_domain(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "light.kitchen": {"state": "on"},
+                "camera.front_door": {"state": "idle"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "camera.front_door" not in normalized["entities"]
+
+    def test_strips_appliance_config_switch(self) -> None:
+        scene = {
+            "name": "Test",
+            "entities": {
+                "light.kitchen": {"state": "on"},
+                "switch.fridge_express_mode": {"state": "on"},
+            },
+        }
+        is_valid, _, normalized = validate_scene_payload(scene)
+        assert is_valid
+        assert "switch.fridge_express_mode" not in normalized["entities"]
 
 
 # ── validate_scene_payload with hass (entity existence) ──────────────
@@ -603,11 +697,11 @@ class TestScenePromptInstructions:
         assert '"intent": "scene"' in prompt
         assert '"scene"' in prompt
         assert "SCENE RULES" in prompt
-        assert "multiple domains" in prompt
+        assert "scene-capable domains" in prompt
 
     def test_stream_prompt_has_scene_block(self, hass) -> None:
         prompt = self._make_client(hass)._build_architect_stream_system_prompt()
         assert "```scene" in prompt
         assert "SCENE RULES" in prompt
         assert '"name"' in prompt
-        assert "multiple domains" in prompt
+        assert "scene-capable domains" in prompt

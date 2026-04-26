@@ -358,55 +358,27 @@ class TestValidateRejections:
 
 
 class TestValidateUnknownDomains:
-    """Entities with domains not in DOMAIN_STATE_SCHEMAS."""
+    """Entities with domains not in DOMAIN_STATE_SCHEMAS are now rejected."""
 
-    def test_passes_through_with_custom_attrs(self) -> None:
-        ok, _, norm = validate_entity_states({"custom_domain.x": {"state": "active", "custom_attr": 42}})
-        assert ok
-        assert norm["custom_domain.x"]["custom_attr"] == 42
-
-    def test_requires_state(self) -> None:
-        ok, reason, _ = validate_entity_states({"sensor.temp": {"value": 21}})
+    def test_rejects_unknown_domain(self) -> None:
+        ok, reason, _ = validate_entity_states({"custom_domain.x": {"state": "active"}})
         assert not ok
-        assert "state" in reason.lower()
+        assert "unsupported domain" in reason.lower()
 
-    @pytest.mark.parametrize(
-        "entities, key, expected_state",
-        [
-            ({"binary_sensor.door": {"state": True}}, "binary_sensor.door", "on"),
-            ({"sensor.temp": {"state": 23.5}}, "sensor.temp", "23.5"),
-            ({"input_select.mode": {"state": "eco"}}, "input_select.mode", "eco"),
-        ],
-        ids=["bool-state", "numeric-state", "string-state"],
-    )
-    def test_normalizes_state_to_string(self, entities: dict, key: str, expected_state: str) -> None:
-        ok, _, norm = validate_entity_states(entities)
-        assert ok
-        assert norm[key]["state"] == expected_state
-
-    @pytest.mark.parametrize(
-        "entities, reason_fragment",
-        [
-            ({"sensor.temp": {"state": None}}, "string, bool, or number"),
-            ({"sensor.temp": {"state": [1, 2]}}, "string, bool, or number"),
-            ({"sensor.temp": {"state": {"nested": True}}}, "string, bool, or number"),
-        ],
-        ids=["null", "list", "dict"],
-    )
-    def test_rejects_invalid_state_types(self, entities: dict, reason_fragment: str) -> None:
-        ok, reason, _ = validate_entity_states(entities)
+    def test_rejects_sensor_domain(self) -> None:
+        ok, reason, _ = validate_entity_states({"sensor.temp": {"state": "21"}})
         assert not ok
-        assert reason_fragment in reason
+        assert "unsupported domain" in reason.lower()
 
-    def test_caps_long_string_values(self) -> None:
-        ok, _, norm = validate_entity_states({"sensor.temp": {"state": "ok", "desc": "a" * 300}})
-        assert ok
-        assert len(norm["sensor.temp"]["desc"]) == 200
+    def test_rejects_binary_sensor_domain(self) -> None:
+        ok, reason, _ = validate_entity_states({"binary_sensor.door": {"state": "on"}})
+        assert not ok
+        assert "unsupported domain" in reason.lower()
 
-    def test_caps_long_state(self) -> None:
-        ok, _, norm = validate_entity_states({"sensor.temp": {"state": "x" * 300}})
-        assert ok
-        assert len(norm["sensor.temp"]["state"]) == 200
+    def test_rejects_input_select_domain(self) -> None:
+        ok, reason, _ = validate_entity_states({"input_select.mode": {"state": "eco"}})
+        assert not ok
+        assert "unsupported domain" in reason.lower()
 
 
 class TestValidateEntityIdFormats:
@@ -414,8 +386,8 @@ class TestValidateEntityIdFormats:
 
     @pytest.mark.parametrize(
         "entity_id",
-        ["sensor.temp-2", "sensor2.temp", "Light.Living_Room"],
-        ids=["hyphen", "digit-in-domain", "mixed-case"],
+        ["light.room-2", "switch.outlet_1", "Light.Living_Room"],
+        ids=["hyphen", "underscore-digit", "mixed-case"],
     )
     def test_accepts_valid_formats(self, entity_id: str) -> None:
         ok, _, norm = validate_entity_states({entity_id: {"state": "on"}})
