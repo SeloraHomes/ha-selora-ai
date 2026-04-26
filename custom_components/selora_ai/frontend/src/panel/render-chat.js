@@ -351,13 +351,19 @@ export function renderMessage(host, msg, idx) {
   // Hide empty streaming messages (typing indicator shown separately)
   if (msg._streaming && !msg.content) return html``;
 
-  // Strip automation JSON blocks from display, show spinner while generating
+  // Strip automation/scene JSON blocks from display, show spinner while generating
   let displayContent = msg.content;
   let showAutomationSpinner = false;
+  let showSceneSpinner = false;
   if (!isUser) {
-    const { text, isPartialBlock } = stripAutomationBlock(msg.content);
+    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
+      msg.content,
+    );
     displayContent = text;
-    showAutomationSpinner = isPartialBlock && msg._streaming;
+    showAutomationSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "automation";
+    showSceneSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "scene";
     // Hide message text for refining cards — it's folded into the card body
     if (msg.automation_status === "refining" && msg.automation) {
       displayContent = "";
@@ -402,6 +408,22 @@ export function renderMessage(host, msg, idx) {
                       </div>
                     `
                   : ""}
+                ${showSceneSpinner
+                  ? html`
+                      <div
+                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                      >
+                        <div
+                          class="typing-dot"
+                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                        ></div>
+                        <span
+                          style="font-size:13px;font-weight:500;color:#fbbf24;"
+                          >Building scene...</span
+                        >
+                      </div>
+                    `
+                  : ""}
                 ${msg.config_issue
                   ? html`
                       <div style="margin-top: 10px;">
@@ -412,6 +434,7 @@ export function renderMessage(host, msg, idx) {
                     `
                   : ""}
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                 ${msg.devices && msg.devices.length
                   ? renderDeviceCards(host, msg.devices)
                   : ""}
@@ -445,7 +468,7 @@ export function renderMessage(host, msg, idx) {
 
 // ── Device cards ──────────────────────────────────────────────────────
 
-const DOMAIN_ICONS = {
+export const DOMAIN_ICONS = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   climate: "mdi:thermostat",
@@ -469,7 +492,7 @@ function _deviceIcon(domains) {
   return "mdi:devices";
 }
 
-function _stateColor(state) {
+export function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
   const s = state.toLowerCase();
   if (

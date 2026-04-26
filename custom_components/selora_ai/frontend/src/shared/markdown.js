@@ -4,20 +4,26 @@
 
 /**
  * @param {string|null|undefined} text
- * @returns {{ text: string, hasAutomationBlock: boolean, isPartialBlock: boolean }}
+ * @returns {{ text: string, hasAutomationBlock: boolean, isPartialBlock: boolean, partialBlockType: string|null }}
  */
 export function stripAutomationBlock(text) {
   if (!text)
-    return { text: "", hasAutomationBlock: false, isPartialBlock: false };
+    return {
+      text: "",
+      hasAutomationBlock: false,
+      isPartialBlock: false,
+      partialBlockType: null,
+    };
 
-  // Complete block: ```automation ... ```
-  const completeRe = /```automation[\s\S]*?```/g;
+  // Complete block: ```automation ... ``` or ```scene ... ```
+  const completeRe = /```(?:automation|scene)[\s\S]*?```/g;
   const hasComplete = completeRe.test(text);
   let cleaned = text.replace(completeRe, "").trim();
 
-  // Partial block (still streaming): ```automation ... (no closing ```)
-  const partialRe = /```automation[\s\S]*$/;
-  const hasPartial = !hasComplete && partialRe.test(cleaned);
+  // Partial block (still streaming): ```automation|scene ... (no closing ```)
+  const partialRe = /```(automation|scene)[\s\S]*$/;
+  const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
+  const hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
   }
@@ -26,6 +32,7 @@ export function stripAutomationBlock(text) {
     text: cleaned,
     hasAutomationBlock: hasComplete,
     isPartialBlock: hasPartial,
+    partialBlockType: partialMatch ? partialMatch[1] : null,
   };
 }
 

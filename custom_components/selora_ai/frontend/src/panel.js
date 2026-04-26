@@ -22,6 +22,7 @@ import {
   toggleYaml,
   masonryColumns,
 } from "./panel/render-automations.js";
+import { renderSceneCard } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import {
@@ -1110,6 +1111,22 @@ class SeloraAIPanel extends LitElement {
 
   _renderProposalCard(msg, msgIndex) {
     return renderProposalCard(this, msg, msgIndex);
+  }
+
+  _renderSceneCard(msg, msgIndex) {
+    return renderSceneCard(this, msg, msgIndex);
+  }
+
+  async _activateScene(sceneId, sceneName) {
+    if (!sceneId) return;
+    try {
+      await this.hass.callService("scene", "turn_on", {
+        entity_id: `scene.${sceneId}`,
+      });
+      this._showToast(`Scene "${sceneName || sceneId}" activated.`, "success");
+    } catch (err) {
+      this._showToast("Failed to activate scene: " + err.message, "error");
+    }
   }
 
   async _openDeviceDetail(deviceId) {

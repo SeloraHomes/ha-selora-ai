@@ -153,6 +153,50 @@ export const proposalStyles = css`
     color: var(--secondary-text-color);
   }
 
+  /* ---- Scene entity list ---- */
+  .scene-entity-list {
+    margin: 8px 0 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .scene-entity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .scene-entity-row:last-child {
+    border-bottom: none;
+  }
+  .scene-entity-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary-text-color);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .scene-entity-name > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-entity-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .scene-entity-attr {
+    font-size: 11px;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
   /* ---- Automation flowchart ---- */
   .flow-chart {
     display: flex;
