@@ -7611,7 +7611,8 @@ function renderSceneCard(host, msg, msgIndex) {
 var _PROVIDERS = [
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
-  { value: "openai", label: "OpenAI" },
+  { value: "openai", label: "OpenAI (ChatGPT)" },
+  { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
   { value: "", label: "Selora AI Local (Coming soon)", disabled: true },
   { value: "", label: "Selora AI Cloud (Coming soon)", disabled: true },
@@ -7688,6 +7689,7 @@ function renderSettings(host) {
   const isAnthropic = host._config.llm_provider === "anthropic";
   const isGemini = host._config.llm_provider === "gemini";
   const isOpenAI = host._config.llm_provider === "openai";
+  const isOpenRouter = host._config.llm_provider === "openrouter";
   return x`
     <div class="scroll-view">
       <div class="settings-form">
@@ -7874,24 +7876,82 @@ function renderSettings(host) {
                       ></ha-textfield>
                     </div>
                   `
-                  : x`
-                    <div class="form-group">
-                      <ha-textfield
-                        label="Host"
-                        .value=${host._config.ollama_host}
-                        @input=${(e5) => host._updateConfig("ollama_host", e5.target.value)}
-                        style="width:100%;"
-                      ></ha-textfield>
-                    </div>
-                    <div class="form-group">
-                      <ha-textfield
-                        label="Model"
-                        .value=${host._config.ollama_model}
-                        @input=${(e5) => host._updateConfig("ollama_model", e5.target.value)}
-                        style="width:100%;"
-                      ></ha-textfield>
-                    </div>
-                  `
+                  : isOpenRouter
+                    ? x`
+                      <div class="form-group">
+                        <label>API Key</label>
+                        ${
+                          host._config.openrouter_api_key_set
+                            ? x`<button
+                              class="key-hint key-set key-hint-btn"
+                              title="Click to replace key"
+                              @click=${() => {
+                                host._showApiKeyInput = !host._showApiKeyInput;
+                                if (!host._showApiKeyInput)
+                                  host._newApiKey = "";
+                                host.requestUpdate();
+                              }}
+                            >
+                              <ha-icon
+                                icon="mdi:check-circle"
+                                style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                              ></ha-icon>
+                              ${host._config.openrouter_api_key_hint}
+                              <ha-icon
+                                icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                class="key-hint-action"
+                              ></ha-icon>
+                            </button>`
+                            : ""
+                        }
+                        ${
+                          !host._config.openrouter_api_key_set ||
+                          host._showApiKeyInput
+                            ? x`
+                              <ha-textfield
+                                label="${host._config.openrouter_api_key_set ? "Enter new key" : "Enter API key"}"
+                                type="password"
+                                .value=${host._newApiKey}
+                                @input=${(e5) => (host._newApiKey = e5.target.value)}
+                                placeholder="sk-or-..."
+                                style="margin-top:8px;width:100%;"
+                              ></ha-textfield>
+                            `
+                            : ""
+                        }
+                      </div>
+                      <div class="form-group">
+                        <ha-textfield
+                          label="Model"
+                          .value=${host._config.openrouter_model}
+                          @input=${(e5) =>
+                            host._updateConfig(
+                              "openrouter_model",
+                              e5.target.value,
+                            )}
+                          placeholder="anthropic/claude-sonnet-4.5"
+                          style="width:100%;"
+                        ></ha-textfield>
+                      </div>
+                    `
+                    : x`
+                      <div class="form-group">
+                        <ha-textfield
+                          label="Host"
+                          .value=${host._config.ollama_host}
+                          @input=${(e5) => host._updateConfig("ollama_host", e5.target.value)}
+                          style="width:100%;"
+                        ></ha-textfield>
+                      </div>
+                      <div class="form-group">
+                        <ha-textfield
+                          label="Model"
+                          .value=${host._config.ollama_model}
+                          @input=${(e5) => host._updateConfig("ollama_model", e5.target.value)}
+                          style="width:100%;"
+                        ></ha-textfield>
+                      </div>
+                    `
           }
 
           <div class="card-save-bar">
@@ -10567,6 +10627,9 @@ var SeloraAIPanel = class extends s4 {
       } else if (provider === "openai") {
         payload.openai_model = this._config.openai_model;
         if (newKey) payload.openai_api_key = newKey;
+      } else if (provider === "openrouter") {
+        payload.openrouter_model = this._config.openrouter_model;
+        if (newKey) payload.openrouter_api_key = newKey;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -10657,6 +10720,7 @@ var SeloraAIPanel = class extends s4 {
     if (provider === "anthropic") return !this._config.anthropic_api_key_set;
     if (provider === "gemini") return !this._config.gemini_api_key_set;
     if (provider === "openai") return !this._config.openai_api_key_set;
+    if (provider === "openrouter") return !this._config.openrouter_api_key_set;
     return false;
   }
   _updateConfig(key, value) {

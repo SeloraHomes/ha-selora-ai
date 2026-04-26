@@ -716,6 +716,7 @@ CONF_LLM_PROVIDER = "llm_provider"
 LLM_PROVIDER_ANTHROPIC = "anthropic"
 LLM_PROVIDER_OLLAMA = "ollama"
 LLM_PROVIDER_OPENAI = "openai"
+LLM_PROVIDER_OPENROUTER = "openrouter"
 LLM_PROVIDER_GEMINI = "gemini"
 LLM_PROVIDER_NONE = "none"
 DEFAULT_LLM_PROVIDER = LLM_PROVIDER_ANTHROPIC
@@ -745,6 +746,18 @@ CONF_OPENAI_MODEL = "openai_model"
 DEFAULT_OPENAI_HOST = "https://api.openai.com"
 DEFAULT_OPENAI_MODEL = "gpt-5.4"
 
+# ── OpenRouter (multi-vendor aggregator, OpenAI-compatible) ─────────
+CONF_OPENROUTER_API_KEY = "openrouter_api_key"
+CONF_OPENROUTER_MODEL = "openrouter_model"
+
+DEFAULT_OPENROUTER_HOST = "https://openrouter.ai/api"
+DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-4.5"
+
+# Optional app-attribution headers recommended by OpenRouter.
+# https://openrouter.ai/docs/api-reference/overview#app-attribution
+OPENROUTER_APP_REFERER = "https://selorahomes.com"
+OPENROUTER_APP_TITLE = "Selora AI"
+
 # ── Google Gemini ──────────────────────────────────────────────────
 CONF_GEMINI_API_KEY = "gemini_api_key"
 CONF_GEMINI_MODEL = "gemini_model"
@@ -756,6 +769,7 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"
 OLLAMA_CHAT_ENDPOINT = "/v1/chat/completions"
 OPENAI_CHAT_ENDPOINT = "/v1/chat/completions"
+OPENROUTER_CHAT_ENDPOINT = "/v1/chat/completions"
 MESSAGES_ENDPOINT = ANTHROPIC_MESSAGES_ENDPOINT  # Legacy compatibility
 
 # ── MQTT (future) ────────────────────────────────────────────────────
