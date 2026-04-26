@@ -10,11 +10,13 @@ describe("stripAutomationBlock", () => {
       text: "",
       hasAutomationBlock: false,
       isPartialBlock: false,
+      partialBlockType: null,
     });
     expect(stripAutomationBlock("")).toEqual({
       text: "",
       hasAutomationBlock: false,
       isPartialBlock: false,
+      partialBlockType: null,
     });
   });
 
@@ -24,6 +26,7 @@ describe("stripAutomationBlock", () => {
     const result = stripAutomationBlock(input);
     expect(result.hasAutomationBlock).toBe(true);
     expect(result.isPartialBlock).toBe(false);
+    expect(result.partialBlockType).toBe(null);
     expect(result.text).not.toContain("```automation");
     expect(result.text).toContain("Done.");
   });
@@ -33,6 +36,7 @@ describe("stripAutomationBlock", () => {
     const result = stripAutomationBlock(input);
     expect(result.hasAutomationBlock).toBe(false);
     expect(result.isPartialBlock).toBe(true);
+    expect(result.partialBlockType).toBe("automation");
     expect(result.text).not.toContain("```automation");
   });
 
@@ -42,6 +46,38 @@ describe("stripAutomationBlock", () => {
     expect(result.text).toBe("Hello, this is a normal message.");
     expect(result.hasAutomationBlock).toBe(false);
     expect(result.isPartialBlock).toBe(false);
+    expect(result.partialBlockType).toBe(null);
+  });
+
+  it("detects complete scene block", () => {
+    const input =
+      'Here is a scene:\n```scene\n{"name":"Cozy","entities":{}}\n```\nDone.';
+    const result = stripAutomationBlock(input);
+    expect(result.hasAutomationBlock).toBe(true);
+    expect(result.isPartialBlock).toBe(false);
+    expect(result.partialBlockType).toBe(null);
+    expect(result.text).not.toContain("```scene");
+    expect(result.text).toContain("Done.");
+  });
+
+  it("detects partial scene block (still streaming)", () => {
+    const input = 'Creating scene:\n```scene\n{"name":"Cozy","entities":{';
+    const result = stripAutomationBlock(input);
+    expect(result.hasAutomationBlock).toBe(false);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.partialBlockType).toBe("scene");
+    expect(result.text).not.toContain("```scene");
+    expect(result.text).toBe("Creating scene:");
+  });
+
+  it("strips both automation and scene complete blocks", () => {
+    const input =
+      'Auto:\n```automation\nalias: Test\n```\nScene:\n```scene\n{"name":"Test"}\n```\nEnd.';
+    const result = stripAutomationBlock(input);
+    expect(result.hasAutomationBlock).toBe(true);
+    expect(result.text).toContain("End.");
+    expect(result.text).not.toContain("```automation");
+    expect(result.text).not.toContain("```scene");
   });
 });
 

@@ -2527,6 +2527,50 @@ var proposalStyles = i`
     color: var(--secondary-text-color);
   }
 
+  /* ---- Scene entity list ---- */
+  .scene-entity-list {
+    margin: 8px 0 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .scene-entity-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 10px;
+    font-size: 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .scene-entity-row:last-child {
+    border-bottom: none;
+  }
+  .scene-entity-name {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--primary-text-color);
+    min-width: 0;
+    overflow: hidden;
+  }
+  .scene-entity-name > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-entity-state {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+  .scene-entity-attr {
+    font-size: 11px;
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
   /* ---- Automation flowchart ---- */
   .flow-chart {
     display: flex;
@@ -4059,12 +4103,18 @@ var i4 = e4(
 // src/shared/markdown.js
 function stripAutomationBlock(text) {
   if (!text)
-    return { text: "", hasAutomationBlock: false, isPartialBlock: false };
-  const completeRe = /```automation[\s\S]*?```/g;
+    return {
+      text: "",
+      hasAutomationBlock: false,
+      isPartialBlock: false,
+      partialBlockType: null,
+    };
+  const completeRe = /```(?:automation|scene)[\s\S]*?```/g;
   const hasComplete = completeRe.test(text);
   let cleaned = text.replace(completeRe, "").trim();
-  const partialRe = /```automation[\s\S]*$/;
-  const hasPartial = !hasComplete && partialRe.test(cleaned);
+  const partialRe = /```(automation|scene)[\s\S]*$/;
+  const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
+  const hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
   }
@@ -4072,6 +4122,7 @@ function stripAutomationBlock(text) {
     text: cleaned,
     hasAutomationBlock: hasComplete,
     isPartialBlock: hasPartial,
+    partialBlockType: partialMatch ? partialMatch[1] : null,
   };
 }
 function renderMarkdown(text) {
@@ -4710,10 +4761,16 @@ function renderMessage(host, msg, idx) {
   if (msg._streaming && !msg.content) return x``;
   let displayContent = msg.content;
   let showAutomationSpinner = false;
+  let showSceneSpinner = false;
   if (!isUser) {
-    const { text, isPartialBlock } = stripAutomationBlock(msg.content);
+    const { text, isPartialBlock, partialBlockType } = stripAutomationBlock(
+      msg.content,
+    );
     displayContent = text;
-    showAutomationSpinner = isPartialBlock && msg._streaming;
+    showAutomationSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "automation";
+    showSceneSpinner =
+      isPartialBlock && msg._streaming && partialBlockType === "scene";
     if (msg.automation_status === "refining" && msg.automation) {
       displayContent = "";
     }
@@ -4758,6 +4815,24 @@ function renderMessage(host, msg, idx) {
                     : ""
                 }
                 ${
+                  showSceneSpinner
+                    ? x`
+                      <div
+                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                      >
+                        <div
+                          class="typing-dot"
+                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                        ></div>
+                        <span
+                          style="font-size:13px;font-weight:500;color:#fbbf24;"
+                          >Building scene...</span
+                        >
+                      </div>
+                    `
+                    : ""
+                }
+                ${
                   msg.config_issue
                     ? x`
                       <div style="margin-top: 10px;">
@@ -4769,6 +4844,7 @@ function renderMessage(host, msg, idx) {
                     : ""
                 }
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
+                ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                 ${msg.devices && msg.devices.length ? renderDeviceCards(host, msg.devices) : ""}
               </div>
               <div
@@ -7388,6 +7464,128 @@ function renderUnavailableModal(host) {
             <ha-icon icon="mdi:robot" style="--mdc-icon-size:14px;"></ha-icon>
             Open in Automations
           </a>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+// src/panel/render-scenes.js
+function _sceneCardHeader(name, badge) {
+  return x`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <ha-icon
+        icon="mdi:palette"
+        style="color:var(--primary-text-color);--mdc-icon-size:18px;display:flex;flex-shrink:0;"
+      ></ha-icon>
+      <span
+        style="font-weight:700;font-size:14px;color:var(--primary-text-color);"
+        >${name}</span
+      >
+      <span
+        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;"
+        >${badge}</span
+      >
+    </div>
+  `;
+}
+function _formatBrightness(val) {
+  if (val == null) return null;
+  const num = Number(val);
+  if (isNaN(num)) return null;
+  return `${Math.round((num / 255) * 100)}%`;
+}
+function _formatEntityAttrs(stateData) {
+  const parts = [];
+  const brightness = _formatBrightness(stateData.brightness);
+  if (brightness) parts.push(brightness);
+  if (stateData.color_temp != null)
+    parts.push(`${stateData.color_temp} mireds`);
+  if (stateData.temperature != null) parts.push(`${stateData.temperature}\xB0`);
+  return parts.join(" \xB7 ");
+}
+function _renderEntityList(host, entities) {
+  const entries = Object.entries(entities);
+  if (!entries.length) return "";
+  return x`
+    <div class="scene-entity-list">
+      ${entries.map(([entityId, stateData]) => {
+        const domain = entityId.split(".")[0];
+        const icon = DOMAIN_ICONS[domain] || "mdi:devices";
+        const state = stateData.state || "unknown";
+        const attrs = _formatEntityAttrs(stateData);
+        const name = fmtEntity(host.hass, entityId);
+        return x`
+          <div class="scene-entity-row">
+            <div class="scene-entity-name">
+              <ha-icon
+                icon=${icon}
+                style="--mdc-icon-size:16px;color:var(--selora-accent);"
+              ></ha-icon>
+              <span>${name}</span>
+            </div>
+            <div class="scene-entity-state">
+              ${attrs ? x`<span class="scene-entity-attr">${attrs}</span>` : ""}
+              <span style="color:${_stateColor2(state)};">${state}</span>
+            </div>
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
+function renderSceneCard(host, msg, msgIndex) {
+  const scene = msg.scene;
+  if (!scene) return "";
+  const yamlKey = `scene_${msgIndex}`;
+  const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
+  return x`
+    <div style="margin-top:12px;padding:14px 0 0;">
+      ${_sceneCardHeader(scene.name, "Scene Saved")}
+      <div class="proposal-body" style="padding:0;">
+        ${_renderEntityList(host, scene.entities || {})}
+
+        <div class="yaml-toggle" @click=${() => toggleYaml(host, yamlKey)}>
+          <ha-icon
+            icon="mdi:code-braces"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          ${yamlOpen ? "Hide YAML" : "View YAML"}
+        </div>
+        ${
+          yamlOpen && msg.scene_yaml
+            ? x`
+              <ha-code-editor
+                mode="yaml"
+                .value=${msg.scene_yaml}
+                read-only
+                style="--code-mirror-font-size:12px;"
+              ></ha-code-editor>
+            `
+            : ""
+        }
+
+        <div class="proposal-actions">
+          <button
+            class="btn btn-success"
+            @click=${() => host._activateScene(msg.scene_id, scene.name)}
+          >
+            <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
+            Activate
+          </button>
+          <button
+            class="btn btn-outline"
+            @click=${() => {
+              window.history.pushState(null, "", "/config/scene/dashboard");
+              window.dispatchEvent(new Event("location-changed"));
+            }}
+          >
+            <ha-icon
+              icon="mdi:open-in-new"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            View in HA
+          </button>
         </div>
       </div>
     </div>
@@ -10843,6 +11041,20 @@ var SeloraAIPanel = class extends s4 {
   }
   _renderProposalCard(msg, msgIndex) {
     return renderProposalCard(this, msg, msgIndex);
+  }
+  _renderSceneCard(msg, msgIndex) {
+    return renderSceneCard(this, msg, msgIndex);
+  }
+  async _activateScene(sceneId, sceneName) {
+    if (!sceneId) return;
+    try {
+      await this.hass.callService("scene", "turn_on", {
+        entity_id: `scene.${sceneId}`,
+      });
+      this._showToast(`Scene "${sceneName || sceneId}" activated.`, "success");
+    } catch (err) {
+      this._showToast("Failed to activate scene: " + err.message, "error");
+    }
   }
   async _openDeviceDetail(deviceId) {
     if (!deviceId || !this.hass) return;
