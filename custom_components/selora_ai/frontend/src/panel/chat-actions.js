@@ -65,6 +65,9 @@ export async function _sendMessage() {
           }
           this._loadSessions();
         }
+        if (event.scene_id) {
+          this._loadScenes();
+        }
       } else if (event.type === "error") {
         assistantMsg.content =
           "Sorry, I encountered an error: " + event.message;

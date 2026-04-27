@@ -22,7 +22,7 @@ import {
   toggleYaml,
   masonryColumns,
 } from "./panel/render-automations.js";
-import { renderSceneCard } from "./panel/render-scenes.js";
+import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import {
@@ -293,6 +293,17 @@ class SeloraAIPanel extends LitElement {
       _deviceDetail: { type: Object },
       _deviceDetailLoading: { type: Boolean },
 
+      // Scenes tab
+      _scenes: { type: Array },
+      _sceneFilter: { type: String },
+      _sceneSortBy: { type: String },
+      _expandedScenes: { type: Object },
+      _sceneYamlOpen: { type: Object },
+      _openSceneBurger: { type: String },
+      _deletingScene: { type: Object },
+      _deleteSceneConfirmId: { type: String },
+      _deleteSceneConfirmName: { type: String },
+
       // Theme
       _isDark: { type: Boolean },
 
@@ -414,6 +425,16 @@ class SeloraAIPanel extends LitElement {
     // Device detail drawer
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    // Scenes tab
+    this._scenes = [];
+    this._sceneFilter = "";
+    this._sceneSortBy = "recent";
+    this._expandedScenes = {};
+    this._sceneYamlOpen = {};
+    this._openSceneBurger = null;
+    this._deletingScene = {};
+    this._deleteSceneConfirmId = null;
+    this._deleteSceneConfirmName = null;
   }
 
   connectedCallback() {
@@ -431,6 +452,7 @@ class SeloraAIPanel extends LitElement {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._loadScenes();
     this._loadConfig();
     this._loadMcpTokens();
     this._locationHandler = () => this._checkTabParam();
@@ -1133,6 +1155,97 @@ class SeloraAIPanel extends LitElement {
     }
   }
 
+  _renderScenes() {
+    return renderScenes(this);
+  }
+
+  async _loadScenes() {
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/get_scenes",
+      });
+      this._scenes = result?.scenes || [];
+    } catch (err) {
+      console.error("Failed to load scenes", err);
+      this._scenes = [];
+    }
+  }
+
+  async _refineSceneInChat(scene) {
+    if (!scene) return;
+    const sessionId = scene.session_id;
+    const known = sessionId
+      ? this._sessions.find((s) => s.id === sessionId)
+      : null;
+    try {
+      if (known) {
+        await this._openSession(sessionId);
+      } else {
+        await this._newSession();
+      }
+    } catch (err) {
+      console.error("Failed to switch session for scene refine", err);
+    }
+    const ctx = known ? "" : ` (scene_id: ${scene.scene_id})`;
+    this._input = `Refine "${scene.name}"${ctx}: `;
+    this._activeTab = "chat";
+    this.requestUpdate();
+    await this.updateComplete;
+    const textfield = this.shadowRoot?.querySelector("ha-textfield");
+    if (textfield) textfield.focus();
+  }
+
+  async _confirmDeleteScene() {
+    const sceneId = this._deleteSceneConfirmId;
+    const name = this._deleteSceneConfirmName;
+    if (!sceneId) return;
+    this._deleteSceneConfirmId = null;
+    this._deleteSceneConfirmName = null;
+    this._deletingScene = { ...this._deletingScene, [sceneId]: true };
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/delete_scene",
+        scene_id: sceneId,
+      });
+      this._showToast(`Scene "${name || sceneId}" deleted.`, "success");
+      await this._loadScenes();
+    } catch (err) {
+      this._showToast("Failed to delete scene: " + err.message, "error");
+    } finally {
+      this._deletingScene = { ...this._deletingScene, [sceneId]: false };
+    }
+  }
+
+  async _newSceneChat() {
+    try {
+      const { session_id } = await this.hass.callWS({
+        type: "selora_ai/new_session",
+      });
+      this._activeSessionId = session_id;
+      this._messages = [];
+      this._input = "Create a scene that ";
+      this._activeTab = "chat";
+      this._welcomeKey = (this._welcomeKey || 0) + 1;
+      await this._loadSessions();
+      if (this.narrow) this._showSidebar = false;
+      this.requestUpdate();
+      await this.updateComplete;
+      const textfield = this.shadowRoot?.querySelector("ha-textfield");
+      if (textfield) {
+        textfield.focus();
+        // Place cursor at the end
+        const inputEl = textfield.shadowRoot?.querySelector("input, textarea");
+        if (inputEl) {
+          const len = this._input.length;
+          inputEl.setSelectionRange(len, len);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to start new scene chat", err);
+      this._showToast("Failed to start new chat: " + err.message, "error");
+    }
+  }
+
   async _openDeviceDetail(deviceId) {
     if (!deviceId || !this.hass) return;
     this._deviceDetail = { name: "Loading..." };
@@ -1428,6 +1541,19 @@ class SeloraAIPanel extends LitElement {
                 >Automations</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "scenes" ? "active" : ""}"
+              @click=${() => {
+                this._activeTab = "scenes";
+                this._showSidebar = false;
+                this._loadScenes();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:palette-outline" class="tab-icon"></ha-icon
+                >Scenes</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           <div class="overflow-btn-wrap">
@@ -1682,6 +1808,7 @@ class SeloraAIPanel extends LitElement {
           ></selora-particles>
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
+          ${this._activeTab === "scenes" ? this._renderScenes() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
         </div>
       </div>
