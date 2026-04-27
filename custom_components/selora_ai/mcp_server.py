@@ -404,6 +404,19 @@ class OAuthTokenProxyView(HomeAssistantView):
 
     async def post(self, request: web.Request) -> web.Response:
         """Forward the token request to Connect."""
+        # Rate-limit before doing any outbound work — this view is unauthenticated
+        # by design (OAuth dance) and would otherwise be a DoS amplifier:
+        # each request opens a connection to Connect with a 10s timeout.
+        client_ip = _get_client_ip(request)
+        if not _request_limiter.is_allowed(client_ip):
+            return _add_cors(
+                request,
+                web.Response(
+                    status=HTTPStatus.TOO_MANY_REQUESTS,
+                    text="Rate limit exceeded",
+                    headers={"Retry-After": str(_RATE_LIMIT_WINDOW)},
+                ),
+            )
         hass: HomeAssistant = request.app[KEY_HASS]
         connect_url = hass.data.get(DOMAIN, {}).get("selora_connect_url", SELORA_JWT_ISSUER)
         body = await request.read()
@@ -418,7 +431,7 @@ class OAuthTokenProxyView(HomeAssistantView):
                 f"{connect_url}/oauth/token",
                 data=body,
                 headers=headers,
-                timeout=aiohttp.ClientTimeout(total=30),
+                timeout=aiohttp.ClientTimeout(total=10),
             ) as resp:
                 resp_body = await resp.read()
                 return _add_cors(
@@ -429,8 +442,10 @@ class OAuthTokenProxyView(HomeAssistantView):
                         content_type=resp.content_type,
                     ),
                 )
-        except (aiohttp.ClientError, TimeoutError):
-            _LOGGER.exception("Failed to proxy token request to Connect")
+        except (aiohttp.ClientError, TimeoutError) as err:
+            # Avoid `_LOGGER.exception` here — the traceback could include
+            # request body fragments via aiohttp internals.
+            _LOGGER.error("Failed to proxy token request to Connect: %s", type(err).__name__)
             return _add_cors(
                 request,
                 web.json_response(

@@ -10980,6 +10980,23 @@ var SeloraAIPanel = class extends s4 {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    if (this._streamUnsub) {
+      try {
+        this._stopStreaming();
+      } catch (_e) {
+        this._streamUnsub = null;
+        this._streaming = false;
+        this._loading = false;
+        const lastMsg = this._messages[this._messages.length - 1];
+        if (lastMsg && lastMsg._streaming) {
+          lastMsg._streaming = false;
+        }
+      }
+    }
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
+    }
   }
   // -------------------------------------------------------------------------
   // Config

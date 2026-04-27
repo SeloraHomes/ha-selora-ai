@@ -28,6 +28,7 @@ from homeassistant.helpers.event import async_track_time_interval
 import yaml
 
 from .automation_utils import (
+    AUTOMATIONS_YAML_LOCK,
     assess_automation_risk,
     count_selora_automations,
     find_stale_automations,
@@ -609,18 +610,10 @@ class DataCollector:
         """
         automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
 
-        # Read existing automations
-        try:
-            existing = await self._hass.async_add_executor_job(
-                self._read_automations_yaml, automations_path
-            )
-        except Exception:
-            _LOGGER.exception("Failed to read automations.yaml")
-            return []
-
-        existing_aliases = {a.get("alias", "").lower() for a in existing if isinstance(a, dict)}
-
-        new_automations = []
+        # Validate and build new entries before taking the lock so we minimize
+        # how long we block chat-driven creates / toggles / renames while the
+        # auto-writer is running.
+        candidates: list[dict[str, Any]] = []
         for suggestion in suggestions:
             if not isinstance(suggestion, dict):
                 continue
@@ -631,50 +624,76 @@ class DataCollector:
                 continue
 
             alias = normalized["alias"]
-
-            # Skip duplicates
-            if alias.lower() in existing_aliases:
-                _LOGGER.debug("Skipping duplicate automation: %s", alias)
-                continue
-
             triggers = normalized["triggers"]
             actions = normalized["actions"]
             conditions = normalized["conditions"]
             short_id = uuid.uuid4().hex[:8]
             description = normalized.get("description") or alias
-            automation = {
-                "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
-                "alias": alias,
-                "description": f"[Selora AI] {description}",
-                "initial_state": False,
-                "triggers": triggers,
-                "conditions": conditions or [],
-                "actions": actions,
-                "mode": normalized.get("mode", "single"),
-            }
-
-            new_automations.append(automation)
-            existing_aliases.add(alias.lower())
-
-        if not new_automations:
-            _LOGGER.info("No new automations to create (all duplicates or invalid)")
-            return []
-
-        # Append and write
-        existing.extend(new_automations)
-        try:
-            await self._hass.async_add_executor_job(
-                self._write_automations_yaml, automations_path, existing
+            candidates.append(
+                {
+                    "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
+                    "alias": alias,
+                    "description": f"[Selora AI] {description}",
+                    "initial_state": False,
+                    "triggers": triggers,
+                    "conditions": conditions or [],
+                    "actions": actions,
+                    "mode": normalized.get("mode", "single"),
+                }
             )
-        except Exception:
-            _LOGGER.exception("Failed to write automations.yaml")
+
+        if not candidates:
+            _LOGGER.info("No new automations to create (all invalid)")
             return []
 
-        # Reload HA automations so they appear immediately
-        try:
-            await self._hass.services.async_call("automation", "reload", blocking=True)
-        except Exception:
-            _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
+        # All read-modify-write paths must hold AUTOMATIONS_YAML_LOCK so a
+        # chat-driven create / toggle / rename cannot land between our read
+        # and our write and get clobbered.
+        async with AUTOMATIONS_YAML_LOCK:
+            try:
+                existing = await self._hass.async_add_executor_job(
+                    self._read_automations_yaml, automations_path
+                )
+            except Exception:
+                _LOGGER.exception("Failed to read automations.yaml")
+                return []
+
+            existing_aliases = {a.get("alias", "").lower() for a in existing if isinstance(a, dict)}
+
+            # Filter against existing aliases AND against earlier candidates
+            # in this batch — the LLM can return two suggestions with the same
+            # alias in one cycle, and we must not write both.
+            new_automations: list[dict[str, Any]] = []
+            for cand in candidates:
+                key = cand["alias"].lower()
+                if key in existing_aliases:
+                    continue
+                existing_aliases.add(key)
+                new_automations.append(cand)
+
+            dup_count = len(candidates) - len(new_automations)
+            if dup_count:
+                _LOGGER.debug("Skipping %d duplicate automations", dup_count)
+
+            if not new_automations:
+                _LOGGER.info("No new automations to create (all duplicates)")
+                return []
+
+            existing.extend(new_automations)
+            try:
+                await self._hass.async_add_executor_job(
+                    self._write_automations_yaml, automations_path, existing
+                )
+            except Exception:
+                _LOGGER.exception("Failed to write automations.yaml")
+                return []
+
+            # Reload inside the lock so a concurrent writer can't see a
+            # partially-applied state (file written but reload not done).
+            try:
+                await self._hass.services.async_call("automation", "reload", blocking=True)
+            except Exception:
+                _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
 
         # Record first version for each new automation in the lifecycle store
         try:
