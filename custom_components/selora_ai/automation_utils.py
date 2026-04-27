@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 import hashlib
 import json
@@ -32,6 +33,16 @@ if TYPE_CHECKING:
     )
 
 _LOGGER = logging.getLogger(__name__)
+
+# Serializes read-modify-write cycles on automations.yaml so concurrent
+# requests (LLM auto-writer + chat-driven create + UI toggle + rename)
+# cannot clobber each other between read and atomic-rename.
+#
+# Public symbol — every caller that does a read-modify-write on
+# automations.yaml MUST acquire this lock for the full read→write→reload
+# span. Read-only callers don't need the lock since writes are atomic
+# rename, but they should not interleave their own write back.
+AUTOMATIONS_YAML_LOCK = asyncio.Lock()
 
 
 def suggestion_content_fingerprint(automation: AutomationDict | dict[str, Any]) -> str:
@@ -606,36 +617,37 @@ async def async_update_automation(
     updated.pop("condition", None)
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    found = False
-    for i, a in enumerate(existing):
-        if a.get("id") == automation_id:
-            # Preserve the original id and keep initial_state from existing unless overridden
-            updated.setdefault("id", automation_id)
-            updated.setdefault("initial_state", a.get("initial_state", False))
-            existing[i] = updated
-            found = True
-            break
+        found = False
+        for i, a in enumerate(existing):
+            if a.get("id") == automation_id:
+                # Preserve the original id and keep initial_state from existing unless overridden
+                updated.setdefault("id", automation_id)
+                updated.setdefault("initial_state", a.get("initial_state", False))
+                existing[i] = updated
+                found = True
+                break
 
-    if not found:
-        _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
-        return False
+        if not found:
+            _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
+            return False
 
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        _LOGGER.info("Updated automation: %s", automation_id)
-        await hass.services.async_call("automation", "reload", blocking=True)
+        try:
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+            _LOGGER.info("Updated automation: %s", automation_id)
+            await hass.services.async_call("automation", "reload", blocking=True)
 
-        # Record version
-        yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
-        store = _get_automation_store(hass)
-        await store.add_version(automation_id, yaml_text, updated, version_message, session_id)
+            # Record version
+            yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
+            store = _get_automation_store(hass)
+            await store.add_version(automation_id, yaml_text, updated, version_message, session_id)
 
-        return True
-    except Exception as exc:
-        _LOGGER.exception("Failed to update automation: %s", exc)
-        return False
+            return True
+        except Exception as exc:
+            _LOGGER.exception("Failed to update automation: %s", exc)
+            return False
 
 
 async def async_create_automation(
@@ -650,9 +662,6 @@ async def async_create_automation(
     Returns a dict with keys: success (bool), automation_id (str | None).
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-
-    # Read existing automations
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
     # Validate and normalize the suggestion (coerces boolean to/from → "on"/"off", etc.)
     is_valid, reason, normalized = validate_automation_payload(suggestion, hass)
@@ -681,24 +690,28 @@ async def async_create_automation(
         "mode": normalized.get("mode", "single"),
     }
 
-    existing.append(automation)
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        existing.append(automation)
 
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        _LOGGER.info("Created new automation: %s", alias)
+        try:
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+            _LOGGER.info("Created new automation: %s", alias)
 
-        # Reload HA automations (blocking so entities exist before we return)
-        await hass.services.async_call("automation", "reload", blocking=True)
+            # Reload HA automations (blocking so entities exist before we return)
+            await hass.services.async_call("automation", "reload", blocking=True)
 
-        # Record first version
-        yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
-        store = _get_automation_store(hass)
-        await store.add_version(automation_id, yaml_text, automation, version_message, session_id)
+            # Record first version
+            yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
+            store = _get_automation_store(hass)
+            await store.add_version(
+                automation_id, yaml_text, automation, version_message, session_id
+            )
 
-        return {"success": True, "automation_id": automation_id}
-    except Exception as exc:
-        _LOGGER.exception("Failed to create automation: %s", exc)
-        return {"success": False, "automation_id": None}
+            return {"success": True, "automation_id": automation_id}
+        except Exception as exc:
+            _LOGGER.exception("Failed to create automation: %s", exc)
+            return {"success": False, "automation_id": None}
 
 
 async def async_toggle_automation(
@@ -712,30 +725,35 @@ async def async_toggle_automation(
     This persists the enabled/disabled state so it survives HA restarts.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    found = False
-    for automation in existing:
-        if automation.get("id") == automation_id:
-            automation["initial_state"] = enable
-            found = True
-            break
+        found = False
+        for automation in existing:
+            if automation.get("id") == automation_id:
+                automation["initial_state"] = enable
+                found = True
+                break
 
-    if not found:
-        _LOGGER.error("Automation id %s not found in automations.yaml for toggle", automation_id)
-        return False
+        if not found:
+            _LOGGER.error(
+                "Automation id %s not found in automations.yaml for toggle", automation_id
+            )
+            return False
 
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        service = "turn_on" if enable else "turn_off"
-        await hass.services.async_call("automation", service, {"entity_id": entity_id})
-        _LOGGER.info(
-            "Toggled automation %s to %s", automation_id, "enabled" if enable else "disabled"
-        )
-        return True
-    except Exception as exc:
-        _LOGGER.exception("Failed to toggle automation %s: %s", automation_id, exc)
-        return False
+        try:
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+            service = "turn_on" if enable else "turn_off"
+            await hass.services.async_call("automation", service, {"entity_id": entity_id})
+            _LOGGER.info(
+                "Toggled automation %s to %s",
+                automation_id,
+                "enabled" if enable else "disabled",
+            )
+            return True
+        except Exception as exc:
+            _LOGGER.exception("Failed to toggle automation %s: %s", automation_id, exc)
+            return False
 
 
 async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bool:
@@ -745,40 +763,41 @@ async def async_delete_automation(hass: HomeAssistant, automation_id: str) -> bo
     collector will not re-suggest a similar automation.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    target = next((a for a in existing if a.get("id") == automation_id), None)
-    if target is None:
-        _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
-        return False
+        target = next((a for a in existing if a.get("id") == automation_id), None)
+        if target is None:
+            _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
+            return False
 
-    remaining = [a for a in existing if a.get("id") != automation_id]
+        remaining = [a for a in existing if a.get("id") != automation_id]
 
-    try:
-        # Record the content hash before deleting so the LLM won't re-suggest it
-        await _record_deletion_hash(hass, target)
+        try:
+            # Record the content hash before deleting so the LLM won't re-suggest it
+            await _record_deletion_hash(hass, target)
 
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-        await hass.services.async_call("automation", "reload", blocking=True)
-        store = _get_automation_store(hass)
-        await store.purge_record(automation_id)
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+            await hass.services.async_call("automation", "reload", blocking=True)
+            store = _get_automation_store(hass)
+            await store.purge_record(automation_id)
 
-        from homeassistant.helpers import entity_registry as er
+            from homeassistant.helpers import entity_registry as er
 
-        entity_reg = er.async_get(hass)
-        for entity in list(entity_reg.entities.values()):
-            if entity.platform != "automation":
-                continue
-            if entity.unique_id == automation_id:
-                entity_reg.async_remove(entity.entity_id)
-                break
+            entity_reg = er.async_get(hass)
+            for entity in list(entity_reg.entities.values()):
+                if entity.platform != "automation":
+                    continue
+                if entity.unique_id == automation_id:
+                    entity_reg.async_remove(entity.entity_id)
+                    break
 
-        alias = target.get("alias", automation_id)
-        _LOGGER.info("Deleted automation: %s (%s)", alias, automation_id)
-        return True
-    except Exception as exc:
-        _LOGGER.exception("Failed to delete automation %s: %s", automation_id, exc)
-        return False
+            alias = target.get("alias", automation_id)
+            _LOGGER.info("Deleted automation: %s (%s)", alias, automation_id)
+            return True
+        except Exception as exc:
+            _LOGGER.exception("Failed to delete automation %s: %s", automation_id, exc)
+            return False
 
 
 async def async_delete_automations_batch(
@@ -793,47 +812,48 @@ async def async_delete_automations_batch(
 
     ids_to_remove = set(automation_ids)
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
-    existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
 
-    targets = [a for a in existing if a.get("id") in ids_to_remove]
-    if not targets:
-        return []
+        targets = [a for a in existing if a.get("id") in ids_to_remove]
+        if not targets:
+            return []
 
-    remaining = [a for a in existing if a.get("id") not in ids_to_remove]
-    removed_aliases: list[str] = []
+        remaining = [a for a in existing if a.get("id") not in ids_to_remove]
+        removed_aliases: list[str] = []
 
-    # Record deletion hashes before removing
-    for target in targets:
-        await _record_deletion_hash(hass, target)
+        # Record deletion hashes before removing
+        for target in targets:
+            await _record_deletion_hash(hass, target)
 
-    try:
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
-    except (OSError, yaml.YAMLError) as exc:
-        _LOGGER.exception("Failed to write automations YAML during batch delete: %s", exc)
-        return removed_aliases
-
-    try:
-        await hass.services.async_call("automation", "reload", blocking=True)
-    except Exception:
-        _LOGGER.warning("automation.reload failed after batch delete; states may be stale")
-
-    store = _get_automation_store(hass)
-    entity_reg = er.async_get(hass)
-
-    for target in targets:
-        aid = target.get("id", "")
         try:
-            await store.purge_record(aid)
-        except Exception:
-            _LOGGER.warning("Failed to purge store record for %s", aid)
-        for entity in list(entity_reg.entities.values()):
-            if entity.platform == "automation" and entity.unique_id == aid:
-                entity_reg.async_remove(entity.entity_id)
-                break
-        removed_aliases.append(target.get("alias", aid))
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+        except (OSError, yaml.YAMLError) as exc:
+            _LOGGER.exception("Failed to write automations YAML during batch delete: %s", exc)
+            return removed_aliases
 
-    _LOGGER.info("Batch-deleted %d automations", len(removed_aliases))
-    return removed_aliases
+        try:
+            await hass.services.async_call("automation", "reload", blocking=True)
+        except Exception:
+            _LOGGER.warning("automation.reload failed after batch delete; states may be stale")
+
+        store = _get_automation_store(hass)
+        entity_reg = er.async_get(hass)
+
+        for target in targets:
+            aid = target.get("id", "")
+            try:
+                await store.purge_record(aid)
+            except Exception:
+                _LOGGER.warning("Failed to purge store record for %s", aid)
+            for entity in list(entity_reg.entities.values()):
+                if entity.platform == "automation" and entity.unique_id == aid:
+                    entity_reg.async_remove(entity.entity_id)
+                    break
+            removed_aliases.append(target.get("alias", aid))
+
+        _LOGGER.info("Batch-deleted %d automations", len(removed_aliases))
+        return removed_aliases
 
 
 async def _record_deletion_hash(hass: HomeAssistant, automation: dict[str, Any]) -> None:

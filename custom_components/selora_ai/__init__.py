@@ -21,6 +21,7 @@ LLM Backends:
 from __future__ import annotations
 
 import asyncio
+from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
 from typing import TYPE_CHECKING, Any
@@ -1538,7 +1539,11 @@ async def _handle_websocket_rename_automation(
 
     from pathlib import Path
 
-    from .automation_utils import _read_automations_yaml, _write_automations_yaml
+    from .automation_utils import (
+        AUTOMATIONS_YAML_LOCK,
+        _read_automations_yaml,
+        _write_automations_yaml,
+    )
 
     automation_id = msg["automation_id"]
     new_alias = msg["alias"].strip()
@@ -1548,18 +1553,21 @@ async def _handle_websocket_rename_automation(
 
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
     try:
-        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
-        found = False
-        for a in existing:
-            if a.get("id") == automation_id:
-                a["alias"] = new_alias
-                found = True
-                break
-        if not found:
-            connection.send_error(msg["id"], "not_found", "Automation not found")
-            return
-        await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
-        await hass.services.async_call("automation", "reload", blocking=True)
+        # Hold the shared lock for the full read/modify/write/reload span so a
+        # concurrent collector run or chat-driven create cannot interleave.
+        async with AUTOMATIONS_YAML_LOCK:
+            existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+            found = False
+            for a in existing:
+                if a.get("id") == automation_id:
+                    a["alias"] = new_alias
+                    found = True
+                    break
+            if not found:
+                connection.send_error(msg["id"], "not_found", "Automation not found")
+                return
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
+            await hass.services.async_call("automation", "reload", blocking=True)
         connection.send_result(msg["id"], {"status": "renamed"})
     except Exception as exc:
         _LOGGER.exception("Error renaming automation")
@@ -4153,10 +4161,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unsub_discovery:
         unsub_discovery()
 
-    # Cancel tracked background tasks
-    for task in data.get("_background_tasks", []):
-        if not task.done():
-            task.cancel()
+    # Cancel tracked background tasks and drain their cancellations so we
+    # don't leak coroutine frames / traceback objects across reloads.
+    pending_tasks = [t for t in data.get("_background_tasks", []) if not t.done()]
+    for task in pending_tasks:
+        task.cancel()
+    for task in pending_tasks:
+        with suppress(asyncio.CancelledError, Exception):
+            await task
 
     # Stop pattern detection
     pattern_engine = data.get("pattern_engine")

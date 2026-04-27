@@ -535,6 +535,32 @@ class SeloraAIPanel extends LitElement {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    // Tear down an in-flight chat stream. Use the same cleanup path as
+    // the manual stop button so streaming/loading flags and the last
+    // message's _streaming marker are cleared — otherwise a
+    // detach/reattach of the same instance would leave the UI stuck in
+    // a loading state with no subscription left to receive done/error.
+    if (this._streamUnsub) {
+      try {
+        this._stopStreaming();
+      } catch (_e) {
+        // Already detached or websocket gone — flags must still be reset
+        // so a reattach starts clean.
+        this._streamUnsub = null;
+        this._streaming = false;
+        this._loading = false;
+        const lastMsg = this._messages[this._messages.length - 1];
+        if (lastMsg && lastMsg._streaming) {
+          lastMsg._streaming = false;
+        }
+      }
+    }
+    // Clear pending toast timer so setTimeout doesn't fire requestUpdate()
+    // on a detached element.
+    if (this._toastTimer) {
+      clearTimeout(this._toastTimer);
+      this._toastTimer = null;
+    }
   }
 
   // -------------------------------------------------------------------------
