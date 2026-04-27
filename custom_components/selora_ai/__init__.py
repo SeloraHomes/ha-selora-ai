@@ -3004,14 +3004,57 @@ async def _handle_websocket_get_scenes(
     connection: websocket_api.ActiveConnection,
     msg: dict[str, Any],
 ) -> None:
-    """Return all Selora-managed scenes (force-reconciles with scenes.yaml)."""
+    """Return all Selora-managed scenes (force-reconciles with scenes.yaml).
+
+    Each scene record is enriched with the parsed ``entities`` map and a
+    rendered ``yaml`` string so the panel can display rich entity state
+    targets and the YAML view without a second round-trip.
+    """
     if not _require_admin(connection, msg):
         return
 
     store = _get_scene_store(hass)
     await store.async_reconcile_yaml(force=True)
     scenes = await store.async_list_scenes()
-    connection.send_result(msg["id"], {"scenes": scenes})
+
+    from .scene_utils import _get_scenes_path, _read_scenes_yaml  # noqa: PLC0415
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception as exc:  # noqa: BLE001 — best-effort enrichment, never block the list
+        _LOGGER.warning("Failed to read scenes.yaml for enrichment: %s", exc)
+        yaml_entries = []
+
+    yaml_by_id: dict[str, dict[str, Any]] = {
+        entry["id"]: entry
+        for entry in yaml_entries
+        if isinstance(entry, dict) and isinstance(entry.get("id"), str)
+    }
+
+    import yaml as pyyaml  # noqa: PLC0415
+
+    enriched: list[dict[str, Any]] = []
+    for record in scenes:
+        entry = yaml_by_id.get(record["scene_id"])
+        if entry is None:
+            enriched.append({**record, "entities": {}, "yaml": ""})
+            continue
+        entities = entry.get("entities") or {}
+        if not isinstance(entities, dict):
+            entities = {}
+        try:
+            yaml_text = pyyaml.dump(
+                {"name": entry.get("name", record["name"]), "entities": entities},
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+        except Exception:  # noqa: BLE001 — fall back to empty YAML, never block the list
+            yaml_text = ""
+        enriched.append({**record, "entities": entities, "yaml": yaml_text})
+
+    connection.send_result(msg["id"], {"scenes": enriched})
 
 
 @websocket_api.async_response

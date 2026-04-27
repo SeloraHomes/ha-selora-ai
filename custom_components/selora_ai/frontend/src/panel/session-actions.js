@@ -3,7 +3,7 @@
 export function _checkTabParam() {
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("tab");
-  if (tab === "automations" || tab === "settings") {
+  if (tab === "automations" || tab === "scenes" || tab === "settings") {
     this._activeTab = tab;
     this._showSidebar = false;
   }

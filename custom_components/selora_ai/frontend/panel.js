@@ -7606,6 +7606,366 @@ function renderSceneCard(host, msg, msgIndex) {
     </div>
   `;
 }
+function _sceneEntityCount(scene) {
+  if (typeof scene.entity_count === "number") return scene.entity_count;
+  return Object.keys(scene.entities || {}).length;
+}
+function renderScenes(host) {
+  const filterText = (host._sceneFilter || "").toLowerCase();
+  const sortBy = host._sceneSortBy || "recent";
+  let filtered = [...(host._scenes || [])];
+  if (filterText) {
+    filtered = filtered.filter((s6) =>
+      (s6.name || "").toLowerCase().includes(filterText),
+    );
+  }
+  if (sortBy === "recent") {
+    filtered.sort((a4, b2) => {
+      const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
+      const bt = b2.updated_at ? new Date(b2.updated_at).getTime() : 0;
+      return bt - at;
+    });
+  } else if (sortBy === "alpha") {
+    filtered.sort((a4, b2) => (a4.name || "").localeCompare(b2.name || ""));
+  } else if (sortBy === "size") {
+    filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
+  }
+  return x`
+    <div class="scroll-view">
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3>Your Scenes</h3>
+        </div>
+        ${
+          (host._scenes || []).length > 0
+            ? x`
+              <div class="filter-row" style="margin-top:12px;">
+                <div class="filter-input-wrap" style="flex:0 1 260px;">
+                  <ha-icon icon="mdi:magnify"></ha-icon>
+                  <input
+                    type="text"
+                    placeholder="Filter scenes…"
+                    .value=${host._sceneFilter || ""}
+                    @input=${(e5) => {
+                      host._sceneFilter = e5.target.value;
+                    }}
+                  />
+                  ${
+                    host._sceneFilter
+                      ? x`<ha-icon
+                        icon="mdi:close-circle"
+                        style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                        @click=${() => {
+                          host._sceneFilter = "";
+                        }}
+                      ></ha-icon>`
+                      : ""
+                  }
+                </div>
+                <select
+                  class="sort-select"
+                  .value=${host._sceneSortBy || "recent"}
+                  @change=${(e5) => {
+                    host._sceneSortBy = e5.target.value;
+                  }}
+                >
+                  <option value="recent">Recently updated</option>
+                  <option value="alpha">Alphabetical</option>
+                  <option value="size">Most entities</option>
+                </select>
+                <div
+                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
+                >
+                  <button
+                    class="btn btn-primary"
+                    style="white-space:nowrap;"
+                    @click=${() => host._newSceneChat()}
+                  >
+                    <ha-icon
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:13px;"
+                    ></ha-icon>
+                    New Scene
+                  </button>
+                </div>
+              </div>
+              <div class="automations-summary">
+                ${filtered.length} scene${filtered.length !== 1 ? "s" : ""}
+              </div>
+              <div class="automations-list">
+                ${filtered.map((s6) => {
+                  const sceneId = s6.scene_id;
+                  const sceneEntityId = s6.entity_id;
+                  const entities = s6.entities || {};
+                  const entityCount = _sceneEntityCount(s6);
+                  const isExpanded = !!host._expandedScenes?.[sceneId];
+                  const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
+                  const burgerOpen = host._openSceneBurger === sceneId;
+                  const deleting = !!host._deletingScene?.[sceneId];
+                  const updated = formatTimeAgo(s6.updated_at);
+                  const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
+                  return x`
+                    <div
+                      class="auto-row${isExpanded ? " expanded" : ""}"
+                      data-scene-id="${sceneId}"
+                    >
+                      <div
+                        class="auto-row-main"
+                        @click=${(e5) => {
+                          if (
+                            e5.target.closest(
+                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .btn",
+                            )
+                          )
+                            return;
+                          host._expandedScenes = {
+                            ...host._expandedScenes,
+                            [sceneId]: !isExpanded,
+                          };
+                        }}
+                      >
+                        <ha-icon
+                          icon="mdi:palette"
+                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+                        ></ha-icon>
+                        <div class="auto-row-name">
+                          <div class="auto-row-title-row">
+                            <span class="auto-row-title">${s6.name}</span>
+                          </div>
+                          <span class="auto-row-desc">${meta}</span>
+                          <span class="auto-row-mobile-meta">
+                            <span>${meta}</span>
+                            <ha-icon
+                              icon="mdi:chevron-down"
+                              class="card-chevron ${isExpanded ? "open" : ""}"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </span>
+                        </div>
+                        <button
+                          class="btn btn-outline"
+                          style="padding:6px 12px;"
+                          ?disabled=${!sceneEntityId}
+                          @click=${(e5) => {
+                            e5.stopPropagation();
+                            const id = sceneEntityId
+                              ? sceneEntityId.replace(/^scene\./, "")
+                              : sceneId;
+                            host._activateScene(id, s6.name);
+                          }}
+                          title="Activate scene"
+                        >
+                          <ha-icon
+                            icon="mdi:play"
+                            style="--mdc-icon-size:14px;"
+                          ></ha-icon>
+                          Activate
+                        </button>
+                        <div class="burger-menu-wrapper">
+                          <button
+                            class="burger-btn"
+                            @click=${(e5) => {
+                              e5.stopPropagation();
+                              host._openSceneBurger = burgerOpen
+                                ? null
+                                : sceneId;
+                            }}
+                            title="More actions"
+                          >
+                            <ha-icon
+                              icon="mdi:dots-vertical"
+                              style="--mdc-icon-size:16px;"
+                            ></ha-icon>
+                          </button>
+                          ${
+                            burgerOpen
+                              ? x`
+                                <div class="burger-dropdown">
+                                  <button
+                                    class="burger-item"
+                                    @click=${(e5) => {
+                                      e5.stopPropagation();
+                                      host._openSceneBurger = null;
+                                      host._refineSceneInChat(s6);
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:chat-processing-outline"
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                    Refine in chat
+                                  </button>
+                                  <button
+                                    class="burger-item"
+                                    @click=${(e5) => {
+                                      e5.stopPropagation();
+                                      host._openSceneBurger = null;
+                                      window.history.pushState(
+                                        null,
+                                        "",
+                                        "/config/scene/dashboard",
+                                      );
+                                      window.dispatchEvent(
+                                        new Event("location-changed"),
+                                      );
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:open-in-new"
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                    Open in HA
+                                  </button>
+                                  <button
+                                    class="burger-item danger"
+                                    ?disabled=${deleting}
+                                    @click=${(e5) => {
+                                      e5.stopPropagation();
+                                      host._openSceneBurger = null;
+                                      host._deleteSceneConfirmId = sceneId;
+                                      host._deleteSceneConfirmName = s6.name;
+                                    }}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:trash-can-outline"
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                    ${deleting ? "Deleting\u2026" : "Delete"}
+                                  </button>
+                                </div>
+                              `
+                              : ""
+                          }
+                        </div>
+                      </div>
+                      ${
+                        isExpanded
+                          ? x`
+                            <div class="auto-row-expand">
+                              ${
+                                Object.keys(entities).length
+                                  ? _renderEntityList(host, entities)
+                                  : x`<div
+                                    style="font-size:12px;opacity:0.6;padding:6px 0;"
+                                  >
+                                    No entity details available — open the scene
+                                    in Home Assistant to inspect it.
+                                  </div>`
+                              }
+                              <div
+                                class="yaml-toggle"
+                                style="margin-top:10px;"
+                                @click=${() => {
+                                  host._sceneYamlOpen = {
+                                    ...host._sceneYamlOpen,
+                                    [sceneId]: !yamlOpen,
+                                  };
+                                }}
+                              >
+                                <ha-icon
+                                  icon="mdi:code-braces"
+                                  style="--mdc-icon-size:14px;"
+                                ></ha-icon>
+                                ${yamlOpen ? "Hide YAML" : "View YAML"}
+                              </div>
+                              ${
+                                yamlOpen
+                                  ? x`
+                                    <ha-code-editor
+                                      mode="yaml"
+                                      .value=${s6.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
+                                      read-only
+                                      style="--code-mirror-font-size:12px;"
+                                    ></ha-code-editor>
+                                  `
+                                  : ""
+                              }
+                            </div>
+                          `
+                          : ""
+                      }
+                    </div>
+                  `;
+                })}
+              </div>
+              ${
+                filtered.length === 0 && (host._scenes || []).length > 0
+                  ? x`<div
+                    style="text-align:center;opacity:0.45;padding:24px 0;"
+                  >
+                    No scenes match "${host._sceneFilter}"
+                  </div>`
+                  : ""
+              }
+            `
+            : x`<div style="text-align:center;padding:32px 0;">
+              <ha-icon
+                icon="mdi:palette-outline"
+                style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
+              ></ha-icon>
+              <p style="opacity:0.45;margin:0 0 12px;">
+                No scenes yet. Ask Selora to capture a moment.
+              </p>
+              <button
+                class="btn btn-primary"
+                @click=${() => host._newSceneChat()}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                New Scene
+              </button>
+            </div>`
+        }
+      </div>
+      ${renderDeleteSceneModal(host)}
+    </div>
+  `;
+}
+function renderDeleteSceneModal(host) {
+  if (!host._deleteSceneConfirmId) return "";
+  const name = host._deleteSceneConfirmName || "this scene";
+  return x`
+    <div
+      class="modal-overlay"
+      @click=${(e5) => {
+        if (e5.target === e5.currentTarget) {
+          host._deleteSceneConfirmId = null;
+          host._deleteSceneConfirmName = null;
+        }
+      }}
+    >
+      <div class="modal-content" style="max-width:420px;text-align:center;">
+        <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
+          Delete Scene
+        </div>
+        <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+          Delete <strong>${name}</strong>? This removes the scene from Home
+          Assistant and cannot be undone.
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;">
+          <button
+            class="btn btn-outline"
+            @click=${() => {
+              host._deleteSceneConfirmId = null;
+              host._deleteSceneConfirmName = null;
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            class="btn"
+            style="background:#ef4444;color:#fff;border-color:#ef4444;"
+            @click=${() => host._confirmDeleteScene()}
+          >
+            Delete
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
 
 // src/panel/render-settings.js
 var _PROVIDERS = [
@@ -8915,7 +9275,7 @@ __export(session_actions_exports, {
 function _checkTabParam() {
   const params = new URLSearchParams(window.location.search);
   const tab = params.get("tab");
-  if (tab === "automations" || tab === "settings") {
+  if (tab === "automations" || tab === "scenes" || tab === "settings") {
     this._activeTab = tab;
     this._showSidebar = false;
   }
@@ -9440,6 +9800,9 @@ async function _sendMessage() {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
+        }
+        if (event.scene_id) {
+          this._loadScenes();
         }
       } else if (event.type === "error") {
         assistantMsg.content =
@@ -10397,6 +10760,16 @@ var SeloraAIPanel = class extends s4 {
       // Device detail drawer
       _deviceDetail: { type: Object },
       _deviceDetailLoading: { type: Boolean },
+      // Scenes tab
+      _scenes: { type: Array },
+      _sceneFilter: { type: String },
+      _sceneSortBy: { type: String },
+      _expandedScenes: { type: Object },
+      _sceneYamlOpen: { type: Object },
+      _openSceneBurger: { type: String },
+      _deletingScene: { type: Object },
+      _deleteSceneConfirmId: { type: String },
+      _deleteSceneConfirmName: { type: String },
       // Theme
       _isDark: { type: Boolean },
       // Overflow menu
@@ -10503,6 +10876,15 @@ var SeloraAIPanel = class extends s4 {
     this._revokingTokenId = null;
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    this._scenes = [];
+    this._sceneFilter = "";
+    this._sceneSortBy = "recent";
+    this._expandedScenes = {};
+    this._sceneYamlOpen = {};
+    this._openSceneBurger = null;
+    this._deletingScene = {};
+    this._deleteSceneConfirmId = null;
+    this._deleteSceneConfirmName = null;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -10518,6 +10900,7 @@ var SeloraAIPanel = class extends s4 {
     this._loadSessions();
     this._loadSuggestions();
     this._loadAutomations();
+    this._loadScenes();
     this._loadConfig();
     this._loadMcpTokens();
     this._locationHandler = () => this._checkTabParam();
@@ -11135,6 +11518,91 @@ var SeloraAIPanel = class extends s4 {
       this._showToast("Failed to activate scene: " + err.message, "error");
     }
   }
+  _renderScenes() {
+    return renderScenes(this);
+  }
+  async _loadScenes() {
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/get_scenes",
+      });
+      this._scenes = result?.scenes || [];
+    } catch (err) {
+      console.error("Failed to load scenes", err);
+      this._scenes = [];
+    }
+  }
+  async _refineSceneInChat(scene) {
+    if (!scene) return;
+    const sessionId = scene.session_id;
+    const known = sessionId
+      ? this._sessions.find((s6) => s6.id === sessionId)
+      : null;
+    try {
+      if (known) {
+        await this._openSession(sessionId);
+      } else {
+        await this._newSession();
+      }
+    } catch (err) {
+      console.error("Failed to switch session for scene refine", err);
+    }
+    const ctx = known ? "" : ` (scene_id: ${scene.scene_id})`;
+    this._input = `Refine "${scene.name}"${ctx}: `;
+    this._activeTab = "chat";
+    this.requestUpdate();
+    await this.updateComplete;
+    const textfield = this.shadowRoot?.querySelector("ha-textfield");
+    if (textfield) textfield.focus();
+  }
+  async _confirmDeleteScene() {
+    const sceneId = this._deleteSceneConfirmId;
+    const name = this._deleteSceneConfirmName;
+    if (!sceneId) return;
+    this._deleteSceneConfirmId = null;
+    this._deleteSceneConfirmName = null;
+    this._deletingScene = { ...this._deletingScene, [sceneId]: true };
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/delete_scene",
+        scene_id: sceneId,
+      });
+      this._showToast(`Scene "${name || sceneId}" deleted.`, "success");
+      await this._loadScenes();
+    } catch (err) {
+      this._showToast("Failed to delete scene: " + err.message, "error");
+    } finally {
+      this._deletingScene = { ...this._deletingScene, [sceneId]: false };
+    }
+  }
+  async _newSceneChat() {
+    try {
+      const { session_id } = await this.hass.callWS({
+        type: "selora_ai/new_session",
+      });
+      this._activeSessionId = session_id;
+      this._messages = [];
+      this._input = "Create a scene that ";
+      this._activeTab = "chat";
+      this._welcomeKey = (this._welcomeKey || 0) + 1;
+      await this._loadSessions();
+      if (this.narrow) this._showSidebar = false;
+      this.requestUpdate();
+      await this.updateComplete;
+      const textfield = this.shadowRoot?.querySelector("ha-textfield");
+      if (textfield) {
+        textfield.focus();
+        const inputEl = textfield.shadowRoot?.querySelector("input, textarea");
+        if (inputEl) {
+          const len = this._input.length;
+          inputEl.setSelectionRange(len, len);
+        }
+      }
+    } catch (err) {
+      console.error("Failed to start new scene chat", err);
+      this._showToast("Failed to start new chat: " + err.message, "error");
+    }
+  }
   async _openDeviceDetail(deviceId) {
     if (!deviceId || !this.hass) return;
     this._deviceDetail = { name: "Loading..." };
@@ -11411,6 +11879,19 @@ var SeloraAIPanel = class extends s4 {
                 >Automations</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "scenes" ? "active" : ""}"
+              @click=${() => {
+                this._activeTab = "scenes";
+                this._showSidebar = false;
+                this._loadScenes();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon icon="mdi:palette-outline" class="tab-icon"></ha-icon
+                >Scenes</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           <div class="overflow-btn-wrap">
@@ -11674,6 +12155,7 @@ var SeloraAIPanel = class extends s4 {
           ></selora-particles>
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
+          ${this._activeTab === "scenes" ? this._renderScenes() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
         </div>
       </div>
