@@ -1,3 +1,29 @@
+## [0.7.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.6.1...v0.7.0) (2026-04-28)
+
+### Features
+
+* [#63](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/63) delayed actions via chat — relative time parsing ([d99bd88](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d99bd88a554e3e2167e0b05f8aa461f2b53d1abb))
+* [#66](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/issues/66) accept-to-create flow for suggestions ([f40242c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f40242c8281eeb6f1591a6675694d34a3de827d8))
+* add OpenRouter as an LLM backend ([8dcdcf3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8dcdcf30f5bc82909c7021d26b25bbadd3bcc143))
+* entity capabilities for scene domain filtering ([dbc2195](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/dbc2195964669f00135310ee6362519e7b766523))
+* scene cards in chat UI ([9c8fb11](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9c8fb119112135a0a8a3ed7a8aa00559d1b4adda))
+* scene creation -- Part 2a (multi-action entity discovery across domains) ([b3bbfc4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b3bbfc4803e5e33f0df7e849a5b29b442b48acda))
+* scene creation -- Part 2b (multi-action state mapping per entity) ([8d669a0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8d669a05b3f7e6a3937a49e736595d6a95eb2e61))
+* scene creation -- Part 2c (assembly and creation via HA scene API) ([5ec5135](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5ec51357ade51bcbea8b7722e99136b59748d030))
+* scene creation -- Part 2d (tests, security, and validation) ([35ed1df](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/35ed1dfd6a803a037b61d33e52e50d7678f4c6ca))
+* scene creation via natural language chat -- Part 1 (single-domain scenes) ([ffd801a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ffd801abf5f0d7ba09e628182b36740b6f19a733))
+* scenes management tab in panel ([d8a28cc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d8a28cc094cba4c0ac62cc0a3dfcb260dfce210b))
+
+### Bug Fixes
+
+* humanize sun trigger offset display ([b881237](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b8812370d163078e3a5e8909d3fb90f23b7f3711))
+* mobile keyboard covers chat input ([5d9e6a9](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5d9e6a911052dc66269c8a13ea46f08b5b1684ce))
+* pre-release security & lifecycle hardening ([d2466fb](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d2466fbdd2b8ac2a2a2e1162c1f624e6c42fda1b))
+* prevent device onboarding hang on multi-step flows ([129deb7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/129deb736910b92566da13e150e72704879763a8))
+* refinement chat loses context ([4713cdc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4713cdcd32b87bf3af6c8ead8c21b1a0494b823f))
+* restore mobile nav and declutter header ([17369af](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/17369af36b8502b1ad2ed46c2209af50abb7c335))
+* scene validation integration and hardening ([51b7339](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/51b73393d5a70d68fe0a79937b0be0ff8eb83de7))
+
 ## [0.6.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.6.0...v0.6.1) (2026-04-21)
 
 ### Bug Fixes
