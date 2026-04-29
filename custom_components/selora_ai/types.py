@@ -240,6 +240,43 @@ class SuggestionDict(TypedDict, total=False):
     dismissal_reason: str | None
 
 
+# ── LLM usage tracking ────────────────────────────────────────────────
+
+
+class LLMUsageInfo(TypedDict, total=False):
+    """Token usage extracted from a single LLM response.
+
+    Fields are optional so providers that don't expose a dimension (e.g.
+    Ollama lacks cost) can omit it. ``input_tokens``/``output_tokens`` are
+    the universal pair; the cache fields are Anthropic-specific.
+    """
+
+    input_tokens: int
+    output_tokens: int
+    cache_creation_input_tokens: int
+    cache_read_input_tokens: int
+
+
+class LLMUsageEvent(TypedDict, total=False):
+    """One enriched LLM usage record, stored in the ring buffer.
+
+    ``kind`` is the call site (e.g. ``"chat"``, ``"suggestions"``,
+    ``"command"``). ``intent`` is the parsed architect intent when
+    available (only set for chat after the response is parsed).
+    """
+
+    timestamp: Required[str]  # ISO 8601 UTC
+    kind: Required[str]
+    intent: str
+    provider: Required[str]
+    model: Required[str]
+    input_tokens: int
+    output_tokens: int
+    cost_usd: float
+    cache_creation_input_tokens: int
+    cache_read_input_tokens: int
+
+
 # ── Device structures ─────────────────────────────────────────────────
 
 

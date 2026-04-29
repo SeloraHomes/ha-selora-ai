@@ -25,6 +25,7 @@ import {
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
+import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import {
   renderVersionHistoryDrawer,
   renderDiffViewer,
@@ -155,6 +156,12 @@ class SeloraAIPanel extends LitElement {
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
+
+      // Usage tab (linked from Settings → LLM Provider)
+      _usageStats: { type: Object },
+      _usageRecent: { type: Array },
+      _pricingDefaults: { type: Object },
+      _pricingEdit: { type: Object },
 
       // Editable YAML state (keyed by msgIndex or suggestion key)
       _editedYaml: { type: Object },
@@ -1311,6 +1318,14 @@ class SeloraAIPanel extends LitElement {
     return renderSettings(this);
   }
 
+  _renderUsage() {
+    return renderUsage(this);
+  }
+
+  async _loadUsageStats() {
+    await loadUsageStats(this);
+  }
+
   _renderVersionHistoryDrawer(a) {
     return renderVersionHistoryDrawer(this, a);
   }
@@ -1836,6 +1851,7 @@ class SeloraAIPanel extends LitElement {
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
+          ${this._activeTab === "usage" ? this._renderUsage() : ""}
         </div>
       </div>
 

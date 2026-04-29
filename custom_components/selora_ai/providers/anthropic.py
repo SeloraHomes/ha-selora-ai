@@ -20,6 +20,7 @@ from .base import LLMProvider
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
+    from ..types import LLMUsageInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -93,6 +94,21 @@ class AnthropicProvider(LLMProvider):
             if block.get("type") == "text":
                 return block.get("text")
         return None
+
+    def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
+        usage = response_data.get("usage")
+        if not isinstance(usage, dict):
+            return None
+        info: LLMUsageInfo = {}
+        if "input_tokens" in usage:
+            info["input_tokens"] = int(usage["input_tokens"])
+        if "output_tokens" in usage:
+            info["output_tokens"] = int(usage["output_tokens"])
+        if "cache_creation_input_tokens" in usage:
+            info["cache_creation_input_tokens"] = int(usage["cache_creation_input_tokens"])
+        if "cache_read_input_tokens" in usage:
+            info["cache_read_input_tokens"] = int(usage["cache_read_input_tokens"])
+        return info or None
 
     def extract_tool_calls(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
         calls = []
@@ -170,6 +186,30 @@ class AnthropicProvider(LLMProvider):
             return obj.get("delta", {}).get("text")
         return None
 
+    def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
+        if not line.startswith("data: "):
+            return None
+        try:
+            obj = json.loads(line[6:])
+        except (json.JSONDecodeError, ValueError):
+            return None
+        evt = obj.get("type", "")
+        info: LLMUsageInfo = {}
+        if evt == "message_start":
+            usage = obj.get("message", {}).get("usage", {})
+            for key in (
+                "input_tokens",
+                "cache_creation_input_tokens",
+                "cache_read_input_tokens",
+            ):
+                if key in usage:
+                    info[key] = int(usage[key])  # type: ignore[literal-required]
+        elif evt == "message_delta":
+            usage = obj.get("usage", {})
+            if "output_tokens" in usage:
+                info["output_tokens"] = int(usage["output_tokens"])
+        return info or None
+
     async def stream_with_tools(
         self,
         resp: aiohttp.ClientResponse,
@@ -179,6 +219,10 @@ class AnthropicProvider(LLMProvider):
         """Stream Anthropic SSE, yielding text tokens and collecting tool calls."""
         current_block: dict[str, Any] | None = None
         tool_input_json = ""
+        # Anthropic emits input_tokens in `message_start.usage` and the
+        # final output_tokens in `message_delta.usage`; merge them so the
+        # call counts toward both totals.
+        stream_usage: LLMUsageInfo = {}
 
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
@@ -192,6 +236,10 @@ class AnthropicProvider(LLMProvider):
                     event = json.loads(line[6:])
                 except (json.JSONDecodeError, ValueError):
                     continue
+
+                usage_part = self.parse_stream_usage(line)
+                if usage_part:
+                    stream_usage.update(usage_part)
 
                 event_type = event.get("type", "")
 
@@ -244,6 +292,8 @@ class AnthropicProvider(LLMProvider):
                             )
                         current_block = None
                         tool_input_json = ""
+
+        self._report_usage(stream_usage or None)
 
     # -- Health check ------------------------------------------------------
 

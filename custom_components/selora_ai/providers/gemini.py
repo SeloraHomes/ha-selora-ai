@@ -20,6 +20,7 @@ from .base import LLMProvider
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
+    from ..types import LLMUsageInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -153,6 +154,17 @@ class GeminiProvider(LLMProvider):
         texts = [p["text"] for p in parts if "text" in p]
         return "".join(texts) if texts else None
 
+    def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
+        meta = response_data.get("usageMetadata")
+        if not isinstance(meta, dict):
+            return None
+        info: LLMUsageInfo = {}
+        if "promptTokenCount" in meta:
+            info["input_tokens"] = int(meta["promptTokenCount"])
+        if "candidatesTokenCount" in meta:
+            info["output_tokens"] = int(meta["candidatesTokenCount"])
+        return info or None
+
     def extract_tool_calls(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
         candidates = response_data.get("candidates", [])
         if not candidates:
@@ -260,6 +272,23 @@ class GeminiProvider(LLMProvider):
         texts = [p["text"] for p in parts if "text" in p]
         return "".join(texts) if texts else None
 
+    def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
+        if not line.startswith("data: "):
+            return None
+        try:
+            obj = json.loads(line[6:])
+        except (json.JSONDecodeError, ValueError):
+            return None
+        meta = obj.get("usageMetadata")
+        if not isinstance(meta, dict):
+            return None
+        info: LLMUsageInfo = {}
+        if "promptTokenCount" in meta:
+            info["input_tokens"] = int(meta["promptTokenCount"])
+        if "candidatesTokenCount" in meta:
+            info["output_tokens"] = int(meta["candidatesTokenCount"])
+        return info or None
+
     async def stream_with_tools(
         self,
         resp: aiohttp.ClientResponse,
@@ -267,6 +296,7 @@ class GeminiProvider(LLMProvider):
         content_blocks: list[dict[str, Any]],
     ) -> AsyncIterator[str]:
         """Stream Gemini SSE, yielding text and collecting tool calls."""
+        stream_usage: LLMUsageInfo = {}
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
             buffer += raw_chunk.decode("utf-8")
@@ -280,6 +310,10 @@ class GeminiProvider(LLMProvider):
                     event = json.loads(raw)
                 except (json.JSONDecodeError, ValueError):
                     continue
+
+                usage_part = self.parse_stream_usage(line)
+                if usage_part:
+                    stream_usage.update(usage_part)
 
                 candidates = event.get("candidates", [])
                 if not candidates:
@@ -297,6 +331,8 @@ class GeminiProvider(LLMProvider):
                                 "arguments": fc.get("args", {}),
                             }
                         )
+
+        self._report_usage(stream_usage or None)
 
     # -- Overrides for native endpoint -------------------------------------
 
@@ -361,6 +397,7 @@ class GeminiProvider(LLMProvider):
                 raise ConnectionError(f"{self.provider_name}: {err_msg}")
 
             buffer = ""
+            stream_usage: LLMUsageInfo = {}
             async for raw_chunk in resp.content.iter_any():
                 buffer += raw_chunk.decode("utf-8")
                 while "\n" in buffer:
@@ -368,9 +405,13 @@ class GeminiProvider(LLMProvider):
                     line = line.strip()
                     if not line:
                         continue
+                    usage_part = self.parse_stream_usage(line)
+                    if usage_part:
+                        stream_usage.update(usage_part)
                     text = self.parse_stream_line(line)
                     if text:
                         yield text
+            self._report_usage(stream_usage or None)
 
     # -- Health check ------------------------------------------------------
 

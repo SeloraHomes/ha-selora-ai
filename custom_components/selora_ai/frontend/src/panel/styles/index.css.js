@@ -6,6 +6,7 @@ import { proposalStyles } from "./proposals.css.js";
 import { cardElementStyles } from "./cards.css.js";
 import { automationsStyles } from "./automations.css.js";
 import { settingsStyles } from "./settings.css.js";
+import { usageStyles } from "./usage.css.js";
 
 export {
   layoutStyles,
@@ -16,6 +17,7 @@ export {
   cardElementStyles,
   automationsStyles,
   settingsStyles,
+  usageStyles,
 };
 
 export const allPanelStyles = [
@@ -27,4 +29,5 @@ export const allPanelStyles = [
   cardElementStyles,
   automationsStyles,
   settingsStyles,
+  usageStyles,
 ];

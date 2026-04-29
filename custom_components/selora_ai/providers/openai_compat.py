@@ -18,6 +18,7 @@ from .base import LLMProvider
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
+    from ..types import LLMUsageInfo
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -56,6 +57,10 @@ class OpenAICompatibleProvider(LLMProvider):
             payload["tools"] = tools
         if stream:
             payload["stream"] = True
+            # Ask the server for a final chunk with token usage so the
+            # streaming path can be tracked. Servers that don't support
+            # this option ignore it.
+            payload["stream_options"] = {"include_usage": True}
         return payload
 
     def extract_text_response(self, response_data: dict[str, Any]) -> str | None:
@@ -63,6 +68,17 @@ class OpenAICompatibleProvider(LLMProvider):
         if not choices:
             return None
         return choices[0].get("message", {}).get("content")
+
+    def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
+        usage = response_data.get("usage")
+        if not isinstance(usage, dict):
+            return None
+        info: LLMUsageInfo = {}
+        if "prompt_tokens" in usage:
+            info["input_tokens"] = int(usage["prompt_tokens"])
+        if "completion_tokens" in usage:
+            info["output_tokens"] = int(usage["completion_tokens"])
+        return info or None
 
     def extract_tool_calls(self, response_data: dict[str, Any]) -> list[dict[str, Any]]:
         choices = response_data.get("choices", [])
@@ -158,6 +174,28 @@ class OpenAICompatibleProvider(LLMProvider):
             return choices[0].get("delta", {}).get("content")
         return None
 
+    def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
+        if not line.startswith("data: "):
+            return None
+        raw = line[6:]
+        if raw.strip() == "[DONE]":
+            return None
+        try:
+            obj = json.loads(raw)
+        except (json.JSONDecodeError, ValueError):
+            return None
+        # Final chunk (stream_options.include_usage) carries usage on the
+        # event itself, with empty `choices`.
+        usage = obj.get("usage")
+        if not isinstance(usage, dict):
+            return None
+        info: LLMUsageInfo = {}
+        if "prompt_tokens" in usage:
+            info["input_tokens"] = int(usage["prompt_tokens"])
+        if "completion_tokens" in usage:
+            info["output_tokens"] = int(usage["completion_tokens"])
+        return info or None
+
     async def stream_with_tools(
         self,
         resp: aiohttp.ClientResponse,
@@ -166,6 +204,7 @@ class OpenAICompatibleProvider(LLMProvider):
     ) -> AsyncIterator[str]:
         """Stream OpenAI/Ollama SSE, yielding text tokens and collecting tool calls."""
         tc_accum: dict[int, dict[str, str]] = {}
+        stream_usage: LLMUsageInfo = {}
 
         buffer = ""
         async for raw_chunk in resp.content.iter_any():
@@ -182,6 +221,10 @@ class OpenAICompatibleProvider(LLMProvider):
                     event = json.loads(raw)
                 except (json.JSONDecodeError, ValueError):
                     continue
+
+                usage_part = self.parse_stream_usage(line)
+                if usage_part:
+                    stream_usage.update(usage_part)
 
                 choices = event.get("choices", [])
                 if not choices:
@@ -215,6 +258,8 @@ class OpenAICompatibleProvider(LLMProvider):
                     "arguments": args,
                 }
             )
+
+        self._report_usage(stream_usage or None)
 
     # -- Health check ------------------------------------------------------
 
