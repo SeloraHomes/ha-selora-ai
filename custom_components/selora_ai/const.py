@@ -10,6 +10,17 @@ DOMAIN = "selora_ai"
 # ── Dispatcher Signals ───────────────────────────────────────────────
 SIGNAL_DEVICES_UPDATED = f"{DOMAIN}_devices_updated"
 SIGNAL_ACTIVITY_LOG = f"{DOMAIN}_activity_log"
+SIGNAL_LLM_USAGE = f"{DOMAIN}_llm_usage"
+
+# HA event fired for every LLM call, for audit / Logbook visibility.
+EVENT_LLM_USAGE = f"{DOMAIN}_llm_usage"
+
+# ── LLM Usage Sensors ────────────────────────────────────────────────
+# Persistent counters survive restarts via RestoreSensor; the store key
+# below is for an explicit fallback save (in case restore returns None
+# during an unclean shutdown).
+LLM_USAGE_STORE_KEY = f"{DOMAIN}.llm_usage_counters"
+LLM_USAGE_STORE_VERSION = 1
 
 
 # ── Integration Discovery Database ──────────────────────────────────
@@ -778,6 +789,104 @@ MESSAGES_ENDPOINT = ANTHROPIC_MESSAGES_ENDPOINT  # Legacy compatibility
 # TODO: implement mqtt_listener.py
 CONF_MQTT_ENABLED = "mqtt_enabled"
 DEFAULT_MQTT_ENABLED = False  # Off until implemented
+
+# ── LLM Pricing ──────────────────────────────────────────────────────
+# Approximate USD cost per million tokens, used for the cost-estimate
+# sensor. Treated as best-effort: providers update prices and our table
+# may lag. Looked up by exact model id; matches "anthropic/<id>" too so
+# OpenRouter routes resolve. Models not listed contribute 0 to cost
+# (call count and token totals are still tracked).
+#
+# Anthropic prices sourced from https://platform.claude.com/docs/en/about-claude/pricing
+# (last verified 2026-04-28). Users can override via the panel for
+# enterprise / negotiated pricing.
+#
+# Format: provider_type -> {model_id: (input_per_million, output_per_million)}
+LLM_PRICING_USD_PER_MTOK: dict[str, dict[str, tuple[float, float]]] = {
+    "anthropic": {
+        # Opus 4.5+ is priced at the new tier ($5 / $25).
+        "claude-opus-4-7": (5.0, 25.0),
+        "claude-opus-4-6": (5.0, 25.0),
+        "claude-opus-4-5": (5.0, 25.0),
+        # Opus 4 / 4.1 retain the legacy tier ($15 / $75).
+        "claude-opus-4-1": (15.0, 75.0),
+        "claude-opus-4": (15.0, 75.0),
+        # Sonnet 3.7 (deprecated) and 4.x share the same tier.
+        "claude-sonnet-4-6": (3.0, 15.0),
+        "claude-sonnet-4-5": (3.0, 15.0),
+        "claude-sonnet-4": (3.0, 15.0),
+        "claude-sonnet-3-7": (3.0, 15.0),
+        # Haiku family.
+        "claude-haiku-4-5": (1.0, 5.0),
+        "claude-haiku-4-5-20251001": (1.0, 5.0),
+        "claude-haiku-3-5": (0.80, 4.0),
+        "claude-haiku-3": (0.25, 1.25),
+    },
+    "openai": {
+        "gpt-5.5": (5.0, 30.0),
+        "gpt-5.4": (2.5, 15.0),
+        "gpt-5": (1.25, 10.0),
+        "gpt-5-mini": (0.25, 2.0),
+        "gpt-4o": (2.5, 10.0),
+        "gpt-4o-mini": (0.15, 0.6),
+        "o1": (15.0, 60.0),
+        "o3": (2.0, 8.0),
+        "o4-mini": (1.10, 4.40),
+    },
+    "gemini": {
+        "gemini-2.5-pro": (1.25, 10.0),
+        "gemini-2.5-flash": (0.30, 2.50),
+        "gemini-2.5-flash-lite": (0.10, 0.40),
+        "gemini-2.0-flash": (0.10, 0.40),
+    },
+    "openrouter": {
+        # OpenRouter passes vendor pricing through; we approximate via
+        # the underlying model name. Exact billing comes from OpenRouter.
+        "anthropic/claude-sonnet-4.5": (3.0, 15.0),
+        "anthropic/claude-sonnet-4-6": (3.0, 15.0),
+        "anthropic/claude-opus-4-7": (5.0, 25.0),
+        "openai/gpt-5.5": (5.0, 30.0),
+        "openai/gpt-5.4": (2.5, 15.0),
+        "openai/gpt-5": (1.25, 10.0),
+    },
+    # Ollama is local — no cost.
+    "ollama": {},
+}
+
+# User-supplied pricing overrides live in the config entry's options under
+# this key. Shape: {provider: {model: [input_per_million, output_per_million]}}.
+# An entry takes precedence over the built-in table; missing entries fall
+# through to the defaults above.
+CONF_LLM_PRICING_OVERRIDES = "llm_pricing_overrides"
+
+
+def estimate_llm_cost_usd(
+    provider: str,
+    model: str,
+    input_tokens: int,
+    output_tokens: int,
+    overrides: dict[str, dict[str, tuple[float, float] | list[float]]] | None = None,
+) -> float:
+    """Return an approximate USD cost for one call, or 0 when unknown.
+
+    ``overrides`` (optional) lets the user supply custom $/MTok rates per
+    provider/model — typically loaded from the config entry's options.
+    Override shape mirrors ``LLM_PRICING_USD_PER_MTOK``; values may be
+    tuples or 2-element lists (lists survive a JSON round-trip).
+    """
+    pricing: tuple[float, float] | list[float] | None = None
+    if overrides:
+        override_entry = overrides.get(provider, {}).get(model)
+        if override_entry is not None:
+            pricing = override_entry
+    if pricing is None:
+        pricing = LLM_PRICING_USD_PER_MTOK.get(provider, {}).get(model)
+    if not pricing or len(pricing) < 2:
+        return 0.0
+    in_price = float(pricing[0])
+    out_price = float(pricing[1])
+    return (input_tokens * in_price + output_tokens * out_price) / 1_000_000.0
+
 
 # ── LLM Timeout ─────────────────────────────────────────────────────
 DEFAULT_LLM_TIMEOUT = 120  # seconds — per-request timeout for LLM calls

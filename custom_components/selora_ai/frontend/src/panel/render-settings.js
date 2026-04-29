@@ -1,5 +1,52 @@
 import { html } from "lit";
 
+// Find the LLM cost sensor and return today's spend, or null if either
+// the sensor isn't present or the value is non-numeric. Used to surface
+// a live preview in the Settings → LLM Provider header.
+function _todayCostHint(host) {
+  const states = host.hass?.states || {};
+  for (const [entityId, state] of Object.entries(states)) {
+    if (
+      entityId.startsWith("sensor.") &&
+      entityId.includes("selora") &&
+      entityId.endsWith("llm_cost")
+    ) {
+      const v = Number(state?.state);
+      if (Number.isFinite(v) && v > 0) {
+        // Lifetime total — we don't have today's split here, but the
+        // panel will show the period breakdown after navigation. The
+        // header just teases that there *is* data.
+        return v;
+      }
+      return 0;
+    }
+  }
+  return null;
+}
+
+function _renderUsageHeaderLink(host) {
+  const cost = _todayCostHint(host);
+  const hasData = cost !== null && cost > 0;
+  return html`
+    <button
+      class="section-card-action"
+      title="View token usage"
+      @click=${() => {
+        host._activeTab = "usage";
+        host._loadUsageStats?.();
+        host.requestUpdate();
+      }}
+    >
+      <ha-icon icon="mdi:chart-line-variant"></ha-icon>
+      <span>${hasData ? "Usage" : "View usage"}</span>
+      <ha-icon
+        icon="mdi:chevron-right"
+        class="section-card-action-chevron"
+      ></ha-icon>
+    </button>
+  `;
+}
+
 const _PROVIDERS = [
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
@@ -113,8 +160,9 @@ export function renderSettings(host) {
           ></ha-icon>
         </a>
         <div class="section-card settings-section">
-          <div class="section-card-header">
+          <div class="section-card-header section-card-header--with-action">
             <h3>LLM Provider</h3>
+            ${_renderUsageHeaderLink(host)}
           </div>
           <div class="form-group">
             <label>Provider</label>
@@ -391,15 +439,13 @@ export function renderSettings(host) {
         </div>
 
         <div class="section-card settings-section">
-          <div style="margin-bottom:16px;">
-            <h3 style="font-size:20px;font-weight:700;margin:0;">MCP Server</h3>
-            <p
-              style="font-size:13px;color:var(--secondary-text-color);margin:4px 0 0;"
-            >
-              Expose your home to external AI tools like Openclaw, Claude
-              Desktop, Cursor, or Windsurf.
-            </p>
+          <div class="section-card-header">
+            <h3>MCP Server</h3>
           </div>
+          <p class="section-card-subtitle">
+            Expose your home to external AI tools like Openclaw, Claude Desktop,
+            Cursor, or Windsurf.
+          </p>
 
           <div class="settings-connect-block">
             <div

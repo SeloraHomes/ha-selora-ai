@@ -17,8 +17,13 @@ from datetime import datetime, timedelta
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    RestoreSensor,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CURRENCY_DOLLAR
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
@@ -35,6 +40,7 @@ from .const import (
     KNOWN_INTEGRATIONS,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
+    SIGNAL_LLM_USAGE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,14 +106,18 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up Selora AI Hub sensors."""
-    sensors = [
+    sensors: list[SensorEntity] = [
         SmartButlerStatusSensor(hass, entry),
         DeviceListSensor(hass, entry),
         LastActivitySensor(hass, entry),
         DiscoverySensor(hass, entry),
+        LLMTokensInSensor(hass, entry),
+        LLMTokensOutSensor(hass, entry),
+        LLMCallsSensor(hass, entry),
+        LLMCostSensor(hass, entry),
     ]
     async_add_entities(sensors, update_before_add=True)
-    _LOGGER.info("Selora AI Hub: 4 sensors registered")
+    _LOGGER.info("Selora AI Hub: %d sensors registered", len(sensors))
 
 
 # ── Helper ──────────────────────────────────────────────────────────
@@ -450,3 +460,125 @@ class DiscoverySensor(SensorEntity):
             self._unsub_timer()
         if self._unsub_signal:
             self._unsub_signal()
+
+
+# ── LLM Usage Sensors ───────────────────────────────────────────────
+#
+# Cumulative counters fed by SIGNAL_LLM_USAGE. Persist across restarts via
+# RestoreSensor. Use total_increasing so HA's long-term Statistics engine
+# computes hourly/daily rollups for free — the panel and HA history graphs
+# read from those statistics directly.
+
+
+class _LLMUsageBaseSensor(RestoreSensor):
+    """Base for LLM usage counters: restore last value, increment on signal."""
+
+    _attr_has_entity_name = True
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+    _attr_should_poll = False
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_signal: Callable[[], None] | None = None
+        self._value: float = 0.0
+        self._last_provider: str | None = None
+        self._last_model: str | None = None
+        self._attr_device_info = _hub_device_info()
+
+    @property
+    def native_value(self) -> float:
+        return self._value
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "last_provider": self._last_provider,
+            "last_model": self._last_model,
+        }
+
+    def _delta_for(self, payload: dict[str, Any]) -> float:
+        """Return the increment to add to this counter for one usage event."""
+        raise NotImplementedError
+
+    async def async_added_to_hass(self) -> None:
+        last = await self.async_get_last_sensor_data()
+        if last is not None and last.native_value is not None:
+            try:
+                self._value = float(last.native_value)  # type: ignore[arg-type]
+            except (TypeError, ValueError):
+                self._value = 0.0
+
+        @callback
+        def _on_usage(payload: dict[str, Any]) -> None:
+            delta = self._delta_for(payload)
+            if delta <= 0:
+                return
+            self._value += delta
+            self._last_provider = payload.get("provider")
+            self._last_model = payload.get("model")
+            self.async_write_ha_state()
+
+        self._unsub_signal = async_dispatcher_connect(self.hass, SIGNAL_LLM_USAGE, _on_usage)
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_signal:
+            self._unsub_signal()
+
+
+class LLMTokensInSensor(_LLMUsageBaseSensor):
+    """Cumulative input (prompt) tokens sent to the LLM."""
+
+    _attr_unique_id = "selora_ai_hub_llm_tokens_in"
+    _attr_name = "LLM Tokens In"
+    _attr_icon = "mdi:upload"
+    _attr_native_unit_of_measurement = "tokens"
+
+    def _delta_for(self, payload: dict[str, Any]) -> float:
+        return float(payload.get("input_tokens", 0) or 0)
+
+
+class LLMTokensOutSensor(_LLMUsageBaseSensor):
+    """Cumulative output (completion) tokens received from the LLM."""
+
+    _attr_unique_id = "selora_ai_hub_llm_tokens_out"
+    _attr_name = "LLM Tokens Out"
+    _attr_icon = "mdi:download"
+    _attr_native_unit_of_measurement = "tokens"
+
+    def _delta_for(self, payload: dict[str, Any]) -> float:
+        return float(payload.get("output_tokens", 0) or 0)
+
+
+class LLMCallsSensor(_LLMUsageBaseSensor):
+    """Cumulative count of LLM calls."""
+
+    _attr_unique_id = "selora_ai_hub_llm_calls"
+    _attr_name = "LLM Calls"
+    _attr_icon = "mdi:counter"
+    _attr_native_unit_of_measurement = "calls"
+
+    def _delta_for(self, payload: dict[str, Any]) -> float:
+        # Count any usage event with at least one token reported.
+        if (payload.get("input_tokens") or 0) or (payload.get("output_tokens") or 0):
+            return 1.0
+        return 0.0
+
+
+class LLMCostSensor(_LLMUsageBaseSensor):
+    """Estimated cumulative LLM cost in USD (best-effort, uses static pricing).
+
+    Not using ``SensorDeviceClass.MONETARY`` because that device class
+    requires ``state_class: TOTAL`` (with explicit resets), and we want
+    the simpler ``TOTAL_INCREASING`` semantics. The unit is still USD so
+    dashboards render correctly.
+    """
+
+    _attr_unique_id = "selora_ai_hub_llm_cost"
+    _attr_name = "LLM Cost (estimate)"
+    _attr_icon = "mdi:cash"
+    _attr_native_unit_of_measurement = CURRENCY_DOLLAR
+    _attr_suggested_display_precision = 4
+
+    def _delta_for(self, payload: dict[str, Any]) -> float:
+        return float(payload.get("cost_usd", 0.0) or 0.0)

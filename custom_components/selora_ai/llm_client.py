@@ -11,7 +11,11 @@ tool-call serialisation) live in `providers/`.  This module owns:
 
 from __future__ import annotations
 
+from collections import deque
 from collections.abc import AsyncIterator
+from contextlib import contextmanager
+from contextvars import ContextVar, Token
+from datetime import UTC, datetime
 import json
 import logging
 import re
@@ -21,19 +25,24 @@ if TYPE_CHECKING:
     from .tool_executor import ToolExecutor
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.dispatcher import async_dispatcher_send
 import yaml
 
 from .automation_utils import assess_automation_risk, validate_automation_payload
 from .const import (
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
+    EVENT_LLM_USAGE,
     LLM_PROVIDER_ANTHROPIC,
     LLM_PROVIDER_GEMINI,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
     MAX_TOOL_CALL_ROUNDS,
+    SIGNAL_LLM_USAGE,
+    estimate_llm_cost_usd,
 )
 from .entity_capabilities import is_actionable_entity
 from .providers.base import LLMProvider
@@ -41,8 +50,15 @@ from .types import (
     ArchitectResponse,
     EntitySnapshot,
     HomeSnapshot,
+    LLMUsageEvent,
+    LLMUsageInfo,
     ToolCallLog,
 )
+
+# How many recent usage events to keep in the in-memory ring buffer that
+# powers the panel's "Where tokens go" breakdown. Chosen so even a chatty
+# user has at least a day of context, while bounding memory.
+LLM_USAGE_BUFFER_SIZE = 500
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -316,11 +332,100 @@ class LLMClient:
         *,
         max_suggestions: int = DEFAULT_MAX_SUGGESTIONS,
         lookback_days: int = DEFAULT_RECORDER_LOOKBACK_DAYS,
+        pricing_overrides: dict[str, dict[str, tuple[float, float] | list[float]]] | None = None,
     ) -> None:
         self._hass = hass
         self._provider = provider
         self._max_suggestions = max_suggestions
         self._lookback_days = lookback_days
+        self._pricing_overrides = pricing_overrides or {}
+        self._pending_usage: ContextVar[list[tuple[str, str, LLMUsageInfo]]] = ContextVar(
+            f"selora_pending_usage_{id(self)}"
+        )
+        self._provider.set_usage_callback(self._on_provider_usage)
+        # Shared in-memory ring buffer of recent enriched events, used by
+        # the panel's "Where tokens go" breakdown. Keyed in hass.data so
+        # multiple LLMClient instances (e.g. main + device manager) share
+        # one history.
+        hass.data.setdefault(DOMAIN, {}).setdefault(
+            "llm_usage_events",
+            deque(maxlen=LLM_USAGE_BUFFER_SIZE),
+        )
+
+    def set_pricing_overrides(
+        self,
+        overrides: dict[str, dict[str, tuple[float, float] | list[float]]] | None,
+    ) -> None:
+        """Replace the in-memory pricing overrides used by the cost estimator."""
+        self._pricing_overrides = overrides or {}
+
+    def _on_provider_usage(
+        self,
+        provider_type: str,
+        model: str,
+        usage: LLMUsageInfo,
+    ) -> None:
+        """Buffer usage from the provider; ``_flush_usage`` emits it later."""
+        buf = self._pending_usage.get(None)
+        if buf is not None:
+            buf.append((provider_type, model, usage))
+
+    def _flush_usage(self, kind: str, *, intent: str | None = None) -> None:
+        """Emit all pending usage events with the given kind/intent.
+
+        Called by each public method at the point where we know what the
+        call was for. Fires the dispatcher signal (sensors), the HA event
+        (Logbook), and appends to the ring buffer (panel breakdown).
+        """
+        buf = self._pending_usage.get(None)
+        if not buf:
+            return
+        pending = list(buf)
+        buf.clear()
+        buffer: deque[LLMUsageEvent] = self._hass.data[DOMAIN]["llm_usage_events"]
+        for provider_type, model, usage in pending:
+            input_tokens = int(usage.get("input_tokens", 0))
+            output_tokens = int(usage.get("output_tokens", 0))
+            cost_usd = estimate_llm_cost_usd(
+                provider_type,
+                model,
+                input_tokens,
+                output_tokens,
+                overrides=self._pricing_overrides,
+            )
+            event: LLMUsageEvent = {
+                "timestamp": datetime.now(UTC).isoformat(),
+                "kind": kind,
+                "provider": provider_type,
+                "model": model,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "cost_usd": cost_usd,
+            }
+            if intent:
+                event["intent"] = intent
+            if "cache_creation_input_tokens" in usage:
+                event["cache_creation_input_tokens"] = usage["cache_creation_input_tokens"]
+            if "cache_read_input_tokens" in usage:
+                event["cache_read_input_tokens"] = usage["cache_read_input_tokens"]
+            buffer.append(event)
+            async_dispatcher_send(self._hass, SIGNAL_LLM_USAGE, event)
+            self._hass.bus.async_fire(EVENT_LLM_USAGE, event)
+
+    def _drop_pending_usage(self) -> None:
+        """Discard pending usage (e.g. when a call errored before completion)."""
+        buf = self._pending_usage.get(None)
+        if buf is not None:
+            buf.clear()
+
+    @contextmanager
+    def _usage_scope(self) -> Any:
+        """Create an isolated usage buffer for the current call."""
+        token: Token[list[tuple[str, str, LLMUsageInfo]]] = self._pending_usage.set([])
+        try:
+            yield
+        finally:
+            self._pending_usage.reset(token)
 
     @property
     def provider_name(self) -> str:
@@ -415,13 +520,19 @@ class LLMClient:
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 1024,
+        kind: str = "raw",
     ) -> tuple[str | None, str | None]:
         """Send a raw request to the LLM provider.
 
         Thin wrapper exposed for callers (e.g. SuggestionGenerator) that need
-        direct LLM access without the architect parsing pipeline.
+        direct LLM access without the architect parsing pipeline. Pass
+        ``kind`` to tag the call for the usage breakdown.
         """
-        return await self._provider.send_request(system, messages, max_tokens=max_tokens)
+        with self._usage_scope():
+            try:
+                return await self._provider.send_request(system, messages, max_tokens=max_tokens)
+            finally:
+                self._flush_usage(kind)
 
     # ------------------------------------------------------------------
     # Public API
@@ -436,9 +547,13 @@ class LLMClient:
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_analysis_prompt(home_snapshot)
 
-        result, error = await self._provider.send_request(
-            system=system_prompt, messages=[{"role": "user", "content": user_prompt}]
-        )
+        with self._usage_scope():
+            try:
+                result, error = await self._provider.send_request(
+                    system=system_prompt, messages=[{"role": "user", "content": user_prompt}]
+                )
+            finally:
+                self._flush_usage("suggestions")
 
         if not result:
             return []
@@ -480,31 +595,61 @@ class LLMClient:
                 "config_issue": True,
             }
 
-        system_prompt = self._build_architect_system_prompt(
-            tools_available=tool_executor is not None,
-        )
-        messages = self._build_chat_messages(
-            user_message,
-            entities,
-            existing_automations,
-            history,
-            system_prompt=system_prompt,
-            refining_context=refining_context,
-            scene_context=scene_context,
-            areas=areas,
-        )
-        # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
-        if tool_executor is not None:
-            tools = self._get_tools_for_provider()
-            result_text, error, tool_log = await self._send_request_with_tools(
-                system=system_prompt,
-                messages=messages,
-                tool_executor=tool_executor,
-                tools=tools,
+        with self._usage_scope():
+            system_prompt = self._build_architect_system_prompt(
+                tools_available=tool_executor is not None,
             )
-            if not result_text:
+            messages = self._build_chat_messages(
+                user_message,
+                entities,
+                existing_automations,
+                history,
+                system_prompt=system_prompt,
+                refining_context=refining_context,
+                scene_context=scene_context,
+                areas=areas,
+            )
+            # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
+            if tool_executor is not None:
+                tools = self._get_tools_for_provider()
+                result_text, error, tool_log = await self._send_request_with_tools(
+                    system=system_prompt,
+                    messages=messages,
+                    tool_executor=tool_executor,
+                    tools=tools,
+                )
+                if not result_text:
+                    is_config_issue = bool(
+                        error and ("HTTP 401" in error or "credit balance" in error)
+                    )
+                    _LOGGER.warning("LLM tool-calling request failed: %s", error)
+                    self._flush_usage("chat")
+                    return {
+                        "intent": "answer",
+                        "response": (
+                            "I encountered an error communicating with the LLM. "
+                            "Please check your settings and logs."
+                        ),
+                        "error": error or "llm_request_failed",
+                        "config_issue": is_config_issue,
+                    }
+                parsed = self._apply_command_policy(
+                    self._parse_architect_response(result_text), entities
+                )
+                self._flush_usage("chat", intent=parsed.get("intent"))
+                if tool_log:
+                    parsed["tool_calls"] = tool_log
+                return parsed
+
+            # Standard path (no tools)
+            result, error = await self._provider.send_request(
+                system=system_prompt, messages=messages
+            )
+
+            if not result:
                 is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
-                _LOGGER.warning("LLM tool-calling request failed: %s", error)
+                _LOGGER.warning("LLM request failed: %s", error)
+                self._flush_usage("chat")
                 return {
                     "intent": "answer",
                     "response": (
@@ -514,30 +659,10 @@ class LLMClient:
                     "error": error or "llm_request_failed",
                     "config_issue": is_config_issue,
                 }
-            parsed = self._apply_command_policy(
-                self._parse_architect_response(result_text), entities
-            )
-            if tool_log:
-                parsed["tool_calls"] = tool_log
+
+            parsed = self._apply_command_policy(self._parse_architect_response(result), entities)
+            self._flush_usage("chat", intent=parsed.get("intent"))
             return parsed
-
-        # Standard path (no tools)
-        result, error = await self._provider.send_request(system=system_prompt, messages=messages)
-
-        if not result:
-            is_config_issue = bool(error and ("HTTP 401" in error or "credit balance" in error))
-            _LOGGER.warning("LLM request failed: %s", error)
-            return {
-                "intent": "answer",
-                "response": (
-                    "I encountered an error communicating with the LLM. "
-                    "Please check your settings and logs."
-                ),
-                "error": error or "llm_request_failed",
-                "config_issue": is_config_issue,
-            }
-
-        return self._apply_command_policy(self._parse_architect_response(result), entities)
 
     async def architect_chat_stream(
         self,
@@ -566,34 +691,41 @@ class LLMClient:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
-        system_prompt = self._build_architect_stream_system_prompt(
-            tools_available=tool_executor is not None,
-        )
-        messages = self._build_chat_messages(
-            user_message,
-            entities,
-            existing_automations,
-            history,
-            system_prompt=system_prompt,
-            refining_context=refining_context,
-            scene_context=scene_context,
-            areas=areas,
-        )
+        with self._usage_scope():
+            system_prompt = self._build_architect_stream_system_prompt(
+                tools_available=tool_executor is not None,
+            )
+            messages = self._build_chat_messages(
+                user_message,
+                entities,
+                existing_automations,
+                history,
+                system_prompt=system_prompt,
+                refining_context=refining_context,
+                scene_context=scene_context,
+                areas=areas,
+            )
 
-        # Tool-aware streaming: streams text tokens, handles tool calls inline
-        if tool_executor is not None:
-            tools = self._get_tools_for_provider()
-            async for chunk in self._stream_request_with_tools(
-                system=system_prompt,
-                messages=messages,
-                tool_executor=tool_executor,
-                tools=tools,
-            ):
-                yield chunk
-            return
+            # Tool-aware streaming: streams text tokens, handles tool calls inline
+            if tool_executor is not None:
+                tools = self._get_tools_for_provider()
+                try:
+                    async for chunk in self._stream_request_with_tools(
+                        system=system_prompt,
+                        messages=messages,
+                        tool_executor=tool_executor,
+                        tools=tools,
+                    ):
+                        yield chunk
+                finally:
+                    self._flush_usage("chat")
+                return
 
-        async for chunk in self._provider.send_request_stream(system_prompt, messages):
-            yield chunk
+            try:
+                async for chunk in self._provider.send_request_stream(system_prompt, messages):
+                    yield chunk
+            finally:
+                self._flush_usage("chat")
 
     async def execute_command(
         self, command: str, entities: list[EntitySnapshot]
@@ -634,9 +766,14 @@ class LLMClient:
             entity_lines
         )
 
-        result, error = await self._provider.send_request(
-            system=system_prompt, messages=[{"role": "user", "content": user_prompt}]
-        )
+        with self._usage_scope():
+            try:
+                result, error = await self._provider.send_request(
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                )
+            finally:
+                self._flush_usage("command", intent="command")
 
         if not result:
             _LOGGER.warning("%s command failed: %s", self.provider_name, error)
@@ -655,18 +792,25 @@ class LLMClient:
             {"role": "assistant", "content": assistant_response[:200]},
             {"role": "user", "content": "Now generate a short title for this conversation."},
         ]
-        try:
-            result, error = await self._provider.send_request(system=system, messages=messages)
-            if result:
-                title = result.strip().strip('"').strip("'")
-                return title[:80]
-        except Exception:
-            _LOGGER.debug("Title generation failed, using fallback")
+        with self._usage_scope():
+            try:
+                result, error = await self._provider.send_request(system=system, messages=messages)
+                if result:
+                    title = result.strip().strip('"').strip("'")
+                    return title[:80]
+            except Exception:
+                _LOGGER.debug("Title generation failed, using fallback")
+            finally:
+                self._flush_usage("session_title")
         return user_msg[:60]
 
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""
-        return await self._provider.health_check()
+        with self._usage_scope():
+            try:
+                return await self._provider.health_check()
+            finally:
+                self._flush_usage("health_check")
 
     def parse_streamed_response(
         self,
@@ -833,8 +977,14 @@ class LLMClient:
             requested_tools = self._provider.extract_tool_calls(response_data)
 
             if not requested_tools:
+                # Final round — leave usage in the buffer so architect_chat
+                # can flush it with the parsed intent.
                 text = self._provider.extract_text_response(response_data)
                 return text, None, tool_calls_log
+
+            # Tool round — record under chat_tool_round so the breakdown
+            # shows how much the agent loop costs vs the answering call.
+            self._flush_usage("chat_tool_round")
 
             # Execute each tool and build the result messages
             for tool_call in requested_tools:
@@ -904,9 +1054,15 @@ class LLMClient:
                 )
                 return
 
-            # If no tool calls, we're done — text was already streamed
+            # If no tool calls, we're done — text was already streamed.
+            # Leave usage in the buffer so the calling architect_chat_stream
+            # flushes it under "chat".
             if not tool_calls:
                 return
+
+            # Tool round — flush usage tagged so the agent loop is visible
+            # separately from the final answer.
+            self._flush_usage("chat_tool_round")
 
             # Execute tool calls and append results for next round
             results: list[dict[str, Any]] = []

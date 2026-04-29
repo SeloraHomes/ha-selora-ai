@@ -1597,17 +1597,25 @@ var layoutStyles = i`
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
   }
   .section-card-header h3 {
     font-size: 20px;
     margin: 0;
     font-weight: 700;
+    line-height: 1.2;
   }
   .section-card-subtitle {
     font-size: 13px;
     color: var(--secondary-text-color);
-    margin-bottom: 24px;
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+  /* When a subtitle directly follows a section header, tighten the gap
+     to a deliberate 8px (header has 16px margin-bottom, subtitle pulls
+     back 8px) so the heading and its description read as one block. */
+  .section-card-header + .section-card-subtitle {
+    margin-top: -8px;
   }
   @media (max-width: 600px) {
     .scroll-view {
@@ -3575,13 +3583,14 @@ var settingsStyles = i`
   .advanced-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
     color: var(--primary-text-color);
     list-style: none;
-    padding: 18px 28px;
+    padding: 22px 28px;
     transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
@@ -3595,7 +3604,7 @@ var settingsStyles = i`
     background: var(--secondary-background-color);
   }
   .advanced-chevron {
-    --mdc-icon-size: 18px;
+    --mdc-icon-size: 20px;
     transition: transform 0.2s;
     opacity: 0.5;
   }
@@ -3834,6 +3843,438 @@ var settingsStyles = i`
   }
 `;
 
+// src/panel/styles/usage.css.js
+var usageStyles = i`
+  .usage-view {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 16px 0 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+
+  /* Breadcrumb-style back link sits above the title, muted, no chrome.
+     Click target keeps a comfortable 36px height for touch. */
+  .usage-crumb {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 6px 0;
+    margin: 0 0 -4px;
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    text-decoration: none;
+    align-self: flex-start;
+    transition: color 0.15s;
+  }
+  .usage-crumb:hover {
+    color: var(--primary-text-color);
+  }
+  .usage-crumb ha-icon {
+    --mdc-icon-size: 18px;
+    margin-left: -4px;
+  }
+
+  .usage-title-row {
+    display: flex;
+    align-items: baseline;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .usage-title-row h2 {
+    font-size: 24px;
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.01em;
+  }
+  .usage-subtitle {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .usage-tile-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-top: 4px;
+  }
+  .usage-tile {
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+  .usage-tile-head {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--secondary-text-color);
+    font-size: 12px;
+    font-weight: 500;
+  }
+  .usage-tile-label {
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .usage-tile-value {
+    font-size: 24px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    color: var(--primary-text-color);
+  }
+  .usage-tile-sub {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+  }
+
+  .usage-period-row {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-period-row:last-of-type {
+    border-bottom: none;
+  }
+  .usage-period-title {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    width: 110px;
+    flex-shrink: 0;
+  }
+  .usage-period-cost {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .usage-period-tokens {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    margin-left: auto;
+  }
+  .usage-period-empty,
+  .usage-period-loading {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    font-style: italic;
+  }
+  .usage-period-note {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.04));
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    line-height: 1.5;
+  }
+
+  .usage-help {
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    line-height: 1.55;
+    margin: 0 0 8px;
+  }
+  .usage-help:last-child {
+    margin-bottom: 0;
+  }
+  .usage-help a {
+    color: var(--primary-color);
+    text-decoration: none;
+  }
+  .usage-help a:hover {
+    text-decoration: underline;
+  }
+  .usage-help code {
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 12px;
+  }
+
+  .usage-empty {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .usage-empty p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--secondary-text-color);
+    line-height: 1.5;
+  }
+
+  .usage-section-sub {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+  }
+  /* Heading next to a small caption: align on the text baseline so the
+     two label rows read as one. The default 'align-items: center' for
+     section headers centers line boxes, which leaves big+small text
+     visually misaligned. */
+  .section-card-header:has(.usage-section-sub) {
+    align-items: baseline;
+  }
+
+  .usage-breakdown {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .usage-breakdown-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .usage-breakdown-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-breakdown-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .usage-breakdown-cost {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .usage-breakdown-bar {
+    height: 6px;
+    border-radius: 999px;
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+    overflow: hidden;
+  }
+  .usage-breakdown-bar-fill {
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      rgba(251, 191, 36, 0.85),
+      rgba(184, 134, 11, 0.85)
+    );
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+  .usage-breakdown-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-breakdown-intents {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 2px;
+  }
+  .usage-intent-pill {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .usage-recent-list {
+    display: flex;
+    flex-direction: column;
+  }
+  .usage-recent-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .usage-recent-row:last-child {
+    border-bottom: none;
+  }
+  .usage-recent-main {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .usage-recent-kind {
+    font-weight: 600;
+    color: var(--primary-text-color);
+    font-size: 13px;
+  }
+  .usage-recent-intent {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+  }
+  .usage-recent-time {
+    margin-left: auto;
+    font-size: 11px;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-recent-details {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-recent-model {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .usage-recent-tokens {
+    text-align: right;
+    min-width: 64px;
+  }
+  .usage-recent-cost {
+    color: var(--primary-text-color);
+    font-weight: 500;
+    text-align: right;
+    min-width: 60px;
+  }
+
+  /* Right-aligned action link inside a section-card-header. Used for
+     drill-downs from Settings → sub-page (e.g. token usage). Designed to
+     sit alongside the header title without competing with primary CTAs. */
+  .section-card-header--with-action {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .section-card-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    margin-right: -8px;
+    border: none;
+    background: transparent;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 6px;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+  .section-card-action:hover {
+    color: var(--primary-text-color);
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.04));
+  }
+  .section-card-action ha-icon {
+    --mdc-icon-size: 16px;
+  }
+  .section-card-action-chevron {
+    --mdc-icon-size: 16px !important;
+    opacity: 0.6;
+    margin-left: -2px;
+  }
+
+  /* Pricing override: side-by-side input/output cells with a default hint
+     line beneath each value. Edit row drops to a column on narrow screens
+     so the textfields stay legible. */
+  .usage-pricing-row {
+    display: flex;
+    gap: 12px;
+    margin: 8px 0 12px;
+    flex-wrap: wrap;
+  }
+  .usage-pricing-cell {
+    flex: 1;
+    min-width: 140px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .usage-pricing-label {
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+  }
+  .usage-pricing-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    font-variant-numeric: tabular-nums;
+  }
+  .usage-pricing-default {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+  }
+  .usage-pricing-edit {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    margin: 4px 0 12px;
+  }
+  .usage-pricing-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .usage-sensor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 4px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--divider-color);
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.03));
+  }
+  .usage-sensor-row {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 12px;
+    min-width: 0;
+  }
+  .usage-sensor-row code {
+    font-size: 11px;
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    padding: 2px 6px;
+    border-radius: 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .usage-sensor-name {
+    color: var(--secondary-text-color);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+`;
+
 // src/panel/styles/index.css.js
 var allPanelStyles = [
   layoutStyles,
@@ -3844,6 +4285,7 @@ var allPanelStyles = [
   cardElementStyles,
   automationsStyles,
   settingsStyles,
+  usageStyles,
 ];
 
 // src/shared/particles.js
@@ -7968,6 +8410,45 @@ function renderDeleteSceneModal(host) {
 }
 
 // src/panel/render-settings.js
+function _todayCostHint(host) {
+  const states = host.hass?.states || {};
+  for (const [entityId, state] of Object.entries(states)) {
+    if (
+      entityId.startsWith("sensor.") &&
+      entityId.includes("selora") &&
+      entityId.endsWith("llm_cost")
+    ) {
+      const v2 = Number(state?.state);
+      if (Number.isFinite(v2) && v2 > 0) {
+        return v2;
+      }
+      return 0;
+    }
+  }
+  return null;
+}
+function _renderUsageHeaderLink(host) {
+  const cost = _todayCostHint(host);
+  const hasData = cost !== null && cost > 0;
+  return x`
+    <button
+      class="section-card-action"
+      title="View token usage"
+      @click=${() => {
+        host._activeTab = "usage";
+        host._loadUsageStats?.();
+        host.requestUpdate();
+      }}
+    >
+      <ha-icon icon="mdi:chart-line-variant"></ha-icon>
+      <span>${hasData ? "Usage" : "View usage"}</span>
+      <ha-icon
+        icon="mdi:chevron-right"
+        class="section-card-action-chevron"
+      ></ha-icon>
+    </button>
+  `;
+}
 var _PROVIDERS = [
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
@@ -8072,8 +8553,9 @@ function renderSettings(host) {
           ></ha-icon>
         </a>
         <div class="section-card settings-section">
-          <div class="section-card-header">
+          <div class="section-card-header section-card-header--with-action">
             <h3>LLM Provider</h3>
+            ${_renderUsageHeaderLink(host)}
           </div>
           <div class="form-group">
             <label>Provider</label>
@@ -8347,15 +8829,13 @@ function renderSettings(host) {
         </div>
 
         <div class="section-card settings-section">
-          <div style="margin-bottom:16px;">
-            <h3 style="font-size:20px;font-weight:700;margin:0;">MCP Server</h3>
-            <p
-              style="font-size:13px;color:var(--secondary-text-color);margin:4px 0 0;"
-            >
-              Expose your home to external AI tools like Openclaw, Claude
-              Desktop, Cursor, or Windsurf.
-            </p>
+          <div class="section-card-header">
+            <h3>MCP Server</h3>
           </div>
+          <p class="section-card-subtitle">
+            Expose your home to external AI tools like Openclaw, Claude Desktop,
+            Cursor, or Windsurf.
+          </p>
 
           <div class="settings-connect-block">
             <div
@@ -8771,12 +9251,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.6.1"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.7.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.6.1"}
+            Selora AI v${"0.7.0"}
           </a>
         </div>
       </div>
@@ -9009,6 +9489,775 @@ function renderCreateTokenDialog(host) {
             }
           </button>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+// src/panel/render-usage.js
+var _USAGE_KEYS = ["llm_tokens_in", "llm_tokens_out", "llm_calls", "llm_cost"];
+function _findUsageSensors(hass) {
+  const result = {};
+  if (!hass?.states) return result;
+  const entities = hass.entities || {};
+  for (const [entityId, entry] of Object.entries(entities)) {
+    if (entry?.platform !== "selora_ai") continue;
+    if (!entityId.startsWith("sensor.")) continue;
+    const uid = entry.unique_id || "";
+    for (const key of _USAGE_KEYS) {
+      if (uid.endsWith(key)) {
+        const state = hass.states[entityId];
+        if (state) result[key] = { entityId, state };
+      }
+    }
+  }
+  if (Object.keys(result).length === _USAGE_KEYS.length) return result;
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    if (!entityId.startsWith("sensor.")) continue;
+    for (const key of _USAGE_KEYS) {
+      if (entityId.endsWith(key) && !result[key]) {
+        result[key] = { entityId, state };
+      }
+    }
+  }
+  return result;
+}
+function _fmtTokens(n5) {
+  const v2 = Number(n5) || 0;
+  if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
+  if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
+  return Math.round(v2).toLocaleString();
+}
+function _fmtUsd(n5) {
+  const v2 = Number(n5) || 0;
+  if (v2 === 0) return "$0.00";
+  if (v2 < 0.01) return "<$0.01";
+  return "$" + v2.toFixed(2);
+}
+function _fmtInt(n5) {
+  return (Number(n5) || 0).toLocaleString();
+}
+async function _fetchPeriodStats(hass, statisticIds, periodStart) {
+  if (!hass) return {};
+  try {
+    const result = await hass.callWS({
+      type: "recorder/statistics_during_period",
+      start_time: periodStart.toISOString(),
+      statistic_ids: statisticIds,
+      period: "hour",
+      types: ["change"],
+    });
+    return result || {};
+  } catch (err) {
+    console.warn("Selora AI: failed to fetch usage statistics", err);
+    return {};
+  }
+}
+function _sumChange(buckets) {
+  if (!Array.isArray(buckets)) return 0;
+  let total = 0;
+  for (const b2 of buckets) {
+    const v2 = Number(b2?.change ?? 0);
+    if (Number.isFinite(v2)) total += v2;
+  }
+  return total;
+}
+async function loadUsageStats(host) {
+  const sensors = _findUsageSensors(host.hass);
+  const ids = _USAGE_KEYS.map((k2) => sensors[k2]?.entityId).filter(Boolean);
+  const now = /* @__PURE__ */ new Date();
+  const startOfToday = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate(),
+  );
+  const startOfWeek = new Date(startOfToday);
+  startOfWeek.setDate(startOfWeek.getDate() - 7);
+  const startOfMonth = new Date(startOfToday);
+  startOfMonth.setDate(1);
+  const periodPromise =
+    ids.length === 0
+      ? Promise.resolve([{}, {}, {}])
+      : Promise.all([
+          _fetchPeriodStats(host.hass, ids, startOfToday),
+          _fetchPeriodStats(host.hass, ids, startOfWeek),
+          _fetchPeriodStats(host.hass, ids, startOfMonth),
+        ]);
+  const recentPromise = host.hass
+    .callWS({ type: "selora_ai/usage/recent" })
+    .then((r4) => (Array.isArray(r4?.events) ? r4.events : []))
+    .catch((err) => {
+      console.warn("Selora AI: failed to fetch recent usage events", err);
+      return [];
+    });
+  const pricingPromise = host.hass
+    .callWS({ type: "selora_ai/usage/pricing_defaults" })
+    .then((r4) => r4?.pricing || {})
+    .catch((err) => {
+      console.warn("Selora AI: failed to fetch pricing defaults", err);
+      return {};
+    });
+  const [periods, recent, pricingDefaults] = await Promise.all([
+    periodPromise,
+    recentPromise,
+    pricingPromise,
+  ]);
+  const [today, week, month] = periods;
+  const reduce = (raw) => {
+    const out = {};
+    for (const key of _USAGE_KEYS) {
+      const entityId = sensors[key]?.entityId;
+      out[key] = entityId ? _sumChange(raw[entityId]) : 0;
+    }
+    return out;
+  };
+  host._usageStats = {
+    today: reduce(today),
+    week: reduce(week),
+    month: reduce(month),
+  };
+  host._usageRecent = recent;
+  host._pricingDefaults = pricingDefaults;
+  host.requestUpdate();
+}
+var _KIND_LABELS = {
+  chat: "Chat",
+  chat_tool_round: "Chat \u2014 tool calls",
+  suggestions: "Suggestion engine",
+  command: "One-shot commands",
+  session_title: "Session titles",
+  health_check: "Health checks",
+  raw: "Other",
+};
+function _kindLabel(kind) {
+  return _KIND_LABELS[kind] || kind;
+}
+var _INTENT_LABELS = {
+  command: "command",
+  automation: "automation",
+  scene: "scene",
+  delayed_command: "delayed command",
+  cancel: "cancellation",
+  clarification: "clarification",
+  answer: "answer",
+};
+function _intentLabel(intent) {
+  if (!intent) return "";
+  return _INTENT_LABELS[intent] || intent;
+}
+function _groupByKind(events) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const e5 of events) {
+    const key = e5.kind || "raw";
+    let g2 = groups.get(key);
+    if (!g2) {
+      g2 = {
+        kind: key,
+        calls: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+        intents: /* @__PURE__ */ new Map(),
+      };
+      groups.set(key, g2);
+    }
+    g2.calls += 1;
+    g2.input_tokens += Number(e5.input_tokens) || 0;
+    g2.output_tokens += Number(e5.output_tokens) || 0;
+    g2.cost_usd += Number(e5.cost_usd) || 0;
+    if (e5.intent) {
+      g2.intents.set(e5.intent, (g2.intents.get(e5.intent) || 0) + 1);
+    }
+  }
+  return [...groups.values()].sort(
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
+  );
+}
+function _formatRelativeTime(iso) {
+  if (!iso) return "";
+  const t3 = new Date(iso).getTime();
+  if (Number.isNaN(t3)) return "";
+  const now = Date.now();
+  const sec = Math.max(1, Math.round((now - t3) / 1e3));
+  if (sec < 60) return `${sec}s ago`;
+  const min = Math.round(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.round(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.round(hr / 24);
+  return `${day}d ago`;
+}
+function _renderTile({ label, value, sub, icon }) {
+  return x`
+    <div class="usage-tile">
+      <div class="usage-tile-head">
+        ${icon ? x`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
+        <span class="usage-tile-label">${label}</span>
+      </div>
+      <div class="usage-tile-value">${value}</div>
+      ${sub ? x`<div class="usage-tile-sub">${sub}</div>` : ""}
+    </div>
+  `;
+}
+function _renderPeriodRow(title, stats) {
+  if (!stats) {
+    return x`
+      <div class="usage-period-row usage-period-row--loading">
+        <span class="usage-period-title">${title}</span>
+        <span class="usage-period-loading">Loading…</span>
+      </div>
+    `;
+  }
+  const tokensIn = stats.llm_tokens_in || 0;
+  const tokensOut = stats.llm_tokens_out || 0;
+  const calls = stats.llm_calls || 0;
+  const cost = stats.llm_cost || 0;
+  const empty = !tokensIn && !tokensOut && !calls && !cost;
+  return x`
+    <div class="usage-period-row">
+      <span class="usage-period-title">${title}</span>
+      ${
+        empty
+          ? x`<span class="usage-period-empty">No activity</span>`
+          : x`
+            <span class="usage-period-cost">${_fmtUsd(cost)}</span>
+            <span class="usage-period-tokens">
+              ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
+              calls
+            </span>
+          `
+      }
+    </div>
+  `;
+}
+function _renderBreakdown(groups, totalCost) {
+  if (!groups || groups.length === 0) return "";
+  return x`
+    <div class="usage-breakdown">
+      ${groups.map((g2) => {
+        const pct =
+          totalCost > 0 ? Math.round((g2.cost_usd / totalCost) * 100) : 0;
+        const tokens = g2.input_tokens + g2.output_tokens;
+        const intentEntries = [...g2.intents.entries()].sort(
+          (a4, b2) => b2[1] - a4[1],
+        );
+        return x`
+          <div class="usage-breakdown-row">
+            <div class="usage-breakdown-head">
+              <span class="usage-breakdown-label">${_kindLabel(g2.kind)}</span>
+              <span class="usage-breakdown-cost">${_fmtUsd(g2.cost_usd)}</span>
+            </div>
+            <div class="usage-breakdown-bar">
+              <div
+                class="usage-breakdown-bar-fill"
+                style="width:${Math.max(2, pct)}%;"
+              ></div>
+            </div>
+            <div class="usage-breakdown-meta">
+              <span>${_fmtInt(g2.calls)} call${g2.calls === 1 ? "" : "s"}</span>
+              <span>·</span>
+              <span>${_fmtTokens(tokens)} tokens</span>
+              ${totalCost > 0 ? x`<span>·</span> <span>${pct}% of cost</span>` : ""}
+            </div>
+            ${
+              intentEntries.length > 0
+                ? x`
+                  <div class="usage-breakdown-intents">
+                    ${intentEntries.map(
+                      ([intent, count]) => x`
+                        <span class="usage-intent-pill">
+                          ${_intentLabel(intent)} · ${_fmtInt(count)}
+                        </span>
+                      `,
+                    )}
+                  </div>
+                `
+                : ""
+            }
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
+function _renderRecentList(events) {
+  return x`
+    <div class="usage-recent-list">
+      ${events.map((e5) => {
+        const intent = _intentLabel(e5.intent);
+        return x`
+          <div class="usage-recent-row">
+            <div class="usage-recent-main">
+              <span class="usage-recent-kind">${_kindLabel(e5.kind)}</span>
+              ${intent ? x`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
+              <span class="usage-recent-time">
+                ${_formatRelativeTime(e5.timestamp)}
+              </span>
+            </div>
+            <div class="usage-recent-details">
+              <span class="usage-recent-model">${e5.provider} · ${e5.model}</span>
+              <span class="usage-recent-tokens">
+                ${_fmtTokens((e5.input_tokens || 0) + (e5.output_tokens || 0))}
+                tok
+              </span>
+              <span class="usage-recent-cost">${_fmtUsd(e5.cost_usd)}</span>
+            </div>
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
+function _activeProviderModel(host) {
+  const cfg = host?._config || {};
+  const provider = cfg.llm_provider || "anthropic";
+  const modelKey =
+    provider === "anthropic"
+      ? "anthropic_model"
+      : provider === "gemini"
+        ? "gemini_model"
+        : provider === "openai"
+          ? "openai_model"
+          : provider === "openrouter"
+            ? "openrouter_model"
+            : provider === "ollama"
+              ? "ollama_model"
+              : null;
+  const model = modelKey ? cfg[modelKey] || "" : "";
+  return { provider, model };
+}
+function _defaultPriceFor(host, provider, model) {
+  const table = host?._pricingDefaults || {};
+  return table[provider]?.[model] || null;
+}
+function _overridePriceFor(host, provider, model) {
+  const overrides = host?._config?.llm_pricing_overrides || {};
+  return overrides[provider]?.[model] || null;
+}
+function _formatPrice(n5) {
+  const v2 = Number(n5);
+  if (!Number.isFinite(v2)) return "\u2014";
+  return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
+}
+async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
+  if (!host?._config) return;
+  const current = { ...(host._config.llm_pricing_overrides || {}) };
+  const perProvider = { ...(current[provider] || {}) };
+  const inNum = Number(inPrice);
+  const outNum = Number(outPrice);
+  if (
+    !Number.isFinite(inNum) ||
+    inNum < 0 ||
+    !Number.isFinite(outNum) ||
+    outNum < 0
+  ) {
+    host._showToast?.("Pricing must be non-negative numbers.", "error");
+    return;
+  }
+  perProvider[model] = [inNum, outNum];
+  current[provider] = perProvider;
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/update_config",
+      config: { llm_pricing_overrides: current },
+    });
+    host._config = { ...host._config, llm_pricing_overrides: current };
+    host._pricingEdit = null;
+    host._showToast?.("Pricing override saved.", "success");
+    host.requestUpdate();
+  } catch (err) {
+    host._showToast?.("Failed to save pricing: " + err.message, "error");
+  }
+}
+async function _clearPricingOverride(host, provider, model) {
+  if (!host?._config) return;
+  const current = { ...(host._config.llm_pricing_overrides || {}) };
+  const perProvider = { ...(current[provider] || {}) };
+  if (!(model in perProvider)) return;
+  delete perProvider[model];
+  if (Object.keys(perProvider).length === 0) {
+    delete current[provider];
+  } else {
+    current[provider] = perProvider;
+  }
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/update_config",
+      config: { llm_pricing_overrides: current },
+    });
+    host._config = { ...host._config, llm_pricing_overrides: current };
+    host._pricingEdit = null;
+    host._showToast?.("Reset to default pricing.", "success");
+    host.requestUpdate();
+  } catch (err) {
+    host._showToast?.("Failed to reset pricing: " + err.message, "error");
+  }
+}
+function _renderPricingCard(host) {
+  const { provider, model } = _activeProviderModel(host);
+  if (provider === "ollama" || !model) {
+    return x`
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3>Pricing</h3>
+        </div>
+        <p class="usage-help">
+          ${provider === "ollama" ? "Ollama runs locally \u2014 no token costs to track." : "Configure an LLM provider and model in Settings to set custom pricing."}
+        </p>
+      </div>
+    `;
+  }
+  const defaults = _defaultPriceFor(host, provider, model);
+  const override = _overridePriceFor(host, provider, model);
+  const editing =
+    host._pricingEdit?.provider === provider &&
+    host._pricingEdit?.model === model;
+  const effective = override || defaults;
+  return x`
+    <div class="section-card">
+      <div class="section-card-header">
+        <h3>Pricing</h3>
+        <span class="usage-section-sub">${provider} · ${model}</span>
+      </div>
+      <p class="usage-help" style="margin-top:0;">
+        Cost estimates use these per-million-token rates. Anthropic defaults
+        come from the
+        <a
+          href="https://platform.claude.com/docs/en/about-claude/pricing"
+          target="_blank"
+          rel="noopener noreferrer"
+          >official pricing page</a
+        >; override here if you have negotiated rates or are tracking a
+        different model.
+      </p>
+
+      <div class="usage-pricing-row">
+        <div class="usage-pricing-cell">
+          <span class="usage-pricing-label">Input</span>
+          <span class="usage-pricing-value">
+            ${effective ? _formatPrice(effective[0]) : "\u2014"}
+          </span>
+          ${
+            defaults
+              ? x`<span class="usage-pricing-default">
+                default ${_formatPrice(defaults[0])}
+              </span>`
+              : x`<span class="usage-pricing-default"
+                >no built-in default</span
+              >`
+          }
+        </div>
+        <div class="usage-pricing-cell">
+          <span class="usage-pricing-label">Output</span>
+          <span class="usage-pricing-value">
+            ${effective ? _formatPrice(effective[1]) : "\u2014"}
+          </span>
+          ${
+            defaults
+              ? x`<span class="usage-pricing-default">
+                default ${_formatPrice(defaults[1])}
+              </span>`
+              : ""
+          }
+        </div>
+      </div>
+
+      ${
+        editing
+          ? x`
+            <div class="usage-pricing-edit">
+              <ha-textfield
+                label="Input ($/MTok)"
+                type="number"
+                step="0.01"
+                min="0"
+                .value=${String(host._pricingEdit.input ?? "")}
+                @input=${(e5) => {
+                  host._pricingEdit = {
+                    ...host._pricingEdit,
+                    input: e5.target.value,
+                  };
+                }}
+                style="flex:1;min-width:120px;"
+              ></ha-textfield>
+              <ha-textfield
+                label="Output ($/MTok)"
+                type="number"
+                step="0.01"
+                min="0"
+                .value=${String(host._pricingEdit.output ?? "")}
+                @input=${(e5) => {
+                  host._pricingEdit = {
+                    ...host._pricingEdit,
+                    output: e5.target.value,
+                  };
+                }}
+                style="flex:1;min-width:120px;"
+              ></ha-textfield>
+              <div class="usage-pricing-actions">
+                <button
+                  class="btn btn-outline"
+                  @click=${() => {
+                    host._pricingEdit = null;
+                    host.requestUpdate();
+                  }}
+                >
+                  Cancel
+                </button>
+                <button
+                  class="btn btn-primary"
+                  @click=${() =>
+                    _savePricingOverride(
+                      host,
+                      provider,
+                      model,
+                      host._pricingEdit.input,
+                      host._pricingEdit.output,
+                    )}
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          `
+          : x`
+            <div class="usage-pricing-actions">
+              <button
+                class="btn btn-outline"
+                @click=${() => {
+                  host._pricingEdit = {
+                    provider,
+                    model,
+                    input: effective ? effective[0] : "",
+                    output: effective ? effective[1] : "",
+                  };
+                  host.requestUpdate();
+                }}
+              >
+                <ha-icon
+                  icon=${override ? "mdi:pencil" : "mdi:cash-edit"}
+                  style="--mdc-icon-size:16px;"
+                ></ha-icon>
+                ${override ? "Edit override" : "Set custom pricing"}
+              </button>
+              ${
+                override
+                  ? x`
+                    <button
+                      class="btn btn-outline"
+                      @click=${() => _clearPricingOverride(host, provider, model)}
+                    >
+                      Reset to default
+                    </button>
+                  `
+                  : ""
+              }
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+function renderUsage(host) {
+  const sensors = _findUsageSensors(host.hass);
+  const tokensIn = Number(sensors.llm_tokens_in?.state?.state) || 0;
+  const tokensOut = Number(sensors.llm_tokens_out?.state?.state) || 0;
+  const calls = Number(sensors.llm_calls?.state?.state) || 0;
+  const cost = Number(sensors.llm_cost?.state?.state) || 0;
+  const lastProvider =
+    sensors.llm_calls?.state?.attributes?.last_provider ||
+    sensors.llm_cost?.state?.attributes?.last_provider ||
+    null;
+  const lastModel =
+    sensors.llm_calls?.state?.attributes?.last_model ||
+    sensors.llm_cost?.state?.attributes?.last_model ||
+    null;
+  const sensorsMissing = Object.keys(sensors).length === 0;
+  const stats = host._usageStats || null;
+  const recent = Array.isArray(host._usageRecent) ? host._usageRecent : null;
+  const breakdown = recent ? _groupByKind(recent) : null;
+  const totalCost = breakdown
+    ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
+    : 0;
+  return x`
+    <div class="scroll-view">
+      <div class="usage-view">
+        <a
+          class="usage-crumb"
+          href="#"
+          @click=${(e5) => {
+            e5.preventDefault();
+            host._activeTab = "settings";
+            host.requestUpdate();
+          }}
+        >
+          <ha-icon icon="mdi:chevron-left"></ha-icon>
+          <span>Back to settings</span>
+        </a>
+        <div class="usage-title-row">
+          <h2>Token usage</h2>
+          ${
+            lastProvider
+              ? x`
+                <span class="usage-subtitle">
+                  ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
+                </span>
+              `
+              : ""
+          }
+        </div>
+
+        ${
+          sensorsMissing && recent !== null && recent.length === 0
+            ? x`
+              <div class="section-card usage-empty">
+                <ha-icon
+                  icon="mdi:information-outline"
+                  style="--mdc-icon-size:20px;"
+                ></ha-icon>
+                <div>
+                  <strong>No usage data yet.</strong>
+                  <p>
+                    Usage will appear after the first LLM call. Try chatting
+                    with Selora AI or running a suggestion cycle. If you've
+                    already used Selora AI and still see this, restart Home
+                    Assistant so the new sensors get registered.
+                  </p>
+                </div>
+              </div>
+            `
+            : x`
+              ${
+                !sensorsMissing
+                  ? x`
+                    <div class="section-card">
+                      <div class="section-card-header">
+                        <h3>Lifetime totals</h3>
+                      </div>
+                      <div class="usage-tile-grid">
+                        ${_renderTile({
+                          label: "Estimated cost",
+                          value: _fmtUsd(cost),
+                          sub: "USD \xB7 best-effort",
+                          icon: "mdi:cash",
+                        })}
+                        ${_renderTile({
+                          label: "Calls",
+                          value: _fmtInt(calls),
+                          icon: "mdi:counter",
+                        })}
+                        ${_renderTile({
+                          label: "Tokens in",
+                          value: _fmtTokens(tokensIn),
+                          icon: "mdi:upload",
+                        })}
+                        ${_renderTile({
+                          label: "Tokens out",
+                          value: _fmtTokens(tokensOut),
+                          icon: "mdi:download",
+                        })}
+                      </div>
+                    </div>
+
+                    <div class="section-card">
+                      <div class="section-card-header">
+                        <h3>By period</h3>
+                      </div>
+                      ${_renderPeriodRow("Today", stats?.today)}
+                      ${_renderPeriodRow("Last 7 days", stats?.week)}
+                      ${_renderPeriodRow("This month", stats?.month)}
+                      <div class="usage-period-note">
+                        Period buckets come from Home Assistant's long-term
+                        statistics, which compile hourly. New activity may take
+                        up to an hour to appear here.
+                      </div>
+                    </div>
+                  `
+                  : ""
+              }
+
+              <div class="section-card">
+                <div class="section-card-header">
+                  <h3>Where tokens go</h3>
+                  <span class="usage-section-sub">
+                    Last ${recent === null ? "\u2026" : recent.length}
+                    call${recent && recent.length === 1 ? "" : "s"} · resets on
+                    HA restart
+                  </span>
+                </div>
+                ${
+                  recent === null
+                    ? x`<div class="usage-period-loading">Loading…</div>`
+                    : recent.length === 0
+                      ? x`<div class="usage-period-empty">
+                        No calls recorded yet.
+                      </div>`
+                      : _renderBreakdown(breakdown, totalCost)
+                }
+              </div>
+
+              ${
+                recent && recent.length > 0
+                  ? x`
+                    <div class="section-card">
+                      <div class="section-card-header">
+                        <h3>Recent calls</h3>
+                      </div>
+                      ${_renderRecentList(recent.slice(-15).reverse())}
+                    </div>
+                  `
+                  : ""
+              }
+              ${_renderPricingCard(host)}
+              ${
+                !sensorsMissing
+                  ? x`
+                    <div class="section-card">
+                      <div class="section-card-header">
+                        <h3>Add to your dashboard</h3>
+                      </div>
+                      <p class="usage-help">
+                        Selora AI exposes four sensors that track LLM usage over
+                        time. You can add them to any Home Assistant dashboard
+                        using built-in cards.
+                      </p>
+                      <div class="usage-sensor-list">
+                        ${_USAGE_KEYS.map((key) => {
+                          const s6 = sensors[key];
+                          const name =
+                            s6?.state?.attributes?.friendly_name ||
+                            key.replace(/_/g, " ");
+                          return x`
+                            <div class="usage-sensor-row">
+                              <code>${s6.entityId}</code>
+                              <span class="usage-sensor-name">${name}</span>
+                            </div>
+                          `;
+                        })}
+                      </div>
+                      <p class="usage-help" style="margin-top: 12px;">
+                        <strong>How to use them:</strong> edit a dashboard, add
+                        a <code>statistic</code> or
+                        <code>statistics-graph</code> card, pick one of the
+                        sensors above, and set <code>stat_type: change</code> to
+                        chart cost or tokens per day/week. The sensors record to
+                        HA's long-term statistics, so history is preserved
+                        across restarts.
+                      </p>
+                      <p class="usage-help">
+                        <strong>Per-call audit trail:</strong> every LLM call
+                        also fires a <code>selora_ai_llm_usage</code> event with
+                        provider, model, token counts, and cost — visible in the
+                        Logbook and usable as an automation trigger.
+                      </p>
+                    </div>
+                  `
+                  : ""
+              }
+            `
+        }
       </div>
     </div>
   `;
@@ -10647,6 +11896,11 @@ var SeloraAIPanel = class extends s4 {
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
+      // Usage tab (linked from Settings → LLM Provider)
+      _usageStats: { type: Object },
+      _usageRecent: { type: Array },
+      _pricingDefaults: { type: Object },
+      _pricingEdit: { type: Object },
       // Editable YAML state (keyed by msgIndex or suggestion key)
       _editedYaml: { type: Object },
       _savingYaml: { type: Object },
@@ -11424,7 +12678,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.6.1" : "unknown",
+        integration_version: true ? "0.7.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -11652,6 +12906,12 @@ var SeloraAIPanel = class extends s4 {
   }
   _renderSettings() {
     return renderSettings(this);
+  }
+  _renderUsage() {
+    return renderUsage(this);
+  }
+  async _loadUsageStats() {
+    await loadUsageStats(this);
   }
   _renderVersionHistoryDrawer(a4) {
     return renderVersionHistoryDrawer(this, a4);
@@ -12174,6 +13434,7 @@ var SeloraAIPanel = class extends s4 {
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
+          ${this._activeTab === "usage" ? this._renderUsage() : ""}
         </div>
       </div>
 

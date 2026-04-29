@@ -87,17 +87,25 @@ export const layoutStyles = css`
     display: flex;
     align-items: center;
     gap: 12px;
-    margin-bottom: 8px;
+    margin-bottom: 16px;
   }
   .section-card-header h3 {
     font-size: 20px;
     margin: 0;
     font-weight: 700;
+    line-height: 1.2;
   }
   .section-card-subtitle {
     font-size: 13px;
     color: var(--secondary-text-color);
-    margin-bottom: 24px;
+    margin: 0 0 24px;
+    line-height: 1.5;
+  }
+  /* When a subtitle directly follows a section header, tighten the gap
+     to a deliberate 8px (header has 16px margin-bottom, subtitle pulls
+     back 8px) so the heading and its description read as one block. */
+  .section-card-header + .section-card-subtitle {
+    margin-top: -8px;
   }
   @media (max-width: 600px) {
     .scroll-view {

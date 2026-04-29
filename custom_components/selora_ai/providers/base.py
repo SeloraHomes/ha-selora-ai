@@ -11,7 +11,7 @@ parts that differ between providers.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Callable
 import json
 import logging
 import re
@@ -22,9 +22,12 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import DEFAULT_LLM_TIMEOUT
+from ..types import LLMUsageInfo
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
+
+UsageCallback = Callable[[str, str, LLMUsageInfo], None]
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -58,6 +61,42 @@ class LLMProvider(ABC):
         self._model = model
         self._host = host.rstrip("/") if host else ""
         self._api_key = api_key
+        self._usage_callback: UsageCallback | None = None
+
+    # -- Usage tracking ----------------------------------------------------
+
+    def set_usage_callback(self, callback: UsageCallback | None) -> None:
+        """Register a callback invoked with token usage after each call."""
+        self._usage_callback = callback
+
+    def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
+        """Extract token usage from a non-streaming response body.
+
+        Default: no usage. Subclasses override for providers that return
+        a usage block (Anthropic, OpenAI, Gemini).
+        """
+        return None
+
+    def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
+        """Extract token usage from a single SSE line during streaming.
+
+        Default: no usage. Subclasses override to capture usage frames
+        emitted by their stream protocol (Anthropic ``message_delta``,
+        OpenAI final chunk with ``stream_options.include_usage``, Gemini
+        ``usageMetadata`` per chunk).
+        """
+        return None
+
+    def _report_usage(self, usage: LLMUsageInfo | None) -> None:
+        """Forward usage to the registered callback, swallowing callback errors."""
+        if not usage or not self._usage_callback:
+            return
+        if not (usage.get("input_tokens") or usage.get("output_tokens")):
+            return
+        try:
+            self._usage_callback(self.provider_type, self._model, usage)
+        except Exception:  # noqa: BLE001 — never let telemetry break a request
+            _LOGGER.exception("LLM usage callback failed")
 
     # -- Identity ----------------------------------------------------------
 
@@ -209,6 +248,7 @@ class LLMProvider(ABC):
                     _LOGGER.error("Failed to parse LLM JSON response: %s. Body: %s", exc, body)
                     return None, error_msg
 
+                self._report_usage(self.extract_usage(data))
                 text = self.extract_text_response(data)
                 if text is None:
                     _LOGGER.error(
@@ -243,7 +283,9 @@ class LLMProvider(ABC):
             if resp.status != 200:
                 body = _sanitize_error(await resp.text())
                 raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
-            return await resp.json()
+            data = await resp.json()
+            self._report_usage(self.extract_usage(data))
+            return data
 
     async def raw_request_stream(
         self,
@@ -314,6 +356,7 @@ class LLMProvider(ABC):
                     raise ConnectionError(f"{self.provider_name}: {err_msg}")
 
                 buffer = ""
+                stream_usage: LLMUsageInfo = {}
                 async for raw_chunk in resp.content.iter_any():
                     buffer += raw_chunk.decode("utf-8")
                     while "\n" in buffer:
@@ -321,9 +364,13 @@ class LLMProvider(ABC):
                         line = line.strip()
                         if not line:
                             continue
+                        usage_part = self.parse_stream_usage(line)
+                        if usage_part:
+                            stream_usage.update(usage_part)
                         text = self.parse_stream_line(line)
                         if text:
                             yield text
+                self._report_usage(stream_usage or None)
         except Exception as exc:
             _LOGGER.exception("Streaming request to %s failed", self.provider_name)
             raise ConnectionError(

@@ -76,6 +76,7 @@ from .const import (
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
+    CONF_LLM_PRICING_OVERRIDES,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
     CONF_OLLAMA_MODEL,
@@ -126,7 +127,7 @@ from .scene_discovery import get_area_names
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS: list[str] = ["conversation"]
+PLATFORMS: list[str] = ["conversation", "sensor"]
 CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 
 _CONVERSATIONS_STORAGE_KEY = f"{DOMAIN}.conversations"
@@ -2068,6 +2069,8 @@ async def _handle_websocket_get_config(
             ),
             "selora_installation_id": config_data.get(CONF_SELORA_INSTALLATION_ID, ""),
             "selora_mcp_url": config_data.get(CONF_SELORA_MCP_URL, ""),
+            # LLM pricing overrides — shape: {provider: {model: [in_per_mtok, out_per_mtok]}}
+            "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
         },
     )
 
@@ -2137,6 +2140,10 @@ async def _handle_websocket_update_config(
 
     # Keys that only affect the frontend — no reload needed
     frontend_only_keys = {"developer_mode"}
+    # Keys whose change can be applied live to the running LLMClient
+    # without rebuilding it. Pricing overrides only impact cost reporting
+    # for subsequent calls, so a hot update is enough.
+    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES}
 
     # Check if any backend-relevant keys actually changed
     old_data = {**entry.data}
@@ -2148,7 +2155,7 @@ async def _handle_websocket_update_config(
             break
     if not needs_reload:
         for k, v in new_options.items():
-            if k not in frontend_only_keys and old_options.get(k) != v:
+            if k not in frontend_only_keys and k not in hot_option_keys and old_options.get(k) != v:
                 needs_reload = True
                 break
 
@@ -2156,6 +2163,12 @@ async def _handle_websocket_update_config(
     hass.config_entries.async_update_entry(
         entry, data={**entry.data, **new_data}, options={**entry.options, **new_options}
     )
+
+    # Apply hot-reloadable option changes directly to the running client.
+    if CONF_LLM_PRICING_OVERRIDES in new_options:
+        llm = _find_llm(hass)
+        if llm is not None and hasattr(llm, "set_pricing_overrides"):
+            llm.set_pricing_overrides(new_options[CONF_LLM_PRICING_OVERRIDES] or {})
 
     # Send result BEFORE reload so the frontend gets a response
     connection.send_result(msg["id"], {"status": "success"})
@@ -2984,6 +2997,58 @@ async def _handle_websocket_get_analytics(
         connection.send_result(msg["id"], summary)
 
 
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/usage/recent",
+    }
+)
+async def _handle_websocket_get_recent_usage(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the recent LLM usage events from the in-memory ring buffer.
+
+    Powers the panel's "Where tokens go" breakdown. The buffer is
+    ephemeral (resets on HA restart) and capped at LLM_USAGE_BUFFER_SIZE.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    buffer = hass.data.get(DOMAIN, {}).get("llm_usage_events")
+    events = list(buffer) if buffer else []
+    connection.send_result(msg["id"], {"events": events})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/usage/pricing_defaults",
+    }
+)
+async def _handle_websocket_get_pricing_defaults(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return the built-in pricing table (USD per million tokens).
+
+    Lets the panel show defaults next to the user override fields so the
+    user can see what the integration would otherwise charge against.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    from .const import LLM_PRICING_USD_PER_MTOK  # noqa: PLC0415
+
+    serialised = {
+        provider: {model: list(price) for model, price in models.items()}
+        for provider, models in LLM_PRICING_USD_PER_MTOK.items()
+    }
+    connection.send_result(msg["id"], {"pricing": serialised})
+
+
 def _get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
     """Find the PatternStore from any active config entry."""
     from .pattern_store import get_pattern_store  # noqa: PLC0415
@@ -3707,6 +3772,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)
     websocket_api.async_register_command(hass, _handle_websocket_get_state_history_summary)
     websocket_api.async_register_command(hass, _handle_websocket_get_analytics)
+    websocket_api.async_register_command(hass, _handle_websocket_get_recent_usage)
+    websocket_api.async_register_command(hass, _handle_websocket_get_pricing_defaults)
     websocket_api.async_register_command(hass, _handle_websocket_get_patterns)
     websocket_api.async_register_command(hass, _handle_websocket_get_pattern_detail)
     websocket_api.async_register_command(hass, _handle_websocket_update_pattern_status)
@@ -3823,6 +3890,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     provider = entry.data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER
 
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
+    pricing_overrides = entry.options.get(CONF_LLM_PRICING_OVERRIDES) or {}
 
     from .device_manager import DeviceManager
     from .llm_client import LLMClient, async_preload_prompts
@@ -3838,7 +3906,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_key=entry.data.get(CONF_ANTHROPIC_API_KEY, ""),
             model=entry.data.get(CONF_ANTHROPIC_MODEL, DEFAULT_ANTHROPIC_MODEL),
         )
-        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
     elif provider == LLM_PROVIDER_GEMINI:
         llm_provider = create_provider(
             provider,
@@ -3846,7 +3916,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_key=entry.data.get(CONF_GEMINI_API_KEY, ""),
             model=entry.data.get(CONF_GEMINI_MODEL, DEFAULT_GEMINI_MODEL),
         )
-        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
     elif provider == LLM_PROVIDER_OPENAI:
         llm_provider = create_provider(
             provider,
@@ -3854,7 +3926,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_key=entry.data.get(CONF_OPENAI_API_KEY, ""),
             model=entry.data.get(CONF_OPENAI_MODEL, DEFAULT_OPENAI_MODEL),
         )
-        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
     elif provider == LLM_PROVIDER_OPENROUTER:
         llm_provider = create_provider(
             provider,
@@ -3862,7 +3936,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             api_key=entry.data.get(CONF_OPENROUTER_API_KEY, ""),
             model=entry.data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
         )
-        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
     elif provider == LLM_PROVIDER_OLLAMA:
         llm_provider = create_provider(
             provider,
@@ -3870,13 +3946,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             host=entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
         )
-        llm = LLMClient(hass, llm_provider, lookback_days=lookback)
-
-    # Verify LLM is healthy on startup
-    if llm and not await llm.health_check():
-        _LOGGER.warning(
-            "%s not reachable — will retry on next collection cycle",
-            llm.provider_name,
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
         )
 
     from .collector import DataCollector
@@ -3928,21 +3999,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mcp_token_store = MCPTokenStore(hass)
     await mcp_token_store.async_load()
     hass.data[DOMAIN]["mcp_token_store"] = mcp_token_store
-
-    # One-time cleanup: remove the legacy Hub device and its entities if present
-    from homeassistant.helpers import device_registry as dr
-    from homeassistant.helpers import entity_registry as er
-
-    dev_reg = dr.async_get(hass)
-    ent_reg = er.async_get(hass)
-    hub_device = dev_reg.async_get_device(identifiers={(DOMAIN, "selora_ai_hub")})
-    if hub_device:
-        for entity in er.async_entries_for_device(
-            ent_reg, hub_device.id, include_disabled_entities=True
-        ):
-            ent_reg.async_remove(entity.entity_id)
-        dev_reg.async_remove_device(hub_device.id)
-        _LOGGER.info("Removed legacy Selora AI Hub device and its entities")
 
     # Schedule periodic discovery if enabled
     options = entry.options
@@ -4026,6 +4082,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Set up entity platforms (sensor + button)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    # Verify LLM is healthy — runs after platform setup so usage sensors
+    # are registered and can capture the tokens from the health-check call.
+    if llm and not await llm.health_check():
+        _LOGGER.warning(
+            "%s not reachable — will retry on next collection cycle",
+            llm.provider_name,
+        )
 
     # Start background collection + analysis
     if llm:

@@ -171,13 +171,14 @@ export const settingsStyles = css`
   .advanced-toggle {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     cursor: pointer;
-    font-size: 16px;
-    font-weight: 600;
+    font-size: 20px;
+    font-weight: 700;
+    line-height: 1.2;
     color: var(--primary-text-color);
     list-style: none;
-    padding: 18px 28px;
+    padding: 22px 28px;
     transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
@@ -191,7 +192,7 @@ export const settingsStyles = css`
     background: var(--secondary-background-color);
   }
   .advanced-chevron {
-    --mdc-icon-size: 18px;
+    --mdc-icon-size: 20px;
     transition: transform 0.2s;
     opacity: 0.5;
   }
