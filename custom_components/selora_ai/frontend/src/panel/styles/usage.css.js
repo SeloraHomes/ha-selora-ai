@@ -52,15 +52,20 @@ export const usageStyles = css`
 
   .usage-tile-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    grid-template-columns: repeat(4, 1fr);
     gap: 12px;
     margin-top: 4px;
+  }
+  @media (max-width: 600px) {
+    .usage-tile-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
   }
   .usage-tile {
     padding: 14px 16px;
     border-radius: 12px;
     border: 1px solid var(--divider-color);
-    background: var(--card-background-color);
+    background: var(--primary-background-color);
     display: flex;
     flex-direction: column;
     gap: 4px;
@@ -73,9 +78,13 @@ export const usageStyles = css`
     color: var(--secondary-text-color);
     font-size: 12px;
     font-weight: 500;
+    min-width: 0;
   }
   .usage-tile-label {
     text-transform: uppercase;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
     letter-spacing: 0.04em;
   }
   .usage-tile-value {
@@ -428,5 +437,89 @@ export const usageStyles = css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .usage-yaml-block {
+    margin: 8px 0;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: var(--primary-background-color);
+    border: 1px solid var(--divider-color);
+    overflow-x: auto;
+    position: relative;
+  }
+  .usage-yaml-block code {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--primary-text-color);
+    white-space: pre;
+    background: none;
+    padding: 0;
+  }
+  .usage-yaml-block .yaml-line {
+    white-space: pre;
+  }
+  .usage-yaml-block .yaml-key {
+    color: var(--error-color, #c62828);
+  }
+  .usage-yaml-block .yaml-colon {
+    color: var(--secondary-text-color);
+  }
+  .usage-yaml-block .yaml-val {
+    color: var(--success-color, #2e7d32);
+  }
+  .usage-yaml-block .yaml-dash {
+    color: var(--secondary-text-color);
+  }
+
+  .usage-snippet-pills {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 8px 0 4px;
+  }
+  .usage-snippet-pill {
+    font-size: 12px;
+    font-weight: 500;
+    padding: 5px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--divider-color);
+    background: transparent;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s,
+      border-color 0.15s;
+  }
+  .usage-snippet-pill:hover {
+    color: var(--primary-text-color);
+    border-color: var(--primary-text-color);
+  }
+  .usage-snippet-pill.active {
+    background: rgba(184, 134, 11, 0.85);
+    border-color: rgba(184, 134, 11, 0.85);
+    color: #fff;
+  }
+
+  .usage-copy-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    transition:
+      color 0.15s,
+      background 0.15s;
+  }
+  .usage-copy-btn:hover {
+    color: var(--primary-text-color);
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.06));
   }
 `;

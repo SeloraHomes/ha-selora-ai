@@ -124,7 +124,10 @@ async def async_setup_entry(
 
 
 def _hub_device_info() -> DeviceInfo:
-    return DeviceInfo(identifiers={(DOMAIN, "selora_ai_hub")})
+    return DeviceInfo(
+        identifiers={(DOMAIN, "selora_ai_hub")},
+        name="Selora AI Hub",
+    )
 
 
 # ── Status Sensor (enhanced) ────────────────────────────────────────
