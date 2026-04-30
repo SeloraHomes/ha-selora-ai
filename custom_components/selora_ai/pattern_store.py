@@ -683,6 +683,21 @@ class PatternStore:
         await self._save()
         return True
 
+    async def update_suggestion_fields(
+        self,
+        suggestion_id: str,
+        **fields: str,
+    ) -> bool:
+        """Update arbitrary fields on a suggestion."""
+        data = await self._get_loaded_data()
+        suggestion = data["suggestions"].get(suggestion_id)
+        if not suggestion:
+            return False
+        for key, value in fields.items():
+            suggestion[key] = value
+        await self._save()
+        return True
+
     async def remove_suggestions_for_pattern(self, pattern_id: str) -> int:
         """Remove pending suggestions linked to a rejected pattern.
 
