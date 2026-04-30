@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta
+import json
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -82,7 +83,6 @@ class SuggestionGenerator:
         dismissed_pattern_ids: set[str] = {
             s["pattern_id"] for s in recently_dismissed if s.get("pattern_id")
         }
-        dismissed_summary: str = self._build_dismissed_summary(recently_dismissed)
         if dismissed_pattern_ids:
             _LOGGER.debug(
                 "Dismissal suppression active for %d pattern(s) within %d-day window",
@@ -161,12 +161,6 @@ class SuggestionGenerator:
                 "evidence_summary": self._build_evidence_summary(pattern),
             }
 
-            # Optional LLM enrichment with dismissal context (best-effort, non-blocking) (#45)
-            if self._llm:
-                suggestion = await self._enrich_with_llm(
-                    suggestion, pattern, dismissed_summary=dismissed_summary
-                )
-
             sid = await self._store.save_suggestion(suggestion)
             suggestion["suggestion_id"] = sid
             suggestions.append(suggestion)
@@ -175,6 +169,78 @@ class SuggestionGenerator:
             _LOGGER.info("Generated %d proactive suggestions from patterns", len(suggestions))
 
         return suggestions
+
+    async def enrich_pending(self) -> int:
+        """Batch-enrich unenriched suggestions via a single LLM call.
+
+        Scans the store for pending suggestions with source="pattern"
+        (not yet enriched) so it survives restarts without a persistent
+        queue.  Returns the number of suggestions enriched.
+        """
+        if not self._llm:
+            return 0
+
+        pending = await self._store.get_suggestions(status="pending")
+        unenriched = [s for s in pending if s.get("source") == "pattern" and s.get("suggestion_id")]
+        if not unenriched:
+            return 0
+
+        items = []
+        for i, s in enumerate(unenriched, 1):
+            items.append(
+                f"{i}. Pattern: {s.get('description', '')}\n"
+                f"   Evidence: {s.get('evidence_summary', '')}"
+            )
+        prompt = (
+            "Rewrite these automation descriptions to be clear and friendly "
+            "for a homeowner (one sentence each, no technical jargon).\n"
+            "Reply with a JSON array of improved descriptions, in the same order.\n\n"
+            + "\n".join(items)
+        )
+
+        try:
+            result, _ = await asyncio.wait_for(
+                self._llm.send_request(
+                    system=(
+                        "You rewrite smart home automation descriptions. "
+                        "Reply with only a JSON array of strings."
+                    ),
+                    messages=[{"role": "user", "content": prompt}],
+                ),
+                timeout=30,
+            )
+            if not result:
+                return 0
+
+            descriptions = json.loads(result.strip())
+            if not isinstance(descriptions, list) or len(descriptions) != len(unenriched):
+                _LOGGER.debug(
+                    "Batch enrichment returned %d descriptions for %d items, skipping",
+                    len(descriptions) if isinstance(descriptions, list) else 0,
+                    len(unenriched),
+                )
+                return 0
+
+            enriched = 0
+            for s, new_desc in zip(unenriched, descriptions, strict=False):
+                if isinstance(new_desc, str) and new_desc.strip():
+                    await self._store.update_suggestion_fields(
+                        s["suggestion_id"],
+                        description=new_desc.strip(),
+                        source="hybrid",
+                    )
+                    enriched += 1
+
+            if enriched:
+                _LOGGER.info("Batch-enriched %d suggestion descriptions via LLM", enriched)
+            return enriched
+        except TimeoutError:
+            _LOGGER.debug("Batch LLM enrichment timed out, descriptions unchanged")
+        except (json.JSONDecodeError, ValueError):
+            _LOGGER.debug("Batch LLM enrichment returned invalid JSON, descriptions unchanged")
+        except Exception:
+            _LOGGER.debug("Batch LLM enrichment failed, descriptions unchanged")
+        return 0
 
     def _get_existing_aliases(self) -> set[str]:
         """Collect lowercase aliases of all existing automations."""
@@ -454,46 +520,3 @@ class SuggestionGenerator:
             occ = evidence.get("occurrences", count)
             return f"Observed {occ} times in sequence"
         return f"Observed {count} times"
-
-    async def _enrich_with_llm(
-        self,
-        suggestion: SuggestionDict,
-        pattern: PatternDict,
-        dismissed_summary: str = "",
-    ) -> SuggestionDict:
-        """Ask the LLM for a better human description (best-effort).
-
-        Passes a summary of recently dismissed patterns so the LLM avoids
-        re-proposing similar automations (#45).
-        """
-        try:
-            dismissal_context = (
-                f"\nRecently dismissed automation types (do not re-suggest similar patterns):\n{dismissed_summary}"
-                if dismissed_summary
-                else ""
-            )
-            prompt = (
-                "Rewrite this automation description to be clear and friendly "
-                "for a homeowner (one sentence, no technical jargon):\n"
-                f"Pattern: {pattern['description']}\n"
-                f"Evidence: {suggestion['evidence_summary']}"
-                f"{dismissal_context}"
-            )
-            result, _ = await asyncio.wait_for(
-                self._llm.send_request(
-                    system=(
-                        "You rewrite smart home automation descriptions. "
-                        "Reply with just the improved description."
-                    ),
-                    messages=[{"role": "user", "content": prompt}],
-                ),
-                timeout=15,
-            )
-            if result:
-                suggestion["description"] = result.strip()
-                suggestion["source"] = "hybrid"
-        except TimeoutError:
-            _LOGGER.debug("LLM enrichment timed out, using original description")
-        except Exception:
-            _LOGGER.debug("LLM enrichment failed, using original description")
-        return suggestion

@@ -73,6 +73,7 @@ from .const import (
     CONF_DISCOVERY_INTERVAL,
     CONF_DISCOVERY_MODE,
     CONF_DISCOVERY_START_TIME,
+    CONF_ENRICHMENT_INTERVAL,
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
@@ -93,9 +94,17 @@ from .const import (
     CONF_SELORA_MCP_URL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
+    DEFAULT_COLLECTOR_ENABLED,
+    DEFAULT_COLLECTOR_END_TIME,
+    DEFAULT_COLLECTOR_INTERVAL,
+    DEFAULT_COLLECTOR_MODE,
+    DEFAULT_COLLECTOR_START_TIME,
     DEFAULT_DISCOVERY_ENABLED,
+    DEFAULT_DISCOVERY_END_TIME,
     DEFAULT_DISCOVERY_INTERVAL,
     DEFAULT_DISCOVERY_MODE,
+    DEFAULT_DISCOVERY_START_TIME,
+    DEFAULT_ENRICHMENT_INTERVAL,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
@@ -1648,7 +1657,7 @@ async def _handle_websocket_generate_suggestions(
         if collector:
             try:
                 async with asyncio.timeout(30):
-                    await collector._collect_analyze_log()
+                    await collector._collect_analyze_log(force=True)
             except TimeoutError:
                 _LOGGER.warning(
                     "On-demand LLM analysis timed out after 30s — returning existing suggestions"
@@ -2048,18 +2057,30 @@ async def _handle_websocket_get_config(
             "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
             # Background Services
-            "collector_enabled": config_data.get(CONF_COLLECTOR_ENABLED, True),
-            "collector_mode": config_data.get(CONF_COLLECTOR_MODE, "continuous"),
-            "collector_interval": config_data.get(CONF_COLLECTOR_INTERVAL, 3600),
-            "collector_start_time": config_data.get(CONF_COLLECTOR_START_TIME, "09:00"),
-            "collector_end_time": config_data.get(CONF_COLLECTOR_END_TIME, "17:00"),
+            "collector_enabled": config_data.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED),
+            "collector_mode": config_data.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE),
+            "collector_interval": config_data.get(
+                CONF_COLLECTOR_INTERVAL, DEFAULT_COLLECTOR_INTERVAL
+            ),
+            "collector_start_time": config_data.get(
+                CONF_COLLECTOR_START_TIME, DEFAULT_COLLECTOR_START_TIME
+            ),
+            "collector_end_time": config_data.get(
+                CONF_COLLECTOR_END_TIME, DEFAULT_COLLECTOR_END_TIME
+            ),
             "auto_purge_stale": config_data.get(CONF_AUTO_PURGE_STALE, DEFAULT_AUTO_PURGE_STALE),
             "stale_days": AUTOMATION_STALE_DAYS,
-            "discovery_enabled": config_data.get(CONF_DISCOVERY_ENABLED, True),
-            "discovery_mode": config_data.get(CONF_DISCOVERY_MODE, "continuous"),
-            "discovery_interval": config_data.get(CONF_DISCOVERY_INTERVAL, 14400),
-            "discovery_start_time": config_data.get(CONF_DISCOVERY_START_TIME, "00:00"),
-            "discovery_end_time": config_data.get(CONF_DISCOVERY_END_TIME, "23:59"),
+            "discovery_enabled": config_data.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED),
+            "discovery_mode": config_data.get(CONF_DISCOVERY_MODE, DEFAULT_DISCOVERY_MODE),
+            "discovery_interval": config_data.get(
+                CONF_DISCOVERY_INTERVAL, DEFAULT_DISCOVERY_INTERVAL
+            ),
+            "discovery_start_time": config_data.get(
+                CONF_DISCOVERY_START_TIME, DEFAULT_DISCOVERY_START_TIME
+            ),
+            "discovery_end_time": config_data.get(
+                CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME
+            ),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
@@ -3880,6 +3901,13 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     return True
 
 
+async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Migrate config entry to a new version."""
+    from .migrations import async_migrate_entry as _migrate  # noqa: PLC0415
+
+    return await _migrate(hass, entry)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up Selora AI from a config entry."""
     # Device onboarding entries are records only — no runtime setup needed
@@ -4193,7 +4221,25 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         pattern_engine.on_patterns_detected = _on_patterns_detected
         await pattern_engine.async_start()
-        _LOGGER.info("Pattern detection + suggestion generation started")
+
+        enrichment_interval = entry.options.get(
+            CONF_ENRICHMENT_INTERVAL, DEFAULT_ENRICHMENT_INTERVAL
+        )
+
+        async def _enrichment_cycle(_now: Any) -> None:
+            await suggestion_generator.enrich_pending()
+
+        unsub_enrichment = async_track_time_interval(
+            hass,
+            _enrichment_cycle,
+            timedelta(seconds=enrichment_interval),
+        )
+        hass.data[DOMAIN][entry.entry_id]["unsub_enrichment"] = unsub_enrichment
+
+        _LOGGER.info(
+            "Pattern detection + suggestion generation started (enrichment every %ds)",
+            enrichment_interval,
+        )
     else:
         _LOGGER.info("Pattern detection disabled")
 
@@ -4241,6 +4287,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unsub_state = data.get("unsub_state_listener")
     if unsub_state:
         unsub_state()
+    unsub_enrichment = data.get("unsub_enrichment")
+    if unsub_enrichment:
+        unsub_enrichment()
     pattern_store = data.get("pattern_store")
     if pattern_store:
         await pattern_store.flush()

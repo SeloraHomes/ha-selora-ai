@@ -254,7 +254,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     Add Entry:     device discovery → selection → results
     """
 
-    VERSION = 1
+    VERSION = 2
 
     def async_get_options_flow(
         self, config_entry: config_entries.ConfigEntry

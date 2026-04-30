@@ -1874,7 +1874,7 @@ async def _tool_trigger_scan(hass: HomeAssistant) -> dict[str, Any]:
         return {"error": "No collector available — check LLM configuration"}
 
     started: datetime = datetime.now(UTC)
-    await collector._collect_analyze_log()
+    await collector._collect_analyze_log(force=True)
     finished: datetime = datetime.now(UTC)
 
     domain_data["_mcp_last_scan_at"] = finished.isoformat()

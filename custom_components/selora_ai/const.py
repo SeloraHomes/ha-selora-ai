@@ -697,6 +697,8 @@ CONF_COLLECTOR_END_TIME = "collector_end_time"
 CONF_COLLECTOR_INTERVAL = "collector_interval"
 CONF_AUTO_PURGE_STALE = "auto_purge_stale"
 DEFAULT_AUTO_PURGE_STALE = False
+CONF_COLLECTOR_MAX_SKIP_HOURS = "collector_max_skip_hours"
+DEFAULT_COLLECTOR_MAX_SKIP_HOURS = 12
 
 CONF_DISCOVERY_ENABLED = "discovery_enabled"
 CONF_DISCOVERY_MODE = "discovery_mode"
@@ -709,7 +711,7 @@ MODE_SCHEDULED = "scheduled"
 
 DEFAULT_COLLECTOR_ENABLED = True
 DEFAULT_COLLECTOR_MODE = MODE_CONTINUOUS
-DEFAULT_COLLECTOR_INTERVAL = 3600  # 1 hour in seconds
+DEFAULT_COLLECTOR_INTERVAL = 14400  # 4 hours in seconds
 DEFAULT_COLLECTOR_START_TIME = "09:00"
 DEFAULT_COLLECTOR_END_TIME = "17:00"
 
@@ -1072,6 +1074,8 @@ SCENE_STORE_KEY = "selora_ai_scenes"
 # ── Pattern Detection ────────────────────────────────────────────────
 PATTERN_STORE_KEY = "selora_ai_patterns"
 DEFAULT_PATTERN_INTERVAL = 900  # 15 minutes
+CONF_ENRICHMENT_INTERVAL = "enrichment_interval"
+DEFAULT_ENRICHMENT_INTERVAL = 21600  # 6 hours
 CONF_PATTERN_ENABLED = "pattern_detection_enabled"
 PATTERN_HISTORY_MAX_PER_ENTITY = 500
 PATTERN_HISTORY_RETENTION_DAYS = 14

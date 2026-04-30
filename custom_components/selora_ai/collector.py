@@ -13,6 +13,8 @@ from __future__ import annotations
 import asyncio
 import contextlib
 from datetime import UTC, datetime, timedelta
+import hashlib
+import json
 import logging
 from math import ceil
 from pathlib import Path
@@ -46,12 +48,14 @@ from .const import (
     CONF_COLLECTOR_ENABLED,
     CONF_COLLECTOR_END_TIME,
     CONF_COLLECTOR_INTERVAL,
+    CONF_COLLECTOR_MAX_SKIP_HOURS,
     CONF_COLLECTOR_MODE,
     CONF_COLLECTOR_START_TIME,
     DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_CATEGORY_LINK_WEIGHT,
     DEFAULT_COLLECTOR_ENABLED,
     DEFAULT_COLLECTOR_INTERVAL,
+    DEFAULT_COLLECTOR_MAX_SKIP_HOURS,
     DEFAULT_COLLECTOR_MODE,
     DEFAULT_DEVICES_PER_SUGGESTION,
     DEFAULT_LLM_TIMEOUT,
@@ -59,6 +63,7 @@ from .const import (
     DEFAULT_MIN_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
+    ENTITY_SNAPSHOT_ATTRS,
     MIN_RELEVANCE_SCORE,
     MODE_SCHEDULED,
     RELEVANCE_WEIGHT_ACTIVITY,
@@ -97,6 +102,9 @@ class DataCollector:
         self._unsub_timer: Callable[[], None] | None = None
         self._feedback_cache: str | None = None
         self._feedback_cache_time: float = 0.0
+        self._last_snapshot_fingerprint: str | None = None
+        self._last_analysis_time: float = 0.0
+        self._is_first_cycle: bool = True
 
     def _get_pattern_store(self) -> PatternStore | None:
         """Find the PatternStore from any active config entry."""
@@ -108,6 +116,59 @@ class DataCollector:
             if store is not None:
                 return store
         return None
+
+    _FINGERPRINT_ROUNDING: dict[str, float] = {
+        "brightness": 10,
+        "color_temp": 10,
+        "temperature": 1,
+        "current_temperature": 1,
+        "target_temperature": 0.5,
+        "volume_level": 0.05,
+        "current_position": 5,
+        "percentage": 5,
+        "battery_level": 5,
+        "battery": 5,
+    }
+
+    @classmethod
+    def _coarsen_attr(cls, key: str, value: Any) -> Any:
+        """Round noisy numeric attributes to avoid fingerprint churn."""
+        step = cls._FINGERPRINT_ROUNDING.get(key)
+        if step is not None and isinstance(value, (int, float)):
+            return round(value / step) * step
+        return value
+
+    def _snapshot_fingerprint(self, snapshot: HomeSnapshot) -> str:
+        """Build a stable fingerprint of the meaningful snapshot content.
+
+        For recorder_history we include only the sorted set of entity IDs
+        that have any activity.  This captures "which devices were used?"
+        without being destabilised by per-entity count drift from noisy
+        sensors.  The force-refresh interval ensures the LLM still gets
+        fully updated counts periodically.
+        """
+        states: dict[str, list[Any]] = {}
+        for e in snapshot.get("entity_states", []):
+            eid = e.get("entity_id")
+            if not eid:
+                continue
+            attrs = e.get("attributes", {})
+            snapshot_attrs = {
+                k: self._coarsen_attr(k, v)
+                for k, v in sorted(attrs.items())
+                if k in ENTITY_SNAPSHOT_ATTRS
+            }
+            states[eid] = [e.get("state", ""), snapshot_attrs]
+        device_ids = sorted(d.get("id", "") for d in snapshot.get("devices", []))
+        auto_aliases = sorted(a.get("alias", "") for a in snapshot.get("automations", []))
+        active_entities = sorted(
+            {h.get("entity_id", "") for h in snapshot.get("recorder_history", [])}
+        )
+        raw = json.dumps(
+            {"s": states, "d": device_ids, "a": auto_aliases, "h": active_entities},
+            sort_keys=True,
+        )
+        return hashlib.sha256(raw.encode()).hexdigest()
 
     async def async_start(self) -> None:
         """Start the periodic collection → analysis → log cycle."""
@@ -527,8 +588,12 @@ class DataCollector:
 
         return compat_filtered
 
-    async def _collect_analyze_log(self) -> None:
-        """Full cycle: collect → LLM analysis → log suggestions."""
+    async def _collect_analyze_log(self, *, force: bool = False) -> None:
+        """Full cycle: collect → LLM analysis → log suggestions.
+
+        When *force* is True the snapshot cache is bypassed, ensuring a
+        fresh LLM call.  Used by on-demand paths (websocket, MCP).
+        """
         if not self._llm:
             _LOGGER.debug("Skipping collection cycle: No LLM configured")
             return
@@ -554,7 +619,29 @@ class DataCollector:
             len(snapshot["recorder_history"]),
         )
 
-        # Change 7: Warn if no recorder history available
+        # Change detection: skip LLM if snapshot hasn't meaningfully changed
+        if not force:
+            fingerprint = self._snapshot_fingerprint(snapshot)
+            max_skip = self._settings.get(
+                CONF_COLLECTOR_MAX_SKIP_HOURS, DEFAULT_COLLECTOR_MAX_SKIP_HOURS
+            )
+            hours_since_last = (
+                (time.monotonic() - self._last_analysis_time) / 3600
+                if self._last_analysis_time > 0
+                else float("inf")
+            )
+            if (
+                not self._is_first_cycle
+                and fingerprint == self._last_snapshot_fingerprint
+                and hours_since_last < max_skip
+            ):
+                _LOGGER.debug(
+                    "Snapshot unchanged (last analysis %.1fh ago, force-refresh at %dh), skipping LLM call",
+                    hours_since_last,
+                    max_skip,
+                )
+                return
+
         if not snapshot["recorder_history"]:
             _LOGGER.warning(
                 "No recorder history available — suggestions will be based on "
@@ -584,6 +671,11 @@ class DataCollector:
                 DEFAULT_LLM_TIMEOUT + 10,
             )
             return
+
+        # Record successful analysis for change detection
+        self._last_snapshot_fingerprint = self._snapshot_fingerprint(snapshot)
+        self._last_analysis_time = time.monotonic()
+        self._is_first_cycle = False
 
         # Step 3: Log suggestions and store for UI
         if suggestions:
