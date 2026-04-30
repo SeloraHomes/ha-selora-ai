@@ -16,6 +16,8 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+_V1_DEFAULT_COLLECTOR_INTERVAL = 3600
+
 
 async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Migrate config entry to a new version."""
@@ -25,14 +27,18 @@ async def async_migrate_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 def _migrate_v1_to_v2(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """V1→V2: update collector interval from old 1h default to 4h."""
+    """V1→V2: migrate old default collector interval from 1h to 4h.
+
+    If the stored interval is the old default (3600) or absent, update it
+    to the new default (4h). Custom user-chosen values are preserved.
+    """
     opts = dict(entry.options)
-    old_default_interval = 3600
-    if opts.get(CONF_COLLECTOR_INTERVAL) == old_default_interval:
+    current = opts.get(CONF_COLLECTOR_INTERVAL)
+    if current is None or current == _V1_DEFAULT_COLLECTOR_INTERVAL:
         opts[CONF_COLLECTOR_INTERVAL] = DEFAULT_COLLECTOR_INTERVAL
         _LOGGER.info(
             "Migrating collector interval from %ds to %ds",
-            old_default_interval,
+            _V1_DEFAULT_COLLECTOR_INTERVAL,
             DEFAULT_COLLECTOR_INTERVAL,
         )
     hass.config_entries.async_update_entry(entry, options=opts, version=2)
