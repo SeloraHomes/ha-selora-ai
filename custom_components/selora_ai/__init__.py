@@ -4227,7 +4227,23 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
 
         async def _enrichment_cycle(_now: Any) -> None:
-            await suggestion_generator.enrich_pending()
+            enriched = await suggestion_generator.enrich_pending()
+            if enriched:
+                cache = hass.data[DOMAIN].get("proactive_suggestions", [])
+                store_suggestions = {
+                    s["suggestion_id"]: s
+                    for s in await pattern_store.get_suggestions(status="pending")
+                    if s.get("suggestion_id")
+                }
+                for cached in cache:
+                    sid = cached.get("suggestion_id")
+                    updated = store_suggestions.get(sid) if sid else None
+                    if updated:
+                        cached["description"] = updated.get(
+                            "description", cached.get("description")
+                        )
+                        cached["source"] = updated.get("source", cached.get("source"))
+                async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
 
         unsub_enrichment = async_track_time_interval(
             hass,
