@@ -15,6 +15,13 @@ const _USAGE_KEYS = [
   "llm_cost",
 ];
 
+const _USAGE_SENSOR_LABELS = {
+  llm_tokens_in: "LLM Tokens In",
+  llm_tokens_out: "LLM Tokens Out",
+  llm_calls: "LLM Calls",
+  llm_cost: "LLM Cost (estimate)",
+};
+
 function _findUsageSensors(hass) {
   const result = {};
   if (!hass?.states) return result;
@@ -35,13 +42,17 @@ function _findUsageSensors(hass) {
   }
   if (Object.keys(result).length === _USAGE_KEYS.length) return result;
 
-  // Fallback: scan states for any sensor whose ID ends in one of our
-  // keys. Cheap and copes with environments where the entity registry
-  // isn't yet populated for the panel.
+  // Fallback: scan states for any sensor whose slug starts with or ends
+  // with one of our keys. Handles both prefixed IDs (selora_ai_hub_llm_cost)
+  // and suffixed ones (llm_cost_estimate).
   for (const [entityId, state] of Object.entries(hass.states)) {
     if (!entityId.startsWith("sensor.")) continue;
+    const slug = entityId.slice(7);
     for (const key of _USAGE_KEYS) {
-      if (entityId.endsWith(key) && !result[key]) {
+      if (
+        !result[key] &&
+        (slug === key || slug.endsWith(key) || slug.startsWith(key))
+      ) {
         result[key] = { entityId, state };
       }
     }
@@ -248,6 +259,109 @@ function _formatRelativeTime(iso) {
   if (hr < 24) return `${hr}h ago`;
   const day = Math.round(hr / 24);
   return `${day}d ago`;
+}
+
+// ── Dashboard snippet picker ─────────────────────────────────────────
+
+const _SNIPPET_LABELS = {
+  llm_cost: "Cost",
+  llm_tokens_in: "Tokens in",
+  llm_tokens_out: "Tokens out",
+  llm_calls: "Calls",
+};
+
+function _yamlForSensor(entityId, label) {
+  return `type: statistics-graph
+title: ${label} per day
+entities:
+  - ${entityId}
+stat_types:
+  - change
+period: day
+days_to_show: 30`;
+}
+
+function _highlightYaml(yamlStr) {
+  return yamlStr.split("\n").map((line) => {
+    const indent = line.match(/^(\s*)/)[1];
+    const rest = line.slice(indent.length);
+    const listMatch = rest.match(/^(- )(.*)$/);
+    if (listMatch) {
+      // prettier-ignore
+      return html`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
+    }
+    const kvMatch = rest.match(/^([\w_-]+)(:)(.*)$/);
+    if (kvMatch) {
+      const val = kvMatch[3].trim();
+      // prettier-ignore
+      return html`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? html` <span class="yaml-val">${val}</span>` : ""}</div>`;
+    }
+    // prettier-ignore
+    return html`<div class="yaml-line">${line}</div>`;
+  });
+}
+
+function _renderDashboardSnippet(host, sensors) {
+  const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
+  const s = sensors[selected];
+  const entityId = s?.entityId || `sensor.${selected}`;
+  const label =
+    s?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+  const yaml = _yamlForSensor(entityId, label);
+
+  return html`
+    <div class="usage-snippet-pills">
+      ${_USAGE_KEYS.map(
+        (key) => html`
+          <button
+            class="usage-snippet-pill ${key === selected ? "active" : ""}"
+            @click=${() => {
+              host._dashboardSnippetKey = key;
+              host.requestUpdate();
+            }}
+          >
+            ${_SNIPPET_LABELS[key]}
+          </button>
+        `,
+      )}
+    </div>
+    <div class="usage-yaml-block" style="position: relative;">
+      <code>${_highlightYaml(yaml)}</code>
+      <button
+        class="usage-copy-btn"
+        @click=${(e) => {
+          const block = e.currentTarget.closest(".usage-yaml-block");
+          const codeEl = block?.querySelector("code");
+          if (codeEl) {
+            const range = document.createRange();
+            range.selectNodeContents(codeEl);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+          }
+          const ta = document.createElement("textarea");
+          ta.value = yaml;
+          ta.style.cssText =
+            "position:fixed;left:-9999px;top:-9999px;opacity:0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          const btn = e.currentTarget;
+          btn.textContent = "Copied!";
+          setTimeout(() => {
+            btn.textContent = "Copy";
+          }, 1500);
+        }}
+      >
+        Copy
+      </button>
+    </div>
+    <p class="usage-help" style="margin-top: 8px;">
+      The visual card picker will also find these sensors after the Recorder's
+      first hourly compilation.
+    </p>
+  `;
 }
 
 // ── Sub-views ────────────────────────────────────────────────────────
@@ -644,22 +758,41 @@ export function renderUsage(host) {
   const calls = Number(sensors.llm_calls?.state?.state) || 0;
   const cost = Number(sensors.llm_cost?.state?.state) || 0;
 
+  const sensorsMissing = Object.keys(sensors).length === 0;
+  const stats = host._usageStats || null;
+  const recent = Array.isArray(host._usageRecent) ? host._usageRecent : null;
+
+  const lastRecentEvent =
+    recent && recent.length > 0 ? recent[recent.length - 1] : null;
   const lastProvider =
     sensors.llm_calls?.state?.attributes?.last_provider ||
     sensors.llm_cost?.state?.attributes?.last_provider ||
+    lastRecentEvent?.provider ||
     null;
   const lastModel =
     sensors.llm_calls?.state?.attributes?.last_model ||
     sensors.llm_cost?.state?.attributes?.last_model ||
+    lastRecentEvent?.model ||
     null;
-
-  const sensorsMissing = Object.keys(sensors).length === 0;
-  const stats = host._usageStats || null;
-  const recent = Array.isArray(host._usageRecent) ? host._usageRecent : null;
   const breakdown = recent ? _groupByKind(recent) : null;
   const totalCost = breakdown
     ? breakdown.reduce((sum, g) => sum + g.cost_usd, 0)
     : 0;
+
+  // When sensors aren't registered yet, derive totals from the ring buffer.
+  const bufTokensIn = breakdown
+    ? breakdown.reduce((s, g) => s + g.input_tokens, 0)
+    : 0;
+  const bufTokensOut = breakdown
+    ? breakdown.reduce((s, g) => s + g.output_tokens, 0)
+    : 0;
+  const bufCalls = breakdown ? breakdown.reduce((s, g) => s + g.calls, 0) : 0;
+
+  const dispTokensIn = sensorsMissing ? bufTokensIn : tokensIn;
+  const dispTokensOut = sensorsMissing ? bufTokensOut : tokensOut;
+  const dispCalls = sensorsMissing ? bufCalls : calls;
+  const dispCost = sensorsMissing ? totalCost : cost;
+  const hasTotals = dispTokensIn || dispTokensOut || dispCalls || dispCost;
 
   return html`
     <div class="scroll-view">
@@ -706,37 +839,40 @@ export function renderUsage(host) {
               </div>
             `
           : html`
-              ${!sensorsMissing
+              ${hasTotals
                 ? html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Lifetime totals</h3>
+                        <h3>Totals</h3>
                       </div>
                       <div class="usage-tile-grid">
                         ${_renderTile({
-                          label: "Estimated cost",
-                          value: _fmtUsd(cost),
-                          sub: "USD · best-effort",
+                          label: "Cost",
+                          value: _fmtUsd(dispCost),
+                          sub: "USD estimate",
                           icon: "mdi:cash",
                         })}
                         ${_renderTile({
                           label: "Calls",
-                          value: _fmtInt(calls),
+                          value: _fmtInt(dispCalls),
                           icon: "mdi:counter",
                         })}
                         ${_renderTile({
                           label: "Tokens in",
-                          value: _fmtTokens(tokensIn),
+                          value: _fmtTokens(dispTokensIn),
                           icon: "mdi:upload",
                         })}
                         ${_renderTile({
                           label: "Tokens out",
-                          value: _fmtTokens(tokensOut),
+                          value: _fmtTokens(dispTokensOut),
                           icon: "mdi:download",
                         })}
                       </div>
                     </div>
-
+                  `
+                : ""}
+              ${!sensorsMissing
+                ? html`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>By period</h3>
@@ -782,49 +918,33 @@ export function renderUsage(host) {
                   `
                 : ""}
               ${_renderPricingCard(host)}
-              ${!sensorsMissing
+              ${sensorsMissing
                 ? html`
+                    <div class="section-card">
+                      <div class="section-card-header">
+                        <h3>Dashboard sensors</h3>
+                      </div>
+                      <p class="usage-help">
+                        Restart Home Assistant to register the usage sensors.
+                        Once registered, you can add them to any dashboard with
+                        a
+                        <code>statistics-graph</code> card.
+                      </p>
+                    </div>
+                  `
+                : html`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Add to your dashboard</h3>
                       </div>
                       <p class="usage-help">
-                        Selora AI exposes four sensors that track LLM usage over
-                        time. You can add them to any Home Assistant dashboard
-                        using built-in cards.
+                        Each metric has a different scale — create one card per
+                        sensor. Pick a metric, copy the YAML, then paste it in a
+                        dashboard's YAML editor.
                       </p>
-                      <div class="usage-sensor-list">
-                        ${_USAGE_KEYS.map((key) => {
-                          const s = sensors[key];
-                          const name =
-                            s?.state?.attributes?.friendly_name ||
-                            key.replace(/_/g, " ");
-                          return html`
-                            <div class="usage-sensor-row">
-                              <code>${s.entityId}</code>
-                              <span class="usage-sensor-name">${name}</span>
-                            </div>
-                          `;
-                        })}
-                      </div>
-                      <p class="usage-help" style="margin-top: 12px;">
-                        <strong>How to use them:</strong> edit a dashboard, add
-                        a <code>statistic</code> or
-                        <code>statistics-graph</code> card, pick one of the
-                        sensors above, and set <code>stat_type: change</code> to
-                        chart cost or tokens per day/week. The sensors record to
-                        HA's long-term statistics, so history is preserved
-                        across restarts.
-                      </p>
-                      <p class="usage-help">
-                        <strong>Per-call audit trail:</strong> every LLM call
-                        also fires a <code>selora_ai_llm_usage</code> event with
-                        provider, model, token counts, and cost — visible in the
-                        Logbook and usable as an automation trigger.
-                      </p>
+                      ${_renderDashboardSnippet(host, sensors)}
                     </div>
-                  `
-                : ""}
+                  `}
             `}
       </div>
     </div>
