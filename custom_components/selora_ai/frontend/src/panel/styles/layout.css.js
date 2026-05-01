@@ -24,7 +24,7 @@ export const layoutStyles = css`
   }
 
   /* ---- Particle band under header ---- */
-  selora-particles {
+  .main > selora-particles {
     position: absolute;
     top: 0;
     left: 0;
@@ -46,7 +46,7 @@ export const layoutStyles = css`
       transparent 70%
     );
   }
-  selora-particles.visible {
+  .main > selora-particles.visible {
     opacity: 1;
   }
 

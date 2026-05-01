@@ -35,6 +35,7 @@ import * as suggestionActions from "./panel/suggestion-actions.js";
 import * as chatActions from "./panel/chat-actions.js";
 import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
+import * as sceneActions from "./panel/scene-actions.js";
 
 // ---------------------------------------------------------------------------
 // Pure JS SHA-256 (RFC 6234) — fallback when crypto.subtle is unavailable
@@ -313,6 +314,7 @@ class SeloraAIPanel extends LitElement {
 
       // Theme
       _isDark: { type: Boolean },
+      _primaryColor: { type: String },
 
       // Overflow menu
       _showOverflowMenu: { type: Boolean },
@@ -1114,6 +1116,22 @@ class SeloraAIPanel extends LitElement {
         this._isDark = dark;
         this.toggleAttribute("dark", dark);
       }
+      // Resolve HA's primary color so canvas-based effects (particles) can
+      // match the theme accent rather than hard-coding gold in light mode.
+      const probe = document.createElement("div");
+      probe.style.color = "var(--primary-color)";
+      probe.style.display = "none";
+      this.shadowRoot?.appendChild(probe);
+      const resolved = getComputedStyle(probe).color;
+      probe.remove();
+      const m = resolved.match(/\d+/g);
+      if (m && m.length >= 3) {
+        this._primaryColor =
+          "#" +
+          [m[0], m[1], m[2]]
+            .map((v) => parseInt(v, 10).toString(16).padStart(2, "0"))
+            .join("");
+      }
     }
     // Process deferred "Create in Chat" once hass becomes available
     if (this.hass && this._pendingNewAutomation) {
@@ -1224,8 +1242,8 @@ class SeloraAIPanel extends LitElement {
     this._activeTab = "chat";
     this.requestUpdate();
     await this.updateComplete;
-    const textfield = this.shadowRoot?.querySelector("ha-textfield");
-    if (textfield) textfield.focus();
+    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+    if (textarea) textarea.focus();
   }
 
   async _confirmDeleteScene() {
@@ -1263,15 +1281,11 @@ class SeloraAIPanel extends LitElement {
       if (this.narrow) this._showSidebar = false;
       this.requestUpdate();
       await this.updateComplete;
-      const textfield = this.shadowRoot?.querySelector("ha-textfield");
-      if (textfield) {
-        textfield.focus();
-        // Place cursor at the end
-        const inputEl = textfield.shadowRoot?.querySelector("input, textarea");
-        if (inputEl) {
-          const len = this._input.length;
-          inputEl.setSelectionRange(len, len);
-        }
+      const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+      if (textarea) {
+        textarea.focus();
+        const len = this._input.length;
+        textarea.setSelectionRange(len, len);
       }
     } catch (err) {
       console.error("Failed to start new scene chat", err);
@@ -1844,7 +1858,7 @@ class SeloraAIPanel extends LitElement {
         >
           <selora-particles
             .count=${this._isDark ? 1200 : 400}
-            .color=${this._isDark ? "#C7AE6A" : "#B8860B"}
+            .color=${this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
             .maxOpacity=${this._isDark ? 1.0 : 0.5}
           ></selora-particles>
           ${this._activeTab === "chat" ? this._renderChat() : ""}
@@ -1963,5 +1977,6 @@ Object.assign(SeloraAIPanel.prototype, suggestionActions);
 Object.assign(SeloraAIPanel.prototype, chatActions);
 Object.assign(SeloraAIPanel.prototype, automationCrud);
 Object.assign(SeloraAIPanel.prototype, automationManagement);
+Object.assign(SeloraAIPanel.prototype, sceneActions);
 
 customElements.define("selora-ai", SeloraAIPanel);

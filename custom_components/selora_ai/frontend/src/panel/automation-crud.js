@@ -155,7 +155,7 @@ export async function _refineAutomation(msgIndex, automation, description) {
   // Pre-fill with rich context so the user just needs to describe the change
   const ctx = description ? ` (${description})` : "";
   this._input = `Refine "${automation.alias}"${ctx}: `;
-  this.shadowRoot.querySelector("ha-textfield")?.focus();
+  this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
 
 export async function _createAutomationFromSuggestion(automation) {

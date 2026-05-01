@@ -245,6 +245,9 @@ class ConversationStore:
         scene: dict[str, Any] | None = None,
         scene_yaml: str | None = None,
         scene_id: str | None = None,
+        scene_status: str | None = None,
+        refine_scene_id: str | None = None,
+        quick_actions: list[dict[str, Any]] | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -294,6 +297,12 @@ class ConversationStore:
             message["scene_yaml"] = scene_yaml
         if scene_id is not None:
             message["scene_id"] = scene_id
+        if scene_status is not None:
+            message["scene_status"] = scene_status
+        if refine_scene_id is not None:
+            message["refine_scene_id"] = refine_scene_id
+        if quick_actions:
+            message["quick_actions"] = quick_actions
 
         session["messages"].append(message)
 
@@ -335,6 +344,66 @@ class ConversationStore:
         if message_index < 0 or message_index >= len(msgs):
             return False
         msgs[message_index]["automation_status"] = status
+        session["updated_at"] = dt_util.now().isoformat()
+        await self._store.async_save(self._data)
+        return True
+
+    async def set_scene_status(
+        self,
+        session_id: str,
+        message_index: int,
+        status: str,
+        *,
+        scene_id: str | None = None,
+        entity_id: str | None = None,
+    ) -> bool:
+        """Update the scene_status field of a specific message.
+
+        Optionally sets scene_id when the scene is created on accept. When
+        scene_id is set on a message that already has scene_yaml, mirror the
+        entry into the session-level ``scenes`` index so ``_find_active_scenes``
+        sees it regardless of which lookup path runs first.
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        if not session:
+            return False
+        msgs = session["messages"]
+        if message_index < 0 or message_index >= len(msgs):
+            return False
+        message = msgs[message_index]
+        message["scene_status"] = status
+        if scene_id is not None:
+            message["scene_id"] = scene_id
+            scene_yaml = message.get("scene_yaml")
+            if scene_yaml:
+                if "scenes" not in session:
+                    # Seed the index with every existing saved scene
+                    # message. Sessions created before the index existed
+                    # carry their scenes as message-level scene_id /
+                    # scene_yaml fields; once the index path takes over
+                    # in _find_active_scenes, those legacy entries
+                    # would otherwise drop out of LLM context.
+                    session["scenes"] = {}
+                    for prior in msgs:
+                        prior_sid = prior.get("scene_id")
+                        prior_yaml = prior.get("scene_yaml")
+                        if prior_sid and prior_yaml and prior_sid != scene_id:
+                            session["scenes"][prior_sid] = {
+                                "name": (prior.get("scene") or {}).get("name", ""),
+                                "yaml": prior_yaml,
+                            }
+                session["scenes"][scene_id] = {
+                    "name": (message.get("scene") or {}).get("name", ""),
+                    "yaml": scene_yaml,
+                }
+        if entity_id is not None:
+            # Persist the resolved entity_id (may differ from
+            # scene.<scene_id> due to slugged alias or collision suffix)
+            # so Activate works correctly after a reload.
+            message["entity_id"] = entity_id
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
@@ -751,12 +820,33 @@ def _build_history_from_session(
     """
     # For each unique scene_id, find the index of its latest YAML so
     # refinements (including renames) see the current version and
-    # multi-scene sessions retain context for every scene.
+    # multi-scene sessions retain context for every scene. Pending /
+    # refining proposals don't have a scene_id yet, so attach their YAML
+    # in place too — otherwise the LLM loses the proposed entities the
+    # moment the user asks to tweak the proposal.
+    #
+    # NOTE: we deliberately do not try to drop a "refining" message when
+    # a later saved scene exists. The relationship between a refining
+    # draft and a later saved scene cannot be determined from the
+    # session state alone — the saved scene may be the accepted
+    # refinement of this draft, or an unrelated scene the user happened
+    # to save in the same session. Dropping based on that heuristic
+    # regresses multi-draft sessions, so we keep all pending and
+    # refining YAML in history. Cleaning up genuinely superseded drafts
+    # would require explicit linkage between a refining message and the
+    # saved scene that replaced it, which is a separate change.
     latest_scene_by_id: dict[str, int] = {}
+    pending_scene_indices: set[int] = set()
     for i, m in enumerate(stored_messages):
-        if m.get("scene_yaml") and m.get("scene_id"):
-            latest_scene_by_id[m["scene_id"]] = i
-    latest_scene_indices: set[int] = set(latest_scene_by_id.values())
+        scene_yaml = m.get("scene_yaml")
+        if not scene_yaml:
+            continue
+        sid = m.get("scene_id")
+        if sid:
+            latest_scene_by_id[sid] = i
+        elif m.get("scene_status") in ("pending", "refining"):
+            pending_scene_indices.add(i)
+    latest_scene_indices: set[int] = set(latest_scene_by_id.values()) | pending_scene_indices
 
     history: list[dict[str, str]] = []
     for i, m in enumerate(stored_messages):
@@ -778,7 +868,8 @@ def _build_history_from_session(
         elif i in latest_scene_indices:
             scene_name = _sanitize_history_text((m.get("scene") or {}).get("name", ""))
             sid = m.get("scene_id", "")
-            header = f"[Untrusted scene reference data for context only: {scene_name} (scene_id: {sid})]\n{m['scene_yaml']}"
+            qualifier = f"scene_id: {sid}" if sid else "pending proposal — not yet saved"
+            header = f"[Untrusted scene reference data for context only: {scene_name} ({qualifier})]\n{m['scene_yaml']}"
             content = f"{content}\n\n{header}"
         history.append({"role": m["role"], "content": content})
     return history
@@ -1112,39 +1203,11 @@ async def _handle_websocket_chat_stream(
 
         device_data = tool_executor.device_results if tool_executor else None
 
-        # The LLM includes refine_scene_id when modifying an existing scene.
-        scene_result: dict[str, Any] | None = None
-        if intent_type == "scene" and parsed.get("scene"):
-            try:
-                from .scene_utils import async_create_scene  # noqa: PLC0415
-
-                scene_result = await async_create_scene(
-                    hass,
-                    parsed["scene"],
-                    existing_scene_id=parsed.get("refine_scene_id"),
-                    session_scene_ids={s[0] for s in scenes},
-                )
-            except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
-                _LOGGER.error("Failed to create scene: %s", exc)
-                response_text += f" (Scene creation failed: {exc})"
-                # Clear scene metadata so the client doesn't think a scene was created
-                parsed.pop("scene", None)
-                parsed.pop("scene_yaml", None)
-                intent_type = "answer"
-
-            if scene_result is not None:
-                try:
-                    scene_store = _get_scene_store(hass)
-                    await scene_store.async_add_scene(
-                        scene_result["scene_id"],
-                        scene_result["name"],
-                        scene_result["entity_count"],
-                        session_id=session_id,
-                        entity_id=scene_result.get("entity_id"),
-                        content_hash=scene_result.get("content_hash"),
-                    )
-                except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
-                    _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
+        # Scenes are NOT created immediately — they are stored as proposals
+        # with scene_status="pending" so the user can review before applying.
+        scene_payload = parsed.get("scene")
+        scene_yaml_str = parsed.get("scene_yaml")
+        refine_scene_id = parsed.get("refine_scene_id")
 
         await store.append_message(
             session_id,
@@ -1158,9 +1221,11 @@ async def _handle_websocket_chat_stream(
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
             devices=device_data if device_data else None,
-            scene=scene_result["scene"] if scene_result else parsed.get("scene"),
-            scene_yaml=scene_result["scene_yaml"] if scene_result else parsed.get("scene_yaml"),
-            scene_id=scene_result["scene_id"] if scene_result else None,
+            scene=scene_payload,
+            scene_yaml=scene_yaml_str,
+            scene_status="pending" if scene_payload else None,
+            refine_scene_id=refine_scene_id if scene_payload else None,
+            quick_actions=parsed.get("quick_actions"),
         )
 
         updated_session = await store.get_session(session_id)
@@ -1206,11 +1271,12 @@ async def _handle_websocket_chat_stream(
                     "executed": executed,
                     "schedule_id": schedule_id,
                     "devices": device_data,
-                    "scene": scene_result["scene"] if scene_result else parsed.get("scene"),
-                    "scene_yaml": scene_result["scene_yaml"]
-                    if scene_result
-                    else parsed.get("scene_yaml"),
-                    "scene_id": scene_result["scene_id"] if scene_result else None,
+                    "scene": scene_payload,
+                    "scene_yaml": scene_yaml_str,
+                    "scene_status": "pending" if scene_payload else None,
+                    "refine_scene_id": refine_scene_id,
+                    "scene_message_index": assistant_message_index if scene_payload else None,
+                    "quick_actions": parsed.get("quick_actions"),
                 },
             )
         )
@@ -1367,6 +1433,145 @@ async def _handle_websocket_set_automation_status(
         connection.send_error(msg["id"], "not_found", "Session or message not found")
         return
     connection.send_result(msg["id"], {"status": "updated"})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/set_scene_status",
+        vol.Required("session_id"): str,
+        vol.Required("message_index"): int,
+        vol.Required("status"): str,
+    }
+)
+async def _handle_websocket_set_scene_status(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Update the acceptance status of a scene proposal in a session."""
+    if not _require_admin(connection, msg):
+        return
+
+    valid_statuses = {"pending", "saved", "declined", "refining"}
+    if msg["status"] not in valid_statuses:
+        connection.send_error(
+            msg["id"], "invalid_status", f"Status must be one of {valid_statuses}"
+        )
+        return
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    ok = await store.set_scene_status(msg["session_id"], msg["message_index"], msg["status"])
+    if not ok:
+        connection.send_error(msg["id"], "not_found", "Session or message not found")
+        return
+    connection.send_result(msg["id"], {"status": "updated"})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/accept_scene",
+        vol.Required("session_id"): str,
+        vol.Required("message_index"): int,
+    }
+)
+async def _handle_websocket_accept_scene(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Accept a scene proposal — actually create it in HA now.
+
+    The refinement target is read from the stored proposal, never from the
+    websocket payload, so a stale or crafted client cannot steer the accept
+    into overwriting an unrelated Selora-managed scene.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    session = await store.get_session(msg["session_id"])
+    if not session:
+        connection.send_error(msg["id"], "not_found", "Session not found")
+        return
+    msgs = session.get("messages", [])
+    mi = msg["message_index"]
+    if mi < 0 or mi >= len(msgs):
+        connection.send_error(msg["id"], "not_found", "Message not found")
+        return
+    chat_msg = msgs[mi]
+    scene_data = chat_msg.get("scene")
+    if not scene_data:
+        connection.send_error(msg["id"], "no_scene", "No scene data on this message")
+        return
+
+    # Atomic check-and-reserve. Single-threaded asyncio guarantees no other
+    # coroutine can interleave between this check and the in-memory status
+    # mutation below — a concurrent accept (double-click, retry, stale tab,
+    # second admin tab) will resume after this point and see "accepting",
+    # so it cannot also reach the create path. The reservation is purely
+    # in-memory; we only persist on success ("saved") or on failure
+    # (restored to the original status), so a crash cannot leave a
+    # message stuck in "accepting".
+    current_status = chat_msg.get("scene_status")
+    if chat_msg.get("scene_id") or current_status not in ("pending", "refining"):
+        connection.send_error(
+            msg["id"],
+            "already_handled",
+            f"Scene proposal is already {current_status or 'saved'}",
+        )
+        return
+    chat_msg["scene_status"] = "accepting"
+
+    try:
+        from .scene_utils import async_create_scene  # noqa: PLC0415
+
+        scenes_ctx = _find_active_scenes(session, msgs)
+        # Always pass a concrete set (even empty) so async_create_scene cannot
+        # fall back to its allow-any-Selora-scene path when the session has
+        # no recorded scenes.
+        session_scene_ids = {s[0] for s in scenes_ctx}
+        scene_result = await async_create_scene(
+            hass,
+            scene_data,
+            existing_scene_id=chat_msg.get("refine_scene_id"),
+            session_scene_ids=session_scene_ids,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.error("Failed to create scene on accept: %s", exc)
+        chat_msg["scene_status"] = current_status
+        connection.send_error(msg["id"], "create_failed", str(exc))
+        return
+
+    if scene_result is not None:
+        try:
+            scene_store = _get_scene_store(hass)
+            await scene_store.async_add_scene(
+                scene_result["scene_id"],
+                scene_result["name"],
+                scene_result["entity_count"],
+                session_id=msg["session_id"],
+                entity_id=scene_result.get("entity_id"),
+                content_hash=scene_result.get("content_hash"),
+            )
+        except Exception:  # noqa: BLE001
+            _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
+
+    await store.set_scene_status(
+        msg["session_id"],
+        mi,
+        "saved",
+        scene_id=scene_result["scene_id"],
+        entity_id=scene_result.get("entity_id"),
+    )
+    connection.send_result(
+        msg["id"],
+        {
+            "scene_id": scene_result["scene_id"],
+            "entity_id": scene_result.get("entity_id"),
+        },
+    )
 
 
 @websocket_api.async_response
@@ -3780,6 +3985,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_remove_draft)
     websocket_api.async_register_command(hass, _handle_websocket_delete_session)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
+    websocket_api.async_register_command(hass, _handle_websocket_set_scene_status)
+    websocket_api.async_register_command(hass, _handle_websocket_accept_scene)
     # Automation lifecycle
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_versions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)

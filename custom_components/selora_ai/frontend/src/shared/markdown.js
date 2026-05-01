@@ -15,24 +15,35 @@ export function stripAutomationBlock(text) {
       partialBlockType: null,
     };
 
-  // Complete block: ```automation ... ``` or ```scene ... ```
-  const completeRe = /```(?:automation|scene)[\s\S]*?```/g;
+  // Block types the backend extracts and re-attaches structurally — never
+  // show their raw JSON to the user.
+  const blockTypes = "automation|scene|quick_actions|delayed_command|cancel";
+
+  // Complete block: ```<type> ... ```
+  const completeRe = new RegExp("```(?:" + blockTypes + ")[\\s\\S]*?```", "g");
   const hasComplete = completeRe.test(text);
   let cleaned = text.replace(completeRe, "").trim();
 
-  // Partial block (still streaming): ```automation|scene ... (no closing ```)
-  const partialRe = /```(automation|scene)[\s\S]*$/;
+  // Partial block (still streaming): ```<type> ... (no closing ```)
+  const partialRe = new RegExp("```(" + blockTypes + ")[\\s\\S]*$");
   const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
   const hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
   }
 
+  // Spinners only make sense for the long-form blocks; quick_actions /
+  // delayed_command / cancel are short and finalize quickly, so we don't
+  // surface a building-state UI for them.
+  const spinnerType = ["automation", "scene"].includes(partialMatch?.[1])
+    ? partialMatch[1]
+    : null;
+
   return {
     text: cleaned,
     hasAutomationBlock: hasComplete,
     isPartialBlock: hasPartial,
-    partialBlockType: partialMatch ? partialMatch[1] : null,
+    partialBlockType: spinnerType,
   };
 }
 

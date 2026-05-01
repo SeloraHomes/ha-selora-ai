@@ -21,65 +21,99 @@ export const chatStyles = css`
     box-sizing: border-box;
     width: 100%;
   }
-  .empty-state {
+
+  /* ---- Welcome: composer-centered layout ---- */
+  .chat-welcome-center {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .welcome-center-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    opacity: 0.45;
-    gap: 12px;
-    padding: 32px;
     text-align: center;
+    max-width: 560px;
+    width: 100%;
     animation: fadeInUp 0.5s ease both;
   }
-  .empty-state.welcome {
-    opacity: 1;
-    gap: 0;
-    justify-content: flex-start;
-    padding: 12px;
-  }
-  @media (max-width: 600px) {
-    .empty-state.welcome {
-      padding: 4px;
-    }
-    .empty-state.welcome .section-card {
-      padding: 16px;
-    }
-  }
-  .empty-state.welcome > *:not(selora-particles) {
-    animation: fadeInUp 0.5s ease both;
-  }
-  .empty-state.welcome > img:first-child {
+  .welcome-center-content > img {
     animation: logoEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
-  .empty-state.welcome > :nth-child(2) {
-    animation-delay: 0.15s;
+  .welcome-center-content .chat-input {
+    width: 100%;
   }
-  .empty-state.welcome > :nth-child(3) {
-    animation-delay: 0.25s;
+  .welcome-center-content .qa-group {
+    width: 100%;
   }
-  .empty-state.welcome > :nth-child(4) {
-    animation-delay: 0.35s;
+
+  /* Particle field surrounding the welcome composer */
+  .welcome-composer-area {
+    position: relative;
+    width: 100%;
+    padding: 56px 0;
+    margin-top: 24px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .empty-state.welcome > :nth-child(5) {
-    animation-delay: 0.4s;
+  .welcome-composer-particles {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -20%;
+    right: -20%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    mask-image: radial-gradient(
+      ellipse 70% 80% at center,
+      black 25%,
+      rgba(0, 0, 0, 0.6) 55%,
+      transparent 85%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 80% at center,
+      black 25%,
+      rgba(0, 0, 0, 0.6) 55%,
+      transparent 85%
+    );
   }
-  .empty-state.welcome > :nth-child(6) {
-    animation-delay: 0.45s;
+  .welcome-composer-particles.visible {
+    opacity: 1;
   }
-  .empty-state.welcome > :nth-child(7) {
-    animation-delay: 0.5s;
+
+  /* Particles above docked composer in ongoing chat */
+  .chat-input-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--primary-background-color);
   }
-  .empty-state ha-icon {
-    --mdc-icon-size: 56px;
+  .composer-dock-particles {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+    mask-image: linear-gradient(to top, black, transparent);
+    -webkit-mask-image: linear-gradient(to top, black, transparent);
   }
-  .welcome-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  .composer-dock-particles.visible {
+    opacity: 1;
   }
-  .welcome-card:active {
-    transform: translateY(0);
+
+  @media (max-width: 600px) {
+    .chat-welcome-center {
+      padding: 16px 12px;
+    }
   }
   .message-row {
     display: flex;
@@ -155,44 +189,221 @@ export const chatStyles = css`
   }
 
   /* ---- Chat input ---- */
-  .chat-input-wrapper {
-    border-top: 1px solid var(--divider-color);
-    flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--primary-background-color);
-  }
   .chat-input {
-    padding: 12px 24px;
     max-width: 1200px;
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
     background: transparent;
+    display: block;
+    padding: 0;
+  }
+
+  .composer-styled {
+    position: relative;
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 18px;
+    padding: 10px 10px 10px 24px;
+    background: var(--card-background-color, #27272a);
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  .composer-styled:focus-within {
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.14),
+      0 10px 30px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  /* Welcome variant: contained input with top and bottom glow lines. */
+  .composer-welcome {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 640px;
+  }
+  /* Top edge: 1px gradient line, brightest in the middle */
+  .composer-welcome::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(245, 158, 11, 0.85) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Bottom edge: matching 1px gradient line */
+  .composer-welcome::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(245, 158, 11, 0.85) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Soft halos sitting above and below the composer, centered on the glow line */
+  .welcome-composer-area::before,
+  .welcome-composer-area::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    max-width: 520px;
+    height: 32px;
+    background: radial-gradient(
+      ellipse 50% 100% at center,
+      rgba(251, 191, 36, 0.55) 0%,
+      rgba(245, 158, 11, 0.22) 35%,
+      rgba(245, 158, 11, 0.06) 65%,
+      transparent 100%
+    );
+    filter: blur(5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .welcome-composer-area::before {
+    top: calc(50% - 27px - 16px);
+  }
+  .welcome-composer-area::after {
+    top: calc(50% + 27px - 16px);
+  }
+  .composer-welcome:focus-within {
+    border-color: rgba(251, 191, 36, 0.55);
+  }
+  .composer-welcome:focus-within::before,
+  .composer-welcome:focus-within::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(251, 191, 36, 1) 50%,
+      transparent 100%
+    );
+  }
+  .welcome-center-content .composer-styled {
+    margin: 0;
+  }
+  .chat-input-wrapper .composer-styled {
+    margin: 10px auto;
+    max-width: calc(1200px - 48px);
+    width: calc(100% - 48px);
   }
   @media (max-width: 600px) {
-    .chat-input {
-      padding: 10px 12px;
+    .chat-input-wrapper .composer-styled {
+      margin: 8px auto;
+      width: calc(100% - 24px);
     }
   }
-  .chat-input ha-textfield {
-    --mdc-text-field-fill-color: var(--selora-zinc-800, #27272a);
-    --mdc-text-field-ink-color: var(--primary-text-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-idle-line-color: var(--selora-zinc-700, #3f3f46);
-    --mdc-text-field-hover-line-color: var(--selora-accent);
-    border-radius: 12px;
-    overflow: hidden;
+
+  .composer-textarea {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    min-height: 36px;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--primary-text-color);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 22px;
+    padding: 7px 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: block;
+    vertical-align: middle;
   }
-  .chat-input ha-icon-button {
-    color: var(--selora-accent-text);
+  .composer-textarea::placeholder {
+    color: var(--secondary-text-color);
     opacity: 0.7;
-    transition: opacity 0.2s;
   }
-  .chat-input ha-icon-button:hover {
-    opacity: 1;
+  .composer-textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .composer-send {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #1a1300;
+    --mdc-icon-size: 18px;
+    margin: 0;
+    padding: 0;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 0 12px -2px rgba(251, 191, 36, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.2s ease,
+      opacity 0.15s ease;
+  }
+  .composer-send ha-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+  .composer-send:hover {
+    transform: scale(1.06);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 0 18px -2px rgba(251, 191, 36, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  .composer-send:active {
+    transform: scale(0.96);
+  }
+  .composer-send:disabled {
+    cursor: default;
+    transform: none;
+    opacity: 0.7;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .composer-send:disabled:hover {
+    transform: none;
   }
   .typing-bubble {
     align-self: flex-start;

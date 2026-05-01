@@ -23,10 +23,9 @@ export const automationsStyles = css`
   }
   .auto-row.disabled
     > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.auto-row-name) {
+    > :not(.burger-menu-wrapper):not(.auto-row-name):not(ha-icon) {
     opacity: 0.5;
   }
-  .auto-row.disabled .auto-row-title,
   .auto-row.disabled .auto-row-desc,
   .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;

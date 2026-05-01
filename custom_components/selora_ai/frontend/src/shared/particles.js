@@ -130,6 +130,28 @@ class SparkleEngine {
 }
 
 class SeloraParticles extends HTMLElement {
+  // Property setters keep the running engine in sync when Lit updates
+  // .color / .maxOpacity bindings (e.g. user toggles dark mode).
+  set color(value) {
+    this._color = value;
+    if (this._engine && value) {
+      this._engine.color = value;
+      this._engine._rgb = parseHexColor(value);
+    }
+  }
+  get color() {
+    return this._color;
+  }
+  set maxOpacity(value) {
+    this._maxOpacity = value;
+    if (this._engine && value != null) {
+      this._engine.maxOpacity = value;
+    }
+  }
+  get maxOpacity() {
+    return this._maxOpacity;
+  }
+
   connectedCallback() {
     // Build DOM
     const canvas = document.createElement("canvas");
@@ -142,8 +164,8 @@ class SeloraParticles extends HTMLElement {
 
     // Read properties set by Lit's .prop=${} bindings (already on the element)
     const count = this.count || 400;
-    const color = this.color || "#C7AE6A";
-    const maxOpacity = this.maxOpacity ?? 1.0;
+    const color = this._color || "#C7AE6A";
+    const maxOpacity = this._maxOpacity ?? 1.0;
 
     this._engine = new SparkleEngine(canvas, { color, count, maxOpacity });
 
