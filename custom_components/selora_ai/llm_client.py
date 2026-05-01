@@ -192,11 +192,18 @@ def _suggestions_prompt() -> str:
         "tool to retrieve pending automation suggestions from the pattern engine. Present the top "
         "results conversationally — explain what each automation would do, why it was suggested "
         "(using the evidence_summary), and which devices are involved. Do not dump raw data.\n"
-        "When the user confirms they want a suggestion set up (e.g. 'yes', 'set that up', 'do it'), "
-        "first call list_suggestions to get the current suggestion_id values (previous tool results "
-        "are not available across turns), then call accept_suggestion with the matching suggestion_id. "
-        "When the user declines (e.g. 'no', 'skip', 'not that one'), call list_suggestions first, "
-        "then dismiss_suggestion with the matching suggestion_id.\n\n"
+        "When the user confirms they want a suggestion set up (e.g. 'yes', 'set that up', "
+        "'do it', 'set up the X suggestion', 'accept that one'), you MUST "
+        "first call list_suggestions to get the current suggestion_id values "
+        "(previous tool results are not available across turns), then call "
+        "accept_suggestion with the matching suggestion_id, then confirm to the user. "
+        "When the user declines (e.g. 'no', 'skip', 'not that one', 'dismiss the X suggestion'), "
+        "first call list_suggestions, then dismiss_suggestion with the matching suggestion_id.\n"
+        "CRITICAL: Never claim an automation was created or a suggestion was accepted/dismissed "
+        "unless you actually called accept_suggestion or dismiss_suggestion in this turn and the "
+        "tool returned success. Do not fabricate automation IDs, entity IDs, or confirmation text. "
+        "If the tool call fails or you cannot find a matching suggestion_id, say so honestly — "
+        "do not pretend the action succeeded.\n\n"
     )
 
 
@@ -827,18 +834,38 @@ class LLMClient:
         through ``_apply_command_policy`` so that unsafe calls are blocked
         even on the streaming path.
         """
+        # Extract quick_actions block first — it's supplementary and can
+        # appear alongside any other block type.
+        quick_actions: list[dict[str, Any]] | None = None
+        qa_match = re.search(r"```quick_actions\s*\n?([\s\S]*?)```", text)
+        if qa_match:
+            try:
+                parsed_qa = json.loads(qa_match.group(1).strip())
+                if isinstance(parsed_qa, list) and parsed_qa:
+                    quick_actions = parsed_qa
+            except (json.JSONDecodeError, ValueError):
+                _LOGGER.warning("Failed to parse quick_actions block")
+            text = text[: qa_match.start()] + text[qa_match.end() :]
+
         # Check for delayed_command fenced block first
         # Check for cancel fenced block — anchored to end so informational
         # examples don't trigger real cancellation.
+        def _attach_qa(r: ArchitectResponse) -> ArchitectResponse:
+            if quick_actions:
+                r["quick_actions"] = quick_actions
+            return r
+
         cancel_match = re.search(r"```cancel\s*\n?([\s\S]*?)```\s*$", text)
         if cancel_match:
             response_text = text[: cancel_match.start()].strip()
             try:
                 data = json.loads(cancel_match.group(1).strip())
-                return {
-                    "intent": "cancel",
-                    "response": data.get("response", response_text or "Cancelled."),
-                }
+                return _attach_qa(
+                    {
+                        "intent": "cancel",
+                        "response": data.get("response", response_text or "Cancelled."),
+                    }
+                )
             except (json.JSONDecodeError, ValueError):
                 # Malformed cancel block — fall through to avoid destructive action
                 _LOGGER.warning("Failed to parse cancel block, ignoring")
@@ -862,7 +889,7 @@ class LLMClient:
                     result["scheduled_time"] = data["scheduled_time"]
                 if entities is not None:
                     result = self._apply_command_policy(result, entities)
-                return result
+                return _attach_qa(result)
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse delayed_command block: %s", json_text[:200])
 
@@ -879,12 +906,14 @@ class LLMClient:
                 scene_data = json.loads(json_text)
                 is_valid, reason, normalized = validate_scene_payload(scene_data, self._hass)
                 if not is_valid or normalized is None:
-                    return {
-                        "intent": "answer",
-                        "response": response_text or "I couldn't create a valid scene",
-                        "validation_error": reason,
-                        "validation_target": "scene",
-                    }
+                    return _attach_qa(
+                        {
+                            "intent": "answer",
+                            "response": response_text or "I couldn't create a valid scene",
+                            "validation_error": reason,
+                            "validation_target": "scene",
+                        }
+                    )
                 scene_result: dict[str, Any] = {
                     "intent": "scene",
                     "response": response_text or "Scene created.",
@@ -897,7 +926,7 @@ class LLMClient:
                 # update the existing scene instead of creating a new one.
                 if scene_data.get("refine_scene_id"):
                     scene_result["refine_scene_id"] = scene_data["refine_scene_id"]
-                return scene_result
+                return _attach_qa(scene_result)
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse scene block: %s", json_text[:200])
 
@@ -910,27 +939,31 @@ class LLMClient:
                 is_valid, reason, normalized = validate_automation_payload(automation, self._hass)
                 if not is_valid or normalized is None:
                     _LOGGER.warning("Discarding invalid streamed automation payload: %s", reason)
-                    return {
-                        "intent": "answer",
-                        "response": (
-                            response_text
-                            or "I couldn't create a valid automation from that request"
-                        )
-                        + f": {reason}. Please refine the request and try again.",
-                        "validation_error": reason,
-                        "validation_target": "automation",
-                    }
+                    return _attach_qa(
+                        {
+                            "intent": "answer",
+                            "response": (
+                                response_text
+                                or "I couldn't create a valid automation from that request"
+                            )
+                            + f": {reason}. Please refine the request and try again.",
+                            "validation_error": reason,
+                            "validation_target": "automation",
+                        }
+                    )
                 automation_yaml = yaml.dump(
                     normalized, default_flow_style=False, allow_unicode=True
                 )
-                return {
-                    "intent": "automation",
-                    "response": response_text or "Here's the automation I've created.",
-                    "automation": normalized,
-                    "automation_yaml": automation_yaml,
-                    "description": normalized.get("description", ""),
-                    "risk_assessment": assess_automation_risk(normalized),
-                }
+                return _attach_qa(
+                    {
+                        "intent": "automation",
+                        "response": response_text or "Here's the automation I've created.",
+                        "automation": normalized,
+                        "automation_yaml": automation_yaml,
+                        "description": normalized.get("description", ""),
+                        "risk_assessment": assess_automation_risk(normalized),
+                    }
+                )
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse automation block: %s", json_text[:200])
 
@@ -943,7 +976,7 @@ class LLMClient:
         if entities is not None:
             result = self._apply_command_policy(result, entities)
 
-        return result
+        return _attach_qa(result)
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration
@@ -1299,6 +1332,22 @@ class LLMClient:
             "}\n"
             'Use when the user says "cancel that", "never mind", "forget it", or explicitly '
             "cancels a scheduled action.\n\n"
+            "QUICK ACTIONS (optional, any intent) — When your reply names 2-4 concrete "
+            "examples or alternatives the user can pick, include a top-level "
+            '"quick_actions" array so the UI renders clickable buttons. Each item: '
+            '{"label": "Button text", "value": "Message sent when clicked", "mode": '
+            '"suggestion"|"choice"|"confirmation"}. Example for a clarification asking '
+            "which scene to create:\n"
+            "{\n"
+            '  "intent": "clarification",\n'
+            '  "response": "Which scene do you want to create?",\n'
+            '  "quick_actions": [\n'
+            '    {"label": "Cozy evening in the living room", "value": "Create a cozy evening scene for the living room", "mode": "choice"},\n'
+            '    {"label": "Kitchen cleanup", "value": "Create a kitchen cleanup scene", "mode": "choice"}\n'
+            "  ]\n"
+            "}\n"
+            "Only include quick_actions when one-tap picks help the user — skip them for "
+            "free-form questions or when a single best action is obvious.\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
             + _SHARED_STATE_QUERY_RULES
@@ -1399,6 +1448,22 @@ class LLMClient:
             "```cancel\n"
             '{"response": "Cancelled the porch light timer."}\n'
             "```\n\n"
+            "QUICK ACTIONS — When you offer the user concrete example choices or follow-up "
+            "suggestions (e.g. 'try X or Y', 'pick one of these scenes'), append a fenced "
+            "JSON block tagged 'quick_actions' so the UI renders clickable buttons. Each "
+            "item must have a 'label' (button text) and 'value' (the text sent as the next "
+            "user message when clicked). Optional 'mode' is 'suggestion' (casual chip), "
+            "'choice' (distinct option card), or 'confirmation' (inline button row).\n\n"
+            "```quick_actions\n"
+            "[\n"
+            '  {"label": "Cozy evening in the living room", "value": "Create a cozy evening scene for the living room", "mode": "choice"},\n'
+            '  {"label": "Kitchen cleanup", "value": "Create a kitchen cleanup scene", "mode": "choice"}\n'
+            "]\n"
+            "```\n\n"
+            "Emit quick_actions only when the user benefits from a one-tap pick — when you "
+            "name 2-4 concrete examples in your reply, when you offer alternative phrasings, "
+            "or after a clarifying question to enumerate likely answers. Do not include them "
+            "for free-form questions or when a single best action is obvious.\n\n"
             "RULES:\n"
             + _SHARED_AUTOMATION_RULES
             + _SHARED_STATE_QUERY_RULES

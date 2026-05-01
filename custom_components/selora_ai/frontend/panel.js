@@ -1534,7 +1534,7 @@ var layoutStyles = i`
   }
 
   /* ---- Particle band under header ---- */
-  selora-particles {
+  .main > selora-particles {
     position: absolute;
     top: 0;
     left: 0;
@@ -1556,7 +1556,7 @@ var layoutStyles = i`
       transparent 70%
     );
   }
-  selora-particles.visible {
+  .main > selora-particles.visible {
     opacity: 1;
   }
 
@@ -2169,65 +2169,99 @@ var chatStyles = i`
     box-sizing: border-box;
     width: 100%;
   }
-  .empty-state {
+
+  /* ---- Welcome: composer-centered layout ---- */
+  .chat-welcome-center {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 24px;
+  }
+  .welcome-center-content {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    opacity: 0.45;
-    gap: 12px;
-    padding: 32px;
     text-align: center;
+    max-width: 560px;
+    width: 100%;
     animation: fadeInUp 0.5s ease both;
   }
-  .empty-state.welcome {
-    opacity: 1;
-    gap: 0;
-    justify-content: flex-start;
-    padding: 12px;
-  }
-  @media (max-width: 600px) {
-    .empty-state.welcome {
-      padding: 4px;
-    }
-    .empty-state.welcome .section-card {
-      padding: 16px;
-    }
-  }
-  .empty-state.welcome > *:not(selora-particles) {
-    animation: fadeInUp 0.5s ease both;
-  }
-  .empty-state.welcome > img:first-child {
+  .welcome-center-content > img {
     animation: logoEntrance 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
-  .empty-state.welcome > :nth-child(2) {
-    animation-delay: 0.15s;
+  .welcome-center-content .chat-input {
+    width: 100%;
   }
-  .empty-state.welcome > :nth-child(3) {
-    animation-delay: 0.25s;
+  .welcome-center-content .qa-group {
+    width: 100%;
   }
-  .empty-state.welcome > :nth-child(4) {
-    animation-delay: 0.35s;
+
+  /* Particle field surrounding the welcome composer */
+  .welcome-composer-area {
+    position: relative;
+    width: 100%;
+    padding: 56px 0;
+    margin-top: 24px;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
-  .empty-state.welcome > :nth-child(5) {
-    animation-delay: 0.4s;
+  .welcome-composer-particles {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: -20%;
+    right: -20%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 1.2s ease;
+    mask-image: radial-gradient(
+      ellipse 70% 80% at center,
+      black 25%,
+      rgba(0, 0, 0, 0.6) 55%,
+      transparent 85%
+    );
+    -webkit-mask-image: radial-gradient(
+      ellipse 70% 80% at center,
+      black 25%,
+      rgba(0, 0, 0, 0.6) 55%,
+      transparent 85%
+    );
   }
-  .empty-state.welcome > :nth-child(6) {
-    animation-delay: 0.45s;
+  .welcome-composer-particles.visible {
+    opacity: 1;
   }
-  .empty-state.welcome > :nth-child(7) {
-    animation-delay: 0.5s;
+
+  /* Particles above docked composer in ongoing chat */
+  .chat-input-wrapper {
+    position: relative;
+    flex-shrink: 0;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: var(--primary-background-color);
   }
-  .empty-state ha-icon {
-    --mdc-icon-size: 56px;
+  .composer-dock-particles {
+    position: absolute;
+    top: -20px;
+    left: 0;
+    right: 0;
+    height: 20px;
+    z-index: 0;
+    opacity: 0;
+    transition: opacity 1s ease;
+    mask-image: linear-gradient(to top, black, transparent);
+    -webkit-mask-image: linear-gradient(to top, black, transparent);
   }
-  .welcome-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  .composer-dock-particles.visible {
+    opacity: 1;
   }
-  .welcome-card:active {
-    transform: translateY(0);
+
+  @media (max-width: 600px) {
+    .chat-welcome-center {
+      padding: 16px 12px;
+    }
   }
   .message-row {
     display: flex;
@@ -2303,44 +2337,221 @@ var chatStyles = i`
   }
 
   /* ---- Chat input ---- */
-  .chat-input-wrapper {
-    border-top: 1px solid var(--divider-color);
-    flex-shrink: 0;
-    padding-bottom: env(safe-area-inset-bottom, 0px);
-    background: var(--primary-background-color);
-  }
   .chat-input {
-    padding: 12px 24px;
     max-width: 1200px;
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
     background: transparent;
+    display: block;
+    padding: 0;
+  }
+
+  .composer-styled {
+    position: relative;
     display: flex;
-    gap: 10px;
     align-items: center;
+    gap: 10px;
+    min-height: 56px;
+    border: 1px solid rgba(251, 191, 36, 0.5);
+    border-radius: 18px;
+    padding: 10px 10px 10px 24px;
+    background: var(--card-background-color, #27272a);
+    box-sizing: border-box;
+    overflow: hidden;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    transition:
+      border-color 0.25s ease,
+      box-shadow 0.25s ease;
+  }
+  .composer-styled:focus-within {
+    border-color: rgba(251, 191, 36, 0.55);
+    box-shadow:
+      0 0 0 1px rgba(251, 191, 36, 0.14),
+      0 10px 30px rgba(0, 0, 0, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+  /* Welcome variant: contained input with top and bottom glow lines. */
+  .composer-welcome {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 640px;
+  }
+  /* Top edge: 1px gradient line, brightest in the middle */
+  .composer-welcome::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(245, 158, 11, 0.85) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Bottom edge: matching 1px gradient line */
+  .composer-welcome::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(245, 158, 11, 0.85) 50%,
+      transparent 100%
+    );
+    pointer-events: none;
+    z-index: 0;
+  }
+  /* Soft halos sitting above and below the composer, centered on the glow line */
+  .welcome-composer-area::before,
+  .welcome-composer-area::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 70%;
+    max-width: 520px;
+    height: 32px;
+    background: radial-gradient(
+      ellipse 50% 100% at center,
+      rgba(251, 191, 36, 0.55) 0%,
+      rgba(245, 158, 11, 0.22) 35%,
+      rgba(245, 158, 11, 0.06) 65%,
+      transparent 100%
+    );
+    filter: blur(5px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .welcome-composer-area::before {
+    top: calc(50% - 27px - 16px);
+  }
+  .welcome-composer-area::after {
+    top: calc(50% + 27px - 16px);
+  }
+  .composer-welcome:focus-within {
+    border-color: rgba(251, 191, 36, 0.55);
+  }
+  .composer-welcome:focus-within::before,
+  .composer-welcome:focus-within::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(251, 191, 36, 1) 50%,
+      transparent 100%
+    );
+  }
+  .welcome-center-content .composer-styled {
+    margin: 0;
+  }
+  .chat-input-wrapper .composer-styled {
+    margin: 10px auto;
+    max-width: calc(1200px - 48px);
+    width: calc(100% - 48px);
   }
   @media (max-width: 600px) {
-    .chat-input {
-      padding: 10px 12px;
+    .chat-input-wrapper .composer-styled {
+      margin: 8px auto;
+      width: calc(100% - 24px);
     }
   }
-  .chat-input ha-textfield {
-    --mdc-text-field-fill-color: var(--selora-zinc-800, #27272a);
-    --mdc-text-field-ink-color: var(--primary-text-color);
-    --mdc-text-field-label-ink-color: var(--secondary-text-color);
-    --mdc-text-field-idle-line-color: var(--selora-zinc-700, #3f3f46);
-    --mdc-text-field-hover-line-color: var(--selora-accent);
-    border-radius: 12px;
-    overflow: hidden;
+
+  .composer-textarea {
+    position: relative;
+    z-index: 1;
+    flex: 1 1 auto;
+    min-width: 0;
+    width: auto;
+    min-height: 36px;
+    resize: none;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: var(--primary-text-color);
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 22px;
+    padding: 7px 0;
+    margin: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    box-sizing: border-box;
+    display: block;
+    vertical-align: middle;
   }
-  .chat-input ha-icon-button {
-    color: var(--selora-accent-text);
+  .composer-textarea::placeholder {
+    color: var(--secondary-text-color);
     opacity: 0.7;
-    transition: opacity 0.2s;
   }
-  .chat-input ha-icon-button:hover {
-    opacity: 1;
+  .composer-textarea:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .composer-send {
+    position: relative;
+    z-index: 1;
+    flex: 0 0 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #fcd34d 0%, #fbbf24 50%, #f59e0b 100%);
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    color: #1a1300;
+    --mdc-icon-size: 18px;
+    margin: 0;
+    padding: 0;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.35),
+      0 0 12px -2px rgba(251, 191, 36, 0.55),
+      inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    transition:
+      transform 0.15s ease,
+      box-shadow 0.2s ease,
+      opacity 0.15s ease;
+  }
+  .composer-send ha-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+  .composer-send:hover {
+    transform: scale(1.06);
+    box-shadow:
+      0 2px 4px rgba(0, 0, 0, 0.4),
+      0 0 18px -2px rgba(251, 191, 36, 0.7),
+      inset 0 1px 0 rgba(255, 255, 255, 0.4);
+  }
+  .composer-send:active {
+    transform: scale(0.96);
+  }
+  .composer-send:disabled {
+    cursor: default;
+    transform: none;
+    opacity: 0.7;
+    box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.25),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+  }
+  .composer-send:disabled:hover {
+    transform: none;
   }
   .typing-bubble {
     align-self: flex-start;
@@ -3004,10 +3215,9 @@ var automationsStyles = i`
   }
   .auto-row.disabled
     > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.auto-row-name) {
+    > :not(.burger-menu-wrapper):not(.auto-row-name):not(ha-icon) {
     opacity: 0.5;
   }
-  .auto-row.disabled .auto-row-title,
   .auto-row.disabled .auto-row-desc,
   .auto-row.disabled .auto-row-mobile-meta {
     opacity: 0.5;
@@ -4368,6 +4578,145 @@ var usageStyles = i`
   }
 `;
 
+// src/panel/styles/quick-actions.css.js
+var quickActionStyles = i`
+  /* ── Shared quick-action container ── */
+  .qa-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  /* ── Suggestion chips (welcome / quick-start) ── */
+  .qa-suggestion {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 10px;
+    background: var(
+      --selora-inner-card-bg,
+      var(--primary-background-color, #18181b)
+    );
+    color: var(--primary-text-color);
+    transition:
+      border-color 0.15s,
+      background 0.15s;
+    text-align: left;
+    line-height: 1.4;
+  }
+  .qa-suggestion:hover {
+    border-color: var(--selora-accent);
+    background: rgba(251, 191, 36, 0.04);
+  }
+  .qa-suggestion:active {
+    background: rgba(251, 191, 36, 0.08);
+  }
+  .qa-suggestion ha-icon {
+    --mdc-icon-size: 16px;
+    flex-shrink: 0;
+    color: var(--secondary-text-color);
+  }
+
+  /* ── Choice cards (AI-offered options) ── */
+  .qa-group--choices {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+  }
+  .qa-choice {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    cursor: pointer;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    border-radius: 12px;
+    background: var(
+      --selora-inner-card-bg,
+      var(--primary-background-color, #18181b)
+    );
+    color: var(--primary-text-color);
+    transition:
+      border-color 0.15s,
+      transform 0.15s,
+      box-shadow 0.15s;
+    text-align: left;
+  }
+  .qa-choice:hover {
+    border-color: var(--selora-accent);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+  .qa-choice:active {
+    transform: translateY(0);
+  }
+  .qa-choice-label {
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .qa-choice-desc {
+    font-size: 12px;
+    opacity: 0.6;
+    line-height: 1.35;
+  }
+
+  /* ── Confirmation buttons (Apply / Modify / Cancel) ── */
+  .qa-group--confirmations {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .qa-confirm {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border-radius: 8px;
+    transition:
+      background 0.15s,
+      border-color 0.15s;
+    white-space: nowrap;
+    border: 1px solid
+      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
+    background: transparent;
+    color: var(--primary-text-color);
+  }
+  .qa-confirm:hover {
+    border-color: var(--selora-accent);
+  }
+  .qa-confirm--primary {
+    background: var(--selora-accent);
+    color: #000;
+    border-color: var(--selora-accent);
+  }
+  .qa-confirm--primary:hover {
+    background: #f59e0b;
+    border-color: #f59e0b;
+  }
+  .qa-confirm ha-icon {
+    --mdc-icon-size: 14px;
+  }
+
+  /* ── Disabled state (after selection) ── */
+  .qa-group--used {
+    opacity: 0.45;
+    pointer-events: none;
+  }
+`;
+
 // src/panel/styles/index.css.js
 var allPanelStyles = [
   layoutStyles,
@@ -4379,6 +4728,7 @@ var allPanelStyles = [
   automationsStyles,
   settingsStyles,
   usageStyles,
+  quickActionStyles,
 ];
 
 // src/shared/particles.js
@@ -4492,6 +4842,27 @@ var SparkleEngine = class {
   }
 };
 var SeloraParticles = class extends HTMLElement {
+  // Property setters keep the running engine in sync when Lit updates
+  // .color / .maxOpacity bindings (e.g. user toggles dark mode).
+  set color(value) {
+    this._color = value;
+    if (this._engine && value) {
+      this._engine.color = value;
+      this._engine._rgb = parseHexColor(value);
+    }
+  }
+  get color() {
+    return this._color;
+  }
+  set maxOpacity(value) {
+    this._maxOpacity = value;
+    if (this._engine && value != null) {
+      this._engine.maxOpacity = value;
+    }
+  }
+  get maxOpacity() {
+    return this._maxOpacity;
+  }
   connectedCallback() {
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
@@ -4501,8 +4872,8 @@ var SeloraParticles = class extends HTMLElement {
     this.appendChild(canvas);
     this._canvas = canvas;
     const count = this.count || 400;
-    const color = this.color || "#C7AE6A";
-    const maxOpacity = this.maxOpacity ?? 1;
+    const color = this._color || "#C7AE6A";
+    const maxOpacity = this._maxOpacity ?? 1;
     this._engine = new SparkleEngine(canvas, { color, count, maxOpacity });
     this._ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
@@ -4644,20 +5015,24 @@ function stripAutomationBlock(text) {
       isPartialBlock: false,
       partialBlockType: null,
     };
-  const completeRe = /```(?:automation|scene)[\s\S]*?```/g;
+  const blockTypes = "automation|scene|quick_actions|delayed_command|cancel";
+  const completeRe = new RegExp("```(?:" + blockTypes + ")[\\s\\S]*?```", "g"); // nosemgrep
   const hasComplete = completeRe.test(text);
   let cleaned = text.replace(completeRe, "").trim();
-  const partialRe = /```(automation|scene)[\s\S]*$/;
+  const partialRe = new RegExp("```(" + blockTypes + ")[\\s\\S]*$"); // nosemgrep
   const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
   const hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
   }
+  const spinnerType = ["automation", "scene"].includes(partialMatch?.[1])
+    ? partialMatch[1]
+    : null;
   return {
     text: cleaned,
     hasAutomationBlock: hasComplete,
     isPartialBlock: hasPartial,
-    partialBlockType: partialMatch ? partialMatch[1] : null,
+    partialBlockType: spinnerType,
   };
 }
 function renderMarkdown(text) {
@@ -4939,7 +5314,85 @@ function renderDeviceDetail(host) {
   `;
 }
 
+// src/panel/quick-actions.js
+function renderQuickActions(host, actions, opts = {}) {
+  if (!actions || !actions.length) return "";
+  const mode = _detectMode(actions);
+  const usedClass = opts.used ? " qa-group--used" : "";
+  if (mode === "choice") {
+    return x`
+      <div class="qa-group qa-group--choices${usedClass}">
+        ${actions.map((a4) => _renderChoice(host, a4))}
+      </div>
+    `;
+  }
+  if (mode === "confirmation") {
+    return x`
+      <div class="qa-group qa-group--confirmations${usedClass}">
+        ${actions.map((a4) => _renderConfirmation(host, a4))}
+      </div>
+    `;
+  }
+  return x`
+    <div class="qa-group${usedClass}">
+      ${actions.map((a4) => _renderSuggestion(host, a4))}
+    </div>
+  `;
+}
+function _detectMode(actions) {
+  const first = actions[0];
+  if (first.mode) return first.mode;
+  if (actions.some((a4) => a4.primary !== void 0)) return "confirmation";
+  if (actions.some((a4) => a4.description)) return "choice";
+  return "suggestion";
+}
+function _onSelect(host, action) {
+  host._selectQuickAction(action);
+}
+function _renderSuggestion(host, action) {
+  return x`
+    <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
+      ${action.icon ? x`<ha-icon icon=${action.icon}></ha-icon>` : ""}
+      ${action.label}
+    </button>
+  `;
+}
+function _renderChoice(host, action) {
+  return x`
+    <div class="qa-choice" @click=${() => _onSelect(host, action)}>
+      <span class="qa-choice-label">${action.label}</span>
+      ${action.description ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
+    </div>
+  `;
+}
+function _renderConfirmation(host, action) {
+  const cls = action.primary ? "qa-confirm qa-confirm--primary" : "qa-confirm";
+  return x`
+    <button class=${cls} @click=${() => _onSelect(host, action)}>
+      ${action.icon ? x`<ha-icon icon=${action.icon}></ha-icon>` : ""}
+      ${action.label}
+    </button>
+  `;
+}
+
 // src/panel/render-chat.js
+var WELCOME_SUGGESTIONS = [
+  {
+    label: "Turn off all lights at midnight",
+    value: "Create an automation that turns off all lights at midnight",
+    icon: "mdi:lightbulb-off-outline",
+  },
+  {
+    label: "What devices do I have?",
+    value: "What devices do I have and which ones are currently on?",
+    icon: "mdi:devices",
+  },
+  {
+    label: "Suggest automations for my home",
+    value: "Suggest useful automations based on my devices and usage patterns",
+    icon: "mdi:auto-fix",
+  },
+];
 function renderNewAutomationDialog(host) {
   if (!host._showNewAutoDialog) return "";
   return x`
@@ -5027,221 +5480,94 @@ function renderNewAutomationDialog(host) {
   `;
 }
 function renderChat(host) {
+  const isEmpty = host._messages.length === 0;
+  if (isEmpty) {
+    return x`
+      <div class="chat-pane">
+        <div class="chat-welcome-center" id="chat-messages">
+          ${i4(
+            host._welcomeKey || 0,
+            x`
+              <div class="welcome-center-content">
+                <img
+                  src="/api/selora_ai/logo.png"
+                  alt="Selora AI"
+                  style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
+                />
+                <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
+                  Welcome to
+                  <span class="gold-text">Selora AI</span>
+                </div>
+                <div
+                  style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
+                >
+                  Your intelligent home automation architect
+                </div>
+
+                ${
+                  host._llmNeedsSetup
+                    ? x`
+                      <div
+                        style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
+                        @click=${() => host._goToSettings()}
+                      >
+                        <ha-icon
+                          icon="mdi:rocket-launch-outline"
+                          style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
+                        ></ha-icon>
+                        <div
+                          style="font-size:16px;font-weight:700;margin-bottom:6px;"
+                        >
+                          Get started
+                        </div>
+                        <div
+                          style="font-size:13px;opacity:0.6;margin-bottom:16px;"
+                        >
+                          Configure your LLM provider in the Settings tab to
+                          start chatting with your home.
+                        </div>
+                        <span
+                          style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
+                        >
+                          Open Settings
+                          <ha-icon
+                            icon="mdi:arrow-right"
+                            style="--mdc-icon-size:16px;"
+                          ></ha-icon>
+                        </span>
+                      </div>
+                    `
+                    : x`
+                      <div class="welcome-composer-area">
+                        <selora-particles
+                          class="welcome-composer-particles"
+                          .count=${260}
+                          .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
+                          .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                        ></selora-particles>
+                        ${_renderComposer(host, { welcome: true })}
+                      </div>
+
+                      <div
+                        class="section-card-subtitle"
+                        style="margin-top:20px;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
+                      >
+                        Quick start
+                      </div>
+                      ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                    `
+                }
+              </div>
+            `,
+          )}
+        </div>
+      </div>
+    `;
+  }
   return x`
     <div class="chat-pane">
       <div class="chat-messages" id="chat-messages">
-        ${
-          host._messages.length === 0
-            ? i4(
-                host._welcomeKey || 0,
-                x`
-                <div
-                  class="empty-state welcome"
-                  style="max-width:560px;margin:0 auto;padding:24px;"
-                >
-                  <div class="section-card" style="text-align:center;">
-                    <img
-                      src="/api/selora_ai/logo.png"
-                      alt="Selora AI"
-                      style="width:56px;height:56px;border-radius:12px;margin-bottom:12px;"
-                    />
-                    <div
-                      style="font-size:20px;font-weight:700;margin-bottom:6px;"
-                    >
-                      Welcome to
-                      <span class="gold-text">Selora AI</span>
-                    </div>
-                    <div class="section-card-subtitle">
-                      Your intelligent home automation architect. I analyze your
-                      devices, detect patterns, and help you build automations
-                      using natural language.
-                    </div>
-                    ${
-                      host._llmNeedsSetup
-                        ? x`
-                          <div
-                            style="margin-top:8px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;"
-                            @click=${() => host._goToSettings()}
-                          >
-                            <ha-icon
-                              icon="mdi:rocket-launch-outline"
-                              style="--mdc-icon-size:32px;color:#fbbf24;margin-bottom:12px;"
-                            ></ha-icon>
-                            <div
-                              style="font-size:16px;font-weight:700;margin-bottom:6px;"
-                            >
-                              Get started
-                            </div>
-                            <div
-                              style="font-size:13px;opacity:0.6;margin-bottom:16px;"
-                            >
-                              ${"Configure your LLM provider in the Settings tab to start chatting with your home."}
-                            </div>
-                            <span
-                              style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
-                            >
-                              Open Settings
-                              <ha-icon
-                                icon="mdi:arrow-right"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                            </span>
-                          </div>
-                        `
-                        : x`
-                          <div
-                            style="display:grid;grid-template-columns:1fr 1fr;gap:12px;text-align:left;margin-bottom:24px;"
-                          >
-                            <div
-                              class="welcome-card"
-                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "Create an automation for my home",
-                                )}
-                            >
-                              <div
-                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                              >
-                                <ha-icon
-                                  icon="mdi:lightning-bolt"
-                                  style="--mdc-icon-size:18px;color:#fbbf24;"
-                                ></ha-icon>
-                                <div style="font-size:13px;font-weight:600;">
-                                  Create Automations
-                                </div>
-                              </div>
-                              <div style="font-size:12px;opacity:0.6;">
-                                Describe what you want in plain English
-                              </div>
-                            </div>
-                            <div
-                              class="welcome-card"
-                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "Analyze my device usage patterns and suggest automations",
-                                )}
-                            >
-                              <div
-                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                              >
-                                <ha-icon
-                                  icon="mdi:magnify-scan"
-                                  style="--mdc-icon-size:18px;color:#3b82f6;"
-                                ></ha-icon>
-                                <div style="font-size:13px;font-weight:600;">
-                                  Detect Patterns
-                                </div>
-                              </div>
-                              <div style="font-size:12px;opacity:0.6;">
-                                AI spots your routines and suggests automations
-                              </div>
-                            </div>
-                            <div
-                              class="welcome-card"
-                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "What devices do I have and how are they organized?",
-                                )}
-                            >
-                              <div
-                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                              >
-                                <ha-icon
-                                  icon="mdi:home-search-outline"
-                                  style="--mdc-icon-size:18px;color:#22c55e;"
-                                ></ha-icon>
-                                <div style="font-size:13px;font-weight:600;">
-                                  Manage Devices
-                                </div>
-                              </div>
-                              <div style="font-size:12px;opacity:0.6;">
-                                Discover, organize, and control your smart home
-                              </div>
-                            </div>
-                            <div
-                              class="welcome-card"
-                              style="background:var(--selora-inner-card-bg);border:1px solid var(--selora-inner-card-border);border-radius:12px;padding:14px;cursor:pointer;transition:border-color 0.2s;"
-                              @click=${() => host._quickStart("What can you help me with?")}
-                            >
-                              <div
-                                style="display:flex;align-items:center;gap:8px;margin-bottom:6px;"
-                              >
-                                <ha-icon
-                                  icon="mdi:chat-question-outline"
-                                  style="--mdc-icon-size:18px;color:#a855f7;"
-                                ></ha-icon>
-                                <div style="font-size:13px;font-weight:600;">
-                                  Ask Anything
-                                </div>
-                              </div>
-                              <div style="font-size:12px;opacity:0.6;">
-                                Get answers about your home setup
-                              </div>
-                            </div>
-                          </div>
-                          <div
-                            class="section-card-subtitle"
-                            style="margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
-                          >
-                            Quick start
-                          </div>
-                          <div
-                            style="display:flex;flex-direction:column;gap:8px;width:100%;"
-                          >
-                            <button
-                              class="btn btn-outline"
-                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "Create an automation that turns off all lights at midnight",
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:lightbulb-off-outline"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                              Turn off all lights at midnight
-                            </button>
-                            <button
-                              class="btn btn-outline"
-                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "What devices do I have and which ones are currently on?",
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:devices"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                              What devices do I have?
-                            </button>
-                            <button
-                              class="btn btn-outline"
-                              style="width:100%;justify-content:flex-start;gap:8px;padding:12px 16px;font-size:13px;"
-                              @click=${() =>
-                                host._quickStart(
-                                  "Suggest useful automations based on my devices and usage patterns",
-                                )}
-                            >
-                              <ha-icon
-                                icon="mdi:auto-fix"
-                                style="--mdc-icon-size:16px;"
-                              ></ha-icon>
-                              Suggest automations for my home
-                            </button>
-                          </div>
-                        `
-                    }
-                  </div>
-                </div>
-              `,
-              )
-            : host._messages.map((msg, idx) => renderMessage(host, msg, idx))
-        }
+        ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
           host._loading
@@ -5256,38 +5582,58 @@ function renderChat(host) {
         }
       </div>
 
-      <div class="chat-input-wrapper">
-        <div class="chat-input">
-          <ha-textfield
-            .value=${host._input}
-            @input=${(e5) => (host._input = e5.target.value)}
-            @keydown=${(e5) => e5.key === "Enter" && !e5.shiftKey && host._sendMessage()}
-            @focus=${() => {
-              requestAnimationFrame(() => host._requestScrollChat());
-            }}
-            placeholder="Describe an automation or ask a question…"
-            ?disabled=${host._loading || host._streaming}
-            style="flex:1;"
-          ></ha-textfield>
-          ${
-            host._streaming
-              ? x` <ha-icon-button
-                @click=${() => host._stopStreaming()}
-                title="Stop generating"
-                style="color:#fbbf24;"
-              >
-                <ha-icon icon="mdi:stop-circle"></ha-icon>
-              </ha-icon-button>`
-              : x` <ha-icon-button
-                @click=${() => host._sendMessage()}
-                ?disabled=${host._loading || !host._input.trim()}
-                title="Send"
-              >
-                <ha-icon icon="mdi:send"></ha-icon>
-              </ha-icon-button>`
+      <div class="chat-input-wrapper">${_renderComposer(host)}</div>
+    </div>
+  `;
+}
+function _autoResize(textarea) {
+  textarea.style.height = "auto";
+  textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
+}
+function _renderComposer(host, opts = {}) {
+  const welcome = !!opts.welcome;
+  return x`
+    <div
+      class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}"
+    >
+      <textarea
+        class="composer-textarea"
+        .value=${host._input}
+        @input=${(e5) => {
+          host._input = e5.target.value;
+          _autoResize(e5.target);
+        }}
+        @keydown=${(e5) => {
+          if (e5.key === "Enter" && !e5.shiftKey) {
+            e5.preventDefault();
+            host._sendMessage();
           }
-        </div>
-      </div>
+        }}
+        @focus=${() => {
+          requestAnimationFrame(() => host._requestScrollChat());
+        }}
+        placeholder="Ask Selora AI anything…"
+        ?disabled=${host._loading || host._streaming}
+        rows="1"
+      ></textarea>
+      ${
+        host._streaming
+          ? x`<button
+            class="composer-send"
+            @click=${() => host._stopStreaming()}
+            title="Stop generating"
+          >
+            <ha-icon icon="mdi:stop"></ha-icon>
+          </button>`
+          : x`<button
+            class="composer-send"
+            @click=${() => host._sendMessage()}
+            ?disabled=${host._loading || !host._input.trim()}
+            title="Send"
+          >
+            <ha-icon icon="mdi:arrow-up"></ha-icon>
+          </button>`
+      }
     </div>
   `;
 }
@@ -5382,6 +5728,15 @@ function renderMessage(host, msg, idx) {
                 ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                 ${msg.devices && msg.devices.length ? renderDeviceCards(host, msg.devices) : ""}
               </div>
+              ${
+                msg.quick_actions &&
+                msg.quick_actions.length &&
+                idx === host._messages.length - 1
+                  ? renderQuickActions(host, msg.quick_actions, {
+                      used: !!msg._qa_used,
+                    })
+                  : ""
+              }
               <div
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
@@ -6934,7 +7289,7 @@ function _cardHeader(name, badge) {
   return x`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
-        icon="mdi:robot-outline"
+        icon="mdi:robot"
         style="color:var(--primary-text-color);--mdc-icon-size:18px;display:flex;flex-shrink:0;"
       ></ha-icon>
       <span
@@ -7504,6 +7859,10 @@ function renderAutomations(host) {
                             `
                             : ""
                         }
+                        <ha-icon
+                          icon="mdi:robot"
+                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+                        ></ha-icon>
                         <div
                           class="auto-row-name"
                           data-last-run="Last run: ${lastRun}"
@@ -8087,11 +8446,86 @@ function _renderEntityList(host, entities) {
 function renderSceneCard(host, msg, msgIndex) {
   const scene = msg.scene;
   if (!scene) return "";
+  const status = msg.scene_status || (msg.scene_id ? "saved" : void 0);
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
+  if (status === "saved") {
+    return x`
+      <div class="proposal-card" style="margin-top:12px;">
+        <div class="proposal-header">
+          <ha-icon icon="mdi:check-circle"></ha-icon>
+          Scene Created
+        </div>
+        <div class="proposal-body">
+          <div class="proposal-name">${scene.name}</div>
+          <div class="proposal-status saved">
+            <ha-icon icon="mdi:check"></ha-icon> Saved to Home Assistant
+          </div>
+          <div class="proposal-actions">
+            <button
+              class="btn btn-success"
+              @click=${() => {
+                const id = msg.entity_id
+                  ? msg.entity_id.replace(/^scene\./, "")
+                  : msg.scene_id;
+                host._activateScene(id, scene.name);
+              }}
+            >
+              <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
+              Activate
+            </button>
+            <button
+              class="btn btn-outline"
+              @click=${() => {
+                window.history.pushState(null, "", "/config/scene/dashboard");
+                window.dispatchEvent(new Event("location-changed"));
+              }}
+            >
+              <ha-icon
+                icon="mdi:open-in-new"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              View in HA
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  if (status === "declined") {
+    return x`
+      <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
+        <div class="proposal-header" style="color:var(--secondary-text-color);">
+          <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+          Scene Declined
+        </div>
+        <div class="proposal-body">
+          <div class="proposal-name">${scene.name}</div>
+          <div class="proposal-status declined">
+            Dismissed. You can refine it by replying below.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+  if (status === "refining") {
+    return x`
+      <div style="margin-top:12px;padding:14px 0 0;">
+        ${_sceneCardHeader(scene.name, "Being Refined")}
+        <div class="proposal-body" style="padding:0;">
+          ${_renderEntityList(host, scene.entities || {})}
+          <div
+            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
+          >
+            What changes would you like to make?
+          </div>
+        </div>
+      </div>
+    `;
+  }
   return x`
     <div style="margin-top:12px;padding:14px 0 0;">
-      ${_sceneCardHeader(scene.name, "Scene Saved")}
+      ${_sceneCardHeader(scene.name, "Proposal")}
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
@@ -8118,23 +8552,28 @@ function renderSceneCard(host, msg, msgIndex) {
         <div class="proposal-actions">
           <button
             class="btn btn-success"
-            @click=${() => host._activateScene(msg.scene_id, scene.name)}
+            @click=${() => host._acceptScene(msgIndex)}
           >
-            <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-            Activate
+            <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
+            Accept &amp; Save
           </button>
           <button
             class="btn btn-outline"
-            @click=${() => {
-              window.history.pushState(null, "", "/config/scene/dashboard");
-              window.dispatchEvent(new Event("location-changed"));
-            }}
+            @click=${() => host._refineScene(msgIndex)}
           >
             <ha-icon
-              icon="mdi:open-in-new"
+              icon="mdi:pencil-outline"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            View in HA
+            Refine
+          </button>
+          <button
+            class="btn btn-outline"
+            style="color:#ef4444;border-color:rgba(239,68,68,0.3);"
+            @click=${() => host._declineScene(msgIndex)}
+          >
+            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
+            Decline
           </button>
         </div>
       </div>
@@ -8435,7 +8874,7 @@ function renderScenes(host) {
             `
             : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
-                icon="mdi:palette-outline"
+                icon="mdi:palette"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">
@@ -10828,8 +11267,8 @@ async function _newAutomationChat(name) {
     if (this.narrow) this._showSidebar = false;
     this.requestUpdate();
     await this.updateComplete;
-    const textfield = this.shadowRoot?.querySelector("ha-textfield");
-    if (textfield) textfield.focus();
+    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+    if (textarea) textarea.focus();
     this._loadAutomations();
     this._loadSessions();
   } catch (err) {
@@ -11191,6 +11630,7 @@ __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
   _quickStart: () => _quickStart,
   _requestScrollChat: () => _requestScrollChat,
+  _selectQuickAction: () => _selectQuickAction,
   _sendMessage: () => _sendMessage,
   _stopStreaming: () => _stopStreaming,
 });
@@ -11198,12 +11638,24 @@ function _quickStart(message) {
   this._input = message;
   this._sendMessage();
 }
+function _selectQuickAction(action) {
+  const text = action.value || action.label;
+  for (const msg of this._messages) {
+    if (msg.quick_actions && msg.quick_actions.includes(action)) {
+      msg._qa_used = true;
+      break;
+    }
+  }
+  this._quickStart(text);
+}
 async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
   this._loading = true;
+  const ta = this.shadowRoot?.querySelector(".composer-textarea");
+  if (ta) ta.style.height = "auto";
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
   try {
@@ -11233,7 +11685,10 @@ async function _sendMessage() {
         assistantMsg.devices = event.devices || null;
         assistantMsg.scene = event.scene || null;
         assistantMsg.scene_yaml = event.scene_yaml || null;
-        assistantMsg.scene_id = event.scene_id || null;
+        assistantMsg.scene_status = event.scene_status || null;
+        assistantMsg.scene_message_index = event.scene_message_index ?? null;
+        assistantMsg.refine_scene_id = event.refine_scene_id || null;
+        assistantMsg.quick_actions = event.quick_actions || null;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
@@ -11252,9 +11707,6 @@ async function _sendMessage() {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
-        }
-        if (event.scene_id) {
-          this._loadScenes();
         }
       } else if (event.type === "error") {
         assistantMsg.content =
@@ -11474,7 +11926,7 @@ async function _refineAutomation(msgIndex, automation, description) {
   }
   const ctx = description ? ` (${description})` : "";
   this._input = `Refine "${automation.alias}"${ctx}: `;
-  this.shadowRoot.querySelector("ha-textfield")?.focus();
+  this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
 async function _createAutomationFromSuggestion(automation) {
   try {
@@ -11998,6 +12450,79 @@ async function _loadAutomationToChat(automationId) {
   this.requestUpdate();
 }
 
+// src/panel/scene-actions.js
+var scene_actions_exports = {};
+__export(scene_actions_exports, {
+  _acceptScene: () => _acceptScene,
+  _declineScene: () => _declineScene,
+  _refineScene: () => _refineScene,
+});
+function _storedSceneIndex(msg, msgIndex) {
+  return msg && msg.scene_message_index != null
+    ? msg.scene_message_index
+    : msgIndex;
+}
+async function _acceptScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  const scene = msg.scene;
+  if (!scene) return;
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/accept_scene",
+      session_id: this._activeSessionId,
+      message_index: _storedSceneIndex(msg, msgIndex),
+    });
+    msg.scene_status = "saved";
+    msg.scene_id = result.scene_id;
+    msg.entity_id = result.entity_id;
+    this._messages = [...this._messages];
+    await this._loadScenes();
+    this._showToast(`Scene "${scene.name}" created and saved.`, "success");
+  } catch (err) {
+    this._showToast("Failed to create scene: " + err.message, "error");
+  }
+}
+async function _declineScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/set_scene_status",
+      session_id: this._activeSessionId,
+      message_index: _storedSceneIndex(msg, msgIndex),
+      status: "declined",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to decline scene", err);
+  }
+}
+async function _refineScene(msgIndex) {
+  const msg = this._messages[msgIndex] || {};
+  const scene = msg.scene;
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/set_scene_status",
+      session_id: this._activeSessionId,
+      message_index: _storedSceneIndex(msg, msgIndex),
+      status: "refining",
+    });
+    const session = await this.hass.callWS({
+      type: "selora_ai/get_session",
+      session_id: this._activeSessionId,
+    });
+    this._messages = session.messages || [];
+  } catch (err) {
+    console.error("Failed to mark scene as refining", err);
+  }
+  const name = scene ? scene.name : "the scene";
+  this._input = `Refine "${name}": `;
+  this.shadowRoot.querySelector(".composer-textarea")?.focus();
+}
+
 // src/panel.js
 var _SHA256_K = new Uint32Array([
   1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993,
@@ -12229,6 +12754,7 @@ var SeloraAIPanel = class extends s4 {
       _deleteSceneConfirmName: { type: String },
       // Theme
       _isDark: { type: Boolean },
+      _primaryColor: { type: String },
       // Overflow menu
       _showOverflowMenu: { type: Boolean },
     };
@@ -12931,6 +13457,20 @@ var SeloraAIPanel = class extends s4 {
         this._isDark = dark;
         this.toggleAttribute("dark", dark);
       }
+      const probe = document.createElement("div");
+      probe.style.color = "var(--primary-color)";
+      probe.style.display = "none";
+      this.shadowRoot?.appendChild(probe);
+      const resolved = getComputedStyle(probe).color;
+      probe.remove();
+      const m2 = resolved.match(/\d+/g);
+      if (m2 && m2.length >= 3) {
+        this._primaryColor =
+          "#" +
+          [m2[0], m2[1], m2[2]]
+            .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
+            .join("");
+      }
     }
     if (this.hass && this._pendingNewAutomation) {
       const name = this._pendingNewAutomation;
@@ -13026,8 +13566,8 @@ var SeloraAIPanel = class extends s4 {
     this._activeTab = "chat";
     this.requestUpdate();
     await this.updateComplete;
-    const textfield = this.shadowRoot?.querySelector("ha-textfield");
-    if (textfield) textfield.focus();
+    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+    if (textarea) textarea.focus();
   }
   async _confirmDeleteScene() {
     const sceneId = this._deleteSceneConfirmId;
@@ -13063,14 +13603,11 @@ var SeloraAIPanel = class extends s4 {
       if (this.narrow) this._showSidebar = false;
       this.requestUpdate();
       await this.updateComplete;
-      const textfield = this.shadowRoot?.querySelector("ha-textfield");
-      if (textfield) {
-        textfield.focus();
-        const inputEl = textfield.shadowRoot?.querySelector("input, textarea");
-        if (inputEl) {
-          const len = this._input.length;
-          inputEl.setSelectionRange(len, len);
-        }
+      const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+      if (textarea) {
+        textarea.focus();
+        const len = this._input.length;
+        textarea.setSelectionRange(len, len);
       }
     } catch (err) {
       console.error("Failed to start new scene chat", err);
@@ -13630,7 +14167,7 @@ var SeloraAIPanel = class extends s4 {
         >
           <selora-particles
             .count=${this._isDark ? 1200 : 400}
-            .color=${this._isDark ? "#C7AE6A" : "#B8860B"}
+            .color=${this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
             .maxOpacity=${this._isDark ? 1 : 0.5}
           ></selora-particles>
           ${this._activeTab === "chat" ? this._renderChat() : ""}
@@ -13755,6 +14292,7 @@ Object.assign(SeloraAIPanel.prototype, suggestion_actions_exports);
 Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
 Object.assign(SeloraAIPanel.prototype, automation_crud_exports);
 Object.assign(SeloraAIPanel.prototype, automation_management_exports);
+Object.assign(SeloraAIPanel.prototype, scene_actions_exports);
 customElements.define("selora-ai", SeloraAIPanel);
 /*! Bundled license information:
 

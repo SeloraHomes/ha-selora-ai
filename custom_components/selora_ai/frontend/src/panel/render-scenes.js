@@ -99,12 +99,98 @@ export function renderSceneCard(host, msg, msgIndex) {
   const scene = msg.scene;
   if (!scene) return "";
 
+  // Older sessions store scene messages with a scene_id but no
+  // scene_status field — those are already saved in HA, so default to
+  // "saved" instead of falling through to the pending-proposal UI
+  // (which would let the user re-Accept and duplicate the scene).
+  const status = msg.scene_status || (msg.scene_id ? "saved" : undefined);
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
 
+  if (status === "saved") {
+    return html`
+      <div class="proposal-card" style="margin-top:12px;">
+        <div class="proposal-header">
+          <ha-icon icon="mdi:check-circle"></ha-icon>
+          Scene Created
+        </div>
+        <div class="proposal-body">
+          <div class="proposal-name">${scene.name}</div>
+          <div class="proposal-status saved">
+            <ha-icon icon="mdi:check"></ha-icon> Saved to Home Assistant
+          </div>
+          <div class="proposal-actions">
+            <button
+              class="btn btn-success"
+              @click=${() => {
+                // Prefer the resolved entity_id HA assigned at save time —
+                // it can differ from scene.<scene_id> when the alias slug
+                // wins or a collision suffix is applied.
+                const id = msg.entity_id
+                  ? msg.entity_id.replace(/^scene\./, "")
+                  : msg.scene_id;
+                host._activateScene(id, scene.name);
+              }}
+            >
+              <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
+              Activate
+            </button>
+            <button
+              class="btn btn-outline"
+              @click=${() => {
+                window.history.pushState(null, "", "/config/scene/dashboard");
+                window.dispatchEvent(new Event("location-changed"));
+              }}
+            >
+              <ha-icon
+                icon="mdi:open-in-new"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              View in HA
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (status === "declined") {
+    return html`
+      <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
+        <div class="proposal-header" style="color:var(--secondary-text-color);">
+          <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+          Scene Declined
+        </div>
+        <div class="proposal-body">
+          <div class="proposal-name">${scene.name}</div>
+          <div class="proposal-status declined">
+            Dismissed. You can refine it by replying below.
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  if (status === "refining") {
+    return html`
+      <div style="margin-top:12px;padding:14px 0 0;">
+        ${_sceneCardHeader(scene.name, "Being Refined")}
+        <div class="proposal-body" style="padding:0;">
+          ${_renderEntityList(host, scene.entities || {})}
+          <div
+            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
+          >
+            What changes would you like to make?
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+  // Pending proposal — full review UI
   return html`
     <div style="margin-top:12px;padding:14px 0 0;">
-      ${_sceneCardHeader(scene.name, "Scene Saved")}
+      ${_sceneCardHeader(scene.name, "Proposal")}
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
@@ -129,23 +215,28 @@ export function renderSceneCard(host, msg, msgIndex) {
         <div class="proposal-actions">
           <button
             class="btn btn-success"
-            @click=${() => host._activateScene(msg.scene_id, scene.name)}
+            @click=${() => host._acceptScene(msgIndex)}
           >
-            <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-            Activate
+            <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
+            Accept &amp; Save
           </button>
           <button
             class="btn btn-outline"
-            @click=${() => {
-              window.history.pushState(null, "", "/config/scene/dashboard");
-              window.dispatchEvent(new Event("location-changed"));
-            }}
+            @click=${() => host._refineScene(msgIndex)}
           >
             <ha-icon
-              icon="mdi:open-in-new"
+              icon="mdi:pencil-outline"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            View in HA
+            Refine
+          </button>
+          <button
+            class="btn btn-outline"
+            style="color:#ef4444;border-color:rgba(239,68,68,0.3);"
+            @click=${() => host._declineScene(msgIndex)}
+          >
+            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
+            Decline
           </button>
         </div>
       </div>
@@ -443,7 +534,7 @@ export function renderScenes(host) {
             `
           : html`<div style="text-align:center;padding:32px 0;">
               <ha-icon
-                icon="mdi:palette-outline"
+                icon="mdi:palette"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">

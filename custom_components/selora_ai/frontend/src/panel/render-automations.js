@@ -12,7 +12,7 @@ function _cardHeader(name, badge) {
   return html`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
-        icon="mdi:robot-outline"
+        icon="mdi:robot"
         style="color:var(--primary-text-color);--mdc-icon-size:18px;display:flex;flex-shrink:0;"
       ></ha-icon>
       <span
@@ -623,6 +623,10 @@ export function renderAutomations(host) {
                               </label>
                             `
                           : ""}
+                        <ha-icon
+                          icon="mdi:robot"
+                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+                        ></ha-icon>
                         <div
                           class="auto-row-name"
                           data-last-run="Last run: ${lastRun}"

@@ -7,6 +7,7 @@ import { cardElementStyles } from "./cards.css.js";
 import { automationsStyles } from "./automations.css.js";
 import { settingsStyles } from "./settings.css.js";
 import { usageStyles } from "./usage.css.js";
+import { quickActionStyles } from "./quick-actions.css.js";
 
 export {
   layoutStyles,
@@ -18,6 +19,7 @@ export {
   automationsStyles,
   settingsStyles,
   usageStyles,
+  quickActionStyles,
 };
 
 export const allPanelStyles = [
@@ -30,4 +32,5 @@ export const allPanelStyles = [
   automationsStyles,
   settingsStyles,
   usageStyles,
+  quickActionStyles,
 ];

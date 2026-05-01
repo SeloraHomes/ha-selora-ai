@@ -124,8 +124,8 @@ export async function _newAutomationChat(name) {
     // Force render then focus
     this.requestUpdate();
     await this.updateComplete;
-    const textfield = this.shadowRoot?.querySelector("ha-textfield");
-    if (textfield) textfield.focus();
+    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
+    if (textarea) textarea.focus();
 
     // Load updated data
     this._loadAutomations();

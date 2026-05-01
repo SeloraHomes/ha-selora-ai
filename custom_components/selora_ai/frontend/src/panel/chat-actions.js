@@ -5,12 +5,27 @@ export function _quickStart(message) {
   this._sendMessage();
 }
 
+export function _selectQuickAction(action) {
+  const text = action.value || action.label;
+  // Mark the originating message's actions as used
+  for (const msg of this._messages) {
+    if (msg.quick_actions && msg.quick_actions.includes(action)) {
+      msg._qa_used = true;
+      break;
+    }
+  }
+  this._quickStart(text);
+}
+
 export async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
   this._loading = true;
+  // Reset textarea height after clearing input
+  const ta = this.shadowRoot?.querySelector(".composer-textarea");
+  if (ta) ta.style.height = "auto";
 
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
@@ -43,7 +58,10 @@ export async function _sendMessage() {
         assistantMsg.devices = event.devices || null;
         assistantMsg.scene = event.scene || null;
         assistantMsg.scene_yaml = event.scene_yaml || null;
-        assistantMsg.scene_id = event.scene_id || null;
+        assistantMsg.scene_status = event.scene_status || null;
+        assistantMsg.scene_message_index = event.scene_message_index ?? null;
+        assistantMsg.refine_scene_id = event.refine_scene_id || null;
+        assistantMsg.quick_actions = event.quick_actions || null;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
@@ -64,9 +82,6 @@ export async function _sendMessage() {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
-        }
-        if (event.scene_id) {
-          this._loadScenes();
         }
       } else if (event.type === "error") {
         assistantMsg.content =

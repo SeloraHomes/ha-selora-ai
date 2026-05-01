@@ -392,6 +392,23 @@ class CleanupResult(TypedDict):
 # ── Chat / LLM response structures ───────────────────────────────────
 
 
+class QuickAction(TypedDict, total=False):
+    """A clickable action offered to the user after an AI message.
+
+    Modes:
+      - "suggestion": full-width chip (empty-state quick start)
+      - "choice": grid card with title + description (AI-suggested options)
+      - "confirmation": inline button row (Apply / Modify / Cancel)
+    """
+
+    label: Required[str]
+    value: str  # text sent as user message when selected
+    mode: str  # "suggestion" | "choice" | "confirmation"
+    description: str  # subtitle for choice cards
+    icon: str  # mdi icon name
+    primary: bool  # highlight as primary action (confirmation mode)
+
+
 class ArchitectResponse(TypedDict, total=False):
     """Structured response from the LLM architect chat."""
 
@@ -408,6 +425,7 @@ class ArchitectResponse(TypedDict, total=False):
     config_issue: bool
     validation_error: str
     tool_calls: list[ToolCallLog]
+    quick_actions: list[QuickAction]
     # Delayed/scheduled command fields
     delay_seconds: int | float
     scheduled_time: str
@@ -620,6 +638,8 @@ class ChatMessage(TypedDict, total=False):
     scene: ScenePayload
     scene_yaml: str
     scene_id: str
+    scene_status: str  # "pending" | "saved" | "declined" | "refining"
+    quick_actions: list[QuickAction]
 
 
 class SessionData(TypedDict):
