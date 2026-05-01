@@ -48,6 +48,55 @@ export const chatStyles = css`
   }
   .welcome-center-content .qa-group {
     width: 100%;
+    justify-content: center;
+  }
+
+  /* Quick-start disclosure on the welcome screen */
+  .welcome-quickstart {
+    width: 100%;
+    margin-top: 20px;
+  }
+  .welcome-quickstart-summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto 12px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    border-radius: 999px;
+    transition:
+      opacity 0.2s,
+      background-color 0.2s;
+    user-select: none;
+  }
+  .welcome-quickstart-summary::-webkit-details-marker {
+    display: none;
+  }
+  .welcome-quickstart-summary:hover {
+    opacity: 0.8;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+  :host(:not([dark])) .welcome-quickstart-summary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  .welcome-quickstart-chevron {
+    --mdc-icon-size: 16px;
+    transition: transform 0.2s ease;
+  }
+  .welcome-quickstart[open] .welcome-quickstart-chevron {
+    transform: rotate(180deg);
+  }
+  /* Center the summary itself in the centered welcome layout */
+  .welcome-quickstart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   /* Particle field surrounding the welcome composer */

@@ -1001,44 +1001,18 @@ async def _handle_websocket_chat(
         executed, error_suffix = await _execute_command_calls(hass, result.get("calls", []))
         response_text += error_suffix
 
-    # --- Create scene if scene intent ---
-    # The LLM includes refine_scene_id when modifying an existing scene.
-    scene_result: dict[str, Any] | None = None
-    if intent_type == "scene" and result.get("scene"):
-        try:
-            from .scene_utils import async_create_scene  # noqa: PLC0415
-
-            scene_result = await async_create_scene(
-                hass,
-                result["scene"],
-                existing_scene_id=result.get("refine_scene_id"),
-                session_scene_ids={s[0] for s in scenes},
-            )
-        except Exception as exc:  # noqa: BLE001 — HA service handlers may raise beyond HA's hierarchy
-            _LOGGER.error("Failed to create scene: %s", exc)
-            response_text += f" (Scene creation failed: {exc})"
-            # Clear scene metadata so the client doesn't think a scene was created
-            result.pop("scene", None)
-            result.pop("scene_yaml", None)
-            intent_type = "answer"
-
-        if scene_result is not None:
-            try:
-                scene_store = _get_scene_store(hass)
-                await scene_store.async_add_scene(
-                    scene_result["scene_id"],
-                    scene_result["name"],
-                    scene_result["entity_count"],
-                    session_id=session_id,
-                    entity_id=scene_result.get("entity_id"),
-                    content_hash=scene_result.get("content_hash"),
-                )
-            except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
-                _LOGGER.warning("Failed to record scene %s in store", scene_result["scene_id"])
-    elif intent_type in ("delayed_command", "cancel"):
+    if intent_type in ("delayed_command", "cancel"):
         intent_type, response_text, schedule_id = await _handle_scheduled_intent(
             hass, intent_type, result, session_id
         )
+
+    # Scenes are NOT created immediately — they are stored as proposals with
+    # scene_status="pending" so the user reviews/accepts before the YAML is
+    # written. This matches the streaming chat handler so both endpoints have
+    # the same review flow.
+    scene_payload = result.get("scene")
+    scene_yaml_str = result.get("scene_yaml")
+    refine_scene_id = result.get("refine_scene_id")
 
     # Persist the assistant response
     await store.append_message(
@@ -1053,9 +1027,10 @@ async def _handle_websocket_chat(
         calls=result.get("calls") if intent_type == "command" else None,
         risk_assessment=result.get("risk_assessment"),
         tool_calls=result.get("tool_calls"),
-        scene=scene_result["scene"] if scene_result else result.get("scene"),
-        scene_yaml=scene_result["scene_yaml"] if scene_result else result.get("scene_yaml"),
-        scene_id=scene_result["scene_id"] if scene_result else None,
+        scene=scene_payload,
+        scene_yaml=scene_yaml_str,
+        scene_status="pending" if scene_payload else None,
+        refine_scene_id=refine_scene_id if scene_payload else None,
     )
 
     updated_session = await store.get_session(session_id)
@@ -1085,9 +1060,11 @@ async def _handle_websocket_chat(
             "validation_error": result.get("validation_error"),
             "validation_target": result.get("validation_target"),
             "refining_automation_id": refining_automation_id,
-            "scene": scene_result["scene"] if scene_result else result.get("scene"),
-            "scene_yaml": scene_result["scene_yaml"] if scene_result else result.get("scene_yaml"),
-            "scene_id": scene_result["scene_id"] if scene_result else None,
+            "scene": scene_payload,
+            "scene_yaml": scene_yaml_str,
+            "scene_status": "pending" if scene_payload else None,
+            "refine_scene_id": refine_scene_id,
+            "scene_message_index": assistant_message_index if scene_payload else None,
         },
     )
 

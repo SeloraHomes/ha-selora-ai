@@ -65,6 +65,24 @@ export const sharedButtons = css`
     background: rgba(251, 191, 36, 0.08);
     border-color: var(--selora-accent);
   }
+  /* Brand-accented pill for primary "create new" actions. Translucent
+     gold fill + subtle gold border, matching the header tab visual
+     language so the button feels native to the rest of the UI rather
+     than the loud filled btn-primary. */
+  .btn-accent {
+    border-color: rgba(251, 191, 36, 0.35);
+    color: var(--selora-accent-text);
+    background: rgba(251, 191, 36, 0.08);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-weight: 500;
+  }
+  .btn-accent:hover {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: var(--selora-accent);
+    box-shadow: none;
+    opacity: 1;
+  }
   .btn-ghost {
     border-color: transparent;
     color: var(--secondary-text-color);

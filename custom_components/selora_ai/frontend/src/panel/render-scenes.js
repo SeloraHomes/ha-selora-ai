@@ -320,7 +320,7 @@ export function renderScenes(host) {
                   style="margin-left:auto;display:flex;align-items:center;gap:8px;"
                 >
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-accent"
                     style="white-space:nowrap;"
                     @click=${() => host._newSceneChat()}
                   >
@@ -375,7 +375,9 @@ export function renderScenes(host) {
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s.name}</span>
                           </div>
-                          <span class="auto-row-desc">${meta}</span>
+                          <span class="auto-row-desc auto-row-desc--meta-only"
+                            >${meta}</span
+                          >
                           <span class="auto-row-mobile-meta">
                             <span>${meta}</span>
                             <ha-icon
@@ -541,7 +543,7 @@ export function renderScenes(host) {
                 No scenes yet. Ask Selora to capture a moment.
               </p>
               <button
-                class="btn btn-primary"
+                class="btn btn-accent"
                 @click=${() => host._newSceneChat()}
               >
                 <ha-icon

@@ -155,6 +155,12 @@ export const automationsStyles = css`
     .auto-row-desc {
       white-space: normal;
     }
+    /* Hide scene rows' duplicate desc — the same text already renders in
+       .auto-row-mobile-meta below. Automations keep their actual
+       description visible (different content from the mobile meta). */
+    .auto-row-desc--meta-only {
+      display: none;
+    }
     .auto-row-last-run {
       display: none;
     }
@@ -187,14 +193,30 @@ export const automationsStyles = css`
     .filter-row {
       gap: 8px;
     }
+    /* Mobile layout:
+       Row 1 — filter input (full width)
+       Row 2 — status pills (full width)
+       Row 3 — sort select + "+ New X" share a row
+       Row 4 — bulk-edit / actions (own row) */
     .filter-row .filter-input-wrap {
       flex: 1 1 100% !important;
     }
     .filter-row .status-pills {
+      flex: 1 1 100%;
+      justify-content: stretch;
+    }
+    .filter-row .status-pills .status-pill {
       flex: 1;
     }
     .filter-row .sort-select {
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    /* The trailing wrapper around "+ New X" — keep it on the same row
+       as the sort select, no longer pushed to its own line. */
+    .filter-row > div[style*="margin-left:auto"] {
+      flex: 0 1 auto;
+      margin-left: 0 !important;
     }
     .automations-summary span:first-child {
       display: none;
@@ -230,19 +252,44 @@ export const automationsStyles = css`
     font-weight: 600;
   }
   .sort-select {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     font-family: inherit;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--selora-zinc-700);
-    background: var(--selora-zinc-900);
+    line-height: 1.2;
+    padding: 9px 34px 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.06);
     color: var(--primary-text-color);
     cursor: pointer;
-    transition: border-color 0.3s;
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
+    /* Hide the native chevron and draw our own so the select looks like
+       the rest of the UI in both light and dark modes. */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23a1a1aa' d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
   }
   .sort-select:hover {
-    border-color: rgba(251, 191, 36, 0.5);
+    border-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .sort-select:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.45);
+  }
+  :host(:not([dark])) .sort-select {
+    border-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  :host(:not([dark])) .sort-select:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(0, 0, 0, 0.08);
   }
   .automations-summary {
     font-size: 12px;
@@ -398,9 +445,24 @@ export const automationsStyles = css`
     line-height: 1.3;
     flex: 1;
     min-width: 0;
+    /* Wrap up to 2 lines on desktop (avoid layout breakage in the masonry
+       grid). Native title attribute / DOM tooltip reveals the full text. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
+  }
+  /* On touch devices the suggestion cards stack full-width, so let the
+     title wrap freely instead of clamping. */
+  @media (hover: none) {
+    .automations-grid .card h3 {
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      display: block;
+      overflow: visible;
+    }
   }
   .automations-grid .card-meta {
     font-size: 11px;

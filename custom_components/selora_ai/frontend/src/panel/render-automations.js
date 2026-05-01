@@ -408,7 +408,7 @@ export function renderAutomations(host) {
                   style="margin-left:auto;display:flex;align-items:center;gap:8px;"
                 >
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-accent"
                     style="white-space:nowrap;"
                     @click=${() => {
                       host._newAutoName = "";
@@ -1024,7 +1024,7 @@ export function renderAutomations(host) {
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
               <button
-                class="btn btn-primary"
+                class="btn btn-accent"
                 @click=${() => {
                   host._newAutoName = "";
                   host._showNewAutoDialog = true;

@@ -136,7 +136,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
               </label>
             `
           : ""}
-        <h3 style="flex:1;font-size:14px;margin:0;">${item.title}</h3>
+        <h3 style="flex:1;font-size:14px;margin:0;" title=${item.title}>
+          ${item.title}
+        </h3>
       </div>
 
       ${item.subtitle
