@@ -58,21 +58,38 @@ function _onSelect(host, action) {
 }
 
 function _renderSuggestion(host, action) {
+  const leadingIcon = action.icon || "mdi:auto-fix";
   return html`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
-      ${action.icon ? html`<ha-icon icon=${action.icon}></ha-icon>` : ""}
-      ${action.label}
+      <span class="qa-glow-track" aria-hidden="true">
+        <span class="qa-glow-spot"></span>
+      </span>
+      <ha-icon class="qa-suggestion-lead" icon=${leadingIcon}></ha-icon>
+      <span class="qa-suggestion-label">${action.label}</span>
+      <ha-icon class="qa-suggestion-trail" icon="mdi:chevron-right"></ha-icon>
     </button>
   `;
 }
 
 function _renderChoice(host, action) {
+  const leadingIcon = action.icon || "mdi:auto-fix";
   return html`
     <div class="qa-choice" @click=${() => _onSelect(host, action)}>
-      <span class="qa-choice-label">${action.label}</span>
-      ${action.description
-        ? html`<span class="qa-choice-desc">${action.description}</span>`
-        : ""}
+      <span class="qa-glow-track" aria-hidden="true">
+        <span class="qa-glow-spot"></span>
+      </span>
+      <div class="qa-choice-row">
+        <ha-icon class="qa-choice-lead" icon=${leadingIcon}></ha-icon>
+        <div class="qa-choice-text">
+          <span class="qa-choice-label" title=${action.label}
+            >${action.label}</span
+          >
+          ${action.description
+            ? html`<span class="qa-choice-desc">${action.description}</span>`
+            : ""}
+        </div>
+        <ha-icon class="qa-choice-trail" icon="mdi:chevron-right"></ha-icon>
+      </div>
     </div>
   `;
 }

@@ -176,13 +176,16 @@ export function renderChat(host) {
                         ${_renderComposer(host, { welcome: true })}
                       </div>
 
-                      <div
-                        class="section-card-subtitle"
-                        style="margin-top:20px;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
-                      >
-                        Quick start
-                      </div>
-                      ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                      <details class="welcome-quickstart">
+                        <summary class="welcome-quickstart-summary">
+                          <span>Quick start</span>
+                          <ha-icon
+                            icon="mdi:chevron-down"
+                            class="welcome-quickstart-chevron"
+                          ></ha-icon>
+                        </summary>
+                        ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                      </details>
                     `}
               </div>
             `,

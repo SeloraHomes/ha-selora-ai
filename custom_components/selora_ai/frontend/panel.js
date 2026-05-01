@@ -1197,6 +1197,24 @@ var sharedButtons = i`
     background: rgba(251, 191, 36, 0.08);
     border-color: var(--selora-accent);
   }
+  /* Brand-accented pill for primary "create new" actions. Translucent
+     gold fill + subtle gold border, matching the header tab visual
+     language so the button feels native to the rest of the UI rather
+     than the loud filled btn-primary. */
+  .btn-accent {
+    border-color: rgba(251, 191, 36, 0.35);
+    color: var(--selora-accent-text);
+    background: rgba(251, 191, 36, 0.08);
+    border-radius: 999px;
+    padding: 8px 16px;
+    font-weight: 500;
+  }
+  .btn-accent:hover {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: var(--selora-accent);
+    box-shadow: none;
+    opacity: 1;
+  }
   .btn-ghost {
     border-color: transparent;
     color: var(--secondary-text-color);
@@ -1968,13 +1986,13 @@ var headerStyles = i`
     flex-shrink: 0;
   }
   .header-logo {
-    width: 20px;
-    height: 20px;
-    margin-left: 8px;
+    width: 22px;
+    height: 22px;
+    margin-inline-start: var(--ha-space-6, 24px);
     flex-shrink: 0;
   }
   .header-title {
-    margin-inline-start: var(--ha-space-6, 24px);
+    margin-left: 10px;
     margin-right: 12px;
     flex-shrink: 0;
     white-space: nowrap;
@@ -1991,17 +2009,18 @@ var headerStyles = i`
     height: 100%;
     pointer-events: auto;
   }
-  @media (max-width: 600px) {
-    .header-title,
-    .header-logo {
-      display: none;
-    }
-    .tabs-center {
-      position: static;
-      transform: none;
-      flex: 1;
-      justify-content: center;
-    }
+  /* Narrow layout: hide centered tabs, they live in the Selora menu instead */
+  :host([narrow]) .tabs-center {
+    display: none;
+  }
+  :host([narrow]) .header-logo {
+    margin-inline-start: 4px;
+    width: 20px;
+    height: 20px;
+  }
+  :host([narrow]) .header-title {
+    font-size: var(--ha-font-size-l, 18px);
+    margin-left: 8px;
   }
   .tab {
     position: relative;
@@ -2063,7 +2082,59 @@ var headerStyles = i`
   .header-spacer {
     flex: 1;
   }
-  /* Overflow (3-dot) menu */
+  /* New-chat header button (visible when there's a chat to leave behind).
+     Mobile: icon-only circle. Desktop: pill with icon + "New chat" label. */
+  .header-new-chat {
+    background: none;
+    border: none;
+    cursor: pointer;
+    height: 40px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    flex-shrink: 0;
+    width: auto;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(
+      --sidebar-icon-color,
+      var(--app-header-text-color, var(--primary-text-color))
+    );
+    --mdc-icon-size: 20px;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .header-new-chat:hover {
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  :host(:not([dark])) .header-new-chat:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--primary-text-color);
+  }
+  .header-new-chat-label {
+    white-space: nowrap;
+  }
+  /* Narrow: collapse back to a 44×44 icon-only circle */
+  :host([narrow]) .header-new-chat {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    --mdc-icon-size: 22px;
+  }
+  :host([narrow]) .header-new-chat-label {
+    display: none;
+  }
+
+  /* Selora (right-side) menu — gold-accented to differentiate from HA burger */
   .overflow-btn-wrap {
     position: relative;
   }
@@ -2071,8 +2142,8 @@ var headerStyles = i`
     background: none;
     border: none;
     cursor: pointer;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -2081,50 +2152,124 @@ var headerStyles = i`
       --sidebar-icon-color,
       var(--app-header-text-color, var(--primary-text-color))
     );
-    --mdc-icon-size: 24px;
+    --mdc-icon-size: 22px;
+    transition:
+      background 0.2s,
+      color 0.2s,
+      box-shadow 0.2s;
+  }
+  .selora-menu-btn {
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  .selora-menu-btn:hover {
+    background: rgba(251, 191, 36, 0.12);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.25);
+  }
+  :host(:not([dark])) .selora-menu-btn {
+    color: var(--primary-text-color);
+  }
+  :host(:not([dark])) .selora-menu-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    box-shadow: none;
   }
   .overflow-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     right: 0;
-    min-width: 200px;
+    min-width: 220px;
     background: var(--card-background-color, #fff);
-    border-radius: 4px;
+    border-radius: 12px;
     box-shadow:
-      0 2px 4px -1px rgba(0, 0, 0, 0.2),
-      0 4px 5px rgba(0, 0, 0, 0.14),
-      0 1px 10px rgba(0, 0, 0, 0.12);
-    padding: 8px 0;
+      0 8px 24px rgba(0, 0, 0, 0.35),
+      0 2px 8px rgba(0, 0, 0, 0.18);
+    padding: 6px;
     z-index: 10;
+  }
+  .selora-menu {
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  :host([dark]) .selora-menu {
+    background: rgba(20, 20, 22, 0.92);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.55),
+      0 0 24px rgba(251, 191, 36, 0.08);
+  }
+  :host(:not([dark])) .selora-menu {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+  .overflow-section {
+    display: flex;
+    flex-direction: column;
+  }
+  /* Mobile-only nav section inside the menu (Automations / Scenes) */
+  .overflow-section.narrow-only {
+    display: none;
+  }
+  :host([narrow]) .overflow-section.narrow-only {
+    display: flex;
   }
   .overflow-item {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
-    padding: 0 16px;
-    height: 48px;
+    padding: 0 14px;
+    height: 44px;
     background: none;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
     font-size: var(--ha-font-size-m, 14px);
     font-family: var(--ha-font-family-body, Roboto, Noto, sans-serif);
     color: var(--primary-text-color);
     text-decoration: none;
-    transition: background 0.1s;
+    transition:
+      background 0.15s,
+      color 0.15s;
     box-sizing: border-box;
-    --mdc-icon-size: 24px;
+    --mdc-icon-size: 20px;
   }
   .overflow-item:hover {
-    background: rgba(128, 128, 128, 0.12);
+    background: rgba(251, 191, 36, 0.08);
+  }
+  :host(:not([dark])) .overflow-item:hover {
+    background: rgba(0, 0, 0, 0.05);
   }
   .overflow-item ha-icon {
     color: var(--secondary-text-color);
   }
+  .overflow-item-label {
+    flex: 1;
+    text-align: left;
+  }
+  .overflow-item-external {
+    --mdc-icon-size: 14px;
+    opacity: 0.5;
+  }
+  .overflow-item.active {
+    color: var(--selora-accent-text, #f59e0b);
+    background: rgba(251, 191, 36, 0.1);
+    font-weight: 600;
+  }
+  .overflow-item.active ha-icon {
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  :host(:not([dark])) .overflow-item.active {
+    color: var(--primary-text-color);
+    background: rgba(0, 0, 0, 0.08);
+  }
+  :host(:not([dark])) .overflow-item.active ha-icon {
+    color: var(--primary-text-color);
+  }
   .overflow-divider {
     height: 1px;
-    margin: 4px 0;
+    margin: 6px 4px;
     background: var(--divider-color, rgba(0, 0, 0, 0.12));
+  }
+  :host([dark]) .overflow-divider {
+    background: rgba(251, 191, 36, 0.15);
   }
   /* card-tab underline used elsewhere — keep */
   .card-tab::after {
@@ -2196,6 +2341,55 @@ var chatStyles = i`
   }
   .welcome-center-content .qa-group {
     width: 100%;
+    justify-content: center;
+  }
+
+  /* Quick-start disclosure on the welcome screen */
+  .welcome-quickstart {
+    width: 100%;
+    margin-top: 20px;
+  }
+  .welcome-quickstart-summary {
+    list-style: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 auto 12px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    opacity: 0.5;
+    border-radius: 999px;
+    transition:
+      opacity 0.2s,
+      background-color 0.2s;
+    user-select: none;
+  }
+  .welcome-quickstart-summary::-webkit-details-marker {
+    display: none;
+  }
+  .welcome-quickstart-summary:hover {
+    opacity: 0.8;
+    background-color: rgba(255, 255, 255, 0.04);
+  }
+  :host(:not([dark])) .welcome-quickstart-summary:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
+  .welcome-quickstart-chevron {
+    --mdc-icon-size: 16px;
+    transition: transform 0.2s ease;
+  }
+  .welcome-quickstart[open] .welcome-quickstart-chevron {
+    transform: rotate(180deg);
+  }
+  /* Center the summary itself in the centered welcome layout */
+  .welcome-quickstart {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
   }
 
   /* Particle field surrounding the welcome composer */
@@ -3347,6 +3541,12 @@ var automationsStyles = i`
     .auto-row-desc {
       white-space: normal;
     }
+    /* Hide scene rows' duplicate desc — the same text already renders in
+       .auto-row-mobile-meta below. Automations keep their actual
+       description visible (different content from the mobile meta). */
+    .auto-row-desc--meta-only {
+      display: none;
+    }
     .auto-row-last-run {
       display: none;
     }
@@ -3379,14 +3579,30 @@ var automationsStyles = i`
     .filter-row {
       gap: 8px;
     }
+    /* Mobile layout:
+       Row 1 — filter input (full width)
+       Row 2 — status pills (full width)
+       Row 3 — sort select + "+ New X" share a row
+       Row 4 — bulk-edit / actions (own row) */
     .filter-row .filter-input-wrap {
       flex: 1 1 100% !important;
     }
     .filter-row .status-pills {
+      flex: 1 1 100%;
+      justify-content: stretch;
+    }
+    .filter-row .status-pills .status-pill {
       flex: 1;
     }
     .filter-row .sort-select {
-      flex: 1;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+    /* The trailing wrapper around "+ New X" — keep it on the same row
+       as the sort select, no longer pushed to its own line. */
+    .filter-row > div[style*="margin-left:auto"] {
+      flex: 0 1 auto;
+      margin-left: 0 !important;
     }
     .automations-summary span:first-child {
       display: none;
@@ -3422,19 +3638,44 @@ var automationsStyles = i`
     font-weight: 600;
   }
   .sort-select {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 500;
     font-family: inherit;
-    padding: 6px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--selora-zinc-700);
-    background: var(--selora-zinc-900);
+    line-height: 1.2;
+    padding: 9px 34px 9px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    background-color: rgba(255, 255, 255, 0.06);
     color: var(--primary-text-color);
     cursor: pointer;
-    transition: border-color 0.3s;
+    transition:
+      border-color 0.2s,
+      background-color 0.2s;
+    /* Hide the native chevron and draw our own so the select looks like
+       the rest of the UI in both light and dark modes. */
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'><path fill='%23a1a1aa' d='M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6 1.41-1.41z'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px 16px;
   }
   .sort-select:hover {
-    border-color: rgba(251, 191, 36, 0.5);
+    border-color: rgba(255, 255, 255, 0.18);
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+  .sort-select:focus {
+    outline: none;
+    border-color: rgba(251, 191, 36, 0.45);
+  }
+  :host(:not([dark])) .sort-select {
+    border-color: rgba(0, 0, 0, 0.1);
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  :host(:not([dark])) .sort-select:hover {
+    border-color: rgba(0, 0, 0, 0.15);
+    background-color: rgba(0, 0, 0, 0.08);
   }
   .automations-summary {
     font-size: 12px;
@@ -3590,9 +3831,24 @@ var automationsStyles = i`
     line-height: 1.3;
     flex: 1;
     min-width: 0;
+    /* Wrap up to 2 lines on desktop (avoid layout breakage in the masonry
+       grid). Native title attribute / DOM tooltip reveals the full text. */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
+  }
+  /* On touch devices the suggestion cards stack full-width, so let the
+     title wrap freely instead of clamping. */
+  @media (hover: none) {
+    .automations-grid .card h3 {
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      display: block;
+      overflow: visible;
+    }
   }
   .automations-grid .card-meta {
     font-size: 11px;
@@ -4588,85 +4844,255 @@ var quickActionStyles = i`
     margin-top: 10px;
   }
 
-  /* ── Suggestion chips (welcome / quick-start) ── */
+  /* ────────────────────────────────────────────────────────────────────
+   * Animated comet that travels along the chip's border perimeter.
+   *
+   * Technique (port of the React/Tailwind reference):
+   *   - .qa-glow-track is a transparent-bordered overlay sitting at -1px on
+   *     the chip. A two-layer mask shows ONLY the border ring of the chip
+   *     (mask-composite: intersect with linear-gradient(transparent) on
+   *     padding-box and linear-gradient(#000) on border-box).
+   *   - .qa-glow-spot inside it follows offset-path: rect(0 auto auto 0
+   *     round Npx) — the rectangular perimeter — animated via offset-distance
+   *     0% → 100%, 5s linear infinite. The spot has a horizontal gradient
+   *     fading from transparent to brand color, giving a comet trail look.
+   *
+   * Brand color: --selora-accent (gold) in dark, HA --primary-color in light.
+   * ──────────────────────────────────────────────────────────────────── */
+
+  @keyframes qa-spot-travel {
+    to {
+      offset-distance: 100%;
+    }
+  }
+
+  .qa-suggestion,
+  .qa-choice {
+    --qa-spot-color: var(--selora-accent, #fbbf24);
+    /* Match the header tab fill/border (translucent ghost pill) */
+    --qa-bg: rgba(255, 255, 255, 0.06);
+    --qa-border-color: rgba(255, 255, 255, 0.08);
+    --qa-bg-hover: rgba(255, 255, 255, 0.1);
+    --qa-border-hover: rgba(255, 255, 255, 0.12);
+    --qa-radius: 999px;
+    --qa-spot-size: 24px;
+    --qa-spot-duration: 5s;
+
+    position: relative;
+    isolation: isolate;
+    cursor: pointer;
+    color: var(--primary-text-color);
+    border: 1px solid var(--qa-border-color);
+    border-radius: var(--qa-radius);
+    background: var(--qa-bg);
+  }
+
+  /* Light mode: match light-mode tabs */
+  :host(:not([dark])) .qa-suggestion,
+  :host(:not([dark])) .qa-choice {
+    --qa-spot-color: var(--primary-color, #03a9f4);
+    --qa-bg: rgba(0, 0, 0, 0.05);
+    --qa-border-color: rgba(0, 0, 0, 0.1);
+    --qa-bg-hover: rgba(0, 0, 0, 0.08);
+    --qa-border-hover: rgba(0, 0, 0, 0.15);
+  }
+
+  /* Comet track — masked so its contents only paint on the border ring */
+  .qa-glow-track {
+    position: absolute;
+    inset: -1px;
+    border-radius: inherit;
+    border: 2px solid transparent;
+    pointer-events: none;
+    z-index: 0;
+    -webkit-mask:
+      linear-gradient(transparent, transparent), linear-gradient(#000, #000);
+    -webkit-mask-clip: padding-box, border-box;
+    -webkit-mask-composite: source-in;
+    mask:
+      linear-gradient(transparent, transparent), linear-gradient(#000, #000);
+    mask-clip: padding-box, border-box;
+    mask-composite: intersect;
+  }
+
+  /* The traveling spot. offset-path traces the perimeter; the comet trail
+     is a horizontal gradient (transparent → spot color) sized to the spot. */
+  .qa-glow-spot {
+    position: absolute;
+    width: var(--qa-spot-size);
+    height: var(--qa-spot-size);
+    background: linear-gradient(
+      to right,
+      transparent 0%,
+      var(--qa-spot-color) 100%
+    );
+    offset-path: rect(0 auto auto 0 round var(--qa-radius));
+    offset-distance: 0%;
+    animation: qa-spot-travel var(--qa-spot-duration) linear infinite;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .qa-glow-spot {
+      animation: none;
+    }
+  }
+
+  /* On touch devices, chips stack vertically and have full row width, so
+     drop label truncation entirely and let titles wrap to as many lines
+     as needed. Desktop keeps the ellipsis/line-clamp behavior. */
+  @media (hover: none) {
+    .qa-suggestion-label {
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+    .qa-choice-label {
+      display: block;
+      -webkit-line-clamp: unset;
+      line-clamp: unset;
+      white-space: normal;
+      overflow: visible;
+      text-overflow: clip;
+    }
+  }
+
+  /* ── Suggestion chips (welcome / quick-start, scene suggestions) ── */
   .qa-suggestion {
-    width: 100%;
-    display: flex;
+    --qa-radius: 12px;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 16px;
+    gap: 10px;
+    padding: 12px 14px 12px 16px;
+    min-width: 0;
     font-size: 13px;
     font-weight: 500;
-    cursor: pointer;
-    border: 1px solid
-      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-    border-radius: 10px;
-    background: var(
-      --selora-inner-card-bg,
-      var(--primary-background-color, #18181b)
-    );
-    color: var(--primary-text-color);
-    transition:
-      border-color 0.15s,
-      background 0.15s;
     text-align: left;
-    line-height: 1.4;
+    line-height: 1.3;
+    transition:
+      background-color 0.15s,
+      border-color 0.15s,
+      transform 0.15s,
+      box-shadow 0.2s;
   }
   .qa-suggestion:hover {
-    border-color: var(--selora-accent);
-    background: rgba(251, 191, 36, 0.04);
+    border-color: var(--qa-border-hover);
+    background-color: var(--qa-bg-hover);
+  }
+  .qa-suggestion:hover .qa-suggestion-trail {
+    color: var(--qa-spot-color);
+    transform: translateX(2px);
   }
   .qa-suggestion:active {
-    background: rgba(251, 191, 36, 0.08);
+    transform: translateY(0) scale(0.99);
   }
   .qa-suggestion ha-icon {
-    --mdc-icon-size: 16px;
+    --mdc-icon-size: 18px;
     flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+  .qa-suggestion-lead {
+    color: var(--qa-spot-color);
+    opacity: 0.85;
+  }
+  .qa-suggestion-label {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    position: relative;
+    z-index: 1;
+  }
+  .qa-suggestion-trail {
+    --mdc-icon-size: 16px !important;
     color: var(--secondary-text-color);
+    opacity: 0.5;
+    transition:
+      color 0.15s,
+      transform 0.15s,
+      opacity 0.15s;
   }
 
   /* ── Choice cards (AI-offered options) ── */
   .qa-group--choices {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 10px;
   }
   .qa-choice {
+    --qa-radius: 12px;
     display: flex;
-    flex-direction: column;
-    gap: 4px;
     padding: 12px 14px;
-    cursor: pointer;
-    border: 1px solid
-      var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-    border-radius: 12px;
-    background: var(
-      --selora-inner-card-bg,
-      var(--primary-background-color, #18181b)
-    );
-    color: var(--primary-text-color);
+    text-align: left;
     transition:
+      background-color 0.15s,
       border-color 0.15s,
       transform 0.15s,
-      box-shadow 0.15s;
-    text-align: left;
+      box-shadow 0.2s;
   }
   .qa-choice:hover {
-    border-color: var(--selora-accent);
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    border-color: var(--qa-border-hover);
+    background-color: var(--qa-bg-hover);
+  }
+  .qa-choice:hover .qa-choice-trail {
+    color: var(--qa-spot-color);
+    transform: translateX(2px);
   }
   .qa-choice:active {
-    transform: translateY(0);
+    transform: translateY(0) scale(0.99);
+  }
+  .qa-choice > *:not(.qa-glow-track) {
+    position: relative;
+    z-index: 1;
+  }
+  .qa-choice-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+  }
+  .qa-choice ha-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
+  }
+  .qa-choice-lead {
+    color: var(--qa-spot-color);
+    opacity: 0.85;
+  }
+  .qa-choice-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
   }
   .qa-choice-label {
     font-size: 13px;
     font-weight: 600;
+    line-height: 1.3;
+    /* Wrap up to 2 lines, then ellipsis (line-clamp) */
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
   }
   .qa-choice-desc {
     font-size: 12px;
     opacity: 0.6;
     line-height: 1.35;
+  }
+  .qa-choice-trail {
+    --mdc-icon-size: 16px !important;
+    color: var(--secondary-text-color);
+    opacity: 0.5;
+    transition:
+      color 0.15s,
+      transform 0.15s,
+      opacity 0.15s;
   }
 
   /* ── Confirmation buttons (Apply / Modify / Cancel) ── */
@@ -5350,18 +5776,35 @@ function _onSelect(host, action) {
   host._selectQuickAction(action);
 }
 function _renderSuggestion(host, action) {
+  const leadingIcon = action.icon || "mdi:auto-fix";
   return x`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
-      ${action.icon ? x`<ha-icon icon=${action.icon}></ha-icon>` : ""}
-      ${action.label}
+      <span class="qa-glow-track" aria-hidden="true">
+        <span class="qa-glow-spot"></span>
+      </span>
+      <ha-icon class="qa-suggestion-lead" icon=${leadingIcon}></ha-icon>
+      <span class="qa-suggestion-label">${action.label}</span>
+      <ha-icon class="qa-suggestion-trail" icon="mdi:chevron-right"></ha-icon>
     </button>
   `;
 }
 function _renderChoice(host, action) {
+  const leadingIcon = action.icon || "mdi:auto-fix";
   return x`
     <div class="qa-choice" @click=${() => _onSelect(host, action)}>
-      <span class="qa-choice-label">${action.label}</span>
-      ${action.description ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
+      <span class="qa-glow-track" aria-hidden="true">
+        <span class="qa-glow-spot"></span>
+      </span>
+      <div class="qa-choice-row">
+        <ha-icon class="qa-choice-lead" icon=${leadingIcon}></ha-icon>
+        <div class="qa-choice-text">
+          <span class="qa-choice-label" title=${action.label}
+            >${action.label}</span
+          >
+          ${action.description ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
+        </div>
+        <ha-icon class="qa-choice-trail" icon="mdi:chevron-right"></ha-icon>
+      </div>
     </div>
   `;
 }
@@ -5548,13 +5991,16 @@ function renderChat(host) {
                         ${_renderComposer(host, { welcome: true })}
                       </div>
 
-                      <div
-                        class="section-card-subtitle"
-                        style="margin-top:20px;margin-bottom:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;opacity:0.4;"
-                      >
-                        Quick start
-                      </div>
-                      ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                      <details class="welcome-quickstart">
+                        <summary class="welcome-quickstart-summary">
+                          <span>Quick start</span>
+                          <ha-icon
+                            icon="mdi:chevron-down"
+                            class="welcome-quickstart-chevron"
+                          ></ha-icon>
+                        </summary>
+                        ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                      </details>
                     `
                 }
               </div>
@@ -6546,7 +6992,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
             `
             : ""
         }
-        <h3 style="flex:1;font-size:14px;margin:0;">${item.title}</h3>
+        <h3 style="flex:1;font-size:14px;margin:0;" title=${item.title}>
+          ${item.title}
+        </h3>
       </div>
 
       ${
@@ -7650,7 +8098,7 @@ function renderAutomations(host) {
                   style="margin-left:auto;display:flex;align-items:center;gap:8px;"
                 >
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-accent"
                     style="white-space:nowrap;"
                     @click=${() => {
                       host._newAutoName = "";
@@ -8258,7 +8706,7 @@ function renderAutomations(host) {
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
               <button
-                class="btn btn-primary"
+                class="btn btn-accent"
                 @click=${() => {
                   host._newAutoName = "";
                   host._showNewAutoDialog = true;
@@ -8651,7 +9099,7 @@ function renderScenes(host) {
                   style="margin-left:auto;display:flex;align-items:center;gap:8px;"
                 >
                   <button
-                    class="btn btn-primary"
+                    class="btn btn-accent"
                     style="white-space:nowrap;"
                     @click=${() => host._newSceneChat()}
                   >
@@ -8706,7 +9154,9 @@ function renderScenes(host) {
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s6.name}</span>
                           </div>
-                          <span class="auto-row-desc">${meta}</span>
+                          <span class="auto-row-desc auto-row-desc--meta-only"
+                            >${meta}</span
+                          >
                           <span class="auto-row-mobile-meta">
                             <span>${meta}</span>
                             <ha-icon
@@ -8881,7 +9331,7 @@ function renderScenes(host) {
                 No scenes yet. Ask Selora to capture a moment.
               </p>
               <button
-                class="btn btn-primary"
+                class="btn btn-accent"
                 @click=${() => host._newSceneChat()}
               >
                 <ha-icon
@@ -13481,6 +13931,24 @@ var SeloraAIPanel = class extends s4 {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
     }
+    if (changedProps.has("_activeTab") && this._activeTab === "chat") {
+      this._focusComposerSoon();
+    }
+  }
+  _focusComposerSoon() {
+    requestAnimationFrame(() => {
+      const ta = this.shadowRoot?.querySelector(".composer-textarea");
+      if (!ta) return;
+      const active = this.shadowRoot.activeElement;
+      if (
+        active &&
+        active !== ta &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return;
+      }
+      ta.focus();
+    });
   }
   // -------------------------------------------------------------------------
   // Styles
@@ -13847,25 +14315,23 @@ var SeloraAIPanel = class extends s4 {
               </button>`
               : ""
           }
-          <span
-            class="header-title ${this._isDark ? "gold-text" : ""}"
-            @click=${() => {
-              this._activeTab = "chat";
-              if (this._messages.length > 0) this._newSession();
-            }}
-            style="cursor:pointer;"
-            >Selora AI</span
-          >
           <img
             src="/api/selora_ai/${this._isDark ? "logo" : "logo-light"}.png"
             alt=""
             class="header-logo"
             @click=${() => {
               this._activeTab = "chat";
-              if (this._messages.length > 0) this._newSession();
             }}
             style="cursor:pointer;"
           />
+          <span
+            class="header-title ${this._isDark ? "gold-text" : ""}"
+            @click=${() => {
+              this._activeTab = "chat";
+            }}
+            style="cursor:pointer;"
+            >Selora AI</span
+          >
           <div class="tabs-center">
             <div
               class="tab ${this._activeTab === "chat" ? "active" : ""}"
@@ -13880,7 +14346,7 @@ var SeloraAIPanel = class extends s4 {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
-                >Chat</span
+                >Conversations</span
               >
             </div>
             <div
@@ -13911,22 +14377,82 @@ var SeloraAIPanel = class extends s4 {
             </div>
           </div>
           <span class="header-spacer"></span>
+          ${
+            this._activeTab !== "chat" || this._messages.length > 0
+              ? x`<button
+                class="header-new-chat"
+                title="New chat"
+                aria-label="New chat"
+                @click=${() => {
+                  this._showOverflowMenu = false;
+                  if (this._messages.length === 0) {
+                    this._activeTab = "chat";
+                    if (this.narrow) this._showSidebar = false;
+                  } else {
+                    this._newSession();
+                  }
+                }}
+              >
+                <ha-icon icon="mdi:square-edit-outline"></ha-icon>
+                <span class="header-new-chat-label">New chat</span>
+              </button>`
+              : ""
+          }
           <div class="overflow-btn-wrap">
             <button
-              class="overflow-btn"
+              class="overflow-btn selora-menu-btn"
+              aria-label="Selora menu"
               @click=${(e5) => {
                 e5.stopPropagation();
                 this._showOverflowMenu = !this._showOverflowMenu;
               }}
             >
-              <ha-icon icon="mdi:dots-vertical"></ha-icon>
+              <ha-icon icon="mdi:dots-grid"></ha-icon>
             </button>
             ${
               this._showOverflowMenu
                 ? x`
-                  <div class="overflow-menu">
+                  <div class="overflow-menu selora-menu">
+                    <div class="overflow-section narrow-only">
+                      <button
+                        class="overflow-item"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "chat";
+                          this._showSidebar = true;
+                        }}
+                      >
+                        <ha-icon icon="mdi:chat-outline"></ha-icon>
+                        Conversations
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "automations" ? "active" : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "automations";
+                          this._showSidebar = false;
+                          this._loadAutomations();
+                        }}
+                      >
+                        <ha-icon icon="mdi:robot-outline"></ha-icon>
+                        Automations
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "scenes" ? "active" : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "scenes";
+                          this._showSidebar = false;
+                          this._loadScenes();
+                        }}
+                      >
+                        <ha-icon icon="mdi:palette-outline"></ha-icon>
+                        Scenes
+                      </button>
+                      <div class="overflow-divider"></div>
+                    </div>
                     <button
-                      class="overflow-item"
+                      class="overflow-item ${this._activeTab === "settings" ? "active" : ""}"
                       @click=${() => {
                         this._showOverflowMenu = false;
                         this._activeTab = "settings";
@@ -13948,7 +14474,11 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      Documentation
+                      <span class="overflow-item-label">Documentation</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                     <button
                       class="overflow-item"
@@ -13958,7 +14488,7 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      Give Feedback
+                      <span class="overflow-item-label">Give Feedback</span>
                     </button>
                     <a
                       class="overflow-item"
@@ -13970,7 +14500,11 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:github"></ha-icon>
-                      GitHub Issues
+                      <span class="overflow-item-label">GitHub Issues</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                     <a
                       class="overflow-item"
@@ -13982,7 +14516,11 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:gitlab"></ha-icon>
-                      GitLab Repository
+                      <span class="overflow-item-label">GitLab Repository</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                   </div>
                 `

@@ -74,13 +74,13 @@ export const headerStyles = css`
     flex-shrink: 0;
   }
   .header-logo {
-    width: 20px;
-    height: 20px;
-    margin-left: 8px;
+    width: 22px;
+    height: 22px;
+    margin-inline-start: var(--ha-space-6, 24px);
     flex-shrink: 0;
   }
   .header-title {
-    margin-inline-start: var(--ha-space-6, 24px);
+    margin-left: 10px;
     margin-right: 12px;
     flex-shrink: 0;
     white-space: nowrap;
@@ -97,17 +97,18 @@ export const headerStyles = css`
     height: 100%;
     pointer-events: auto;
   }
-  @media (max-width: 600px) {
-    .header-title,
-    .header-logo {
-      display: none;
-    }
-    .tabs-center {
-      position: static;
-      transform: none;
-      flex: 1;
-      justify-content: center;
-    }
+  /* Narrow layout: hide centered tabs, they live in the Selora menu instead */
+  :host([narrow]) .tabs-center {
+    display: none;
+  }
+  :host([narrow]) .header-logo {
+    margin-inline-start: 4px;
+    width: 20px;
+    height: 20px;
+  }
+  :host([narrow]) .header-title {
+    font-size: var(--ha-font-size-l, 18px);
+    margin-left: 8px;
   }
   .tab {
     position: relative;
@@ -169,7 +170,59 @@ export const headerStyles = css`
   .header-spacer {
     flex: 1;
   }
-  /* Overflow (3-dot) menu */
+  /* New-chat header button (visible when there's a chat to leave behind).
+     Mobile: icon-only circle. Desktop: pill with icon + "New chat" label. */
+  .header-new-chat {
+    background: none;
+    border: none;
+    cursor: pointer;
+    height: 40px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 14px;
+    flex-shrink: 0;
+    width: auto;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+    color: var(
+      --sidebar-icon-color,
+      var(--app-header-text-color, var(--primary-text-color))
+    );
+    --mdc-icon-size: 20px;
+    transition:
+      background 0.2s,
+      color 0.2s;
+  }
+  .header-new-chat:hover {
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  :host(:not([dark])) .header-new-chat:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--primary-text-color);
+  }
+  .header-new-chat-label {
+    white-space: nowrap;
+  }
+  /* Narrow: collapse back to a 44×44 icon-only circle */
+  :host([narrow]) .header-new-chat {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    padding: 0;
+    --mdc-icon-size: 22px;
+  }
+  :host([narrow]) .header-new-chat-label {
+    display: none;
+  }
+
+  /* Selora (right-side) menu — gold-accented to differentiate from HA burger */
   .overflow-btn-wrap {
     position: relative;
   }
@@ -177,8 +230,8 @@ export const headerStyles = css`
     background: none;
     border: none;
     cursor: pointer;
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -187,50 +240,124 @@ export const headerStyles = css`
       --sidebar-icon-color,
       var(--app-header-text-color, var(--primary-text-color))
     );
-    --mdc-icon-size: 24px;
+    --mdc-icon-size: 22px;
+    transition:
+      background 0.2s,
+      color 0.2s,
+      box-shadow 0.2s;
+  }
+  .selora-menu-btn {
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  .selora-menu-btn:hover {
+    background: rgba(251, 191, 36, 0.12);
+    box-shadow: 0 0 14px rgba(251, 191, 36, 0.25);
+  }
+  :host(:not([dark])) .selora-menu-btn {
+    color: var(--primary-text-color);
+  }
+  :host(:not([dark])) .selora-menu-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+    box-shadow: none;
   }
   .overflow-menu {
     position: absolute;
-    top: 100%;
+    top: calc(100% + 4px);
     right: 0;
-    min-width: 200px;
+    min-width: 220px;
     background: var(--card-background-color, #fff);
-    border-radius: 4px;
+    border-radius: 12px;
     box-shadow:
-      0 2px 4px -1px rgba(0, 0, 0, 0.2),
-      0 4px 5px rgba(0, 0, 0, 0.14),
-      0 1px 10px rgba(0, 0, 0, 0.12);
-    padding: 8px 0;
+      0 8px 24px rgba(0, 0, 0, 0.35),
+      0 2px 8px rgba(0, 0, 0, 0.18);
+    padding: 6px;
     z-index: 10;
+  }
+  .selora-menu {
+    border: 1px solid rgba(251, 191, 36, 0.25);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  :host([dark]) .selora-menu {
+    background: rgba(20, 20, 22, 0.92);
+    box-shadow:
+      0 12px 32px rgba(0, 0, 0, 0.55),
+      0 0 24px rgba(251, 191, 36, 0.08);
+  }
+  :host(:not([dark])) .selora-menu {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+  .overflow-section {
+    display: flex;
+    flex-direction: column;
+  }
+  /* Mobile-only nav section inside the menu (Automations / Scenes) */
+  .overflow-section.narrow-only {
+    display: none;
+  }
+  :host([narrow]) .overflow-section.narrow-only {
+    display: flex;
   }
   .overflow-item {
     display: flex;
     align-items: center;
-    gap: 16px;
+    gap: 14px;
     width: 100%;
-    padding: 0 16px;
-    height: 48px;
+    padding: 0 14px;
+    height: 44px;
     background: none;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
     font-size: var(--ha-font-size-m, 14px);
     font-family: var(--ha-font-family-body, Roboto, Noto, sans-serif);
     color: var(--primary-text-color);
     text-decoration: none;
-    transition: background 0.1s;
+    transition:
+      background 0.15s,
+      color 0.15s;
     box-sizing: border-box;
-    --mdc-icon-size: 24px;
+    --mdc-icon-size: 20px;
   }
   .overflow-item:hover {
-    background: rgba(128, 128, 128, 0.12);
+    background: rgba(251, 191, 36, 0.08);
+  }
+  :host(:not([dark])) .overflow-item:hover {
+    background: rgba(0, 0, 0, 0.05);
   }
   .overflow-item ha-icon {
     color: var(--secondary-text-color);
   }
+  .overflow-item-label {
+    flex: 1;
+    text-align: left;
+  }
+  .overflow-item-external {
+    --mdc-icon-size: 14px;
+    opacity: 0.5;
+  }
+  .overflow-item.active {
+    color: var(--selora-accent-text, #f59e0b);
+    background: rgba(251, 191, 36, 0.1);
+    font-weight: 600;
+  }
+  .overflow-item.active ha-icon {
+    color: var(--selora-accent-text, #f59e0b);
+  }
+  :host(:not([dark])) .overflow-item.active {
+    color: var(--primary-text-color);
+    background: rgba(0, 0, 0, 0.08);
+  }
+  :host(:not([dark])) .overflow-item.active ha-icon {
+    color: var(--primary-text-color);
+  }
   .overflow-divider {
     height: 1px;
-    margin: 4px 0;
+    margin: 6px 4px;
     background: var(--divider-color, rgba(0, 0, 0, 0.12));
+  }
+  :host([dark]) .overflow-divider {
+    background: rgba(251, 191, 36, 0.15);
   }
   /* card-tab underline used elsewhere — keep */
   .card-tab::after {

@@ -1143,6 +1143,29 @@ class SeloraAIPanel extends LitElement {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
     }
+    // Auto-focus the composer when the chat tab activates so the user can
+    // start typing immediately. Fires on initial mount (first updated() has
+    // _activeTab in changedProps) and on every subsequent tab switch to chat.
+    if (changedProps.has("_activeTab") && this._activeTab === "chat") {
+      this._focusComposerSoon();
+    }
+  }
+
+  _focusComposerSoon() {
+    // Wait one frame so newly-rendered welcome/docked composer is in the DOM.
+    requestAnimationFrame(() => {
+      const ta = this.shadowRoot?.querySelector(".composer-textarea");
+      if (!ta) return;
+      const active = this.shadowRoot.activeElement;
+      if (
+        active &&
+        active !== ta &&
+        (active.tagName === "INPUT" || active.tagName === "TEXTAREA")
+      ) {
+        return; // user is already typing somewhere — don't steal focus
+      }
+      ta.focus();
+    });
   }
 
   // -------------------------------------------------------------------------
@@ -1547,25 +1570,23 @@ class SeloraAIPanel extends LitElement {
                 <ha-icon icon="mdi:menu"></ha-icon>
               </button>`
             : ""}
-          <span
-            class="header-title ${this._isDark ? "gold-text" : ""}"
-            @click=${() => {
-              this._activeTab = "chat";
-              if (this._messages.length > 0) this._newSession();
-            }}
-            style="cursor:pointer;"
-            >Selora AI</span
-          >
           <img
             src="/api/selora_ai/${this._isDark ? "logo" : "logo-light"}.png"
             alt=""
             class="header-logo"
             @click=${() => {
               this._activeTab = "chat";
-              if (this._messages.length > 0) this._newSession();
             }}
             style="cursor:pointer;"
           />
+          <span
+            class="header-title ${this._isDark ? "gold-text" : ""}"
+            @click=${() => {
+              this._activeTab = "chat";
+            }}
+            style="cursor:pointer;"
+            >Selora AI</span
+          >
           <div class="tabs-center">
             <div
               class="tab ${this._activeTab === "chat" ? "active" : ""}"
@@ -1580,7 +1601,7 @@ class SeloraAIPanel extends LitElement {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
-                >Chat</span
+                >Conversations</span
               >
             </div>
             <div
@@ -1611,21 +1632,85 @@ class SeloraAIPanel extends LitElement {
             </div>
           </div>
           <span class="header-spacer"></span>
+          ${this._activeTab !== "chat" || this._messages.length > 0
+            ? html`<button
+                class="header-new-chat"
+                title="New chat"
+                aria-label="New chat"
+                @click=${() => {
+                  this._showOverflowMenu = false;
+                  if (this._messages.length === 0) {
+                    this._activeTab = "chat";
+                    if (this.narrow) this._showSidebar = false;
+                  } else {
+                    this._newSession();
+                  }
+                }}
+              >
+                <ha-icon icon="mdi:square-edit-outline"></ha-icon>
+                <span class="header-new-chat-label">New chat</span>
+              </button>`
+            : ""}
           <div class="overflow-btn-wrap">
             <button
-              class="overflow-btn"
+              class="overflow-btn selora-menu-btn"
+              aria-label="Selora menu"
               @click=${(e) => {
                 e.stopPropagation();
                 this._showOverflowMenu = !this._showOverflowMenu;
               }}
             >
-              <ha-icon icon="mdi:dots-vertical"></ha-icon>
+              <ha-icon icon="mdi:dots-grid"></ha-icon>
             </button>
             ${this._showOverflowMenu
               ? html`
-                  <div class="overflow-menu">
+                  <div class="overflow-menu selora-menu">
+                    <div class="overflow-section narrow-only">
+                      <button
+                        class="overflow-item"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "chat";
+                          this._showSidebar = true;
+                        }}
+                      >
+                        <ha-icon icon="mdi:chat-outline"></ha-icon>
+                        Conversations
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "automations"
+                          ? "active"
+                          : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "automations";
+                          this._showSidebar = false;
+                          this._loadAutomations();
+                        }}
+                      >
+                        <ha-icon icon="mdi:robot-outline"></ha-icon>
+                        Automations
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "scenes"
+                          ? "active"
+                          : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._activeTab = "scenes";
+                          this._showSidebar = false;
+                          this._loadScenes();
+                        }}
+                      >
+                        <ha-icon icon="mdi:palette-outline"></ha-icon>
+                        Scenes
+                      </button>
+                      <div class="overflow-divider"></div>
+                    </div>
                     <button
-                      class="overflow-item"
+                      class="overflow-item ${this._activeTab === "settings"
+                        ? "active"
+                        : ""}"
                       @click=${() => {
                         this._showOverflowMenu = false;
                         this._activeTab = "settings";
@@ -1647,7 +1732,11 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      Documentation
+                      <span class="overflow-item-label">Documentation</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                     <button
                       class="overflow-item"
@@ -1657,7 +1746,7 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      Give Feedback
+                      <span class="overflow-item-label">Give Feedback</span>
                     </button>
                     <a
                       class="overflow-item"
@@ -1669,7 +1758,11 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:github"></ha-icon>
-                      GitHub Issues
+                      <span class="overflow-item-label">GitHub Issues</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                     <a
                       class="overflow-item"
@@ -1681,7 +1774,11 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:gitlab"></ha-icon>
-                      GitLab Repository
+                      <span class="overflow-item-label">GitLab Repository</span>
+                      <ha-icon
+                        icon="mdi:open-in-new"
+                        class="overflow-item-external"
+                      ></ha-icon>
                     </a>
                   </div>
                 `
