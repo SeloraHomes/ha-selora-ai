@@ -6,12 +6,13 @@ Auth:     HA Bearer token or Selora Connect JWT (dual-auth)
 
 Phase 1 tools
 ─────────────
-  selora_list_automations     List Selora-managed automations with status + risk
-  selora_get_automation       Full automation detail with YAML and version history
+  selora_list_automations     List all HA automations (yaml + storage-managed)
+  selora_get_automation       Full automation detail by id or entity_id
   selora_validate_automation  Validate + risk-assess YAML without writing anything
   selora_create_automation    Create automation from externally-generated YAML
-  selora_accept_automation    Enable/commit a pending automation
-  selora_delete_automation    Delete a Selora-managed automation
+  selora_accept_automation    Enable or disable any HA automation
+  selora_delete_automation    Delete a yaml-managed HA automation
+  selora_trigger_automation   Trigger any HA automation via automation.trigger
   selora_get_home_snapshot    Current entity states grouped by area
   selora_chat                 Natural-language chat with Selora's LLM
   selora_list_sessions        Recent conversation sessions
@@ -20,6 +21,15 @@ Phase 2 tools (device data)
 ───────────────────────────
   selora_list_devices         List HA devices with area/domain filters
   selora_get_device           Full device detail with entities and current states
+
+Phase 3 tools (scenes)
+──────────────────────
+  selora_list_scenes          List all HA scenes (yaml + storage-managed)
+  selora_get_scene            Full scene detail by scene_id or entity_id
+  selora_validate_scene       Validate name + entities without writing anything
+  selora_create_scene         Create a scene from name + entities (admin)
+  selora_delete_scene         Delete a yaml-managed HA scene (admin)
+  selora_activate_scene       Activate any HA scene via scene.turn_on (admin)
 
 Security
 ────────
@@ -232,6 +242,7 @@ TOOL_VALIDATE_AUTOMATION = "selora_validate_automation"
 TOOL_CREATE_AUTOMATION = "selora_create_automation"
 TOOL_ACCEPT_AUTOMATION = "selora_accept_automation"
 TOOL_DELETE_AUTOMATION = "selora_delete_automation"
+TOOL_TRIGGER_AUTOMATION = "selora_trigger_automation"
 TOOL_GET_HOME_SNAPSHOT = "selora_get_home_snapshot"
 TOOL_CHAT = "selora_chat"
 TOOL_LIST_SESSIONS = "selora_list_sessions"
@@ -244,6 +255,12 @@ TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 TOOL_LIST_DEVICES = "selora_list_devices"
 TOOL_GET_DEVICE = "selora_get_device"
 TOOL_HOME_ANALYTICS = "selora_home_analytics"
+TOOL_LIST_SCENES = "selora_list_scenes"
+TOOL_GET_SCENE = "selora_get_scene"
+TOOL_VALIDATE_SCENE = "selora_validate_scene"
+TOOL_CREATE_SCENE = "selora_create_scene"
+TOOL_DELETE_SCENE = "selora_delete_scene"
+TOOL_ACTIVATE_SCENE = "selora_activate_scene"
 
 # Tools that require admin privileges (write/mutating operations)
 _ADMIN_TOOLS = frozenset(
@@ -251,10 +268,14 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_AUTOMATION,
         TOOL_ACCEPT_AUTOMATION,
         TOOL_DELETE_AUTOMATION,
+        TOOL_TRIGGER_AUTOMATION,
         TOOL_CHAT,
         TOOL_ACCEPT_SUGGESTION,
         TOOL_DISMISS_SUGGESTION,
         TOOL_TRIGGER_SCAN,
+        TOOL_CREATE_SCENE,
+        TOOL_DELETE_SCENE,
+        TOOL_ACTIVATE_SCENE,
     }
 )
 
@@ -272,6 +293,9 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_DEVICES,
         TOOL_GET_DEVICE,
         TOOL_HOME_ANALYTICS,
+        TOOL_LIST_SCENES,
+        TOOL_GET_SCENE,
+        TOOL_VALIDATE_SCENE,
     }
 )
 
@@ -660,6 +684,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_CREATE_AUTOMATION: _tool_create_automation,
         TOOL_ACCEPT_AUTOMATION: _tool_accept_automation,
         TOOL_DELETE_AUTOMATION: _tool_delete_automation,
+        TOOL_TRIGGER_AUTOMATION: _tool_trigger_automation,
         TOOL_GET_HOME_SNAPSHOT: _tool_get_home_snapshot,
         TOOL_CHAT: _tool_chat,
         TOOL_LIST_SESSIONS: _tool_list_sessions,
@@ -672,6 +697,12 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_LIST_DEVICES: _tool_list_devices,
         TOOL_GET_DEVICE: _tool_get_device,
         TOOL_HOME_ANALYTICS: _tool_home_analytics,
+        TOOL_LIST_SCENES: _tool_list_scenes,
+        TOOL_GET_SCENE: _tool_get_scene,
+        TOOL_VALIDATE_SCENE: _tool_validate_scene,
+        TOOL_CREATE_SCENE: _tool_create_scene,
+        TOOL_DELETE_SCENE: _tool_delete_scene,
+        TOOL_ACTIVATE_SCENE: _tool_activate_scene,
     }
 
 
@@ -767,58 +798,136 @@ def _is_pending_automation(auto: dict[str, Any], record: dict[str, Any] | None) 
     return latest_message != "accepted via mcp"
 
 
+def _resolve_yaml_automation_entity_id(hass: HomeAssistant, entry: dict[str, Any]) -> str | None:
+    """Map an ``automations.yaml`` entry to its HA entity_id.
+
+    Honors the entity registry first (id-based unique_id mapping covers
+    HA-side renames and collision suffixes) and falls back to
+    ``automation.<slug(alias)>`` so id-less yaml entries — which HA still
+    loads as automations using the alias slug — are also recognised.
+    """
+    from homeassistant.helpers import entity_registry as er  # noqa: PLC0415
+    from homeassistant.util import slugify  # noqa: PLC0415
+
+    auto_id = entry.get("id")
+    alias = entry.get("alias") if isinstance(entry.get("alias"), str) else None
+
+    if isinstance(auto_id, str) and auto_id:
+        registry = er.async_get(hass)
+        entity_id = registry.async_get_entity_id("automation", "automation", auto_id)
+        if entity_id:
+            return entity_id
+        candidate = f"automation.{auto_id}"
+        if hass.states.get(candidate) is not None:
+            return candidate
+
+    if alias:
+        candidate = f"automation.{slugify(alias)}"
+        if hass.states.get(candidate) is not None:
+            return candidate
+    return None
+
+
+def _resolve_automation(
+    hass: HomeAssistant,
+    *,
+    automation_id: str = "",
+    entity_id: str = "",
+) -> tuple[Any | None, str, str]:
+    """Resolve an automation to (state, automation_id, entity_id).
+
+    Either *automation_id* (the YAML/storage id from ``state.attributes['id']``)
+    or *entity_id* (e.g. ``automation.morning_routine``) may be provided.
+    Returns ``(None, "", "")`` when no matching automation is found.
+    """
+    if entity_id:
+        if not entity_id.startswith("automation."):
+            return None, "", ""
+        state = hass.states.get(entity_id)
+        if state is None:
+            return None, "", ""
+        return state, str(state.attributes.get("id", "")), state.entity_id
+    if automation_id:
+        for state in hass.states.async_all("automation"):
+            if str(state.attributes.get("id", "")) == automation_id:
+                return state, automation_id, state.entity_id
+    return None, "", ""
+
+
 # ── Tool: selora_list_automations ─────────────────────────────────────────────
 
 
 async def _tool_list_automations(
     hass: HomeAssistant, arguments: dict[str, Any]
 ) -> list[dict[str, Any]]:
-    """Return Selora-managed automations with status and risk metadata."""
+    """List all Home Assistant automations (yaml + storage-managed).
+
+    Each entry exposes whether the automation is Selora-managed (``selora_managed``)
+    and its source (``yaml`` for entries in ``automations.yaml``, ``storage`` for
+    UI/integration-managed). Selora-managed entries also carry version metadata
+    and a risk assessment; the rest leave those fields null.
+    """
     from .automation_utils import assess_automation_risk
 
     status_filter: str | None = arguments.get("status")
+    selora_only: bool = bool(arguments.get("selora_only", False))
+
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
+    yaml_by_id: dict[str, dict[str, Any]] = {
+        str(a["id"]): a for a in yaml_automations if a.get("id") is not None
+    }
+    # Build an entity_id-keyed yaml index so id-less yaml entries (which HA
+    # still loads as automations via their alias slug) are recognised as
+    # yaml-managed instead of falling through to ``source: storage``.
+    yaml_by_entity_id: dict[str, dict[str, Any]] = {}
+    for entry in yaml_automations:
+        if not isinstance(entry, dict):
+            continue
+        eid = _resolve_yaml_automation_entity_id(hass, entry)
+        if eid:
+            yaml_by_entity_id[eid] = entry
     store: AutomationStore = _get_automation_store(hass)
 
-    # Build a live state lookup (enabled/disabled) from HA state machine
-    live_states: dict[str, str] = {}
-    for state in hass.states.async_all("automation"):
-        friendly = state.attributes.get("friendly_name", "")
-        # Map by alias — will correlate below
-        live_states[friendly] = state.state  # "on" or "off"
-
     result: list[dict[str, Any]] = []
-    for auto in yaml_automations:
-        if not _is_selora(auto):
+    for state in hass.states.async_all("automation"):
+        automation_id = str(state.attributes.get("id", ""))
+        alias_raw = state.attributes.get("friendly_name") or state.entity_id.split(".", 1)[-1]
+        yaml_entry = (
+            yaml_by_id.get(automation_id) if automation_id else None
+        ) or yaml_by_entity_id.get(state.entity_id)
+        is_selora = _is_selora(yaml_entry) if yaml_entry else False
+
+        if selora_only and not is_selora:
             continue
 
-        automation_id = str(auto.get("id", ""))
-        alias = _sanitize(auto.get("alias", ""))
+        record: AutomationRecord | None = (
+            await store.get_record(automation_id) if (automation_id and is_selora) else None
+        )
+        meta: AutomationMetadata | None = (
+            await store.get_metadata(automation_id) if (automation_id and is_selora) else None
+        )
 
-        meta: AutomationMetadata | None = await store.get_metadata(automation_id)
-        record: AutomationRecord | None = await store.get_record(automation_id)
-
-        # Determine display status
-        if _is_pending_automation(auto, record):
+        if is_selora and yaml_entry and _is_pending_automation(yaml_entry, record):
             status = "pending"
         else:
-            # Cross-reference live HA state
-            live = live_states.get(alias, "")
-            status = "enabled" if live == "on" else "disabled"
+            status = "enabled" if state.state == "on" else "disabled"
 
         if status_filter and status != status_filter:
             continue
 
-        risk: RiskAssessment = assess_automation_risk(auto)
+        risk: RiskAssessment | None = assess_automation_risk(yaml_entry) if yaml_entry else None
 
         result.append(
             {
                 "automation_id": automation_id,
-                "alias": alias,
+                "entity_id": state.entity_id,
+                "alias": _sanitize(alias_raw),
                 "status": status,
-                "version_count": meta["version_count"] if meta else 1,
+                "selora_managed": is_selora,
+                "source": "yaml" if yaml_entry else "storage",
+                "version_count": meta["version_count"] if meta else None,
                 "current_version_id": meta["current_version_id"] if meta else None,
-                "risk_assessment": _sanitize_risk(risk),
+                "risk_assessment": _sanitize_risk(risk) if risk else None,
             }
         )
 
@@ -829,24 +938,66 @@ async def _tool_list_automations(
 
 
 async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Return full detail for a single automation including YAML and version history."""
+    """Return full detail for any HA automation (yaml or storage-managed).
+
+    Accepts either ``automation_id`` (the id from ``state.attributes['id']``) or
+    ``entity_id`` (e.g. ``automation.morning_routine``). YAML, version history,
+    and risk assessment are populated when the automation is yaml-managed and
+    Selora-tracked; otherwise those fields are empty/null.
+    """
     import yaml as _yaml
 
     from .automation_utils import assess_automation_risk
 
-    automation_id: str = str(arguments.get("automation_id", ""))
-    if not automation_id:
-        return {"error": "automation_id is required"}
+    automation_id: str = str(arguments.get("automation_id", "")).strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    state, automation_id, entity_id = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
 
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
-    auto: dict[str, Any] | None = next(
-        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
-    )
-    if auto is None:
-        return {"error": f"Automation {automation_id} not found"}
+    # Fall back to a yaml-only lookup when the automation isn't in the state
+    # machine — covers automations that exist in automations.yaml but failed
+    # to load (bad manual edit, missing referenced entity, reload error).
+    if state is None:
+        if not automation_id:
+            return {"error": f"Automation {_sanitize(entity_id_arg)} not found"}
+        yaml_only = next(
+            (a for a in yaml_automations if str(a.get("id")) == automation_id),
+            None,
+        )
+        if yaml_only is None:
+            return {"error": f"Automation {_sanitize(automation_id)} not found"}
+        auto: dict[str, Any] | None = yaml_only
+    else:
+        auto = (
+            next(
+                (a for a in yaml_automations if str(a.get("id")) == automation_id),
+                None,
+            )
+            if automation_id
+            else None
+        )
+        if auto is None:
+            # Id-less yaml entry — locate by entity_id resolution
+            auto = next(
+                (
+                    a
+                    for a in yaml_automations
+                    if isinstance(a, dict)
+                    and _resolve_yaml_automation_entity_id(hass, a) == entity_id
+                ),
+                None,
+            )
+    is_selora = _is_selora(auto) if auto else False
 
     store: AutomationStore = _get_automation_store(hass)
-    record: AutomationRecord | None = await store.get_record(automation_id)
+    record: AutomationRecord | None = (
+        await store.get_record(automation_id) if (automation_id and is_selora) else None
+    )
     versions: list[dict[str, Any]] = []
     lineage: list[dict[str, Any]] = []
     if record:
@@ -869,20 +1020,33 @@ async def _tool_get_automation(hass: HomeAssistant, arguments: dict[str, Any]) -
             for le in record.get("lineage", [])
         ]
 
-    yaml_text: str = _yaml.dump(auto, allow_unicode=True, default_flow_style=False)
-    risk: RiskAssessment = assess_automation_risk(auto)
+    yaml_text: str = _yaml.dump(auto, allow_unicode=True, default_flow_style=False) if auto else ""
+    risk: RiskAssessment | None = assess_automation_risk(auto) if auto else None
+
+    if state is None:
+        status = "not_loaded"
+    elif is_selora and auto and _is_pending_automation(auto, record):
+        status = "pending"
+    else:
+        status = "enabled" if state.state == "on" else "disabled"
+
+    if state is not None:
+        alias_raw = state.attributes.get("friendly_name") or (auto.get("alias", "") if auto else "")
+    else:
+        alias_raw = auto.get("alias", "") if auto else ""
 
     return {
         "automation_id": automation_id,
-        "alias": _sanitize(auto.get("alias", "")),
+        "entity_id": entity_id or "",
+        "alias": _sanitize(alias_raw),
         "yaml": yaml_text,
-        "status": "pending"
-        if _is_pending_automation(auto, record)
-        else ("disabled" if not auto.get("initial_state", True) else "enabled"),
+        "status": status,
+        "selora_managed": is_selora,
+        "source": "yaml" if auto else "storage",
         "version_count": len(versions),
         "versions": versions,
         "lineage": lineage,
-        "risk_assessment": _sanitize_risk(risk),
+        "risk_assessment": _sanitize_risk(risk) if risk else None,
     }
 
 
@@ -1017,60 +1181,264 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
 
 async def _tool_accept_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Enable/commit a pending Selora automation."""
-    from .automation_utils import async_update_automation
+    """Enable or disable any HA automation.
 
-    automation_id: str = str(arguments.get("automation_id", ""))
+    For yaml-managed automations, persists ``initial_state`` so the change
+    survives restarts (and creates a version record for Selora-managed ones).
+    For storage-managed automations, calls ``automation.turn_on/off`` so the
+    change applies at runtime — HA persists storage-managed enabled state
+    automatically.
+    """
+    from .automation_utils import async_toggle_automation, async_update_automation
+
+    automation_id: str = str(arguments.get("automation_id", "")).strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
     enabled: bool = bool(arguments.get("enabled", False))
 
-    if not automation_id:
-        return {"error": "automation_id is required"}
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    state, automation_id, entity_id = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
+    if state is None:
+        ref = entity_id_arg or automation_id
+        return {"error": f"Automation {_sanitize(ref)} not found"}
 
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
-    auto: dict[str, Any] | None = next(
-        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
+    auto: dict[str, Any] | None = (
+        next(
+            (a for a in yaml_automations if str(a.get("id")) == automation_id),
+            None,
+        )
+        if automation_id
+        else None
     )
-    if auto is None or not _is_selora(auto):
-        return {"error": f"Selora automation {automation_id} not found"}
+    if auto is None:
+        auto = next(
+            (
+                a
+                for a in yaml_automations
+                if isinstance(a, dict) and _resolve_yaml_automation_entity_id(hass, a) == entity_id
+            ),
+            None,
+        )
 
-    updated: dict[str, Any] = dict(auto)
-    updated["initial_state"] = enabled
+    # Yaml entries with an ``id``:
+    #  - Selora-managed → ``async_update_automation`` (writes a version record;
+    #    proposal-shape validation is safe because Selora authors the YAML).
+    #  - Non-Selora → ``async_toggle_automation`` (just flips ``initial_state``
+    #    and calls the service; avoids re-validating user-authored YAML that
+    #    may use constructs outside Selora's proposal validator).
+    # Id-less yaml entries and storage-managed automations use the service
+    # call directly. Yaml-without-id can't persist ``initial_state``.
+    if auto is not None and isinstance(auto.get("id"), str) and auto["id"]:
+        yaml_id = str(auto["id"])
+        if _is_selora(auto):
+            updated: dict[str, Any] = dict(auto)
+            updated["initial_state"] = enabled
+            success: bool = await async_update_automation(
+                hass, yaml_id, updated, version_message="Accepted via MCP"
+            )
+        else:
+            success = await async_toggle_automation(hass, yaml_id, entity_id, enabled)
+        if not success:
+            return {"error": "Failed to update automation"}
+        return {
+            "automation_id": yaml_id,
+            "entity_id": entity_id,
+            "status": "enabled" if enabled else "disabled",
+            "persisted": True,
+        }
 
-    success: bool = await async_update_automation(
-        hass,
-        automation_id,
-        updated,
-        version_message="Accepted via MCP",
-    )
-    if not success:
-        return {"error": "Failed to update automation"}
+    service = "turn_on" if enabled else "turn_off"
+    try:
+        await hass.services.async_call(
+            "automation", service, {"entity_id": entity_id}, blocking=True
+        )
+    except Exception as exc:  # noqa: BLE001
+        return {"error": f"Failed to {service}: {exc}"}
 
-    return {"automation_id": automation_id, "status": "enabled" if enabled else "disabled"}
+    response: dict[str, Any] = {
+        "automation_id": automation_id,
+        "entity_id": entity_id,
+        "status": "enabled" if enabled else "disabled",
+        "persisted": auto is None,  # storage-managed persists; yaml-without-id doesn't
+    }
+    if auto is not None:
+        response["warning"] = (
+            "Yaml automation has no 'id' field; runtime state changed but "
+            "initial_state cannot be persisted. Add an 'id' to the entry in "
+            "automations.yaml to persist enable/disable across HA restarts."
+        )
+    return response
 
 
 # ── Tool: selora_delete_automation ────────────────────────────────────────────
 
 
 async def _tool_delete_automation(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Delete a Selora-managed automation."""
+    """Delete any yaml-managed HA automation.
+
+    Storage-managed (UI/integration) automations cannot be removed through this
+    tool — those must be deleted from the HA UI or integration that owns them.
+    """
     from .automation_utils import async_delete_automation
 
-    automation_id: str = str(arguments.get("automation_id", ""))
-    if not automation_id:
-        return {"error": "automation_id is required"}
+    automation_id: str = str(arguments.get("automation_id", "")).strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
+
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    state, automation_id, entity_id = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
 
     yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
-    auto: dict[str, Any] | None = next(
-        (a for a in yaml_automations if str(a.get("id")) == automation_id), None
+    # Yaml-only fallback so broken/un-loaded yaml entries can still be cleaned
+    # up by id — the previous implementation supported this and removing it
+    # would block recovery from a bad manual edit.
+    if state is None:
+        if not automation_id:
+            return {"error": f"Automation {_sanitize(entity_id_arg)} not found"}
+        yaml_only = next(
+            (a for a in yaml_automations if str(a.get("id")) == automation_id),
+            None,
+        )
+        if yaml_only is None:
+            return {"error": f"Automation {_sanitize(automation_id)} not found"}
+        auto: dict[str, Any] | None = yaml_only
+    else:
+        auto = (
+            next(
+                (a for a in yaml_automations if str(a.get("id")) == automation_id),
+                None,
+            )
+            if automation_id
+            else None
+        )
+        if auto is None:
+            auto = next(
+                (
+                    a
+                    for a in yaml_automations
+                    if isinstance(a, dict)
+                    and _resolve_yaml_automation_entity_id(hass, a) == entity_id
+                ),
+                None,
+            )
+        if auto is None:
+            return {
+                "error": (
+                    f"Automation {_sanitize(entity_id)} is not yaml-managed; "
+                    "delete it from the Home Assistant UI instead."
+                )
+            }
+
+    yaml_id = auto.get("id")
+    if isinstance(yaml_id, str) and yaml_id:
+        success: bool = await async_delete_automation(hass, yaml_id)
+        if not success:
+            return {"error": "Failed to delete automation"}
+        return {"automation_id": yaml_id, "entity_id": entity_id, "status": "deleted"}
+
+    # Id-less yaml entry — delete by alias match. Refuse if the alias is missing
+    # or duplicated so we never remove the wrong entry.
+    target_alias = auto.get("alias")
+    if not isinstance(target_alias, str) or not target_alias.strip():
+        return {
+            "error": (
+                f"Automation {_sanitize(entity_id)} has no 'id' or 'alias' field "
+                "in automations.yaml; cannot identify the entry safely."
+            )
+        }
+    duplicates = sum(
+        1
+        for a in yaml_automations
+        if isinstance(a, dict)
+        and isinstance(a.get("alias"), str)
+        and a.get("alias", "").strip() == target_alias.strip()
     )
-    if auto is None or not _is_selora(auto):
-        return {"error": f"Selora automation {automation_id} not found"}
+    if duplicates > 1:
+        return {
+            "error": (
+                f"Automation {_sanitize(entity_id)} has no 'id' field and "
+                f"multiple entries share the alias {_sanitize(target_alias)!r}; "
+                "add an 'id' to the target entry to enable safe deletion."
+            )
+        }
 
-    success: bool = await async_delete_automation(hass, automation_id)
-    if not success:
-        return {"error": "Failed to delete automation"}
+    from .automation_utils import (  # noqa: PLC0415
+        AUTOMATIONS_YAML_LOCK,
+        _read_automations_yaml,
+        _write_automations_yaml,
+    )
 
-    return {"automation_id": automation_id, "status": "deleted"}
+    automations_path = Path(hass.config.config_dir) / "automations.yaml"
+    async with AUTOMATIONS_YAML_LOCK:
+        existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
+        previous = list(existing)
+        remaining = [
+            a
+            for a in existing
+            if not (
+                isinstance(a, dict)
+                and isinstance(a.get("alias"), str)
+                and a.get("alias", "").strip() == target_alias.strip()
+                and not (isinstance(a.get("id"), str) and a["id"])
+            )
+        ]
+        if len(remaining) == len(existing):
+            return {"error": f"Automation {_sanitize(entity_id)} not found in automations.yaml"}
+        await hass.async_add_executor_job(_write_automations_yaml, automations_path, remaining)
+        try:
+            await hass.services.async_call("automation", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001 — restore on reload failure
+            await hass.async_add_executor_job(_write_automations_yaml, automations_path, previous)
+            return {"error": f"Automation reload failed: {exc}"}
+
+    return {"entity_id": entity_id, "status": "deleted"}
+
+
+# ── Tool: selora_trigger_automation ───────────────────────────────────────────
+
+
+async def _tool_trigger_automation(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Trigger any HA automation immediately via the ``automation.trigger`` service.
+
+    Accepts either ``automation_id`` or ``entity_id``. By default the automation's
+    conditions are skipped (matching the HA service default); pass
+    ``skip_condition=False`` to honour them.
+    """
+    automation_id: str = str(arguments.get("automation_id", "")).strip()
+    entity_id_arg: str = str(arguments.get("entity_id", "")).strip()
+    skip_condition: bool = bool(arguments.get("skip_condition", True))
+
+    if not automation_id and not entity_id_arg:
+        return {"error": "automation_id or entity_id is required"}
+
+    state, automation_id, entity_id = _resolve_automation(
+        hass, automation_id=automation_id, entity_id=entity_id_arg
+    )
+    if state is None:
+        ref = entity_id_arg or automation_id
+        return {"error": f"Automation {_sanitize(ref)} not found"}
+
+    try:
+        await hass.services.async_call(
+            "automation",
+            "trigger",
+            {"entity_id": entity_id, "skip_condition": skip_condition},
+            blocking=True,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.error("Failed to trigger automation %s: %s", entity_id, exc)
+        return {"error": f"Trigger failed: {exc}"}
+
+    return {"automation_id": automation_id, "entity_id": entity_id, "status": "triggered"}
 
 
 # ── Tool: selora_get_home_snapshot ────────────────────────────────────────────
@@ -1937,6 +2305,599 @@ async def _tool_home_analytics(hass: HomeAssistant, arguments: dict[str, Any]) -
     return await pattern_store.get_analytics_summary()
 
 
+# ── Phase 3: Scenes ───────────────────────────────────────────────────────────
+
+
+def _serialize_scene_record(record: dict[str, Any]) -> dict[str, Any]:
+    """Strip internal fields and sanitize a SceneRecord for MCP responses.
+
+    The cached ``entity_id`` is intentionally omitted — callers resolve the
+    current entity_id through the registry and would otherwise have it
+    overwritten with a stale value when this dict is merged on top of theirs.
+    """
+    return {
+        "scene_id": record["scene_id"],
+        "name": _sanitize(record.get("name", "")),
+        "entity_count": record.get("entity_count", 0),
+        "session_id": record.get("session_id"),
+        "created_at": record.get("created_at", ""),
+        "updated_at": record.get("updated_at", ""),
+        "deleted_at": record.get("deleted_at"),
+    }
+
+
+def _resolve_yaml_scene_entity_id(hass: HomeAssistant, entry: dict[str, Any]) -> str | None:
+    """Resolve the HA entity_id for a scenes.yaml entry, with or without an id.
+
+    Honors the entity registry (authoritative for HA-side renames and collision
+    suffixes) and falls back to the ``scene.<slug(name)>`` state-machine probe
+    so user-authored yaml entries that omit the optional ``id`` field can still
+    be matched to their loaded entity.
+    """
+    from homeassistant.util import slugify  # noqa: PLC0415
+
+    from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+
+    sid = entry.get("id")
+    name = entry.get("name") if isinstance(entry.get("name"), str) else None
+    if isinstance(sid, str) and sid:
+        eid = resolve_scene_entity_id(hass, sid, name)
+        if eid:
+            return eid
+    if name:
+        candidate = f"scene.{slugify(name)}"
+        if hass.states.get(candidate) is not None:
+            return candidate
+    return None
+
+
+async def _tool_list_scenes(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """List all Home Assistant scenes (yaml + storage-managed).
+
+    Each entry includes the entity_id, friendly name, source, and a
+    ``selora_managed`` flag. Selora-managed entries also carry their
+    SceneStore lifecycle metadata, scene_id, and rendered YAML.
+    """
+    import yaml as _yaml  # noqa: PLC0415
+
+    from .helpers import get_scene_store  # noqa: PLC0415
+    from .scene_utils import (  # noqa: PLC0415
+        _get_scenes_path,
+        _read_scenes_yaml,
+        resolve_scene_entity_id,
+    )
+
+    selora_only: bool = bool(arguments.get("selora_only", False))
+
+    store = get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+    records = await store.async_list_scenes()
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception:  # noqa: BLE001 — best-effort enrichment
+        yaml_entries = []
+
+    # Map yaml entries to their resolved HA entity_ids so we can identify
+    # yaml-managed scenes that aren't tracked by the SceneStore (including
+    # user-authored entries that omit the optional ``id`` field).
+    yaml_by_entity_id: dict[str, dict[str, Any]] = {}
+    for entry in yaml_entries:
+        if not isinstance(entry, dict):
+            continue
+        eid = _resolve_yaml_scene_entity_id(hass, entry)
+        if eid:
+            yaml_by_entity_id[eid] = entry
+
+    # Resolve each Selora record's *current* entity_id through the registry —
+    # the cached value can go stale after a rename in HA without a content-hash
+    # change, and an exact match would drop the record from selora_only filters
+    # and misclassify it as non-Selora.
+    record_by_entity_id: dict[str, dict[str, Any]] = {}
+    for r in records:
+        eid = resolve_scene_entity_id(hass, r["scene_id"], r.get("name")) or r.get("entity_id")
+        if eid:
+            record_by_entity_id[eid] = r
+
+    scenes: list[dict[str, Any]] = []
+    for state in hass.states.async_all("scene"):
+        record = record_by_entity_id.get(state.entity_id)
+        is_selora = record is not None
+        if selora_only and not is_selora:
+            continue
+
+        yaml_entry = yaml_by_entity_id.get(state.entity_id)
+        entities: dict[str, Any] = {}
+        yaml_text = ""
+        if yaml_entry is not None:
+            raw_entities = yaml_entry.get("entities")
+            if isinstance(raw_entities, dict):
+                entities = raw_entities
+            try:
+                yaml_text = _yaml.dump(
+                    {
+                        "name": yaml_entry.get("name", state.attributes.get("friendly_name", "")),
+                        "entities": entities,
+                    },
+                    default_flow_style=False,
+                    allow_unicode=True,
+                    sort_keys=False,
+                )
+            except Exception:  # noqa: BLE001
+                yaml_text = ""
+
+        entry: dict[str, Any] = {
+            "entity_id": state.entity_id,
+            "name": _sanitize(
+                state.attributes.get("friendly_name") or (record.get("name") if record else "")
+            ),
+            "selora_managed": is_selora,
+            "source": "yaml" if yaml_entry else "storage",
+            "entities": entities,
+            "yaml": yaml_text,
+        }
+        if record is not None:
+            entry.update(_serialize_scene_record(record))
+        else:
+            entry["entity_count"] = len(state.attributes.get("entity_id", []) or [])
+        scenes.append(entry)
+
+    return {"scenes": scenes, "count": len(scenes)}
+
+
+async def _tool_get_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Return full detail for any HA scene.
+
+    Accepts either ``scene_id`` (Selora SceneStore ID) or ``entity_id``
+    (e.g. ``scene.movie_night``). Selora-managed scenes carry full
+    lifecycle metadata; others expose entity_id, name, and YAML when
+    yaml-managed.
+    """
+    import yaml as _yaml  # noqa: PLC0415
+
+    from .helpers import get_scene_store  # noqa: PLC0415
+    from .scene_utils import (  # noqa: PLC0415
+        _get_scenes_path,
+        _read_scenes_yaml,
+        resolve_scene_entity_id,
+    )
+
+    scene_id = str(arguments.get("scene_id", "")).strip()
+    entity_id_arg = str(arguments.get("entity_id", "")).strip()
+
+    if not scene_id and not entity_id_arg:
+        return {"error": "scene_id or entity_id is required"}
+
+    store = get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+
+    record: dict[str, Any] | None = None
+    entity_id = entity_id_arg
+
+    if scene_id:
+        record = await store.async_get_scene(scene_id)
+        if record is None:
+            return {"error": f"Scene {_sanitize(scene_id)} not found"}
+        # Resolve through the registry first — the cached entity_id can go stale
+        # when the user renames the scene in HA without touching scenes.yaml,
+        # since reconcile keys off content hash and won't refresh entity_id.
+        resolved = resolve_scene_entity_id(hass, scene_id, record.get("name"))
+        if resolved is None:
+            resolved = record.get("entity_id")
+        if resolved is not None:
+            entity_id = resolved
+    else:
+        if not entity_id_arg.startswith("scene."):
+            return {"error": f"entity_id must be a scene entity, got {_sanitize(entity_id_arg)}"}
+        if hass.states.get(entity_id_arg) is None:
+            return {"error": f"Scene {_sanitize(entity_id_arg)} not found"}
+        # Resolve each record's current entity_id via the registry — the cached
+        # value can be stale after a rename, and a plain exact match would
+        # misreport a Selora scene as non-Selora.
+        records = await store.async_list_scenes()
+        for r in records:
+            current = resolve_scene_entity_id(hass, r["scene_id"], r.get("name")) or r.get(
+                "entity_id"
+            )
+            if current == entity_id_arg:
+                record = r
+                break
+        if record is not None:
+            scene_id = record["scene_id"]
+
+    state = hass.states.get(entity_id) if entity_id else None
+    if state is None:
+        return {"error": "Scene entity not loaded in Home Assistant"}
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception:  # noqa: BLE001
+        yaml_entries = []
+
+    # Find the yaml entry: by scene_id when we have a Selora record, otherwise
+    # by resolving each yaml entry to its HA entity_id so non-Selora yaml scenes
+    # — including those without an explicit ``id`` field — are recognised as
+    # yaml-managed.
+    yaml_entry: dict[str, Any] | None = None
+    if scene_id:
+        yaml_entry = next(
+            (e for e in yaml_entries if isinstance(e, dict) and e.get("id") == scene_id),
+            None,
+        )
+    else:
+        for e in yaml_entries:
+            if not isinstance(e, dict):
+                continue
+            if _resolve_yaml_scene_entity_id(hass, e) == entity_id:
+                yaml_entry = e
+                break
+    entities: dict[str, Any] = {}
+    yaml_text = ""
+    if yaml_entry is not None:
+        raw_entities = yaml_entry.get("entities")
+        if isinstance(raw_entities, dict):
+            entities = raw_entities
+        try:
+            yaml_text = _yaml.dump(
+                {
+                    "name": yaml_entry.get("name", state.attributes.get("friendly_name", "")),
+                    "entities": entities,
+                },
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+        except Exception:  # noqa: BLE001
+            yaml_text = ""
+
+    result: dict[str, Any] = {
+        "entity_id": entity_id,
+        "name": _sanitize(
+            state.attributes.get("friendly_name") or (record.get("name") if record else "")
+        ),
+        "selora_managed": record is not None,
+        "source": "yaml" if yaml_entry else "storage",
+        "entities": entities,
+        "yaml": yaml_text,
+    }
+    if record is not None:
+        result.update(_serialize_scene_record(record))
+    else:
+        result["entity_count"] = len(state.attributes.get("entity_id", []) or [])
+    return result
+
+
+async def _tool_validate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Validate a scene payload without writing anything."""
+    import yaml as _yaml  # noqa: PLC0415
+
+    from .scene_utils import validate_scene_payload  # noqa: PLC0415
+    from .scene_validation import sanitize_scene_name, validate_scene_security  # noqa: PLC0415
+
+    name = arguments.get("name")
+    entities = arguments.get("entities")
+
+    payload: dict[str, Any] = {}
+    if isinstance(name, str):
+        payload["name"] = name
+    if isinstance(entities, dict):
+        payload["entities"] = entities
+
+    is_valid, reason, normalized = validate_scene_payload(payload, hass)
+    if not is_valid or normalized is None:
+        return {
+            "valid": False,
+            "errors": [reason] if reason else ["Validation failed"],
+            "normalized_yaml": None,
+        }
+
+    is_safe, sec_warnings = validate_scene_security(normalized)
+    if not is_safe:
+        return {
+            "valid": False,
+            "errors": [_sanitize(w) for w in sec_warnings] or ["Security validation failed"],
+            "normalized_yaml": None,
+        }
+
+    sanitized_name = sanitize_scene_name(normalized["name"])
+    if not sanitized_name:
+        return {
+            "valid": False,
+            "errors": ["Scene name is empty after sanitization"],
+            "normalized_yaml": None,
+        }
+    normalized["name"] = sanitized_name
+
+    normalized_yaml = _yaml.dump(normalized, default_flow_style=False, allow_unicode=True)
+    return {
+        "valid": True,
+        "errors": [],
+        "warnings": [_sanitize(w) for w in sec_warnings],
+        "normalized_yaml": normalized_yaml,
+        "entity_count": len(normalized["entities"]),
+    }
+
+
+async def _tool_create_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Create a new Selora-managed scene from name + entities.
+
+    Server-side validation runs unconditionally. The scene is recorded in the
+    SceneStore and written to scenes.yaml. Requires admin access.
+    """
+    from .helpers import get_scene_store  # noqa: PLC0415
+    from .scene_utils import (  # noqa: PLC0415
+        SceneCreateError,
+        async_create_scene,
+        validate_scene_payload,
+    )
+
+    name = arguments.get("name")
+    entities = arguments.get("entities")
+
+    payload: dict[str, Any] = {}
+    if isinstance(name, str):
+        payload["name"] = name
+    if isinstance(entities, dict):
+        payload["entities"] = entities
+
+    is_valid, reason, normalized = validate_scene_payload(payload, hass)
+    if not is_valid or normalized is None:
+        return {"error": f"Invalid scene: {reason}"}
+
+    try:
+        result = await async_create_scene(hass, normalized)
+    except SceneCreateError as exc:
+        return {"error": f"Scene creation failed: {exc}"}
+    except Exception:  # noqa: BLE001 — surface a generic failure rather than leak internals
+        _LOGGER.exception("Unexpected failure creating scene via MCP")
+        return {"error": "Scene creation failed"}
+
+    scene_store = get_scene_store(hass)
+    try:
+        await scene_store.async_add_scene(
+            result["scene_id"],
+            result["name"],
+            result["entity_count"],
+            entity_id=result.get("entity_id"),
+            content_hash=result.get("content_hash"),
+        )
+    except Exception:  # noqa: BLE001 — store failure doesn't invalidate the created scene
+        _LOGGER.warning("Failed to record scene %s in store", result["scene_id"])
+
+    return {
+        "scene_id": result["scene_id"],
+        "name": _sanitize(result["name"]),
+        "entity_count": result["entity_count"],
+        "entity_id": result.get("entity_id"),
+        "scene_yaml": result.get("scene_yaml", ""),
+        "status": "created",
+    }
+
+
+async def _tool_delete_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Delete any yaml-managed HA scene from scenes.yaml.
+
+    Accepts ``scene_id`` (Selora SceneStore ID) or ``entity_id`` (any HA scene).
+    Storage-managed (UI/integration) scenes cannot be removed through this tool.
+    Selora-managed scenes are also soft-deleted in the SceneStore and purged
+    from chat sessions.
+    """
+    from homeassistant.helpers.dispatcher import async_dispatcher_send  # noqa: PLC0415
+
+    from . import ConversationStore  # noqa: PLC0415
+    from .const import SIGNAL_SCENE_DELETED  # noqa: PLC0415
+    from .helpers import get_scene_store  # noqa: PLC0415
+    from .scene_utils import (  # noqa: PLC0415
+        SceneDeleteError,
+        _get_scenes_path,
+        _read_scenes_yaml,
+        async_remove_scene_yaml,
+        resolve_scene_entity_id,
+    )
+
+    scene_id = str(arguments.get("scene_id", "")).strip()
+    entity_id_arg = str(arguments.get("entity_id", "")).strip()
+
+    if not scene_id and not entity_id_arg:
+        return {"error": "scene_id or entity_id is required"}
+    if entity_id_arg and not entity_id_arg.startswith("scene."):
+        return {"error": f"entity_id must be a scene entity, got {_sanitize(entity_id_arg)}"}
+
+    store = get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+
+    # Resolve scene_id from entity_id when only entity_id was given.
+    # Resolve each Selora record's *current* entity_id through the registry —
+    # the cached value can go stale when the user renames the scene in HA
+    # without touching scenes.yaml, and an exact match on stale data would
+    # silently fall through to the non-Selora yaml path, skipping SceneStore
+    # soft-delete, session cleanup, and dispatcher notifications.
+    if not scene_id and entity_id_arg:
+        records = await store.async_list_scenes()
+        match: dict[str, Any] | None = None
+        for r in records:
+            current = resolve_scene_entity_id(hass, r["scene_id"], r.get("name")) or r.get(
+                "entity_id"
+            )
+            if current == entity_id_arg:
+                match = r
+                break
+        if match is not None:
+            scene_id = match["scene_id"]
+        else:
+            # Non-Selora scene — find the yaml entry by resolved entity_id
+            if hass.states.get(entity_id_arg) is None:
+                return {"error": f"Scene {_sanitize(entity_id_arg)} not found"}
+            try:
+                yaml_entries = await hass.async_add_executor_job(
+                    _read_scenes_yaml, _get_scenes_path(hass)
+                )
+            except Exception as exc:  # noqa: BLE001
+                return {"error": f"Failed to read scenes.yaml: {exc}"}
+            yaml_match = next(
+                (
+                    e
+                    for e in yaml_entries
+                    if isinstance(e, dict)
+                    and _resolve_yaml_scene_entity_id(hass, e) == entity_id_arg
+                ),
+                None,
+            )
+            if yaml_match is None:
+                return {
+                    "error": (
+                        f"Scene {_sanitize(entity_id_arg)} is not yaml-managed; "
+                        "delete it from the Home Assistant UI instead."
+                    )
+                }
+
+            yaml_id = yaml_match.get("id")
+            if isinstance(yaml_id, str) and yaml_id:
+                try:
+                    removed = await async_remove_scene_yaml(hass, yaml_id)
+                except SceneDeleteError as exc:
+                    return {"error": f"Scene reload failed: {exc}"}
+                if not removed:
+                    return {"error": f"Scene {_sanitize(entity_id_arg)} not found in scenes.yaml"}
+                return {"entity_id": entity_id_arg, "status": "deleted"}
+
+            # Id-less yaml entry: delete by matching the entry's name (the only
+            # stable handle HA uses to derive its entity slug). Reject when more
+            # than one entry shares the name to avoid removing the wrong scene.
+            target_name = yaml_match.get("name")
+            if not isinstance(target_name, str) or not target_name.strip():
+                return {
+                    "error": (
+                        f"Scene {_sanitize(entity_id_arg)} has no 'id' or 'name' field "
+                        "in scenes.yaml; cannot identify the entry safely."
+                    )
+                }
+            duplicates = sum(
+                1
+                for e in yaml_entries
+                if isinstance(e, dict)
+                and isinstance(e.get("name"), str)
+                and e.get("name", "").strip() == target_name.strip()
+            )
+            if duplicates > 1:
+                return {
+                    "error": (
+                        f"Scene {_sanitize(entity_id_arg)} has no 'id' field and "
+                        f"multiple entries share the name {_sanitize(target_name)!r}; "
+                        "add an 'id' to the target entry to enable safe deletion."
+                    )
+                }
+
+            scenes_path = _get_scenes_path(hass)
+            remaining = [
+                e
+                for e in yaml_entries
+                if not (
+                    isinstance(e, dict)
+                    and isinstance(e.get("name"), str)
+                    and e.get("name", "").strip() == target_name.strip()
+                    and not (isinstance(e.get("id"), str) and e["id"])
+                )
+            ]
+            from .scene_utils import _SCENES_YAML_LOCK, _write_scenes_yaml  # noqa: PLC0415
+
+            async with _SCENES_YAML_LOCK:
+                previous = list(yaml_entries)
+                await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, remaining)
+                try:
+                    await hass.services.async_call("scene", "reload", blocking=True)
+                except Exception as exc:  # noqa: BLE001 — restore yaml on reload failure
+                    await hass.async_add_executor_job(_write_scenes_yaml, scenes_path, previous)
+                    return {"error": f"Scene reload failed: {exc}"}
+            return {"entity_id": entity_id_arg, "status": "deleted"}
+
+    try:
+        found, removed = await store.async_delete_with_yaml(
+            scene_id,
+            lambda sid: async_remove_scene_yaml(hass, sid),
+        )
+    except SceneDeleteError as exc:
+        await store.async_restore(scene_id)
+        return {"error": f"Scene reload failed: {exc}"}
+    except Exception:  # noqa: BLE001
+        _LOGGER.exception("Unexpected failure deleting scene %s", scene_id)
+        await store.async_restore(scene_id)
+        return {"error": "Scene deletion failed"}
+
+    if not found:
+        return {"error": f"Scene {_sanitize(scene_id)} not found"}
+
+    if not removed:
+        try:
+            await hass.services.async_call("scene", "reload", blocking=True)
+        except Exception as exc:  # noqa: BLE001
+            await store.async_restore(scene_id)
+            return {"error": f"Scene reload failed: {exc}"}
+
+    conv_store: ConversationStore = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    await conv_store.remove_scene_from_sessions(scene_id)
+    async_dispatcher_send(hass, SIGNAL_SCENE_DELETED, scene_id)
+
+    return {"scene_id": scene_id, "status": "deleted"}
+
+
+async def _tool_activate_scene(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Activate any Home Assistant scene by calling scene.turn_on.
+
+    Accepts either ``entity_id`` (e.g. ``scene.movie_night``) for any HA scene,
+    or ``scene_id`` for a Selora-managed scene (resolved via the SceneStore).
+    """
+    entity_id = str(arguments.get("entity_id", "")).strip()
+    scene_id = str(arguments.get("scene_id", "")).strip()
+
+    if not entity_id and not scene_id:
+        return {"error": "entity_id or scene_id is required"}
+
+    if entity_id:
+        if not entity_id.startswith("scene."):
+            return {"error": f"entity_id must be a scene entity, got {_sanitize(entity_id)}"}
+        if hass.states.get(entity_id) is None:
+            return {"error": f"Scene entity {_sanitize(entity_id)} not found"}
+    else:
+        from .helpers import get_scene_store  # noqa: PLC0415
+        from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+
+        store = get_scene_store(hass)
+        await store.async_reconcile_yaml(force=True)
+        record = await store.async_get_scene(scene_id)
+        if record is None:
+            return {"error": f"Scene {_sanitize(scene_id)} not tracked by Selora"}
+        if record.get("deleted_at") is not None:
+            return {"error": "Scene has been deleted"}
+
+        resolved = resolve_scene_entity_id(hass, scene_id, record.get("name"))
+        if resolved is None:
+            cached = record.get("entity_id")
+            if cached and hass.states.get(cached) is not None:
+                resolved = cached
+        if resolved is None:
+            try:
+                await hass.services.async_call("scene", "reload", blocking=True)
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("scene.reload failed before activation of %s", scene_id)
+            resolved = resolve_scene_entity_id(hass, scene_id, record.get("name"))
+        if resolved is None:
+            return {"error": "Scene entity not found in Home Assistant"}
+        entity_id = resolved
+
+    try:
+        await hass.services.async_call("scene", "turn_on", {"entity_id": entity_id}, blocking=True)
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.error("Failed to activate scene %s: %s", entity_id, exc)
+        return {"error": f"Activation failed: {exc}"}
+
+    return {"entity_id": entity_id, "status": "activated"}
+
+
 # ── Tool definitions (MCP schema) ─────────────────────────────────────────────
 
 
@@ -1944,8 +2905,10 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_LIST_AUTOMATIONS,
         description=(
-            "List Selora AI-managed automations with their status and risk assessment. "
-            "Filter by status: pending, enabled, or disabled."
+            "List all Home Assistant automations (yaml + storage-managed) with their "
+            "entity_id, status, and source. Each entry includes a 'selora_managed' flag; "
+            "Selora-managed entries also carry version metadata and a risk assessment. "
+            "Pass selora_only=true to return only Selora-managed automations."
         ),
         inputSchema={
             "type": "object",
@@ -1954,21 +2917,34 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                     "type": "string",
                     "enum": ["pending", "enabled", "disabled"],
                     "description": "Filter by automation status. Omit to return all.",
-                }
+                },
+                "selora_only": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "When true, return only Selora-managed automations.",
+                },
             },
         },
     ),
     MCPTool(
         name=TOOL_GET_AUTOMATION,
         description=(
-            "Return full detail for a single Selora automation: YAML, version history, "
-            "lineage, and risk assessment."
+            "Return full detail for any HA automation. Pass automation_id (the id from "
+            "state.attributes.id) or entity_id (e.g. 'automation.morning_routine'). "
+            "YAML, version history, and risk assessment are populated for yaml-managed "
+            "Selora automations; for others those fields are empty/null."
         ),
         inputSchema={
             "type": "object",
-            "required": ["automation_id"],
             "properties": {
-                "automation_id": {"type": "string", "description": "The Selora automation ID."}
+                "automation_id": {
+                    "type": "string",
+                    "description": "Automation id (from state.attributes.id).",
+                },
+                "entity_id": {
+                    "type": "string",
+                    "description": "Entity id (e.g. 'automation.morning_routine').",
+                },
             },
         },
     ),
@@ -2018,29 +2994,57 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
     MCPTool(
         name=TOOL_ACCEPT_AUTOMATION,
         description=(
-            "Enable or update a Selora automation that is currently disabled. "
-            "Requires admin access."
+            "Enable or disable any HA automation. For yaml-managed automations, "
+            "persists initial_state across restarts (and creates a version record for "
+            "Selora-managed ones). For storage-managed automations, calls "
+            "automation.turn_on/off. Requires admin access."
         ),
         inputSchema={
             "type": "object",
-            "required": ["automation_id"],
             "properties": {
                 "automation_id": {"type": "string"},
+                "entity_id": {"type": "string"},
                 "enabled": {
                     "type": "boolean",
                     "default": False,
-                    "description": "Set true to enable immediately, false to keep disabled.",
+                    "description": "Set true to enable, false to disable.",
                 },
             },
         },
     ),
     MCPTool(
         name=TOOL_DELETE_AUTOMATION,
-        description=("Delete a Selora-managed automation permanently. Requires admin access."),
+        description=(
+            "Delete any yaml-managed HA automation permanently. Storage-managed "
+            "(UI/integration) automations cannot be removed through this tool. "
+            "Requires admin access."
+        ),
         inputSchema={
             "type": "object",
-            "required": ["automation_id"],
-            "properties": {"automation_id": {"type": "string"}},
+            "properties": {
+                "automation_id": {"type": "string"},
+                "entity_id": {"type": "string"},
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_TRIGGER_AUTOMATION,
+        description=(
+            "Trigger any HA automation immediately via the automation.trigger service. "
+            "By default the automation's conditions are skipped; pass skip_condition=false "
+            "to honour them. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "automation_id": {"type": "string"},
+                "entity_id": {"type": "string"},
+                "skip_condition": {
+                    "type": "boolean",
+                    "default": True,
+                    "description": "When true (default), bypass the automation's condition block.",
+                },
+            },
         },
     ),
     MCPTool(
@@ -2230,6 +3234,146 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                         "If omitted, returns a home-wide summary."
                     ),
                 }
+            },
+        },
+    ),
+    # ── Phase 3: Scenes ──
+    MCPTool(
+        name=TOOL_LIST_SCENES,
+        description=(
+            "List all Home Assistant scenes (yaml + storage-managed) with their entity_id, "
+            "name, source, and a 'selora_managed' flag. Selora-managed entries also expose "
+            "scene_id, lifecycle metadata, and rendered YAML. Pass selora_only=true to "
+            "return only Selora-managed scenes."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "selora_only": {
+                    "type": "boolean",
+                    "default": False,
+                    "description": "When true, return only Selora-managed scenes.",
+                }
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_GET_SCENE,
+        description=(
+            "Return full detail for any HA scene. Pass scene_id (Selora SceneStore ID) "
+            "or entity_id (e.g. 'scene.movie_night'). Selora-managed scenes carry full "
+            "lifecycle metadata; others expose entity_id, name, and YAML when yaml-managed."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "scene_id": {
+                    "type": "string",
+                    "description": "The Selora scene ID (selora_ai_scene_<hex>).",
+                },
+                "entity_id": {
+                    "type": "string",
+                    "description": "Scene entity_id (e.g. 'scene.movie_night').",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_VALIDATE_SCENE,
+        description=(
+            "Validate a scene payload (name + entities) WITHOUT creating anything. "
+            "Runs the same payload validation, security checks, and name sanitization "
+            "that selora_create_scene applies. Returns errors and a normalized YAML on success."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["name", "entities"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable scene name (e.g. 'Movie Night').",
+                },
+                "entities": {
+                    "type": "object",
+                    "description": (
+                        "Mapping of entity_id → state object. Each state object must include "
+                        "a 'state' key (string, bool, or number) plus optional attributes."
+                    ),
+                    "additionalProperties": {
+                        "type": "object",
+                        "required": ["state"],
+                        "properties": {"state": {}},
+                    },
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_CREATE_SCENE,
+        description=(
+            "Create a new Selora-managed scene from a name and an entities map. "
+            "Server-side validation, security checks, and name sanitization run "
+            "unconditionally. The scene is written to scenes.yaml and tracked in "
+            "the SceneStore. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["name", "entities"],
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Human-readable scene name.",
+                },
+                "entities": {
+                    "type": "object",
+                    "description": (
+                        "Mapping of entity_id → state object. Each state object must include "
+                        "a 'state' key plus optional attributes (e.g. brightness, color_temp)."
+                    ),
+                    "additionalProperties": {
+                        "type": "object",
+                        "required": ["state"],
+                        "properties": {"state": {}},
+                    },
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_DELETE_SCENE,
+        description=(
+            "Delete any yaml-managed HA scene from scenes.yaml. Storage-managed "
+            "(UI/integration) scenes cannot be removed through this tool. "
+            "Selora-managed scenes are also soft-deleted in the SceneStore and "
+            "purged from chat sessions. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "scene_id": {"type": "string"},
+                "entity_id": {"type": "string"},
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_ACTIVATE_SCENE,
+        description=(
+            "Activate any Home Assistant scene by calling scene.turn_on. "
+            "Pass entity_id (e.g. 'scene.movie_night') to target any HA scene, or "
+            "scene_id to target a Selora-managed scene by its store ID. "
+            "Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": "Scene entity_id (must start with 'scene.'). Targets any HA scene.",
+                },
+                "scene_id": {
+                    "type": "string",
+                    "description": "Selora scene store ID. Resolved to an entity_id via the SceneStore.",
+                },
             },
         },
     ),
