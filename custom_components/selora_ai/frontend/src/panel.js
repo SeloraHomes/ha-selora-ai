@@ -634,6 +634,10 @@ class SeloraAIPanel extends LitElement {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    if (this._aigatewayPollTimer) {
+      clearInterval(this._aigatewayPollTimer);
+      this._aigatewayPollTimer = null;
+    }
     // Tear down an in-flight chat stream. Use the same cleanup path as
     // the manual stop button so streaming/loading flags and the last
     // message's _streaming marker are cleared — otherwise a
@@ -684,6 +688,35 @@ class SeloraAIPanel extends LitElement {
       const provider = this._config.llm_provider;
       const newKey = this._newApiKey.trim();
 
+      // Selora Cloud requires an OAuth link before it can be activated.
+      // While unlinked we still allow persisting the developer-mode AI
+      // Gateway URL override so the user can point the (eventual) link
+      // flow at a custom backend.
+      if (provider === "selora_cloud" && !this._config.aigateway_linked) {
+        if (this._config.developer_mode && this._config.aigateway_api_url) {
+          await this.hass.callWS({
+            type: "selora_ai/update_config",
+            config: { aigateway_api_url: this._config.aigateway_api_url },
+          });
+          await this._loadConfig();
+          this._llmSaveStatus = {
+            type: "success",
+            message: "AI Gateway URL saved. Now link your Selora account.",
+          };
+          setTimeout(() => {
+            this._llmSaveStatus = null;
+            this.requestUpdate();
+          }, 4000);
+          return;
+        }
+        this._llmSaveStatus = {
+          type: "error",
+          message:
+            "Link your Selora account first by clicking 'Link Selora account'.",
+        };
+        return;
+      }
+
       // Build LLM-only payload
       const payload = { llm_provider: provider };
       if (provider === "anthropic") {
@@ -698,6 +731,11 @@ class SeloraAIPanel extends LitElement {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
+      } else if (provider === "selora_cloud") {
+        payload.selora_cloud_model = this._config.selora_cloud_model;
+        if (this._config.developer_mode && this._config.aigateway_api_url) {
+          payload.aigateway_api_url = this._config.aigateway_api_url;
+        }
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -795,6 +833,7 @@ class SeloraAIPanel extends LitElement {
     if (provider === "gemini") return !this._config.gemini_api_key_set;
     if (provider === "openai") return !this._config.openai_api_key_set;
     if (provider === "openrouter") return !this._config.openrouter_api_key_set;
+    if (provider === "selora_cloud") return !this._config.aigateway_linked;
     return false; // Ollama doesn't require an API key
   }
 
@@ -976,6 +1015,148 @@ class SeloraAIPanel extends LitElement {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
       this._showToast("Selora Connect unlinked.", "success");
+    } catch (err) {
+      this._showToast("Failed to unlink: " + err.message, "error");
+    }
+  }
+
+  // ── AI Gateway OAuth Link flow ────────────────────────────────────
+  // Mirrors _startOAuthLink but targets Connect's AI Gateway endpoints
+  // (/oauth/aigw/authorize + /oauth/aigw/token) and persists tokens that
+  // the SeloraCloudProvider uses as a Bearer credential.
+
+  async _startAIGatewayLink() {
+    if (this._linkingAIGateway) return;
+    this._linkingAIGateway = true;
+    this._aigatewayError = "";
+    this.requestUpdate();
+
+    const popup = window.open(
+      "about:blank",
+      "selora_aigateway_oauth",
+      "width=500,height=700,menubar=no,toolbar=no",
+    );
+    if (!popup) {
+      this._aigatewayError =
+        "Popup blocked. Please allow popups for this site.";
+      this._linkingAIGateway = false;
+      this.requestUpdate();
+      return;
+    }
+
+    try {
+      const connectUrl = (
+        this._config.selora_connect_url || "https://connect.selorahomes.com"
+      ).replace(/\/+$/, "");
+
+      const codeVerifier = this._generateRandomString(64);
+      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+      const state = this._generateRandomString(32);
+      const redirectUri = `${location.origin}${location.pathname}`;
+      const clientId = redirectUri;
+
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        state,
+        scope: "ai-gateway",
+        client_name: this.hass?.config?.location_name || "Home Assistant",
+      });
+
+      popup.location.href = `${connectUrl}/oauth/aigw/authorize?${params}`;
+
+      this._aigatewayOAuthState = {
+        codeVerifier,
+        state,
+        connectUrl,
+        redirectUri,
+        clientId,
+      };
+
+      let polling = false;
+      this._aigatewayPollTimer = setInterval(async () => {
+        if (polling) return;
+        polling = true;
+        try {
+          if (popup.closed) {
+            clearInterval(this._aigatewayPollTimer);
+            this._aigatewayPollTimer = null;
+            if (this._linkingAIGateway) {
+              this._linkingAIGateway = false;
+              this._aigatewayError = "Authorization cancelled.";
+              this.requestUpdate();
+            }
+            return;
+          }
+          const popupUrl = popup.location.href;
+          if (!popupUrl.startsWith(this._aigatewayOAuthState.redirectUri))
+            return;
+
+          clearInterval(this._aigatewayPollTimer);
+          this._aigatewayPollTimer = null;
+          popup.close();
+
+          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
+          const code = callbackParams.get("code");
+          const returnedState = callbackParams.get("state");
+          const error = callbackParams.get("error");
+
+          if (error) {
+            this._aigatewayError = `Authorization failed: ${error}`;
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+            return;
+          }
+
+          if (!code || returnedState !== this._aigatewayOAuthState.state) {
+            this._aigatewayError = "Invalid authorization response.";
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+            return;
+          }
+
+          await this.hass.callWS({
+            type: "selora_ai/exchange_aigateway_code",
+            code,
+            code_verifier: this._aigatewayOAuthState.codeVerifier,
+            redirect_uri: this._aigatewayOAuthState.redirectUri,
+            client_id: this._aigatewayOAuthState.clientId,
+            connect_url: this._aigatewayOAuthState.connectUrl,
+          });
+
+          this._aigatewayOAuthState = null;
+          await this._loadConfig();
+          this._showToast("Selora Cloud linked successfully.", "success");
+        } catch (err) {
+          if (err.name !== "SecurityError" && err.name !== "DOMException") {
+            clearInterval(this._aigatewayPollTimer);
+            this._aigatewayPollTimer = null;
+            popup.close();
+            this._aigatewayError = err.message || "Failed to link.";
+          }
+        } finally {
+          polling = false;
+          if (!this._aigatewayPollTimer) {
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+          }
+        }
+      }, 500);
+    } catch (err) {
+      this._aigatewayError = err.message || "Failed to start OAuth flow.";
+      this._linkingAIGateway = false;
+      this.requestUpdate();
+    }
+  }
+
+  async _unlinkAIGateway() {
+    try {
+      await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
+      await this._loadConfig();
+      this._showToast("Selora Cloud unlinked.", "success");
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -1198,6 +1379,12 @@ class SeloraAIPanel extends LitElement {
   // -------------------------------------------------------------------------
 
   updated(changedProps) {
+    // Reflect "no LLM configured" as a host attribute so CSS can suppress
+    // decorative effects (header glow, particles) until the user finishes
+    // setup. Cheap toggle, fine to run every update.
+    if (this._config) {
+      this.toggleAttribute("needs-setup", this._llmNeedsSetup);
+    }
     if (changedProps.has("hass")) {
       this._checkTabParam();
       // Track dark mode for conditional rendering (gold branding only in dark)

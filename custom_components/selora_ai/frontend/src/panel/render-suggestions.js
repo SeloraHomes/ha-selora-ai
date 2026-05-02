@@ -296,7 +296,10 @@ export function renderSuggestionsSection(host) {
               >
                 <button
                   class="btn"
-                  ?disabled=${host._loadingProactive}
+                  ?disabled=${host._loadingProactive || host._llmNeedsSetup}
+                  title=${host._llmNeedsSetup
+                    ? "Configure an LLM provider first"
+                    : ""}
                   @click=${() => host._triggerPatternScan()}
                 >
                   <ha-icon
@@ -308,7 +311,11 @@ export function renderSuggestionsSection(host) {
                 <button
                   class="btn btn-primary"
                   style="white-space:nowrap;"
-                  ?disabled=${host._generatingSuggestions}
+                  ?disabled=${host._generatingSuggestions ||
+                  host._llmNeedsSetup}
+                  title=${host._llmNeedsSetup
+                    ? "Configure an LLM provider first"
+                    : ""}
                   @click=${() => host._triggerGenerateSuggestions()}
                 >
                   ${host._generatingSuggestions
