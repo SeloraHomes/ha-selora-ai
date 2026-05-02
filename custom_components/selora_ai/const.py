@@ -15,6 +15,15 @@ SIGNAL_LLM_USAGE = f"{DOMAIN}_llm_usage"
 # HA event fired for every LLM call, for audit / Logbook visibility.
 EVENT_LLM_USAGE = f"{DOMAIN}_llm_usage"
 
+# HA event fired when an LLM backend returns 429 (rate limit / quota).
+# Payload: {"provider": str, "retry_after": int|None, "message": str}.
+# The panel listens for this and surfaces a red-particle alert.
+EVENT_LLM_QUOTA_EXCEEDED = f"{DOMAIN}_quota_exceeded"
+# Default cool-down (seconds) used when the upstream response carries no
+# Retry-After header. Long enough that users notice the alert; short
+# enough that the next legitimate request clears it.
+DEFAULT_QUOTA_BACKOFF_SECONDS = 60
+
 # ── LLM Usage Sensors ────────────────────────────────────────────────
 # Persistent counters survive restarts via RestoreSensor; the store key
 # below is for an explicit fallback save (in case restore returns None

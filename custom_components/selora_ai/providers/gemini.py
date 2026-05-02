@@ -356,6 +356,7 @@ class GeminiProvider(LLMProvider):
             timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
             json=payload,
         ) as resp:
+            await self._raise_if_rate_limited(resp)
             if resp.status != 200:
                 from .base import _sanitize_error
 
@@ -379,6 +380,7 @@ class GeminiProvider(LLMProvider):
             timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
             json=payload,
         ) as resp:
+            await self._raise_if_rate_limited(resp)
             if resp.status != 200:
                 from .base import _sanitize_error
 

@@ -1730,6 +1730,66 @@ var layoutStyles = i`
   .toast-close:hover {
     opacity: 1;
   }
+
+  /* ---- Quota / 429 banner ---- */
+  /* Sits above the active tab content, below the header. Red to match
+     the alert particles. Auto-dismisses when retry_after elapses. */
+  .quota-banner {
+    position: relative;
+    z-index: 5;
+    margin: 12px 28px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    animation: quota-banner-in 240ms ease-out;
+  }
+  .quota-banner ha-icon {
+    --mdc-icon-size: 20px;
+    color: #ef4444;
+    flex-shrink: 0;
+  }
+  .quota-banner-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .quota-banner-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .quota-banner-close:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--primary-text-color);
+  }
+  @keyframes quota-banner-in {
+    from {
+      transform: translateY(-8px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @media (max-width: 600px) {
+    .quota-banner {
+      margin: 8px 10px 0;
+      padding: 8px 10px;
+    }
+  }
 `;
 
 // src/panel/styles/sidebar.css.js
@@ -13522,6 +13582,10 @@ var SeloraAIPanel = class extends s4 {
     this._deletingScene = {};
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;
+    this._quotaAlert = null;
+    this._quotaUnsub = null;
+    this._quotaSubPending = false;
+    this._quotaClearTimer = null;
   }
   connectedCallback() {
     super.connectedCallback();
@@ -13602,6 +13666,113 @@ var SeloraAIPanel = class extends s4 {
     document.addEventListener("visibilitychange", this._visibilityHandler);
     this._pageShowHandler = () => this._resetHostKeyboardStyles();
     window.addEventListener("pageshow", this._pageShowHandler);
+    this._ensureQuotaSubscription();
+    this._reconcileQuotaAlertOnReconnect();
+  }
+  _ensureQuotaSubscription() {
+    if (this._quotaUnsub || this._quotaSubPending) return;
+    if (!this.hass?.connection) return;
+    this._quotaSubPending = true;
+    this.hass.connection
+      .subscribeEvents((evt) => {
+        const data = evt?.data || {};
+        const raw = Number(data.retry_after);
+        const retryAfter = Number.isFinite(raw) && raw >= 0 ? raw : 60;
+        this._setQuotaAlert({
+          provider: data.provider || "unknown",
+          model: data.model || "",
+          retryAfter,
+          message: data.message || "",
+        });
+      }, "selora_ai_quota_exceeded")
+      .then((unsub) => {
+        this._quotaUnsub = unsub;
+        this._quotaSubPending = false;
+        if (!this.isConnected) {
+          try {
+            unsub();
+          } catch (_e) {}
+          this._quotaUnsub = null;
+        }
+      })
+      .catch((err) => {
+        this._quotaSubPending = false;
+        console.warn("Failed to subscribe to quota events", err);
+      });
+  }
+  _setQuotaAlert(alert) {
+    this._quotaAlert = {
+      ...alert,
+      until: Date.now() + alert.retryAfter * 1e3,
+    };
+    if (this._quotaClearTimer) clearTimeout(this._quotaClearTimer);
+    this._quotaClearTimer = setTimeout(() => {
+      this._dismissQuotaAlert();
+    }, alert.retryAfter * 1e3);
+    if (this._quotaTickTimer) clearInterval(this._quotaTickTimer);
+    this._quotaTickTimer = setInterval(() => this.requestUpdate(), 1e3);
+    this.requestUpdate();
+  }
+  _dismissQuotaAlert() {
+    this._quotaAlert = null;
+    if (this._quotaClearTimer) {
+      clearTimeout(this._quotaClearTimer);
+      this._quotaClearTimer = null;
+    }
+    if (this._quotaTickTimer) {
+      clearInterval(this._quotaTickTimer);
+      this._quotaTickTimer = null;
+    }
+    this.requestUpdate();
+  }
+  _reconcileQuotaAlertOnReconnect() {
+    if (!this._quotaAlert) return;
+    const remainingMs = this._quotaAlert.until - Date.now();
+    if (remainingMs <= 0) {
+      this._dismissQuotaAlert();
+      return;
+    }
+    if (this._quotaClearTimer) clearTimeout(this._quotaClearTimer);
+    this._quotaClearTimer = setTimeout(
+      () => this._dismissQuotaAlert(),
+      remainingMs,
+    );
+    if (this._quotaTickTimer) clearInterval(this._quotaTickTimer);
+    this._quotaTickTimer = setInterval(() => this.requestUpdate(), 1e3);
+    this.requestUpdate();
+  }
+  _quotaProviderLabel() {
+    const p2 = this._quotaAlert?.provider;
+    if (p2 === "selora_cloud") return "Selora Cloud";
+    if (p2 === "anthropic") return "Anthropic";
+    if (p2 === "openai") return "OpenAI";
+    if (p2 === "openrouter") return "OpenRouter";
+    if (p2 === "gemini") return "Gemini";
+    if (p2 === "ollama") return "Ollama";
+    return "your LLM provider";
+  }
+  _renderQuotaBanner() {
+    if (!this._quotaAlert) return "";
+    const remaining = Math.max(
+      0,
+      Math.ceil((this._quotaAlert.until - Date.now()) / 1e3),
+    );
+    return x`
+      <div class="quota-banner" role="alert">
+        <ha-icon icon="mdi:speedometer-slow"></ha-icon>
+        <div class="quota-banner-text">
+          <strong>${this._quotaProviderLabel()} quota reached.</strong>
+          ${remaining > 0 ? x` Try again in ${remaining}s.` : " Retrying now\u2026"}
+        </div>
+        <button
+          class="quota-banner-close"
+          aria-label="Dismiss"
+          @click=${() => this._dismissQuotaAlert()}
+        >
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+    `;
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -13640,6 +13811,20 @@ var SeloraAIPanel = class extends s4 {
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
+    }
+    if (this._quotaUnsub) {
+      try {
+        this._quotaUnsub();
+      } catch (_e) {}
+      this._quotaUnsub = null;
+    }
+    if (this._quotaClearTimer) {
+      clearTimeout(this._quotaClearTimer);
+      this._quotaClearTimer = null;
+    }
+    if (this._quotaTickTimer) {
+      clearInterval(this._quotaTickTimer);
+      this._quotaTickTimer = null;
     }
     if (this._streamUnsub) {
       try {
@@ -14287,7 +14472,9 @@ var SeloraAIPanel = class extends s4 {
     if (this._config) {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
     }
+    this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     if (changedProps.has("hass")) {
+      this._ensureQuotaSubscription();
       this._checkTabParam();
       const dark = this.hass?.themes?.darkMode;
       if (dark !== void 0) {
@@ -15091,10 +15278,11 @@ var SeloraAIPanel = class extends s4 {
           }}
         >
           <selora-particles
-            .count=${this._isDark ? 1200 : 400}
-            .color=${this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
-            .maxOpacity=${this._isDark ? 1 : 0.5}
+            .count=${this._quotaAlert ? (this._isDark ? 1600 : 600) : this._isDark ? 1200 : 400}
+            .color=${this._quotaAlert ? "#ef4444" : this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
+            .maxOpacity=${this._quotaAlert ? 1 : this._isDark ? 1 : 0.5}
           ></selora-particles>
+          ${this._renderQuotaBanner()}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}

@@ -504,6 +504,13 @@ class SeloraAIPanel extends LitElement {
     this._deletingScene = {};
     this._deleteSceneConfirmId = null;
     this._deleteSceneConfirmName = null;
+    // Quota / 429 alert state. Populated by the selora_ai_quota_exceeded
+    // event subscription in connectedCallback. Auto-clears when the
+    // backend's retry_after window elapses.
+    this._quotaAlert = null;
+    this._quotaUnsub = null;
+    this._quotaSubPending = false;
+    this._quotaClearTimer = null;
   }
 
   connectedCallback() {
@@ -598,6 +605,141 @@ class SeloraAIPanel extends LitElement {
     document.addEventListener("visibilitychange", this._visibilityHandler);
     this._pageShowHandler = () => this._resetHostKeyboardStyles();
     window.addEventListener("pageshow", this._pageShowHandler);
+    // On reconnect HA may already have set `hass` before connectedCallback
+    // fires (no further `hass` change in `updated()`), so we miss future
+    // events unless we kick the subscription right here. The helper is
+    // a no-op when `hass` isn't ready or a subscription is already in
+    // flight, so it's safe to call from both lifecycle hooks.
+    this._ensureQuotaSubscription();
+    // If a quota alert was active when the panel detached, recompute
+    // the remaining cool-down and re-arm the auto-dismiss timer (or
+    // dismiss now if the window has already elapsed).
+    this._reconcileQuotaAlertOnReconnect();
+  }
+
+  _ensureQuotaSubscription() {
+    if (this._quotaUnsub || this._quotaSubPending) return;
+    if (!this.hass?.connection) return;
+    this._quotaSubPending = true;
+    this.hass.connection
+      .subscribeEvents((evt) => {
+        const data = evt?.data || {};
+        // Preserve a valid 0 (provider says "retry now") — only fall
+        // back to the default when the value is missing or non-numeric.
+        const raw = Number(data.retry_after);
+        const retryAfter = Number.isFinite(raw) && raw >= 0 ? raw : 60;
+        this._setQuotaAlert({
+          provider: data.provider || "unknown",
+          model: data.model || "",
+          retryAfter,
+          message: data.message || "",
+        });
+      }, "selora_ai_quota_exceeded")
+      .then((unsub) => {
+        this._quotaUnsub = unsub;
+        this._quotaSubPending = false;
+        // If the panel was disconnected while the subscription was
+        // pending, drop it immediately to avoid a leaked listener.
+        if (!this.isConnected) {
+          try {
+            unsub();
+          } catch (_e) {
+            // best-effort
+          }
+          this._quotaUnsub = null;
+        }
+      })
+      .catch((err) => {
+        this._quotaSubPending = false;
+        console.warn("Failed to subscribe to quota events", err);
+      });
+  }
+
+  _setQuotaAlert(alert) {
+    this._quotaAlert = {
+      ...alert,
+      until: Date.now() + alert.retryAfter * 1000,
+    };
+    if (this._quotaClearTimer) clearTimeout(this._quotaClearTimer);
+    this._quotaClearTimer = setTimeout(() => {
+      this._dismissQuotaAlert();
+    }, alert.retryAfter * 1000);
+    // Tick once per second so the countdown in the banner stays current.
+    if (this._quotaTickTimer) clearInterval(this._quotaTickTimer);
+    this._quotaTickTimer = setInterval(() => this.requestUpdate(), 1000);
+    this.requestUpdate();
+  }
+
+  _dismissQuotaAlert() {
+    this._quotaAlert = null;
+    if (this._quotaClearTimer) {
+      clearTimeout(this._quotaClearTimer);
+      this._quotaClearTimer = null;
+    }
+    if (this._quotaTickTimer) {
+      clearInterval(this._quotaTickTimer);
+      this._quotaTickTimer = null;
+    }
+    this.requestUpdate();
+  }
+
+  _reconcileQuotaAlertOnReconnect() {
+    // disconnectedCallback tears down the auto-dismiss + tick timers
+    // but keeps `_quotaAlert` so the same instance reattaching mid-window
+    // continues to show the banner. On reconnect, recompute how much
+    // of the original retry_after is left and either dismiss the alert
+    // (window elapsed while detached) or rearm both timers.
+    if (!this._quotaAlert) return;
+    const remainingMs = this._quotaAlert.until - Date.now();
+    if (remainingMs <= 0) {
+      this._dismissQuotaAlert();
+      return;
+    }
+    if (this._quotaClearTimer) clearTimeout(this._quotaClearTimer);
+    this._quotaClearTimer = setTimeout(
+      () => this._dismissQuotaAlert(),
+      remainingMs,
+    );
+    if (this._quotaTickTimer) clearInterval(this._quotaTickTimer);
+    this._quotaTickTimer = setInterval(() => this.requestUpdate(), 1000);
+    this.requestUpdate();
+  }
+
+  _quotaProviderLabel() {
+    const p = this._quotaAlert?.provider;
+    if (p === "selora_cloud") return "Selora Cloud";
+    if (p === "anthropic") return "Anthropic";
+    if (p === "openai") return "OpenAI";
+    if (p === "openrouter") return "OpenRouter";
+    if (p === "gemini") return "Gemini";
+    if (p === "ollama") return "Ollama";
+    return "your LLM provider";
+  }
+
+  _renderQuotaBanner() {
+    if (!this._quotaAlert) return "";
+    const remaining = Math.max(
+      0,
+      Math.ceil((this._quotaAlert.until - Date.now()) / 1000),
+    );
+    return html`
+      <div class="quota-banner" role="alert">
+        <ha-icon icon="mdi:speedometer-slow"></ha-icon>
+        <div class="quota-banner-text">
+          <strong>${this._quotaProviderLabel()} quota reached.</strong>
+          ${remaining > 0
+            ? html` Try again in ${remaining}s.`
+            : " Retrying now…"}
+        </div>
+        <button
+          class="quota-banner-close"
+          aria-label="Dismiss"
+          @click=${() => this._dismissQuotaAlert()}
+        >
+          <ha-icon icon="mdi:close"></ha-icon>
+        </button>
+      </div>
+    `;
   }
 
   disconnectedCallback() {
@@ -637,6 +779,22 @@ class SeloraAIPanel extends LitElement {
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
+    }
+    if (this._quotaUnsub) {
+      try {
+        this._quotaUnsub();
+      } catch (_e) {
+        // best-effort cleanup
+      }
+      this._quotaUnsub = null;
+    }
+    if (this._quotaClearTimer) {
+      clearTimeout(this._quotaClearTimer);
+      this._quotaClearTimer = null;
+    }
+    if (this._quotaTickTimer) {
+      clearInterval(this._quotaTickTimer);
+      this._quotaTickTimer = null;
     }
     // Tear down an in-flight chat stream. Use the same cleanup path as
     // the manual stop button so streaming/loading flags and the last
@@ -1385,7 +1543,13 @@ class SeloraAIPanel extends LitElement {
     if (this._config) {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
     }
+    // Reflect the active quota alert as a host attribute so CSS / status
+    // chrome can react. Cheap toggle, fine to run every update.
+    this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     if (changedProps.has("hass")) {
+      // hass can land after connectedCallback (depends on the panel-mount
+      // path) — kick the quota subscription as soon as it's available.
+      this._ensureQuotaSubscription();
       this._checkTabParam();
       // Track dark mode for conditional rendering (gold branding only in dark)
       const dark = this.hass?.themes?.darkMode;
@@ -2231,10 +2395,21 @@ class SeloraAIPanel extends LitElement {
           }}
         >
           <selora-particles
-            .count=${this._isDark ? 1200 : 400}
-            .color=${this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
-            .maxOpacity=${this._isDark ? 1.0 : 0.5}
+            .count=${this._quotaAlert
+              ? this._isDark
+                ? 1600
+                : 600
+              : this._isDark
+                ? 1200
+                : 400}
+            .color=${this._quotaAlert
+              ? "#ef4444"
+              : this._isDark
+                ? "#C7AE6A"
+                : this._primaryColor || "#03a9f4"}
+            .maxOpacity=${this._quotaAlert ? 1.0 : this._isDark ? 1.0 : 0.5}
           ></selora-particles>
+          ${this._renderQuotaBanner()}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}

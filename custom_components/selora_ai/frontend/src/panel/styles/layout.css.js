@@ -202,4 +202,64 @@ export const layoutStyles = css`
   .toast-close:hover {
     opacity: 1;
   }
+
+  /* ---- Quota / 429 banner ---- */
+  /* Sits above the active tab content, below the header. Red to match
+     the alert particles. Auto-dismisses when retry_after elapses. */
+  .quota-banner {
+    position: relative;
+    z-index: 5;
+    margin: 12px 28px 0;
+    padding: 10px 14px;
+    border-radius: 10px;
+    background: rgba(239, 68, 68, 0.12);
+    border: 1px solid rgba(239, 68, 68, 0.4);
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    line-height: 1.45;
+    animation: quota-banner-in 240ms ease-out;
+  }
+  .quota-banner ha-icon {
+    --mdc-icon-size: 20px;
+    color: #ef4444;
+    flex-shrink: 0;
+  }
+  .quota-banner-text {
+    flex: 1;
+    min-width: 0;
+  }
+  .quota-banner-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 50%;
+    color: var(--secondary-text-color);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .quota-banner-close:hover {
+    background: rgba(0, 0, 0, 0.08);
+    color: var(--primary-text-color);
+  }
+  @keyframes quota-banner-in {
+    from {
+      transform: translateY(-8px);
+      opacity: 0;
+    }
+    to {
+      transform: none;
+      opacity: 1;
+    }
+  }
+  @media (max-width: 600px) {
+    .quota-banner {
+      margin: 8px 10px 0;
+      padding: 8px 10px;
+    }
+  }
 `;
