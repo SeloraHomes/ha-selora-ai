@@ -322,6 +322,10 @@ export function renderScenes(host) {
                   <button
                     class="btn btn-accent"
                     style="white-space:nowrap;"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup
+                      ? "Configure an LLM provider first"
+                      : ""}
                     @click=${() => host._newSceneChat()}
                   >
                     <ha-icon
@@ -544,6 +548,10 @@ export function renderScenes(host) {
               </p>
               <button
                 class="btn btn-accent"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup
+                  ? "Configure an LLM provider first"
+                  : ""}
                 @click=${() => host._newSceneChat()}
               >
                 <ha-icon

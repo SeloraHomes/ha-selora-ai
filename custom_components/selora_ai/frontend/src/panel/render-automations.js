@@ -410,6 +410,10 @@ export function renderAutomations(host) {
                   <button
                     class="btn btn-accent"
                     style="white-space:nowrap;"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup
+                      ? "Configure an LLM provider first"
+                      : ""}
                     @click=${() => {
                       host._newAutoName = "";
                       host._showNewAutoDialog = true;
@@ -1025,6 +1029,10 @@ export function renderAutomations(host) {
               <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
               <button
                 class="btn btn-accent"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup
+                  ? "Configure an LLM provider first"
+                  : ""}
                 @click=${() => {
                   host._newAutoName = "";
                   host._showNewAutoDialog = true;

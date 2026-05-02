@@ -49,6 +49,11 @@ export const layoutStyles = css`
   .main > selora-particles.visible {
     opacity: 1;
   }
+  /* Hide all particle layers (background + welcome composer) when no
+     LLM provider is configured — keeps the pre-setup screen calm. */
+  :host([needs-setup]) selora-particles {
+    display: none !important;
+  }
 
   /* ---- Scroll view (automations / settings) ---- */
   .scroll-view {

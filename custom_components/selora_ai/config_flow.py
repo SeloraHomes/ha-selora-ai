@@ -82,6 +82,7 @@ from .const import (
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
+    LLM_PROVIDER_SELORA_CLOUD,
     MODE_CONTINUOUS,
     MODE_SCHEDULED,
 )
@@ -327,6 +328,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         # Initial setup: Choose LLM provider
         if user_input is not None:
             self._provider = user_input[CONF_LLM_PROVIDER]
+            if self._provider == LLM_PROVIDER_SELORA_CLOUD:
+                return await self.async_step_selora_cloud()
             if self._provider == LLM_PROVIDER_ANTHROPIC:
                 return await self.async_step_anthropic()
             if self._provider == LLM_PROVIDER_GEMINI:
@@ -354,7 +357,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=DEFAULT_LLM_PROVIDER,
                     ): vol.In(
                         {
-                            LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude) — Recommended",
+                            LLM_PROVIDER_SELORA_CLOUD: "Selora AI Cloud — Recommended",
+                            LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude)",
                             LLM_PROVIDER_GEMINI: "Google Gemini",
                             LLM_PROVIDER_OPENAI: "OpenAI",
                             LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
@@ -558,6 +562,29 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
+        )
+
+    # ── Selora AI Cloud (OAuth, no credentials at config-flow time) ────
+    async def async_step_selora_cloud(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Confirm Selora Cloud selection.
+
+        OAuth linking happens post-setup from the panel — there are no
+        credentials to enter here. This step just records the chosen
+        provider so the panel opens in the linked-state UI on first load.
+        """
+        if user_input is not None:
+            self._llm_data = {
+                CONF_ENTRY_TYPE: ENTRY_TYPE_LLM,
+                CONF_LLM_PROVIDER: LLM_PROVIDER_SELORA_CLOUD,
+                "_title": "Selora AI (Selora Cloud)",
+            }
+            return await self.async_step_selora_connect()
+
+        return self.async_show_form(
+            step_id="selora_cloud",
+            data_schema=vol.Schema({}),
         )
 
     # ── Selora Connect ──────────────────────────────────────────────────

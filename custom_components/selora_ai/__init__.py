@@ -60,6 +60,13 @@ from .const import (
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     COLLECTOR_DOMAINS,
+    CONF_AIGATEWAY_ACCESS_TOKEN,
+    CONF_AIGATEWAY_API_URL,
+    CONF_AIGATEWAY_CLIENT_ID,
+    CONF_AIGATEWAY_EXPIRES_AT,
+    CONF_AIGATEWAY_REFRESH_TOKEN,
+    CONF_AIGATEWAY_USER_EMAIL,
+    CONF_AIGATEWAY_USER_ID,
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
     CONF_AUTO_PURGE_STALE,
@@ -87,11 +94,13 @@ from .const import (
     CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_RECORDER_LOOKBACK_DAYS,
+    CONF_SELORA_CLOUD_MODEL,
     CONF_SELORA_CONNECT_ENABLED,
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
     CONF_SELORA_MCP_URL,
+    DEFAULT_AIGATEWAY_API_URL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_COLLECTOR_ENABLED,
@@ -113,6 +122,7 @@ from .const import (
     DEFAULT_OPENROUTER_HOST,
     DEFAULT_OPENROUTER_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    DEFAULT_SELORA_CLOUD_MODEL,
     DEFAULT_SELORA_CONNECT_URL,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
@@ -122,6 +132,7 @@ from .const import (
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
+    LLM_PROVIDER_SELORA_CLOUD,
     MODE_SCHEDULED,
     PANEL_ICON,
     PANEL_NAME,
@@ -2272,6 +2283,13 @@ async def _handle_websocket_get_config(
             ),
             "selora_installation_id": config_data.get(CONF_SELORA_INSTALLATION_ID, ""),
             "selora_mcp_url": config_data.get(CONF_SELORA_MCP_URL, ""),
+            # Selora Cloud (AI Gateway OAuth)
+            "aigateway_linked": bool(config_data.get(CONF_AIGATEWAY_REFRESH_TOKEN)),
+            "aigateway_user_email": config_data.get(CONF_AIGATEWAY_USER_EMAIL, ""),
+            "aigateway_api_url": config_data.get(CONF_AIGATEWAY_API_URL, DEFAULT_AIGATEWAY_API_URL),
+            "selora_cloud_model": config_data.get(
+                CONF_SELORA_CLOUD_MODEL, DEFAULT_SELORA_CLOUD_MODEL
+            ),
             # LLM pricing overrides — shape: {provider: {model: [in_per_mtok, out_per_mtok]}}
             "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
         },
@@ -2320,6 +2338,8 @@ async def _handle_websocket_update_config(
         CONF_SELORA_CONNECT_URL,
         CONF_SELORA_INSTALLATION_ID,
         CONF_SELORA_JWT_KEY,
+        CONF_SELORA_CLOUD_MODEL,
+        CONF_AIGATEWAY_API_URL,
     }
 
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
@@ -3661,6 +3681,180 @@ async def _handle_websocket_unlink_connect(
     hass.async_create_task(_reload())
 
 
+# ── AI Gateway OAuth (Selora Cloud LLM) ──────────────────────────────────────
+
+
+def _decode_jwt_claims(token: str) -> dict[str, Any]:
+    """Decode the unverified payload of a JWT.
+
+    The token is verified by the AI Gateway service, not by us — we only
+    read the payload to surface the user's email/sub for display.
+    """
+    import base64
+    import json
+
+    try:
+        parts = token.split(".")
+        if len(parts) != 3:
+            return {}
+        payload = parts[1] + "=" * (-len(parts[1]) % 4)
+        return json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        return {}
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/exchange_aigateway_code",
+        vol.Required("code"): str,
+        vol.Required("code_verifier"): str,
+        vol.Required("redirect_uri"): str,
+        vol.Required("client_id"): str,
+        vol.Optional("connect_url", default=""): str,
+    }
+)
+async def _handle_websocket_exchange_aigateway_code(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Exchange an AI Gateway OAuth code for access + refresh tokens."""
+    if not _require_admin(connection, msg):
+        return
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
+        return
+
+    entry = entries[0]
+    connect_url = (
+        msg["connect_url"] or entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL)
+    ).rstrip("/")
+
+    import time as _time
+
+    import aiohttp
+
+    timeout = aiohttp.ClientTimeout(total=15)
+    async with aiohttp.ClientSession() as session:
+        try:
+            async with session.post(
+                f"{connect_url}/oauth/aigw/token",
+                data={
+                    "grant_type": "authorization_code",
+                    "code": msg["code"],
+                    "code_verifier": msg["code_verifier"],
+                    "client_id": msg["client_id"],
+                    "redirect_uri": msg["redirect_uri"],
+                },
+                timeout=timeout,
+            ) as resp:
+                if resp.status != 200:
+                    body = await resp.text()
+                    _LOGGER.warning("AI Gateway token exchange failed (%s): %s", resp.status, body)
+                    connection.send_error(
+                        msg["id"],
+                        "token_exchange_failed",
+                        f"AI Gateway returned HTTP {resp.status}",
+                    )
+                    return
+                token_data = await resp.json()
+        except (aiohttp.ClientError, TimeoutError) as err:
+            connection.send_error(msg["id"], "connect_unreachable", f"Cannot reach Connect: {err}")
+            return
+
+    access_token = token_data.get("access_token")
+    refresh_token = token_data.get("refresh_token")
+    expires_in = int(token_data.get("expires_in") or 0)
+    if not access_token or not refresh_token:
+        connection.send_error(
+            msg["id"], "token_exchange_failed", "Missing access_token or refresh_token"
+        )
+        return
+
+    claims = _decode_jwt_claims(access_token)
+    user_email = claims.get("email") or ""
+    user_id = str(claims.get("sub") or "")
+    expires_at = _time.time() + expires_in if expires_in > 0 else 0.0
+
+    hass.config_entries.async_update_entry(
+        entry,
+        data={
+            **entry.data,
+            CONF_LLM_PROVIDER: LLM_PROVIDER_SELORA_CLOUD,
+            CONF_AIGATEWAY_ACCESS_TOKEN: access_token,
+            CONF_AIGATEWAY_REFRESH_TOKEN: refresh_token,
+            CONF_AIGATEWAY_EXPIRES_AT: expires_at,
+            CONF_AIGATEWAY_USER_EMAIL: user_email,
+            CONF_AIGATEWAY_USER_ID: user_id,
+            CONF_AIGATEWAY_CLIENT_ID: msg["client_id"],
+            CONF_SELORA_CONNECT_URL: connect_url,
+        },
+    )
+
+    connection.send_result(
+        msg["id"],
+        {"status": "linked", "user_email": user_email},
+    )
+
+    async def _reload() -> None:
+        try:
+            await hass.config_entries.async_reload(entry.entry_id)
+        except Exception:
+            _LOGGER.exception("Failed to reload entry after AI Gateway linking")
+
+    hass.async_create_task(_reload())
+
+
+@websocket_api.async_response
+@decorators.websocket_command({vol.Required("type"): "selora_ai/unlink_aigateway"})
+async def _handle_websocket_unlink_aigateway(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Remove AI Gateway OAuth credentials from the config entry.
+
+    Falls back to the default LLM provider so the integration keeps
+    working after an unlink.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    entries = hass.config_entries.async_entries(DOMAIN)
+    if not entries:
+        connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
+        return
+
+    entry = entries[0]
+    new_data = {**entry.data}
+    for key in (
+        CONF_AIGATEWAY_ACCESS_TOKEN,
+        CONF_AIGATEWAY_REFRESH_TOKEN,
+        CONF_AIGATEWAY_EXPIRES_AT,
+        CONF_AIGATEWAY_USER_EMAIL,
+        CONF_AIGATEWAY_USER_ID,
+        CONF_AIGATEWAY_CLIENT_ID,
+    ):
+        new_data.pop(key, None)
+    # Keep llm_provider on selora_cloud so the user stays in the same UI
+    # state (set URL override, re-link). The provider will fail health
+    # checks until re-linking, which is the expected mid-flow behaviour.
+
+    hass.config_entries.async_update_entry(entry, data=new_data)
+    connection.send_result(msg["id"], {"status": "unlinked"})
+
+    async def _reload() -> None:
+        try:
+            await hass.config_entries.async_reload(entry.entry_id)
+        except Exception:
+            _LOGGER.exception("Failed to reload entry after AI Gateway unlinking")
+
+    hass.async_create_task(_reload())
+
+
 # ── MCP Token Management (WebSocket) ─────────────────────────────────────────
 
 
@@ -3987,6 +4181,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_trigger_pattern_scan)
     websocket_api.async_register_command(hass, _handle_websocket_exchange_connect_code)
     websocket_api.async_register_command(hass, _handle_websocket_unlink_connect)
+    websocket_api.async_register_command(hass, _handle_websocket_exchange_aigateway_code)
+    websocket_api.async_register_command(hass, _handle_websocket_unlink_aigateway)
     # MCP token management
     websocket_api.async_register_command(hass, _handle_websocket_create_mcp_token)
     websocket_api.async_register_command(hass, _handle_websocket_list_mcp_tokens)
@@ -4157,6 +4353,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             host=entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+        )
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
+    elif provider == LLM_PROVIDER_SELORA_CLOUD:
+        llm_provider = create_provider(
+            provider,
+            hass,
+            access_token=entry.data.get(CONF_AIGATEWAY_ACCESS_TOKEN, ""),
+            refresh_token=entry.data.get(CONF_AIGATEWAY_REFRESH_TOKEN, ""),
+            expires_at=entry.data.get(CONF_AIGATEWAY_EXPIRES_AT, 0.0),
+            api_url=entry.data.get(CONF_AIGATEWAY_API_URL, DEFAULT_AIGATEWAY_API_URL),
+            connect_url=entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL),
+            client_id=entry.data.get(CONF_AIGATEWAY_CLIENT_ID, ""),
+            entry_id=entry.entry_id,
+            model=entry.data.get(CONF_SELORA_CLOUD_MODEL, DEFAULT_SELORA_CLOUD_MODEL),
         )
         llm = LLMClient(
             hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides

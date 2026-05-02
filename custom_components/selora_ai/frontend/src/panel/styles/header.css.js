@@ -10,6 +10,12 @@ export const headerStyles = css`
     box-sizing: border-box;
     position: relative;
   }
+  /* Suppress decorative glow when no LLM is configured — keeps the
+     pre-setup screen calm. */
+  :host([needs-setup]) .header::after,
+  :host([needs-setup]) .header::before {
+    display: none;
+  }
   /* Golden glow line at bottom of header (dark mode only) */
   :host([dark]) .header::after {
     content: "";

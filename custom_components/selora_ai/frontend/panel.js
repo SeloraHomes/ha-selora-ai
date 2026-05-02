@@ -1577,6 +1577,11 @@ var layoutStyles = i`
   .main > selora-particles.visible {
     opacity: 1;
   }
+  /* Hide all particle layers (background + welcome composer) when no
+     LLM provider is configured — keeps the pre-setup screen calm. */
+  :host([needs-setup]) selora-particles {
+    display: none !important;
+  }
 
   /* ---- Scroll view (automations / settings) ---- */
   .scroll-view {
@@ -1921,6 +1926,12 @@ var headerStyles = i`
     height: var(--header-height, 56px);
     box-sizing: border-box;
     position: relative;
+  }
+  /* Suppress decorative glow when no LLM is configured — keeps the
+     pre-setup screen calm. */
+  :host([needs-setup]) .header::after,
+  :host([needs-setup]) .header::before {
+    display: none;
   }
   /* Golden glow line at bottom of header (dark mode only) */
   :host([dark]) .header::after {
@@ -7152,7 +7163,8 @@ function renderSuggestionsSection(host) {
               >
                 <button
                   class="btn"
-                  ?disabled=${host._loadingProactive}
+                  ?disabled=${host._loadingProactive || host._llmNeedsSetup}
+                  title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                   @click=${() => host._triggerPatternScan()}
                 >
                   <ha-icon
@@ -7164,7 +7176,8 @@ function renderSuggestionsSection(host) {
                 <button
                   class="btn btn-primary"
                   style="white-space:nowrap;"
-                  ?disabled=${host._generatingSuggestions}
+                  ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
+                  title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                   @click=${() => host._triggerGenerateSuggestions()}
                 >
                   ${
@@ -8100,6 +8113,8 @@ function renderAutomations(host) {
                   <button
                     class="btn btn-accent"
                     style="white-space:nowrap;"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                     @click=${() => {
                       host._newAutoName = "";
                       host._showNewAutoDialog = true;
@@ -8707,6 +8722,8 @@ function renderAutomations(host) {
               <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
               <button
                 class="btn btn-accent"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                 @click=${() => {
                   host._newAutoName = "";
                   host._showNewAutoDialog = true;
@@ -9101,6 +9118,8 @@ function renderScenes(host) {
                   <button
                     class="btn btn-accent"
                     style="white-space:nowrap;"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                     @click=${() => host._newSceneChat()}
                   >
                     <ha-icon
@@ -9332,6 +9351,8 @@ function renderScenes(host) {
               </p>
               <button
                 class="btn btn-accent"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                 @click=${() => host._newSceneChat()}
               >
                 <ha-icon
@@ -9432,13 +9453,13 @@ function _renderUsageHeaderLink(host) {
   `;
 }
 var _PROVIDERS = [
+  { value: "selora_cloud", label: "Selora AI Cloud" },
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
   { value: "", label: "Selora AI Local (Coming soon)", disabled: true },
-  { value: "", label: "Selora AI Cloud (Coming soon)", disabled: true },
 ];
 function _renderProviderPicker(host) {
   const current = _PROVIDERS.find(
@@ -9509,6 +9530,7 @@ function renderSettings(host) {
       </div>
     `;
   }
+  const isSeloraCloud = host._config.llm_provider === "selora_cloud";
   const isAnthropic = host._config.llm_provider === "anthropic";
   const isGemini = host._config.llm_provider === "gemini";
   const isOpenAI = host._config.llm_provider === "openai";
@@ -9545,63 +9567,147 @@ function renderSettings(host) {
           </div>
 
           ${
-            isGemini
+            isSeloraCloud
               ? x`
                 <div class="form-group">
-                  <label>API Key</label>
+                  <label>Selora account</label>
                   ${
-                    host._config.gemini_api_key_set
-                      ? x`<button
-                        class="key-hint key-set key-hint-btn"
-                        title="Click to replace key"
-                        @click=${() => {
-                          host._showApiKeyInput = !host._showApiKeyInput;
-                          if (!host._showApiKeyInput) host._newApiKey = "";
-                          host.requestUpdate();
-                        }}
-                      >
-                        <ha-icon
-                          icon="mdi:check-circle"
-                          style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
-                        ></ha-icon>
-                        ${host._config.gemini_api_key_hint}
-                        <ha-icon
-                          icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
-                          class="key-hint-action"
-                        ></ha-icon>
-                      </button>`
-                      : ""
-                  }
-                  ${
-                    !host._config.gemini_api_key_set || host._showApiKeyInput
+                    host._config.aigateway_linked
                       ? x`
-                        <ha-textfield
-                          label="${host._config.gemini_api_key_set ? "Enter new key" : "Enter API key"}"
-                          type="password"
-                          .value=${host._newApiKey}
-                          @input=${(e5) => (host._newApiKey = e5.target.value)}
-                          placeholder="AIza..."
-                          style="margin-top:8px;width:100%;"
-                        ></ha-textfield>
+                        <div
+                          style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
+                        >
+                          <ha-icon
+                            icon="mdi:check-circle"
+                            style="--mdc-icon-size:18px;color:var(--success-color, #22c55e);flex-shrink:0;"
+                          ></ha-icon>
+                          <div style="flex:1;min-width:0;">
+                            <div
+                              style="font-size:14px;color:var(--primary-text-color);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                            >
+                              Linked${
+                                host._config.aigateway_user_email
+                                  ? x` as
+                                    <strong
+                                      >${host._config.aigateway_user_email}</strong
+                                    >`
+                                  : ""
+                              }
+                            </div>
+                            <div
+                              style="font-size:12px;color:var(--secondary-text-color);"
+                            >
+                              Selora Cloud is providing your LLM backend.
+                            </div>
+                          </div>
+                          <button
+                            class="btn btn-outline"
+                            style="flex-shrink:0;"
+                            @click=${() => host._unlinkAIGateway()}
+                          >
+                            Unlink
+                          </button>
+                        </div>
                       `
+                      : x`
+                        <div
+                          style="display:flex;flex-direction:column;gap:10px;"
+                        >
+                          <p
+                            style="font-size:13px;color:var(--secondary-text-color);margin:0;"
+                          >
+                            Sign in with your Selora account to use the hosted
+                            LLM backend. No API key required.
+                          </p>
+                          ${
+                            host._config.developer_mode
+                              ? x`
+                                <ha-textfield
+                                  label="AI Gateway URL"
+                                  .value=${host._config.aigateway_api_url || "https://ai.selorahomes.com"}
+                                  @input=${(e5) =>
+                                    host._updateConfig(
+                                      "aigateway_api_url",
+                                      e5.target.value,
+                                    )}
+                                  style="width:100%;"
+                                ></ha-textfield>
+                                <div
+                                  style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
+                                >
+                                  Click Save before linking to persist the
+                                  override.
+                                </div>
+                              `
+                              : ""
+                          }
+                          <button
+                            class="btn btn-primary"
+                            ?disabled=${host._linkingAIGateway}
+                            @click=${() => host._startAIGatewayLink()}
+                            style="align-self:flex-start;"
+                          >
+                            ${
+                              host._linkingAIGateway
+                                ? x`<span
+                                    class="spinner"
+                                    style="width:14px;height:14px;"
+                                  ></span>
+                                  Linking…`
+                                : "Link Selora account"
+                            }
+                          </button>
+                        </div>
+                      `
+                  }
+                  ${
+                    host._aigatewayError
+                      ? x`<div
+                        style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
+                      >
+                        ${host._aigatewayError}
+                      </div>`
                       : ""
                   }
                 </div>
-                <div class="form-group">
-                  <ha-textfield
-                    label="Model"
-                    .value=${host._config.gemini_model}
-                    @input=${(e5) => host._updateConfig("gemini_model", e5.target.value)}
-                    style="width:100%;"
-                  ></ha-textfield>
-                </div>
+                ${
+                  host._config.aigateway_linked
+                    ? x`
+                      <div class="form-group">
+                        <ha-textfield
+                          label="Model"
+                          .value=${host._config.selora_cloud_model}
+                          @input=${(e5) =>
+                            host._updateConfig(
+                              "selora_cloud_model",
+                              e5.target.value,
+                            )}
+                          style="width:100%;"
+                        ></ha-textfield>
+                      </div>
+                      ${
+                        host._config.developer_mode
+                          ? x`
+                            <div class="form-group">
+                              <label>AI Gateway URL (unlink to change)</label>
+                              <code
+                                style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
+                                >${host._config.aigateway_api_url || "https://ai.selorahomes.com"}</code
+                              >
+                            </div>
+                          `
+                          : ""
+                      }
+                    `
+                    : ""
+                }
               `
-              : isAnthropic
+              : isGemini
                 ? x`
                   <div class="form-group">
                     <label>API Key</label>
                     ${
-                      host._config.anthropic_api_key_set
+                      host._config.gemini_api_key_set
                         ? x`<button
                           class="key-hint key-set key-hint-btn"
                           title="Click to replace key"
@@ -9615,7 +9721,7 @@ function renderSettings(host) {
                             icon="mdi:check-circle"
                             style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                           ></ha-icon>
-                          ${host._config.anthropic_api_key_hint}
+                          ${host._config.gemini_api_key_hint}
                           <ha-icon
                             icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                             class="key-hint-action"
@@ -9624,15 +9730,14 @@ function renderSettings(host) {
                         : ""
                     }
                     ${
-                      !host._config.anthropic_api_key_set ||
-                      host._showApiKeyInput
+                      !host._config.gemini_api_key_set || host._showApiKeyInput
                         ? x`
                           <ha-textfield
-                            label="${host._config.anthropic_api_key_set ? "Enter new key" : "Enter API key"}"
+                            label="${host._config.gemini_api_key_set ? "Enter new key" : "Enter API key"}"
                             type="password"
                             .value=${host._newApiKey}
                             @input=${(e5) => (host._newApiKey = e5.target.value)}
-                            placeholder="sk-ant-..."
+                            placeholder="AIza..."
                             style="margin-top:8px;width:100%;"
                           ></ha-textfield>
                         `
@@ -9642,18 +9747,18 @@ function renderSettings(host) {
                   <div class="form-group">
                     <ha-textfield
                       label="Model"
-                      .value=${host._config.anthropic_model}
-                      @input=${(e5) => host._updateConfig("anthropic_model", e5.target.value)}
+                      .value=${host._config.gemini_model}
+                      @input=${(e5) => host._updateConfig("gemini_model", e5.target.value)}
                       style="width:100%;"
                     ></ha-textfield>
                   </div>
                 `
-                : isOpenAI
+                : isAnthropic
                   ? x`
                     <div class="form-group">
                       <label>API Key</label>
                       ${
-                        host._config.openai_api_key_set
+                        host._config.anthropic_api_key_set
                           ? x`<button
                             class="key-hint key-set key-hint-btn"
                             title="Click to replace key"
@@ -9667,7 +9772,7 @@ function renderSettings(host) {
                               icon="mdi:check-circle"
                               style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                             ></ha-icon>
-                            ${host._config.openai_api_key_hint}
+                            ${host._config.anthropic_api_key_hint}
                             <ha-icon
                               icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                               class="key-hint-action"
@@ -9676,15 +9781,15 @@ function renderSettings(host) {
                           : ""
                       }
                       ${
-                        !host._config.openai_api_key_set ||
+                        !host._config.anthropic_api_key_set ||
                         host._showApiKeyInput
                           ? x`
                             <ha-textfield
-                              label="${host._config.openai_api_key_set ? "Enter new key" : "Enter API key"}"
+                              label="${host._config.anthropic_api_key_set ? "Enter new key" : "Enter API key"}"
                               type="password"
                               .value=${host._newApiKey}
                               @input=${(e5) => (host._newApiKey = e5.target.value)}
-                              placeholder="sk-..."
+                              placeholder="sk-ant-..."
                               style="margin-top:8px;width:100%;"
                             ></ha-textfield>
                           `
@@ -9694,18 +9799,18 @@ function renderSettings(host) {
                     <div class="form-group">
                       <ha-textfield
                         label="Model"
-                        .value=${host._config.openai_model}
-                        @input=${(e5) => host._updateConfig("openai_model", e5.target.value)}
+                        .value=${host._config.anthropic_model}
+                        @input=${(e5) => host._updateConfig("anthropic_model", e5.target.value)}
                         style="width:100%;"
                       ></ha-textfield>
                     </div>
                   `
-                  : isOpenRouter
+                  : isOpenAI
                     ? x`
                       <div class="form-group">
                         <label>API Key</label>
                         ${
-                          host._config.openrouter_api_key_set
+                          host._config.openai_api_key_set
                             ? x`<button
                               class="key-hint key-set key-hint-btn"
                               title="Click to replace key"
@@ -9720,7 +9825,7 @@ function renderSettings(host) {
                                 icon="mdi:check-circle"
                                 style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
                               ></ha-icon>
-                              ${host._config.openrouter_api_key_hint}
+                              ${host._config.openai_api_key_hint}
                               <ha-icon
                                 icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
                                 class="key-hint-action"
@@ -9729,15 +9834,15 @@ function renderSettings(host) {
                             : ""
                         }
                         ${
-                          !host._config.openrouter_api_key_set ||
+                          !host._config.openai_api_key_set ||
                           host._showApiKeyInput
                             ? x`
                               <ha-textfield
-                                label="${host._config.openrouter_api_key_set ? "Enter new key" : "Enter API key"}"
+                                label="${host._config.openai_api_key_set ? "Enter new key" : "Enter API key"}"
                                 type="password"
                                 .value=${host._newApiKey}
                                 @input=${(e5) => (host._newApiKey = e5.target.value)}
-                                placeholder="sk-or-..."
+                                placeholder="sk-..."
                                 style="margin-top:8px;width:100%;"
                               ></ha-textfield>
                             `
@@ -9747,35 +9852,93 @@ function renderSettings(host) {
                       <div class="form-group">
                         <ha-textfield
                           label="Model"
-                          .value=${host._config.openrouter_model}
-                          @input=${(e5) =>
-                            host._updateConfig(
-                              "openrouter_model",
-                              e5.target.value,
-                            )}
-                          placeholder="anthropic/claude-sonnet-4.5"
+                          .value=${host._config.openai_model}
+                          @input=${(e5) => host._updateConfig("openai_model", e5.target.value)}
                           style="width:100%;"
                         ></ha-textfield>
                       </div>
                     `
-                    : x`
-                      <div class="form-group">
-                        <ha-textfield
-                          label="Host"
-                          .value=${host._config.ollama_host}
-                          @input=${(e5) => host._updateConfig("ollama_host", e5.target.value)}
-                          style="width:100%;"
-                        ></ha-textfield>
-                      </div>
-                      <div class="form-group">
-                        <ha-textfield
-                          label="Model"
-                          .value=${host._config.ollama_model}
-                          @input=${(e5) => host._updateConfig("ollama_model", e5.target.value)}
-                          style="width:100%;"
-                        ></ha-textfield>
-                      </div>
-                    `
+                    : isOpenRouter
+                      ? x`
+                        <div class="form-group">
+                          <label>API Key</label>
+                          ${
+                            host._config.openrouter_api_key_set
+                              ? x`<button
+                                class="key-hint key-set key-hint-btn"
+                                title="Click to replace key"
+                                @click=${() => {
+                                  host._showApiKeyInput =
+                                    !host._showApiKeyInput;
+                                  if (!host._showApiKeyInput)
+                                    host._newApiKey = "";
+                                  host.requestUpdate();
+                                }}
+                              >
+                                <ha-icon
+                                  icon="mdi:check-circle"
+                                  style="--mdc-icon-size:14px;color:var(--success-color, #22c55e);margin-right:6px;vertical-align:middle;"
+                                ></ha-icon>
+                                ${host._config.openrouter_api_key_hint}
+                                <ha-icon
+                                  icon="${host._showApiKeyInput ? "mdi:close" : "mdi:pencil"}"
+                                  class="key-hint-action"
+                                ></ha-icon>
+                              </button>`
+                              : ""
+                          }
+                          ${
+                            !host._config.openrouter_api_key_set ||
+                            host._showApiKeyInput
+                              ? x`
+                                <ha-textfield
+                                  label="${host._config.openrouter_api_key_set ? "Enter new key" : "Enter API key"}"
+                                  type="password"
+                                  .value=${host._newApiKey}
+                                  @input=${(e5) => (host._newApiKey = e5.target.value)}
+                                  placeholder="sk-or-..."
+                                  style="margin-top:8px;width:100%;"
+                                ></ha-textfield>
+                              `
+                              : ""
+                          }
+                        </div>
+                        <div class="form-group">
+                          <ha-textfield
+                            label="Model"
+                            .value=${host._config.openrouter_model}
+                            @input=${(e5) =>
+                              host._updateConfig(
+                                "openrouter_model",
+                                e5.target.value,
+                              )}
+                            placeholder="anthropic/claude-sonnet-4.5"
+                            style="width:100%;"
+                          ></ha-textfield>
+                        </div>
+                      `
+                      : x`
+                        <div class="form-group">
+                          <ha-textfield
+                            label="Host"
+                            .value=${host._config.ollama_host}
+                            @input=${(e5) => host._updateConfig("ollama_host", e5.target.value)}
+                            style="width:100%;"
+                          ></ha-textfield>
+                        </div>
+                        <div class="form-group">
+                          <ha-textfield
+                            label="Model"
+                            .value=${host._config.ollama_model}
+                            @input=${(e5) =>
+                              host._updateConfig(
+                                "ollama_model",
+                                e5.target.value,
+                              )}
+                            style="width:100%;"
+                          ></ha-textfield>
+                        </div>
+                      `
           }
 
           <div class="card-save-bar">
@@ -13474,6 +13637,10 @@ var SeloraAIPanel = class extends s4 {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    if (this._aigatewayPollTimer) {
+      clearInterval(this._aigatewayPollTimer);
+      this._aigatewayPollTimer = null;
+    }
     if (this._streamUnsub) {
       try {
         this._stopStreaming();
@@ -13511,6 +13678,30 @@ var SeloraAIPanel = class extends s4 {
     try {
       const provider = this._config.llm_provider;
       const newKey = this._newApiKey.trim();
+      if (provider === "selora_cloud" && !this._config.aigateway_linked) {
+        if (this._config.developer_mode && this._config.aigateway_api_url) {
+          await this.hass.callWS({
+            type: "selora_ai/update_config",
+            config: { aigateway_api_url: this._config.aigateway_api_url },
+          });
+          await this._loadConfig();
+          this._llmSaveStatus = {
+            type: "success",
+            message: "AI Gateway URL saved. Now link your Selora account.",
+          };
+          setTimeout(() => {
+            this._llmSaveStatus = null;
+            this.requestUpdate();
+          }, 4e3);
+          return;
+        }
+        this._llmSaveStatus = {
+          type: "error",
+          message:
+            "Link your Selora account first by clicking 'Link Selora account'.",
+        };
+        return;
+      }
       const payload = { llm_provider: provider };
       if (provider === "anthropic") {
         payload.anthropic_model = this._config.anthropic_model;
@@ -13524,6 +13715,11 @@ var SeloraAIPanel = class extends s4 {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
+      } else if (provider === "selora_cloud") {
+        payload.selora_cloud_model = this._config.selora_cloud_model;
+        if (this._config.developer_mode && this._config.aigateway_api_url) {
+          payload.aigateway_api_url = this._config.aigateway_api_url;
+        }
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -13615,6 +13811,7 @@ var SeloraAIPanel = class extends s4 {
     if (provider === "gemini") return !this._config.gemini_api_key_set;
     if (provider === "openai") return !this._config.openai_api_key_set;
     if (provider === "openrouter") return !this._config.openrouter_api_key_set;
+    if (provider === "selora_cloud") return !this._config.aigateway_linked;
     return false;
   }
   _updateConfig(key, value) {
@@ -13760,6 +13957,132 @@ var SeloraAIPanel = class extends s4 {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
       this._showToast("Selora Connect unlinked.", "success");
+    } catch (err) {
+      this._showToast("Failed to unlink: " + err.message, "error");
+    }
+  }
+  // ── AI Gateway OAuth Link flow ────────────────────────────────────
+  // Mirrors _startOAuthLink but targets Connect's AI Gateway endpoints
+  // (/oauth/aigw/authorize + /oauth/aigw/token) and persists tokens that
+  // the SeloraCloudProvider uses as a Bearer credential.
+  async _startAIGatewayLink() {
+    if (this._linkingAIGateway) return;
+    this._linkingAIGateway = true;
+    this._aigatewayError = "";
+    this.requestUpdate();
+    const popup = window.open(
+      "about:blank",
+      "selora_aigateway_oauth",
+      "width=500,height=700,menubar=no,toolbar=no",
+    );
+    if (!popup) {
+      this._aigatewayError =
+        "Popup blocked. Please allow popups for this site.";
+      this._linkingAIGateway = false;
+      this.requestUpdate();
+      return;
+    }
+    try {
+      const connectUrl = (
+        this._config.selora_connect_url || "https://connect.selorahomes.com"
+      ).replace(/\/+$/, "");
+      const codeVerifier = this._generateRandomString(64);
+      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
+      const state = this._generateRandomString(32);
+      const redirectUri = `${location.origin}${location.pathname}`;
+      const clientId = redirectUri;
+      const params = new URLSearchParams({
+        response_type: "code",
+        client_id: clientId,
+        redirect_uri: redirectUri,
+        code_challenge: codeChallenge,
+        code_challenge_method: "S256",
+        state,
+        scope: "ai-gateway",
+        client_name: this.hass?.config?.location_name || "Home Assistant",
+      });
+      popup.location.href = `${connectUrl}/oauth/aigw/authorize?${params}`;
+      this._aigatewayOAuthState = {
+        codeVerifier,
+        state,
+        connectUrl,
+        redirectUri,
+        clientId,
+      };
+      let polling = false;
+      this._aigatewayPollTimer = setInterval(async () => {
+        if (polling) return;
+        polling = true;
+        try {
+          if (popup.closed) {
+            clearInterval(this._aigatewayPollTimer);
+            this._aigatewayPollTimer = null;
+            if (this._linkingAIGateway) {
+              this._linkingAIGateway = false;
+              this._aigatewayError = "Authorization cancelled.";
+              this.requestUpdate();
+            }
+            return;
+          }
+          const popupUrl = popup.location.href;
+          if (!popupUrl.startsWith(this._aigatewayOAuthState.redirectUri))
+            return;
+          clearInterval(this._aigatewayPollTimer);
+          this._aigatewayPollTimer = null;
+          popup.close();
+          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
+          const code = callbackParams.get("code");
+          const returnedState = callbackParams.get("state");
+          const error = callbackParams.get("error");
+          if (error) {
+            this._aigatewayError = `Authorization failed: ${error}`;
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+            return;
+          }
+          if (!code || returnedState !== this._aigatewayOAuthState.state) {
+            this._aigatewayError = "Invalid authorization response.";
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+            return;
+          }
+          await this.hass.callWS({
+            type: "selora_ai/exchange_aigateway_code",
+            code,
+            code_verifier: this._aigatewayOAuthState.codeVerifier,
+            redirect_uri: this._aigatewayOAuthState.redirectUri,
+            client_id: this._aigatewayOAuthState.clientId,
+            connect_url: this._aigatewayOAuthState.connectUrl,
+          });
+          this._aigatewayOAuthState = null;
+          await this._loadConfig();
+          this._showToast("Selora Cloud linked successfully.", "success");
+        } catch (err) {
+          if (err.name !== "SecurityError" && err.name !== "DOMException") {
+            clearInterval(this._aigatewayPollTimer);
+            this._aigatewayPollTimer = null;
+            popup.close();
+            this._aigatewayError = err.message || "Failed to link.";
+          }
+        } finally {
+          polling = false;
+          if (!this._aigatewayPollTimer) {
+            this._linkingAIGateway = false;
+            this.requestUpdate();
+          }
+        }
+      }, 500);
+    } catch (err) {
+      this._aigatewayError = err.message || "Failed to start OAuth flow.";
+      this._linkingAIGateway = false;
+      this.requestUpdate();
+    }
+  }
+  async _unlinkAIGateway() {
+    try {
+      await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
+      await this._loadConfig();
+      this._showToast("Selora Cloud unlinked.", "success");
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -13961,6 +14284,9 @@ var SeloraAIPanel = class extends s4 {
   // Scroll to bottom on new messages
   // -------------------------------------------------------------------------
   updated(changedProps) {
+    if (this._config) {
+      this.toggleAttribute("needs-setup", this._llmNeedsSetup);
+    }
     if (changedProps.has("hass")) {
       this._checkTabParam();
       const dark = this.hass?.themes?.darkMode;

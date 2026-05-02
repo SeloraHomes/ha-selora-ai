@@ -19,6 +19,7 @@ from .gemini import GeminiProvider
 from .ollama import OllamaProvider
 from .openai import OpenAIProvider
 from .openrouter import OpenRouterProvider
+from .selora_cloud import SeloraCloudProvider
 
 __all__ = [
     "AnthropicProvider",
@@ -27,6 +28,7 @@ __all__ = [
     "OllamaProvider",
     "OpenAIProvider",
     "OpenRouterProvider",
+    "SeloraCloudProvider",
     "create_provider",
 ]
 
@@ -36,6 +38,7 @@ PROVIDER_REGISTRY: dict[str, type[LLMProvider]] = {
     "openai": OpenAIProvider,
     "openrouter": OpenRouterProvider,
     "ollama": OllamaProvider,
+    "selora_cloud": SeloraCloudProvider,
 }
 
 

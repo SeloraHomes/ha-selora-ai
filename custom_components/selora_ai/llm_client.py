@@ -40,6 +40,7 @@ from .const import (
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
+    LLM_PROVIDER_SELORA_CLOUD,
     MAX_TOOL_CALL_ROUNDS,
     SIGNAL_LLM_USAGE,
     estimate_llm_cost_usd,
@@ -87,6 +88,7 @@ _PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
     LLM_PROVIDER_OPENAI: 110_000,  # GPT-5.4: ~128K ctx
     LLM_PROVIDER_OPENROUTER: 110_000,  # Routes to many models, conservative budget
     LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
+    LLM_PROVIDER_SELORA_CLOUD: 180_000,  # Anthropic-shaped backend
 }
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {

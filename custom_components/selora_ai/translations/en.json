@@ -9,6 +9,10 @@
           "llm_provider": "LLM Provider"
         }
       },
+      "selora_cloud": {
+        "title": "Selora AI Cloud",
+        "description": "Selora AI Cloud uses your Selora account — no API key needed. After setup, open the Selora AI panel and click \"Link Selora account\" to authenticate."
+      },
       "anthropic": {
         "title": "Anthropic (Claude) Configuration",
         "description": "Enter your Anthropic API key. Get one at console.anthropic.com.",
