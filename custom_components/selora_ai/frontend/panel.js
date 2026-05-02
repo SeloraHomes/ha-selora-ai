@@ -12974,6 +12974,47 @@ async function _refineScene(msgIndex) {
 }
 
 // src/panel.js
+(() => {
+  const PANEL_NAME = "selora-ai";
+  const GUARD = "__seloraAiPanelMountGuard";
+  if (window[GUARD]) return;
+  window[GUARD] = true;
+  const fix = (panelCustom) => {
+    if (!panelCustom || panelCustom.tagName !== "HA-PANEL-CUSTOM") return;
+    const cfg = panelCustom.panel?.config?._panel_custom;
+    if (!cfg || cfg.name !== PANEL_NAME) return;
+    if (panelCustom.querySelector(PANEL_NAME)) return;
+    setTimeout(() => {
+      if (!panelCustom.isConnected) return;
+      if (panelCustom.querySelector(PANEL_NAME)) return;
+      const el = document.createElement(PANEL_NAME);
+      el.hass = panelCustom.hass;
+      el.narrow = panelCustom.narrow;
+      el.route = panelCustom.route;
+      el.panel = panelCustom.panel;
+      panelCustom.appendChild(el);
+    }, 400);
+  };
+  let attempts = 0;
+  const start = () => {
+    const ha = document.querySelector("home-assistant");
+    const main = ha?.shadowRoot?.querySelector("home-assistant-main");
+    const resolver =
+      main?.shadowRoot?.querySelector("partial-panel-resolver") ||
+      main?.querySelector("partial-panel-resolver");
+    if (!resolver) {
+      if (++attempts < 30) setTimeout(start, 500);
+      return;
+    }
+    for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
+    new MutationObserver((muts) => {
+      for (const m2 of muts) {
+        for (const n5 of m2.addedNodes) if (n5.nodeType === 1) fix(n5);
+      }
+    }).observe(resolver, { childList: true });
+  };
+  start();
+})();
 var _SHA256_K = new Uint32Array([
   1116352408, 1899447441, 3049323471, 3921009573, 961987163, 1508970993,
   2453635748, 2870763221, 3624381080, 310598401, 607225278, 1426881987,
@@ -13353,14 +13394,28 @@ var SeloraAIPanel = class extends s4 {
     };
     document.addEventListener("click", this._closeOverflowHandler);
     this._keyboardOpen = false;
+    this._resetHostKeyboardStyles = () => {
+      const host = this.shadowRoot?.host;
+      if (!host) return;
+      host.style.height = "";
+      host.style.position = "";
+      host.style.top = "";
+      host.style.left = "";
+      host.style.right = "";
+      this._keyboardOpen = false;
+    };
     if (window.visualViewport) {
       this._viewportHandler = () => {
-        if (!this.isConnected) return;
-        const vp = window.visualViewport;
-        const keyboardHeight = window.innerHeight - vp.height;
+        if (!this.isConnected || document.hidden) return;
         const host = this.shadowRoot?.host;
         if (!host) return;
-        const isOpen = keyboardHeight > 80;
+        const active = this.shadowRoot?.activeElement;
+        const editing =
+          active &&
+          (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        const vp = window.visualViewport;
+        const keyboardHeight = window.innerHeight - vp.height;
+        const isOpen = !!editing && keyboardHeight > 80;
         if (isOpen) {
           host.style.height = `${vp.height}px`;
           host.style.position = "fixed";
@@ -13368,11 +13423,7 @@ var SeloraAIPanel = class extends s4 {
           host.style.left = "0";
           host.style.right = "0";
         } else {
-          host.style.height = "";
-          host.style.position = "";
-          host.style.top = "";
-          host.style.left = "";
-          host.style.right = "";
+          this._resetHostKeyboardStyles();
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
@@ -13382,6 +13433,12 @@ var SeloraAIPanel = class extends s4 {
       window.visualViewport.addEventListener("resize", this._viewportHandler);
       window.visualViewport.addEventListener("scroll", this._viewportHandler);
     }
+    this._visibilityHandler = () => {
+      if (!document.hidden) this._resetHostKeyboardStyles();
+    };
+    document.addEventListener("visibilitychange", this._visibilityHandler);
+    this._pageShowHandler = () => this._resetHostKeyboardStyles();
+    window.addEventListener("pageshow", this._pageShowHandler);
   }
   disconnectedCallback() {
     super.disconnectedCallback();
@@ -13400,14 +13457,18 @@ var SeloraAIPanel = class extends s4 {
     if (vpHandler && window.visualViewport) {
       window.visualViewport.removeEventListener("resize", vpHandler);
       window.visualViewport.removeEventListener("scroll", vpHandler);
-      const host = this.shadowRoot?.host;
-      if (host) {
-        host.style.height = "";
-        host.style.position = "";
-        host.style.top = "";
-        host.style.left = "";
-        host.style.right = "";
-      }
+    }
+    if (this._visibilityHandler) {
+      document.removeEventListener("visibilitychange", this._visibilityHandler);
+      this._visibilityHandler = null;
+    }
+    if (this._pageShowHandler) {
+      window.removeEventListener("pageshow", this._pageShowHandler);
+      this._pageShowHandler = null;
+    }
+    if (this._resetHostKeyboardStyles) {
+      this._resetHostKeyboardStyles();
+      this._resetHostKeyboardStyles = null;
     }
     if (this._oauthPollTimer) {
       clearInterval(this._oauthPollTimer);

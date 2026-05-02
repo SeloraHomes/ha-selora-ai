@@ -38,6 +38,66 @@ import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
 
 // ---------------------------------------------------------------------------
+// Self-heal HA's <ha-panel-custom> when navigating back to this panel.
+//
+// HA's panel-resolver occasionally re-mounts <ha-panel-custom> with no
+// child element after a view-transition (e.g. tab returning from background).
+// The result is an empty wrapper and a black panel area until the user
+// hard-reloads. We install ONE MutationObserver, ONCE per page, on
+// partial-panel-resolver's direct children — no subtree, no per-instance
+// state, no accumulating refs. If we see an empty <ha-panel-custom> whose
+// config points at our element, we create <selora-ai> with the right
+// hass/panel/narrow/route props and append it. Idempotent across reloads
+// of this module thanks to the window-scoped guard.
+// ---------------------------------------------------------------------------
+(() => {
+  const PANEL_NAME = "selora-ai";
+  const GUARD = "__seloraAiPanelMountGuard";
+  if (window[GUARD]) return;
+  window[GUARD] = true;
+
+  const fix = (panelCustom) => {
+    if (!panelCustom || panelCustom.tagName !== "HA-PANEL-CUSTOM") return;
+    const cfg = panelCustom.panel?.config?._panel_custom;
+    if (!cfg || cfg.name !== PANEL_NAME) return;
+    if (panelCustom.querySelector(PANEL_NAME)) return;
+    // HA's _loadElement is async (awaits import + microtasks). Wait long
+    // enough for the happy path to finish, then only inject if it didn't.
+    // 400ms is generous on every device we care about.
+    setTimeout(() => {
+      if (!panelCustom.isConnected) return;
+      if (panelCustom.querySelector(PANEL_NAME)) return;
+      const el = document.createElement(PANEL_NAME);
+      el.hass = panelCustom.hass;
+      el.narrow = panelCustom.narrow;
+      el.route = panelCustom.route;
+      el.panel = panelCustom.panel;
+      panelCustom.appendChild(el);
+    }, 400);
+  };
+
+  let attempts = 0;
+  const start = () => {
+    const ha = document.querySelector("home-assistant");
+    const main = ha?.shadowRoot?.querySelector("home-assistant-main");
+    const resolver =
+      main?.shadowRoot?.querySelector("partial-panel-resolver") ||
+      main?.querySelector("partial-panel-resolver");
+    if (!resolver) {
+      if (++attempts < 30) setTimeout(start, 500);
+      return;
+    }
+    for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
+    new MutationObserver((muts) => {
+      for (const m of muts) {
+        for (const n of m.addedNodes) if (n.nodeType === 1) fix(n);
+      }
+    }).observe(resolver, { childList: true });
+  };
+  start();
+})();
+
+// ---------------------------------------------------------------------------
 // Pure JS SHA-256 (RFC 6234) — fallback when crypto.subtle is unavailable
 // (HA panels served over HTTP lack SubtleCrypto / secure context).
 // ---------------------------------------------------------------------------
@@ -481,16 +541,37 @@ class SeloraAIPanel extends LitElement {
     };
     document.addEventListener("click", this._closeOverflowHandler);
 
-    // Mobile keyboard: use visualViewport to keep the chat input visible
+    // Mobile keyboard: use visualViewport to keep the chat input visible.
+    // The pinning logic only runs when an input/textarea inside the panel is
+    // focused — otherwise transient viewport changes (tab returning from
+    // background, address-bar show/hide, HA view-transitions) could leave the
+    // host stuck at `position: fixed` with bogus dimensions, causing a black
+    // panel area on return.
     this._keyboardOpen = false;
+    this._resetHostKeyboardStyles = () => {
+      const host = this.shadowRoot?.host;
+      if (!host) return;
+      host.style.height = "";
+      host.style.position = "";
+      host.style.top = "";
+      host.style.left = "";
+      host.style.right = "";
+      this._keyboardOpen = false;
+    };
     if (window.visualViewport) {
       this._viewportHandler = () => {
-        if (!this.isConnected) return;
-        const vp = window.visualViewport;
-        const keyboardHeight = window.innerHeight - vp.height;
+        if (!this.isConnected || document.hidden) return;
         const host = this.shadowRoot?.host;
         if (!host) return;
-        const isOpen = keyboardHeight > 80;
+        // Only treat shrinking viewport as a keyboard if a text input inside
+        // the panel currently has focus.
+        const active = this.shadowRoot?.activeElement;
+        const editing =
+          active &&
+          (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        const vp = window.visualViewport;
+        const keyboardHeight = window.innerHeight - vp.height;
+        const isOpen = !!editing && keyboardHeight > 80;
         if (isOpen) {
           host.style.height = `${vp.height}px`;
           host.style.position = "fixed";
@@ -498,11 +579,7 @@ class SeloraAIPanel extends LitElement {
           host.style.left = "0";
           host.style.right = "0";
         } else {
-          host.style.height = "";
-          host.style.position = "";
-          host.style.top = "";
-          host.style.left = "";
-          host.style.right = "";
+          this._resetHostKeyboardStyles();
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
@@ -512,6 +589,15 @@ class SeloraAIPanel extends LitElement {
       window.visualViewport.addEventListener("resize", this._viewportHandler);
       window.visualViewport.addEventListener("scroll", this._viewportHandler);
     }
+    // When the page becomes visible again (tab switch, mobile return from
+    // background) or is restored from bfcache, force-reset host styles so a
+    // stale "keyboard open" state can't leave the panel pinned off-screen.
+    this._visibilityHandler = () => {
+      if (!document.hidden) this._resetHostKeyboardStyles();
+    };
+    document.addEventListener("visibilitychange", this._visibilityHandler);
+    this._pageShowHandler = () => this._resetHostKeyboardStyles();
+    window.addEventListener("pageshow", this._pageShowHandler);
   }
 
   disconnectedCallback() {
@@ -531,14 +617,18 @@ class SeloraAIPanel extends LitElement {
     if (vpHandler && window.visualViewport) {
       window.visualViewport.removeEventListener("resize", vpHandler);
       window.visualViewport.removeEventListener("scroll", vpHandler);
-      const host = this.shadowRoot?.host;
-      if (host) {
-        host.style.height = "";
-        host.style.position = "";
-        host.style.top = "";
-        host.style.left = "";
-        host.style.right = "";
-      }
+    }
+    if (this._visibilityHandler) {
+      document.removeEventListener("visibilitychange", this._visibilityHandler);
+      this._visibilityHandler = null;
+    }
+    if (this._pageShowHandler) {
+      window.removeEventListener("pageshow", this._pageShowHandler);
+      this._pageShowHandler = null;
+    }
+    if (this._resetHostKeyboardStyles) {
+      this._resetHostKeyboardStyles();
+      this._resetHostKeyboardStyles = null;
     }
     if (this._oauthPollTimer) {
       clearInterval(this._oauthPollTimer);
