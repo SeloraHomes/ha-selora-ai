@@ -21,7 +21,11 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
-from ..const import DEFAULT_LLM_TIMEOUT
+from ..const import (
+    DEFAULT_LLM_TIMEOUT,
+    DEFAULT_QUOTA_BACKOFF_SECONDS,
+    EVENT_LLM_QUOTA_EXCEEDED,
+)
 from ..types import LLMUsageInfo
 
 if TYPE_CHECKING:
@@ -44,6 +48,44 @@ def _sanitize_error(text: str) -> str:
     text = _PROVIDER_KEY_ECHO_RE.sub(r"\1[REDACTED]", text)
     text = _API_KEY_RE.sub(r"\1***", text)
     return text
+
+
+class RateLimitError(ConnectionError):
+    """Raised when the upstream LLM returns HTTP 429 (quota / rate limit).
+
+    Inherits from ``ConnectionError`` so existing handlers (e.g. the
+    tool-calling loops in ``LLMClient._send_request_with_tools`` and
+    ``_stream_request_with_tools``) continue to treat 429s as a
+    controlled error. New code can ``isinstance(err, RateLimitError)``
+    to access ``provider`` / ``retry_after`` for richer feedback.
+    """
+
+    def __init__(self, provider: str, message: str, retry_after: int | None) -> None:
+        super().__init__(message)
+        self.provider = provider
+        self.retry_after = retry_after
+        self.message = message
+
+
+def _parse_retry_after(value: str | None) -> int | None:
+    """Parse a Retry-After header value into seconds.
+
+    RFC 7231 allows either delta-seconds (an int) or an HTTP-date. We
+    only handle delta-seconds — the date form is rare in practice for
+    LLM APIs and not worth the parsing surface. Returns ``None`` for
+    missing or malformed values.
+    """
+    if not value:
+        return None
+    try:
+        seconds = int(value.strip())
+    except (TypeError, ValueError):
+        return None
+    if seconds < 0:
+        return None
+    # Cap at 1h — protects the UI alert window from a server returning
+    # an absurdly long backoff.
+    return min(seconds, 3600)
 
 
 class LLMProvider(ABC):
@@ -211,6 +253,53 @@ class LLMProvider(ABC):
     def _get_session(self) -> aiohttp.ClientSession:
         return async_get_clientsession(self._hass)
 
+    def _emit_quota_exceeded(self, retry_after: int | None, body: str) -> None:
+        """Fire a HA event so the panel can surface a quota alert.
+
+        Best-effort — never raise from here. The event is also useful
+        for users wiring their own automations (notifications, etc.).
+        """
+        try:
+            self._hass.bus.async_fire(
+                EVENT_LLM_QUOTA_EXCEEDED,
+                {
+                    "provider": self.provider_type,
+                    "model": self._model,
+                    "retry_after": retry_after
+                    if retry_after is not None
+                    else DEFAULT_QUOTA_BACKOFF_SECONDS,
+                    "message": body[:200],
+                },
+            )
+        except Exception:  # noqa: BLE001 — telemetry must never break a request
+            _LOGGER.exception("Failed to fire quota-exceeded event")
+
+    async def _raise_if_rate_limited(self, resp: aiohttp.ClientResponse) -> None:
+        """If ``resp`` is a 429, fire the quota event and raise RateLimitError.
+
+        Centralizes the 429 handling so providers that override the base
+        request methods (e.g. Gemini's native streaming endpoints) can
+        opt in with one call instead of duplicating the parse + emit +
+        raise logic. Returns silently for any other status.
+        """
+        if resp.status != 429:
+            return
+        body = _sanitize_error(await resp.text())
+        retry_after = _parse_retry_after(resp.headers.get("Retry-After"))
+        self._emit_quota_exceeded(retry_after, body)
+        hint = f" Try again in {retry_after}s." if retry_after else ""
+        _LOGGER.warning(
+            "LLM rate limited: %s (retry_after=%s, body=%s)",
+            self.provider_name,
+            retry_after,
+            body[:300],
+        )
+        raise RateLimitError(
+            self.provider_type,
+            f"{self.provider_name} rate limit exceeded.{hint}",
+            retry_after,
+        )
+
     async def send_request(
         self,
         system: str,
@@ -229,6 +318,14 @@ class LLMProvider(ABC):
                 timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
                 json=payload,
             ) as resp:
+                if resp.status == 429:
+                    # Helper fires the quota event and raises a
+                    # RateLimitError; convert to the (None, error)
+                    # tuple this method returns.
+                    try:
+                        await self._raise_if_rate_limited(resp)
+                    except RateLimitError as exc:
+                        return None, str(exc)
                 if resp.status != 200:
                     body = _sanitize_error(await resp.text())
                     error_msg = f"HTTP {resp.status}: {body[:200]}"
@@ -280,6 +377,7 @@ class LLMProvider(ABC):
             timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
             json=payload,
         ) as resp:
+            await self._raise_if_rate_limited(resp)
             if resp.status != 200:
                 body = _sanitize_error(await resp.text())
                 raise ConnectionError(f"HTTP {resp.status}: {body[:200]}")
@@ -318,6 +416,7 @@ class LLMProvider(ABC):
             timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
             json=payload,
         ) as resp:
+            await self._raise_if_rate_limited(resp)
             if resp.status != 200:
                 body = _sanitize_error(await resp.text())
                 _LOGGER.error("LLM stream failed: %s", body[:200])
@@ -340,6 +439,7 @@ class LLMProvider(ABC):
                 timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
                 json=payload,
             ) as resp:
+                await self._raise_if_rate_limited(resp)
                 if resp.status != 200:
                     body = _sanitize_error(await resp.text())
                     _LOGGER.error(
@@ -371,6 +471,10 @@ class LLMProvider(ABC):
                         if text:
                             yield text
                 self._report_usage(stream_usage or None)
+        except RateLimitError:
+            # Already structured + telemetered — let it bubble up so the
+            # panel surfaces a quota alert instead of a generic error.
+            raise
         except Exception as exc:
             _LOGGER.exception("Streaming request to %s failed", self.provider_name)
             raise ConnectionError(
