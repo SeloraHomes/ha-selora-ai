@@ -47,9 +47,166 @@ export function stripAutomationBlock(text) {
   };
 }
 
+// Salvage path for prompts the LLM doesn't follow: when the model emits a
+// plain-text bullet listing of entity_ids ("- light.kitchen\n  — on …\n
+// - light.office\n  — on …"), gather the run into a single
+// `[[entities:…]]` marker so the chat still renders proper HA tile cards.
+//
+// Conservative on purpose: an "entity_id-only line" must contain only
+// whitespace, an optional bullet marker, the id, and end-of-line — so
+// inline mentions like "the kitchen lights are on (light.kitchen)" don't
+// trigger. Only runs of ≥1 such lines collapse; the surrounding "— state"
+// hints and blank separator lines are absorbed into the run so the prose
+// reads cleanly afterwards.
+function _coalesceEntityListings(text) {
+  const ID_LINE = /^[\s>]*[-•*]?\s*([a-z_]+\.[a-z0-9_\-]+)\s*$/;
+  // Bulleted entity marker — the LLM followed the prompt and emitted
+  // `[[entity:…]]` / `[[entities:…]]` but as a bullet item. We strip
+  // the bullet wrapper so the tile renders block-level (no orange
+  // bullet bar next to it) and so the annotation cleanup below can
+  // see what the marker is "anchored" to. The optional trailing
+  // `[—–][^\n]*` group handles the very common shape where the LLM
+  // glues the state hint onto the same line:
+  //   `- [[entity:light.x|Kitchen]] — brightness: 255`
+  // The hint is dropped (the tile already shows live state).
+  const MARKER_BULLET =
+    /^[\s>]*[-•*]\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
+  // Non-bulleted marker followed by a state hint on the same line.
+  // We keep the marker (the inline-marker substitution below turns
+  // it into a tile grid) but drop the dash hint so the bubble
+  // doesn't repeat what the tile already shows.
+  const MARKER_TAIL_STATE =
+    /^(\s*\[\[entit(?:y|ies):[^\]\n]+\]\])\s*[—–][^\n]*$/;
+  // "State annotation" lines the LLM tends to emit alongside an
+  // entity_id ("— on (brightness: 180)", "— off", "— locked", etc.).
+  // The tile card shows the same info live, so we consume these so
+  // the bubble doesn't repeat the state next to a tile. We accept
+  // em-dash (—) and en-dash (–) but NOT hyphen-minus — including the
+  // hyphen would let the regex backtrack and match the leading bullet
+  // marker of the next entity line, eating subsequent ids.
+  const STATE_LINE = /^[\s>]*[-•*]?\s*[—–]\s*\S/;
+  const BLANK = /^\s*$/;
+  const lines = text.split("\n");
+  const out = [];
+  let i = 0;
+  const skipBlanks = (j) => {
+    while (j < lines.length && BLANK.test(lines[j])) j++;
+    return j;
+  };
+  const skipStateLines = (j) => {
+    // Consume any number of consecutive state-annotation lines (with
+    // optional blanks between them). Some renderings split the state
+    // across multiple bullets ("— on", "— brightness 180"); we drop
+    // them all rather than leave half visible.
+    while (j < lines.length) {
+      const k = skipBlanks(j);
+      if (k >= lines.length || !STATE_LINE.test(lines[k])) return j;
+      j = k + 1;
+    }
+    return j;
+  };
+  // Pull entity_ids out of either marker shape. Returns an array (1+
+  // for single-entity / multi-entity markers, [] for malformed).
+  const idsFromMarker = (marker) => {
+    const single = marker.match(/^\[\[entity:([a-z_]+\.[a-z0-9_\-]+)/);
+    if (single) return [single[1]];
+    const multi = marker.match(/^\[\[entities:([^\]\n]+)\]\]/);
+    if (multi) {
+      return multi[1]
+        .split(",")
+        .map((s) => s.trim())
+        .filter((s) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s));
+    }
+    return [];
+  };
+  // Bare-marker line (no leading bullet) — used by the non-bulleted
+  // coalesce loop below.
+  const BARE_MARKER =
+    /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
+  while (i < lines.length) {
+    // Probe-then-consume helper: only advance `i` past the run if at
+    // least one valid entity_id was extracted. Otherwise we leave the
+    // line for the inline regex below to handle (or to fall through
+    // to the next case, e.g. raw entity_id bullets).
+    const tryCoalesce = (firstLineRe) => {
+      if (!firstLineRe.test(lines[i])) return false;
+      const runIds = [];
+      let j = i;
+      while (j < lines.length) {
+        const m = lines[j].match(firstLineRe);
+        if (!m) break;
+        for (const id of idsFromMarker(m[1])) runIds.push(id);
+        j++;
+        j = skipStateLines(j);
+        j = skipBlanks(j);
+      }
+      if (runIds.length === 0) return false;
+      out.push(`[[entities:${runIds.join(",")}]]`);
+      i = j;
+      return true;
+    };
+    // Bulleted-marker run: a group of `- [[entity:…]]` lines (each
+    // optionally with a trailing dash-state hint) gets coalesced into
+    // a single `[[entities:…]]` block. Without this, six bulleted
+    // markers produce six separate `<div class="selora-entity-grid">`
+    // blocks stacked vertically with `<br>`s between.
+    if (tryCoalesce(MARKER_BULLET)) continue;
+    // Bare-marker run: same shape without bullets. The LLM
+    // occasionally emits one `[[entities:x]]` line per entity instead
+    // of one combined block; coalesce so the area-grouping pass sees
+    // the full set as a single grid (otherwise each becomes a
+    // one-tile grid, groups.size==1, no headers).
+    if (tryCoalesce(BARE_MARKER)) continue;
+    // Non-bulleted marker with trailing state hint on the same line —
+    // keep the marker, drop the dash hint, then let the loop continue
+    // (it might still be followed by separate state-annotation lines).
+    const tailMatch = lines[i].match(MARKER_TAIL_STATE);
+    if (tailMatch) {
+      out.push(tailMatch[1]);
+      let j = i + 1;
+      j = skipStateLines(j);
+      i = j;
+      continue;
+    }
+
+    const ids = [];
+    let j = i;
+    while (j < lines.length) {
+      const m = lines[j].match(ID_LINE);
+      if (!m) break;
+      ids.push(m[1]);
+      j++;
+      // Tolerate blanks between the id line and any annotation lines
+      // — the LLM frequently inserts an empty bullet separator.
+      j = skipStateLines(j);
+      j = skipBlanks(j);
+    }
+    if (ids.length >= 1) {
+      // ID_LINE only matches lines whose entire content is a bullet
+      // marker + entity_id — never a paragraph mention. So even a
+      // run of one is unambiguously a list, not prose; collapse it
+      // to a one-card grid so the user sees a real tile.
+      out.push(`[[entities:${ids.join(",")}]]`);
+      i = j;
+      continue;
+    }
+    out.push(lines[i]);
+    i++;
+  }
+  return out.join("\n");
+}
+
 /** @param {string|null|undefined} text @returns {string} sanitized HTML */
 export function renderMarkdown(text) {
   if (!text) return "";
+  // While streaming, the LLM emits markers token-by-token. Until the
+  // closing `]]` arrives, the partial `[[entity:light.kitch` reads as
+  // raw text and looks broken. Trim any unclosed marker at the very
+  // end so the bubble shows nothing in its place; once the next chunk
+  // completes the marker, it renders as a tile card.
+  text = text.replace(/\[\[entit(?:y|ies):[^\]\n]*$/, "");
+  // Run the salvage BEFORE escaping so we can match the raw source.
+  text = _coalesceEntityListings(text);
   let escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -81,6 +238,24 @@ export function renderMarkdown(text) {
   escaped = escaped.replace(
     /^#\s+(.+)$/gm,
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
+  );
+  // Entity references — single OR list — both render as a grid of real
+  // HA tile cards (hydrated by the chat layer via `loadCardHelpers`).
+  // We accept the legacy `[[entity:<id>|<label>]]` form and the
+  // `[[entities:<id1>,<id2>,…]]` form; both end up in the same grid
+  // placeholder so the rendering is uniform — small singletons become
+  // a one-card grid, enumerations become a wrapping multi-card grid.
+  // The `<label>` from the legacy form is ignored: HA's tile card
+  // already shows the friendly_name from the registry.
+  escaped = escaped.replace(
+    /\[\[entity:([a-z_]+\.[a-z0-9_\-]+)\|[^\]]+?\]\]/g,
+    (_m, id) =>
+      `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
+  );
+  escaped = escaped.replace(
+    /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
+    (_m, ids) =>
+      `<div class="selora-entity-grid" data-entity-ids="${ids}"></div>`,
   );
   // Bold — inline accent color so it works regardless of theme resolution
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");

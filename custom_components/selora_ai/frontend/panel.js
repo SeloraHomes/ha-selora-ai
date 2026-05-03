@@ -2600,6 +2600,104 @@ var chatStyles = i`
     color: var(--primary-text-color);
     font-weight: 700;
   }
+  /* Entity-list grid: hosts real HA hui-tile-card elements. Cards
+     bring their own borders, padding, theming, click target — the
+     grid only handles layout. Single-entity references render here
+     too as a one-card grid; uniform look across all mentions. The
+     minmax(240px, 1fr) sizing matches the default cell width HA uses
+     on tile-style dashboard sections, so chat tiles don't truncate
+     the friendly name (180px was too tight for long room names). */
+  .selora-entity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+    width: 100%;
+  }
+  .selora-entity-grid > * {
+    /* Cards default to 56px tall in tile mode; let them size themselves
+       without our own min-height fighting it. */
+    min-width: 0;
+  }
+  /* Area sub-headers in multi-area entity grids. The grid-column rule
+     spans the header across the full row so the next row of tiles
+     starts cleanly under it. Layout matches HA dashboard section
+     headers: small uppercase label with the area icon to its left. */
+  .selora-area-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 8px;
+    margin-bottom: -2px;
+  }
+  .selora-area-header:first-child {
+    margin-top: 0;
+  }
+  .selora-area-icon {
+    /* Match the cap-height of the 12px uppercase label so the icon
+       sits flush with the text, not floating above it. ha-icon needs
+       both the CSS variable AND an explicit box size — the variable
+       controls the SVG glyph, the box prevents the host element from
+       reserving its 24px default and pushing the label down. */
+    --mdc-icon-size: 14px;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  /* ---- Stream interruption notice ---- */
+  .stream-interrupt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.08);
+    border: 1px solid rgba(244, 67, 54, 0.25);
+    color: var(--error-color, #f44336);
+    font-size: 13px;
+  }
+  .stream-interrupt-text {
+    flex: 1;
+    color: var(--primary-text-color);
+  }
+  /* Retry link in the bubble-meta — matches "Selora AI · time" rhythm
+     but uses the accent colour so the failure state is visible without
+     resorting to a button-style chip. */
+  .stream-interrupt-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--selora-accent, #fbbf24);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 120ms ease;
+  }
+  .stream-interrupt-retry:hover,
+  .stream-interrupt-retry:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+    outline: none;
+  }
+  .stream-interrupt-retry ha-icon {
+    color: var(--selora-accent, #fbbf24);
+  }
 
   /* ---- Chat input ---- */
   .chat-input {
@@ -5532,8 +5630,95 @@ function stripAutomationBlock(text) {
     partialBlockType: spinnerType,
   };
 }
+function _coalesceEntityListings(text) {
+  const ID_LINE = /^[\s>]*[-•*]?\s*([a-z_]+\.[a-z0-9_\-]+)\s*$/;
+  const MARKER_BULLET =
+    /^[\s>]*[-•*]\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
+  const MARKER_TAIL_STATE =
+    /^(\s*\[\[entit(?:y|ies):[^\]\n]+\]\])\s*[—–][^\n]*$/;
+  const STATE_LINE = /^[\s>]*[-•*]?\s*[—–]\s*\S/;
+  const BLANK = /^\s*$/;
+  const lines = text.split("\n");
+  const out = [];
+  let i5 = 0;
+  const skipBlanks = (j2) => {
+    while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
+    return j2;
+  };
+  const skipStateLines = (j2) => {
+    while (j2 < lines.length) {
+      const k2 = skipBlanks(j2);
+      if (k2 >= lines.length || !STATE_LINE.test(lines[k2])) return j2;
+      j2 = k2 + 1;
+    }
+    return j2;
+  };
+  const idsFromMarker = (marker) => {
+    const single = marker.match(/^\[\[entity:([a-z_]+\.[a-z0-9_\-]+)/);
+    if (single) return [single[1]];
+    const multi = marker.match(/^\[\[entities:([^\]\n]+)\]\]/);
+    if (multi) {
+      return multi[1]
+        .split(",")
+        .map((s6) => s6.trim())
+        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
+    }
+    return [];
+  };
+  const BARE_MARKER =
+    /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
+  while (i5 < lines.length) {
+    const tryCoalesce = (firstLineRe) => {
+      if (!firstLineRe.test(lines[i5])) return false;
+      const runIds = [];
+      let j3 = i5;
+      while (j3 < lines.length) {
+        const m2 = lines[j3].match(firstLineRe);
+        if (!m2) break;
+        for (const id of idsFromMarker(m2[1])) runIds.push(id);
+        j3++;
+        j3 = skipStateLines(j3);
+        j3 = skipBlanks(j3);
+      }
+      if (runIds.length === 0) return false;
+      out.push(`[[entities:${runIds.join(",")}]]`);
+      i5 = j3;
+      return true;
+    };
+    if (tryCoalesce(MARKER_BULLET)) continue;
+    if (tryCoalesce(BARE_MARKER)) continue;
+    const tailMatch = lines[i5].match(MARKER_TAIL_STATE);
+    if (tailMatch) {
+      out.push(tailMatch[1]);
+      let j3 = i5 + 1;
+      j3 = skipStateLines(j3);
+      i5 = j3;
+      continue;
+    }
+    const ids = [];
+    let j2 = i5;
+    while (j2 < lines.length) {
+      const m2 = lines[j2].match(ID_LINE);
+      if (!m2) break;
+      ids.push(m2[1]);
+      j2++;
+      j2 = skipStateLines(j2);
+      j2 = skipBlanks(j2);
+    }
+    if (ids.length >= 1) {
+      out.push(`[[entities:${ids.join(",")}]]`);
+      i5 = j2;
+      continue;
+    }
+    out.push(lines[i5]);
+    i5++;
+  }
+  return out.join("\n");
+}
 function renderMarkdown(text) {
   if (!text) return "";
+  text = text.replace(/\[\[entit(?:y|ies):[^\]\n]*$/, "");
+  text = _coalesceEntityListings(text);
   let escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
@@ -5561,6 +5746,16 @@ function renderMarkdown(text) {
   escaped = escaped.replace(
     /^#\s+(.+)$/gm,
     '<div style="font-weight:700;font-size:17px;margin:16px 0 6px;">$1</div>',
+  );
+  escaped = escaped.replace(
+    /\[\[entity:([a-z_]+\.[a-z0-9_\-]+)\|[^\]]+?\]\]/g,
+    (_m, id) =>
+      `<div class="selora-entity-grid" data-entity-ids="${id}"></div>`,
+  );
+  escaped = escaped.replace(
+    /\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,[a-z_]+\.[a-z0-9_\-]+)*)\]\]/g,
+    (_m, ids) =>
+      `<div class="selora-entity-grid" data-entity-ids="${ids}"></div>`,
   );
   escaped = escaped.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
   escaped = escaped.replace(
@@ -6243,7 +6438,21 @@ function renderMessage(host, msg, idx) {
                 }
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                 ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                ${msg.devices && msg.devices.length ? renderDeviceCards(host, msg.devices) : ""}
+                ${
+                  msg._interrupted
+                    ? x`
+                      <div class="stream-interrupt">
+                        <ha-icon
+                          icon="mdi:alert-circle-outline"
+                          style="--mdc-icon-size:16px;flex-shrink:0;"
+                        ></ha-icon>
+                        <span class="stream-interrupt-text"
+                          >${msg._interruptReason || "Response was cut short."}</span
+                        >
+                      </div>
+                    `
+                    : ""
+                }
               </div>
               ${
                 msg.quick_actions &&
@@ -6258,7 +6467,24 @@ function renderMessage(host, msg, idx) {
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
               >
-                <span>Selora AI · ${formatTime(msg.timestamp)}</span>
+                <span>
+                  Selora AI · ${formatTime(msg.timestamp)}
+                  ${
+                    msg._interrupted && msg._retryWith
+                      ? x` ·
+                        <button
+                          class="stream-interrupt-retry"
+                          @click=${() => host._retryMessage(msg._retryWith)}
+                        >
+                          <ha-icon
+                            icon="mdi:refresh"
+                            style="--mdc-icon-size:12px;"
+                          ></ha-icon>
+                          Retry
+                        </button>`
+                      : ""
+                  }
+                </span>
                 <button
                   class="copy-msg-btn"
                   title="Copy message"
@@ -6299,12 +6525,6 @@ var DOMAIN_ICONS = {
   camera: "mdi:cctv",
   device_tracker: "mdi:map-marker",
 };
-function _deviceIcon2(domains) {
-  for (const d3 of domains || []) {
-    if (DOMAIN_ICONS[d3]) return DOMAIN_ICONS[d3];
-  }
-  return "mdi:devices";
-}
 function _stateColor2(state) {
   if (!state) return "var(--selora-zinc-400)";
   const s6 = state.toLowerCase();
@@ -6337,135 +6557,6 @@ function _stateColor2(state) {
   if (["unavailable", "unknown", "error", "jammed"].includes(s6))
     return "#ef4444";
   return "var(--selora-zinc-200)";
-}
-function _primaryState(device) {
-  if (device.entities && device.entities.length > 0) {
-    return device.entities[0].state || "unknown";
-  }
-  return null;
-}
-function _renderDeviceCard(host, d3) {
-  const state = _primaryState(d3);
-  return x`
-    <div
-      style="
-        flex:1 1 180px;max-width:240px;cursor:pointer;
-        border:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-        border-radius:12px;
-        background:var(--selora-inner-card-bg, var(--primary-background-color, #18181b));
-        padding:10px 12px;display:flex;flex-direction:column;gap:4px;
-        transition:border-color 0.15s;
-      "
-      @click=${() => host._openDeviceDetail(d3.device_id)}
-      @mouseenter=${(e5) => (e5.currentTarget.style.borderColor = "var(--selora-accent)")}
-      @mouseleave=${(e5) => (e5.currentTarget.style.borderColor = "var(--selora-inner-card-border, var(--divider-color, #3f3f46))")}
-    >
-      <div style="display:flex;align-items:center;gap:6px;">
-        <ha-icon
-          icon=${_deviceIcon2(d3.domains)}
-          style="--mdc-icon-size:18px;color:var(--selora-accent);"
-        ></ha-icon>
-        <span
-          style="font-weight:600;font-size:13px;color:var(--selora-zinc-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-        >
-          ${d3.name || "Unknown"}
-        </span>
-      </div>
-      <div
-        style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"
-      >
-        ${
-          d3.manufacturer
-            ? x`<span style="font-size:11px;color:var(--selora-zinc-400);"
-              >${d3.manufacturer}${d3.model ? ` \xB7 ${d3.model}` : ""}</span
-            >`
-            : ""
-        }
-        ${
-          state
-            ? x`
-              <span
-                style="font-size:11px;font-weight:600;color:${_stateColor2(
-                  state,
-                )};"
-              >
-                ${state}
-              </span>
-            `
-            : ""
-        }
-      </div>
-    </div>
-  `;
-}
-function renderDeviceCards(host, devices) {
-  if (!devices || !devices.length) return "";
-  const groups = /* @__PURE__ */ new Map();
-  for (const d3 of devices) {
-    const area = d3.area || null;
-    if (!groups.has(area)) groups.set(area, []);
-    groups.get(area).push(d3);
-  }
-  if (groups.size === 1) {
-    const [area, devs] = [...groups.entries()][0];
-    return x`
-      <div class="device-cards" style="margin-top:12px;">
-        ${
-          area
-            ? x`<div
-              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
-            >
-              <ha-icon
-                icon="mdi:home-floor-a"
-                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
-              ></ha-icon>
-              <span
-                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
-                >${area}</span
-              >
-            </div>`
-            : ""
-        }
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${devs.map((d3) => _renderDeviceCard(host, d3))}
-        </div>
-      </div>
-    `;
-  }
-  const sorted = [...groups.entries()].sort((a4, b2) => {
-    if (!a4[0]) return 1;
-    if (!b2[0]) return -1;
-    return a4[0].localeCompare(b2[0]);
-  });
-  return x`
-    <div
-      class="device-cards"
-      style="margin-top:12px;display:flex;flex-direction:column;gap:12px;"
-    >
-      ${sorted.map(
-        ([area, devs]) => x`
-          <div>
-            <div
-              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
-            >
-              <ha-icon
-                icon=${area ? "mdi:home-floor-a" : "mdi:help-circle-outline"}
-                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
-              ></ha-icon>
-              <span
-                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
-              >
-                ${area || "No area assigned"}
-              </span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${devs.map((d3) => _renderDeviceCard(host, d3))}
-            </div>
-          </div>
-        `,
-      )}
-    </div>
-  `;
 }
 function renderYamlEditor(host, key, originalYaml, onSave = null) {
   host._initYamlEdit(key, originalYaml);
@@ -9683,11 +9774,11 @@ function renderSettings(host) {
                             host._config.developer_mode
                               ? x`
                                 <ha-textfield
-                                  label="AI Gateway URL"
-                                  .value=${host._config.aigateway_api_url || "https://ai.selorahomes.com"}
+                                  label="Selora Cloud URL"
+                                  .value=${host._config.selora_connect_url || "https://connect.selorahomes.com"}
                                   @input=${(e5) =>
                                     host._updateConfig(
-                                      "aigateway_api_url",
+                                      "selora_connect_url",
                                       e5.target.value,
                                     )}
                                   style="width:100%;"
@@ -9695,8 +9786,8 @@ function renderSettings(host) {
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
                                 >
-                                  Click Save before linking to persist the
-                                  override.
+                                  OAuth and chat completions both use this URL.
+                                  Saved automatically when you link.
                                 </div>
                               `
                               : ""
@@ -9731,33 +9822,15 @@ function renderSettings(host) {
                   }
                 </div>
                 ${
-                  host._config.aigateway_linked
+                  host._config.aigateway_linked && host._config.developer_mode
                     ? x`
                       <div class="form-group">
-                        <ha-textfield
-                          label="Model"
-                          .value=${host._config.selora_cloud_model}
-                          @input=${(e5) =>
-                            host._updateConfig(
-                              "selora_cloud_model",
-                              e5.target.value,
-                            )}
-                          style="width:100%;"
-                        ></ha-textfield>
+                        <label>Selora Cloud URL (unlink to change)</label>
+                        <code
+                          style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
+                          >${host._config.selora_connect_url || "https://connect.selorahomes.com"}</code
+                        >
                       </div>
-                      ${
-                        host._config.developer_mode
-                          ? x`
-                            <div class="form-group">
-                              <label>AI Gateway URL (unlink to change)</label>
-                              <code
-                                style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
-                                >${host._config.aigateway_api_url || "https://ai.selorahomes.com"}</code
-                              >
-                            </div>
-                          `
-                          : ""
-                      }
                     `
                     : ""
                 }
@@ -10000,24 +10073,29 @@ function renderSettings(host) {
                         </div>
                       `
           }
-
-          <div class="card-save-bar">
-            <button
-              class="btn btn-primary"
-              @click=${host._saveLlmConfig}
-              ?disabled=${host._savingLlmConfig}
-            >
-              ${
-                host._savingLlmConfig
-                  ? x`<span
-                      class="spinner"
-                      style="width:14px;height:14px;"
-                    ></span>
-                    Validating…`
-                  : "Save"
-              }
-            </button>
-          </div>
+          ${
+            isSeloraCloud && !host._config.aigateway_linked
+              ? ""
+              : x`
+                <div class="card-save-bar">
+                  <button
+                    class="btn btn-primary"
+                    @click=${host._saveLlmConfig}
+                    ?disabled=${host._savingLlmConfig}
+                  >
+                    ${
+                      host._savingLlmConfig
+                        ? x`<span
+                            class="spinner"
+                            style="width:14px;height:14px;"
+                          ></span>
+                          Validating…`
+                        : "Save"
+                    }
+                  </button>
+                </div>
+              `
+          }
           ${
             host._llmSaveStatus
               ? x`<div
@@ -12303,6 +12381,7 @@ __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
   _quickStart: () => _quickStart,
   _requestScrollChat: () => _requestScrollChat,
+  _retryMessage: () => _retryMessage,
   _selectQuickAction: () => _selectQuickAction,
   _sendMessage: () => _sendMessage,
   _stopStreaming: () => _stopStreaming,
@@ -12321,6 +12400,16 @@ function _selectQuickAction(action) {
   }
   this._quickStart(text);
 }
+function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
+  if (!assistantMsg || assistantMsg._streaming === false) return;
+  assistantMsg._streaming = false;
+  assistantMsg._interrupted = true;
+  assistantMsg._interruptReason = reason;
+  assistantMsg._retryWith = userMsg;
+  host._messages = [...host._messages];
+  host._loading = false;
+  host._streaming = false;
+}
 async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
@@ -12331,6 +12420,34 @@ async function _sendMessage() {
   if (ta) ta.style.height = "auto";
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
+  const PRE_TOKEN_GRACE_MS = 12e4;
+  const POST_TOKEN_GRACE_MS = 45e3;
+  let firstTokenSeen = false;
+  let lastActivityAt = Date.now();
+  let watchdog = null;
+  let onDisconnect = null;
+  const teardown = () => {
+    if (watchdog) {
+      clearInterval(watchdog);
+      watchdog = null;
+    }
+    if (onDisconnect) {
+      this.hass.connection.removeEventListener("disconnected", onDisconnect);
+      onDisconnect = null;
+    }
+    if (this._streamTeardown === teardown) {
+      this._streamTeardown = null;
+    }
+  };
+  this._streamTeardown = teardown;
+  const cancelSubscription = () => {
+    if (this._streamUnsub) {
+      try {
+        this._streamUnsub();
+      } catch (_2) {}
+      this._streamUnsub = null;
+    }
+  };
   try {
     const subscribePayload = {
       type: "selora_ai/chat_stream",
@@ -12340,14 +12457,77 @@ async function _sendMessage() {
       subscribePayload.session_id = this._activeSessionId;
     }
     this._streaming = true;
+    onDisconnect = () => {
+      teardown();
+      _finaliseInterruption(
+        this,
+        assistantMsg,
+        userMsg,
+        "Connection to Home Assistant was lost mid-response.",
+      );
+    };
+    this.hass.connection.addEventListener("disconnected", onDisconnect);
+    watchdog = setInterval(() => {
+      if (!this._streaming) {
+        teardown();
+        return;
+      }
+      const grace = firstTokenSeen ? POST_TOKEN_GRACE_MS : PRE_TOKEN_GRACE_MS;
+      if (Date.now() - lastActivityAt > grace) {
+        teardown();
+        cancelSubscription();
+        _finaliseInterruption(
+          this,
+          assistantMsg,
+          userMsg,
+          firstTokenSeen
+            ? "The server stopped responding."
+            : "The server didn't reply in time.",
+        );
+      }
+    }, 5e3);
     this._streamUnsub = await this.hass.connection.subscribeMessage((event) => {
       if (event.type === "token") {
+        firstTokenSeen = true;
+        lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
         this._requestScrollChat();
       } else if (event.type === "done") {
-        assistantMsg.content = event.response || assistantMsg.content;
+        teardown();
+        const responseText = event.response || assistantMsg.content || "";
+        const hasStructured =
+          event.automation ||
+          event.scene ||
+          (event.executed && event.executed.length) ||
+          (event.quick_actions && event.quick_actions.length);
+        const trimmed = responseText.trim();
+        const looksTruncated =
+          !hasStructured &&
+          trimmed.length > 0 &&
+          trimmed.length < 400 &&
+          (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
+            /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
+            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || ""));
+        if (looksTruncated) {
+          cancelSubscription();
+          assistantMsg.content = responseText;
+          if (event.session_id) {
+            if (event.session_id !== this._activeSessionId) {
+              this._activeSessionId = event.session_id;
+            }
+            this._loadSessions();
+          }
+          _finaliseInterruption(
+            this,
+            assistantMsg,
+            userMsg,
+            "Response looks cut short \u2014 try again.",
+          );
+          return;
+        }
+        assistantMsg.content = responseText;
         assistantMsg.automation = event.automation || null;
         assistantMsg.automation_yaml = event.automation_yaml || null;
         assistantMsg.automation_status = event.automation ? "pending" : null;
@@ -12355,7 +12535,6 @@ async function _sendMessage() {
           event.automation_message_index ?? null;
         assistantMsg.refining_automation_id =
           event.refining_automation_id || null;
-        assistantMsg.devices = event.devices || null;
         assistantMsg.scene = event.scene || null;
         assistantMsg.scene_yaml = event.scene_yaml || null;
         assistantMsg.scene_status = event.scene_status || null;
@@ -12382,25 +12561,36 @@ async function _sendMessage() {
           this._loadSessions();
         }
       } else if (event.type === "error") {
-        assistantMsg.content =
-          "Sorry, I encountered an error: " + event.message;
-        assistantMsg._streaming = false;
-        this._messages = [...this._messages];
-        this._loading = false;
-        this._streaming = false;
-        this._streamUnsub = null;
+        teardown();
+        cancelSubscription();
+        _finaliseInterruption(
+          this,
+          assistantMsg,
+          userMsg,
+          event.message || "Couldn't reach the LLM provider.",
+        );
       }
     }, subscribePayload);
   } catch (err) {
-    assistantMsg.content = "Sorry, I encountered an error: " + err.message;
-    assistantMsg._streaming = false;
-    this._messages = [...this._messages];
-    this._loading = false;
-    this._streaming = false;
-    this._streamUnsub = null;
+    teardown();
+    cancelSubscription();
+    _finaliseInterruption(
+      this,
+      assistantMsg,
+      userMsg,
+      err.message || "Couldn't start the chat session.",
+    );
   }
 }
+function _retryMessage(text) {
+  if (!text || this._loading) return;
+  this._input = text;
+  this._sendMessage();
+}
 function _stopStreaming() {
+  if (this._streamTeardown) {
+    this._streamTeardown();
+  }
   if (this._streamUnsub) {
     this._streamUnsub();
     this._streamUnsub = null;
@@ -13863,28 +14053,21 @@ var SeloraAIPanel = class extends s4 {
     try {
       const provider = this._config.llm_provider;
       const newKey = this._newApiKey.trim();
-      if (provider === "selora_cloud" && !this._config.aigateway_linked) {
-        if (this._config.developer_mode && this._config.aigateway_api_url) {
-          await this.hass.callWS({
-            type: "selora_ai/update_config",
-            config: { aigateway_api_url: this._config.aigateway_api_url },
-          });
-          await this._loadConfig();
-          this._llmSaveStatus = {
-            type: "success",
-            message: "AI Gateway URL saved. Now link your Selora account.",
-          };
-          setTimeout(() => {
-            this._llmSaveStatus = null;
-            this.requestUpdate();
-          }, 4e3);
-          return;
-        }
+      if (provider === "selora_cloud") {
+        if (!this._config.aigateway_linked) return;
+        await this.hass.callWS({
+          type: "selora_ai/update_config",
+          config: { llm_provider: "selora_cloud" },
+        });
+        await this._loadConfig();
         this._llmSaveStatus = {
-          type: "error",
-          message:
-            "Link your Selora account first by clicking 'Link Selora account'.",
+          type: "success",
+          message: "Switched to Selora Cloud.",
         };
+        setTimeout(() => {
+          this._llmSaveStatus = null;
+          this.requestUpdate();
+        }, 4e3);
         return;
       }
       const payload = { llm_provider: provider };
@@ -13900,11 +14083,6 @@ var SeloraAIPanel = class extends s4 {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
-      } else if (provider === "selora_cloud") {
-        payload.selora_cloud_model = this._config.selora_cloud_model;
-        if (this._config.developer_mode && this._config.aigateway_api_url) {
-          payload.aigateway_api_url = this._config.aigateway_api_url;
-        }
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -14042,7 +14220,7 @@ var SeloraAIPanel = class extends s4 {
     const popup = window.open(
       "about:blank",
       "selora_connect_oauth",
-      "width=500,height=700,menubar=no,toolbar=no",
+      "width=640,height=820,menubar=no,toolbar=no",
     );
     if (!popup) {
       this._connectError = "Popup blocked. Please allow popups for this site.";
@@ -14158,7 +14336,7 @@ var SeloraAIPanel = class extends s4 {
     const popup = window.open(
       "about:blank",
       "selora_aigateway_oauth",
-      "width=500,height=700,menubar=no,toolbar=no",
+      "width=640,height=820,menubar=no,toolbar=no",
     );
     if (!popup) {
       this._aigatewayError =
@@ -14171,6 +14349,12 @@ var SeloraAIPanel = class extends s4 {
       const connectUrl = (
         this._config.selora_connect_url || "https://connect.selorahomes.com"
       ).replace(/\/+$/, "");
+      if (this._config.developer_mode && this._config.selora_connect_url) {
+        await this.hass.callWS({
+          type: "selora_ai/update_config",
+          config: { selora_connect_url: this._config.selora_connect_url },
+        });
+      }
       const codeVerifier = this._generateRandomString(64);
       const codeChallenge = await this._generateCodeChallenge(codeVerifier);
       const state = this._generateRandomString(32);
@@ -14505,6 +14689,12 @@ var SeloraAIPanel = class extends s4 {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
     }
+    if (
+      this.hass &&
+      (changedProps.has("_messages") || changedProps.has("hass"))
+    ) {
+      this._hydrateEntityChips();
+    }
     if (changedProps.has("_activeTab") && this._activeTab === "chat") {
       this._focusComposerSoon();
     }
@@ -14523,6 +14713,187 @@ var SeloraAIPanel = class extends s4 {
       }
       ta.focus();
     });
+  }
+  // Hydrate `[[entity:<id>|…]]` and `[[entities:id1,id2,…]]` placeholders
+  // with real HA tile cards. We try two construction paths so the
+  // panel works across HA frontend variants:
+  //   1. `window.loadCardHelpers().createCardElement({type:"tile",…})`
+  //      — the documented API; also lazy-loads the card chunk.
+  //   2. `document.createElement("hui-tile-card") + setConfig(…)` —
+  //      direct construction once Lovelace has registered the
+  //      element. We wait briefly via `customElements.whenDefined`
+  //      so we don't race the registration.
+  // Cards self-update when we keep their `.hass` property current, so
+  // we just refresh that on every pass.
+  async _hydrateEntityChips() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const grids = root.querySelectorAll(".selora-entity-grid");
+    if (grids.length === 0) return;
+    const createTile = await this._getTileCardCreator();
+    const registries = await this._ensureFullRegistries();
+    for (const grid of grids) {
+      const wired = grid.dataset.wired === "true";
+      if (!wired) {
+        const ids = (grid.dataset.entityIds || "")
+          .split(",")
+          .map((s6) => s6.trim())
+          .filter(Boolean);
+        let appended = 0;
+        if (createTile) {
+          const groups = /* @__PURE__ */ new Map();
+          for (const id of ids) {
+            if (!this.hass.states?.[id]) continue;
+            const reg = registries.entities?.[id];
+            const dev = reg?.device_id
+              ? registries.devices?.[reg.device_id]
+              : null;
+            const areaId = reg?.area_id || dev?.area_id || null;
+            const areaName = areaId
+              ? registries.areas?.[areaId]?.name || null
+              : null;
+            if (!groups.has(areaName)) groups.set(areaName, []);
+            groups.get(areaName).push(id);
+          }
+          const sortedGroups = [...groups.entries()].sort((a4, b2) => {
+            if (!a4[0]) return 1;
+            if (!b2[0]) return -1;
+            return a4[0].localeCompare(b2[0]);
+          });
+          const showHeaders = groups.size > 1;
+          const buildTile = (id) => {
+            const card = createTile(id);
+            if (!card) return null;
+            card.hass = this.hass;
+            const reg = registries.entities?.[id];
+            const dev = reg?.device_id
+              ? registries.devices?.[reg.device_id]
+              : null;
+            if (dev) {
+              const parts = [];
+              if (dev.manufacturer) parts.push(dev.manufacturer);
+              if (dev.model) parts.push(dev.model);
+              if (parts.length) card.title = parts.join(" \xB7 ");
+            }
+            return card;
+          };
+          const areaIdByName = /* @__PURE__ */ new Map();
+          for (const a4 of Object.values(registries.areas || {})) {
+            if (a4.name) areaIdByName.set(a4.name, a4.area_id);
+          }
+          for (const [areaName, areaIds] of sortedGroups) {
+            if (showHeaders) {
+              const header = document.createElement("div");
+              header.className = "selora-area-header";
+              const icon = document.createElement("ha-icon");
+              icon.icon = areaName
+                ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
+                  "mdi:floor-plan"
+                : "mdi:help-circle-outline";
+              icon.className = "selora-area-icon";
+              const label = document.createElement("span");
+              label.textContent = areaName || "Unassigned";
+              header.append(icon, label);
+              grid.appendChild(header);
+            }
+            for (const id of areaIds) {
+              try {
+                const card = buildTile(id);
+                if (!card) continue;
+                grid.appendChild(card);
+                appended += 1;
+              } catch (e5) {
+                console.warn("Selora: tile card create failed for", id, e5);
+              }
+            }
+          }
+        }
+        if (appended === 0) {
+          grid.textContent = ids.join(", ");
+        }
+        grid.dataset.wired = "true";
+      }
+      for (const card of grid.children) {
+        if (card.hass !== void 0 && card.hass !== this.hass) {
+          card.hass = this.hass;
+        }
+      }
+    }
+  }
+  // Lazily fetch the full entity + device registries via WS. The
+  // `hass.entities` object exposed to panels is the *display* registry
+  // (no device_id), so we can't get from entity_id to manufacturer
+  // through it. Cached on `this` for the panel's lifetime — registry
+  // changes mid-session won't refresh until the panel reloads, which
+  // is fine for a tooltip.
+  async _ensureFullRegistries() {
+    if (this._fullRegistriesPromise) {
+      const cached = await this._fullRegistriesPromise;
+      const populated =
+        Object.keys(cached.entities).length > 0 ||
+        Object.keys(cached.devices).length > 0 ||
+        Object.keys(cached.areas).length > 0;
+      if (populated) return cached;
+      this._fullRegistriesPromise = null;
+    }
+    this._fullRegistriesPromise = (async () => {
+      try {
+        const [entityList, deviceList, areaList] = await Promise.all([
+          this.hass.callWS({ type: "config/entity_registry/list" }),
+          this.hass.callWS({ type: "config/device_registry/list" }),
+          this.hass.callWS({ type: "config/area_registry/list" }),
+        ]);
+        const entities = {};
+        for (const e5 of entityList) entities[e5.entity_id] = e5;
+        const devices = {};
+        for (const d3 of deviceList) devices[d3.id] = d3;
+        const areas = {};
+        for (const a4 of areaList) areas[a4.area_id] = a4;
+        return { entities, devices, areas };
+      } catch (e5) {
+        console.warn("Selora: registry list failed", e5);
+        return { entities: {}, devices: {}, areas: {} };
+      }
+    })();
+    return this._fullRegistriesPromise;
+  }
+  // Lazily resolve a single function `(entityId) => HTMLElement` that
+  // builds an HA tile card. Tries `window.loadCardHelpers` first, then
+  // falls back to `document.createElement("hui-tile-card")` once the
+  // element has been registered by Lovelace. Cached on `this` so the
+  // chunk-load only happens once per panel lifetime.
+  async _getTileCardCreator() {
+    if (this._tileCardCreator !== void 0) return this._tileCardCreator;
+    if (typeof window.loadCardHelpers === "function") {
+      try {
+        const helpers = await window.loadCardHelpers();
+        if (helpers && typeof helpers.createCardElement === "function") {
+          this._tileCardCreator = (id) =>
+            helpers.createCardElement({ type: "tile", entity: id });
+          return this._tileCardCreator;
+        }
+      } catch (e5) {
+        console.warn("Selora: loadCardHelpers() failed", e5);
+      }
+    }
+    try {
+      const ready = await Promise.race([
+        customElements.whenDefined("hui-tile-card").then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 3e3)),
+      ]);
+      if (ready) {
+        this._tileCardCreator = (id) => {
+          const el = document.createElement("hui-tile-card");
+          el.setConfig({ type: "tile", entity: id });
+          return el;
+        };
+        return this._tileCardCreator;
+      }
+    } catch (e5) {
+      console.warn("Selora: hui-tile-card whenDefined failed", e5);
+    }
+    this._tileCardCreator = null;
+    return null;
   }
   // -------------------------------------------------------------------------
   // Styles

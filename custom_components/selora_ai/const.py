@@ -1136,29 +1136,30 @@ SELORA_ADMIN_ROLES = frozenset({"owner", "member"})
 
 # ── Selora AI Gateway (LLM via OAuth) ───────────────────────────────
 # OAuth-protected LLM provider hosted by Selora. The flow:
-#   1. User clicks "Selora AI Cloud" in settings → opens consent popup at
-#      Connect's /oauth/aigw/authorize.
-#   2. After approval, Connect redirects back with a code; we exchange it
-#      for a short-lived RS256 JWT (access_token) and an opaque refresh
-#      token. Tokens are stored in the config entry.
-#   3. The provider sends `Authorization: Bearer <jwt>` to the AI Gateway's
-#      Anthropic-compatible endpoint, refreshing the JWT in-line when it
-#      is about to expire.
+#   1. User clicks "Selora AI Cloud" → opens consent popup at Connect's
+#      /oauth/aigw/authorize. The integration sends no install_id;
+#      Connect picks the home from the signed-in user (auto when
+#      there's exactly one Selora Hub, picker when 2+, free plan
+#      otherwise).
+#   2. After approval, Connect redirects back with a code; we exchange
+#      it for a short-lived RS256 JWT (access_token) and an opaque
+#      refresh token. Tokens are stored in the config entry.
+#   3. The provider sends `Authorization: Bearer <jwt>` to Connect's
+#      OpenAI-compatible AI Gateway proxy. Quota and any installation
+#      binding live in the JWT — no client-supplied header, no `model`
+#      in the body (the gateway picks and overwrites it server-side).
+#      Refresh runs in-line when the access token nears expiry.
 CONF_AIGATEWAY_ACCESS_TOKEN = "aigateway_access_token"  # short-lived RS256 JWT
 CONF_AIGATEWAY_REFRESH_TOKEN = "aigateway_refresh_token"  # opaque "aigw_..." token
 CONF_AIGATEWAY_EXPIRES_AT = "aigateway_expires_at"  # unix timestamp (float)
 CONF_AIGATEWAY_USER_EMAIL = "aigateway_user_email"  # for display, not auth
 CONF_AIGATEWAY_USER_ID = "aigateway_user_id"  # for display, not auth
-CONF_AIGATEWAY_API_URL = "aigateway_api_url"  # AI Gateway base URL (overridable in dev)
 CONF_AIGATEWAY_CLIENT_ID = "aigateway_client_id"  # public OAuth client id (== redirect_uri)
-CONF_SELORA_CLOUD_MODEL = "selora_cloud_model"
-
-DEFAULT_AIGATEWAY_API_URL = "https://ai.selorahomes.com"
-DEFAULT_SELORA_CLOUD_MODEL = "claude-sonnet-4-6"
 
 AIGATEWAY_OAUTH_SCOPE = "ai-gateway"
 AIGATEWAY_AUTHORIZE_PATH = "/oauth/aigw/authorize"
 AIGATEWAY_TOKEN_PATH = "/oauth/aigw/token"
+AIGATEWAY_CHAT_COMPLETIONS_PATH = "/api/v1/ai-gateway/v1/chat/completions"
 # Refresh the access token if fewer than this many seconds remain. Generous
 # enough that long-running requests don't get a 401 mid-flight.
 AIGATEWAY_REFRESH_LEEWAY_SECONDS = 120

@@ -356,8 +356,19 @@ export function renderMessage(host, msg, idx) {
                   : ""}
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                 ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
-                ${msg.devices && msg.devices.length
-                  ? renderDeviceCards(host, msg.devices)
+                ${msg._interrupted
+                  ? html`
+                      <div class="stream-interrupt">
+                        <ha-icon
+                          icon="mdi:alert-circle-outline"
+                          style="--mdc-icon-size:16px;flex-shrink:0;"
+                        ></ha-icon>
+                        <span class="stream-interrupt-text"
+                          >${msg._interruptReason ||
+                          "Response was cut short."}</span
+                        >
+                      </div>
+                    `
                   : ""}
               </div>
               ${msg.quick_actions &&
@@ -371,7 +382,22 @@ export function renderMessage(host, msg, idx) {
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
               >
-                <span>Selora AI · ${formatTime(msg.timestamp)}</span>
+                <span>
+                  Selora AI · ${formatTime(msg.timestamp)}
+                  ${msg._interrupted && msg._retryWith
+                    ? html` ·
+                        <button
+                          class="stream-interrupt-retry"
+                          @click=${() => host._retryMessage(msg._retryWith)}
+                        >
+                          <ha-icon
+                            icon="mdi:refresh"
+                            style="--mdc-icon-size:12px;"
+                          ></ha-icon>
+                          Retry
+                        </button>`
+                    : ""}
+                </span>
                 <button
                   class="copy-msg-btn"
                   title="Copy message"
@@ -413,13 +439,6 @@ export const DOMAIN_ICONS = {
   device_tracker: "mdi:map-marker",
 };
 
-function _deviceIcon(domains) {
-  for (const d of domains || []) {
-    if (DOMAIN_ICONS[d]) return DOMAIN_ICONS[d];
-  }
-  return "mdi:devices";
-}
-
 export function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
   const s = state.toLowerCase();
@@ -452,144 +471,6 @@ export function _stateColor(state) {
   if (["unavailable", "unknown", "error", "jammed"].includes(s))
     return "#ef4444";
   return "var(--selora-zinc-200)";
-}
-
-function _primaryState(device) {
-  // Show the state of the first entity
-  if (device.entities && device.entities.length > 0) {
-    return device.entities[0].state || "unknown";
-  }
-  // For list_devices results, entities are just IDs — no state available
-  return null;
-}
-
-function _renderDeviceCard(host, d) {
-  const state = _primaryState(d);
-  return html`
-    <div
-      style="
-        flex:1 1 180px;max-width:240px;cursor:pointer;
-        border:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));
-        border-radius:12px;
-        background:var(--selora-inner-card-bg, var(--primary-background-color, #18181b));
-        padding:10px 12px;display:flex;flex-direction:column;gap:4px;
-        transition:border-color 0.15s;
-      "
-      @click=${() => host._openDeviceDetail(d.device_id)}
-      @mouseenter=${(e) =>
-        (e.currentTarget.style.borderColor = "var(--selora-accent)")}
-      @mouseleave=${(e) =>
-        (e.currentTarget.style.borderColor =
-          "var(--selora-inner-card-border, var(--divider-color, #3f3f46))")}
-    >
-      <div style="display:flex;align-items:center;gap:6px;">
-        <ha-icon
-          icon=${_deviceIcon(d.domains)}
-          style="--mdc-icon-size:18px;color:var(--selora-accent);"
-        ></ha-icon>
-        <span
-          style="font-weight:600;font-size:13px;color:var(--selora-zinc-200);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
-        >
-          ${d.name || "Unknown"}
-        </span>
-      </div>
-      <div
-        style="display:flex;align-items:center;justify-content:space-between;margin-top:2px;"
-      >
-        ${d.manufacturer
-          ? html`<span style="font-size:11px;color:var(--selora-zinc-400);"
-              >${d.manufacturer}${d.model ? ` · ${d.model}` : ""}</span
-            >`
-          : ""}
-        ${state
-          ? html`
-              <span
-                style="font-size:11px;font-weight:600;color:${_stateColor(
-                  state,
-                )};"
-              >
-                ${state}
-              </span>
-            `
-          : ""}
-      </div>
-    </div>
-  `;
-}
-
-export function renderDeviceCards(host, devices) {
-  if (!devices || !devices.length) return "";
-
-  // Group devices by area
-  const groups = new Map();
-  for (const d of devices) {
-    const area = d.area || null;
-    if (!groups.has(area)) groups.set(area, []);
-    groups.get(area).push(d);
-  }
-
-  // If all devices are in one group, skip the area header
-  if (groups.size === 1) {
-    const [area, devs] = [...groups.entries()][0];
-    return html`
-      <div class="device-cards" style="margin-top:12px;">
-        ${area
-          ? html`<div
-              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
-            >
-              <ha-icon
-                icon="mdi:home-floor-a"
-                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
-              ></ha-icon>
-              <span
-                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
-                >${area}</span
-              >
-            </div>`
-          : ""}
-        <div style="display:flex;flex-wrap:wrap;gap:8px;">
-          ${devs.map((d) => _renderDeviceCard(host, d))}
-        </div>
-      </div>
-    `;
-  }
-
-  // Sort: named areas first (alphabetically), then unassigned
-  const sorted = [...groups.entries()].sort((a, b) => {
-    if (!a[0]) return 1;
-    if (!b[0]) return -1;
-    return a[0].localeCompare(b[0]);
-  });
-
-  return html`
-    <div
-      class="device-cards"
-      style="margin-top:12px;display:flex;flex-direction:column;gap:12px;"
-    >
-      ${sorted.map(
-        ([area, devs]) => html`
-          <div>
-            <div
-              style="display:flex;align-items:center;gap:6px;margin-bottom:8px;"
-            >
-              <ha-icon
-                icon=${area ? "mdi:home-floor-a" : "mdi:help-circle-outline"}
-                style="--mdc-icon-size:16px;color:var(--selora-zinc-400);"
-              ></ha-icon>
-              <span
-                style="font-size:12px;font-weight:600;color:var(--selora-zinc-400);"
-              >
-                ${area || "No area assigned"}
-              </span>
-            </div>
-            <div style="display:flex;flex-wrap:wrap;gap:8px;">
-              ${devs.map((d) => _renderDeviceCard(host, d))}
-            </div>
-          </div>
-        `,
-      )}
-    </div>
-  `;
 }
 
 export function renderYamlEditor(host, key, originalYaml, onSave = null) {

@@ -33,12 +33,6 @@ class ToolExecutor:
         self._hass = hass
         self._device_manager = device_manager
         self._is_admin = is_admin
-        self._device_results: dict[str, dict[str, Any]] = {}
-
-    @property
-    def device_results(self) -> list[dict[str, Any]]:
-        """Return deduplicated device data collected during tool execution."""
-        return list(self._device_results.values())
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return a JSON-serialisable result."""
@@ -61,17 +55,7 @@ class ToolExecutor:
             _LOGGER.exception("Tool %s execution failed", tool_name)
             return {"error": f"Tool execution failed: {exc}"}
 
-        truncated = _truncate_result(result)
-
-        # Capture device data for frontend rendering (dedup by device_id)
-        if tool_name == "list_devices" and "devices" in truncated:
-            for dev in truncated["devices"]:
-                if did := dev.get("device_id"):
-                    self._device_results[did] = dev
-        elif tool_name == "get_device" and (did := truncated.get("device_id")):
-            self._device_results[did] = truncated
-
-        return truncated
+        return _truncate_result(result)
 
     @property
     def _handlers(self) -> dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]]:

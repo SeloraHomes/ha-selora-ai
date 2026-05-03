@@ -88,13 +88,29 @@ _PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
     LLM_PROVIDER_OPENAI: 110_000,  # GPT-5.4: ~128K ctx
     LLM_PROVIDER_OPENROUTER: 110_000,  # Routes to many models, conservative budget
     LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
-    LLM_PROVIDER_SELORA_CLOUD: 180_000,  # Anthropic-shaped backend
+    LLM_PROVIDER_SELORA_CLOUD: 110_000,  # OpenAI-compatible gateway, conservative
 }
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {
-        "turn_on": {"brightness_pct", "color_temp", "kelvin"},
-        "turn_off": set(),
-        "toggle": set(),
+        # Both `brightness` (0-255, HA's storage form used by scenes) and
+        # `brightness_pct` (0-100, friendlier for prompts) are accepted
+        # so scene activations and direct user requests both work.
+        "turn_on": {
+            "brightness",
+            "brightness_pct",
+            "color_temp",
+            "kelvin",
+            "rgb_color",
+            "rgbw_color",
+            "rgbww_color",
+            "hs_color",
+            "xy_color",
+            "color_name",
+            "effect",
+            "transition",
+        },
+        "turn_off": {"transition"},
+        "toggle": {"transition"},
     },
     "switch": {
         "turn_on": set(),
@@ -127,6 +143,14 @@ _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
         "turn_on": set(),
         "turn_off": set(),
         "toggle": set(),
+    },
+    # Scenes are atomic snapshots — `scene.turn_on` takes the scene as the
+    # target and applies all of its stored device states server-side.
+    # Listing it here means the LLM activates a named scene with one call
+    # instead of expanding it into individual light/media_player calls
+    # (which then trip the per-domain parameter whitelist).
+    "scene": {
+        "turn_on": {"transition"},
     },
 }
 _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
@@ -328,6 +352,39 @@ _SHARED_TONE_RULES = (
     "- NEVER open with filler ('Sure!', 'Great question!', 'Absolutely!', 'I can help with that').\n"
     "- Do NOT echo the user's full request, but DO name the targeted entities in command confirmations "
     "so the user can verify what was acted on.\n"
+    "- Greetings, thanks, and other small talk with no actionable request: reply with one short, "
+    "warm conversational sentence and stop. Do NOT volunteer information about automations, "
+    "entities, scenes, or device states — wait for the user to ask. The action-oriented rules "
+    "above only apply once the user makes an actual request.\n"
+    "- Entity references render as live HA tile cards (the same tiles the dashboard uses — "
+    "state-aware coloured icon, friendly name, formatted state value, tap to open more-info). "
+    "Whenever you name a specific device or sensor that the user is asking about, controlling, "
+    "or expecting to see, emit a tile MARKER on its own line — never inline mid-sentence — and "
+    "let the prose lead in or out of it. Two equivalent forms:\n"
+    "  • `[[entity:<entity_id>|<friendly_name>]]` for a single device. The label is ignored at "
+    "render time (the tile shows the registry name), but include it so the raw text remains "
+    "readable if rendering ever fails.\n"
+    "  • `[[entities:<id1>,<id2>,…]]` for two or more — the renderer wraps them into a grid.\n"
+    "Use entity_ids from AVAILABLE ENTITIES. The marker MUST stand alone on its own line — "
+    "never as a bullet item, never wrapped in markdown lists, never followed by a dash hint "
+    "like `— brightness: 255`. The tile already shows the live state-icon, friendly name, and "
+    "current value; any prose state next to it is redundant noise.\n"
+    "When the response lists multiple entities, prefer a single `[[entities:…]]` block per "
+    "logical group instead of one bulleted marker per entity — bulleted markers wrap each "
+    "tile in a list-item bar and double-render the state. If grouping by area helps the user "
+    "read the answer, emit one `[[entities:…]]` block per area, each preceded by a short "
+    "`### Area Name` sub-heading; otherwise one block for the whole list.\n"
+    "Example for 'what lights are on?' — RIGHT:\n"
+    "  `Three lights are on:\\n[[entities:light.kitchen,light.office,light.living_room]]`\n"
+    "Or grouped by area:\n"
+    "  `Three lights on across two rooms:\\n### Living Room\\n"
+    "[[entities:light.living_room_lampe,light.living_room_table]]\\n"
+    "### Kitchen\\n[[entities:light.kitchen]]`\n"
+    "WRONG (do not do this):\n"
+    "  `- [[entity:light.kitchen|Kitchen]] — brightness: 255\\n"
+    "- [[entity:light.office|Office]] — brightness: 17`\n"
+    "Use markers in the conversational `response` field only — never inside automation YAML, "
+    "service calls, scene definitions, or anywhere an entity_id is required as a raw value.\n"
 )
 
 
@@ -1074,20 +1131,18 @@ class LLMClient:
                     ):
                         yield text
 
-            except ConnectionError as exc:
-                _LOGGER.error("LLM stream failed: %s", exc)
-                yield (
-                    "Sorry, I couldn't reach the LLM provider. "
-                    "Please check your API key and connection in Settings."
-                )
-                return
-            except Exception:
+            except ConnectionError:
+                # Transient transport / provider errors propagate so the WS
+                # handler can surface them as a `{type: "error"}` event and
+                # skip persisting a fake assistant turn. Logged at the
+                # caller — re-logging here would be redundant.
+                raise
+            except Exception as exc:
                 _LOGGER.exception("Streaming request failed")
-                yield (
-                    "Sorry, something went wrong while communicating with "
-                    "the LLM provider. Check the Home Assistant logs for details."
-                )
-                return
+                # Same rationale as ConnectionError above — let the caller
+                # decide presentation. Wrap in ConnectionError so callers
+                # only need to catch one error class for transport issues.
+                raise ConnectionError("LLM stream failed unexpectedly") from exc
 
             # If no tool calls, we're done — text was already streamed.
             # Leave usage in the buffer so the calling architect_chat_stream
@@ -1186,9 +1241,14 @@ class LLMClient:
             alias, yaml_text = refining_context
             refine_section = (
                 f'\n\nACTIVE REFINEMENT — you are modifying the automation "{alias}".\n'
-                "The user's message above is a change request for THIS automation ONLY.\n"
-                "Apply the requested change to the YAML below, preserve all other fields,\n"
-                "and return the updated automation. Do NOT create a different automation.\n"
+                "If the user's message above is an actual change request, apply it to the\n"
+                "YAML below, preserve all other fields, and return the updated automation.\n"
+                "Do NOT create a different automation.\n"
+                "If the user's message is a greeting, thanks, or other small talk with no\n"
+                "actionable change (e.g. 'hey', 'thanks', 'cool'), respond conversationally\n"
+                "with a short reply and DO NOT modify or mention this automation at all —\n"
+                "wait for the user to make an actual request before treating them as still\n"
+                "refining.\n"
                 f"[Untrusted reference data — current YAML:]\n{yaml_text}"
             )
 
@@ -1286,7 +1346,16 @@ class LLMClient:
             "{\n"
             '  "intent": "answer",\n'
             '  "response": "Your answer. For state queries, include real values and offer to act when appropriate."\n'
-            "}\n\n"
+            "}\n"
+            "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks), the\n"
+            "`response` field MUST embed entity tile markers — never a markdown list of raw\n"
+            "entity_ids, never bullet lines of `light.xxx — on (brightness: …)`. Use\n"
+            "`[[entities:<id1>,<id2>,…]]` on its own line for two or more devices and\n"
+            "`[[entity:<entity_id>|<friendly_name>]]` on its own line for a single device.\n"
+            "Example for 'what lights are on?' — RIGHT:\n"
+            "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room]]`\n"
+            "WRONG (do not do this):\n"
+            "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n\n"
             "5. SCENE — create a named snapshot of device states the user can activate later:\n"
             "{\n"
             '  "intent": "scene",\n'
@@ -1399,6 +1468,22 @@ class LLMClient:
             "RESPONSE FORMAT:\n"
             "Use markdown sparingly in conversational replies: bold (**text**) for emphasis only.\n"
             "For tool-backed answers, follow the Output Formatting rules in the tool policy below.\n\n"
+            "ENTITY OUTPUT — STRICT.\n"
+            "Whenever your reply names specific devices or sensors (state queries, listings, "
+            "status checks, command confirmations), you MUST embed entity tile markers. NEVER "
+            "print raw entity_ids and NEVER use a markdown bullet list of devices.\n"
+            "  • Single device → on its own line: "
+            "`[[entity:<entity_id>|<friendly_name>]]`\n"
+            "  • Two or more devices → on its own line: "
+            "`[[entities:<id1>,<id2>,…]]` (renders a tile grid).\n"
+            "Use entity_ids from AVAILABLE ENTITIES. Lead in or out with one short prose line; "
+            "never embed a marker mid-sentence.\n"
+            "Example for 'what lights are on?' — RIGHT:\n"
+            "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room,light.ceiling,light.bedroom]]`\n"
+            "WRONG (do not do this):\n"
+            "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n"
+            "Example for 'turn on the master bedroom light' — RIGHT:\n"
+            "  `Turning on:\\n[[entity:light.master_bedroom|Master Bedroom Lights]]`\n\n"
             "If your response involves creating or updating an automation, append the full automation JSON\n"
             "inside a fenced code block with the language tag 'automation' at the END of your response:\n\n"
             "```automation\n"

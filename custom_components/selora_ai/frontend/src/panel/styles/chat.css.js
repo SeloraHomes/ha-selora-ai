@@ -236,6 +236,104 @@ export const chatStyles = css`
     color: var(--primary-text-color);
     font-weight: 700;
   }
+  /* Entity-list grid: hosts real HA hui-tile-card elements. Cards
+     bring their own borders, padding, theming, click target — the
+     grid only handles layout. Single-entity references render here
+     too as a one-card grid; uniform look across all mentions. The
+     minmax(240px, 1fr) sizing matches the default cell width HA uses
+     on tile-style dashboard sections, so chat tiles don't truncate
+     the friendly name (180px was too tight for long room names). */
+  .selora-entity-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 8px;
+    margin: 12px 0;
+    width: 100%;
+  }
+  .selora-entity-grid > * {
+    /* Cards default to 56px tall in tile mode; let them size themselves
+       without our own min-height fighting it. */
+    min-width: 0;
+  }
+  /* Area sub-headers in multi-area entity grids. The grid-column rule
+     spans the header across the full row so the next row of tiles
+     starts cleanly under it. Layout matches HA dashboard section
+     headers: small uppercase label with the area icon to its left. */
+  .selora-area-header {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 8px;
+    margin-bottom: -2px;
+  }
+  .selora-area-header:first-child {
+    margin-top: 0;
+  }
+  .selora-area-icon {
+    /* Match the cap-height of the 12px uppercase label so the icon
+       sits flush with the text, not floating above it. ha-icon needs
+       both the CSS variable AND an explicit box size — the variable
+       controls the SVG glyph, the box prevents the host element from
+       reserving its 24px default and pushing the label down. */
+    --mdc-icon-size: 14px;
+    width: 14px;
+    height: 14px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  /* ---- Stream interruption notice ---- */
+  .stream-interrupt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    background: rgba(244, 67, 54, 0.08);
+    border: 1px solid rgba(244, 67, 54, 0.25);
+    color: var(--error-color, #f44336);
+    font-size: 13px;
+  }
+  .stream-interrupt-text {
+    flex: 1;
+    color: var(--primary-text-color);
+  }
+  /* Retry link in the bubble-meta — matches "Selora AI · time" rhythm
+     but uses the accent colour so the failure state is visible without
+     resorting to a button-style chip. */
+  .stream-interrupt-retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--selora-accent, #fbbf24);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+    opacity: 0.85;
+    transition: opacity 120ms ease;
+  }
+  .stream-interrupt-retry:hover,
+  .stream-interrupt-retry:focus-visible {
+    opacity: 1;
+    text-decoration: underline;
+    outline: none;
+  }
+  .stream-interrupt-retry ha-icon {
+    color: var(--selora-accent, #fbbf24);
+  }
 
   /* ---- Chat input ---- */
   .chat-input {

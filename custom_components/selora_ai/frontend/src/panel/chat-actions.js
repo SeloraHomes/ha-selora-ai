@@ -17,6 +17,21 @@ export function _selectQuickAction(action) {
   this._quickStart(text);
 }
 
+// If a streaming response stalls or the WS drops, finalise the active
+// assistant bubble with an explanatory notice and a Retry affordance.
+// `reason` is shown verbatim under the bubble; `userMsg` is what Retry
+// will resend.
+function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
+  if (!assistantMsg || assistantMsg._streaming === false) return;
+  assistantMsg._streaming = false;
+  assistantMsg._interrupted = true;
+  assistantMsg._interruptReason = reason;
+  assistantMsg._retryWith = userMsg;
+  host._messages = [...host._messages];
+  host._loading = false;
+  host._streaming = false;
+}
+
 export async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
@@ -30,6 +45,47 @@ export async function _sendMessage() {
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
 
+  // Stream-health watchers — both must be torn down on done/error/retry/stop.
+  // Stored on `this` so _stopStreaming() can reach them too; otherwise the
+  // disconnect listener would leak across every Send the user makes.
+  //
+  // The watchdog runs in two phases. Pre-first-token we allow a long grace
+  // (some prompts spend the first minute on tool-calling rounds or chewing
+  // through a large home snapshot before any text streams). Once tokens
+  // start arriving the gap between tokens has to be much shorter — that's
+  // when we're confident silence means the server actually stalled.
+  const PRE_TOKEN_GRACE_MS = 120_000;
+  const POST_TOKEN_GRACE_MS = 45_000;
+  let firstTokenSeen = false;
+  let lastActivityAt = Date.now();
+  let watchdog = null;
+  let onDisconnect = null;
+  const teardown = () => {
+    if (watchdog) {
+      clearInterval(watchdog);
+      watchdog = null;
+    }
+    if (onDisconnect) {
+      this.hass.connection.removeEventListener("disconnected", onDisconnect);
+      onDisconnect = null;
+    }
+    if (this._streamTeardown === teardown) {
+      this._streamTeardown = null;
+    }
+  };
+  this._streamTeardown = teardown;
+
+  const cancelSubscription = () => {
+    if (this._streamUnsub) {
+      try {
+        this._streamUnsub();
+      } catch (_) {
+        /* unsub may already be torn down */
+      }
+      this._streamUnsub = null;
+    }
+  };
+
   try {
     const subscribePayload = {
       type: "selora_ai/chat_stream",
@@ -40,14 +96,99 @@ export async function _sendMessage() {
     }
 
     this._streaming = true;
+
+    // 1) WS-level disconnect: HA emits "disconnected" when the socket
+    //    drops mid-stream. We won't get any further events for this
+    //    subscription, so finalise the bubble immediately.
+    onDisconnect = () => {
+      teardown();
+      _finaliseInterruption(
+        this,
+        assistantMsg,
+        userMsg,
+        "Connection to Home Assistant was lost mid-response.",
+      );
+    };
+    this.hass.connection.addEventListener("disconnected", onDisconnect);
+
+    // 2) Stall watchdog: covers cases where the WS stays up but the
+    //    integration stops emitting tokens (provider hung, entry
+    //    reload, upstream proxy dropped the SSE).
+    watchdog = setInterval(() => {
+      if (!this._streaming) {
+        teardown();
+        return;
+      }
+      const grace = firstTokenSeen ? POST_TOKEN_GRACE_MS : PRE_TOKEN_GRACE_MS;
+      if (Date.now() - lastActivityAt > grace) {
+        teardown();
+        cancelSubscription();
+        _finaliseInterruption(
+          this,
+          assistantMsg,
+          userMsg,
+          firstTokenSeen
+            ? "The server stopped responding."
+            : "The server didn't reply in time.",
+        );
+      }
+    }, 5_000);
+
     this._streamUnsub = await this.hass.connection.subscribeMessage((event) => {
       if (event.type === "token") {
+        firstTokenSeen = true;
+        lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
         this._requestScrollChat();
       } else if (event.type === "done") {
-        assistantMsg.content = event.response || assistantMsg.content;
+        teardown();
+        const responseText = event.response || assistantMsg.content || "";
+        // Truncation detection: bubble landed clean ("done" event)
+        // but the response looks like the LLM was about to continue
+        // ("…in your setup:", "**Lights:**\n-"). The model emitting
+        // a clean stop after a colon / dash / open bullet / dangling
+        // bold marker is not something it does intentionally on a
+        // useful answer; in practice it correlates with upstream
+        // truncation (gateway dropped the rest of the stream). Surface
+        // it as an interruption with Retry instead of a dead-end bubble.
+        // Skip this when the turn is structurally complete (automation,
+        // scene, command calls, quick actions) — those don't end with
+        // the dangling-prose pattern we're catching here.
+        const hasStructured =
+          event.automation ||
+          event.scene ||
+          (event.executed && event.executed.length) ||
+          (event.quick_actions && event.quick_actions.length);
+        const trimmed = responseText.trim();
+        const looksTruncated =
+          !hasStructured &&
+          trimmed.length > 0 &&
+          trimmed.length < 400 &&
+          (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
+            /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
+            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "")); // last line is just a bullet
+        if (looksTruncated) {
+          cancelSubscription();
+          // Preserve any tokens already streamed so the user can see
+          // what was received before retrying.
+          assistantMsg.content = responseText;
+          if (event.session_id) {
+            if (event.session_id !== this._activeSessionId) {
+              this._activeSessionId = event.session_id;
+            }
+            this._loadSessions();
+          }
+          _finaliseInterruption(
+            this,
+            assistantMsg,
+            userMsg,
+            "Response looks cut short — try again.",
+          );
+          return;
+        }
+        assistantMsg.content = responseText;
         assistantMsg.automation = event.automation || null;
         assistantMsg.automation_yaml = event.automation_yaml || null;
         assistantMsg.automation_status = event.automation ? "pending" : null;
@@ -55,7 +196,6 @@ export async function _sendMessage() {
           event.automation_message_index ?? null;
         assistantMsg.refining_automation_id =
           event.refining_automation_id || null;
-        assistantMsg.devices = event.devices || null;
         assistantMsg.scene = event.scene || null;
         assistantMsg.scene_yaml = event.scene_yaml || null;
         assistantMsg.scene_status = event.scene_status || null;
@@ -84,26 +224,42 @@ export async function _sendMessage() {
           this._loadSessions();
         }
       } else if (event.type === "error") {
-        assistantMsg.content =
-          "Sorry, I encountered an error: " + event.message;
-        assistantMsg._streaming = false;
-        this._messages = [...this._messages];
-        this._loading = false;
-        this._streaming = false;
-        this._streamUnsub = null;
+        teardown();
+        cancelSubscription();
+        // Use the same finalisation path as interruptions so the user
+        // gets a Retry affordance instead of a dead-end error bubble.
+        _finaliseInterruption(
+          this,
+          assistantMsg,
+          userMsg,
+          event.message || "Couldn't reach the LLM provider.",
+        );
       }
     }, subscribePayload);
   } catch (err) {
-    assistantMsg.content = "Sorry, I encountered an error: " + err.message;
-    assistantMsg._streaming = false;
-    this._messages = [...this._messages];
-    this._loading = false;
-    this._streaming = false;
-    this._streamUnsub = null;
+    teardown();
+    cancelSubscription();
+    _finaliseInterruption(
+      this,
+      assistantMsg,
+      userMsg,
+      err.message || "Couldn't start the chat session.",
+    );
   }
 }
 
+// Re-send a message that was previously interrupted. Called from the
+// Retry control rendered under interrupted bubbles.
+export function _retryMessage(text) {
+  if (!text || this._loading) return;
+  this._input = text;
+  this._sendMessage();
+}
+
 export function _stopStreaming() {
+  if (this._streamTeardown) {
+    this._streamTeardown();
+  }
   if (this._streamUnsub) {
     this._streamUnsub();
     this._streamUnsub = null;

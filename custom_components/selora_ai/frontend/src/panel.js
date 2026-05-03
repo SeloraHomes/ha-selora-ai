@@ -846,32 +846,27 @@ class SeloraAIPanel extends LitElement {
       const provider = this._config.llm_provider;
       const newKey = this._newApiKey.trim();
 
-      // Selora Cloud requires an OAuth link before it can be activated.
-      // While unlinked we still allow persisting the developer-mode AI
-      // Gateway URL override so the user can point the (eventual) link
-      // flow at a custom backend.
-      if (provider === "selora_cloud" && !this._config.aigateway_linked) {
-        if (this._config.developer_mode && this._config.aigateway_api_url) {
-          await this.hass.callWS({
-            type: "selora_ai/update_config",
-            config: { aigateway_api_url: this._config.aigateway_api_url },
-          });
-          await this._loadConfig();
-          this._llmSaveStatus = {
-            type: "success",
-            message: "AI Gateway URL saved. Now link your Selora account.",
-          };
-          setTimeout(() => {
-            this._llmSaveStatus = null;
-            this.requestUpdate();
-          }, 4000);
-          return;
-        }
+      // Selora Cloud while NOT linked: linking is the activation step.
+      // Once linked, Save still has a job — persisting a provider switch
+      // back to selora_cloud after the user picked another provider in
+      // the dropdown. Without this path, switching back is silent: the
+      // dropdown updates _config locally but never reaches the backend,
+      // so the integration keeps using the previous provider.
+      if (provider === "selora_cloud") {
+        if (!this._config.aigateway_linked) return;
+        await this.hass.callWS({
+          type: "selora_ai/update_config",
+          config: { llm_provider: "selora_cloud" },
+        });
+        await this._loadConfig();
         this._llmSaveStatus = {
-          type: "error",
-          message:
-            "Link your Selora account first by clicking 'Link Selora account'.",
+          type: "success",
+          message: "Switched to Selora Cloud.",
         };
+        setTimeout(() => {
+          this._llmSaveStatus = null;
+          this.requestUpdate();
+        }, 4000);
         return;
       }
 
@@ -889,11 +884,6 @@ class SeloraAIPanel extends LitElement {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
-      } else if (provider === "selora_cloud") {
-        payload.selora_cloud_model = this._config.selora_cloud_model;
-        if (this._config.developer_mode && this._config.aigateway_api_url) {
-          payload.aigateway_api_url = this._config.aigateway_api_url;
-        }
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
@@ -1047,7 +1037,7 @@ class SeloraAIPanel extends LitElement {
     const popup = window.open(
       "about:blank",
       "selora_connect_oauth",
-      "width=500,height=700,menubar=no,toolbar=no",
+      "width=640,height=820,menubar=no,toolbar=no",
     );
     if (!popup) {
       this._connectError = "Popup blocked. Please allow popups for this site.";
@@ -1192,7 +1182,7 @@ class SeloraAIPanel extends LitElement {
     const popup = window.open(
       "about:blank",
       "selora_aigateway_oauth",
-      "width=500,height=700,menubar=no,toolbar=no",
+      "width=640,height=820,menubar=no,toolbar=no",
     );
     if (!popup) {
       this._aigatewayError =
@@ -1207,12 +1197,26 @@ class SeloraAIPanel extends LitElement {
         this._config.selora_connect_url || "https://connect.selorahomes.com"
       ).replace(/\/+$/, "");
 
+      // Persist the developer-mode Selora Cloud URL before linking so
+      // the LLM provider rebuilt on entry reload uses it. Otherwise the
+      // unsaved field reverts after the post-link reload and chat
+      // completions go to the default host.
+      if (this._config.developer_mode && this._config.selora_connect_url) {
+        await this.hass.callWS({
+          type: "selora_ai/update_config",
+          config: { selora_connect_url: this._config.selora_connect_url },
+        });
+      }
+
       const codeVerifier = this._generateRandomString(64);
       const codeChallenge = await this._generateCodeChallenge(codeVerifier);
       const state = this._generateRandomString(32);
       const redirectUri = `${location.origin}${location.pathname}`;
       const clientId = redirectUri;
 
+      // No install_id: Connect picks the home from the signed-in user
+      // (auto when there's exactly one Selora Hub, picker when 2+, free
+      // plan when none). The integration is identical in all three modes.
       const params = new URLSearchParams({
         response_type: "code",
         client_id: clientId,
@@ -1584,6 +1588,15 @@ class SeloraAIPanel extends LitElement {
       const container = this.shadowRoot.getElementById("chat-messages");
       if (container) container.scrollTop = container.scrollHeight;
     }
+    // Hydrate entity chips emitted by the markdown renderer. Re-runs when
+    // messages change (new chips appeared) or when hass changes (live state
+    // → updated icon). Idempotent via the data-wired marker.
+    if (
+      this.hass &&
+      (changedProps.has("_messages") || changedProps.has("hass"))
+    ) {
+      this._hydrateEntityChips();
+    }
     // Auto-focus the composer when the chat tab activates so the user can
     // start typing immediately. Fires on initial mount (first updated() has
     // _activeTab in changedProps) and on every subsequent tab switch to chat.
@@ -1607,6 +1620,222 @@ class SeloraAIPanel extends LitElement {
       }
       ta.focus();
     });
+  }
+
+  // Hydrate `[[entity:<id>|…]]` and `[[entities:id1,id2,…]]` placeholders
+  // with real HA tile cards. We try two construction paths so the
+  // panel works across HA frontend variants:
+  //   1. `window.loadCardHelpers().createCardElement({type:"tile",…})`
+  //      — the documented API; also lazy-loads the card chunk.
+  //   2. `document.createElement("hui-tile-card") + setConfig(…)` —
+  //      direct construction once Lovelace has registered the
+  //      element. We wait briefly via `customElements.whenDefined`
+  //      so we don't race the registration.
+  // Cards self-update when we keep their `.hass` property current, so
+  // we just refresh that on every pass.
+  async _hydrateEntityChips() {
+    const root = this.shadowRoot;
+    if (!root) return;
+    const grids = root.querySelectorAll(".selora-entity-grid");
+    if (grids.length === 0) return;
+
+    const createTile = await this._getTileCardCreator();
+    const registries = await this._ensureFullRegistries();
+
+    for (const grid of grids) {
+      const wired = grid.dataset.wired === "true";
+
+      if (!wired) {
+        const ids = (grid.dataset.entityIds || "")
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        let appended = 0;
+        if (createTile) {
+          // Build (areaName, ids[]) groups so multi-area lists render
+          // as a single grid with full-width section headers between
+          // sub-runs. Single-area lists render flat (no header). The
+          // `null` key collects entities without an assigned area.
+          const groups = new Map();
+          for (const id of ids) {
+            if (!this.hass.states?.[id]) continue;
+            const reg = registries.entities?.[id];
+            const dev = reg?.device_id
+              ? registries.devices?.[reg.device_id]
+              : null;
+            const areaId = reg?.area_id || dev?.area_id || null;
+            const areaName = areaId
+              ? registries.areas?.[areaId]?.name || null
+              : null;
+            if (!groups.has(areaName)) groups.set(areaName, []);
+            groups.get(areaName).push(id);
+          }
+          // Stable order: named areas alphabetically first, "no area"
+          // last so unassigned devices don't push named ones around.
+          const sortedGroups = [...groups.entries()].sort((a, b) => {
+            if (!a[0]) return 1;
+            if (!b[0]) return -1;
+            return a[0].localeCompare(b[0]);
+          });
+          const showHeaders = groups.size > 1;
+          const buildTile = (id) => {
+            const card = createTile(id);
+            if (!card) return null;
+            card.hass = this.hass;
+            // Hover tooltip with manufacturer / model — see the
+            // _ensureFullRegistries comment for why we can't rely on
+            // hass.entities directly.
+            const reg = registries.entities?.[id];
+            const dev = reg?.device_id
+              ? registries.devices?.[reg.device_id]
+              : null;
+            if (dev) {
+              const parts = [];
+              if (dev.manufacturer) parts.push(dev.manufacturer);
+              if (dev.model) parts.push(dev.model);
+              if (parts.length) card.title = parts.join(" · ");
+            }
+            return card;
+          };
+          // Resolve area_id alongside the name so the header can show
+          // the area's own configured icon (HA stores `icon` on the
+          // area registry entry — a string like "mdi:bed").
+          const areaIdByName = new Map();
+          for (const a of Object.values(registries.areas || {})) {
+            if (a.name) areaIdByName.set(a.name, a.area_id);
+          }
+          for (const [areaName, areaIds] of sortedGroups) {
+            if (showHeaders) {
+              const header = document.createElement("div");
+              header.className = "selora-area-header";
+              const icon = document.createElement("ha-icon");
+              icon.icon = areaName
+                ? registries.areas?.[areaIdByName.get(areaName)]?.icon ||
+                  "mdi:floor-plan"
+                : "mdi:help-circle-outline";
+              icon.className = "selora-area-icon";
+              const label = document.createElement("span");
+              label.textContent = areaName || "Unassigned";
+              header.append(icon, label);
+              grid.appendChild(header);
+            }
+            for (const id of areaIds) {
+              try {
+                const card = buildTile(id);
+                if (!card) continue;
+                grid.appendChild(card);
+                appended += 1;
+              } catch (e) {
+                console.warn("Selora: tile card create failed for", id, e);
+              }
+            }
+          }
+        }
+        if (appended === 0) {
+          // Last-resort fallback so the message is still readable.
+          // Hits when neither construction path resolved or all ids
+          // were unknown/missing in hass.states.
+          grid.textContent = ids.join(", ");
+        }
+        grid.dataset.wired = "true";
+      }
+
+      // Keep cards' hass current so brightness, on/off, etc. stay live.
+      for (const card of grid.children) {
+        if (card.hass !== undefined && card.hass !== this.hass) {
+          card.hass = this.hass;
+        }
+      }
+    }
+  }
+
+  // Lazily fetch the full entity + device registries via WS. The
+  // `hass.entities` object exposed to panels is the *display* registry
+  // (no device_id), so we can't get from entity_id to manufacturer
+  // through it. Cached on `this` for the panel's lifetime — registry
+  // changes mid-session won't refresh until the panel reloads, which
+  // is fine for a tooltip.
+  async _ensureFullRegistries() {
+    // If a previous load resolved to empty maps (transient WS failure)
+    // we want the next call to try again rather than be stuck with the
+    // empty cache for the rest of the panel's lifetime. The retry
+    // condition is "not just an empty object" — a populated load
+    // is final.
+    if (this._fullRegistriesPromise) {
+      const cached = await this._fullRegistriesPromise;
+      const populated =
+        Object.keys(cached.entities).length > 0 ||
+        Object.keys(cached.devices).length > 0 ||
+        Object.keys(cached.areas).length > 0;
+      if (populated) return cached;
+      this._fullRegistriesPromise = null;
+    }
+    this._fullRegistriesPromise = (async () => {
+      try {
+        const [entityList, deviceList, areaList] = await Promise.all([
+          this.hass.callWS({ type: "config/entity_registry/list" }),
+          this.hass.callWS({ type: "config/device_registry/list" }),
+          this.hass.callWS({ type: "config/area_registry/list" }),
+        ]);
+        const entities = {};
+        for (const e of entityList) entities[e.entity_id] = e;
+        const devices = {};
+        for (const d of deviceList) devices[d.id] = d;
+        const areas = {};
+        for (const a of areaList) areas[a.area_id] = a;
+        return { entities, devices, areas };
+      } catch (e) {
+        console.warn("Selora: registry list failed", e);
+        return { entities: {}, devices: {}, areas: {} };
+      }
+    })();
+    return this._fullRegistriesPromise;
+  }
+
+  // Lazily resolve a single function `(entityId) => HTMLElement` that
+  // builds an HA tile card. Tries `window.loadCardHelpers` first, then
+  // falls back to `document.createElement("hui-tile-card")` once the
+  // element has been registered by Lovelace. Cached on `this` so the
+  // chunk-load only happens once per panel lifetime.
+  async _getTileCardCreator() {
+    if (this._tileCardCreator !== undefined) return this._tileCardCreator;
+
+    // Path 1: HA's documented helper.
+    if (typeof window.loadCardHelpers === "function") {
+      try {
+        const helpers = await window.loadCardHelpers();
+        if (helpers && typeof helpers.createCardElement === "function") {
+          this._tileCardCreator = (id) =>
+            helpers.createCardElement({ type: "tile", entity: id });
+          return this._tileCardCreator;
+        }
+      } catch (e) {
+        console.warn("Selora: loadCardHelpers() failed", e);
+      }
+    }
+
+    // Path 2: direct construction. Race a short timeout against
+    // whenDefined so we don't hang forever on HA builds where the
+    // element never registers on a custom-panel page.
+    try {
+      const ready = await Promise.race([
+        customElements.whenDefined("hui-tile-card").then(() => true),
+        new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
+      ]);
+      if (ready) {
+        this._tileCardCreator = (id) => {
+          const el = document.createElement("hui-tile-card");
+          el.setConfig({ type: "tile", entity: id });
+          return el;
+        };
+        return this._tileCardCreator;
+      }
+    } catch (e) {
+      console.warn("Selora: hui-tile-card whenDefined failed", e);
+    }
+
+    this._tileCardCreator = null;
+    return null;
   }
 
   // -------------------------------------------------------------------------
