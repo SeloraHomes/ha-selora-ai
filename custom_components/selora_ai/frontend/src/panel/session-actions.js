@@ -64,6 +64,10 @@ export async function _openSession(sessionId) {
     this._deviceDetailLoading = false;
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
+    // Wait for Lit to render the messages before scrolling — the
+    // synchronous updated() hook fires before the browser paints.
+    await this.updateComplete;
+    this._requestScrollChat();
   } catch (err) {
     console.error("Failed to open session", err);
   }

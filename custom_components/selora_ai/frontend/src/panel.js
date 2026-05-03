@@ -615,6 +615,41 @@ class SeloraAIPanel extends LitElement {
     // the remaining cool-down and re-arm the auto-dismiss timer (or
     // dismiss now if the window has already elapsed).
     this._reconcileQuotaAlertOnReconnect();
+    // Listen for WebSocket reconnection so we can reload data and
+    // re-establish subscriptions that the disconnect killed.
+    this._wsReadyHandler = () => this._handleWsReconnect();
+    this._wsReadyConn = null;
+    this._attachWsReadyListener();
+  }
+
+  _attachWsReadyListener() {
+    const conn = this.hass?.connection;
+    if (!conn || conn === this._wsReadyConn) return;
+    if (this._wsReadyConn) {
+      this._wsReadyConn.removeEventListener("ready", this._wsReadyHandler);
+    }
+    this._wsReadyConn = conn;
+    conn.addEventListener("ready", this._wsReadyHandler);
+  }
+
+  _handleWsReconnect() {
+    // The WebSocket reconnected. Drop stale subscriptions so they get
+    // re-established, then reload all panel data.
+    if (this._quotaUnsub) {
+      try {
+        this._quotaUnsub();
+      } catch (_e) {
+        /* best-effort */
+      }
+      this._quotaUnsub = null;
+    }
+    this._quotaSubPending = false;
+    this._ensureQuotaSubscription();
+    this._loadSessions();
+    this._loadAutomations();
+    this._loadScenes();
+    this._loadConfig();
+    this._loadSuggestions();
   }
 
   _ensureQuotaSubscription() {
@@ -779,6 +814,11 @@ class SeloraAIPanel extends LitElement {
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
+    }
+    if (this._wsReadyConn && this._wsReadyHandler) {
+      this._wsReadyConn.removeEventListener("ready", this._wsReadyHandler);
+      this._wsReadyConn = null;
+      this._wsReadyHandler = null;
     }
     if (this._quotaUnsub) {
       try {
@@ -1553,6 +1593,7 @@ class SeloraAIPanel extends LitElement {
     if (changedProps.has("hass")) {
       // hass can land after connectedCallback (depends on the panel-mount
       // path) — kick the quota subscription as soon as it's available.
+      this._attachWsReadyListener();
       this._ensureQuotaSubscription();
       this._checkTabParam();
       // Track dark mode for conditional rendering (gold branding only in dark)
@@ -1585,8 +1626,7 @@ class SeloraAIPanel extends LitElement {
       this._newAutomationChat(name);
     }
     if (changedProps.has("_messages") && this._activeTab === "chat") {
-      const container = this.shadowRoot.getElementById("chat-messages");
-      if (container) container.scrollTop = container.scrollHeight;
+      this._requestScrollChat();
     }
     // Hydrate entity chips emitted by the markdown renderer. Re-runs when
     // messages change (new chips appeared) or when hass changes (live state
@@ -1747,6 +1787,10 @@ class SeloraAIPanel extends LitElement {
         }
       }
     }
+    // Tile cards expand the message height after the synchronous Lit
+    // render, so the initial scroll in updated() lands short. Re-scroll
+    // now that all cards are in the DOM.
+    this._requestScrollChat();
   }
 
   // Lazily fetch the full entity + device registries via WS. The

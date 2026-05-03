@@ -5610,7 +5610,8 @@ function stripAutomationBlock(text) {
       isPartialBlock: false,
       partialBlockType: null,
     };
-  const blockTypes = "automation|scene|quick_actions|delayed_command|cancel";
+  const blockTypes =
+    "automation|scene|quick_actions|command|delayed_command|cancel";
   const completeRe = new RegExp("```(?:" + blockTypes + ")[\\s\\S]*?```", "g"); // nosemgrep
   const hasComplete = completeRe.test(text);
   let cleaned = text.replace(completeRe, "").trim();
@@ -5718,6 +5719,10 @@ function _coalesceEntityListings(text) {
 function renderMarkdown(text) {
   if (!text) return "";
   text = text.replace(/\[\[entit(?:y|ies):[^\]\n]*$/, "");
+  text = text
+    .replace(/^\[([A-Za-z_ ]+)\]\s*\(\d+[^)]*\)\s*:?\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   text = _coalesceEntityListings(text);
   let escaped = text
     .replace(/&/g, "&amp;")
@@ -11965,6 +11970,8 @@ async function _openSession(sessionId) {
     this._deviceDetailLoading = false;
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
+    await this.updateComplete;
+    this._requestScrollChat();
   } catch (err) {
     console.error("Failed to open session", err);
   }
@@ -13858,6 +13865,33 @@ var SeloraAIPanel = class extends s4 {
     window.addEventListener("pageshow", this._pageShowHandler);
     this._ensureQuotaSubscription();
     this._reconcileQuotaAlertOnReconnect();
+    this._wsReadyHandler = () => this._handleWsReconnect();
+    this._wsReadyConn = null;
+    this._attachWsReadyListener();
+  }
+  _attachWsReadyListener() {
+    const conn = this.hass?.connection;
+    if (!conn || conn === this._wsReadyConn) return;
+    if (this._wsReadyConn) {
+      this._wsReadyConn.removeEventListener("ready", this._wsReadyHandler);
+    }
+    this._wsReadyConn = conn;
+    conn.addEventListener("ready", this._wsReadyHandler);
+  }
+  _handleWsReconnect() {
+    if (this._quotaUnsub) {
+      try {
+        this._quotaUnsub();
+      } catch (_e) {}
+      this._quotaUnsub = null;
+    }
+    this._quotaSubPending = false;
+    this._ensureQuotaSubscription();
+    this._loadSessions();
+    this._loadAutomations();
+    this._loadScenes();
+    this._loadConfig();
+    this._loadSuggestions();
   }
   _ensureQuotaSubscription() {
     if (this._quotaUnsub || this._quotaSubPending) return;
@@ -14001,6 +14035,11 @@ var SeloraAIPanel = class extends s4 {
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
+    }
+    if (this._wsReadyConn && this._wsReadyHandler) {
+      this._wsReadyConn.removeEventListener("ready", this._wsReadyHandler);
+      this._wsReadyConn = null;
+      this._wsReadyHandler = null;
     }
     if (this._quotaUnsub) {
       try {
@@ -14658,6 +14697,7 @@ var SeloraAIPanel = class extends s4 {
     }
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
     if (changedProps.has("hass")) {
+      this._attachWsReadyListener();
       this._ensureQuotaSubscription();
       this._checkTabParam();
       const dark = this.hass?.themes?.darkMode;
@@ -14686,8 +14726,7 @@ var SeloraAIPanel = class extends s4 {
       this._newAutomationChat(name);
     }
     if (changedProps.has("_messages") && this._activeTab === "chat") {
-      const container = this.shadowRoot.getElementById("chat-messages");
-      if (container) container.scrollTop = container.scrollHeight;
+      this._requestScrollChat();
     }
     if (
       this.hass &&
@@ -14819,6 +14858,7 @@ var SeloraAIPanel = class extends s4 {
         }
       }
     }
+    this._requestScrollChat();
   }
   // Lazily fetch the full entity + device registries via WS. The
   // `hass.entities` object exposed to panels is the *display* registry

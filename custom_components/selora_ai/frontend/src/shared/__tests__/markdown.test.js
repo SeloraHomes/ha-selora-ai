@@ -394,4 +394,18 @@ describe("renderMarkdown", () => {
     expect(complete).toContain('class="selora-entity-grid"');
     expect(complete).toContain('data-entity-ids="light.kitchen"');
   });
+
+  it("strips [Domain] (N total): grouping headers emitted by the LLM", () => {
+    const input = "[Light] (5 total):\n[[entities:light.kitchen,light.office]]";
+    const result = renderMarkdown(input);
+    expect(result).not.toContain("[Light]");
+    expect(result).toContain('class="selora-entity-grid"');
+  });
+
+  it("strips [Domain] (N): header without the word total", () => {
+    const input = "[Switch] (3):\n[[entities:switch.a,switch.b,switch.c]]";
+    const result = renderMarkdown(input);
+    expect(result).not.toContain("[Switch]");
+    expect(result).toContain('class="selora-entity-grid"');
+  });
 });

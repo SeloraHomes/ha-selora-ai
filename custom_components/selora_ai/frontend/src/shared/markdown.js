@@ -17,7 +17,8 @@ export function stripAutomationBlock(text) {
 
   // Block types the backend extracts and re-attaches structurally — never
   // show their raw JSON to the user.
-  const blockTypes = "automation|scene|quick_actions|delayed_command|cancel";
+  const blockTypes =
+    "automation|scene|quick_actions|command|delayed_command|cancel";
 
   // Complete block: ```<type> ... ```
   const completeRe = new RegExp("```(?:" + blockTypes + ")[\\s\\S]*?```", "g");
@@ -205,6 +206,13 @@ export function renderMarkdown(text) {
   // end so the bubble shows nothing in its place; once the next chunk
   // completes the marker, it renders as a tile card.
   text = text.replace(/\[\[entit(?:y|ies):[^\]\n]*$/, "");
+  // Strip LLM domain-grouping headers like "[Light] (5 total):" or
+  // "[Switch] (3):". The tile grid already groups by area; these headers
+  // add nothing and look broken in the chat bubble.
+  text = text
+    .replace(/^\[([A-Za-z_ ]+)\]\s*\(\d+[^)]*\)\s*:?\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
   // Run the salvage BEFORE escaping so we can match the raw source.
   text = _coalesceEntityListings(text);
   let escaped = text

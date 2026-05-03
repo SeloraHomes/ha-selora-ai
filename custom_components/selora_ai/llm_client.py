@@ -914,6 +914,24 @@ class LLMClient:
                 r["quick_actions"] = quick_actions
             return r
 
+        # Check for immediate command fenced block — anchored to end.
+        command_match = re.search(r"```command\s*\n?([\s\S]*?)```\s*$", text)
+        if command_match:
+            response_text = text[: command_match.start()].strip()
+            json_text = command_match.group(1).strip()
+            try:
+                data = json.loads(json_text)
+                result: ArchitectResponse = {
+                    "intent": "command",
+                    "response": response_text or "Done.",
+                    "calls": data.get("calls", []),
+                }
+                if entities is not None:
+                    result = self._apply_command_policy(result, entities)
+                return _attach_qa(result)
+            except (json.JSONDecodeError, ValueError):
+                _LOGGER.warning("Failed to parse command block: %s", json_text[:200])
+
         cancel_match = re.search(r"```cancel\s*\n?([\s\S]*?)```\s*$", text)
         if cancel_match:
             response_text = text[: cancel_match.start()].strip()
@@ -1480,8 +1498,10 @@ class LLMClient:
             "never embed a marker mid-sentence.\n"
             "Example for 'what lights are on?' — RIGHT:\n"
             "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room,light.ceiling,light.bedroom]]`\n"
-            "WRONG (do not do this):\n"
+            "WRONG (do not do any of these):\n"
             "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n"
+            "  `[Light] (5 total):\\n  - light.kitchen\\n  - light.office …` ← NEVER use [Domain] headers\n"
+            "  `Here are your lights (5):\\n  - Kitchen …` ← NEVER use bullet lists for devices\n"
             "Example for 'turn on the master bedroom light' — RIGHT:\n"
             "  `Turning on:\\n[[entity:light.master_bedroom|Master Bedroom Lights]]`\n\n"
             "If your response involves creating or updating an automation, append the full automation JSON\n"
@@ -1521,6 +1541,14 @@ class LLMClient:
             "(use the 'area' field on each entity in AVAILABLE ENTITIES to identify them).\n"
             '- When modifying an existing scene, include "refine_scene_id" with the scene_id from the reference data '
             "in the history. Omit this field when creating a brand-new scene.\n\n"
+            "For IMMEDIATE COMMANDS (control a device right now), append a fenced block with the tag 'command':\n\n"
+            "```command\n"
+            "{\n"
+            '  "calls": [{"service": "light.turn_off", "target": {"entity_id": "light.ceiling_lights"}}]\n'
+            "}\n"
+            "```\n"
+            "The block must be at the END of your response. Write the confirmation prose BEFORE the block.\n"
+            "NEVER use 'delayed_command' for actions that should happen immediately.\n\n"
             "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
             "```delayed_command\n"
             "{\n"
