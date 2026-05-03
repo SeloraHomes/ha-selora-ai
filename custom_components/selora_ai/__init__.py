@@ -24,6 +24,7 @@ import asyncio
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -924,6 +925,40 @@ async def _execute_command_calls(
     return executed, error_suffix
 
 
+def _entity_ids_from_calls(calls: list[dict[str, Any]]) -> list[str]:
+    """Return a deduplicated ordered list of entity_ids targeted by service calls."""
+    seen: set[str] = set()
+    result: list[str] = []
+    for call in calls:
+        target = call.get("target", {})
+        raw = target.get("entity_id") or call.get("data", {}).get("entity_id")
+        if raw is None:
+            continue
+        ids = [raw] if isinstance(raw, str) else list(raw)
+        for eid in ids:
+            if eid and eid not in seen:
+                seen.add(eid)
+                result.append(eid)
+    return result
+
+
+_ENTITY_MARKER_RE = re.compile(
+    r"\[\[entity:([a-z_]+\.[a-z0-9_\-]+)"  # [[entity:<id>|…]]
+    r"|\[\[entities:([a-z_]+\.[a-z0-9_\-]+(?:,\s*[a-z_]+\.[a-z0-9_\-]+)*)\]\]"  # [[entities:…]]
+)
+
+
+def _entity_ids_already_in_text(text: str) -> set[str]:
+    """Return all entity_ids already referenced by tile markers in *text*."""
+    found: set[str] = set()
+    for m in _ENTITY_MARKER_RE.finditer(text):
+        if m.group(1):
+            found.add(m.group(1))
+        elif m.group(2):
+            found.update(eid.strip() for eid in m.group(2).split(","))
+    return found
+
+
 def _create_tool_executor(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -1008,9 +1043,23 @@ async def _handle_websocket_chat(
     # Execute immediate commands
     executed: list[str] = []
     schedule_id: str | None = None
+    delay_val = result.get("delay_seconds")
+    if (
+        intent_type == "delayed_command"
+        and not result.get("scheduled_time")
+        and isinstance(delay_val, (int, float))
+        and not isinstance(delay_val, bool)
+        and delay_val <= 0
+    ):
+        intent_type = "command"
     if intent_type == "command":
-        executed, error_suffix = await _execute_command_calls(hass, result.get("calls", []))
+        calls = result.get("calls", [])
+        executed, error_suffix = await _execute_command_calls(hass, calls)
         response_text += error_suffix
+        already_shown = _entity_ids_already_in_text(response_text)
+        entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
+        if entity_ids:
+            response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
 
     if intent_type in ("delayed_command", "cancel"):
         intent_type, response_text, schedule_id = await _handle_scheduled_intent(
@@ -1178,6 +1227,10 @@ async def _handle_websocket_chat_stream(
         full_text = ""
         chunk_count = 0
         looks_like_json = False
+        # Total characters already streamed to the client. Used to clip
+        # the chunk that introduces the JSON-block opener so the prose
+        # prefix still streams but the JSON tokens after it don't.
+        sent_chars = 0
         async for chunk in llm.architect_chat_stream(
             user_message,
             entities,
@@ -1190,15 +1243,46 @@ async def _handle_websocket_chat_stream(
         ):
             full_text += chunk
             chunk_count += 1
-            # Suppress streaming tokens when the LLM is emitting raw JSON
-            # (command intents). The "done" event carries the parsed response.
+            # Suppress streaming tokens when the LLM is emitting a
+            # structural block the "done" event will carry as parsed data:
+            # • Full-JSON response: entire response starts with `{`
+            # • Fenced structural block: ```command / ```delayed_command /
+            #   ```cancel opener detected mid-stream
+            # We deliberately do NOT suppress on arbitrary `{"` in the
+            # prose — normal answers often include inline JSON examples
+            # (e.g. `{"state":"on"}`) that must still reach the client.
             if not looks_like_json:
+                opener_idx = -1
                 if full_text.lstrip().startswith("{"):
+                    opener_idx = full_text.index("{")
+                else:
+                    for needle in (
+                        "```command",
+                        "```delayed_command",
+                        "```cancel",
+                    ):
+                        idx = full_text.find(needle)
+                        if idx >= 0 and (opener_idx < 0 or idx < opener_idx):
+                            opener_idx = idx
+                if opener_idx >= 0:
                     looks_like_json = True
+                    # Stream only the prose portion of this chunk (if
+                    # any) up to the opener position. Anything past it
+                    # is JSON tokens the user shouldn't see.
+                    send_until = max(0, opener_idx - sent_chars)
+                    prefix = chunk[:send_until]
+                    if prefix:
+                        connection.send_message(
+                            websocket_api.event_message(
+                                msg["id"], {"type": "token", "text": prefix}
+                            )
+                        )
+                        sent_chars += len(prefix)
                 else:
                     connection.send_message(
                         websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
                     )
+                    sent_chars += len(chunk)
 
         # Visibility for "stream ended cleanly but the bubble looks
         # truncated" diagnosis. Most useful when comparing Selora Cloud
@@ -1219,9 +1303,33 @@ async def _handle_websocket_chat_stream(
         # Execute immediate commands
         executed: list[str] = []
         schedule_id: str | None = None
+        # Normalise: if the LLM emits "delayed_command" with an explicit
+        # delay_seconds of 0 or negative and no scheduled_time, treat it as
+        # an immediate command. Missing delay_seconds is left to the scheduler
+        # which already downgrades to "answer" — we must not execute those
+        # immediately as the request may have been a genuine "later" command
+        # with an incomplete LLM response.
+        delay_val = parsed.get("delay_seconds")
+        if (
+            intent_type == "delayed_command"
+            and not parsed.get("scheduled_time")
+            and isinstance(delay_val, (int, float))
+            and not isinstance(delay_val, bool)
+            and delay_val <= 0
+        ):
+            intent_type = "command"
         if intent_type == "command":
-            executed, error_suffix = await _execute_command_calls(hass, parsed.get("calls", []))
+            calls = parsed.get("calls", [])
+            executed, error_suffix = await _execute_command_calls(hass, calls)
             response_text += error_suffix
+            # Append entity tile markers only for devices the LLM didn't
+            # already reference in its prose (the streaming prompt asks it
+            # to embed [[entity:…]] markers; appending duplicates here would
+            # render two tile cards for the same device).
+            already_shown = _entity_ids_already_in_text(response_text)
+            entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
+            if entity_ids:
+                response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
         elif intent_type in ("delayed_command", "cancel"):
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
                 hass, intent_type, parsed, session_id
