@@ -353,8 +353,8 @@ class GeminiProvider(LLMProvider):
         async with session.post(
             self._stream_endpoint,
             headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-            json=payload,
+            timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+            data=self._encode_body(payload),
         ) as resp:
             await self._raise_if_rate_limited(resp)
             if resp.status != 200:
@@ -377,8 +377,8 @@ class GeminiProvider(LLMProvider):
         async with session.post(
             self._stream_endpoint,
             headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-            json=payload,
+            timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+            data=self._encode_body(payload),
         ) as resp:
             await self._raise_if_rate_limited(resp)
             if resp.status != 200:

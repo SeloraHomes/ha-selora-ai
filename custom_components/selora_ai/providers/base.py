@@ -253,6 +253,21 @@ class LLMProvider(ABC):
     def _get_session(self) -> aiohttp.ClientSession:
         return async_get_clientsession(self._hass)
 
+    def _encode_body(self, payload: dict[str, Any]) -> bytes:
+        """Pre-serialise a JSON payload to bytes.
+
+        We pass these bytes via aiohttp's ``data=`` kwarg instead of
+        ``json=`` so the request goes out with a fixed
+        ``Content-Length``. With ``json=``, Python 3.14 + aiohttp 3.13.5
+        has been observed sending ``Transfer-Encoding: chunked`` and
+        terminating the stream before the closing zero-chunk, which our
+        gateway rejects with ``400 unexpected EOF``. Forcing a known
+        body length avoids the chunked path entirely. The
+        ``Content-Type`` header is set on the headers dict by callers
+        (or by ``_get_headers``).
+        """
+        return json.dumps(payload, ensure_ascii=False).encode("utf-8")
+
     def _emit_quota_exceeded(self, retry_after: int | None, body: str) -> None:
         """Fire a HA event so the panel can surface a quota alert.
 
@@ -316,7 +331,7 @@ class LLMProvider(ABC):
                 self._endpoint,
                 headers=self._get_headers(),
                 timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-                json=payload,
+                data=self._encode_body(payload),
             ) as resp:
                 if resp.status == 429:
                     # Helper fires the quota event and raises a
@@ -375,7 +390,7 @@ class LLMProvider(ABC):
             self._endpoint,
             headers=self._get_headers(),
             timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-            json=payload,
+            data=self._encode_body(payload),
         ) as resp:
             await self._raise_if_rate_limited(resp)
             if resp.status != 200:
@@ -410,11 +425,14 @@ class LLMProvider(ABC):
             system, messages, tools=tools, stream=True, max_tokens=max_tokens
         )
 
+        # SSE streams: bound the initial connect and the gap between bytes,
+        # not the wall-clock total — long completions can legitimately take
+        # tens of seconds end-to-end and a `total=` timeout cuts them short.
         async with session.post(
             self._endpoint,
             headers=self._get_headers(),
-            timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-            json=payload,
+            timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+            data=self._encode_body(payload),
         ) as resp:
             await self._raise_if_rate_limited(resp)
             if resp.status != 200:
@@ -433,11 +451,13 @@ class LLMProvider(ABC):
             session = self._get_session()
             payload = self.build_payload(system, messages, stream=True)
 
+            # See raw_request_stream above for why this uses connect +
+            # sock_read instead of a wall-clock total.
             async with session.post(
                 self._endpoint,
                 headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
-                json=payload,
+                timeout=aiohttp.ClientTimeout(connect=15, sock_read=DEFAULT_LLM_TIMEOUT),
+                data=self._encode_body(payload),
             ) as resp:
                 await self._raise_if_rate_limited(resp)
                 if resp.status != 200:

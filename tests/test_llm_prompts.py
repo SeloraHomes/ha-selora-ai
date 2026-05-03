@@ -404,6 +404,43 @@ class TestCommandPolicyEnforcement:
         assert result["intent"] == "delayed_command"
         assert result["delay_seconds"] == 600
 
+    def test_light_turn_on_accepts_brightness_raw_form(self, hass) -> None:
+        """`light.turn_on` must accept `brightness` (0-255), not just `brightness_pct`.
+
+        Scenes store brightness as the raw form, so when the LLM expands a
+        scene activation into device-level calls every light command would
+        otherwise fail the per-domain parameter whitelist.
+        """
+        client = _make_client(hass)
+        text = (
+            '{"intent":"command","response":"Activating the scene.",'
+            '"calls":[{"service":"light.turn_on",'
+            '"target":{"entity_id":"light.living_room"},'
+            '"data":{"brightness":180}}]}'
+        )
+        result = client.parse_streamed_response(
+            text, entities=[{"entity_id": "light.living_room"}]
+        )
+        assert result["intent"] == "command"
+        # Call must survive the policy with `brightness` intact.
+        assert result["calls"][0]["data"]["brightness"] == 180
+
+    def test_scene_turn_on_is_allowed_directly(self, hass) -> None:
+        """`scene.turn_on` is in the policy so the LLM doesn't expand a
+        scene into per-light calls (which would then trip light.turn_on's
+        parameter whitelist for any non-default brightness/colour)."""
+        client = _make_client(hass)
+        text = (
+            '{"intent":"command","response":"Activating fin film.",'
+            '"calls":[{"service":"scene.turn_on",'
+            '"target":{"entity_id":"scene.fin_film"}}]}'
+        )
+        result = client.parse_streamed_response(
+            text, entities=[{"entity_id": "scene.fin_film"}]
+        )
+        assert result["intent"] == "command"
+        assert result["calls"][0]["service"] == "scene.turn_on"
+
 
 class TestConversationHistoryManagement:
     """Verify conversation history is handled correctly (#89)."""

@@ -1,13 +1,23 @@
 """Selora Cloud LLM provider.
 
-Hosted, OAuth-authenticated LLM backend. The wire format is Anthropic's
-``/v1/messages`` API, so this provider extends ``AnthropicProvider`` and
-only overrides authentication and endpoint resolution.
+Hosted, OAuth-authenticated LLM backend served by Connect's AI Gateway
+proxy at ``/api/v1/ai-gateway/v1/chat/completions``. The wire format is
+OpenAI-compatible — see ``../../../connect/docs/api/ha-integration-openapi.yaml``.
 
 Tokens come from Connect's AI Gateway OAuth flow (PKCE) — the access token
 is a short-lived RS256 JWT carried as a Bearer credential. When the JWT
 nears expiry the provider refreshes it in-line via Connect's token
 endpoint and persists the new pair back to the config entry.
+
+The gateway picks the model from server-side admin config and silently
+overwrites any ``model`` the client sends, so we omit the field
+entirely from chat-completion payloads.
+
+The target installation is bound into the JWT at OAuth issuance time
+(Connect picks it from the signed-in user — auto when there's a single
+hub, picker when 2+, free plan when none). The proxy reads
+``installation_id`` from the verified JWT, so clients don't send an
+installation header or query parameter.
 """
 
 from __future__ import annotations
@@ -24,22 +34,20 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from ..const import (
+    AIGATEWAY_CHAT_COMPLETIONS_PATH,
     AIGATEWAY_REFRESH_LEEWAY_SECONDS,
     AIGATEWAY_TOKEN_PATH,
-    ANTHROPIC_MESSAGES_ENDPOINT,
     CONF_AIGATEWAY_ACCESS_TOKEN,
     CONF_AIGATEWAY_EXPIRES_AT,
     CONF_AIGATEWAY_REFRESH_TOKEN,
-    DEFAULT_AIGATEWAY_API_URL,
-    DEFAULT_SELORA_CLOUD_MODEL,
     DEFAULT_SELORA_CONNECT_URL,
 )
-from .anthropic import AnthropicProvider
+from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
 
 
-class SeloraCloudProvider(AnthropicProvider):
+class SeloraCloudProvider(OpenAICompatibleProvider):
     """Selora-hosted LLM provider authenticated via the AI Gateway OAuth flow."""
 
     def __init__(
@@ -49,22 +57,20 @@ class SeloraCloudProvider(AnthropicProvider):
         access_token: str = "",
         refresh_token: str = "",
         expires_at: float = 0.0,
-        api_url: str = "",
         connect_url: str = "",
         client_id: str = "",
         entry_id: str = "",
-        model: str = "",
         **_kwargs: Any,
     ) -> None:
-        # We never use api_key on this provider — bearer token is the credential.
+        # No api_key on this provider — the bearer JWT is the credential.
+        # Model is left blank because the gateway always overwrites it; we
+        # also strip it from the payload (build_payload below).
         super().__init__(
             hass,
             api_key="",
-            model=model or DEFAULT_SELORA_CLOUD_MODEL,
+            model="",
+            host=(connect_url or DEFAULT_SELORA_CONNECT_URL).rstrip("/"),
         )
-        # Override the host inherited from AnthropicProvider with the Gateway URL.
-        self._host = (api_url or DEFAULT_AIGATEWAY_API_URL).rstrip("/")
-        self._connect_url = (connect_url or DEFAULT_SELORA_CONNECT_URL).rstrip("/")
         self._access_token = access_token
         self._refresh_token = refresh_token
         self._expires_at = float(expires_at or 0.0)
@@ -80,7 +86,7 @@ class SeloraCloudProvider(AnthropicProvider):
 
     @property
     def provider_name(self) -> str:
-        return f"Selora Cloud ({self._model})"
+        return "Selora Cloud"
 
     @property
     def requires_api_key(self) -> bool:
@@ -94,17 +100,34 @@ class SeloraCloudProvider(AnthropicProvider):
     # -- HTTP plumbing -----------------------------------------------------
 
     def _get_headers(self) -> dict[str, str]:
-        headers = {
-            "Content-Type": "application/json",
-            "anthropic-version": "2023-06-01",
-        }
+        headers: dict[str, str] = {"Content-Type": "application/json"}
         if self._access_token:
             headers["Authorization"] = f"Bearer {self._access_token}"
         return headers
 
     @property
     def _endpoint(self) -> str:
-        return f"{self._host}{ANTHROPIC_MESSAGES_ENDPOINT}"
+        return f"{self._host}{AIGATEWAY_CHAT_COMPLETIONS_PATH}"
+
+    # -- Payload -----------------------------------------------------------
+
+    def build_payload(
+        self,
+        system: str,
+        messages: list[dict[str, Any]],
+        *,
+        tools: list[dict[str, Any]] | None = None,
+        stream: bool = False,
+        max_tokens: int = 1024,
+    ) -> dict[str, Any]:
+        # Connect's gateway picks the model server-side and overwrites any
+        # client-supplied value; omit the field rather than send a misleading
+        # one. Everything else stays OpenAI-compatible.
+        payload = super().build_payload(
+            system, messages, tools=tools, stream=stream, max_tokens=max_tokens
+        )
+        payload.pop("model", None)
+        return payload
 
     # -- Token refresh -----------------------------------------------------
 
@@ -133,7 +156,7 @@ class SeloraCloudProvider(AnthropicProvider):
             session = async_get_clientsession(self._hass)
             try:
                 async with session.post(
-                    f"{self._connect_url}{AIGATEWAY_TOKEN_PATH}",
+                    f"{self._host}{AIGATEWAY_TOKEN_PATH}",
                     data={
                         "grant_type": "refresh_token",
                         "refresh_token": self._refresh_token,
@@ -187,8 +210,20 @@ class SeloraCloudProvider(AnthropicProvider):
     # -- Request hooks -----------------------------------------------------
 
     async def _ensure_token(self) -> None:
-        if self._needs_refresh():
-            await self._refresh_access_token()
+        if not self._needs_refresh():
+            return
+        ok = await self._refresh_access_token()
+        if ok:
+            return
+        # Refresh failed (network blip, refresh token revoked, Connect
+        # upgrade in progress). Sending the request anyway with an
+        # expired access token would return 401 — same outcome as
+        # raising here, but the error message is mystifying. Raise
+        # ConnectionError now so the chat handler's existing arm can
+        # tell the user to retry / relink in plain English instead.
+        raise ConnectionError(
+            "Selora Cloud session expired and could not refresh — try again or relink in Settings."
+        )
 
     async def send_request(
         self,

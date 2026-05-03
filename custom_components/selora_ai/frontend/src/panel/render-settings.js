@@ -223,12 +223,12 @@ export function renderSettings(host) {
                           ${host._config.developer_mode
                             ? html`
                                 <ha-textfield
-                                  label="AI Gateway URL"
-                                  .value=${host._config.aigateway_api_url ||
-                                  "https://ai.selorahomes.com"}
+                                  label="Selora Cloud URL"
+                                  .value=${host._config.selora_connect_url ||
+                                  "https://connect.selorahomes.com"}
                                   @input=${(e) =>
                                     host._updateConfig(
-                                      "aigateway_api_url",
+                                      "selora_connect_url",
                                       e.target.value,
                                     )}
                                   style="width:100%;"
@@ -236,8 +236,8 @@ export function renderSettings(host) {
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
                                 >
-                                  Click Save before linking to persist the
-                                  override.
+                                  OAuth and chat completions both use this URL.
+                                  Saved automatically when you link.
                                 </div>
                               `
                             : ""}
@@ -265,32 +265,16 @@ export function renderSettings(host) {
                       </div>`
                     : ""}
                 </div>
-                ${host._config.aigateway_linked
+                ${host._config.aigateway_linked && host._config.developer_mode
                   ? html`
                       <div class="form-group">
-                        <ha-textfield
-                          label="Model"
-                          .value=${host._config.selora_cloud_model}
-                          @input=${(e) =>
-                            host._updateConfig(
-                              "selora_cloud_model",
-                              e.target.value,
-                            )}
-                          style="width:100%;"
-                        ></ha-textfield>
+                        <label>Selora Cloud URL (unlink to change)</label>
+                        <code
+                          style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
+                          >${host._config.selora_connect_url ||
+                          "https://connect.selorahomes.com"}</code
+                        >
                       </div>
-                      ${host._config.developer_mode
-                        ? html`
-                            <div class="form-group">
-                              <label>AI Gateway URL (unlink to change)</label>
-                              <code
-                                style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
-                                >${host._config.aigateway_api_url ||
-                                "https://ai.selorahomes.com"}</code
-                              >
-                            </div>
-                          `
-                        : ""}
                     `
                   : ""}
               `
@@ -538,22 +522,25 @@ export function renderSettings(host) {
                           ></ha-textfield>
                         </div>
                       `}
-
-          <div class="card-save-bar">
-            <button
-              class="btn btn-primary"
-              @click=${host._saveLlmConfig}
-              ?disabled=${host._savingLlmConfig}
-            >
-              ${host._savingLlmConfig
-                ? html`<span
-                      class="spinner"
-                      style="width:14px;height:14px;"
-                    ></span>
-                    Validating…`
-                : "Save"}
-            </button>
-          </div>
+          ${isSeloraCloud && !host._config.aigateway_linked
+            ? ""
+            : html`
+                <div class="card-save-bar">
+                  <button
+                    class="btn btn-primary"
+                    @click=${host._saveLlmConfig}
+                    ?disabled=${host._savingLlmConfig}
+                  >
+                    ${host._savingLlmConfig
+                      ? html`<span
+                            class="spinner"
+                            style="width:14px;height:14px;"
+                          ></span>
+                          Validating…`
+                      : "Save"}
+                  </button>
+                </div>
+              `}
           ${host._llmSaveStatus
             ? html`<div
                 class="save-feedback save-feedback--${host._llmSaveStatus.type}"

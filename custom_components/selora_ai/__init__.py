@@ -61,7 +61,6 @@ from .const import (
     AUTOMATION_STALE_DAYS,
     COLLECTOR_DOMAINS,
     CONF_AIGATEWAY_ACCESS_TOKEN,
-    CONF_AIGATEWAY_API_URL,
     CONF_AIGATEWAY_CLIENT_ID,
     CONF_AIGATEWAY_EXPIRES_AT,
     CONF_AIGATEWAY_REFRESH_TOKEN,
@@ -94,13 +93,11 @@ from .const import (
     CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_RECORDER_LOOKBACK_DAYS,
-    CONF_SELORA_CLOUD_MODEL,
     CONF_SELORA_CONNECT_ENABLED,
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
     CONF_SELORA_MCP_URL,
-    DEFAULT_AIGATEWAY_API_URL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_COLLECTOR_ENABLED,
@@ -122,7 +119,6 @@ from .const import (
     DEFAULT_OPENROUTER_HOST,
     DEFAULT_OPENROUTER_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
-    DEFAULT_SELORA_CLOUD_MODEL,
     DEFAULT_SELORA_CONNECT_URL,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
@@ -252,7 +248,6 @@ class ConversationStore:
         automation_id: str | None = None,
         risk_assessment: RiskAssessment | None = None,
         tool_calls: list[ToolCallLog] | None = None,
-        devices: list[dict[str, Any]] | None = None,
         scene: dict[str, Any] | None = None,
         scene_yaml: str | None = None,
         scene_id: str | None = None,
@@ -300,8 +295,6 @@ class ConversationStore:
             message["risk_assessment"] = risk_assessment
         if tool_calls is not None:
             message["tool_calls"] = tool_calls
-        if devices:
-            message["devices"] = devices
         if scene is not None:
             message["scene"] = scene
         if scene_yaml is not None:
@@ -741,17 +734,22 @@ def _find_llm(hass: HomeAssistant) -> Any:
 async def _resolve_or_create_session(
     store: ConversationStore,
     session_id: str,
-) -> tuple[Any, str]:
+) -> tuple[Any, str, bool]:
     """Resolve an existing session or create a new one.
 
-    Returns (session_dict, session_id).
+    Returns (session_dict, session_id, created), where ``created`` is True
+    iff this call created a brand-new session. Callers in the chat
+    handlers use the flag to tear down the empty session if the LLM call
+    fails before any message is appended — otherwise a transport error
+    on the first turn would leave a ghost "New conversation" entry in
+    the sidebar.
     """
     if session_id:
         session = await store.get_session(session_id)
         if session:
-            return session, session_id
+            return session, session_id, False
     session = await store.create_session()
-    return session, session["id"]
+    return session, session["id"], True
 
 
 def _find_active_refining_yaml(
@@ -966,7 +964,9 @@ async def _handle_websocket_chat(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
+    session, session_id, _session_created = await _resolve_or_create_session(
+        store, msg.get("session_id") or ""
+    )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
 
@@ -1127,21 +1127,45 @@ async def _handle_websocket_chat_stream(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session, session_id = await _resolve_or_create_session(store, msg.get("session_id") or "")
+    session, session_id, session_created = await _resolve_or_create_session(
+        store, msg.get("session_id") or ""
+    )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+    # Tracks whether we successfully wrote any messages this turn. Used
+    # below: if the LLM fails before any append AND we created the
+    # session in this call, we delete it so the sidebar doesn't fill
+    # with empty "New conversation" entries from failed retries.
+    persisted_any = False
 
     # Reconcile scene store so session context reflects external edits
     scene_store = _get_scene_store(hass)
     await scene_store.async_reconcile_yaml()
 
-    # Build history and collect context BEFORE appending the new user turn —
-    # append_message() mutates stored_messages in place.
+    # Build history and collect context. Note: we deliberately do NOT
+    # persist the user message yet — if the LLM call fails (transport
+    # error, provider unreachable) we want the session to stay clean
+    # rather than accumulate dead turns. The user-side append happens
+    # below, just before the assistant turn, once we have a real reply.
     refining = _find_active_refining_yaml(stored_messages, user_message)
     scenes = _find_active_scenes(session, stored_messages)
     history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
 
-    await store.append_message(session_id, "user", user_message)
+    async def _discard_empty_session_if_needed() -> None:
+        """Drop a brand-new session that never got a message written.
+
+        Only deletes when we created it in this call — pre-existing
+        sessions (the user's prior conversation) are left alone even if
+        their newest turn failed; only the failed-turn pair is missing.
+        """
+        if session_created and not persisted_any:
+            try:
+                await store.delete_session(session_id)
+            except Exception:
+                _LOGGER.debug(
+                    "Failed to clean up empty session %s after error",
+                    session_id,
+                )
 
     # Inject active context (automation refinement, known scenes) into the
     # current turn so the LLM always sees it even if history gets trimmed.
@@ -1152,6 +1176,7 @@ async def _handle_websocket_chat_stream(
         area_names = await get_area_names(hass)
 
         full_text = ""
+        chunk_count = 0
         looks_like_json = False
         async for chunk in llm.architect_chat_stream(
             user_message,
@@ -1164,6 +1189,7 @@ async def _handle_websocket_chat_stream(
             areas=area_names,
         ):
             full_text += chunk
+            chunk_count += 1
             # Suppress streaming tokens when the LLM is emitting raw JSON
             # (command intents). The "done" event carries the parsed response.
             if not looks_like_json:
@@ -1173,6 +1199,18 @@ async def _handle_websocket_chat_stream(
                     connection.send_message(
                         websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
                     )
+
+        # Visibility for "stream ended cleanly but the bubble looks
+        # truncated" diagnosis. Most useful when comparing Selora Cloud
+        # (proxied via Connect / OpenRouter) against direct providers:
+        # if `total_chars` differs sharply for the same prompt, the
+        # truncation is upstream of HA, not in the integration.
+        _LOGGER.info(
+            "Chat stream complete: chunks=%d total_chars=%d provider=%s",
+            chunk_count,
+            len(full_text),
+            getattr(llm._provider, "provider_type", "unknown"),
+        )
 
         parsed = llm.parse_streamed_response(full_text, entities=entities)
         intent_type = parsed.get("intent", "answer")
@@ -1189,14 +1227,17 @@ async def _handle_websocket_chat_stream(
                 hass, intent_type, parsed, session_id
             )
 
-        device_data = tool_executor.device_results if tool_executor else None
-
         # Scenes are NOT created immediately — they are stored as proposals
         # with scene_status="pending" so the user can review before applying.
         scene_payload = parsed.get("scene")
         scene_yaml_str = parsed.get("scene_yaml")
         refine_scene_id = parsed.get("refine_scene_id")
 
+        # Persist user + assistant as a pair, only after the stream has
+        # produced a usable reply. Splitting these would risk a half-turn
+        # being saved if the assistant append fails, but they live in the
+        # same list so the next reload sees a coherent conversation.
+        await store.append_message(session_id, "user", user_message)
         await store.append_message(
             session_id,
             "assistant",
@@ -1208,13 +1249,13 @@ async def _handle_websocket_chat_stream(
             automation_status="pending" if parsed.get("automation") else None,
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
-            devices=device_data if device_data else None,
             scene=scene_payload,
             scene_yaml=scene_yaml_str,
             scene_status="pending" if scene_payload else None,
             refine_scene_id=refine_scene_id if scene_payload else None,
             quick_actions=parsed.get("quick_actions"),
         )
+        persisted_any = True
 
         updated_session = await store.get_session(session_id)
         assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
@@ -1258,7 +1299,6 @@ async def _handle_websocket_chat_stream(
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
                     "schedule_id": schedule_id,
-                    "devices": device_data,
                     "scene": scene_payload,
                     "scene_yaml": scene_yaml_str,
                     "scene_status": "pending" if scene_payload else None,
@@ -1270,11 +1310,32 @@ async def _handle_websocket_chat_stream(
         )
     except asyncio.CancelledError:
         _LOGGER.debug("Streaming chat cancelled by client")
+        await _discard_empty_session_if_needed()
+    except ConnectionError as exc:
+        # Transport / provider failure — emit a transient error event so
+        # the panel can surface it as a one-off message, but do NOT
+        # persist anything to the session store. Reloading the chat
+        # should not show stale "couldn't reach the LLM provider" bubbles.
+        _LOGGER.warning("Streaming chat unreachable: %s", exc)
+        connection.send_message(
+            websocket_api.event_message(
+                msg["id"],
+                {
+                    "type": "error",
+                    "message": (
+                        "Couldn't reach the LLM provider. Check your API key "
+                        "and connection in Settings, then try again."
+                    ),
+                },
+            )
+        )
+        await _discard_empty_session_if_needed()
     except Exception as exc:
         _LOGGER.exception("Streaming chat failed")
         connection.send_message(
             websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)})
         )
+        await _discard_empty_session_if_needed()
 
 
 @websocket_api.async_response
@@ -2286,10 +2347,6 @@ async def _handle_websocket_get_config(
             # Selora Cloud (AI Gateway OAuth)
             "aigateway_linked": bool(config_data.get(CONF_AIGATEWAY_REFRESH_TOKEN)),
             "aigateway_user_email": config_data.get(CONF_AIGATEWAY_USER_EMAIL, ""),
-            "aigateway_api_url": config_data.get(CONF_AIGATEWAY_API_URL, DEFAULT_AIGATEWAY_API_URL),
-            "selora_cloud_model": config_data.get(
-                CONF_SELORA_CLOUD_MODEL, DEFAULT_SELORA_CLOUD_MODEL
-            ),
             # LLM pricing overrides — shape: {provider: {model: [in_per_mtok, out_per_mtok]}}
             "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
         },
@@ -2338,8 +2395,6 @@ async def _handle_websocket_update_config(
         CONF_SELORA_CONNECT_URL,
         CONF_SELORA_INSTALLATION_ID,
         CONF_SELORA_JWT_KEY,
-        CONF_SELORA_CLOUD_MODEL,
-        CONF_AIGATEWAY_API_URL,
     }
 
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
@@ -4364,11 +4419,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             access_token=entry.data.get(CONF_AIGATEWAY_ACCESS_TOKEN, ""),
             refresh_token=entry.data.get(CONF_AIGATEWAY_REFRESH_TOKEN, ""),
             expires_at=entry.data.get(CONF_AIGATEWAY_EXPIRES_AT, 0.0),
-            api_url=entry.data.get(CONF_AIGATEWAY_API_URL, DEFAULT_AIGATEWAY_API_URL),
             connect_url=entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL),
             client_id=entry.data.get(CONF_AIGATEWAY_CLIENT_ID, ""),
             entry_id=entry.entry_id,
-            model=entry.data.get(CONF_SELORA_CLOUD_MODEL, DEFAULT_SELORA_CLOUD_MODEL),
         )
         llm = LLMClient(
             hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
