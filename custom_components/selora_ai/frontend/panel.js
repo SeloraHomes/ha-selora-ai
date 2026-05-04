@@ -9380,118 +9380,123 @@ function renderScenes(host) {
                             ></ha-icon>
                           </span>
                         </div>
-                        <button
-                          class="btn btn-outline"
-                          style="padding:6px 12px;"
-                          ?disabled=${!sceneEntityId}
-                          @click=${(e5) => {
-                            e5.stopPropagation();
-                            const id = sceneEntityId
-                              ? sceneEntityId.replace(/^scene\./, "")
-                              : sceneId;
-                            host._activateScene(id, s6.name);
-                          }}
-                          title="Activate scene"
+                        <div
+                          style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
                         >
-                          <ha-icon
-                            icon="mdi:play"
-                            style="--mdc-icon-size:14px;"
-                          ></ha-icon>
-                          Activate
-                        </button>
-                        <div class="burger-menu-wrapper">
                           <button
-                            class="burger-btn"
+                            class="btn btn-outline"
+                            style="padding:4px 10px;height:28px;font-size:13px;"
+                            ?disabled=${!sceneEntityId}
                             @click=${(e5) => {
                               e5.stopPropagation();
-                              host._openSceneBurger = burgerOpen
-                                ? null
+                              const id = sceneEntityId
+                                ? sceneEntityId.replace(/^scene\./, "")
                                 : sceneId;
+                              host._activateScene(id, s6.name);
                             }}
-                            title="More actions"
+                            title="Activate scene"
                           >
                             <ha-icon
-                              icon="mdi:dots-vertical"
-                              style="--mdc-icon-size:16px;"
+                              icon="mdi:play"
+                              style="--mdc-icon-size:14px;"
                             ></ha-icon>
+                            Activate
                           </button>
-                          ${
-                            burgerOpen
-                              ? x`
-                                <div class="burger-dropdown">
-                                  <button
-                                    class="burger-item"
-                                    ?disabled=${loadingChat}
-                                    @click=${(e5) => {
-                                      e5.stopPropagation();
-                                      host._openSceneBurger = null;
-                                      host._loadSceneToChat(sceneId);
-                                    }}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:chat-processing-outline"
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                    ${loadingChat ? "Loading\u2026" : "Refine in chat"}
-                                  </button>
-                                  <button
-                                    class="burger-item"
-                                    @click=${(e5) => {
-                                      e5.stopPropagation();
-                                      host._openSceneBurger = null;
-                                      if (sceneEntityId) {
-                                        host.dispatchEvent(
-                                          new CustomEvent("hass-more-info", {
-                                            bubbles: true,
-                                            composed: true,
-                                            detail: {
-                                              entityId: sceneEntityId,
-                                            },
-                                          }),
-                                        );
-                                      } else {
-                                        window.history.pushState(
-                                          null,
-                                          "",
-                                          "/config/scene/dashboard",
-                                        );
-                                        window.dispatchEvent(
-                                          new Event("location-changed"),
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:open-in-new"
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                    Open in HA
-                                  </button>
-                                  ${
-                                    isSelora
-                                      ? x`<button
-                                        class="burger-item danger"
-                                        ?disabled=${deleting}
-                                        @click=${(e5) => {
-                                          e5.stopPropagation();
-                                          host._openSceneBurger = null;
-                                          host._deleteSceneConfirmId = sceneId;
-                                          host._deleteSceneConfirmName =
-                                            s6.name;
-                                        }}
-                                      >
-                                        <ha-icon
-                                          icon="mdi:trash-can-outline"
-                                          style="--mdc-icon-size:14px;"
-                                        ></ha-icon>
-                                        ${deleting ? "Deleting\u2026" : "Delete"}
-                                      </button>`
-                                      : ""
-                                  }
-                                </div>
-                              `
-                              : ""
-                          }
+                          <div class="burger-menu-wrapper">
+                            <button
+                              class="burger-btn"
+                              @click=${(e5) => {
+                                e5.stopPropagation();
+                                host._openSceneBurger = burgerOpen
+                                  ? null
+                                  : sceneId;
+                              }}
+                              title="More actions"
+                            >
+                              <ha-icon
+                                icon="mdi:dots-vertical"
+                                style="--mdc-icon-size:16px;"
+                              ></ha-icon>
+                            </button>
+                            ${
+                              burgerOpen
+                                ? x`
+                                  <div class="burger-dropdown">
+                                    <button
+                                      class="burger-item"
+                                      ?disabled=${loadingChat}
+                                      @click=${(e5) => {
+                                        e5.stopPropagation();
+                                        host._openSceneBurger = null;
+                                        host._loadSceneToChat(sceneId);
+                                      }}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:chat-processing-outline"
+                                        style="--mdc-icon-size:14px;"
+                                      ></ha-icon>
+                                      ${loadingChat ? "Loading\u2026" : "Refine in chat"}
+                                    </button>
+                                    <button
+                                      class="burger-item"
+                                      @click=${(e5) => {
+                                        e5.stopPropagation();
+                                        host._openSceneBurger = null;
+                                        if (sceneEntityId) {
+                                          host.dispatchEvent(
+                                            new CustomEvent("hass-more-info", {
+                                              bubbles: true,
+                                              composed: true,
+                                              detail: {
+                                                entityId: sceneEntityId,
+                                              },
+                                            }),
+                                          );
+                                        } else {
+                                          window.history.pushState(
+                                            null,
+                                            "",
+                                            "/config/scene/dashboard",
+                                          );
+                                          window.dispatchEvent(
+                                            new Event("location-changed"),
+                                          );
+                                        }
+                                      }}
+                                    >
+                                      <ha-icon
+                                        icon="mdi:open-in-new"
+                                        style="--mdc-icon-size:14px;"
+                                      ></ha-icon>
+                                      Open in HA
+                                    </button>
+                                    ${
+                                      isSelora
+                                        ? x`<button
+                                          class="burger-item danger"
+                                          ?disabled=${deleting}
+                                          @click=${(e5) => {
+                                            e5.stopPropagation();
+                                            host._openSceneBurger = null;
+                                            host._deleteSceneConfirmId =
+                                              sceneId;
+                                            host._deleteSceneConfirmName =
+                                              s6.name;
+                                          }}
+                                        >
+                                          <ha-icon
+                                            icon="mdi:trash-can-outline"
+                                            style="--mdc-icon-size:14px;"
+                                          ></ha-icon>
+                                          ${deleting ? "Deleting\u2026" : "Delete"}
+                                        </button>`
+                                        : ""
+                                    }
+                                  </div>
+                                `
+                                : ""
+                            }
+                          </div>
                         </div>
                       </div>
                       ${
