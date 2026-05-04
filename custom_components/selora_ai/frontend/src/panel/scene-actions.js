@@ -84,3 +84,28 @@ export async function _refineScene(msgIndex) {
   this._input = `Refine "${name}": `;
   this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
+
+export async function _loadSceneToChat(sceneId) {
+  if (!sceneId) return;
+  this._loadingToChat = { ...this._loadingToChat, [sceneId]: true };
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/load_scene_to_session",
+      scene_id: sceneId,
+    });
+    const sessionId = result?.session_id;
+    if (sessionId) {
+      this._activeSessionId = sessionId;
+      this._input = "";
+      this._activeTab = "chat";
+      this._showSidebar = false;
+      await this._openSession(sessionId);
+    }
+  } catch (err) {
+    console.error("Failed to load scene to chat", err);
+    this._showToast("Failed to load scene into chat: " + err.message, "error");
+  } finally {
+    this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
+  }
+  this.requestUpdate();
+}

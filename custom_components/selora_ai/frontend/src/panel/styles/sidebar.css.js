@@ -110,6 +110,20 @@ export const sidebarStyles = css`
       display: none;
     }
   }
+  .session-delete-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    min-height: 52px;
+    background: rgba(239, 68, 68, 0.06);
+    border-left: 2px solid rgba(239, 68, 68, 0.4);
+  }
+  .session-delete-confirm-label {
+    font-size: 12px;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
   .sidebar-select-btn {
     background: transparent;
     border: 1px solid var(--divider-color);

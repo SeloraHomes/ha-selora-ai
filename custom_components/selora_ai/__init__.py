@@ -777,6 +777,27 @@ def _find_active_refining_yaml(
     return None
 
 
+def _find_active_refining_scene(
+    stored_messages: list[dict[str, Any]],
+) -> tuple[str, str] | None:
+    """Return (sanitized_name, yaml) for the active refining scene.
+
+    Returns a result when the most recent scene status in the session is
+    "refining" — meaning the user loaded a scene for refinement and all
+    subsequent messages are part of that refinement conversation.  A newer
+    "pending", "saved", or "declined" status means the refinement ended.
+    """
+    for m in reversed(stored_messages):
+        status = m.get("scene_status")
+        if status in ("pending", "saved", "declined"):
+            return None
+        if status == "refining" and m.get("scene_yaml"):
+            name = (m.get("scene") or {}).get("name", "")
+            safe_name = _sanitize_history_text(name, max_length=100)
+            return safe_name, m["scene_yaml"]
+    return None
+
+
 def _find_active_scenes(
     session: dict[str, Any] | None,
     stored_messages: list[dict[str, Any]],
@@ -818,6 +839,7 @@ def _build_history_from_session(
     stored_messages: list[dict[str, Any]],
     *,
     skip_refining_yaml: bool = False,
+    skip_refining_scene_yaml: bool = False,
 ) -> list[dict[str, str]]:
     """Build LLM history from stored session messages.
 
@@ -875,7 +897,9 @@ def _build_history_from_session(
                 header += f" — {description}"
             header += f"]\n{m['automation_yaml']}"
             content = f"{content}\n\n{header}"
-        elif i in latest_scene_indices:
+        elif i in latest_scene_indices and not (
+            skip_refining_scene_yaml and m.get("scene_status") == "refining"
+        ):
             scene_name = _sanitize_history_text((m.get("scene") or {}).get("name", ""))
             sid = m.get("scene_id", "")
             qualifier = f"scene_id: {sid}" if sid else "pending proposal — not yet saved"
@@ -1012,8 +1036,13 @@ async def _handle_websocket_chat(
     # Build history and collect context BEFORE appending the new user turn —
     # append_message() mutates stored_messages in place.
     refining = _find_active_refining_yaml(stored_messages, user_message)
+    refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
-    history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
+    history = _build_history_from_session(
+        stored_messages,
+        skip_refining_yaml=refining is not None,
+        skip_refining_scene_yaml=refining_scene is not None,
+    )
 
     await store.append_message(session_id, "user", user_message)
 
@@ -1029,6 +1058,7 @@ async def _handle_websocket_chat(
         history=history,
         tool_executor=tool_executor,
         refining_context=refining,
+        refining_scene_context=refining_scene,
         scene_context=scenes or None,
         areas=area_names,
     )
@@ -1197,8 +1227,13 @@ async def _handle_websocket_chat_stream(
     # rather than accumulate dead turns. The user-side append happens
     # below, just before the assistant turn, once we have a real reply.
     refining = _find_active_refining_yaml(stored_messages, user_message)
+    refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
-    history = _build_history_from_session(stored_messages, skip_refining_yaml=refining is not None)
+    history = _build_history_from_session(
+        stored_messages,
+        skip_refining_yaml=refining is not None,
+        skip_refining_scene_yaml=refining_scene is not None,
+    )
 
     async def _discard_empty_session_if_needed() -> None:
         """Drop a brand-new session that never got a message written.
@@ -1238,6 +1273,7 @@ async def _handle_websocket_chat_stream(
             history=history,
             tool_executor=tool_executor,
             refining_context=refining,
+            refining_scene_context=refining_scene,
             scene_context=scenes or None,
             areas=area_names,
         ):
@@ -3493,11 +3529,14 @@ async def _handle_websocket_get_scenes(
 
     import yaml as pyyaml  # noqa: PLC0415
 
+    from .const import SCENE_ID_PREFIX  # noqa: PLC0415
+    from .scene_utils import resolve_scene_entity_id  # noqa: PLC0415
+
     enriched: list[dict[str, Any]] = []
     for record in scenes:
         entry = yaml_by_id.get(record["scene_id"])
         if entry is None:
-            enriched.append({**record, "entities": {}, "yaml": ""})
+            enriched.append({**record, "entities": {}, "yaml": "", "source": "selora"})
             continue
         entities = entry.get("entities") or {}
         if not isinstance(entities, dict):
@@ -3511,9 +3550,188 @@ async def _handle_websocket_get_scenes(
             )
         except Exception:  # noqa: BLE001 — fall back to empty YAML, never block the list
             yaml_text = ""
-        enriched.append({**record, "entities": entities, "yaml": yaml_text})
+        enriched.append({**record, "entities": entities, "yaml": yaml_text, "source": "selora"})
+
+    # Include non-Selora scenes from yaml (e.g. hand-crafted or other-integration scenes)
+    covered_scene_ids: set[str] = {r["scene_id"] for r in enriched}
+    for entry in yaml_entries:
+        if not isinstance(entry, dict):
+            continue
+        sid = entry.get("id")
+        if not isinstance(sid, str) or sid.startswith(SCENE_ID_PREFIX):
+            continue
+        if sid in covered_scene_ids:
+            continue
+        covered_scene_ids.add(sid)
+        raw_name = entry.get("name", "")
+        if not isinstance(raw_name, str):
+            raw_name = str(raw_name)
+        name = raw_name.strip() or sid
+        entities = entry.get("entities") or {}
+        if not isinstance(entities, dict):
+            entities = {}
+        entity_id = resolve_scene_entity_id(hass, sid, raw_name)
+        try:
+            yaml_text = pyyaml.dump(
+                {"name": name, "entities": entities},
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+        except Exception:  # noqa: BLE001
+            yaml_text = ""
+        enriched.append(
+            {
+                "scene_id": sid,
+                "name": name,
+                "entity_id": entity_id,
+                "entity_count": len(entities),
+                "session_id": None,
+                "created_at": None,
+                "updated_at": None,
+                "deleted_at": None,
+                "entities": entities,
+                "yaml": yaml_text,
+                "source": "home_assistant",
+            }
+        )
+
+    # Include any remaining HA scene states not covered by yaml at all
+    # (UI-managed scenes stored in HA's own storage, or from other integrations)
+    covered_entity_ids: set[str] = {r["entity_id"] for r in enriched if r.get("entity_id")}
+    for state in hass.states.async_all("scene"):
+        if state.entity_id in covered_entity_ids:
+            continue
+        object_id = state.entity_id.removeprefix("scene.")
+        if object_id.startswith(SCENE_ID_PREFIX):
+            continue
+        name = state.attributes.get("friendly_name") or state.name or object_id
+        enriched.append(
+            {
+                "scene_id": object_id,
+                "name": name,
+                "entity_id": state.entity_id,
+                "entity_count": 0,
+                "session_id": None,
+                "created_at": None,
+                "updated_at": None,
+                "deleted_at": None,
+                "entities": {},
+                "yaml": "",
+                "source": "home_assistant",
+            }
+        )
 
     connection.send_result(msg["id"], {"scenes": enriched})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/load_scene_to_session",
+        vol.Required("scene_id"): str,
+    }
+)
+async def _handle_websocket_load_scene_to_session(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Open a chat session pre-loaded with the scene's current entities for refinement.
+
+    Inserts an assistant message showing the scene as a refining card.
+    Subsequent selora_ai/chat messages refine it via the existing chat handler.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    scene_id = msg["scene_id"]
+
+    # Resolve scene data — store first, then yaml, then HA states
+    from .const import SCENE_ID_PREFIX  # noqa: PLC0415
+    from .scene_utils import _get_scenes_path, _read_scenes_yaml  # noqa: PLC0415
+
+    store = _get_scene_store(hass)
+    await store.async_reconcile_yaml(force=True)
+    record = await store.async_get_scene(scene_id)
+
+    name: str = scene_id
+    entities: dict[str, Any] = {}
+    yaml_text: str = ""
+    is_selora = scene_id.startswith(SCENE_ID_PREFIX)
+
+    scenes_path = _get_scenes_path(hass)
+    try:
+        yaml_entries = await hass.async_add_executor_job(_read_scenes_yaml, scenes_path)
+    except Exception:  # noqa: BLE001
+        yaml_entries = []
+
+    yaml_by_id: dict[str, dict[str, Any]] = {
+        e["id"]: e for e in yaml_entries if isinstance(e, dict) and isinstance(e.get("id"), str)
+    }
+
+    if record:
+        name = record.get("name") or scene_id
+        entry = yaml_by_id.get(scene_id)
+        if entry:
+            entities = entry.get("entities") or {}
+            if not isinstance(entities, dict):
+                entities = {}
+    else:
+        # HA-owned scene — try yaml then HA state
+        entry = yaml_by_id.get(scene_id)
+        if entry:
+            raw_name = entry.get("name", "")
+            name = (raw_name.strip() if isinstance(raw_name, str) else scene_id) or scene_id
+            entities = entry.get("entities") or {}
+            if not isinstance(entities, dict):
+                entities = {}
+        else:
+            state = hass.states.get(f"scene.{scene_id}")
+            if state:
+                name = state.attributes.get("friendly_name") or scene_id
+
+    import yaml as pyyaml  # noqa: PLC0415
+
+    if entities:
+        try:
+            yaml_text = pyyaml.dump(
+                {"name": name, "entities": entities},
+                default_flow_style=False,
+                allow_unicode=True,
+                sort_keys=False,
+            )
+        except Exception:  # noqa: BLE001
+            yaml_text = ""
+
+    conv_store: ConversationStore = hass.data[DOMAIN].setdefault(
+        "_conv_store", ConversationStore(hass)
+    )
+    session = await conv_store.create_session()
+    session_id = session["id"]
+
+    await conv_store.update_session_title(session_id, f"Refining: {name}")
+
+    await conv_store.append_message(
+        session_id,
+        "assistant",
+        f"I've loaded the scene **{name}** for refinement. What changes would you like to make?",
+        intent="scene",
+        scene={"name": name, "entities": entities},
+        scene_yaml=yaml_text or None,
+        scene_id=scene_id if is_selora else None,
+        refine_scene_id=scene_id if is_selora else None,
+        scene_status="refining",
+    )
+
+    connection.send_result(
+        msg["id"],
+        {
+            "session_id": session_id,
+            "scene_id": scene_id,
+            "name": name,
+        },
+    )
 
 
 @websocket_api.async_response
@@ -4354,6 +4572,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
     # Scene management
     websocket_api.async_register_command(hass, _handle_websocket_get_scenes)
+    websocket_api.async_register_command(hass, _handle_websocket_load_scene_to_session)
     websocket_api.async_register_command(hass, _handle_websocket_delete_scene)
     websocket_api.async_register_command(hass, _handle_websocket_activate_scene)
 

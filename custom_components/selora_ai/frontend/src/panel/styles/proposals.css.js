@@ -57,7 +57,7 @@ export const proposalStyles = css`
   .yaml-toggle {
     font-size: 12px;
     cursor: pointer;
-    opacity: 0.6;
+    color: var(--secondary-text-color);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -65,7 +65,7 @@ export const proposalStyles = css`
     user-select: none;
   }
   .yaml-toggle:hover {
-    opacity: 1;
+    color: var(--primary-text-color);
   }
   ha-code-editor {
     --code-mirror-font-size: 12px;

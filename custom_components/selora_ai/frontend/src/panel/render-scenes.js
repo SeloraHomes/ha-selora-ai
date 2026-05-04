@@ -43,7 +43,11 @@ function _formatPosition(val) {
 
 function _formatEntityAttrs(stateData) {
   const parts = [];
-  const brightness = _formatBrightness(stateData.brightness);
+  // brightness_pct (0-100) takes precedence; fall back to brightness (0-255)
+  const brightness =
+    stateData.brightness_pct != null
+      ? `${Math.round(Number(stateData.brightness_pct))}%`
+      : _formatBrightness(stateData.brightness);
   if (brightness) parts.push(brightness);
   if (stateData.color_temp != null)
     parts.push(`${stateData.color_temp} mireds`);
@@ -177,11 +181,29 @@ export function renderSceneCard(host, msg, msgIndex) {
         ${_sceneCardHeader(scene.name, "Being Refined")}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
-          <div
-            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
-          >
-            What changes would you like to make?
-          </div>
+          ${msg.scene_yaml
+            ? html`<div
+                class="yaml-toggle"
+                style="margin-top:10px;margin-bottom:0;"
+                @click=${() => toggleYaml(host, yamlKey)}
+              >
+                <ha-icon
+                  icon="mdi:code-braces"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${yamlOpen ? "Hide YAML" : "View YAML"}
+              </div>`
+            : ""}
+          ${yamlOpen && msg.scene_yaml
+            ? html`
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${msg.scene_yaml}
+                  read-only
+                  style="--code-mirror-font-size:12px;margin-top:10px;"
+                ></ha-code-editor>
+              `
+            : ""}
         </div>
       </div>
     `;
@@ -194,7 +216,11 @@ export function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
-        <div class="yaml-toggle" @click=${() => toggleYaml(host, yamlKey)}>
+        <div
+          class="yaml-toggle"
+          style="margin-top:12px;"
+          @click=${() => toggleYaml(host, yamlKey)}
+        >
           <ha-icon
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
@@ -207,36 +233,17 @@ export function renderSceneCard(host, msg, msgIndex) {
                 mode="yaml"
                 .value=${msg.scene_yaml}
                 read-only
-                style="--code-mirror-font-size:12px;"
+                style="--code-mirror-font-size:12px;margin-top:6px;"
               ></ha-code-editor>
             `
           : ""}
-
-        <div class="proposal-actions">
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
             @click=${() => host._acceptScene(msgIndex)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
             Accept &amp; Save
-          </button>
-          <button
-            class="btn btn-outline"
-            @click=${() => host._refineScene(msgIndex)}
-          >
-            <ha-icon
-              icon="mdi:pencil-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            Refine
-          </button>
-          <button
-            class="btn btn-outline"
-            style="color:#ef4444;border-color:rgba(239,68,68,0.3);"
-            @click=${() => host._declineScene(msgIndex)}
-          >
-            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
-            Decline
           </button>
         </div>
       </div>
@@ -349,8 +356,10 @@ export function renderScenes(host) {
                   const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                   const burgerOpen = host._openSceneBurger === sceneId;
                   const deleting = !!host._deletingScene?.[sceneId];
+                  const loadingChat = !!host._loadingToChat?.[sceneId];
                   const updated = formatTimeAgo(s.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
+                  const isSelora = s.source === "selora";
                   return html`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
@@ -371,13 +380,29 @@ export function renderScenes(host) {
                           };
                         }}
                       >
-                        <ha-icon
-                          icon="mdi:palette"
-                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
-                        ></ha-icon>
+                        <div
+                          style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
+                        >
+                          <ha-icon
+                            icon="mdi:palette"
+                            style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                          ></ha-icon>
+                          ${!isSelora && host.narrow
+                            ? html`<span
+                                style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
+                                >HA</span
+                              >`
+                            : ""}
+                        </div>
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s.name}</span>
+                            ${!isSelora && !host.narrow
+                              ? html`<span
+                                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                  >HA</span
+                                >`
+                              : ""}
                           </div>
                           <span class="auto-row-desc auto-row-desc--meta-only"
                             >${meta}</span
@@ -431,31 +456,46 @@ export function renderScenes(host) {
                                 <div class="burger-dropdown">
                                   <button
                                     class="burger-item"
+                                    ?disabled=${loadingChat}
                                     @click=${(e) => {
                                       e.stopPropagation();
                                       host._openSceneBurger = null;
-                                      host._refineSceneInChat(s);
+                                      host._loadSceneToChat(sceneId);
                                     }}
                                   >
                                     <ha-icon
                                       icon="mdi:chat-processing-outline"
                                       style="--mdc-icon-size:14px;"
                                     ></ha-icon>
-                                    Refine in chat
+                                    ${loadingChat
+                                      ? "Loading…"
+                                      : "Refine in chat"}
                                   </button>
                                   <button
                                     class="burger-item"
                                     @click=${(e) => {
                                       e.stopPropagation();
                                       host._openSceneBurger = null;
-                                      window.history.pushState(
-                                        null,
-                                        "",
-                                        "/config/scene/dashboard",
-                                      );
-                                      window.dispatchEvent(
-                                        new Event("location-changed"),
-                                      );
+                                      if (sceneEntityId) {
+                                        host.dispatchEvent(
+                                          new CustomEvent("hass-more-info", {
+                                            bubbles: true,
+                                            composed: true,
+                                            detail: {
+                                              entityId: sceneEntityId,
+                                            },
+                                          }),
+                                        );
+                                      } else {
+                                        window.history.pushState(
+                                          null,
+                                          "",
+                                          "/config/scene/dashboard",
+                                        );
+                                        window.dispatchEvent(
+                                          new Event("location-changed"),
+                                        );
+                                      }
                                     }}
                                   >
                                     <ha-icon
@@ -464,22 +504,24 @@ export function renderScenes(host) {
                                     ></ha-icon>
                                     Open in HA
                                   </button>
-                                  <button
-                                    class="burger-item danger"
-                                    ?disabled=${deleting}
-                                    @click=${(e) => {
-                                      e.stopPropagation();
-                                      host._openSceneBurger = null;
-                                      host._deleteSceneConfirmId = sceneId;
-                                      host._deleteSceneConfirmName = s.name;
-                                    }}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:trash-can-outline"
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                    ${deleting ? "Deleting…" : "Delete"}
-                                  </button>
+                                  ${isSelora
+                                    ? html`<button
+                                        class="burger-item danger"
+                                        ?disabled=${deleting}
+                                        @click=${(e) => {
+                                          e.stopPropagation();
+                                          host._openSceneBurger = null;
+                                          host._deleteSceneConfirmId = sceneId;
+                                          host._deleteSceneConfirmName = s.name;
+                                        }}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:trash-can-outline"
+                                          style="--mdc-icon-size:14px;"
+                                        ></ha-icon>
+                                        ${deleting ? "Deleting…" : "Delete"}
+                                      </button>`
+                                    : ""}
                                 </div>
                               `
                             : ""}
@@ -544,7 +586,7 @@ export function renderScenes(host) {
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">
-                No scenes yet. Ask Selora to capture a moment.
+                No scenes found. Ask Selora to create one.
               </p>
               <button
                 class="btn btn-accent"
