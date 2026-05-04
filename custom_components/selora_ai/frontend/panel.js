@@ -12578,7 +12578,8 @@ async function _sendMessage() {
           trimmed.length < 400 &&
           (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
             /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
-            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || ""));
+            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
+            /\b(the|an?)\s*$/i.test(trimmed));
         if (looksTruncated) {
           cancelSubscription();
           assistantMsg.content = responseText;

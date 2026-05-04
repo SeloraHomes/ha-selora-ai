@@ -168,7 +168,8 @@ export async function _sendMessage() {
           trimmed.length < 400 &&
           (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
             /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
-            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "")); // last line is just a bullet
+            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
+            /\b(the|an?)\s*$/i.test(trimmed)); // ends on a bare article — never a valid sentence end
         if (looksTruncated) {
           cancelSubscription();
           // Preserve any tokens already streamed so the user can see
