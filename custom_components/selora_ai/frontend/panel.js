@@ -1903,6 +1903,20 @@ var sidebarStyles = i`
       display: none;
     }
   }
+  .session-delete-confirm {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 10px;
+    min-height: 52px;
+    background: rgba(239, 68, 68, 0.06);
+    border-left: 2px solid rgba(239, 68, 68, 0.4);
+  }
+  .session-delete-confirm-label {
+    font-size: 12px;
+    opacity: 0.7;
+    white-space: nowrap;
+  }
   .sidebar-select-btn {
     background: transparent;
     border: 1px solid var(--divider-color);
@@ -3013,7 +3027,7 @@ var proposalStyles = i`
   .yaml-toggle {
     font-size: 12px;
     cursor: pointer;
-    opacity: 0.6;
+    color: var(--secondary-text-color);
     display: flex;
     align-items: center;
     gap: 4px;
@@ -3021,7 +3035,7 @@ var proposalStyles = i`
     user-select: none;
   }
   .yaml-toggle:hover {
-    opacity: 1;
+    color: var(--primary-text-color);
   }
   ha-code-editor {
     --code-mirror-font-size: 12px;
@@ -8019,11 +8033,6 @@ function renderProposalCard(host, msg, msgIndex) {
         ${_cardHeader(automation.alias, "Being Refined")}
         <div class="proposal-body" style="padding:0;">
           ${renderAutomationFlowchart(host, automation)}
-          <div
-            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
-          >
-            What changes would you like to make?
-          </div>
         </div>
       </div>
     `;
@@ -8071,40 +8080,38 @@ function renderProposalCard(host, msg, msgIndex) {
         }
         ${renderAutomationFlowchart(host, automation)}
 
-        <div class="yaml-toggle" @click=${() => toggleYaml(host, msgIndex)}>
+        <div
+          class="yaml-toggle"
+          style="margin-top:12px;"
+          @click=${() => toggleYaml(host, msgIndex)}
+        >
           <ha-icon
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
           ${yamlOpen ? "Hide YAML" : "Edit YAML"}
         </div>
-        ${yamlOpen ? host._renderYamlEditor(yamlKey, yaml) : ""}
-
-        <div class="proposal-verify">
-          ${hasEdits ? "Your YAML edits will be used when you accept." : "Does the flow above match what you intended?"}
-        </div>
-
-        <div class="proposal-actions">
+        ${
+          yamlOpen
+            ? x`<div style="margin-top:6px;">
+              ${host._renderYamlEditor(yamlKey, yaml)}
+              ${
+                hasEdits
+                  ? x`<div class="proposal-verify">
+                    Your YAML edits will be used when you accept.
+                  </div>`
+                  : ""
+              }
+            </div>`
+            : ""
+        }
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
             @click=${() => host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
             Accept &amp; Save
-          </button>
-          <button
-            class="btn btn-outline"
-            @click=${() => host._refineAutomation(msgIndex, automation, msg.description)}
-          >
-            <ha-icon icon="mdi:pencil" style="--mdc-icon-size:14px;"></ha-icon>
-            Refine
-          </button>
-          <button
-            class="btn btn-danger"
-            @click=${() => host._declineAutomation(msgIndex)}
-          >
-            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
-            Decline
           </button>
         </div>
       </div>
@@ -9018,7 +9025,10 @@ function _formatPosition(val) {
 }
 function _formatEntityAttrs(stateData) {
   const parts = [];
-  const brightness = _formatBrightness(stateData.brightness);
+  const brightness =
+    stateData.brightness_pct != null
+      ? `${Math.round(Number(stateData.brightness_pct))}%`
+      : _formatBrightness(stateData.brightness);
   if (brightness) parts.push(brightness);
   if (stateData.color_temp != null)
     parts.push(`${stateData.color_temp} mireds`);
@@ -9135,11 +9145,33 @@ function renderSceneCard(host, msg, msgIndex) {
         ${_sceneCardHeader(scene.name, "Being Refined")}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
-          <div
-            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
-          >
-            What changes would you like to make?
-          </div>
+          ${
+            msg.scene_yaml
+              ? x`<div
+                class="yaml-toggle"
+                style="margin-top:10px;margin-bottom:0;"
+                @click=${() => toggleYaml(host, yamlKey)}
+              >
+                <ha-icon
+                  icon="mdi:code-braces"
+                  style="--mdc-icon-size:14px;"
+                ></ha-icon>
+                ${yamlOpen ? "Hide YAML" : "View YAML"}
+              </div>`
+              : ""
+          }
+          ${
+            yamlOpen && msg.scene_yaml
+              ? x`
+                <ha-code-editor
+                  mode="yaml"
+                  .value=${msg.scene_yaml}
+                  read-only
+                  style="--code-mirror-font-size:12px;margin-top:10px;"
+                ></ha-code-editor>
+              `
+              : ""
+          }
         </div>
       </div>
     `;
@@ -9150,7 +9182,11 @@ function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
-        <div class="yaml-toggle" @click=${() => toggleYaml(host, yamlKey)}>
+        <div
+          class="yaml-toggle"
+          style="margin-top:12px;"
+          @click=${() => toggleYaml(host, yamlKey)}
+        >
           <ha-icon
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
@@ -9164,37 +9200,18 @@ function renderSceneCard(host, msg, msgIndex) {
                 mode="yaml"
                 .value=${msg.scene_yaml}
                 read-only
-                style="--code-mirror-font-size:12px;"
+                style="--code-mirror-font-size:12px;margin-top:6px;"
               ></ha-code-editor>
             `
             : ""
         }
-
-        <div class="proposal-actions">
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
             @click=${() => host._acceptScene(msgIndex)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
             Accept &amp; Save
-          </button>
-          <button
-            class="btn btn-outline"
-            @click=${() => host._refineScene(msgIndex)}
-          >
-            <ha-icon
-              icon="mdi:pencil-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            Refine
-          </button>
-          <button
-            class="btn btn-outline"
-            style="color:#ef4444;border-color:rgba(239,68,68,0.3);"
-            @click=${() => host._declineScene(msgIndex)}
-          >
-            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
-            Decline
           </button>
         </div>
       </div>
@@ -9299,8 +9316,10 @@ function renderScenes(host) {
                   const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                   const burgerOpen = host._openSceneBurger === sceneId;
                   const deleting = !!host._deletingScene?.[sceneId];
+                  const loadingChat = !!host._loadingToChat?.[sceneId];
                   const updated = formatTimeAgo(s6.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
+                  const isSelora = s6.source === "selora";
                   return x`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
@@ -9321,13 +9340,33 @@ function renderScenes(host) {
                           };
                         }}
                       >
-                        <ha-icon
-                          icon="mdi:palette"
-                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
-                        ></ha-icon>
+                        <div
+                          style="display:flex;flex-direction:column;align-items:center;gap:4px;flex-shrink:0;"
+                        >
+                          <ha-icon
+                            icon="mdi:palette"
+                            style="--mdc-icon-size:18px;color:var(--selora-accent);"
+                          ></ha-icon>
+                          ${
+                            !isSelora && host.narrow
+                              ? x`<span
+                                style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
+                                >HA</span
+                              >`
+                              : ""
+                          }
+                        </div>
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s6.name}</span>
+                            ${
+                              !isSelora && !host.narrow
+                                ? x`<span
+                                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                  >HA</span
+                                >`
+                                : ""
+                            }
                           </div>
                           <span class="auto-row-desc auto-row-desc--meta-only"
                             >${meta}</span
@@ -9382,31 +9421,44 @@ function renderScenes(host) {
                                 <div class="burger-dropdown">
                                   <button
                                     class="burger-item"
+                                    ?disabled=${loadingChat}
                                     @click=${(e5) => {
                                       e5.stopPropagation();
                                       host._openSceneBurger = null;
-                                      host._refineSceneInChat(s6);
+                                      host._loadSceneToChat(sceneId);
                                     }}
                                   >
                                     <ha-icon
                                       icon="mdi:chat-processing-outline"
                                       style="--mdc-icon-size:14px;"
                                     ></ha-icon>
-                                    Refine in chat
+                                    ${loadingChat ? "Loading\u2026" : "Refine in chat"}
                                   </button>
                                   <button
                                     class="burger-item"
                                     @click=${(e5) => {
                                       e5.stopPropagation();
                                       host._openSceneBurger = null;
-                                      window.history.pushState(
-                                        null,
-                                        "",
-                                        "/config/scene/dashboard",
-                                      );
-                                      window.dispatchEvent(
-                                        new Event("location-changed"),
-                                      );
+                                      if (sceneEntityId) {
+                                        host.dispatchEvent(
+                                          new CustomEvent("hass-more-info", {
+                                            bubbles: true,
+                                            composed: true,
+                                            detail: {
+                                              entityId: sceneEntityId,
+                                            },
+                                          }),
+                                        );
+                                      } else {
+                                        window.history.pushState(
+                                          null,
+                                          "",
+                                          "/config/scene/dashboard",
+                                        );
+                                        window.dispatchEvent(
+                                          new Event("location-changed"),
+                                        );
+                                      }
                                     }}
                                   >
                                     <ha-icon
@@ -9415,22 +9467,27 @@ function renderScenes(host) {
                                     ></ha-icon>
                                     Open in HA
                                   </button>
-                                  <button
-                                    class="burger-item danger"
-                                    ?disabled=${deleting}
-                                    @click=${(e5) => {
-                                      e5.stopPropagation();
-                                      host._openSceneBurger = null;
-                                      host._deleteSceneConfirmId = sceneId;
-                                      host._deleteSceneConfirmName = s6.name;
-                                    }}
-                                  >
-                                    <ha-icon
-                                      icon="mdi:trash-can-outline"
-                                      style="--mdc-icon-size:14px;"
-                                    ></ha-icon>
-                                    ${deleting ? "Deleting\u2026" : "Delete"}
-                                  </button>
+                                  ${
+                                    isSelora
+                                      ? x`<button
+                                        class="burger-item danger"
+                                        ?disabled=${deleting}
+                                        @click=${(e5) => {
+                                          e5.stopPropagation();
+                                          host._openSceneBurger = null;
+                                          host._deleteSceneConfirmId = sceneId;
+                                          host._deleteSceneConfirmName =
+                                            s6.name;
+                                        }}
+                                      >
+                                        <ha-icon
+                                          icon="mdi:trash-can-outline"
+                                          style="--mdc-icon-size:14px;"
+                                        ></ha-icon>
+                                        ${deleting ? "Deleting\u2026" : "Delete"}
+                                      </button>`
+                                      : ""
+                                  }
                                 </div>
                               `
                               : ""
@@ -9503,7 +9560,7 @@ function renderScenes(host) {
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">
-                No scenes yet. Ask Selora to capture a moment.
+                No scenes found. Ask Selora to create one.
               </p>
               <button
                 class="btn btn-accent"
@@ -13325,6 +13382,7 @@ var scene_actions_exports = {};
 __export(scene_actions_exports, {
   _acceptScene: () => _acceptScene,
   _declineScene: () => _declineScene,
+  _loadSceneToChat: () => _loadSceneToChat,
   _refineScene: () => _refineScene,
 });
 function _storedSceneIndex(msg, msgIndex) {
@@ -13391,6 +13449,30 @@ async function _refineScene(msgIndex) {
   const name = scene ? scene.name : "the scene";
   this._input = `Refine "${name}": `;
   this.shadowRoot.querySelector(".composer-textarea")?.focus();
+}
+async function _loadSceneToChat(sceneId) {
+  if (!sceneId) return;
+  this._loadingToChat = { ...this._loadingToChat, [sceneId]: true };
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/load_scene_to_session",
+      scene_id: sceneId,
+    });
+    const sessionId = result?.session_id;
+    if (sessionId) {
+      this._activeSessionId = sessionId;
+      this._input = "";
+      this._activeTab = "chat";
+      this._showSidebar = false;
+      await this._openSession(sessionId);
+    }
+  } catch (err) {
+    console.error("Failed to load scene to chat", err);
+    this._showToast("Failed to load scene into chat: " + err.message, "error");
+  } finally {
+    this._loadingToChat = { ...this._loadingToChat, [sceneId]: false };
+  }
+  this.requestUpdate();
 }
 
 // src/panel.js
@@ -15014,7 +15096,10 @@ var SeloraAIPanel = class extends s4 {
     } catch (err) {
       console.error("Failed to switch session for scene refine", err);
     }
-    const ctx = known ? "" : ` (scene_id: ${scene.scene_id})`;
+    const ctx =
+      known || scene.source !== "selora"
+        ? ""
+        : ` (scene_id: ${scene.scene_id})`;
     this._input = `Refine "${scene.name}"${ctx}: `;
     this._activeTab = "chat";
     this.requestUpdate();
@@ -15626,55 +15711,91 @@ var SeloraAIPanel = class extends s4 {
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </div>
-                      <div
-                        class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
-                        @click=${() => {
-                          if (this._swipedSessionId === s6.id) {
-                            this._swipedSessionId = null;
-                            return;
-                          }
-                          this._selectChatsMode
-                            ? this._toggleSessionSelection(s6.id)
-                            : this._openSession(s6.id);
-                        }}
-                        @touchstart=${(e5) => this._onSessionTouchStart(e5, s6.id)}
-                        @touchmove=${(e5) => this._onSessionTouchMove(e5, s6.id)}
-                        @touchend=${(e5) => this._onSessionTouchEnd(e5, s6.id)}
-                      >
-                        ${
-                          this._selectChatsMode
-                            ? x`
-                              <input
-                                type="checkbox"
-                                class="session-checkbox"
-                                .checked=${!!this._selectedSessionIds[s6.id]}
-                                @click=${(e5) => {
-                                  e5.stopPropagation();
-                                  this._toggleSessionSelection(s6.id);
-                                }}
-                              />
-                            `
-                            : ""
-                        }
-                        <div style="flex:1; min-width:0;">
-                          <div class="session-title">${s6.title}</div>
-                          <div class="session-meta">
-                            ${formatDate(s6.updated_at)}
-                          </div>
-                        </div>
-                        ${
-                          !this._selectChatsMode
-                            ? x`
-                              <ha-icon
-                                class="session-delete"
-                                icon="mdi:delete-outline"
-                                @click=${(e5) => this._deleteSession(s6.id, e5)}
-                                title="Delete"
-                              ></ha-icon>
-                            `
-                            : ""
-                        }
-                      </div>
+                      ${
+                        this._deleteConfirmSessionId === s6.id
+                          ? x`
+                            <div class="session-item session-delete-confirm">
+                              <span class="session-delete-confirm-label"
+                                >Delete?</span
+                              >
+                              <div
+                                style="display:flex;gap:6px;margin-left:auto;"
+                              >
+                                <button
+                                  class="btn btn-sm"
+                                  style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
+                                  @click=${(e5) => {
+                                    e5.stopPropagation();
+                                    this._confirmDeleteSession();
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  class="btn btn-outline btn-sm"
+                                  style="padding:3px 10px;font-size:12px;"
+                                  @click=${(e5) => {
+                                    e5.stopPropagation();
+                                    this._deleteConfirmSessionId = null;
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          `
+                          : x`
+                            <div
+                              class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
+                              @click=${() => {
+                                if (this._swipedSessionId === s6.id) {
+                                  this._swipedSessionId = null;
+                                  return;
+                                }
+                                this._selectChatsMode
+                                  ? this._toggleSessionSelection(s6.id)
+                                  : this._openSession(s6.id);
+                              }}
+                              @touchstart=${(e5) => this._onSessionTouchStart(e5, s6.id)}
+                              @touchmove=${(e5) => this._onSessionTouchMove(e5, s6.id)}
+                              @touchend=${(e5) => this._onSessionTouchEnd(e5, s6.id)}
+                            >
+                              ${
+                                this._selectChatsMode
+                                  ? x`
+                                    <input
+                                      type="checkbox"
+                                      class="session-checkbox"
+                                      .checked=${!!this._selectedSessionIds[s6.id]}
+                                      @click=${(e5) => {
+                                        e5.stopPropagation();
+                                        this._toggleSessionSelection(s6.id);
+                                      }}
+                                    />
+                                  `
+                                  : ""
+                              }
+                              <div style="flex:1; min-width:0;">
+                                <div class="session-title">${s6.title}</div>
+                                <div class="session-meta">
+                                  ${formatDate(s6.updated_at)}
+                                </div>
+                              </div>
+                              ${
+                                !this._selectChatsMode
+                                  ? x`
+                                    <ha-icon
+                                      class="session-delete"
+                                      icon="mdi:delete-outline"
+                                      @click=${(e5) => this._deleteSession(s6.id, e5)}
+                                      title="Delete"
+                                    ></ha-icon>
+                                  `
+                                  : ""
+                              }
+                            </div>
+                          `
+                      }
                     </div>
                   `,
                   )
@@ -15704,7 +15825,7 @@ var SeloraAIPanel = class extends s4 {
 
       ${this._renderFeedbackModal()}
       ${
-        this._deleteConfirmSessionId
+        this._deleteConfirmSessionId === "__bulk__"
           ? x`
             <div
               class="modal-overlay"
@@ -15717,78 +15838,31 @@ var SeloraAIPanel = class extends s4 {
                 class="modal-content"
                 style="max-width:400px;text-align:center;"
               >
-                ${
-                  this._deleteConfirmSessionId === "__bulk__"
-                    ? x`
-                      <div
-                        style="font-size:17px;font-weight:600;margin-bottom:8px;"
-                      >
-                        Delete Conversations
-                      </div>
-                      <div
-                        style="font-size:13px;opacity:0.7;margin-bottom:20px;"
-                      >
-                        Delete
-                        ${
-                          Object.values(this._selectedSessionIds).filter(
-                            Boolean,
-                          ).length
-                        }
-                        selected conversation(s)? This cannot be undone.
-                      </div>
-                      <div
-                        style="display:flex;gap:10px;justify-content:center;"
-                      >
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            this._deleteConfirmSessionId = null;
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          class="btn"
-                          style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                          @click=${() => this._confirmBulkDeleteSessions()}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    `
-                    : x`
-                      <div
-                        style="font-size:17px;font-weight:600;margin-bottom:8px;"
-                      >
-                        Delete Conversation
-                      </div>
-                      <div
-                        style="font-size:13px;opacity:0.7;margin-bottom:20px;"
-                      >
-                        Are you sure you want to delete this conversation? This
-                        cannot be undone.
-                      </div>
-                      <div
-                        style="display:flex;gap:10px;justify-content:center;"
-                      >
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            this._deleteConfirmSessionId = null;
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          class="btn"
-                          style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                          @click=${() => this._confirmDeleteSession()}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    `
-                }
+                <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
+                  Delete Conversations
+                </div>
+                <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                  Delete
+                  ${Object.values(this._selectedSessionIds).filter(Boolean).length}
+                  selected conversation(s)? This cannot be undone.
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                  <button
+                    class="btn btn-outline"
+                    @click=${() => {
+                      this._deleteConfirmSessionId = null;
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="btn"
+                    style="background:#ef4444;color:#fff;border-color:#ef4444;"
+                    @click=${() => this._confirmBulkDeleteSessions()}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           `

@@ -138,11 +138,6 @@ export function renderProposalCard(host, msg, msgIndex) {
         ${_cardHeader(automation.alias, "Being Refined")}
         <div class="proposal-body" style="padding:0;">
           ${renderAutomationFlowchart(host, automation)}
-          <div
-            style="font-size:13px;color:var(--secondary-text-color);margin-top:10px;"
-          >
-            What changes would you like to make?
-          </div>
         </div>
       </div>
     `;
@@ -187,22 +182,28 @@ export function renderProposalCard(host, msg, msgIndex) {
           : ""}
         ${renderAutomationFlowchart(host, automation)}
 
-        <div class="yaml-toggle" @click=${() => toggleYaml(host, msgIndex)}>
+        <div
+          class="yaml-toggle"
+          style="margin-top:12px;"
+          @click=${() => toggleYaml(host, msgIndex)}
+        >
           <ha-icon
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
           ${yamlOpen ? "Hide YAML" : "Edit YAML"}
         </div>
-        ${yamlOpen ? host._renderYamlEditor(yamlKey, yaml) : ""}
-
-        <div class="proposal-verify">
-          ${hasEdits
-            ? "Your YAML edits will be used when you accept."
-            : "Does the flow above match what you intended?"}
-        </div>
-
-        <div class="proposal-actions">
+        ${yamlOpen
+          ? html`<div style="margin-top:6px;">
+              ${host._renderYamlEditor(yamlKey, yaml)}
+              ${hasEdits
+                ? html`<div class="proposal-verify">
+                    Your YAML edits will be used when you accept.
+                  </div>`
+                : ""}
+            </div>`
+          : ""}
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
           <button
             class="btn btn-success"
             @click=${() =>
@@ -210,21 +211,6 @@ export function renderProposalCard(host, msg, msgIndex) {
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
             Accept &amp; Save
-          </button>
-          <button
-            class="btn btn-outline"
-            @click=${() =>
-              host._refineAutomation(msgIndex, automation, msg.description)}
-          >
-            <ha-icon icon="mdi:pencil" style="--mdc-icon-size:14px;"></ha-icon>
-            Refine
-          </button>
-          <button
-            class="btn btn-danger"
-            @click=${() => host._declineAutomation(msgIndex)}
-          >
-            <ha-icon icon="mdi:close" style="--mdc-icon-size:14px;"></ha-icon>
-            Decline
           </button>
         </div>
       </div>

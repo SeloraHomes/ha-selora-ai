@@ -1974,7 +1974,13 @@ class SeloraAIPanel extends LitElement {
     } catch (err) {
       console.error("Failed to switch session for scene refine", err);
     }
-    const ctx = known ? "" : ` (scene_id: ${scene.scene_id})`;
+    // Only add scene_id context for Selora-managed scenes. Using a
+    // non-Selora scene_id as existing_scene_id causes async_create_scene
+    // to reject it; for HA scenes we create a new Selora scene instead.
+    const ctx =
+      known || scene.source !== "selora"
+        ? ""
+        : ` (scene_id: ${scene.scene_id})`;
     this._input = `Refine "${scene.name}"${ctx}: `;
     this._activeTab = "chat";
     this.requestUpdate();
@@ -2606,55 +2612,96 @@ class SeloraAIPanel extends LitElement {
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </div>
-                      <div
-                        class="session-item ${s.id === this._activeSessionId
-                          ? "active"
-                          : ""} ${this._swipedSessionId === s.id
-                          ? "swiped"
-                          : ""}"
-                        @click=${() => {
-                          if (this._swipedSessionId === s.id) {
-                            this._swipedSessionId = null;
-                            return;
-                          }
-                          this._selectChatsMode
-                            ? this._toggleSessionSelection(s.id)
-                            : this._openSession(s.id);
-                        }}
-                        @touchstart=${(e) => this._onSessionTouchStart(e, s.id)}
-                        @touchmove=${(e) => this._onSessionTouchMove(e, s.id)}
-                        @touchend=${(e) => this._onSessionTouchEnd(e, s.id)}
-                      >
-                        ${this._selectChatsMode
-                          ? html`
-                              <input
-                                type="checkbox"
-                                class="session-checkbox"
-                                .checked=${!!this._selectedSessionIds[s.id]}
-                                @click=${(e) => {
-                                  e.stopPropagation();
-                                  this._toggleSessionSelection(s.id);
-                                }}
-                              />
-                            `
-                          : ""}
-                        <div style="flex:1; min-width:0;">
-                          <div class="session-title">${s.title}</div>
-                          <div class="session-meta">
-                            ${formatDate(s.updated_at)}
-                          </div>
-                        </div>
-                        ${!this._selectChatsMode
-                          ? html`
-                              <ha-icon
-                                class="session-delete"
-                                icon="mdi:delete-outline"
-                                @click=${(e) => this._deleteSession(s.id, e)}
-                                title="Delete"
-                              ></ha-icon>
-                            `
-                          : ""}
-                      </div>
+                      ${this._deleteConfirmSessionId === s.id
+                        ? html`
+                            <div class="session-item session-delete-confirm">
+                              <span class="session-delete-confirm-label"
+                                >Delete?</span
+                              >
+                              <div
+                                style="display:flex;gap:6px;margin-left:auto;"
+                              >
+                                <button
+                                  class="btn btn-sm"
+                                  style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
+                                  @click=${(e) => {
+                                    e.stopPropagation();
+                                    this._confirmDeleteSession();
+                                  }}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  class="btn btn-outline btn-sm"
+                                  style="padding:3px 10px;font-size:12px;"
+                                  @click=${(e) => {
+                                    e.stopPropagation();
+                                    this._deleteConfirmSessionId = null;
+                                  }}
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            </div>
+                          `
+                        : html`
+                            <div
+                              class="session-item ${s.id ===
+                              this._activeSessionId
+                                ? "active"
+                                : ""} ${this._swipedSessionId === s.id
+                                ? "swiped"
+                                : ""}"
+                              @click=${() => {
+                                if (this._swipedSessionId === s.id) {
+                                  this._swipedSessionId = null;
+                                  return;
+                                }
+                                this._selectChatsMode
+                                  ? this._toggleSessionSelection(s.id)
+                                  : this._openSession(s.id);
+                              }}
+                              @touchstart=${(e) =>
+                                this._onSessionTouchStart(e, s.id)}
+                              @touchmove=${(e) =>
+                                this._onSessionTouchMove(e, s.id)}
+                              @touchend=${(e) =>
+                                this._onSessionTouchEnd(e, s.id)}
+                            >
+                              ${this._selectChatsMode
+                                ? html`
+                                    <input
+                                      type="checkbox"
+                                      class="session-checkbox"
+                                      .checked=${!!this._selectedSessionIds[
+                                        s.id
+                                      ]}
+                                      @click=${(e) => {
+                                        e.stopPropagation();
+                                        this._toggleSessionSelection(s.id);
+                                      }}
+                                    />
+                                  `
+                                : ""}
+                              <div style="flex:1; min-width:0;">
+                                <div class="session-title">${s.title}</div>
+                                <div class="session-meta">
+                                  ${formatDate(s.updated_at)}
+                                </div>
+                              </div>
+                              ${!this._selectChatsMode
+                                ? html`
+                                    <ha-icon
+                                      class="session-delete"
+                                      icon="mdi:delete-outline"
+                                      @click=${(e) =>
+                                        this._deleteSession(s.id, e)}
+                                      title="Delete"
+                                    ></ha-icon>
+                                  `
+                                : ""}
+                            </div>
+                          `}
                     </div>
                   `,
                 )}
@@ -2692,7 +2739,7 @@ class SeloraAIPanel extends LitElement {
       </div>
 
       ${this._renderFeedbackModal()}
-      ${this._deleteConfirmSessionId
+      ${this._deleteConfirmSessionId === "__bulk__"
         ? html`
             <div
               class="modal-overlay"
@@ -2705,74 +2752,32 @@ class SeloraAIPanel extends LitElement {
                 class="modal-content"
                 style="max-width:400px;text-align:center;"
               >
-                ${this._deleteConfirmSessionId === "__bulk__"
-                  ? html`
-                      <div
-                        style="font-size:17px;font-weight:600;margin-bottom:8px;"
-                      >
-                        Delete Conversations
-                      </div>
-                      <div
-                        style="font-size:13px;opacity:0.7;margin-bottom:20px;"
-                      >
-                        Delete
-                        ${Object.values(this._selectedSessionIds).filter(
-                          Boolean,
-                        ).length}
-                        selected conversation(s)? This cannot be undone.
-                      </div>
-                      <div
-                        style="display:flex;gap:10px;justify-content:center;"
-                      >
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            this._deleteConfirmSessionId = null;
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          class="btn"
-                          style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                          @click=${() => this._confirmBulkDeleteSessions()}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    `
-                  : html`
-                      <div
-                        style="font-size:17px;font-weight:600;margin-bottom:8px;"
-                      >
-                        Delete Conversation
-                      </div>
-                      <div
-                        style="font-size:13px;opacity:0.7;margin-bottom:20px;"
-                      >
-                        Are you sure you want to delete this conversation? This
-                        cannot be undone.
-                      </div>
-                      <div
-                        style="display:flex;gap:10px;justify-content:center;"
-                      >
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            this._deleteConfirmSessionId = null;
-                          }}
-                        >
-                          Cancel
-                        </button>
-                        <button
-                          class="btn"
-                          style="background:#ef4444;color:#fff;border-color:#ef4444;"
-                          @click=${() => this._confirmDeleteSession()}
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    `}
+                <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
+                  Delete Conversations
+                </div>
+                <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
+                  Delete
+                  ${Object.values(this._selectedSessionIds).filter(Boolean)
+                    .length}
+                  selected conversation(s)? This cannot be undone.
+                </div>
+                <div style="display:flex;gap:10px;justify-content:center;">
+                  <button
+                    class="btn btn-outline"
+                    @click=${() => {
+                      this._deleteConfirmSessionId = null;
+                    }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    class="btn"
+                    style="background:#ef4444;color:#fff;border-color:#ef4444;"
+                    @click=${() => this._confirmBulkDeleteSessions()}
+                  >
+                    Delete
+                  </button>
+                </div>
               </div>
             </div>
           `

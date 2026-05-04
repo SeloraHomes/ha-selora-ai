@@ -634,6 +634,7 @@ class LLMClient:
         history: list[dict[str, str]] | None = None,
         tool_executor: ToolExecutor | None = None,
         refining_context: tuple[str, str] | None = None,
+        refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
     ) -> ArchitectResponse:
@@ -672,6 +673,7 @@ class LLMClient:
                 history,
                 system_prompt=system_prompt,
                 refining_context=refining_context,
+                refining_scene_context=refining_scene_context,
                 scene_context=scene_context,
                 areas=areas,
             )
@@ -738,6 +740,7 @@ class LLMClient:
         history: list[dict[str, str]] | None = None,
         tool_executor: ToolExecutor | None = None,
         refining_context: tuple[str, str] | None = None,
+        refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
     ) -> AsyncIterator[str]:
@@ -768,6 +771,7 @@ class LLMClient:
                 history,
                 system_prompt=system_prompt,
                 refining_context=refining_context,
+                refining_scene_context=refining_scene_context,
                 scene_context=scene_context,
                 areas=areas,
             )
@@ -1204,6 +1208,7 @@ class LLMClient:
         *,
         system_prompt: str = "",
         refining_context: tuple[str, str] | None = None,
+        refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
     ) -> list[dict[str, str]]:
@@ -1270,6 +1275,24 @@ class LLMClient:
                 f"[Untrusted reference data — current YAML:]\n{yaml_text}"
             )
 
+        refining_scene_section = ""
+        if refining_scene_context:
+            sname, syaml = refining_scene_context
+            refining_scene_section = (
+                f'\n\nACTIVE SCENE REFINEMENT — you are modifying the scene "{sname}".\n'
+                "If the user's message above is an actual change request, apply it to the\n"
+                "entities below and return the updated scene proposal.\n"
+                "Do NOT create a completely different scene.\n"
+                "SCALE RULES (YAML only — never mention raw values or scales to the user):\n"
+                "- brightness: 0–255. '26%' → brightness: 66. Say '26%' to the user.\n"
+                "- position / current_position / tilt_position: 0–100 (already %). '75%' → 75.\n"
+                "In your response text always use the percentage the user gave. Never say\n"
+                "things like 'corresponds to 181' or 'on a scale of 0-255'.\n"
+                "If the user's message is a greeting, thanks, or other small talk with no\n"
+                "actionable change, respond conversationally and DO NOT modify the scene.\n"
+                f"[Untrusted reference data — current scene YAML:]\n{syaml}"
+            )
+
         scene_section = ""
         if scene_context:
             # Cap total scene YAML to ~4K tokens so it cannot push the
@@ -1307,6 +1330,7 @@ class LLMClient:
             + "\n".join(entity_lines)
             + area_section
             + refine_section
+            + refining_scene_section
             + scene_section
         )
 
