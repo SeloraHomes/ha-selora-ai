@@ -1466,9 +1466,11 @@ async def _handle_websocket_chat_stream(
                 msg["id"],
                 {
                     "type": "error",
-                    "message": (
-                        "Couldn't reach the LLM provider. Check your API key "
-                        "and connection in Settings, then try again."
+                    "message": str(exc)
+                    if str(exc)
+                    else (
+                        "Couldn't reach the LLM provider. Check your connection "
+                        "in Settings, then try again."
                     ),
                 },
             )
