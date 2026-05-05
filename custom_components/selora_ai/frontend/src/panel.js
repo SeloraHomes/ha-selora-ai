@@ -894,9 +894,13 @@ class SeloraAIPanel extends LitElement {
       // so the integration keeps using the previous provider.
       if (provider === "selora_cloud") {
         if (!this._config.aigateway_linked) return;
+        const seloraPayload = { llm_provider: "selora_cloud" };
+        if (this._config.selora_connect_url) {
+          seloraPayload.selora_connect_url = this._config.selora_connect_url;
+        }
         await this.hass.callWS({
           type: "selora_ai/update_config",
-          config: { llm_provider: "selora_cloud" },
+          config: seloraPayload,
         });
         await this._loadConfig();
         this._llmSaveStatus = {

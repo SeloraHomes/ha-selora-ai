@@ -268,12 +268,17 @@ export function renderSettings(host) {
                 ${host._config.aigateway_linked && host._config.developer_mode
                   ? html`
                       <div class="form-group">
-                        <label>Selora Cloud URL (unlink to change)</label>
-                        <code
-                          style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
-                          >${host._config.selora_connect_url ||
-                          "https://connect.selorahomes.com"}</code
-                        >
+                        <ha-textfield
+                          label="Selora Cloud URL"
+                          .value=${host._config.selora_connect_url ||
+                          "https://connect.selorahomes.com"}
+                          @input=${(e) =>
+                            host._updateConfig(
+                              "selora_connect_url",
+                              e.target.value,
+                            )}
+                          style="width:100%;"
+                        ></ha-textfield>
                       </div>
                     `
                   : ""}
