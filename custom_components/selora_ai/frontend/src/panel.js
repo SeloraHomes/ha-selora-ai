@@ -1633,11 +1633,14 @@ class SeloraAIPanel extends LitElement {
       this._requestScrollChat();
     }
     // Hydrate entity chips emitted by the markdown renderer. Re-runs when
-    // messages change (new chips appeared) or when hass changes (live state
-    // → updated icon). Idempotent via the data-wired marker.
+    // messages change (new chips appeared), hass changes (live state updates),
+    // or the chat tab becomes active again (tab switch destroys and recreates
+    // the chat DOM, so grids need re-wiring even if _messages didn't change).
     if (
       this.hass &&
-      (changedProps.has("_messages") || changedProps.has("hass"))
+      (changedProps.has("_messages") ||
+        changedProps.has("hass") ||
+        (changedProps.has("_activeTab") && this._activeTab === "chat"))
     ) {
       this._hydrateEntityChips();
     }

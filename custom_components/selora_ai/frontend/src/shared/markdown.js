@@ -289,6 +289,12 @@ export function renderMarkdown(text) {
   );
   // Line breaks
   escaped = escaped.replace(/\n/g, "<br>");
+  // Block-level entity grid divs don't need surrounding <br> — they
+  // already carry their own margin. Strip any <br> immediately before
+  // the opening tag or immediately after the closing tag so the LLM's
+  // newlines don't add extra visual space above/below the tile grid.
+  escaped = escaped.replace(/(<br>)+(<div class="selora-entity-grid")/g, "$2");
+  escaped = escaped.replace(/(selora-entity-grid[^"]*"><\/div>)(<br>)+/g, "$1");
 
   return escaped;
 }

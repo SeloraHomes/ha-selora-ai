@@ -5794,6 +5794,8 @@ function renderMarkdown(text) {
     '<div style="margin:4px 0 4px 8px;padding-left:12px;border-left:2px solid rgba(251,191,36,0.35);">$1</div>',
   );
   escaped = escaped.replace(/\n/g, "<br>");
+  escaped = escaped.replace(/(<br>)+(<div class="selora-entity-grid")/g, "$2");
+  escaped = escaped.replace(/(selora-entity-grid[^"]*"><\/div>)(<br>)+/g, "$1");
   return escaped;
 }
 
@@ -14827,7 +14829,9 @@ var SeloraAIPanel = class extends s4 {
     }
     if (
       this.hass &&
-      (changedProps.has("_messages") || changedProps.has("hass"))
+      (changedProps.has("_messages") ||
+        changedProps.has("hass") ||
+        (changedProps.has("_activeTab") && this._activeTab === "chat"))
     ) {
       this._hydrateEntityChips();
     }
