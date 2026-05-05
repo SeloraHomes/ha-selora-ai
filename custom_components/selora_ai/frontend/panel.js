@@ -9892,11 +9892,16 @@ function renderSettings(host) {
                   host._config.aigateway_linked && host._config.developer_mode
                     ? x`
                       <div class="form-group">
-                        <label>Selora Cloud URL (unlink to change)</label>
-                        <code
-                          style="display:block;font-size:12px;word-break:break-all;padding:8px 10px;background:var(--card-background-color);border-radius:6px;border:1px solid var(--divider-color);color:var(--secondary-text-color);"
-                          >${host._config.selora_connect_url || "https://connect.selorahomes.com"}</code
-                        >
+                        <ha-textfield
+                          label="Selora Cloud URL"
+                          .value=${host._config.selora_connect_url || "https://connect.selorahomes.com"}
+                          @input=${(e5) =>
+                            host._updateConfig(
+                              "selora_connect_url",
+                              e5.target.value,
+                            )}
+                          style="width:100%;"
+                        ></ha-textfield>
                       </div>
                     `
                     : ""
@@ -14182,9 +14187,13 @@ var SeloraAIPanel = class extends s4 {
       const newKey = this._newApiKey.trim();
       if (provider === "selora_cloud") {
         if (!this._config.aigateway_linked) return;
+        const seloraPayload = { llm_provider: "selora_cloud" };
+        if (this._config.selora_connect_url) {
+          seloraPayload.selora_connect_url = this._config.selora_connect_url;
+        }
         await this.hass.callWS({
           type: "selora_ai/update_config",
-          config: { llm_provider: "selora_cloud" },
+          config: seloraPayload,
         });
         await this._loadConfig();
         this._llmSaveStatus = {
