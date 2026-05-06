@@ -9737,7 +9737,11 @@ var _PROVIDERS = [
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
-  { value: "selora_local", label: "Selora AI Local (On-device)" },
+  {
+    value: "selora_local",
+    label: "Selora AI Local (On-device) \u2014 coming soon",
+    disabled: true,
+  },
 ];
 function _renderProviderPicker(host) {
   const current = _PROVIDERS.find(
