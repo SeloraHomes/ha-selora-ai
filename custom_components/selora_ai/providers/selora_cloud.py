@@ -61,12 +61,18 @@ def _is_transient_upstream_error(err: str | None) -> bool:
     Match conservatively: only the proxy-specific 500 message and the
     generic 502/503/504 status codes, so a real 500 from the AI Gateway
     app itself (a bug we should see in logs) isn't silently retried.
+
+    Also catches the streaming-path error format, which raises without
+    the "HTTP <code>:" prefix — we match the proxy's distinctive
+    cold-start hint directly so the same retry covers both paths.
     """
     if not err:
         return False
     if "HTTP 502" in err or "HTTP 503" in err or "HTTP 504" in err:
         return True
-    return "HTTP 500" in err and "unable to reach app" in err
+    if "HTTP 500" in err and "unable to reach app" in err:
+        return True
+    return "unable to reach app" in err or "app_start_timeout" in err
 
 
 class SeloraCloudProvider(OpenAICompatibleProvider):
@@ -313,7 +319,27 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         *args: Any,
         **kwargs: Any,
     ) -> AsyncIterator[aiohttp.ClientResponse]:
+        # The parent generator raises ConnectionError before yielding
+        # anything when the initial POST returns non-200 — so it is safe
+        # to retry the whole generator on a transient cold-start error.
+        # A successful first attempt yields once and we return immediately.
         await self._ensure_token()
+        for delay in _UPSTREAM_RETRY_DELAYS:
+            try:
+                async for item in super().raw_request_stream(*args, **kwargs):
+                    yield item
+                return
+            except ConnectionError as exc:
+                if not _is_transient_upstream_error(str(exc)):
+                    raise
+                _LOGGER.info(
+                    "Selora Cloud transient upstream error on stream (%s) — retrying after %.1fs",
+                    exc,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+                await self._ensure_token()
+        # Final attempt after the retry budget — let any error propagate.
         async for item in super().raw_request_stream(*args, **kwargs):
             yield item
 
@@ -322,7 +348,26 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         *args: Any,
         **kwargs: Any,
     ) -> AsyncIterator[str]:
+        # See raw_request_stream above for why retrying the parent
+        # generator is safe: the cold-start failure happens at the
+        # initial status check, before any chunk is yielded.
         await self._ensure_token()
+        for delay in _UPSTREAM_RETRY_DELAYS:
+            try:
+                async for chunk in super().send_request_stream(*args, **kwargs):
+                    yield chunk
+                return
+            except ConnectionError as exc:
+                if not _is_transient_upstream_error(str(exc)):
+                    raise
+                _LOGGER.info(
+                    "Selora Cloud transient upstream error on stream (%s) — retrying after %.1fs",
+                    exc,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+                await self._ensure_token()
+        # Final attempt after the retry budget.
         async for chunk in super().send_request_stream(*args, **kwargs):
             yield chunk
 
