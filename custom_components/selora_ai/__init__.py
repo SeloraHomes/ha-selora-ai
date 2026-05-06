@@ -98,6 +98,7 @@ from .const import (
     CONF_SELORA_CONNECT_URL,
     CONF_SELORA_INSTALLATION_ID,
     CONF_SELORA_JWT_KEY,
+    CONF_SELORA_LOCAL_HOST,
     CONF_SELORA_MCP_URL,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
@@ -121,6 +122,7 @@ from .const import (
     DEFAULT_OPENROUTER_MODEL,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DEFAULT_SELORA_CONNECT_URL,
+    DEFAULT_SELORA_LOCAL_HOST,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
     ENTRY_TYPE_DEVICE,
@@ -130,6 +132,7 @@ from .const import (
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
+    LLM_PROVIDER_SELORA_LOCAL,
     MODE_SCHEDULED,
     PANEL_ICON,
     PANEL_NAME,
@@ -2456,6 +2459,7 @@ async def _handle_websocket_get_config(
             "openrouter_model": config_data.get(CONF_OPENROUTER_MODEL, DEFAULT_OPENROUTER_MODEL),
             "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+            "selora_local_host": config_data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
             # Background Services
             "collector_enabled": config_data.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED),
             "collector_mode": config_data.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE),
@@ -2536,6 +2540,7 @@ async def _handle_websocket_update_config(
         CONF_OPENROUTER_MODEL,
         CONF_OLLAMA_HOST,
         CONF_OLLAMA_MODEL,
+        CONF_SELORA_LOCAL_HOST,
         CONF_ENTRY_TYPE,
         CONF_SELORA_CONNECT_ENABLED,
         CONF_SELORA_CONNECT_URL,
@@ -2647,6 +2652,8 @@ async def _handle_websocket_validate_llm_key(
     elif provider == LLM_PROVIDER_OLLAMA:
         model = model or DEFAULT_OLLAMA_MODEL
         host = host or DEFAULT_OLLAMA_HOST
+    elif provider == LLM_PROVIDER_SELORA_LOCAL:
+        host = host or DEFAULT_SELORA_LOCAL_HOST
 
     try:
         llm_provider = create_provider(
@@ -4737,6 +4744,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass,
             host=entry.data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             model=entry.data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
+        )
+        llm = LLMClient(
+            hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
+        )
+    elif provider == LLM_PROVIDER_SELORA_LOCAL:
+        llm_provider = create_provider(
+            provider,
+            hass,
+            host=entry.data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
         )
         llm = LLMClient(
             hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides

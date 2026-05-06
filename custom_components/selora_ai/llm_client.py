@@ -41,6 +41,7 @@ from .const import (
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
+    LLM_PROVIDER_SELORA_LOCAL,
     MAX_TOOL_CALL_ROUNDS,
     SIGNAL_LLM_USAGE,
     estimate_llm_cost_usd,
@@ -65,6 +66,175 @@ _LOGGER = logging.getLogger(__name__)
 
 _MAX_COMMAND_CALLS = 5
 _MAX_TARGET_ENTITIES = 3
+
+# Aggressive caps used when the provider has a tight context window
+# (provider.is_low_context). Small enough to fit the system prompt + a
+# trimmed entity list inside ~700 tokens.
+_LOW_CONTEXT_MAX_ENTITIES = 15
+_LOW_CONTEXT_STOPWORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "to",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "and",
+        "or",
+        "but",
+        "with",
+        "from",
+        "by",
+        "my",
+        "your",
+        "i",
+        "me",
+        "you",
+        "we",
+        "us",
+        "they",
+        "them",
+        "it",
+        "do",
+        "does",
+        "did",
+        "don",
+        "doesn",
+        "didn",
+        "can",
+        "could",
+        "would",
+        "should",
+        "will",
+        "shall",
+        "may",
+        "might",
+        "have",
+        "has",
+        "had",
+        "please",
+        "thanks",
+        "thank",
+        "hi",
+        "hey",
+        "hello",
+        "what",
+        "where",
+        "when",
+        "how",
+        "why",
+        "which",
+        "who",
+        "that",
+        "this",
+        "those",
+        "these",
+        "as",
+        "if",
+        "then",
+        "now",
+        "just",
+    }
+)
+
+
+def _low_context_keywords(user_message: str) -> set[str]:
+    """Extract content tokens from a user message for entity filtering."""
+    out: set[str] = set()
+    for raw in re.split(r"[^a-z0-9]+", user_message.lower()):
+        if len(raw) > 2 and raw not in _LOW_CONTEXT_STOPWORDS:
+            out.add(raw)
+    return out
+
+
+# Pre-classifier patterns for low-context chat routing. Cheap regex
+# heuristics — good enough to pick the right LoRA specialist BEFORE we
+# call it. Order matters: automation patterns are checked before command
+# verbs because rules like "every morning turn on the lights" contain
+# both. Anything unrecognised falls through to "command" (default LoRA).
+_AUTOMATION_PATTERNS = (
+    re.compile(r"\b(automate|automation|schedule|schedul(ed|ing))\b"),
+    re.compile(
+        r"\bevery\s+(day|morning|night|evening|afternoon|hour|minute|"
+        r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|"
+        r"weekday|weekend)\b",
+    ),
+    re.compile(r"\b(when|whenever|if)\b.{0,40}\b(then|do|turn|start|stop|set|send|notify|alert)\b"),
+    re.compile(r"\b(at|after|before)\s+\d"),
+    re.compile(r"\bremind me\b"),
+    re.compile(r"\bcreate (an?|the)?\s*automation\b"),
+)
+_QUESTION_OPENER = re.compile(
+    r"^(what|where|when|why|how|which|who|is|are|was|were|do|does|did|"
+    r"can|could|should|will|would|tell me|show me|list|give me)\b"
+)
+_GREETING_OPENER = re.compile(
+    r"^(hi|hello|hey|yo|sup|thanks|thank you|cheers|"
+    r"good (morning|evening|night|afternoon))\b"
+)
+_COMMAND_VERB = re.compile(
+    r"\b(turn|switch|toggle|set|start|stop|play|pause|resume|open|close|"
+    r"lock|unlock|dim|brighten|increase|decrease|raise|lower|"
+    r"activate|deactivate|enable|disable|run|trigger)\b"
+)
+
+
+def _classify_chat_intent(user_message: str) -> str:
+    """Cheap regex pre-classifier for low-context LoRA routing.
+
+    Returns one of ``command`` / ``automation`` / ``answer`` /
+    ``clarification``. Used only when ``provider.is_low_context`` —
+    cloud providers self-classify in their long system prompt instead.
+    """
+    msg = user_message.lower().strip()
+    if not msg:
+        return "answer"
+    for pat in _AUTOMATION_PATTERNS:
+        if pat.search(msg):
+            return "automation"
+    if _GREETING_OPENER.match(msg):
+        return "answer"
+    if _QUESTION_OPENER.match(msg):
+        return "answer"
+    if _COMMAND_VERB.search(msg):
+        return "command"
+    return "command"
+
+
+def _filter_entities_by_keywords(
+    entities: list[EntitySnapshot],
+    keywords: set[str],
+    *,
+    cap: int,
+) -> list[EntitySnapshot]:
+    """Keep entities whose id, friendly_name, or area mentions any keyword."""
+    if not keywords:
+        return []
+    kept: list[EntitySnapshot] = []
+    for e in entities:
+        haystack = " ".join(
+            [
+                e.get("entity_id", ""),
+                str(e.get("attributes", {}).get("friendly_name", "")),
+                e.get("area_name", "") or "",
+            ]
+        ).lower()
+        if any(kw in haystack for kw in keywords):
+            kept.append(e)
+            if len(kept) >= cap:
+                break
+    return kept
+
+
 _UNTRUSTED_TEXT_LIMIT = 160
 
 # ── Conversation history budget ────────────────────────────────────────
@@ -89,6 +259,8 @@ _PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
     LLM_PROVIDER_OPENROUTER: 110_000,  # Routes to many models, conservative budget
     LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
     LLM_PROVIDER_SELORA_CLOUD: 110_000,  # OpenAI-compatible gateway, conservative
+    # libselora add-on caps max_seq at 1024 — leave room for the response.
+    LLM_PROVIDER_SELORA_LOCAL: 700,
 }
 _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "light": {
@@ -485,13 +657,21 @@ class LLMClient:
             buf.clear()
 
     @contextmanager
-    def _usage_scope(self) -> Any:
-        """Create an isolated usage buffer for the current call."""
+    def _usage_scope(self, kind: str | None = None) -> Any:
+        """Create an isolated usage buffer for the current call.
+
+        ``kind`` mirrors the value passed later to ``_flush_usage`` and
+        is forwarded to the provider via ``set_call_kind`` so backends
+        that route to specialist models (e.g. SeloraLocal LoRAs) can
+        pick the right one for this call's purpose.
+        """
         token: Token[list[tuple[str, str, LLMUsageInfo]]] = self._pending_usage.set([])
+        self._provider.set_call_kind(kind)
         try:
             yield
         finally:
             self._pending_usage.reset(token)
+            self._provider.set_call_kind(None)
 
     @property
     def provider_name(self) -> str:
@@ -594,7 +774,7 @@ class LLMClient:
         direct LLM access without the architect parsing pipeline. Pass
         ``kind`` to tag the call for the usage breakdown.
         """
-        with self._usage_scope():
+        with self._usage_scope(kind):
             try:
                 return await self._provider.send_request(system, messages, max_tokens=max_tokens)
             finally:
@@ -609,11 +789,14 @@ class LLMClient:
         if self._provider.requires_api_key and not self._provider.has_api_key:
             _LOGGER.warning("Skipping analysis: %s API key not configured", self.provider_name)
             return []
+        if self._provider.is_low_context:
+            _LOGGER.debug("Skipping analysis: low-context provider cannot fit home snapshot")
+            return []
 
         system_prompt = self._build_system_prompt()
         user_prompt = self._build_analysis_prompt(home_snapshot)
 
-        with self._usage_scope():
+        with self._usage_scope("suggestions"):
             try:
                 result, error = await self._provider.send_request(
                     system=system_prompt, messages=[{"role": "user", "content": user_prompt}]
@@ -662,21 +845,34 @@ class LLMClient:
                 "config_issue": True,
             }
 
-        with self._usage_scope():
-            system_prompt = self._build_architect_system_prompt(
-                tools_available=tool_executor is not None,
-            )
-            messages = self._build_chat_messages(
-                user_message,
-                entities,
-                existing_automations,
-                history,
-                system_prompt=system_prompt,
-                refining_context=refining_context,
-                refining_scene_context=refining_scene_context,
-                scene_context=scene_context,
-                areas=areas,
-            )
+        with self._usage_scope("chat"):
+            if self._provider.is_low_context:
+                # Low-context backend (e.g. SeloraLocal add-on, max_seq=1024):
+                # pre-classify the user's intent so the provider can route
+                # to the right specialist, then use a tight system prompt
+                # + filtered entity list. Tool calling is unsupported —
+                # the engine can't fit a tool schema *and* the conversation
+                # in 1024 tokens.
+                intent_hint = _classify_chat_intent(user_message)
+                self._provider.set_call_kind(f"chat_{intent_hint}")
+                system_prompt = self._build_minimal_architect_system_prompt()
+                messages = self._build_minimal_chat_messages(user_message, entities, history)
+                tool_executor = None
+            else:
+                system_prompt = self._build_architect_system_prompt(
+                    tools_available=tool_executor is not None,
+                )
+                messages = self._build_chat_messages(
+                    user_message,
+                    entities,
+                    existing_automations,
+                    history,
+                    system_prompt=system_prompt,
+                    refining_context=refining_context,
+                    refining_scene_context=refining_scene_context,
+                    scene_context=scene_context,
+                    areas=areas,
+                )
             # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
             if tool_executor is not None:
                 tools = self._get_tools_for_provider()
@@ -760,21 +956,29 @@ class LLMClient:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
-        with self._usage_scope():
-            system_prompt = self._build_architect_stream_system_prompt(
-                tools_available=tool_executor is not None,
-            )
-            messages = self._build_chat_messages(
-                user_message,
-                entities,
-                existing_automations,
-                history,
-                system_prompt=system_prompt,
-                refining_context=refining_context,
-                refining_scene_context=refining_scene_context,
-                scene_context=scene_context,
-                areas=areas,
-            )
+        with self._usage_scope("chat"):
+            if self._provider.is_low_context:
+                # See architect_chat — same low-context shortcut.
+                intent_hint = _classify_chat_intent(user_message)
+                self._provider.set_call_kind(f"chat_{intent_hint}")
+                system_prompt = self._build_minimal_architect_system_prompt()
+                messages = self._build_minimal_chat_messages(user_message, entities, history)
+                tool_executor = None
+            else:
+                system_prompt = self._build_architect_stream_system_prompt(
+                    tools_available=tool_executor is not None,
+                )
+                messages = self._build_chat_messages(
+                    user_message,
+                    entities,
+                    existing_automations,
+                    history,
+                    system_prompt=system_prompt,
+                    refining_context=refining_context,
+                    refining_scene_context=refining_scene_context,
+                    scene_context=scene_context,
+                    areas=areas,
+                )
 
             # Tool-aware streaming: streams text tokens, handles tool calls inline
             if tool_executor is not None:
@@ -836,7 +1040,7 @@ class LLMClient:
             entity_lines
         )
 
-        with self._usage_scope():
+        with self._usage_scope("command"):
             try:
                 result, error = await self._provider.send_request(
                     system=system_prompt,
@@ -862,7 +1066,7 @@ class LLMClient:
             {"role": "assistant", "content": assistant_response[:200]},
             {"role": "user", "content": "Now generate a short title for this conversation."},
         ]
-        with self._usage_scope():
+        with self._usage_scope("session_title"):
             try:
                 result, error = await self._provider.send_request(system=system, messages=messages)
                 if result:
@@ -876,7 +1080,7 @@ class LLMClient:
 
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""
-        with self._usage_scope():
+        with self._usage_scope("health_check"):
             try:
                 return await self._provider.health_check()
             finally:
@@ -1346,6 +1550,57 @@ class LLMClient:
     # ------------------------------------------------------------------
     # System prompts
     # ------------------------------------------------------------------
+
+    @staticmethod
+    def _build_minimal_architect_system_prompt() -> str:
+        """Tight system prompt for low-context providers (e.g. Selora Local).
+
+        The four LoRA specialists are pre-trained on Selora's intent
+        schema, so the prompt only restates the JSON shape the parser
+        expects — no rule walls, no examples, no tone guidance.
+        """
+        return (
+            "You are Selora AI for Home Assistant. Reply with ONLY one JSON object:\n"
+            '{"intent": "command|automation|answer|clarification",'
+            ' "response": "<short reply>",'
+            ' "calls": [<service-call objects, command intent only>],'
+            ' "automation": {<HA automation, automation intent only>}}\n'
+            "Use entity_ids from AVAILABLE ENTITIES only. No prose outside the JSON."
+        )
+
+    def _build_minimal_chat_messages(
+        self,
+        user_message: str,
+        entities: list[EntitySnapshot],
+        history: list[dict[str, str]] | None,
+    ) -> list[dict[str, str]]:
+        """Build a tightly-bounded message list for low-context providers.
+
+        Strips automation/scene/area/refinement context and filters the
+        entity list down to ones whose id, friendly name, or area
+        mentions a content word from the current user message.
+        """
+        keywords = _low_context_keywords(user_message)
+        filtered = _filter_entities_by_keywords(entities, keywords, cap=_LOW_CONTEXT_MAX_ENTITIES)
+        entity_lines = [_format_entity_line(e) for e in filtered]
+        entity_section = (
+            "AVAILABLE ENTITIES:\n" + "\n".join(entity_lines)
+            if entity_lines
+            else "AVAILABLE ENTITIES: none relevant."
+        )
+        context_prompt = f"USER REQUEST: {user_message}\n\n{entity_section}"
+
+        # Keep only the last turn of history — anything more risks
+        # blowing the 1024-token engine ceiling.
+        messages: list[dict[str, str]] = []
+        if history:
+            for turn in history[-2:]:
+                role = turn.get("role", "")
+                content = str(turn.get("content", "")).strip()
+                if role in ("user", "assistant") and content:
+                    messages.append({"role": role, "content": content[:200]})
+        messages.append({"role": "user", "content": context_prompt})
+        return messages
 
     def _build_architect_system_prompt(self, *, tools_available: bool = False) -> str:
         """System prompt for the Smart Home Architect role (JSON-mode)."""

@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -56,6 +56,7 @@ from .const import (
     CONF_OPENROUTER_MODEL,
     CONF_PATTERN_ENABLED,
     CONF_SELECTED_DEVICES,
+    CONF_SELORA_LOCAL_HOST,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_COLLECTOR_ENABLED,
     DEFAULT_COLLECTOR_END_TIME,
@@ -73,6 +74,7 @@ from .const import (
     DEFAULT_OLLAMA_MODEL,
     DEFAULT_OPENAI_MODEL,
     DEFAULT_OPENROUTER_MODEL,
+    DEFAULT_SELORA_LOCAL_HOST,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_LLM,
@@ -83,6 +85,7 @@ from .const import (
     LLM_PROVIDER_OPENAI,
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
+    LLM_PROVIDER_SELORA_LOCAL,
     MODE_CONTINUOUS,
     MODE_SCHEDULED,
 )
@@ -232,6 +235,20 @@ async def _validate_openai(hass: HomeAssistant, data: dict[str, Any]) -> dict[st
     return {"title": f"Selora AI (OpenAI — {model})"}
 
 
+async def _validate_selora_local(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
+    """Validate that the Selora AI Local add-on is reachable."""
+    from .providers import create_provider
+
+    provider = create_provider(
+        LLM_PROVIDER_SELORA_LOCAL,
+        hass,
+        host=data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
+    )
+    if not await provider.health_check():
+        raise ConnectionError("Selora AI Local add-on not reachable")
+    return {"title": "Selora AI (Local)"}
+
+
 async def _validate_openrouter(hass: HomeAssistant, data: dict[str, Any]) -> dict[str, str]:
     """Validate that the OpenRouter API key works."""
     from .providers import create_provider
@@ -257,11 +274,14 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
 
+    # HA calls this on the class, not an instance, so it must be a staticmethod.
+    @staticmethod
+    @callback
     def async_get_options_flow(
-        self, config_entry: config_entries.ConfigEntry
+        config_entry: config_entries.ConfigEntry,
     ) -> SeloraAiOptionsFlowHandler:
         """Get the options flow for this handler."""
-        return SeloraAiOptionsFlowHandler(config_entry)
+        return SeloraAiOptionsFlowHandler()
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -340,6 +360,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_openrouter()
             if self._provider == LLM_PROVIDER_OLLAMA:
                 return await self.async_step_ollama()
+            if self._provider == LLM_PROVIDER_SELORA_LOCAL:
+                return await self.async_step_selora_local()
 
             # Skip for now
             await self.async_set_unique_id(DOMAIN)
@@ -363,6 +385,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             LLM_PROVIDER_OPENAI: "OpenAI",
                             LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
                             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
+                            LLM_PROVIDER_SELORA_LOCAL: "Selora AI Local (On-device)",
                             LLM_PROVIDER_NONE: "Skip for now (Configure later)",
                         }
                     ),
@@ -516,6 +539,42 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_OPENROUTER_MODEL,
                         default=DEFAULT_OPENROUTER_MODEL,
+                    ): str,
+                }
+            ),
+            errors=errors,
+        )
+
+    async def async_step_selora_local(
+        self, user_input: dict[str, Any] | None = None
+    ) -> config_entries.ConfigFlowResult:
+        """Configure the Selora AI Local add-on, then chain to discovery."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            try:
+                info = await _validate_selora_local(self.hass, user_input)
+            except ConnectionError:
+                errors["base"] = "cannot_connect"
+            except Exception:
+                _LOGGER.exception("Unexpected error during Selora Local validation")
+                errors["base"] = "unknown"
+            else:
+                self._llm_data = {
+                    CONF_ENTRY_TYPE: ENTRY_TYPE_LLM,
+                    CONF_LLM_PROVIDER: LLM_PROVIDER_SELORA_LOCAL,
+                    **user_input,
+                    "_title": info["title"],
+                }
+                return await self.async_step_selora_connect()
+
+        return self.async_show_form(
+            step_id="selora_local",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_SELORA_LOCAL_HOST,
+                        default=DEFAULT_SELORA_LOCAL_HOST,
                     ): str,
                 }
             ),
@@ -912,9 +971,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
     """Handle Selora AI options."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    # No __init__ — HA auto-populates self.config_entry, and assigning it
+    # in __init__ raises since HA 2025.12.
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
