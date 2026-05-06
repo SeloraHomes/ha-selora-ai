@@ -80,7 +80,8 @@
       "unknown": "An unexpected error occurred during setup.",
       "llm_not_ready": "Selora AI LLM backend is not running. Please configure it first.",
       "no_devices_found": "No new devices were discovered on your network. Try again later.",
-      "no_devices_selected": "No devices were selected."
+      "no_devices_selected": "No devices were selected.",
+      "select_devices_failed": "Device onboarding hit an unexpected error. Selora AI was set up without device onboarding — you can try again later from Settings > Devices > Add Entry. Check Home Assistant logs for details."
     }
   },
   "common": {

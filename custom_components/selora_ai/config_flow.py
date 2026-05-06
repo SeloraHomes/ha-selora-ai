@@ -147,6 +147,11 @@ def _make_deferred_area_callback(
         if not entry_id or not area_id:
             return
 
+        # HA may already be stopping by the time a slow flow finishes;
+        # touching the device registry then races teardown.
+        if not hass.is_running:
+            return
+
         from homeassistant.helpers import device_registry as dr
 
         try:
@@ -741,10 +746,27 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_select_devices(
         self, user_input: dict[str, Any] | None = None
     ) -> config_entries.ConfigFlowResult:
-        """User submitted area assignments — orchestrate device setup."""
+        """User submitted area assignments — orchestrate device setup.
+
+        Critical invariant: this step must always make forward progress.
+        If the device-accept orchestration explodes, we still want the
+        user to land on a results page (or, in initial setup, get an
+        LLM entry created) — otherwise they get trapped re-running the
+        same flow and hitting the same exception every time, with no
+        Selora AI entry to fall back to.
+        """
         if user_input is None:
             return await self.async_step_discover()
 
+        try:
+            return await self._handle_select_devices(user_input)
+        except Exception:
+            _LOGGER.exception("async_step_select_devices crashed — degrading to results")
+            return await self._fallback_after_select_devices_failure()
+
+    async def _handle_select_devices(
+        self, user_input: dict[str, Any]
+    ) -> config_entries.ConfigFlowResult:
         dm = self._get_or_create_device_manager()
         if dm is None:
             return self.async_abort(reason="llm_not_ready")
@@ -758,90 +780,111 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if area_choice != "skip":
                 selected.append((dev, area_choice))
 
-        if selected:
-            # Accept all flows concurrently so wall time = slowest flow,
-            # not the sum.  asyncio.wait returns pending tasks without
-            # cancelling them, so slow flows keep running in HA.
-            tasks = {
-                asyncio.create_task(
-                    dm.accept_flow(dev["flow_id"]),
-                    name=dev["flow_id"],
-                ): (dev, area_choice)
-                for dev, area_choice in selected
-            }
-
-            done, pending = await asyncio.wait(tasks, timeout=_DEVICE_ACCEPT_TIMEOUT)
-
-            # Process completed flows
-            for task in done:
-                dev, area_choice = tasks[task]
-                flow_id = dev["flow_id"]
-                display_name = self._build_device_label(dev)
-                area_id = area_choice if area_choice != "no_area" else None
-
-                exc = task.exception()
-                if exc is not None:
-                    _LOGGER.error(
-                        "Setup failed for %s (%s): %s",
-                        display_name,
-                        flow_id,
-                        exc,
-                    )
-                    self._setup_results.append(
-                        {
-                            "flow_id": flow_id,
-                            "name": display_name,
-                            "status": "error",
-                            "message": str(exc),
-                        }
-                    )
-                    continue
-
-                result = task.result()
-                self._setup_results.append(
-                    self._build_setup_result(flow_id, display_name, area_id, result)
-                )
-                # Assign area after successful creation
-                if result.get("type") == "create_entry" and area_id and result.get("entry_id"):
-                    await self._assign_area_to_entry(result["entry_id"], area_id)
-
-            # Flows still running — attach a callback that assigns the
-            # user-chosen area once the flow completes (and drains any
-            # exception so asyncio doesn't log "never retrieved").
-            for task in pending:
-                dev, area_choice = tasks[task]
-                flow_id = dev["flow_id"]
-                display_name = self._build_device_label(dev)
-                area_id = area_choice if area_choice != "no_area" else None
-
-                task.add_done_callback(
-                    _make_deferred_area_callback(self.hass, flow_id, display_name, area_id)
-                )
-
-                _LOGGER.info(
-                    "Flow %s (%s) still in progress after %ds — "
-                    "area will be assigned when the flow completes",
-                    display_name,
-                    flow_id,
-                    _DEVICE_ACCEPT_TIMEOUT,
-                )
-                self._setup_results.append(
-                    {
-                        "flow_id": flow_id,
-                        "name": display_name,
-                        "status": "needs_attention",
-                        "area_id": area_id,
-                        "message": "Still in progress — finish setup via Settings > Devices",
-                    }
-                )
-
         if not selected:
             if self._llm_data:
                 # Initial setup with no devices selected — still create LLM entry
                 return await self._create_llm_entry()
             return self.async_abort(reason="no_devices_selected")
 
+        await self._accept_selected_flows(dm, selected)
         return await self.async_step_results()
+
+    async def _fallback_after_select_devices_failure(
+        self,
+    ) -> config_entries.ConfigFlowResult:
+        """Recover from an unexpected crash inside the device-accept path.
+
+        On initial setup we'd rather create an LLM-only entry (devices
+        can be onboarded later via "Add Entry") than leave the user with
+        no entry at all. On Add-Entry mode, abort cleanly so they aren't
+        trapped — they can retry without a half-baked record entry.
+        """
+        if self._llm_data:
+            try:
+                return await self._create_llm_entry()
+            except Exception:
+                _LOGGER.exception("LLM-entry fallback also failed")
+        return self.async_abort(reason="select_devices_failed")
+
+    async def _accept_selected_flows(
+        self,
+        dm: DeviceManager,
+        selected: list[tuple[dict[str, Any], str]],
+    ) -> None:
+        """Accept selected device flows concurrently with a wall-time budget.
+
+        Tasks that don't finish within the wall-time budget are left running
+        in the background — they're not cancelled, and a done-callback
+        assigns the user-chosen area when they eventually complete.
+        """
+        tasks = {
+            self.hass.async_create_task(
+                dm.accept_flow(dev["flow_id"]),
+                name=f"selora_ai_accept_{dev['flow_id']}",
+            ): (dev, area_choice)
+            for dev, area_choice in selected
+        }
+
+        done, pending = await asyncio.wait(tasks, timeout=_DEVICE_ACCEPT_TIMEOUT)
+
+        for task in done:
+            dev, area_choice = tasks[task]
+            flow_id = dev["flow_id"]
+            display_name = self._build_device_label(dev)
+            area_id = area_choice if area_choice != "no_area" else None
+
+            exc = task.exception()
+            if exc is not None:
+                _LOGGER.error(
+                    "Setup failed for %s (%s): %s",
+                    display_name,
+                    flow_id,
+                    exc,
+                    exc_info=exc,
+                )
+                self._setup_results.append(
+                    {
+                        "flow_id": flow_id,
+                        "name": display_name,
+                        "status": "error",
+                        "message": str(exc) or exc.__class__.__name__,
+                    }
+                )
+                continue
+
+            result = task.result()
+            self._setup_results.append(
+                self._build_setup_result(flow_id, display_name, area_id, result)
+            )
+            if result.get("type") == "create_entry" and area_id and result.get("entry_id"):
+                await self._assign_area_to_entry(result["entry_id"], area_id)
+
+        for task in pending:
+            dev, area_choice = tasks[task]
+            flow_id = dev["flow_id"]
+            display_name = self._build_device_label(dev)
+            area_id = area_choice if area_choice != "no_area" else None
+
+            task.add_done_callback(
+                _make_deferred_area_callback(self.hass, flow_id, display_name, area_id)
+            )
+
+            _LOGGER.info(
+                "Flow %s (%s) still in progress after %ds — "
+                "area will be assigned when the flow completes",
+                display_name,
+                flow_id,
+                _DEVICE_ACCEPT_TIMEOUT,
+            )
+            self._setup_results.append(
+                {
+                    "flow_id": flow_id,
+                    "name": display_name,
+                    "status": "needs_attention",
+                    "area_id": area_id,
+                    "message": "Still in progress — finish setup via Settings > Devices",
+                }
+            )
 
     @staticmethod
     def _build_setup_result(
