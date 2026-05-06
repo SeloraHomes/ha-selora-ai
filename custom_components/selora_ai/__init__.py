@@ -1334,20 +1334,6 @@ async def _handle_websocket_chat_stream(
         tool_executor = _create_tool_executor(hass, connection)
         area_names = await get_area_names(hass)
 
-        # Heartbeat task: posts an empty event every 20s while we're
-        # waiting for / suppressing tokens, so the panel's stall watchdog
-        # (chat-actions.js) doesn't fire on slow first-token providers
-        # (cold libselora LoRA load) or JSON-only responses where every
-        # chunk gets swallowed by the looks_like_json suppression below.
-        async def _heartbeat_pump() -> None:
-            while True:
-                await asyncio.sleep(20)
-                connection.send_message(
-                    websocket_api.event_message(msg["id"], {"type": "heartbeat"})
-                )
-
-        heartbeat_task = asyncio.create_task(_heartbeat_pump())
-
         full_text = ""
         chunk_count = 0
         looks_like_json = False
@@ -1424,14 +1410,6 @@ async def _handle_websocket_chat_stream(
         parsed = llm.parse_streamed_response(full_text, entities=entities)
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
-
-        # Some local backends (Selora Local LoRAs without an EOS-aware
-        # sampler) occasionally emit only a stop token, which we strip
-        # to nothing — leaving the panel with an empty bubble. Fall back
-        # to a short message so the conversation isn't broken silently.
-        if not (response_text or "").strip() and not parsed.get("automation"):
-            response_text = "I didn't catch that — could you rephrase?"
-            intent_type = parsed.get("intent") or "answer"
 
         # Execute immediate commands
         executed: list[str] = []
@@ -1579,13 +1557,6 @@ async def _handle_websocket_chat_stream(
             websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)})
         )
         await _discard_empty_session_if_needed()
-    finally:
-        # Stop the heartbeat pump in every exit path (success, cancel,
-        # transport error, anything else). Use a local fallback in case
-        # we exited before the task was created.
-        hb = locals().get("heartbeat_task")
-        if hb is not None and not hb.done():
-            hb.cancel()
 
 
 @websocket_api.async_response
@@ -2606,6 +2577,7 @@ async def _handle_websocket_get_config(
             "discovery_end_time": config_data.get(
                 CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME
             ),
+            "pattern_detection_enabled": config_data.get(CONF_PATTERN_ENABLED, True),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect

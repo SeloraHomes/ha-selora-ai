@@ -19,7 +19,7 @@ from typing import TYPE_CHECKING, Any
 import uuid
 
 from homeassistant import config_entries
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -34,16 +34,6 @@ if TYPE_CHECKING:
 from .const import (
     CONF_ANTHROPIC_API_KEY,
     CONF_ANTHROPIC_MODEL,
-    CONF_COLLECTOR_ENABLED,
-    CONF_COLLECTOR_END_TIME,
-    CONF_COLLECTOR_INTERVAL,
-    CONF_COLLECTOR_MODE,
-    CONF_COLLECTOR_START_TIME,
-    CONF_DISCOVERY_ENABLED,
-    CONF_DISCOVERY_END_TIME,
-    CONF_DISCOVERY_INTERVAL,
-    CONF_DISCOVERY_MODE,
-    CONF_DISCOVERY_START_TIME,
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
@@ -54,20 +44,9 @@ from .const import (
     CONF_OPENAI_MODEL,
     CONF_OPENROUTER_API_KEY,
     CONF_OPENROUTER_MODEL,
-    CONF_PATTERN_ENABLED,
     CONF_SELECTED_DEVICES,
     CONF_SELORA_LOCAL_HOST,
     DEFAULT_ANTHROPIC_MODEL,
-    DEFAULT_COLLECTOR_ENABLED,
-    DEFAULT_COLLECTOR_END_TIME,
-    DEFAULT_COLLECTOR_INTERVAL,
-    DEFAULT_COLLECTOR_MODE,
-    DEFAULT_COLLECTOR_START_TIME,
-    DEFAULT_DISCOVERY_ENABLED,
-    DEFAULT_DISCOVERY_END_TIME,
-    DEFAULT_DISCOVERY_INTERVAL,
-    DEFAULT_DISCOVERY_MODE,
-    DEFAULT_DISCOVERY_START_TIME,
     DEFAULT_GEMINI_MODEL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
@@ -86,8 +65,6 @@ from .const import (
     LLM_PROVIDER_OPENROUTER,
     LLM_PROVIDER_SELORA_CLOUD,
     LLM_PROVIDER_SELORA_LOCAL,
-    MODE_CONTINUOUS,
-    MODE_SCHEDULED,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -279,14 +256,11 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
 
-    # HA calls this on the class, not an instance, so it must be a staticmethod.
-    @staticmethod
-    @callback
-    def async_get_options_flow(
-        config_entry: config_entries.ConfigEntry,
-    ) -> SeloraAiOptionsFlowHandler:
-        """Get the options flow for this handler."""
-        return SeloraAiOptionsFlowHandler()
+    # No async_get_options_flow: background-services settings live in the
+    # custom Selora AI panel (Settings tab → Background Services) so the
+    # styling matches the rest of the integration. Removing this method
+    # hides the "Configure" gear in HA's Devices & Services UI, which
+    # otherwise rendered an unstyled modal duplicating the panel controls.
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -1011,85 +985,8 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         )
 
 
-class SeloraAiOptionsFlowHandler(config_entries.OptionsFlow):
-    """Handle Selora AI options."""
-
-    # No __init__ — HA auto-populates self.config_entry, and assigning it
-    # in __init__ raises since HA 2025.12.
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> config_entries.ConfigFlowResult:
-        """Manage the background services options."""
-        if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
-
-        options = self.config_entry.options
-
-        return self.async_show_form(
-            step_id="init",
-            data_schema=vol.Schema(
-                {
-                    # Data Collector
-                    vol.Required(
-                        CONF_COLLECTOR_ENABLED,
-                        default=options.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED),
-                    ): bool,
-                    vol.Required(
-                        CONF_COLLECTOR_MODE,
-                        default=options.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE),
-                    ): vol.In(
-                        {
-                            MODE_CONTINUOUS: "Continuous",
-                            MODE_SCHEDULED: "Scheduled Window",
-                        }
-                    ),
-                    vol.Required(
-                        CONF_COLLECTOR_INTERVAL,
-                        default=options.get(CONF_COLLECTOR_INTERVAL, DEFAULT_COLLECTOR_INTERVAL),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=60)),
-                    vol.Optional(
-                        CONF_COLLECTOR_START_TIME,
-                        default=options.get(
-                            CONF_COLLECTOR_START_TIME, DEFAULT_COLLECTOR_START_TIME
-                        ),
-                    ): str,
-                    vol.Optional(
-                        CONF_COLLECTOR_END_TIME,
-                        default=options.get(CONF_COLLECTOR_END_TIME, DEFAULT_COLLECTOR_END_TIME),
-                    ): str,
-                    # Network Discovery
-                    vol.Required(
-                        CONF_DISCOVERY_ENABLED,
-                        default=options.get(CONF_DISCOVERY_ENABLED, DEFAULT_DISCOVERY_ENABLED),
-                    ): bool,
-                    vol.Required(
-                        CONF_DISCOVERY_MODE,
-                        default=options.get(CONF_DISCOVERY_MODE, DEFAULT_DISCOVERY_MODE),
-                    ): vol.In(
-                        {
-                            MODE_CONTINUOUS: "Continuous",
-                            MODE_SCHEDULED: "Scheduled Window",
-                        }
-                    ),
-                    vol.Required(
-                        CONF_DISCOVERY_INTERVAL,
-                        default=options.get(CONF_DISCOVERY_INTERVAL, DEFAULT_DISCOVERY_INTERVAL),
-                    ): vol.All(vol.Coerce(int), vol.Range(min=60)),
-                    vol.Optional(
-                        CONF_DISCOVERY_START_TIME,
-                        default=options.get(
-                            CONF_DISCOVERY_START_TIME, DEFAULT_DISCOVERY_START_TIME
-                        ),
-                    ): str,
-                    vol.Optional(
-                        CONF_DISCOVERY_END_TIME,
-                        default=options.get(CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME),
-                    ): str,
-                    vol.Required(
-                        CONF_PATTERN_ENABLED,
-                        default=options.get(CONF_PATTERN_ENABLED, True),
-                    ): bool,
-                }
-            ),
-        )
+# Background-services options previously rendered by SeloraAiOptionsFlowHandler
+# now live in the custom panel's Settings tab. The class was removed alongside
+# async_get_options_flow on SeloraAiConfigFlow so HA stops surfacing a
+# duplicated, unstyled modal in Devices & Services. update_config /
+# get_config WS commands handle the read/write path.

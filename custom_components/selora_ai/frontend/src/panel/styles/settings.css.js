@@ -240,10 +240,22 @@ export const settingsStyles = css`
     padding-bottom: 16px;
   }
   .settings-form ha-switch {
+    /* Legacy mwc-switch tokens (HA <= 2025 builds) */
     --switch-checked-color: var(--selora-accent);
     --switch-checked-button-color: var(--selora-accent);
     --switch-checked-track-color: var(--selora-accent-dark);
     --mdc-theme-secondary: var(--selora-accent);
+    /* Material 3 tokens — newer HA builds rebuilt ha-switch on md-switch */
+    --md-sys-color-primary: var(--selora-accent);
+    --md-sys-color-on-primary: var(--selora-accent-dark);
+    --md-sys-color-primary-container: var(--selora-accent);
+    --md-sys-color-on-primary-container: var(--selora-accent-dark);
+    --md-switch-selected-track-color: var(--selora-accent);
+    --md-switch-selected-handle-color: var(--selora-accent-dark);
+    --md-switch-selected-icon-color: var(--selora-accent);
+    --md-switch-selected-hover-track-color: var(--selora-accent);
+    --md-switch-selected-pressed-track-color: var(--selora-accent);
+    --md-switch-selected-focus-track-color: var(--selora-accent);
   }
   .service-row label {
     display: inline-flex;

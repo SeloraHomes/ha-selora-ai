@@ -419,6 +419,8 @@ class GeminiProvider(LLMProvider):
 
     async def health_check(self) -> bool:
         """Verify the Gemini API key and model."""
+        from ..const import HEALTH_CHECK_TIMEOUT
+
         # Query the specific model endpoint — validates both key and model in one call.
         url = f"{self._host}/models/{self._model}?key={self._api_key}"
         try:
@@ -426,7 +428,7 @@ class GeminiProvider(LLMProvider):
             async with session.get(
                 url,
                 headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
             ) as resp:
                 if resp.status != 200:
                     body = await resp.text()
