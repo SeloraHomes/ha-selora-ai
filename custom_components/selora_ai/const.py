@@ -741,6 +741,7 @@ LLM_PROVIDER_OPENAI = "openai"
 LLM_PROVIDER_OPENROUTER = "openrouter"
 LLM_PROVIDER_GEMINI = "gemini"
 LLM_PROVIDER_SELORA_CLOUD = "selora_cloud"
+LLM_PROVIDER_SELORA_LOCAL = "selora_local"
 LLM_PROVIDER_NONE = "none"
 DEFAULT_LLM_PROVIDER = LLM_PROVIDER_SELORA_CLOUD
 
@@ -787,6 +788,16 @@ CONF_GEMINI_MODEL = "gemini_model"
 
 DEFAULT_GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
+
+# ── Selora AI Local (HA add-on, OpenAI-compatible) ─────────────────
+# The add-on (ha-app) runs libselora (custom Phi-3.5-mini INT8) on the
+# HA host and exposes /v1/chat/completions. Listens on :5310 (SELO).
+# The integration routes to one of four LoRA specialists per request type
+# (commands / automations / answers / clarifications) — no user-visible
+# model picker.
+CONF_SELORA_LOCAL_HOST = "selora_local_host"
+
+DEFAULT_SELORA_LOCAL_HOST = "http://localhost:5310"
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"
@@ -863,6 +874,8 @@ LLM_PRICING_USD_PER_MTOK: dict[str, dict[str, tuple[float, float]]] = {
     },
     # Ollama is local — no cost.
     "ollama": {},
+    # Selora AI Local runs on-device — no cost.
+    "selora_local": {},
 }
 
 # User-supplied pricing overrides live in the config entry's options under

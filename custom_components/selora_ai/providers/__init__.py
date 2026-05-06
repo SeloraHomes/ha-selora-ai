@@ -20,6 +20,7 @@ from .ollama import OllamaProvider
 from .openai import OpenAIProvider
 from .openrouter import OpenRouterProvider
 from .selora_cloud import SeloraCloudProvider
+from .selora_local import SeloraLocalProvider
 
 __all__ = [
     "AnthropicProvider",
@@ -29,6 +30,7 @@ __all__ = [
     "OpenAIProvider",
     "OpenRouterProvider",
     "SeloraCloudProvider",
+    "SeloraLocalProvider",
     "create_provider",
 ]
 
@@ -39,6 +41,7 @@ PROVIDER_REGISTRY: dict[str, type[LLMProvider]] = {
     "openrouter": OpenRouterProvider,
     "ollama": OllamaProvider,
     "selora_cloud": SeloraCloudProvider,
+    "selora_local": SeloraLocalProvider,
 }
 
 

@@ -9679,7 +9679,7 @@ var _PROVIDERS = [
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
-  { value: "", label: "Selora AI Local (Coming soon)", disabled: true },
+  { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
 function _renderProviderPicker(host) {
   const current = _PROVIDERS.find(
@@ -9755,6 +9755,7 @@ function renderSettings(host) {
   const isGemini = host._config.llm_provider === "gemini";
   const isOpenAI = host._config.llm_provider === "openai";
   const isOpenRouter = host._config.llm_provider === "openrouter";
+  const isSeloraLocal = host._config.llm_provider === "selora_local";
   return x`
     <div class="scroll-view">
       <div class="settings-form">
@@ -10124,28 +10125,55 @@ function renderSettings(host) {
                           ></ha-textfield>
                         </div>
                       `
-                      : x`
-                        <div class="form-group">
-                          <ha-textfield
-                            label="Host"
-                            .value=${host._config.ollama_host}
-                            @input=${(e5) => host._updateConfig("ollama_host", e5.target.value)}
-                            style="width:100%;"
-                          ></ha-textfield>
-                        </div>
-                        <div class="form-group">
-                          <ha-textfield
-                            label="Model"
-                            .value=${host._config.ollama_model}
-                            @input=${(e5) =>
-                              host._updateConfig(
-                                "ollama_model",
-                                e5.target.value,
-                              )}
-                            style="width:100%;"
-                          ></ha-textfield>
-                        </div>
-                      `
+                      : isSeloraLocal
+                        ? x`
+                          <div class="form-group">
+                            <ha-textfield
+                              label="Add-on Host"
+                              .value=${host._config.selora_local_host}
+                              @input=${(e5) =>
+                                host._updateConfig(
+                                  "selora_local_host",
+                                  e5.target.value,
+                                )}
+                              placeholder="http://localhost:5310"
+                              style="width:100%;"
+                            ></ha-textfield>
+                          </div>
+                          <p
+                            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
+                          >
+                            Selora AI picks the right specialist model
+                            (commands, automations, answers, clarifications) per
+                            request automatically.
+                          </p>
+                        `
+                        : x`
+                          <div class="form-group">
+                            <ha-textfield
+                              label="Host"
+                              .value=${host._config.ollama_host}
+                              @input=${(e5) =>
+                                host._updateConfig(
+                                  "ollama_host",
+                                  e5.target.value,
+                                )}
+                              style="width:100%;"
+                            ></ha-textfield>
+                          </div>
+                          <div class="form-group">
+                            <ha-textfield
+                              label="Model"
+                              .value=${host._config.ollama_model}
+                              @input=${(e5) =>
+                                host._updateConfig(
+                                  "ollama_model",
+                                  e5.target.value,
+                                )}
+                              style="width:100%;"
+                            ></ha-textfield>
+                          </div>
+                        `
           }
           ${
             isSeloraCloud && !host._config.aigateway_linked

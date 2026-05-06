@@ -111,6 +111,14 @@ class LLMProvider(ABC):
         """Register a callback invoked with token usage after each call."""
         self._usage_callback = callback
 
+    def set_call_kind(self, kind: str | None) -> None:  # noqa: B027
+        """Hint to the provider what *kind* of call is about to be made.
+
+        Default: no-op. Providers that route to different backing models
+        based on the call's purpose (e.g. SeloraLocal LoRA specialists)
+        override this.
+        """
+
     def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
         """Extract token usage from a non-streaming response body.
 
@@ -166,6 +174,16 @@ class LLMProvider(ABC):
     def model(self) -> str:
         """Return the configured model name."""
         return self._model
+
+    @property
+    def is_low_context(self) -> bool:
+        """Whether this provider has a tight context window (≲2K tokens).
+
+        LLMClient uses this to switch to a minimal system prompt and an
+        aggressively filtered entity list — full home-state dumps don't
+        fit in something like the SeloraLocal add-on's 1024-token window.
+        """
+        return False
 
     # -- HTTP plumbing (abstract) ------------------------------------------
 
