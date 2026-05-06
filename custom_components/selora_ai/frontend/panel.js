@@ -6340,6 +6340,22 @@ function _renderComposer(host, opts = {}) {
           if (e5.key === "Enter" && !e5.shiftKey) {
             e5.preventDefault();
             host._sendMessage();
+            return;
+          }
+          if (e5.key === "ArrowUp" && !host._input) {
+            const lastUser = [...host._messages]
+              .reverse()
+              .find((m2) => m2.role === "user" && m2.content);
+            if (lastUser) {
+              e5.preventDefault();
+              host._input = lastUser.content;
+              const ta = e5.target;
+              requestAnimationFrame(() => {
+                ta.value = lastUser.content;
+                ta.setSelectionRange(ta.value.length, ta.value.length);
+                _autoResize(ta);
+              });
+            }
           }
         }}
         @focus=${() => {
@@ -12702,10 +12718,19 @@ function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
+  const note = "\n\n_Cancelled by user_";
   const lastMsg = this._messages[this._messages.length - 1];
-  if (lastMsg && lastMsg._streaming) {
+  if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;
+    if (!lastMsg.content?.endsWith(note)) {
+      lastMsg.content = (lastMsg.content || "") + note;
+    }
     this._messages = [...this._messages];
+  } else {
+    this._messages = [
+      ...this._messages,
+      { role: "assistant", content: note.trimStart() },
+    ];
   }
 }
 function _requestScrollChat() {
@@ -13933,6 +13958,15 @@ var SeloraAIPanel = class extends s4 {
         !this._submittingFeedback
       ) {
         this._closeFeedback();
+        return;
+      }
+      if (
+        e5.key === "Escape" &&
+        this._activeTab === "chat" &&
+        (this._streaming || this._loading)
+      ) {
+        e5.preventDefault();
+        this._stopStreaming();
       }
     };
     window.addEventListener("keydown", this._keyDownHandler);
@@ -14863,7 +14897,10 @@ var SeloraAIPanel = class extends s4 {
     ) {
       this._hydrateEntityChips();
     }
-    if (changedProps.has("_activeTab") && this._activeTab === "chat") {
+    if (
+      this._activeTab === "chat" &&
+      (changedProps.has("_activeTab") || changedProps.has("_activeSessionId"))
+    ) {
       this._focusComposerSoon();
     }
   }

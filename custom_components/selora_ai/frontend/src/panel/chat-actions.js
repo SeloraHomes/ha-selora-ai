@@ -267,11 +267,19 @@ export function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
-  // Mark the last assistant message as done
+  const note = "\n\n_Cancelled by user_";
   const lastMsg = this._messages[this._messages.length - 1];
-  if (lastMsg && lastMsg._streaming) {
+  if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;
+    if (!lastMsg.content?.endsWith(note)) {
+      lastMsg.content = (lastMsg.content || "") + note;
+    }
     this._messages = [...this._messages];
+  } else {
+    this._messages = [
+      ...this._messages,
+      { role: "assistant", content: note.trimStart() },
+    ];
   }
 }
 

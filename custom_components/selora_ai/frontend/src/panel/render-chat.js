@@ -238,6 +238,22 @@ function _renderComposer(host, opts = {}) {
           if (e.key === "Enter" && !e.shiftKey) {
             e.preventDefault();
             host._sendMessage();
+            return;
+          }
+          if (e.key === "ArrowUp" && !host._input) {
+            const lastUser = [...host._messages]
+              .reverse()
+              .find((m) => m.role === "user" && m.content);
+            if (lastUser) {
+              e.preventDefault();
+              host._input = lastUser.content;
+              const ta = e.target;
+              requestAnimationFrame(() => {
+                ta.value = lastUser.content;
+                ta.setSelectionRange(ta.value.length, ta.value.length);
+                _autoResize(ta);
+              });
+            }
           }
         }}
         @focus=${() => {
