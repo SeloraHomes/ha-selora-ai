@@ -8,7 +8,11 @@ from typing import Any
 import aiohttp
 from homeassistant.core import HomeAssistant
 
-from ..const import DEFAULT_LLM_TIMEOUT, DEFAULT_OLLAMA_HOST, DEFAULT_OLLAMA_MODEL
+from ..const import (
+    DEFAULT_OLLAMA_HOST,
+    DEFAULT_OLLAMA_MODEL,
+    HEALTH_CHECK_TIMEOUT,
+)
 from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
@@ -51,7 +55,7 @@ class OllamaProvider(OpenAICompatibleProvider):
             async with session.get(
                 f"{self._host}/api/tags",
                 headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
             ) as resp:
                 if resp.status != 200:
                     return False

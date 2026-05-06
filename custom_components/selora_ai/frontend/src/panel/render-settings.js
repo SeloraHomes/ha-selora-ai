@@ -1,5 +1,37 @@
 import { html } from "lit";
 
+// Native <input> wrapper used in place of <ha-textfield>. Recent HA builds
+// wrap each panel in a scoped custom-element registry, which prevents
+// globally-registered HA components like <ha-textfield> from upgrading
+// inside our shadow root — they render as empty unknown elements. Plain
+// <input> works regardless of the registry, and the .form-select class
+// already styles it to match the rest of the settings form.
+function _textInput({
+  label,
+  value,
+  oninput,
+  type = "text",
+  placeholder = "",
+  style = "",
+}) {
+  return html`
+    ${label
+      ? html`<label
+          style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
+          >${label}</label
+        >`
+      : ""}
+    <input
+      class="form-select"
+      type=${type}
+      .value=${value || ""}
+      @input=${oninput}
+      placeholder=${placeholder}
+      style="width:100%;box-sizing:border-box;${style}"
+    />
+  `;
+}
+
 // Find the LLM cost sensor and return today's spend, or null if either
 // the sensor isn't present or the value is non-numeric. Used to surface
 // a live preview in the Settings → LLM Provider header.
@@ -223,17 +255,17 @@ export function renderSettings(host) {
                           </p>
                           ${host._config.developer_mode
                             ? html`
-                                <ha-textfield
-                                  label="Selora Cloud URL"
-                                  .value=${host._config.selora_connect_url ||
-                                  "https://connect.selorahomes.com"}
-                                  @input=${(e) =>
+                                ${_textInput({
+                                  label: "Selora Cloud URL",
+                                  value:
+                                    host._config.selora_connect_url ||
+                                    "https://connect.selorahomes.com",
+                                  oninput: (e) =>
                                     host._updateConfig(
                                       "selora_connect_url",
                                       e.target.value,
-                                    )}
-                                  style="width:100%;"
-                                ></ha-textfield>
+                                    ),
+                                })}
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
                                 >
@@ -269,17 +301,17 @@ export function renderSettings(host) {
                 ${host._config.aigateway_linked && host._config.developer_mode
                   ? html`
                       <div class="form-group">
-                        <ha-textfield
-                          label="Selora Cloud URL"
-                          .value=${host._config.selora_connect_url ||
-                          "https://connect.selorahomes.com"}
-                          @input=${(e) =>
+                        ${_textInput({
+                          label: "Selora Cloud URL",
+                          value:
+                            host._config.selora_connect_url ||
+                            "https://connect.selorahomes.com",
+                          oninput: (e) =>
                             host._updateConfig(
                               "selora_connect_url",
                               e.target.value,
-                            )}
-                          style="width:100%;"
-                        ></ha-textfield>
+                            ),
+                        })}
                       </div>
                     `
                   : ""}
@@ -312,28 +344,25 @@ export function renderSettings(host) {
                         </button>`
                       : ""}
                     ${!host._config.gemini_api_key_set || host._showApiKeyInput
-                      ? html`
-                          <ha-textfield
-                            label="${host._config.gemini_api_key_set
-                              ? "Enter new key"
-                              : "Enter API key"}"
-                            type="password"
-                            .value=${host._newApiKey}
-                            @input=${(e) => (host._newApiKey = e.target.value)}
-                            placeholder="AIza..."
-                            style="margin-top:8px;width:100%;"
-                          ></ha-textfield>
-                        `
+                      ? _textInput({
+                          label: host._config.gemini_api_key_set
+                            ? "Enter new key"
+                            : "Enter API key",
+                          type: "password",
+                          value: host._newApiKey,
+                          oninput: (e) => (host._newApiKey = e.target.value),
+                          placeholder: "AIza...",
+                          style: "margin-top:8px;",
+                        })
                       : ""}
                   </div>
                   <div class="form-group">
-                    <ha-textfield
-                      label="Model"
-                      .value=${host._config.gemini_model}
-                      @input=${(e) =>
-                        host._updateConfig("gemini_model", e.target.value)}
-                      style="width:100%;"
-                    ></ha-textfield>
+                    ${_textInput({
+                      label: "Model",
+                      value: host._config.gemini_model,
+                      oninput: (e) =>
+                        host._updateConfig("gemini_model", e.target.value),
+                    })}
                   </div>
                 `
               : isAnthropic
@@ -365,29 +394,25 @@ export function renderSettings(host) {
                         : ""}
                       ${!host._config.anthropic_api_key_set ||
                       host._showApiKeyInput
-                        ? html`
-                            <ha-textfield
-                              label="${host._config.anthropic_api_key_set
-                                ? "Enter new key"
-                                : "Enter API key"}"
-                              type="password"
-                              .value=${host._newApiKey}
-                              @input=${(e) =>
-                                (host._newApiKey = e.target.value)}
-                              placeholder="sk-ant-..."
-                              style="margin-top:8px;width:100%;"
-                            ></ha-textfield>
-                          `
+                        ? _textInput({
+                            label: host._config.anthropic_api_key_set
+                              ? "Enter new key"
+                              : "Enter API key",
+                            type: "password",
+                            value: host._newApiKey,
+                            oninput: (e) => (host._newApiKey = e.target.value),
+                            placeholder: "sk-ant-...",
+                            style: "margin-top:8px;",
+                          })
                         : ""}
                     </div>
                     <div class="form-group">
-                      <ha-textfield
-                        label="Model"
-                        .value=${host._config.anthropic_model}
-                        @input=${(e) =>
-                          host._updateConfig("anthropic_model", e.target.value)}
-                        style="width:100%;"
-                      ></ha-textfield>
+                      ${_textInput({
+                        label: "Model",
+                        value: host._config.anthropic_model,
+                        oninput: (e) =>
+                          host._updateConfig("anthropic_model", e.target.value),
+                      })}
                     </div>
                   `
                 : isOpenAI
@@ -420,29 +445,26 @@ export function renderSettings(host) {
                           : ""}
                         ${!host._config.openai_api_key_set ||
                         host._showApiKeyInput
-                          ? html`
-                              <ha-textfield
-                                label="${host._config.openai_api_key_set
-                                  ? "Enter new key"
-                                  : "Enter API key"}"
-                                type="password"
-                                .value=${host._newApiKey}
-                                @input=${(e) =>
-                                  (host._newApiKey = e.target.value)}
-                                placeholder="sk-..."
-                                style="margin-top:8px;width:100%;"
-                              ></ha-textfield>
-                            `
+                          ? _textInput({
+                              label: host._config.openai_api_key_set
+                                ? "Enter new key"
+                                : "Enter API key",
+                              type: "password",
+                              value: host._newApiKey,
+                              oninput: (e) =>
+                                (host._newApiKey = e.target.value),
+                              placeholder: "sk-...",
+                              style: "margin-top:8px;",
+                            })
                           : ""}
                       </div>
                       <div class="form-group">
-                        <ha-textfield
-                          label="Model"
-                          .value=${host._config.openai_model}
-                          @input=${(e) =>
-                            host._updateConfig("openai_model", e.target.value)}
-                          style="width:100%;"
-                        ></ha-textfield>
+                        ${_textInput({
+                          label: "Model",
+                          value: host._config.openai_model,
+                          oninput: (e) =>
+                            host._updateConfig("openai_model", e.target.value),
+                        })}
                       </div>
                     `
                   : isOpenRouter
@@ -476,49 +498,45 @@ export function renderSettings(host) {
                             : ""}
                           ${!host._config.openrouter_api_key_set ||
                           host._showApiKeyInput
-                            ? html`
-                                <ha-textfield
-                                  label="${host._config.openrouter_api_key_set
-                                    ? "Enter new key"
-                                    : "Enter API key"}"
-                                  type="password"
-                                  .value=${host._newApiKey}
-                                  @input=${(e) =>
-                                    (host._newApiKey = e.target.value)}
-                                  placeholder="sk-or-..."
-                                  style="margin-top:8px;width:100%;"
-                                ></ha-textfield>
-                              `
+                            ? _textInput({
+                                label: host._config.openrouter_api_key_set
+                                  ? "Enter new key"
+                                  : "Enter API key",
+                                type: "password",
+                                value: host._newApiKey,
+                                oninput: (e) =>
+                                  (host._newApiKey = e.target.value),
+                                placeholder: "sk-or-...",
+                                style: "margin-top:8px;",
+                              })
                             : ""}
                         </div>
                         <div class="form-group">
-                          <ha-textfield
-                            label="Model"
-                            .value=${host._config.openrouter_model}
-                            @input=${(e) =>
+                          ${_textInput({
+                            label: "Model",
+                            value: host._config.openrouter_model,
+                            oninput: (e) =>
                               host._updateConfig(
                                 "openrouter_model",
                                 e.target.value,
-                              )}
-                            placeholder="anthropic/claude-sonnet-4.5"
-                            style="width:100%;"
-                          ></ha-textfield>
+                              ),
+                            placeholder: "anthropic/claude-sonnet-4.5",
+                          })}
                         </div>
                       `
                     : isSeloraLocal
                       ? html`
                           <div class="form-group">
-                            <ha-textfield
-                              label="Add-on Host"
-                              .value=${host._config.selora_local_host}
-                              @input=${(e) =>
+                            ${_textInput({
+                              label: "Add-on Host",
+                              value: host._config.selora_local_host,
+                              oninput: (e) =>
                                 host._updateConfig(
                                   "selora_local_host",
                                   e.target.value,
-                                )}
-                              placeholder="http://localhost:5310"
-                              style="width:100%;"
-                            ></ha-textfield>
+                                ),
+                              placeholder: "http://localhost:5310",
+                            })}
                           </div>
                           <p
                             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
@@ -530,28 +548,26 @@ export function renderSettings(host) {
                         `
                       : html`
                           <div class="form-group">
-                            <ha-textfield
-                              label="Host"
-                              .value=${host._config.ollama_host}
-                              @input=${(e) =>
+                            ${_textInput({
+                              label: "Host",
+                              value: host._config.ollama_host,
+                              oninput: (e) =>
                                 host._updateConfig(
                                   "ollama_host",
                                   e.target.value,
-                                )}
-                              style="width:100%;"
-                            ></ha-textfield>
+                                ),
+                            })}
                           </div>
                           <div class="form-group">
-                            <ha-textfield
-                              label="Model"
-                              .value=${host._config.ollama_model}
-                              @input=${(e) =>
+                            ${_textInput({
+                              label: "Model",
+                              value: host._config.ollama_model,
+                              oninput: (e) =>
                                 host._updateConfig(
                                   "ollama_model",
                                   e.target.value,
-                                )}
-                              style="width:100%;"
-                            ></ha-textfield>
+                                ),
+                            })}
                           </div>
                         `}
           ${isSeloraCloud && !host._config.aigateway_linked
@@ -661,17 +677,17 @@ export function renderSettings(host) {
             !host._config.selora_connect_enabled
               ? html`
                   <div style="padding:8px 0 0;">
-                    <ha-textfield
-                      label="Connect Server URL"
-                      .value=${host._config.selora_connect_url ||
-                      "https://connect.selorahomes.com"}
-                      @input=${(e) =>
+                    ${_textInput({
+                      label: "Connect Server URL",
+                      value:
+                        host._config.selora_connect_url ||
+                        "https://connect.selorahomes.com",
+                      oninput: (e) =>
                         host._updateConfig(
                           "selora_connect_url",
                           e.target.value,
-                        )}
-                      style="width:100%;"
-                    ></ha-textfield>
+                        ),
+                    })}
                   </div>
                 `
               : ""}
@@ -826,26 +842,28 @@ export function renderSettings(host) {
                     ${host._config.collector_mode === "scheduled"
                       ? html`
                           <div style="display:flex;gap:12px;margin-top:12px;">
-                            <ha-textfield
-                              label="Start (HH:MM)"
-                              .value=${host._config.collector_start_time}
-                              @input=${(e) =>
-                                host._updateConfig(
-                                  "collector_start_time",
-                                  e.target.value,
-                                )}
-                              style="flex:1;"
-                            ></ha-textfield>
-                            <ha-textfield
-                              label="End (HH:MM)"
-                              .value=${host._config.collector_end_time}
-                              @input=${(e) =>
-                                host._updateConfig(
-                                  "collector_end_time",
-                                  e.target.value,
-                                )}
-                              style="flex:1;"
-                            ></ha-textfield>
+                            <div style="flex:1;">
+                              ${_textInput({
+                                label: "Start (HH:MM)",
+                                value: host._config.collector_start_time,
+                                oninput: (e) =>
+                                  host._updateConfig(
+                                    "collector_start_time",
+                                    e.target.value,
+                                  ),
+                              })}
+                            </div>
+                            <div style="flex:1;">
+                              ${_textInput({
+                                label: "End (HH:MM)",
+                                value: host._config.collector_end_time,
+                                oninput: (e) =>
+                                  host._updateConfig(
+                                    "collector_end_time",
+                                    e.target.value,
+                                  ),
+                              })}
+                            </div>
                           </div>
                         `
                       : ""}
@@ -908,32 +926,54 @@ export function renderSettings(host) {
                     ${host._config.discovery_mode === "scheduled"
                       ? html`
                           <div style="display:flex;gap:12px;margin-top:12px;">
-                            <ha-textfield
-                              label="Start (HH:MM)"
-                              .value=${host._config.discovery_start_time}
-                              @input=${(e) =>
-                                host._updateConfig(
-                                  "discovery_start_time",
-                                  e.target.value,
-                                )}
-                              style="flex:1;"
-                            ></ha-textfield>
-                            <ha-textfield
-                              label="End (HH:MM)"
-                              .value=${host._config.discovery_end_time}
-                              @input=${(e) =>
-                                host._updateConfig(
-                                  "discovery_end_time",
-                                  e.target.value,
-                                )}
-                              style="flex:1;"
-                            ></ha-textfield>
+                            <div style="flex:1;">
+                              ${_textInput({
+                                label: "Start (HH:MM)",
+                                value: host._config.discovery_start_time,
+                                oninput: (e) =>
+                                  host._updateConfig(
+                                    "discovery_start_time",
+                                    e.target.value,
+                                  ),
+                              })}
+                            </div>
+                            <div style="flex:1;">
+                              ${_textInput({
+                                label: "End (HH:MM)",
+                                value: host._config.discovery_end_time,
+                                oninput: (e) =>
+                                  host._updateConfig(
+                                    "discovery_end_time",
+                                    e.target.value,
+                                  ),
+                              })}
+                            </div>
                           </div>
                         `
                       : ""}
                   </div>
                 `
               : ""}
+          </div>
+
+          <div class="service-group">
+            <div class="service-row">
+              <div class="service-label-group">
+                <label>Pattern detection</label>
+                <span class="service-desc"
+                  >Detects recurring usage patterns and proposes
+                  automations</span
+                >
+              </div>
+              <ha-switch
+                .checked=${host._config.pattern_detection_enabled !== false}
+                @change=${(e) =>
+                  host._updateConfig(
+                    "pattern_detection_enabled",
+                    e.target.checked,
+                  )}
+              ></ha-switch>
+            </div>
           </div>
 
           <div class="service-group">

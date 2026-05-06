@@ -264,8 +264,37 @@ class OpenAICompatibleProvider(LLMProvider):
     # -- Health check ------------------------------------------------------
 
     async def health_check(self) -> bool:
-        result, _error = await self.send_request(
-            system="Respond with 'ok'",
-            messages=[{"role": "user", "content": "Hi"}],
-        )
-        return result is not None
+        """Verify the API key works without burning a chat completion.
+
+        ``GET /v1/models`` requires the Authorization header and returns 401
+        when the key is missing or invalid. That's an authoritative key
+        check for OpenAI in well under a second — far better than a real
+        chat completion that can take 5–15 s on a healthy upstream and
+        DEFAULT_LLM_TIMEOUT (120 s) on a slow one.
+
+        Subclasses whose ``/v1/models`` endpoint is public (e.g. OpenRouter)
+        must override this with an authenticated probe that actually
+        validates the key.
+        """
+        from ..const import HEALTH_CHECK_TIMEOUT
+
+        try:
+            session = self._get_session()
+            async with session.get(
+                f"{self._host}/v1/models",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
+            ) as resp:
+                if resp.status != 200:
+                    body = (await resp.text())[:200]
+                    _LOGGER.error(
+                        "%s health check failed: HTTP %s: %s",
+                        self.provider_name,
+                        resp.status,
+                        body,
+                    )
+                    return False
+                return True
+        except (aiohttp.ClientError, TimeoutError):
+            _LOGGER.exception("%s health check failed", self.provider_name)
+            return False

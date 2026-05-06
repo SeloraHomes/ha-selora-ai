@@ -182,6 +182,21 @@ function _sha256(msgBytes) {
 // ---------------------------------------------------------------------------
 
 class SeloraAIPanel extends LitElement {
+  // HA's recent panel resolver wraps each panel in a scoped custom-element
+  // registry (via @webcomponents/scoped-custom-element-registry). With the
+  // default attachShadow options, our shadow root gets a fresh per-panel
+  // registry that doesn't see globally-registered HA components, so
+  // <ha-textfield>, <ha-switch>, etc. silently fail to upgrade — the
+  // textfield renders as an empty unknown element (invisible) and the
+  // switch falls back to undecorated mwc-switch (HA-default blue, ignoring
+  // our --switch-checked-color overrides). Pass customElements explicitly
+  // so attachShadow uses the global registry. Lit reads this static for
+  // its default createRenderRoot, which keeps style adoption intact.
+  static shadowRootOptions = {
+    ...LitElement.shadowRootOptions,
+    customElements: window.customElements,
+  };
+
   static get properties() {
     return {
       hass: { type: Object },
@@ -937,19 +952,13 @@ class SeloraAIPanel extends LitElement {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
-      } else if (provider === "selora_local") {
-        payload.selora_local_host = this._config.selora_local_host;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
       }
 
-      // Validate connectivity when:
-      // - the user typed a new API key, OR
-      // - the provider is hostname-based (Ollama / Selora Local) where
-      //   "save" is the natural moment to verify the URL is reachable.
-      const needsValidation =
-        newKey || provider === "ollama" || provider === "selora_local";
+      // Validate if a new key was entered or for Ollama (always validate connectivity)
+      const needsValidation = newKey || provider === "ollama";
       if (needsValidation) {
         const validatePayload = {
           type: "selora_ai/validate_llm_key",
@@ -958,8 +967,6 @@ class SeloraAIPanel extends LitElement {
         if (provider === "ollama") {
           validatePayload.host = this._config.ollama_host;
           validatePayload.model = this._config.ollama_model;
-        } else if (provider === "selora_local") {
-          validatePayload.host = this._config.selora_local_host;
         } else {
           validatePayload.api_key = newKey;
           validatePayload.model = this._config[`${provider}_model`];
@@ -1011,6 +1018,8 @@ class SeloraAIPanel extends LitElement {
         discovery_interval: this._config.discovery_interval,
         discovery_start_time: this._config.discovery_start_time,
         discovery_end_time: this._config.discovery_end_time,
+        pattern_detection_enabled:
+          this._config.pattern_detection_enabled !== false,
         auto_purge_stale: this._config.auto_purge_stale || false,
         // Developer-only: Connect Server URL (editable when Connect is unlinked)
         selora_connect_url: this._config.selora_connect_url,

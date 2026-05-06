@@ -20,7 +20,7 @@ from typing import Any
 import aiohttp
 from homeassistant.core import HomeAssistant
 
-from ..const import DEFAULT_LLM_TIMEOUT, DEFAULT_SELORA_LOCAL_HOST
+from ..const import DEFAULT_SELORA_LOCAL_HOST, HEALTH_CHECK_TIMEOUT
 from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
@@ -240,7 +240,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             async with session.get(
                 f"{self._host}/health",
                 headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
             ) as resp:
                 return resp.status == 200
         except Exception:

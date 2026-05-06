@@ -15,6 +15,7 @@ from ..const import (
     ANTHROPIC_MESSAGES_ENDPOINT,
     DEFAULT_ANTHROPIC_HOST,
     DEFAULT_ANTHROPIC_MODEL,
+    HEALTH_CHECK_TIMEOUT,
 )
 from .base import LLMProvider
 
@@ -298,8 +299,28 @@ class AnthropicProvider(LLMProvider):
     # -- Health check ------------------------------------------------------
 
     async def health_check(self) -> bool:
-        result, _error = await self.send_request(
-            system="Respond with 'ok'",
-            messages=[{"role": "user", "content": "Hi"}],
-        )
-        return result is not None
+        """Validate the Anthropic API key without burning a chat completion.
+
+        ``GET /v1/models`` requires the ``x-api-key`` header and returns 401
+        when the key is missing or invalid — an authoritative key check
+        that completes in well under a second on a healthy upstream.
+        """
+        try:
+            session = self._get_session()
+            async with session.get(
+                f"{self._host}/v1/models",
+                headers=self._get_headers(),
+                timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
+            ) as resp:
+                if resp.status != 200:
+                    body = (await resp.text())[:200]
+                    _LOGGER.error(
+                        "Anthropic health check failed: HTTP %s: %s",
+                        resp.status,
+                        body,
+                    )
+                    return False
+                return True
+        except (aiohttp.ClientError, TimeoutError):
+            _LOGGER.exception("Anthropic health check failed")
+            return False
