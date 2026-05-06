@@ -540,6 +540,15 @@ class SeloraAIPanel extends LitElement {
         !this._submittingFeedback
       ) {
         this._closeFeedback();
+        return;
+      }
+      if (
+        e.key === "Escape" &&
+        this._activeTab === "chat" &&
+        (this._streaming || this._loading)
+      ) {
+        e.preventDefault();
+        this._stopStreaming();
       }
     };
     window.addEventListener("keydown", this._keyDownHandler);
@@ -1644,10 +1653,13 @@ class SeloraAIPanel extends LitElement {
     ) {
       this._hydrateEntityChips();
     }
-    // Auto-focus the composer when the chat tab activates so the user can
-    // start typing immediately. Fires on initial mount (first updated() has
-    // _activeTab in changedProps) and on every subsequent tab switch to chat.
-    if (changedProps.has("_activeTab") && this._activeTab === "chat") {
+    // Auto-focus the composer when the chat tab activates or when the user
+    // switches to a different conversation, so they can start typing
+    // immediately.
+    if (
+      this._activeTab === "chat" &&
+      (changedProps.has("_activeTab") || changedProps.has("_activeSessionId"))
+    ) {
       this._focusComposerSoon();
     }
   }
