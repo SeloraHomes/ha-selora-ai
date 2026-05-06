@@ -181,6 +181,32 @@ _GREETING_OPENER = re.compile(
     r"^(hi|hello|hey|yo|sup|thanks|thank you|cheers|"
     r"good (morning|evening|night|afternoon))\b"
 )
+# Greeting + optional emoji / punctuation, nothing else. Used to short-
+# circuit "hello" / "thanks" / "good morning :)" with a canned reply
+# before we ever build a system prompt — the LLM consistently ignores
+# the small-talk rule and dumps a status report instead.
+_PURE_GREETING = re.compile(
+    r"^\s*(hi|hello|hey|yo|sup|thanks|thank you|thx|cheers|"
+    r"good (morning|evening|night|afternoon))"
+    # Trailing whitespace, common punctuation/smileys, and emoji from
+    # the dingbats / symbols / pictographs blocks plus the variation
+    # selector. Anything alphanumeric ends the match — actual content
+    # routes to the LLM.
+    r"[\s!.,?:;()’‘☀-➿️\U0001F300-\U0001FAFF]*$",
+    re.IGNORECASE,
+)
+
+
+def _is_pure_greeting(message: str) -> bool:
+    """Return True when ``message`` is just a greeting/thanks with no request."""
+    if not message:
+        return False
+    text = message.strip()
+    if not text or len(text) > 40:
+        return False
+    return bool(_PURE_GREETING.match(text))
+
+
 _COMMAND_VERB = re.compile(
     r"\b(turn|switch|toggle|set|start|stop|play|pause|resume|open|close|"
     r"lock|unlock|dim|brighten|increase|decrease|raise|lower|"
@@ -528,6 +554,10 @@ _SHARED_TONE_RULES = (
     "warm conversational sentence and stop. Do NOT volunteer information about automations, "
     "entities, scenes, or device states — wait for the user to ask. The action-oriented rules "
     "above only apply once the user makes an actual request.\n"
+    "  Concretely: a one-word message like 'hello', 'hi', 'hey', 'thanks' or 'cool' must NOT "
+    "produce a status report. The EXISTING AUTOMATIONS / AVAILABLE ENTITIES blocks are "
+    "background context for follow-up requests, NEVER a prompt to recap them. A correct reply "
+    "to 'Hello' is something like `Hi! What can I help with?` — nothing more.\n"
     "- Entity references render as live HA tile cards (the same tiles the dashboard uses — "
     "state-aware coloured icon, friendly name, formatted state value, tap to open more-info). "
     "Whenever you name a specific device or sensor that the user is asking about, controlling, "
@@ -845,6 +875,13 @@ class LLMClient:
                 "config_issue": True,
             }
 
+        # Models stubbornly volunteer a status dump in response to plain
+        # greetings even with the small-talk rule in the system prompt;
+        # short-circuit those with a canned reply so we never burn tokens
+        # or risk a hallucinated recap.
+        if _is_pure_greeting(user_message):
+            return {"intent": "answer", "response": "Hi! What can I help with?"}
+
         with self._usage_scope("chat"):
             if self._provider.is_low_context:
                 # Low-context backend (e.g. SeloraLocal add-on, max_seq=1024):
@@ -954,6 +991,13 @@ class LLMClient:
         """
         if self._provider.requires_api_key and not self._provider.has_api_key:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
+            return
+
+        # Same short-circuit as architect_chat — a plain "hi"/"thanks"
+        # gets a canned reply instead of an LLM round-trip and the
+        # status-dump it tends to produce.
+        if _is_pure_greeting(user_message):
+            yield "Hi! What can I help with?"
             return
 
         with self._usage_scope("chat"):
