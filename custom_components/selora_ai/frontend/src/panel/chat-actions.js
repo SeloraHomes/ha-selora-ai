@@ -142,6 +142,12 @@ export async function _sendMessage() {
         this._messages = [...this._messages];
         this._loading = false;
         this._requestScrollChat();
+      } else if (event.type === "heartbeat") {
+        // Server is alive but has nothing to forward yet (slow first
+        // token, or JSON output being suppressed by the backend). Bump
+        // the watchdog without flipping firstTokenSeen so the longer
+        // pre-token grace stays in effect.
+        lastActivityAt = Date.now();
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
