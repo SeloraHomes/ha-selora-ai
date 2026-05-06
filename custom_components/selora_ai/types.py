@@ -82,11 +82,13 @@ class RiskAssessment(TypedDict):
     scrutiny_tags: list[str]
 
 
-class AutomationCreateResult(TypedDict):
+class AutomationCreateResult(TypedDict, total=False):
     """Return type of async_create_automation."""
 
     success: bool
     automation_id: str | None
+    risk_level: str
+    forced_disabled: bool
 
 
 # ── Scene structures ─────────────────────────────────────────────────

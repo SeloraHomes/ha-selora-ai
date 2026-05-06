@@ -226,7 +226,7 @@ class ScheduledTaskTracker:
         Raises ``RuntimeError`` when the pending task cap is reached or
         automation creation fails.
         """
-        from .automation_utils import async_create_automation
+        from .automation_utils import async_create_automation, async_delete_automation
 
         self._enforce_pending_cap()
 
@@ -281,19 +281,39 @@ class ScheduledTaskTracker:
             ],
             "actions": actions,
             "mode": "single",
-            "initial_state": True,
         }
 
+        # One-shot scheduled actions must be active so the time trigger fires.
         result = await async_create_automation(
             self._hass,
             automation_data,
             version_message=f"Scheduled action {schedule_id}",
+            enabled=True,
         )
 
         if not result.get("success"):
             raise RuntimeError("Failed to create scheduled automation")
 
         automation_id: str = result["automation_id"] or ""
+
+        # Risk gate inside async_create_automation may have forced the
+        # automation disabled. A disabled one-shot automation will never
+        # fire, so reporting the schedule as pending would silently swallow
+        # the action. Roll back the automation and surface a clear error to
+        # the caller so it can ask the user to use a less risky action or
+        # enable a manually-reviewed automation instead.
+        if result.get("forced_disabled"):
+            if automation_id:
+                await async_delete_automation(self._hass, automation_id)
+            risk_flags = ", ".join(
+                action.get("action", "") for action in actions if action.get("action")
+            )
+            raise RuntimeError(
+                "Scheduled action uses elevated-risk services "
+                f"({risk_flags}); refusing to schedule a disabled "
+                "automation that would never fire. Ask the user to "
+                "review and enable manually, or pick a safer service."
+            )
 
         task = ScheduledTask(
             schedule_id=schedule_id,

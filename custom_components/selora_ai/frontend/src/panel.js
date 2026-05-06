@@ -1495,12 +1495,15 @@ class SeloraAIPanel extends LitElement {
     }
     this._toast = message;
     this._toastType = type;
+    // Warning toasts carry actionable text the user must read (e.g.
+    // forced-disabled risk-gated automation). Keep them up longer.
+    const duration = type === "warning" ? 8000 : 3500;
     this._toastTimer = setTimeout(() => {
       this._toast = "";
       this._toastType = "info";
       this._toastTimer = null;
       this.requestUpdate();
-    }, 3500);
+    }, duration);
     this.requestUpdate();
   }
 

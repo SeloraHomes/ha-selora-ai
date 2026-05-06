@@ -1154,27 +1154,28 @@ async def _tool_create_automation(hass: HomeAssistant, arguments: dict[str, Any]
 
     risk: RiskAssessment = assess_automation_risk(normalized)
 
-    # Enforce disabled-by-default
-    normalized["initial_state"] = enabled
-
-    success: bool = await async_create_automation(hass, normalized, version_message=version_message)
-    if not success:
+    create_result = await async_create_automation(
+        hass, normalized, version_message=version_message, enabled=enabled
+    )
+    if not create_result.get("success"):
         return {"error": "Failed to write automation to automations.yaml"}
 
-    # Retrieve the automation_id that was assigned during creation
-    yaml_automations: list[dict[str, Any]] = await _read_yaml_automations(hass)
-    alias: str = normalized.get("alias", "")
-    created: dict[str, Any] | None = next(
-        (a for a in yaml_automations if a.get("alias") == alias and _is_selora(a)),
-        None,
-    )
-    automation_id: str = str(created.get("id", "")) if created else ""
+    automation_id: str = create_result.get("automation_id") or ""
+    forced_disabled: bool = bool(create_result.get("forced_disabled"))
 
-    return {
+    response: dict[str, Any] = {
         "automation_id": automation_id,
         "status": "created",
         "risk_assessment": _sanitize_risk(risk),
     }
+    if forced_disabled:
+        response["forced_disabled"] = True
+        response["note"] = (
+            "Automation created disabled because it uses elevated-risk primitives "
+            "(shell_command, python_script, webhook trigger, etc.). Review and "
+            "enable manually if intended."
+        )
+    return response
 
 
 # ── Tool: selora_accept_automation ────────────────────────────────────────────

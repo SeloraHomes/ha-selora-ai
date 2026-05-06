@@ -775,6 +775,159 @@ class TestAssessAutomationRisk:
         result = assess_automation_risk(auto)
         assert "Camera" in result["scrutiny_tags"]
 
+    # -- Nested action containers ------------------------------------------
+    #
+    # HA automations can hide service calls inside choose/if/parallel/repeat
+    # blocks. The risk gate must descend into those containers; otherwise an
+    # LLM can wrap shell_command.foo in a top-level choose and bypass the
+    # enabled-on-create force-disable.
+
+    def test_elevated_service_inside_choose_sequence(self) -> None:
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {"condition": "state", "entity_id": "sensor.x", "state": "on"}
+                            ],
+                            "sequence": [{"service": "shell_command.foo"}],
+                        }
+                    ],
+                    "default": [{"service": "light.turn_on"}],
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "elevated"
+        assert "compute_capability" in result["flags"]
+
+    def test_elevated_service_inside_if_then(self) -> None:
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "if": [{"condition": "state", "entity_id": "sensor.x", "state": "on"}],
+                    "then": [{"action": "python_script.run"}],
+                    "else": [{"service": "light.turn_off"}],
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "elevated"
+        assert "compute_capability" in result["flags"]
+
+    def test_elevated_service_inside_parallel(self) -> None:
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "parallel": [
+                        {"service": "light.turn_on"},
+                        {"service": "rest_command.poke"},
+                    ]
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "elevated"
+        assert "compute_capability" in result["flags"]
+
+    def test_elevated_service_inside_repeat_sequence(self) -> None:
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "repeat": {
+                        "count": 3,
+                        "sequence": [{"action": "script.turn_on"}],
+                    }
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "elevated"
+        assert "indirect_execution" in result["flags"]
+
+    def test_elevated_service_deeply_nested(self) -> None:
+        """choose → sequence → if → then → shell_command must still flag."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {"condition": "state", "entity_id": "sensor.x", "state": "on"}
+                            ],
+                            "sequence": [
+                                {
+                                    "if": [
+                                        {
+                                            "condition": "state",
+                                            "entity_id": "sensor.y",
+                                            "state": "on",
+                                        }
+                                    ],
+                                    "then": [{"service": "shell_command.danger"}],
+                                }
+                            ],
+                        }
+                    ],
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "elevated"
+        assert "compute_capability" in result["flags"]
+
+    def test_normal_choose_with_only_safe_services(self) -> None:
+        """Recursion must not flag a choose/if/parallel block with only
+        safe services. Regression guard against over-eager descent that
+        treats a wrapper dict's own keys as service calls."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {"condition": "state", "entity_id": "sensor.x", "state": "on"}
+                            ],
+                            "sequence": [{"service": "light.turn_on"}],
+                        }
+                    ],
+                    "default": [{"service": "light.turn_off"}],
+                },
+                {"parallel": [{"service": "switch.turn_on"}]},
+                {"repeat": {"count": 2, "sequence": [{"service": "light.toggle"}]}},
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "normal"
+        assert result["flags"] == []
+
+    def test_recursion_does_not_traverse_service_data(self) -> None:
+        """A service-call ``data`` field that happens to use ``action`` as a
+        key (legitimate for some integrations) must not be re-interpreted
+        as a nested service call."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "service": "notify.notify",
+                    "data": {
+                        # 'action' here is a notification-action button id,
+                        # not a service name. Must be ignored.
+                        "actions": [{"action": "shell_command.evil", "title": "Run"}],
+                    },
+                }
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert result["level"] == "normal"
+
 
 # ===================================================================
 # _read_automations_yaml
@@ -1236,26 +1389,73 @@ class TestCreateAutomationValidation:
         assert new[0]["initial_state"] is False
 
     @pytest.mark.asyncio
-    async def test_initial_state_true_preserved_through_normalized(
+    async def test_suggestion_initial_state_true_is_ignored(
         self, hass, tmp_automations_yaml: Path, _patch_store
     ) -> None:
-        """Regression: quick-create sets initial_state=True, validates, then passes
-        normalized dict to async_create_automation. The created automation must be enabled."""
+        """Security: a suggestion (LLM-generated) cannot smuggle initial_state=True
+        past the user-confirmation step. async_create_automation requires the caller
+        to pass enabled=True explicitly; the suggestion field is dropped."""
         suggestion = {
-            "alias": "Quick Create Enabled",
+            "alias": "Smuggled Enabled",
             "trigger": [{"platform": "time", "at": "08:00"}],
             "action": [{"action": "notify.notify"}],
             "initial_state": True,
         }
-        # Simulate __init__.py quick-create flow: validate then pass normalized
         ok, _, normalized = validate_automation_payload(suggestion)
         assert ok is True
+        # No enabled=True kwarg → must be written disabled even though the
+        # suggestion claims initial_state=True.
         result = await async_create_automation(hass, normalized)
+        assert result["success"] is True
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Smuggled Enabled" in a.get("alias", "")]
+        assert new[0]["initial_state"] is False
+
+    @pytest.mark.asyncio
+    async def test_explicit_enabled_kwarg_enables(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        """Caller-confirmed enable-on-create paths (quick-create, scheduled actions,
+        MCP enabled=True) must still produce an enabled automation."""
+        suggestion = {
+            "alias": "Quick Create Enabled",
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [{"action": "notify.notify"}],
+        }
+        ok, _, normalized = validate_automation_payload(suggestion)
+        assert ok is True
+        result = await async_create_automation(hass, normalized, enabled=True)
         assert result["success"] is True
 
         content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
         new = [a for a in content if "Quick Create" in a.get("alias", "")]
         assert new[0]["initial_state"] is True
+
+    @pytest.mark.asyncio
+    async def test_elevated_risk_forced_disabled_even_when_enabled_requested(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        """Elevated-risk automations (shell_command, python_script, webhook, etc.)
+        must be written disabled regardless of the enabled kwarg, so the user has
+        to consciously enable them after review."""
+        # Webhook trigger flags as 'remote_ingress_trigger' in assess_automation_risk
+        # without requiring any non-default HA service to exist.
+        suggestion = {
+            "alias": "Risky Webhook",
+            "trigger": [{"platform": "webhook", "webhook_id": "selora-test"}],
+            "action": [{"action": "notify.notify", "data": {"message": "hi"}}],
+        }
+        ok, _, normalized = validate_automation_payload(suggestion)
+        assert ok is True
+        result = await async_create_automation(hass, normalized, enabled=True)
+        assert result["success"] is True
+        assert result.get("forced_disabled") is True
+        assert result.get("risk_level") == "elevated"
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Risky Webhook" in a.get("alias", "")]
+        assert new[0]["initial_state"] is False
 
     @pytest.mark.asyncio
     async def test_invalid_suggestion_rejected(

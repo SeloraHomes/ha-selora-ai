@@ -25,6 +25,7 @@ from __future__ import annotations
 import asyncio
 from collections.abc import AsyncIterator
 import logging
+import re
 import time
 from typing import Any
 
@@ -53,6 +54,24 @@ _LOGGER = logging.getLogger(__name__)
 # a healthy upstream. Keep the total budget short so a genuinely-down
 # upstream still surfaces quickly.
 _UPSTREAM_RETRY_DELAYS: tuple[float, ...] = (2.0, 4.0, 6.0)
+
+
+_TOKEN_FIELD_RE = re.compile(r'("(?:access_token|refresh_token|id_token|token)"\s*:\s*")[^"]+(")')
+_BEARER_RE = re.compile(r"(?i)(bearer\s+)[A-Za-z0-9._\-]+")
+_JWT_RE = re.compile(r"\beyJ[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\.[A-Za-z0-9_\-]+\b")
+
+
+def _mask_tokens(text: str) -> str:
+    """Redact bearer/refresh tokens from text destined for logs.
+
+    Covers: ``"access_token":"…"``, ``"refresh_token":"…"`` JSON values
+    (as Connect's OAuth proxy returns them), bare JWTs (3 dot-separated
+    base64url segments), and the ``Bearer …`` HTTP header form.
+    """
+    text = _TOKEN_FIELD_RE.sub(r"\1***\2", text)
+    text = _BEARER_RE.sub(r"\1***", text)
+    text = _JWT_RE.sub("***", text)
+    return text
 
 
 def _is_transient_upstream_error(err: str | None) -> bool:
@@ -193,7 +212,10 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                     timeout=aiohttp.ClientTimeout(total=15),
                 ) as resp:
                     if resp.status != 200:
-                        body = (await resp.text())[:200]
+                        # Mask BEFORE truncating: slicing first could cut a
+                        # token's closing quote, which would prevent
+                        # _TOKEN_FIELD_RE from matching and leak the prefix.
+                        body = _mask_tokens(await resp.text())[:200]
                         _LOGGER.warning(
                             "AI Gateway token refresh failed (%s): %s",
                             resp.status,
@@ -202,7 +224,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                         return False
                     data = await resp.json()
             except (aiohttp.ClientError, TimeoutError) as exc:
-                _LOGGER.warning("AI Gateway token refresh error: %s", exc)
+                _LOGGER.warning("AI Gateway token refresh error: %s", _mask_tokens(str(exc)))
                 return False
 
             access = data.get("access_token")

@@ -1097,6 +1097,11 @@ CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
+# Maximum number of historical versions retained per automation. Older
+# versions are dropped on append. Lineage entries are retained separately so
+# the audit trail (who/when/why) is not lost even when the YAML body is
+# evicted.
+MAX_VERSIONS_PER_AUTOMATION = 20
 
 # ── Scene Lifecycle ─────────────────────────────────────────────────
 SCENE_STORE_KEY = "selora_ai_scenes"

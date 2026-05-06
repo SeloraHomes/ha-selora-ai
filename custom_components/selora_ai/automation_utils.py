@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 import hashlib
 import json
@@ -478,6 +479,42 @@ def validate_automation_payload(
     return True, "", normalized
 
 
+def _iter_service_actions(actions: Any) -> Iterator[dict[str, Any]]:
+    """Yield every service-call action dict in a possibly-nested HA action tree.
+
+    HA automations can wrap service calls inside control-flow primitives:
+    ``choose: [{conditions, sequence}]``, ``if/then/else``, ``parallel``,
+    ``repeat.sequence``, ``repeat.while``, ``repeat.until``, and bare
+    ``sequence`` blocks. A safe-looking top-level ``choose`` could hide a
+    ``shell_command.*`` call deeper down — without recursion the risk gate
+    would miss it and let the LLM smuggle elevated-risk primitives past
+    the enabled-on-create check.
+
+    Only descends through known action-container keys, so service-call
+    data payloads (e.g. ``data: {action: "do_x"}`` for services that
+    happen to take an ``action`` field) are not traversed.
+    """
+    if isinstance(actions, dict):
+        actions = [actions]
+    if not isinstance(actions, list):
+        return
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        yield action
+        choose = action.get("choose")
+        if isinstance(choose, list):
+            for branch in choose:
+                if isinstance(branch, dict):
+                    yield from _iter_service_actions(branch.get("sequence"))
+        for nested_key in ("sequence", "then", "else", "default", "parallel"):
+            if nested_key in action:
+                yield from _iter_service_actions(action[nested_key])
+        repeat = action.get("repeat")
+        if isinstance(repeat, dict):
+            yield from _iter_service_actions(repeat.get("sequence"))
+
+
 def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskAssessment:
     """Classify automation proposals that could expand HA compute/control risk."""
     flags: list[str] = []
@@ -522,9 +559,9 @@ def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskA
             flags.append("remote_ingress_trigger")
             reasons.append("uses a webhook trigger, which creates a remotely invokable entry point")
 
-    for action in actions:
-        if not isinstance(action, dict):
-            continue
+    # Walk nested action containers (choose/if/parallel/repeat/sequence) so
+    # services hidden inside control-flow blocks are still classified.
+    for action in _iter_service_actions(actions):
         service = str(action.get("service") or action.get("action") or "").strip()
         if not service:
             continue
@@ -656,10 +693,21 @@ async def async_create_automation(
     *,
     session_id: str | None = None,
     version_message: str = "Created",
+    enabled: bool = False,
 ) -> AutomationCreateResult:
     """Write a single automation suggestion to automations.yaml and reload.
 
-    Returns a dict with keys: success (bool), automation_id (str | None).
+    New automations are written **disabled** by default. Callers that need an
+    automation to be active immediately (UI quick-create, scheduled one-shots,
+    explicit MCP enabled=True) must pass ``enabled=True``. Any
+    ``initial_state`` supplied inside ``suggestion`` is ignored — this prevents
+    a prompt-injected LLM payload from smuggling an enabled flag past the
+    user-confirmation step.
+
+    Elevated-risk automations (compute capability, remote ingress, indirect
+    execution — see :func:`assess_automation_risk`) are always written
+    disabled, even when ``enabled=True`` is requested. The ``forced_disabled``
+    flag in the result lets the caller surface this to the user.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
 
@@ -674,16 +722,24 @@ async def async_create_automation(
     actions = normalized["actions"]
     conditions = normalized.get("conditions", [])
 
+    risk = assess_automation_risk(normalized)
+    forced_disabled = False
+    if enabled and risk.get("level") == "elevated":
+        _LOGGER.warning(
+            "Forcing initial_state=False for elevated-risk automation '%s' (flags=%s)",
+            alias,
+            risk.get("flags"),
+        )
+        enabled = False
+        forced_disabled = True
+
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"
-    initial_state = normalized.get("initial_state", suggestion.get("initial_state", False))
-    if not isinstance(initial_state, bool):
-        initial_state = False
     automation = {
         "id": automation_id,
         "alias": alias,
         "description": f"[Selora AI] {suggestion.get('description', alias)}",
-        "initial_state": initial_state,
+        "initial_state": enabled,
         "triggers": triggers,
         "conditions": conditions or [],
         "actions": actions,
@@ -708,7 +764,12 @@ async def async_create_automation(
                 automation_id, yaml_text, automation, version_message, session_id
             )
 
-            return {"success": True, "automation_id": automation_id}
+            return {
+                "success": True,
+                "automation_id": automation_id,
+                "risk_level": risk.get("level", "normal"),
+                "forced_disabled": forced_disabled,
+            }
         except Exception as exc:
             _LOGGER.exception("Failed to create automation: %s", exc)
             return {"success": False, "automation_id": None}

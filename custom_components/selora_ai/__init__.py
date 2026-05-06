@@ -1907,12 +1907,22 @@ async def _handle_websocket_create_automation(
     try:
         from .automation_utils import async_create_automation
 
+        # Per project policy automations are always written disabled —
+        # the user must review and enable them in Home Assistant. We
+        # still surface risk_level so the panel can flag elevated-risk
+        # payloads (shell_command, webhook trigger, etc.) for extra
+        # caution before the user toggles them on.
         result = await async_create_automation(
             hass, automation_data, session_id=msg.get("session_id")
         )
         if result["success"]:
             connection.send_result(
-                msg["id"], {"status": "success", "automation_id": result["automation_id"]}
+                msg["id"],
+                {
+                    "status": "success",
+                    "automation_id": result["automation_id"],
+                    "risk_level": result.get("risk_level", "normal"),
+                },
             )
         else:
             connection.send_error(
@@ -1977,10 +1987,18 @@ async def _handle_websocket_apply_automation_yaml(
                     msg["id"], "not_found", "Automation not found in automations.yaml"
                 )
         else:
+            # All chat-driven creates land disabled per project policy —
+            # the user must enable manually after review. Pass risk_level
+            # back so the panel can flag elevated-risk YAML.
             result = await async_create_automation(hass, parsed, session_id=msg.get("session_id"))
             if result["success"]:
                 connection.send_result(
-                    msg["id"], {"status": "created", "automation_id": result["automation_id"]}
+                    msg["id"],
+                    {
+                        "status": "created",
+                        "automation_id": result["automation_id"],
+                        "risk_level": result.get("risk_level", "normal"),
+                    },
                 )
             else:
                 connection.send_error(msg["id"], "creation_failed", "Failed to write automation")
@@ -2275,7 +2293,6 @@ async def _handle_websocket_quick_create_automation(
 
         # Ensure the alias matches what the user typed
         automation["alias"] = name
-        automation["initial_state"] = True
 
         # Validate before saving — reject broken automations
         from .automation_utils import async_create_automation, validate_automation_payload
@@ -2296,6 +2313,10 @@ async def _handle_websocket_quick_create_automation(
                 if t[key] is None:
                     del t[key]
 
+        # Per project policy all chat-driven automations land disabled and
+        # must be reviewed/enabled by the user. The pre-MR quick-create code
+        # auto-enabled by setting initial_state=True; that path was a
+        # carve-out from the disabled-by-default rule and is now closed.
         create_result = await async_create_automation(hass, normalized)
 
         if create_result.get("success"):
