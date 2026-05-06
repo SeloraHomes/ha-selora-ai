@@ -339,8 +339,15 @@ class LLMProvider(ABC):
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 1024,
+        log_errors: bool = True,
     ) -> tuple[str | None, str | None]:
-        """Send a request and return (response_text, error_message)."""
+        """Send a request and return (response_text, error_message).
+
+        ``log_errors=False`` suppresses the loud "LLM Request failed" log on
+        non-200 responses. The error message is still returned so the caller
+        can decide whether to retry, surface the failure, or stay silent —
+        used by retry-on-cold-start paths to keep the first attempt quiet.
+        """
         try:
             session = self._get_session()
             payload = self.build_payload(system, messages, max_tokens=max_tokens)
@@ -362,12 +369,13 @@ class LLMProvider(ABC):
                 if resp.status != 200:
                     body = _sanitize_error(await resp.text())
                     error_msg = f"HTTP {resp.status}: {body[:200]}"
-                    _LOGGER.error(
-                        "LLM Request failed: %s returned %s: %s",
-                        self.provider_name,
-                        resp.status,
-                        body[:500],
-                    )
+                    if log_errors:
+                        _LOGGER.error(
+                            "LLM Request failed: %s returned %s: %s",
+                            self.provider_name,
+                            resp.status,
+                            body[:500],
+                        )
                     return None, error_msg
 
                 try:

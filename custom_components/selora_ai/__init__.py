@@ -58,6 +58,7 @@ if TYPE_CHECKING:
 
 from .automation_utils import suggestion_content_fingerprint
 from .const import (
+    AIGATEWAY_TOKEN_PATH,
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     COLLECTOR_DOMAINS,
@@ -735,6 +736,70 @@ def _find_llm(hass: HomeAssistant) -> Any:
     return None
 
 
+def _resolve_llm_entry(hass: HomeAssistant) -> ConfigEntry | None:
+    """Return the integration's LLM config entry, ignoring device-onboarding entries."""
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+            continue
+        return entry
+    return None
+
+
+def _aigateway_view(entry_data: dict[str, Any]) -> dict[str, Any]:
+    """Return AI Gateway credentials normalized from flat or nested entry data.
+
+    The interactive OAuth flow writes flat ``aigateway_*`` keys; the hub
+    auto-provisioner writes a nested ``selora_ai_gateway`` object (per
+    selora-hub-openapi.yaml). Flat values win when both are present so a
+    fresh in-band refresh isn't masked by a stale provisioned blob.
+    """
+    nested = entry_data.get("selora_ai_gateway") or entry_data.get("ai_gateway")
+    if not isinstance(nested, dict):
+        nested = {}
+
+    connect_url = entry_data.get(CONF_SELORA_CONNECT_URL) or ""
+    if not connect_url:
+        token_url = nested.get("token_url") or ""
+        if token_url and AIGATEWAY_TOKEN_PATH in token_url:
+            connect_url = token_url.split(AIGATEWAY_TOKEN_PATH, 1)[0]
+
+    return {
+        "access_token": entry_data.get(CONF_AIGATEWAY_ACCESS_TOKEN)
+        or nested.get("access_token")
+        or "",
+        "refresh_token": entry_data.get(CONF_AIGATEWAY_REFRESH_TOKEN)
+        or nested.get("refresh_token")
+        or "",
+        # Read expiry from the nested blob too: without it, a provisioned
+        # access token paired with an unknown-expiry value (0.0) would
+        # bypass _needs_refresh() and keep being used past expiry,
+        # producing 401s instead of triggering a refresh.
+        "expires_at": float(
+            entry_data.get(CONF_AIGATEWAY_EXPIRES_AT) or nested.get("expires_at") or 0.0
+        ),
+        "user_email": entry_data.get(CONF_AIGATEWAY_USER_EMAIL) or nested.get("user_email") or "",
+        "user_id": entry_data.get(CONF_AIGATEWAY_USER_ID) or nested.get("user_id") or "",
+        "client_id": entry_data.get(CONF_AIGATEWAY_CLIENT_ID) or nested.get("client_id") or "",
+        "connect_url": connect_url or DEFAULT_SELORA_CONNECT_URL,
+    }
+
+
+def _resolve_llm_provider(entry_data: dict[str, Any]) -> str:
+    """Return the configured LLM provider id, inferring ``selora_cloud`` when needed.
+
+    The hub auto-provisioner writes an ``ai_gateway`` block without setting
+    ``llm_provider``. Treat the presence of a refresh token there as an
+    implicit selection of Selora Cloud so the integration boots into the
+    right provider without requiring the user to click "Link".
+    """
+    explicit = entry_data.get(CONF_LLM_PROVIDER)
+    if explicit:
+        return str(explicit)
+    if _aigateway_view(entry_data)["refresh_token"]:
+        return LLM_PROVIDER_SELORA_CLOUD
+    return DEFAULT_LLM_PROVIDER
+
+
 async def _resolve_or_create_session(
     store: ConversationStore,
     session_id: str,
@@ -913,12 +978,19 @@ def _build_history_from_session(
 
 
 def _collect_existing_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
-    """Collect existing automation summaries for LLM context."""
+    """Collect existing automation summaries for LLM context.
+
+    Translates HA's raw ``on``/``off`` state into the ``enabled``/``disabled``
+    wording the user sees in Settings → Automations. Passing the raw value
+    through made the LLM report disabled automations as "off", which reads
+    like an idle/inactive device rather than a turned-off rule.
+    """
+    state_label = {"on": "enabled", "off": "disabled"}
     return [
         {
             "entity_id": state.entity_id,
             "alias": state.attributes.get("friendly_name", state.entity_id),
-            "state": state.state,
+            "state": state_label.get(state.state, state.state),
         }
         for state in hass.states.async_all("automation")
     ]
@@ -2430,20 +2502,19 @@ async def _handle_websocket_get_config(
     if not _require_admin(connection, msg):
         return
 
-    # We find the first config entry for our domain
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
     # Merge entry data with options for a complete view
     config_data = {**entry.data, **entry.options}
+    aigw = _aigateway_view(config_data)
 
     connection.send_result(
         msg["id"],
         {
-            "llm_provider": config_data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER,
+            "llm_provider": _resolve_llm_provider(config_data),
             # Never send the raw key to the frontend — only a safe display hint.
             "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),
             "anthropic_api_key_set": bool(config_data.get(CONF_ANTHROPIC_API_KEY)),
@@ -2495,8 +2566,8 @@ async def _handle_websocket_get_config(
             "selora_installation_id": config_data.get(CONF_SELORA_INSTALLATION_ID, ""),
             "selora_mcp_url": config_data.get(CONF_SELORA_MCP_URL, ""),
             # Selora Cloud (AI Gateway OAuth)
-            "aigateway_linked": bool(config_data.get(CONF_AIGATEWAY_REFRESH_TOKEN)),
-            "aigateway_user_email": config_data.get(CONF_AIGATEWAY_USER_EMAIL, ""),
+            "aigateway_linked": bool(aigw["refresh_token"]),
+            "aigateway_user_email": aigw["user_email"],
             # LLM pricing overrides — shape: {provider: {model: [in_per_mtok, out_per_mtok]}}
             "llm_pricing_overrides": config_data.get(CONF_LLM_PRICING_OVERRIDES, {}),
         },
@@ -2519,12 +2590,11 @@ async def _handle_websocket_update_config(
     if not _require_admin(connection, msg):
         return
 
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
     new_config = msg["config"]
 
     # Split into data and options
@@ -3882,12 +3952,11 @@ async def _handle_websocket_exchange_connect_code(
     if not _require_admin(connection, msg):
         return
 
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
     connect_url = (
         msg["connect_url"] or entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL)
     ).rstrip("/")
@@ -4042,12 +4111,11 @@ async def _handle_websocket_unlink_connect(
     if not _require_admin(connection, msg):
         return
 
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
     new_data = {**entry.data}
     new_data.pop(CONF_SELORA_CONNECT_ENABLED, None)
     new_data.pop(CONF_SELORA_INSTALLATION_ID, None)
@@ -4113,15 +4181,12 @@ async def _handle_websocket_exchange_aigateway_code(
     if not _require_admin(connection, msg):
         return
 
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
-    connect_url = (
-        msg["connect_url"] or entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL)
-    ).rstrip("/")
+    connect_url = (msg["connect_url"] or _aigateway_view(entry.data)["connect_url"]).rstrip("/")
 
     import time as _time
 
@@ -4213,12 +4278,11 @@ async def _handle_websocket_unlink_aigateway(
     if not _require_admin(connection, msg):
         return
 
-    entries = hass.config_entries.async_entries(DOMAIN)
-    if not entries:
+    entry = _resolve_llm_entry(hass)
+    if entry is None:
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
-    entry = entries[0]
     new_data = {**entry.data}
     for key in (
         CONF_AIGATEWAY_ACCESS_TOKEN,
@@ -4229,6 +4293,12 @@ async def _handle_websocket_unlink_aigateway(
         CONF_AIGATEWAY_CLIENT_ID,
     ):
         new_data.pop(key, None)
+    # The hub auto-provisioner stores the same credentials under a nested
+    # "selora_ai_gateway" object; drop it (and its legacy alias) too so
+    # the user really is unlinked rather than silently re-linking on
+    # next reload.
+    new_data.pop("selora_ai_gateway", None)
+    new_data.pop("ai_gateway", None)
     # Keep llm_provider on selora_cloud so the user stays in the same UI
     # state (set URL override, re-link). The provider will fail health
     # checks until re-linking, which is the expected mid-flow behaviour.
@@ -4686,7 +4756,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
         return True
 
-    provider = entry.data.get(CONF_LLM_PROVIDER) or DEFAULT_LLM_PROVIDER
+    provider = _resolve_llm_provider(entry.data)
 
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
     pricing_overrides = entry.options.get(CONF_LLM_PRICING_OVERRIDES) or {}
@@ -4758,14 +4828,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             hass, llm_provider, lookback_days=lookback, pricing_overrides=pricing_overrides
         )
     elif provider == LLM_PROVIDER_SELORA_CLOUD:
+        aigw = _aigateway_view(entry.data)
         llm_provider = create_provider(
             provider,
             hass,
-            access_token=entry.data.get(CONF_AIGATEWAY_ACCESS_TOKEN, ""),
-            refresh_token=entry.data.get(CONF_AIGATEWAY_REFRESH_TOKEN, ""),
-            expires_at=entry.data.get(CONF_AIGATEWAY_EXPIRES_AT, 0.0),
-            connect_url=entry.data.get(CONF_SELORA_CONNECT_URL, DEFAULT_SELORA_CONNECT_URL),
-            client_id=entry.data.get(CONF_AIGATEWAY_CLIENT_ID, ""),
+            access_token=aigw["access_token"],
+            refresh_token=aigw["refresh_token"],
+            expires_at=aigw["expires_at"],
+            connect_url=aigw["connect_url"],
+            client_id=aigw["client_id"],
             entry_id=entry.entry_id,
         )
         llm = LLMClient(
@@ -5054,13 +5125,48 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Pattern detection disabled")
 
     # Register update listener for options
+    snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "_entry_data_snapshots", {}
+    )
+    snapshots[entry.entry_id] = dict(entry.data)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
 
 
+_AIGW_TOKEN_FIELDS = frozenset(
+    {
+        CONF_AIGATEWAY_ACCESS_TOKEN,
+        CONF_AIGATEWAY_REFRESH_TOKEN,
+        CONF_AIGATEWAY_EXPIRES_AT,
+    }
+)
+
+
 async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Reload the config entry when options change."""
+    """Reload the config entry when options change.
+
+    SeloraCloudProvider persists fresh access tokens back into the entry
+    after every refresh. Reloading on that update tears the provider
+    down mid-request and has been observed dropping the Authorization
+    header on the in-flight call. Snapshot the last-seen entry data and
+    skip the reload when only the AI Gateway token fields changed —
+    the live provider already holds the new values.
+    """
+    snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "_entry_data_snapshots", {}
+    )
+    previous = snapshots.get(entry.entry_id, {})
+    current = dict(entry.data)
+    snapshots[entry.entry_id] = current
+
+    if previous:
+        changed = {
+            key for key in previous.keys() | current.keys() if previous.get(key) != current.get(key)
+        }
+        if changed and changed.issubset(_AIGW_TOKEN_FIELDS):
+            return
+
     await hass.config_entries.async_reload(entry.entry_id)
 
 

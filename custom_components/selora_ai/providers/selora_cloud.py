@@ -46,6 +46,28 @@ from .openai_compat import OpenAICompatibleProvider
 
 _LOGGER = logging.getLogger(__name__)
 
+# An intermediary in front of the AI Gateway has been observed returning
+# transient 5xx (a 500 with "unable to reach app" and generic 502/503/504)
+# at HA boot — likely the dev framework's runtime proxy, not the AI
+# Gateway itself. We retry on these delays so the next attempt lands on
+# a healthy upstream. Keep the total budget short so a genuinely-down
+# upstream still surfaces quickly.
+_UPSTREAM_RETRY_DELAYS: tuple[float, ...] = (2.0, 4.0, 6.0)
+
+
+def _is_transient_upstream_error(err: str | None) -> bool:
+    """Return True for Connect proxy 5xx that indicates upstream cold-start.
+
+    Match conservatively: only the proxy-specific 500 message and the
+    generic 502/503/504 status codes, so a real 500 from the AI Gateway
+    app itself (a bug we should see in logs) isn't silently retried.
+    """
+    if not err:
+        return False
+    if "HTTP 502" in err or "HTTP 503" in err or "HTTP 504" in err:
+        return True
+    return "HTTP 500" in err and "unable to reach app" in err
+
 
 class SeloraCloudProvider(OpenAICompatibleProvider):
     """Selora-hosted LLM provider authenticated via the AI Gateway OAuth flow."""
@@ -231,9 +253,50 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         messages: list[dict[str, str]],
         *,
         max_tokens: int = 1024,
+        log_errors: bool = True,
     ) -> tuple[str | None, str | None]:
         await self._ensure_token()
-        return await super().send_request(system, messages, max_tokens=max_tokens)
+        # An intermediary in front of the AI Gateway has been seen
+        # returning transient 5xx at HA boot — observed in the dev stack
+        # when the integration fires a health-check / first collector
+        # cycle. Keep base.send_request silent throughout so we can pick
+        # the right log level locally: success → no log, non-transient
+        # failure → ERROR (real outage), transient retries exhausted →
+        # WARNING (self-healing condition that doesn't deserve HA's
+        # "error reported by integration" notification on every restart).
+        for delay in _UPSTREAM_RETRY_DELAYS:
+            result, err = await super().send_request(
+                system, messages, max_tokens=max_tokens, log_errors=False
+            )
+            if result is not None:
+                return result, None
+            if not _is_transient_upstream_error(err):
+                if log_errors:
+                    _LOGGER.error("Selora Cloud request failed: %s", err)
+                return None, err
+            _LOGGER.info(
+                "Selora Cloud transient upstream error (%s) — retrying after %.1fs",
+                err,
+                delay,
+            )
+            await asyncio.sleep(delay)
+            await self._ensure_token()
+        # Final attempt after the retry budget.
+        result, err = await super().send_request(
+            system, messages, max_tokens=max_tokens, log_errors=False
+        )
+        if result is not None:
+            return result, None
+        if log_errors:
+            if _is_transient_upstream_error(err):
+                _LOGGER.warning(
+                    "Selora Cloud upstream still unreachable after %d attempts: %s",
+                    len(_UPSTREAM_RETRY_DELAYS) + 1,
+                    err,
+                )
+            else:
+                _LOGGER.error("Selora Cloud request failed: %s", err)
+        return None, err
 
     async def raw_request(
         self,
@@ -268,10 +331,10 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     async def health_check(self) -> bool:
         if not self._refresh_token and not self._access_token:
             return False
-        await self._ensure_token()
-        if not self._access_token:
-            return False
-        result, _err = await super().send_request(
+        # Use ``self.send_request`` rather than ``super()`` so the cold-start
+        # retry logic above also covers boot-time health checks — those are
+        # the most likely callers to race the proxy's upstream warmup.
+        result, _err = await self.send_request(
             system="Respond with 'ok'",
             messages=[{"role": "user", "content": "Hi"}],
         )
