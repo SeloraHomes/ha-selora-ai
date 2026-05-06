@@ -12614,6 +12614,8 @@ async function _sendMessage() {
         this._messages = [...this._messages];
         this._loading = false;
         this._requestScrollChat();
+      } else if (event.type === "heartbeat") {
+        lastActivityAt = Date.now();
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
@@ -14283,11 +14285,14 @@ var SeloraAIPanel = class extends s4 {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
+      } else if (provider === "selora_local") {
+        payload.selora_local_host = this._config.selora_local_host;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
       }
-      const needsValidation = newKey || provider === "ollama";
+      const needsValidation =
+        newKey || provider === "ollama" || provider === "selora_local";
       if (needsValidation) {
         const validatePayload = {
           type: "selora_ai/validate_llm_key",
@@ -14296,6 +14301,8 @@ var SeloraAIPanel = class extends s4 {
         if (provider === "ollama") {
           validatePayload.host = this._config.ollama_host;
           validatePayload.model = this._config.ollama_model;
+        } else if (provider === "selora_local") {
+          validatePayload.host = this._config.selora_local_host;
         } else {
           validatePayload.api_key = newKey;
           validatePayload.model = this._config[`${provider}_model`];

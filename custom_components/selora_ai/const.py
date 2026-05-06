@@ -795,9 +795,16 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 # The integration routes to one of four LoRA specialists per request type
 # (commands / automations / answers / clarifications) — no user-visible
 # model picker.
+#
+# Default targets the HA Supervisor's hassio Docker bridge gateway:
+# add-ons run in their own container, so "localhost" from inside the HA
+# core container reaches HA itself, not the add-on. 172.30.33.1 is the
+# gateway IP that routes to whatever ports the add-on exposes via its
+# config.yaml. (Older HA versions used 172.30.32.1 — users on bare-metal
+# or docker-compose installs override the field.)
 CONF_SELORA_LOCAL_HOST = "selora_local_host"
 
-DEFAULT_SELORA_LOCAL_HOST = "http://localhost:5310"
+DEFAULT_SELORA_LOCAL_HOST = "http://172.30.33.1:5310"
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"

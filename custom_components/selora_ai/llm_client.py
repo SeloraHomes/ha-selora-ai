@@ -951,7 +951,7 @@ class LLMClient:
                 # in 1024 tokens.
                 intent_hint = _classify_chat_intent(user_message)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
-                system_prompt = self._build_minimal_architect_system_prompt()
+                system_prompt = self._build_minimal_architect_system_prompt(intent_hint)
                 messages = self._build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
             else:
@@ -1064,7 +1064,7 @@ class LLMClient:
                 # See architect_chat — same low-context shortcut.
                 intent_hint = _classify_chat_intent(user_message)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
-                system_prompt = self._build_minimal_architect_system_prompt()
+                system_prompt = self._build_minimal_architect_system_prompt(intent_hint)
                 messages = self._build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
             else:
@@ -1654,21 +1654,87 @@ class LLMClient:
     # System prompts
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def _build_minimal_architect_system_prompt() -> str:
-        """Tight system prompt for low-context providers (e.g. Selora Local).
+    # ── Low-context per-intent system prompts ──────────────────────────
+    # Each LoRA specialist was trained on Selora's intent JSON schema —
+    # asking for plain text breaks format and the model emits EOS
+    # immediately. So we always require JSON, but narrow the schema per
+    # intent so we don't trigger spurious automation/command parsing
+    # downstream (e.g. an empty "automation" key getting promoted to a
+    # Proposal card).
+    #
+    # Each prompt restates ONLY the fields _parse_architect_response
+    # needs to read for that intent. Other intents' fields are absent so
+    # the LoRA doesn't bleed them into the response.
+    # Aligned with the v2 Qwen specialist training prompts at
+    # /Documents/SeloraAI/v2/prompts/{intent}_system_prompt.txt — keeping them
+    # in lock-step prevents the trained LoRA from receiving an unfamiliar
+    # prompt at inference and emitting malformed JSON / split YAML blocks.
+    _LOW_CONTEXT_SYSTEM_PROMPTS: dict[str, str] = {
+        "command": (
+            "You are Selora AI, controlling devices on a Home Assistant instance. "
+            "The user wants an immediate action.\n\n"
+            "Return ONE JSON object with this shape and nothing else:\n"
+            '{"intent":"command","response":"<1-sentence confirmation>",'
+            '"calls":[{"service":"<domain>.<action>","target":'
+            '{"entity_id":"<id>"},"data":{}}]}\n\n'
+            "RULES:\n"
+            "- Use entity_ids ONLY from AVAILABLE ENTITIES.\n"
+            "- Allowed domains: climate, fan, input_boolean, light, "
+            "media_player, switch.\n"
+            "- response is one sentence; name the entity.\n"
+            "- Output ONLY the JSON object."
+        ),
+        "automation": (
+            "You are Selora AI, an automation architect for Home Assistant. "
+            "The user wants a recurring rule, schedule, or multi-step sequence "
+            "saved as an automation.\n\n"
+            "Return ONE JSON object with this shape and nothing else:\n"
+            '{"intent":"automation","response":"<1-2 sentence explanation>",'
+            '"description":"<precise plain-English summary listing every '
+            'targeted entity>","automation":{"alias":"<max 4 words>",'
+            '"description":"<...>","triggers":[...],"conditions":[...],'
+            '"actions":[...]}}\n\n'
+            "RULES:\n"
+            "- Use HA 2024+ plural keys: triggers, actions, conditions.\n"
+            "- Service calls use the service key (e.g. light.turn_on).\n"
+            '- State to/from MUST be strings ("on"/"off"), never booleans.\n'
+            '- Time values MUST be "HH:MM:SS" strings.\n'
+            "- Use entity_ids ONLY from AVAILABLE ENTITIES.\n"
+            "- Output ONLY the JSON object."
+        ),
+        "answer": (
+            "You are Selora AI, a home automation assistant on Home Assistant. "
+            "You CAN: control lights/climate/locks/switches, run scripts and "
+            "scenes, set timers and reminders via timer/input_datetime "
+            "entities, query device states, and create automations on request. "
+            "Never say you are a 'text-based AI' or that you cannot do "
+            "something Home Assistant supports.\n\n"
+            "Return ONE JSON object:\n"
+            '{"intent":"answer","response":"<1-3 sentences>"}\n\n'
+            "RULES:\n"
+            "- Answer directly. No preamble.\n"
+            "- 1-3 sentences. Add detail only if the user asked for it.\n"
+            "- If the user asks what you can do, list 2-4 concrete capabilities.\n"
+            "- Output ONLY the JSON object."
+        ),
+        "clarification": (
+            "You are Selora AI on Home Assistant. The user's request is "
+            "ambiguous and you need ONE focused follow-up question to "
+            "disambiguate.\n\n"
+            "Return ONE JSON object:\n"
+            '{"intent":"clarification","response":"<one specific question>"}\n\n'
+            "RULES:\n"
+            "- Ask exactly ONE question. No filler.\n"
+            "- Be specific: name the candidate entities or actions when possible.\n"
+            "- Output ONLY the JSON object."
+        ),
+    }
 
-        The four LoRA specialists are pre-trained on Selora's intent
-        schema, so the prompt only restates the JSON shape the parser
-        expects — no rule walls, no examples, no tone guidance.
-        """
-        return (
-            "You are Selora AI for Home Assistant. Reply with ONLY one JSON object:\n"
-            '{"intent": "command|automation|answer|clarification",'
-            ' "response": "<short reply>",'
-            ' "calls": [<service-call objects, command intent only>],'
-            ' "automation": {<HA automation, automation intent only>}}\n'
-            "Use entity_ids from AVAILABLE ENTITIES only. No prose outside the JSON."
+    @classmethod
+    def _build_minimal_architect_system_prompt(cls, intent_hint: str = "answer") -> str:
+        """Tight per-intent system prompt for low-context providers."""
+        return cls._LOW_CONTEXT_SYSTEM_PROMPTS.get(
+            intent_hint, cls._LOW_CONTEXT_SYSTEM_PROMPTS["answer"]
         )
 
     def _build_minimal_chat_messages(
