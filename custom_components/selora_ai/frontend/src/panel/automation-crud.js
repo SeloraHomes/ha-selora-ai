@@ -1,5 +1,28 @@
 // Automation CRUD actions (prototype-assigned to SeloraAIArchitectPanel)
 
+// Build the post-create toast. Per project policy every chat-driven
+// automation is written disabled; the user must review and enable it in
+// Home Assistant. When the backend flags the payload as elevated-risk
+// (shell_command, python_script, webhook, etc.) we upgrade the toast to
+// a longer warning so the user is reminded to review carefully.
+export function _createdToast(alias, result) {
+  if (result && result.risk_level === "elevated") {
+    return {
+      message:
+        `Automation "${alias}" created (DISABLED) — uses elevated-risk ` +
+        "actions (shell_command, python_script, webhook, etc.). Review " +
+        "carefully before enabling in Home Assistant.",
+      type: "warning",
+    };
+  }
+  return {
+    message:
+      `Automation "${alias}" created — review and enable it from ` +
+      "Home Assistant Automations.",
+    type: "info",
+  };
+}
+
 export function _getRefiningAutomationId(msgIndex = null) {
   const msg = msgIndex == null ? null : this._messages[msgIndex];
   if (msg?.refining_automation_id) return msg.refining_automation_id;
@@ -36,6 +59,7 @@ export async function _loadLineage(automationId) {
 export async function _acceptAutomation(msgIndex, automation) {
   try {
     const refiningId = this._getRefiningAutomationId(msgIndex);
+    let createResult = null;
     if (refiningId) {
       const yamlText = this._messages[msgIndex]?.automation_yaml || "";
       if (yamlText) {
@@ -47,14 +71,14 @@ export async function _acceptAutomation(msgIndex, automation) {
           version_message: "Refined via chat",
         });
       } else {
-        await this.hass.callWS({
+        createResult = await this.hass.callWS({
           type: "selora_ai/create_automation",
           automation: automation,
           session_id: this._activeSessionId,
         });
       }
     } else {
-      await this.hass.callWS({
+      createResult = await this.hass.callWS({
         type: "selora_ai/create_automation",
         automation: automation,
         session_id: this._activeSessionId,
@@ -74,10 +98,12 @@ export async function _acceptAutomation(msgIndex, automation) {
     await this._removeDraftForSession(this._activeSessionId);
     await this._loadAutomations();
 
-    this._showToast(
-      `Automation "${automation.alias}" ${refiningId ? "updated" : "created and enabled"}.`,
-      "success",
-    );
+    if (refiningId && !createResult) {
+      this._showToast(`Automation "${automation.alias}" updated.`, "success");
+    } else {
+      const toast = _createdToast(automation.alias, createResult);
+      this._showToast(toast.message, toast.type);
+    }
     this._activeTab = "automations";
   } catch (err) {
     this._showToast("Failed to save automation: " + err.message, "error");
@@ -160,12 +186,13 @@ export async function _refineAutomation(msgIndex, automation, description) {
 
 export async function _createAutomationFromSuggestion(automation) {
   try {
-    await this.hass.callWS({
+    const result = await this.hass.callWS({
       type: "selora_ai/create_automation",
       automation,
     });
     await this._loadAutomations();
-    this._showToast(`Automation "${automation.alias}" created.`, "success");
+    const toast = _createdToast(automation.alias, result);
+    this._showToast(toast.message, toast.type);
   } catch (err) {
     this._showToast("Failed to create automation: " + err.message, "error");
   }
@@ -191,6 +218,7 @@ export async function _acceptAutomationWithEdits(
       this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
       this.requestUpdate();
 
+      let createResult = null;
       if (refiningId) {
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
@@ -200,7 +228,7 @@ export async function _acceptAutomationWithEdits(
           version_message: "Refined via chat (with edits)",
         });
       } else {
-        await this.hass.callWS({
+        createResult = await this.hass.callWS({
           type: "selora_ai/apply_automation_yaml",
           yaml_text: edited,
           session_id: this._activeSessionId,
@@ -220,10 +248,12 @@ export async function _acceptAutomationWithEdits(
       this._messages = session.messages || [];
       await this._loadAutomations();
 
-      this._showToast(
-        `Automation "${automation.alias}" ${refiningId ? "updated" : "created and enabled"}.`,
-        "success",
-      );
+      if (refiningId) {
+        this._showToast(`Automation "${automation.alias}" updated.`, "success");
+      } else {
+        const toast = _createdToast(automation.alias, createResult);
+        this._showToast(toast.message, toast.type);
+      }
       this._activeTab = "automations";
     } catch (err) {
       this._showToast(
@@ -244,13 +274,14 @@ export async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
   try {
     this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
     this.requestUpdate();
+    let createResult;
     if (edited && edited !== originalYaml) {
-      await this.hass.callWS({
+      createResult = await this.hass.callWS({
         type: "selora_ai/apply_automation_yaml",
         yaml_text: edited,
       });
     } else {
-      await this.hass.callWS({
+      createResult = await this.hass.callWS({
         type: "selora_ai/create_automation",
         automation: auto,
       });
@@ -260,7 +291,8 @@ export async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
       [yamlKey]: true,
     };
     await this._loadAutomations();
-    this._showToast(`Automation "${auto.alias}" created.`, "success");
+    const toast = _createdToast(auto.alias, createResult);
+    this._showToast(toast.message, toast.type);
     // Wait for fade-out, then remove and scroll
     await new Promise((r) => setTimeout(r, 650));
     this._suggestions = this._suggestions.filter((s) => {

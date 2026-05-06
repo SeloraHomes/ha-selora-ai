@@ -194,6 +194,9 @@ export const layoutStyles = css`
   .toast.error {
     background: #dc3545;
   }
+  .toast.warning {
+    background: #b45309;
+  }
   .toast-close {
     margin-left: auto;
     cursor: pointer;

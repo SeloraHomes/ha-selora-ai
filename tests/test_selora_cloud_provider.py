@@ -385,3 +385,55 @@ class TestTransientErrorDetector:
         )
 
         assert not _is_transient_upstream_error("HTTP 401: Unauthorized")
+
+
+class TestMaskTokens:
+    """_mask_tokens must redact every credential shape we may log."""
+
+    def test_redacts_access_token_json_field(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _mask_tokens
+
+        out = _mask_tokens('{"access_token":"sk-abcdef-secret-value-123","x":1}')
+        assert "sk-abcdef" not in out
+        assert "secret-value" not in out
+        assert '"access_token":"***"' in out
+
+    def test_redacts_refresh_token_json_field(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _mask_tokens
+
+        out = _mask_tokens('{"refresh_token":"rt_abc.def_ghi-jkl"}')
+        assert "rt_abc" not in out
+        assert '"refresh_token":"***"' in out
+
+    def test_redacts_bearer_header(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _mask_tokens
+
+        out = _mask_tokens("Authorization: Bearer eyJhbGc.eyJzdWI.signature_part")
+        assert "eyJhbGc" not in out
+        assert "Bearer ***" in out
+
+    def test_redacts_bare_jwt(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import _mask_tokens
+
+        out = _mask_tokens("oops eyJabc123-_.eyJdef456-_.signaturepartXYZ trailing")
+        assert "eyJabc123" not in out
+        assert "***" in out
+        assert "trailing" in out
+
+    def test_truncated_token_still_masked_when_called_before_slice(self) -> None:
+        """Regression for the mask-then-truncate ordering bug.
+
+        The refresh-failure log path must mask the full body BEFORE truncating
+        to 200 chars; otherwise a token whose closing quote falls past the
+        cutoff slips past the regex and leaks the prefix.
+        """
+        from custom_components.selora_ai.providers.selora_cloud import _mask_tokens
+
+        long_token = "secret_prefix_" + ("A" * 300)
+        body = f'{{"access_token":"{long_token}","trailing":"x"}}'
+        # Production order: mask first, then slice. The masked output must
+        # not contain any portion of the secret even when sliced to 200.
+        masked_then_sliced = _mask_tokens(body)[:200]
+        assert "secret_prefix" not in masked_then_sliced
+        assert "AAAA" not in masked_then_sliced
+        assert '"access_token":"***"' in masked_then_sliced

@@ -219,12 +219,51 @@ class TestScheduledTaskTracker:
         created = mock_create.call_args[0][1]
         assert created["triggers"][0]["platform"] == "time"
         assert created["triggers"][0]["at"] == "23:00:00"
-        assert created["initial_state"] is True
+        # One-shot scheduled actions must be created enabled — async_create_automation
+        # now takes that decision via the explicit enabled=True kwarg, not a
+        # smuggled initial_state field on the suggestion.
+        assert mock_create.call_args.kwargs.get("enabled") is True
+        assert "initial_state" not in created
         # Verify one-shot date condition is present and uses local date
         assert len(created["conditions"]) == 1
         cond = created["conditions"][0]
         assert cond["condition"] == "template"
         assert "%Y-%m-%d" in cond["value_template"]
+
+    @pytest.mark.asyncio
+    async def test_schedule_at_time_rejects_forced_disabled(self, hass: MagicMock) -> None:
+        """If async_create_automation force-disables an elevated-risk action,
+        the scheduler must roll back and raise — a disabled one-shot would
+        never fire and silently swallow the user's request."""
+        tracker = ScheduledTaskTracker(hass)
+        calls = [{"service": "script.evening_routine"}]
+
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={
+                    "success": True,
+                    "automation_id": "selora_ai_risky01",
+                    "risk_level": "elevated",
+                    "forced_disabled": True,
+                },
+            ) as mock_create,
+            patch(
+                "custom_components.selora_ai.automation_utils.async_delete_automation",
+                return_value=True,
+            ) as mock_delete,
+            pytest.raises(RuntimeError, match="elevated-risk"),
+        ):
+            await tracker.schedule_at_time(
+                "session_1", calls, "23:00:00", "Evening routine"
+            )
+
+        mock_create.assert_called_once()
+        # Zombie automation must be cleaned up so we don't leave a disabled
+        # one-shot in automations.yaml.
+        mock_delete.assert_called_once_with(hass, "selora_ai_risky01")
+        # And the scheduler must not have registered the task.
+        assert tracker._tasks == {}
 
     @pytest.mark.asyncio
     async def test_schedule_at_time_uses_local_date(self, hass: MagicMock) -> None:

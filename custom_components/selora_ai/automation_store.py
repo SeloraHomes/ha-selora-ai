@@ -41,7 +41,7 @@ import uuid
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
-from .const import AUTOMATION_STORE_KEY
+from .const import AUTOMATION_STORE_KEY, MAX_VERSIONS_PER_AUTOMATION
 
 if TYPE_CHECKING:
     from .types import (
@@ -136,7 +136,13 @@ class AutomationStore:
             # Migrate existing records that pre-date lineage support
             if "lineage" not in records[automation_id]:
                 records[automation_id]["lineage"] = []
-            records[automation_id]["versions"].append(version)
+            versions_list = records[automation_id]["versions"]
+            versions_list.append(version)
+            # Keep only the latest N versions. Older YAML bodies are evicted to
+            # cap storage growth on refinement-heavy workflows; the lineage
+            # entries below preserve the audit trail.
+            if len(versions_list) > MAX_VERSIONS_PER_AUTOMATION:
+                del versions_list[: len(versions_list) - MAX_VERSIONS_PER_AUTOMATION]
             records[automation_id]["current_version_id"] = version_id
 
         # Resolve action label when not explicitly provided

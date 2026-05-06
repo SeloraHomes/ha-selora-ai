@@ -408,4 +408,95 @@ describe("renderMarkdown", () => {
     expect(result).not.toContain("[Switch]");
     expect(result).toContain('class="selora-entity-grid"');
   });
+
+  // -------------------------------------------------------------------------
+  // XSS regression coverage
+  //
+  // The output of renderMarkdown is assigned via `.innerHTML=` in
+  // panel/render-chat.js. The renderer is the only sanitization layer; if
+  // any of these tests start producing live HTML, an LLM response (or any
+  // attacker-controlled string that reaches the chat bubble) becomes XSS.
+  // -------------------------------------------------------------------------
+  describe("XSS hardening", () => {
+    it("escapes raw <script> tags", () => {
+      const out = renderMarkdown("<script>alert(1)</script>");
+      expect(out).not.toContain("<script");
+      expect(out).toContain("&lt;script&gt;");
+    });
+
+    it("escapes <img onerror> payloads", () => {
+      const out = renderMarkdown('<img src=x onerror="alert(1)">');
+      // No live <img …> tag — the < and > must be entity-escaped.
+      expect(out).not.toMatch(/<img\b/i);
+      expect(out).toContain("&lt;img");
+    });
+
+    it("escapes <svg onload> payloads", () => {
+      const out = renderMarkdown('<svg onload="alert(1)"></svg>');
+      expect(out).not.toMatch(/<svg\b/i);
+      expect(out).toContain("&lt;svg");
+    });
+
+    it("escapes javascript: URLs in markdown autolink-shaped text", () => {
+      const out = renderMarkdown("[click](javascript:alert(1))");
+      // We don't render markdown links to <a> at all — but if that ever
+      // changes, the href must not be a javascript: URL.
+      expect(out).not.toMatch(/<a[^>]+href=["']?javascript:/i);
+    });
+
+    it("does not allow attribute-break in entity-grid id list", () => {
+      // The entity regex is strict ([a-z_]+\.[a-z0-9_\-]+) so quotes
+      // never reach the data-entity-ids attribute. Verify defence-in-depth:
+      // a malformed payload must not produce a selora-entity-grid div with
+      // attacker-controlled attributes.
+      const malicious = '[[entities:light.k"onmouseover="alert(1)]]';
+      const out = renderMarkdown(malicious);
+      expect(out).not.toMatch(/<div[^>]*\sonmouseover=/i);
+      // The malformed payload must not have produced a tile grid div at all.
+      expect(out).not.toContain("selora-entity-grid");
+    });
+
+    it("does not allow event handlers via raw HTML attributes", () => {
+      const out = renderMarkdown('<div onclick="alert(1)">x</div>');
+      // The literal <div …> must be escaped; no live element with onclick.
+      expect(out).not.toMatch(/<div\b[^>]*\sonclick=/i);
+      expect(out).toContain("&lt;div");
+    });
+
+    it("escapes HTML inside fenced code blocks", () => {
+      const out = renderMarkdown("```\n<script>alert(1)</script>\n```");
+      // The literal tag must be escaped — but the code-block wrapper is
+      // emitted by the renderer, so a <pre> element is expected.
+      expect(out).toContain("&lt;script&gt;");
+      expect(out).not.toMatch(/<script\b/i);
+    });
+
+    it("escapes HTML inside inline code spans", () => {
+      const out = renderMarkdown("Use `<img src=x onerror=1>` carefully");
+      expect(out).not.toMatch(/<img\b/i);
+      expect(out).toContain("&lt;img");
+    });
+
+    it("escapes raw HTML mixed with markdown bold", () => {
+      const out = renderMarkdown("**bold** then <script>x</script>");
+      expect(out).toContain(">bold</strong>");
+      expect(out).not.toMatch(/<script\b/i);
+    });
+
+    it("escapes HTML smuggled via [Domain] header strip path", () => {
+      // The pre-escape strip path operates on raw text. Make sure it
+      // can't produce live HTML if the regex misfires.
+      const out = renderMarkdown(
+        "[Light] (1 total):\n<script>alert(1)</script>",
+      );
+      expect(out).not.toMatch(/<script\b/i);
+    });
+
+    it("escapes HTML inside _coalesceEntityListings input", () => {
+      const out = renderMarkdown(
+        "**Lights:**\n- <img src=x onerror=alert(1)>\n- light.kitchen",
+      );
+      expect(out).not.toMatch(/<img\b/i);
+    });
+  });
 });
