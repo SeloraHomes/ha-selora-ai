@@ -462,6 +462,65 @@ def _format_entity_line(entity: EntitySnapshot) -> str:
     return "  - " + "; ".join(parts)
 
 
+# Matches prose the LLM uses when narrating a device action. Detects the
+# failure mode where the model writes a confirmation like "Turning off the
+# ceiling lights" but never emits the corresponding command block / calls
+# array — the user sees a fake success while nothing actually executes.
+_ACTION_CONFIRMATION_RE = re.compile(
+    r"^\s*(?:"
+    r"turning\s+(?:on|off|up|down)|"
+    r"setting\s+|dimming\s+|brightening\s+|"
+    r"starting\s+|stopping\s+|pausing\s+|resuming\s+|"
+    r"playing\s+|muting\s+|unmuting\s+|"
+    r"locking\s+|unlocking\s+|opening\s+|closing\s+|"
+    r"i['’]?ve\s+(?:turned|set|dimmed|started|stopped|paused|locked|unlocked|opened|closed)|"
+    r"i\s+(?:turned|set|dimmed|started|stopped|paused|locked|unlocked|opened|closed)|"
+    r"done\b|all set\b|ok[,.\s]+done"
+    r")",
+    re.IGNORECASE,
+)
+
+# Phrases that strongly indicate explanatory prose rather than a confirmation.
+# Used to avoid replacing a short help answer like "Opening a garage door in
+# Home Assistant requires a cover entity…" that legitimately starts with an
+# action verb but is informational, not a fake confirmation.
+_EXPLANATORY_MARKERS_RE = re.compile(
+    r"\b(?:requires|because|when\s+you|happens\s+when|works\s+by|"
+    r"means\s+that|in\s+home\s+assistant|involves|depends\s+on|"
+    r"you\s+(?:need|can|must|should|have\s+to)|"
+    r"to\s+(?:do|achieve|enable|set\s+up))\b",
+    re.IGNORECASE,
+)
+
+
+def _looks_like_unbacked_action(response: str, *, strict: bool = False) -> bool:
+    """Return True when *response* reads as a short device-action confirmation.
+
+    Used to catch the failure mode where the LLM narrates an action
+    ("Turning off ceiling lights") without producing service calls — e.g.
+    when a typo prevents entity matching. The caller is responsible for
+    confirming there are no calls before treating this as a fake confirmation.
+
+    When ``strict`` is True (used when we have NO upstream signal that the
+    LLM intended a command), also require the response to be free of
+    explanatory markers so a short help answer is not misclassified.
+    """
+    if not isinstance(response, str):
+        return False
+    stripped = response.strip()
+    if len(stripped) > 240:
+        return False
+    if not _ACTION_CONFIRMATION_RE.match(stripped):
+        return False
+    return not (strict and _EXPLANATORY_MARKERS_RE.search(stripped))
+
+
+_UNBACKED_ACTION_RESPONSE = (
+    "I'm not sure which device you meant — could you rephrase? "
+    "I didn't run any action because no entity clearly matched."
+)
+
+
 def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
     """Build a human-readable confirmation from a list of validated service calls.
 
@@ -1766,6 +1825,11 @@ class LLMClient:
             + f"- For immediate commands, only use these low-risk domains: {_SAFE_COMMAND_DOMAINS}.\n"
             '- When intent is "command", you MUST include a non-empty "calls" array with valid service calls. '
             "Never describe what you would do without providing the calls to execute it.\n"
+            '- NEVER write an action confirmation (e.g. "Turning off the lights", "Setting brightness", '
+            '"Done") in `response` unless `calls` contains the matching service calls. If the user\'s '
+            "request contains a typo or names a device you cannot confidently match against AVAILABLE "
+            'ENTITIES, return intent "clarification" and ask which device they meant — do NOT fabricate '
+            "a confirmation.\n"
             "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
             + "\n"
             + _load_tool_policy()
@@ -1909,6 +1973,11 @@ class LLMClient:
             "- When the user asks to control a device, you MUST return a JSON object with "
             '"intent": "command" and a non-empty "calls" array containing the service calls. '
             "Never just describe what you would do — always include the calls so the action is executed.\n"
+            '- NEVER write prose like "Turning off the lights", "Setting brightness", or "Done" '
+            "unless you also append a matching ```command``` block in the SAME response. If the user's "
+            "request contains a typo or names a device that does not clearly match any entry in "
+            "AVAILABLE ENTITIES, ask which device they meant instead of confirming an action you "
+            "cannot execute. A confirmation without a corresponding command block is a bug.\n"
             "- If no automation or command is needed, just respond with helpful text — no code block required.\n"
             "- For device integration questions, give step-by-step guidance specific to HA.\n"
             "- For troubleshooting, ask targeted diagnostic questions and suggest concrete fixes.\n"
@@ -2296,9 +2365,22 @@ class LLMClient:
         calls = result.get("calls")
         if not calls:
             # If the LLM classified as "command" or "delayed_command" but
-            # provided no calls, downgrade to "answer".
+            # provided no calls, downgrade to "answer". When the response
+            # text reads as a confirmation ("Turning off …"), replace it
+            # so the user isn't told an action ran when none did.
             if result.get("intent") in ("command", "delayed_command"):
                 result = dict(result, intent="answer")
+                if _looks_like_unbacked_action(result.get("response", "")):
+                    result["response"] = _UNBACKED_ACTION_RESPONSE
+                    result["validation_error"] = "no_matching_entity_for_command"
+            elif result.get("intent") == "answer" and _looks_like_unbacked_action(
+                result.get("response", ""), strict=True
+            ):
+                # No upstream signal that the LLM intended a command, so use
+                # the strict matcher to avoid replacing a short help answer
+                # that happens to start with an action verb.
+                result = dict(result, response=_UNBACKED_ACTION_RESPONSE)
+                result["validation_error"] = "no_matching_entity_for_command"
             return result
 
         allowed_entities = {e.get("entity_id", "") for e in entities if e.get("entity_id")}

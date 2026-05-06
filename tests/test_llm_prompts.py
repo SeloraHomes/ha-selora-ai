@@ -442,6 +442,139 @@ class TestCommandPolicyEnforcement:
         assert result["calls"][0]["service"] == "scene.turn_on"
 
 
+class TestUnbackedActionConfirmation:
+    """Catch the 'Turning off …' confirmation with no service calls bug."""
+
+    def test_command_with_confirmation_prose_but_no_calls_replaces_response(
+        self, hass
+    ) -> None:
+        """Command intent with a 'Turning off …' response but empty calls
+        must be downgraded AND the misleading prose replaced — otherwise the
+        user sees a fake success while nothing executed."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {
+                "intent": "command",
+                "response": "Turning off Ceiling lights",
+                "calls": [],
+            },
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+        assert "Turning off" not in result["response"]
+        assert "rephrase" in result["response"].lower() or "match" in result["response"].lower()
+        assert result.get("validation_error") == "no_matching_entity_for_command"
+
+    def test_streamed_prose_only_action_confirmation_is_replaced(self, hass) -> None:
+        """When the LLM streams just 'Turning off' as prose with no command
+        block, the parser must surface it as a clarification, not a fake
+        confirmation."""
+        client = _make_client(hass)
+        result = client.parse_streamed_response(
+            "Turning off",
+            entities=[{"entity_id": "light.ceiling"}],
+        )
+        assert result["intent"] == "answer"
+        assert "Turning off" not in result["response"]
+
+    def test_long_educational_answer_starting_with_turning_is_kept(self, hass) -> None:
+        """A long answer that happens to start with 'Turning off' must NOT
+        be treated as a fake confirmation — only short responses are flagged."""
+        client = _make_client(hass)
+        long_response = (
+            "Turning off lights at sunset is configured by the automation "
+            "you created last week. The trigger fires when the sun.sun entity "
+            "transitions below the horizon, and the action calls light.turn_off "
+            "on every entity in the living-room area. You can review or edit "
+            "the automation under Settings → Automations."
+        )
+        result = client._apply_command_policy(
+            {"intent": "answer", "response": long_response},
+            [{"entity_id": "light.living_room"}],
+        )
+        assert result["response"] == long_response
+
+    def test_legitimate_command_with_calls_keeps_confirmation(self, hass) -> None:
+        """A command with valid calls must keep its 'Turning off …' confirmation."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {
+                "intent": "command",
+                "response": "Turning off Ceiling lights",
+                "calls": [
+                    {
+                        "service": "light.turn_off",
+                        "target": {"entity_id": "light.ceiling"},
+                    }
+                ],
+            },
+            [{"entity_id": "light.ceiling"}],
+        )
+        assert result["intent"] == "command"
+        assert result["response"] == "Turning off Ceiling lights"
+
+    def test_short_explanatory_answer_starting_with_action_verb_is_kept(
+        self, hass
+    ) -> None:
+        """A short HELP answer that happens to start with an action verb must
+        not be replaced — only confirmations without backing calls should be."""
+        client = _make_client(hass)
+        explanatory = (
+            "Opening a garage door in Home Assistant requires a cover entity "
+            "and an integration that supports it."
+        )
+        result = client._apply_command_policy(
+            {"intent": "answer", "response": explanatory},
+            [{"entity_id": "cover.garage"}],
+        )
+        assert result["response"] == explanatory
+
+    def test_command_with_explanatory_response_still_replaced(self, hass) -> None:
+        """When intent was 'command' but calls is empty, explanatory markers
+        must NOT save the response — the LLM clearly tried to issue a command
+        and produced nothing, so the user must be told no action ran."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {
+                "intent": "command",
+                "response": "Turning off the lights requires a moment.",
+                "calls": [],
+            },
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+        assert "Turning off" not in result["response"]
+        assert result.get("validation_error") == "no_matching_entity_for_command"
+
+    def test_standalone_done_is_replaced(self, hass) -> None:
+        """A bare 'Done' confirmation with no trailing punctuation must still
+        be caught — the original `done[.,!\\s]` matcher missed this case."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {"intent": "command", "response": "Done", "calls": []},
+            [{"entity_id": "light.kitchen"}],
+        )
+        assert result["intent"] == "answer"
+        assert result["response"] != "Done"
+        assert result.get("validation_error") == "no_matching_entity_for_command"
+
+    def test_prompt_forbids_confirmation_without_calls_json(self, hass) -> None:
+        """JSON-mode prompt explicitly bans confirmations without calls."""
+        prompt = _make_client(hass)._build_architect_system_prompt()
+        # Look for the new rule about typos and unmatched entities.
+        assert "typo" in prompt.lower()
+        assert "fabricate" in prompt.lower() or "clarification" in prompt.lower()
+
+    def test_prompt_forbids_confirmation_without_calls_stream(self, hass) -> None:
+        """Streaming prompt explicitly bans confirmations without command block."""
+        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        assert "typo" in prompt.lower()
+        # Must mention that prose without a command block is a bug.
+        assert "without a corresponding command block" in prompt.lower() or (
+            "command block" in prompt.lower() and "bug" in prompt.lower()
+        )
+
+
 class TestConversationHistoryManagement:
     """Verify conversation history is handled correctly (#89)."""
 

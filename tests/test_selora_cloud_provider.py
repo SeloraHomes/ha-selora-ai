@@ -214,3 +214,174 @@ class TestSendRequestRetryAndLogging:
         # No WARNING / ERROR — recovery is transparent.
         loud = [r for r in caplog.records if r.levelno >= logging.WARNING]
         assert not loud
+
+
+class TestStreamingColdStartRetry:
+    """Streaming chat (architect_chat_stream) must also retry cold-start 5xx,
+    otherwise the first chat after HA restart fails while subsequent ones work.
+    """
+
+    @pytest.fixture
+    def provider(self, hass) -> SeloraCloudProvider:
+        p = SeloraCloudProvider(
+            hass,
+            access_token="ey.access",
+            refresh_token="aigw_refresh",
+            expires_at=9_999_999_999.0,
+            connect_url="https://example.test",
+            client_id="cid",
+            entry_id="entry-id",
+        )
+        p._needs_refresh = lambda: False  # type: ignore[method-assign]
+        return p
+
+    async def test_send_request_stream_retries_on_cold_start(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """First call raises proxy 5xx, second yields chunks — caller sees the chunks."""
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        async def _no_sleep(_seconds: float) -> None:
+            return None
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", _no_sleep)
+
+        attempts = {"n": 0}
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise ConnectionError(
+                    "Selora Cloud: proxy handler: unable to reach app "
+                    "(try increasing the proxy.app_start_timeout)"
+                )
+            for chunk in ("hel", "lo"):
+                yield chunk
+
+        original = openai_compat.OpenAICompatibleProvider.send_request_stream
+        openai_compat.OpenAICompatibleProvider.send_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            chunks: list[str] = []
+            async for chunk in provider.send_request_stream(
+                "sys", [{"role": "user", "content": "hi"}]
+            ):
+                chunks.append(chunk)
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request_stream = original  # type: ignore[assignment]
+
+        assert "".join(chunks) == "hello"
+        assert attempts["n"] == 2
+
+    async def test_send_request_stream_does_not_retry_non_transient(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A 401 / unrelated ConnectionError must propagate without retry."""
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        async def _no_sleep(_seconds: float) -> None:
+            return None
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", _no_sleep)
+
+        attempts = {"n": 0}
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            raise ConnectionError("Selora Cloud: HTTP 401: Unauthorized")
+            yield  # pragma: no cover — keep this an async generator
+
+        original = openai_compat.OpenAICompatibleProvider.send_request_stream
+        openai_compat.OpenAICompatibleProvider.send_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            with pytest.raises(ConnectionError, match="401"):
+                async for _ in provider.send_request_stream(
+                    "sys", [{"role": "user", "content": "hi"}]
+                ):
+                    pass
+        finally:
+            openai_compat.OpenAICompatibleProvider.send_request_stream = original  # type: ignore[assignment]
+
+        # No retry on non-transient.
+        assert attempts["n"] == 1
+
+    async def test_raw_request_stream_retries_on_cold_start(
+        self, provider, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The tool-calling streaming path must also recover from cold-start 5xx."""
+        from custom_components.selora_ai.providers import openai_compat, selora_cloud
+
+        async def _no_sleep(_seconds: float) -> None:
+            return None
+
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", _no_sleep)
+
+        attempts = {"n": 0}
+        sentinel = object()
+
+        async def _fake_stream(self, *_a, **_kw):
+            attempts["n"] += 1
+            if attempts["n"] == 1:
+                raise ConnectionError("LLM stream: HTTP 500: proxy handler: unable to reach app")
+            yield sentinel
+
+        original = openai_compat.OpenAICompatibleProvider.raw_request_stream
+        openai_compat.OpenAICompatibleProvider.raw_request_stream = _fake_stream  # type: ignore[assignment]
+        try:
+            yielded: list[object] = []
+            async for item in provider.raw_request_stream(
+                "sys", [{"role": "user", "content": "hi"}]
+            ):
+                yielded.append(item)
+        finally:
+            openai_compat.OpenAICompatibleProvider.raw_request_stream = original  # type: ignore[assignment]
+
+        assert yielded == [sentinel]
+        assert attempts["n"] == 2
+
+
+class TestTransientErrorDetector:
+    """_is_transient_upstream_error must catch both request and stream formats."""
+
+    def test_matches_proxy_500_with_marker(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import (
+            _is_transient_upstream_error,
+        )
+
+        assert _is_transient_upstream_error(
+            "HTTP 500: proxy handler: unable to reach app"
+        )
+
+    def test_matches_stream_format_without_status_prefix(self) -> None:
+        """Streaming path raises 'Selora Cloud: <body>' without the HTTP code."""
+        from custom_components.selora_ai.providers.selora_cloud import (
+            _is_transient_upstream_error,
+        )
+
+        assert _is_transient_upstream_error(
+            "Selora Cloud: proxy handler: unable to reach app "
+            "(try increasing the proxy.app_start_timeout)"
+        )
+
+    def test_matches_app_start_timeout_hint(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import (
+            _is_transient_upstream_error,
+        )
+
+        assert _is_transient_upstream_error("something app_start_timeout something")
+
+    def test_does_not_match_unrelated_500(self) -> None:
+        """A real 500 from the AI Gateway must NOT be silently retried."""
+        from custom_components.selora_ai.providers.selora_cloud import (
+            _is_transient_upstream_error,
+        )
+
+        assert not _is_transient_upstream_error(
+            "HTTP 500: internal server error"
+        )
+
+    def test_does_not_match_401(self) -> None:
+        from custom_components.selora_ai.providers.selora_cloud import (
+            _is_transient_upstream_error,
+        )
+
+        assert not _is_transient_upstream_error("HTTP 401: Unauthorized")
