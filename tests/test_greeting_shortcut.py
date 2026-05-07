@@ -58,6 +58,15 @@ class TestIsPureGreeting:
             "   hello   ",  # whitespace tail
             "thanks 🙏",  # emoji tail
             "good morning ☀️",
+            # Vocative — addressing the assistant by name. Without this
+            # the LLM hallucinates an automation update from prior turns.
+            "Hello Selora AI",
+            "hi selora",
+            "hey selora ai",
+            "thanks selora",
+            "thank you AI",
+            "good morning selora!",
+            "hello assistant",
         ],
     )
     def test_recognises_pure_greetings(self, message: str) -> None:
