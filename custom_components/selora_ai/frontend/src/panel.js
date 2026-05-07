@@ -1741,12 +1741,22 @@ class SeloraAIPanel extends LitElement {
   }
 
   // Lazily resolve a single function `(entityId) => HTMLElement` that
-  // builds an HA tile card. Tries `window.loadCardHelpers` first, then
-  // falls back to `document.createElement("hui-tile-card")` once the
-  // element has been registered by Lovelace. Cached on `this` so the
-  // chunk-load only happens once per panel lifetime.
+  // builds an HA card for one entity. Uses the `entities` card type —
+  // it renders the domain-appropriate native control inline (toggle
+  // for switches, slider for volume, climate readout for HVAC, cover
+  // arrows for blinds, etc.) instead of the bare tap-target shown by
+  // `tile`. Tries `window.loadCardHelpers` first, then falls back to
+  // `document.createElement("hui-entities-card")` once Lovelace has
+  // registered the element. Cached on `this` so the chunk-load only
+  // happens once per panel lifetime.
   async _getTileCardCreator() {
     if (this._tileCardCreator !== undefined) return this._tileCardCreator;
+
+    const buildConfig = (id) => ({
+      type: "entities",
+      entities: [id],
+      show_header_toggle: false,
+    });
 
     // Path 1: HA's documented helper.
     if (typeof window.loadCardHelpers === "function") {
@@ -1754,7 +1764,7 @@ class SeloraAIPanel extends LitElement {
         const helpers = await window.loadCardHelpers();
         if (helpers && typeof helpers.createCardElement === "function") {
           this._tileCardCreator = (id) =>
-            helpers.createCardElement({ type: "tile", entity: id });
+            helpers.createCardElement(buildConfig(id));
           return this._tileCardCreator;
         }
       } catch (e) {
@@ -1767,19 +1777,19 @@ class SeloraAIPanel extends LitElement {
     // element never registers on a custom-panel page.
     try {
       const ready = await Promise.race([
-        customElements.whenDefined("hui-tile-card").then(() => true),
+        customElements.whenDefined("hui-entities-card").then(() => true),
         new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
       ]);
       if (ready) {
         this._tileCardCreator = (id) => {
-          const el = document.createElement("hui-tile-card");
-          el.setConfig({ type: "tile", entity: id });
+          const el = document.createElement("hui-entities-card");
+          el.setConfig(buildConfig(id));
           return el;
         };
         return this._tileCardCreator;
       }
     } catch (e) {
-      console.warn("Selora: hui-tile-card whenDefined failed", e);
+      console.warn("Selora: hui-entities-card whenDefined failed", e);
     }
 
     this._tileCardCreator = null;

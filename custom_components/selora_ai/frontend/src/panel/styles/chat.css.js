@@ -254,6 +254,19 @@ export const chatStyles = css`
     /* Cards default to 56px tall in tile mode; let them size themselves
        without our own min-height fighting it. */
     min-width: 0;
+    /* Lift the card off the chat bubble. Layered shadow (tight inner
+       contact + softer ambient drop) reads as physical depth so the
+       embedded widget visibly pops rather than sitting flush. The top
+       border-color highlight reinforces the upper edge to sell the
+       lifted look in dark mode. */
+    --ha-card-border-color: var(--selora-zinc-700);
+    --ha-card-box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  :host(:not([dark])) .selora-entity-grid > * {
+    --ha-card-border-color: var(--divider-color);
+    --ha-card-box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   /* Area sub-headers in multi-area entity grids. The grid-column rule
      spans the header across the full row so the next row of tiles
