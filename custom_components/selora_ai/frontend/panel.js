@@ -12261,7 +12261,7 @@ async function _openSession(sessionId) {
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
     await this.updateComplete;
-    this._requestScrollChat();
+    this._requestScrollChat({ force: true });
   } catch (err) {
     console.error("Failed to open session", err);
   }
@@ -12717,6 +12717,7 @@ async function _sendMessage() {
   if (ta) ta.style.height = "auto";
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
+  this._requestScrollChat({ force: true });
   const PRE_TOKEN_GRACE_MS = 12e4;
   const POST_TOKEN_GRACE_MS = 45e3;
   let firstTokenSeen = false;
@@ -12912,15 +12913,23 @@ function _stopStreaming() {
     ];
   }
 }
-function _requestScrollChat() {
-  if (!this._scrollPending) {
-    this._scrollPending = true;
-    requestAnimationFrame(() => {
-      this._scrollPending = false;
-      const container = this.shadowRoot.getElementById("chat-messages");
-      if (container) container.scrollTop = container.scrollHeight;
-    });
-  }
+function _requestScrollChat(opts) {
+  if (opts && opts.force) this._scrollForce = true;
+  if (this._scrollPending) return;
+  this._scrollPending = true;
+  requestAnimationFrame(() => {
+    const force = !!this._scrollForce;
+    this._scrollPending = false;
+    this._scrollForce = false;
+    const container = this.shadowRoot.getElementById("chat-messages");
+    if (!container) return;
+    if (!force) {
+      const distance =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distance > 80) return;
+    }
+    container.scrollTop = container.scrollHeight;
+  });
 }
 async function _copyMessageText(msg, btn) {
   try {
@@ -14223,7 +14232,9 @@ var SeloraAIPanel = class extends s4 {
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
-          this._requestScrollChat();
+          if (isOpen) {
+            this._requestScrollChat();
+          }
         }
       };
       window.visualViewport.addEventListener("resize", this._viewportHandler);
@@ -15060,6 +15071,7 @@ var SeloraAIPanel = class extends s4 {
     if (grids.length === 0) return;
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
+    let cardsAppended = false;
     for (const grid of grids) {
       const wired = grid.dataset.wired === "true";
       if (!wired) {
@@ -15138,6 +15150,8 @@ var SeloraAIPanel = class extends s4 {
         }
         if (appended === 0) {
           grid.textContent = ids.join(", ");
+        } else {
+          cardsAppended = true;
         }
         grid.dataset.wired = "true";
       }
@@ -15147,7 +15161,9 @@ var SeloraAIPanel = class extends s4 {
         }
       }
     }
-    this._requestScrollChat();
+    if (cardsAppended) {
+      this._requestScrollChat({ force: true });
+    }
   }
   // Lazily fetch the full entity + device registries via WS. The
   // `hass.entities` object exposed to panels is the *display* registry
