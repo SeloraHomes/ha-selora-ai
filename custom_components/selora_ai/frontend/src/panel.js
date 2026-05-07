@@ -1203,6 +1203,16 @@ class SeloraAIPanel extends LitElement {
   }
 
   async _unlinkConnect() {
+    const ok = window.confirm(
+      "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+    );
+    if (!ok) {
+      // The toggle has already flipped to "off" in the DOM — refresh
+      // from the backend so the switch snaps back to its true state.
+      this.requestUpdate();
+      await this._loadConfig();
+      return;
+    }
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
@@ -1250,6 +1260,10 @@ class SeloraAIPanel extends LitElement {
   }
 
   async _unlinkAIGateway() {
+    const ok = window.confirm(
+      "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+    );
+    if (!ok) return;
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
       await this._loadConfig();
@@ -2281,7 +2295,12 @@ class SeloraAIPanel extends LitElement {
               aria-label="Selora menu"
               @click=${(e) => {
                 e.stopPropagation();
-                this._showOverflowMenu = !this._showOverflowMenu;
+                const opening = !this._showOverflowMenu;
+                this._showOverflowMenu = opening;
+                // On mobile the conversations drawer overlays the body
+                // and would compete for the same space as the dropdown;
+                // collapse it whenever the menu opens.
+                if (opening && this.narrow) this._showSidebar = false;
               }}
             >
               <ha-icon icon="mdi:dots-grid"></ha-icon>

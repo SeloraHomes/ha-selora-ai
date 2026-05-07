@@ -30,6 +30,7 @@ import yaml
 
 from .automation_utils import assess_automation_risk, validate_automation_payload
 from .const import (
+    ANALYSIS_LLM_TIMEOUT,
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DOMAIN,
@@ -770,6 +771,11 @@ class LLMClient:
     def provider_name(self) -> str:
         return self._provider.provider_name
 
+    @property
+    def is_configured(self) -> bool:
+        """Whether the provider is ready to make requests."""
+        return self._provider.is_configured
+
     # ── Shared history helpers ──────────────────────────────────────────
 
     @staticmethod
@@ -879,8 +885,11 @@ class LLMClient:
 
     async def analyze_home_data(self, home_snapshot: HomeSnapshot) -> list[dict[str, Any]]:
         """Send collected HA data to LLM for automation analysis."""
-        if self._provider.requires_api_key and not self._provider.has_api_key:
-            _LOGGER.warning("Skipping analysis: %s API key not configured", self.provider_name)
+        if not self._provider.is_configured:
+            _LOGGER.warning(
+                "Skipping analysis: %s not configured (unlinked or missing credentials)",
+                self.provider_name,
+            )
             return []
         if self._provider.is_low_context:
             _LOGGER.debug("Skipping analysis: low-context provider cannot fit home snapshot")
@@ -892,7 +901,9 @@ class LLMClient:
         with self._usage_scope("suggestions"):
             try:
                 result, error = await self._provider.send_request(
-                    system=system_prompt, messages=[{"role": "user", "content": user_prompt}]
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                    timeout=ANALYSIS_LLM_TIMEOUT,
                 )
             finally:
                 self._flush_usage("suggestions")
@@ -931,7 +942,7 @@ class LLMClient:
         For "command":
           calls: list of HA service call dicts
         """
-        if self._provider.requires_api_key and not self._provider.has_api_key:
+        if not self._provider.is_configured:
             return {
                 "intent": "answer",
                 "response": "Please configure your LLM provider credentials in the Settings tab to start chatting.",
@@ -1052,7 +1063,7 @@ class LLMClient:
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
         """
-        if self._provider.requires_api_key and not self._provider.has_api_key:
+        if not self._provider.is_configured:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
@@ -1187,6 +1198,11 @@ class LLMClient:
 
     async def health_check(self) -> bool:
         """Verify the LLM backend is reachable."""
+        # An unlinked / unconfigured provider can't make authenticated
+        # requests; skip the round-trip so we don't log a misleading
+        # "not reachable" warning right after a deliberate unlink.
+        if not self._provider.is_configured:
+            return False
         with self._usage_scope("health_check"):
             try:
                 return await self._provider.health_check()

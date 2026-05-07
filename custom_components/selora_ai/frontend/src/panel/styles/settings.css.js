@@ -178,7 +178,11 @@ export const settingsStyles = css`
     line-height: 1.2;
     color: var(--primary-text-color);
     list-style: none;
-    padding: 22px 28px;
+    /* Horizontal padding mirrors .section-card (32px desktop, 12px
+       mobile). The card itself stays padding:0 so the toggle's hover
+       state can span full width; everything else inside the card
+       indents to the same column as sibling section-card content. */
+    padding: 22px 32px;
     transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
@@ -204,13 +208,13 @@ export const settingsStyles = css`
   }
   .advanced-section .service-row {
     border-bottom: none !important;
-    padding: 8px 28px;
+    padding: 8px 32px;
   }
   .advanced-section .service-details {
-    padding: 0 28px;
+    padding: 0 32px;
   }
   .advanced-section .settings-section-title {
-    padding: 0 28px;
+    padding: 0 32px;
   }
   .advanced-section .service-row:first-of-type {
     padding-top: 8px;
@@ -227,17 +231,34 @@ export const settingsStyles = css`
   }
   .advanced-section > .card-save-bar {
     margin: 16px 0 0;
-    padding: 0 28px;
+    padding: 0 32px;
   }
-  .advanced-section .service-row,
-  .advanced-section .service-details,
-  .advanced-section .settings-section-title,
   .advanced-section .settings-separator {
-    margin-left: 20px;
-    margin-right: 20px;
+    margin: 8px 32px;
   }
   .advanced-section .service-row:last-of-type {
     padding-bottom: 16px;
+  }
+  /* Match .section-card's tighter mobile padding so all settings
+     cards line their content up at the same horizontal offset. */
+  @media (max-width: 600px) {
+    .advanced-toggle {
+      padding: 18px 12px;
+    }
+    .advanced-section .service-row {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .advanced-section .service-details,
+    .advanced-section .settings-section-title,
+    .advanced-section > .card-save-bar {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .advanced-section .settings-separator {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
   }
   .settings-form ha-switch {
     /* Legacy mwc-switch tokens (HA <= 2025 builds) */

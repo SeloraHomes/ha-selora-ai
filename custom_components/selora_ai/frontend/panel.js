@@ -2010,7 +2010,11 @@ var headerStyles = i`
   .header {
     background: var(--app-header-background-color);
     border-bottom: var(--app-header-border-bottom, none);
-    z-index: 2;
+    /* Must outrank the narrow-mode conversations drawer (z-index: 10
+       in layout.css.js). The header creates a stacking context, so the
+       overflow menu rendered inside it inherits this ceiling — without
+       this bump the menu reopens hidden behind the drawer on mobile. */
+    z-index: 11;
     flex-shrink: 0;
     height: var(--header-height, 56px);
     box-sizing: border-box;
@@ -2283,7 +2287,10 @@ var headerStyles = i`
       0 8px 24px rgba(0, 0, 0, 0.35),
       0 2px 8px rgba(0, 0, 0, 0.18);
     padding: 6px;
-    z-index: 10;
+    /* Sit above the narrow-mode conversations drawer (z-index: 10);
+       otherwise the menu reopens behind the sidebar after navigating
+       to Conversations on mobile and is invisible. */
+    z-index: 20;
   }
   .selora-menu {
     border: 1px solid rgba(251, 191, 36, 0.25);
@@ -4250,7 +4257,11 @@ var settingsStyles = i`
     line-height: 1.2;
     color: var(--primary-text-color);
     list-style: none;
-    padding: 22px 28px;
+    /* Horizontal padding mirrors .section-card (32px desktop, 12px
+       mobile). The card itself stays padding:0 so the toggle's hover
+       state can span full width; everything else inside the card
+       indents to the same column as sibling section-card content. */
+    padding: 22px 32px;
     transition: background 0.15s;
   }
   .advanced-toggle::-webkit-details-marker {
@@ -4276,13 +4287,13 @@ var settingsStyles = i`
   }
   .advanced-section .service-row {
     border-bottom: none !important;
-    padding: 8px 28px;
+    padding: 8px 32px;
   }
   .advanced-section .service-details {
-    padding: 0 28px;
+    padding: 0 32px;
   }
   .advanced-section .settings-section-title {
-    padding: 0 28px;
+    padding: 0 32px;
   }
   .advanced-section .service-row:first-of-type {
     padding-top: 8px;
@@ -4299,17 +4310,34 @@ var settingsStyles = i`
   }
   .advanced-section > .card-save-bar {
     margin: 16px 0 0;
-    padding: 0 28px;
+    padding: 0 32px;
   }
-  .advanced-section .service-row,
-  .advanced-section .service-details,
-  .advanced-section .settings-section-title,
   .advanced-section .settings-separator {
-    margin-left: 20px;
-    margin-right: 20px;
+    margin: 8px 32px;
   }
   .advanced-section .service-row:last-of-type {
     padding-bottom: 16px;
+  }
+  /* Match .section-card's tighter mobile padding so all settings
+     cards line their content up at the same horizontal offset. */
+  @media (max-width: 600px) {
+    .advanced-toggle {
+      padding: 18px 12px;
+    }
+    .advanced-section .service-row {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .advanced-section .service-details,
+    .advanced-section .settings-section-title,
+    .advanced-section > .card-save-bar {
+      padding-left: 12px;
+      padding-right: 12px;
+    }
+    .advanced-section .settings-separator {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
   }
   .settings-form ha-switch {
     /* Legacy mwc-switch tokens (HA <= 2025 builds) */
@@ -10779,12 +10807,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.7.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.7.0"}
+            Selora AI v${"0.8.0"}
           </a>
         </div>
       </div>
@@ -14669,6 +14697,14 @@ var SeloraAIPanel = class extends s4 {
     });
   }
   async _unlinkConnect() {
+    const ok = window.confirm(
+      "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+    );
+    if (!ok) {
+      this.requestUpdate();
+      await this._loadConfig();
+      return;
+    }
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
@@ -14708,6 +14744,10 @@ var SeloraAIPanel = class extends s4 {
     });
   }
   async _unlinkAIGateway() {
+    const ok = window.confirm(
+      "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+    );
+    if (!ok) return;
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
       await this._loadConfig();
@@ -14871,7 +14911,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.7.0" : "unknown",
+        integration_version: true ? "0.8.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -15619,7 +15659,9 @@ var SeloraAIPanel = class extends s4 {
               aria-label="Selora menu"
               @click=${(e5) => {
                 e5.stopPropagation();
-                this._showOverflowMenu = !this._showOverflowMenu;
+                const opening = !this._showOverflowMenu;
+                this._showOverflowMenu = opening;
+                if (opening && this.narrow) this._showSidebar = false;
               }}
             >
               <ha-icon icon="mdi:dots-grid"></ha-icon>

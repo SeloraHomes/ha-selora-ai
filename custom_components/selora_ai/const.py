@@ -915,6 +915,10 @@ def estimate_llm_cost_usd(
 
 # ── LLM Timeout ─────────────────────────────────────────────────────
 DEFAULT_LLM_TIMEOUT = 120  # seconds — per-request timeout for LLM calls
+# Heavier ceiling for the hourly home-analysis cycle. The full snapshot
+# prompt is large and reasoning models on cloud providers routinely take
+# 2-3 minutes end-to-end; the chat-tier 120 s ceiling cuts them short.
+ANALYSIS_LLM_TIMEOUT = 300
 # Tighter cap for the cheap GET /models calls used during config-flow
 # validation. Spending up to 2 minutes inside an interactive setup form is
 # user-hostile; 15 s is plenty for a model-list call to a healthy upstream

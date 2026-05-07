@@ -40,6 +40,7 @@ from .automation_utils import (
 )
 from .const import (
     ACTIVITY_HIGH_THRESHOLD,
+    ANALYSIS_LLM_TIMEOUT,
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     CATEGORY_LINK_WEIGHTS,
@@ -58,7 +59,6 @@ from .const import (
     DEFAULT_COLLECTOR_MAX_SKIP_HOURS,
     DEFAULT_COLLECTOR_MODE,
     DEFAULT_DEVICES_PER_SUGGESTION,
-    DEFAULT_LLM_TIMEOUT,
     DEFAULT_MAX_SUGGESTIONS_CEILING,
     DEFAULT_MIN_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
@@ -105,6 +105,7 @@ class DataCollector:
         self._last_snapshot_fingerprint: str | None = None
         self._last_analysis_time: float = 0.0
         self._is_first_cycle: bool = True
+        self._initial_cycle_task: asyncio.Task[None] | None = None
 
     def _get_pattern_store(self) -> PatternStore | None:
         """Find the PatternStore from any active config entry."""
@@ -179,10 +180,18 @@ class DataCollector:
 
         interval = self._settings.get(CONF_COLLECTOR_INTERVAL, DEFAULT_COLLECTOR_INTERVAL)
 
-        try:
-            await self._collect_analyze_log()
-        except Exception:
-            _LOGGER.exception("Initial collection cycle failed — will retry on next interval")
+        # Run the initial cycle in the background. Awaiting it here would
+        # block async_setup_entry for the full LLM analysis (minutes), and
+        # HA's bootstrap surfaces that as "Waiting for integrations to
+        # complete setup". The periodic timer keeps subsequent cycles on
+        # schedule independently.
+        async def _initial_cycle() -> None:
+            try:
+                await self._collect_analyze_log()
+            except Exception:
+                _LOGGER.exception("Initial collection cycle failed — will retry on next interval")
+
+        self._initial_cycle_task = self._hass.async_create_task(_initial_cycle())
 
         self._unsub_timer = async_track_time_interval(
             self._hass,
@@ -196,6 +205,11 @@ class DataCollector:
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
+        if self._initial_cycle_task and not self._initial_cycle_task.done():
+            self._initial_cycle_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError, Exception):
+                await self._initial_cycle_task
+        self._initial_cycle_task = None
 
     async def _scheduled_cycle(self, _now: datetime) -> None:
         """Timer callback."""
@@ -660,15 +674,18 @@ class DataCollector:
             snapshot["_feedback_summary"] = feedback_summary
 
         # Step 2: Feed snapshot to the configured LLM (with timeout)
+        # Wrapper allows a small buffer over the per-request HTTP timeout
+        # so the provider's own timeout fires first with a clean error.
+        analysis_timeout = ANALYSIS_LLM_TIMEOUT + 30
         try:
             suggestions = await asyncio.wait_for(
                 self._llm.analyze_home_data(snapshot),
-                timeout=DEFAULT_LLM_TIMEOUT + 10,
+                timeout=analysis_timeout,
             )
         except TimeoutError:
             _LOGGER.warning(
                 "LLM analysis timed out after %ds — skipping this cycle",
-                DEFAULT_LLM_TIMEOUT + 10,
+                analysis_timeout,
             )
             return
 
