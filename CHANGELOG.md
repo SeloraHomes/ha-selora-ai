@@ -1,3 +1,37 @@
+## [0.8.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.7.0...v0.8.0) (2026-05-07)
+
+### Features
+
+* chat composer keyboard shortcuts ([6ae8ac6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6ae8ac61fb953dc943939a08fe43a0a6a458503f))
+* composer redesign, quick actions, scene fixes ([aa81962](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/aa81962645ab16e6a23a26883bece0406bc82b1c))
+* composer, scene flow, header redesign ([27b8c08](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/27b8c08d2aa9f5d862e628b48aeb747a946c378a))
+* expose scenes via MCP and broaden auto/scene tools ([91f80ad](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/91f80ad9d121a444d3c5fc6a1fa54a29285c4b0b))
+* LLM token usage tracking and panel ([374a0a8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/374a0a8b78cf1ced64ab2196fac9ac0aea9c0c42))
+* LLM token usage tracking and panel ([faa6a3c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/faa6a3c807ea038ede5c164b2145bb9c356a8072))
+* Selora AI Cloud provider via AI Gateway OAuth (PKCE) ([3ab7ec2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3ab7ec2698466c7ab6c91ef40e7715fdd5309d64))
+* show all HA scenes in scenes tab ([21c4042](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/21c404299e8551923c765adbe80e2bf3ef26571c))
+* smart LLM token savings ([4edf43e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4edf43ee6ae6299f18e578cc713c043f49a938cc))
+* surface LLM 429 quota errors with red-particle alert ([ff790fc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ff790fca66d40805ae7457c55d4f8bd48d61d19b))
+
+### Bug Fixes
+
+* align activate and burger buttons on mobile scenes ([0483e52](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0483e5233ca7a164ffedd2cdf37dba363a5d8778))
+* align selora_cloud with AI Gateway OpenAPI ([a87bcc7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a87bcc7d797302aa02cae3454693a890b3e0f743))
+* catch stream cutoff, pass real error message ([246ffc8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/246ffc8e7fd43a4512124df7b71c27f1eddde19a))
+* consume hub-provisioned Selora Cloud tokens ([a8e08ee](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a8e08ee613f84e5e65fae56d0f5e002c03309b23))
+* disable Selora AI Local provider in settings ([58b82d2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/58b82d27b438d5dde43b80ef14e937b638c8828f))
+* entity chips and grid padding on tab switch ([acfb63e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/acfb63efdc9bb3bebb46915034fb647e977507dc))
+* faster health checks + bg services in panel ([39ab19a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/39ab19a0eda0e3bed82cad9db197aff1cca01b78))
+* honest chat feedback + cold-start retry ([9f08ba0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9f08ba09e7db08fef5244320c183124ea98b2851))
+* narrow-panel button visibility and overflow ([f59df06](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f59df0614653720e734963db232e50c710185cf5))
+* options flow TypeError on config gear click ([4a976d8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4a976d81cd79b2164cd09ec0ec8428abb0d731d7))
+* pre-release security & resource hardening ([31ce28d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/31ce28d7e3daf2f21f04c14c4d55ea15048c9406))
+* prevent black-screen on panel re-entry ([c171041](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c1710412058e702a9c752ecbb1a5418b5133afbb))
+* stream cutoff detection and dev-mode URL override ([bf74a7c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/bf74a7c2d641fa634f6958cb49962b2b69de8315))
+* streaming fixes, command execution, scroll, and WS reconnect ([4f497fc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4f497fc057cdc744648bd9ada9d995304b08c8e9))
+* surface select_devices errors and harden flow accept ([597a99b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/597a99b39a9d051b12b70c8ba0c34d181bae72fc))
+* sync enrichment cache and migration edge cases ([574bbd0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/574bbd0e2ab3a70ef6b6dc1ba1d6e35a387ce630))
+
 ## [0.7.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.6.1...v0.7.0) (2026-04-28)
 
 ### Features

@@ -9,5 +9,5 @@
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/SeloraHomes/ha-selora-ai/issues",
   "requirements": ["ruamel.yaml>=0.18.0", "PyJWT>=2.0.0"],
-  "version": "0.7.0"
+  "version": "0.8.0"
 }
