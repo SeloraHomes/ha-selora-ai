@@ -83,6 +83,18 @@ export const sharedButtons = css`
     box-shadow: none;
     opacity: 1;
   }
+  /* Light mode: translucent gold-on-white is near-invisible. Match the
+     filled btn-primary language (solid gold + black text) so it lines up
+     with the Accept buttons elsewhere in the UI. Pill radius is kept. */
+  :host(:not([dark])) .btn-accent {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #000;
+  }
+  :host(:not([dark])) .btn-accent:hover {
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+  }
   .btn-ghost {
     border-color: transparent;
     color: var(--secondary-text-color);

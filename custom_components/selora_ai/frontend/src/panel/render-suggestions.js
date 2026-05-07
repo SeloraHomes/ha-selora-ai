@@ -1,8 +1,5 @@
 import { html } from "lit";
-import {
-  masonryColumns,
-  renderAutomationFlowchart,
-} from "./render-automations.js";
+import { renderAutomationFlowchart } from "./render-automations.js";
 
 const MIN_CONF = 0.8;
 const COLLAPSED_COUNT = 3;
@@ -489,10 +486,8 @@ export function renderSuggestionsSection(host) {
               : ""}
 
             <div class="automations-grid">
-              ${masonryColumns(
-                visibleItems.map((item) =>
-                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
-                ),
+              ${visibleItems.map((item) =>
+                renderSuggestionCard(host, item, bulkMode, selectedKeys),
               )}
             </div>
 
