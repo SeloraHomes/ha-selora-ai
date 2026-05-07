@@ -2647,6 +2647,19 @@ var chatStyles = i`
     /* Cards default to 56px tall in tile mode; let them size themselves
        without our own min-height fighting it. */
     min-width: 0;
+    /* Lift the card off the chat bubble. Layered shadow (tight inner
+       contact + softer ambient drop) reads as physical depth so the
+       embedded widget visibly pops rather than sitting flush. The top
+       border-color highlight reinforces the upper edge to sell the
+       lifted look in dark mode. */
+    --ha-card-border-color: var(--selora-zinc-700);
+    --ha-card-box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  :host(:not([dark])) .selora-entity-grid > * {
+    --ha-card-border-color: var(--divider-color);
+    --ha-card-box-shadow:
+      0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
   /* Area sub-headers in multi-area entity grids. The grid-column rule
      spans the header across the full row so the next row of tiles
@@ -10779,12 +10792,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.7.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.7.0"}
+            Selora AI v${"0.8.0"}
           </a>
         </div>
       </div>
@@ -14871,7 +14884,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.7.0" : "unknown",
+        integration_version: true ? "0.8.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -15125,18 +15138,27 @@ var SeloraAIPanel = class extends s4 {
     return this._fullRegistriesPromise;
   }
   // Lazily resolve a single function `(entityId) => HTMLElement` that
-  // builds an HA tile card. Tries `window.loadCardHelpers` first, then
-  // falls back to `document.createElement("hui-tile-card")` once the
-  // element has been registered by Lovelace. Cached on `this` so the
-  // chunk-load only happens once per panel lifetime.
+  // builds an HA card for one entity. Uses the `entities` card type —
+  // it renders the domain-appropriate native control inline (toggle
+  // for switches, slider for volume, climate readout for HVAC, cover
+  // arrows for blinds, etc.) instead of the bare tap-target shown by
+  // `tile`. Tries `window.loadCardHelpers` first, then falls back to
+  // `document.createElement("hui-entities-card")` once Lovelace has
+  // registered the element. Cached on `this` so the chunk-load only
+  // happens once per panel lifetime.
   async _getTileCardCreator() {
     if (this._tileCardCreator !== void 0) return this._tileCardCreator;
+    const buildConfig = (id) => ({
+      type: "entities",
+      entities: [id],
+      show_header_toggle: false,
+    });
     if (typeof window.loadCardHelpers === "function") {
       try {
         const helpers = await window.loadCardHelpers();
         if (helpers && typeof helpers.createCardElement === "function") {
           this._tileCardCreator = (id) =>
-            helpers.createCardElement({ type: "tile", entity: id });
+            helpers.createCardElement(buildConfig(id));
           return this._tileCardCreator;
         }
       } catch (e5) {
@@ -15145,19 +15167,19 @@ var SeloraAIPanel = class extends s4 {
     }
     try {
       const ready = await Promise.race([
-        customElements.whenDefined("hui-tile-card").then(() => true),
+        customElements.whenDefined("hui-entities-card").then(() => true),
         new Promise((resolve) => setTimeout(() => resolve(false), 3e3)),
       ]);
       if (ready) {
         this._tileCardCreator = (id) => {
-          const el = document.createElement("hui-tile-card");
-          el.setConfig({ type: "tile", entity: id });
+          const el = document.createElement("hui-entities-card");
+          el.setConfig(buildConfig(id));
           return el;
         };
         return this._tileCardCreator;
       }
     } catch (e5) {
-      console.warn("Selora: hui-tile-card whenDefined failed", e5);
+      console.warn("Selora: hui-entities-card whenDefined failed", e5);
     }
     this._tileCardCreator = null;
     return null;
