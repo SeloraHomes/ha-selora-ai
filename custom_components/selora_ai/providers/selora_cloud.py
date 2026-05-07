@@ -404,13 +404,27 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     # -- Health check ------------------------------------------------------
 
     async def health_check(self) -> bool:
+        # Earlier versions probed reachability by posting a one-shot
+        # ``{"role": "user", "content": "Hi"}`` to /chat/completions. The
+        # AI Gateway materializes every chat call as a session, so each
+        # health check surfaced as a "Greeting"/"Chat initiation" entry
+        # in the user's conversation list — fired on every config-entry
+        # setup and reload, which in production showed up as a phantom
+        # session roughly every 10 minutes despite zero user input.
+        #
+        # Validate via the token endpoint instead: a fresh access token
+        # is itself proof of reachability + valid credentials, and the
+        # token endpoint (/oauth/aigw/token) is not session-bearing.
         if not self._refresh_token and not self._access_token:
             return False
-        # Use ``self.send_request`` rather than ``super()`` so the cold-start
-        # retry logic above also covers boot-time health checks — those are
-        # the most likely callers to race the proxy's upstream warmup.
-        result, _err = await self.send_request(
-            system="Respond with 'ok'",
-            messages=[{"role": "user", "content": "Hi"}],
-        )
-        return result is not None
+        # Already-valid access token: trust the most recent prior call.
+        # Reloading the entry should not re-prove the link by burning
+        # an LLM call — the previous successful chat or refresh already
+        # did that.
+        if self._access_token and not self._needs_refresh():
+            return True
+        # Refresh leeway expired (or we never had an access token):
+        # exercise the token endpoint as the auth + reachability probe.
+        # Success → healthy. Failure → unhealthy, same outcome the old
+        # chat-based probe produced when the gateway was unreachable.
+        return await self._refresh_access_token()

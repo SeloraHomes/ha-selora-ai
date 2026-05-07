@@ -387,6 +387,104 @@ class TestTransientErrorDetector:
         assert not _is_transient_upstream_error("HTTP 401: Unauthorized")
 
 
+class TestHealthCheckDoesNotCreateChatSession:
+    """``health_check`` used to POST a "Hi" prompt to /chat/completions on every
+    config-entry setup and reload, which the AI Gateway materializes as a chat
+    session. That phantom-session leak is the regression these tests pin.
+    """
+
+    def _make_provider(self, hass, **overrides) -> SeloraCloudProvider:
+        defaults = {
+            "access_token": "ey.access",
+            "refresh_token": "aigw_refresh",
+            "expires_at": 9_999_999_999.0,
+            "connect_url": "https://example.test",
+            "client_id": "cid",
+            "entry_id": "entry-id",
+        }
+        defaults.update(overrides)
+        return SeloraCloudProvider(hass, **defaults)
+
+    async def test_fresh_access_token_returns_true_without_any_request(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The previous chat round-trip is the bug — a non-expired access
+        token already proves the link works.
+        """
+        from custom_components.selora_ai.providers import openai_compat
+
+        provider = self._make_provider(hass)
+
+        send_super = AsyncMock(return_value=("should-not-be-called", None))
+        send_self = AsyncMock(return_value=("should-not-be-called", None))
+        refresh = AsyncMock(return_value=True)
+
+        monkeypatch.setattr(
+            openai_compat.OpenAICompatibleProvider, "send_request", send_super
+        )
+        monkeypatch.setattr(provider, "send_request", send_self)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+
+        assert await provider.health_check() is True
+        assert send_self.await_count == 0
+        assert send_super.await_count == 0
+        assert refresh.await_count == 0
+
+    async def test_no_credentials_returns_false_without_any_request(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import openai_compat
+
+        provider = self._make_provider(hass, access_token="", refresh_token="")
+
+        send_super = AsyncMock(return_value=("nope", None))
+        send_self = AsyncMock(return_value=("nope", None))
+        monkeypatch.setattr(
+            openai_compat.OpenAICompatibleProvider, "send_request", send_super
+        )
+        monkeypatch.setattr(provider, "send_request", send_self)
+
+        assert await provider.health_check() is False
+        assert send_self.await_count == 0
+        assert send_super.await_count == 0
+
+    async def test_expired_access_token_refreshes_via_token_endpoint(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Refresh path probes the /oauth/aigw/token endpoint, NOT chat
+        completions — so the AI Gateway never sees this as a session.
+        """
+        from custom_components.selora_ai.providers import openai_compat
+
+        provider = self._make_provider(hass, expires_at=1.0)
+        assert provider._needs_refresh() is True
+
+        send_super = AsyncMock(return_value=("nope", None))
+        send_self = AsyncMock(return_value=("nope", None))
+        refresh = AsyncMock(return_value=True)
+
+        monkeypatch.setattr(
+            openai_compat.OpenAICompatibleProvider, "send_request", send_super
+        )
+        monkeypatch.setattr(provider, "send_request", send_self)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+
+        assert await provider.health_check() is True
+        assert refresh.await_count == 1
+        # Critical: no chat-completions roundtrip was issued.
+        assert send_self.await_count == 0
+        assert send_super.await_count == 0
+
+    async def test_failed_refresh_returns_false(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        provider = self._make_provider(hass, expires_at=1.0)
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=False)
+        )
+
+        assert await provider.health_check() is False
+
 class TestMaskTokens:
     """_mask_tokens must redact every credential shape we may log."""
 
