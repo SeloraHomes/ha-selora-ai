@@ -1215,6 +1215,18 @@ var sharedButtons = i`
     box-shadow: none;
     opacity: 1;
   }
+  /* Light mode: translucent gold-on-white is near-invisible. Match the
+     filled btn-primary language (solid gold + black text) so it lines up
+     with the Accept buttons elsewhere in the UI. Pill radius is kept. */
+  :host(:not([dark])) .btn-accent {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #000;
+  }
+  :host(:not([dark])) .btn-accent:hover {
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+  }
   .btn-ghost {
     border-color: transparent;
     color: var(--secondary-text-color);
@@ -3945,26 +3957,22 @@ var automationsStyles = i`
     cursor: pointer;
   }
 
-  /* ---- Automations grid (flex columns for independent heights) ---- */
+  /* ---- Suggestions/automations grid ----
+     Auto-fill with a minimum card width so the grid drops columns based on
+     its actual rendered width, not window.innerWidth. This avoids the
+     case where HA's sidebar is open and the panel container is narrow
+     while the window is wide — we'd render 3 columns and the action
+     buttons inside cards would overflow. 280px is the minimum width that
+     keeps the Accept/Dismiss button row from spilling. */
   .automations-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: stretch;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    align-items: start;
     gap: 20px;
     margin-bottom: 16px;
   }
   .automations-grid .masonry-col {
     display: contents;
-  }
-  @media (max-width: 900px) {
-    .automations-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  @media (max-width: 600px) {
-    .automations-grid {
-      grid-template-columns: 1fr;
-    }
   }
   .pagination {
     display: flex;
@@ -7563,10 +7571,8 @@ function renderSuggestionsSection(host) {
             }
 
             <div class="automations-grid">
-              ${masonryColumns(
-                visibleItems.map((item) =>
-                  renderSuggestionCard(host, item, bulkMode, selectedKeys),
-                ),
+              ${visibleItems.map((item) =>
+                renderSuggestionCard(host, item, bulkMode, selectedKeys),
               )}
             </div>
 

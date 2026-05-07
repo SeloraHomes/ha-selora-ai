@@ -373,26 +373,22 @@ export const automationsStyles = css`
     cursor: pointer;
   }
 
-  /* ---- Automations grid (flex columns for independent heights) ---- */
+  /* ---- Suggestions/automations grid ----
+     Auto-fill with a minimum card width so the grid drops columns based on
+     its actual rendered width, not window.innerWidth. This avoids the
+     case where HA's sidebar is open and the panel container is narrow
+     while the window is wide — we'd render 3 columns and the action
+     buttons inside cards would overflow. 280px is the minimum width that
+     keeps the Accept/Dismiss button row from spilling. */
   .automations-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    align-items: stretch;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    align-items: start;
     gap: 20px;
     margin-bottom: 16px;
   }
   .automations-grid .masonry-col {
     display: contents;
-  }
-  @media (max-width: 900px) {
-    .automations-grid {
-      grid-template-columns: repeat(2, 1fr);
-    }
-  }
-  @media (max-width: 600px) {
-    .automations-grid {
-      grid-template-columns: 1fr;
-    }
   }
   .pagination {
     display: flex;
