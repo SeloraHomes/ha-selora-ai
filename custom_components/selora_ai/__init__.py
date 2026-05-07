@@ -4665,6 +4665,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_unlink_connect)
     websocket_api.async_register_command(hass, _handle_websocket_exchange_aigateway_code)
     websocket_api.async_register_command(hass, _handle_websocket_unlink_aigateway)
+    # HA-mediated OAuth link (works inside Companion app WebViews)
+    from .oauth_link import async_register as _register_oauth_link
+
+    _register_oauth_link(hass)
     # MCP token management
     websocket_api.async_register_command(hass, _handle_websocket_create_mcp_token)
     websocket_api.async_register_command(hass, _handle_websocket_list_mcp_tokens)

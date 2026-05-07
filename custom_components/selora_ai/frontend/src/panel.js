@@ -1095,137 +1095,111 @@ class SeloraAIPanel extends LitElement {
   }
 
   // ── OAuth Link flow ───────────────────────────────────────────────
+  //
+  // HA-mediated linking: PKCE state lives on the backend; we ask HA to
+  // start a session and hand us an authorize URL. The user clicks a
+  // real `<a target="_blank">` rendered with that URL — programmatic
+  // clicks after `await` lose the user-gesture context and get blocked
+  // in browsers and Companion app alike, so the URL has to be on a
+  // genuinely-clicked anchor. Two clicks total: "Link" prepares the
+  // URL, the resulting anchor opens the system browser. HA's callback
+  // view finishes the exchange and fires `selora_ai_oauth_linked`.
+
+  _OAUTH_LINK_TIMEOUT_MS = 10 * 60 * 1000;
+
+  _resetOAuthState(flow) {
+    if (flow === "aigateway") {
+      this._aigwAuthorizeUrl = "";
+    } else {
+      this._connectAuthorizeUrl = "";
+    }
+  }
+
+  async _runOAuthLink({ flow, wsType, beforeStart, onSuccess, onError }) {
+    let unsub = null;
+    let timeout = null;
+    const cleanup = () => {
+      if (typeof unsub === "function") {
+        try {
+          unsub();
+        } catch (_e) {
+          /* best-effort */
+        }
+        unsub = null;
+      }
+      if (timeout) {
+        clearTimeout(timeout);
+        timeout = null;
+      }
+      this._resetOAuthState(flow);
+    };
+
+    try {
+      if (typeof beforeStart === "function") await beforeStart();
+
+      // Subscribe BEFORE returning the URL so a fast callback can't
+      // race the panel.
+      unsub = await this.hass.connection.subscribeEvents((evt) => {
+        const data = evt.data || {};
+        if (data.flow !== flow) return;
+        cleanup();
+        if (data.ok) {
+          onSuccess();
+        } else {
+          onError(data.error || "Linking failed.");
+        }
+      }, "selora_ai_oauth_linked");
+
+      const result = await this.hass.callWS({
+        type: wsType,
+        connect_url: this._config?.selora_connect_url || "",
+      });
+      const authorizeUrl = result?.authorize_url;
+      if (!authorizeUrl) throw new Error("No authorize URL returned.");
+
+      // Render the URL as a real anchor (see _resetOAuthState + the
+      // settings template). The user clicks it; the Companion app
+      // routes target=_blank to the system browser.
+      if (flow === "aigateway") {
+        this._aigwAuthorizeUrl = authorizeUrl;
+      } else {
+        this._connectAuthorizeUrl = authorizeUrl;
+      }
+      this.requestUpdate();
+
+      timeout = setTimeout(() => {
+        cleanup();
+        onError(
+          "Linking timed out. Please try again — make sure you finish " +
+            "signing in within 10 minutes.",
+        );
+      }, this._OAUTH_LINK_TIMEOUT_MS);
+    } catch (err) {
+      cleanup();
+      onError(err.message || "Failed to start linking.");
+    }
+  }
 
   async _startOAuthLink() {
     if (this._linkingConnect) return;
     this._linkingConnect = true;
     this._connectError = "";
     this.requestUpdate();
-
-    // Open popup synchronously in the user-gesture call stack to avoid
-    // browser popup blockers (the async PKCE hash would break the chain).
-    const popup = window.open(
-      "about:blank",
-      "selora_connect_oauth",
-      "width=640,height=820,menubar=no,toolbar=no",
-    );
-    if (!popup) {
-      this._connectError = "Popup blocked. Please allow popups for this site.";
-      this._linkingConnect = false;
-      this.requestUpdate();
-      return;
-    }
-
-    try {
-      const connectUrl = (
-        this._config.selora_connect_url || "https://connect.selorahomes.com"
-      ).replace(/\/+$/, "");
-
-      // PKCE: generate code_verifier and S256 challenge
-      const codeVerifier = this._generateRandomString(64);
-      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
-      const state = this._generateRandomString(32);
-
-      // redirect_uri = client_id per MCP spec
-      // Use the current panel URL to handle reverse proxy path prefixes
-      const redirectUri = `${location.origin}${location.pathname}`;
-
-      // Build authorize URL
-      const params = new URLSearchParams({
-        response_type: "code",
-        client_id: redirectUri,
-        redirect_uri: redirectUri,
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-        state,
-        scope: "mcp:provision",
-        device_name: this.hass?.config?.location_name || "Home Assistant",
-      });
-
-      // Navigate the already-open popup to the authorize URL
-      popup.location.href = `${connectUrl}/oauth/authorize?${params}`;
-
-      // Store PKCE state for callback
-      this._oauthState = { codeVerifier, state, connectUrl, redirectUri };
-
-      // Poll for popup redirect back to our origin
-      let polling = false;
-      this._oauthPollTimer = setInterval(async () => {
-        if (polling) return; // previous tick still in-flight
-        polling = true;
-        try {
-          if (popup.closed) {
-            clearInterval(this._oauthPollTimer);
-            this._oauthPollTimer = null;
-            if (this._linkingConnect) {
-              this._linkingConnect = false;
-              this._connectError = "Authorization cancelled.";
-              this.requestUpdate();
-            }
-            return;
-          }
-          // Check if popup navigated back to our redirect_uri
-          const popupUrl = popup.location.href;
-          if (!popupUrl.startsWith(this._oauthState.redirectUri)) return;
-
-          // Parse the auth code from the URL
-          clearInterval(this._oauthPollTimer);
-          this._oauthPollTimer = null;
-          popup.close();
-
-          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
-          const code = callbackParams.get("code");
-          const returnedState = callbackParams.get("state");
-          const error = callbackParams.get("error");
-
-          if (error) {
-            this._connectError = `Authorization failed: ${error}`;
-            this._linkingConnect = false;
-            this.requestUpdate();
-            return;
-          }
-
-          if (!code || returnedState !== this._oauthState.state) {
-            this._connectError = "Invalid authorization response.";
-            this._linkingConnect = false;
-            this.requestUpdate();
-            return;
-          }
-
-          // Exchange code for credentials via backend
-          await this.hass.callWS({
-            type: "selora_ai/exchange_connect_code",
-            code,
-            code_verifier: this._oauthState.codeVerifier,
-            redirect_uri: this._oauthState.redirectUri,
-            connect_url: this._oauthState.connectUrl,
-          });
-
-          this._oauthState = null;
-          await this._loadConfig();
-          this._showToast("Selora Connect linked successfully.", "success");
-        } catch (err) {
-          // Cross-origin access to popup.location throws — that's expected
-          // while the popup is still on Connect's domain. Ignore silently.
-          if (err.name !== "SecurityError" && err.name !== "DOMException") {
-            clearInterval(this._oauthPollTimer);
-            this._oauthPollTimer = null;
-            popup.close();
-            this._connectError = err.message || "Failed to link.";
-          }
-        } finally {
-          polling = false;
-          if (!this._oauthPollTimer) {
-            this._linkingConnect = false;
-            this.requestUpdate();
-          }
-        }
-      }, 500);
-    } catch (err) {
-      this._connectError = err.message || "Failed to start OAuth flow.";
-      this._linkingConnect = false;
-      this.requestUpdate();
-    }
+    await this._runOAuthLink({
+      flow: "connect",
+      wsType: "selora_ai/start_connect_link",
+      onSuccess: async () => {
+        await this._loadConfig();
+        this._linkingConnect = false;
+        this._showToast("Selora Connect linked successfully.", "success");
+        this.requestUpdate();
+      },
+      onError: (msg) => {
+        this._connectError = msg;
+        this._linkingConnect = false;
+        this.requestUpdate();
+      },
+    });
   }
 
   async _unlinkConnect() {
@@ -1239,9 +1213,6 @@ class SeloraAIPanel extends LitElement {
   }
 
   // ── AI Gateway OAuth Link flow ────────────────────────────────────
-  // Mirrors _startOAuthLink but targets Connect's AI Gateway endpoints
-  // (/oauth/aigw/authorize + /oauth/aigw/token) and persists tokens that
-  // the SeloraCloudProvider uses as a Bearer credential.
 
   async _startAIGatewayLink() {
     if (this._linkingAIGateway) return;
@@ -1249,139 +1220,33 @@ class SeloraAIPanel extends LitElement {
     this._aigatewayError = "";
     this.requestUpdate();
 
-    const popup = window.open(
-      "about:blank",
-      "selora_aigateway_oauth",
-      "width=640,height=820,menubar=no,toolbar=no",
-    );
-    if (!popup) {
-      this._aigatewayError =
-        "Popup blocked. Please allow popups for this site.";
-      this._linkingAIGateway = false;
-      this.requestUpdate();
-      return;
-    }
-
-    try {
-      const connectUrl = (
-        this._config.selora_connect_url || "https://connect.selorahomes.com"
-      ).replace(/\/+$/, "");
-
-      // Persist the developer-mode Selora Cloud URL before linking so
-      // the LLM provider rebuilt on entry reload uses it. Otherwise the
-      // unsaved field reverts after the post-link reload and chat
-      // completions go to the default host.
-      if (this._config.developer_mode && this._config.selora_connect_url) {
-        await this.hass.callWS({
-          type: "selora_ai/update_config",
-          config: { selora_connect_url: this._config.selora_connect_url },
-        });
-      }
-
-      const codeVerifier = this._generateRandomString(64);
-      const codeChallenge = await this._generateCodeChallenge(codeVerifier);
-      const state = this._generateRandomString(32);
-      const redirectUri = `${location.origin}${location.pathname}`;
-      const clientId = redirectUri;
-
-      // No install_id: Connect picks the home from the signed-in user
-      // (auto when there's exactly one Selora Hub, picker when 2+, free
-      // plan when none). The integration is identical in all three modes.
-      const params = new URLSearchParams({
-        response_type: "code",
-        client_id: clientId,
-        redirect_uri: redirectUri,
-        code_challenge: codeChallenge,
-        code_challenge_method: "S256",
-        state,
-        scope: "ai-gateway",
-        client_name: this.hass?.config?.location_name || "Home Assistant",
-      });
-
-      popup.location.href = `${connectUrl}/oauth/aigw/authorize?${params}`;
-
-      this._aigatewayOAuthState = {
-        codeVerifier,
-        state,
-        connectUrl,
-        redirectUri,
-        clientId,
-      };
-
-      let polling = false;
-      this._aigatewayPollTimer = setInterval(async () => {
-        if (polling) return;
-        polling = true;
-        try {
-          if (popup.closed) {
-            clearInterval(this._aigatewayPollTimer);
-            this._aigatewayPollTimer = null;
-            if (this._linkingAIGateway) {
-              this._linkingAIGateway = false;
-              this._aigatewayError = "Authorization cancelled.";
-              this.requestUpdate();
-            }
-            return;
-          }
-          const popupUrl = popup.location.href;
-          if (!popupUrl.startsWith(this._aigatewayOAuthState.redirectUri))
-            return;
-
-          clearInterval(this._aigatewayPollTimer);
-          this._aigatewayPollTimer = null;
-          popup.close();
-
-          const callbackParams = new URLSearchParams(new URL(popupUrl).search);
-          const code = callbackParams.get("code");
-          const returnedState = callbackParams.get("state");
-          const error = callbackParams.get("error");
-
-          if (error) {
-            this._aigatewayError = `Authorization failed: ${error}`;
-            this._linkingAIGateway = false;
-            this.requestUpdate();
-            return;
-          }
-
-          if (!code || returnedState !== this._aigatewayOAuthState.state) {
-            this._aigatewayError = "Invalid authorization response.";
-            this._linkingAIGateway = false;
-            this.requestUpdate();
-            return;
-          }
-
+    await this._runOAuthLink({
+      flow: "aigateway",
+      wsType: "selora_ai/start_aigw_link",
+      beforeStart: async () => {
+        // Persist the developer-mode Selora Cloud URL before linking so
+        // the LLM provider rebuilt on entry reload uses it. Otherwise the
+        // unsaved field reverts after the post-link reload and chat
+        // completions go to the default host.
+        if (this._config?.developer_mode && this._config?.selora_connect_url) {
           await this.hass.callWS({
-            type: "selora_ai/exchange_aigateway_code",
-            code,
-            code_verifier: this._aigatewayOAuthState.codeVerifier,
-            redirect_uri: this._aigatewayOAuthState.redirectUri,
-            client_id: this._aigatewayOAuthState.clientId,
-            connect_url: this._aigatewayOAuthState.connectUrl,
+            type: "selora_ai/update_config",
+            config: { selora_connect_url: this._config.selora_connect_url },
           });
-
-          this._aigatewayOAuthState = null;
-          await this._loadConfig();
-          this._showToast("Selora Cloud linked successfully.", "success");
-        } catch (err) {
-          if (err.name !== "SecurityError" && err.name !== "DOMException") {
-            clearInterval(this._aigatewayPollTimer);
-            this._aigatewayPollTimer = null;
-            popup.close();
-            this._aigatewayError = err.message || "Failed to link.";
-          }
-        } finally {
-          polling = false;
-          if (!this._aigatewayPollTimer) {
-            this._linkingAIGateway = false;
-            this.requestUpdate();
-          }
         }
-      }, 500);
-    } catch (err) {
-      this._aigatewayError = err.message || "Failed to start OAuth flow.";
-      this._linkingAIGateway = false;
-      this.requestUpdate();
-    }
+      },
+      onSuccess: async () => {
+        await this._loadConfig();
+        this._linkingAIGateway = false;
+        this._showToast("Selora Cloud linked successfully.", "success");
+        this.requestUpdate();
+      },
+      onError: (msg) => {
+        this._aigatewayError = msg;
+        this._linkingAIGateway = false;
+        this.requestUpdate();
+      },
+    });
   }
 
   async _unlinkAIGateway() {
