@@ -278,20 +278,38 @@ export function renderSettings(host) {
                                 </div>
                               `
                             : ""}
-                          <button
-                            class="btn btn-primary"
-                            ?disabled=${host._linkingAIGateway}
-                            @click=${() => host._startAIGatewayLink()}
-                            style="align-self:flex-start;"
-                          >
-                            ${host._linkingAIGateway
-                              ? html`<span
-                                    class="spinner"
-                                    style="width:14px;height:14px;"
-                                  ></span>
-                                  Linking…`
-                              : "Link Selora account"}
-                          </button>
+                          ${host._aigwAuthorizeUrl
+                            ? html`<a
+                                class="btn btn-primary"
+                                href=${host._aigwAuthorizeUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
+                              >
+                                Open sign-in page →
+                              </a>`
+                            : html`<button
+                                class="btn btn-primary"
+                                ?disabled=${host._linkingAIGateway}
+                                @click=${() => host._startAIGatewayLink()}
+                                style="align-self:flex-start;"
+                              >
+                                ${host._linkingAIGateway
+                                  ? html`<span
+                                        class="spinner"
+                                        style="width:14px;height:14px;"
+                                      ></span>
+                                      Preparing…`
+                                  : "Link Selora account"}
+                              </button>`}
+                          ${host._aigwAuthorizeUrl
+                            ? html`<div
+                                style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+                              >
+                                Opens in a new tab. After signing in, return to
+                                this page — the panel updates automatically.
+                              </div>`
+                            : ""}
                         </div>
                       `}
                   ${host._aigatewayError
@@ -645,6 +663,27 @@ export function renderSettings(host) {
                   style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
                 >
                   ${host._connectError}
+                </div>`
+              : ""}
+            ${host._connectAuthorizeUrl
+              ? html`<div
+                  style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
+                >
+                  <a
+                    class="btn btn-primary"
+                    href=${host._connectAuthorizeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style="align-self:flex-start;text-decoration:none;"
+                  >
+                    Open sign-in page →
+                  </a>
+                  <div
+                    style="font-size:12px;color:var(--secondary-text-color);"
+                  >
+                    Opens in a new tab. After signing in, return to this page —
+                    the panel updates automatically.
+                  </div>
                 </div>`
               : ""}
             ${host._config.selora_connect_enabled
