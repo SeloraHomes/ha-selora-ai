@@ -1699,9 +1699,15 @@ class SeloraAIPanel extends LitElement {
       }
 
       // Keep cards' hass current so brightness, on/off, etc. stay live.
+      // hui-entities-card (and its inner rows) compare incoming hass by
+      // reference and skip when unchanged. HA sometimes mutates the same
+      // hass object instead of creating a new one, so a plain reassign
+      // looks like "no change" and the card never re-renders. A shallow
+      // copy guarantees a fresh reference; methods like callService
+      // survive because they're own properties on hass.
       for (const card of grid.children) {
-        if (card.hass !== undefined && card.hass !== this.hass) {
-          card.hass = this.hass;
+        if (card.hass !== undefined) {
+          card.hass = { ...this.hass };
         }
       }
     }
@@ -1766,10 +1772,45 @@ class SeloraAIPanel extends LitElement {
   async _getTileCardCreator() {
     if (this._tileCardCreator !== undefined) return this._tileCardCreator;
 
+    // Map each entity domain to the most useful inline tile feature so
+    // chat cards visually match HA's default dashboard tile and keep
+    // domain-appropriate controls (brightness slider, volume slider,
+    // cover arrows, climate target temp, etc.). Domains without a
+    // standard feature (sensor, binary_sensor, switch, person, …) get
+    // no extras — the tile's tap target is already the right action.
+    const featuresForDomain = (entityId) => {
+      const domain = entityId.split(".")[0];
+      switch (domain) {
+        case "light":
+          return [{ type: "light-brightness" }];
+        case "cover":
+          return [{ type: "cover-open-close" }];
+        case "fan":
+          return [{ type: "fan-speed" }];
+        case "media_player":
+          return [{ type: "media-player-volume-slider" }];
+        case "climate":
+          return [{ type: "target-temperature" }];
+        case "vacuum":
+          return [{ type: "vacuum-commands" }];
+        case "lock":
+          return [{ type: "lock-commands" }];
+        case "alarm_control_panel":
+          return [{ type: "alarm-modes" }];
+        case "water_heater":
+          return [{ type: "water-heater-operation-modes" }];
+        case "humidifier":
+          return [{ type: "humidifier-toggle" }];
+        case "lawn_mower":
+          return [{ type: "lawn-mower-commands" }];
+        default:
+          return [];
+      }
+    };
     const buildConfig = (id) => ({
-      type: "entities",
-      entities: [id],
-      show_header_toggle: false,
+      type: "tile",
+      entity: id,
+      features: featuresForDomain(id),
     });
 
     // Path 1: HA's documented helper.
@@ -1791,19 +1832,19 @@ class SeloraAIPanel extends LitElement {
     // element never registers on a custom-panel page.
     try {
       const ready = await Promise.race([
-        customElements.whenDefined("hui-entities-card").then(() => true),
+        customElements.whenDefined("hui-tile-card").then(() => true),
         new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
       ]);
       if (ready) {
         this._tileCardCreator = (id) => {
-          const el = document.createElement("hui-entities-card");
+          const el = document.createElement("hui-tile-card");
           el.setConfig(buildConfig(id));
           return el;
         };
         return this._tileCardCreator;
       }
     } catch (e) {
-      console.warn("Selora: hui-entities-card whenDefined failed", e);
+      console.warn("Selora: hui-tile-card whenDefined failed", e);
     }
 
     this._tileCardCreator = null;

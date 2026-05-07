@@ -268,6 +268,15 @@ export const chatStyles = css`
     --ha-card-box-shadow:
       0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
+  /* Suppress the stuck hover/focus tint that hui-entities-card paints
+     on a row after the user taps it (the more-info dialog closes but
+     the row keeps :focus-visible, leaving one card darker than the
+     rest). Chat doesn't need a row-level affordance — the toggle/
+     control inside the row is the click target. */
+  .selora-entity-grid > *::part(content),
+  .selora-entity-grid > * div.entity {
+    background: transparent !important;
+  }
   /* Area sub-headers in multi-area entity grids. The grid-column rule
      spans the header across the full row so the next row of tiles
      starts cleanly under it. Layout matches HA dashboard section

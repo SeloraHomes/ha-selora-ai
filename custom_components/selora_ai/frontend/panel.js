@@ -2668,6 +2668,15 @@ var chatStyles = i`
     --ha-card-box-shadow:
       0 1px 2px rgba(0, 0, 0, 0.06), 0 4px 12px rgba(0, 0, 0, 0.1);
   }
+  /* Suppress the stuck hover/focus tint that hui-entities-card paints
+     on a row after the user taps it (the more-info dialog closes but
+     the row keeps :focus-visible, leaving one card darker than the
+     rest). Chat doesn't need a row-level affordance — the toggle/
+     control inside the row is the click target. */
+  .selora-entity-grid > *::part(content),
+  .selora-entity-grid > * div.entity {
+    background: transparent !important;
+  }
   /* Area sub-headers in multi-area entity grids. The grid-column rule
      spans the header across the full row so the next row of tiles
      starts cleanly under it. Layout matches HA dashboard section
@@ -15133,8 +15142,8 @@ var SeloraAIPanel = class extends s4 {
         grid.dataset.wired = "true";
       }
       for (const card of grid.children) {
-        if (card.hass !== void 0 && card.hass !== this.hass) {
-          card.hass = this.hass;
+        if (card.hass !== void 0) {
+          card.hass = { ...this.hass };
         }
       }
     }
@@ -15188,10 +15197,39 @@ var SeloraAIPanel = class extends s4 {
   // happens once per panel lifetime.
   async _getTileCardCreator() {
     if (this._tileCardCreator !== void 0) return this._tileCardCreator;
+    const featuresForDomain = (entityId) => {
+      const domain = entityId.split(".")[0];
+      switch (domain) {
+        case "light":
+          return [{ type: "light-brightness" }];
+        case "cover":
+          return [{ type: "cover-open-close" }];
+        case "fan":
+          return [{ type: "fan-speed" }];
+        case "media_player":
+          return [{ type: "media-player-volume-slider" }];
+        case "climate":
+          return [{ type: "target-temperature" }];
+        case "vacuum":
+          return [{ type: "vacuum-commands" }];
+        case "lock":
+          return [{ type: "lock-commands" }];
+        case "alarm_control_panel":
+          return [{ type: "alarm-modes" }];
+        case "water_heater":
+          return [{ type: "water-heater-operation-modes" }];
+        case "humidifier":
+          return [{ type: "humidifier-toggle" }];
+        case "lawn_mower":
+          return [{ type: "lawn-mower-commands" }];
+        default:
+          return [];
+      }
+    };
     const buildConfig = (id) => ({
-      type: "entities",
-      entities: [id],
-      show_header_toggle: false,
+      type: "tile",
+      entity: id,
+      features: featuresForDomain(id),
     });
     if (typeof window.loadCardHelpers === "function") {
       try {
@@ -15207,19 +15245,19 @@ var SeloraAIPanel = class extends s4 {
     }
     try {
       const ready = await Promise.race([
-        customElements.whenDefined("hui-entities-card").then(() => true),
+        customElements.whenDefined("hui-tile-card").then(() => true),
         new Promise((resolve) => setTimeout(() => resolve(false), 3e3)),
       ]);
       if (ready) {
         this._tileCardCreator = (id) => {
-          const el = document.createElement("hui-entities-card");
+          const el = document.createElement("hui-tile-card");
           el.setConfig(buildConfig(id));
           return el;
         };
         return this._tileCardCreator;
       }
     } catch (e5) {
-      console.warn("Selora: hui-entities-card whenDefined failed", e5);
+      console.warn("Selora: hui-tile-card whenDefined failed", e5);
     }
     this._tileCardCreator = null;
     return null;
