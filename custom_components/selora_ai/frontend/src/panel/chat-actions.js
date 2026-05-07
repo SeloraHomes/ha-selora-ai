@@ -44,6 +44,9 @@ export async function _sendMessage() {
 
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
+  // User sent a message — they expect to see it land regardless of
+  // where they were scrolled.
+  this._requestScrollChat({ force: true });
 
   // Stream-health watchers — both must be torn down on done/error/retry/stop.
   // Stored on `this` so _stopStreaming() can reach them too; otherwise the
@@ -289,15 +292,36 @@ export function _stopStreaming() {
   }
 }
 
-export function _requestScrollChat() {
-  if (!this._scrollPending) {
-    this._scrollPending = true;
-    requestAnimationFrame(() => {
-      this._scrollPending = false;
-      const container = this.shadowRoot.getElementById("chat-messages");
-      if (container) container.scrollTop = container.scrollHeight;
-    });
-  }
+export function _requestScrollChat(opts) {
+  // Standard chat-app behaviour: only auto-scroll if the user is
+  // already near the bottom. If they scrolled up to read history,
+  // don't yank them down — covers every path that ends up here
+  // (keyboard show/hide, hydrate, focus, hass updates, …). Pass
+  // `{ force: true }` for explicit user actions where the user
+  // expects to land at the latest reply (opening a session, sending
+  // a message).
+  //
+  // Coalesce repeated calls within the same frame: a non-force call
+  // from `updated()` (triggered by the _messages change) often races
+  // ahead of the explicit force call from `_openSession`, and we'd
+  // otherwise drop the force on the floor. Track the strongest mode
+  // requested while the RAF is pending.
+  if (opts && opts.force) this._scrollForce = true;
+  if (this._scrollPending) return;
+  this._scrollPending = true;
+  requestAnimationFrame(() => {
+    const force = !!this._scrollForce;
+    this._scrollPending = false;
+    this._scrollForce = false;
+    const container = this.shadowRoot.getElementById("chat-messages");
+    if (!container) return;
+    if (!force) {
+      const distance =
+        container.scrollHeight - container.scrollTop - container.clientHeight;
+      if (distance > 80) return;
+    }
+    container.scrollTop = container.scrollHeight;
+  });
 }
 
 export async function _copyMessageText(msg, btn) {
