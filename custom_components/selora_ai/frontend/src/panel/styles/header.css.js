@@ -4,7 +4,11 @@ export const headerStyles = css`
   .header {
     background: var(--app-header-background-color);
     border-bottom: var(--app-header-border-bottom, none);
-    z-index: 2;
+    /* Must outrank the narrow-mode conversations drawer (z-index: 10
+       in layout.css.js). The header creates a stacking context, so the
+       overflow menu rendered inside it inherits this ceiling — without
+       this bump the menu reopens hidden behind the drawer on mobile. */
+    z-index: 11;
     flex-shrink: 0;
     height: var(--header-height, 56px);
     box-sizing: border-box;
@@ -277,7 +281,10 @@ export const headerStyles = css`
       0 8px 24px rgba(0, 0, 0, 0.35),
       0 2px 8px rgba(0, 0, 0, 0.18);
     padding: 6px;
-    z-index: 10;
+    /* Sit above the narrow-mode conversations drawer (z-index: 10);
+       otherwise the menu reopens behind the sidebar after navigating
+       to Conversations on mobile and is invisible. */
+    z-index: 20;
   }
   .selora-menu {
     border: 1px solid rgba(251, 191, 36, 0.25);

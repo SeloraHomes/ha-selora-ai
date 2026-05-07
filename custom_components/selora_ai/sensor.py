@@ -222,7 +222,13 @@ def _build_device_categories(hass: HomeAssistant) -> dict[str, list[dict[str, An
     categories: dict[str, list[dict[str, Any]]] = {}
 
     for device in dev_reg.devices.values():
-        for ident_domain, _ in device.identifiers:
+        for ident in device.identifiers:
+            # Most integrations register `(domain, unique_id)` 2-tuples,
+            # but some (e.g. zha legacy entries) emit longer tuples — only
+            # the leading domain is meaningful for our category mapping.
+            if not ident:
+                continue
+            ident_domain = ident[0]
             if ident_domain in _SKIP_DOMAINS:
                 continue
             info = KNOWN_INTEGRATIONS.get(ident_domain)

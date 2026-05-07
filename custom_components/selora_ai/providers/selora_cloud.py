@@ -144,6 +144,13 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # "Configured" for this provider means we have a refresh token.
         return bool(self._refresh_token)
 
+    @property
+    def is_configured(self) -> bool:
+        # OAuth: the refresh token is the credential. Without it, every
+        # request would 401 — surface unlinked state to skip analysis
+        # cycles cleanly instead of letting the request fail downstream.
+        return bool(self._refresh_token)
+
     # -- HTTP plumbing -----------------------------------------------------
 
     def _get_headers(self) -> dict[str, str]:
@@ -282,6 +289,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         *,
         max_tokens: int = 1024,
         log_errors: bool = True,
+        timeout: float | None = None,
     ) -> tuple[str | None, str | None]:
         await self._ensure_token()
         # An intermediary in front of the AI Gateway has been seen
@@ -294,7 +302,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # "error reported by integration" notification on every restart).
         for delay in _UPSTREAM_RETRY_DELAYS:
             result, err = await super().send_request(
-                system, messages, max_tokens=max_tokens, log_errors=False
+                system, messages, max_tokens=max_tokens, log_errors=False, timeout=timeout
             )
             if result is not None:
                 return result, None

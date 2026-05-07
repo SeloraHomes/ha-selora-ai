@@ -171,6 +171,17 @@ class LLMProvider(ABC):
         return bool(self._api_key)
 
     @property
+    def is_configured(self) -> bool:
+        """Whether the provider has the credentials it needs to make requests.
+
+        Distinct from ``has_api_key`` so OAuth-style providers (Selora Cloud)
+        can signal "unlinked" without claiming an API key. Defaults to
+        ``has_api_key`` for key-based providers and ``True`` for those that
+        don't need one (e.g. local Ollama).
+        """
+        return self.has_api_key if self.requires_api_key else True
+
+    @property
     def model(self) -> str:
         """Return the configured model name."""
         return self._model
@@ -340,6 +351,7 @@ class LLMProvider(ABC):
         *,
         max_tokens: int = 1024,
         log_errors: bool = True,
+        timeout: float | None = None,
     ) -> tuple[str | None, str | None]:
         """Send a request and return (response_text, error_message).
 
@@ -347,15 +359,19 @@ class LLMProvider(ABC):
         non-200 responses. The error message is still returned so the caller
         can decide whether to retry, surface the failure, or stay silent —
         used by retry-on-cold-start paths to keep the first attempt quiet.
+
+        ``timeout`` overrides the default per-request HTTP timeout (seconds);
+        used by the hourly analysis cycle to allow longer reasoning calls.
         """
         try:
             session = self._get_session()
             payload = self.build_payload(system, messages, max_tokens=max_tokens)
+            request_timeout = timeout if timeout is not None else DEFAULT_LLM_TIMEOUT
 
             async with session.post(
                 self._endpoint,
                 headers=self._get_headers(),
-                timeout=aiohttp.ClientTimeout(total=DEFAULT_LLM_TIMEOUT),
+                timeout=aiohttp.ClientTimeout(total=request_timeout),
                 data=self._encode_body(payload),
             ) as resp:
                 if resp.status == 429:

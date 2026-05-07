@@ -5005,10 +5005,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Verify LLM is healthy — runs after platform setup so usage sensors
     # are registered and can capture the tokens from the health-check call.
     if llm and not await llm.health_check():
-        _LOGGER.warning(
-            "%s not reachable — will retry on next collection cycle",
-            llm.provider_name,
-        )
+        if not llm.is_configured:
+            _LOGGER.info(
+                "%s is not linked — chat and analysis will resume after re-linking in Settings",
+                llm.provider_name,
+            )
+        else:
+            _LOGGER.warning(
+                "%s not reachable — will retry on next collection cycle",
+                llm.provider_name,
+            )
 
     # Start background collection + analysis
     if llm:
