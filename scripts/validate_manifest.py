@@ -34,9 +34,12 @@ for field in REQUIRED_FIELDS:
         errors.append(f"missing required field: '{field}'")
 
 version = manifest.get("version", "")
-parts = version.split(".")
+# Accept X.Y.Z and X.Y.Z-<prerelease> (e.g. 0.9.0-dev, 0.9.0-rc.1).
+# Semantic-release rewrites to pure X.Y.Z on release.
+core, _, _ = version.partition("-")
+parts = core.split(".")
 if len(parts) != 3 or not all(p.isdigit() for p in parts):
-    errors.append(f"'version' must be semver X.Y.Z (got '{version}')")
+    errors.append(f"'version' must be semver X.Y.Z or X.Y.Z-<pre> (got '{version}')")
 
 if errors:
     print("\n✗ manifest.json validation FAILED\n")
