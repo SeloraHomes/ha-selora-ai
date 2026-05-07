@@ -188,6 +188,10 @@ _GREETING_OPENER = re.compile(
 _PURE_GREETING = re.compile(
     r"^\s*(hi|hello|hey|yo|sup|thanks|thank you|thx|cheers|"
     r"good (morning|evening|night|afternoon))"
+    # Optional vocative addressing the assistant by name — "hello selora",
+    # "hi selora ai", "thanks ai". Without this the LLM still gets the
+    # message and hallucinates an automation update from prior history.
+    r"(\s+(selora(\s+ai)?|ai|assistant))?"
     # Trailing whitespace, common punctuation/smileys, and emoji from
     # the dingbats / symbols / pictographs blocks plus the variation
     # selector. Anything alphanumeric ends the match — actual content
