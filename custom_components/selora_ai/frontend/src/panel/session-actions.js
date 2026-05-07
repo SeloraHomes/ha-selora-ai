@@ -67,7 +67,7 @@ export async function _openSession(sessionId) {
     // Wait for Lit to render the messages before scrolling — the
     // synchronous updated() hook fires before the browser paints.
     await this.updateComplete;
-    this._requestScrollChat();
+    this._requestScrollChat({ force: true });
   } catch (err) {
     console.error("Failed to open session", err);
   }

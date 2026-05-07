@@ -614,7 +614,13 @@ class SeloraAIPanel extends LitElement {
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
-          this._requestScrollChat();
+          // Only scroll on keyboard *open* — the latest message would
+          // otherwise be hidden behind it. On close (e.g. textarea
+          // blurred because the user tapped a tile to open a more-info
+          // dialog), leave the scroll position alone.
+          if (isOpen) {
+            this._requestScrollChat();
+          }
         }
       };
       window.visualViewport.addEventListener("resize", this._viewportHandler);
@@ -1600,6 +1606,8 @@ class SeloraAIPanel extends LitElement {
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
 
+    let cardsAppended = false;
+
     for (const grid of grids) {
       const wired = grid.dataset.wired === "true";
 
@@ -1694,6 +1702,8 @@ class SeloraAIPanel extends LitElement {
           // Hits when neither construction path resolved or all ids
           // were unknown/missing in hass.states.
           grid.textContent = ids.join(", ");
+        } else {
+          cardsAppended = true;
         }
         grid.dataset.wired = "true";
       }
@@ -1713,8 +1723,18 @@ class SeloraAIPanel extends LitElement {
     }
     // Tile cards expand the message height after the synchronous Lit
     // render, so the initial scroll in updated() lands short. Re-scroll
-    // now that all cards are in the DOM.
-    this._requestScrollChat();
+    // only when new cards were just appended — every subsequent
+    // hass-driven hydration (live state from a service call, e.g. the
+    // brightness slider in a more-info dialog firing light.turn_on)
+    // would otherwise yank the chat to the bottom even when no layout
+    // change happened. Force the scroll: the layout just grew and the
+    // user has no scroll position to preserve (the previous explicit
+    // scroll-to-bottom in _openSession landed before the cards added
+    // their height, so the respect-position guard would otherwise see
+    // distance > 80 and leave the user above the new bottom).
+    if (cardsAppended) {
+      this._requestScrollChat({ force: true });
+    }
   }
 
   // Lazily fetch the full entity + device registries via WS. The
