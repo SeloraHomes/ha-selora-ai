@@ -1,3 +1,10 @@
+## [0.8.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.0...v0.8.1) (2026-05-07)
+
+### Bug Fixes
+
+* live state + stuck focus tint on chat cards ([6744109](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/674410913f13228178a31909bf38c134666e0f51))
+* startup stability and analysis timeout ([1df7557](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1df7557d15ab4b8de1b8440ea864fb782b3e3b99))
+
 ## [0.8.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.7.0...v0.8.0) (2026-05-07)
 
 ### Features
