@@ -76,6 +76,11 @@ pre-push:
       run: python3 scripts/validate_hacs.py
       fail_text: "HACS validation failed. See output above."
 
+    validate-manifest:
+      glob: "custom_components/selora_ai/manifest.json"
+      run: python3 scripts/validate_manifest.py
+      fail_text: "Manifest validation failed. See output above."
+
     validate-hassfest:
       glob: "custom_components/selora_ai/**"
       run: 'mkdir -p .hassfest_tmp && rsync -a --delete --exclude node_modules custom_components/ .hassfest_tmp/custom_components/ && docker run --rm -v "$(pwd)/.hassfest_tmp/custom_components:/github/workspace/custom_components" ghcr.io/home-assistant/hassfest; rc=$?; rm -rf .hassfest_tmp; exit $rc'

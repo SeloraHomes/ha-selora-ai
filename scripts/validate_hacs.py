@@ -47,9 +47,12 @@ else:
             if field not in manifest:
                 errors.append(f"manifest.json: missing required field '{field}'")
         version = manifest.get("version", "")
-        parts = version.split(".")
+        # Accept X.Y.Z and X.Y.Z-<prerelease> (e.g. 0.9.0-dev, 0.9.0-rc.1).
+        # Semantic-release will rewrite to pure X.Y.Z on release.
+        core, _, _ = version.partition("-")
+        parts = core.split(".")
         if len(parts) != 3 or not all(p.isdigit() for p in parts):
-            errors.append(f"manifest.json: 'version' must be semver X.Y.Z (got '{version}')")
+            errors.append(f"manifest.json: 'version' must be semver X.Y.Z or X.Y.Z-<pre> (got '{version}')")
     except json.JSONDecodeError as exc:
         errors.append(f"manifest.json: invalid JSON — {exc}")
 

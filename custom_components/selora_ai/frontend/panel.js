@@ -10829,12 +10829,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.9.0-dev"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.8.0"}
+            Selora AI v${"0.9.0-dev"}
           </a>
         </div>
       </div>
@@ -14944,7 +14944,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.8.0" : "unknown",
+        integration_version: true ? "0.9.0-dev" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
