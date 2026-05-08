@@ -388,6 +388,7 @@ export async function _loadAutomationToChat(automationId) {
       this._activeSessionId = sessionId;
       this._activeTab = "chat";
       this._showSidebar = false;
+      this._input = "";
       await this._openSession(sessionId);
       this._showToast("Automation loaded into chat.", "success");
     }
