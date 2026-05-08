@@ -301,10 +301,6 @@ export function renderMessage(host, msg, idx) {
       isPartialBlock && msg._streaming && partialBlockType === "automation";
     showSceneSpinner =
       isPartialBlock && msg._streaming && partialBlockType === "scene";
-    // Hide message text for refining cards — it's folded into the card body
-    if (msg.automation_status === "refining" && msg.automation) {
-      displayContent = "";
-    }
   }
 
   return html`

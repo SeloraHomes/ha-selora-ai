@@ -8,21 +8,41 @@ import { getStaleAutomations, renderStaleModal } from "./stale-automations.js";
 // Shared card header (used by proposal + refining cards)
 // ---------------------------------------------------------------------------
 
-function _cardHeader(name, badge) {
+// Shared icon + alias + description block used by the automations list rows and
+// the chat proposal/refining cards so they stay visually identical.
+export function renderAutomationIdentity(alias, description, opts = {}) {
+  const {
+    badge = "",
+    titleSuffix = null,
+    nameOverride = null,
+    tail = null,
+  } = opts;
+  const cleanedDescription = (description || "").replace(
+    /^\[Selora AI\]\s*/,
+    "",
+  );
   return html`
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
-      <ha-icon
-        icon="mdi:robot"
-        style="color:var(--primary-text-color);--mdc-icon-size:18px;display:flex;flex-shrink:0;"
-      ></ha-icon>
-      <span
-        style="font-weight:700;font-size:14px;color:var(--primary-text-color);"
-        >${name}</span
-      >
-      <span
-        style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;"
-        >${badge}</span
-      >
+    <ha-icon
+      icon="mdi:robot"
+      style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+    ></ha-icon>
+    <div class="auto-row-name">
+      ${nameOverride
+        ? nameOverride
+        : html`<div class="auto-row-title-row">
+            <span class="auto-row-title">${alias}</span>
+            ${titleSuffix || ""}
+            ${badge
+              ? html`<span
+                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
+                  >${badge}</span
+                >`
+              : ""}
+          </div>`}
+      ${cleanedDescription
+        ? html`<span class="auto-row-desc">${cleanedDescription}</span>`
+        : ""}
+      ${tail || ""}
     </div>
   `;
 }
@@ -134,9 +154,19 @@ export function renderProposalCard(host, msg, msgIndex) {
 
   if (status === "refining") {
     return html`
-      <div style="margin-top:12px;padding:14px 0 0;">
-        ${_cardHeader(automation.alias, "Being Refined")}
-        <div class="proposal-body" style="padding:0;">
+      <div
+        style="margin-top:12px;padding:12px 16px;border:1px solid var(--selora-zinc-700);border-radius:12px;background:rgba(255,255,255,0.02);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 14px rgba(0,0,0,0.28);"
+      >
+        <div
+          style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
+        >
+          ${renderAutomationIdentity(
+            automation.alias,
+            msg.description || automation.description,
+            { badge: "Being Refined" },
+          )}
+        </div>
+        <div class="proposal-body" style="padding:12px 0 0;">
           ${renderAutomationFlowchart(host, automation)}
         </div>
       </div>
@@ -151,16 +181,14 @@ export function renderProposalCard(host, msg, msgIndex) {
     host._editedYaml[yamlKey] !== yaml;
   return html`
     <div style="margin-top:12px;padding:14px 0 0;">
-      ${_cardHeader(automation.alias, "Proposal")}
-      <div class="proposal-body" style="padding:0;">
-        ${msg.description
-          ? html`
-              <div class="proposal-description-label">
-                What this automation does
-              </div>
-              <div class="proposal-description">${msg.description}</div>
-            `
-          : ""}
+      <div
+        style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
+      >
+        ${renderAutomationIdentity(automation.alias, msg.description, {
+          badge: "Proposal",
+        })}
+      </div>
+      <div class="proposal-body" style="padding:12px 0 0;">
         ${risk?.level === "elevated"
           ? html`
               <div
@@ -613,74 +641,60 @@ export function renderAutomations(host) {
                               </label>
                             `
                           : ""}
-                        <ha-icon
-                          icon="mdi:robot"
-                          style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
-                        ></ha-icon>
-                        <div
-                          class="auto-row-name"
-                          data-last-run="Last run: ${lastRun}"
-                        >
-                          ${host._editingAlias === automationId
-                            ? html`
-                                <input
-                                  class="rename-input"
-                                  data-id="${automationId}"
-                                  .value=${host._editingAliasValue}
-                                  @input=${(e) => {
-                                    host._editingAliasValue = e.target.value;
-                                  }}
-                                  @click=${(e) => e.stopPropagation()}
-                                  @keydown=${(e) => {
-                                    if (e.key === "Enter")
-                                      host._saveRenameAutomation(automationId);
-                                    if (e.key === "Escape")
-                                      host._cancelRenameAutomation();
-                                  }}
-                                />
-                                <button
-                                  class="rename-save-btn"
-                                  title="Save"
-                                  @click=${() =>
-                                    host._saveRenameAutomation(automationId)}
-                                >
-                                  <ha-icon
-                                    icon="mdi:check"
-                                    style="--mdc-icon-size:16px;"
-                                  ></ha-icon>
-                                </button>
-                              `
-                            : html`<div class="auto-row-title-row">
-                                <span class="auto-row-title">${a.alias}</span
-                                >${isUnavailable
-                                  ? html`<span
-                                      class="needs-attention-pill"
-                                      @click=${(e) => {
-                                        e.stopPropagation();
-                                        host._unavailableAutoId = automationId;
-                                        host._unavailableAutoName = a.alias;
-                                      }}
-                                      >Needs attention</span
-                                    >`
-                                  : ""}
-                              </div>`}
-                          ${a.description
-                            ? html`<span class="auto-row-desc"
-                                >${a.description.replace(
-                                  /^\[Selora AI\]\s*/,
-                                  "",
-                                )}</span
+                        ${renderAutomationIdentity(a.alias, a.description, {
+                          titleSuffix: isUnavailable
+                            ? html`<span
+                                class="needs-attention-pill"
+                                @click=${(e) => {
+                                  e.stopPropagation();
+                                  host._unavailableAutoId = automationId;
+                                  host._unavailableAutoName = a.alias;
+                                }}
+                                >Needs attention</span
                               >`
-                            : ""}
-                          <span class="auto-row-mobile-meta">
+                            : null,
+                          nameOverride:
+                            host._editingAlias === automationId
+                              ? html`
+                                  <input
+                                    class="rename-input"
+                                    data-id="${automationId}"
+                                    .value=${host._editingAliasValue}
+                                    @input=${(e) => {
+                                      host._editingAliasValue = e.target.value;
+                                    }}
+                                    @click=${(e) => e.stopPropagation()}
+                                    @keydown=${(e) => {
+                                      if (e.key === "Enter")
+                                        host._saveRenameAutomation(
+                                          automationId,
+                                        );
+                                      if (e.key === "Escape")
+                                        host._cancelRenameAutomation();
+                                    }}
+                                  />
+                                  <button
+                                    class="rename-save-btn"
+                                    title="Save"
+                                    @click=${() =>
+                                      host._saveRenameAutomation(automationId)}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:check"
+                                      style="--mdc-icon-size:16px;"
+                                    ></ha-icon>
+                                  </button>
+                                `
+                              : null,
+                          tail: html`<span class="auto-row-mobile-meta">
                             <span>Last run: ${lastRun}</span>
                             <ha-icon
                               icon="mdi:chevron-down"
                               class="card-chevron ${cardExpanded ? "open" : ""}"
                               style="--mdc-icon-size:16px;"
                             ></ha-icon>
-                          </span>
-                        </div>
+                          </span>`,
+                        })}
                         <span class="auto-row-last-run"
                           ><span class="last-run-prefix">Last run: </span
                           >${lastRun}${a.last_triggered

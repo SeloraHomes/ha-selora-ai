@@ -3100,8 +3100,7 @@ async def _handle_websocket_load_automation_to_session(
     await conv_store.append_message(
         session_id,
         "assistant",
-        f"I've loaded the automation **{alias}** for refinement. "
-        "What changes would you like to make?",
+        "Describe the changes",
         intent="automation",
         automation=automation_data,
         automation_yaml=yaml_text,
