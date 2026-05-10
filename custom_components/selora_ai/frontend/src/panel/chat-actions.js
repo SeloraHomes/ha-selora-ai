@@ -42,7 +42,13 @@ export async function _sendMessage() {
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
 
-  const assistantMsg = { role: "assistant", content: "", _streaming: true };
+  const sendStartedAt = Date.now();
+  const assistantMsg = {
+    role: "assistant",
+    content: "",
+    _streaming: true,
+    _sentAt: sendStartedAt,
+  };
   this._messages = [...this._messages, assistantMsg];
   // User sent a message — they expect to see it land regardless of
   // where they were scrolled.
@@ -212,6 +218,7 @@ export async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;

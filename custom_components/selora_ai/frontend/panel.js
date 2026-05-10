@@ -6179,6 +6179,11 @@ function _renderConfirmation(host, action) {
 }
 
 // src/panel/render-chat.js
+function _formatReplyMs(ms) {
+  if (ms < 1e3) return `${ms} ms`;
+  const seconds = ms / 1e3;
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
+}
 var WELCOME_SUGGESTIONS = [
   {
     label: "Turn off all lights at midnight",
@@ -6575,7 +6580,8 @@ function renderMessage(host, msg, idx) {
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
               >
                 <span>
-                  Selora AI · ${formatTime(msg.timestamp)}
+                  Selora AI ·
+                  ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
                   ${
                     msg._interrupted && msg._retryWith
                       ? x` ·
@@ -9796,11 +9802,7 @@ var _PROVIDERS = [
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
-  {
-    value: "selora_local",
-    label: "Selora AI Local (On-device) \u2014 coming soon",
-    disabled: true,
-  },
+  { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
 function _renderProviderPicker(host) {
   const current = _PROVIDERS.find(
@@ -12718,7 +12720,13 @@ async function _sendMessage() {
   this._loading = true;
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
-  const assistantMsg = { role: "assistant", content: "", _streaming: true };
+  const sendStartedAt = Date.now();
+  const assistantMsg = {
+    role: "assistant",
+    content: "",
+    _streaming: true,
+    _sentAt: sendStartedAt,
+  };
   this._messages = [...this._messages, assistantMsg];
   this._requestScrollChat({ force: true });
   const PRE_TOKEN_GRACE_MS = 12e4;
@@ -12845,6 +12853,7 @@ async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
@@ -14513,11 +14522,14 @@ var SeloraAIPanel = class extends s4 {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
+      } else if (provider === "selora_local") {
+        payload.selora_local_host = this._config.selora_local_host;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
       }
-      const needsValidation = newKey || provider === "ollama";
+      const needsValidation =
+        newKey || provider === "ollama" || provider === "selora_local";
       if (needsValidation) {
         const validatePayload = {
           type: "selora_ai/validate_llm_key",
@@ -14526,6 +14538,8 @@ var SeloraAIPanel = class extends s4 {
         if (provider === "ollama") {
           validatePayload.host = this._config.ollama_host;
           validatePayload.model = this._config.ollama_model;
+        } else if (provider === "selora_local") {
+          validatePayload.host = this._config.selora_local_host;
         } else {
           validatePayload.api_key = newKey;
           validatePayload.model = this._config[`${provider}_model`];
