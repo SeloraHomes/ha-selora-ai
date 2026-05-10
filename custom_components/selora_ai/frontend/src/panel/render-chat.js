@@ -5,6 +5,12 @@ import { formatTime } from "../shared/date-utils.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
 
+function _formatReplyMs(ms) {
+  if (ms < 1000) return `${ms} ms`;
+  const seconds = ms / 1000;
+  return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
+}
+
 const WELCOME_SUGGESTIONS = [
   {
     label: "Turn off all lights at midnight",
@@ -395,7 +401,11 @@ export function renderMessage(host, msg, idx) {
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
               >
                 <span>
-                  Selora AI · ${formatTime(msg.timestamp)}
+                  Selora AI ·
+                  ${host._config?.developer_mode &&
+                  typeof msg._replyMs === "number"
+                    ? _formatReplyMs(msg._replyMs)
+                    : formatTime(msg.timestamp)}
                   ${msg._interrupted && msg._retryWith
                     ? html` ·
                         <button

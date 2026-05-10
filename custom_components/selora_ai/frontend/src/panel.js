@@ -958,13 +958,17 @@ class SeloraAIPanel extends LitElement {
       } else if (provider === "openrouter") {
         payload.openrouter_model = this._config.openrouter_model;
         if (newKey) payload.openrouter_api_key = newKey;
+      } else if (provider === "selora_local") {
+        payload.selora_local_host = this._config.selora_local_host;
       } else {
         payload.ollama_host = this._config.ollama_host;
         payload.ollama_model = this._config.ollama_model;
       }
 
-      // Validate if a new key was entered or for Ollama (always validate connectivity)
-      const needsValidation = newKey || provider === "ollama";
+      // Validate if a new key was entered or for local providers
+      // (Ollama / Selora Local — always validate connectivity).
+      const needsValidation =
+        newKey || provider === "ollama" || provider === "selora_local";
       if (needsValidation) {
         const validatePayload = {
           type: "selora_ai/validate_llm_key",
@@ -973,6 +977,8 @@ class SeloraAIPanel extends LitElement {
         if (provider === "ollama") {
           validatePayload.host = this._config.ollama_host;
           validatePayload.model = this._config.ollama_model;
+        } else if (provider === "selora_local") {
+          validatePayload.host = this._config.selora_local_host;
         } else {
           validatePayload.api_key = newKey;
           validatePayload.model = this._config[`${provider}_model`];
