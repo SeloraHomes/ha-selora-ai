@@ -197,7 +197,11 @@ export function renderChat(host) {
 
   return html`
     <div class="chat-pane">
-      <div class="chat-messages" id="chat-messages">
+      <div
+        class="chat-messages"
+        id="chat-messages"
+        @scroll=${host._onChatScroll}
+      >
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${host._loading

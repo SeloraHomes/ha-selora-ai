@@ -600,6 +600,12 @@ class SeloraAIPanel extends LitElement {
         const editing =
           active &&
           (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        // Desktop Chromium (notably Windows) fires visualViewport `scroll`
+        // on every wheel tick. With nothing focused we have no business
+        // touching host layout — skip entirely so we don't reflow during
+        // user scrolling. We still need to fall through when `_keyboardOpen`
+        // is true so we can reset styles when the input loses focus.
+        if (!editing && !this._keyboardOpen) return;
         const vp = window.visualViewport;
         const keyboardHeight = window.innerHeight - vp.height;
         const isOpen = !!editing && keyboardHeight > 80;

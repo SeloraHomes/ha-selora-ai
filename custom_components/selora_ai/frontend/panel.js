@@ -2412,6 +2412,11 @@ var chatStyles = i`
   .chat-messages {
     flex: 1;
     overflow-y: auto;
+    /* Chromium scroll anchoring adjusts scrollTop when content above
+       the viewport shrinks/grows (e.g. tile cards resizing on hass
+       updates). That perceives as "the page scrolling itself" on
+       Windows. We control scroll position explicitly via JS. */
+    overflow-anchor: none;
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
@@ -6372,7 +6377,11 @@ function renderChat(host) {
   }
   return x`
     <div class="chat-pane">
-      <div class="chat-messages" id="chat-messages">
+      <div
+        class="chat-messages"
+        id="chat-messages"
+        @scroll=${host._onChatScroll}
+      >
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
@@ -10829,12 +10838,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.1"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.8.0"}
+            Selora AI v${"0.8.1"}
           </a>
         </div>
       </div>
@@ -12261,6 +12270,7 @@ async function _openSession(sessionId) {
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
     await this.updateComplete;
+    this._userScrolledAway = false;
     this._requestScrollChat({ force: true });
   } catch (err) {
     console.error("Failed to open session", err);
@@ -12676,6 +12686,7 @@ async function _triggerPatternScan() {
 var chat_actions_exports = {};
 __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
+  _onChatScroll: () => _onChatScroll,
   _quickStart: () => _quickStart,
   _requestScrollChat: () => _requestScrollChat,
   _retryMessage: () => _retryMessage,
@@ -12717,6 +12728,7 @@ async function _sendMessage() {
   if (ta) ta.style.height = "auto";
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
+  this._userScrolledAway = false;
   this._requestScrollChat({ force: true });
   const PRE_TOKEN_GRACE_MS = 12e4;
   const POST_TOKEN_GRACE_MS = 45e3;
@@ -12923,13 +12935,26 @@ function _requestScrollChat(opts) {
     this._scrollForce = false;
     const container = this.shadowRoot.getElementById("chat-messages");
     if (!container) return;
+    if (this._userScrolledAway) return;
     if (!force) {
       const distance =
         container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distance > 80) return;
     }
+    this._programmaticScroll = true;
     container.scrollTop = container.scrollHeight;
+    requestAnimationFrame(() => {
+      this._programmaticScroll = false;
+    });
   });
+}
+function _onChatScroll(e5) {
+  if (this._programmaticScroll) return;
+  const container = e5.currentTarget;
+  if (!container) return;
+  const distance =
+    container.scrollHeight - container.scrollTop - container.clientHeight;
+  this._userScrolledAway = distance > 80;
 }
 async function _copyMessageText(msg, btn) {
   try {
@@ -14218,6 +14243,7 @@ var SeloraAIPanel = class extends s4 {
         const editing =
           active &&
           (active.tagName === "INPUT" || active.tagName === "TEXTAREA");
+        if (!editing && !this._keyboardOpen) return;
         const vp = window.visualViewport;
         const keyboardHeight = window.innerHeight - vp.height;
         const isOpen = !!editing && keyboardHeight > 80;
@@ -14944,7 +14970,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.8.0" : "unknown",
+        integration_version: true ? "0.8.1" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;

@@ -45,7 +45,8 @@ export async function _sendMessage() {
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
   // User sent a message — they expect to see it land regardless of
-  // where they were scrolled.
+  // where they were scrolled. Clear the away-flag so the force takes.
+  this._userScrolledAway = false;
   this._requestScrollChat({ force: true });
 
   // Stream-health watchers — both must be torn down on done/error/retry/stop.
@@ -315,13 +316,36 @@ export function _requestScrollChat(opts) {
     this._scrollForce = false;
     const container = this.shadowRoot.getElementById("chat-messages");
     if (!container) return;
+    // Honor an explicit user scroll-away even on force: tile-card
+    // hydration grows the layout asynchronously, and we don't want
+    // that growth to drag a reading user back to the bottom. The
+    // flag is cleared at intentional yank points (send, openSession).
+    if (this._userScrolledAway) return;
     if (!force) {
       const distance =
         container.scrollHeight - container.scrollTop - container.clientHeight;
       if (distance > 80) return;
     }
+    this._programmaticScroll = true;
     container.scrollTop = container.scrollHeight;
+    requestAnimationFrame(() => {
+      this._programmaticScroll = false;
+    });
   });
+}
+
+// Fires on every scroll in the chat-messages container. Tracks whether
+// the user has intentionally scrolled away from the bottom so other
+// scroll paths (force-scroll after tile-card hydration, keyboard open,
+// hass updates) can honor that intent. Ignores scrolls we triggered
+// ourselves via `container.scrollTop = …`.
+export function _onChatScroll(e) {
+  if (this._programmaticScroll) return;
+  const container = e.currentTarget;
+  if (!container) return;
+  const distance =
+    container.scrollHeight - container.scrollTop - container.clientHeight;
+  this._userScrolledAway = distance > 80;
 }
 
 export async function _copyMessageText(msg, btn) {

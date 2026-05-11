@@ -12,6 +12,11 @@ export const chatStyles = css`
   .chat-messages {
     flex: 1;
     overflow-y: auto;
+    /* Chromium scroll anchoring adjusts scrollTop when content above
+       the viewport shrinks/grows (e.g. tile cards resizing on hass
+       updates). That perceives as "the page scrolling itself" on
+       Windows. We control scroll position explicitly via JS. */
+    overflow-anchor: none;
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
