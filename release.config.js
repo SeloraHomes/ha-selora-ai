@@ -13,7 +13,11 @@
 //   docs: / chore: / style: / test: → no release
 
 export default {
-  branches: ["main"],
+  // Maintenance branches (e.g. `0.8.x`) cut from a release tag let us ship
+  // patch releases without merging unrelated main-branch work. The glob
+  // pattern matches `N.x`, `N.N.x`, etc. — semantic-release enforces that
+  // the version stays inside the branch's range.
+  branches: ["+([0-9])?(.{+([0-9]),x}).x", "main"],
   tagFormat: "v${version}",
 
   plugins: [

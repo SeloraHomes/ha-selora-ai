@@ -20,11 +20,13 @@ variables:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^[0-9]+\.[0-9]+\.x$/
 
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH =~ /^[0-9]+\.[0-9]+\.x$/
 
 # =============================================================================
 # STAGE: lint
@@ -109,6 +111,10 @@ release:
   image: node:lts-alpine
   rules:
     - if: ($CI_PIPELINE_SOURCE == "schedule" || $CI_PIPELINE_SOURCE == "web") && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # Maintenance branches (e.g. `0.8.x`): manual-only via the Run pipeline
+    # button so a patch release is an explicit decision, not a side effect
+    # of pushing a cherry-pick.
+    - if: $CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH =~ /^[0-9]+\.[0-9]+\.x$/
   before_script:
     - apk add --no-cache git zip
     - npm ci
