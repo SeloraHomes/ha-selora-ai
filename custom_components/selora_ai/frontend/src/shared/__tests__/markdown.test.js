@@ -145,6 +145,22 @@ describe("renderMarkdown", () => {
     expect(result).toContain("<br>");
   });
 
+  it("strips <br> on BOTH sides of an entity grid div", () => {
+    // The grid div carries its own 12px top/bottom margin. Surrounding
+    // <br>s on top of that produce visibly uneven gaps above and below
+    // the tile in the chat bubble. Regression: the after-strip regex
+    // used to require the class attribute to be the LAST attribute on
+    // the div, but the rendered HTML now puts `data-entity-ids` after
+    // `class`, so the strip silently failed on the trailing side.
+    const result = renderMarkdown(
+      "Yes, you have a garage door.\n\n[[entities:cover.garage_door]]\n\nAnything else?",
+    );
+    expect(result).not.toMatch(/<br>+<div class="selora-entity-grid"/);
+    expect(result).not.toMatch(
+      /<div class="selora-entity-grid"[^>]*><\/div><br>/,
+    );
+  });
+
   it("renders single-entity references as a one-card grid", () => {
     // Both [[entity:…|label]] and [[entities:…]] route to the same
     // grid placeholder — the chat layer hydrates them with HA tile

@@ -546,6 +546,135 @@ class TestUnbackedActionConfirmation:
         assert "Turning off" not in result["response"]
         assert result.get("validation_error") == "no_matching_entity_for_command"
 
+    def test_cover_open_close_are_safe_commands(self, hass) -> None:
+        """Garage doors and blinds — `cover.open_cover` / `close_cover`
+        / `stop_cover` / `toggle` / `set_cover_position` must pass the
+        allowlist. The user types "Open the garage door" and the LLM
+        should be able to execute it without hitting "outside the
+        current safe command allowlist". Locks and alarms still need
+        to be excluded (handled by their absence from the policy)."""
+        client = _make_client(hass)
+        for service in (
+            "cover.open_cover",
+            "cover.close_cover",
+            "cover.stop_cover",
+            "cover.toggle",
+        ):
+            result = client._apply_command_policy(
+                {
+                    "intent": "command",
+                    "response": "Opening the garage door.",
+                    "calls": [
+                        {"service": service, "target": {"entity_id": "cover.garage_door"}}
+                    ],
+                },
+                [{"entity_id": "cover.garage_door"}],
+            )
+            assert result["intent"] == "command", f"{service} got downgraded"
+            assert result.get("calls"), f"{service} produced no calls"
+            assert result.get("validation_error") is None
+
+    def test_bogus_cover_service_is_repaired_from_prose(self, hass) -> None:
+        """The model keeps inventing wrong cover service names
+        (`cover.cover`, `cover.garage_door`). When the domain is
+        allowed and the LLM's own confirmation prose names the verb
+        ("Opening the garage door"), repair the service field instead
+        of rejecting the call outright. The hard-coded cheat sheet
+        helps but doesn't reach 100% compliance; this is the
+        deterministic fallback so the user's request still executes."""
+        client = _make_client(hass)
+        for bogus_service, prose, expected in [
+            ("cover.cover", "Opening the garage door.", "cover.open_cover"),
+            ("cover.garage_door", "Closing the garage door.", "cover.close_cover"),
+            ("cover.blinds", "Stopping the blinds.", "cover.stop_cover"),
+            ("cover.gate", "Toggling the gate.", "cover.toggle"),
+            ("light.kitchen", "Turning on the kitchen lights.", "light.turn_on"),
+        ]:
+            entity = {
+                "cover.cover": "cover.garage_door",
+                "cover.garage_door": "cover.garage_door",
+                "cover.blinds": "cover.blinds",
+                "cover.gate": "cover.gate",
+                "light.kitchen": "light.kitchen",
+            }[bogus_service]
+            result = client._apply_command_policy(
+                {
+                    "intent": "command",
+                    "response": prose,
+                    "calls": [
+                        {"service": bogus_service, "target": {"entity_id": entity}}
+                    ],
+                },
+                [{"entity_id": entity}],
+            )
+            assert result["intent"] == "command", f"{bogus_service} got rejected"
+            calls = result.get("calls") or []
+            assert calls and calls[0]["service"] == expected, (
+                f"{bogus_service} → expected {expected}, got {calls[0]['service']}"
+            )
+
+    def test_unrepairable_bogus_service_still_rejected(self, hass) -> None:
+        """If the prose gives no verb hint, fall back to rejection so
+        we don't silently execute a randomly-chosen verb."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {
+                "intent": "command",
+                "response": "Doing something with the garage door.",  # no verb
+                "calls": [
+                    {"service": "cover.cover", "target": {"entity_id": "cover.garage_door"}}
+                ],
+            },
+            [{"entity_id": "cover.garage_door"}],
+        )
+        assert result["intent"] == "answer"
+        assert "not a valid cover service" in result["response"].lower()
+
+    def test_bad_service_name_gets_actionable_error(self, hass) -> None:
+        """When the LLM emits a bogus service name AND the prose
+        gives no verb hint (so the repair pass can't recover), the
+        error must say "this is not a valid cover service" and
+        enumerate the real verbs, not the generic "outside the
+        current safe command allowlist" — the LLM can read the
+        suggestion and self-correct next turn, and the user sees
+        what actually went wrong."""
+        client = _make_client(hass)
+        result = client._apply_command_policy(
+            {
+                "intent": "command",
+                "response": "Garage door request received.",  # no verb
+                "calls": [
+                    {
+                        "service": "cover.garage_door",
+                        "target": {"entity_id": "cover.garage_door"},
+                    }
+                ],
+            },
+            [{"entity_id": "cover.garage_door"}],
+        )
+        assert result["intent"] == "answer"
+        msg = result["response"].lower()
+        assert "not a valid cover service" in msg
+        assert "open_cover" in msg
+        assert "close_cover" in msg
+
+    def test_lock_and_alarm_remain_blocked(self, hass) -> None:
+        """Locks and alarms intentionally stay outside the allowlist —
+        they're higher-risk and warrant a separate config gate."""
+        client = _make_client(hass)
+        for service in ("lock.unlock", "alarm_control_panel.alarm_disarm"):
+            result = client._apply_command_policy(
+                {
+                    "intent": "command",
+                    "response": "Unlocking the door.",
+                    "calls": [
+                        {"service": service, "target": {"entity_id": f"{service.split('.')[0]}.front"}}
+                    ],
+                },
+                [{"entity_id": f"{service.split('.')[0]}.front"}],
+            )
+            assert result["intent"] == "answer", f"{service} unexpectedly allowed"
+
     def test_standalone_done_is_replaced(self, hass) -> None:
         """A bare 'Done' confirmation with no trailing punctuation must still
         be caught — the original `done[.,!\\s]` matcher missed this case."""

@@ -355,11 +355,94 @@ _COMMAND_SERVICE_POLICIES: dict[str, dict[str, set[str]]] = {
     "scene": {
         "turn_on": {"transition"},
     },
+    # Covers (garage doors, blinds, awnings, gates). Open/close/stop are
+    # the standard verbs the LLM needs; `set_cover_position` lets the
+    # user say "open the blinds to 50%". Lock and alarm domains are NOT
+    # included here — those are higher-risk and gated behind a separate
+    # config option (TODO when added).
+    "cover": {
+        "open_cover": set(),
+        "close_cover": set(),
+        "stop_cover": set(),
+        "toggle": set(),
+        "set_cover_position": {"position"},
+    },
 }
 _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
     domain: set(services.keys()) for domain, services in _COMMAND_SERVICE_POLICIES.items()
 }
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
+
+
+# Action-verb → canonical service map per domain. Used to auto-repair
+# the LLM's most common command-shape mistake: emitting a bogus
+# service field like `cover.cover` or `cover.garage_door` (the domain
+# repeated, or the entity_id stuffed in) while writing a coherent
+# confirmation sentence ("Opening the garage door"). Patterns are
+# scanned in order and the first match wins. Only fires when the
+# domain itself is allowed and the parsed service name is NOT already
+# a valid service — so a correctly-formed call passes through
+# unchanged.
+_SERVICE_REPAIR_HINTS: dict[str, list[tuple[re.Pattern[str], str]]] = {
+    "cover": [
+        (re.compile(r"\b(?:re-?)?open(?:ing|ed)?\b", re.I), "open_cover"),
+        (re.compile(r"\bclos(?:e|ing|ed)\b", re.I), "close_cover"),
+        (re.compile(r"\bshut(?:ting)?\b", re.I), "close_cover"),
+        (re.compile(r"\bstop(?:ping|ped)?\b", re.I), "stop_cover"),
+        (re.compile(r"\btoggl", re.I), "toggle"),
+    ],
+    "light": [
+        (re.compile(r"\bturn(?:ing|ed)?\s+on\b", re.I), "turn_on"),
+        (re.compile(r"\bturn(?:ing|ed)?\s+off\b", re.I), "turn_off"),
+        (re.compile(r"\btoggl", re.I), "toggle"),
+    ],
+    "switch": [
+        (re.compile(r"\bturn(?:ing|ed)?\s+on\b", re.I), "turn_on"),
+        (re.compile(r"\bturn(?:ing|ed)?\s+off\b", re.I), "turn_off"),
+        (re.compile(r"\btoggl", re.I), "toggle"),
+    ],
+    "input_boolean": [
+        (re.compile(r"\bturn(?:ing|ed)?\s+on\b", re.I), "turn_on"),
+        (re.compile(r"\bturn(?:ing|ed)?\s+off\b", re.I), "turn_off"),
+        (re.compile(r"\btoggl", re.I), "toggle"),
+    ],
+    "fan": [
+        (re.compile(r"\bturn(?:ing|ed)?\s+on\b", re.I), "turn_on"),
+        (re.compile(r"\bturn(?:ing|ed)?\s+off\b", re.I), "turn_off"),
+        (re.compile(r"\btoggl", re.I), "toggle"),
+    ],
+    "media_player": [
+        (re.compile(r"\bturn(?:ing|ed)?\s+on\b", re.I), "turn_on"),
+        (re.compile(r"\bturn(?:ing|ed)?\s+off\b", re.I), "turn_off"),
+        (re.compile(r"\bplay(?:ing|ed)?\b", re.I), "media_play"),
+        (re.compile(r"\bpaus(?:e|ing|ed)\b", re.I), "media_pause"),
+        (re.compile(r"\bstop(?:ping|ped)?\b", re.I), "media_stop"),
+    ],
+}
+
+
+def _repair_service_name(
+    service: str,
+    response_text: str,
+) -> str | None:
+    """Infer a canonical `<domain>.<verb>` from the confirmation prose
+    when the LLM emitted a bogus service for an allowed domain.
+
+    Returns the repaired service string if a verb can be inferred,
+    otherwise None. Callers must verify the domain itself is in
+    `_ALLOWED_COMMAND_SERVICES` first — this helper trusts that
+    precondition and only handles the verb fix-up.
+    """
+    if "." not in service:
+        return None
+    domain = service.split(".", 1)[0]
+    hints = _SERVICE_REPAIR_HINTS.get(domain)
+    if not hints or not response_text:
+        return None
+    for pattern, verb in hints:
+        if pattern.search(response_text):
+            return f"{domain}.{verb}"
+    return None
 
 
 # ── Prompt files (preloaded via executor, cached) ─────────────────────
@@ -943,6 +1026,8 @@ class LLMClient:
         refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
+        *,
+        for_assist: bool = False,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -991,6 +1076,7 @@ class LLMClient:
             else:
                 system_prompt = self._build_architect_system_prompt(
                     tools_available=tool_executor is not None,
+                    for_assist=for_assist,
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -1810,8 +1896,48 @@ class LLMClient:
         messages.append({"role": "user", "content": context_prompt})
         return messages
 
-    def _build_architect_system_prompt(self, *, tools_available: bool = False) -> str:
-        """System prompt for the Smart Home Architect role (JSON-mode)."""
+    def _build_architect_system_prompt(
+        self,
+        *,
+        tools_available: bool = False,
+        for_assist: bool = False,
+    ) -> str:
+        """System prompt for the Smart Home Architect role (JSON-mode).
+
+        ``for_assist`` swaps the marker-emission rules for plain-prose
+        rules. The Selora panel hydrates `[[entity:…]]` markers into HA
+        tile cards, but HA Assist surfaces the assistant text verbatim,
+        so markers leak through to the user as raw syntax. When this
+        method is called from the Assist conversation entity, emit
+        friendly names directly instead of markers.
+        """
+        if for_assist:
+            entity_output_rules = (
+                "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks),\n"
+                "use the entity's friendly_name directly in the prose — NEVER emit `[[entity:…]]`\n"
+                "or `[[entities:…]]` markers. Assist renders the assistant text as plain speech\n"
+                "and chat-log entries; markers show up to the user as raw syntax.\n"
+                "Example for 'what lights are on?' — RIGHT:\n"
+                "  `Kitchen Lights, Office Lights, and Living Room Lights are on.`\n"
+                "WRONG (markers leak through):\n"
+                "  `[[entities:light.kitchen,light.office,light.living_room]]`\n"
+                "Keep entity_ids out of the prose entirely — use friendly_names from\n"
+                "AVAILABLE ENTITIES. The `automation`, `scene`, and `calls` JSON fields still\n"
+                "use entity_ids; only the user-facing `response` field is plain prose.\n\n"
+            )
+        else:
+            entity_output_rules = (
+                "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks), the\n"
+                "`response` field MUST embed entity tile markers — never a markdown list of raw\n"
+                "entity_ids, never bullet lines of `light.xxx — on (brightness: …)`. Use\n"
+                "`[[entities:<id1>,<id2>,…]]` on its own line for two or more devices and\n"
+                "`[[entity:<entity_id>|<friendly_name>]]` on its own line for a single device.\n"
+                "Example for 'what lights are on?' — RIGHT:\n"
+                "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room]]`\n"
+                "WRONG (do not do this):\n"
+                "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n\n"
+            )
+
         return (
             "You are Selora AI, an intelligent home automation architect.\n"
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n"
@@ -1828,7 +1954,19 @@ class LLMClient:
             '  "calls": [\n'
             '    {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}, "data": {"brightness_pct": 80}}\n'
             "  ]\n"
-            "}\n\n"
+            "}\n"
+            "The `service` field is always `<domain>.<verb>` — NEVER the entity_id. Cheat sheet:\n"
+            "  light.turn_on / light.turn_off / light.toggle\n"
+            "  switch.turn_on / switch.turn_off / switch.toggle\n"
+            "  cover.open_cover / cover.close_cover / cover.stop_cover / cover.toggle / cover.set_cover_position\n"
+            "  climate.set_temperature / climate.set_hvac_mode / climate.turn_on / climate.turn_off\n"
+            "  fan.turn_on / fan.turn_off / fan.set_percentage / fan.oscillate\n"
+            "  media_player.turn_on / media_player.turn_off / media_player.media_play / media_player.media_pause / media_player.volume_set\n"
+            "  scene.turn_on  input_boolean.turn_on / turn_off / toggle\n"
+            "Example for 'Open the garage door' — RIGHT:\n"
+            '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
+            "WRONG (entity_id stuffed into the service field):\n"
+            '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n\n'
             "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
             "{\n"
             '  "intent": "automation",\n'
@@ -1852,16 +1990,8 @@ class LLMClient:
             '  "intent": "answer",\n'
             '  "response": "Your answer. For state queries, include real values and offer to act when appropriate."\n'
             "}\n"
-            "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks), the\n"
-            "`response` field MUST embed entity tile markers — never a markdown list of raw\n"
-            "entity_ids, never bullet lines of `light.xxx — on (brightness: …)`. Use\n"
-            "`[[entities:<id1>,<id2>,…]]` on its own line for two or more devices and\n"
-            "`[[entity:<entity_id>|<friendly_name>]]` on its own line for a single device.\n"
-            "Example for 'what lights are on?' — RIGHT:\n"
-            "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room]]`\n"
-            "WRONG (do not do this):\n"
-            "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n\n"
-            "5. SCENE — create a named snapshot of device states the user can activate later:\n"
+            + entity_output_rules
+            + "5. SCENE — create a named snapshot of device states the user can activate later:\n"
             "{\n"
             '  "intent": "scene",\n'
             '  "response": "Short confirmation of the scene created.",\n'
@@ -1975,27 +2105,71 @@ class LLMClient:
             "- Energy management, presence detection, voice assistants, dashboards, and templates\n\n"
             "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n\n"
             "You have access to the current entity states and conversation history.\n\n"
+            "════════════════════════════════════════════════════════════\n"
+            "ENTITY OUTPUT — HARD REQUIREMENT, READ FIRST\n"
+            "════════════════════════════════════════════════════════════\n"
+            "Every reply that names a specific device, sensor, or entity from AVAILABLE ENTITIES\n"
+            "MUST embed a tile MARKER for that entity. The marker is the visual representation —\n"
+            "the user sees a live HA tile card, not the entity_id. Marker syntax:\n"
+            "  Single device:    `[[entity:<entity_id>|<friendly_name>]]`\n"
+            "  Multiple devices: `[[entities:<id1>,<id2>,…]]`\n\n"
+            "PLACEMENT (mandatory, no exceptions):\n"
+            "1. The marker is on its OWN LINE, with one blank line before and one blank line after.\n"
+            "2. The marker comes IMMEDIATELY AFTER the prose sentence that introduces the device.\n"
+            "   NEVER place the marker at the end of the response after a follow-up offer\n"
+            "   ('let me know if I can help…'). That makes the tile render at the bottom of the\n"
+            "   bubble, far from the prose that names it.\n"
+            "3. NEVER describe device state with markdown bullets or sub-headings when a marker\n"
+            "   can replace them. The tile shows live state automatically.\n\n"
+            "CANONICAL EXAMPLES (study these — they cover the shapes that cause regressions):\n\n"
+            "Q: 'Do I have a garage door?'\n"
+            "RIGHT:\n"
+            "  Yes, you have a garage door in your setup.\n"
+            "  \n"
+            "  [[entity:cover.garage_door|Garage Door]]\n"
+            "  \n"
+            "  Want me to open or close it?\n"
+            "WRONG (status-section duplicate — never do this):\n"
+            "  Yes, you have a garage door.\n"
+            "  **Garage Door Status:**\n"
+            "  - **Status:** Closed\n"
+            "  If you need to control it, let me know!\n"
+            "WRONG (trailing marker — tile renders at the bottom of the bubble):\n"
+            "  Yes, you have a garage door in your setup.\n"
+            "  If you need to control it, just let me know!\n"
+            "  [[entity:cover.garage_door|Garage Door]]\n\n"
+            "Q: 'What lights are on?'\n"
+            "RIGHT:\n"
+            "  Five lights are currently on:\n"
+            "  \n"
+            "  [[entities:light.kitchen,light.office,light.living_room,light.ceiling,light.bedroom]]\n"
+            "  \n"
+            "  Want me to turn any of them off?\n"
+            "WRONG (bullet list of friendly names — NEVER do this):\n"
+            "  **Lights** (5 on):\n"
+            "  - **Ceiling Lights** — on (brightness: 180)\n"
+            "  - **Kitchen Lights** — on (brightness: 180)\n"
+            "  - …\n"
+            "WRONG (bullets AND a trailing marker — double-renders):\n"
+            "  Lights on:\n"
+            "  - Kitchen Lights — on\n"
+            "  - Office Lights — on\n"
+            "  [[entities:light.kitchen,light.office]]\n\n"
+            "Q: 'Turn off the master bedroom light'\n"
+            "RIGHT:\n"
+            "  Turning off:\n"
+            "  \n"
+            "  [[entity:light.master_bedroom|Master Bedroom Lights]]\n"
+            "  \n"
+            "  ```command\n"
+            '  {"calls": [{"service": "light.turn_off", "target": {"entity_id": "light.master_bedroom"}}]}\n'
+            "  ```\n\n"
+            "If you violate any of the rules above, the bubble renders broken. The post-processor\n"
+            "tries to recover but heuristics fail on novel shapes; the prompt is your contract.\n"
+            "════════════════════════════════════════════════════════════\n\n"
             "RESPONSE FORMAT:\n"
             "Use markdown sparingly in conversational replies: bold (**text**) for emphasis only.\n"
             "For tool-backed answers, follow the Output Formatting rules in the tool policy below.\n\n"
-            "ENTITY OUTPUT — STRICT.\n"
-            "Whenever your reply names specific devices or sensors (state queries, listings, "
-            "status checks, command confirmations), you MUST embed entity tile markers. NEVER "
-            "print raw entity_ids and NEVER use a markdown bullet list of devices.\n"
-            "  • Single device → on its own line: "
-            "`[[entity:<entity_id>|<friendly_name>]]`\n"
-            "  • Two or more devices → on its own line: "
-            "`[[entities:<id1>,<id2>,…]]` (renders a tile grid).\n"
-            "Use entity_ids from AVAILABLE ENTITIES. Lead in or out with one short prose line; "
-            "never embed a marker mid-sentence.\n"
-            "Example for 'what lights are on?' — RIGHT:\n"
-            "  `Five lights are on:\\n[[entities:light.kitchen,light.office,light.living_room,light.ceiling,light.bedroom]]`\n"
-            "WRONG (do not do any of these):\n"
-            "  `Lights on:\\n  - light.kitchen — on (brightness: 180)\\n  - light.office — on …`\n"
-            "  `[Light] (5 total):\\n  - light.kitchen\\n  - light.office …` ← NEVER use [Domain] headers\n"
-            "  `Here are your lights (5):\\n  - Kitchen …` ← NEVER use bullet lists for devices\n"
-            "Example for 'turn on the master bedroom light' — RIGHT:\n"
-            "  `Turning on:\\n[[entity:light.master_bedroom|Master Bedroom Lights]]`\n\n"
             "If your response involves creating or updating an automation, append the full automation JSON\n"
             "inside a fenced code block with the language tag 'automation' at the END of your response:\n\n"
             "```automation\n"
@@ -2040,6 +2214,18 @@ class LLMClient:
             "}\n"
             "```\n"
             "The block must be at the END of your response. Write the confirmation prose BEFORE the block.\n"
+            "The `service` field is always `<domain>.<verb>` — NEVER the entity_id. Service cheat sheet:\n"
+            "  light: turn_on / turn_off / toggle\n"
+            "  switch: turn_on / turn_off / toggle\n"
+            "  cover: open_cover / close_cover / stop_cover / toggle / set_cover_position\n"
+            "  climate: set_temperature / set_hvac_mode / turn_on / turn_off\n"
+            "  fan: turn_on / turn_off / set_percentage / oscillate\n"
+            "  media_player: turn_on / turn_off / media_play / media_pause / volume_set\n"
+            "  scene: turn_on    input_boolean: turn_on / turn_off / toggle\n"
+            "Example for 'Open the garage door' — RIGHT:\n"
+            '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
+            "WRONG (entity_id stuffed into the service field):\n"
+            '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n'
             "NEVER use 'delayed_command' for actions that should happen immediately.\n\n"
             "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
             "```delayed_command\n"
@@ -2100,6 +2286,17 @@ class LLMClient:
             "For simple answers, prefer a single flowing sentence.\n"
             + "\n"
             + _load_device_knowledge()
+            + "\n\n"
+            "════════════════════════════════════════════════════════════\n"
+            "FINAL REMINDER — ENTITY OUTPUT\n"
+            "════════════════════════════════════════════════════════════\n"
+            "Before sending your response, verify: every device, sensor, or entity you NAME in\n"
+            "the reply is followed (on its own line, with blank lines around it) by a marker —\n"
+            "`[[entity:<id>|<name>]]` for one, `[[entities:<id>,<id>,…]]` for several. The\n"
+            "marker comes RIGHT AFTER the sentence that names the device, NOT at the bottom of\n"
+            "the response. No markdown bullets describing device state. No 'Status:' sub-\n"
+            "headings. No friendly-name bullet lists. This is the contract — honor it.\n"
+            "════════════════════════════════════════════════════════════"
         )
 
     def _build_system_prompt(self) -> str:
@@ -2516,11 +2713,35 @@ class LLMClient:
                 )
 
             domain, service_name = service.split(".", 1)
-            if service_name not in _ALLOWED_COMMAND_SERVICES.get(domain, set()):
+            if domain not in _ALLOWED_COMMAND_SERVICES:
                 return self._blocked_command_result(
-                    f"{service} is outside the current safe command allowlist",
+                    f"the {domain} domain is outside the current safe command allowlist",
                     result,
                 )
+            if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
+                # Try to repair common LLM mistakes — `cover.cover`,
+                # `cover.garage_door`, etc. — by reading the verb out of
+                # the confirmation prose ("Opening the garage door" →
+                # `cover.open_cover`). Only kicks in for domains we
+                # have a verb-hint table for and only when the
+                # response text gives us an unambiguous match.
+                repaired = _repair_service_name(service, str(result.get("response", "")))
+                if repaired and repaired.split(".", 1)[1] in _ALLOWED_COMMAND_SERVICES[domain]:
+                    _LOGGER.info(
+                        "Auto-repaired malformed service %s -> %s (verb inferred from response prose)",
+                        service,
+                        repaired,
+                    )
+                    service = repaired
+                    domain, service_name = service.split(".", 1)
+                    call["service"] = service
+                else:
+                    allowed = sorted(_ALLOWED_COMMAND_SERVICES[domain])
+                    return self._blocked_command_result(
+                        f"`{service}` is not a valid {domain} service; expected one of "
+                        f"{', '.join(allowed)}",
+                        result,
+                    )
 
             target = call.get("target", {})
             if not isinstance(target, dict):
