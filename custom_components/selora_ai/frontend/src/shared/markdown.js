@@ -293,8 +293,15 @@ export function renderMarkdown(text) {
   // already carry their own margin. Strip any <br> immediately before
   // the opening tag or immediately after the closing tag so the LLM's
   // newlines don't add extra visual space above/below the tile grid.
+  // The opening div carries a `data-entity-ids` attribute after the
+  // class — match the whole opening-through-closing-tag with [^>]* so
+  // the after-strip fires regardless of attribute order, otherwise
+  // <br>'s survive on one side and the tile gets uneven spacing.
   escaped = escaped.replace(/(<br>)+(<div class="selora-entity-grid")/g, "$2");
-  escaped = escaped.replace(/(selora-entity-grid[^"]*"><\/div>)(<br>)+/g, "$1");
+  escaped = escaped.replace(
+    /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
+    "$1",
+  );
 
   return escaped;
 }

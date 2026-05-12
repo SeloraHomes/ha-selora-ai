@@ -15,7 +15,61 @@ import pytest
 
 from custom_components.selora_ai import _collect_entity_states
 from custom_components.selora_ai.const import DOMAIN
-from custom_components.selora_ai.conversation import SeloraConversationEntity
+from custom_components.selora_ai.conversation import (
+    SeloraConversationEntity,
+    _unwrap_entity_markers,
+)
+
+
+def _ent(eid: str, friendly_name: str) -> dict:
+    return {
+        "entity_id": eid,
+        "state": "off",
+        "attributes": {"friendly_name": friendly_name},
+    }
+
+
+def test_unwrap_entity_markers_replaces_single_marker():
+    out = _unwrap_entity_markers(
+        "Your [[entity:cover.garage_door|Garage Door]] is closed.",
+        [_ent("cover.garage_door", "Garage Door")],
+    )
+    assert out == "Your Garage Door is closed."
+
+
+def test_unwrap_entity_markers_handles_multi_marker():
+    out = _unwrap_entity_markers(
+        "On: [[entities:light.kitchen,light.office]]",
+        [_ent("light.kitchen", "Kitchen Lights"), _ent("light.office", "Office Lights")],
+    )
+    assert "Kitchen Lights, Office Lights" in out
+    assert "[[entities:" not in out
+
+
+def test_unwrap_entity_markers_accepts_spaces_after_commas():
+    # LLMs commonly add a space after each comma in lists. Without
+    # `\s*` in the regex the marker leaks through to Assist speech.
+    out = _unwrap_entity_markers(
+        "On: [[entities:light.kitchen, light.office, light.bedroom]]",
+        [
+            _ent("light.kitchen", "Kitchen Lights"),
+            _ent("light.office", "Office Lights"),
+            _ent("light.bedroom", "Bedroom Lights"),
+        ],
+    )
+    assert "[[entities:" not in out
+    assert "Kitchen Lights, Office Lights, Bedroom Lights" in out
+
+
+def test_unwrap_entity_markers_falls_back_to_entity_id():
+    # Unknown entity_ids (not in the snapshot) keep the id as the
+    # spoken label — better than dropping the reference entirely.
+    out = _unwrap_entity_markers(
+        "Status: [[entity:cover.unknown|Unknown]]",
+        [],
+    )
+    assert "Unknown" in out
+    assert "[[entity:" not in out
 
 
 @pytest.fixture(autouse=True)

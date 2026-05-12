@@ -32,6 +32,50 @@ _SCENE_CONTEXT_RE = re.compile(r"\[Selora scene: id=([^,]+), name=([^\]]+)\](?:\
 # Strips a scene marker and its trailing YAML from the end of a message.
 _SCENE_BLOCK_RE = re.compile(r"\n\n\[Selora scene: id=[^,]+, name=[^\]]+\](?:\n[\s\S]*)?$")
 
+# Entity tile markers as embedded by the architect prompt. Assist
+# renders the response as plain text — the panel-only hydration that
+# turns these markers into HA tile cards is not available — so we
+# unwrap them back to friendly names before speech / chat-log output.
+_ENTITY_SINGLE_RE = re.compile(
+    r"\[\[entity:(?P<id>[a-z_]+\.[a-z0-9_\-]+)(?:\|(?P<label>[^\]]+))?\]\]"
+)
+_ENTITIES_LIST_RE = re.compile(
+    r"\[\[entities:(?P<ids>[a-z_]+\.[a-z0-9_\-]+(?:,\s*[a-z_]+\.[a-z0-9_\-]+)*)\]\]"
+)
+
+
+def _unwrap_entity_markers(text: str, entities: list[dict[str, Any]]) -> str:
+    """Convert `[[entity:…]]` / `[[entities:…]]` markers to friendly names.
+
+    Assist surfaces the assistant text verbatim (no panel hydration), so
+    leaving markers in place shows the user raw `[[entity:cover.garage_door|…]]`
+    syntax. Replace each marker with the entity's friendly_name (falling
+    back to entity_id when unknown), then collapse stray blank-line runs
+    the rewrite may leave behind.
+    """
+    if not text:
+        return text
+    friendly: dict[str, str] = {}
+    for ent in entities:
+        eid = ent.get("entity_id")
+        if not eid:
+            continue
+        name = ((ent.get("attributes") or {}).get("friendly_name") or "").strip()
+        friendly[eid] = name or eid
+
+    def _single(m: re.Match[str]) -> str:
+        eid = m.group("id")
+        label = (m.group("label") or "").strip()
+        return label or friendly.get(eid, eid)
+
+    def _multi(m: re.Match[str]) -> str:
+        ids = [s.strip() for s in m.group("ids").split(",") if s.strip()]
+        return ", ".join(friendly.get(i, i) for i in ids)
+
+    text = _ENTITY_SINGLE_RE.sub(_single, text)
+    text = _ENTITIES_LIST_RE.sub(_multi, text)
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
@@ -222,7 +266,11 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             (sid, name, yaml) for sid, (name, yaml) in conv_scenes.items() if yaml
         ]
 
-        # Use architect_chat for rich responses and automation generation
+        # Use architect_chat for rich responses and automation generation.
+        # `for_assist=True` swaps the marker-emission rules in the prompt
+        # for plain-prose rules — Assist renders the assistant text
+        # verbatim, so `[[entity:…]]` markers would leak through as raw
+        # syntax. The panel chat path keeps markers enabled.
         _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
         result: dict[str, Any] = await llm.architect_chat(
             user_input.text,
@@ -230,6 +278,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             existing_automations=automations,
             history=history or None,
             scene_context=assist_scenes or None,
+            for_assist=True,
         )
 
         response = intent.IntentResponse(language=user_input.language)
@@ -372,7 +421,10 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                     self.hass, intent_type, result, chat_log.conversation_id
                 )
 
-        # Speech gets clean text only — no internal markers or YAML.
+        # Defensive: the prompt instructs the LLM not to emit entity
+        # markers in Assist mode, but compliance is probabilistic, so
+        # unwrap any markers it does emit back to friendly names.
+        response_text = _unwrap_entity_markers(response_text, entities)
         response.async_set_speech(response_text)
 
         # The chat log gets extra scene context (YAML + scene_id) so the

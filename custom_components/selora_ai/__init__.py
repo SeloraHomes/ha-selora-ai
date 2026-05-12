@@ -1058,6 +1058,501 @@ def _entity_ids_already_in_text(text: str) -> set[str]:
     return found
 
 
+_AUTO_MARKER_MIN_NAME_LEN = 4
+_AUTO_MARKER_MAX_IDS = 12
+
+# Bullet line that is essentially "- <friendly_name>" with an optional
+# trailing "— state" hint. Captures the name for friendly_name (or raw
+# entity_id) lookup. Allows `**bold**` / `__bold__` wrappers around the
+# name. The state separator may be em-dash, en-dash, or hyphen-minus —
+# hyphen-minus only when preceded by whitespace, so friendly_names with
+# internal hyphens like "A-frame House" aren't truncated at the first
+# `-`. Underscore is allowed inside the name so raw entity_ids like
+# `light.kitchen_lights` can be captured directly when the LLM omits
+# the friendly_name and prints the id instead.
+_BULLET_ENTITY_LINE_RE = re.compile(
+    r"\s*[-•*]\s+"
+    r"(?:\*\*|__)?\s*"
+    r"(?P<name>[^*\n—–]+?)"
+    r"\s*(?:\*\*|__)?"
+    r"\s*(?:(?:[—–]|(?<=\s)-(?=\s))[^\n]*)?\s*"
+)
+
+_BULLET_PREFIX_RE = re.compile(r"\s*[-•*]\s+\S")
+
+# "Lights (5 on):" / "**Devices** (3 total):" style headers. Match
+# against the bold-stripped form so headers with bold wrapping only
+# one word still match.
+_LIST_HEADER_RE = re.compile(r"[A-Za-z][A-Za-z _-]*\s*\(\d+[^)]*\)\s*:?")
+
+_ENTITY_ID_RE = re.compile(r"^[a-z_]+\.[a-z0-9_\-]+$")
+
+# A line that consists ONLY of one entity marker (with optional
+# surrounding whitespace). Used to detect a LLM-emitted trailing marker
+# that we want to move inline.
+_STANDALONE_MARKER_LINE_RE = re.compile(r"\s*\[\[entit(?:y|ies):[^\]\n]+\]\]\s*")
+
+# A subheading describing one entity's state, e.g.
+# "**Garage Door Status:**" or "Kitchen Lights details:". The captured
+# name must match a known friendly_name for the strip to fire.
+_STATUS_HEADING_RE = re.compile(
+    r"(?P<name>[A-Za-z][\w +'-]*?)\s+"
+    r"(?:Status|Details|State|Info|Information)\s*:?\s*"
+)
+
+# A "Label: value" style bullet describing one entity attribute, e.g.
+# "- **Status:** Closed", "- Brightness: 80%".
+_STATE_BULLET_RE = re.compile(
+    r"\s*[-•*]\s+"
+    r"(?:\*\*|__)?\s*[A-Za-z][\w +'-]*?\s*(?:\*\*|__)?"
+    r"\s*:\s*\S.*"
+)
+
+
+def _strip_md_emphasis(line: str) -> str:
+    """Drop ``**`` / ``__`` runs and surrounding whitespace from a line."""
+    return line.replace("**", "").replace("__", "").strip()
+
+
+def _name_search_forms(name: str) -> list[str]:
+    """Lowercase search variants of a friendly_name for prose matching.
+
+    LLMs spell device names naturally even when the friendly_name is
+    CamelCased — "HeatPump" gets written as "heat pump" in answers.
+    Yield both the raw lowercase form and a space-separated CamelCase
+    split so word-boundary searches catch either spelling.
+    """
+    name = name.strip()
+    lower = name.lower()
+    forms = [lower]
+    spaced = re.sub(r"(?<=[a-z0-9])(?=[A-Z])", " ", name).lower()
+    if spaced != lower:
+        forms.append(spaced)
+    return forms
+
+
+def _normalized_name(name: str) -> str:
+    """Strip whitespace, underscores, and hyphens so "Heat Pump",
+    "HeatPump", and "heat_pump" all hash to the same key."""
+    return re.sub(r"[\s_\-]+", "", name.lower())
+
+
+def _inject_entity_markers(
+    text: str,
+    entities: list[EntitySnapshot],
+) -> str:
+    """Rewrite an LLM "answer" so devices it named in prose render as
+    tile cards instead of duplicated markdown.
+
+    The architect prompt asks the LLM to embed `[[entity:…]]` markers
+    for every device it names, but cloud and local models alike often
+    drift into one of three failure shapes:
+
+      * **Bullet list of friendly names** (no markers at all) —
+        "- **Kitchen Lights** — on (brightness: 180) …".
+      * **Bullets + trailing marker** (worst of both) — same list AS
+        WELL AS a `[[entities:…]]` block at the bottom. Both render.
+      * **Plain prose mention** ("Yes, you have a garage door.") on
+        short Q&A turns.
+
+    Rewrite strategy:
+      1. Detect bullet-entity runs regardless of any existing marker.
+         Strip the run + preceding "Lights (5 on):" header when the
+         entire run is entity bullets. Replace the stripped block with
+         a single ``[[entities:…]]`` marker *in place*, but only if
+         the run contains at least one entity_id not already marked
+         elsewhere (otherwise the existing marker already covers it
+         and we'd render duplicate tiles).
+      2. Prose-only mention fallback — runs only when the response has
+         neither markers nor stripped bullet runs. Without this guard,
+         area sub-headings ("### Kitchen") match same-named entities
+         (media_player.kitchen) and surface spurious tiles.
+
+    Entities the LLM already wrapped in a marker are never double-marked.
+    """
+    if not text or not entities:
+        return text
+    already = _entity_ids_already_in_text(text)
+
+    # Longest friendly_name first so "Garage Door" beats "Door" and we
+    # don't double-match overlapping names. We do NOT filter by
+    # `already` here — bullet capture still needs to see entities that
+    # are also in an existing marker so we can strip the duplicate.
+    candidates: list[tuple[str, str]] = []
+    eid_set: set[str] = set()
+    for ent in entities:
+        eid = ent.get("entity_id")
+        if not eid:
+            continue
+        eid_set.add(eid)
+        name = ((ent.get("attributes") or {}).get("friendly_name") or "").strip()
+        if len(name) < _AUTO_MARKER_MIN_NAME_LEN:
+            continue
+        candidates.append((eid, name))
+    candidates.sort(key=lambda p: len(p[1]), reverse=True)
+    # Key by normalized name (whitespace / underscores / hyphens
+    # stripped, case-folded) so "HeatPump", "Heat Pump", and
+    # "heat-pump" all hash to the same eid for bullet lookups.
+    name_to_eid: dict[str, str] = {_normalized_name(name): eid for eid, name in candidates}
+
+    lines = text.split("\n")
+
+    # Index any standalone marker lines so we can move them inline if a
+    # bullet run covers the same entities. ``standalone_markers[i]`` is
+    # the set of entity_ids referenced by line *i* when that line is
+    # nothing but a marker. LLM "bullets + trailing marker" responses
+    # otherwise leave the marker stranded at the bottom of the bubble.
+    standalone_markers: dict[int, set[str]] = {}
+    for i, line in enumerate(lines):
+        if _STANDALONE_MARKER_LINE_RE.fullmatch(line):
+            ids = _entity_ids_already_in_text(line)
+            if ids:
+                standalone_markers[i] = ids
+
+    # Pass 1a: every bullet line that resolves to a known entity.
+    bullet_eid: dict[int, str] = {}
+    captured_in_bullets: set[str] = set()
+    for i, line in enumerate(lines):
+        m = _BULLET_ENTITY_LINE_RE.fullmatch(line)
+        if not m:
+            continue
+        name_part = m.group("name").strip()
+        if not name_part:
+            continue
+        eid = name_to_eid.get(_normalized_name(name_part))
+        if eid is None and _ENTITY_ID_RE.match(name_part) and name_part in eid_set:
+            eid = name_part
+        if not eid or eid in captured_in_bullets:
+            continue
+        bullet_eid[i] = eid
+        captured_in_bullets.add(eid)
+
+    # Pass 1b: group bullets into runs (contiguous, blanks-only-between).
+    runs: list[list[int]] = []
+    sorted_idxs = sorted(bullet_eid)
+    if sorted_idxs:
+        current = [sorted_idxs[0]]
+        for idx in sorted_idxs[1:]:
+            gap_only_blanks = all(not lines[k].strip() for k in range(current[-1] + 1, idx))
+            if gap_only_blanks:
+                current.append(idx)
+            else:
+                runs.append(current)
+                current = [idx]
+        runs.append(current)
+
+    # Pass 1c: per run, compute the strip range, the insertion line,
+    # and the marker payload. Skip the insertion entirely when every
+    # entity in the run is already inside another marker — the existing
+    # marker carries the tiles, so we just delete the bullets.
+    lines_to_strip: set[int] = set()
+    insertions: dict[int, list[str]] = {}
+    for run in runs:
+        first, last = run[0], run[-1]
+        for k in range(first, last + 1):
+            lines_to_strip.add(k)
+        run_eids = [bullet_eid[i] for i in run]
+        new_eids = [eid for eid in run_eids if eid not in already]
+
+        insert_at = first
+        h = first - 1
+        while h >= 0 and not lines[h].strip():
+            h -= 1
+        if h >= 0 and _LIST_HEADER_RE.fullmatch(_strip_md_emphasis(lines[h])):
+            # Only swallow the header if every bullet line under it is
+            # an entity bullet we're stripping. Mixed lists with prose
+            # bullets keep their header.
+            k = h + 1
+            saw_bullet = False
+            all_consumed = True
+            while k < len(lines):
+                if not lines[k].strip():
+                    k += 1
+                    continue
+                if not _BULLET_PREFIX_RE.match(lines[k]):
+                    break
+                saw_bullet = True
+                if k not in lines_to_strip:
+                    all_consumed = False
+                    break
+                k += 1
+            if saw_bullet and all_consumed:
+                lines_to_strip.add(h)
+                for k in range(h + 1, first):
+                    lines_to_strip.add(k)
+                insert_at = h
+
+        # If the LLM put a standalone marker elsewhere covering only
+        # entities this run also captured, move it inline by stripping
+        # that marker line and inserting a fresh marker at the run's
+        # position. Without this the tiles render at the bottom of the
+        # bubble (where the LLM placed the marker) instead of where the
+        # user's eye expects them — between the lead-in and follow-up.
+        run_set = set(run_eids)
+        moved_marker = False
+        for li, ids in list(standalone_markers.items()):
+            if li in lines_to_strip:
+                continue
+            if ids and ids.issubset(run_set):
+                lines_to_strip.add(li)
+                moved_marker = True
+
+        if new_eids or moved_marker:
+            insertions[insert_at] = run_eids if moved_marker else new_eids
+
+    # Pass 1d: single-entity status sections ("**Garage Door Status:**"
+    # followed by "- **Status:** Closed" style bullets). These describe
+    # one device's state in prose form — the LLM does this on Q&A turns
+    # like "do I have a garage door?" where it didn't see a "list"
+    # signal but still volunteered the state. Replace the whole section
+    # with one inline marker so the tile lands where the breakdown was.
+    for i, line in enumerate(lines):
+        if i in lines_to_strip:
+            continue
+        bare = _strip_md_emphasis(line)
+        m = _STATUS_HEADING_RE.fullmatch(bare)
+        if not m:
+            continue
+        name = m.group("name").strip()
+        eid = name_to_eid.get(_normalized_name(name))
+        if not eid:
+            continue
+        j = i + 1
+        section_lines: list[int] = []
+        saw_bullet = False
+        while j < len(lines):
+            if not lines[j].strip():
+                section_lines.append(j)
+                j += 1
+                continue
+            if _STATE_BULLET_RE.fullmatch(lines[j]):
+                section_lines.append(j)
+                saw_bullet = True
+                j += 1
+                continue
+            break
+        if not saw_bullet:
+            continue
+        # Don't swallow the gap between the section and the following
+        # paragraph — trim trailing blanks from the consumed lines.
+        while section_lines and not lines[section_lines[-1]].strip():
+            section_lines.pop()
+        lines_to_strip.add(i)
+        for k in section_lines:
+            lines_to_strip.add(k)
+        if eid not in already and eid not in captured_in_bullets:
+            captured_in_bullets.add(eid)
+            insertions[i] = [eid]
+
+    # Pass 1d.5: strip any "- Label: value" state-info bullet runs.
+    # The tile renders every attribute live (state, current/target
+    # temperature, brightness, mode, battery, etc.), so the LLM's
+    # prose breakdown is pure duplication of what the tile shows.
+    # The architect prompt forbids these but compliance is imperfect.
+    # We only fire when the response has at least one tile marker —
+    # otherwise we'd strip legitimate "Steps: …" / capability lists
+    # in responses that don't reference a specific device.
+    has_marker_now = bool(already) or bool(insertions) or bool(standalone_markers)
+    if has_marker_now:
+        i = 0
+        while i < len(lines):
+            if i in lines_to_strip or not _STATE_BULLET_RE.fullmatch(lines[i]):
+                i += 1
+                continue
+            run_first = i
+            run_last = i
+            j = i + 1
+            while j < len(lines):
+                if j in lines_to_strip:
+                    j += 1
+                    continue
+                if not lines[j].strip():
+                    # Tolerate blank lines inside the run — the LLM
+                    # often puts an empty line between each attribute
+                    # bullet. Don't claim the blank as part of the
+                    # run yet; only commit it if another state bullet
+                    # follows.
+                    k = j + 1
+                    while k < len(lines) and not lines[k].strip():
+                        k += 1
+                    if k < len(lines) and _STATE_BULLET_RE.fullmatch(lines[k]):
+                        j = k
+                        continue
+                    break
+                if _STATE_BULLET_RE.fullmatch(lines[j]):
+                    run_last = j
+                    j += 1
+                    continue
+                break
+            for k in range(run_first, run_last + 1):
+                lines_to_strip.add(k)
+            i = run_last + 1
+
+    # Pass 1e: reposition trailing standalone markers. Some models put
+    # the `[[entity:…]]` block AFTER the follow-up sentence, which
+    # makes the tile render at the bottom of the bubble instead of
+    # inline next to the prose that introduces the device. Move each
+    # trailing marker up to just after the first paragraph that
+    # mentions one of its entity_ids by friendly_name or entity_id.
+    trailing_marker_idxs: list[int] = []
+    k = len(lines) - 1
+    while k >= 0:
+        if not lines[k].strip():
+            k -= 1
+            continue
+        if k in standalone_markers and k not in lines_to_strip:
+            trailing_marker_idxs.insert(0, k)
+            k -= 1
+            continue
+        break
+
+    for marker_idx in trailing_marker_idxs:
+        marker_eids = standalone_markers[marker_idx]
+        if not marker_eids:
+            continue
+        eid_friendly: dict[str, str] = {}
+        for ent in entities:
+            ent_id = ent.get("entity_id")
+            if ent_id in marker_eids:
+                fname = ((ent.get("attributes") or {}).get("friendly_name") or "").strip()
+                if fname:
+                    eid_friendly[ent_id] = fname
+
+        target_line: int | None = None
+        for li, line in enumerate(lines):
+            if li in lines_to_strip or li == marker_idx or not line.strip():
+                continue
+            line_lower = line.lower()
+            for fname in eid_friendly.values():
+                for needle in _name_search_forms(fname):
+                    pos = line_lower.find(needle)
+                    if pos < 0:
+                        continue
+                    end = pos + len(needle)
+                    before_ok = pos == 0 or not line_lower[pos - 1].isalnum()
+                    after_ok = end >= len(line_lower) or not line_lower[end].isalnum()
+                    if before_ok and after_ok:
+                        target_line = li
+                        break
+                if target_line is not None:
+                    break
+            if target_line is None:
+                for eid in marker_eids:
+                    if re.search(rf"(?<![a-z0-9_.]){re.escape(eid)}(?![a-z0-9_.])", line):
+                        target_line = li
+                        break
+            if target_line is not None:
+                break
+
+        if target_line is None:
+            continue
+        # Walk forward to the end of the target paragraph.
+        para_end = target_line
+        while (
+            para_end + 1 < len(lines)
+            and lines[para_end + 1].strip()
+            and (para_end + 1) not in lines_to_strip
+            and (para_end + 1) != marker_idx
+        ):
+            para_end += 1
+        # Skip if the marker is already right after the target paragraph
+        # (only blank lines separating them).
+        only_blanks_between = all(not lines[m].strip() for m in range(para_end + 1, marker_idx))
+        if only_blanks_between:
+            continue
+        lines_to_strip.add(marker_idx)
+        # Merge with anything already queued at this insertion slot so
+        # two trailing markers pointing at the same paragraph don't
+        # overwrite each other (each was being repositioned to
+        # `para_end + 1` independently — the second `insertions[...] =`
+        # was dropping every entity from the first). Preserve order
+        # and dedupe in case both markers list the same entity.
+        existing = insertions.get(para_end + 1, [])
+        merged = list(dict.fromkeys([*existing, *sorted(marker_eids)]))
+        insertions[para_end + 1] = merged
+
+    # Pass 2: prose mentions — last-resort fallback ONLY when the LLM
+    # gave us no structural cue (no markers, no bullet runs). Without
+    # this guard, area sub-headings like "### Kitchen" false-positive
+    # match against media_player.kitchen and surface spurious tiles.
+    prose_eids: list[str] = []
+    fallback_mode = not already and not captured_in_bullets
+
+    def _under_cap() -> bool:
+        return len(captured_in_bullets) + len(prose_eids) < _AUTO_MARKER_MAX_IDS
+
+    if fallback_mode:
+        for i, line in enumerate(lines):
+            if i in lines_to_strip or not _under_cap():
+                continue
+            stripped = line.lstrip()
+            if stripped.startswith("#"):
+                continue
+            if "[[entit" in line:
+                continue
+            line_lower = line.lower()
+            consumed: list[tuple[int, int]] = []
+            for eid, name in candidates:
+                if (
+                    eid in captured_in_bullets
+                    or eid in prose_eids
+                    or eid in already
+                    or not _under_cap()
+                ):
+                    continue
+                matched = False
+                for needle in _name_search_forms(name):
+                    idx = 0
+                    while idx < len(line_lower):
+                        pos = line_lower.find(needle, idx)
+                        if pos < 0:
+                            break
+                        end = pos + len(needle)
+                        before_ok = pos == 0 or not line_lower[pos - 1].isalnum()
+                        after_ok = end >= len(line_lower) or not line_lower[end].isalnum()
+                        overlap = any(pos < e and end > s for s, e in consumed)
+                        if before_ok and after_ok and not overlap:
+                            consumed.append((pos, end))
+                            prose_eids.append(eid)
+                            matched = True
+                            break
+                        idx = pos + 1
+                    if matched:
+                        break
+            for ent in entities:
+                if not _under_cap():
+                    break
+                eid = ent.get("entity_id")
+                if not eid or eid in already or eid in captured_in_bullets or eid in prose_eids:
+                    continue
+                if re.search(rf"(?<![a-z0-9_.]){re.escape(eid)}(?![a-z0-9_.])", line):
+                    prose_eids.append(eid)
+
+    if not lines_to_strip and not prose_eids:
+        return text
+
+    # Wrap each inserted marker in blank lines on both sides so the
+    # tile grid has consistent spacing above and below. The original
+    # surrounding lines may or may not already have blanks (depends on
+    # whether we stripped the header, the bullets, or a trailing
+    # marker), and the asymmetry shows up as a noticeably bigger gap
+    # on one side of the tile. The `\n{3,}` collapse below dedups any
+    # extra blanks this produces.
+    out: list[str] = []
+    for i, line in enumerate(lines):
+        if i in insertions:
+            out.append("")
+            out.append(f"[[entities:{','.join(insertions[i])}]]")
+            out.append("")
+        if i not in lines_to_strip:
+            out.append(line)
+
+    result = "\n".join(out)
+    if prose_eids:
+        result = result.rstrip() + f"\n\n[[entities:{','.join(prose_eids)}]]"
+    return re.sub(r"\n{3,}", "\n\n", result).strip()
+
+
 def _create_tool_executor(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
@@ -1165,6 +1660,8 @@ async def _handle_websocket_chat(
         entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
         if entity_ids:
             response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
+    elif intent_type == "answer":
+        response_text = _inject_entity_markers(response_text, entities)
 
     if intent_type in ("delayed_command", "cancel"):
         intent_type, response_text, schedule_id = await _handle_scheduled_intent(
@@ -1441,6 +1938,8 @@ async def _handle_websocket_chat_stream(
             entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
             if entity_ids:
                 response_text += f"\n\n[[entities:{','.join(entity_ids)}]]"
+        elif intent_type == "answer":
+            response_text = _inject_entity_markers(response_text, entities)
         elif intent_type in ("delayed_command", "cancel"):
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
                 hass, intent_type, parsed, session_id

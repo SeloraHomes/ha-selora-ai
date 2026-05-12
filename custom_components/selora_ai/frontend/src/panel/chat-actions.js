@@ -160,6 +160,17 @@ export async function _sendMessage() {
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
+        if (this._config?.developer_mode) {
+          const markerCount = (
+            responseText.match(/\[\[entit(?:y|ies):[^\]]+\]\]/g) || []
+          ).length;
+          console.groupCollapsed(
+            `Selora chat done · ${markerCount} entity marker(s)`,
+          );
+          console.log("raw response:\n" + responseText);
+          console.log("event:", event);
+          console.groupEnd();
+        }
         // Truncation detection: bubble landed clean ("done" event)
         // but the response looks like the LLM was about to continue
         // ("…in your setup:", "**Lights:**\n-"). The model emitting

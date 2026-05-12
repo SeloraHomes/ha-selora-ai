@@ -1804,6 +1804,8 @@ class SeloraAIPanel extends LitElement {
     // cover arrows, climate target temp, etc.). Domains without a
     // standard feature (sensor, binary_sensor, switch, person, …) get
     // no extras — the tile's tap target is already the right action.
+    // The grid CSS forces uniform row heights so mixed-feature tiles
+    // don't render at different sizes side-by-side.
     const featuresForDomain = (entityId) => {
       const domain = entityId.split(".")[0];
       switch (domain) {

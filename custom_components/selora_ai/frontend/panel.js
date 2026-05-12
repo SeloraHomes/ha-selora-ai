@@ -2645,14 +2645,30 @@ var chatStyles = i`
      the friendly name (180px was too tight for long room names). */
   .selora-entity-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    /* minmax(240px, 280px) caps tile width at 280px even in a row
+       with empty cells, so a single-tile row does not blow up the
+       tile to the full bubble width while a multi-tile row keeps
+       its cells at ~260px. Without the upper cap (previously 1fr),
+       a lone tile in a wide bubble stretched 2x wider than a tile
+       in a denser row, and the inconsistency read as a bug.
+       align-items: stretch (default) still matches tiles to the
+       tallest item in their row. Rows size to their natural
+       content — we deliberately do NOT set grid-auto-rows: 1fr
+       because that also stretches the area-header rows. */
+    grid-template-columns: repeat(auto-fill, minmax(240px, 280px));
     gap: 8px;
     margin: 12px 0;
     width: 100%;
   }
   .selora-entity-grid > * {
-    /* Cards default to 56px tall in tile mode; let them size themselves
-       without our own min-height fighting it. */
+    /* Let each tile size itself to its natural content height. A
+       previous version forced height: 100% so feature-less tiles
+       would match the height of light tiles in the same row, but
+       HA's light-brightness feature interprets the extra row
+       height as room to grow and renders a comically oversized
+       slider. Natural sizing keeps every feature rendering at HA's
+       intended thickness, even if it means a switch tile is
+       shorter than a neighbouring light tile in the same row. */
     min-width: 0;
     /* Lift the card off the chat bubble. Layered shadow (tight inner
        contact + softer ambient drop) reads as physical depth so the
@@ -5868,7 +5884,10 @@ function renderMarkdown(text) {
   );
   escaped = escaped.replace(/\n/g, "<br>");
   escaped = escaped.replace(/(<br>)+(<div class="selora-entity-grid")/g, "$2");
-  escaped = escaped.replace(/(selora-entity-grid[^"]*"><\/div>)(<br>)+/g, "$1");
+  escaped = escaped.replace(
+    /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
+    "$1",
+  );
   return escaped;
 }
 
@@ -12808,6 +12827,17 @@ async function _sendMessage() {
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
+        if (this._config?.developer_mode) {
+          const markerCount = (
+            responseText.match(/\[\[entit(?:y|ies):[^\]]+\]\]/g) || []
+          ).length;
+          console.groupCollapsed(
+            `Selora chat done \xB7 ${markerCount} entity marker(s)`,
+          );
+          console.log("raw response:\n" + responseText);
+          console.log("event:", event);
+          console.groupEnd();
+        }
         const hasStructured =
           event.automation ||
           event.scene ||
