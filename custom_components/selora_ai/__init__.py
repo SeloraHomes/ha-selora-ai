@@ -5369,7 +5369,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     pricing_overrides = entry.options.get(CONF_LLM_PRICING_OVERRIDES) or {}
 
     from .device_manager import DeviceManager
-    from .llm_client import LLMClient, async_preload_prompts
+    from .llm_client import LLMClient
+    from .llm_client.prompts import async_preload_prompts
     from .providers import create_provider
 
     await async_preload_prompts(hass)

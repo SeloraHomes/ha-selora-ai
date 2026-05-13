@@ -6,17 +6,19 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.selora_ai.llm_client import (
-    LLMClient,
+from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
+from custom_components.selora_ai.llm_client.prompts import (
     _read_prompt_files,
     _suggestions_prompt,
 )
 from custom_components.selora_ai.providers import create_provider
+from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import CHAT_TOOLS, TOOL_LIST_SUGGESTIONS, TOOL_MAP
 from custom_components.selora_ai.types import SuggestionDict
 
-import custom_components.selora_ai.llm_client as _llm_mod
+import custom_components.selora_ai.llm_client.prompts as _llm_mod
 
 
 @pytest.fixture(autouse=True)
@@ -202,35 +204,35 @@ class TestSuggestionsPrompt:
         assert "evidence_summary" in text
 
     def test_json_prompt_includes_suggestions_when_tools_available(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_system_prompt(tools_available=True)
+        prompt = build_architect_system_prompt(tools_available=True)
         assert "list_suggestions" in prompt
         assert "SUGGESTIONS:" in prompt
 
     def test_json_prompt_excludes_suggestions_without_tools(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_system_prompt(tools_available=False)
+        prompt = build_architect_system_prompt(tools_available=False)
         assert "list_suggestions" not in prompt
         assert "SUGGESTIONS:" not in prompt
 
     def test_stream_prompt_includes_suggestions_when_tools_available(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_stream_system_prompt(tools_available=True)
+        prompt = build_architect_stream_system_prompt(tools_available=True)
         assert "list_suggestions" in prompt
         assert "SUGGESTIONS:" in prompt
 
     def test_stream_prompt_excludes_suggestions_without_tools(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_stream_system_prompt(tools_available=False)
+        prompt = build_architect_stream_system_prompt(tools_available=False)
         assert "list_suggestions" not in prompt
         assert "SUGGESTIONS:" not in prompt
 
     def test_both_prompts_use_same_block(self, hass) -> None:
         """The SUGGESTIONS block is identical in both prompts (shared helper)."""
         client = _make_client(hass)
-        json_prompt = client._build_architect_system_prompt(tools_available=True)
-        stream_prompt = client._build_architect_stream_system_prompt(tools_available=True)
+        json_prompt = build_architect_system_prompt(tools_available=True)
+        stream_prompt = build_architect_stream_system_prompt(tools_available=True)
         block = _suggestions_prompt()
         assert block in json_prompt
         assert block in stream_prompt
 
     def test_default_is_no_tools(self, hass) -> None:
         """Calling without tools_available defaults to False (no suggestions block)."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "SUGGESTIONS:" not in prompt

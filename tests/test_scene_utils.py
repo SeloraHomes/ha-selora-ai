@@ -10,6 +10,11 @@ import json
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.parsers import parse_architect_response
+from custom_components.selora_ai.llm_client.prompts import (
+    build_architect_stream_system_prompt,
+    build_architect_system_prompt,
+)
 from custom_components.selora_ai.scene_utils import (
     async_create_scene,
     generate_scene_id,
@@ -565,7 +570,7 @@ class TestParseArchitectSceneResponse:
                 },
             }
         )
-        result = client._parse_architect_response(response_json)
+        result = parse_architect_response(response_json, hass)
         assert result["intent"] == "scene"
         assert result["scene"]["name"] == "Movie Time"
         assert "scene_yaml" in result
@@ -582,7 +587,7 @@ class TestParseArchitectSceneResponse:
                 },
             }
         )
-        result = client._parse_architect_response(response_json)
+        result = parse_architect_response(response_json, hass)
         assert result["intent"] == "scene"
 
     def test_invalid_scene_falls_back_to_answer(self, hass) -> None:
@@ -594,7 +599,7 @@ class TestParseArchitectSceneResponse:
                 "scene": {"name": "", "entities": {}},
             }
         )
-        result = client._parse_architect_response(response_json)
+        result = parse_architect_response(response_json, hass)
         assert result["intent"] == "answer"
         assert "validation_error" in result
 
@@ -608,7 +613,7 @@ class TestParseArchitectSceneResponse:
                 "scene": {},
             }
         )
-        result = client._parse_architect_response(response_json)
+        result = parse_architect_response(response_json, hass)
         assert result["intent"] == "answer"
         assert "validation_error" in result
 
@@ -693,14 +698,14 @@ class TestScenePromptInstructions:
         return LLMClient(hass, provider=provider)
 
     def test_json_prompt_has_scene_intent(self, hass) -> None:
-        prompt = self._make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert '"intent": "scene"' in prompt
         assert '"scene"' in prompt
         assert "SCENE RULES" in prompt
         assert "scene-capable domains" in prompt
 
     def test_stream_prompt_has_scene_block(self, hass) -> None:
-        prompt = self._make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "```scene" in prompt
         assert "SCENE RULES" in prompt
         assert '"name"' in prompt

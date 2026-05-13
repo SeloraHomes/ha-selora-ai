@@ -11,10 +11,13 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.selora_ai.llm_client import LLMClient, _read_prompt_files
+from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.command_policy import apply_command_policy
+from custom_components.selora_ai.llm_client.prompts import _read_prompt_files
 from custom_components.selora_ai.providers import create_provider
+from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
 
-import custom_components.selora_ai.llm_client as _llm_mod
+import custom_components.selora_ai.llm_client.prompts as _prompts_mod
 
 
 @pytest.fixture(autouse=True)
@@ -25,7 +28,7 @@ def _enable_custom_component(enable_custom_integrations):
 @pytest.fixture(autouse=True)
 def _preload_prompts():
     """Load prompt files so system prompts include tool-policy text."""
-    _llm_mod._TOOL_POLICY_TEXT, _llm_mod._DEVICE_KNOWLEDGE_TEXT = _read_prompt_files()
+    _prompts_mod._TOOL_POLICY_TEXT, _prompts_mod._DEVICE_KNOWLEDGE_TEXT = _read_prompt_files()
 
 
 def _make_client(hass) -> LLMClient:
@@ -39,57 +42,57 @@ class TestArchitectPromptVerbosity:
 
     def test_contains_sentence_limits(self, hass) -> None:
         """Prompt specifies sentence counts per intent type."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "1 sentence" in prompt.lower() or "1-sentence" in prompt.lower()
         assert "1-2 sentence" in prompt.lower()
         assert "1-3 sentence" in prompt.lower()
 
     def test_forbids_filler_phrases(self, hass) -> None:
         """Prompt explicitly bans common LLM filler openings."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "Sure!" in prompt
         assert "Great question!" in prompt
         assert "I can help with that" in prompt
 
     def test_forbids_echoing_user(self, hass) -> None:
         """Prompt tells the LLM not to echo the user's full request back."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "Do NOT echo" in prompt
 
     def test_keeps_entity_names_in_commands(self, hass) -> None:
         """Prompt requires naming targeted entities in command confirmations."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "name the targeted entities" in prompt
 
     def test_automation_response_includes_entities(self, hass) -> None:
         """Automation response must mention targeted entities for MCP callers."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "mention all targeted entities" in prompt
 
     def test_preserves_description_field_completeness(self, hass) -> None:
         """Prompt protects the structured description field from the brevity ban."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert '"description" field MUST remain' in prompt
 
     def test_allows_setup_steps(self, hass) -> None:
         """Prompt allows numbered steps for setup/integration guidance."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "numbered steps" in prompt
 
     def test_brevity_scoped_to_conversational(self, hass) -> None:
         """Brevity rules are scoped to conversational responses, not tool-backed answers."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "NOT tool-backed answers" in prompt
 
     def test_tool_policy_formatting_preserved(self, hass) -> None:
         """Tool policy output formatting rules are still present."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "List EVERY entity" in prompt
         assert "bullet-pointed lists" in prompt.lower() or "bullet" in prompt.lower()
 
     def test_brevity_after_tool_policy(self, hass) -> None:
         """Brevity rules appear after the tool policy so tool formatting takes precedence."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         tool_policy_pos = prompt.find("List EVERY entity")
         brevity_pos = prompt.find("NOT tool-backed answers")
         assert tool_policy_pos < brevity_pos
@@ -99,18 +102,18 @@ class TestActionOriented:
     """Both prompts must instruct the LLM to act rather than ask for clarification."""
 
     def test_json_prompt_action_oriented(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "ACTION-ORIENTED" in prompt
         assert "resolve ambiguity" in prompt.lower()
 
     def test_stream_prompt_action_oriented(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "ACTION-ORIENTED" in prompt
         assert "resolve ambiguity" in prompt.lower()
 
     def test_clarification_requires_genuine_ambiguity(self, hass) -> None:
         """Clarification intent should only fire when truly ambiguous."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         assert "genuinely ambiguous" in prompt.lower() or "cannot resolve" in prompt.lower()
 
 
@@ -119,70 +122,70 @@ class TestStreamPromptVerbosity:
 
     def test_contains_sentence_limits(self, hass) -> None:
         """Prompt specifies sentence counts per response type."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "1 sentence" in prompt.lower() or "1-sentence" in prompt.lower()
         assert "1-2 sentence" in prompt.lower()
         assert "1-3 sentence" in prompt.lower()
 
     def test_forbids_filler_phrases(self, hass) -> None:
         """Prompt explicitly bans common LLM filler openings."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "Sure!" in prompt
         assert "Great question!" in prompt
         assert "Absolutely!" in prompt
 
     def test_forbids_echoing_user(self, hass) -> None:
         """Prompt tells the LLM not to echo the user's full request back."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "Do NOT echo" in prompt
 
     def test_keeps_entity_names_in_commands(self, hass) -> None:
         """Prompt requires naming targeted entities in command confirmations."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "name the targeted entities" in prompt
 
     def test_forbids_entity_listing_in_automations(self, hass) -> None:
         """Prompt tells the LLM not to enumerate entities in automation responses."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "do not list every entity" in prompt.lower()
 
     def test_preserves_description_field_completeness(self, hass) -> None:
         """Prompt protects the structured description field from the brevity ban."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert '"description" field MUST remain' in prompt
 
     def test_discourages_bullet_lists(self, hass) -> None:
         """Prompt discourages bullet lists in favor of flowing text."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "bullet list" in prompt.lower()
 
     def test_brevity_scoped_to_conversational(self, hass) -> None:
         """Brevity rules are scoped to conversational responses, not tool-backed answers."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "NOT tool-backed answers" in prompt
 
     def test_tool_policy_formatting_preserved(self, hass) -> None:
         """Tool policy output formatting rules are still present."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "List EVERY entity" in prompt
         assert "bullet-pointed lists" in prompt.lower() or "bullet" in prompt.lower()
 
     def test_brevity_after_tool_policy(self, hass) -> None:
         """Brevity rules appear after the tool policy so tool formatting takes precedence."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         tool_policy_pos = prompt.find("List EVERY entity")
         brevity_pos = prompt.find("NOT tool-backed answers")
         assert tool_policy_pos < brevity_pos
 
     def test_response_format_defers_to_tool_policy(self, hass) -> None:
         """RESPONSE FORMAT section references tool policy for tool-backed answers."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "tool-backed answers" in prompt.lower()
         assert "Output Formatting" in prompt
 
     def test_still_contains_automation_block_instructions(self, hass) -> None:
         """Ensure verbosity changes did not break the automation fenced block format."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "```automation" in prompt
         assert '"alias"' in prompt
         assert '"triggers"' in prompt
@@ -193,7 +196,7 @@ class TestConversationHistoryManagement:
 
     def test_history_window_is_at_least_40(self) -> None:
         """The history window must be large enough for multi-turn conversations."""
-        from custom_components.selora_ai.llm_client import _MAX_HISTORY_TURNS
+        from custom_components.selora_ai.llm_client.client import _MAX_HISTORY_TURNS
 
         assert _MAX_HISTORY_TURNS >= 40, (
             f"_MAX_HISTORY_TURNS={_MAX_HISTORY_TURNS} is too small; "
@@ -219,7 +222,8 @@ class TestConversationHistoryManagement:
 
     def test_build_history_messages_respects_max_turns(self) -> None:
         """Only the most recent _MAX_HISTORY_TURNS turns are kept."""
-        from custom_components.selora_ai.llm_client import LLMClient, _MAX_HISTORY_TURNS
+        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.client import _MAX_HISTORY_TURNS
 
         history = [{"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)]
         result = LLMClient._build_history_messages(history)
@@ -300,7 +304,7 @@ class TestCommandPolicyEnforcement:
     def test_command_without_calls_downgraded_to_answer(self, hass) -> None:
         """intent=command with no calls should be downgraded to answer."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "command", "response": "Turning on the lights."},
             [{"entity_id": "light.kitchen"}],
         )
@@ -309,7 +313,7 @@ class TestCommandPolicyEnforcement:
     def test_command_with_empty_calls_downgraded(self, hass) -> None:
         """intent=command with calls=[] should also be downgraded."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "command", "response": "Turning on the lights.", "calls": []},
             [{"entity_id": "light.kitchen"}],
         )
@@ -318,7 +322,7 @@ class TestCommandPolicyEnforcement:
     def test_answer_without_calls_unchanged(self, hass) -> None:
         """intent=answer with no calls should pass through unchanged."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "answer", "response": "Here is some info."},
             [{"entity_id": "light.kitchen"}],
         )
@@ -326,8 +330,8 @@ class TestCommandPolicyEnforcement:
 
     def test_command_prompt_requires_calls(self, hass) -> None:
         """Both system prompts must instruct the LLM to always include calls for commands."""
-        json_prompt = _make_client(hass)._build_architect_system_prompt()
-        stream_prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        json_prompt = build_architect_system_prompt()
+        stream_prompt = build_architect_stream_system_prompt()
         for prompt in (json_prompt, stream_prompt):
             assert "non-empty" in prompt.lower() and "calls" in prompt.lower(), (
                 "System prompt must instruct LLM to include non-empty calls for commands"
@@ -452,7 +456,7 @@ class TestUnbackedActionConfirmation:
         must be downgraded AND the misleading prose replaced — otherwise the
         user sees a fake success while nothing executed."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Turning off Ceiling lights",
@@ -488,7 +492,7 @@ class TestUnbackedActionConfirmation:
             "on every entity in the living-room area. You can review or edit "
             "the automation under Settings → Automations."
         )
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "answer", "response": long_response},
             [{"entity_id": "light.living_room"}],
         )
@@ -497,7 +501,7 @@ class TestUnbackedActionConfirmation:
     def test_legitimate_command_with_calls_keeps_confirmation(self, hass) -> None:
         """A command with valid calls must keep its 'Turning off …' confirmation."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Turning off Ceiling lights",
@@ -523,7 +527,7 @@ class TestUnbackedActionConfirmation:
             "Opening a garage door in Home Assistant requires a cover entity "
             "and an integration that supports it."
         )
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "answer", "response": explanatory},
             [{"entity_id": "cover.garage"}],
         )
@@ -534,7 +538,7 @@ class TestUnbackedActionConfirmation:
         must NOT save the response — the LLM clearly tried to issue a command
         and produced nothing, so the user must be told no action ran."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Turning off the lights requires a moment.",
@@ -560,7 +564,7 @@ class TestUnbackedActionConfirmation:
             "cover.stop_cover",
             "cover.toggle",
         ):
-            result = client._apply_command_policy(
+            result = apply_command_policy(
                 {
                     "intent": "command",
                     "response": "Opening the garage door.",
@@ -597,7 +601,7 @@ class TestUnbackedActionConfirmation:
                 "cover.gate": "cover.gate",
                 "light.kitchen": "light.kitchen",
             }[bogus_service]
-            result = client._apply_command_policy(
+            result = apply_command_policy(
                 {
                     "intent": "command",
                     "response": prose,
@@ -617,7 +621,7 @@ class TestUnbackedActionConfirmation:
         """If the prose gives no verb hint, fall back to rejection so
         we don't silently execute a randomly-chosen verb."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Doing something with the garage door.",  # no verb
@@ -639,7 +643,7 @@ class TestUnbackedActionConfirmation:
         suggestion and self-correct next turn, and the user sees
         what actually went wrong."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Garage door request received.",  # no verb
@@ -663,7 +667,7 @@ class TestUnbackedActionConfirmation:
         they're higher-risk and warrant a separate config gate."""
         client = _make_client(hass)
         for service in ("lock.unlock", "alarm_control_panel.alarm_disarm"):
-            result = client._apply_command_policy(
+            result = apply_command_policy(
                 {
                     "intent": "command",
                     "response": "Unlocking the door.",
@@ -679,7 +683,7 @@ class TestUnbackedActionConfirmation:
         """A bare 'Done' confirmation with no trailing punctuation must still
         be caught — the original `done[.,!\\s]` matcher missed this case."""
         client = _make_client(hass)
-        result = client._apply_command_policy(
+        result = apply_command_policy(
             {"intent": "command", "response": "Done", "calls": []},
             [{"entity_id": "light.kitchen"}],
         )
@@ -689,14 +693,14 @@ class TestUnbackedActionConfirmation:
 
     def test_prompt_forbids_confirmation_without_calls_json(self, hass) -> None:
         """JSON-mode prompt explicitly bans confirmations without calls."""
-        prompt = _make_client(hass)._build_architect_system_prompt()
+        prompt = build_architect_system_prompt()
         # Look for the new rule about typos and unmatched entities.
         assert "typo" in prompt.lower()
         assert "fabricate" in prompt.lower() or "clarification" in prompt.lower()
 
     def test_prompt_forbids_confirmation_without_calls_stream(self, hass) -> None:
         """Streaming prompt explicitly bans confirmations without command block."""
-        prompt = _make_client(hass)._build_architect_stream_system_prompt()
+        prompt = build_architect_stream_system_prompt()
         assert "typo" in prompt.lower()
         # Must mention that prose without a command block is a bug.
         assert "without a corresponding command block" in prompt.lower() or (
@@ -709,7 +713,7 @@ class TestConversationHistoryManagement:
 
     def test_history_window_is_at_least_40(self) -> None:
         """The history window must be large enough for multi-turn conversations."""
-        from custom_components.selora_ai.llm_client import _MAX_HISTORY_TURNS
+        from custom_components.selora_ai.llm_client.client import _MAX_HISTORY_TURNS
 
         assert _MAX_HISTORY_TURNS >= 40, (
             f"_MAX_HISTORY_TURNS={_MAX_HISTORY_TURNS} is too small; "
@@ -735,7 +739,8 @@ class TestConversationHistoryManagement:
 
     def test_build_history_messages_respects_max_turns(self) -> None:
         """Only the most recent _MAX_HISTORY_TURNS turns are kept."""
-        from custom_components.selora_ai.llm_client import LLMClient, _MAX_HISTORY_TURNS
+        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.client import _MAX_HISTORY_TURNS
 
         history = [
             {"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)
@@ -908,7 +913,7 @@ class TestBuildCommandConfirmation:
     """Unit tests for _build_command_confirmation (#94)."""
 
     def test_single_call(self) -> None:
-        from custom_components.selora_ai.llm_client import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
 
         calls = [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}]
         result = _build_command_confirmation(calls)
@@ -917,7 +922,7 @@ class TestBuildCommandConfirmation:
         assert result.startswith("Done")
 
     def test_multiple_calls(self) -> None:
-        from custom_components.selora_ai.llm_client import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
 
         calls = [
             {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
@@ -928,12 +933,12 @@ class TestBuildCommandConfirmation:
         assert "bedroom" in result
 
     def test_empty_calls(self) -> None:
-        from custom_components.selora_ai.llm_client import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
 
         assert _build_command_confirmation([]) == "Done."
 
     def test_multiple_entities_in_one_call(self) -> None:
-        from custom_components.selora_ai.llm_client import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
 
         calls = [
             {

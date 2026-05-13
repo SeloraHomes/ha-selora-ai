@@ -10,6 +10,7 @@ from custom_components.selora_ai.const import (
     DEFAULT_CATEGORY_LINK_WEIGHT,
     MIN_RELEVANCE_SCORE,
 )
+from custom_components.selora_ai.llm_client.prompts import build_analysis_prompt
 
 
 class TestRelevanceScoring:
@@ -387,7 +388,7 @@ class TestCategorySection:
     """Test the LLM prompt category section builder (#79)."""
 
     def test_groups_entities_by_category(self):
-        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.prompts import _build_category_section
 
         entities = [
             {"entity_id": "light.kitchen", "state": "on"},
@@ -395,35 +396,35 @@ class TestCategorySection:
             {"entity_id": "binary_sensor.motion", "state": "off"},
             {"entity_id": "climate.hvac", "state": "heat"},
         ]
-        section = LLMClient._build_category_section(entities)
+        section = _build_category_section(entities)
         assert "Lighting: 2 entities" in section
         assert "Sensors (binary): 1 entities" in section
         assert "Climate/HVAC: 1 entities" in section
 
     def test_cross_category_hints_shown(self):
-        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.prompts import _build_category_section
 
         entities = [
             {"entity_id": "light.kitchen", "state": "on"},
             {"entity_id": "binary_sensor.motion", "state": "off"},
         ]
-        section = LLMClient._build_category_section(entities)
+        section = _build_category_section(entities)
         assert "motion-activated lights" in section
 
     def test_no_irrelevant_hints(self):
-        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.prompts import _build_category_section
 
         entities = [
             {"entity_id": "light.a", "state": "on"},
             {"entity_id": "light.b", "state": "off"},
         ]
-        section = LLMClient._build_category_section(entities)
+        section = _build_category_section(entities)
         assert "motion-activated" not in section
 
     def test_empty_returns_empty(self):
-        from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.prompts import _build_category_section
 
-        assert LLMClient._build_category_section([]) == ""
+        assert _build_category_section([]) == ""
 
 
 class TestFeedbackSummary:
@@ -561,7 +562,7 @@ class TestFeedbackInPrompt:
         snapshot = self._make_snapshot(
             _feedback_summary="USER FEEDBACK (learn from past decisions):\n  Accepted automations (1 total)"
         )
-        prompt = client._build_analysis_prompt(snapshot)
+        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
         assert "USER FEEDBACK (learn from past decisions)" in prompt
         assert "Accepted automations (1 total)" in prompt
 
@@ -569,7 +570,7 @@ class TestFeedbackInPrompt:
         """When _feedback_summary is absent, the prompt has no USER FEEDBACK section."""
         client = self._make_llm_client()
         snapshot = self._make_snapshot()
-        prompt = client._build_analysis_prompt(snapshot)
+        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
         assert "USER FEEDBACK" not in prompt
 
     def test_feedback_block_before_critical_reminder(self):
@@ -578,7 +579,7 @@ class TestFeedbackInPrompt:
         snapshot = self._make_snapshot(
             _feedback_summary="USER FEEDBACK (learn from past decisions):\n  test"
         )
-        prompt = client._build_analysis_prompt(snapshot)
+        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
         fb_pos = prompt.index("USER FEEDBACK")
         critical_pos = prompt.index("CRITICAL: Only use entity_ids")
         assert fb_pos < critical_pos

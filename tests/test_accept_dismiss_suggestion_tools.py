@@ -6,12 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from custom_components.selora_ai.llm_client import (
-    LLMClient,
+from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
+from custom_components.selora_ai.llm_client.prompts import (
     _read_prompt_files,
     _suggestions_prompt,
 )
 from custom_components.selora_ai.providers import create_provider
+from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import (
     CHAT_TOOLS,
@@ -21,7 +23,7 @@ from custom_components.selora_ai.tool_registry import (
 )
 from custom_components.selora_ai.types import SuggestionDict
 
-import custom_components.selora_ai.llm_client as _llm_mod
+import custom_components.selora_ai.llm_client.prompts as _llm_mod
 
 
 @pytest.fixture(autouse=True)
@@ -352,19 +354,19 @@ class TestAcceptDismissPromptWiring:
         assert "not available across turns" in text
 
     def test_json_prompt_includes_accept_dismiss(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_system_prompt(tools_available=True)
+        prompt = build_architect_system_prompt(tools_available=True)
         assert "accept_suggestion" in prompt
         assert "dismiss_suggestion" in prompt
 
     def test_stream_prompt_includes_accept_dismiss(self, hass) -> None:
-        prompt = _make_client(hass)._build_architect_stream_system_prompt(tools_available=True)
+        prompt = build_architect_stream_system_prompt(tools_available=True)
         assert "accept_suggestion" in prompt
         assert "dismiss_suggestion" in prompt
 
     def test_prompts_exclude_without_tools(self, hass) -> None:
         """accept/dismiss not mentioned when tools are unavailable."""
         client = _make_client(hass)
-        json_prompt = client._build_architect_system_prompt(tools_available=False)
-        stream_prompt = client._build_architect_stream_system_prompt(tools_available=False)
+        json_prompt = build_architect_system_prompt(tools_available=False)
+        stream_prompt = build_architect_stream_system_prompt(tools_available=False)
         assert "accept_suggestion" not in json_prompt
         assert "accept_suggestion" not in stream_prompt

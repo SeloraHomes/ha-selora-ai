@@ -287,7 +287,7 @@ class TestLLMClientFlushUsage:
     def test_provider_callback_buffers_instead_of_emitting(self, hass, llm_client) -> None:
         from custom_components.selora_ai.const import DOMAIN
 
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             # Simulate the provider reporting usage mid-call.
             llm_client._provider._report_usage(
                 {"input_tokens": 10, "output_tokens": 5}
@@ -295,7 +295,7 @@ class TestLLMClientFlushUsage:
 
             # Buffered, not yet flushed → ring buffer empty.
             assert hass.data[DOMAIN]["llm_usage_events"] == deque(maxlen=500)
-            assert len(llm_client._pending_usage.get()) == 1
+            assert len(llm_client._usage.pending.get()) == 1
 
     async def test_flush_emits_to_ring_buffer_and_signal(
         self, hass, llm_client
@@ -309,9 +309,9 @@ class TestLLMClientFlushUsage:
             hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload)
         )
 
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 100, "output_tokens": 50})
-            llm_client._flush_usage("chat", intent="answer")
+            llm_client._usage.flush("chat", intent="answer")
         await hass.async_block_till_done()
 
         events = list(hass.data[DOMAIN]["llm_usage_events"])
@@ -332,9 +332,9 @@ class TestLLMClientFlushUsage:
         assert seen[0]["intent"] == "answer"
 
     def test_flush_omits_intent_when_unset(self, hass, llm_client) -> None:
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 10, "output_tokens": 5})
-            llm_client._flush_usage("suggestions")
+            llm_client._usage.flush("suggestions")
 
         from custom_components.selora_ai.const import DOMAIN
 
@@ -344,10 +344,10 @@ class TestLLMClientFlushUsage:
 
     def test_flush_handles_multiple_buffered_events(self, hass, llm_client) -> None:
         # Two provider reports between flushes — e.g. cache + main response.
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 10, "output_tokens": 0})
             llm_client._provider._report_usage({"input_tokens": 0, "output_tokens": 30})
-            llm_client._flush_usage("chat_tool_round")
+            llm_client._usage.flush("chat_tool_round")
 
         from custom_components.selora_ai.const import DOMAIN
 
@@ -356,11 +356,11 @@ class TestLLMClientFlushUsage:
         assert all(e["kind"] == "chat_tool_round" for e in events)
 
     def test_flush_clears_pending(self, hass, llm_client) -> None:
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 10, "output_tokens": 5})
-            llm_client._flush_usage("chat")
+            llm_client._usage.flush("chat")
             # Subsequent flush with no new usage is a no-op.
-            llm_client._flush_usage("suggestions")
+            llm_client._usage.flush("suggestions")
 
         from custom_components.selora_ai.const import DOMAIN
 
@@ -369,10 +369,10 @@ class TestLLMClientFlushUsage:
         assert events[0]["kind"] == "chat"
 
     def test_drop_pending_clears_without_emitting(self, hass, llm_client) -> None:
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 10, "output_tokens": 5})
-            llm_client._drop_pending_usage()
-            llm_client._flush_usage("chat")
+            llm_client._usage.drop()
+            llm_client._usage.flush("chat")
 
         from custom_components.selora_ai.const import DOMAIN
 
@@ -392,11 +392,11 @@ class TestLLMClientFlushUsage:
             pricing_overrides={"anthropic": {"claude-sonnet-4-6": [1.5, 7.5]}},
         )
 
-        with client._usage_scope():
+        with client._usage.scope():
             client._provider._report_usage(
                 {"input_tokens": 1_000_000, "output_tokens": 1_000_000}
             )
-            client._flush_usage("chat")
+            client._usage.flush("chat")
 
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
         # Default would be $18 — override drops it to $9.
@@ -414,11 +414,11 @@ class TestLLMClientFlushUsage:
             {"anthropic": {"claude-sonnet-4-6": [0.0, 0.0]}}
         )
 
-        with client._usage_scope():
+        with client._usage.scope():
             client._provider._report_usage(
                 {"input_tokens": 1_000_000, "output_tokens": 1_000_000}
             )
-            client._flush_usage("chat")
+            client._usage.flush("chat")
 
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
         assert evt["cost_usd"] == pytest.approx(0.0)
@@ -445,24 +445,24 @@ class TestLLMClientFlushUsage:
             hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload)
         )
 
-        with client._usage_scope():
+        with client._usage.scope():
             client._provider._report_usage({"input_tokens": 100, "output_tokens": 50})
-            client._flush_usage("chat")
+            client._usage.flush("chat")
 
         assert len(hass.data[DOMAIN]["llm_usage_events"]) == 0
         assert seen == []
 
     def test_ring_buffer_caps_size(self, hass, llm_client) -> None:
         from custom_components.selora_ai.const import DOMAIN
-        from custom_components.selora_ai.llm_client import LLM_USAGE_BUFFER_SIZE
+        from custom_components.selora_ai.llm_client.usage import LLM_USAGE_BUFFER_SIZE
 
         # Fill past the cap; oldest entries should be dropped.
-        with llm_client._usage_scope():
+        with llm_client._usage.scope():
             for i in range(LLM_USAGE_BUFFER_SIZE + 25):
                 llm_client._provider._report_usage(
                     {"input_tokens": 1, "output_tokens": i + 1}
                 )
-                llm_client._flush_usage("chat")
+                llm_client._usage.flush("chat")
 
         events = list(hass.data[DOMAIN]["llm_usage_events"])
         assert len(events) == LLM_USAGE_BUFFER_SIZE
