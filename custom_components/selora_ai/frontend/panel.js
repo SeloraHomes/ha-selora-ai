@@ -11209,11 +11209,53 @@ async function loadUsageStats(host) {
       console.warn("Selora AI: failed to fetch pricing defaults", err);
       return {};
     });
-  const [periods, recent, pricingDefaults] = await Promise.all([
-    periodPromise,
-    recentPromise,
-    pricingPromise,
-  ]);
+  const breakdownPromise = host.hass
+    .callWS({ type: "selora_ai/usage/breakdown", range: "30d" })
+    .then((r4) => r4?.breakdown || {})
+    .catch((err) => {
+      console.warn("Selora AI: failed to fetch usage breakdown", err);
+      return {};
+    });
+  const [periods, recent, pricingDefaults, persistedBreakdown] =
+    await Promise.all([
+      periodPromise,
+      recentPromise,
+      pricingPromise,
+      breakdownPromise,
+    ]);
+  if (!host._usageFilterUserSet) {
+    const activeProvider = host?._config?.llm_provider || null;
+    const activeBucket = activeProvider
+      ? persistedBreakdown[activeProvider]
+      : null;
+    const hasDataForActive =
+      activeBucket && Object.keys(activeBucket).length > 0;
+    if (
+      activeProvider &&
+      activeProvider !== "selora_cloud" &&
+      hasDataForActive
+    ) {
+      host._usageFilter = { provider: activeProvider, model: null };
+    } else {
+      host._usageFilter = { provider: null, model: null };
+    }
+  }
+  const filter = host._usageFilter || { provider: null, model: null };
+  const filteredTotals = filter.provider
+    ? await host.hass
+        .callWS({
+          type: "selora_ai/usage/totals",
+          range: "30d",
+          provider: filter.provider,
+          // Empty string means "the no-model bucket"; null means "any model".
+          ...(filter.model != null ? { model: filter.model } : {}),
+        })
+        .then((r4) => r4 || null)
+        .catch((err) => {
+          console.warn("Selora AI: failed to fetch filtered totals", err);
+          return null;
+        })
+    : null;
   const [today, week, month] = periods;
   const reduce = (raw) => {
     const out = {};
@@ -11230,6 +11272,8 @@ async function loadUsageStats(host) {
   };
   host._usageRecent = recent;
   host._pricingDefaults = pricingDefaults;
+  host._usageBreakdown = persistedBreakdown;
+  host._usageFilteredTotals = filteredTotals;
   host.requestUpdate();
 }
 var _KIND_LABELS = {
@@ -11256,6 +11300,33 @@ var _INTENT_LABELS = {
 function _intentLabel(intent) {
   if (!intent) return "";
   return _INTENT_LABELS[intent] || intent;
+}
+function _groupByProviderModel(events) {
+  const groups = /* @__PURE__ */ new Map();
+  for (const e5 of events) {
+    const key = `${e5.provider || "?"}::${e5.model || ""}`;
+    let g2 = groups.get(key);
+    if (!g2) {
+      g2 = {
+        kind: `${_providerLabel(e5.provider)}${e5.model ? ` \xB7 ${e5.model}` : ""}`,
+        calls: 0,
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+        intents: /* @__PURE__ */ new Map(),
+      };
+      groups.set(key, g2);
+    }
+    g2.calls += 1;
+    g2.input_tokens += Number(e5.input_tokens) || 0;
+    g2.output_tokens += Number(e5.output_tokens) || 0;
+    g2.cost_usd += Number(e5.cost_usd) || 0;
+  }
+  return [...groups.values()].sort(
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
+  );
 }
 function _groupByKind(events) {
   const groups = /* @__PURE__ */ new Map();
@@ -11533,6 +11604,18 @@ function _activeProviderModel(host) {
   const model = modelKey ? cfg[modelKey] || "" : "";
   return { provider, model };
 }
+var _PROVIDER_LABELS = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  gemini: "Google Gemini",
+  openrouter: "OpenRouter",
+  ollama: "Ollama",
+  selora_local: "Selora AI Local",
+  selora_cloud: "Selora Cloud",
+};
+function _providerLabel(p2) {
+  return _PROVIDER_LABELS[p2] || p2;
+}
 function _defaultPriceFor(host, provider, model) {
   const table = host?._pricingDefaults || {};
   return table[provider]?.[model] || null;
@@ -11600,16 +11683,45 @@ async function _clearPricingOverride(host, provider, model) {
     host._showToast?.("Failed to reset pricing: " + err.message, "error");
   }
 }
+var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
 function _renderPricingCard(host) {
   const { provider, model } = _activeProviderModel(host);
-  if (provider === "ollama" || !model) {
+  if (provider === "selora_cloud") {
+    return x`
+      <div class="section-card">
+        <div class="section-card-header">
+          <h3>Pricing</h3>
+          <span class="usage-section-sub">Selora Cloud</span>
+        </div>
+        <p class="usage-help" style="margin-top:0;">
+          Selora Cloud usage is metered and billed in your Selora Homes account.
+          It is not counted in this integration's sensors or charts.
+        </p>
+        <div class="usage-pricing-actions">
+          <a
+            class="btn btn-outline"
+            href=${SELORA_CLOUD_USAGE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <ha-icon
+              icon="mdi:open-in-new"
+              style="--mdc-icon-size:16px;"
+            ></ha-icon>
+            View usage in your Selora Homes account
+          </a>
+        </div>
+      </div>
+    `;
+  }
+  if (provider === "ollama" || provider === "selora_local" || !model) {
     return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>Pricing</h3>
         </div>
         <p class="usage-help">
-          ${provider === "ollama" ? "Ollama runs locally \u2014 no token costs to track." : "Configure an LLM provider and model in Settings to set custom pricing."}
+          ${provider === "ollama" ? "Ollama runs locally \u2014 no token costs to track." : provider === "selora_local" ? "Selora AI Local runs on your hardware \u2014 no token costs to track." : "Configure an LLM provider and model in Settings to set custom pricing."}
         </p>
       </div>
     `;
@@ -11774,6 +11886,20 @@ function renderUsage(host) {
   const sensorsMissing = Object.keys(sensors).length === 0;
   const stats = host._usageStats || null;
   const recent = Array.isArray(host._usageRecent) ? host._usageRecent : null;
+  const persistedBreakdown = host._usageBreakdown || {};
+  const filteredTotals = host._usageFilteredTotals || null;
+  const filter = host._usageFilter || { provider: null, model: null };
+  const groupingMode = host._usageGrouping || "kind";
+  const activeProvider = host?._config?.llm_provider || null;
+  const providerOptionSet = new Set(Object.keys(persistedBreakdown));
+  if (activeProvider && activeProvider !== "selora_cloud") {
+    providerOptionSet.add(activeProvider);
+  }
+  const providerOptions = [...providerOptionSet];
+  const modelOptions = filter.provider
+    ? Object.keys(persistedBreakdown[filter.provider] || {})
+    : [];
+  const filterActive = Boolean(filter.provider);
   const lastRecentEvent =
     recent && recent.length > 0 ? recent[recent.length - 1] : null;
   const lastProvider =
@@ -11786,7 +11912,18 @@ function renderUsage(host) {
     sensors.llm_cost?.state?.attributes?.last_model ||
     lastRecentEvent?.model ||
     null;
-  const breakdown = recent ? _groupByKind(recent) : null;
+  const filteredRecent = recent
+    ? recent.filter(
+        (e5) =>
+          (!filter.provider || e5.provider === filter.provider) &&
+          (filter.model == null || (e5.model || "") === filter.model),
+      )
+    : null;
+  const breakdown = filteredRecent
+    ? groupingMode === "provider"
+      ? _groupByProviderModel(filteredRecent)
+      : _groupByKind(filteredRecent)
+    : null;
   const totalCost = breakdown
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
@@ -11799,11 +11936,94 @@ function renderUsage(host) {
   const bufCalls = breakdown
     ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
     : 0;
-  const dispTokensIn = sensorsMissing ? bufTokensIn : tokensIn;
-  const dispTokensOut = sensorsMissing ? bufTokensOut : tokensOut;
-  const dispCalls = sensorsMissing ? bufCalls : calls;
-  const dispCost = sensorsMissing ? totalCost : cost;
+  let dispTokensIn;
+  let dispTokensOut;
+  let dispCalls;
+  let dispCost;
+  let periodStats = stats;
+  if (filterActive && filteredTotals?.totals) {
+    const t3 = filteredTotals.totals;
+    dispTokensIn = t3.input || 0;
+    dispTokensOut = t3.output || 0;
+    dispCalls = t3.calls || 0;
+    dispCost = t3.cost_usd || 0;
+    const p2 = filteredTotals.periods || {};
+    const pick = (k2) => {
+      const v2 = p2[k2] || {};
+      return {
+        llm_tokens_in: v2.input || 0,
+        llm_tokens_out: v2.output || 0,
+        llm_calls: v2.calls || 0,
+        llm_cost: v2.cost_usd || 0,
+      };
+    };
+    periodStats = {
+      today: pick("today"),
+      week: pick("7d"),
+      month: pick("month"),
+    };
+  } else {
+    dispTokensIn = sensorsMissing ? bufTokensIn : tokensIn;
+    dispTokensOut = sensorsMissing ? bufTokensOut : tokensOut;
+    dispCalls = sensorsMissing ? bufCalls : calls;
+    dispCost = sensorsMissing ? totalCost : cost;
+  }
   const hasTotals = dispTokensIn || dispTokensOut || dispCalls || dispCost;
+  const setFilter = (provider, model) => {
+    host._usageFilter = { provider, model };
+    host._usageFilterUserSet = true;
+    if (typeof host._loadUsageStats === "function") {
+      host._loadUsageStats();
+    }
+    host.requestUpdate();
+  };
+  const filterChips =
+    providerOptions.length === 0
+      ? ""
+      : x`
+          <div class="usage-snippet-pills" style="margin-bottom:12px;">
+            <button
+              class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
+              @click=${() => setFilter(null, null)}
+            >
+              All providers
+            </button>
+            ${providerOptions.map(
+              (p2) => x`
+                <button
+                  class="usage-snippet-pill ${filter.provider === p2 && filter.model == null ? "active" : ""}"
+                  @click=${() => setFilter(p2, null)}
+                >
+                  ${_providerLabel(p2)}
+                </button>
+              `,
+            )}
+          </div>
+          ${
+            filter.provider && modelOptions.length > 1
+              ? x`
+                <div class="usage-snippet-pills" style="margin-bottom:12px;">
+                  <button
+                    class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
+                    @click=${() => setFilter(filter.provider, null)}
+                  >
+                    All models
+                  </button>
+                  ${modelOptions.map(
+                    (m2) => x`
+                      <button
+                        class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
+                        @click=${() => setFilter(filter.provider, m2)}
+                      >
+                        ${m2 || "(no model)"}
+                      </button>
+                    `,
+                  )}
+                </div>
+              `
+              : ""
+          }
+        `;
   return x`
     <div class="scroll-view">
       <div class="usage-view">
@@ -11832,6 +12052,7 @@ function renderUsage(host) {
           }
         </div>
 
+        ${filterChips}
         ${
           sensorsMissing && recent !== null && recent.length === 0
             ? x`
@@ -11887,19 +12108,17 @@ function renderUsage(host) {
                   : ""
               }
               ${
-                !sensorsMissing
+                !sensorsMissing || filterActive
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>By period</h3>
                       </div>
-                      ${_renderPeriodRow("Today", stats?.today)}
-                      ${_renderPeriodRow("Last 7 days", stats?.week)}
-                      ${_renderPeriodRow("This month", stats?.month)}
+                      ${_renderPeriodRow("Today", periodStats?.today)}
+                      ${_renderPeriodRow("Last 7 days", periodStats?.week)}
+                      ${_renderPeriodRow("This month", periodStats?.month)}
                       <div class="usage-period-note">
-                        Period buckets come from Home Assistant's long-term
-                        statistics, which compile hourly. New activity may take
-                        up to an hour to appear here.
+                        ${filterActive ? "Period buckets come from the integration's usage store (kept for 30 days)." : "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here."}
                       </div>
                     </div>
                   `
@@ -11910,15 +12129,45 @@ function renderUsage(host) {
                 <div class="section-card-header">
                   <h3>Where tokens go</h3>
                   <span class="usage-section-sub">
-                    Last ${recent === null ? "\u2026" : recent.length}
-                    call${recent && recent.length === 1 ? "" : "s"} · resets on
-                    HA restart
+                    Last
+                    ${filteredRecent === null ? "\u2026" : filteredRecent.length}
+                    call${filteredRecent && filteredRecent.length === 1 ? "" : "s"}
+                    · resets on HA restart
                   </span>
                 </div>
                 ${
-                  recent === null
+                  filteredRecent && filteredRecent.length > 0
+                    ? x`
+                      <div
+                        class="usage-snippet-pills"
+                        style="margin-bottom:12px;"
+                      >
+                        <button
+                          class="usage-snippet-pill ${groupingMode === "kind" ? "active" : ""}"
+                          @click=${() => {
+                            host._usageGrouping = "kind";
+                            host.requestUpdate();
+                          }}
+                        >
+                          By kind
+                        </button>
+                        <button
+                          class="usage-snippet-pill ${groupingMode === "provider" ? "active" : ""}"
+                          @click=${() => {
+                            host._usageGrouping = "provider";
+                            host.requestUpdate();
+                          }}
+                        >
+                          By provider
+                        </button>
+                      </div>
+                    `
+                    : ""
+                }
+                ${
+                  filteredRecent === null
                     ? x`<div class="usage-period-loading">Loading…</div>`
-                    : recent.length === 0
+                    : filteredRecent.length === 0
                       ? x`<div class="usage-period-empty">
                         No calls recorded yet.
                       </div>`
@@ -11927,13 +12176,13 @@ function renderUsage(host) {
               </div>
 
               ${
-                recent && recent.length > 0
+                filteredRecent && filteredRecent.length > 0
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Recent calls</h3>
                       </div>
-                      ${_renderRecentList(recent.slice(-15).reverse())}
+                      ${_renderRecentList(filteredRecent.slice(-15).reverse())}
                     </div>
                   `
                   : ""

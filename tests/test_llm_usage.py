@@ -423,6 +423,35 @@ class TestLLMClientFlushUsage:
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
         assert evt["cost_usd"] == pytest.approx(0.0)
 
+    def test_selora_cloud_events_are_not_recorded(self, hass, monkeypatch) -> None:
+        """Selora Cloud is metered by Connect — local sensors/store skip it."""
+        from homeassistant.helpers.dispatcher import async_dispatcher_connect
+
+        from custom_components.selora_ai.const import DOMAIN, SIGNAL_LLM_USAGE
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        provider = AnthropicProvider(
+            hass, api_key="test-key", model="claude-sonnet-4-6"
+        )
+        # Pretend this provider is the Selora Cloud one — same buffering
+        # path, just a different provider_type string.
+        monkeypatch.setattr(
+            type(provider), "provider_type", property(lambda self: "selora_cloud")
+        )
+        client = LLMClient(hass, provider)
+
+        seen: list[dict] = []
+        async_dispatcher_connect(
+            hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload)
+        )
+
+        with client._usage_scope():
+            client._provider._report_usage({"input_tokens": 100, "output_tokens": 50})
+            client._flush_usage("chat")
+
+        assert len(hass.data[DOMAIN]["llm_usage_events"]) == 0
+        assert seen == []
+
     def test_ring_buffer_caps_size(self, hass, llm_client) -> None:
         from custom_components.selora_ai.const import DOMAIN
         from custom_components.selora_ai.llm_client import LLM_USAGE_BUFFER_SIZE

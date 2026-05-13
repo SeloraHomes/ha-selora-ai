@@ -818,6 +818,13 @@ class LLMClient:
         buf.clear()
         buffer: deque[LLMUsageEvent] = self._hass.data[DOMAIN]["llm_usage_events"]
         for provider_type, model, usage in pending:
+            # Selora AI Cloud usage is metered by Selora Connect (the SaaS
+            # backend bills the user directly). Skip recording locally so we
+            # don't double-count it in sensors, the ring buffer, or the
+            # persistent usage store.
+            if provider_type == LLM_PROVIDER_SELORA_CLOUD:
+                _LOGGER.debug("Skipping local usage record for Selora Cloud (tracked in Connect)")
+                continue
             input_tokens = int(usage.get("input_tokens", 0))
             output_tokens = int(usage.get("output_tokens", 0))
             cost_usd = estimate_llm_cost_usd(
@@ -845,12 +852,31 @@ class LLMClient:
             buffer.append(event)
             async_dispatcher_send(self._hass, SIGNAL_LLM_USAGE, event)
             self._hass.bus.async_fire(EVENT_LLM_USAGE, event)
+            self._record_usage_in_store(event)
 
     def _drop_pending_usage(self) -> None:
         """Discard pending usage (e.g. when a call errored before completion)."""
         buf = self._pending_usage.get(None)
         if buf is not None:
             buf.clear()
+
+    def _record_usage_in_store(self, event: LLMUsageEvent) -> None:
+        """Schedule a persistent record of one event without blocking flush.
+
+        The store write is fire-and-forget — failures are logged but never
+        propagate, since telemetry must not break the user-facing call path.
+        """
+        from .usage_store import get_usage_store  # noqa: PLC0415
+
+        store = get_usage_store(self._hass)
+
+        async def _record() -> None:
+            try:
+                await store.record(event)
+            except Exception:  # noqa: BLE001 — telemetry must not raise
+                _LOGGER.exception("Failed to persist LLM usage event")
+
+        self._hass.async_create_task(_record())
 
     @contextmanager
     def _usage_scope(self, kind: str | None = None) -> Any:

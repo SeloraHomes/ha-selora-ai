@@ -4070,6 +4070,87 @@ async def _handle_websocket_get_pricing_defaults(
     connection.send_result(msg["id"], {"pricing": serialised})
 
 
+_USAGE_RANGE_KEYS = ("today", "7d", "30d", "month", "all")
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/usage/breakdown",
+        vol.Optional("range", default="30d"): vol.In(_USAGE_RANGE_KEYS),
+    }
+)
+async def _handle_websocket_get_usage_breakdown(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return per-(provider, model) usage totals from the persistent store.
+
+    Powers the panel's "By provider" breakdown and the per-model filter so
+    users can see which backend their tokens are going to even after HA
+    restarts (the in-memory ring buffer can't help with that).
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    from .usage_store import get_usage_store  # noqa: PLC0415
+
+    store = get_usage_store(hass)
+    breakdown = await store.get_breakdown(msg.get("range", "30d"))
+    connection.send_result(
+        msg["id"],
+        {
+            "range": msg.get("range", "30d"),
+            "breakdown": breakdown,
+        },
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/usage/totals",
+        vol.Optional("range", default="30d"): vol.In(_USAGE_RANGE_KEYS),
+        vol.Optional("provider"): str,
+        vol.Optional("model"): str,
+    }
+)
+async def _handle_websocket_get_usage_totals(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return flat usage sums for one range, optionally filtered.
+
+    Backs the panel's Totals tiles and the three "By period" rows when a
+    provider/model filter is active (statistics-based totals can't filter).
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    from .usage_store import get_usage_store  # noqa: PLC0415
+
+    store = get_usage_store(hass)
+    provider = msg.get("provider") or None
+    # ``model`` is preserved as-is so an explicit "" filters to the
+    # no-model bucket (e.g. selora_local, which has no user-visible model
+    # id). ``None`` from a missing field still means "any model".
+    model = msg.get("model")
+    totals = await store.get_totals(msg.get("range", "30d"), provider=provider, model=model)
+    periods = await store.get_periods(provider=provider, model=model)
+    connection.send_result(
+        msg["id"],
+        {
+            "range": msg.get("range", "30d"),
+            "provider": provider,
+            "model": model,
+            "totals": totals,
+            "periods": periods,
+        },
+    )
+
+
 def _get_pattern_store(hass: HomeAssistant) -> PatternStore | None:
     """Find the PatternStore from any active config entry."""
     from .pattern_store import get_pattern_store  # noqa: PLC0415
@@ -5153,6 +5234,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_analytics)
     websocket_api.async_register_command(hass, _handle_websocket_get_recent_usage)
     websocket_api.async_register_command(hass, _handle_websocket_get_pricing_defaults)
+    websocket_api.async_register_command(hass, _handle_websocket_get_usage_breakdown)
+    websocket_api.async_register_command(hass, _handle_websocket_get_usage_totals)
     websocket_api.async_register_command(hass, _handle_websocket_get_patterns)
     websocket_api.async_register_command(hass, _handle_websocket_get_pattern_detail)
     websocket_api.async_register_command(hass, _handle_websocket_update_pattern_status)
