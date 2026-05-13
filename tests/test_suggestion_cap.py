@@ -178,6 +178,7 @@ class TestParseSuggestionsPassthrough:
         from unittest.mock import MagicMock
 
         from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.parsers import parse_suggestions
 
         client = LLMClient.__new__(LLMClient)
         client._max_suggestions = 3
@@ -193,7 +194,7 @@ class TestParseSuggestionsPassthrough:
         ]
         raw_response = json.dumps(suggestions)
 
-        result = client._parse_suggestions(raw_response)
+        result = parse_suggestions(raw_response, client.provider_name)
         assert len(result) == 7
 
     def test_invalid_filtered_valid_kept(self):
@@ -201,6 +202,7 @@ class TestParseSuggestionsPassthrough:
         from unittest.mock import MagicMock
 
         from custom_components.selora_ai.llm_client import LLMClient
+        from custom_components.selora_ai.llm_client.parsers import parse_suggestions
 
         client = LLMClient.__new__(LLMClient)
         client._max_suggestions = 2
@@ -214,6 +216,6 @@ class TestParseSuggestionsPassthrough:
         ]
         raw_response = json.dumps(suggestions)
 
-        result = client._parse_suggestions(raw_response)
+        result = parse_suggestions(raw_response, client.provider_name)
         # 3 valid out of 4 — all returned, no truncation
         assert len(result) == 3

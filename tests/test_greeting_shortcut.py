@@ -13,10 +13,8 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from custom_components.selora_ai.llm_client import (
-    LLMClient,
-    _is_pure_greeting,
-)
+from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.intent import _is_pure_greeting
 from custom_components.selora_ai.providers import create_provider
 
 

@@ -402,7 +402,7 @@ class TestFormatEntityLine:
 
     def test_includes_whitelisted_attrs(self) -> None:
         """Whitelisted attributes should appear in the entity line."""
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "light.kitchen",
@@ -415,7 +415,7 @@ class TestFormatEntityLine:
 
     def test_omits_absent_attrs(self) -> None:
         """Only attributes present on the entity should appear."""
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "switch.outlet",
@@ -431,7 +431,7 @@ class TestFormatEntityLine:
 
     def test_sanitizes_string_attrs(self) -> None:
         """String attributes (media_title, source, etc.) must be sanitized."""
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "media_player.living_room",

@@ -169,7 +169,7 @@ class TestFormatEntityLineArea:
     """Verify that _format_entity_line includes area when present."""
 
     def test_area_included_in_line(self) -> None:
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "light.kitchen",
@@ -181,7 +181,7 @@ class TestFormatEntityLineArea:
         assert 'area="Kitchen"' in line
 
     def test_area_omitted_when_empty(self) -> None:
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "light.hallway",
@@ -192,7 +192,7 @@ class TestFormatEntityLineArea:
         assert "area=" not in line
 
     def test_area_placed_after_friendly_name(self) -> None:
-        from custom_components.selora_ai.llm_client import _format_entity_line
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
 
         entity = {
             "entity_id": "light.kitchen",
