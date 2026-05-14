@@ -322,3 +322,34 @@ async def test_validate_action_data_must_be_object(hass: HomeAssistant) -> None:
     )
     assert result["valid"] is False
     assert any("data must be an object" in e for e in result["errors"])
+
+
+@pytest.mark.asyncio
+async def test_validate_action_rejects_unavailable_entity(
+    hass: HomeAssistant, setup_entities
+) -> None:
+    """Regression: validate_action must use the same allowlist as
+    execute_command. An entity that's unavailable in hass.states would
+    otherwise be approved by validate_action's pre-flight check but
+    then rejected by execute_command's dispatch — a confusing
+    'validated but failed to run' workflow for the model.
+    """
+    from custom_components.selora_ai.mcp_server import _tool_execute_command
+
+    # Drop the entity into "unavailable" so _collect_entity_states skips it.
+    hass.states.async_set("light.kitchen_light", "unavailable")
+
+    # Pre-flight check must reject.
+    validation = await _tool_validate_action(
+        hass,
+        {"service": "light.turn_on", "entity_id": "light.kitchen_light"},
+    )
+    assert validation["valid"] is False
+    assert any("not known to Home Assistant" in e for e in validation["errors"])
+
+    # And the dispatcher must agree.
+    execution = await _tool_execute_command(
+        hass,
+        {"service": "light.turn_on", "entity_id": "light.kitchen_light"},
+    )
+    assert execution.get("valid") is False

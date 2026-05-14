@@ -1859,6 +1859,26 @@ async def _tool_find_entities_by_area(
 # ── Tool: selora_validate_action ───────────────────────────────────────────────
 
 
+def _safe_command_entity_allowlist(hass: HomeAssistant) -> set[str]:
+    """Entity IDs that the safe-command tools are allowed to operate on.
+
+    Shared by ``_tool_validate_action`` (pre-flight check) and
+    ``_tool_execute_command`` (actual dispatch) so a validation success
+    can never disagree with the subsequent execution. Mirrors the JSON
+    command path: starts from the filtered ``_collect_entity_states``
+    snapshot (unavailable / disabled / non-actionable entities are
+    excluded) and adds scene-domain states that aren't tracked by the
+    collector but are in the safe-command service allowlist.
+    """
+    from . import _collect_entity_states
+
+    allowed = {e["entity_id"] for e in _collect_entity_states(hass) if e.get("entity_id")}
+    for state in hass.states.async_all("scene"):
+        if state.state not in ("unavailable", "unknown"):
+            allowed.add(state.entity_id)
+    return allowed
+
+
 async def _tool_validate_action(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
     """Validate a service call against the safe-command policy without executing it."""
     from .llm_client import validate_command_action
@@ -1882,12 +1902,14 @@ async def _tool_validate_action(hass: HomeAssistant, arguments: dict[str, Any]) 
             "allowed_data_keys": [],
         }
 
-    known = {state.entity_id for state in hass.states.async_all()}
+    # Use the same allowlist as _tool_execute_command so this pre-flight
+    # check can't approve an entity the dispatcher would later reject
+    # (unavailable, disabled, non-actionable, off-domain).
     return validate_command_action(
         service,
         target_ids,
         data,
-        known_entity_ids=known,
+        known_entity_ids=_safe_command_entity_allowlist(hass),
     )
 
 
@@ -1905,7 +1927,6 @@ async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) 
     disabled or non-actionable entity that exists in ``hass.states`` is
     rejected here just as the JSON path would reject it.
     """
-    from . import _collect_entity_states
     from .llm_client import validate_command_action
 
     service = str(arguments.get("service", "")).strip()
@@ -1922,24 +1943,13 @@ async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) 
         return {"valid": False, "errors": ["data must be an object"]}
     data: dict[str, Any] = data_raw or {}
 
-    # Build the allowlist from the same filtered snapshot the chat path
-    # uses, so the tool can't control entities the JSON command path
-    # would reject (unavailable, disabled, non-actionable, off-domain).
-    known = {e["entity_id"] for e in _collect_entity_states(hass) if e.get("entity_id")}
-    # Scene entities aren't in COLLECTOR_DOMAINS (they're not "states" the
-    # collector tracks for pattern detection), but ``scene.turn_on`` IS in
-    # the safe-command allowlist. Add them back explicitly so a documented
-    # call like execute_command(scene.turn_on, scene.movie_night) isn't
-    # rejected as an unknown entity. Mirror the snapshot's skip of
-    # unavailable/unknown states.
-    for state in hass.states.async_all("scene"):
-        if state.state not in ("unavailable", "unknown"):
-            known.add(state.entity_id)
+    # Shared with _tool_validate_action so pre-flight checks and actual
+    # execution agree on which entities are permitted.
     validation = validate_command_action(
         service,
         target_ids,
         data,
-        known_entity_ids=known,
+        known_entity_ids=_safe_command_entity_allowlist(hass),
     )
     if not validation["valid"]:
         return validation

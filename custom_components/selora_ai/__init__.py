@@ -1727,6 +1727,7 @@ async def _handle_websocket_chat(
             "scene_status": "pending" if scene_payload else None,
             "refine_scene_id": refine_scene_id,
             "scene_message_index": assistant_message_index if scene_payload else None,
+            "raw_response": result.get("raw_response"),
         },
     )
 
@@ -2035,6 +2036,7 @@ async def _handle_websocket_chat_stream(
                     "tool_calls": tool_executor.call_log
                     if tool_executor and tool_executor.call_log
                     else None,
+                    "raw_response": full_text,
                 },
             )
         )

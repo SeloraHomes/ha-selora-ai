@@ -726,50 +726,97 @@ def _data_signature(data: Any) -> str:
         return str(sorted(cleaned.items()))
 
 
+def _iter_executed_write_actions(
+    tool_log: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Yield ``{service, entity_ids, data}`` records for every successful
+    side-effecting tool call in *tool_log*.
+
+    Recognises:
+
+    * ``execute_command`` — counts when ``result.executed is True``. Uses the
+      executor-returned ``service``/``entity_ids`` when present (they
+      reflect any handler-side normalisation) and falls back to the raw
+      arguments otherwise. ``data`` is preserved so parameterized
+      variants (e.g. different brightness) stay distinct downstream.
+    * ``activate_scene`` — counts when ``result.status == "activated"``.
+      The executor's result carries the resolved ``entity_id``; we
+      represent this as a synthetic ``scene.turn_on`` call so duplicate
+      suppression and failure-path synthesis treat it uniformly with
+      other write tools.
+
+    Tools that didn't actually fire (validation failures, runtime errors,
+    read-only handlers) are skipped — that's what lets the duplicate
+    guard distinguish a legitimate fallback ```command``` block from a
+    re-echo of an already-executed action.
+    """
+    actions: list[dict[str, Any]] = []
+    for entry in tool_log or []:
+        tool_name = entry.get("tool")
+        result = entry.get("result")
+        if not isinstance(result, dict):
+            continue
+        args = entry.get("arguments") or {}
+
+        if tool_name == "execute_command":
+            if result.get("executed") is not True:
+                continue
+            service = str(result.get("service") or "").strip()
+            target_ids = result.get("entity_ids")
+            if not service or not isinstance(target_ids, list):
+                service = service or str(args.get("service", "")).strip()
+                raw = args.get("entity_id")
+                if isinstance(raw, str):
+                    target_ids = [raw.strip()] if raw.strip() else []
+                elif isinstance(raw, list):
+                    target_ids = [str(e).strip() for e in raw if str(e).strip()]
+                else:
+                    target_ids = []
+            if not service:
+                continue
+            ids = [str(e).strip() for e in target_ids if str(e).strip()]
+            if not ids:
+                continue
+            data = args.get("data") if isinstance(args.get("data"), dict) else {}
+            actions.append({"service": service, "entity_ids": ids, "data": data})
+        elif tool_name == "activate_scene":
+            if result.get("status") != "activated":
+                continue
+            # The handler resolves scene_id → entity_id and returns the
+            # entity_id it actually called scene.turn_on on. That's the
+            # signature surface a duplicate command block would echo.
+            entity_id = result.get("entity_id")
+            if not isinstance(entity_id, str) or not entity_id:
+                continue
+            actions.append(
+                {
+                    "service": "scene.turn_on",
+                    "entity_ids": [entity_id],
+                    "data": {},
+                }
+            )
+    return actions
+
+
 def _executed_call_signatures(
     tool_log: list[dict[str, Any]],
 ) -> set[_CallSignature]:
-    """Return (service, frozenset(entity_ids), data_sig) for each *successful*
-    execute_command.
-
-    A tool invocation is only counted as executed when the recorded result has
-    ``executed == True``. This avoids suppressing a fallback ```command``` block
-    the model emits after validation failure or a HA service exception, where
-    the tool call ran but didn't actually fire the service.
+    """Return (service, frozenset(entity_ids), data_sig) signatures for
+    every successful side-effecting tool call (execute_command +
+    activate_scene). See ``_iter_executed_write_actions`` for the
+    success criteria.
 
     ``data_sig`` is the canonical JSON of the service-data payload (minus
-    ``entity_id``) so parameterized variants with different ``brightness_pct``,
-    ``temperature``, etc. do not collapse into the same signature.
+    ``entity_id``) so parameterized variants with different
+    ``brightness_pct``, ``temperature``, etc. do not collapse into the
+    same signature.
     """
     sigs: set[_CallSignature] = set()
-    for entry in tool_log or []:
-        if entry.get("tool") != "execute_command":
-            continue
-        result = entry.get("result")
-        if not isinstance(result, dict) or result.get("executed") is not True:
-            continue
-        # Use the executor-returned service + entity_ids when available
-        # (they reflect any normalisation the handler applied). Fall back
-        # to the raw arguments otherwise.
-        args = entry.get("arguments") or {}
-        service = str(result.get("service") or "").strip()
-        target_ids = result.get("entity_ids")
-        if not service or not isinstance(target_ids, list):
-            service = service or str(args.get("service", "")).strip()
-            raw = args.get("entity_id")
-            if isinstance(raw, str):
-                target_ids = [raw.strip()] if raw.strip() else []
-            elif isinstance(raw, list):
-                target_ids = [str(e).strip() for e in raw if str(e).strip()]
-            else:
-                target_ids = []
-        if not service:
-            continue
-        ids = frozenset(str(e).strip() for e in target_ids if str(e).strip())
+    for action in _iter_executed_write_actions(tool_log):
+        ids = frozenset(action["entity_ids"])
         if not ids:
             continue
-        data_sig = _data_signature(args.get("data"))
-        sigs.add((service, ids, data_sig))
+        sigs.add((action["service"], ids, _data_signature(action["data"])))
     return sigs
 
 
@@ -817,6 +864,7 @@ def _call_signature(
 def _suppress_duplicate_command_after_tool(
     parsed: dict[str, Any],
     tool_log: list[dict[str, Any]],
+    entities: list[EntitySnapshot] | None = None,
 ) -> dict[str, Any]:
     """Drop ``command`` calls that duplicate already-executed ``execute_command``.
 
@@ -831,6 +879,13 @@ def _suppress_duplicate_command_after_tool(
     Calls that target entities/services NOT executed via the tool are left
     intact — the model may legitimately mix a tool-fired call with another
     immediate call in the same turn.
+
+    When *every* call is a duplicate, the result is downgraded to an
+    ``answer``. The ``suppressed_duplicate_command`` flag is only set when
+    the accompanying prose actually describes one of the executed actions
+    (per ``_prose_is_trusted_after_tool``) — otherwise the policy's
+    unbacked-action guard must still run, since the model may have written
+    about a different device alongside its duplicate echo.
     """
     if not tool_log:
         return parsed
@@ -863,16 +918,24 @@ def _suppress_duplicate_command_after_tool(
     _LOGGER.info("Suppressed %d duplicate command call(s) already executed via tool", dropped)
 
     if not surviving:
-        # Every call in the final JSON was a duplicate — downgrade to answer
-        # so _execute_command_calls has nothing to run. The
-        # ``suppressed_duplicate_command`` flag tells _apply_command_policy
-        # to preserve the action-prose confirmation instead of stomping it
-        # with the "I didn't run any action" clarification.
-        return {
+        # Every call in the final JSON was a duplicate — downgrade to
+        # answer so _execute_command_calls has nothing to run.
+        # The suppressed_duplicate_command flag only bypasses the
+        # unbacked-action policy guard when the prose itself describes
+        # the executed action. If the model wrote about a different
+        # device alongside its duplicate block (e.g. tool ran
+        # light.kitchen but response says "Turning off the bedroom"),
+        # we must let the policy run so the false claim is corrected.
+        downgraded: dict[str, Any] = {
             "intent": "answer",
             "response": parsed.get("response", "Done."),
-            "suppressed_duplicate_command": True,
         }
+        executed_calls = _executed_service_calls_from_log(tool_log)
+        if executed_calls and _prose_is_trusted_after_tool(
+            downgraded["response"], executed_calls, entities
+        ):
+            downgraded["suppressed_duplicate_command"] = True
+        return downgraded
 
     # Partial strip: surviving calls stay as ``intent: "command"`` and
     # MUST run through _apply_command_policy so service allowlist, entity
@@ -922,25 +985,18 @@ def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
 def _executed_service_calls_from_log(
     tool_log: list[dict[str, Any]] | None,
 ) -> list[dict[str, Any]]:
-    """Return ServiceCallDict-shaped entries for every successful execute_command.
+    """Return ServiceCallDict-shaped entries for every successful
+    side-effecting tool call (execute_command + activate_scene).
 
-    Used to synthesize confirmations when the tool loop fails *after* one or
-    more services already fired — the user must not be told nothing happened.
+    Used to synthesize confirmations when the tool loop fails *after*
+    one or more services already fired — the user must not be told
+    nothing happened. Mirrors the set of tools tracked by the duplicate
+    guard so both paths agree on what counts as executed.
     """
-    calls: list[dict[str, Any]] = []
-    for entry in tool_log or []:
-        if entry.get("tool") != "execute_command":
-            continue
-        result = entry.get("result")
-        if not isinstance(result, dict) or result.get("executed") is not True:
-            continue
-        args = entry.get("arguments") or {}
-        service = str(result.get("service") or args.get("service", "")).strip()
-        entity_ids = result.get("entity_ids") or []
-        if not service or not isinstance(entity_ids, list) or not entity_ids:
-            continue
-        calls.append({"service": service, "target": {"entity_id": list(entity_ids)}})
-    return calls
+    return [
+        {"service": a["service"], "target": {"entity_id": list(a["entity_ids"])}}
+        for a in _iter_executed_write_actions(tool_log)
+    ]
 
 
 def _response_is_synthesized_confirmation(
@@ -1222,6 +1278,78 @@ def _response_describes_executed_call(
                         continue
                     return True
     return False
+
+
+def _response_names_unbacked_entity(
+    response: str,
+    executed_calls: list[dict[str, Any]],
+    entities: list[EntitySnapshot] | None,
+) -> bool:
+    """True if the prose mentions a distinctive token of a known entity
+    that was *not* executed (Stage 1 of
+    ``_response_describes_executed_call``, extracted for reuse).
+
+    Used as the safety check for the block-strip path: when the model
+    authored a JSON command block matching the executed action AND its
+    prose doesn't actively claim a different device, the prose is
+    anchored to the executed action even if it doesn't otherwise
+    name the executed entity. Without an entities snapshot we can't
+    cross-check, so this returns False (no contradiction observable).
+    """
+    if not response or not executed_calls or not entities:
+        return False
+    haystack = response.lower()
+    executed_ids: set[str] = set()
+    for call in executed_calls:
+        executed_ids.update(_entity_ids_from_call(call))
+    all_executed_tokens: set[str] = set()
+    for eid in executed_ids:
+        all_executed_tokens.update(_tokens_from_entity_id(eid))
+    for e in entities:
+        eid = e.get("entity_id", "") if isinstance(e, dict) else ""
+        if not eid or eid in executed_ids:
+            continue
+        for token in _tokens_from_entity_id(eid):
+            if token in all_executed_tokens:
+                continue
+            if re.search(rf"\b{re.escape(token)}\b", haystack):
+                return True
+    return False
+
+
+def _prose_is_trusted_after_tool(
+    response: str,
+    executed_calls: list[dict[str, Any]],
+    entities: list[EntitySnapshot] | None,
+) -> bool:
+    """True iff *response* is safe to bypass the unbacked-action policy
+    after one or more tool calls executed.
+
+    Single decision point used by every code path that needs to set
+    ``suppressed_duplicate_command``. Trust requires the prose match one
+    of three shapes:
+
+    1. The exact synthesized confirmation prefix from
+       ``_build_command_confirmation`` (exhaustion-path output).
+    2. A generic acknowledgement with no specific claim
+       (``Done.``, ``All set.``, ``Got it.``, ``Sure.``).
+    3. A natural-language description that names an executed entity AND
+       uses an action verb consistent with the executed service AND does
+       not name any non-executed known entity (see
+       ``_response_describes_executed_call``).
+
+    Any other prose — including the duplicate-stripper case where the
+    model wrote about a different device alongside its echoed command
+    block — fails the check, so the policy's unbacked-action stomp
+    runs as a safety guard.
+    """
+    if not executed_calls:
+        return False
+    return (
+        _response_is_synthesized_confirmation(response, executed_calls)
+        or _is_generic_acknowledgement(response)
+        or _response_describes_executed_call(response, executed_calls, entities)
+    )
 
 
 def _tool_failure_response(
@@ -1753,36 +1881,33 @@ class LLMClient:
                     }
                 parsed = self._parse_architect_response(result_text)
                 if tool_log:
-                    parsed = _suppress_duplicate_command_after_tool(parsed, tool_log)
-                    # When a tool call already fired this turn, the model's
-                    # final answer prose is trusted iff:
-                    #   (a) it starts with the exact synthesized prefix
-                    #       _build_command_confirmation produces (the
-                    #       exhaustion / synthesized-error path), OR
-                    #   (b) it's a generic acknowledgement that names no
-                    #       specific entity ("Done.", "All set."), OR
-                    #   (c) it actually names an entity that was executed
-                    #       (e.g. "Turning off the kitchen light" after
-                    #       light.kitchen ran).
-                    # Otherwise the policy's unbacked-action guard still
-                    # runs, so a hallucinated specific claim about an
-                    # *unexecuted* device (e.g. "Turning off the bedroom
-                    # light" after only the kitchen executed) is caught.
-                    if parsed.get("intent") == "answer" and not parsed.get("calls"):
+                    parsed = _suppress_duplicate_command_after_tool(parsed, tool_log, entities)
+                    # When a tool call already fired this turn AND the
+                    # parser returned an answer without calls, the prose
+                    # may be a legitimate confirmation. _prose_is_trusted_after_tool
+                    # decides whether to bypass the unbacked-action stomp:
+                    #   (a) exact synthesized confirmation prefix, OR
+                    #   (b) generic acknowledgement (no specific claim), OR
+                    #   (c) describes an executed entity with a consistent
+                    #       verb AND no unbacked entity tokens.
+                    # Otherwise the policy guard runs, so a hallucinated
+                    # claim about an unexecuted device gets corrected.
+                    if (
+                        parsed.get("intent") == "answer"
+                        and not parsed.get("calls")
+                        and not parsed.get("suppressed_duplicate_command")
+                    ):
                         executed_calls = _executed_service_calls_from_log(tool_log)
-                        response_text = parsed.get("response", "")
-                        if executed_calls and (
-                            _response_is_synthesized_confirmation(response_text, executed_calls)
-                            or _is_generic_acknowledgement(response_text)
-                            or _response_describes_executed_call(
-                                response_text, executed_calls, entities
-                            )
+                        if _prose_is_trusted_after_tool(
+                            parsed.get("response", ""), executed_calls, entities
                         ):
                             parsed["suppressed_duplicate_command"] = True
                 parsed = self._apply_command_policy(parsed, entities)
                 self._flush_usage("chat", intent=parsed.get("intent"))
                 if tool_log:
                     parsed["tool_calls"] = tool_log
+                # Carry the raw LLM text so dev-mode UI can display it.
+                parsed["raw_response"] = result_text
                 return parsed
 
             # Standard path (no tools)
@@ -1806,6 +1931,7 @@ class LLMClient:
 
             parsed = self._apply_command_policy(self._parse_architect_response(result), entities)
             self._flush_usage("chat", intent=parsed.get("intent"))
+            parsed["raw_response"] = result
             return parsed
 
     async def architect_chat_stream(
@@ -2219,35 +2345,29 @@ class LLMClient:
 
         # The prose we're returning is trustworthy and should bypass the
         # policy's strict unbacked-action guard in four narrow cases:
-        # (a) The entire command block was stripped because every call
-        #     inside matched an executed tool signature. The model wrote
-        #     its prose to accompany the (now-removed) block, so the
-        #     prose is anchored to actions that really ran.
-        # (b) A tool call already fired AND the remaining prose is the
-        #     literal synthesized confirmation produced by
-        #     _build_command_confirmation (the exhaustion path).
-        # (c) A tool call already fired AND the prose is a generic
-        #     acknowledgement that names no specific entity
-        #     ("Done.", "All set.").
-        # (d) A tool call already fired AND the prose names an entity
-        #     that was actually executed ("Turning off the kitchen
-        #     light" after light.kitchen ran).
-        # Free-form action prose that follows a successful tool call but
-        # names a *different* device is NOT trusted — the policy guard
-        # still runs so the user isn't told something happened when it
-        # didn't.
-        if result.get("intent") == "answer":
-            if command_block_fully_stripped:
+        # The prose we're returning is trustworthy and should bypass
+        # the policy's unbacked-action guard in three cases:
+        # (a) The model wrote the prose alongside a ```command``` block
+        #     that fully matched an executed tool signature (the
+        #     command_block_fully_stripped branch). The prose is
+        #     anchored to actions that really ran AND it doesn't claim
+        #     a different known entity. The latter check is the safety
+        #     correction — previously this branch trusted any prose,
+        #     letting a mismatched "Turning off the bedroom" claim
+        #     through after stripping a kitchen-targeted block.
+        # (b)/(c) A tool call already fired AND the prose matches one
+        #     of the trusted shapes from _prose_is_trusted_after_tool
+        #     (synthesized prefix, generic ack, or executed-entity
+        #     describe).
+        if result.get("intent") == "answer" and tool_log:
+            executed_calls = _executed_service_calls_from_log(tool_log)
+            response_text = result.get("response", "")
+            if _prose_is_trusted_after_tool(response_text, executed_calls, entities) or (
+                command_block_fully_stripped
+                and executed_calls
+                and not _response_names_unbacked_entity(response_text, executed_calls, entities)
+            ):
                 result["suppressed_duplicate_command"] = True
-            elif tool_log:
-                executed_calls = _executed_service_calls_from_log(tool_log)
-                response_text = result.get("response", "")
-                if executed_calls and (
-                    _response_is_synthesized_confirmation(response_text, executed_calls)
-                    or _is_generic_acknowledgement(response_text)
-                    or _response_describes_executed_call(response_text, executed_calls, entities)
-                ):
-                    result["suppressed_duplicate_command"] = True
 
         # Apply command safety policy if entities are available.
         # Always run the policy — even when calls is empty — so that
@@ -3342,6 +3462,14 @@ class LLMClient:
 
         Normalises the result to always include 'intent' and 'response'.
         For 'automation' intent, generates automation_yaml server-side.
+
+        Strips ``suppressed_duplicate_command`` — that's an internal trust
+        flag set after duplicate-suppression validates a confirmed-safe
+        path. If we let the model include it in its JSON, a prompt could
+        induce ``{"intent":"command","calls":[...],
+        "suppressed_duplicate_command":true}`` and bypass
+        ``_apply_command_policy`` entirely, executing arbitrary services.
+        Internal callers re-add the flag after parsing when appropriate.
         """
         try:
             start = text.find("{")
@@ -3350,6 +3478,7 @@ class LLMClient:
                 return {"intent": "answer", "response": text}
 
             data: dict[str, Any] = json.loads(text[start : end + 1])
+            data.pop("suppressed_duplicate_command", None)
 
             # Ensure intent is always present
             if "intent" not in data:
@@ -3506,7 +3635,21 @@ class LLMClient:
         # legitimate confirmation, not an unbacked claim. Skip the
         # unbacked-action stomping below so we don't tell the user we
         # didn't do something the tool did.
-        if result.get("suppressed_duplicate_command"):
+        #
+        # SAFETY: the flag is internal and must only be honored when the
+        # result shape matches what the internal setters produce —
+        # ``intent == "answer"`` with no ``calls``. Otherwise this would
+        # be a model-supplied bypass: a prompt could induce
+        # ``{"intent":"command","calls":[...],
+        # "suppressed_duplicate_command":true}`` and skip the entire
+        # safe-command policy before reaching _execute_command_calls.
+        # _parse_architect_response also strips the flag from model JSON
+        # as a first line of defense; this check is the belt+suspenders.
+        if (
+            result.get("suppressed_duplicate_command")
+            and result.get("intent") == "answer"
+            and not result.get("calls")
+        ):
             return result
 
         calls = result.get("calls")

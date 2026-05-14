@@ -46,6 +46,7 @@ export async function _sendMessage() {
   const assistantMsg = {
     role: "assistant",
     content: "",
+    timestamp: new Date(sendStartedAt).toISOString(),
     _streaming: true,
     _sentAt: sendStartedAt,
   };
