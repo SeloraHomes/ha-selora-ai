@@ -125,28 +125,6 @@ def _scene_failed(entity_id: str) -> dict:
     }
 
 
-def test_guard_drops_duplicate_command_call_after_execute_command() -> None:
-    """All calls in parsed are duplicates → downgrade to answer with confirmation."""
-    parsed = {
-        "intent": "command",
-        "response": "Turning off the kitchen light.",
-        "calls": [
-            {
-                "service": "light.turn_off",
-                "target": {"entity_id": "light.kitchen"},
-                "data": {},
-            }
-        ],
-    }
-    tool_log = [_executed("light.turn_off", "light.kitchen")]
-    result = _suppress_duplicate_command_after_tool(parsed, tool_log)
-    assert result["intent"] == "answer"
-    assert result["suppressed_duplicate_command"] is True
-    assert "calls" not in result
-    # Confirmation text is preserved — Fix #1: not stomped by command policy
-    assert "kitchen light" in result["response"].lower()
-
-
 def test_guard_never_suppresses_delayed_command() -> None:
     """Delayed actions are future-scheduled — never duplicates of immediate ones."""
     parsed = {
@@ -846,24 +824,12 @@ def test_policy_rejects_bypass_flag_with_command_intent(hass) -> None:
     assert "validation_error" in final
 
 
-def test_policy_honors_bypass_only_for_answer_with_no_calls(hass) -> None:
-    """The internal setters always produce intent=answer with no calls.
-    The policy short-circuits in that shape only.
-    """
-    client = _make_client(hass)
-    legit = {
-        "intent": "answer",
-        "response": "Turning off the kitchen light.",
-        "suppressed_duplicate_command": True,
-    }
-    final = client._apply_command_policy(legit, entities=[])
-    assert final["response"] == "Turning off the kitchen light."
-    assert "validation_error" not in final
-
-
 def test_policy_preserves_confirmation_after_suppression(hass) -> None:
-    """Fix #1: _apply_command_policy must not stomp the confirmation text
-    when the duplicate guard has already converted the turn to 'answer'.
+    """When the duplicate guard has set suppressed_duplicate_command on an
+    intent=answer/no-calls result, _apply_command_policy must short-circuit
+    so the confirmation prose isn't stomped by the unbacked-action guard.
+    This is the only shape the policy honors the flag in — see
+    test_policy_rejects_bypass_flag_with_command_intent for the negative.
     """
     client = _make_client(hass)
     # Simulate what _suppress_duplicate_command_after_tool produces.
@@ -875,7 +841,6 @@ def test_policy_preserves_confirmation_after_suppression(hass) -> None:
     result = client._apply_command_policy(suppressed, entities=[])
     assert result["response"] == "Turning off the kitchen light."
     assert "validation_error" not in result
-    # Old bug: result["response"] would become "I'm not sure which device…"
 
 
 # ── parse_streamed_response with tool_log ───────────────────────────────────
@@ -1105,10 +1070,12 @@ def test_guard_suppresses_exact_match_including_data() -> None:
 
 
 def test_guard_full_strip_flag_requires_prose_trust() -> None:
-    """When the duplicate stripper downgrades to answer, the trust flag
-    is set ONLY when the prose actually describes the executed action.
-    Generic 'Done.' is trusted; specific action prose must name the
-    executed entity (with entities snapshot to cross-check).
+    """When the duplicate stripper downgrades to answer, every full-strip
+    result has intent=answer with no remaining calls (so
+    _execute_command_calls won't double-fire). The trust flag on top of
+    that is set ONLY when the prose actually describes the executed
+    action — generic 'Done.' or specific prose naming the executed
+    entity. Prose naming an unexecuted entity is rejected.
     """
     tool_log = [_executed("light.turn_on", "light.kitchen", {"brightness_pct": 60})]
     entities = [
@@ -1116,7 +1083,7 @@ def test_guard_full_strip_flag_requires_prose_trust() -> None:
         {"entity_id": "light.bedroom", "state": "off", "attributes": {}},
     ]
 
-    # (1) Generic ack — flag set.
+    # (1) Generic ack — flag set; calls removed; intent downgraded.
     parsed_ack = {
         "intent": "command",
         "response": "Done.",
@@ -1129,17 +1096,28 @@ def test_guard_full_strip_flag_requires_prose_trust() -> None:
         ],
     }
     result = _suppress_duplicate_command_after_tool(parsed_ack, tool_log, entities)
+    assert result["intent"] == "answer"
+    assert "calls" not in result
     assert result["suppressed_duplicate_command"] is True
+    # Prose preserved verbatim.
+    assert result["response"] == "Done."
 
-    # (2) Specific prose naming executed entity — flag set.
+    # (2) Specific prose naming executed entity — flag set; prose preserved.
     parsed_named = dict(parsed_ack, response="Setting the kitchen light to 60%.")
     result = _suppress_duplicate_command_after_tool(parsed_named, tool_log, entities)
+    assert result["intent"] == "answer"
+    assert "calls" not in result
     assert result["suppressed_duplicate_command"] is True
+    assert "kitchen light" in result["response"].lower()
 
-    # (3) Specific prose naming an UNEXECUTED entity — flag NOT set
-    # (this is the reviewer's regression scenario).
+    # (3) Specific prose naming an UNEXECUTED entity — flag NOT set,
+    # so _apply_command_policy still runs the unbacked-action guard.
+    # Calls still removed and intent downgraded — duplicate dispatch
+    # is prevented regardless of the trust outcome.
     parsed_bad = dict(parsed_ack, response="Turning off the bedroom light.")
     result = _suppress_duplicate_command_after_tool(parsed_bad, tool_log, entities)
+    assert result["intent"] == "answer"
+    assert "calls" not in result
     assert "suppressed_duplicate_command" not in result
 
 
