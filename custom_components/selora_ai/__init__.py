@@ -1512,7 +1512,21 @@ def _inject_entity_markers(
                         after_ok = end >= len(line_lower) or not line_lower[end].isalnum()
                         overlap = any(pos < e and end > s for s, e in consumed)
                         if before_ok and after_ok and not overlap:
-                            consumed.append((pos, end))
+                            # Swallow a trailing parenthesized area
+                            # annotation. LLMs append the area to a
+                            # device mention even when the friendly_name
+                            # doesn't include it ("Ceiling Lights
+                            # (Kitchen)"). Without this, the orphaned
+                            # "(Kitchen)" word-matches a shorter
+                            # friendly_name from another domain
+                            # (e.g. media_player.kitchen) and surfaces
+                            # a spurious tile.
+                            consume_end = end
+                            tail = line_lower[end:]
+                            paren_match = re.match(r"\s*\(([^()\n]*)\)", tail)
+                            if paren_match:
+                                consume_end = end + paren_match.end()
+                            consumed.append((pos, consume_end))
                             prose_eids.append(eid)
                             matched = True
                             break

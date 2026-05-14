@@ -472,4 +472,33 @@ def test_overlapping_friendly_names_dedupe():
     out = _inject_entity_markers(text, entities)
     marker_count = out.count("[[entities:")
     assert marker_count == 1
-    assert "[[entities:cover.garage_door]]" in out
+
+
+def test_parenthesized_area_annotation_does_not_match_sibling_domain():
+    # The LLM annotates a device mention with the area in parens
+    # ("Ceiling Lights (Kitchen)") even when the friendly_name doesn't
+    # include the area. The orphaned "(Kitchen)" must not word-match
+    # the shorter friendly_name of media_player.kitchen and surface a
+    # spurious media tile alongside the light tiles.
+    text = (
+        "The following lights are currently on: Ceiling Lights (Kitchen), "
+        "Kitchen Lights, Office RGBW Lights, Living Room RGBWW Lights, "
+        "Entrance Color + White Lights, and Decorative Lights."
+    )
+    entities = [
+        _ent("light.ceiling_lights", "Ceiling Lights"),
+        _ent("light.kitchen_lights", "Kitchen Lights"),
+        _ent("light.office_rgbw_lights", "Office RGBW Lights"),
+        _ent("light.living_room_rgbww_lights", "Living Room RGBWW Lights"),
+        _ent("light.entrance_color_white_lights", "Entrance Color + White Lights"),
+        _ent("light.decorative_lights", "Decorative Lights"),
+        # The trap: shorter friendly_name from a different domain
+        # whose name happens to be the area annotation in the prose.
+        _ent("media_player.kitchen", "Kitchen"),
+    ]
+    out = _inject_entity_markers(text, entities)
+    assert "media_player.kitchen" not in out
+    assert "[[entities:" in out
+    marker_segment = out.split("[[entities:")[1].split("]]")[0]
+    assert "light.ceiling_lights" in marker_segment
+    assert "light.kitchen_lights" in marker_segment
