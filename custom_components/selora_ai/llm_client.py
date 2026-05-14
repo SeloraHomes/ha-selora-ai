@@ -1026,11 +1026,13 @@ _PROSE_MATCH_STOPWORDS = frozenset(
 )
 
 
-# Verb patterns that describe the *opposite* of a given service. If the
-# prose contains one of these, the model can't be confirming the matching
-# service — it's describing the inverse action and the policy must run.
-# Only paired services with a real inverse are listed; services like
-# set_temperature or volume_set have no opposite verb in natural language.
+# Verb patterns that describe the *opposite* of a given service. Used by
+# the per-mention proximity check below: when a verb of this shape sits
+# closer than _VERB_PROXIMITY_CHARS to an entity mention in the prose, the
+# mention can't be confirming THIS service — the model is describing the
+# inverse action there. Only paired services with a real inverse are
+# listed; services like set_temperature or volume_set have no opposite
+# verb in natural language.
 _OPPOSITE_VERB_PATTERNS: dict[str, re.Pattern[str]] = {
     "turn_on": re.compile(
         r"\bturn(?:ing|ed)?\s+off\b|\bswitch(?:ing|ed)?\s+off\b|\bshut(?:ting)?\s+off\b",
@@ -1063,68 +1065,161 @@ _OPPOSITE_VERB_PATTERNS: dict[str, re.Pattern[str]] = {
 }
 
 
+# Verb patterns used to locate "the action just performed" relative to an
+# entity mention. We take the closest match ENDING BEFORE the entity
+# position and compare it against the executed service's opposite
+# pattern — this gives per-mention granularity, so a multi-action turn
+# like "Turned off the kitchen and on the porch" can verify each entity
+# pairs with its own correct verb rather than rejecting both calls
+# because both opposite verbs appear somewhere in the response.
+_ACTION_VERB_RE = re.compile(
+    r"\bturn(?:ing|ed)?\s+(?:on|off)\b"
+    r"|\bswitch(?:ing|ed)?\s+(?:on|off)\b"
+    r"|\bshut(?:ting)?\s+off\b"
+    r"|\bopen(?:ing|ed)?\b"
+    r"|\bclos(?:e|ing|ed)\b"
+    r"|\bshut(?:ting)?\b"
+    r"|\bplay(?:ing|ed)?\b"
+    r"|\bpaus(?:e|ing|ed)\b"
+    r"|\bstopp(?:ing|ed)?\b"
+    r"|\bresum(?:e|ing|ed)\b",
+    re.IGNORECASE,
+)
+
+# Maximum char distance between a verb's end and an entity mention's
+# start for the verb to be considered "describing" that entity. Tuned
+# to cover natural phrasings like "turning off the kitchen light" (~22
+# chars) without bleeding into a previous clause.
+_VERB_PROXIMITY_CHARS = 40
+
+
+def _tokens_from_entity_id(entity_id: str) -> list[str]:
+    """Return distinctive object_id tokens, stopword-filtered."""
+    if not isinstance(entity_id, str) or "." not in entity_id:
+        return []
+    object_id = entity_id.split(".", 1)[-1].lower()
+    return [
+        t for t in re.split(r"[._\s]+", object_id) if len(t) > 2 and t not in _PROSE_MATCH_STOPWORDS
+    ]
+
+
+def _entity_ids_from_call(call: dict[str, Any]) -> list[str]:
+    """Return the entity_id list for a ServiceCallDict-shaped call."""
+    target = call.get("target") or {}
+    raw = target.get("entity_id") if isinstance(target, dict) else None
+    if isinstance(raw, str):
+        return [raw] if raw else []
+    if isinstance(raw, list):
+        return [x for x in raw if isinstance(x, str)]
+    return []
+
+
+def _nearest_verb_before(
+    haystack: str, position: int, *, max_distance: int = _VERB_PROXIMITY_CHARS
+) -> str | None:
+    """Return the closest action-verb match that ends before *position*.
+
+    Limited to ``max_distance`` chars so a verb in a previous clause
+    doesn't get tied to an unrelated entity mention. Returns None when
+    no verb is within range.
+    """
+    best: str | None = None
+    best_dist = max_distance + 1
+    for m in _ACTION_VERB_RE.finditer(haystack[:position]):
+        dist = position - m.end()
+        if dist < best_dist:
+            best_dist = dist
+            best = m.group(0)
+    return best
+
+
 def _response_describes_executed_call(
     response: str,
     executed_calls: list[dict[str, Any]],
+    entities: list[EntitySnapshot] | None = None,
 ) -> bool:
-    """True if *response* names at least one entity that was actually
-    executed AND does not contradict its action.
+    """True iff every entity-naming claim in *response* is backed by an
+    actually executed call (and verb-consistent with it).
 
-    Two-stage check:
+    Two stages:
 
-    1. **Action-verb consistency.** For each executed call we look up the
-       opposite-verb pattern (e.g. ``turn_on`` → ``\\bturn(?:ing|ed)?\\s+off\\b``).
-       If the prose contains an opposite verb for this service, the prose
-       can't be a confirmation of THIS call — skip to the next call. This
-       catches the failure mode where ``execute_command(light.turn_on,
-       light.kitchen)`` ran but the prose says "Turning off the kitchen
-       light", which would otherwise pass the entity-token check.
+    1. **Unbacked-entity veto.** Using the ``entities`` snapshot (the
+       same filtered set the JSON command path uses), if the prose
+       contains a distinctive token of a *known* entity that was NOT
+       executed — e.g. ``bedroom`` after only ``light.kitchen`` ran —
+       return False. This catches "Turned off the kitchen and bedroom
+       lights" where the bedroom claim is hallucinated. Tokens shared
+       with an executed entity are NOT treated as unbacked.
 
-    2. **Entity token match.** Distinctive tokens from the entity_id's
-       ``object_id`` are checked against the prose with word-boundary
-       matching. Common domain words ("light", "switch") and tokens
-       shorter than three chars are filtered so a sentence about *any*
-       light doesn't auto-match.
+    2. **Per-mention action consistency.** For each executed call, find
+       its entity tokens in the prose. For each occurrence, look at the
+       nearest action verb within ``_VERB_PROXIMITY_CHARS`` *before*
+       the entity. If that verb is the opposite of the executed
+       service, this particular mention doesn't back the call (skip
+       it). Otherwise count the mention as backing. The proximity
+       scope is what makes a mixed-inverse turn — e.g. "Turned off the
+       kitchen and on the porch" with both ``turn_off light.kitchen``
+       and ``turn_on light.porch`` executed — match correctly, because
+       each entity pairs with its own verb rather than the union of all
+       verbs.
 
-    Both conditions must hold for at least one executed call to trust the
-    prose. A natural-language confirmation like "Turning off the kitchen
-    light" after ``execute_command(light.turn_off, light.kitchen)`` ran
-    passes; "Turning off the bedroom light" (different device) and
-    "Turning on the kitchen light" (opposite action) both fail.
+    Returns True iff stage 1 passes AND at least one executed call has
+    a backed mention from stage 2. When ``entities`` is None, stage 1
+    is skipped (no snapshot to cross-check against).
     """
     if not response or not executed_calls:
         return False
     haystack = response.lower()
+
+    executed_ids: set[str] = set()
+    for call in executed_calls:
+        executed_ids.update(_entity_ids_from_call(call))
+    all_executed_tokens: set[str] = set()
+    for eid in executed_ids:
+        all_executed_tokens.update(_tokens_from_entity_id(eid))
+
+    # Stage 1: unbacked-entity veto. A token is "unbacked" only when no
+    # executed entity shares it — so a token like "kitchen" appearing
+    # both in executed light.kitchen and non-executed sensor.kitchen_temp
+    # is fine (the prose mention could be referring to the executed one).
+    if entities:
+        for e in entities:
+            eid = e.get("entity_id", "") if isinstance(e, dict) else ""
+            if not eid or eid in executed_ids:
+                continue
+            for token in _tokens_from_entity_id(eid):
+                if token in all_executed_tokens:
+                    continue
+                if re.search(rf"\b{re.escape(token)}\b", haystack):
+                    return False
+
+    # Stage 2: per-mention action consistency. At least one executed
+    # call must have an entity mention whose nearest preceding verb
+    # isn't the opposite of its service.
     for call in executed_calls:
         service = str(call.get("service", "")).strip()
         if "." not in service:
             continue
         service_name = service.split(".", 1)[1]
-        # Stage 1: opposite-verb veto. If the prose contains a verb that
-        # is the inverse of this call's service, this call can't be the
-        # one being described.
         opposite = _OPPOSITE_VERB_PATTERNS.get(service_name)
-        if opposite is not None and opposite.search(haystack):
-            continue
-        # Stage 2: entity-token match.
-        target = call.get("target") or {}
-        entity_ids = target.get("entity_id") or []
-        if isinstance(entity_ids, str):
-            entity_ids = [entity_ids]
-        if not isinstance(entity_ids, list):
-            continue
-        for eid in entity_ids:
-            if not isinstance(eid, str) or "." not in eid:
-                continue
-            object_id = eid.split(".", 1)[-1].lower()
-            tokens = [
-                t
-                for t in re.split(r"[._\s]+", object_id)
-                if len(t) > 2 and t not in _PROSE_MATCH_STOPWORDS
-            ]
-            for token in tokens:
-                # Word-boundary match so "kitchen" doesn't match "chick".
-                if re.search(rf"\b{re.escape(token)}\b", haystack):
+
+        for eid in _entity_ids_from_call(call):
+            for token in _tokens_from_entity_id(eid):
+                for m in re.finditer(rf"\b{re.escape(token)}\b", haystack):
+                    if opposite is None:
+                        # No opposite verb defined for this service —
+                        # any mention is acceptable.
+                        return True
+                    verb = _nearest_verb_before(haystack, m.start())
+                    if verb is None:
+                        # No verb within proximity — give the benefit
+                        # of the doubt ("Done. Kitchen light." style).
+                        return True
+                    if opposite.search(verb):
+                        # Verb describes the inverse — this mention
+                        # doesn't back THIS call. Try the next
+                        # occurrence / token / call.
+                        continue
                     return True
     return False
 
@@ -1679,7 +1774,9 @@ class LLMClient:
                         if executed_calls and (
                             _response_is_synthesized_confirmation(response_text, executed_calls)
                             or _is_generic_acknowledgement(response_text)
-                            or _response_describes_executed_call(response_text, executed_calls)
+                            or _response_describes_executed_call(
+                                response_text, executed_calls, entities
+                            )
                         ):
                             parsed["suppressed_duplicate_command"] = True
                 parsed = self._apply_command_policy(parsed, entities)
@@ -2148,7 +2245,7 @@ class LLMClient:
                 if executed_calls and (
                     _response_is_synthesized_confirmation(response_text, executed_calls)
                     or _is_generic_acknowledgement(response_text)
-                    or _response_describes_executed_call(response_text, executed_calls)
+                    or _response_describes_executed_call(response_text, executed_calls, entities)
                 ):
                     result["suppressed_duplicate_command"] = True
 

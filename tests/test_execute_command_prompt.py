@@ -491,6 +491,49 @@ def test_streaming_multi_token_entity_match(hass) -> None:
     assert parsed.get("suppressed_duplicate_command") is True
 
 
+def test_streaming_mixed_inverse_actions_trusted(hass) -> None:
+    """Regression: model runs turn_off(kitchen) and turn_on(porch) via
+    tools, then says 'Turned off the kitchen and turned on the porch.'
+    Per-mention verb proximity must trust this: kitchen pairs with
+    'turned off' (consistent), porch pairs with 'turned on' (consistent).
+    """
+    client = _make_client(hass)
+    tool_log = [
+        _executed("light.turn_off", "light.kitchen"),
+        _executed("light.turn_on", "light.porch"),
+    ]
+    parsed = client.parse_streamed_response(
+        "Turned off the kitchen and turned on the porch.",
+        entities=[_ent("light.kitchen"), _ent("light.porch")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is True
+    assert "didn't run" not in parsed["response"].lower()
+
+
+def test_streaming_unbacked_extra_entity_rejected(hass) -> None:
+    """Regression: tool runs turn_off(kitchen) only, but prose says
+    'Turning off the kitchen and bedroom lights.' The bedroom claim is
+    unbacked — stage 1 must veto because bedroom is a known entity in
+    the snapshot that wasn't executed. Without the veto, the model's
+    mention of bedroom would be silently confirmed.
+    """
+    client = _make_client(hass)
+    tool_log = [_executed("light.turn_off", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        "Turning off the kitchen and bedroom lights.",
+        entities=[_ent("light.kitchen"), _ent("light.bedroom")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is not True
+    # Policy stomps because the flag isn't set and "Turning off…" matches
+    # the unbacked-action regex.
+    assert (
+        "didn't run" in parsed["response"].lower()
+        or "rephrase" in parsed["response"].lower()
+    )
+
+
 def test_response_describes_executed_call_helper() -> None:
     """Direct unit test for the entity-token + action-verb matcher."""
     from custom_components.selora_ai.llm_client import (
@@ -539,6 +582,47 @@ def test_response_describes_executed_call_helper() -> None:
     # Empty inputs.
     assert not _response_describes_executed_call("", executed_off)
     assert not _response_describes_executed_call("Done.", [])
+
+    # Per-mention proximity: mixed inverse actions, both backed.
+    mixed_inverse = [
+        {"service": "light.turn_off", "target": {"entity_id": ["light.kitchen"]}},
+        {"service": "light.turn_on", "target": {"entity_id": ["light.porch"]}},
+    ]
+    assert _response_describes_executed_call(
+        "Turned off the kitchen and turned on the porch.", mixed_inverse
+    )
+    # Each entity's own nearest verb is the correct one, even though both
+    # opposite verbs appear globally in the prose.
+
+    # Per-mention proximity: opposite verb directly adjacent to a single
+    # entity still wins even if the right verb appears farther away.
+    assert not _response_describes_executed_call(
+        "Turned on the kitchen.", executed_off  # turn_off executed
+    )
+
+    # Unbacked-entity veto needs entities snapshot.
+    entities = [
+        {"entity_id": "light.kitchen", "state": "off", "attributes": {}},
+        {"entity_id": "light.bedroom", "state": "off", "attributes": {}},
+    ]
+    # Without entities snapshot — old behavior, just entity-token match.
+    assert _response_describes_executed_call(
+        "Turned off the kitchen and bedroom.", executed_off
+    )
+    # With entities snapshot — bedroom is known but not executed → veto.
+    assert not _response_describes_executed_call(
+        "Turned off the kitchen and bedroom.", executed_off, entities
+    )
+
+    # Shared-token entity isn't unbacked: sensor.kitchen_temp shares
+    # "kitchen" with executed light.kitchen, so the mention is fine.
+    entities_with_shared = [
+        {"entity_id": "light.kitchen", "state": "off", "attributes": {}},
+        {"entity_id": "sensor.kitchen_temp", "state": "20", "attributes": {}},
+    ]
+    assert _response_describes_executed_call(
+        "Turned off the kitchen.", executed_off, entities_with_shared
+    )
 
 
 def test_is_generic_acknowledgement_classifier() -> None:
