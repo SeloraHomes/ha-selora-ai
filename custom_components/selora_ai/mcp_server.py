@@ -254,6 +254,13 @@ TOOL_DISMISS_SUGGESTION = "selora_dismiss_suggestion"
 TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 TOOL_LIST_DEVICES = "selora_list_devices"
 TOOL_GET_DEVICE = "selora_get_device"
+TOOL_GET_ENTITY_STATE = "selora_get_entity_state"
+TOOL_FIND_ENTITIES_BY_AREA = "selora_find_entities_by_area"
+TOOL_VALIDATE_ACTION = "selora_validate_action"
+TOOL_EXECUTE_COMMAND = "selora_execute_command"
+TOOL_SEARCH_ENTITIES = "selora_search_entities"
+TOOL_GET_ENTITY_HISTORY = "selora_get_entity_history"
+TOOL_EVAL_TEMPLATE = "selora_eval_template"
 TOOL_HOME_ANALYTICS = "selora_home_analytics"
 TOOL_LIST_SCENES = "selora_list_scenes"
 TOOL_GET_SCENE = "selora_get_scene"
@@ -276,6 +283,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_CREATE_SCENE,
         TOOL_DELETE_SCENE,
         TOOL_ACTIVATE_SCENE,
+        TOOL_EXECUTE_COMMAND,
     }
 )
 
@@ -292,6 +300,12 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_LIST_SUGGESTIONS,
         TOOL_LIST_DEVICES,
         TOOL_GET_DEVICE,
+        TOOL_GET_ENTITY_STATE,
+        TOOL_FIND_ENTITIES_BY_AREA,
+        TOOL_VALIDATE_ACTION,
+        TOOL_SEARCH_ENTITIES,
+        TOOL_GET_ENTITY_HISTORY,
+        TOOL_EVAL_TEMPLATE,
         TOOL_HOME_ANALYTICS,
         TOOL_LIST_SCENES,
         TOOL_GET_SCENE,
@@ -696,6 +710,13 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_TRIGGER_SCAN: _tool_trigger_scan,
         TOOL_LIST_DEVICES: _tool_list_devices,
         TOOL_GET_DEVICE: _tool_get_device,
+        TOOL_GET_ENTITY_STATE: _tool_get_entity_state,
+        TOOL_FIND_ENTITIES_BY_AREA: _tool_find_entities_by_area,
+        TOOL_VALIDATE_ACTION: _tool_validate_action,
+        TOOL_EXECUTE_COMMAND: _tool_execute_command,
+        TOOL_SEARCH_ENTITIES: _tool_search_entities,
+        TOOL_GET_ENTITY_HISTORY: _tool_get_entity_history,
+        TOOL_EVAL_TEMPLATE: _tool_eval_template,
         TOOL_HOME_ANALYTICS: _tool_home_analytics,
         TOOL_LIST_SCENES: _tool_list_scenes,
         TOOL_GET_SCENE: _tool_get_scene,
@@ -1676,6 +1697,460 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
         "via_device_id": device.via_device_id,
         "entities": entities,
     }
+
+
+# ── Tool: selora_get_entity_state ──────────────────────────────────────────────
+
+# Domain-specific attribute whitelist for get_entity_state. Keeps the response
+# small and avoids leaking diagnostic noise into the LLM context. Mirrors the
+# selection used in _tool_get_device.
+_ENTITY_STATE_ATTRS: dict[str, tuple[str, ...]] = {
+    "light": ("brightness", "color_temp", "color_mode", "rgb_color", "supported_color_modes"),
+    "climate": (
+        "temperature",
+        "current_temperature",
+        "target_temp_high",
+        "target_temp_low",
+        "hvac_action",
+        "hvac_modes",
+        "preset_mode",
+    ),
+    "cover": ("current_position", "current_tilt_position"),
+    "fan": ("percentage", "preset_mode", "oscillating"),
+    "media_player": ("volume_level", "is_volume_muted", "source", "media_title"),
+    "lock": ("code_format",),
+    "sensor": ("device_class", "unit_of_measurement"),
+    "binary_sensor": ("device_class",),
+}
+
+
+async def _tool_get_entity_state(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Return current state and key attributes for a single entity."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entity_id = str(arguments.get("entity_id", "")).strip()
+    if not entity_id:
+        return {"error": "entity_id is required"}
+    if "." not in entity_id:
+        return {"error": f"entity_id '{_sanitize(entity_id)}' is malformed"}
+
+    state = hass.states.get(entity_id)
+    if state is None:
+        return {"error": f"entity '{_sanitize(entity_id)}' not found"}
+
+    ent_reg = er.async_get(hass)
+    area_reg = ar.async_get(hass)
+    entry = ent_reg.async_get(entity_id)
+
+    # Resolve area: entity.area_id first, then fall back to the entity's
+    # device.area_id. Many HA setups assign rooms at the device level only
+    # (Hue bulbs, ESPHome boards, etc.), so without this fallback common
+    # entities show area=null and the LLM loses room context in answers.
+    area_name: str | None = None
+    ent_area_id: str | None = entry.area_id if entry else None
+    if ent_area_id is None and entry and entry.device_id:
+        device = dr.async_get(hass).async_get(entry.device_id)
+        if device:
+            ent_area_id = device.area_id
+    if ent_area_id:
+        area = area_reg.async_get_area(ent_area_id)
+        if area:
+            area_name = area.name
+
+    domain = entity_id.split(".", 1)[0]
+    attrs = state.attributes or {}
+    filtered: dict[str, Any] = {}
+    if "friendly_name" in attrs:
+        filtered["friendly_name"] = _sanitize(attrs["friendly_name"])
+    if "device_class" in attrs:
+        filtered["device_class"] = str(attrs["device_class"])
+    if "unit_of_measurement" in attrs:
+        filtered["unit_of_measurement"] = str(attrs["unit_of_measurement"])
+    for key in _ENTITY_STATE_ATTRS.get(domain, ()):
+        if key in attrs:
+            filtered[key] = attrs[key]
+
+    return {
+        "entity_id": entity_id,
+        "domain": domain,
+        "state": _format_state_value(state.state),
+        "friendly_name": _sanitize(attrs.get("friendly_name", entity_id)),
+        "area": _sanitize(area_name) if area_name else None,
+        "last_changed": state.last_changed.isoformat() if state.last_changed else None,
+        "attributes": filtered,
+    }
+
+
+# ── Tool: selora_find_entities_by_area ─────────────────────────────────────────
+
+
+async def _tool_find_entities_by_area(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Return entities in a given area, optionally filtered by domain."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import entity_registry as er
+
+    area_filter = str(arguments.get("area", "")).strip().lower()
+    domain_filter = str(arguments.get("domain", "")).strip().lower()
+    if not area_filter:
+        return {"error": "area is required"}
+
+    area_reg = ar.async_get(hass)
+    ent_reg = er.async_get(hass)
+    dev_reg = None  # lazy
+
+    # Resolve matching area_ids (case-insensitive substring match)
+    matching_area_ids: dict[str, str] = {}
+    for area in area_reg.async_list_areas():
+        if area_filter in area.name.lower():
+            matching_area_ids[area.id] = area.name
+
+    if not matching_area_ids:
+        return {"entities": [], "count": 0, "area_matches": []}
+
+    entities: list[dict[str, Any]] = []
+    for state in hass.states.async_all():
+        if not is_actionable_entity(state.entity_id):
+            continue
+        domain = state.entity_id.split(".", 1)[0]
+        if domain not in COLLECTOR_DOMAINS:
+            continue
+        if domain_filter and domain != domain_filter:
+            continue
+
+        entry = ent_reg.async_get(state.entity_id)
+        if entry is None:
+            continue
+
+        # Resolve entity area via entity.area_id, falling back to its device.area_id
+        ent_area_id = entry.area_id
+        if ent_area_id is None and entry.device_id:
+            if dev_reg is None:
+                from homeassistant.helpers import device_registry as dr
+
+                dev_reg = dr.async_get(hass)
+            device = dev_reg.async_get(entry.device_id)
+            if device:
+                ent_area_id = device.area_id
+
+        if ent_area_id not in matching_area_ids:
+            continue
+
+        entities.append(
+            {
+                "entity_id": state.entity_id,
+                "domain": domain,
+                "state": _format_state_value(state.state),
+                "friendly_name": _sanitize(state.attributes.get("friendly_name", state.entity_id)),
+                "area": _sanitize(matching_area_ids[ent_area_id]),
+            }
+        )
+
+    return {
+        "entities": entities,
+        "count": len(entities),
+        "area_matches": sorted(matching_area_ids.values()),
+    }
+
+
+# ── Tool: selora_validate_action ───────────────────────────────────────────────
+
+
+async def _tool_validate_action(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Validate a service call against the safe-command policy without executing it."""
+    from .llm_client import validate_command_action
+
+    service = str(arguments.get("service", "")).strip()
+    raw_entity = arguments.get("entity_id")
+    if isinstance(raw_entity, str):
+        target_ids: str | list[str] = raw_entity.strip()
+    elif isinstance(raw_entity, list):
+        target_ids = [str(e).strip() for e in raw_entity if str(e).strip()]
+    else:
+        target_ids = ""
+
+    data = arguments.get("data")
+    if data is not None and not isinstance(data, dict):
+        return {
+            "valid": False,
+            "errors": ["data must be an object"],
+            "service": service,
+            "domain": None,
+            "allowed_data_keys": [],
+        }
+
+    known = {state.entity_id for state in hass.states.async_all()}
+    return validate_command_action(
+        service,
+        target_ids,
+        data,
+        known_entity_ids=known,
+    )
+
+
+# ── Tool: selora_execute_command ───────────────────────────────────────────────
+
+
+async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Validate and execute a service call within the safe-command allowlist.
+
+    Replaces the legacy ``{"intent":"command","calls":[...]}`` JSON path for
+    tool-capable providers. Runs through ``validate_command_action`` first;
+    only forwards to ``hass.services.async_call`` if the call passes the
+    same policy that gates the JSON path — including the same actionable /
+    active / domain filters that ``_collect_entity_states`` applies, so a
+    disabled or non-actionable entity that exists in ``hass.states`` is
+    rejected here just as the JSON path would reject it.
+    """
+    from . import _collect_entity_states
+    from .llm_client import validate_command_action
+
+    service = str(arguments.get("service", "")).strip()
+    raw_entity = arguments.get("entity_id")
+    if isinstance(raw_entity, str):
+        target_ids: list[str] = [raw_entity.strip()] if raw_entity.strip() else []
+    elif isinstance(raw_entity, list):
+        target_ids = [str(e).strip() for e in raw_entity if str(e).strip()]
+    else:
+        return {"valid": False, "errors": ["entity_id must be a string or list of strings"]}
+
+    data_raw = arguments.get("data")
+    if data_raw is not None and not isinstance(data_raw, dict):
+        return {"valid": False, "errors": ["data must be an object"]}
+    data: dict[str, Any] = data_raw or {}
+
+    # Build the allowlist from the same filtered snapshot the chat path
+    # uses, so the tool can't control entities the JSON command path
+    # would reject (unavailable, disabled, non-actionable, off-domain).
+    known = {e["entity_id"] for e in _collect_entity_states(hass) if e.get("entity_id")}
+    validation = validate_command_action(
+        service,
+        target_ids,
+        data,
+        known_entity_ids=known,
+    )
+    if not validation["valid"]:
+        return validation
+
+    domain, service_name = service.split(".", 1)
+    service_data = {"entity_id": target_ids, **data}
+    try:
+        await hass.services.async_call(domain, service_name, service_data, blocking=True)
+    except Exception as exc:  # noqa: BLE001 — surface failure to the LLM
+        _LOGGER.error("execute_command failed for %s: %s", service, exc)
+        return {
+            "executed": False,
+            "service": service,
+            "entity_ids": target_ids,
+            "error": str(exc),
+        }
+
+    # Capture post-execution state so the LLM can confirm to the user.
+    post_states: list[dict[str, Any]] = []
+    for eid in target_ids:
+        state = hass.states.get(eid)
+        if state is not None:
+            post_states.append({"entity_id": eid, "state": _format_state_value(state.state)})
+
+    return {
+        "executed": True,
+        "service": service,
+        "entity_ids": target_ids,
+        "states": post_states,
+    }
+
+
+# ── Tool: selora_search_entities ───────────────────────────────────────────────
+
+
+def _entity_search_score(query_terms: list[str], haystack: str) -> int:
+    """Naive ranking: count how many query terms appear in the haystack."""
+    return sum(1 for term in query_terms if term in haystack)
+
+
+async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Fuzzy search for entities across entity_id, friendly_name, aliases, and area."""
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    query = str(arguments.get("query", "")).strip().lower()
+    domain_filter = str(arguments.get("domain", "")).strip().lower()
+    try:
+        limit = int(arguments.get("limit", 10))
+    except (TypeError, ValueError):
+        limit = 10
+    limit = max(1, min(limit, 25))
+
+    if not query:
+        return {"error": "query is required"}
+
+    query_terms = [t for t in query.split() if t]
+    if not query_terms:
+        return {"error": "query must contain at least one search term"}
+
+    ent_reg = er.async_get(hass)
+    area_reg = ar.async_get(hass)
+    dev_reg = dr.async_get(hass)
+    area_names: dict[str, str] = {a.id: a.name for a in area_reg.async_list_areas()}
+
+    scored: list[tuple[int, dict[str, Any]]] = []
+    for state in hass.states.async_all():
+        if not is_actionable_entity(state.entity_id):
+            continue
+        domain = state.entity_id.split(".", 1)[0]
+        if domain not in COLLECTOR_DOMAINS:
+            continue
+        if domain_filter and domain != domain_filter:
+            continue
+
+        entry = ent_reg.async_get(state.entity_id)
+        friendly = str(state.attributes.get("friendly_name", "")).lower()
+        aliases = ""
+        ent_area_id: str | None = None
+        if entry is not None:
+            aliases = " ".join(entry.aliases).lower() if entry.aliases else ""
+            ent_area_id = entry.area_id
+            if ent_area_id is None and entry.device_id:
+                device = dev_reg.async_get(entry.device_id)
+                if device:
+                    ent_area_id = device.area_id
+
+        area_name = area_names.get(ent_area_id or "", "").lower()
+        haystack = " ".join([state.entity_id.lower(), friendly, aliases, area_name])
+        score = _entity_search_score(query_terms, haystack)
+        if score == 0:
+            continue
+
+        scored.append(
+            (
+                score,
+                {
+                    "entity_id": state.entity_id,
+                    "domain": domain,
+                    "state": _format_state_value(state.state),
+                    "friendly_name": _sanitize(
+                        state.attributes.get("friendly_name", state.entity_id)
+                    ),
+                    "area": _sanitize(area_names.get(ent_area_id or "", "")) or None,
+                    "score": score,
+                },
+            )
+        )
+
+    scored.sort(key=lambda x: (-x[0], x[1]["entity_id"]))
+    matches = [item for _, item in scored[:limit]]
+    return {"matches": matches, "count": len(matches), "total_scored": len(scored)}
+
+
+# ── Tool: selora_get_entity_history ────────────────────────────────────────────
+
+
+# Bound the history window: large queries are expensive and tool results are
+# capped at MAX_TOOL_RESULT_CHARS anyway.
+_HISTORY_MAX_HOURS = 24
+_HISTORY_MAX_CHANGES = 50
+
+
+async def _tool_get_entity_history(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Return recent state changes for a single entity from the recorder."""
+    from datetime import UTC, datetime, timedelta
+
+    entity_id = str(arguments.get("entity_id", "")).strip()
+    if not entity_id or "." not in entity_id:
+        return {"error": "entity_id is required (e.g. 'light.kitchen')"}
+    if hass.states.get(entity_id) is None:
+        return {"error": f"entity '{_sanitize(entity_id)}' not found"}
+
+    try:
+        hours = float(arguments.get("hours", 6))
+    except (TypeError, ValueError):
+        hours = 6.0
+    hours = max(0.25, min(hours, float(_HISTORY_MAX_HOURS)))
+
+    try:
+        from homeassistant.components.recorder import get_instance
+        from homeassistant.components.recorder.history import get_significant_states
+    except ImportError:
+        return {"error": "recorder is not available"}
+
+    now = datetime.now(UTC)
+    start = now - timedelta(hours=hours)
+
+    try:
+        states = await get_instance(hass).async_add_executor_job(
+            get_significant_states,
+            hass,
+            start,
+            now,
+            [entity_id],
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.exception("get_entity_history failed for %s", entity_id)
+        return {"error": f"history lookup failed: {exc}"}
+
+    entries = states.get(entity_id, []) or []
+    changes: list[dict[str, Any]] = []
+    prev: str | None = None
+    for s in entries:
+        value = _format_state_value(s.state)
+        if value == prev:
+            continue
+        prev = value
+        when = s.last_changed if getattr(s, "last_changed", None) else None
+        changes.append(
+            {
+                "state": value,
+                "at": when.isoformat() if when is not None else None,
+            }
+        )
+
+    truncated = False
+    if len(changes) > _HISTORY_MAX_CHANGES:
+        changes = changes[-_HISTORY_MAX_CHANGES:]
+        truncated = True
+
+    return {
+        "entity_id": entity_id,
+        "hours": hours,
+        "changes": changes,
+        "count": len(changes),
+        "truncated": truncated,
+    }
+
+
+# ── Tool: selora_eval_template ─────────────────────────────────────────────────
+
+
+_TEMPLATE_MAX_CHARS = 1024
+
+
+async def _tool_eval_template(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Evaluate a Home Assistant Jinja template using HA's sandbox."""
+    from homeassistant.exceptions import TemplateError
+    from homeassistant.helpers.template import Template
+
+    raw = arguments.get("template")
+    if not isinstance(raw, str) or not raw.strip():
+        return {"error": "template is required"}
+    if len(raw) > _TEMPLATE_MAX_CHARS:
+        return {"error": f"template exceeds {_TEMPLATE_MAX_CHARS}-character limit"}
+
+    try:
+        tpl = Template(raw, hass)
+        result = tpl.async_render(parse_result=False)
+    except TemplateError as exc:
+        return {"error": f"template error: {exc}"}
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.exception("eval_template failed")
+        return {"error": f"template evaluation failed: {exc}"}
+
+    return {"result": _sanitize(result, limit=_TEMPLATE_MAX_CHARS)}
 
 
 # ── Tool: selora_chat ─────────────────────────────────────────────────────────
@@ -3215,6 +3690,187 @@ _TOOL_DEFINITIONS: list[MCPTool] = [
                     "type": "string",
                     "description": "The HA device registry ID.",
                 }
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_GET_ENTITY_STATE,
+        description=(
+            "Return current state and key attributes for a single Home Assistant entity. "
+            "Use this for targeted state questions ('is the kitchen light on?', 'what's the "
+            "thermostat set to?') instead of pulling the full home snapshot. "
+            "Requires the entity_id (e.g. 'light.kitchen')."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["entity_id"],
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": "Full entity_id (e.g. 'light.kitchen').",
+                }
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_FIND_ENTITIES_BY_AREA,
+        description=(
+            "Return entities located in a given area, optionally filtered by domain. "
+            "Entity area is resolved via the entity registry first, then via its device. "
+            "Use this to pick the right entity_id before issuing a command (e.g. 'find "
+            "lights in the kitchen'). Area is a case-insensitive substring match."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["area"],
+            "properties": {
+                "area": {
+                    "type": "string",
+                    "description": "Area name (case-insensitive substring match).",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Optional domain filter (e.g. 'light', 'climate').",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_VALIDATE_ACTION,
+        description=(
+            "Validate a Home Assistant service call against Selora's safe-command policy "
+            "WITHOUT executing it. Returns 'valid' (bool), 'errors' (list of issues), and "
+            "'allowed_data_keys' (parameters the LLM may include in 'data' for this "
+            "service). Use this before emitting a command to catch wrong-domain, unknown-"
+            "verb, unknown-entity, and unsupported-parameter mistakes."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["service", "entity_id"],
+            "properties": {
+                "service": {
+                    "type": "string",
+                    "description": "Service in '<domain>.<verb>' form (e.g. 'light.turn_on').",
+                },
+                "entity_id": {
+                    "description": "Target entity_id (string or list of strings).",
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}},
+                    ],
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Optional service data payload (e.g. {'brightness_pct': 80}).",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_EXECUTE_COMMAND,
+        description=(
+            "Execute a Home Assistant service call within Selora's safe-command "
+            "allowlist (light, switch, fan, media_player, climate, cover, "
+            "input_boolean, scene). Validates the call against the same policy as "
+            "validate_action before invoking hass.services. Returns the post-"
+            "execution state of each target entity. Requires admin access."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["service", "entity_id"],
+            "properties": {
+                "service": {
+                    "type": "string",
+                    "description": "Service in '<domain>.<verb>' form (e.g. 'light.turn_on').",
+                },
+                "entity_id": {
+                    "description": "Target entity_id (string or list of strings).",
+                    "oneOf": [
+                        {"type": "string"},
+                        {"type": "array", "items": {"type": "string"}},
+                    ],
+                },
+                "data": {
+                    "type": "object",
+                    "description": "Optional service data (e.g. {'brightness_pct': 80}).",
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_SEARCH_ENTITIES,
+        description=(
+            "Fuzzy-search entities by free-text query across entity_id, friendly "
+            "name, registered aliases, and area name. Returns ranked matches "
+            "(score = number of query terms found). Use this when the user names "
+            "a device informally ('kitchen island light', 'master bedroom fan') "
+            "and you need to resolve it to an entity_id before issuing a command."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["query"],
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "Free-text search query (e.g. 'kitchen island light').",
+                },
+                "domain": {
+                    "type": "string",
+                    "description": "Optional domain filter (e.g. 'light').",
+                },
+                "limit": {
+                    "type": "integer",
+                    "description": "Max results to return (1-25, default 10).",
+                    "minimum": 1,
+                    "maximum": 25,
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_GET_ENTITY_HISTORY,
+        description=(
+            "Return recent state changes for a single entity from the Home "
+            "Assistant recorder. Use this for temporal questions ('when did the "
+            "front door last open?', 'how long has the heat been on?'). "
+            f"Window is bounded to {_HISTORY_MAX_HOURS}h and "
+            f"{_HISTORY_MAX_CHANGES} changes."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["entity_id"],
+            "properties": {
+                "entity_id": {
+                    "type": "string",
+                    "description": "Full entity_id (e.g. 'binary_sensor.front_door').",
+                },
+                "hours": {
+                    "type": "number",
+                    "description": f"Hours of history (0.25-{_HISTORY_MAX_HOURS}, default 6).",
+                    "minimum": 0.25,
+                    "maximum": float(_HISTORY_MAX_HOURS),
+                },
+            },
+        },
+    ),
+    MCPTool(
+        name=TOOL_EVAL_TEMPLATE,
+        description=(
+            "Evaluate a Home Assistant Jinja template using HA's sandbox. Use this "
+            "for time math, sun position, presence checks, and arbitrary state "
+            "predicates the LLM cannot derive from snapshots alone. Example: "
+            "{{ states('sensor.outdoor_temp') }}, "
+            "{{ as_timestamp(state_attr('sun.sun','next_setting')) }}. "
+            f"Template is capped at {_TEMPLATE_MAX_CHARS} characters."
+        ),
+        inputSchema={
+            "type": "object",
+            "required": ["template"],
+            "properties": {
+                "template": {
+                    "type": "string",
+                    "description": "Jinja template string (HA sandbox).",
+                },
             },
         },
     ),

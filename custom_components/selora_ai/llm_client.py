@@ -374,6 +374,100 @@ _ALLOWED_COMMAND_SERVICES: dict[str, set[str]] = {
 _SAFE_COMMAND_DOMAINS = ", ".join(sorted(_ALLOWED_COMMAND_SERVICES))
 
 
+def validate_command_action(
+    service: str,
+    entity_id: str | list[str],
+    data: dict[str, Any] | None = None,
+    *,
+    known_entity_ids: set[str] | None = None,
+) -> dict[str, Any]:
+    """Validate a single service call against the safe-command policy.
+
+    Pure function exposed for the ``validate_action`` MCP/chat tool so callers
+    (notably small LLMs) can self-check before emitting a command. Mirrors the
+    per-call checks in ``LLMClient._apply_command_policy`` but does not mutate
+    state and does not perform verb auto-repair — the goal is to surface
+    explicit errors the model can correct, not silently rewrite the call.
+
+    ``known_entity_ids`` is optional; when provided, each target entity_id is
+    checked for membership (so the tool can flag typos). When omitted, only
+    shape and domain rules are enforced.
+    """
+    errors: list[str] = []
+    service = (service or "").strip()
+    if "." not in service:
+        return {
+            "valid": False,
+            "errors": ["service must be in '<domain>.<verb>' form"],
+            "service": service,
+            "domain": None,
+            "allowed_data_keys": [],
+        }
+
+    domain, service_name = service.split(".", 1)
+    if domain not in _ALLOWED_COMMAND_SERVICES:
+        return {
+            "valid": False,
+            "errors": [
+                f"domain '{domain}' is outside the safe command allowlist ({_SAFE_COMMAND_DOMAINS})"
+            ],
+            "service": service,
+            "domain": domain,
+            "allowed_data_keys": [],
+            "allowed_services": sorted(_ALLOWED_COMMAND_SERVICES),
+        }
+
+    allowed_services = sorted(_ALLOWED_COMMAND_SERVICES[domain])
+    if service_name not in _ALLOWED_COMMAND_SERVICES[domain]:
+        errors.append(
+            f"'{service}' is not a valid {domain} service; expected one of "
+            f"{', '.join(allowed_services)}"
+        )
+
+    if isinstance(entity_id, str):
+        target_ids = [entity_id] if entity_id else []
+    elif isinstance(entity_id, list) and all(isinstance(eid, str) for eid in entity_id):
+        target_ids = entity_id
+    else:
+        errors.append("entity_id must be a string or list of strings")
+        target_ids = []
+
+    if not target_ids:
+        errors.append("at least one entity_id is required")
+    elif len(target_ids) > _MAX_TARGET_ENTITIES:
+        errors.append(f"too many entity_ids targeted at once (max {_MAX_TARGET_ENTITIES})")
+
+    for eid in target_ids:
+        if "." not in eid:
+            errors.append(f"entity_id '{eid}' is not in '<domain>.<object_id>' form")
+            continue
+        ent_domain = eid.split(".", 1)[0]
+        if ent_domain != domain:
+            errors.append(f"entity_id '{eid}' is in the {ent_domain} domain, not {domain}")
+        if known_entity_ids is not None and eid not in known_entity_ids:
+            errors.append(f"entity_id '{eid}' is not known to Home Assistant")
+
+    allowed_data_keys = sorted(_COMMAND_SERVICE_POLICIES.get(domain, {}).get(service_name, set()))
+    if data is not None and not isinstance(data, dict):
+        errors.append("data must be an object")
+    elif isinstance(data, dict) and data:
+        extra = sorted(set(data) - set(allowed_data_keys))
+        if extra:
+            errors.append(
+                f"unsupported parameters for {service}: {', '.join(extra)} "
+                f"(allowed: {', '.join(allowed_data_keys) or 'none'})"
+            )
+
+    return {
+        "valid": not errors,
+        "errors": errors,
+        "service": service,
+        "domain": domain,
+        "allowed_services": allowed_services,
+        "allowed_data_keys": allowed_data_keys,
+    }
+
+
 # Action-verb → canonical service map per domain. Used to auto-repair
 # the LLM's most common command-shape mistake: emitting a bogus
 # service field like `cover.cover` or `cover.garage_door` (the domain
@@ -609,6 +703,188 @@ _UNBACKED_ACTION_RESPONSE = (
 )
 
 
+_CallSignature = tuple[str, frozenset[str], str]
+
+
+def _data_signature(data: Any) -> str:
+    """Canonical JSON for the service-data payload, excluding entity_id.
+
+    Two calls are only considered duplicates when their data payloads
+    match — otherwise ``light.turn_on(light.kitchen, brightness_pct=60)``
+    looks identical to ``light.turn_on(light.kitchen)`` and the requested
+    brightness would be silently dropped. ``entity_id`` is excluded here
+    because it's already part of the signature's entity-id frozenset.
+    """
+    if not isinstance(data, dict) or not data:
+        return ""
+    cleaned = {k: v for k, v in data.items() if k != "entity_id"}
+    if not cleaned:
+        return ""
+    try:
+        return json.dumps(cleaned, sort_keys=True, default=str)
+    except (TypeError, ValueError):
+        return str(sorted(cleaned.items()))
+
+
+def _executed_call_signatures(
+    tool_log: list[dict[str, Any]],
+) -> set[_CallSignature]:
+    """Return (service, frozenset(entity_ids), data_sig) for each *successful*
+    execute_command.
+
+    A tool invocation is only counted as executed when the recorded result has
+    ``executed == True``. This avoids suppressing a fallback ```command``` block
+    the model emits after validation failure or a HA service exception, where
+    the tool call ran but didn't actually fire the service.
+
+    ``data_sig`` is the canonical JSON of the service-data payload (minus
+    ``entity_id``) so parameterized variants with different ``brightness_pct``,
+    ``temperature``, etc. do not collapse into the same signature.
+    """
+    sigs: set[_CallSignature] = set()
+    for entry in tool_log or []:
+        if entry.get("tool") != "execute_command":
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict) or result.get("executed") is not True:
+            continue
+        # Use the executor-returned service + entity_ids when available
+        # (they reflect any normalisation the handler applied). Fall back
+        # to the raw arguments otherwise.
+        args = entry.get("arguments") or {}
+        service = str(result.get("service") or "").strip()
+        target_ids = result.get("entity_ids")
+        if not service or not isinstance(target_ids, list):
+            service = service or str(args.get("service", "")).strip()
+            raw = args.get("entity_id")
+            if isinstance(raw, str):
+                target_ids = [raw.strip()] if raw.strip() else []
+            elif isinstance(raw, list):
+                target_ids = [str(e).strip() for e in raw if str(e).strip()]
+            else:
+                target_ids = []
+        if not service:
+            continue
+        ids = frozenset(str(e).strip() for e in target_ids if str(e).strip())
+        if not ids:
+            continue
+        data_sig = _data_signature(args.get("data"))
+        sigs.add((service, ids, data_sig))
+    return sigs
+
+
+def _call_signature(
+    call: dict[str, Any],
+    response_text: str = "",
+) -> _CallSignature | None:
+    """Return (service, frozenset(entity_ids), data_sig) for a parsed ServiceCallDict.
+
+    Mirrors the service-name auto-repair performed by ``_apply_command_policy``:
+    when the raw service is malformed for its allowed domain (e.g. the model
+    stuffed the entity_id into the service field — ``cover.garage_door`` instead
+    of ``cover.open_cover``), and ``response_text`` makes the intended verb
+    unambiguous ("Opening the garage door"), the signature is computed against
+    the repaired service. Without this, a malformed echo would slip past the
+    duplicate guard and then be repaired+executed a second time by the policy.
+    """
+    service = str(call.get("service", "")).strip()
+    if not service:
+        return None
+    if "." in service:
+        domain = service.split(".", 1)[0]
+        if domain in _ALLOWED_COMMAND_SERVICES:
+            verb = service.split(".", 1)[1]
+            if verb not in _ALLOWED_COMMAND_SERVICES[domain] and response_text:
+                repaired = _repair_service_name(service, response_text)
+                if repaired and repaired.split(".", 1)[1] in _ALLOWED_COMMAND_SERVICES[domain]:
+                    service = repaired
+    target = call.get("target") or {}
+    raw = target.get("entity_id") if isinstance(target, dict) else None
+    data = call.get("data") if isinstance(call.get("data"), dict) else None
+    if raw is None and data is not None:
+        raw = data.get("entity_id")
+    if isinstance(raw, str):
+        ids = frozenset([raw.strip()] if raw.strip() else [])
+    elif isinstance(raw, list):
+        ids = frozenset(str(e).strip() for e in raw if str(e).strip())
+    else:
+        ids = frozenset()
+    if not ids:
+        return None
+    return service, ids, _data_signature(data)
+
+
+def _suppress_duplicate_command_after_tool(
+    parsed: dict[str, Any],
+    tool_log: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Drop ``command`` calls that duplicate already-executed ``execute_command``.
+
+    The downstream ``_execute_command_calls`` dispatcher runs every entry in
+    ``parsed["calls"]``. If the model both called the ``execute_command`` tool
+    AND echoed the same call in its final JSON, the service would fire twice.
+
+    Only ``intent == "command"`` is affected. ``delayed_command`` is *never*
+    suppressed: a scheduled future action is by definition NOT a duplicate of
+    an immediate action that already fired.
+
+    Calls that target entities/services NOT executed via the tool are left
+    intact — the model may legitimately mix a tool-fired call with another
+    immediate call in the same turn.
+    """
+    if not tool_log:
+        return parsed
+    if parsed.get("intent") != "command":
+        return parsed
+    calls = parsed.get("calls")
+    if not isinstance(calls, list) or not calls:
+        return parsed
+
+    executed = _executed_call_signatures(tool_log)
+    if not executed:
+        return parsed
+
+    response_text = str(parsed.get("response", ""))
+    surviving: list[dict[str, Any]] = []
+    dropped = 0
+    for call in calls:
+        if not isinstance(call, dict):
+            surviving.append(call)
+            continue
+        sig = _call_signature(call, response_text)
+        if sig is not None and sig in executed:
+            dropped += 1
+            continue
+        surviving.append(call)
+
+    if dropped == 0:
+        return parsed
+
+    _LOGGER.info("Suppressed %d duplicate command call(s) already executed via tool", dropped)
+
+    if not surviving:
+        # Every call in the final JSON was a duplicate — downgrade to answer
+        # so _execute_command_calls has nothing to run. The
+        # ``suppressed_duplicate_command`` flag tells _apply_command_policy
+        # to preserve the action-prose confirmation instead of stomping it
+        # with the "I didn't run any action" clarification.
+        return {
+            "intent": "answer",
+            "response": parsed.get("response", "Done."),
+            "suppressed_duplicate_command": True,
+        }
+
+    # Partial strip: surviving calls stay as ``intent: "command"`` and
+    # MUST run through _apply_command_policy so service allowlist, entity
+    # registry, and data-key validation still apply. The flag is NOT set
+    # here — its sole role is to skip the unbacked-action stomp when no
+    # calls remain to validate. Setting it on a command intent with calls
+    # would smuggle the surviving call past the safety policy.
+    new = dict(parsed)
+    new["calls"] = surviving
+    return new
+
+
 def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
     """Build a human-readable confirmation from a list of validated service calls.
 
@@ -641,6 +917,48 @@ def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
     if not parts:
         return "Done."
     return "Done — " + "; ".join(parts) + "."
+
+
+def _executed_service_calls_from_log(
+    tool_log: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    """Return ServiceCallDict-shaped entries for every successful execute_command.
+
+    Used to synthesize confirmations when the tool loop fails *after* one or
+    more services already fired — the user must not be told nothing happened.
+    """
+    calls: list[dict[str, Any]] = []
+    for entry in tool_log or []:
+        if entry.get("tool") != "execute_command":
+            continue
+        result = entry.get("result")
+        if not isinstance(result, dict) or result.get("executed") is not True:
+            continue
+        args = entry.get("arguments") or {}
+        service = str(result.get("service") or args.get("service", "")).strip()
+        entity_ids = result.get("entity_ids") or []
+        if not service or not isinstance(entity_ids, list) or not entity_ids:
+            continue
+        calls.append({"service": service, "target": {"entity_id": list(entity_ids)}})
+    return calls
+
+
+def _tool_failure_response(
+    tool_log: list[dict[str, Any]] | None,
+    *,
+    suffix: str,
+) -> str:
+    """Compose a user-facing message when the tool loop bailed out.
+
+    If any ``execute_command`` already succeeded this turn, the result is
+    something like ``"Done — light turn_off (kitchen). " + suffix`` so the
+    user sees what already happened and is not tempted to retry and run
+    the same service a second time. Otherwise just ``suffix`` is returned.
+    """
+    executed = _executed_service_calls_from_log(tool_log)
+    if not executed:
+        return suffix
+    return _build_command_confirmation(executed) + " " + suffix
 
 
 # ── Shared prompt blocks ────────────────────────────────────────────────────
@@ -1130,18 +1448,32 @@ class LLMClient:
                     )
                     _LOGGER.warning("LLM tool-calling request failed: %s", error)
                     self._flush_usage("chat")
-                    return {
-                        "intent": "answer",
-                        "response": (
+                    # If execute_command already ran this turn, tell the user
+                    # what completed before the connection failed — otherwise
+                    # they retry and the same service fires a second time.
+                    executed = _executed_service_calls_from_log(tool_log)
+                    if executed:
+                        response_text = (
+                            _build_command_confirmation(executed)
+                            + " Then I lost the connection to the LLM — only "
+                            "retry if there's more to do."
+                        )
+                    else:
+                        response_text = (
                             "I encountered an error communicating with the LLM. "
                             "Please check your settings and logs."
-                        ),
+                        )
+                    return {
+                        "intent": "answer",
+                        "response": response_text,
                         "error": error or "llm_request_failed",
                         "config_issue": is_config_issue,
+                        "tool_calls": tool_log,
                     }
-                parsed = self._apply_command_policy(
-                    self._parse_architect_response(result_text), entities
-                )
+                parsed = self._parse_architect_response(result_text)
+                if tool_log:
+                    parsed = _suppress_duplicate_command_after_tool(parsed, tool_log)
+                parsed = self._apply_command_policy(parsed, entities)
                 self._flush_usage("chat", intent=parsed.get("intent"))
                 if tool_log:
                     parsed["tool_calls"] = tool_log
@@ -1344,6 +1676,7 @@ class LLMClient:
         self,
         text: str,
         entities: list[EntitySnapshot] | None = None,
+        tool_log: list[dict[str, Any]] | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text.
 
@@ -1354,9 +1687,15 @@ class LLMClient:
         When *entities* is provided, command-intent results are validated
         through ``_apply_command_policy`` so that unsafe calls are blocked
         even on the streaming path.
+
+        When *tool_log* is provided and includes an ``execute_command``
+        invocation, command/delayed_command JSON is suppressed to prevent
+        double execution (the tool already ran the service).
         """
         # Extract quick_actions block first — it's supplementary and can
-        # appear alongside any other block type.
+        # appear alongside any other block type. Removing it now also lets
+        # the duplicate-strip below see a terminal ```command``` block when
+        # the model emits the order: prose → command → quick_actions.
         quick_actions: list[dict[str, Any]] | None = None
         qa_match = re.search(r"```quick_actions\s*\n?([\s\S]*?)```", text)
         if qa_match:
@@ -1367,6 +1706,69 @@ class LLMClient:
             except (json.JSONDecodeError, ValueError):
                 _LOGGER.warning("Failed to parse quick_actions block")
             text = text[: qa_match.start()] + text[qa_match.end() :]
+
+        # If execute_command ran during the tool loop, the user has already
+        # seen that action take effect. A trailing ```command``` block that
+        # echoes a *duplicate* (service, entity_id, data) signature would
+        # re-execute, so we filter those individual calls out of the block.
+        # Calls that don't match an executed signature stay (the model may
+        # legitimately mix a tool-fired call with another immediate call in
+        # one turn — and for ``toggle`` services in particular, re-running
+        # would undo the user's request).
+        # NEVER strip ```delayed_command``` — a scheduled future action is
+        # by definition not a duplicate of an already-fired immediate one,
+        # and dropping it would silently lose the user's request (e.g.
+        # "turn the fan on now and off in 10 minutes").
+        executed_sigs = _executed_call_signatures(tool_log) if tool_log else set()
+        # When the entire command block is removed because every call inside
+        # was a duplicate of an executed tool call, the model's prose
+        # confirmation ("Turning off the kitchen light.") still ran via the
+        # tool. We track this so the fallback path can mark the result as
+        # suppressed and the policy preserves the prose instead of stomping
+        # it with the "I didn't run any action" clarification.
+        command_block_fully_stripped = False
+        if executed_sigs:
+            # Allow optional trailing whitespace, not just end-of-string,
+            # because the quick_actions extraction above may leave behind
+            # blank lines between the command block and the (now-removed)
+            # quick_actions slot.
+            cmd_match = re.search(r"```command\s*\n?([\s\S]*?)```\s*\Z", text.rstrip())
+            if cmd_match:
+                stripped_text = text.rstrip()
+                # Prose before the block is what the policy's auto-repair
+                # uses to infer the intended verb ("Opening the garage door"
+                # → cover.open_cover). Pass it to _call_signature so a
+                # malformed echo collapses onto the repaired signature.
+                prose_before_block = stripped_text[: cmd_match.start()]
+                try:
+                    block_data = json.loads(cmd_match.group(1).strip())
+                    block_calls = block_data.get("calls", [])
+                    if isinstance(block_calls, list) and block_calls:
+                        surviving: list[dict[str, Any]] = []
+                        for c in block_calls:
+                            sig = (
+                                _call_signature(c, prose_before_block)
+                                if isinstance(c, dict)
+                                else None
+                            )
+                            if sig is not None and sig in executed_sigs:
+                                continue
+                            surviving.append(c)
+                        if len(surviving) < len(block_calls):
+                            if surviving:
+                                rewritten_data = dict(block_data, calls=surviving)
+                                new_block = (
+                                    "```command\n"
+                                    + json.dumps(rewritten_data, ensure_ascii=False)
+                                    + "\n```"
+                                )
+                                text = stripped_text[: cmd_match.start()] + new_block
+                            else:
+                                text = stripped_text[: cmd_match.start()]
+                                command_block_fully_stripped = True
+                except (json.JSONDecodeError, ValueError):
+                    # Malformed block — leave it; downstream parser logs the warning.
+                    pass
 
         # Check for delayed_command fenced block first
         # Check for cancel fenced block — anchored to end so informational
@@ -1509,6 +1911,14 @@ class LLMClient:
         # No fenced block — try the old JSON-only parser
         result = self._parse_architect_response(text)
 
+        # When we got here because the entire command block was stripped as
+        # a duplicate of an executed tool call, the prose left behind is a
+        # legitimate confirmation. Mark it so _apply_command_policy doesn't
+        # rewrite "Turning off the kitchen light." into "I didn't run any
+        # action because no entity clearly matched."
+        if command_block_fully_stripped and result.get("intent") == "answer":
+            result["suppressed_duplicate_command"] = True
+
         # Apply command safety policy if entities are available.
         # Always run the policy — even when calls is empty — so that
         # command intents with no calls get downgraded to "answer".
@@ -1522,10 +1932,19 @@ class LLMClient:
     # ------------------------------------------------------------------
 
     def _get_tools_for_provider(self) -> list[dict[str, Any]]:
-        """Return tool definitions formatted for the current provider."""
+        """Return tool definitions formatted for the current provider.
+
+        Tools marked ``large_context_only`` are dropped for providers with
+        a tight context window (currently only selora_local).
+        """
         from .tool_registry import CHAT_TOOLS
 
-        return [self._provider.format_tool(t) for t in CHAT_TOOLS]
+        low_ctx = self._provider.is_low_context
+        return [
+            self._provider.format_tool(t)
+            for t in CHAT_TOOLS
+            if not (low_ctx and t.large_context_only)
+        ]
 
     async def _send_request_with_tools(
         self,
@@ -1570,6 +1989,7 @@ class LLMClient:
                     {
                         "tool": tool_call["name"],
                         "arguments": tool_call["arguments"],
+                        "result": result,
                     }
                 )
 
@@ -1577,9 +1997,22 @@ class LLMClient:
 
         # Exhausted rounds
         _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
+        exhaustion_text = _tool_failure_response(
+            tool_calls_log,
+            suffix=(
+                "Then I ran out of tool rounds before finishing — please try a "
+                "more specific request only if there's more to do."
+            ),
+        )
+        if not _executed_service_calls_from_log(tool_calls_log):
+            # No completed action — keep the original phrasing so the user
+            # isn't told something ran when nothing did.
+            exhaustion_text = (
+                "I used several tools but couldn't complete the analysis. "
+                "Please try a more specific request."
+            )
         return (
-            "I used several tools but couldn't complete the analysis. "
-            "Please try a more specific request.",
+            exhaustion_text,
             None,
             tool_calls_log,
         )
@@ -1650,8 +2083,17 @@ class LLMClient:
             )
             content_blocks = []
 
-        # Exhausted rounds
-        yield "I used several tools but couldn't complete the analysis."
+        # Exhausted rounds — acknowledge anything execute_command already
+        # fired so the user doesn't retry and double-execute the same service.
+        yield _tool_failure_response(
+            tool_executor.call_log,
+            suffix=(
+                "Then I ran out of tool rounds before finishing — try a more "
+                "specific request only if there's more to do."
+                if _executed_service_calls_from_log(tool_executor.call_log)
+                else "I used several tools but couldn't complete the analysis."
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Chat message building (shared between chat and stream)
@@ -1937,6 +2379,27 @@ class LLMClient:
         method is called from the Assist conversation entity, emit
         friendly names directly instead of markers.
         """
+        execute_command_rules = (
+            "\nTOOL-BASED COMMAND EXECUTION (preferred when entity_id is known):\n"
+            "When you can resolve the user's request to a specific entity_id, prefer "
+            "calling the `execute_command` tool over emitting a `command` intent. "
+            "The tool runs the service call through the same safe-command policy and "
+            "returns the post-execution state, which is more reliable than the JSON "
+            "path on small models.\n"
+            "If you used `execute_command`, the action has ALREADY run — your final "
+            'response MUST be `{"intent":"answer", "response":"<1-sentence '
+            'confirmation>"}`. Do NOT also emit `"intent":"command"` with a `calls` '
+            "array, or the action will execute a second time.\n"
+            "Use the JSON `command` intent only when you must batch multiple calls "
+            "in one turn or when an entity_id is genuinely ambiguous and you want "
+            "the policy validator to flag it.\n"
+            "Helper tools for entity resolution: `search_entities` (fuzzy match by "
+            "name/alias/area), `find_entities_by_area`, `get_entity_state`. Helper "
+            "tool for verb/parameter validation: `validate_action`.\n\n"
+            if tools_available
+            else ""
+        )
+
         if for_assist:
             entity_output_rules = (
                 "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks),\n"
@@ -1993,7 +2456,8 @@ class LLMClient:
             '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
             "WRONG (entity_id stuffed into the service field):\n"
             '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n\n'
-            "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
+            + execute_command_rules
+            + "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
             "{\n"
             '  "intent": "automation",\n'
             '  "response": "1-2 sentence explanation of the automation. Mention any trade-off only if important.",\n'
@@ -2253,7 +2717,23 @@ class LLMClient:
             "WRONG (entity_id stuffed into the service field):\n"
             '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n'
             "NEVER use 'delayed_command' for actions that should happen immediately.\n\n"
-            "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
+            + (
+                "TOOL-BASED COMMAND EXECUTION (preferred when entity_id is known):\n"
+                "When you can resolve the user's request to a specific entity_id, prefer "
+                "calling the `execute_command` tool over appending a ```command``` block. "
+                "The tool runs the service through the same safe-command policy and "
+                "returns the post-execution state.\n"
+                "If you used `execute_command`, the action has ALREADY run — write a "
+                "1-sentence confirmation in prose with the entity marker and DO NOT "
+                "append a ```command``` block, or the action will execute twice.\n"
+                "Append a ```command``` block only when batching multiple calls in one "
+                "turn or when the entity_id is genuinely ambiguous.\n"
+                "Helper tools: `search_entities`, `find_entities_by_area`, "
+                "`get_entity_state`, `validate_action`.\n\n"
+                if tools_available
+                else ""
+            )
+            + "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
             "```delayed_command\n"
             "{\n"
             '  "calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}],\n'
@@ -2689,6 +3169,15 @@ class LLMClient:
         """Reject unsafe immediate commands before any caller can execute them."""
         if not isinstance(result, dict):
             return {"intent": "answer", "response": "Invalid command response"}
+
+        # When the duplicate-execution guard has already converted a turn to
+        # ``intent: "answer"`` because ``execute_command`` actually fired,
+        # action-like response prose ("Turning off the kitchen light") is a
+        # legitimate confirmation, not an unbacked claim. Skip the
+        # unbacked-action stomping below so we don't tell the user we
+        # didn't do something the tool did.
+        if result.get("suppressed_duplicate_command"):
+            return result
 
         calls = result.get("calls")
         if not calls:

@@ -30,6 +30,9 @@ class ToolDef:
     description: str
     params: tuple[ToolParam, ...] = field(default_factory=tuple)
     requires_admin: bool = False
+    # Skip this tool for providers with tight context windows
+    # (provider.is_low_context). Used to keep the selora_local prompt small.
+    large_context_only: bool = False
 
     def to_anthropic(self) -> dict[str, Any]:
         """Anthropic tool_use format: {name, description, input_schema}."""
@@ -185,6 +188,207 @@ TOOL_GET_DEVICE = ToolDef(
     ),
 )
 
+TOOL_GET_ENTITY_STATE = ToolDef(
+    name="get_entity_state",
+    description=(
+        "Return current state and key attributes for a single Home Assistant entity. "
+        "Prefer this over get_home_snapshot for targeted state questions "
+        "('is the kitchen light on?', 'what's the thermostat set to?'). "
+        "Requires the full entity_id (e.g. 'light.kitchen')."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Full entity_id (e.g. 'light.kitchen')",
+            required=True,
+        ),
+    ),
+)
+
+TOOL_FIND_ENTITIES_BY_AREA = ToolDef(
+    name="find_entities_by_area",
+    description=(
+        "Return entities located in a given area, optionally filtered by domain. "
+        "Use this to pick the right entity_id before issuing a command "
+        "(e.g. 'find lights in the kitchen'). Entity area is resolved via the "
+        "entity registry first, then via its device. Area is a case-insensitive "
+        "substring match."
+    ),
+    params=(
+        ToolParam(
+            name="area",
+            type="string",
+            description="Area name (case-insensitive substring match)",
+            required=True,
+        ),
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Optional domain filter (e.g. 'light', 'climate')",
+        ),
+    ),
+)
+
+TOOL_VALIDATE_ACTION = ToolDef(
+    name="validate_action",
+    description=(
+        "Validate a Home Assistant service call against Selora's safe-command "
+        "policy WITHOUT executing it. Returns 'valid' (bool), 'errors', and "
+        "'allowed_data_keys'. Call this before emitting a command if you are "
+        "unsure about the service name, target domain, or which data parameters "
+        "are accepted."
+    ),
+    params=(
+        ToolParam(
+            name="service",
+            type="string",
+            description="Service in '<domain>.<verb>' form (e.g. 'light.turn_on')",
+            required=True,
+        ),
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Target entity_id (single string).",
+            required=True,
+        ),
+        ToolParam(
+            name="data",
+            type="object",
+            description=(
+                "Optional service data payload — e.g. {'brightness_pct': 80} "
+                "for light.turn_on, {'temperature': 21, 'hvac_mode': 'heat'} "
+                "for climate.set_temperature, {'percentage': 50} for "
+                "fan.set_percentage, {'position': 50} for cover.set_cover_position."
+            ),
+        ),
+    ),
+)
+
+TOOL_EXECUTE_COMMAND = ToolDef(
+    name="execute_command",
+    description=(
+        "Execute a Home Assistant service call within the safe-command "
+        "allowlist (light, switch, fan, media_player, climate, cover, "
+        "input_boolean, scene). Validates against the same policy as "
+        "validate_action before invoking hass.services. Returns post-execution "
+        "state. Prefer this over emitting JSON command intents when you have a "
+        "known entity_id. Include the 'data' object for parameterized commands "
+        "(brightness, temperature, volume, position, etc.)."
+    ),
+    params=(
+        ToolParam(
+            name="service",
+            type="string",
+            description="Service in '<domain>.<verb>' form (e.g. 'light.turn_on')",
+            required=True,
+        ),
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Target entity_id (single string).",
+            required=True,
+        ),
+        ToolParam(
+            name="data",
+            type="object",
+            description=(
+                "Service data payload. Required for parameterized commands. "
+                "Examples: {'brightness_pct': 50} for dimming, "
+                "{'temperature': 21} or {'temperature': 21, 'hvac_mode': 'heat'} "
+                "for thermostats, {'percentage': 75} for fans, "
+                "{'volume_level': 0.4} for media players, "
+                "{'position': 30} for cover.set_cover_position. "
+                "Omit when no parameters are needed (e.g. plain turn_on/turn_off)."
+            ),
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_ACTIVATE_SCENE = ToolDef(
+    name="activate_scene",
+    description=(
+        "Activate a Home Assistant scene by entity_id (e.g. 'scene.movie_night'). "
+        "Calls scene.turn_on. Use this when the user names a scene rather than "
+        "individual devices."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Scene entity_id (must start with 'scene.').",
+            required=True,
+        ),
+    ),
+    requires_admin=True,
+)
+
+TOOL_SEARCH_ENTITIES = ToolDef(
+    name="search_entities",
+    description=(
+        "Fuzzy-search entities by free-text query across entity_id, friendly "
+        "name, aliases, and area. Returns ranked matches. Use this when the "
+        "user names a device informally and you need to resolve it to an "
+        "entity_id before issuing a command."
+    ),
+    params=(
+        ToolParam(
+            name="query",
+            type="string",
+            description="Free-text search query (e.g. 'kitchen island light').",
+            required=True,
+        ),
+        ToolParam(
+            name="domain",
+            type="string",
+            description="Optional domain filter (e.g. 'light').",
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_GET_ENTITY_HISTORY = ToolDef(
+    name="get_entity_history",
+    description=(
+        "Return recent state changes for a single entity from the Home "
+        "Assistant recorder. Use for temporal questions ('when did the front "
+        "door last open?'). Bounded to 24h."
+    ),
+    params=(
+        ToolParam(
+            name="entity_id",
+            type="string",
+            description="Full entity_id (e.g. 'binary_sensor.front_door').",
+            required=True,
+        ),
+        ToolParam(
+            name="hours",
+            type="number",
+            description="Hours of history (0.25-24, default 6).",
+        ),
+    ),
+    large_context_only=True,
+)
+
+TOOL_EVAL_TEMPLATE = ToolDef(
+    name="eval_template",
+    description=(
+        "Evaluate a Home Assistant Jinja template using HA's sandbox. Use for "
+        "time math, sun position, presence checks, and predicates that can't be "
+        "derived from snapshots."
+    ),
+    params=(
+        ToolParam(
+            name="template",
+            type="string",
+            description="Jinja template (e.g. \"{{ states('sun.sun') }}\").",
+            required=True,
+        ),
+    ),
+    large_context_only=True,
+)
+
 
 TOOL_LIST_SUGGESTIONS = ToolDef(
     name="list_suggestions",
@@ -255,6 +459,14 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ACCEPT_FLOW,
     TOOL_LIST_DEVICES,
     TOOL_GET_DEVICE,
+    TOOL_GET_ENTITY_STATE,
+    TOOL_FIND_ENTITIES_BY_AREA,
+    TOOL_VALIDATE_ACTION,
+    TOOL_EXECUTE_COMMAND,
+    TOOL_ACTIVATE_SCENE,
+    TOOL_SEARCH_ENTITIES,
+    TOOL_GET_ENTITY_HISTORY,
+    TOOL_EVAL_TEMPLATE,
     TOOL_LIST_SUGGESTIONS,
     TOOL_ACCEPT_SUGGESTION,
     TOOL_DISMISS_SUGGESTION,

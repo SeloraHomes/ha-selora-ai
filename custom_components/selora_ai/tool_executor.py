@@ -33,6 +33,10 @@ class ToolExecutor:
         self._hass = hass
         self._device_manager = device_manager
         self._is_admin = is_admin
+        # Per-request log of tools that successfully dispatched. The
+        # streaming chat handler reads this after the LLM stream ends
+        # to suppress duplicate execute_command JSON blocks.
+        self.call_log: list[dict[str, Any]] = []
 
     async def execute(self, tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
         """Dispatch a tool call and return a JSON-serialisable result."""
@@ -53,9 +57,13 @@ class ToolExecutor:
             result = await handler(arguments)
         except Exception as exc:
             _LOGGER.exception("Tool %s execution failed", tool_name)
-            return {"error": f"Tool execution failed: {exc}"}
+            err_result = {"error": f"Tool execution failed: {exc}"}
+            self.call_log.append({"tool": tool_name, "arguments": arguments, "result": err_result})
+            return err_result
 
-        return _truncate_result(result)
+        truncated = _truncate_result(result)
+        self.call_log.append({"tool": tool_name, "arguments": arguments, "result": truncated})
+        return truncated
 
     @property
     def _handlers(self) -> dict[str, Callable[[dict[str, Any]], Awaitable[dict[str, Any]]]]:
@@ -68,6 +76,14 @@ class ToolExecutor:
             "accept_device_flow": self._accept_device_flow,
             "list_devices": self._list_devices,
             "get_device": self._get_device,
+            "get_entity_state": self._get_entity_state,
+            "find_entities_by_area": self._find_entities_by_area,
+            "validate_action": self._validate_action,
+            "execute_command": self._execute_command,
+            "activate_scene": self._activate_scene,
+            "search_entities": self._search_entities,
+            "get_entity_history": self._get_entity_history,
+            "eval_template": self._eval_template,
             "list_suggestions": self._list_suggestions,
             "accept_suggestion": self._accept_suggestion,
             "dismiss_suggestion": self._dismiss_suggestion,
@@ -96,6 +112,46 @@ class ToolExecutor:
         from .mcp_server import _tool_get_device
 
         return await _tool_get_device(self._hass, arguments)
+
+    async def _get_entity_state(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_get_entity_state
+
+        return await _tool_get_entity_state(self._hass, arguments)
+
+    async def _find_entities_by_area(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_find_entities_by_area
+
+        return await _tool_find_entities_by_area(self._hass, arguments)
+
+    async def _validate_action(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_validate_action
+
+        return await _tool_validate_action(self._hass, arguments)
+
+    async def _execute_command(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_execute_command
+
+        return await _tool_execute_command(self._hass, arguments)
+
+    async def _activate_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_activate_scene
+
+        return await _tool_activate_scene(self._hass, arguments)
+
+    async def _search_entities(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_search_entities
+
+        return await _tool_search_entities(self._hass, arguments)
+
+    async def _get_entity_history(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_get_entity_history
+
+        return await _tool_get_entity_history(self._hass, arguments)
+
+    async def _eval_template(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_eval_template
+
+        return await _tool_eval_template(self._hass, arguments)
 
     _VALID_SUGGESTION_STATUSES = frozenset({"pending", "accepted", "dismissed", "snoozed"})
 
