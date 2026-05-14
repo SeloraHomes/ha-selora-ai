@@ -943,6 +943,192 @@ def _executed_service_calls_from_log(
     return calls
 
 
+def _response_is_synthesized_confirmation(
+    response: str,
+    executed_calls: list[dict[str, Any]],
+) -> bool:
+    """True iff *response* starts with the exact confirmation prefix that
+    ``_build_command_confirmation(executed_calls)`` would produce.
+
+    Used to decide whether to skip the policy's unbacked-action stomp.
+    Matching the literal synthesizer output prevents a broader-flag bug
+    where any free-form action prose written after a successful tool
+    call would be trusted — e.g. the model uses execute_command for
+    light.kitchen and then prose-confirms light.bedroom (which never
+    ran). Such mismatched prose fails this check and remains subject
+    to the policy's safety correction.
+    """
+    if not executed_calls or not response:
+        return False
+    expected_prefix = _build_command_confirmation(executed_calls)
+    return response.strip().startswith(expected_prefix)
+
+
+# Pure-acknowledgement phrases the LLM commonly produces after a successful
+# tool call. They don't name a specific action or device, so they can't
+# falsely claim something that didn't happen — they're safe to trust as
+# "the tool ran, and the model is just nodding." Anything more specific
+# (e.g. "Turning off the bedroom light") must go through the synthesized-
+# prefix check so a hallucinated entity is still caught by the policy.
+_GENERIC_ACK_RE = re.compile(
+    r"^\s*(?:"
+    r"(?:ok[,.\s]+)?done"
+    r"|all\s+set"
+    r"|got\s+it"
+    r"|sure"
+    r")\s*[.!?]*\s*$",
+    re.IGNORECASE,
+)
+
+
+def _is_generic_acknowledgement(response: str) -> bool:
+    """True for short, non-specific confirmations like 'Done.' or 'All set.'.
+
+    Used alongside :func:`_response_is_synthesized_confirmation` to decide
+    whether prose following a successful tool execution is trustworthy.
+    Generic acks make no claim about a specific entity so they're safe
+    even if the model hasn't echoed the executed call verbatim.
+    """
+    if not isinstance(response, str):
+        return False
+    return bool(_GENERIC_ACK_RE.match(response.strip()))
+
+
+# Tokens too generic to anchor a prose-vs-entity match. ``light`` and
+# ``switch`` appear in nearly every entity_id and would otherwise match
+# any sentence about lights/switches. ``ai`` etc. are sub-3-char and
+# already filtered, but the noise list captures the longer common-domain
+# words.
+_PROSE_MATCH_STOPWORDS = frozenset(
+    {
+        "light",
+        "lights",
+        "switch",
+        "switches",
+        "sensor",
+        "sensors",
+        "binary",
+        "media",
+        "player",
+        "input",
+        "boolean",
+        "climate",
+        "cover",
+        "covers",
+        "scene",
+        "scenes",
+        "automation",
+        "the",
+        "and",
+        "for",
+        "with",
+    }
+)
+
+
+# Verb patterns that describe the *opposite* of a given service. If the
+# prose contains one of these, the model can't be confirming the matching
+# service — it's describing the inverse action and the policy must run.
+# Only paired services with a real inverse are listed; services like
+# set_temperature or volume_set have no opposite verb in natural language.
+_OPPOSITE_VERB_PATTERNS: dict[str, re.Pattern[str]] = {
+    "turn_on": re.compile(
+        r"\bturn(?:ing|ed)?\s+off\b|\bswitch(?:ing|ed)?\s+off\b|\bshut(?:ting)?\s+off\b",
+        re.IGNORECASE,
+    ),
+    "turn_off": re.compile(
+        r"\bturn(?:ing|ed)?\s+on\b|\bswitch(?:ing|ed)?\s+on\b",
+        re.IGNORECASE,
+    ),
+    "open_cover": re.compile(
+        r"\bclos(?:e|ing|ed)\b|\bshut(?:ting)?\b",
+        re.IGNORECASE,
+    ),
+    "close_cover": re.compile(
+        r"\bopen(?:ing|ed)?\b",
+        re.IGNORECASE,
+    ),
+    "media_play": re.compile(
+        r"\bpaus(?:e|ing|ed)\b|\bstopp(?:ing|ed)?\b",
+        re.IGNORECASE,
+    ),
+    "media_pause": re.compile(
+        r"\bplay(?:ing|ed)?\b|\bresum(?:e|ing|ed)\b",
+        re.IGNORECASE,
+    ),
+    "media_stop": re.compile(
+        r"\bplay(?:ing|ed)?\b|\bresum(?:e|ing|ed)\b",
+        re.IGNORECASE,
+    ),
+}
+
+
+def _response_describes_executed_call(
+    response: str,
+    executed_calls: list[dict[str, Any]],
+) -> bool:
+    """True if *response* names at least one entity that was actually
+    executed AND does not contradict its action.
+
+    Two-stage check:
+
+    1. **Action-verb consistency.** For each executed call we look up the
+       opposite-verb pattern (e.g. ``turn_on`` → ``\\bturn(?:ing|ed)?\\s+off\\b``).
+       If the prose contains an opposite verb for this service, the prose
+       can't be a confirmation of THIS call — skip to the next call. This
+       catches the failure mode where ``execute_command(light.turn_on,
+       light.kitchen)`` ran but the prose says "Turning off the kitchen
+       light", which would otherwise pass the entity-token check.
+
+    2. **Entity token match.** Distinctive tokens from the entity_id's
+       ``object_id`` are checked against the prose with word-boundary
+       matching. Common domain words ("light", "switch") and tokens
+       shorter than three chars are filtered so a sentence about *any*
+       light doesn't auto-match.
+
+    Both conditions must hold for at least one executed call to trust the
+    prose. A natural-language confirmation like "Turning off the kitchen
+    light" after ``execute_command(light.turn_off, light.kitchen)`` ran
+    passes; "Turning off the bedroom light" (different device) and
+    "Turning on the kitchen light" (opposite action) both fail.
+    """
+    if not response or not executed_calls:
+        return False
+    haystack = response.lower()
+    for call in executed_calls:
+        service = str(call.get("service", "")).strip()
+        if "." not in service:
+            continue
+        service_name = service.split(".", 1)[1]
+        # Stage 1: opposite-verb veto. If the prose contains a verb that
+        # is the inverse of this call's service, this call can't be the
+        # one being described.
+        opposite = _OPPOSITE_VERB_PATTERNS.get(service_name)
+        if opposite is not None and opposite.search(haystack):
+            continue
+        # Stage 2: entity-token match.
+        target = call.get("target") or {}
+        entity_ids = target.get("entity_id") or []
+        if isinstance(entity_ids, str):
+            entity_ids = [entity_ids]
+        if not isinstance(entity_ids, list):
+            continue
+        for eid in entity_ids:
+            if not isinstance(eid, str) or "." not in eid:
+                continue
+            object_id = eid.split(".", 1)[-1].lower()
+            tokens = [
+                t
+                for t in re.split(r"[._\s]+", object_id)
+                if len(t) > 2 and t not in _PROSE_MATCH_STOPWORDS
+            ]
+            for token in tokens:
+                # Word-boundary match so "kitchen" doesn't match "chick".
+                if re.search(rf"\b{re.escape(token)}\b", haystack):
+                    return True
+    return False
+
+
 def _tool_failure_response(
     tool_log: list[dict[str, Any]] | None,
     *,
@@ -1473,20 +1659,29 @@ class LLMClient:
                 parsed = self._parse_architect_response(result_text)
                 if tool_log:
                     parsed = _suppress_duplicate_command_after_tool(parsed, tool_log)
-                    # When the tool loop exhausted, _send_request_with_tools
-                    # synthesizes prose like "Done — light turn_off (kitchen).
-                    # Then I ran out of tool rounds…" which the architect
-                    # parser returns as an answer with no calls. The policy's
-                    # unbacked-action stomp would rewrite "Done —" into the
-                    # "I didn't run any action" clarification, telling the
-                    # user the opposite of what happened. Mark the result so
-                    # the policy preserves the confirmation prose.
-                    if (
-                        parsed.get("intent") == "answer"
-                        and not parsed.get("calls")
-                        and _executed_service_calls_from_log(tool_log)
-                    ):
-                        parsed["suppressed_duplicate_command"] = True
+                    # When a tool call already fired this turn, the model's
+                    # final answer prose is trusted iff:
+                    #   (a) it starts with the exact synthesized prefix
+                    #       _build_command_confirmation produces (the
+                    #       exhaustion / synthesized-error path), OR
+                    #   (b) it's a generic acknowledgement that names no
+                    #       specific entity ("Done.", "All set."), OR
+                    #   (c) it actually names an entity that was executed
+                    #       (e.g. "Turning off the kitchen light" after
+                    #       light.kitchen ran).
+                    # Otherwise the policy's unbacked-action guard still
+                    # runs, so a hallucinated specific claim about an
+                    # *unexecuted* device (e.g. "Turning off the bedroom
+                    # light" after only the kitchen executed) is caught.
+                    if parsed.get("intent") == "answer" and not parsed.get("calls"):
+                        executed_calls = _executed_service_calls_from_log(tool_log)
+                        response_text = parsed.get("response", "")
+                        if executed_calls and (
+                            _response_is_synthesized_confirmation(response_text, executed_calls)
+                            or _is_generic_acknowledgement(response_text)
+                            or _response_describes_executed_call(response_text, executed_calls)
+                        ):
+                            parsed["suppressed_duplicate_command"] = True
                 parsed = self._apply_command_policy(parsed, entities)
                 self._flush_usage("chat", intent=parsed.get("intent"))
                 if tool_log:
@@ -1925,22 +2120,37 @@ class LLMClient:
         # No fenced block — try the old JSON-only parser
         result = self._parse_architect_response(text)
 
-        # The prose we're returning describes a real executed action when
-        # either:
-        # (a) the entire command block was stripped as a duplicate of an
-        #     executed tool call, or
-        # (b) the tool loop bailed out (provider error / exhausted rounds)
-        #     after execute_command already fired, and the synthesized
-        #     confirmation appears here as plain prose.
-        # In both cases the policy's strict unbacked-action guard would
-        # otherwise rewrite the response into "I didn't run any action",
-        # telling the user the opposite of what happened. Mark the result
-        # so the policy preserves the confirmation prose.
-        if result.get("intent") == "answer" and (
-            command_block_fully_stripped
-            or (tool_log and _executed_service_calls_from_log(tool_log))
-        ):
-            result["suppressed_duplicate_command"] = True
+        # The prose we're returning is trustworthy and should bypass the
+        # policy's strict unbacked-action guard in four narrow cases:
+        # (a) The entire command block was stripped because every call
+        #     inside matched an executed tool signature. The model wrote
+        #     its prose to accompany the (now-removed) block, so the
+        #     prose is anchored to actions that really ran.
+        # (b) A tool call already fired AND the remaining prose is the
+        #     literal synthesized confirmation produced by
+        #     _build_command_confirmation (the exhaustion path).
+        # (c) A tool call already fired AND the prose is a generic
+        #     acknowledgement that names no specific entity
+        #     ("Done.", "All set.").
+        # (d) A tool call already fired AND the prose names an entity
+        #     that was actually executed ("Turning off the kitchen
+        #     light" after light.kitchen ran).
+        # Free-form action prose that follows a successful tool call but
+        # names a *different* device is NOT trusted — the policy guard
+        # still runs so the user isn't told something happened when it
+        # didn't.
+        if result.get("intent") == "answer":
+            if command_block_fully_stripped:
+                result["suppressed_duplicate_command"] = True
+            elif tool_log:
+                executed_calls = _executed_service_calls_from_log(tool_log)
+                response_text = result.get("response", "")
+                if executed_calls and (
+                    _response_is_synthesized_confirmation(response_text, executed_calls)
+                    or _is_generic_acknowledgement(response_text)
+                    or _response_describes_executed_call(response_text, executed_calls)
+                ):
+                    result["suppressed_duplicate_command"] = True
 
         # Apply command safety policy if entities are available.
         # Always run the policy — even when calls is empty — so that

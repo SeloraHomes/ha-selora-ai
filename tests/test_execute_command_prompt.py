@@ -346,20 +346,23 @@ def test_tool_failure_response_no_executed_call() -> None:
 
 
 def test_streaming_exhaustion_confirmation_survives_policy(hass) -> None:
-    """Regression: tool-loop exhaustion synthesizes 'Done — ...' prose; the
-    streaming parser must mark it suppressed so the policy doesn't rewrite
-    it to 'I didn't run any action'. Same logic covers the JSON path via
-    architect_chat — tested here through parse_streamed_response.
+    """Regression: tool-loop exhaustion synthesizes prose via
+    _build_command_confirmation; the streaming parser must mark it
+    suppressed so the policy doesn't rewrite it to 'I didn't run any
+    action'. Same logic covers the JSON path via architect_chat.
     """
     client = _make_client(hass)
-    # Pure prose, no fenced blocks — what _stream_request_with_tools yields
-    # on exhaustion after execute_command already fired.
-    text = (
-        "Done — light turn_off (kitchen). Then I ran out of tool rounds "
-        "before finishing — try a more specific request only if there's "
-        "more to do."
-    )
     tool_log = [_executed("light.turn_off", "light.kitchen")]
+    executed_calls = _executed_service_calls_from_log(tool_log)
+    # Build the exact prose the synthesizer (_tool_failure_response)
+    # would produce. Anchoring to the helper output ensures the test
+    # mirrors the real path that _stream_request_with_tools takes on
+    # exhaustion.
+    text = (
+        _build_command_confirmation(executed_calls)
+        + " Then I ran out of tool rounds before finishing — try a more "
+        "specific request only if there's more to do."
+    )
     parsed = client.parse_streamed_response(
         text, entities=[_ent("light.kitchen")], tool_log=tool_log
     )
@@ -383,6 +386,208 @@ def test_streaming_no_flag_when_no_tool_executed(hass) -> None:
     )
     # Failed validation in tool_log → no executed signature → no flag.
     assert parsed.get("suppressed_duplicate_command") is not True
+
+
+def test_streaming_no_flag_for_unbacked_claim_after_tool(hass) -> None:
+    """Regression: tool ran for kitchen, but the model's free-form prose
+    claims an action on a *different* device that never ran. The flag
+    must NOT be set — the policy's unbacked-action guard must still kick
+    in so the user isn't told a bedroom action happened when it didn't.
+    """
+    client = _make_client(hass)
+    # Prose claims bedroom action with no command block. "Turning off"
+    # triggers _looks_like_unbacked_action, and the prose does NOT match
+    # the synthesized "Done — light turn off (kitchen)." prefix that
+    # _build_command_confirmation would produce for the executed call.
+    text = "Turning off the bedroom light."
+    tool_log = [_executed("light.turn_off", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        text,
+        entities=[_ent("light.kitchen"), _ent("light.bedroom")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is not True
+    # Policy stomps the unbacked action prose with the clarification.
+    assert "didn't run" in parsed["response"].lower() or "rephrase" in parsed["response"].lower()
+
+
+def test_streaming_generic_ack_survives_policy_after_tool(hass) -> None:
+    """Regression: model returns a generic 'Done.' after the tool fired.
+    The policy's unbacked-action regex matches 'done', and without the
+    suppression flag the prose would be rewritten to 'I didn't run any
+    action'. Generic acks must be trusted when a tool ran.
+    """
+    client = _make_client(hass)
+    tool_log = [_executed("light.turn_off", "light.kitchen")]
+    # Try each generic-ack variant.
+    for ack in ("Done.", "Done!", "All set.", "Got it.", "OK, done.", "Sure."):
+        parsed = client.parse_streamed_response(
+            ack, entities=[_ent("light.kitchen")], tool_log=tool_log
+        )
+        assert parsed.get("suppressed_duplicate_command") is True, (
+            f"generic ack {ack!r} should be trusted after successful tool"
+        )
+        assert parsed["response"] == ack
+        assert "didn't run" not in parsed["response"].lower()
+
+
+def test_streaming_generic_ack_without_tool_not_trusted(hass) -> None:
+    """A bare 'Done.' without any tool execution is still an unbacked
+    claim — policy stomps. The generic-ack trust only applies when a
+    successful execute_command is in the log.
+    """
+    client = _make_client(hass)
+    parsed = client.parse_streamed_response(
+        "Done.", entities=[_ent("light.kitchen")], tool_log=None
+    )
+    assert parsed.get("suppressed_duplicate_command") is not True
+
+
+def test_streaming_same_action_natural_prose_survives_policy(hass) -> None:
+    """Regression: tool ran light.kitchen, model returns natural-prose
+    confirmation that names the same entity ('Turning off the kitchen
+    light'). Must trust — not a hallucination, just a non-synthesized
+    confirmation of the actual action.
+    """
+    client = _make_client(hass)
+    tool_log = [_executed("light.turn_off", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        "Turning off the kitchen light.",
+        entities=[_ent("light.kitchen")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is True
+    assert parsed["response"] == "Turning off the kitchen light."
+    assert "didn't run" not in parsed["response"].lower()
+
+
+def test_streaming_opposite_action_prose_not_trusted(hass) -> None:
+    """Regression: tool ran light.turn_on for kitchen, but prose says
+    'Turning off'. Same entity, opposite action — must NOT trust, so
+    policy stomps the contradictory claim instead of confirming an
+    action that didn't happen.
+    """
+    client = _make_client(hass)
+    tool_log = [_executed("light.turn_on", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        "Turning off the kitchen light.",
+        entities=[_ent("light.kitchen")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is not True
+    assert "didn't run" in parsed["response"].lower() or "rephrase" in parsed["response"].lower()
+
+
+def test_streaming_multi_token_entity_match(hass) -> None:
+    """Multi-token entity_id (kitchen_island) — prose matching any non-
+    stopword token still trusts."""
+    client = _make_client(hass)
+    tool_log = [_executed("light.turn_on", "light.kitchen_island")]
+    parsed = client.parse_streamed_response(
+        "Turning on the island lamp at 60%.",
+        entities=[_ent("light.kitchen_island")],
+        tool_log=tool_log,
+    )
+    assert parsed.get("suppressed_duplicate_command") is True
+
+
+def test_response_describes_executed_call_helper() -> None:
+    """Direct unit test for the entity-token + action-verb matcher."""
+    from custom_components.selora_ai.llm_client import (
+        _response_describes_executed_call,
+    )
+
+    executed_off = [{"service": "light.turn_off", "target": {"entity_id": ["light.kitchen"]}}]
+    # Positive: matching action + matching entity.
+    assert _response_describes_executed_call("Turning off the kitchen light.", executed_off)
+    assert _response_describes_executed_call(
+        "Done with the Kitchen Lights, anything else?", executed_off
+    )
+    # Negative: different entity.
+    assert not _response_describes_executed_call("Turning off the bedroom light.", executed_off)
+    # Negative: only domain mentioned (stopword-filtered).
+    assert not _response_describes_executed_call("Turning off the light.", executed_off)
+    # Negative: opposite action even with matching entity.
+    assert not _response_describes_executed_call("Turning on the kitchen light.", executed_off)
+    # Word-boundary: substring of a longer word doesn't match.
+    assert not _response_describes_executed_call("I checked them all.", executed_off)
+
+    # turn_on executed; "Turning off the kitchen light" must NOT trust.
+    executed_on = [{"service": "light.turn_on", "target": {"entity_id": ["light.kitchen"]}}]
+    assert not _response_describes_executed_call("Turning off the kitchen light.", executed_on)
+    assert _response_describes_executed_call("Turning on the kitchen light.", executed_on)
+
+    # Cover open vs close.
+    executed_open = [{"service": "cover.open_cover", "target": {"entity_id": ["cover.garage"]}}]
+    assert _response_describes_executed_call("Opening the garage door.", executed_open)
+    assert not _response_describes_executed_call("Closing the garage door.", executed_open)
+
+    # Media play vs pause.
+    executed_play = [
+        {"service": "media_player.media_play", "target": {"entity_id": ["media_player.kitchen_tv"]}}
+    ]
+    assert _response_describes_executed_call("Playing the kitchen TV.", executed_play)
+    assert not _response_describes_executed_call("Pausing the kitchen TV.", executed_play)
+
+    # Multi-entity executed — match if ANY entity is named.
+    multi = [
+        {"service": "light.turn_off", "target": {"entity_id": ["light.kitchen"]}},
+        {"service": "light.turn_off", "target": {"entity_id": ["light.bedroom"]}},
+    ]
+    assert _response_describes_executed_call("Bedroom is now off.", multi)
+
+    # Empty inputs.
+    assert not _response_describes_executed_call("", executed_off)
+    assert not _response_describes_executed_call("Done.", [])
+
+
+def test_is_generic_acknowledgement_classifier() -> None:
+    """Unit test the classifier directly — what it accepts and rejects."""
+    from custom_components.selora_ai.llm_client import _is_generic_acknowledgement
+
+    # Accept pure acks
+    for text in (
+        "Done",
+        "Done.",
+        "Done!",
+        "  done. ",
+        "All set",
+        "All set.",
+        "Got it.",
+        "OK, done.",
+        "ok done",
+        "Sure!",
+    ):
+        assert _is_generic_acknowledgement(text), f"should accept: {text!r}"
+
+    # Reject anything specific
+    for text in (
+        "Done — light turn off (kitchen).",
+        "Done turning off the kitchen.",
+        "Turning off the kitchen light.",
+        "I turned off the kitchen light.",
+        "",
+        "Sure thing — opening the door now.",
+    ):
+        assert not _is_generic_acknowledgement(text), f"should reject: {text!r}"
+
+
+def test_response_is_synthesized_confirmation_matches_prefix() -> None:
+    """The helper recognizes the literal _build_command_confirmation output."""
+    from custom_components.selora_ai.llm_client import (
+        _build_command_confirmation,
+        _response_is_synthesized_confirmation,
+    )
+
+    executed = [{"service": "light.turn_off", "target": {"entity_id": ["light.kitchen"]}}]
+    prefix = _build_command_confirmation(executed)
+    assert _response_is_synthesized_confirmation(prefix, executed)
+    assert _response_is_synthesized_confirmation(prefix + " Then I lost the connection.", executed)
+    # Mismatched prose — different entity, doesn't match prefix.
+    assert not _response_is_synthesized_confirmation("Now turning off the bedroom light.", executed)
+    # Empty inputs — no false positives.
+    assert not _response_is_synthesized_confirmation("", executed)
+    assert not _response_is_synthesized_confirmation(prefix, [])
 
 
 def test_policy_preserves_confirmation_after_suppression(hass) -> None:
@@ -477,9 +682,7 @@ def test_parse_streamed_response_preserves_delayed_followup(hass) -> None:
         "```"
     )
     tool_log = [_executed("fan.turn_on", "fan.bedroom")]
-    parsed = client.parse_streamed_response(
-        text, entities=[_ent("fan.bedroom")], tool_log=tool_log
-    )
+    parsed = client.parse_streamed_response(text, entities=[_ent("fan.bedroom")], tool_log=tool_log)
     assert parsed["intent"] == "delayed_command"
     assert parsed.get("delay_seconds") == 600
     assert len(parsed["calls"]) == 1
