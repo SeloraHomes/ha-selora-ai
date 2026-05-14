@@ -77,7 +77,7 @@ def _day_key_for_event(event: LLMUsageEvent) -> str:
     if ts:
         try:
             parsed = datetime.fromisoformat(ts)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             parsed = None
         if parsed is not None:
             return dt_util.as_local(parsed).date().isoformat()

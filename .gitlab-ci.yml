@@ -12,7 +12,7 @@ variables:
 
 .pip-cache: &pip-cache
   cache:
-    key: "pip-py313-$CI_COMMIT_REF_SLUG"
+    key: "pip-py314-$CI_COMMIT_REF_SLUG"
     paths:
       - .cache/pip
 
@@ -32,7 +32,7 @@ workflow:
 
 lint:ruff:
   stage: lint
-  image: python:3.13-slim
+  image: python:3.14-slim
   <<: *pip-cache
   before_script:
     - pip install ruff --quiet
@@ -57,14 +57,14 @@ lint:prettier:
 
 validate:
   stage: test
-  image: python:3.13-slim
+  image: python:3.14-slim
   script:
     - python3 scripts/validate_hacs.py
     - python3 scripts/validate_manifest.py
 
 unit:
   stage: test
-  image: python:3.13-slim
+  image: python:3.14-slim
   <<: *pip-cache
   before_script:
     - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null

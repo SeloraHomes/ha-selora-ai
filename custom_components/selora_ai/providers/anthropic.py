@@ -181,7 +181,7 @@ class AnthropicProvider(LLMProvider):
         raw = line[6:]
         try:
             obj = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         if obj.get("type") == "content_block_delta":
             return obj.get("delta", {}).get("text")
@@ -192,7 +192,7 @@ class AnthropicProvider(LLMProvider):
             return None
         try:
             obj = json.loads(line[6:])
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         evt = obj.get("type", "")
         info: LLMUsageInfo = {}
@@ -235,7 +235,7 @@ class AnthropicProvider(LLMProvider):
                     continue
                 try:
                     event = json.loads(line[6:])
-                except (json.JSONDecodeError, ValueError):
+                except json.JSONDecodeError, ValueError:
                     continue
 
                 usage_part = self.parse_stream_usage(line)
@@ -321,6 +321,6 @@ class AnthropicProvider(LLMProvider):
                     )
                     return False
                 return True
-        except (aiohttp.ClientError, TimeoutError):
+        except aiohttp.ClientError, TimeoutError:
             _LOGGER.exception("Anthropic health check failed")
             return False

@@ -4,7 +4,7 @@ How to set up a local Home Assistant Core instance for Selora AI development.
 
 ## Prerequisites
 
-- Python 3.12+
+- Python 3.14+
 - A running LLM backend (see [LLM Backend Options](#llm-backend-options) below)
 
 ## 1. Create the HA Core environment

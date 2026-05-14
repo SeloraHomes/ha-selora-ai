@@ -65,7 +65,7 @@ custom_components/selora_ai/
 ## Key Conventions
 
 ### Code Style
-- Python 3.12+, async/await throughout
+- Python 3.14+, async/await throughout
 - `from __future__ import annotations` in every file
 - **Fully typed**: every function/method must have parameter and return type annotations
 - Type hints using modern syntax (`str | None`, not `Optional[str]`)
@@ -121,7 +121,7 @@ custom_components/selora_ai/
 
 ```bash
 # Create venv and install deps
-uv venv .venv --python 3.13
+uv venv .venv --python 3.14
 source .venv/bin/activate
 uv pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents
 

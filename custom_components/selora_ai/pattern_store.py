@@ -278,7 +278,7 @@ class PatternStore:
             dt = datetime.fromisoformat(ts)
             local_dt = dt_util.as_local(dt)
             return local_dt.hour
-        except (ValueError, TypeError):
+        except ValueError, TypeError:
             return None
 
     def _rank_entities(

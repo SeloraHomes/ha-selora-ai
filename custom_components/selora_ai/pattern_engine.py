@@ -676,7 +676,7 @@ class PatternEngine:
 def _parse_timestamp(ts: str) -> datetime | None:
     try:
         return datetime.fromisoformat(ts)
-    except (ValueError, TypeError):
+    except ValueError, TypeError:
         return None
 
 

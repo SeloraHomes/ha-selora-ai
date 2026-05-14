@@ -29,9 +29,14 @@ pre-push:
     test-python:
       glob: "**/*.py"
       run: >-
+        REQUIRED_PY="$(cat .python-version)";
+        if [ -d ".venv" ] && ! .venv/bin/python -c "import sys; v='${REQUIRED_PY}'.split('.'); sys.exit(0 if sys.version_info[:len(v)] == tuple(int(p) for p in v) else 1)" 2>/dev/null; then
+          echo "⚙ .venv uses wrong Python (need ${REQUIRED_PY}) — recreating...";
+          rm -rf .venv;
+        fi &&
         if [ ! -d ".venv" ]; then
-          echo "⚙ No .venv found — creating one...";
-          uv venv .venv --python 3.13 &&
+          echo "⚙ No .venv found — creating one with Python ${REQUIRED_PY}...";
+          uv venv .venv --python "${REQUIRED_PY}" &&
           uv pip install --python .venv/bin/python pytest pytest-asyncio pytest-homeassistant-custom-component 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
         fi &&
         .venv/bin/python -m pytest tests/ -q

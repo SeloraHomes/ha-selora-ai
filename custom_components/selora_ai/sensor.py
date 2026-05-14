@@ -515,7 +515,7 @@ class _LLMUsageBaseSensor(RestoreSensor):
         if last is not None and last.native_value is not None:
             try:
                 self._value = float(last.native_value)  # type: ignore[arg-type]
-            except (TypeError, ValueError):
+            except TypeError, ValueError:
                 self._value = 0.0
 
         @callback

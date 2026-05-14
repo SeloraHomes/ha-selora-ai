@@ -130,7 +130,7 @@ def _decode_jwt_claims(token: str) -> dict[str, Any]:
             return {}
         payload = parts[1] + "=" * (-len(parts[1]) % 4)
         return json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
+    except ValueError, UnicodeDecodeError:
         return {}
 
 
