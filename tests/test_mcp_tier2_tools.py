@@ -437,6 +437,48 @@ async def test_execute_command_data_param_reaches_service(
 
 
 @pytest.mark.asyncio
+async def test_execute_command_accepts_scene_entity(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """Regression: scene.turn_on is in the safe-command allowlist, but
+    scenes aren't in COLLECTOR_DOMAINS so _collect_entity_states omits
+    them. execute_command must augment its allowlist with scene-domain
+    states so a documented call like scene.turn_on(scene.movie_night)
+    is accepted.
+    """
+    calls: list[dict] = []
+
+    async def _capture(call):
+        calls.append({"service": call.service, "data": dict(call.data)})
+
+    hass.services.async_register("scene", "turn_on", _capture)
+
+    result = await _tool_execute_command(
+        hass,
+        {"service": "scene.turn_on", "entity_id": "scene.movie_night"},
+    )
+    assert result["executed"] is True
+    assert calls[0]["service"] == "turn_on"
+    assert calls[0]["data"]["entity_id"] == ["scene.movie_night"]
+
+
+@pytest.mark.asyncio
+async def test_execute_command_rejects_unavailable_scene(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """Unavailable scenes must still be rejected — mirrors the snapshot
+    filter that skips unavailable/unknown states.
+    """
+    hass.states.async_set("scene.movie_night", "unavailable")
+    result = await _tool_execute_command(
+        hass,
+        {"service": "scene.turn_on", "entity_id": "scene.movie_night"},
+    )
+    assert result.get("valid") is False
+    assert any("not known to Home Assistant" in e for e in result["errors"])
+
+
+@pytest.mark.asyncio
 async def test_execute_command_rejects_non_actionable_entity(
     hass: HomeAssistant, setup_world
 ) -> None:

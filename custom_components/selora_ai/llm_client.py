@@ -1473,6 +1473,20 @@ class LLMClient:
                 parsed = self._parse_architect_response(result_text)
                 if tool_log:
                     parsed = _suppress_duplicate_command_after_tool(parsed, tool_log)
+                    # When the tool loop exhausted, _send_request_with_tools
+                    # synthesizes prose like "Done — light turn_off (kitchen).
+                    # Then I ran out of tool rounds…" which the architect
+                    # parser returns as an answer with no calls. The policy's
+                    # unbacked-action stomp would rewrite "Done —" into the
+                    # "I didn't run any action" clarification, telling the
+                    # user the opposite of what happened. Mark the result so
+                    # the policy preserves the confirmation prose.
+                    if (
+                        parsed.get("intent") == "answer"
+                        and not parsed.get("calls")
+                        and _executed_service_calls_from_log(tool_log)
+                    ):
+                        parsed["suppressed_duplicate_command"] = True
                 parsed = self._apply_command_policy(parsed, entities)
                 self._flush_usage("chat", intent=parsed.get("intent"))
                 if tool_log:
@@ -1911,12 +1925,21 @@ class LLMClient:
         # No fenced block — try the old JSON-only parser
         result = self._parse_architect_response(text)
 
-        # When we got here because the entire command block was stripped as
-        # a duplicate of an executed tool call, the prose left behind is a
-        # legitimate confirmation. Mark it so _apply_command_policy doesn't
-        # rewrite "Turning off the kitchen light." into "I didn't run any
-        # action because no entity clearly matched."
-        if command_block_fully_stripped and result.get("intent") == "answer":
+        # The prose we're returning describes a real executed action when
+        # either:
+        # (a) the entire command block was stripped as a duplicate of an
+        #     executed tool call, or
+        # (b) the tool loop bailed out (provider error / exhausted rounds)
+        #     after execute_command already fired, and the synthesized
+        #     confirmation appears here as plain prose.
+        # In both cases the policy's strict unbacked-action guard would
+        # otherwise rewrite the response into "I didn't run any action",
+        # telling the user the opposite of what happened. Mark the result
+        # so the policy preserves the confirmation prose.
+        if result.get("intent") == "answer" and (
+            command_block_fully_stripped
+            or (tool_log and _executed_service_calls_from_log(tool_log))
+        ):
             result["suppressed_duplicate_command"] = True
 
         # Apply command safety policy if entities are available.

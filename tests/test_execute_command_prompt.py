@@ -345,6 +345,46 @@ def test_tool_failure_response_no_executed_call() -> None:
     assert msg == "Generic failure message."
 
 
+def test_streaming_exhaustion_confirmation_survives_policy(hass) -> None:
+    """Regression: tool-loop exhaustion synthesizes 'Done — ...' prose; the
+    streaming parser must mark it suppressed so the policy doesn't rewrite
+    it to 'I didn't run any action'. Same logic covers the JSON path via
+    architect_chat — tested here through parse_streamed_response.
+    """
+    client = _make_client(hass)
+    # Pure prose, no fenced blocks — what _stream_request_with_tools yields
+    # on exhaustion after execute_command already fired.
+    text = (
+        "Done — light turn_off (kitchen). Then I ran out of tool rounds "
+        "before finishing — try a more specific request only if there's "
+        "more to do."
+    )
+    tool_log = [_executed("light.turn_off", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        text, entities=[_ent("light.kitchen")], tool_log=tool_log
+    )
+    assert parsed["intent"] == "answer"
+    assert parsed["response"].startswith("Done —")
+    assert "didn't run" not in parsed["response"].lower()
+    assert parsed.get("suppressed_duplicate_command") is True
+
+
+def test_streaming_no_flag_when_no_tool_executed(hass) -> None:
+    """Mirror: same prose shape but no tool ran → no suppression flag.
+    The policy is free to apply its normal unbacked-action handling
+    (in fact this prose wouldn't even reach this path in practice — it
+    only matters that we don't blanket-set the flag).
+    """
+    client = _make_client(hass)
+    text = "Done — something happened."
+    tool_log = [_failed_validation("light.turn_off", "light.kitchen")]
+    parsed = client.parse_streamed_response(
+        text, entities=[_ent("light.kitchen")], tool_log=tool_log
+    )
+    # Failed validation in tool_log → no executed signature → no flag.
+    assert parsed.get("suppressed_duplicate_command") is not True
+
+
 def test_policy_preserves_confirmation_after_suppression(hass) -> None:
     """Fix #1: _apply_command_policy must not stomp the confirmation text
     when the duplicate guard has already converted the turn to 'answer'.

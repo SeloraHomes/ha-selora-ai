@@ -1926,6 +1926,15 @@ async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) 
     # uses, so the tool can't control entities the JSON command path
     # would reject (unavailable, disabled, non-actionable, off-domain).
     known = {e["entity_id"] for e in _collect_entity_states(hass) if e.get("entity_id")}
+    # Scene entities aren't in COLLECTOR_DOMAINS (they're not "states" the
+    # collector tracks for pattern detection), but ``scene.turn_on`` IS in
+    # the safe-command allowlist. Add them back explicitly so a documented
+    # call like execute_command(scene.turn_on, scene.movie_night) isn't
+    # rejected as an unknown entity. Mirror the snapshot's skip of
+    # unavailable/unknown states.
+    for state in hass.states.async_all("scene"):
+        if state.state not in ("unavailable", "unknown"):
+            known.add(state.entity_id)
     validation = validate_command_action(
         service,
         target_ids,
