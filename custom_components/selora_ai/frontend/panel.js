@@ -2412,11 +2412,6 @@ var chatStyles = i`
   .chat-messages {
     flex: 1;
     overflow-y: auto;
-    /* Chromium scroll anchoring adjusts scrollTop when content above
-       the viewport shrinks/grows (e.g. tile cards resizing on hass
-       updates). That perceives as "the page scrolling itself" on
-       Windows. We control scroll position explicitly via JS. */
-    overflow-anchor: none;
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
@@ -2425,6 +2420,34 @@ var chatStyles = i`
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
+  }
+
+  .chat-jump-bottom {
+    position: absolute;
+    right: 24px;
+    bottom: calc(100% + 8px);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
+    z-index: 2;
+  }
+  .chat-jump-bottom:hover {
+    background: var(--secondary-background-color);
+    transform: translateY(-1px);
+  }
+  .chat-jump-bottom ha-icon {
+    --mdc-icon-size: 22px;
   }
 
   /* ---- Welcome: composer-centered layout ---- */
@@ -6397,7 +6420,23 @@ function renderChat(host) {
         }
       </div>
 
-      <div class="chat-input-wrapper">${_renderComposer(host)}</div>
+      <div class="chat-input-wrapper">
+        ${
+          host._chatScrolledAway && host._messages.length > 0
+            ? x`
+              <button
+                class="chat-jump-bottom"
+                @click=${() => host._scrollChatToBottom()}
+                title="Go to latest message"
+                aria-label="Go to latest message"
+              >
+                <ha-icon icon="mdi:chevron-down"></ha-icon>
+              </button>
+            `
+            : ""
+        }
+        ${_renderComposer(host)}
+      </div>
     </div>
   `;
 }
@@ -6439,9 +6478,6 @@ function _renderComposer(host, opts = {}) {
               });
             }
           }
-        }}
-        @focus=${() => {
-          requestAnimationFrame(() => host._requestScrollChat());
         }}
         placeholder="Ask Selora AI anything…"
         ?disabled=${host._loading || host._streaming}
@@ -10838,12 +10874,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.1"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.8.2"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.8.1"}
+            Selora AI v${"0.8.2"}
           </a>
         </div>
       </div>
@@ -12269,9 +12305,6 @@ async function _openSession(sessionId) {
     this._deviceDetailLoading = false;
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
-    await this.updateComplete;
-    this._userScrolledAway = false;
-    this._requestScrollChat({ force: true });
   } catch (err) {
     console.error("Failed to open session", err);
   }
@@ -12688,8 +12721,8 @@ __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
   _onChatScroll: () => _onChatScroll,
   _quickStart: () => _quickStart,
-  _requestScrollChat: () => _requestScrollChat,
   _retryMessage: () => _retryMessage,
+  _scrollChatToBottom: () => _scrollChatToBottom,
   _selectQuickAction: () => _selectQuickAction,
   _sendMessage: () => _sendMessage,
   _stopStreaming: () => _stopStreaming,
@@ -12728,8 +12761,6 @@ async function _sendMessage() {
   if (ta) ta.style.height = "auto";
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
-  this._userScrolledAway = false;
-  this._requestScrollChat({ force: true });
   const PRE_TOKEN_GRACE_MS = 12e4;
   const POST_TOKEN_GRACE_MS = 45e3;
   let firstTokenSeen = false;
@@ -12803,7 +12834,6 @@ async function _sendMessage() {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
-        this._requestScrollChat();
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
       } else if (event.type === "done") {
@@ -12925,36 +12955,22 @@ function _stopStreaming() {
     ];
   }
 }
-function _requestScrollChat(opts) {
-  if (opts && opts.force) this._scrollForce = true;
-  if (this._scrollPending) return;
-  this._scrollPending = true;
-  requestAnimationFrame(() => {
-    const force = !!this._scrollForce;
-    this._scrollPending = false;
-    this._scrollForce = false;
-    const container = this.shadowRoot.getElementById("chat-messages");
-    if (!container) return;
-    if (this._userScrolledAway) return;
-    if (!force) {
-      const distance =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distance > 80) return;
-    }
-    this._programmaticScroll = true;
-    container.scrollTop = container.scrollHeight;
-    requestAnimationFrame(() => {
-      this._programmaticScroll = false;
-    });
-  });
+function _scrollChatToBottom() {
+  const container = this.shadowRoot?.getElementById("chat-messages");
+  if (!container) return;
+  container.scrollTop = container.scrollHeight;
+  this._chatScrolledAway = false;
 }
 function _onChatScroll(e5) {
-  if (this._programmaticScroll) return;
   const container = e5.currentTarget;
   if (!container) return;
-  const distance =
-    container.scrollHeight - container.scrollTop - container.clientHeight;
-  this._userScrolledAway = distance > 80;
+  const overflow = container.scrollHeight - container.clientHeight;
+  if (overflow <= 80) {
+    if (this._chatScrolledAway) this._chatScrolledAway = false;
+    return;
+  }
+  const distance = overflow - container.scrollTop;
+  this._chatScrolledAway = distance > 80;
 }
 async function _copyMessageText(msg, btn) {
   try {
@@ -13917,6 +13933,7 @@ var SeloraAIPanel = class extends s4 {
       _input: { type: String },
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
+      _chatScrolledAway: { type: Boolean },
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
       // Tabs
@@ -14075,6 +14092,7 @@ var SeloraAIPanel = class extends s4 {
     this._input = "";
     this._loading = false;
     this._streaming = false;
+    this._chatScrolledAway = false;
     this._streamUnsub = null;
     this._showSidebar = false;
     this._activeTab = "chat";
@@ -14258,9 +14276,6 @@ var SeloraAIPanel = class extends s4 {
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
-          if (isOpen) {
-            this._requestScrollChat();
-          }
         }
       };
       window.visualViewport.addEventListener("resize", this._viewportHandler);
@@ -14970,7 +14985,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.8.1" : "unknown",
+        integration_version: true ? "0.8.2" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -15009,9 +15024,6 @@ var SeloraAIPanel = class extends s4 {
       this._submittingFeedback = false;
     }
   }
-  // -------------------------------------------------------------------------
-  // Scroll to bottom on new messages
-  // -------------------------------------------------------------------------
   updated(changedProps) {
     if (this._config) {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
@@ -15046,9 +15058,6 @@ var SeloraAIPanel = class extends s4 {
       this._pendingNewAutomation = null;
       this._newAutomationChat(name);
     }
-    if (changedProps.has("_messages") && this._activeTab === "chat") {
-      this._requestScrollChat();
-    }
     if (
       this.hass &&
       (changedProps.has("_messages") ||
@@ -15062,6 +15071,22 @@ var SeloraAIPanel = class extends s4 {
       (changedProps.has("_activeTab") || changedProps.has("_activeSessionId"))
     ) {
       this._focusComposerSoon();
+    }
+    if (this._activeTab === "chat") {
+      this._refreshChatScrollState();
+    }
+  }
+  _refreshChatScrollState() {
+    const container = this.shadowRoot?.getElementById("chat-messages");
+    if (!container) {
+      if (this._chatScrolledAway) this._chatScrolledAway = false;
+      return;
+    }
+    const distance =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const next = distance > 80;
+    if (this._chatScrolledAway !== next) {
+      this._chatScrolledAway = next;
     }
   }
   _focusComposerSoon() {
@@ -15097,7 +15122,6 @@ var SeloraAIPanel = class extends s4 {
     if (grids.length === 0) return;
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
-    let cardsAppended = false;
     for (const grid of grids) {
       const wired = grid.dataset.wired === "true";
       if (!wired) {
@@ -15176,8 +15200,6 @@ var SeloraAIPanel = class extends s4 {
         }
         if (appended === 0) {
           grid.textContent = ids.join(", ");
-        } else {
-          cardsAppended = true;
         }
         grid.dataset.wired = "true";
       }
@@ -15186,9 +15208,6 @@ var SeloraAIPanel = class extends s4 {
           card.hass = { ...this.hass };
         }
       }
-    }
-    if (cardsAppended) {
-      this._requestScrollChat({ force: true });
     }
   }
   // Lazily fetch the full entity + device registries via WS. The

@@ -1,3 +1,10 @@
+## [0.8.2](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.1...v0.8.2) (2026-05-11)
+
+### Bug Fixes
+
+* preserve chat scroll position during tile-card hydration and wheel events ([8753e5f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8753e5f18b36852c65234f45233f8a013681aeb6))
+* respect user scroll position in chat ([b314a72](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b314a72c0405f932b49f6b14cd6268b01a8dc94f))
+
 ## [0.8.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.0...v0.8.1) (2026-05-07)
 
 ### Bug Fixes

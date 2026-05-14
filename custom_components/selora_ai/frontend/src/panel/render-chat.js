@@ -215,7 +215,21 @@ export function renderChat(host) {
           : ""}
       </div>
 
-      <div class="chat-input-wrapper">${_renderComposer(host)}</div>
+      <div class="chat-input-wrapper">
+        ${host._chatScrolledAway && host._messages.length > 0
+          ? html`
+              <button
+                class="chat-jump-bottom"
+                @click=${() => host._scrollChatToBottom()}
+                title="Go to latest message"
+                aria-label="Go to latest message"
+              >
+                <ha-icon icon="mdi:chevron-down"></ha-icon>
+              </button>
+            `
+          : ""}
+        ${_renderComposer(host)}
+      </div>
     </div>
   `;
 }
@@ -259,9 +273,6 @@ function _renderComposer(host, opts = {}) {
               });
             }
           }
-        }}
-        @focus=${() => {
-          requestAnimationFrame(() => host._requestScrollChat());
         }}
         placeholder="Ask Selora AI anything…"
         ?disabled=${host._loading || host._streaming}

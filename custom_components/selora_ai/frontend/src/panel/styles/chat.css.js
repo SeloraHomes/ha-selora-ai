@@ -12,11 +12,6 @@ export const chatStyles = css`
   .chat-messages {
     flex: 1;
     overflow-y: auto;
-    /* Chromium scroll anchoring adjusts scrollTop when content above
-       the viewport shrinks/grows (e.g. tile cards resizing on hass
-       updates). That perceives as "the page scrolling itself" on
-       Windows. We control scroll position explicitly via JS. */
-    overflow-anchor: none;
     padding: 20px 24px;
     display: flex;
     flex-direction: column;
@@ -25,6 +20,34 @@ export const chatStyles = css`
     margin: 0 auto;
     box-sizing: border-box;
     width: 100%;
+  }
+
+  .chat-jump-bottom {
+    position: absolute;
+    right: 24px;
+    bottom: calc(100% + 8px);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
+    z-index: 2;
+  }
+  .chat-jump-bottom:hover {
+    background: var(--secondary-background-color);
+    transform: translateY(-1px);
+  }
+  .chat-jump-bottom ha-icon {
+    --mdc-icon-size: 22px;
   }
 
   /* ---- Welcome: composer-centered layout ---- */
