@@ -1945,7 +1945,7 @@ def _normalize_suggestion(
     confidence_raw: Any = raw.get("confidence", 0.7)
     try:
         confidence: float = max(0.0, min(1.0, float(confidence_raw)))
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         confidence = 0.7
 
     entity_ids: list[str] = _collect_entity_ids(raw.get("automation_data") or raw)
@@ -2033,7 +2033,7 @@ async def _tool_list_patterns(
     if min_confidence_raw is not None:
         try:
             min_confidence = float(min_confidence_raw)
-        except (TypeError, ValueError):
+        except TypeError, ValueError:
             min_confidence = None
 
     suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)

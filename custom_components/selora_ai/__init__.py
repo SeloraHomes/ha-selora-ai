@@ -4772,7 +4772,7 @@ def _decode_jwt_claims(token: str) -> dict[str, Any]:
             return {}
         payload = parts[1] + "=" * (-len(parts[1]) % 4)
         return json.loads(base64.urlsafe_b64decode(payload).decode("utf-8"))
-    except (ValueError, UnicodeDecodeError):
+    except ValueError, UnicodeDecodeError:
         return {}
 
 
@@ -5145,7 +5145,7 @@ async def _handle_websocket_get_device_detail(
                                 else None,
                             }
                         )
-            except (ImportError, KeyError):
+            except ImportError, KeyError:
                 _LOGGER.debug("Recorder not available for device detail history")
 
         # 3. Linked automations (scan for entity references)
@@ -5167,7 +5167,7 @@ async def _handle_websocket_get_device_detail(
                             "description": auto.get("description", ""),
                         }
                     )
-        except (FileNotFoundError, OSError):
+        except FileNotFoundError, OSError:
             _LOGGER.debug("Could not read automations for device detail")
 
         # 4. Related patterns
@@ -5300,7 +5300,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 ),
             ]
         )
-    except (ImportError, AttributeError):
+    except ImportError, AttributeError:
         # Fallback for older versions
         hass.http.register_static_path(
             f"/api/{DOMAIN}/panel.js",

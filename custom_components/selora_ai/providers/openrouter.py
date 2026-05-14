@@ -83,6 +83,6 @@ class OpenRouterProvider(OpenAICompatibleProvider):
                     )
                     return False
                 return True
-        except (aiohttp.ClientError, TimeoutError):
+        except aiohttp.ClientError, TimeoutError:
             _LOGGER.exception("OpenRouter health check failed")
             return False

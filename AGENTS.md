@@ -33,7 +33,7 @@ The integration is developed for Home Assistant 2025.1+.
 
 ## Coding Style & Naming Conventions
 
-- **Python**: 3.12+ with `async`/`await` throughout.
+- **Python**: 3.14+ with `async`/`await` throughout.
 - **Imports**: Every file must start with `from __future__ import annotations`.
 - **Typing**: Use modern type hints (`str | None` instead of `Optional[str]`).
 - **Logging**: Use `_LOGGER = logging.getLogger(__name__)`.

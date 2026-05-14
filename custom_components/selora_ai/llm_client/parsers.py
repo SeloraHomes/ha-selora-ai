@@ -101,7 +101,7 @@ def parse_architect_response(text: str, hass: HomeAssistant) -> ArchitectRespons
 
         return data
 
-    except (json.JSONDecodeError, KeyError, ValueError):
+    except json.JSONDecodeError, KeyError, ValueError:
         _LOGGER.error("Failed to parse architect response: %s", text[:500])
         return {"intent": "answer", "response": text}
 
@@ -205,7 +205,7 @@ def parse_streamed_response(
             parsed_qa = json.loads(qa_match.group(1).strip())
             if isinstance(parsed_qa, list) and parsed_qa:
                 quick_actions = parsed_qa
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse quick_actions block")
         text = text[: qa_match.start()] + text[qa_match.end() :]
 
@@ -229,7 +229,7 @@ def parse_streamed_response(
             if entities is not None:
                 result = apply_command_policy(result, entities)
             return _attach_qa(result)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse command block: %s", json_text[:200])
 
     cancel_match = re.search(r"```cancel\s*\n?([\s\S]*?)```\s*$", text)
@@ -243,7 +243,7 @@ def parse_streamed_response(
                     "response": data.get("response", response_text or "Cancelled."),
                 }
             )
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             # Malformed cancel block — fall through to avoid destructive action
             _LOGGER.warning("Failed to parse cancel block, ignoring")
 
@@ -267,7 +267,7 @@ def parse_streamed_response(
             if entities is not None:
                 result = apply_command_policy(result, entities)
             return _attach_qa(result)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse delayed_command block: %s", json_text[:200])
 
     # Check for scene fenced block — must be the terminal block in the
@@ -302,7 +302,7 @@ def parse_streamed_response(
             if scene_data.get("refine_scene_id"):
                 scene_result["refine_scene_id"] = scene_data["refine_scene_id"]
             return _attach_qa(scene_result)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse scene block: %s", json_text[:200])
 
     match = re.search(r"```automation\s*\n?([\s\S]*?)```", text)
@@ -337,7 +337,7 @@ def parse_streamed_response(
                     "risk_assessment": assess_automation_risk(normalized),
                 }
             )
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse automation block: %s", json_text[:200])
 
     # No fenced block — try the old JSON-only parser

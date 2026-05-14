@@ -263,7 +263,7 @@ class GeminiProvider(LLMProvider):
         raw = line[6:]
         try:
             obj = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         candidates = obj.get("candidates", [])
         if not candidates:
@@ -277,7 +277,7 @@ class GeminiProvider(LLMProvider):
             return None
         try:
             obj = json.loads(line[6:])
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         meta = obj.get("usageMetadata")
         if not isinstance(meta, dict):
@@ -308,7 +308,7 @@ class GeminiProvider(LLMProvider):
                 raw = line[6:]
                 try:
                     event = json.loads(raw)
-                except (json.JSONDecodeError, ValueError):
+                except json.JSONDecodeError, ValueError:
                     continue
 
                 usage_part = self.parse_stream_usage(line)
@@ -394,7 +394,7 @@ class GeminiProvider(LLMProvider):
                 try:
                     err_data = json.loads(body)
                     err_msg = err_data.get("error", {}).get("message", body[:200])
-                except (ValueError, AttributeError):
+                except ValueError, AttributeError:
                     err_msg = body[:200]
                 raise ConnectionError(f"{self.provider_name}: {err_msg}")
 

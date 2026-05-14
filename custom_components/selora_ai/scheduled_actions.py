@@ -417,7 +417,7 @@ class ScheduledTaskTracker:
                 fire_dt = datetime.strptime(fire_date_str, "%Y-%m-%d").replace(
                     hour=hour, minute=minute, second=second, tzinfo=local_tz
                 )
-            except (ValueError, IndexError):
+            except ValueError, IndexError:
                 # Can't parse — treat as stale to be safe
                 stale_ids.append(auto_id)
                 continue

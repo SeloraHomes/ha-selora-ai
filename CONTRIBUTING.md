@@ -150,7 +150,7 @@ All jobs must pass before a merge request can be accepted.
 ## Key Conventions
 
 ### Code Style
-- Python 3.12+, `async`/`await` throughout
+- Python 3.14+, `async`/`await` throughout
 - `from __future__ import annotations` in every file
 - Modern type hints (`str | None`, not `Optional[str]`)
 - Logging via `_LOGGER = logging.getLogger(__name__)`

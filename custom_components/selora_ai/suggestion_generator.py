@@ -236,7 +236,7 @@ class SuggestionGenerator:
             return enriched
         except TimeoutError:
             _LOGGER.debug("Batch LLM enrichment timed out, descriptions unchanged")
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             _LOGGER.debug("Batch LLM enrichment returned invalid JSON, descriptions unchanged")
         except Exception:
             _LOGGER.debug("Batch LLM enrichment failed, descriptions unchanged")

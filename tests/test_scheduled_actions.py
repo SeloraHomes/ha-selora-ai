@@ -205,7 +205,10 @@ class TestScheduledTaskTracker:
         with patch(
             "custom_components.selora_ai.automation_utils.async_create_automation",
             return_value={"success": True, "automation_id": "selora_ai_abc123"},
-        ) as mock_create:
+        ) as mock_create, patch(
+            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+            return_value=MagicMock(),
+        ):
             task = await tracker.schedule_at_time(
                 "session_1", calls, "23:00:00", "Porch light at 11 PM"
             )
@@ -378,6 +381,9 @@ class TestScheduledTaskTracker:
         with patch(
             "custom_components.selora_ai.automation_utils.async_create_automation",
             return_value={"success": True, "automation_id": "selora_ai_fail"},
+        ), patch(
+            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+            return_value=MagicMock(),
         ):
             task = await tracker.schedule_at_time(
                 "s1", [{"service": "light.turn_on"}], "23:00:00", "Task"
@@ -400,6 +406,9 @@ class TestScheduledTaskTracker:
         with patch(
             "custom_components.selora_ai.automation_utils.async_create_automation",
             return_value={"success": True, "automation_id": "selora_ai_exc"},
+        ), patch(
+            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+            return_value=MagicMock(),
         ):
             task = await tracker.schedule_at_time(
                 "s1", [{"service": "light.turn_on"}], "23:00:00", "Task"

@@ -232,7 +232,7 @@ class MCPTokenStore:
                 if datetime.now(UTC) > exp_dt:
                     _LOGGER.debug("MCP token %s has expired", matched_id)
                     return None
-            except (ValueError, TypeError):
+            except ValueError, TypeError:
                 return None
 
         # Update last_used_at with debounced persistence

@@ -39,6 +39,27 @@ from custom_components.selora_ai.const import (
 )
 
 
+def _no_runtime_setup():
+    """Stub the integration's runtime setup so the config-flow tests don't start
+    sensor platforms (whose 60 s interval timer would leak past teardown)."""
+    return patch(
+        "custom_components.selora_ai.async_setup_entry",
+        new_callable=AsyncMock,
+        return_value=True,
+    )
+
+
+async def _unload_if_created(hass, result) -> None:
+    """Unload the entry if the flow created one."""
+    if result.get("type") != "create_entry":
+        return
+    entry = result.get("result")
+    if entry is None:
+        return
+    await hass.config_entries.async_unload(entry.entry_id)
+    await hass.async_block_till_done()
+
+
 @pytest.fixture(autouse=True)
 def _enable_custom_component(enable_custom_integrations):
     """Auto-enable custom integrations so our domain is discoverable."""
@@ -162,7 +183,7 @@ class TestStepAnthropic:
             "custom_components.selora_ai.config_flow._validate_anthropic",
             new_callable=AsyncMock,
             return_value={"title": "Selora AI (Claude — claude-sonnet-4-6)"},
-        ):
+        ), _no_runtime_setup():
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -170,9 +191,11 @@ class TestStepAnthropic:
                     CONF_ANTHROPIC_MODEL: DEFAULT_ANTHROPIC_MODEL,
                 },
             )
+            await hass.async_block_till_done()
         # Valid credentials chain to discovery or straight to entry creation
         # (when no pending discovery flows exist, the flow may skip to create_entry)
         assert result["type"] in ("form", "create_entry", "abort")
+        await _unload_if_created(hass, result)
 
 
 # ── Step: ollama ─────────────────────────────────────────────────────
@@ -252,7 +275,7 @@ class TestStepGemini:
             "custom_components.selora_ai.config_flow._validate_gemini",
             new_callable=AsyncMock,
             return_value={"title": f"Selora AI (Gemini — {DEFAULT_GEMINI_MODEL})"},
-        ):
+        ), _no_runtime_setup():
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -260,7 +283,9 @@ class TestStepGemini:
                     CONF_GEMINI_MODEL: DEFAULT_GEMINI_MODEL,
                 },
             )
+            await hass.async_block_till_done()
         assert result["type"] in ("form", "create_entry", "abort")
+        await _unload_if_created(hass, result)
 
 
 class TestStepOpenai:
@@ -278,7 +303,7 @@ class TestStepOpenai:
             "custom_components.selora_ai.config_flow._validate_openai",
             new_callable=AsyncMock,
             return_value={"title": f"Selora AI (OpenAI — {DEFAULT_OPENAI_MODEL})"},
-        ):
+        ), _no_runtime_setup():
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -286,7 +311,9 @@ class TestStepOpenai:
                     CONF_OPENAI_MODEL: DEFAULT_OPENAI_MODEL,
                 },
             )
+            await hass.async_block_till_done()
         assert result["type"] in ("form", "create_entry", "abort")
+        await _unload_if_created(hass, result)
 
 
 class TestStepOpenRouter:
@@ -327,7 +354,7 @@ class TestStepOpenRouter:
             "custom_components.selora_ai.config_flow._validate_openrouter",
             new_callable=AsyncMock,
             return_value={"title": f"Selora AI (OpenRouter — {DEFAULT_OPENROUTER_MODEL})"},
-        ):
+        ), _no_runtime_setup():
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -335,4 +362,6 @@ class TestStepOpenRouter:
                     CONF_OPENROUTER_MODEL: DEFAULT_OPENROUTER_MODEL,
                 },
             )
+            await hass.async_block_till_done()
         assert result["type"] in ("form", "create_entry", "abort")
+        await _unload_if_created(hass, result)

@@ -92,7 +92,7 @@ class OpenAICompatibleProvider(LLMProvider):
         for tc in tool_calls:
             try:
                 args = json.loads(tc["function"]["arguments"])
-            except (json.JSONDecodeError, KeyError, TypeError):
+            except json.JSONDecodeError, KeyError, TypeError:
                 args = {}
             result.append(
                 {
@@ -167,7 +167,7 @@ class OpenAICompatibleProvider(LLMProvider):
             return None
         try:
             obj = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         choices = obj.get("choices", [])
         if choices:
@@ -182,7 +182,7 @@ class OpenAICompatibleProvider(LLMProvider):
             return None
         try:
             obj = json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
+        except json.JSONDecodeError, ValueError:
             return None
         # Final chunk (stream_options.include_usage) carries usage on the
         # event itself, with empty `choices`.
@@ -219,7 +219,7 @@ class OpenAICompatibleProvider(LLMProvider):
                     continue
                 try:
                     event = json.loads(raw)
-                except (json.JSONDecodeError, ValueError):
+                except json.JSONDecodeError, ValueError:
                     continue
 
                 usage_part = self.parse_stream_usage(line)
@@ -295,6 +295,6 @@ class OpenAICompatibleProvider(LLMProvider):
                     )
                     return False
                 return True
-        except (aiohttp.ClientError, TimeoutError):
+        except aiohttp.ClientError, TimeoutError:
             _LOGGER.exception("%s health check failed", self.provider_name)
             return False

@@ -278,6 +278,6 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                 timeout=aiohttp.ClientTimeout(total=HEALTH_CHECK_TIMEOUT),
             ) as resp:
                 return resp.status == 200
-        except (aiohttp.ClientError, TimeoutError):
+        except aiohttp.ClientError, TimeoutError:
             _LOGGER.exception("Selora Local health check failed")
             return False

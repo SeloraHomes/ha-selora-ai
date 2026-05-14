@@ -79,7 +79,7 @@ def _parse_retry_after(value: str | None) -> int | None:
         return None
     try:
         seconds = int(value.strip())
-    except (TypeError, ValueError):
+    except TypeError, ValueError:
         return None
     if seconds < 0:
         return None
@@ -513,7 +513,7 @@ class LLMProvider(ABC):
                     try:
                         err_data = json.loads(body)
                         err_msg = err_data.get("error", {}).get("message", body[:200])
-                    except (ValueError, AttributeError):
+                    except ValueError, AttributeError:
                         err_msg = body[:200]
                     raise ConnectionError(f"{self.provider_name}: {err_msg}")
 
