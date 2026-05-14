@@ -44,10 +44,6 @@ export async function _sendMessage() {
 
   const assistantMsg = { role: "assistant", content: "", _streaming: true };
   this._messages = [...this._messages, assistantMsg];
-  // User sent a message — they expect to see it land regardless of
-  // where they were scrolled. Clear the away-flag so the force takes.
-  this._userScrolledAway = false;
-  this._requestScrollChat({ force: true });
 
   // Stream-health watchers — both must be torn down on done/error/retry/stop.
   // Stored on `this` so _stopStreaming() can reach them too; otherwise the
@@ -145,7 +141,6 @@ export async function _sendMessage() {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
-        this._requestScrollChat();
       } else if (event.type === "heartbeat") {
         // Server is alive but has nothing to forward yet (slow first
         // token, or JSON output being suppressed by the backend). Bump
@@ -293,59 +288,29 @@ export function _stopStreaming() {
   }
 }
 
-export function _requestScrollChat(opts) {
-  // Standard chat-app behaviour: only auto-scroll if the user is
-  // already near the bottom. If they scrolled up to read history,
-  // don't yank them down — covers every path that ends up here
-  // (keyboard show/hide, hydrate, focus, hass updates, …). Pass
-  // `{ force: true }` for explicit user actions where the user
-  // expects to land at the latest reply (opening a session, sending
-  // a message).
-  //
-  // Coalesce repeated calls within the same frame: a non-force call
-  // from `updated()` (triggered by the _messages change) often races
-  // ahead of the explicit force call from `_openSession`, and we'd
-  // otherwise drop the force on the floor. Track the strongest mode
-  // requested while the RAF is pending.
-  if (opts && opts.force) this._scrollForce = true;
-  if (this._scrollPending) return;
-  this._scrollPending = true;
-  requestAnimationFrame(() => {
-    const force = !!this._scrollForce;
-    this._scrollPending = false;
-    this._scrollForce = false;
-    const container = this.shadowRoot.getElementById("chat-messages");
-    if (!container) return;
-    // Honor an explicit user scroll-away even on force: tile-card
-    // hydration grows the layout asynchronously, and we don't want
-    // that growth to drag a reading user back to the bottom. The
-    // flag is cleared at intentional yank points (send, openSession).
-    if (this._userScrolledAway) return;
-    if (!force) {
-      const distance =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distance > 80) return;
-    }
-    this._programmaticScroll = true;
-    container.scrollTop = container.scrollHeight;
-    requestAnimationFrame(() => {
-      this._programmaticScroll = false;
-    });
-  });
+export function _scrollChatToBottom() {
+  const container = this.shadowRoot?.getElementById("chat-messages");
+  if (!container) return;
+  container.scrollTop = container.scrollHeight;
+  this._chatScrolledAway = false;
 }
 
-// Fires on every scroll in the chat-messages container. Tracks whether
-// the user has intentionally scrolled away from the bottom so other
-// scroll paths (force-scroll after tile-card hydration, keyboard open,
-// hass updates) can honor that intent. Ignores scrolls we triggered
-// ourselves via `container.scrollTop = …`.
+// Tracks whether the user has scrolled away from the bottom so the
+// "go to bottom" button can be shown only when relevant. Only flips
+// the flag when the container is actually scrollable past the
+// threshold — otherwise a stray scroll event during render (e.g.
+// streaming tokens reflowing layout) could mark a fits-in-viewport
+// chat as "scrolled away".
 export function _onChatScroll(e) {
-  if (this._programmaticScroll) return;
   const container = e.currentTarget;
   if (!container) return;
-  const distance =
-    container.scrollHeight - container.scrollTop - container.clientHeight;
-  this._userScrolledAway = distance > 80;
+  const overflow = container.scrollHeight - container.clientHeight;
+  if (overflow <= 80) {
+    if (this._chatScrolledAway) this._chatScrolledAway = false;
+    return;
+  }
+  const distance = overflow - container.scrollTop;
+  this._chatScrolledAway = distance > 80;
 }
 
 export async function _copyMessageText(msg, btn) {
