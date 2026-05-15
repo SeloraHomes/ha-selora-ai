@@ -22,6 +22,34 @@ export const chatStyles = css`
     width: 100%;
   }
 
+  .chat-jump-bottom {
+    position: absolute;
+    right: 24px;
+    bottom: calc(100% + 8px);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
+    z-index: 2;
+  }
+  .chat-jump-bottom:hover {
+    background: var(--secondary-background-color);
+    transform: translateY(-1px);
+  }
+  .chat-jump-bottom ha-icon {
+    --mdc-icon-size: 22px;
+  }
+
   /* ---- Welcome: composer-centered layout ---- */
   .chat-welcome-center {
     flex: 1;

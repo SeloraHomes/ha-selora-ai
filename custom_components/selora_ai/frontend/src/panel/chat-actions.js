@@ -50,9 +50,6 @@ export async function _sendMessage() {
     _sentAt: sendStartedAt,
   };
   this._messages = [...this._messages, assistantMsg];
-  // User sent a message — they expect to see it land regardless of
-  // where they were scrolled.
-  this._requestScrollChat({ force: true });
 
   // Stream-health watchers — both must be torn down on done/error/retry/stop.
   // Stored on `this` so _stopStreaming() can reach them too; otherwise the
@@ -150,7 +147,6 @@ export async function _sendMessage() {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
-        this._requestScrollChat();
       } else if (event.type === "heartbeat") {
         // Server is alive but has nothing to forward yet (slow first
         // token, or JSON output being suppressed by the backend). Bump
@@ -310,36 +306,29 @@ export function _stopStreaming() {
   }
 }
 
-export function _requestScrollChat(opts) {
-  // Standard chat-app behaviour: only auto-scroll if the user is
-  // already near the bottom. If they scrolled up to read history,
-  // don't yank them down — covers every path that ends up here
-  // (keyboard show/hide, hydrate, focus, hass updates, …). Pass
-  // `{ force: true }` for explicit user actions where the user
-  // expects to land at the latest reply (opening a session, sending
-  // a message).
-  //
-  // Coalesce repeated calls within the same frame: a non-force call
-  // from `updated()` (triggered by the _messages change) often races
-  // ahead of the explicit force call from `_openSession`, and we'd
-  // otherwise drop the force on the floor. Track the strongest mode
-  // requested while the RAF is pending.
-  if (opts && opts.force) this._scrollForce = true;
-  if (this._scrollPending) return;
-  this._scrollPending = true;
-  requestAnimationFrame(() => {
-    const force = !!this._scrollForce;
-    this._scrollPending = false;
-    this._scrollForce = false;
-    const container = this.shadowRoot.getElementById("chat-messages");
-    if (!container) return;
-    if (!force) {
-      const distance =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distance > 80) return;
-    }
-    container.scrollTop = container.scrollHeight;
-  });
+export function _scrollChatToBottom() {
+  const container = this.shadowRoot?.getElementById("chat-messages");
+  if (!container) return;
+  container.scrollTop = container.scrollHeight;
+  this._chatScrolledAway = false;
+}
+
+// Tracks whether the user has scrolled away from the bottom so the
+// "go to bottom" button can be shown only when relevant. Only flips
+// the flag when the container is actually scrollable past the
+// threshold — otherwise a stray scroll event during render (e.g.
+// streaming tokens reflowing layout) could mark a fits-in-viewport
+// chat as "scrolled away".
+export function _onChatScroll(e) {
+  const container = e.currentTarget;
+  if (!container) return;
+  const overflow = container.scrollHeight - container.clientHeight;
+  if (overflow <= 80) {
+    if (this._chatScrolledAway) this._chatScrolledAway = false;
+    return;
+  }
+  const distance = overflow - container.scrollTop;
+  this._chatScrolledAway = distance > 80;
 }
 
 export async function _copyMessageText(msg, btn) {
