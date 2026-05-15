@@ -2422,6 +2422,34 @@ var chatStyles = i`
     width: 100%;
   }
 
+  .chat-jump-bottom {
+    position: absolute;
+    right: 24px;
+    bottom: calc(100% + 8px);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    border: 1px solid var(--divider-color);
+    background: var(--card-background-color);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    transition:
+      background-color 0.15s,
+      transform 0.15s;
+    z-index: 2;
+  }
+  .chat-jump-bottom:hover {
+    background: var(--secondary-background-color);
+    transform: translateY(-1px);
+  }
+  .chat-jump-bottom ha-icon {
+    --mdc-icon-size: 22px;
+  }
+
   /* ---- Welcome: composer-centered layout ---- */
   .chat-welcome-center {
     flex: 1;
@@ -6396,7 +6424,11 @@ function renderChat(host) {
   }
   return x`
     <div class="chat-pane">
-      <div class="chat-messages" id="chat-messages">
+      <div
+        class="chat-messages"
+        id="chat-messages"
+        @scroll=${host._onChatScroll}
+      >
         ${host._messages.map((msg, idx) => renderMessage(host, msg, idx))}
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
@@ -6412,7 +6444,23 @@ function renderChat(host) {
         }
       </div>
 
-      <div class="chat-input-wrapper">${_renderComposer(host)}</div>
+      <div class="chat-input-wrapper">
+        ${
+          host._chatScrolledAway && host._messages.length > 0
+            ? x`
+              <button
+                class="chat-jump-bottom"
+                @click=${() => host._scrollChatToBottom()}
+                title="Go to latest message"
+                aria-label="Go to latest message"
+              >
+                <ha-icon icon="mdi:chevron-down"></ha-icon>
+              </button>
+            `
+            : ""
+        }
+        ${_renderComposer(host)}
+      </div>
     </div>
   `;
 }
@@ -6454,9 +6502,6 @@ function _renderComposer(host, opts = {}) {
               });
             }
           }
-        }}
-        @focus=${() => {
-          requestAnimationFrame(() => host._requestScrollChat());
         }}
         placeholder="Ask Selora AI anything…"
         ?disabled=${host._loading || host._streaming}
@@ -12533,8 +12578,6 @@ async function _openSession(sessionId) {
     this._deviceDetailLoading = false;
     this._activeTab = "chat";
     if (this.narrow) this._showSidebar = false;
-    await this.updateComplete;
-    this._requestScrollChat({ force: true });
   } catch (err) {
     console.error("Failed to open session", err);
   }
@@ -12949,9 +12992,10 @@ async function _triggerPatternScan() {
 var chat_actions_exports = {};
 __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
+  _onChatScroll: () => _onChatScroll,
   _quickStart: () => _quickStart,
-  _requestScrollChat: () => _requestScrollChat,
   _retryMessage: () => _retryMessage,
+  _scrollChatToBottom: () => _scrollChatToBottom,
   _selectQuickAction: () => _selectQuickAction,
   _sendMessage: () => _sendMessage,
   _stopStreaming: () => _stopStreaming,
@@ -12996,7 +13040,6 @@ async function _sendMessage() {
     _sentAt: sendStartedAt,
   };
   this._messages = [...this._messages, assistantMsg];
-  this._requestScrollChat({ force: true });
   const PRE_TOKEN_GRACE_MS = 12e4;
   const POST_TOKEN_GRACE_MS = 45e3;
   let firstTokenSeen = false;
@@ -13070,7 +13113,6 @@ async function _sendMessage() {
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
         this._loading = false;
-        this._requestScrollChat();
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
       } else if (event.type === "done") {
@@ -13204,23 +13246,22 @@ function _stopStreaming() {
     ];
   }
 }
-function _requestScrollChat(opts) {
-  if (opts && opts.force) this._scrollForce = true;
-  if (this._scrollPending) return;
-  this._scrollPending = true;
-  requestAnimationFrame(() => {
-    const force = !!this._scrollForce;
-    this._scrollPending = false;
-    this._scrollForce = false;
-    const container = this.shadowRoot.getElementById("chat-messages");
-    if (!container) return;
-    if (!force) {
-      const distance =
-        container.scrollHeight - container.scrollTop - container.clientHeight;
-      if (distance > 80) return;
-    }
-    container.scrollTop = container.scrollHeight;
-  });
+function _scrollChatToBottom() {
+  const container = this.shadowRoot?.getElementById("chat-messages");
+  if (!container) return;
+  container.scrollTop = container.scrollHeight;
+  this._chatScrolledAway = false;
+}
+function _onChatScroll(e5) {
+  const container = e5.currentTarget;
+  if (!container) return;
+  const overflow = container.scrollHeight - container.clientHeight;
+  if (overflow <= 80) {
+    if (this._chatScrolledAway) this._chatScrolledAway = false;
+    return;
+  }
+  const distance = overflow - container.scrollTop;
+  this._chatScrolledAway = distance > 80;
 }
 async function _copyMessageText(msg, btn) {
   try {
@@ -14184,6 +14225,7 @@ var SeloraAIPanel = class extends s4 {
       _input: { type: String },
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
+      _chatScrolledAway: { type: Boolean },
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
       // Tabs
@@ -14342,6 +14384,7 @@ var SeloraAIPanel = class extends s4 {
     this._input = "";
     this._loading = false;
     this._streaming = false;
+    this._chatScrolledAway = false;
     this._streamUnsub = null;
     this._showSidebar = false;
     this._activeTab = "chat";
@@ -14524,9 +14567,6 @@ var SeloraAIPanel = class extends s4 {
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
-          if (isOpen) {
-            this._requestScrollChat();
-          }
         }
       };
       window.visualViewport.addEventListener("resize", this._viewportHandler);
@@ -15280,9 +15320,6 @@ var SeloraAIPanel = class extends s4 {
       this._submittingFeedback = false;
     }
   }
-  // -------------------------------------------------------------------------
-  // Scroll to bottom on new messages
-  // -------------------------------------------------------------------------
   updated(changedProps) {
     if (this._config) {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
@@ -15317,9 +15354,6 @@ var SeloraAIPanel = class extends s4 {
       this._pendingNewAutomation = null;
       this._newAutomationChat(name);
     }
-    if (changedProps.has("_messages") && this._activeTab === "chat") {
-      this._requestScrollChat();
-    }
     if (
       this.hass &&
       (changedProps.has("_messages") ||
@@ -15333,6 +15367,22 @@ var SeloraAIPanel = class extends s4 {
       (changedProps.has("_activeTab") || changedProps.has("_activeSessionId"))
     ) {
       this._focusComposerSoon();
+    }
+    if (this._activeTab === "chat") {
+      this._refreshChatScrollState();
+    }
+  }
+  _refreshChatScrollState() {
+    const container = this.shadowRoot?.getElementById("chat-messages");
+    if (!container) {
+      if (this._chatScrolledAway) this._chatScrolledAway = false;
+      return;
+    }
+    const distance =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const next = distance > 80;
+    if (this._chatScrolledAway !== next) {
+      this._chatScrolledAway = next;
     }
   }
   _focusComposerSoon() {
@@ -15368,7 +15418,6 @@ var SeloraAIPanel = class extends s4 {
     if (grids.length === 0) return;
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
-    let cardsAppended = false;
     for (const grid of grids) {
       const wired = grid.dataset.wired === "true";
       if (!wired) {
@@ -15447,8 +15496,6 @@ var SeloraAIPanel = class extends s4 {
         }
         if (appended === 0) {
           grid.textContent = ids.join(", ");
-        } else {
-          cardsAppended = true;
         }
         grid.dataset.wired = "true";
       }
@@ -15457,9 +15504,6 @@ var SeloraAIPanel = class extends s4 {
           card.hass = { ...this.hass };
         }
       }
-    }
-    if (cardsAppended) {
-      this._requestScrollChat({ force: true });
     }
   }
   // Lazily fetch the full entity + device registries via WS. The

@@ -213,6 +213,7 @@ class SeloraAIPanel extends LitElement {
       _input: { type: String },
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
+      _chatScrolledAway: { type: Boolean },
 
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
@@ -404,6 +405,7 @@ class SeloraAIPanel extends LitElement {
     this._input = "";
     this._loading = false;
     this._streaming = false;
+    this._chatScrolledAway = false;
     this._streamUnsub = null;
     this._showSidebar = false;
     this._activeTab = "chat";
@@ -614,13 +616,6 @@ class SeloraAIPanel extends LitElement {
         }
         if (isOpen !== this._keyboardOpen) {
           this._keyboardOpen = isOpen;
-          // Only scroll on keyboard *open* — the latest message would
-          // otherwise be hidden behind it. On close (e.g. textarea
-          // blurred because the user tapped a tile to open a more-info
-          // dialog), leave the scroll position alone.
-          if (isOpen) {
-            this._requestScrollChat();
-          }
         }
       };
       window.visualViewport.addEventListener("resize", this._viewportHandler);
@@ -1500,10 +1495,6 @@ class SeloraAIPanel extends LitElement {
     }
   }
 
-  // -------------------------------------------------------------------------
-  // Scroll to bottom on new messages
-  // -------------------------------------------------------------------------
-
   updated(changedProps) {
     // Reflect "no LLM configured" as a host attribute so CSS can suppress
     // decorative effects (header glow, particles) until the user finishes
@@ -1549,9 +1540,6 @@ class SeloraAIPanel extends LitElement {
       this._pendingNewAutomation = null;
       this._newAutomationChat(name);
     }
-    if (changedProps.has("_messages") && this._activeTab === "chat") {
-      this._requestScrollChat();
-    }
     // Hydrate entity chips emitted by the markdown renderer. Re-runs when
     // messages change (new chips appeared), hass changes (live state updates),
     // or the chat tab becomes active again (tab switch destroys and recreates
@@ -1572,6 +1560,23 @@ class SeloraAIPanel extends LitElement {
       (changedProps.has("_activeTab") || changedProps.has("_activeSessionId"))
     ) {
       this._focusComposerSoon();
+    }
+    if (this._activeTab === "chat") {
+      this._refreshChatScrollState();
+    }
+  }
+
+  _refreshChatScrollState() {
+    const container = this.shadowRoot?.getElementById("chat-messages");
+    if (!container) {
+      if (this._chatScrolledAway) this._chatScrolledAway = false;
+      return;
+    }
+    const distance =
+      container.scrollHeight - container.scrollTop - container.clientHeight;
+    const next = distance > 80;
+    if (this._chatScrolledAway !== next) {
+      this._chatScrolledAway = next;
     }
   }
 
@@ -1611,8 +1616,6 @@ class SeloraAIPanel extends LitElement {
 
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
-
-    let cardsAppended = false;
 
     for (const grid of grids) {
       const wired = grid.dataset.wired === "true";
@@ -1708,8 +1711,6 @@ class SeloraAIPanel extends LitElement {
           // Hits when neither construction path resolved or all ids
           // were unknown/missing in hass.states.
           grid.textContent = ids.join(", ");
-        } else {
-          cardsAppended = true;
         }
         grid.dataset.wired = "true";
       }
@@ -1726,20 +1727,6 @@ class SeloraAIPanel extends LitElement {
           card.hass = { ...this.hass };
         }
       }
-    }
-    // Tile cards expand the message height after the synchronous Lit
-    // render, so the initial scroll in updated() lands short. Re-scroll
-    // only when new cards were just appended — every subsequent
-    // hass-driven hydration (live state from a service call, e.g. the
-    // brightness slider in a more-info dialog firing light.turn_on)
-    // would otherwise yank the chat to the bottom even when no layout
-    // change happened. Force the scroll: the layout just grew and the
-    // user has no scroll position to preserve (the previous explicit
-    // scroll-to-bottom in _openSession landed before the cards added
-    // their height, so the respect-position guard would otherwise see
-    // distance > 80 and leave the user above the new bottom).
-    if (cardsAppended) {
-      this._requestScrollChat({ force: true });
     }
   }
 
