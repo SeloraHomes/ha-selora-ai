@@ -308,6 +308,165 @@ def _normalize_item(item: dict[str, Any]) -> dict[str, Any]:
     return fixed
 
 
+def _collect_referenced_entity_ids(
+    automation: AutomationDict | dict[str, Any],
+) -> set[str]:
+    """Walk an automation payload and return every ``entity_id`` it references
+    *as a state-machine entity*.
+
+    Only descends into the contexts where HA actually expects an entity
+    reference: trigger top-level ``entity_id`` (state / numeric_state / zone),
+    condition ``entity_id`` and nested ``conditions``, and action
+    ``target.entity_id`` plus the deprecated top-level / ``data.entity_id``
+    service-call forms. Action control-flow blocks (``choose``, ``if`` /
+    ``then`` / ``else``, ``parallel``, ``sequence``, ``repeat``) are traversed
+    recursively.
+
+    Integration-defined match payloads are **not** walked — most notably
+    ``event_data`` (trigger filter), ``event_data_template``, ``payload`` (MQTT
+    triggers), and ``webhook_id``. A field named ``entity_id`` inside those
+    blocks is application data, not an HA entity, and must not be looked up.
+
+    Comma-separated strings ("light.a, light.b") are split before being added.
+    Templates and IDs without a domain are excluded from the result.
+    """
+    referenced: set[str] = set()
+
+    def _as_list(value: Any) -> list[Any]:
+        # HA accepts the singular dict form (``action: {...}``,
+        # ``wait_for_trigger: {...}``) as well as lists. Without coercion the
+        # loops below would iterate dict keys and miss every entity reference
+        # in the section.
+        if isinstance(value, dict):
+            return [value]
+        if isinstance(value, list):
+            return value
+        return []
+
+    def _add(value: Any) -> None:
+        if isinstance(value, str):
+            # HA accepts the legacy comma-separated shorthand
+            # ("light.kitchen, light.dining"). Split before lookup so each
+            # ID is checked individually rather than the joined literal.
+            for part in value.split(","):
+                stripped = part.strip()
+                if stripped:
+                    referenced.add(stripped)
+        elif isinstance(value, list):
+            for item in value:
+                _add(item)
+
+    def _walk_trigger(trigger: Any) -> None:
+        if isinstance(trigger, dict):
+            _add(trigger.get("entity_id"))
+
+    def _walk_condition(condition: Any) -> None:
+        if isinstance(condition, dict):
+            _add(condition.get("entity_id"))
+            # HA accepts the singular dict form for an and/or/not group's
+            # ``conditions`` field — use _as_list so we don't iterate the
+            # nested dict's keys and miss every entity inside it.
+            for nested in _as_list(condition.get("conditions")):
+                _walk_condition(nested)
+            # Shorthand logical syntax: ``{or: [...]}`` / ``{and: [...]}`` /
+            # ``{not: [...]}`` instead of ``{condition: or, conditions:
+            # [...]}``. Without this branch, nested entities under the
+            # shorthand form would be silently skipped.
+            for key in ("and", "or", "not"):
+                for nested in _as_list(condition.get(key)):
+                    _walk_condition(nested)
+
+    def _walk_action(action: Any) -> None:
+        if not isinstance(action, dict):
+            return
+        # HA accepts a condition block as an action step (acts as an
+        # inline guard inside the sequence), e.g.
+        # ``{condition: state, entity_id: lock.front_door, state: locked}``
+        # or the shorthand ``{or: [...]}`` form. Delegate to
+        # _walk_condition so nested entity references in those shapes are
+        # validated and risk-tagged. The call is a no-op for normal
+        # service-call actions because they don't carry condition-specific
+        # keys (and the top-level ``entity_id`` add below is idempotent).
+        _walk_condition(action)
+
+        # Service call: target.entity_id is the canonical form. The bare
+        # top-level entity_id and data.entity_id forms are deprecated but
+        # still accepted by HA, so treat them as real entity refs too.
+        _add(action.get("entity_id"))
+        target = action.get("target")
+        if isinstance(target, dict):
+            _add(target.get("entity_id"))
+        data = action.get("data")
+        if isinstance(data, dict):
+            _add(data.get("entity_id"))
+
+        # wait_for_trigger embeds trigger dicts (each with its own
+        # platform/entity_id) inside an action. Without this the entity
+        # walker misses references like binary_sensor.motion in
+        # ``action: [{wait_for_trigger: [{platform: state, entity_id: ...}]}]``.
+        for trigger in _as_list(action.get("wait_for_trigger")):
+            _walk_trigger(trigger)
+
+        # Control-flow descent.
+        for key in ("sequence", "then", "else", "default", "parallel"):
+            for nested in _as_list(action.get(key)):
+                _walk_action(nested)
+        for cond in _as_list(action.get("if")):
+            _walk_condition(cond)
+        for branch in _as_list(action.get("choose")):
+            if not isinstance(branch, dict):
+                continue
+            for cond in _as_list(branch.get("conditions")):
+                _walk_condition(cond)
+            for nested in _as_list(branch.get("sequence")):
+                _walk_action(nested)
+        repeat = action.get("repeat")
+        if isinstance(repeat, dict):
+            for nested in _as_list(repeat.get("sequence")):
+                _walk_action(nested)
+            for key in ("while", "until"):
+                for cond in _as_list(repeat.get(key)):
+                    _walk_condition(cond)
+
+    for trigger in _as_list(automation.get("trigger") or automation.get("triggers")):
+        _walk_trigger(trigger)
+    for condition in _as_list(automation.get("condition") or automation.get("conditions")):
+        _walk_condition(condition)
+    for action in _as_list(automation.get("action") or automation.get("actions")):
+        _walk_action(action)
+
+    return {eid for eid in referenced if "." in eid and "{{" not in eid and "{%" not in eid}
+
+
+def _find_unknown_entity_ids(
+    hass: HomeAssistant,
+    entity_ids: set[str],
+) -> list[str]:
+    """Return the subset of ``entity_ids`` not known to Home Assistant.
+
+    An entity is considered known if it has a current state in
+    :attr:`hass.states` **or** is present in the entity registry (covers
+    disabled / unavailable entities that exist but haven't surfaced a
+    state). Templates and malformed IDs are filtered upstream.
+
+    **Timing caveat**: like :func:`validate_action_services`, this relies on
+    the state machine and entity registry being populated. Callers running
+    very early in boot may see false negatives; the collector path already
+    waits for HA to finish loading.
+    """
+    if not entity_ids:
+        return []
+    entity_reg = er.async_get(hass)
+    unknown: list[str] = []
+    for eid in entity_ids:
+        if hass.states.get(eid) is not None:
+            continue
+        if entity_reg.async_get(eid) is not None:
+            continue
+        unknown.append(eid)
+    return sorted(unknown)
+
+
 def validate_action_services(
     hass: HomeAssistant,
     automation: AutomationDict | dict[str, Any],
@@ -449,6 +608,29 @@ def validate_automation_payload(
                     )
         normalized_actions.append(norm_act)
 
+    # --- Entity reference check --------------------------------------------
+    # Reject payloads that reference entity_ids the running HA instance does
+    # not know about. The LLM occasionally hallucinates entity names (e.g.
+    # script.expose_to_siri when no such script exists, or a stale
+    # automation.* reference). Without this gate the broken automation gets
+    # written to automations.yaml and surfaces as "unavailable" only after
+    # reload.
+    if hass is not None:
+        payload_for_walk: dict[str, Any] = {
+            "triggers": normalized_triggers,
+            "conditions": normalized_conditions,
+            "actions": normalized_actions,
+        }
+        unknown = _find_unknown_entity_ids(hass, _collect_referenced_entity_ids(payload_for_walk))
+        if unknown:
+            preview = ", ".join(unknown[:3])
+            suffix = f" (+{len(unknown) - 3} more)" if len(unknown) > 3 else ""
+            return (
+                False,
+                f"automation references unknown entity_id(s): {preview}{suffix}",
+                None,
+            )
+
     _VALID_MODES = {"single", "restart", "queued", "parallel"}
     mode = str(automation.get("mode", "single")).strip().lower()
     if mode not in _VALID_MODES:
@@ -529,27 +711,7 @@ def assess_automation_risk(automation: AutomationDict | dict[str, Any]) -> RiskA
     if not isinstance(actions, list):
         actions = [actions]
 
-    referenced_entity_ids: set[str] = set()
-
-    def _collect_entity_ids(obj: Any) -> None:
-        if isinstance(obj, dict):
-            for key, value in obj.items():
-                if key == "entity_id":
-                    if isinstance(value, str):
-                        referenced_entity_ids.add(value)
-                    elif isinstance(value, list):
-                        for item in value:
-                            if isinstance(item, str):
-                                referenced_entity_ids.add(item)
-                else:
-                    _collect_entity_ids(value)
-        elif isinstance(obj, list):
-            for item in obj:
-                _collect_entity_ids(item)
-
-    _collect_entity_ids(triggers)
-    _collect_entity_ids(actions)
-    _collect_entity_ids(automation.get("condition") or automation.get("conditions") or [])
+    referenced_entity_ids = _collect_referenced_entity_ids(automation)
 
     for trigger in triggers:
         if not isinstance(trigger, dict):
