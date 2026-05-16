@@ -573,6 +573,441 @@ class TestValidateActionDomains:
         assert valid
 
 
+class TestValidateEntityReferences:
+    """Tests for entity_id existence validation in validate_automation_payload.
+
+    Catches LLM hallucinations like ``script.expose_to_siri`` (no such script)
+    or stale ``automation.*`` references before the broken automation is
+    written to ``automations.yaml`` and surfaces as "unavailable".
+    """
+
+    @staticmethod
+    def _hass(known_entity_ids: set[str], registry_entity_ids: set[str] | None = None) -> MagicMock:
+        """Build a mock hass whose state machine and entity registry know the given IDs.
+
+        ``known_entity_ids`` populates :attr:`hass.states`. ``registry_entity_ids``
+        (defaults to the same set) populates the entity registry — entities that
+        exist in the registry but currently have no state still count as known.
+        """
+        if registry_entity_ids is None:
+            registry_entity_ids = known_entity_ids
+        service_registry: dict[str, set[str]] = {
+            "light": {"turn_on", "turn_off"},
+            "switch": {"turn_on", "turn_off"},
+            "script": {"turn_on", "turn_off", "expose_to_siri"},
+            "automation": {"turn_on", "turn_off", "trigger"},
+            "homeassistant": {"turn_on", "turn_off", "toggle"},
+        }
+        hass = MagicMock()
+        hass.services.has_service.side_effect = (
+            lambda domain, service: service in service_registry.get(domain, set())
+        )
+        hass.services.async_services_for_domain.side_effect = (
+            lambda domain: {svc: {} for svc in service_registry[domain]}
+            if domain in service_registry
+            else {}
+        )
+        hass.states.get.side_effect = (
+            lambda eid: MagicMock() if eid in known_entity_ids else None
+        )
+        return hass
+
+    @pytest.fixture(autouse=True)
+    def _patch_entity_registry(self, monkeypatch: pytest.MonkeyPatch) -> list[set[str]]:
+        """Patch er.async_get so we can control the registry per test."""
+        registry_ids: set[str] = set()
+
+        def _fake_async_get(_hass: Any) -> Any:
+            reg = MagicMock()
+            reg.async_get.side_effect = (
+                lambda eid: MagicMock() if eid in registry_ids else None
+            )
+            return reg
+
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils.er.async_get",
+            _fake_async_get,
+        )
+        self._registry_ids = registry_ids
+        return [registry_ids]
+
+    def _set_registry(self, ids: set[str]) -> None:
+        self._registry_ids.clear()
+        self._registry_ids.update(ids)
+
+    def test_rejects_unknown_action_target_entity(self) -> None:
+        """Action targeting an entity that does not exist is rejected."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Hallucinated entity",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "script.turn_on",
+                    "target": {"entity_id": "script.expose_to_siri"},
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
+        assert not valid
+        assert "unknown entity_id" in reason
+        assert "script.expose_to_siri" in reason
+
+    def test_rejects_unknown_trigger_entity(self) -> None:
+        """Trigger referencing a non-existent entity is rejected."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Bad trigger",
+            "trigger": [
+                {"platform": "state", "entity_id": "automation.ghost", "to": "on"}
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "automation.ghost" in reason
+
+    def test_rejects_unknown_condition_entity(self) -> None:
+        """Condition referencing a non-existent entity is rejected."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Bad condition",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "condition": [
+                {"condition": "state", "entity_id": "switch.phantom", "state": "on"}
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "switch.phantom" in reason
+
+    def test_accepts_when_all_entities_known(self) -> None:
+        """When every referenced entity exists, validation passes."""
+        self._set_registry({"light.kitchen", "switch.foyer"})
+        payload = {
+            "alias": "All known",
+            "trigger": [
+                {"platform": "state", "entity_id": "switch.foyer", "to": "on"}
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen", "switch.foyer"})
+        )
+        assert valid, reason
+
+    def test_registry_only_entity_accepted(self) -> None:
+        """Entity in registry but without current state is treated as known."""
+        # state machine has nothing; registry has the entity (disabled / no
+        # state yet). Should still pass — the entity is real.
+        self._set_registry({"switch.foyer", "light.kitchen"})
+        payload = {
+            "alias": "Disabled entity",
+            "trigger": [
+                {"platform": "state", "entity_id": "switch.foyer", "to": "on"}
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
+        assert valid, reason
+
+    def test_template_entity_id_skipped(self) -> None:
+        """Templated entity_id values are not checked against the registry."""
+        self._set_registry(set())
+        payload = {
+            "alias": "Templated",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "{{ states('input_text.target') }}"},
+                }
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload, self._hass(set()))
+        assert valid
+
+    def test_no_hass_skips_entity_check(self) -> None:
+        """Without hass, entity existence is not validated."""
+        payload = {
+            "alias": "No hass",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.phantom"}}
+            ],
+        }
+        valid, _, _ = validate_automation_payload(payload)
+        assert valid
+
+    def test_comma_separated_entity_id_split_before_lookup(self) -> None:
+        """HA's legacy ``entity_id: "a, b"`` shorthand must be split, not looked
+        up as a single combined string. Each ID is checked individually."""
+        self._set_registry({"light.kitchen", "light.dining"})
+        payload = {
+            "alias": "Comma form",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "light.kitchen, light.dining"},
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen", "light.dining"})
+        )
+        assert valid, reason
+
+    def test_comma_separated_entity_id_partial_unknown_rejected(self) -> None:
+        """If one half of a comma-separated entity_id is missing, only that
+        half should be reported — proving the split happened."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Comma form partial",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {"entity_id": "light.kitchen, light.phantom"},
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "light.phantom" in reason
+        assert "light.kitchen" not in reason
+
+    def test_event_data_entity_id_field_not_validated(self) -> None:
+        """event_data is integration-defined match data, not an HA entity ref.
+
+        A ``platform: event`` trigger with ``event_data: {entity_id: "..."}``
+        means "fire only when the event payload's entity_id field equals this
+        value" — the value is opaque to HA's state machine and may be an
+        integration identifier (e.g. ``my_integration.some_id``) that is not
+        a registered entity. Validating it would falsely reject the payload.
+        """
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Event with entity_id payload",
+            "trigger": [
+                {
+                    "platform": "event",
+                    "event_type": "my_integration_event",
+                    "event_data": {"entity_id": "my_integration.not_a_state_entity"},
+                }
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert valid, reason
+
+    def test_choose_branch_entity_validated(self) -> None:
+        """``choose`` branches are real control-flow — entities inside their
+        ``sequence`` are still validated."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Choose phantom",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "state",
+                                    "entity_id": "light.kitchen",
+                                    "state": "on",
+                                }
+                            ],
+                            "sequence": [
+                                {
+                                    "action": "light.turn_off",
+                                    "target": {"entity_id": "light.phantom"},
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "light.phantom" in reason
+
+    def test_nested_condition_group_singular_dict_validated(self) -> None:
+        """HA accepts ``conditions: {condition: state, ...}`` (singular dict)
+        inside an and/or/not group. The walker must coerce to a list so the
+        nested condition's entity_id is still checked — otherwise a phantom
+        entity inside an ``and`` block slips past validation."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Nested singular condition",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "condition": [
+                {
+                    "condition": "and",
+                    "conditions": {
+                        "condition": "state",
+                        "entity_id": "switch.phantom",
+                        "state": "on",
+                    },
+                }
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "switch.phantom" in reason
+
+    def test_condition_as_action_step_validated(self) -> None:
+        """HA allows a condition block to appear as an action step (inline
+        guard). Entity references inside that step must still be validated
+        — otherwise a hallucinated entity hidden in an action-step
+        condition passes the unknown-entity check."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Inline condition action",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "condition": "or",
+                    "conditions": [
+                        {
+                            "condition": "state",
+                            "entity_id": "lock.phantom",
+                            "state": "unlocked",
+                        }
+                    ],
+                },
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "lock.phantom" in reason
+
+    def test_shorthand_logical_condition_validated(self) -> None:
+        """HA's shorthand logical syntax (``{or: [...]}``, ``{and: [...]}``,
+        ``{not: [...]}``) is valid and references real entities. The walker
+        must descend into those operator keys; otherwise a hallucinated
+        entity nested inside ``or:`` slips past validation."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Shorthand or",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "condition": [
+                {
+                    "or": [
+                        {
+                            "condition": "state",
+                            "entity_id": "lock.phantom",
+                            "state": "unlocked",
+                        }
+                    ]
+                }
+            ],
+            "action": [
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "lock.phantom" in reason
+
+    def test_wait_for_trigger_entity_validated(self) -> None:
+        """wait_for_trigger embeds trigger dicts whose entity_id is a real
+        state reference — phantom entities inside it must still be caught."""
+        self._set_registry({"light.kitchen"})
+        payload = {
+            "alias": "Wait for phantom motion",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "wait_for_trigger": [
+                        {
+                            "platform": "state",
+                            "entity_id": "binary_sensor.phantom_motion",
+                            "to": "on",
+                        }
+                    ]
+                },
+                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(
+            payload, self._hass({"light.kitchen"})
+        )
+        assert not valid
+        assert "binary_sensor.phantom_motion" in reason
+
+    def test_deprecated_bare_entity_id_action_form_validated(self) -> None:
+        """Legacy ``service: light.turn_on, entity_id: light.foo`` is a real
+        entity reference — still rejected if the entity is missing."""
+        self._set_registry(set())
+        payload = {
+            "alias": "Deprecated form",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {"action": "light.turn_on", "entity_id": "light.phantom"}
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
+        assert not valid
+        assert "light.phantom" in reason
+
+    def test_multiple_unknown_entities_listed(self) -> None:
+        """Error message lists multiple missing entities (truncates after 3)."""
+        self._set_registry(set())
+        payload = {
+            "alias": "Many phantoms",
+            "trigger": [
+                {"platform": "state", "entity_id": "switch.a", "to": "on"}
+            ],
+            "action": [
+                {
+                    "action": "light.turn_on",
+                    "target": {
+                        "entity_id": ["light.b", "light.c", "light.d", "light.e"]
+                    },
+                }
+            ],
+        }
+        valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
+        assert not valid
+        # Three names appear in the preview, the 4th is folded into "+N more".
+        assert reason.count(".") >= 3
+        assert "+" in reason and "more" in reason
+
+
 class TestValidateActionServices:
     """Tests for validate_action_services."""
 
@@ -730,6 +1165,118 @@ class TestAssessAutomationRisk:
         }
         result = assess_automation_risk(auto)
         assert "Access control" in result["scrutiny_tags"]
+
+    def test_singular_dict_action_section_collected(self) -> None:
+        """HA accepts singular dict sections (``action: {...}``) as well as
+        lists. Raw callers like ``tool_executor`` pass payloads in that
+        shape, so the entity walker must coerce them — otherwise lock/camera
+        scrutiny tags would silently disappear for these automations.
+        """
+        auto = {
+            "trigger": {"platform": "time", "at": "08:00"},
+            "action": {
+                "action": "lock.lock",
+                "target": {"entity_id": "lock.front_door"},
+            },
+        }
+        result = assess_automation_risk(auto)
+        assert "Access control" in result["scrutiny_tags"]
+
+    def test_nested_condition_group_singular_dict_scrutiny_tagged(self) -> None:
+        """An ``and`` group whose ``conditions`` field is a singular dict must
+        still surface scrutiny tags for sensitive entity domains inside it."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "condition": [
+                {
+                    "condition": "and",
+                    "conditions": {
+                        "condition": "state",
+                        "entity_id": "lock.front_door",
+                        "state": "locked",
+                    },
+                }
+            ],
+            "action": [{"action": "light.turn_on"}],
+        }
+        result = assess_automation_risk(auto)
+        assert "Access control" in result["scrutiny_tags"]
+
+    def test_condition_as_action_step_scrutiny_tagged(self) -> None:
+        """A condition block used as an action step must still surface
+        scrutiny tags for sensitive entity domains nested inside it."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "condition": "and",
+                    "conditions": [
+                        {
+                            "condition": "state",
+                            "entity_id": "lock.front_door",
+                            "state": "locked",
+                        }
+                    ],
+                },
+                {"action": "light.turn_on"},
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert "Access control" in result["scrutiny_tags"]
+
+    def test_shorthand_logical_condition_scrutiny_tagged(self) -> None:
+        """Shorthand ``{or: [...]}`` / ``{and: [...]}`` / ``{not: [...]}``
+        condition syntax must still surface scrutiny tags for sensitive
+        entity domains nested inside it."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "condition": [
+                {
+                    "and": [
+                        {
+                            "condition": "state",
+                            "entity_id": "lock.front_door",
+                            "state": "locked",
+                        }
+                    ]
+                }
+            ],
+            "action": [{"action": "light.turn_on"}],
+        }
+        result = assess_automation_risk(auto)
+        assert "Access control" in result["scrutiny_tags"]
+
+    def test_wait_for_trigger_entity_scrutiny_tagged(self) -> None:
+        """wait_for_trigger blocks reference real state entities — sensitive
+        domains inside them (camera, lock, etc.) must still surface a
+        scrutiny tag in the risk assessment."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "action": [
+                {
+                    "wait_for_trigger": [
+                        {
+                            "platform": "state",
+                            "entity_id": "camera.front",
+                            "to": "recording",
+                        }
+                    ]
+                },
+                {"action": "light.turn_on"},
+            ],
+        }
+        result = assess_automation_risk(auto)
+        assert "Camera" in result["scrutiny_tags"]
+
+    def test_singular_dict_condition_section_collected(self) -> None:
+        """Singular dict ``condition: {...}`` must also be walked."""
+        auto = {
+            "trigger": [{"platform": "time", "at": "08:00"}],
+            "condition": {"condition": "state", "entity_id": "camera.porch", "state": "idle"},
+            "action": [{"action": "light.turn_on"}],
+        }
+        result = assess_automation_risk(auto)
+        assert "Camera" in result["scrutiny_tags"]
 
     def test_flags_are_deduplicated_and_sorted(self) -> None:
         auto = {
@@ -1035,6 +1582,7 @@ class TestAsyncCreateAutomation:
     async def test_creates_automation(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:
+        hass.states.async_set("light.x", "off")
         suggestion = {
             "alias": "New automation",
             "description": "Test desc",
@@ -1111,6 +1659,7 @@ class TestAsyncUpdateAutomation:
     async def test_updates_existing_automation(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:
+        hass.states.async_set("light.porch", "off")
         updated = {
             "alias": "Updated alias",
             "trigger": [{"platform": "sun", "event": "sunrise"}],
@@ -1335,6 +1884,7 @@ class TestCreateAutomationValidation:
     async def test_boolean_triggers_coerced_in_yaml(
         self, hass, tmp_automations_yaml: Path, _patch_store
     ) -> None:
+        hass.states.async_set("sensor.dryer", "off")
         suggestion = {
             "alias": "Dryer Done",
             "trigger": [
@@ -1360,6 +1910,7 @@ class TestCreateAutomationValidation:
 
     @pytest.mark.asyncio
     async def test_null_from_stripped(self, hass, tmp_automations_yaml: Path, _patch_store) -> None:
+        hass.states.async_set("sensor.x", "off")
         suggestion = {
             "alias": "Null From Test",
             "trigger": [{"platform": "state", "entity_id": "sensor.x", "from": None, "to": "on"}],
@@ -1472,6 +2023,7 @@ class TestUpdateAutomationValidation:
     async def test_boolean_triggers_coerced_on_update(
         self, hass, tmp_automations_yaml: Path, _patch_store
     ) -> None:
+        hass.states.async_set("sensor.test", "off")
         updated = {
             "alias": "Updated Automation",
             "trigger": [
