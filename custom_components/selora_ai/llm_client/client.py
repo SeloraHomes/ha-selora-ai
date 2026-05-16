@@ -35,7 +35,14 @@ from ..types import (
     HomeSnapshot,
     ToolCallLog,
 )
-from .command_policy import apply_command_policy
+from .command_policy import (
+    _build_command_confirmation,
+    _executed_service_calls_from_log,
+    _prose_is_trusted_after_tool,
+    _suppress_duplicate_command_after_tool,
+    _tool_failure_response,
+    apply_command_policy,
+)
 from .intent import _classify_chat_intent, _is_pure_greeting
 from .parsers import (
     parse_architect_response,
@@ -353,21 +360,57 @@ class LLMClient:
                     )
                     _LOGGER.warning("LLM tool-calling request failed: %s", error)
                     self._usage.flush("chat")
-                    return {
-                        "intent": "answer",
-                        "response": (
+                    # If execute_command already ran this turn, tell the user
+                    # what completed before the connection failed — otherwise
+                    # they retry and the same service fires a second time.
+                    executed = _executed_service_calls_from_log(tool_log)
+                    if executed:
+                        response_text = (
+                            _build_command_confirmation(executed)
+                            + " Then I lost the connection to the LLM — only "
+                            "retry if there's more to do."
+                        )
+                    else:
+                        response_text = (
                             "I encountered an error communicating with the LLM. "
                             "Please check your settings and logs."
-                        ),
+                        )
+                    return {
+                        "intent": "answer",
+                        "response": response_text,
                         "error": error or "llm_request_failed",
                         "config_issue": is_config_issue,
+                        "tool_calls": tool_log,
                     }
-                parsed = apply_command_policy(
-                    parse_architect_response(result_text, self._hass), entities
-                )
+                parsed = parse_architect_response(result_text, self._hass)
+                if tool_log:
+                    parsed = _suppress_duplicate_command_after_tool(parsed, tool_log, entities)
+                    # When a tool call already fired this turn AND the
+                    # parser returned an answer without calls, the prose
+                    # may be a legitimate confirmation. _prose_is_trusted_after_tool
+                    # decides whether to bypass the unbacked-action stomp:
+                    #   (a) exact synthesized confirmation prefix, OR
+                    #   (b) generic acknowledgement (no specific claim), OR
+                    #   (c) describes an executed entity with a consistent
+                    #       verb AND no unbacked entity tokens.
+                    # Otherwise the policy guard runs, so a hallucinated
+                    # claim about an unexecuted device gets corrected.
+                    if (
+                        parsed.get("intent") == "answer"
+                        and not parsed.get("calls")
+                        and not parsed.get("suppressed_duplicate_command")
+                    ):
+                        executed_calls = _executed_service_calls_from_log(tool_log)
+                        if _prose_is_trusted_after_tool(
+                            parsed.get("response", ""), executed_calls, entities
+                        ):
+                            parsed["suppressed_duplicate_command"] = True
+                parsed = apply_command_policy(parsed, entities)
                 self._usage.flush("chat", intent=parsed.get("intent"))
                 if tool_log:
                     parsed["tool_calls"] = tool_log
+                # Carry the raw LLM text so dev-mode UI can display it.
+                parsed["raw_response"] = result_text
                 return parsed
 
             # Standard path (no tools)
@@ -391,6 +434,7 @@ class LLMClient:
 
             parsed = apply_command_policy(parse_architect_response(result, self._hass), entities)
             self._usage.flush("chat", intent=parsed.get("intent"))
+            parsed["raw_response"] = result
             return parsed
 
     async def architect_chat_stream(
@@ -567,19 +611,29 @@ class LLMClient:
         self,
         text: str,
         entities: list[EntitySnapshot] | None = None,
+        tool_log: list[dict[str, Any]] | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser."""
-        return parse_streamed_response(text, self._hass, entities)
+        return parse_streamed_response(text, self._hass, entities, tool_log)
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration
     # ------------------------------------------------------------------
 
     def _get_tools_for_provider(self) -> list[dict[str, Any]]:
-        """Return tool definitions formatted for the current provider."""
+        """Return tool definitions formatted for the current provider.
+
+        Tools marked ``large_context_only`` are dropped for providers with
+        a tight context window (currently only selora_local).
+        """
         from ..tool_registry import CHAT_TOOLS
 
-        return [self._provider.format_tool(t) for t in CHAT_TOOLS]
+        low_ctx = self._provider.is_low_context
+        return [
+            self._provider.format_tool(t)
+            for t in CHAT_TOOLS
+            if not (low_ctx and t.large_context_only)
+        ]
 
     async def _send_request_with_tools(
         self,
@@ -624,6 +678,7 @@ class LLMClient:
                     {
                         "tool": tool_call["name"],
                         "arguments": tool_call["arguments"],
+                        "result": result,
                     }
                 )
 
@@ -631,9 +686,25 @@ class LLMClient:
 
         # Exhausted rounds
         _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
+        if _executed_service_calls_from_log(tool_calls_log):
+            # Acknowledge anything execute_command already fired so the user
+            # doesn't retry and double-execute the same service.
+            exhaustion_text = _tool_failure_response(
+                tool_calls_log,
+                suffix=(
+                    "Then I ran out of tool rounds before finishing — please try a "
+                    "more specific request only if there's more to do."
+                ),
+            )
+        else:
+            # No completed action — keep the original phrasing so the user
+            # isn't told something ran when nothing did.
+            exhaustion_text = (
+                "I used several tools but couldn't complete the analysis. "
+                "Please try a more specific request."
+            )
         return (
-            "I used several tools but couldn't complete the analysis. "
-            "Please try a more specific request.",
+            exhaustion_text,
             None,
             tool_calls_log,
         )
@@ -704,8 +775,17 @@ class LLMClient:
             )
             content_blocks = []
 
-        # Exhausted rounds
-        yield "I used several tools but couldn't complete the analysis."
+        # Exhausted rounds — acknowledge anything execute_command already
+        # fired so the user doesn't retry and double-execute the same service.
+        yield _tool_failure_response(
+            tool_executor.call_log,
+            suffix=(
+                "Then I ran out of tool rounds before finishing — try a more "
+                "specific request only if there's more to do."
+                if _executed_service_calls_from_log(tool_executor.call_log)
+                else "I used several tools but couldn't complete the analysis."
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Chat message building (shared between chat and stream)

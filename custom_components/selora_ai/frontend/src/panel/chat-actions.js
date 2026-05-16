@@ -46,6 +46,7 @@ export async function _sendMessage() {
   const assistantMsg = {
     role: "assistant",
     content: "",
+    timestamp: new Date(sendStartedAt).toISOString(),
     _streaming: true,
     _sentAt: sendStartedAt,
   };
@@ -225,6 +226,7 @@ export async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg.tool_calls = event.tool_calls || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];

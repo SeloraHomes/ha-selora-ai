@@ -6231,6 +6231,61 @@ function _formatReplyMs(ms) {
   const seconds = ms / 1e3;
   return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
 }
+function _formatToolArgs(args) {
+  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
+  const parts = [];
+  for (const [k2, v2] of Object.entries(args)) {
+    let val;
+    if (v2 === null || v2 === void 0) {
+      val = "null";
+    } else if (typeof v2 === "string") {
+      val =
+        v2.length > 60
+          ? JSON.stringify(v2.slice(0, 60) + "\u2026")
+          : JSON.stringify(v2);
+    } else if (typeof v2 === "object") {
+      const json = JSON.stringify(v2);
+      val = json.length > 60 ? json.slice(0, 60) + "\u2026" : json;
+    } else {
+      val = String(v2);
+    }
+    parts.push(`${k2}=${val}`);
+  }
+  return parts.join(", ");
+}
+function renderToolCalls(toolCalls) {
+  return x`
+    <details
+      class="dev-tool-calls"
+      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
+    >
+      <summary
+        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
+      >
+        <ha-icon
+          icon="mdi:wrench-outline"
+          style="--mdc-icon-size:14px;"
+        ></ha-icon>
+        <span>Tools used (${toolCalls.length})</span>
+      </summary>
+      <div
+        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
+      >
+        ${toolCalls.map(
+          (tc, i5) => x`
+            <div
+              style="padding:2px 0;${i5 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+            >
+              <span style="color:var(--primary-text-color);font-weight:600;"
+                >${tc.tool}</span
+              >${tc.arguments && Object.keys(tc.arguments).length ? x`<span>(${_formatToolArgs(tc.arguments)})</span>` : x`<span>()</span>`}
+            </div>
+          `,
+        )}
+      </div>
+    </details>
+  `;
+}
 var WELCOME_SUGGESTIONS = [
   {
     label: "Turn off all lights at midnight",
@@ -6629,6 +6684,7 @@ function renderMessage(host, msg, idx) {
                     `
                     : ""
                 }
+                ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(msg.tool_calls) : ""}
               </div>
               ${
                 msg.quick_actions &&
@@ -13036,6 +13092,7 @@ async function _sendMessage() {
   const assistantMsg = {
     role: "assistant",
     content: "",
+    timestamp: new Date(sendStartedAt).toISOString(),
     _streaming: true,
     _sentAt: sendStartedAt,
   };
@@ -13174,6 +13231,7 @@ async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg.tool_calls = event.tool_calls || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];

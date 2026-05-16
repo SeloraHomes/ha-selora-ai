@@ -341,6 +341,27 @@ def build_architect_system_prompt(
     method is called from the Assist conversation entity, emit
     friendly names directly instead of markers.
     """
+    execute_command_rules = (
+        "\nTOOL-BASED COMMAND EXECUTION (preferred when entity_id is known):\n"
+        "When you can resolve the user's request to a specific entity_id, prefer "
+        "calling the `execute_command` tool over emitting a `command` intent. "
+        "The tool runs the service call through the same safe-command policy and "
+        "returns the post-execution state, which is more reliable than the JSON "
+        "path on small models.\n"
+        "If you used `execute_command`, the action has ALREADY run — your final "
+        'response MUST be `{"intent":"answer", "response":"<1-sentence '
+        'confirmation>"}`. Do NOT also emit `"intent":"command"` with a `calls` '
+        "array, or the action will execute a second time.\n"
+        "Use the JSON `command` intent only when you must batch multiple calls "
+        "in one turn or when an entity_id is genuinely ambiguous and you want "
+        "the policy validator to flag it.\n"
+        "Helper tools for entity resolution: `search_entities` (fuzzy match by "
+        "name/alias/area), `find_entities_by_area`, `get_entity_state`. Helper "
+        "tool for verb/parameter validation: `validate_action`.\n\n"
+        if tools_available
+        else ""
+    )
+
     if for_assist:
         entity_output_rules = (
             "When the answer NAMES SPECIFIC DEVICES (state queries, listings, status checks),\n"
@@ -397,7 +418,8 @@ def build_architect_system_prompt(
         '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
         "WRONG (entity_id stuffed into the service field):\n"
         '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n\n'
-        "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
+        + execute_command_rules
+        + "2. AUTOMATION — a recurring rule, schedule, or multi-step sequence the user wants saved:\n"
         "{\n"
         '  "intent": "automation",\n'
         '  "response": "1-2 sentence explanation of the automation. Mention any trade-off only if important.",\n'
@@ -658,7 +680,23 @@ def build_architect_stream_system_prompt(*, tools_available: bool = False) -> st
         "WRONG (entity_id stuffed into the service field):\n"
         '  {"service": "cover.garage_door", "target": {"entity_id": "cover.garage_door"}}\n'
         "NEVER use 'delayed_command' for actions that should happen immediately.\n\n"
-        "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
+        + (
+            "TOOL-BASED COMMAND EXECUTION (preferred when entity_id is known):\n"
+            "When you can resolve the user's request to a specific entity_id, prefer "
+            "calling the `execute_command` tool over appending a ```command``` block. "
+            "The tool runs the service through the same safe-command policy and "
+            "returns the post-execution state.\n"
+            "If you used `execute_command`, the action has ALREADY run — write a "
+            "1-sentence confirmation in prose with the entity marker and DO NOT "
+            "append a ```command``` block, or the action will execute twice.\n"
+            "Append a ```command``` block only when batching multiple calls in one "
+            "turn or when the entity_id is genuinely ambiguous.\n"
+            "Helper tools: `search_entities`, `find_entities_by_area`, "
+            "`get_entity_state`, `validate_action`.\n\n"
+            if tools_available
+            else ""
+        )
+        + "For DELAYED COMMANDS (actions scheduled for later), return a JSON block with the tag 'delayed_command':\n\n"
         "```delayed_command\n"
         "{\n"
         '  "calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}],\n'

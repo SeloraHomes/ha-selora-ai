@@ -11,6 +11,67 @@ function _formatReplyMs(ms) {
   return seconds < 10 ? `${seconds.toFixed(1)} s` : `${Math.round(seconds)} s`;
 }
 
+function _formatToolArgs(args) {
+  if (!args || typeof args !== "object" || !Object.keys(args).length) return "";
+  const parts = [];
+  for (const [k, v] of Object.entries(args)) {
+    let val;
+    if (v === null || v === undefined) {
+      val = "null";
+    } else if (typeof v === "string") {
+      val =
+        v.length > 60
+          ? JSON.stringify(v.slice(0, 60) + "…")
+          : JSON.stringify(v);
+    } else if (typeof v === "object") {
+      const json = JSON.stringify(v);
+      val = json.length > 60 ? json.slice(0, 60) + "…" : json;
+    } else {
+      val = String(v);
+    }
+    parts.push(`${k}=${val}`);
+  }
+  return parts.join(", ");
+}
+
+function renderToolCalls(toolCalls) {
+  return html`
+    <details
+      class="dev-tool-calls"
+      style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
+    >
+      <summary
+        style="cursor:pointer;padding:6px 10px;color:var(--secondary-text-color);user-select:none;list-style:none;display:flex;align-items:center;gap:6px;"
+      >
+        <ha-icon
+          icon="mdi:wrench-outline"
+          style="--mdc-icon-size:14px;"
+        ></ha-icon>
+        <span>Tools used (${toolCalls.length})</span>
+      </summary>
+      <div
+        style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
+      >
+        ${toolCalls.map(
+          (tc, i) => html`
+            <div
+              style="padding:2px 0;${i > 0
+                ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;"
+                : ""}"
+            >
+              <span style="color:var(--primary-text-color);font-weight:600;"
+                >${tc.tool}</span
+              >${tc.arguments && Object.keys(tc.arguments).length
+                ? html`<span>(${_formatToolArgs(tc.arguments)})</span>`
+                : html`<span>()</span>`}
+            </div>
+          `,
+        )}
+      </div>
+    </details>
+  `;
+}
+
 const WELCOME_SUGGESTIONS = [
   {
     label: "Turn off all lights at midnight",
@@ -402,6 +463,11 @@ export function renderMessage(host, msg, idx) {
                         >
                       </div>
                     `
+                  : ""}
+                ${host._config?.developer_mode &&
+                msg.tool_calls &&
+                msg.tool_calls.length
+                  ? renderToolCalls(msg.tool_calls)
                   : ""}
               </div>
               ${msg.quick_actions &&
