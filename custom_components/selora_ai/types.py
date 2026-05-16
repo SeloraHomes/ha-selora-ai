@@ -442,11 +442,17 @@ class ServiceCallDict(TypedDict, total=False):
     data: dict[str, Any]
 
 
-class ToolCallLog(TypedDict):
-    """Log entry for a tool call during chat."""
+class ToolCallLog(TypedDict, total=False):
+    """Log entry for a tool call during chat.
+
+    ``result`` is optional and present when the dispatcher recorded the
+    handler's return value (used by the duplicate-execution guard to
+    distinguish actual service execution from validation/exec failures).
+    """
 
     tool: str
     arguments: dict[str, Any]
+    result: dict[str, Any]
 
 
 # ── Entity snapshot structures ────────────────────────────────────────

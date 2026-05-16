@@ -1741,6 +1741,7 @@ async def _handle_websocket_chat(
             "scene_status": "pending" if scene_payload else None,
             "refine_scene_id": refine_scene_id,
             "scene_message_index": assistant_message_index if scene_payload else None,
+            "raw_response": result.get("raw_response"),
         },
     )
 
@@ -1839,6 +1840,10 @@ async def _handle_websocket_chat_stream(
 
     # Inject active context (automation refinement, known scenes) into the
     # current turn so the LLM always sees it even if history gets trimmed.
+    # Initialize tool_executor up-front so the ConnectionError handler can
+    # inspect its call_log even if the failure happens before the executor
+    # is created.
+    tool_executor = None
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -1918,7 +1923,11 @@ async def _handle_websocket_chat_stream(
             getattr(llm._provider, "provider_type", "unknown"),
         )
 
-        parsed = llm.parse_streamed_response(full_text, entities=entities)
+        parsed = llm.parse_streamed_response(
+            full_text,
+            entities=entities,
+            tool_log=tool_executor.call_log if tool_executor else None,
+        )
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
@@ -1981,6 +1990,7 @@ async def _handle_websocket_chat_stream(
             automation_status="pending" if parsed.get("automation") else None,
             calls=parsed.get("calls") if intent_type == "command" else None,
             risk_assessment=parsed.get("risk_assessment"),
+            tool_calls=tool_executor.call_log if tool_executor and tool_executor.call_log else None,
             scene=scene_payload,
             scene_yaml=scene_yaml_str,
             scene_status="pending" if scene_payload else None,
@@ -2037,6 +2047,10 @@ async def _handle_websocket_chat_stream(
                     "refine_scene_id": refine_scene_id,
                     "scene_message_index": assistant_message_index if scene_payload else None,
                     "quick_actions": parsed.get("quick_actions"),
+                    "tool_calls": tool_executor.call_log
+                    if tool_executor and tool_executor.call_log
+                    else None,
+                    "raw_response": full_text,
                 },
             )
         )
@@ -2044,11 +2058,52 @@ async def _handle_websocket_chat_stream(
         _LOGGER.debug("Streaming chat cancelled by client")
         await _discard_empty_session_if_needed()
     except ConnectionError as exc:
-        # Transport / provider failure — emit a transient error event so
-        # the panel can surface it as a one-off message, but do NOT
-        # persist anything to the session store. Reloading the chat
-        # should not show stale "couldn't reach the LLM provider" bubbles.
+        # Transport / provider failure. If execute_command already fired
+        # one or more services this turn, we can't pretend nothing
+        # happened: a hard "error" event would tempt the user to retry
+        # and double-execute. Persist a synthesized confirmation and emit
+        # a "done" event instead. Otherwise fall through to the original
+        # error path (no actions ran → safe for the user to retry).
+        from .llm_client import (
+            _build_command_confirmation,
+            _executed_service_calls_from_log,
+        )
+
         _LOGGER.warning("Streaming chat unreachable: %s", exc)
+        executed_calls = (
+            _executed_service_calls_from_log(tool_executor.call_log)
+            if tool_executor is not None
+            else []
+        )
+        if executed_calls:
+            synthesized = (
+                _build_command_confirmation(executed_calls)
+                + " Then I lost the connection to the LLM — only retry if "
+                "there's more to do."
+            )
+            await store.append_message(session_id, "user", user_message)
+            await store.append_message(
+                session_id,
+                "assistant",
+                synthesized,
+                intent="answer",
+                tool_calls=tool_executor.call_log,
+            )
+            persisted_any = True
+            connection.send_message(
+                websocket_api.event_message(
+                    msg["id"],
+                    {
+                        "type": "done",
+                        "session_id": session_id,
+                        "intent": "answer",
+                        "response": synthesized,
+                        "tool_calls": tool_executor.call_log,
+                        "executed": [c["service"] for c in executed_calls],
+                    },
+                )
+            )
+            return
         connection.send_message(
             websocket_api.event_message(
                 msg["id"],
