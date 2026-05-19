@@ -13021,11 +13021,9 @@ function _getRefiningAutomationId(msgIndex = null) {
   const msg = msgIndex == null ? null : this._messages[msgIndex];
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
-  if (msg?.automation?.id) return msg.automation.id;
   for (const m2 of this._messages) {
-    if (m2.automation_status === "refining") {
-      if (m2.automation_id) return m2.automation_id;
-      if (m2.automation?.id) return m2.automation.id;
+    if (m2.automation_status === "refining" && m2.automation_id) {
+      return m2.automation_id;
     }
   }
   return null;

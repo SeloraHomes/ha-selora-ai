@@ -24,15 +24,17 @@ export function _createdToast(alias, result) {
 }
 
 export function _getRefiningAutomationId(msgIndex = null) {
+  // Only return ids that refer to automations the backend has persisted.
+  // msg.automation.id is the LLM-proposed id from the YAML payload — it
+  // doesn't exist on disk until the user accepts, so treating it as a
+  // refine target makes Accept & Save 404 on fresh proposals.
   const msg = msgIndex == null ? null : this._messages[msgIndex];
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
-  if (msg?.automation?.id) return msg.automation.id;
 
   for (const m of this._messages) {
-    if (m.automation_status === "refining") {
-      if (m.automation_id) return m.automation_id;
-      if (m.automation?.id) return m.automation.id;
+    if (m.automation_status === "refining" && m.automation_id) {
+      return m.automation_id;
     }
   }
   return null;
