@@ -97,7 +97,7 @@ export async function _loadSceneToChat(sceneId) {
     if (sessionId) {
       this._activeSessionId = sessionId;
       this._input = "";
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._showSidebar = false;
       await this._openSession(sessionId);
     }

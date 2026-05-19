@@ -1056,7 +1056,7 @@ export function renderUsage(host) {
           href="#"
           @click=${(e) => {
             e.preventDefault();
-            host._activeTab = "settings";
+            host._setActiveTab("settings");
             host.requestUpdate();
           }}
         >

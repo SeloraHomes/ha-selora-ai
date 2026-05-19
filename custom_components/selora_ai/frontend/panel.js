@@ -10910,7 +10910,7 @@ function _renderUsageHeaderLink(host) {
       class="section-card-action"
       title="View token usage"
       @click=${() => {
-        host._activeTab = "usage";
+        host._setActiveTab("usage");
         host._loadUsageStats?.();
         host.requestUpdate();
       }}
@@ -13142,7 +13142,7 @@ function renderUsage(host) {
           href="#"
           @click=${(e5) => {
             e5.preventDefault();
-            host._activeTab = "settings";
+            host._setActiveTab("settings");
             host.requestUpdate();
           }}
         >
@@ -13588,17 +13588,37 @@ __export(session_actions_exports, {
   _onSessionTouchStart: () => _onSessionTouchStart,
   _openSession: () => _openSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
+  _setActiveTab: () => _setActiveTab,
   _suggestAutomationName: () => _suggestAutomationName,
   _toggleSelectAllSessions: () => _toggleSelectAllSessions,
   _toggleSessionSelection: () => _toggleSessionSelection,
 });
-function _checkTabParam() {
-  const params = new URLSearchParams(window.location.search);
-  const tab = params.get("tab");
-  if (tab === "automations" || tab === "scenes" || tab === "settings") {
-    this._activeTab = tab;
-    this._showSidebar = false;
+var PANEL_PREFIX = "/selora-ai";
+var VALID_TABS = ["chat", "automations", "scenes", "settings", "usage"];
+function _tabFromPath(pathname) {
+  if (!pathname.startsWith(PANEL_PREFIX)) return null;
+  const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
+  if (!rest) return "chat";
+  return VALID_TABS.includes(rest) ? rest : null;
+}
+function _setActiveTab(tab) {
+  if (!VALID_TABS.includes(tab)) return;
+  this._activeTab = tab;
+  const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
+  if (window.location.pathname !== target) {
+    const url = new URL(window.location);
+    url.pathname = target;
+    window.history.replaceState({}, "", url);
   }
+}
+function _checkTabParam() {
+  const tab = _tabFromPath(window.location.pathname);
+  if (tab && tab !== this._activeTab) {
+    this._activeTab = tab;
+    if (tab !== "chat") this._showSidebar = false;
+  }
+  if (tab === "usage") this._loadUsageStats?.();
+  const params = new URLSearchParams(window.location.search);
   const newAuto = params.get("new_automation");
   if (newAuto) {
     if (this.hass) {
@@ -13606,10 +13626,7 @@ function _checkTabParam() {
     } else {
       this._pendingNewAutomation = newAuto;
     }
-  }
-  if (tab || newAuto) {
     const url = new URL(window.location);
-    url.searchParams.delete("tab");
     url.searchParams.delete("new_automation");
     window.history.replaceState({}, "", url);
   }
@@ -13641,7 +13658,7 @@ async function _openSession(sessionId) {
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
     console.error("Failed to open session", err);
@@ -13656,7 +13673,7 @@ async function _newSession() {
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
     if (this.narrow) this._showSidebar = false;
@@ -13692,7 +13709,7 @@ async function _newAutomationChat(name) {
     this._activeSessionId = session_id;
     this._messages = [];
     this._input = `Create a new automation called "${trimmed}".`;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
     this.requestUpdate();
     await this.updateComplete;
@@ -14465,7 +14482,7 @@ async function _acceptAutomation(msgIndex, automation) {
       const toast = _createdToast(automation.alias, createResult);
       this._showToast(toast.message, toast.type);
     }
-    this._activeTab = "automations";
+    this._setActiveTab("automations");
   } catch (err) {
     this._showToast("Failed to save automation: " + err.message, "error");
   }
@@ -14596,7 +14613,7 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
         const toast = _createdToast(automation.alias, createResult);
         this._showToast(toast.message, toast.type);
       }
-      this._activeTab = "automations";
+      this._setActiveTab("automations");
     } catch (err) {
       this._showToast(
         "Failed to save automation from edited YAML: " + err.message,
@@ -15048,7 +15065,7 @@ async function _loadAutomationToChat(automationId) {
     const sessionId = result?.session_id;
     if (sessionId) {
       this._activeSessionId = sessionId;
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);
@@ -15151,7 +15168,7 @@ async function _loadSceneToChat(sceneId) {
     if (sessionId) {
       this._activeSessionId = sessionId;
       this._input = "";
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._showSidebar = false;
       await this._openSession(sessionId);
     }
@@ -16023,7 +16040,7 @@ var SeloraAIPanel = class extends s4 {
     }
   }
   _goToSettings() {
-    this._activeTab = "settings";
+    this._setActiveTab("settings");
     this._loadConfig();
     this._loadMcpTokens();
   }
@@ -16865,7 +16882,7 @@ var SeloraAIPanel = class extends s4 {
         ? ""
         : ` (scene_id: ${scene.scene_id})`;
     this._input = `Refine "${scene.name}"${ctx}: `;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     this.requestUpdate();
     await this.updateComplete;
     const textarea = this.shadowRoot?.querySelector(".composer-textarea");
@@ -16899,7 +16916,7 @@ var SeloraAIPanel = class extends s4 {
       this._activeSessionId = session_id;
       this._messages = [];
       this._input = "Create a scene that ";
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._welcomeKey = (this._welcomeKey || 0) + 1;
       await this._loadSessions();
       if (this.narrow) this._showSidebar = false;
@@ -17154,14 +17171,14 @@ var SeloraAIPanel = class extends s4 {
             alt=""
             class="header-logo"
             @click=${() => {
-              this._activeTab = "chat";
+              this._setActiveTab("chat");
             }}
             style="cursor:pointer;"
           />
           <span
             class="header-title ${this._isDark ? "gold-text" : ""}"
             @click=${() => {
-              this._activeTab = "chat";
+              this._setActiveTab("chat");
             }}
             style="cursor:pointer;"
             >Selora AI</span
@@ -17173,7 +17190,7 @@ var SeloraAIPanel = class extends s4 {
                 if (this._activeTab === "chat") {
                   this._showSidebar = !this._showSidebar;
                 } else {
-                  this._activeTab = "chat";
+                  this._setActiveTab("chat");
                   this._showSidebar = true;
                 }
               }}
@@ -17186,7 +17203,7 @@ var SeloraAIPanel = class extends s4 {
             <div
               class="tab ${this._activeTab === "automations" ? "active" : ""}"
               @click=${() => {
-                this._activeTab = "automations";
+                this._setActiveTab("automations");
                 this._showSidebar = false;
                 this._loadAutomations();
               }}
@@ -17199,7 +17216,7 @@ var SeloraAIPanel = class extends s4 {
             <div
               class="tab ${this._activeTab === "scenes" ? "active" : ""}"
               @click=${() => {
-                this._activeTab = "scenes";
+                this._setActiveTab("scenes");
                 this._showSidebar = false;
                 this._loadScenes();
               }}
@@ -17220,7 +17237,7 @@ var SeloraAIPanel = class extends s4 {
                 @click=${() => {
                   this._showOverflowMenu = false;
                   if (this._messages.length === 0) {
-                    this._activeTab = "chat";
+                    this._setActiveTab("chat");
                     if (this.narrow) this._showSidebar = false;
                   } else {
                     this._newSession();
@@ -17254,7 +17271,7 @@ var SeloraAIPanel = class extends s4 {
                         class="overflow-item"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "chat";
+                          this._setActiveTab("chat");
                           this._showSidebar = true;
                         }}
                       >
@@ -17265,7 +17282,7 @@ var SeloraAIPanel = class extends s4 {
                         class="overflow-item ${this._activeTab === "automations" ? "active" : ""}"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "automations";
+                          this._setActiveTab("automations");
                           this._showSidebar = false;
                           this._loadAutomations();
                         }}
@@ -17277,7 +17294,7 @@ var SeloraAIPanel = class extends s4 {
                         class="overflow-item ${this._activeTab === "scenes" ? "active" : ""}"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "scenes";
+                          this._setActiveTab("scenes");
                           this._showSidebar = false;
                           this._loadScenes();
                         }}
@@ -17291,7 +17308,7 @@ var SeloraAIPanel = class extends s4 {
                       class="overflow-item ${this._activeTab === "settings" ? "active" : ""}"
                       @click=${() => {
                         this._showOverflowMenu = false;
-                        this._activeTab = "settings";
+                        this._setActiveTab("settings");
                         this._showSidebar = false;
                         this._loadConfig();
                       }}
