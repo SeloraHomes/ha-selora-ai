@@ -3055,6 +3055,172 @@ var chatStyles = i`
     vertical-align: text-bottom;
     animation: blink 0.7s step-end infinite;
   }
+
+  /* ---- Composer autocomplete ---- */
+  /* Positioned ancestor for the dropdown. The composer-styled element
+     itself has overflow:hidden for the welcome-variant glow, which
+     would clip the suggestions if anchored to it. */
+  .composer-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .composer-autocomplete {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--card-background-color, #27272a);
+    border: 1px solid var(--divider-color);
+    border-radius: 12px;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      0 1px 2px rgba(0, 0, 0, 0.18);
+    /* overflow shorthand sets both axes in one go — clip horizontally,
+       scroll vertically. Previous ordering ("overflow: hidden" then
+       "overflow-y: auto") was overriding in some browsers so the body
+       couldn't scroll when results spilled past max-height. */
+    overflow: hidden auto;
+    max-height: 320px;
+    /* Round the inner content corners too so the scroll thumb doesn't
+       paint over the dropdown's border radius. */
+    overscroll-behavior: contain;
+  }
+  .composer-autocomplete-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--divider-color);
+  }
+  /* Add breathing room and a clear divider before secondary section
+     headers (Areas after Devices) so the two groups read as distinct
+     instead of a single run of rows under a single label. */
+  .composer-autocomplete-header:not(:first-child) {
+    margin-top: 6px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .composer-autocomplete-header ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .composer-autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--primary-text-color);
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+  }
+  .composer-autocomplete-item:hover,
+  .composer-autocomplete-item.active {
+    background: rgba(251, 191, 36, 0.1);
+  }
+  .composer-autocomplete-item ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .composer-autocomplete-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .composer-autocomplete-area {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .composer-autocomplete-hint {
+    padding: 4px 12px 6px;
+    font-size: 10px;
+    color: var(--secondary-text-color);
+    text-align: right;
+    opacity: 0.7;
+  }
+
+  /* Wrap textarea + chips in a column so chips sit inside the rounded
+     composer border instead of overflowing the page edge. */
+  .composer-input-col {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* The textarea sits inside this relative wrapper so the ghost-text
+     overlay can be absolutely positioned over the same area without
+     affecting layout. */
+  .composer-textarea-wrap {
+    position: relative;
+    display: flex;
+  }
+  .composer-textarea-wrap > .composer-textarea {
+    flex: 1 1 auto;
+    position: relative;
+    z-index: 1;
+    background: transparent;
+  }
+  /* Ghost suffix: absolutely positioned at the caret's measured pixel
+     coordinates by _renderGhostOverlay (left/top/line-height inline).
+     Pointer events pass through so clicks still focus the textarea. */
+  .composer-ghost-suffix {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+    white-space: pre;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--secondary-text-color);
+    opacity: 0.5;
+  }
+  /* Inline chips showing resolved entity selections, rendered just above
+     the typed text inside the composer box. */
+  .composer-selections-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .composer-selection-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--primary-text-color);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+  }
+  .composer-selection-chip ha-icon {
+    --mdc-icon-size: 12px;
+    color: rgba(251, 191, 36, 0.9);
+  }
+  .composer-selection-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--secondary-text-color);
+    padding: 0 2px;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .composer-selection-chip button:hover {
+    color: var(--primary-text-color);
+  }
 `;
 
 // src/panel/styles/proposals.css.js
@@ -6225,7 +6391,447 @@ function _renderConfirmation(host, action) {
   `;
 }
 
+// src/panel/chat-autocomplete.js
+var AUTOCOMPLETE_MIN_CHARS = 3;
+var AUTOCOMPLETE_MAX_RESULTS = 6;
+var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
+  "light",
+  "switch",
+  "lock",
+  "cover",
+  "fan",
+  "media_player",
+  "climate",
+  "vacuum",
+  "camera",
+  "humidifier",
+  "water_heater",
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_button",
+  "remote",
+  "lawn_mower",
+]);
+var DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  climate: "mdi:thermostat",
+  vacuum: "mdi:robot-vacuum",
+  camera: "mdi:cctv",
+  humidifier: "mdi:air-humidifier",
+  water_heater: "mdi:water-boiler",
+  remote: "mdi:remote",
+  lawn_mower: "mdi:mower",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_select: "mdi:form-dropdown",
+  input_number: "mdi:numeric",
+  input_button: "mdi:gesture-tap-button",
+  scene: "mdi:palette",
+  automation: "mdi:robot",
+  script: "mdi:script-text",
+  area: "mdi:floor-plan",
+};
+var TRIGGERS = [
+  // Universal explicit trigger — `@` opens devices regardless of context.
+  // `includeAreas` adds the area registry to the same dropdown so the
+  // user can pick "Bedroom" the area as easily as "Bed Light" the device.
+  { kind: "device", pattern: /(?:^|\s)@$/, includeAreas: true },
+  // Areas — "in the kitchen", "in kitchen", "lights of the kitchen"
+  { kind: "area", pattern: /\bin (?:the |a )?$/i },
+  { kind: "area", pattern: /\bof (?:the |a )?$/i },
+  // Scenes — "activate movie night", "scene cozy", "set the scene cozy"
+  { kind: "scene", pattern: /\bactivate $/i },
+  { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+  { kind: "scene", pattern: /\bscene $/i },
+  // Automations — "run morning routine", "trigger lights off"
+  { kind: "automation", pattern: /\brun $/i },
+  { kind: "automation", pattern: /\btrigger $/i },
+  { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+  // Devices — verb-led only, grouped by the domains each verb actually
+  // operates on. "lock the …" shouldn't suggest sensors or lights;
+  // "dim the …" shouldn't suggest doors. Domain hints keep the
+  // dropdown short and unambiguous. `turn on/off` and `set` stay
+  // unconstrained because they apply to virtually any actuating entity.
+  {
+    kind: "device",
+    pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+    domains: ["lock"],
+  },
+  {
+    kind: "device",
+    pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+    domains: ["light"],
+  },
+  {
+    kind: "device",
+    pattern: /\b(?:open|close) (?:the |my )?$/i,
+    domains: ["cover", "lock"],
+  },
+  {
+    kind: "device",
+    pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+    domains: ["media_player"],
+  },
+  {
+    kind: "device",
+    pattern: /\b(?:start|stop) (?:the |my )?$/i,
+    domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+  },
+  // Generic actuation — no domain constraint. Also surface areas so
+  // "turn on the bedroom" can disambiguate into the Bedroom area
+  // (i.e. all devices in it) instead of forcing the LLM to guess.
+  {
+    kind: "device",
+    pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+    includeAreas: true,
+  },
+  // Bare "the " / "my " as a fallback. These fire in plenty of regular
+  // prose ("tell me the weather"), so we lean on the 3-char minimum
+  // and the no-match guard to stay quiet: the dropdown only opens when
+  // a typed-3+chars query actually matches a device or area name.
+  // That covers natural phrasings like "Create an automation with the
+  // kitchen's ceiling lights" without a verb up front.
+  { kind: "device", pattern: /\bthe $/i, includeAreas: true },
+  { kind: "device", pattern: /\bmy $/i, includeAreas: true },
+];
+var QUERY_STOP_RE = /[\n.?!]/;
+var MAX_QUERY_LEN = 40;
+var GHOST_VOCABULARY = [
+  "automation",
+  "automations",
+  "trigger",
+  "triggers",
+  "condition",
+  "conditions",
+  "action",
+  "actions",
+  "scene",
+  "scenes",
+  "script",
+  "scripts",
+  "device",
+  "devices",
+  "entity",
+  "entities",
+  "schedule",
+  "weekday",
+  "weekdays",
+  "weekend",
+  "weekends",
+  "midnight",
+  "morning",
+  "afternoon",
+  "evening",
+  "sunrise",
+  "sunset",
+  "minutes",
+  "hours",
+  "seconds",
+  "temperature",
+  "brightness",
+  "thermostat",
+  "lights",
+  "lighting",
+  "bedroom",
+  "bathroom",
+  "kitchen",
+  "living",
+  "garage",
+  "office",
+  "hallway",
+  "basement",
+  "downstairs",
+  "upstairs",
+  "outside",
+  "create",
+  "suggest",
+  "notify",
+  "notification",
+  "between",
+  "before",
+  "after",
+  "during",
+  "while",
+  "everyone",
+  "nobody",
+].sort((a4, b2) => a4.length - b2.length);
+var GHOST_MIN_PREFIX = 3;
+function _partialWordAt(text, caret) {
+  if (caret <= 0) return null;
+  let i5 = caret;
+  while (i5 > 0 && /\w/.test(text[i5 - 1])) i5--;
+  const word = text.slice(i5, caret);
+  if (!word) return null;
+  return { word, start: i5 };
+}
+function findGhostSuggestion(text, caret) {
+  if (typeof text !== "string") return null;
+  if (caret < text.length && /\w/.test(text[caret])) return null;
+  const part = _partialWordAt(text, caret);
+  if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
+  const lower = part.word.toLowerCase();
+  for (const w2 of GHOST_VOCABULARY) {
+    if (w2 === lower) return null;
+    if (w2.startsWith(lower)) {
+      return { suffix: w2.slice(lower.length), word: w2, start: part.start };
+    }
+  }
+  return null;
+}
+var ARTICLE_WORDS = /* @__PURE__ */ new Set(["the", "my", "a", "an"]);
+function detectTrigger(text, caret) {
+  if (typeof text !== "string" || caret == null || caret < 0) return null;
+  const before = text.slice(0, caret);
+  let queryStart = caret;
+  while (queryStart > 0) {
+    const ch = before[queryStart - 1];
+    if (QUERY_STOP_RE.test(ch)) break;
+    queryStart -= 1;
+    if (caret - queryStart > MAX_QUERY_LEN) break;
+  }
+  let best = null;
+  for (let qs = queryStart; qs <= caret; qs++) {
+    const prefix = before.slice(0, qs);
+    for (const trig of TRIGGERS) {
+      if (trig.pattern.test(prefix)) {
+        best = {
+          kind: trig.kind,
+          query: before.slice(qs, caret),
+          start: qs,
+          end: caret,
+          domains: trig.domains || null,
+          includeAreas: !!trig.includeAreas,
+        };
+        break;
+      }
+    }
+  }
+  if (!best) return null;
+  if (!best.query.trim() && !best.domains) return null;
+  if (ARTICLE_WORDS.has(best.query.trim().toLowerCase())) return null;
+  return best;
+}
+function buildSuggestionIndex(hass, areas, devices = null) {
+  const items = [];
+  if (!hass?.states) return items;
+  const areaById = {};
+  if (areas && typeof areas === "object") {
+    for (const [id, a4] of Object.entries(areas)) {
+      areaById[id] = a4?.name || a4?.area_id || id;
+    }
+  }
+  const entReg = hass.entities || {};
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    const domain = entityId.split(".")[0];
+    const friendly = state?.attributes?.friendly_name;
+    if (!friendly) continue;
+    const entry = entReg[entityId];
+    let areaId = entry?.area_id || null;
+    if (!areaId && entry?.device_id && devices) {
+      areaId = devices[entry.device_id]?.area_id || null;
+    }
+    const areaName = areaId ? areaById[areaId] || null : null;
+    if (DEVICE_DOMAINS.has(domain)) {
+      items.push({
+        kind: "device",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS[domain] || "mdi:devices",
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "scene") {
+      items.push({
+        kind: "scene",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: areaId,
+        area: areaName,
+        icon: DOMAIN_ICONS.scene,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "automation") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS.automation,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    } else if (domain === "script") {
+      items.push({
+        kind: "automation",
+        domain,
+        entity_id: entityId,
+        label: friendly,
+        area_id: null,
+        area: null,
+        icon: DOMAIN_ICONS.script,
+        _lowerLabel: friendly.toLowerCase(),
+      });
+    }
+  }
+  for (const [areaId, name] of Object.entries(areaById)) {
+    items.push({
+      kind: "area",
+      entity_id: null,
+      area_id: areaId,
+      label: name,
+      area: null,
+      icon: DOMAIN_ICONS.area,
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return items;
+}
+function _scoreItem(item, lowerQuery) {
+  const label = item._lowerLabel;
+  if (!label) return 0;
+  const words = label.split(/\s+/);
+  for (const w2 of words) {
+    if (w2 === lowerQuery) return 1500;
+  }
+  if (label.startsWith(lowerQuery)) return 1e3;
+  for (const w2 of words) {
+    if (w2.startsWith(lowerQuery)) return 500;
+  }
+  if (label.includes(lowerQuery)) return 100;
+  let qi = 0;
+  for (let i5 = 0; i5 < label.length && qi < lowerQuery.length; i5++) {
+    if (label[i5] === lowerQuery[qi]) qi += 1;
+  }
+  if (qi === lowerQuery.length) return 10;
+  return 0;
+}
+function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
+  if (!items?.length || !domains?.length) return [];
+  const domainSet = new Set(domains);
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (!domainSet.has(it.domain)) continue;
+    out.push(it);
+  }
+  out.sort((a4, b2) => a4.label.localeCompare(b2.label));
+  return out.slice(0, max);
+}
+function findExactMatches(items, kind, query, domains = null) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const out = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    if (it._lowerLabel === lowerQuery) out.push(it);
+  }
+  return out;
+}
+function rankSuggestions(
+  items,
+  kind,
+  query,
+  max = AUTOCOMPLETE_MAX_RESULTS,
+  domains = null,
+) {
+  if (!items?.length || !query) return [];
+  const lowerQuery = query.trim().toLowerCase();
+  if (!lowerQuery) return [];
+  const domainSet = domains ? new Set(domains) : null;
+  const scored = [];
+  for (const it of items) {
+    if (it.kind !== kind) continue;
+    if (domainSet && !domainSet.has(it.domain)) continue;
+    const score = _scoreItem(it, lowerQuery);
+    if (score > 0) scored.push({ item: it, score });
+  }
+  scored.sort((a4, b2) => {
+    if (b2.score !== a4.score) return b2.score - a4.score;
+    if (a4.item.label.length !== b2.item.label.length) {
+      return a4.item.label.length - b2.item.label.length;
+    }
+    return a4.item.label.localeCompare(b2.item.label);
+  });
+  return scored.slice(0, max).map((s6) => s6.item);
+}
+function applySelection(text, trigger, item) {
+  const before = text.slice(0, trigger.start);
+  const after = text.slice(trigger.end);
+  const insert = item.label;
+  const needsSpace = !after.startsWith(" ");
+  const inserted = needsSpace ? insert + " " : insert;
+  const newText = before + inserted + after;
+  const newCaret = trigger.start + inserted.length;
+  return { text: newText, caret: newCaret };
+}
+function buildEntityMarker(selections) {
+  if (!selections?.length) return "";
+  const seenEntities = /* @__PURE__ */ new Set();
+  const seenAreas = /* @__PURE__ */ new Set();
+  const entityIds = [];
+  const areaNames = [];
+  for (const sel of selections) {
+    if (sel.entity_id) {
+      if (seenEntities.has(sel.entity_id)) continue;
+      seenEntities.add(sel.entity_id);
+      entityIds.push(sel.entity_id);
+    } else if (sel.kind === "area" && sel.area_id) {
+      if (seenAreas.has(sel.area_id)) continue;
+      seenAreas.add(sel.area_id);
+      areaNames.push(sel.label);
+    }
+  }
+  const parts = [];
+  if (entityIds.length === 1) {
+    parts.push(`[[entity:${entityIds[0]}]]`);
+  } else if (entityIds.length > 1) {
+    parts.push(`[[entities:${entityIds.join(",")}]]`);
+  }
+  if (areaNames.length) {
+    parts.push(`[[areas:${areaNames.join(",")}]]`);
+  }
+  return parts.length ? "\n\n" + parts.join(" ") : "";
+}
+function stripEntityMarkers(text) {
+  if (typeof text !== "string" || !text) return text;
+  return text
+    .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
+    .trimEnd();
+}
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+function pruneStaleSelections(text, selections) {
+  if (!selections?.length) return selections;
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const escaped = _escapeRegex(s6.label);
+    const startWord = /^\w/.test(s6.label);
+    const endWord = /\w$/.test(s6.label);
+    const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
+    return new RegExp(pattern, "i").test(text); // nosemgrep
+  });
+}
+
 // src/panel/render-chat.js
+var AUTOCOMPLETE_KIND_LABELS = {
+  device: "Devices",
+  area: "Areas",
+  scene: "Scenes",
+  automation: "Automations",
+};
 function _formatReplyMs(ms) {
   if (ms < 1e3) return `${ms} ms`;
   const seconds = ms / 1e3;
@@ -6523,63 +7129,463 @@ function _autoResize(textarea) {
   textarea.style.height = "auto";
   textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
 }
+var _MIRROR_COPY_PROPS = [
+  "boxSizing",
+  "width",
+  "height",
+  "overflowX",
+  "overflowY",
+  "borderTopWidth",
+  "borderRightWidth",
+  "borderBottomWidth",
+  "borderLeftWidth",
+  "borderStyle",
+  "paddingTop",
+  "paddingRight",
+  "paddingBottom",
+  "paddingLeft",
+  "fontStyle",
+  "fontVariant",
+  "fontWeight",
+  "fontStretch",
+  "fontSize",
+  "fontSizeAdjust",
+  "lineHeight",
+  "fontFamily",
+  "textAlign",
+  "textTransform",
+  "textIndent",
+  "textDecoration",
+  "letterSpacing",
+  "wordSpacing",
+  "tabSize",
+  "MozTabSize",
+  "whiteSpace",
+  "wordWrap",
+];
+function _measureCaretInTextarea(textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const mirror = document.createElement("div");
+  const style = mirror.style;
+  const cs = window.getComputedStyle(textarea);
+  for (const p2 of _MIRROR_COPY_PROPS) style[p2] = cs[p2];
+  style.position = "absolute";
+  style.visibility = "hidden";
+  style.top = "0";
+  style.left = "0";
+  style.whiteSpace = "pre-wrap";
+  style.wordWrap = "break-word";
+  const textNode = document.createTextNode(value.slice(0, caret) || " ");
+  mirror.appendChild(textNode);
+  textarea.parentNode.insertBefore(mirror, textarea);
+  const range = document.createRange();
+  const len = caret === 0 ? 0 : (value.slice(0, caret) || " ").length;
+  range.setStart(textNode, len);
+  range.setEnd(textNode, len);
+  const rect = range.getBoundingClientRect();
+  const taRect = textarea.getBoundingClientRect();
+  const left = rect.left - taRect.left - textarea.scrollLeft;
+  const top = rect.top - taRect.top - textarea.scrollTop;
+  const height =
+    rect.height || parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+  mirror.remove();
+  return { left, top, height };
+}
+function _updateAutocomplete(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const trigger = detectTrigger(value, caret);
+  const closeIfOpen = () => {
+    if (host._autocomplete?.open) {
+      host._autocomplete = {
+        open: false,
+        items: [],
+        activeIndex: 0,
+        trigger: null,
+        anchor: null,
+      };
+    }
+  };
+  if (!trigger) {
+    closeIfOpen();
+    return;
+  }
+  const qLen = trigger.query.trim().length;
+  if (!host._autocompleteRegCache && host._ensureFullRegistries) {
+    host._autocompleteRegCache = "pending";
+    host._ensureFullRegistries().then((reg) => {
+      host._autocompleteRegCache = reg || null;
+    });
+  }
+  const cache =
+    host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
+      ? host._autocompleteRegCache
+      : null;
+  const index = buildSuggestionIndex(
+    host.hass,
+    cache?.areas || host.hass?.areas,
+    cache?.devices || null,
+  );
+  let items;
+  if (trigger.domains) {
+    items = qLen
+      ? rankSuggestions(
+          index,
+          trigger.kind,
+          trigger.query,
+          void 0,
+          trigger.domains,
+        )
+      : listByDomain(index, trigger.kind, trigger.domains);
+  } else if (qLen >= AUTOCOMPLETE_MIN_CHARS) {
+    items = rankSuggestions(index, trigger.kind, trigger.query);
+  } else {
+    items = findExactMatches(index, trigger.kind, trigger.query);
+  }
+  if (trigger.includeAreas && qLen >= AUTOCOMPLETE_MIN_CHARS) {
+    const areaMatches = rankSuggestions(
+      index,
+      "area",
+      trigger.query,
+      3,
+      // cap area rows so devices still dominate the list
+    );
+    if (areaMatches.length) items = [...items, ...areaMatches];
+  }
+  if (!items.length) {
+    closeIfOpen();
+    return;
+  }
+  const savedCaret = textarea.selectionStart;
+  textarea.selectionStart = textarea.selectionEnd = trigger.start;
+  const anchor = _measureCaretInTextarea(textarea);
+  textarea.selectionStart = textarea.selectionEnd = savedCaret;
+  host._autocomplete = { open: true, items, activeIndex: 0, trigger, anchor };
+}
+function _updateGhost(host, textarea) {
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const hit = findGhostSuggestion(value, caret);
+  if (!hit) {
+    host._ghost = null;
+    return;
+  }
+  const anchor = _measureCaretInTextarea(textarea);
+  host._ghost = { suffix: hit.suffix, anchor };
+}
+function _acceptGhost(host, textarea) {
+  if (!host._ghost?.suffix) return false;
+  const value = textarea.value;
+  const caret = textarea.selectionStart ?? value.length;
+  const newText =
+    value.slice(0, caret) + host._ghost.suffix + value.slice(caret);
+  const newCaret = caret + host._ghost.suffix.length;
+  host._input = newText;
+  host._ghost = null;
+  requestAnimationFrame(() => {
+    textarea.value = newText;
+    textarea.setSelectionRange(newCaret, newCaret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+  return true;
+}
+function _renderGhostOverlay(host) {
+  const suffix = host._ghost?.suffix;
+  if (!suffix) return "";
+  const anchor = host._ghost.anchor;
+  if (!anchor) return "";
+  return x`
+    <span
+      class="composer-ghost-suffix"
+      aria-hidden="true"
+      style="left:${anchor.left}px;top:${anchor.top}px;line-height:${anchor.height}px;"
+      >${suffix}</span
+    >
+  `;
+}
+function _scrollActiveItemIntoView(host) {
+  const scroll = () => {
+    const list = host.shadowRoot?.querySelector(".composer-autocomplete");
+    const active = list?.querySelector(".composer-autocomplete-item.active");
+    if (!list || !active) return;
+    const listRect = list.getBoundingClientRect();
+    const itemRect = active.getBoundingClientRect();
+    if (itemRect.bottom > listRect.bottom) {
+      list.scrollTop += itemRect.bottom - listRect.bottom;
+    } else if (itemRect.top < listRect.top) {
+      list.scrollTop -= listRect.top - itemRect.top;
+    }
+  };
+  if (host.updateComplete?.then) {
+    host.updateComplete.then(scroll);
+  } else {
+    requestAnimationFrame(scroll);
+  }
+}
+function _closeAutocomplete(host) {
+  if (host._autocomplete?.open) {
+    host._autocomplete = {
+      open: false,
+      items: [],
+      activeIndex: 0,
+      trigger: null,
+    };
+  }
+}
+function _selectAutocompleteItem(host, textarea, item) {
+  const trigger = host._autocomplete?.trigger;
+  if (!trigger || !item) return;
+  const { text, caret } = applySelection(textarea.value, trigger, item);
+  host._input = text;
+  host._autocompleteSelections = [
+    ...(host._autocompleteSelections || []),
+    item,
+  ];
+  _closeAutocomplete(host);
+  requestAnimationFrame(() => {
+    textarea.value = text;
+    textarea.setSelectionRange(caret, caret);
+    textarea.focus();
+    _autoResize(textarea);
+  });
+}
+function _removeSelection(host, idx) {
+  const sels = host._autocompleteSelections || [];
+  host._autocompleteSelections = sels.filter((_2, i5) => i5 !== idx);
+}
+function _renderAutocomplete(host) {
+  const ac = host._autocomplete;
+  if (!ac?.open || !ac.items?.length) return "";
+  const ta = host.shadowRoot?.querySelector(".composer-textarea");
+  const wrap = host.shadowRoot?.querySelector(".composer-wrap");
+  let leftPx = 0;
+  if (ac.anchor && ta && wrap) {
+    const taRect = ta.getBoundingClientRect();
+    const wrapRect = wrap.getBoundingClientRect();
+    leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
+    const maxLeft = Math.max(0, wrapRect.width - 320);
+    leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+  }
+  const positionStyle = ac.anchor
+    ? `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`
+    : "";
+  const groupOrder = [];
+  const groups = /* @__PURE__ */ new Map();
+  for (const item of ac.items) {
+    if (!groups.has(item.kind)) {
+      groups.set(item.kind, []);
+      groupOrder.push(item.kind);
+    }
+    groups.get(item.kind).push(item);
+  }
+  return x`
+    <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
+      ${groupOrder.map((kind) => {
+        const header = AUTOCOMPLETE_KIND_LABELS[kind] || "Suggestions";
+        return x`
+          <div class="composer-autocomplete-header">
+            <span>${header}</span>
+          </div>
+          ${groups.get(kind).map((item) => _renderAutocompleteRow(host, ac, item))}
+        `;
+      })}
+      <div class="composer-autocomplete-hint">
+        ↑↓ navigate · ↵ insert · Esc dismiss
+      </div>
+    </div>
+  `;
+}
+function _renderAutocompleteRow(host, ac, item) {
+  const idx = ac.items.indexOf(item);
+  return x`<button
+    type="button"
+    class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
+    role="option"
+    @mousedown=${(e5) => {
+      e5.preventDefault();
+      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) _selectAutocompleteItem(host, ta, item);
+    }}
+    @mouseenter=${() => {
+      host._autocomplete = { ...ac, activeIndex: idx };
+    }}
+  >
+    <ha-icon icon=${item.icon}></ha-icon>
+    <span class="composer-autocomplete-label">${item.label}</span>
+    ${item.area ? x`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+  </button>`;
+}
+function _renderSelectionChips(host) {
+  const sels = host._autocompleteSelections || [];
+  if (!sels.length) return "";
+  return x`
+    <div class="composer-selections-inline">
+      ${sels.map(
+        (s6, idx) => x`
+          <span
+            class="composer-selection-chip"
+            title=${s6.entity_id || s6.area_id || ""}
+          >
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
+            <button
+              type="button"
+              title="Remove"
+              @click=${() => _removeSelection(host, idx)}
+            >
+              ×
+            </button>
+          </span>
+        `,
+      )}
+    </div>
+  `;
+}
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
   return x`
-    <div
-      class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}"
-    >
-      <textarea
-        class="composer-textarea"
-        .value=${host._input}
-        @input=${(e5) => {
-          host._input = e5.target.value;
-          _autoResize(e5.target);
-        }}
-        @keydown=${(e5) => {
-          if (e5.key === "Enter" && !e5.shiftKey) {
-            e5.preventDefault();
-            host._sendMessage();
-            return;
-          }
-          if (e5.key === "ArrowUp" && !host._input) {
-            const lastUser = [...host._messages]
-              .reverse()
-              .find((m2) => m2.role === "user" && m2.content);
-            if (lastUser) {
-              e5.preventDefault();
-              host._input = lastUser.content;
-              const ta = e5.target;
-              requestAnimationFrame(() => {
-                ta.value = lastUser.content;
-                ta.setSelectionRange(ta.value.length, ta.value.length);
-                _autoResize(ta);
-              });
-            }
-          }
-        }}
-        placeholder="Ask Selora AI anything…"
-        ?disabled=${host._loading || host._streaming}
-        rows="1"
-      ></textarea>
-      ${
-        host._streaming
-          ? x`<button
-            class="composer-send"
-            @click=${() => host._stopStreaming()}
-            title="Stop generating"
-          >
-            <ha-icon icon="mdi:stop"></ha-icon>
-          </button>`
-          : x`<button
-            class="composer-send"
-            @click=${() => host._sendMessage()}
-            ?disabled=${host._loading || !host._input.trim()}
-            title="Send"
-          >
-            <ha-icon icon="mdi:arrow-up"></ha-icon>
-          </button>`
-      }
+    <div class="composer-wrap">
+      ${_renderAutocomplete(host)}
+      <div
+        class="chat-input composer-styled ${welcome ? "composer-welcome" : ""}"
+      >
+        <div class="composer-input-col">
+          <div class="composer-textarea-wrap">
+            ${_renderGhostOverlay(host)}
+            <textarea
+              class="composer-textarea"
+              .value=${host._input}
+              @input=${(e5) => {
+                host._input = e5.target.value;
+                host._autocompleteSelections = pruneStaleSelections(
+                  e5.target.value,
+                  host._autocompleteSelections || [],
+                );
+                _autoResize(e5.target);
+                _updateAutocomplete(host, e5.target);
+                _updateGhost(host, e5.target);
+              }}
+              @click=${(e5) => {
+                _updateAutocomplete(host, e5.target);
+                _updateGhost(host, e5.target);
+              }}
+              @keyup=${(e5) => {
+                if (
+                  e5.key === "ArrowLeft" ||
+                  e5.key === "ArrowRight" ||
+                  e5.key === "Home" ||
+                  e5.key === "End"
+                ) {
+                  _updateAutocomplete(host, e5.target);
+                  _updateGhost(host, e5.target);
+                }
+              }}
+              @blur=${() => {
+                setTimeout(() => _closeAutocomplete(host), 150);
+              }}
+              @keydown=${(e5) => {
+                const ac = host._autocomplete;
+                if (ac?.open && ac.items.length) {
+                  if (e5.key === "ArrowDown") {
+                    e5.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex: (ac.activeIndex + 1) % ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e5.key === "ArrowUp") {
+                    e5.preventDefault();
+                    host._autocomplete = {
+                      ...ac,
+                      activeIndex:
+                        (ac.activeIndex - 1 + ac.items.length) %
+                        ac.items.length,
+                    };
+                    _scrollActiveItemIntoView(host);
+                    return;
+                  }
+                  if (e5.key === "Enter" || e5.key === "Tab") {
+                    e5.preventDefault();
+                    _selectAutocompleteItem(
+                      host,
+                      e5.target,
+                      ac.items[ac.activeIndex],
+                    );
+                    return;
+                  }
+                  if (e5.key === "Escape") {
+                    e5.preventDefault();
+                    _closeAutocomplete(host);
+                    return;
+                  }
+                }
+                if (e5.key === "Enter" && !e5.shiftKey) {
+                  e5.preventDefault();
+                  host._sendMessage();
+                  return;
+                }
+                if (e5.key === "Tab" && !e5.shiftKey) {
+                  e5.preventDefault();
+                  _acceptGhost(host, e5.target);
+                  return;
+                }
+                if (
+                  e5.key === "ArrowRight" &&
+                  host._ghost?.suffix &&
+                  e5.target.selectionStart === e5.target.value.length &&
+                  e5.target.selectionEnd === e5.target.value.length
+                ) {
+                  e5.preventDefault();
+                  _acceptGhost(host, e5.target);
+                  return;
+                }
+                if (e5.key === "ArrowUp" && !host._input) {
+                  const lastUser = [...host._messages]
+                    .reverse()
+                    .find((m2) => m2.role === "user" && m2.content);
+                  if (lastUser) {
+                    e5.preventDefault();
+                    const recalled = stripEntityMarkers(lastUser.content);
+                    host._input = recalled;
+                    const ta = e5.target;
+                    requestAnimationFrame(() => {
+                      ta.value = recalled;
+                      ta.setSelectionRange(ta.value.length, ta.value.length);
+                      _autoResize(ta);
+                    });
+                  }
+                }
+              }}
+              placeholder="Ask Selora AI anything…"
+              ?disabled=${host._loading || host._streaming}
+              rows="1"
+            ></textarea>
+          </div>
+          ${_renderSelectionChips(host)}
+        </div>
+        ${
+          host._streaming
+            ? x`<button
+              class="composer-send"
+              @click=${() => host._stopStreaming()}
+              title="Stop generating"
+            >
+              <ha-icon icon="mdi:stop"></ha-icon>
+            </button>`
+            : x`<button
+              class="composer-send"
+              @click=${() => host._sendMessage()}
+              ?disabled=${host._loading || !host._input.trim()}
+              title="Send"
+            >
+              <ha-icon icon="mdi:arrow-up"></ha-icon>
+            </button>`
+        }
+      </div>
     </div>
   `;
 }
@@ -6605,7 +7611,10 @@ function renderMessage(host, msg, idx) {
         isUser
           ? x`
             <div class="bubble user">
-              <span class="msg-content" .textContent=${msg.content}></span>
+              <span
+                class="msg-content"
+                .textContent=${stripEntityMarkers(msg.content)}
+              ></span>
             </div>
           `
           : x`
@@ -6742,7 +7751,7 @@ function renderMessage(host, msg, idx) {
     </div>
   `;
 }
-var DOMAIN_ICONS = {
+var DOMAIN_ICONS2 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   climate: "mdi:thermostat",
@@ -9269,7 +10278,7 @@ function _renderEntityList(host, entities) {
     <div class="scene-entity-list">
       ${entries.map(([entityId, stateData]) => {
         const domain = entityId.split(".")[0];
-        const icon = DOMAIN_ICONS[domain] || "mdi:devices";
+        const icon = DOMAIN_ICONS2[domain] || "mdi:devices";
         const state = stateData.state || "unknown";
         const attrs = _formatEntityAttrs(stateData);
         const name = fmtEntity(host.hass, entityId);
@@ -13070,12 +14079,12 @@ function _selectQuickAction(action) {
   }
   this._quickStart(text);
 }
-function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
+function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
   assistantMsg._interrupted = true;
   assistantMsg._interruptReason = reason;
-  assistantMsg._retryWith = userMsg;
+  assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
   host._loading = false;
   host._streaming = false;
@@ -13083,8 +14092,21 @@ function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
 async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
+  const activeSelections = pruneStaleSelections(
+    userMsg,
+    this._autocompleteSelections || [],
+  );
+  const marker = buildEntityMarker(activeSelections);
+  const userMsgForSend = marker ? userMsg + marker : userMsg;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
+  this._autocompleteSelections = [];
+  this._autocomplete = {
+    open: false,
+    items: [],
+    activeIndex: 0,
+    trigger: null,
+  };
   this._loading = true;
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
@@ -13128,7 +14150,7 @@ async function _sendMessage() {
   try {
     const subscribePayload = {
       type: "selora_ai/chat_stream",
-      message: userMsg,
+      message: userMsgForSend,
     };
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
@@ -13139,7 +14161,7 @@ async function _sendMessage() {
       _finaliseInterruption(
         this,
         assistantMsg,
-        userMsg,
+        userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
       );
     };
@@ -13156,7 +14178,7 @@ async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsg,
+          userMsgForSend,
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
@@ -13212,7 +14234,7 @@ async function _sendMessage() {
           _finaliseInterruption(
             this,
             assistantMsg,
-            userMsg,
+            userMsgForSend,
             "Response looks cut short \u2014 try again.",
           );
           return;
@@ -13258,7 +14280,7 @@ async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsg,
+          userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
         );
       }
@@ -13269,7 +14291,7 @@ async function _sendMessage() {
     _finaliseInterruption(
       this,
       assistantMsg,
-      userMsg,
+      userMsgForSend,
       err.message || "Couldn't start the chat session.",
     );
   }
@@ -14284,6 +15306,11 @@ var SeloraAIPanel = class extends s4 {
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
       _chatScrolledAway: { type: Boolean },
+      // Chat composer autocomplete (devices / areas / scenes / automations)
+      _autocomplete: { type: Object },
+      _autocompleteSelections: { type: Array },
+      // Ghost-text completion of common chat vocabulary
+      _ghost: { type: Object },
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
       // Tabs
@@ -14443,6 +15470,14 @@ var SeloraAIPanel = class extends s4 {
     this._loading = false;
     this._streaming = false;
     this._chatScrolledAway = false;
+    this._autocomplete = {
+      open: false,
+      items: [],
+      activeIndex: 0,
+      trigger: null,
+    };
+    this._autocompleteSelections = [];
+    this._ghost = null;
     this._streamUnsub = null;
     this._showSidebar = false;
     this._activeTab = "chat";
