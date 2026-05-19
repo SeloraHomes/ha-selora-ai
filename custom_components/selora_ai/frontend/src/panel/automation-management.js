@@ -386,7 +386,7 @@ export async function _loadAutomationToChat(automationId) {
     const sessionId = result?.session_id;
     if (sessionId) {
       this._activeSessionId = sessionId;
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);

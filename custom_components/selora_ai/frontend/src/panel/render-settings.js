@@ -64,7 +64,7 @@ function _renderUsageHeaderLink(host) {
       class="section-card-action"
       title="View token usage"
       @click=${() => {
-        host._activeTab = "usage";
+        host._setActiveTab("usage");
         host._loadUsageStats?.();
         host.requestUpdate();
       }}

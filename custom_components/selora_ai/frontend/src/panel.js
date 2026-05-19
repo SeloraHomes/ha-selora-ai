@@ -1062,7 +1062,7 @@ class SeloraAIPanel extends LitElement {
   }
 
   _goToSettings() {
-    this._activeTab = "settings";
+    this._setActiveTab("settings");
     this._loadConfig();
     this._loadMcpTokens();
   }
@@ -2063,7 +2063,7 @@ class SeloraAIPanel extends LitElement {
         ? ""
         : ` (scene_id: ${scene.scene_id})`;
     this._input = `Refine "${scene.name}"${ctx}: `;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     this.requestUpdate();
     await this.updateComplete;
     const textarea = this.shadowRoot?.querySelector(".composer-textarea");
@@ -2099,7 +2099,7 @@ class SeloraAIPanel extends LitElement {
       this._activeSessionId = session_id;
       this._messages = [];
       this._input = "Create a scene that ";
-      this._activeTab = "chat";
+      this._setActiveTab("chat");
       this._welcomeKey = (this._welcomeKey || 0) + 1;
       await this._loadSessions();
       if (this.narrow) this._showSidebar = false;
@@ -2376,14 +2376,14 @@ class SeloraAIPanel extends LitElement {
             alt=""
             class="header-logo"
             @click=${() => {
-              this._activeTab = "chat";
+              this._setActiveTab("chat");
             }}
             style="cursor:pointer;"
           />
           <span
             class="header-title ${this._isDark ? "gold-text" : ""}"
             @click=${() => {
-              this._activeTab = "chat";
+              this._setActiveTab("chat");
             }}
             style="cursor:pointer;"
             >Selora AI</span
@@ -2395,7 +2395,7 @@ class SeloraAIPanel extends LitElement {
                 if (this._activeTab === "chat") {
                   this._showSidebar = !this._showSidebar;
                 } else {
-                  this._activeTab = "chat";
+                  this._setActiveTab("chat");
                   this._showSidebar = true;
                 }
               }}
@@ -2408,7 +2408,7 @@ class SeloraAIPanel extends LitElement {
             <div
               class="tab ${this._activeTab === "automations" ? "active" : ""}"
               @click=${() => {
-                this._activeTab = "automations";
+                this._setActiveTab("automations");
                 this._showSidebar = false;
                 this._loadAutomations();
               }}
@@ -2421,7 +2421,7 @@ class SeloraAIPanel extends LitElement {
             <div
               class="tab ${this._activeTab === "scenes" ? "active" : ""}"
               @click=${() => {
-                this._activeTab = "scenes";
+                this._setActiveTab("scenes");
                 this._showSidebar = false;
                 this._loadScenes();
               }}
@@ -2441,7 +2441,7 @@ class SeloraAIPanel extends LitElement {
                 @click=${() => {
                   this._showOverflowMenu = false;
                   if (this._messages.length === 0) {
-                    this._activeTab = "chat";
+                    this._setActiveTab("chat");
                     if (this.narrow) this._showSidebar = false;
                   } else {
                     this._newSession();
@@ -2476,7 +2476,7 @@ class SeloraAIPanel extends LitElement {
                         class="overflow-item"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "chat";
+                          this._setActiveTab("chat");
                           this._showSidebar = true;
                         }}
                       >
@@ -2489,7 +2489,7 @@ class SeloraAIPanel extends LitElement {
                           : ""}"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "automations";
+                          this._setActiveTab("automations");
                           this._showSidebar = false;
                           this._loadAutomations();
                         }}
@@ -2503,7 +2503,7 @@ class SeloraAIPanel extends LitElement {
                           : ""}"
                         @click=${() => {
                           this._showOverflowMenu = false;
-                          this._activeTab = "scenes";
+                          this._setActiveTab("scenes");
                           this._showSidebar = false;
                           this._loadScenes();
                         }}
@@ -2519,7 +2519,7 @@ class SeloraAIPanel extends LitElement {
                         : ""}"
                       @click=${() => {
                         this._showOverflowMenu = false;
-                        this._activeTab = "settings";
+                        this._setActiveTab("settings");
                         this._showSidebar = false;
                         this._loadConfig();
                       }}

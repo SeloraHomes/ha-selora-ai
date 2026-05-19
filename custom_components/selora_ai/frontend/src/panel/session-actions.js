@@ -1,14 +1,38 @@
 // Session management actions (prototype-assigned to SeloraAIArchitectPanel)
 
-export function _checkTabParam() {
-  const params = new URLSearchParams(window.location.search);
-  const tab = params.get("tab");
-  if (tab === "automations" || tab === "scenes" || tab === "settings") {
-    this._activeTab = tab;
-    this._showSidebar = false;
+const PANEL_PREFIX = "/selora-ai";
+const VALID_TABS = ["chat", "automations", "scenes", "settings", "usage"];
+
+function _tabFromPath(pathname) {
+  if (!pathname.startsWith(PANEL_PREFIX)) return null;
+  const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
+  if (!rest) return "chat";
+  return VALID_TABS.includes(rest) ? rest : null;
+}
+
+export function _setActiveTab(tab) {
+  if (!VALID_TABS.includes(tab)) return;
+  this._activeTab = tab;
+  const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
+  if (window.location.pathname !== target) {
+    const url = new URL(window.location);
+    url.pathname = target;
+    window.history.replaceState({}, "", url);
   }
+}
+
+export function _checkTabParam() {
+  const tab = _tabFromPath(window.location.pathname);
+  if (tab && tab !== this._activeTab) {
+    this._activeTab = tab;
+    if (tab !== "chat") this._showSidebar = false;
+  }
+  // Deep-linking to /selora-ai/usage skips the Settings → Usage click that
+  // normally triggers the stats load, so kick it off here.
+  if (tab === "usage") this._loadUsageStats?.();
 
   // Handle "Create in Chat" from dashboard card
+  const params = new URLSearchParams(window.location.search);
   const newAuto = params.get("new_automation");
   if (newAuto) {
     if (this.hass) {
@@ -18,12 +42,7 @@ export function _checkTabParam() {
       // First panel load — hass not set yet, defer until updated()
       this._pendingNewAutomation = newAuto;
     }
-  }
-
-  // Clean query params so they don't stick on subsequent visits
-  if (tab || newAuto) {
     const url = new URL(window.location);
-    url.searchParams.delete("tab");
     url.searchParams.delete("new_automation");
     window.history.replaceState({}, "", url);
   }
@@ -62,7 +81,7 @@ export async function _openSession(sessionId) {
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
     console.error("Failed to open session", err);
@@ -78,7 +97,7 @@ export async function _newSession() {
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
     if (this.narrow) this._showSidebar = false;
@@ -118,7 +137,7 @@ export async function _newAutomationChat(name) {
     this._activeSessionId = session_id;
     this._messages = [];
     this._input = `Create a new automation called "${trimmed}".`;
-    this._activeTab = "chat";
+    this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
 
     // Force render then focus

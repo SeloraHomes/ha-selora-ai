@@ -104,7 +104,7 @@ export async function _acceptAutomation(msgIndex, automation) {
       const toast = _createdToast(automation.alias, createResult);
       this._showToast(toast.message, toast.type);
     }
-    this._activeTab = "automations";
+    this._setActiveTab("automations");
   } catch (err) {
     this._showToast("Failed to save automation: " + err.message, "error");
   }
@@ -254,7 +254,7 @@ export async function _acceptAutomationWithEdits(
         const toast = _createdToast(automation.alias, createResult);
         this._showToast(toast.message, toast.type);
       }
-      this._activeTab = "automations";
+      this._setActiveTab("automations");
     } catch (err) {
       this._showToast(
         "Failed to save automation from edited YAML: " + err.message,
