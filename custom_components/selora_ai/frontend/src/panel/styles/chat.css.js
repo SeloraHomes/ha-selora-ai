@@ -655,4 +655,170 @@ export const chatStyles = css`
     vertical-align: text-bottom;
     animation: blink 0.7s step-end infinite;
   }
+
+  /* ---- Composer autocomplete ---- */
+  /* Positioned ancestor for the dropdown. The composer-styled element
+     itself has overflow:hidden for the welcome-variant glow, which
+     would clip the suggestions if anchored to it. */
+  .composer-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .composer-autocomplete {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: var(--card-background-color, #27272a);
+    border: 1px solid var(--divider-color);
+    border-radius: 12px;
+    box-shadow:
+      0 8px 24px rgba(0, 0, 0, 0.3),
+      0 1px 2px rgba(0, 0, 0, 0.18);
+    /* overflow shorthand sets both axes in one go — clip horizontally,
+       scroll vertically. Previous ordering ("overflow: hidden" then
+       "overflow-y: auto") was overriding in some browsers so the body
+       couldn't scroll when results spilled past max-height. */
+    overflow: hidden auto;
+    max-height: 320px;
+    /* Round the inner content corners too so the scroll thumb doesn't
+       paint over the dropdown's border radius. */
+    overscroll-behavior: contain;
+  }
+  .composer-autocomplete-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+    background: rgba(255, 255, 255, 0.02);
+    border-bottom: 1px solid var(--divider-color);
+  }
+  /* Add breathing room and a clear divider before secondary section
+     headers (Areas after Devices) so the two groups read as distinct
+     instead of a single run of rows under a single label. */
+  .composer-autocomplete-header:not(:first-child) {
+    margin-top: 6px;
+    border-top: 1px solid var(--divider-color);
+  }
+  .composer-autocomplete-header ha-icon {
+    --mdc-icon-size: 14px;
+  }
+  .composer-autocomplete-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    color: var(--primary-text-color);
+    border: none;
+    background: transparent;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+  }
+  .composer-autocomplete-item:hover,
+  .composer-autocomplete-item.active {
+    background: rgba(251, 191, 36, 0.1);
+  }
+  .composer-autocomplete-item ha-icon {
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .composer-autocomplete-label {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .composer-autocomplete-area {
+    font-size: 11px;
+    color: var(--secondary-text-color);
+    flex-shrink: 0;
+  }
+  .composer-autocomplete-hint {
+    padding: 4px 12px 6px;
+    font-size: 10px;
+    color: var(--secondary-text-color);
+    text-align: right;
+    opacity: 0.7;
+  }
+
+  /* Wrap textarea + chips in a column so chips sit inside the rounded
+     composer border instead of overflowing the page edge. */
+  .composer-input-col {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  /* The textarea sits inside this relative wrapper so the ghost-text
+     overlay can be absolutely positioned over the same area without
+     affecting layout. */
+  .composer-textarea-wrap {
+    position: relative;
+    display: flex;
+  }
+  .composer-textarea-wrap > .composer-textarea {
+    flex: 1 1 auto;
+    position: relative;
+    z-index: 1;
+    background: transparent;
+  }
+  /* Ghost suffix: absolutely positioned at the caret's measured pixel
+     coordinates by _renderGhostOverlay (left/top/line-height inline).
+     Pointer events pass through so clicks still focus the textarea. */
+  .composer-ghost-suffix {
+    position: absolute;
+    pointer-events: none;
+    z-index: 2;
+    white-space: pre;
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--secondary-text-color);
+    opacity: 0.5;
+  }
+  /* Inline chips showing resolved entity selections, rendered just above
+     the typed text inside the composer box. */
+  .composer-selections-inline {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .composer-selection-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    border-radius: 10px;
+    background: rgba(251, 191, 36, 0.12);
+    color: var(--primary-text-color);
+    border: 1px solid rgba(251, 191, 36, 0.25);
+  }
+  .composer-selection-chip ha-icon {
+    --mdc-icon-size: 12px;
+    color: rgba(251, 191, 36, 0.9);
+  }
+  .composer-selection-chip button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--secondary-text-color);
+    padding: 0 2px;
+    font-size: 13px;
+    line-height: 1;
+  }
+  .composer-selection-chip button:hover {
+    color: var(--primary-text-color);
+  }
 `;

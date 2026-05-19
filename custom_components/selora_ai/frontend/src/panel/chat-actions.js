@@ -1,5 +1,10 @@
 // Chat and messaging actions (prototype-assigned to SeloraAIArchitectPanel)
 
+import {
+  buildEntityMarker,
+  pruneStaleSelections,
+} from "./chat-autocomplete.js";
+
 export function _quickStart(message) {
   this._input = message;
   this._sendMessage();
@@ -19,14 +24,16 @@ export function _selectQuickAction(action) {
 
 // If a streaming response stalls or the WS drops, finalise the active
 // assistant bubble with an explanatory notice and a Retry affordance.
-// `reason` is shown verbatim under the bubble; `userMsg` is what Retry
-// will resend.
-function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
+// `reason` is shown verbatim under the bubble; `retryPayload` is what
+// Retry will resend — it must include any [[entity:…]] marker that was
+// appended during _sendMessage, otherwise the retry loses the
+// disambiguating context for the exact turn the user is retrying.
+function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
   assistantMsg._interrupted = true;
   assistantMsg._interruptReason = reason;
-  assistantMsg._retryWith = userMsg;
+  assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
   host._loading = false;
   host._streaming = false;
@@ -35,8 +42,24 @@ function _finaliseInterruption(host, assistantMsg, userMsg, reason) {
 export async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
   const userMsg = this._input;
+  // Resolve autocomplete chips into an explicit entity marker so the
+  // backend never has to fuzzy-match the device the user named. The marker
+  // is appended to the WS payload only — the user bubble stays clean.
+  const activeSelections = pruneStaleSelections(
+    userMsg,
+    this._autocompleteSelections || [],
+  );
+  const marker = buildEntityMarker(activeSelections);
+  const userMsgForSend = marker ? userMsg + marker : userMsg;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
+  this._autocompleteSelections = [];
+  this._autocomplete = {
+    open: false,
+    items: [],
+    activeIndex: 0,
+    trigger: null,
+  };
   this._loading = true;
   // Reset textarea height after clearing input
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
@@ -96,7 +119,7 @@ export async function _sendMessage() {
   try {
     const subscribePayload = {
       type: "selora_ai/chat_stream",
-      message: userMsg,
+      message: userMsgForSend,
     };
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
@@ -112,7 +135,7 @@ export async function _sendMessage() {
       _finaliseInterruption(
         this,
         assistantMsg,
-        userMsg,
+        userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
       );
     };
@@ -133,7 +156,7 @@ export async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsg,
+          userMsgForSend,
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
@@ -207,7 +230,7 @@ export async function _sendMessage() {
           _finaliseInterruption(
             this,
             assistantMsg,
-            userMsg,
+            userMsgForSend,
             "Response looks cut short — try again.",
           );
           return;
@@ -257,7 +280,7 @@ export async function _sendMessage() {
         _finaliseInterruption(
           this,
           assistantMsg,
-          userMsg,
+          userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
         );
       }
@@ -268,7 +291,7 @@ export async function _sendMessage() {
     _finaliseInterruption(
       this,
       assistantMsg,
-      userMsg,
+      userMsgForSend,
       err.message || "Couldn't start the chat session.",
     );
   }

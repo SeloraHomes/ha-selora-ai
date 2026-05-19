@@ -215,6 +215,12 @@ class SeloraAIPanel extends LitElement {
       _streaming: { type: Boolean },
       _chatScrolledAway: { type: Boolean },
 
+      // Chat composer autocomplete (devices / areas / scenes / automations)
+      _autocomplete: { type: Object },
+      _autocompleteSelections: { type: Array },
+      // Ghost-text completion of common chat vocabulary
+      _ghost: { type: Object },
+
       // Sidebar visibility (mobile)
       _showSidebar: { type: Boolean },
 
@@ -406,6 +412,14 @@ class SeloraAIPanel extends LitElement {
     this._loading = false;
     this._streaming = false;
     this._chatScrolledAway = false;
+    this._autocomplete = {
+      open: false,
+      items: [],
+      activeIndex: 0,
+      trigger: null,
+    };
+    this._autocompleteSelections = [];
+    this._ghost = null;
     this._streamUnsub = null;
     this._showSidebar = false;
     this._activeTab = "chat";
