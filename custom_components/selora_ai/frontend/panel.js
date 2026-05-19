@@ -14801,6 +14801,9 @@ var SeloraAIPanel = class extends s4 {
       this._resetHostKeyboardStyles();
       this._resetHostKeyboardStyles = null;
     }
+    if (this._chatPinDeadline) {
+      this._chatPinDeadline = 0;
+    }
     if (this._oauthPollTimer) {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
@@ -15427,8 +15430,74 @@ var SeloraAIPanel = class extends s4 {
       this._focusComposerSoon();
     }
     if (this._activeTab === "chat") {
-      this._refreshChatScrollState();
+      const tabJustOpened =
+        changedProps.has("_activeTab") && this._activeTab === "chat";
+      const sessionChanged =
+        changedProps.has("_activeSessionId") &&
+        changedProps.get("_activeSessionId") != null;
+      const messagesChanged = changedProps.has("_messages");
+      const loadingChanged = changedProps.has("_loading");
+      if (tabJustOpened || sessionChanged) {
+        this._chatScrolledAway = false;
+        this._pinChatToBottom();
+      } else if (
+        (messagesChanged || loadingChanged) &&
+        !this._chatScrolledAway
+      ) {
+        this._pinChatToBottom();
+      } else {
+        this._refreshChatScrollState();
+      }
+    } else if (this._chatPinDeadline) {
+      this._chatPinDeadline = 0;
     }
+  }
+  // Hold the chat scroll at the bottom for a short window after any change.
+  // A single scroll-to-bottom in updated() is not enough: _hydrateEntityChips
+  // appends HA tile cards asynchronously, those cards then settle their own
+  // shadow DOM over several frames, markdown can lazy-render, etc. — all of
+  // which push the latest content below the viewport after the initial
+  // scroll has already happened. A rAF loop covering ~1.5s catches the
+  // final layout reliably without depending on ResizeObserver firing for
+  // every nested growth. Negligibly cheap: assigning scrollTop when it's
+  // already at scrollHeight is a no-op in the browser.
+  _pinChatToBottom(durationMs = 1500) {
+    if (this._chatScrolledAway) return;
+    const newDeadline = Date.now() + durationMs;
+    if (this._chatPinDeadline) {
+      if (newDeadline > this._chatPinDeadline) {
+        this._chatPinDeadline = newDeadline;
+      }
+      return;
+    }
+    this._chatPinDeadline = newDeadline;
+    const container = this.shadowRoot?.getElementById("chat-messages");
+    let lastHeight = container ? container.scrollHeight : 0;
+    let lastTop = container ? container.scrollTop : 0;
+    const tick = () => {
+      if (!this._chatPinDeadline) return;
+      const c3 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c3) {
+        this._chatPinDeadline = 0;
+        return;
+      }
+      const userScrolled =
+        c3.scrollTop < lastTop - 2 && c3.scrollHeight === lastHeight;
+      if (userScrolled) {
+        this._chatScrolledAway = true;
+        this._chatPinDeadline = 0;
+        return;
+      }
+      c3.scrollTop = c3.scrollHeight;
+      lastHeight = c3.scrollHeight;
+      lastTop = c3.scrollTop;
+      if (Date.now() >= this._chatPinDeadline) {
+        this._chatPinDeadline = 0;
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
   _refreshChatScrollState() {
     const container = this.shadowRoot?.getElementById("chat-messages");
