@@ -832,6 +832,9 @@ class SeloraAIPanel extends LitElement {
       this._resetHostKeyboardStyles();
       this._resetHostKeyboardStyles = null;
     }
+    if (this._chatPinDeadline) {
+      this._chatPinDeadline = 0;
+    }
     if (this._oauthPollTimer) {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
@@ -1562,8 +1565,88 @@ class SeloraAIPanel extends LitElement {
       this._focusComposerSoon();
     }
     if (this._activeTab === "chat") {
-      this._refreshChatScrollState();
+      // Auto-stick to the latest message: when the user enters the chat tab,
+      // switches sessions, or new content arrives (including each streaming
+      // token, since assistant content grows in place), pin the scroll to the
+      // bottom. Suppressed when the user has scrolled up to read earlier
+      // messages — that's tracked by _chatScrolledAway via the scroll handler.
+      const tabJustOpened =
+        changedProps.has("_activeTab") && this._activeTab === "chat";
+      // Only treat this as a session switch when the previous id was already
+      // set — the backend fills in event.session_id on the first response of
+      // a brand-new chat (null → assigned id), and that path must not clear
+      // _chatScrolledAway out from under a user who scrolled up to read.
+      const sessionChanged =
+        changedProps.has("_activeSessionId") &&
+        changedProps.get("_activeSessionId") != null;
+      const messagesChanged = changedProps.has("_messages");
+      const loadingChanged = changedProps.has("_loading");
+      if (tabJustOpened || sessionChanged) {
+        this._chatScrolledAway = false;
+        this._pinChatToBottom();
+      } else if (
+        (messagesChanged || loadingChanged) &&
+        !this._chatScrolledAway
+      ) {
+        this._pinChatToBottom();
+      } else {
+        this._refreshChatScrollState();
+      }
+    } else if (this._chatPinDeadline) {
+      this._chatPinDeadline = 0;
     }
+  }
+
+  // Hold the chat scroll at the bottom for a short window after any change.
+  // A single scroll-to-bottom in updated() is not enough: _hydrateEntityChips
+  // appends HA tile cards asynchronously, those cards then settle their own
+  // shadow DOM over several frames, markdown can lazy-render, etc. — all of
+  // which push the latest content below the viewport after the initial
+  // scroll has already happened. A rAF loop covering ~1.5s catches the
+  // final layout reliably without depending on ResizeObserver firing for
+  // every nested growth. Negligibly cheap: assigning scrollTop when it's
+  // already at scrollHeight is a no-op in the browser.
+  _pinChatToBottom(durationMs = 1500) {
+    if (this._chatScrolledAway) return;
+    const newDeadline = Date.now() + durationMs;
+    if (this._chatPinDeadline) {
+      if (newDeadline > this._chatPinDeadline) {
+        this._chatPinDeadline = newDeadline;
+      }
+      return;
+    }
+    this._chatPinDeadline = newDeadline;
+    const container = this.shadowRoot?.getElementById("chat-messages");
+    let lastHeight = container ? container.scrollHeight : 0;
+    let lastTop = container ? container.scrollTop : 0;
+    const tick = () => {
+      if (!this._chatPinDeadline) return;
+      const c = this.shadowRoot?.getElementById("chat-messages");
+      if (!c) {
+        this._chatPinDeadline = 0;
+        return;
+      }
+      // Distinguish user scroll from content reflow: if scrollTop dropped
+      // but scrollHeight didn't grow (and didn't shrink — typing bubble
+      // removal clamps scrollTop without user input), the user moved the
+      // viewport themselves. Honour it and release the pin.
+      const userScrolled =
+        c.scrollTop < lastTop - 2 && c.scrollHeight === lastHeight;
+      if (userScrolled) {
+        this._chatScrolledAway = true;
+        this._chatPinDeadline = 0;
+        return;
+      }
+      c.scrollTop = c.scrollHeight;
+      lastHeight = c.scrollHeight;
+      lastTop = c.scrollTop;
+      if (Date.now() >= this._chatPinDeadline) {
+        this._chatPinDeadline = 0;
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
   }
 
   _refreshChatScrollState() {
