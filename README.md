@@ -6,6 +6,8 @@ Selora AI is a smart-home AI butler for Home Assistant. It connects to an LLM ba
 
 **[Documentation](https://selorahomes.com/docs/selora-ai/)**
 
+![Selora AI in action](docs/assets/selora-ai.gif)
+
 ---
 
 ## Features
