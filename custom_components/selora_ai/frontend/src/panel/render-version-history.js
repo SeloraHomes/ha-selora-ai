@@ -7,117 +7,93 @@ export function renderVersionHistoryDrawer(host, a) {
   const loading = host._loadingVersions[automationId];
 
   return html`
-    <div
-      style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);"
-    >
+    <div class="version-history">
       ${loading
-        ? html`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
+        ? html`<div class="version-history-empty">Loading…</div>`
         : versions.length === 0
-          ? html`<div style="opacity:0.5;font-size:12px;">
+          ? html`<div class="version-history-empty">
               No version history yet.
             </div>`
           : html`
-              <div style="position:relative;padding-left:20px;">
-                <div
-                  style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"
-                ></div>
-                ${versions.map((v, i) => {
-                  const key = `${automationId}_${v.version_id}`;
-                  const restoring = host._restoringVersion[key];
-                  const date = new Date(v.created_at);
-                  const timeAgo = relativeTime(date);
-                  const isCurrent = i === 0;
-                  return html`
-                    <div
-                      style="position:relative;margin-bottom:${i <
-                      versions.length - 1
-                        ? "14px"
-                        : "0"};padding-left:14px;"
-                    >
-                      <div
-                        style="position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:${isCurrent
-                          ? "#fbbf24"
-                          : "var(--divider-color)"};border:2px solid var(--secondary-background-color);"
-                      ></div>
-                      <div
-                        style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"
-                      >
-                        <span style="font-size:12px;font-weight:600;"
-                          >v${versions.length - i}</span
-                        >
-                        <span
-                          style="font-size:11px;opacity:0.6;"
-                          title=${date.toISOString()}
-                          >${timeAgo}</span
-                        >
-                        ${isCurrent
-                          ? html`<span
-                              style="font-size:10px;background:#fbbf24;color:#000;border-radius:4px;padding:1px 6px;font-weight:600;"
-                              >current</span
-                            >`
-                          : ""}
-                      </div>
-                      ${v.message || v.version_message
-                        ? html`<div
-                            style="font-size:11px;opacity:0.6;margin-top:2px;"
-                          >
-                            ${v.message || v.version_message}
-                          </div>`
-                        : ""}
-                      <div style="display:flex;gap:6px;margin-top:6px;">
-                        <button
-                          class="btn btn-outline"
-                          style="font-size:10px;padding:2px 7px;"
-                          @click=${() =>
-                            host._toggleExpandAutomation(`ver_${key}`)}
-                        >
-                          <ha-icon
-                            icon="mdi:code-braces"
-                            style="--mdc-icon-size:11px;"
-                          ></ha-icon>
-                          ${host._expandedAutomations[`ver_${key}`]
-                            ? "Hide"
-                            : "YAML"}
-                        </button>
-                        ${!isCurrent
-                          ? html`
-                              <button
-                                class="btn btn-outline"
-                                style="font-size:10px;padding:2px 7px;"
-                                ?disabled=${restoring ||
-                                !(v.yaml || v.yaml_content)}
-                                @click=${() =>
-                                  host._restoreVersion(
-                                    automationId,
-                                    v.version_id,
-                                    v.yaml || v.yaml_content || "",
-                                  )}
-                              >
-                                <ha-icon
-                                  icon="mdi:restore"
-                                  style="--mdc-icon-size:11px;"
-                                ></ha-icon>
-                                ${restoring ? "Restoring…" : "Restore"}
-                              </button>
-                            `
-                          : ""}
-                      </div>
-                      ${host._expandedAutomations[`ver_${key}`]
-                        ? html`<ha-code-editor
-                            mode="yaml"
-                            .value=${v.yaml ||
-                            v.yaml_content ||
-                            "(no YAML stored)"}
-                            read-only
-                            style="--code-mirror-font-size:12px;margin-top:6px;"
-                          ></ha-code-editor>`
-                        : ""}
-                    </div>
-                  `;
-                })}
-              </div>
+              <ol class="version-list">
+                ${versions.map((v, i) =>
+                  renderVersionEntry(host, automationId, v, i, versions.length),
+                )}
+              </ol>
             `}
     </div>
+  `;
+}
+
+function renderVersionEntry(host, automationId, v, i, total) {
+  const key = `${automationId}_${v.version_id}`;
+  const restoring = host._restoringVersion[key];
+  const date = new Date(v.created_at);
+  const timeAgo = relativeTime(date);
+  const isCurrent = i === 0;
+  const message = v.message || v.version_message;
+  const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
+  const versionNumber = total - i;
+  return html`
+    <li class="version-entry ${isCurrent ? "current" : ""}">
+      <span class="version-entry-dot" aria-hidden="true"></span>
+      <div class="version-entry-card">
+        <header class="version-entry-head">
+          <div class="version-entry-title">
+            <span class="version-entry-num">v${versionNumber}</span>
+            ${isCurrent
+              ? html`<span class="version-entry-badge">Current</span>`
+              : ""}
+          </div>
+          <time class="version-entry-time" title=${date.toISOString()}
+            >${timeAgo}</time
+          >
+        </header>
+        ${message ? html`<p class="version-entry-message">${message}</p>` : ""}
+        <div class="version-entry-actions">
+          <button
+            class="btn btn-outline version-entry-btn"
+            @click=${() => host._toggleExpandAutomation(`ver_${key}`)}
+          >
+            <ha-icon
+              icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            ${yamlOpen ? "Hide YAML" : "View YAML"}
+          </button>
+          ${!isCurrent
+            ? html`
+                <button
+                  class="btn btn-outline version-entry-btn"
+                  ?disabled=${restoring || !(v.yaml || v.yaml_content)}
+                  @click=${() =>
+                    host._restoreVersion(
+                      automationId,
+                      v.version_id,
+                      v.yaml || v.yaml_content || "",
+                    )}
+                >
+                  <ha-icon
+                    icon="mdi:restore"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${restoring ? "Restoring…" : "Restore this version"}
+                </button>
+              `
+            : ""}
+        </div>
+        ${yamlOpen
+          ? html`<div class="version-entry-yaml">
+              <ha-code-editor
+                mode="yaml"
+                .value=${v.yaml || v.yaml_content || "(no YAML stored)"}
+                read-only
+                style="--code-mirror-font-size:13px;"
+              ></ha-code-editor>
+            </div>`
+          : ""}
+      </div>
+    </li>
   `;
 }
 

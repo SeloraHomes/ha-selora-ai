@@ -1,5 +1,7 @@
 // Session management actions (prototype-assigned to SeloraAIArchitectPanel)
 
+import { stripEntityMarkers } from "./chat-autocomplete.js";
+
 const PANEL_PREFIX = "/selora-ai";
 const VALID_TABS = ["chat", "automations", "scenes", "settings", "usage"];
 
@@ -81,6 +83,7 @@ export async function _openSession(sessionId) {
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    this._newAutomationMode = false;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -97,6 +100,7 @@ export async function _newSession() {
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    this._newAutomationMode = false;
     this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
@@ -106,11 +110,46 @@ export async function _newSession() {
   }
 }
 
+// Opens a fresh chat session pre-tuned for "I want to create an
+// automation" — sets a transient mode flag so the welcome copy and
+// composer placeholder invite the user to describe what they want,
+// while still benefiting from entity autocomplete. Cleared on send
+// in _sendMessage.
+export async function _startNewAutomationChat() {
+  try {
+    const { session_id } = await this.hass.callWS({
+      type: "selora_ai/new_session",
+    });
+    this._activeSessionId = session_id;
+    this._messages = [];
+    this._input = "";
+    this._autocompleteSelections = [];
+    this._newAutomationMode = true;
+    this._welcomeKey = (this._welcomeKey || 0) + 1;
+    this._setActiveTab("chat");
+    if (this.narrow) this._showSidebar = false;
+    this._loadSessions();
+
+    // Focus the composer so the user can type immediately.
+    this.requestUpdate();
+    await this.updateComplete;
+    const ta = this.shadowRoot?.querySelector(".composer-textarea");
+    if (ta) ta.focus();
+  } catch (err) {
+    console.error("Failed to start new automation chat", err);
+    this._showToast(
+      "Failed to start a new automation chat: " + (err?.message || err),
+      "error",
+    );
+  }
+}
+
+// Legacy deep-link path: `?new_automation=<name>` on the panel URL or
+// the dashboard "Create in Chat" card. When a name is provided we
+// pre-fill and auto-send so the existing entry point keeps working.
 export async function _newAutomationChat(name) {
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
-  this._showNewAutoDialog = false;
-  this.requestUpdate();
   try {
     // Create session + draft in parallel
     const { session_id } = await this.hass.callWS({
@@ -133,39 +172,81 @@ export async function _newAutomationChat(name) {
         .catch(() => {}),
     ]);
 
-    // Switch to chat
+    // Switch to chat and fire the message immediately — the user
+    // already validated their intent in the dialog, so a second
+    // "press send" step is just friction. Set _input then call
+    // _sendMessage synchronously: _sendMessage clears _input before
+    // the next render, so the composer never paints the prefilled
+    // text (avoids a flash of the prompt being cropped in the
+    // single-line textarea).
     this._activeSessionId = session_id;
     this._messages = [];
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
 
-    // Force render then focus
-    this.requestUpdate();
-    await this.updateComplete;
-    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
-    if (textarea) textarea.focus();
-
-    // Load updated data
+    // Load updated data in parallel with the streamed reply.
     this._loadAutomations();
     this._loadSessions();
+
+    await this._sendMessage();
   } catch (err) {
     console.error("Failed to create automation chat session", err);
   }
 }
 
-export async function _suggestAutomationName() {
-  this._suggestingName = true;
+// Companion to _startNewAutomationChat: ask the LLM to invent a
+// concrete automation idea tailored to the user's home, then drop it
+// into the composer so the user can tweak entities (with
+// autocomplete) before sending. We deliberately stop short of
+// auto-sending — an AI-conjured suggestion deserves a quick human
+// glance, and editing it is the whole reason we sit in the composer
+// instead of firing the chat outright.
+export async function _suggestAutomationIdea() {
+  if (this._suggestingAutomation) return;
+  this._suggestingAutomation = true;
   try {
     const result = await this.hass.callWS({
       type: "selora_ai/chat",
       message:
-        "Suggest one short, descriptive automation name for my smart home based on my devices and current setup. Reply with ONLY the automation name, nothing else. No quotes, no explanation.",
+        "Suggest one specific, useful automation for my smart home based on the devices I actually have. " +
+        "Reply with ONE plain-English sentence describing the automation as an instruction I could send back to you — " +
+        "something like 'Turn off the kitchen lights when nobody is in the kitchen for 10 minutes.' " +
+        "Use the human-friendly device names only. " +
+        "Do not include quotes, lists, explanations, YAML, or any [[entity:…]] / [[entities:…]] markers — just the instruction.",
     });
-    const name = (result?.response || "").trim().replace(/^["']|["']$/g, "");
-    if (name) this._newAutoName = name;
-    // Clean up the throwaway session created by the chat call
-    if (result?.session_id) {
+    // The LLM sometimes appends `[[entities:…]]` markers (it's been
+    // prompted to use them in normal chat). Strip them so the user
+    // sees a clean instruction in the composer — when they hit send,
+    // the regular send path will re-attach markers for any entities
+    // they confirmed via autocomplete.
+    const suggestion = stripEntityMarkers(result?.response || "")
+      .trim()
+      .replace(/^["']|["']$/g, "")
+      .replace(/\s+/g, " ");
+    if (suggestion) {
+      this._input = suggestion;
+      // Push the new value through the rendered textarea so the
+      // auto-grow logic picks it up (the @input handler is the only
+      // place that resizes; setting host._input alone leaves the
+      // textarea at its single-row default and crops longer ideas).
+      this.requestUpdate();
+      await this.updateComplete;
+      const ta = this.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) {
+        ta.value = suggestion;
+        ta.style.height = "auto";
+        ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+        ta.focus();
+        ta.setSelectionRange(suggestion.length, suggestion.length);
+      }
+    } else {
+      this._showToast("AI didn't return a suggestion — try again.", "warning");
+    }
+    // The /chat WS call spins up a throwaway session for the
+    // one-shot prompt; clean it up so the sidebar doesn't fill with
+    // empty stubs.
+    if (result?.session_id && result.session_id !== this._activeSessionId) {
       this.hass
         .callWS({
           type: "selora_ai/delete_session",
@@ -175,13 +256,13 @@ export async function _suggestAutomationName() {
       this._loadSessions();
     }
   } catch (err) {
-    console.error("Failed to suggest name", err);
+    console.error("Failed to suggest automation", err);
     this._showToast(
-      "Failed to generate suggestion — check LLM config",
+      "Failed to generate a suggestion — check LLM config.",
       "error",
     );
   } finally {
-    this._suggestingName = false;
+    this._suggestingAutomation = false;
   }
 }
 

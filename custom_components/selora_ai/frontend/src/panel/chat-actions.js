@@ -54,6 +54,12 @@ export async function _sendMessage() {
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
   this._autocompleteSelections = [];
+  // The "new automation" entry point shapes the welcome copy and
+  // composer placeholder. Once the user actually sends their first
+  // message the chat behaves normally — clear the flag so an empty
+  // chat later (e.g. after deleting messages) shows the default
+  // welcome instead of stale "New Automation" framing.
+  this._newAutomationMode = false;
   this._autocomplete = {
     open: false,
     items: [],
@@ -255,7 +261,16 @@ export async function _sendMessage() {
         this._messages = [...this._messages];
         this._loading = false;
         this._streaming = false;
-        this._streamUnsub = null;
+        // Actually unsubscribe (calls the unsub function and clears
+        // the local reference). The previous `this._streamUnsub =
+        // null` left HA's websocket client thinking the chat_stream
+        // subscription was still active, so any WS reconnect — a
+        // brief network blip, HA core restart, the tab being thrown
+        // into sleep and resumed — replayed every still-active
+        // subscription, re-running the turn and persisting a second
+        // user+assistant pair to the session. That's the
+        // "I reloaded and my message was sent twice" symptom.
+        cancelSubscription();
         if (event.validation_error) {
           const label =
             event.validation_target === "scene" ? "Scene" : "Automation";

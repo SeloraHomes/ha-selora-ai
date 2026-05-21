@@ -139,6 +139,7 @@ from .const import (
     PANEL_NAME,
     PANEL_PATH,
     PANEL_TITLE,
+    SELORA_AI_LABEL_ID,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
@@ -341,8 +342,20 @@ class ConversationStore:
         await self._store.async_save(self._data)
         return message
 
-    async def set_automation_status(self, session_id: str, message_index: int, status: str) -> bool:
-        """Update the automation_status field of a specific message."""
+    async def set_automation_status(
+        self,
+        session_id: str,
+        message_index: int,
+        status: str,
+        *,
+        automation_id: str | None = None,
+    ) -> bool:
+        """Update the automation_status field of a specific message.
+
+        Optionally persists ``automation_id`` so the chat card can resolve
+        the freshly-created automation (e.g. to offer an inline Enable
+        action without redirecting the user to the Automations tab).
+        """
         await self._ensure_loaded()
         if self._data is None:
             raise RuntimeError("Session store failed to load")
@@ -353,6 +366,8 @@ class ConversationStore:
         if message_index < 0 or message_index >= len(msgs):
             return False
         msgs[message_index]["automation_status"] = status
+        if automation_id is not None:
+            msgs[message_index]["automation_id"] = automation_id
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
@@ -1928,6 +1943,7 @@ async def _handle_websocket_chat_stream(
             entities=entities,
             tool_log=tool_executor.call_log if tool_executor else None,
         )
+
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
@@ -2247,6 +2263,7 @@ async def _handle_websocket_delete_session(
         vol.Required("session_id"): str,
         vol.Required("message_index"): int,
         vol.Required("status"): str,
+        vol.Optional("automation_id"): str,
     }
 )
 async def _handle_websocket_set_automation_status(
@@ -2266,7 +2283,12 @@ async def _handle_websocket_set_automation_status(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    ok = await store.set_automation_status(msg["session_id"], msg["message_index"], msg["status"])
+    ok = await store.set_automation_status(
+        msg["session_id"],
+        msg["message_index"],
+        msg["status"],
+        automation_id=msg.get("automation_id"),
+    )
     if not ok:
         connection.send_error(msg["id"], "not_found", "Session or message not found")
         return
@@ -2998,18 +3020,25 @@ async def _handle_websocket_get_automations(
                 if unique_id in yaml_by_id:
                     automation_id = unique_id
 
-            # Fallback to description check if unique_id doesn't match
+            # Detection paths, in order: entity-registry label, the
+            # YAML id prefix exposed in state attributes, and the
+            # legacy ``[Selora AI]`` description marker for
+            # pre-label automations.
+            if not is_selora and entry and entry.labels and SELORA_AI_LABEL_ID in entry.labels:
+                is_selora = True
+
             description = state.attributes.get("description") or ""
             if not is_selora and description and "[Selora AI]" in description:
                 is_selora = True
 
-            # Prefer explicit id attributes when available
             if not automation_id:
                 state_id = state.attributes.get("id")
                 if state_id is not None:
                     state_id_str = str(state_id)
                     if state_id_str in yaml_by_id:
                         automation_id = state_id_str
+                    if not is_selora and state_id_str.startswith(AUTOMATION_ID_PREFIX):
+                        is_selora = True
 
             if not automation_id and entry and entry.unique_id:
                 unique_id_attr = state.attributes.get("unique_id")

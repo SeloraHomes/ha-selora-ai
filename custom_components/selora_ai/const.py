@@ -1041,6 +1041,15 @@ AUTOMATION_STALE_DAYS = 5
 # Prefix for auto-created automation IDs (easy to find/filter).
 AUTOMATION_ID_PREFIX = "selora_ai_"
 
+# Label attached to every automation Selora creates. Replaces the
+# older "[Selora AI]" text prefix that was being stuffed into the
+# description / alias and occasionally doubled up. Detected via the
+# automation's ``labels`` list in YAML (and HA's label registry).
+# Detection still falls back to AUTOMATION_ID_PREFIX or the legacy
+# "[Selora AI]" prefix so pre-label automations remain identifiable.
+SELORA_AI_LABEL_ID = "selora_ai"
+SELORA_AI_LABEL_NAME = "Selora AI"
+
 # ── Scene Creation ───────────────────────────────────────────────────
 # Prefix for auto-created scene IDs (easy to find/filter).
 SCENE_ID_PREFIX = "selora_ai_"

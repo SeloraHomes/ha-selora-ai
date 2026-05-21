@@ -1,8 +1,173 @@
 import { html } from "lit";
-import { describeFlowItem } from "../shared/flow-description.js";
+import {
+  describeFlowItem,
+  collectFlowEntityIds,
+} from "../shared/flow-description.js";
+import { fmtEntity } from "../shared/formatting.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
 import { getStaleAutomations, renderStaleModal } from "./stale-automations.js";
+import { DOMAIN_ICONS } from "./render-chat.js";
+
+// Click target for entities mentioned in a trigger/condition/action. Opens
+// HA's built-in more-info dialog via the standard `hass-more-info` event
+// so users can dive into the device behind the chip without leaving chat.
+function renderFlowEntityChip(host, entityId) {
+  const stateObj = host.hass?.states?.[entityId];
+  const friendly = stateObj?.attributes?.friendly_name || entityId;
+  const icon =
+    stateObj?.attributes?.icon ||
+    DOMAIN_ICONS[entityId.split(".")[0]] ||
+    "mdi:circle-medium";
+  return html`<button
+    type="button"
+    class="flow-entity-chip"
+    title=${`Open ${friendly} (${entityId})`}
+    @click=${(e) => {
+      e.stopPropagation();
+      host.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId },
+        }),
+      );
+    }}
+  >
+    <ha-icon icon=${icon}></ha-icon>
+    <span>${friendly}</span>
+  </button>`;
+}
+
+// Build a Lit template that inlines clickable entity chips at every spot
+// where the description string mentions a referenced entity's friendly
+// name. This avoids the "Turn off Decorative Lights [Decorative Lights]"
+// duplication of an external chip row — each entity now appears exactly
+// once, and it's interactive.
+//
+// Algorithm: longest-name-first greedy split. We scan the description
+// for the earliest occurrence of any referenced entity's friendly name,
+// emit the text leading up to it, then a chip, and repeat. If a name
+// isn't found (rare — e.g. the LLM used an alias or the entity has no
+// friendly_name and we fell back to a humanized object_id mismatch),
+// we silently leave the plain text in place. This stays robust for
+// every flow-item case `describeFlowItem` handles without us having to
+// rewrite each case to template-style.
+function renderFlowDescription(host, item) {
+  const description = describeFlowItem(host.hass, item);
+  const entityIds = collectFlowEntityIds(item);
+  if (!entityIds.length || !description) return html`${description}`;
+
+  // Map each id to its display name once, longest first so multi-word
+  // names match before any single-word substrings they happen to contain.
+  const lookups = entityIds
+    .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
+    .filter((l) => l.name)
+    .sort((a, b) => b.name.length - a.name.length);
+
+  const segments = [];
+  let remaining = description;
+  // Cap iterations defensively — a pathological input could otherwise
+  // loop if a match returned zero length, which shouldn't happen but
+  // we'd rather degrade than freeze the render.
+  let safety = 32;
+  while (remaining && safety-- > 0) {
+    let bestIdx = -1;
+    let bestMatch = null;
+    for (const l of lookups) {
+      const idx = remaining.indexOf(l.name);
+      if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
+        bestIdx = idx;
+        bestMatch = l;
+      }
+    }
+    if (!bestMatch) {
+      segments.push(remaining);
+      break;
+    }
+    if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
+    segments.push({ chip: bestMatch.eid });
+    remaining = remaining.slice(bestIdx + bestMatch.name.length);
+  }
+  if (remaining && safety <= 0) segments.push(remaining);
+
+  return html`${segments.map((s) =>
+    typeof s === "string" ? s : renderFlowEntityChip(host, s.chip),
+  )}`;
+}
+
+function renderFlowNode(host, item, kind) {
+  return html`<div class="flow-node ${kind}-node">
+    ${renderFlowDescription(host, item)}
+  </div>`;
+}
+
+// Expand control-flow action blocks (choose / parallel / sequence /
+// repeat) inline instead of collapsing them to "Choose between 2
+// options". The original collapsed form was lossless in the YAML but
+// useless visually — the user had no way to verify the rule without
+// reading raw YAML below. The expanded form mirrors the YAML's
+// branching structure: each ``choose`` branch is shown as
+// "IF <conditions> THEN <sequence>", with a final "OTHERWISE
+// <default>" panel when one is present. The same pattern handles
+// ``parallel`` / ``sequence`` lists.
+function renderActionItem(host, action) {
+  if (action && typeof action === "object" && Array.isArray(action.choose)) {
+    return html`<div class="flow-choose">
+      ${action.choose.map(
+        (branch, i) => html`
+          <div class="flow-branch">
+            <div class="flow-branch-label">${i === 0 ? "If" : "Else if"}</div>
+            ${(branch.conditions || []).map(
+              (c) =>
+                html`<div class="flow-node condition-node">
+                  ${renderFlowDescription(host, c)}
+                </div>`,
+            )}
+            <div class="flow-arrow-sm">↓</div>
+            ${(branch.sequence || []).map((s) => renderActionItem(host, s))}
+          </div>
+        `,
+      )}
+      ${Array.isArray(action.default) && action.default.length
+        ? html`<div class="flow-branch">
+            <div class="flow-branch-label">Otherwise</div>
+            ${action.default.map((s) => renderActionItem(host, s))}
+          </div>`
+        : ""}
+    </div>`;
+  }
+  if (action && typeof action === "object" && Array.isArray(action.parallel)) {
+    return html`<div class="flow-branch">
+      <div class="flow-branch-label">In parallel</div>
+      ${action.parallel.map((s) => renderActionItem(host, s))}
+    </div>`;
+  }
+  if (action && typeof action === "object" && Array.isArray(action.sequence)) {
+    return html`<div class="flow-branch">
+      <div class="flow-branch-label">In sequence</div>
+      ${action.sequence.map((s) => renderActionItem(host, s))}
+    </div>`;
+  }
+  if (action && typeof action === "object" && action.repeat) {
+    const inner = action.repeat.sequence || action.repeat.actions || [];
+    const repeatLabel = (() => {
+      const r = action.repeat;
+      if (r.count != null)
+        return `Repeat ${r.count} time${r.count !== 1 ? "s" : ""}`;
+      if (r.while) return "Repeat while condition holds";
+      if (r.until) return "Repeat until condition is met";
+      return "Repeat";
+    })();
+    return html`<div class="flow-branch">
+      <div class="flow-branch-label">${repeatLabel}</div>
+      ${(Array.isArray(inner) ? inner : [inner]).map((s) =>
+        renderActionItem(host, s),
+      )}
+    </div>`;
+  }
+  return renderFlowNode(host, action, "action");
+}
 
 // ---------------------------------------------------------------------------
 // Shared card header (used by proposal + refining cards)
@@ -16,6 +181,7 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
     titleSuffix = null,
     nameOverride = null,
     tail = null,
+    isSelora = true,
   } = opts;
   const cleanedDescription = (description || "").replace(
     /^\[Selora AI\]\s*/,
@@ -24,13 +190,20 @@ export function renderAutomationIdentity(alias, description, opts = {}) {
   return html`
     <ha-icon
       icon="mdi:robot"
-      style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+      style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
     ></ha-icon>
     <div class="auto-row-name">
       ${nameOverride
         ? nameOverride
         : html`<div class="auto-row-title-row">
             <span class="auto-row-title">${alias}</span>
+            ${isSelora && !badge
+              ? html`<ha-icon
+                  class="selora-ai-mark"
+                  icon="mdi:creation"
+                  title="Created by Selora AI"
+                ></ha-icon>`
+              : ""}
             ${titleSuffix || ""}
             ${badge
               ? html`<span
@@ -68,40 +241,23 @@ export function renderAutomationFlowchart(host, auto) {
   if (!triggers.length && !actions.length) return html``;
   return html`
     <div class="flow-chart">
-      <div class="flow-section">
+      <div class="flow-section flow-section--inline">
         <div class="flow-label">Trigger</div>
-        ${triggers.map(
-          (t) =>
-            html`<div class="flow-node trigger-node">
-              ${describeFlowItem(host.hass, t)}
-            </div>`,
-        )}
+        ${triggers.map((t) => renderFlowNode(host, t, "trigger"))}
       </div>
       ${conditions.length
         ? html`
             <div class="flow-arrow">↓</div>
-            <div class="flow-section">
+            <div class="flow-section flow-section--inline">
               <div class="flow-label">Condition</div>
-              ${conditions.map(
-                (c) =>
-                  html`<div class="flow-node condition-node">
-                    ${describeFlowItem(host.hass, c)}
-                  </div>`,
-              )}
+              ${conditions.map((c) => renderFlowNode(host, c, "condition"))}
             </div>
           `
         : ""}
       <div class="flow-arrow">↓</div>
-      <div class="flow-section">
+      <div class="flow-section flow-section--stacked">
         <div class="flow-label">Actions</div>
-        ${actions.map(
-          (a, i) => html`
-            ${i > 0 ? html`<div class="flow-arrow-sm">↓</div>` : ""}
-            <div class="flow-node action-node">
-              ${describeFlowItem(host.hass, a)}
-            </div>
-          `,
-        )}
+        ${actions.map((a) => renderActionItem(host, a))}
       </div>
     </div>
   `;
@@ -119,17 +275,40 @@ export function renderProposalCard(host, msg, msgIndex) {
   const scrutinyTags = risk?.scrutiny_tags || [];
 
   if (status === "saved") {
+    const isEnabled = _savedIsEnabled(host, msg);
+    const yamlKey = `saved_${msgIndex}`;
+    const yamlOpen = host._yamlOpen && host._yamlOpen[msgIndex];
     return html`
-      <div class="proposal-card" style="margin-top:12px;">
-        <div class="proposal-header">
-          <ha-icon icon="mdi:check-circle"></ha-icon>
-          Automation Created
+      <div class="automation-subcard">
+        <div class="automation-subcard-header">
+          ${renderAutomationIdentity(automation.alias, msg.description, {
+            badge: isEnabled ? "Enabled" : "Saved",
+          })}
         </div>
-        <div class="proposal-body">
-          <div class="proposal-name">${automation.alias}</div>
-          <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> Saved and enabled
-          </div>
+        <div class="automation-subcard-body">
+          ${renderAutomationFlowchart(host, automation)}
+          ${yaml
+            ? html`
+                <div
+                  class="yaml-toggle"
+                  style="margin-top:12px;"
+                  @click=${() => toggleYaml(host, msgIndex)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${yamlOpen ? "Hide YAML" : "View YAML"}
+                </div>
+                ${yamlOpen
+                  ? html`<div style="margin-top:6px;">
+                      ${host._renderYamlEditor(yamlKey, yaml, null, {
+                        readOnly: true,
+                      })}
+                    </div>`
+                  : ""}
+              `
+            : ""}
         </div>
       </div>
     `;
@@ -154,19 +333,15 @@ export function renderProposalCard(host, msg, msgIndex) {
 
   if (status === "refining") {
     return html`
-      <div
-        style="margin-top:12px;padding:12px 16px;border:1px solid var(--selora-zinc-700);border-radius:12px;background:rgba(255,255,255,0.02);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 14px rgba(0,0,0,0.28);"
-      >
-        <div
-          style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
-        >
+      <div class="automation-subcard">
+        <div class="automation-subcard-header">
           ${renderAutomationIdentity(
             automation.alias,
             msg.description || automation.description,
             { badge: "Being Refined" },
           )}
         </div>
-        <div class="proposal-body" style="padding:12px 0 0;">
+        <div class="automation-subcard-body">
           ${renderAutomationFlowchart(host, automation)}
         </div>
       </div>
@@ -180,15 +355,13 @@ export function renderProposalCard(host, msg, msgIndex) {
     host._editedYaml[yamlKey] !== undefined &&
     host._editedYaml[yamlKey] !== yaml;
   return html`
-    <div style="margin-top:12px;padding:14px 0 0;">
-      <div
-        style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
-      >
+    <div class="automation-subcard">
+      <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
           badge: "Proposal",
         })}
       </div>
-      <div class="proposal-body" style="padding:12px 0 0;">
+      <div class="automation-subcard-body">
         ${risk?.level === "elevated"
           ? html`
               <div
@@ -231,19 +404,135 @@ export function renderProposalCard(host, msg, msgIndex) {
                 : ""}
             </div>`
           : ""}
-        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-          <button
-            class="btn btn-success"
-            @click=${() =>
-              host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
-          >
-            <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            Accept &amp; Save
-          </button>
-        </div>
       </div>
     </div>
   `;
+}
+
+// Helper for renderProposalCard / renderProposalActions: resolve
+// whether the saved automation is currently enabled. Both functions
+// need the same answer; isolating it here keeps them in sync.
+function _savedIsEnabled(host, msg) {
+  const savedAutomationId = msg.automation_id || null;
+  if (!savedAutomationId) return false;
+  const created = (host._automations || []).find(
+    (a) => a.automation_id === savedAutomationId,
+  );
+  return created ? host._automationIsEnabled(created) : false;
+}
+
+// The action row beneath an automation proposal — rendered OUTSIDE
+// the chat bubble (like normal quick-actions) so the buttons read as
+// "next-step suggestions from Selora" rather than "options inside the
+// message". Returns one of three layouts depending on lifecycle:
+//
+//   - pending: a single "Accept & Save" button with the exit
+//     animation hook
+//   - saved + enabled: the Run / Trace / Edit qa-suggestion chips
+//   - saved + disabled (only happens for elevated-risk automations
+//     that the backend forced off): an explicit Enable button + a
+//     short risk caveat
+//   - refining / declined / no-automation: nothing
+export function renderProposalActions(host, msg, msgIndex) {
+  if (!msg?.automation) return "";
+  const status = msg.automation_status;
+  const automation = msg.automation;
+  const risk = msg.risk_assessment || automation?.risk_assessment || null;
+
+  if (status === "saved") {
+    const savedAutomationId = msg.automation_id || null;
+    const created = savedAutomationId
+      ? (host._automations || []).find(
+          (a) => a.automation_id === savedAutomationId,
+        )
+      : null;
+    if (!created) return "";
+    const isEnabled = host._automationIsEnabled(created);
+    const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
+    const elevated = risk?.level === "elevated";
+
+    if (isEnabled) {
+      return html`<div class="qa-group automation-card-actions">
+        <button
+          class="qa-suggestion"
+          ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
+          title="Trigger the actions now to verify they work"
+          @click=${() =>
+            host._runAutomation(created.entity_id, savedAutomationId)}
+        >
+          <span class="qa-glow-track" aria-hidden="true">
+            <span class="qa-glow-spot"></span>
+          </span>
+          <ha-icon class="qa-suggestion-lead" icon="mdi:play"></ha-icon>
+          <span class="qa-suggestion-label"
+            >${(host._runningAutomation || {})[savedAutomationId]
+              ? "Running…"
+              : "Run now"}</span
+          >
+        </button>
+        <button
+          class="qa-suggestion"
+          title="Open this automation in Home Assistant"
+          @click=${() => host._openAutomationInHA(savedAutomationId)}
+        >
+          <span class="qa-glow-track" aria-hidden="true">
+            <span class="qa-glow-spot"></span>
+          </span>
+          <ha-icon class="qa-suggestion-lead" icon="mdi:open-in-new"></ha-icon>
+          <span class="qa-suggestion-label">View in HA</span>
+        </button>
+      </div>`;
+    }
+    return html`
+      <div class="automation-card-actions">
+        <button
+          class="btn btn-success"
+          ?disabled=${toggling}
+          @click=${() =>
+            host._enableSavedAutomation(created.entity_id, savedAutomationId)}
+        >
+          <ha-icon
+            icon=${toggling ? "mdi:loading" : "mdi:toggle-switch-outline"}
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          ${toggling ? "Enabling…" : "Enable automation"}
+        </button>
+      </div>
+      ${elevated
+        ? html`<p class="automation-workflow-note elevated">
+            <ha-icon
+              icon="mdi:shield-alert-outline"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            Uses elevated-risk actions — review the flow and YAML before
+            enabling.
+          </p>`
+        : ""}
+    `;
+  }
+
+  if (status !== "pending" && status !== undefined && status !== null) {
+    return "";
+  }
+
+  // Pending — Accept & Save. The yamlKey mirrors the pending-card key
+  // built in renderProposalCard so an edited YAML round-trip lines up.
+  const yamlKey = `proposal_${msgIndex}`;
+  return html`<div
+    class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex]
+      ? "exiting"
+      : ""}"
+  >
+    <button
+      class="btn btn-success"
+      ?disabled=${(host._acceptAnimating || {})[msgIndex]}
+      @click=${() =>
+        host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
+    >
+      <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
+      Accept &amp; Save
+    </button>
+  </div>`;
 }
 
 // ---------------------------------------------------------------------------
@@ -428,10 +717,7 @@ export function renderAutomations(host) {
                     title=${host._llmNeedsSetup
                       ? "Configure an LLM provider first"
                       : ""}
-                    @click=${() => {
-                      host._newAutoName = "";
-                      host._showNewAutoDialog = true;
-                    }}
+                    @click=${() => host._startNewAutomationChat()}
                   >
                     <ha-icon
                       icon="mdi:plus"
@@ -642,6 +928,7 @@ export function renderAutomations(host) {
                             `
                           : ""}
                         ${renderAutomationIdentity(a.alias, a.description, {
+                          isSelora: !!a.is_selora,
                           titleSuffix: isUnavailable
                             ? html`<span
                                 class="needs-attention-pill"
@@ -816,7 +1103,7 @@ export function renderAutomations(host) {
                                             icon="mdi:open-in-new"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          Edit in HA
+                                          View in HA
                                         </button>
                                         <button
                                           class="burger-item danger"
@@ -869,7 +1156,7 @@ export function renderAutomations(host) {
                                       >
                                         <ha-icon
                                           icon="mdi:sitemap-outline"
-                                          style="--mdc-icon-size:14px;"
+                                          style="--mdc-icon-size:16px;"
                                         ></ha-icon>
                                         Flow
                                       </button>
@@ -898,7 +1185,7 @@ export function renderAutomations(host) {
                                       >
                                         <ha-icon
                                           icon="mdi:code-braces"
-                                          style="--mdc-icon-size:14px;"
+                                          style="--mdc-icon-size:16px;"
                                         ></ha-icon>
                                         YAML
                                       </button>
@@ -1033,10 +1320,7 @@ export function renderAutomations(host) {
                 title=${host._llmNeedsSetup
                   ? "Configure an LLM provider first"
                   : ""}
-                @click=${() => {
-                  host._newAutoName = "";
-                  host._showNewAutoDialog = true;
-                }}
+                @click=${() => host._startNewAutomationChat()}
               >
                 <ha-icon
                   icon="mdi:plus"
@@ -1046,8 +1330,8 @@ export function renderAutomations(host) {
               </button>
             </div>`}
       </div>
-      ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
-      ${renderUnavailableModal(host)} ${renderStaleModal(host)}
+      ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
+      ${renderStaleModal(host)}
     </div>
   `;
 }

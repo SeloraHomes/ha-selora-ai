@@ -335,3 +335,41 @@ export function describeFlowItem(hass, item) {
     .slice(0, 3);
   return readable.length ? readable.join(" \u00b7 ") : "Automation step";
 }
+
+/**
+ * Pull every entity_id referenced by a single trigger / condition / action.
+ * Covers the spots HA understands today:
+ *   - Triggers / conditions: top-level `entity_id` (state, numeric_state, zone, \u2026).
+ *   - Actions: `target.entity_id` plus the deprecated `data.entity_id`.
+ *   - "Device" triggers/actions don't carry an entity_id \u2014 they reference a
+ *     device by id, which can't be opened with the more-info dialog anyway,
+ *     so we skip those.
+ * Returns a de-duplicated array in source order, preserving the order the
+ * automation listed them.
+ *
+ * @param {Object} item - trigger, condition, or action object
+ * @returns {string[]}
+ */
+export function collectFlowEntityIds(item) {
+  if (!item || typeof item !== "object") return [];
+  const out = [];
+  const seen = new Set();
+  const push = (val) => {
+    if (val == null) return;
+    const arr = Array.isArray(val) ? val : [val];
+    for (const v of arr) {
+      if (typeof v !== "string") continue;
+      // Heuristic: an entity_id always has exactly one dot between domain
+      // and object_id. This filters out device_ids, area_ids, and any
+      // free-form strings that may have ended up in a target block.
+      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v)) continue;
+      if (seen.has(v)) continue;
+      seen.add(v);
+      out.push(v);
+    }
+  };
+  push(item.entity_id);
+  push(item.target?.entity_id);
+  push(item.data?.entity_id);
+  return out;
+}

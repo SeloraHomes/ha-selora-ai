@@ -16,7 +16,11 @@ from typing import TYPE_CHECKING, Any
 from homeassistant.core import HomeAssistant
 import yaml
 
-from .automation_utils import suggestion_content_fingerprint, validate_automation_payload
+from .automation_utils import (
+    _strip_legacy_selora_prefix,
+    suggestion_content_fingerprint,
+    validate_automation_payload,
+)
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
@@ -119,8 +123,11 @@ class SuggestionGenerator:
             if automation is None:
                 continue
 
-            # Deduplicate against existing automations
-            alias_lower = automation.get("alias", "").lower()
+            # Compare on the bare alias so a candidate built by a
+            # legacy code path (with the ``[Selora AI]`` prefix) still
+            # matches the normalised set of existing aliases.
+            candidate_alias = _strip_legacy_selora_prefix(automation.get("alias", ""))
+            alias_lower = candidate_alias.lower()
             if alias_lower in existing_aliases:
                 continue
 
@@ -243,12 +250,18 @@ class SuggestionGenerator:
         return 0
 
     def _get_existing_aliases(self) -> set[str]:
-        """Collect lowercase aliases of all existing automations."""
+        """Return lowercase aliases of every automation, prefix-stripped.
+
+        Pre-label automations carry the ``[Selora AI]`` prefix in their
+        HA alias; stripping it here lets them compare equal to current
+        suggestion aliases (which do not).
+        """
         aliases: set[str] = set()
         for state in self._hass.states.async_all("automation"):
             alias = state.attributes.get("friendly_name", "")
             if alias:
-                aliases.add(alias.lower())
+                normalised = _strip_legacy_selora_prefix(alias)
+                aliases.add(normalised.lower())
         return aliases
 
     async def _get_stored_suggestion_fingerprints(self) -> set[str]:
@@ -365,7 +378,7 @@ class SuggestionGenerator:
             )
 
         return {
-            "alias": f"[Selora AI] {pattern['description']}",
+            "alias": pattern["description"],
             "description": pattern["description"],
             "triggers": [{"platform": "time", "at": time_slot}],
             "conditions": conditions,
@@ -387,7 +400,7 @@ class SuggestionGenerator:
             return None
 
         return {
-            "alias": f"[Selora AI] {pattern['description']}",
+            "alias": pattern["description"],
             "description": pattern["description"],
             "triggers": [
                 {
@@ -424,7 +437,7 @@ class SuggestionGenerator:
             trigger["from"] = trigger_from
 
         return {
-            "alias": f"[Selora AI] {pattern['description']}",
+            "alias": pattern["description"],
             "description": pattern["description"],
             "triggers": [trigger],
             "conditions": [],

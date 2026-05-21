@@ -100,15 +100,29 @@ def collect_entity_ids(value: Any) -> set[str]:
 
 
 def is_selora_automation(automation: dict[str, Any]) -> bool:
-    """Return True if this automation was created by Selora AI."""
+    """Return True if this automation was created by Selora AI.
+
+    Checks (in order):
+      1. The `selora_ai` label is attached (new path — every Selora
+         creation gets stamped with this label).
+      2. The id starts with our reserved prefix (covers automations
+         created via Selora's WS endpoints, label or not).
+      3. The legacy ``[Selora AI]`` text marker is present in the
+         alias or description (covers automations created before we
+         switched to labels — keep recognising them so the
+         Automations tab continues to filter them correctly).
+    """
+    from .const import SELORA_AI_LABEL_ID
+
+    labels = automation.get("labels") or []
+    if isinstance(labels, list) and SELORA_AI_LABEL_ID in labels:
+        return True
     aid = str(automation.get("id", ""))
+    if aid.startswith(AUTOMATION_ID_PREFIX):
+        return True
     desc = str(automation.get("description", ""))
     alias = str(automation.get("alias", ""))
-    return (
-        aid.startswith(AUTOMATION_ID_PREFIX)
-        or "[Selora AI]" in desc
-        or alias.startswith("[Selora AI]")
-    )
+    return "[Selora AI]" in desc or alias.startswith("[Selora AI]")
 
 
 # ── AutomationStore singleton ──────────────────────────────────────────────

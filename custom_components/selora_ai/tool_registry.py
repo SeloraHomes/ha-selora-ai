@@ -413,8 +413,8 @@ TOOL_ACCEPT_SUGGESTION = ToolDef(
     name="accept_suggestion",
     description=(
         "Accept a pending automation suggestion and create the automation in Home Assistant. "
-        "The automation is created disabled with a [Selora AI] prefix for user review. "
-        "Use this when the user confirms they want a suggested automation set up."
+        "The automation is created disabled and tagged with the `selora_ai` label so the user can "
+        "review and enable it. Use this when the user confirms they want a suggested automation set up."
     ),
     params=(
         ToolParam(

@@ -20,14 +20,15 @@ export const cardElementStyles = css`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     border: 1px solid var(--divider-color);
     background: var(--card-background-color);
     cursor: pointer;
     color: var(--secondary-text-color);
     transition: background 0.15s;
+    --mdc-icon-size: 18px;
   }
   .burger-btn:hover {
     background: rgba(0, 0, 0, 0.06);
@@ -36,21 +37,21 @@ export const cardElementStyles = css`
   .burger-dropdown {
     position: absolute;
     right: 0;
-    top: 32px;
+    top: 38px;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     z-index: 100;
-    min-width: 140px;
+    min-width: 180px;
     overflow: hidden;
   }
   .burger-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     color: var(--primary-text-color);
@@ -58,6 +59,10 @@ export const cardElementStyles = css`
     background: none;
     width: 100%;
     text-align: left;
+  }
+  .burger-item ha-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
   }
   .burger-item:hover {
     background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
@@ -117,10 +122,10 @@ export const cardElementStyles = css`
     white-space: nowrap;
   }
   .card-tab {
-    padding: 4px 10px;
+    padding: 6px 12px;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--secondary-text-color);
     cursor: pointer;
@@ -128,7 +133,7 @@ export const cardElementStyles = css`
     transition: color 0.3s ease;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
   }
   .card-tab:hover,
   .card-tab.active {
@@ -152,7 +157,7 @@ export const cardElementStyles = css`
   }
   .card-tab-sep {
     color: var(--divider-color);
-    font-size: 12px;
+    font-size: 14px;
     user-select: none;
   }
 
@@ -168,6 +173,136 @@ export const cardElementStyles = css`
   }
   .expand-toggle:hover {
     opacity: 1;
+  }
+
+  /* ---- Version history timeline ----
+     A vertical rail with a dot per version, plus a proper card-style
+     entry to the right of each dot. Replaces the old cramped layout
+     that crushed version label / time / badge into one row and
+     squeezed the action buttons under the message with no breathing
+     room. The current revision gets the gold dot + ring; older ones
+     fade to the muted divider color. */
+  .version-history {
+    margin: 10px 0 4px;
+    padding: 16px 18px 18px;
+    border-radius: 12px;
+    background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
+  }
+  .version-history-empty {
+    opacity: 0.55;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .version-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 22px;
+    position: relative;
+  }
+  .version-list::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--divider-color);
+    border-radius: 2px;
+  }
+  .version-entry {
+    position: relative;
+    padding: 0 0 18px 14px;
+  }
+  .version-entry:last-child {
+    padding-bottom: 0;
+  }
+  .version-entry-dot {
+    position: absolute;
+    left: -22px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--divider-color);
+    border: 2px solid var(--secondary-background-color);
+    box-shadow: 0 0 0 1px var(--divider-color);
+  }
+  .version-entry.current .version-entry-dot {
+    background: var(--selora-accent, #fbbf24);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+  }
+  .version-entry-card {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.15s;
+  }
+  .version-entry.current .version-entry-card {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.04);
+  }
+  .version-entry-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .version-entry-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .version-entry-num {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    letter-spacing: 0.01em;
+  }
+  .version-entry-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--selora-accent, #fbbf24);
+    color: #000;
+    border-radius: 999px;
+    padding: 2px 8px;
+    line-height: 1.4;
+  }
+  .version-entry-time {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    opacity: 0.8;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .version-entry-message {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--primary-text-color);
+    opacity: 0.85;
+  }
+  .version-entry-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .version-entry-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .version-entry-yaml {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--divider-color);
   }
 
   /* ---- Card base ---- */
