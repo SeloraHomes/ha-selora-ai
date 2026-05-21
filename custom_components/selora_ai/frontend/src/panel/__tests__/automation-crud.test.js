@@ -12,9 +12,10 @@ describe("_createdToast", () => {
     const t = _createdToast("Porch lights", { risk_level: "normal" });
     expect(t.type).toBe("info");
     expect(t.message).toContain("Porch lights");
-    expect(t.message).toMatch(/review and enable/i);
-    // Must NEVER claim the automation is enabled.
-    expect(t.message).not.toMatch(/enabled\b(?!.*review)/i);
+    // Must communicate the disabled state and that the user can enable it.
+    expect(t.message).toMatch(/disabled/i);
+    expect(t.message).toMatch(/enable/i);
+    // Must NEVER claim the automation is already enabled / running.
     expect(t.message).not.toContain("created and enabled");
   });
 

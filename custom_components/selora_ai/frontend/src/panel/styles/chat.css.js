@@ -127,6 +127,260 @@ export const chatStyles = css`
     align-items: center;
   }
 
+  /* Embossed sub-card used by chat-driven automation proposals (and
+     saved / refining states). Mirrors the layered shadow used by the
+     entity tiles in .selora-entity-grid so an automation summary
+     visually "lifts" out of the chat bubble the same way an entity
+     card does. The action button (Accept & Save, Enable) sits OUTSIDE
+     this wrapper, on the chat bubble itself. */
+  .automation-subcard {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--selora-zinc-700);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  :host(:not([dark])) .automation-subcard {
+    border-color: var(--divider-color);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .automation-subcard-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .automation-subcard-body {
+    padding-top: 12px;
+  }
+  .automation-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  /* Accept-button exit animation. Triggered the moment the user
+     clicks Accept, BEFORE the WS save round-trip — so the button
+     dissolving down feels like the cause of the chat card flipping
+     to its saved state. Duration mirrors ACCEPT_ANIM_MS in
+     automation-crud.js (240ms). The fill-mode keeps the button
+     invisible during the brief gap between the animation ending and
+     the saved card mounting. */
+  @keyframes accept-button-exit {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+  }
+  .automation-card-actions.exiting {
+    animation: accept-button-exit 240ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+    pointer-events: none;
+  }
+  /* Entrance animation for the saved-state workflow row. Slides up
+     from below and fades in, taking visual ownership of the spot
+     the Accept button just vacated. Slightly longer than the exit
+     so it lands settled (240 exit + 280 enter ≈ half-second total). */
+  @keyframes workflow-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .automation-workflow {
+    animation: workflow-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  /* Enable → Enabled swap: the Enabled status text fades in when the
+     toggle completes (the button vanishes the moment _loadAutomations
+     resolves; this softens the hand-off). */
+  @keyframes workflow-done-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .automation-workflow-done {
+    animation: workflow-done-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Two-step lifecycle row shown beneath the saved automation
+     sub-card: Accepted ✓  →  Enable automation. The completed step
+     reads as a quiet checkmark chip on the left, an arrow points
+     across to the active step (the green CTA on the right). Once the
+     user clicks Enable, the right side flips to its own completed
+     chip so the whole row reads "Accepted → Enabled". Replaces the
+     louder yellow info banner that read like an error message. */
+  .automation-workflow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .automation-workflow-arrow {
+    color: var(--secondary-text-color);
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+  /* "Accepted" / "Enabled" status indicator on the workflow row. NOT
+     a button — just a quiet check + label that reads as state, with
+     the live action (Enable automation) staying a standard
+     btn-success so the row matches the rest of the app's
+     button language. */
+  .automation-workflow-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--success-color, #4caf50);
+    line-height: 1.2;
+  }
+  .automation-workflow-done ha-icon {
+    color: inherit;
+    flex-shrink: 0;
+  }
+  /* Edge case: created-disabled state where we haven't resolved the
+     freshly-created automation yet (between WS create and the next
+     _loadAutomations). Just a muted "Disabled" label, not a CTA. */
+  .automation-workflow-done.muted {
+    color: var(--secondary-text-color);
+  }
+  /* CSS-only hover tooltip. Used on the "Accepted" chip to explain
+     why the automation lands disabled — the chip alone is succinct,
+     the tooltip carries the safety rationale for users who want to
+     understand the default. Positioned above the host, fades in on
+     hover, and stays out of the click target with pointer-events
+     none so it never blocks the underlying button beneath it. */
+  .has-tooltip {
+    position: relative;
+  }
+  .has-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    width: max-content;
+    max-width: 280px;
+    padding: 8px 12px;
+    background: var(--card-background-color, #1f1f1f);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+    z-index: 20;
+  }
+  .has-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border: 6px solid transparent;
+    border-top-color: var(--divider-color);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+    z-index: 20;
+  }
+  .has-tooltip:hover::after,
+  .has-tooltip:focus-visible::after,
+  .has-tooltip:hover::before,
+  .has-tooltip:focus-visible::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Optional one-line caveat printed under the workflow row when the
+     automation uses elevated-risk actions. Subtle warning tint —
+     much smaller footprint than the previous banner. */
+  .automation-workflow-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--warning-color, #ff9800);
+    opacity: 0.85;
+  }
+
+  /* "Suggest one for me" button shown under the composer in
+     new-automation mode. Sits below the particle field, doesn't
+     wrap, and uses a subtle outlined treatment so the composer
+     still owns the visual focus. */
+  .welcome-suggest-btn {
+    /* Pulled up into the bottom of the composer's particle padding so
+       it visually hugs the composer. Must claim its own stacking
+       context (position+z-index) — without it the sibling
+       .welcome-composer-area (position:relative) renders on top of
+       the overlapping band and swallows clicks on everything but the
+       text/border edges that poke above the overlap. */
+    position: relative;
+    z-index: 2;
+    margin-top: -24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: transparent;
+    border: 1px solid var(--divider-color);
+    color: var(--secondary-text-color);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      border-color 0.15s,
+      color 0.15s,
+      background 0.15s;
+  }
+  .welcome-suggest-btn:hover:not(:disabled) {
+    border-color: var(--selora-accent, #fbbf24);
+    color: var(--primary-text-color);
+    background: rgba(251, 191, 36, 0.06);
+  }
+  .welcome-suggest-btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+  }
+
   /* Particle field surrounding the welcome composer */
   .welcome-composer-area {
     position: relative;
@@ -526,9 +780,21 @@ export const chatStyles = css`
     max-width: calc(1200px - 48px);
     width: calc(100% - 48px);
   }
+  .chat-quick-actions {
+    margin: 0 auto;
+    padding-top: 8px;
+    max-width: calc(1200px - 48px);
+    width: calc(100% - 48px);
+  }
+  .chat-quick-actions .qa-group {
+    margin-top: 0;
+  }
   @media (max-width: 600px) {
     .chat-input-wrapper .composer-styled {
       margin: 8px auto;
+      width: calc(100% - 24px);
+    }
+    .chat-quick-actions {
       width: calc(100% - 24px);
     }
   }

@@ -88,6 +88,12 @@ export const automationsStyles = css`
   .needs-attention-pill:hover {
     background: #c62828;
   }
+  .selora-ai-mark {
+    --mdc-icon-size: 12px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+    opacity: 0.9;
+  }
   .auto-row-desc {
     font-size: 12px;
     color: var(--secondary-text-color);

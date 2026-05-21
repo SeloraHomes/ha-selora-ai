@@ -1,24 +1,27 @@
 // Automation CRUD actions (prototype-assigned to SeloraAIArchitectPanel)
 
-// Build the post-create toast. Per project policy every chat-driven
-// automation is written disabled; the user must review and enable it in
-// Home Assistant. When the backend flags the payload as elevated-risk
-// (shell_command, python_script, webhook, etc.) we upgrade the toast to
-// a longer warning so the user is reminded to review carefully.
+// Build the post-create toast. Used by the Suggestions flow (and any
+// future non-chat creation path) — the chat accept/save flow has its
+// own inline workflow row and no longer fires a toast. Every new
+// automation is written disabled per project policy; the toast
+// points the user at the Automations tab toggle, which is the
+// universal control across every creation entry point (the inline
+// chat "Enable" button only exists when the proposal lives in a
+// chat bubble).
 export function _createdToast(alias, result) {
   if (result && result.risk_level === "elevated") {
     return {
       message:
         `Automation "${alias}" created (DISABLED) — uses elevated-risk ` +
         "actions (shell_command, python_script, webhook, etc.). Review " +
-        "carefully before enabling in Home Assistant.",
+        "carefully before enabling it from the Automations tab.",
       type: "warning",
     };
   }
   return {
     message:
-      `Automation "${alias}" created — review and enable it from ` +
-      "Home Assistant Automations.",
+      `Automation "${alias}" created (disabled) — enable it from the ` +
+      "Automations tab when you're ready.",
     type: "info",
   };
 }
@@ -58,10 +61,17 @@ export async function _loadLineage(automationId) {
 
 export async function _acceptAutomation(msgIndex, automation) {
   try {
+    const msg = this._messages[msgIndex] || {};
+    // The backend session can be ahead of (or shifted vs.) the local
+    // _messages array — streaming placeholders, retries, and session
+    // pruning all desync indices. Prefer the canonical index the chat
+    // handler stamped on the message, fall back only if absent.
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     const refiningId = this._getRefiningAutomationId(msgIndex);
     let createResult = null;
+    let resolvedAutomationId = refiningId || null;
     if (refiningId) {
-      const yamlText = this._messages[msgIndex]?.automation_yaml || "";
+      const yamlText = msg.automation_yaml || "";
       if (yamlText) {
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
@@ -76,6 +86,7 @@ export async function _acceptAutomation(msgIndex, automation) {
           automation: automation,
           session_id: this._activeSessionId,
         });
+        resolvedAutomationId = createResult?.automation_id || null;
       }
     } else {
       createResult = await this.hass.callWS({
@@ -83,12 +94,14 @@ export async function _acceptAutomation(msgIndex, automation) {
         automation: automation,
         session_id: this._activeSessionId,
       });
+      resolvedAutomationId = createResult?.automation_id || null;
     }
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "saved",
+      ...(resolvedAutomationId ? { automation_id: resolvedAutomationId } : {}),
     });
     const session = await this.hass.callWS({
       type: "selora_ai/get_session",
@@ -98,15 +111,94 @@ export async function _acceptAutomation(msgIndex, automation) {
     await this._removeDraftForSession(this._activeSessionId);
     await this._loadAutomations();
 
-    if (refiningId && !createResult) {
-      this._showToast(`Automation "${automation.alias}" updated.`, "success");
-    } else {
-      const toast = _createdToast(automation.alias, createResult);
-      this._showToast(toast.message, toast.type);
+    // Refinements preserve the existing automation's enabled state;
+    // only auto-enable when this turn actually created a new one.
+    if (createResult) {
+      await this._autoEnableAfterAccept(
+        resolvedAutomationId,
+        createResult,
+        msg,
+      );
     }
-    this._setActiveTab("automations");
   } catch (err) {
     this._showToast("Failed to save automation: " + err.message, "error");
+  }
+}
+
+// Shared between _acceptAutomation and _acceptAutomationWithEdits.
+// After the create+save round-trip lands, flip the new automation on
+// automatically — the user's Accept click was the review gate, so a
+// second "Enable automation" step is friction we explicitly removed.
+// Only elevated-risk automations stay disabled (the backend
+// async_create_automation forces initial_state=False for those, so
+// we just skip the toggle).
+//
+// The optimistic state patch is the important bit: HA's state machine
+// can lag the `automation.turn_on` service call by a few hundred ms,
+// so a fresh _loadAutomations after the toggle sometimes still
+// returns state:"off" for the brand-new entity. That left the saved
+// card rendering the green "Enable automation" CTA — exactly the
+// extra step we promised to remove. We patch state:"on" locally as
+// soon as the WS toggle resolves, then let the follow-up
+// _loadAutomations reconcile when HA catches up.
+export async function _autoEnableAfterAccept(automationId, createResult, msg) {
+  if (!automationId) return;
+  const elevated =
+    (createResult && createResult.risk_level === "elevated") ||
+    msg?.risk_assessment?.level === "elevated";
+  if (elevated) return;
+
+  const created = (this._automations || []).find(
+    (a) => a.automation_id === automationId,
+  );
+  if (!created?.entity_id) {
+    // Race: the create's automation.reload hasn't surfaced the new
+    // entity yet. One short retry usually resolves it (HA's reload
+    // is blocking server-side, but the WS round-trip for the
+    // following _loadAutomations can land microseconds before HA
+    // updates the entity registry view).
+    await new Promise((r) => setTimeout(r, 250));
+    await this._loadAutomations();
+  }
+  const target = (this._automations || []).find(
+    (a) => a.automation_id === automationId,
+  );
+  if (!target?.entity_id) {
+    console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
+    this._showToast(
+      "Automation saved, but Home Assistant hasn't surfaced the entity yet — toggle it on from the Automations tab once it appears.",
+      "warning",
+    );
+    return;
+  }
+  // Patch state="on" before awaiting the toggle so the saved card
+  // doesn't flash its "Enable automation" CTA during the round-trip.
+  // We don't refetch after the toggle either: HA's state machine
+  // lags the turn_on service and would race in with state="off",
+  // clobbering the patch.
+  this._automations = (this._automations || []).map((a) =>
+    a.automation_id === automationId ? { ...a, state: "on" } : a,
+  );
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: target.entity_id,
+      enabled: true,
+    });
+  } catch (err) {
+    this._automations = (this._automations || []).map((a) =>
+      a.automation_id === automationId ? { ...a, state: "off" } : a,
+    );
+    this.requestUpdate();
+    console.error("Failed to auto-enable new automation", err);
+    this._showToast(
+      "Automation saved but couldn't be enabled automatically: " +
+        (err?.message || "unknown error") +
+        ". Use the Enable button on the card to try again.",
+      "warning",
+    );
   }
 }
 
@@ -144,10 +236,12 @@ export async function _dismissDraft(draftId) {
 
 export async function _declineAutomation(msgIndex) {
   try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "declined",
     });
     const session = await this.hass.callWS({
@@ -163,10 +257,12 @@ export async function _declineAutomation(msgIndex) {
 export async function _refineAutomation(msgIndex, automation, description) {
   // Mark the original proposal as "refining" so the card shows it's superseded
   try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "refining",
     });
     const session = await this.hass.callWS({
@@ -202,16 +298,34 @@ export function _discardSuggestion(suggestion) {
   this._suggestions = this._suggestions.filter((s) => s !== suggestion);
 }
 
+// Duration of the Accept-button exit animation in ms. Mirrored by the
+// CSS keyframes in chat.css.js — if you change one, change the other,
+// or the button will either jump (anim shorter than wait) or leave a
+// blank stub frame in the DOM (anim longer than wait).
+const ACCEPT_ANIM_MS = 240;
+
 // Accept automation — if the user edited the YAML, send the edited version
 export async function _acceptAutomationWithEdits(
   msgIndex,
   automation,
   yamlKey,
 ) {
+  // Kick off the button's exit animation BEFORE any WS work, so the
+  // user sees instant feedback when they click. The actual save fires
+  // after the animation completes (still well under a second total),
+  // and the saved chat card mounts with its own enter animation —
+  // together that swap reads as a smooth transition instead of an
+  // abrupt UI replacement.
+  this._acceptAnimating = { ...this._acceptAnimating, [msgIndex]: true };
+  this.requestUpdate();
+  await new Promise((r) => setTimeout(r, ACCEPT_ANIM_MS));
+
   const edited = this._editedYaml[yamlKey];
   const msg = this._messages[msgIndex] || {};
   const originalYaml = msg.automation_yaml || "";
   const refiningId = this._getRefiningAutomationId(msgIndex);
+  // See note in _acceptAutomation — use the canonical backend index.
+  const backendIndex = msg.automation_message_index ?? msgIndex;
 
   if (edited && edited !== (this._originalYaml?.[yamlKey] ?? originalYaml)) {
     try {
@@ -219,6 +333,7 @@ export async function _acceptAutomationWithEdits(
       this.requestUpdate();
 
       let createResult = null;
+      let resolvedAutomationId = refiningId || null;
       if (refiningId) {
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
@@ -233,13 +348,17 @@ export async function _acceptAutomationWithEdits(
           yaml_text: edited,
           session_id: this._activeSessionId,
         });
+        resolvedAutomationId = createResult?.automation_id || null;
       }
 
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
-        message_index: msgIndex,
+        message_index: backendIndex,
         status: "saved",
+        ...(resolvedAutomationId
+          ? { automation_id: resolvedAutomationId }
+          : {}),
       });
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
@@ -247,14 +366,13 @@ export async function _acceptAutomationWithEdits(
       });
       this._messages = session.messages || [];
       await this._loadAutomations();
-
-      if (refiningId) {
-        this._showToast(`Automation "${automation.alias}" updated.`, "success");
-      } else {
-        const toast = _createdToast(automation.alias, createResult);
-        this._showToast(toast.message, toast.type);
+      if (createResult) {
+        await this._autoEnableAfterAccept(
+          resolvedAutomationId,
+          createResult,
+          msg,
+        );
       }
-      this._setActiveTab("automations");
     } catch (err) {
       this._showToast(
         "Failed to save automation from edited YAML: " + err.message,
@@ -262,10 +380,19 @@ export async function _acceptAutomationWithEdits(
       );
     } finally {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
+      this._acceptAnimating = {
+        ...this._acceptAnimating,
+        [msgIndex]: false,
+      };
       this.requestUpdate();
     }
   } else {
     await this._acceptAutomation(msgIndex, automation);
+    this._acceptAnimating = {
+      ...this._acceptAnimating,
+      [msgIndex]: false,
+    };
+    this.requestUpdate();
   }
 }
 

@@ -36,6 +36,71 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# Inline entity tile markers (`[[entity:…]]` / `[[entities:…]]`) belong
+# in answer-style replies where the user wants to see live device
+# state. Automation and scene proposals describe a *rule*, not the
+# current state of a device — embedding a live tile in those bubbles
+# (as some models, notably deepseek, like to do regardless of the
+# prompt) shoves an irrelevant brightness slider into the proposal
+# card. Strip the markers from the prose before we hand it off.
+_ENTITY_MARKER_RE = re.compile(r"\s*\[\[(?:entity|entities|areas):[^\]]+\]\]")
+
+
+def _strip_entity_markers(text: str) -> str:
+    """Remove `[[entity:…]]` / `[[entities:…]]` markers from response prose."""
+    if not isinstance(text, str) or not text:
+        return text
+    cleaned = _ENTITY_MARKER_RE.sub("", text)
+    # Collapse runs of trailing blank lines the marker removal left
+    # behind so the response doesn't end with a stretch of empty
+    # whitespace on the rendered card.
+    return re.sub(r"\n{3,}", "\n\n", cleaned).rstrip()
+
+
+def _strip_markers_for_proposal_intents(data: dict[str, Any]) -> None:
+    """Strip entity tile markers from automation/scene proposal prose.
+
+    Mutates ``data["response"]`` in place. Called for any reply whose
+    *original* intent indicated a creation flow — i.e. the model said
+    intent: automation / scene, OR a payload (`automation`/`scene`)
+    was present even if the JSON didn't carry the intent explicitly.
+    The post-validation downgrade to ``answer`` (when the payload is
+    invalid) doesn't matter — by that point we've already overwritten
+    the response with a validation-error message that has no markers.
+    """
+    if "response" not in data:
+        return
+    intent = data.get("intent")
+    if intent in ("automation", "scene") or data.get("automation") or data.get("scene"):
+        data["response"] = _strip_entity_markers(data["response"])
+        data["response"] = _strip_trigger_action_recap(data["response"])
+
+
+# Lines like "Trigger: …", "Condition: …", "Action: …" (and their
+# plural variants) restate the YAML in prose — pure duplication of
+# the proposal card rendered just below the bubble. The streaming
+# prompt explicitly forbids these but models occasionally slip them
+# in anyway, especially deepseek-style models that like to summarise
+# their own JSON output back as text. Strip the lines server-side so
+# the bubble stays focused on the human framing of what the rule
+# does.
+_RECAP_LINE_RE = re.compile(
+    r"^\s*(?:[-*•]\s*|\d+[.)]\s*)?\**\s*"
+    r"(?:Triggers?|Conditions?|Actions?|Trigger\s+condition|Trigger\s+state)"
+    r"\s*\**\s*:\s.*$",
+    re.IGNORECASE | re.MULTILINE,
+)
+
+
+def _strip_trigger_action_recap(text: str) -> str:
+    """Remove ``Trigger:`` / ``Condition:`` / ``Action:`` recap lines."""
+    if not isinstance(text, str) or not text:
+        return text
+    cleaned = _RECAP_LINE_RE.sub("", text)
+    # Collapse the blank stretch the line removal leaves behind.
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.rstrip()
+
 
 def parse_architect_response(text: str, hass: HomeAssistant) -> ArchitectResponse:
     """Parse the JSON response from the architect LLM.
@@ -115,6 +180,7 @@ def parse_architect_response(text: str, hass: HomeAssistant) -> ArchitectRespons
                 )
                 data["risk_assessment"] = assess_automation_risk(normalized)
 
+        _strip_markers_for_proposal_intents(data)
         return data
 
     except json.JSONDecodeError, KeyError, ValueError:
@@ -235,6 +301,12 @@ def parse_streamed_response(
     def _attach_qa(r: ArchitectResponse) -> ArchitectResponse:
         if quick_actions:
             r["quick_actions"] = quick_actions
+        # All proposal-intent returns (automation / scene) get their
+        # response prose scrubbed of entity tile markers here so the
+        # streaming path matches the JSON path's behavior. Stripping
+        # at the funnel keeps every return site consistent without
+        # repeating the call.
+        _strip_markers_for_proposal_intents(r)
         return r
 
     # If execute_command ran during the tool loop, the user has already

@@ -109,85 +109,27 @@ const WELCOME_SUGGESTIONS = [
   },
 ];
 
-export function renderNewAutomationDialog(host) {
-  if (!host._showNewAutoDialog) return "";
+// "AI suggest" affordance shown under the composer in new-automation
+// mode. Asks the LLM to invent an automation idea tailored to the
+// user's home, drops it into the composer for review, and leaves the
+// send button to the user — so they can tweak entities (with
+// autocomplete) before committing.
+function renderAutomationSuggestButton(host) {
+  const busy = !!host._suggestingAutomation;
   return html`
-    <div
-      class="modal-overlay"
-      @click=${() => {
-        host._showNewAutoDialog = false;
-      }}
+    <button
+      class="welcome-suggest-btn"
+      ?disabled=${busy || host._loading || host._streaming}
+      @click=${() => host._suggestAutomationIdea()}
     >
-      <div
-        class="modal-content"
-        style="max-width:420px;"
-        @click=${(e) => e.stopPropagation()}
-      >
-        <h3 style="margin:0 0 16px;">New Automation</h3>
-        <label
-          style="font-size:13px;font-weight:500;display:block;margin-bottom:6px;"
-          >Automation name</label
-        >
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input
-            type="text"
-            placeholder="e.g. Turn off lights at midnight"
-            style="flex:1;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;font-size:14px;background:var(--card-background-color);color:var(--primary-text-color);box-sizing:border-box;"
-            .value=${host._newAutoName}
-            @input=${(e) => {
-              host._newAutoName = e.target.value;
-            }}
-            @keydown=${(e) => {
-              if (e.key === "Enter") host._newAutomationChat(host._newAutoName);
-            }}
-          />
-          <button
-            class="btn btn-outline"
-            style="padding:8px 10px;flex-shrink:0;"
-            title="AI Suggest"
-            ?disabled=${host._suggestingName}
-            @click=${() => host._suggestAutomationName()}
-          >
-            ${host._suggestingName
-              ? html`<span class="spinner green"></span>`
-              : html`<ha-icon
-                  icon="mdi:auto-fix"
-                  style="--mdc-icon-size:18px;"
-                ></ha-icon>`}
-          </button>
-        </div>
-        ${host._suggestingName
-          ? html`<div
-              style="font-size:12px;color:var(--secondary-text-color);margin-top:6px;"
-            >
-              Asking AI for a suggestion…
-            </div>`
-          : ""}
-        <div
-          style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"
-        >
-          <button
-            class="btn btn-outline"
-            @click=${() => {
-              host._showNewAutoDialog = false;
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            class="btn btn-primary"
-            ?disabled=${!host._newAutoName?.trim()}
-            @click=${() => host._newAutomationChat(host._newAutoName)}
-          >
-            <ha-icon
-              icon="mdi:chat-processing-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            Create in Chat
-          </button>
-        </div>
-      </div>
-    </div>
+      ${busy
+        ? html`<span class="spinner green"></span>`
+        : html`<ha-icon
+            icon="mdi:auto-fix"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>`}
+      <span>${busy ? "Thinking…" : "Suggest one for me"}</span>
+    </button>
   `;
 }
 
@@ -208,13 +150,16 @@ export function renderChat(host) {
                   style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  Welcome to
-                  <span class="gold-text">Selora AI</span>
+                  ${host._newAutomationMode
+                    ? html`New <span class="gold-text">Automation</span>`
+                    : html`Welcome to <span class="gold-text">Selora AI</span>`}
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
-                  Your intelligent home automation architect
+                  ${host._newAutomationMode
+                    ? "Describe what you want to automate — mention the devices, times, or conditions involved."
+                    : "Your intelligent home automation architect"}
                 </div>
 
                 ${host._llmNeedsSetup
@@ -262,16 +207,20 @@ export function renderChat(host) {
                         ${_renderComposer(host, { welcome: true })}
                       </div>
 
-                      <details class="welcome-quickstart">
-                        <summary class="welcome-quickstart-summary">
-                          <span>Quick start</span>
-                          <ha-icon
-                            icon="mdi:chevron-down"
-                            class="welcome-quickstart-chevron"
-                          ></ha-icon>
-                        </summary>
-                        ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
-                      </details>
+                      ${host._newAutomationMode
+                        ? renderAutomationSuggestButton(host)
+                        : html`
+                            <details class="welcome-quickstart">
+                              <summary class="welcome-quickstart-summary">
+                                <span>Quick start</span>
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="welcome-quickstart-chevron"
+                                ></ha-icon>
+                              </summary>
+                              ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                            </details>
+                          `}
                     `}
               </div>
             `,
@@ -280,6 +229,15 @@ export function renderChat(host) {
       </div>
     `;
   }
+
+  const lastMsg = host._messages[host._messages.length - 1];
+  const lastQuickActions =
+    lastMsg &&
+    lastMsg.role !== "user" &&
+    lastMsg.quick_actions &&
+    lastMsg.quick_actions.length
+      ? lastMsg
+      : null;
 
   return html`
     <div class="chat-pane">
@@ -312,6 +270,15 @@ export function renderChat(host) {
               >
                 <ha-icon icon="mdi:chevron-down"></ha-icon>
               </button>
+            `
+          : ""}
+        ${lastQuickActions
+          ? html`
+              <div class="chat-quick-actions">
+                ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                  used: !!lastQuickActions._qa_used,
+                })}
+              </div>
             `
           : ""}
         ${_renderComposer(host)}
@@ -866,7 +833,9 @@ function _renderComposer(host, opts = {}) {
                   }
                 }
               }}
-              placeholder="Ask Selora AI anything…"
+              placeholder=${host._newAutomationMode
+                ? "Describe the automation you'd like to create…"
+                : "Ask Selora AI anything…"}
               ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
@@ -1002,13 +971,7 @@ export function renderMessage(host, msg, idx) {
                   ? renderToolCalls(msg.tool_calls)
                   : ""}
               </div>
-              ${msg.quick_actions &&
-              msg.quick_actions.length &&
-              idx === host._messages.length - 1
-                ? renderQuickActions(host, msg.quick_actions, {
-                    used: !!msg._qa_used,
-                  })
-                : ""}
+              ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
               <div
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
@@ -1108,22 +1071,41 @@ export function _stateColor(state) {
   return "var(--selora-zinc-200)";
 }
 
-export function renderYamlEditor(host, key, originalYaml, onSave = null) {
+// renderYamlEditor renders the YAML view for an automation in chat or
+// in the Automations tab. Options:
+//   onSave: callback fired when the user clicks Save; if omitted, no
+//     save button is rendered.
+//   readOnly: if true, the editor is locked — useful for the saved
+//     proposal card where typed edits had nowhere to go before and
+//     looked like a silent data-loss bug. Read-only also hides the
+//     "Unsaved changes" badge, since edits can't happen.
+export function renderYamlEditor(
+  host,
+  key,
+  originalYaml,
+  onSave = null,
+  opts = {},
+) {
+  const readOnly = !!opts.readOnly;
   host._initYamlEdit(key, originalYaml);
-  const current = host._editedYaml[key] ?? originalYaml;
-  const isDirty = current !== originalYaml;
+  const current = readOnly
+    ? originalYaml
+    : (host._editedYaml[key] ?? originalYaml);
+  const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
   return html`
     <ha-code-editor
       mode="yaml"
       .value=${current}
+      ?read-only=${readOnly}
       @value-changed=${(e) => {
+        if (readOnly) return;
         host._onYamlInput(key, e.detail.value);
       }}
       autocomplete-entities
-      style="--code-mirror-font-size:12px;"
+      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
     ></ha-code-editor>
-    ${isDirty || onSave
+    ${isDirty || (onSave && !readOnly)
       ? html`
           <div class="yaml-edit-bar">
             ${isDirty

@@ -174,6 +174,84 @@ export async function _toggleAutomation(entityId, automationId, enabled) {
   }
 }
 
+// Enable the freshly-created automation directly from the chat card.
+// Tracks per-id "toggling" state so the button can show a spinner /
+// disabled label while the WS round-trip is in flight.
+export async function _enableSavedAutomation(entityId, automationId) {
+  if (!entityId || !automationId) return;
+  this._togglingAutomation = {
+    ...(this._togglingAutomation || {}),
+    [automationId]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: entityId,
+      enabled: true,
+    });
+    // Patch state="on" locally instead of refetching: HA's
+    // automation.turn_on is non-blocking and a refetch can race in
+    // with state="off", leaving the card stuck on the Enable button.
+    this._automations = (this._automations || []).map((a) =>
+      a.automation_id === automationId ? { ...a, state: "on" } : a,
+    );
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to enable automation: ${message}`, "error");
+  } finally {
+    this._togglingAutomation = {
+      ...(this._togglingAutomation || {}),
+      [automationId]: false,
+    };
+    this.requestUpdate();
+  }
+}
+
+// Manually trigger an automation's actions — equivalent to HA's
+// "Run actions" button on the automation page. Useful right after
+// creation as a quick smoke test: the user just confirmed the rule
+// and probably wants to see it fire once before walking away. The
+// `skip_condition: true` flag matches HA's UI default for Run
+// (conditions only gate scheduled trigger fires, not manual runs).
+export async function _runAutomation(entityId, automationId) {
+  if (!entityId) return;
+  const key = automationId || entityId;
+  this._runningAutomation = {
+    ...(this._runningAutomation || {}),
+    [key]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callService(
+      "automation",
+      "trigger",
+      { skip_condition: true },
+      { entity_id: entityId },
+    );
+    this._showToast("Automation triggered.", "success");
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to run automation: ${message}`, "error");
+  } finally {
+    this._runningAutomation = {
+      ...(this._runningAutomation || {}),
+      [key]: false,
+    };
+    this.requestUpdate();
+  }
+}
+
+// Navigate to HA's native automation edit page. Uses pushState +
+// location-changed so HA's router picks it up without a full reload —
+// same pattern as the burger-menu "View in HA" item.
+export function _openAutomationInHA(automationId) {
+  if (!automationId) return;
+  window.history.pushState(null, "", `/config/automation/edit/${automationId}`);
+  window.dispatchEvent(new Event("location-changed"));
+}
+
 export function _toggleBurgerMenu(automationId, evt) {
   evt.stopPropagation();
   this._openBurgerMenu =

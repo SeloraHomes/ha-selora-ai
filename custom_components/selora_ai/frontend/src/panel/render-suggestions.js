@@ -282,15 +282,15 @@ export function renderSuggestionsSection(host) {
   return html`
     <div class="section-card suggestions-section">
       <div class="section-card-header">
-        <h3>Suggested for you</h3>
-        ${totalCount > 0
-          ? html`<span class="badge">${totalCount} new</span>`
-          : ""}
+        <div class="section-card-title-group">
+          <h3>Suggested for you</h3>
+          ${totalCount > 0
+            ? html`<span class="badge">${totalCount} new</span>`
+            : ""}
+        </div>
         ${isDev
           ? html`
-              <div
-                style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-              >
+              <div class="section-card-actions">
                 <button
                   class="btn"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
@@ -301,13 +301,12 @@ export function renderSuggestionsSection(host) {
                 >
                   <ha-icon
                     icon="mdi:refresh"
-                    style="--mdc-icon-size:13px;"
+                    style="--mdc-icon-size:14px;"
                   ></ha-icon>
                   ${host._loadingProactive ? "Scanning…" : "Scan Now"}
                 </button>
                 <button
                   class="btn btn-primary"
-                  style="white-space:nowrap;"
                   ?disabled=${host._generatingSuggestions ||
                   host._llmNeedsSetup}
                   title=${host._llmNeedsSetup
@@ -322,7 +321,7 @@ export function renderSuggestionsSection(host) {
                       ></span>`
                     : html`<ha-icon
                         icon="mdi:auto-fix"
-                        style="--mdc-icon-size:13px;"
+                        style="--mdc-icon-size:14px;"
                       ></ha-icon>`}
                   ${host._generatingSuggestions ? "Analyzing…" : "Generate"}
                 </button>

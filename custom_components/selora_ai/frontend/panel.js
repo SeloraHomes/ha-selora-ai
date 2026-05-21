@@ -1633,12 +1633,41 @@ var layoutStyles = i`
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
+    /* Allow narrow viewports (dev mode, side panel) to stack the
+       title row above the action buttons instead of squeezing the
+       heading into a wrapped two-line block. */
+    flex-wrap: wrap;
   }
   .section-card-header h3 {
     font-size: 20px;
     margin: 0;
     font-weight: 700;
     line-height: 1.2;
+    /* Title gets to grow but never shrink past its content — keeps
+       "Suggested for you" on a single line until it has the space
+       it needs. */
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  /* Title + count badge live together on the left. */
+  .section-card-title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Right-aligned cluster of action buttons. Wraps as a unit so the
+     header collapses cleanly: title row, then actions row. */
+  .section-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .section-card-actions .btn {
+    white-space: nowrap;
   }
   .section-card-subtitle {
     font-size: 13px;
@@ -2527,6 +2556,260 @@ var chatStyles = i`
     align-items: center;
   }
 
+  /* Embossed sub-card used by chat-driven automation proposals (and
+     saved / refining states). Mirrors the layered shadow used by the
+     entity tiles in .selora-entity-grid so an automation summary
+     visually "lifts" out of the chat bubble the same way an entity
+     card does. The action button (Accept & Save, Enable) sits OUTSIDE
+     this wrapper, on the chat bubble itself. */
+  .automation-subcard {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--selora-zinc-700);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.04),
+      0 1px 2px rgba(0, 0, 0, 0.3),
+      0 6px 16px rgba(0, 0, 0, 0.35);
+  }
+  :host(:not([dark])) .automation-subcard {
+    border-color: var(--divider-color);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.6),
+      0 1px 2px rgba(0, 0, 0, 0.06),
+      0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .automation-subcard-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--divider-color);
+  }
+  .automation-subcard-body {
+    padding-top: 12px;
+  }
+  .automation-card-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+  }
+
+  /* Accept-button exit animation. Triggered the moment the user
+     clicks Accept, BEFORE the WS save round-trip — so the button
+     dissolving down feels like the cause of the chat card flipping
+     to its saved state. Duration mirrors ACCEPT_ANIM_MS in
+     automation-crud.js (240ms). The fill-mode keeps the button
+     invisible during the brief gap between the animation ending and
+     the saved card mounting. */
+  @keyframes accept-button-exit {
+    from {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+  }
+  .automation-card-actions.exiting {
+    animation: accept-button-exit 240ms cubic-bezier(0.4, 0, 0.6, 1) forwards;
+    pointer-events: none;
+  }
+  /* Entrance animation for the saved-state workflow row. Slides up
+     from below and fades in, taking visual ownership of the spot
+     the Accept button just vacated. Slightly longer than the exit
+     so it lands settled (240 exit + 280 enter ≈ half-second total). */
+  @keyframes workflow-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .automation-workflow {
+    animation: workflow-enter 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  /* Enable → Enabled swap: the Enabled status text fades in when the
+     toggle completes (the button vanishes the moment _loadAutomations
+     resolves; this softens the hand-off). */
+  @keyframes workflow-done-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  .automation-workflow-done {
+    animation: workflow-done-enter 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Two-step lifecycle row shown beneath the saved automation
+     sub-card: Accepted ✓  →  Enable automation. The completed step
+     reads as a quiet checkmark chip on the left, an arrow points
+     across to the active step (the green CTA on the right). Once the
+     user clicks Enable, the right side flips to its own completed
+     chip so the whole row reads "Accepted → Enabled". Replaces the
+     louder yellow info banner that read like an error message. */
+  .automation-workflow {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .automation-workflow-arrow {
+    color: var(--secondary-text-color);
+    opacity: 0.6;
+    flex-shrink: 0;
+  }
+  /* "Accepted" / "Enabled" status indicator on the workflow row. NOT
+     a button — just a quiet check + label that reads as state, with
+     the live action (Enable automation) staying a standard
+     btn-success so the row matches the rest of the app's
+     button language. */
+  .automation-workflow-done {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--success-color, #4caf50);
+    line-height: 1.2;
+  }
+  .automation-workflow-done ha-icon {
+    color: inherit;
+    flex-shrink: 0;
+  }
+  /* Edge case: created-disabled state where we haven't resolved the
+     freshly-created automation yet (between WS create and the next
+     _loadAutomations). Just a muted "Disabled" label, not a CTA. */
+  .automation-workflow-done.muted {
+    color: var(--secondary-text-color);
+  }
+  /* CSS-only hover tooltip. Used on the "Accepted" chip to explain
+     why the automation lands disabled — the chip alone is succinct,
+     the tooltip carries the safety rationale for users who want to
+     understand the default. Positioned above the host, fades in on
+     hover, and stays out of the click target with pointer-events
+     none so it never blocks the underlying button beneath it. */
+  .has-tooltip {
+    position: relative;
+  }
+  .has-tooltip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    width: max-content;
+    max-width: 280px;
+    padding: 8px 12px;
+    background: var(--card-background-color, #1f1f1f);
+    color: var(--primary-text-color);
+    border: 1px solid var(--divider-color);
+    border-radius: 8px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1.4;
+    white-space: normal;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+    z-index: 20;
+  }
+  .has-tooltip::before {
+    content: "";
+    position: absolute;
+    bottom: calc(100% + 2px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    border: 6px solid transparent;
+    border-top-color: var(--divider-color);
+    pointer-events: none;
+    opacity: 0;
+    transition:
+      opacity 0.18s ease,
+      transform 0.18s ease;
+    z-index: 20;
+  }
+  .has-tooltip:hover::after,
+  .has-tooltip:focus-visible::after,
+  .has-tooltip:hover::before,
+  .has-tooltip:focus-visible::before {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* Optional one-line caveat printed under the workflow row when the
+     automation uses elevated-risk actions. Subtle warning tint —
+     much smaller footprint than the previous banner. */
+  .automation-workflow-note {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    justify-content: flex-end;
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: var(--warning-color, #ff9800);
+    opacity: 0.85;
+  }
+
+  /* "Suggest one for me" button shown under the composer in
+     new-automation mode. Sits below the particle field, doesn't
+     wrap, and uses a subtle outlined treatment so the composer
+     still owns the visual focus. */
+  .welcome-suggest-btn {
+    /* Pulled up into the bottom of the composer's particle padding so
+       it visually hugs the composer. Must claim its own stacking
+       context (position+z-index) — without it the sibling
+       .welcome-composer-area (position:relative) renders on top of
+       the overlapping band and swallows clicks on everything but the
+       text/border edges that poke above the overlap. */
+    position: relative;
+    z-index: 2;
+    margin-top: -24px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    background: transparent;
+    border: 1px solid var(--divider-color);
+    color: var(--secondary-text-color);
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      border-color 0.15s,
+      color 0.15s,
+      background 0.15s;
+  }
+  .welcome-suggest-btn:hover:not(:disabled) {
+    border-color: var(--selora-accent, #fbbf24);
+    color: var(--primary-text-color);
+    background: rgba(251, 191, 36, 0.06);
+  }
+  .welcome-suggest-btn:disabled {
+    opacity: 0.55;
+    cursor: progress;
+  }
+
   /* Particle field surrounding the welcome composer */
   .welcome-composer-area {
     position: relative;
@@ -2926,9 +3209,21 @@ var chatStyles = i`
     max-width: calc(1200px - 48px);
     width: calc(100% - 48px);
   }
+  .chat-quick-actions {
+    margin: 0 auto;
+    padding-top: 8px;
+    max-width: calc(1200px - 48px);
+    width: calc(100% - 48px);
+  }
+  .chat-quick-actions .qa-group {
+    margin-top: 0;
+  }
   @media (max-width: 600px) {
     .chat-input-wrapper .composer-styled {
       margin: 8px auto;
+      width: calc(100% - 24px);
+    }
+    .chat-quick-actions {
       width: calc(100% - 24px);
     }
   }
@@ -3421,38 +3716,62 @@ var proposalStyles = i`
     font-weight: 400;
   }
 
-  /* ---- Automation flowchart ---- */
+  /* ---- Automation flowchart ----
+     Sizes are deliberately closer to the surrounding chat bubble copy
+     (14px) than the tiny 12px the chart originally used, since the
+     flowchart is the primary signal of "here's what this automation
+     does". The label stays smaller so the hierarchy reads
+     "section heading → content" rather than two competing rows of
+     equal-weight text. */
   .flow-chart {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 10px 0 12px;
-    font-size: 12px;
+    margin: 12px 0 14px;
+    font-size: 14px;
   }
   .flow-section {
     width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    justify-content: center;
     text-align: center;
   }
+  .flow-section > .flow-label {
+    flex-basis: 100%;
+  }
+  /* Triggers and conditions are independent — multiple in the same
+     section mean "any of these" or "all of these" rather than a
+     sequence — so they flow side-by-side with the section's
+     default wrap behavior.
+     Actions, by contrast, run one after the other. We stack them
+     vertically with downward arrows between, so the rendered card
+     mirrors the YAML's top-to-bottom action list. Without this
+     column override they wrapped horizontally and the small arrows
+     between them ended up stranded between columns instead of
+     between sequential steps. */
+  .flow-section--stacked {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
   .flow-label {
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: normal;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    opacity: 0.5;
-    margin-bottom: 4px;
+    opacity: 0.55;
+    margin-bottom: 6px;
   }
   .flow-node {
     display: inline-block;
-    padding: 6px 12px;
-    border-radius: 8px;
-    margin-bottom: 4px;
+    padding: 8px 14px;
+    border-radius: 10px;
     max-width: 100%;
     word-break: break-word;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .flow-node + .flow-node {
-    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1.45;
   }
   .trigger-node,
   .condition-node,
@@ -3461,18 +3780,114 @@ var proposalStyles = i`
     border: 1px solid rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15);
     color: var(--primary-text-color);
   }
+  /* Inline clickable entity reference embedded inside a flow-node's
+     description. Each referenced entity appears exactly once — as a
+     chip rather than as plain text — so users can click straight
+     through to HA's more-info dialog without "Decorative Lights"
+     being printed both as prose and as a separate chip row below.
+     Sized to read like part of the sentence: matches the surrounding
+     line-height, uses vertical-align: middle so it doesn't push the
+     line down, and lets a node split chip text across two lines
+     gracefully (white-space:normal). */
+  .flow-entity-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    margin: 0 1px;
+    font-size: inherit;
+    line-height: 1.3;
+    vertical-align: baseline;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.32);
+    color: var(--primary-text-color);
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background 0.15s,
+      border-color 0.15s,
+      transform 0.1s;
+  }
+  .flow-entity-chip:hover {
+    background: rgba(251, 191, 36, 0.22);
+    border-color: rgba(251, 191, 36, 0.6);
+  }
+  .flow-entity-chip:active {
+    transform: translateY(1px);
+  }
+  .flow-entity-chip ha-icon {
+    --mdc-icon-size: 14px;
+    color: rgba(251, 191, 36, 0.95);
+    flex-shrink: 0;
+  }
+  /* Branching action structure: each 'choose' branch, each
+     'parallel' / 'sequence' block, and each 'repeat' body gets
+     its own bordered panel with a small uppercase label ("If",
+     "Else if", "Otherwise", "In parallel", "Repeat 3 times"). Reads
+     like the YAML structure but human-friendly, so the user can
+     verify the rule without scrolling down to the YAML pane. */
+  /* Choose actions render their branches SIDE BY SIDE so the user
+     immediately reads them as alternative paths the automation
+     picks between, not as sequential steps. Each column carries
+     its own uppercase label ("If", "Else if", "Otherwise"). On
+     narrow viewports we stack vertically to keep flow-node text
+     legible without word-wrapping inside cramped columns. */
+  .flow-choose {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .flow-choose > .flow-branch {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  @media (max-width: 600px) {
+    .flow-choose {
+      flex-direction: column;
+    }
+  }
+  .flow-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 12px 12px;
+    border: 1px dashed rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.22);
+    border-radius: 10px;
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.025);
+  }
+  .flow-branch-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    align-self: center;
+    margin-bottom: 2px;
+  }
+  /* Nested branches inside a parent — slightly tighter borders so
+     two levels of nesting still read clearly. */
+  .flow-branch .flow-branch {
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
+  }
   .flow-arrow {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
-    opacity: 0.35;
-    padding: 3px 0;
+    opacity: 0.4;
+    padding: 4px 0;
     text-align: center;
   }
   .flow-arrow-sm {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1;
-    opacity: 0.3;
-    padding: 2px 0;
+    opacity: 0.35;
+    padding: 3px 0;
     text-align: center;
   }
 
@@ -3480,13 +3895,13 @@ var proposalStyles = i`
   .toggle-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-top: 10px;
   }
   .toggle-switch {
     position: relative;
-    width: 40px;
-    height: 22px;
+    width: 48px;
+    height: 26px;
     flex-shrink: 0;
     cursor: pointer;
   }
@@ -3499,7 +3914,7 @@ var proposalStyles = i`
   .toggle-track {
     position: absolute;
     inset: 0;
-    border-radius: 11px;
+    border-radius: 13px;
     background: var(--divider-color);
     border: 1px solid rgba(0, 0, 0, 0.15);
     transition: background 0.2s;
@@ -3513,18 +3928,18 @@ var proposalStyles = i`
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     transition: left 0.2s;
   }
   .toggle-track.on .toggle-thumb {
-    left: 20px;
+    left: 24px;
   }
   .toggle-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--secondary-text-color);
   }
@@ -3554,14 +3969,15 @@ var cardElementStyles = i`
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
     border: 1px solid var(--divider-color);
     background: var(--card-background-color);
     cursor: pointer;
     color: var(--secondary-text-color);
     transition: background 0.15s;
+    --mdc-icon-size: 18px;
   }
   .burger-btn:hover {
     background: rgba(0, 0, 0, 0.06);
@@ -3570,21 +3986,21 @@ var cardElementStyles = i`
   .burger-dropdown {
     position: absolute;
     right: 0;
-    top: 32px;
+    top: 38px;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 10px;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
     z-index: 100;
-    min-width: 140px;
+    min-width: 180px;
     overflow: hidden;
   }
   .burger-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 8px 14px;
-    font-size: 12px;
+    gap: 10px;
+    padding: 10px 16px;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
     color: var(--primary-text-color);
@@ -3592,6 +4008,10 @@ var cardElementStyles = i`
     background: none;
     width: 100%;
     text-align: left;
+  }
+  .burger-item ha-icon {
+    --mdc-icon-size: 18px;
+    flex-shrink: 0;
   }
   .burger-item:hover {
     background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
@@ -3651,10 +4071,10 @@ var cardElementStyles = i`
     white-space: nowrap;
   }
   .card-tab {
-    padding: 4px 10px;
+    padding: 6px 12px;
     border: none;
     background: none;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 500;
     color: var(--secondary-text-color);
     cursor: pointer;
@@ -3662,7 +4082,7 @@ var cardElementStyles = i`
     transition: color 0.3s ease;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
   }
   .card-tab:hover,
   .card-tab.active {
@@ -3686,7 +4106,7 @@ var cardElementStyles = i`
   }
   .card-tab-sep {
     color: var(--divider-color);
-    font-size: 12px;
+    font-size: 14px;
     user-select: none;
   }
 
@@ -3702,6 +4122,136 @@ var cardElementStyles = i`
   }
   .expand-toggle:hover {
     opacity: 1;
+  }
+
+  /* ---- Version history timeline ----
+     A vertical rail with a dot per version, plus a proper card-style
+     entry to the right of each dot. Replaces the old cramped layout
+     that crushed version label / time / badge into one row and
+     squeezed the action buttons under the message with no breathing
+     room. The current revision gets the gold dot + ring; older ones
+     fade to the muted divider color. */
+  .version-history {
+    margin: 10px 0 4px;
+    padding: 16px 18px 18px;
+    border-radius: 12px;
+    background: var(--secondary-background-color);
+    border: 1px solid var(--divider-color);
+  }
+  .version-history-empty {
+    opacity: 0.55;
+    font-size: 13px;
+    padding: 4px 0;
+  }
+  .version-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 0 22px;
+    position: relative;
+  }
+  .version-list::before {
+    content: "";
+    position: absolute;
+    left: 7px;
+    top: 6px;
+    bottom: 6px;
+    width: 2px;
+    background: var(--divider-color);
+    border-radius: 2px;
+  }
+  .version-entry {
+    position: relative;
+    padding: 0 0 18px 14px;
+  }
+  .version-entry:last-child {
+    padding-bottom: 0;
+  }
+  .version-entry-dot {
+    position: absolute;
+    left: -22px;
+    top: 14px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--divider-color);
+    border: 2px solid var(--secondary-background-color);
+    box-shadow: 0 0 0 1px var(--divider-color);
+  }
+  .version-entry.current .version-entry-dot {
+    background: var(--selora-accent, #fbbf24);
+    box-shadow: 0 0 0 2px rgba(251, 191, 36, 0.35);
+  }
+  .version-entry-card {
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--divider-color);
+    border-radius: 10px;
+    padding: 12px 14px;
+    transition: border-color 0.15s;
+  }
+  .version-entry.current .version-entry-card {
+    border-color: rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.04);
+  }
+  .version-entry-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .version-entry-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+  .version-entry-num {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    letter-spacing: 0.01em;
+  }
+  .version-entry-badge {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    background: var(--selora-accent, #fbbf24);
+    color: #000;
+    border-radius: 999px;
+    padding: 2px 8px;
+    line-height: 1.4;
+  }
+  .version-entry-time {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    opacity: 0.8;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .version-entry-message {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--primary-text-color);
+    opacity: 0.85;
+  }
+  .version-entry-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .version-entry-btn {
+    font-size: 12px;
+    padding: 5px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .version-entry-yaml {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--divider-color);
   }
 
   /* ---- Card base ---- */
@@ -3910,6 +4460,12 @@ var automationsStyles = i`
   }
   .needs-attention-pill:hover {
     background: #c62828;
+  }
+  .selora-ai-mark {
+    --mdc-icon-size: 12px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+    opacity: 0.9;
   }
   .auto-row-desc {
     font-size: 12px;
@@ -6909,90 +7465,24 @@ var WELCOME_SUGGESTIONS = [
     icon: "mdi:auto-fix",
   },
 ];
-function renderNewAutomationDialog(host) {
-  if (!host._showNewAutoDialog) return "";
+function renderAutomationSuggestButton(host) {
+  const busy = !!host._suggestingAutomation;
   return x`
-    <div
-      class="modal-overlay"
-      @click=${() => {
-        host._showNewAutoDialog = false;
-      }}
+    <button
+      class="welcome-suggest-btn"
+      ?disabled=${busy || host._loading || host._streaming}
+      @click=${() => host._suggestAutomationIdea()}
     >
-      <div
-        class="modal-content"
-        style="max-width:420px;"
-        @click=${(e5) => e5.stopPropagation()}
-      >
-        <h3 style="margin:0 0 16px;">New Automation</h3>
-        <label
-          style="font-size:13px;font-weight:500;display:block;margin-bottom:6px;"
-          >Automation name</label
-        >
-        <div style="display:flex;gap:8px;align-items:center;">
-          <input
-            type="text"
-            placeholder="e.g. Turn off lights at midnight"
-            style="flex:1;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;font-size:14px;background:var(--card-background-color);color:var(--primary-text-color);box-sizing:border-box;"
-            .value=${host._newAutoName}
-            @input=${(e5) => {
-              host._newAutoName = e5.target.value;
-            }}
-            @keydown=${(e5) => {
-              if (e5.key === "Enter")
-                host._newAutomationChat(host._newAutoName);
-            }}
-          />
-          <button
-            class="btn btn-outline"
-            style="padding:8px 10px;flex-shrink:0;"
-            title="AI Suggest"
-            ?disabled=${host._suggestingName}
-            @click=${() => host._suggestAutomationName()}
-          >
-            ${
-              host._suggestingName
-                ? x`<span class="spinner green"></span>`
-                : x`<ha-icon
-                  icon="mdi:auto-fix"
-                  style="--mdc-icon-size:18px;"
-                ></ha-icon>`
-            }
-          </button>
-        </div>
-        ${
-          host._suggestingName
-            ? x`<div
-              style="font-size:12px;color:var(--secondary-text-color);margin-top:6px;"
-            >
-              Asking AI for a suggestion…
-            </div>`
-            : ""
-        }
-        <div
-          style="display:flex;justify-content:flex-end;gap:8px;margin-top:16px;"
-        >
-          <button
-            class="btn btn-outline"
-            @click=${() => {
-              host._showNewAutoDialog = false;
-            }}
-          >
-            Cancel
-          </button>
-          <button
-            class="btn btn-primary"
-            ?disabled=${!host._newAutoName?.trim()}
-            @click=${() => host._newAutomationChat(host._newAutoName)}
-          >
-            <ha-icon
-              icon="mdi:chat-processing-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            Create in Chat
-          </button>
-        </div>
-      </div>
-    </div>
+      ${
+        busy
+          ? x`<span class="spinner green"></span>`
+          : x`<ha-icon
+            icon="mdi:auto-fix"
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>`
+      }
+      <span>${busy ? "Thinking\u2026" : "Suggest one for me"}</span>
+    </button>
   `;
 }
 function renderChat(host) {
@@ -7011,13 +7501,12 @@ function renderChat(host) {
                   style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  Welcome to
-                  <span class="gold-text">Selora AI</span>
+                  ${host._newAutomationMode ? x`New <span class="gold-text">Automation</span>` : x`Welcome to <span class="gold-text">Selora AI</span>`}
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
-                  Your intelligent home automation architect
+                  ${host._newAutomationMode ? "Describe what you want to automate \u2014 mention the devices, times, or conditions involved." : "Your intelligent home automation architect"}
                 </div>
 
                 ${
@@ -7064,16 +7553,22 @@ function renderChat(host) {
                         ${_renderComposer(host, { welcome: true })}
                       </div>
 
-                      <details class="welcome-quickstart">
-                        <summary class="welcome-quickstart-summary">
-                          <span>Quick start</span>
-                          <ha-icon
-                            icon="mdi:chevron-down"
-                            class="welcome-quickstart-chevron"
-                          ></ha-icon>
-                        </summary>
-                        ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
-                      </details>
+                      ${
+                        host._newAutomationMode
+                          ? renderAutomationSuggestButton(host)
+                          : x`
+                            <details class="welcome-quickstart">
+                              <summary class="welcome-quickstart-summary">
+                                <span>Quick start</span>
+                                <ha-icon
+                                  icon="mdi:chevron-down"
+                                  class="welcome-quickstart-chevron"
+                                ></ha-icon>
+                              </summary>
+                              ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                            </details>
+                          `
+                      }
                     `
                 }
               </div>
@@ -7083,6 +7578,14 @@ function renderChat(host) {
       </div>
     `;
   }
+  const lastMsg = host._messages[host._messages.length - 1];
+  const lastQuickActions =
+    lastMsg &&
+    lastMsg.role !== "user" &&
+    lastMsg.quick_actions &&
+    lastMsg.quick_actions.length
+      ? lastMsg
+      : null;
   return x`
     <div class="chat-pane">
       <div
@@ -7117,6 +7620,17 @@ function renderChat(host) {
               >
                 <ha-icon icon="mdi:chevron-down"></ha-icon>
               </button>
+            `
+            : ""
+        }
+        ${
+          lastQuickActions
+            ? x`
+              <div class="chat-quick-actions">
+                ${renderQuickActions(host, lastQuickActions.quick_actions, {
+                  used: !!lastQuickActions._qa_used,
+                })}
+              </div>
             `
             : ""
         }
@@ -7560,7 +8074,7 @@ function _renderComposer(host, opts = {}) {
                   }
                 }
               }}
-              placeholder="Ask Selora AI anything…"
+              placeholder=${host._newAutomationMode ? "Describe the automation you'd like to create\u2026" : "Ask Selora AI anything\u2026"}
               ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
@@ -7695,15 +8209,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(msg.tool_calls) : ""}
               </div>
-              ${
-                msg.quick_actions &&
-                msg.quick_actions.length &&
-                idx === host._messages.length - 1
-                  ? renderQuickActions(host, msg.quick_actions, {
-                      used: !!msg._qa_used,
-                    })
-                  : ""
-              }
+              ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
               <div
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
@@ -7800,23 +8306,28 @@ function _stateColor2(state) {
     return "#ef4444";
   return "var(--selora-zinc-200)";
 }
-function renderYamlEditor(host, key, originalYaml, onSave = null) {
+function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
+  const readOnly = !!opts.readOnly;
   host._initYamlEdit(key, originalYaml);
-  const current = host._editedYaml[key] ?? originalYaml;
-  const isDirty = current !== originalYaml;
+  const current = readOnly
+    ? originalYaml
+    : (host._editedYaml[key] ?? originalYaml);
+  const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
   return x`
     <ha-code-editor
       mode="yaml"
       .value=${current}
+      ?read-only=${readOnly}
       @value-changed=${(e5) => {
+        if (readOnly) return;
         host._onYamlInput(key, e5.detail.value);
       }}
       autocomplete-entities
-      style="--code-mirror-font-size:12px;"
+      style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
     ></ha-code-editor>
     ${
-      isDirty || onSave
+      isDirty || (onSave && !readOnly)
         ? x`
           <div class="yaml-edit-bar">
             ${
@@ -8276,6 +8787,26 @@ function describeFlowItem(hass, item) {
     .slice(0, 3);
   return readable.length ? readable.join(" \xB7 ") : "Automation step";
 }
+function collectFlowEntityIds(item) {
+  if (!item || typeof item !== "object") return [];
+  const out = [];
+  const seen = /* @__PURE__ */ new Set();
+  const push = (val) => {
+    if (val == null) return;
+    const arr = Array.isArray(val) ? val : [val];
+    for (const v2 of arr) {
+      if (typeof v2 !== "string") continue;
+      if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v2)) continue;
+      if (seen.has(v2)) continue;
+      seen.add(v2);
+      out.push(v2);
+    }
+  };
+  push(item.entity_id);
+  push(item.target?.entity_id);
+  push(item.data?.entity_id);
+  return out;
+}
 
 // src/panel/render-suggestions.js
 var MIN_CONF = 0.8;
@@ -8546,14 +9077,14 @@ function renderSuggestionsSection(host) {
   return x`
     <div class="section-card suggestions-section">
       <div class="section-card-header">
-        <h3>Suggested for you</h3>
-        ${totalCount > 0 ? x`<span class="badge">${totalCount} new</span>` : ""}
+        <div class="section-card-title-group">
+          <h3>Suggested for you</h3>
+          ${totalCount > 0 ? x`<span class="badge">${totalCount} new</span>` : ""}
+        </div>
         ${
           isDev
             ? x`
-              <div
-                style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-              >
+              <div class="section-card-actions">
                 <button
                   class="btn"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
@@ -8562,13 +9093,12 @@ function renderSuggestionsSection(host) {
                 >
                   <ha-icon
                     icon="mdi:refresh"
-                    style="--mdc-icon-size:13px;"
+                    style="--mdc-icon-size:14px;"
                   ></ha-icon>
                   ${host._loadingProactive ? "Scanning\u2026" : "Scan Now"}
                 </button>
                 <button
                   class="btn btn-primary"
-                  style="white-space:nowrap;"
                   ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
                   title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
                   @click=${() => host._triggerGenerateSuggestions()}
@@ -8581,7 +9111,7 @@ function renderSuggestionsSection(host) {
                       ></span>`
                       : x`<ha-icon
                         icon="mdi:auto-fix"
-                        style="--mdc-icon-size:13px;"
+                        style="--mdc-icon-size:14px;"
                       ></ha-icon>`
                   }
                   ${host._generatingSuggestions ? "Analyzing\u2026" : "Generate"}
@@ -9137,12 +9667,136 @@ function _renderStaleDetailModal(host) {
 }
 
 // src/panel/render-automations.js
+function renderFlowEntityChip(host, entityId) {
+  const stateObj = host.hass?.states?.[entityId];
+  const friendly = stateObj?.attributes?.friendly_name || entityId;
+  const icon =
+    stateObj?.attributes?.icon ||
+    DOMAIN_ICONS2[entityId.split(".")[0]] ||
+    "mdi:circle-medium";
+  return x`<button
+    type="button"
+    class="flow-entity-chip"
+    title=${`Open ${friendly} (${entityId})`}
+    @click=${(e5) => {
+      e5.stopPropagation();
+      host.dispatchEvent(
+        new CustomEvent("hass-more-info", {
+          bubbles: true,
+          composed: true,
+          detail: { entityId },
+        }),
+      );
+    }}
+  >
+    <ha-icon icon=${icon}></ha-icon>
+    <span>${friendly}</span>
+  </button>`;
+}
+function renderFlowDescription(host, item) {
+  const description = describeFlowItem(host.hass, item);
+  const entityIds = collectFlowEntityIds(item);
+  if (!entityIds.length || !description) return x`${description}`;
+  const lookups = entityIds
+    .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
+    .filter((l5) => l5.name)
+    .sort((a4, b2) => b2.name.length - a4.name.length);
+  const segments = [];
+  let remaining = description;
+  let safety = 32;
+  while (remaining && safety-- > 0) {
+    let bestIdx = -1;
+    let bestMatch = null;
+    for (const l5 of lookups) {
+      const idx = remaining.indexOf(l5.name);
+      if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
+        bestIdx = idx;
+        bestMatch = l5;
+      }
+    }
+    if (!bestMatch) {
+      segments.push(remaining);
+      break;
+    }
+    if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
+    segments.push({ chip: bestMatch.eid });
+    remaining = remaining.slice(bestIdx + bestMatch.name.length);
+  }
+  if (remaining && safety <= 0) segments.push(remaining);
+  return x`${segments.map((s6) =>
+    typeof s6 === "string" ? s6 : renderFlowEntityChip(host, s6.chip),
+  )}`;
+}
+function renderFlowNode(host, item, kind) {
+  return x`<div class="flow-node ${kind}-node">
+    ${renderFlowDescription(host, item)}
+  </div>`;
+}
+function renderActionItem(host, action) {
+  if (action && typeof action === "object" && Array.isArray(action.choose)) {
+    return x`<div class="flow-choose">
+      ${action.choose.map(
+        (branch, i5) => x`
+          <div class="flow-branch">
+            <div class="flow-branch-label">${i5 === 0 ? "If" : "Else if"}</div>
+            ${(branch.conditions || []).map(
+              (c3) => x`<div class="flow-node condition-node">
+                  ${renderFlowDescription(host, c3)}
+                </div>`,
+            )}
+            <div class="flow-arrow-sm">↓</div>
+            ${(branch.sequence || []).map((s6) => renderActionItem(host, s6))}
+          </div>
+        `,
+      )}
+      ${
+        Array.isArray(action.default) && action.default.length
+          ? x`<div class="flow-branch">
+            <div class="flow-branch-label">Otherwise</div>
+            ${action.default.map((s6) => renderActionItem(host, s6))}
+          </div>`
+          : ""
+      }
+    </div>`;
+  }
+  if (action && typeof action === "object" && Array.isArray(action.parallel)) {
+    return x`<div class="flow-branch">
+      <div class="flow-branch-label">In parallel</div>
+      ${action.parallel.map((s6) => renderActionItem(host, s6))}
+    </div>`;
+  }
+  if (action && typeof action === "object" && Array.isArray(action.sequence)) {
+    return x`<div class="flow-branch">
+      <div class="flow-branch-label">In sequence</div>
+      ${action.sequence.map((s6) => renderActionItem(host, s6))}
+    </div>`;
+  }
+  if (action && typeof action === "object" && action.repeat) {
+    const inner = action.repeat.sequence || action.repeat.actions || [];
+    const repeatLabel = (() => {
+      const r4 = action.repeat;
+      if (r4.count != null)
+        return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
+      if (r4.while) return "Repeat while condition holds";
+      if (r4.until) return "Repeat until condition is met";
+      return "Repeat";
+    })();
+    return x`<div class="flow-branch">
+      <div class="flow-branch-label">${repeatLabel}</div>
+      ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
+        renderActionItem(host, s6),
+      )}
+    </div>`;
+  }
+  return renderFlowNode(host, action, "action");
+}
 function renderAutomationIdentity(alias, description, opts = {}) {
   const {
     badge = "",
     titleSuffix = null,
     nameOverride = null,
     tail = null,
+    isSelora = true,
   } = opts;
   const cleanedDescription = (description || "").replace(
     /^\[Selora AI\]\s*/,
@@ -9151,7 +9805,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
   return x`
     <ha-icon
       icon="mdi:robot"
-      style="--mdc-icon-size:18px;color:var(--selora-accent);flex-shrink:0;"
+      style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
     ></ha-icon>
     <div class="auto-row-name">
       ${
@@ -9159,6 +9813,15 @@ function renderAutomationIdentity(alias, description, opts = {}) {
           ? nameOverride
           : x`<div class="auto-row-title-row">
             <span class="auto-row-title">${alias}</span>
+            ${
+              isSelora && !badge
+                ? x`<ha-icon
+                  class="selora-ai-mark"
+                  icon="mdi:creation"
+                  title="Created by Selora AI"
+                ></ha-icon>`
+                : ""
+            }
             ${titleSuffix || ""}
             ${
               badge
@@ -9192,40 +9855,25 @@ function renderAutomationFlowchart(host, auto) {
   if (!triggers.length && !actions.length) return x``;
   return x`
     <div class="flow-chart">
-      <div class="flow-section">
+      <div class="flow-section flow-section--inline">
         <div class="flow-label">Trigger</div>
-        ${triggers.map(
-          (t3) => x`<div class="flow-node trigger-node">
-              ${describeFlowItem(host.hass, t3)}
-            </div>`,
-        )}
+        ${triggers.map((t3) => renderFlowNode(host, t3, "trigger"))}
       </div>
       ${
         conditions.length
           ? x`
             <div class="flow-arrow">↓</div>
-            <div class="flow-section">
+            <div class="flow-section flow-section--inline">
               <div class="flow-label">Condition</div>
-              ${conditions.map(
-                (c3) => x`<div class="flow-node condition-node">
-                    ${describeFlowItem(host.hass, c3)}
-                  </div>`,
-              )}
+              ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
             </div>
           `
           : ""
       }
       <div class="flow-arrow">↓</div>
-      <div class="flow-section">
+      <div class="flow-section flow-section--stacked">
         <div class="flow-label">Actions</div>
-        ${actions.map(
-          (a4, i5) => x`
-            ${i5 > 0 ? x`<div class="flow-arrow-sm">↓</div>` : ""}
-            <div class="flow-node action-node">
-              ${describeFlowItem(host.hass, a4)}
-            </div>
-          `,
-        )}
+        ${actions.map((a4) => renderActionItem(host, a4))}
       </div>
     </div>
   `;
@@ -9237,17 +9885,44 @@ function renderProposalCard(host, msg, msgIndex) {
   const risk = msg.risk_assessment || automation?.risk_assessment || null;
   const scrutinyTags = risk?.scrutiny_tags || [];
   if (status === "saved") {
+    const isEnabled = _savedIsEnabled(host, msg);
+    const yamlKey2 = `saved_${msgIndex}`;
+    const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
     return x`
-      <div class="proposal-card" style="margin-top:12px;">
-        <div class="proposal-header">
-          <ha-icon icon="mdi:check-circle"></ha-icon>
-          Automation Created
+      <div class="automation-subcard">
+        <div class="automation-subcard-header">
+          ${renderAutomationIdentity(automation.alias, msg.description, {
+            badge: isEnabled ? "Enabled" : "Saved",
+          })}
         </div>
-        <div class="proposal-body">
-          <div class="proposal-name">${automation.alias}</div>
-          <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> Saved and enabled
-          </div>
+        <div class="automation-subcard-body">
+          ${renderAutomationFlowchart(host, automation)}
+          ${
+            yaml
+              ? x`
+                <div
+                  class="yaml-toggle"
+                  style="margin-top:12px;"
+                  @click=${() => toggleYaml(host, msgIndex)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${yamlOpen2 ? "Hide YAML" : "View YAML"}
+                </div>
+                ${
+                  yamlOpen2
+                    ? x`<div style="margin-top:6px;">
+                      ${host._renderYamlEditor(yamlKey2, yaml, null, {
+                        readOnly: true,
+                      })}
+                    </div>`
+                    : ""
+                }
+              `
+              : ""
+          }
         </div>
       </div>
     `;
@@ -9270,19 +9945,15 @@ function renderProposalCard(host, msg, msgIndex) {
   }
   if (status === "refining") {
     return x`
-      <div
-        style="margin-top:12px;padding:12px 16px;border:1px solid var(--selora-zinc-700);border-radius:12px;background:rgba(255,255,255,0.02);box-shadow:inset 0 1px 0 rgba(255,255,255,0.04),0 4px 14px rgba(0,0,0,0.28);"
-      >
-        <div
-          style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
-        >
+      <div class="automation-subcard">
+        <div class="automation-subcard-header">
           ${renderAutomationIdentity(
             automation.alias,
             msg.description || automation.description,
             { badge: "Being Refined" },
           )}
         </div>
-        <div class="proposal-body" style="padding:12px 0 0;">
+        <div class="automation-subcard-body">
           ${renderAutomationFlowchart(host, automation)}
         </div>
       </div>
@@ -9293,15 +9964,13 @@ function renderProposalCard(host, msg, msgIndex) {
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
   return x`
-    <div style="margin-top:12px;padding:14px 0 0;">
-      <div
-        style="display:flex;align-items:flex-start;gap:8px;padding-bottom:12px;border-bottom:1px solid var(--divider-color);"
-      >
+    <div class="automation-subcard">
+      <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
           badge: "Proposal",
         })}
       </div>
-      <div class="proposal-body" style="padding:12px 0 0;">
+      <div class="automation-subcard-body">
         ${
           risk?.level === "elevated"
             ? x`
@@ -9352,18 +10021,107 @@ function renderProposalCard(host, msg, msgIndex) {
             </div>`
             : ""
         }
-        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
-          <button
-            class="btn btn-success"
-            @click=${() => host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
-          >
-            <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            Accept &amp; Save
-          </button>
-        </div>
       </div>
     </div>
   `;
+}
+function _savedIsEnabled(host, msg) {
+  const savedAutomationId = msg.automation_id || null;
+  if (!savedAutomationId) return false;
+  const created = (host._automations || []).find(
+    (a4) => a4.automation_id === savedAutomationId,
+  );
+  return created ? host._automationIsEnabled(created) : false;
+}
+function renderProposalActions(host, msg, msgIndex) {
+  if (!msg?.automation) return "";
+  const status = msg.automation_status;
+  const automation = msg.automation;
+  const risk = msg.risk_assessment || automation?.risk_assessment || null;
+  if (status === "saved") {
+    const savedAutomationId = msg.automation_id || null;
+    const created = savedAutomationId
+      ? (host._automations || []).find(
+          (a4) => a4.automation_id === savedAutomationId,
+        )
+      : null;
+    if (!created) return "";
+    const isEnabled = host._automationIsEnabled(created);
+    const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
+    const elevated = risk?.level === "elevated";
+    if (isEnabled) {
+      return x`<div class="qa-group automation-card-actions">
+        <button
+          class="qa-suggestion"
+          ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
+          title="Trigger the actions now to verify they work"
+          @click=${() => host._runAutomation(created.entity_id, savedAutomationId)}
+        >
+          <span class="qa-glow-track" aria-hidden="true">
+            <span class="qa-glow-spot"></span>
+          </span>
+          <ha-icon class="qa-suggestion-lead" icon="mdi:play"></ha-icon>
+          <span class="qa-suggestion-label"
+            >${(host._runningAutomation || {})[savedAutomationId] ? "Running\u2026" : "Run now"}</span
+          >
+        </button>
+        <button
+          class="qa-suggestion"
+          title="Open this automation in Home Assistant"
+          @click=${() => host._openAutomationInHA(savedAutomationId)}
+        >
+          <span class="qa-glow-track" aria-hidden="true">
+            <span class="qa-glow-spot"></span>
+          </span>
+          <ha-icon class="qa-suggestion-lead" icon="mdi:open-in-new"></ha-icon>
+          <span class="qa-suggestion-label">View in HA</span>
+        </button>
+      </div>`;
+    }
+    return x`
+      <div class="automation-card-actions">
+        <button
+          class="btn btn-success"
+          ?disabled=${toggling}
+          @click=${() => host._enableSavedAutomation(created.entity_id, savedAutomationId)}
+        >
+          <ha-icon
+            icon=${toggling ? "mdi:loading" : "mdi:toggle-switch-outline"}
+            style="--mdc-icon-size:14px;"
+          ></ha-icon>
+          ${toggling ? "Enabling\u2026" : "Enable automation"}
+        </button>
+      </div>
+      ${
+        elevated
+          ? x`<p class="automation-workflow-note elevated">
+            <ha-icon
+              icon="mdi:shield-alert-outline"
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            Uses elevated-risk actions — review the flow and YAML before
+            enabling.
+          </p>`
+          : ""
+      }
+    `;
+  }
+  if (status !== "pending" && status !== void 0 && status !== null) {
+    return "";
+  }
+  const yamlKey = `proposal_${msgIndex}`;
+  return x`<div
+    class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
+  >
+    <button
+      class="btn btn-success"
+      ?disabled=${(host._acceptAnimating || {})[msgIndex]}
+      @click=${() => host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
+    >
+      <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
+      Accept &amp; Save
+    </button>
+  </div>`;
 }
 function toggleYaml(host, msgIndex) {
   host._yamlOpen = {
@@ -9525,10 +10283,7 @@ function renderAutomations(host) {
                     style="white-space:nowrap;"
                     ?disabled=${host._llmNeedsSetup}
                     title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
-                    @click=${() => {
-                      host._newAutoName = "";
-                      host._showNewAutoDialog = true;
-                    }}
+                    @click=${() => host._startNewAutomationChat()}
                   >
                     <ha-icon
                       icon="mdi:plus"
@@ -9733,6 +10488,7 @@ function renderAutomations(host) {
                             : ""
                         }
                         ${renderAutomationIdentity(a4.alias, a4.description, {
+                          isSelora: !!a4.is_selora,
                           titleSuffix: isUnavailable
                             ? x`<span
                                 class="needs-attention-pill"
@@ -9901,7 +10657,7 @@ function renderAutomations(host) {
                                             icon="mdi:open-in-new"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          Edit in HA
+                                          View in HA
                                         </button>
                                         <button
                                           class="burger-item danger"
@@ -9954,7 +10710,7 @@ function renderAutomations(host) {
                                       >
                                         <ha-icon
                                           icon="mdi:sitemap-outline"
-                                          style="--mdc-icon-size:14px;"
+                                          style="--mdc-icon-size:16px;"
                                         ></ha-icon>
                                         Flow
                                       </button>
@@ -9981,7 +10737,7 @@ function renderAutomations(host) {
                                       >
                                         <ha-icon
                                           icon="mdi:code-braces"
-                                          style="--mdc-icon-size:14px;"
+                                          style="--mdc-icon-size:16px;"
                                         ></ha-icon>
                                         YAML
                                       </button>
@@ -10114,10 +10870,7 @@ function renderAutomations(host) {
                 class="btn btn-accent"
                 ?disabled=${host._llmNeedsSetup}
                 title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
-                @click=${() => {
-                  host._newAutoName = "";
-                  host._showNewAutoDialog = true;
-                }}
+                @click=${() => host._startNewAutomationChat()}
               >
                 <ha-icon
                   icon="mdi:plus"
@@ -10128,8 +10881,8 @@ function renderAutomations(host) {
             </div>`
         }
       </div>
-      ${host._renderDiffViewer()} ${host._renderNewAutomationDialog()}
-      ${renderUnavailableModal(host)} ${renderStaleModal(host)}
+      ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
+      ${renderStaleModal(host)}
     </div>
   `;
 }
@@ -13340,116 +14093,102 @@ function renderVersionHistoryDrawer(host, a4) {
   const versions = host._versions[automationId] || [];
   const loading = host._loadingVersions[automationId];
   return x`
-    <div
-      style="border:1px solid var(--divider-color);border-radius:8px;margin:8px 0 4px;padding:12px;background:var(--secondary-background-color);"
-    >
+    <div class="version-history">
       ${
         loading
-          ? x`<div style="opacity:0.5;font-size:12px;">Loading…</div>`
+          ? x`<div class="version-history-empty">Loading…</div>`
           : versions.length === 0
-            ? x`<div style="opacity:0.5;font-size:12px;">
+            ? x`<div class="version-history-empty">
               No version history yet.
             </div>`
             : x`
-              <div style="position:relative;padding-left:20px;">
-                <div
-                  style="position:absolute;left:7px;top:0;bottom:0;width:2px;background:var(--divider-color);border-radius:2px;"
-                ></div>
-                ${versions.map((v2, i5) => {
-                  const key = `${automationId}_${v2.version_id}`;
-                  const restoring = host._restoringVersion[key];
-                  const date = new Date(v2.created_at);
-                  const timeAgo = relativeTime(date);
-                  const isCurrent = i5 === 0;
-                  return x`
-                    <div
-                      style="position:relative;margin-bottom:${i5 < versions.length - 1 ? "14px" : "0"};padding-left:14px;"
-                    >
-                      <div
-                        style="position:absolute;left:-6px;top:3px;width:10px;height:10px;border-radius:50%;background:${isCurrent ? "#fbbf24" : "var(--divider-color)"};border:2px solid var(--secondary-background-color);"
-                      ></div>
-                      <div
-                        style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;"
-                      >
-                        <span style="font-size:12px;font-weight:600;"
-                          >v${versions.length - i5}</span
-                        >
-                        <span
-                          style="font-size:11px;opacity:0.6;"
-                          title=${date.toISOString()}
-                          >${timeAgo}</span
-                        >
-                        ${
-                          isCurrent
-                            ? x`<span
-                              style="font-size:10px;background:#fbbf24;color:#000;border-radius:4px;padding:1px 6px;font-weight:600;"
-                              >current</span
-                            >`
-                            : ""
-                        }
-                      </div>
-                      ${
-                        v2.message || v2.version_message
-                          ? x`<div
-                            style="font-size:11px;opacity:0.6;margin-top:2px;"
-                          >
-                            ${v2.message || v2.version_message}
-                          </div>`
-                          : ""
-                      }
-                      <div style="display:flex;gap:6px;margin-top:6px;">
-                        <button
-                          class="btn btn-outline"
-                          style="font-size:10px;padding:2px 7px;"
-                          @click=${() => host._toggleExpandAutomation(`ver_${key}`)}
-                        >
-                          <ha-icon
-                            icon="mdi:code-braces"
-                            style="--mdc-icon-size:11px;"
-                          ></ha-icon>
-                          ${host._expandedAutomations[`ver_${key}`] ? "Hide" : "YAML"}
-                        </button>
-                        ${
-                          !isCurrent
-                            ? x`
-                              <button
-                                class="btn btn-outline"
-                                style="font-size:10px;padding:2px 7px;"
-                                ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
-                                @click=${() =>
-                                  host._restoreVersion(
-                                    automationId,
-                                    v2.version_id,
-                                    v2.yaml || v2.yaml_content || "",
-                                  )}
-                              >
-                                <ha-icon
-                                  icon="mdi:restore"
-                                  style="--mdc-icon-size:11px;"
-                                ></ha-icon>
-                                ${restoring ? "Restoring\u2026" : "Restore"}
-                              </button>
-                            `
-                            : ""
-                        }
-                      </div>
-                      ${
-                        host._expandedAutomations[`ver_${key}`]
-                          ? x`<ha-code-editor
-                            mode="yaml"
-                            .value=${v2.yaml || v2.yaml_content || "(no YAML stored)"}
-                            read-only
-                            style="--code-mirror-font-size:12px;margin-top:6px;"
-                          ></ha-code-editor>`
-                          : ""
-                      }
-                    </div>
-                  `;
-                })}
-              </div>
+              <ol class="version-list">
+                ${versions.map((v2, i5) =>
+                  renderVersionEntry(
+                    host,
+                    automationId,
+                    v2,
+                    i5,
+                    versions.length,
+                  ),
+                )}
+              </ol>
             `
       }
     </div>
+  `;
+}
+function renderVersionEntry(host, automationId, v2, i5, total) {
+  const key = `${automationId}_${v2.version_id}`;
+  const restoring = host._restoringVersion[key];
+  const date = new Date(v2.created_at);
+  const timeAgo = relativeTime(date);
+  const isCurrent = i5 === 0;
+  const message = v2.message || v2.version_message;
+  const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
+  const versionNumber = total - i5;
+  return x`
+    <li class="version-entry ${isCurrent ? "current" : ""}">
+      <span class="version-entry-dot" aria-hidden="true"></span>
+      <div class="version-entry-card">
+        <header class="version-entry-head">
+          <div class="version-entry-title">
+            <span class="version-entry-num">v${versionNumber}</span>
+            ${isCurrent ? x`<span class="version-entry-badge">Current</span>` : ""}
+          </div>
+          <time class="version-entry-time" title=${date.toISOString()}
+            >${timeAgo}</time
+          >
+        </header>
+        ${message ? x`<p class="version-entry-message">${message}</p>` : ""}
+        <div class="version-entry-actions">
+          <button
+            class="btn btn-outline version-entry-btn"
+            @click=${() => host._toggleExpandAutomation(`ver_${key}`)}
+          >
+            <ha-icon
+              icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
+              style="--mdc-icon-size:14px;"
+            ></ha-icon>
+            ${yamlOpen ? "Hide YAML" : "View YAML"}
+          </button>
+          ${
+            !isCurrent
+              ? x`
+                <button
+                  class="btn btn-outline version-entry-btn"
+                  ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
+                  @click=${() =>
+                    host._restoreVersion(
+                      automationId,
+                      v2.version_id,
+                      v2.yaml || v2.yaml_content || "",
+                    )}
+                >
+                  <ha-icon
+                    icon="mdi:restore"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${restoring ? "Restoring\u2026" : "Restore this version"}
+                </button>
+              `
+              : ""
+          }
+        </div>
+        ${
+          yamlOpen
+            ? x`<div class="version-entry-yaml">
+              <ha-code-editor
+                mode="yaml"
+                .value=${v2.yaml || v2.yaml_content || "(no YAML stored)"}
+                read-only
+                style="--code-mirror-font-size:13px;"
+              ></ha-code-editor>
+            </div>`
+            : ""
+        }
+      </div>
+    </li>
   `;
 }
 function renderDiffViewer(host) {
@@ -13589,7 +14328,8 @@ __export(session_actions_exports, {
   _openSession: () => _openSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
   _setActiveTab: () => _setActiveTab,
-  _suggestAutomationName: () => _suggestAutomationName,
+  _startNewAutomationChat: () => _startNewAutomationChat,
+  _suggestAutomationIdea: () => _suggestAutomationIdea,
   _toggleSelectAllSessions: () => _toggleSelectAllSessions,
   _toggleSessionSelection: () => _toggleSessionSelection,
 });
@@ -13658,6 +14398,7 @@ async function _openSession(sessionId) {
     this._messages = session.messages || [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    this._newAutomationMode = false;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -13673,6 +14414,7 @@ async function _newSession() {
     this._messages = [];
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
+    this._newAutomationMode = false;
     this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
@@ -13681,11 +14423,35 @@ async function _newSession() {
     console.error("Failed to create session", err);
   }
 }
+async function _startNewAutomationChat() {
+  try {
+    const { session_id } = await this.hass.callWS({
+      type: "selora_ai/new_session",
+    });
+    this._activeSessionId = session_id;
+    this._messages = [];
+    this._input = "";
+    this._autocompleteSelections = [];
+    this._newAutomationMode = true;
+    this._welcomeKey = (this._welcomeKey || 0) + 1;
+    this._setActiveTab("chat");
+    if (this.narrow) this._showSidebar = false;
+    this._loadSessions();
+    this.requestUpdate();
+    await this.updateComplete;
+    const ta = this.shadowRoot?.querySelector(".composer-textarea");
+    if (ta) ta.focus();
+  } catch (err) {
+    console.error("Failed to start new automation chat", err);
+    this._showToast(
+      "Failed to start a new automation chat: " + (err?.message || err),
+      "error",
+    );
+  }
+}
 async function _newAutomationChat(name) {
   if (!name || !name.trim()) return;
   const trimmed = name.trim();
-  this._showNewAutoDialog = false;
-  this.requestUpdate();
   try {
     const { session_id } = await this.hass.callWS({
       type: "selora_ai/new_session",
@@ -13711,27 +14477,45 @@ async function _newAutomationChat(name) {
     this._input = `Create a new automation called "${trimmed}".`;
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
-    this.requestUpdate();
-    await this.updateComplete;
-    const textarea = this.shadowRoot?.querySelector(".composer-textarea");
-    if (textarea) textarea.focus();
     this._loadAutomations();
     this._loadSessions();
+    await this._sendMessage();
   } catch (err) {
     console.error("Failed to create automation chat session", err);
   }
 }
-async function _suggestAutomationName() {
-  this._suggestingName = true;
+async function _suggestAutomationIdea() {
+  if (this._suggestingAutomation) return;
+  this._suggestingAutomation = true;
   try {
     const result = await this.hass.callWS({
       type: "selora_ai/chat",
       message:
-        "Suggest one short, descriptive automation name for my smart home based on my devices and current setup. Reply with ONLY the automation name, nothing else. No quotes, no explanation.",
+        "Suggest one specific, useful automation for my smart home based on the devices I actually have. Reply with ONE plain-English sentence describing the automation as an instruction I could send back to you \u2014 something like 'Turn off the kitchen lights when nobody is in the kitchen for 10 minutes.' Use the human-friendly device names only. Do not include quotes, lists, explanations, YAML, or any [[entity:\u2026]] / [[entities:\u2026]] markers \u2014 just the instruction.",
     });
-    const name = (result?.response || "").trim().replace(/^["']|["']$/g, "");
-    if (name) this._newAutoName = name;
-    if (result?.session_id) {
+    const suggestion = stripEntityMarkers(result?.response || "")
+      .trim()
+      .replace(/^["']|["']$/g, "")
+      .replace(/\s+/g, " ");
+    if (suggestion) {
+      this._input = suggestion;
+      this.requestUpdate();
+      await this.updateComplete;
+      const ta = this.shadowRoot?.querySelector(".composer-textarea");
+      if (ta) {
+        ta.value = suggestion;
+        ta.style.height = "auto";
+        ta.style.height = Math.min(ta.scrollHeight, 200) + "px";
+        ta.focus();
+        ta.setSelectionRange(suggestion.length, suggestion.length);
+      }
+    } else {
+      this._showToast(
+        "AI didn't return a suggestion \u2014 try again.",
+        "warning",
+      );
+    }
+    if (result?.session_id && result.session_id !== this._activeSessionId) {
       this.hass
         .callWS({
           type: "selora_ai/delete_session",
@@ -13741,13 +14525,13 @@ async function _suggestAutomationName() {
       this._loadSessions();
     }
   } catch (err) {
-    console.error("Failed to suggest name", err);
+    console.error("Failed to suggest automation", err);
     this._showToast(
-      "Failed to generate suggestion \u2014 check LLM config",
+      "Failed to generate a suggestion \u2014 check LLM config.",
       "error",
     );
   } finally {
-    this._suggestingName = false;
+    this._suggestingAutomation = false;
   }
 }
 function _deleteSession(sessionId, evt) {
@@ -14118,6 +14902,7 @@ async function _sendMessage() {
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
   this._autocompleteSelections = [];
+  this._newAutomationMode = false;
   this._autocomplete = {
     open: false,
     items: [],
@@ -14276,7 +15061,7 @@ async function _sendMessage() {
         this._messages = [...this._messages];
         this._loading = false;
         this._streaming = false;
-        this._streamUnsub = null;
+        cancelSubscription();
         if (event.validation_error) {
           const label =
             event.validation_target === "scene" ? "Scene" : "Automation";
@@ -14379,6 +15164,7 @@ var automation_crud_exports = {};
 __export(automation_crud_exports, {
   _acceptAutomation: () => _acceptAutomation,
   _acceptAutomationWithEdits: () => _acceptAutomationWithEdits,
+  _autoEnableAfterAccept: () => _autoEnableAfterAccept,
   _createAutomationFromSuggestion: () => _createAutomationFromSuggestion,
   _createSuggestionWithEdits: () => _createSuggestionWithEdits,
   _createdToast: () => _createdToast,
@@ -14396,12 +15182,12 @@ __export(automation_crud_exports, {
 function _createdToast(alias, result) {
   if (result && result.risk_level === "elevated") {
     return {
-      message: `Automation "${alias}" created (DISABLED) \u2014 uses elevated-risk actions (shell_command, python_script, webhook, etc.). Review carefully before enabling in Home Assistant.`,
+      message: `Automation "${alias}" created (DISABLED) \u2014 uses elevated-risk actions (shell_command, python_script, webhook, etc.). Review carefully before enabling it from the Automations tab.`,
       type: "warning",
     };
   }
   return {
-    message: `Automation "${alias}" created \u2014 review and enable it from Home Assistant Automations.`,
+    message: `Automation "${alias}" created (disabled) \u2014 enable it from the Automations tab when you're ready.`,
     type: "info",
   };
 }
@@ -14437,10 +15223,13 @@ async function _loadLineage(automationId) {
 }
 async function _acceptAutomation(msgIndex, automation) {
   try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     const refiningId = this._getRefiningAutomationId(msgIndex);
     let createResult = null;
+    let resolvedAutomationId = refiningId || null;
     if (refiningId) {
-      const yamlText = this._messages[msgIndex]?.automation_yaml || "";
+      const yamlText = msg.automation_yaml || "";
       if (yamlText) {
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
@@ -14455,6 +15244,7 @@ async function _acceptAutomation(msgIndex, automation) {
           automation,
           session_id: this._activeSessionId,
         });
+        resolvedAutomationId = createResult?.automation_id || null;
       }
     } else {
       createResult = await this.hass.callWS({
@@ -14462,12 +15252,14 @@ async function _acceptAutomation(msgIndex, automation) {
         automation,
         session_id: this._activeSessionId,
       });
+      resolvedAutomationId = createResult?.automation_id || null;
     }
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "saved",
+      ...(resolvedAutomationId ? { automation_id: resolvedAutomationId } : {}),
     });
     const session = await this.hass.callWS({
       type: "selora_ai/get_session",
@@ -14476,15 +15268,64 @@ async function _acceptAutomation(msgIndex, automation) {
     this._messages = session.messages || [];
     await this._removeDraftForSession(this._activeSessionId);
     await this._loadAutomations();
-    if (refiningId && !createResult) {
-      this._showToast(`Automation "${automation.alias}" updated.`, "success");
-    } else {
-      const toast = _createdToast(automation.alias, createResult);
-      this._showToast(toast.message, toast.type);
+    if (createResult) {
+      await this._autoEnableAfterAccept(
+        resolvedAutomationId,
+        createResult,
+        msg,
+      );
     }
-    this._setActiveTab("automations");
   } catch (err) {
     this._showToast("Failed to save automation: " + err.message, "error");
+  }
+}
+async function _autoEnableAfterAccept(automationId, createResult, msg) {
+  if (!automationId) return;
+  const elevated =
+    (createResult && createResult.risk_level === "elevated") ||
+    msg?.risk_assessment?.level === "elevated";
+  if (elevated) return;
+  const created = (this._automations || []).find(
+    (a4) => a4.automation_id === automationId,
+  );
+  if (!created?.entity_id) {
+    await new Promise((r4) => setTimeout(r4, 250));
+    await this._loadAutomations();
+  }
+  const target = (this._automations || []).find(
+    (a4) => a4.automation_id === automationId,
+  );
+  if (!target?.entity_id) {
+    console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
+    this._showToast(
+      "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
+      "warning",
+    );
+    return;
+  }
+  this._automations = (this._automations || []).map((a4) =>
+    a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
+  );
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: target.entity_id,
+      enabled: true,
+    });
+  } catch (err) {
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "off" } : a4,
+    );
+    this.requestUpdate();
+    console.error("Failed to auto-enable new automation", err);
+    this._showToast(
+      "Automation saved but couldn't be enabled automatically: " +
+        (err?.message || "unknown error") +
+        ". Use the Enable button on the card to try again.",
+      "warning",
+    );
   }
 }
 async function _removeDraftForSession(sessionId) {
@@ -14519,10 +15360,12 @@ async function _dismissDraft(draftId) {
 }
 async function _declineAutomation(msgIndex) {
   try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "declined",
     });
     const session = await this.hass.callWS({
@@ -14536,10 +15379,12 @@ async function _declineAutomation(msgIndex) {
 }
 async function _refineAutomation(msgIndex, automation, description) {
   try {
+    const msg = this._messages[msgIndex] || {};
+    const backendIndex = msg.automation_message_index ?? msgIndex;
     await this.hass.callWS({
       type: "selora_ai/set_automation_status",
       session_id: this._activeSessionId,
-      message_index: msgIndex,
+      message_index: backendIndex,
       status: "refining",
     });
     const session = await this.hass.callWS({
@@ -14570,16 +15415,22 @@ async function _createAutomationFromSuggestion(automation) {
 function _discardSuggestion(suggestion) {
   this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
 }
+var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
+  this._acceptAnimating = { ...this._acceptAnimating, [msgIndex]: true };
+  this.requestUpdate();
+  await new Promise((r4) => setTimeout(r4, ACCEPT_ANIM_MS));
   const edited = this._editedYaml[yamlKey];
   const msg = this._messages[msgIndex] || {};
   const originalYaml = msg.automation_yaml || "";
   const refiningId = this._getRefiningAutomationId(msgIndex);
+  const backendIndex = msg.automation_message_index ?? msgIndex;
   if (edited && edited !== (this._originalYaml?.[yamlKey] ?? originalYaml)) {
     try {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: true };
       this.requestUpdate();
       let createResult = null;
+      let resolvedAutomationId = refiningId || null;
       if (refiningId) {
         await this.hass.callWS({
           type: "selora_ai/update_automation_yaml",
@@ -14594,12 +15445,16 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
           yaml_text: edited,
           session_id: this._activeSessionId,
         });
+        resolvedAutomationId = createResult?.automation_id || null;
       }
       await this.hass.callWS({
         type: "selora_ai/set_automation_status",
         session_id: this._activeSessionId,
-        message_index: msgIndex,
+        message_index: backendIndex,
         status: "saved",
+        ...(resolvedAutomationId
+          ? { automation_id: resolvedAutomationId }
+          : {}),
       });
       const session = await this.hass.callWS({
         type: "selora_ai/get_session",
@@ -14607,13 +15462,13 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
       });
       this._messages = session.messages || [];
       await this._loadAutomations();
-      if (refiningId) {
-        this._showToast(`Automation "${automation.alias}" updated.`, "success");
-      } else {
-        const toast = _createdToast(automation.alias, createResult);
-        this._showToast(toast.message, toast.type);
+      if (createResult) {
+        await this._autoEnableAfterAccept(
+          resolvedAutomationId,
+          createResult,
+          msg,
+        );
       }
-      this._setActiveTab("automations");
     } catch (err) {
       this._showToast(
         "Failed to save automation from edited YAML: " + err.message,
@@ -14621,10 +15476,19 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
       );
     } finally {
       this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
+      this._acceptAnimating = {
+        ...this._acceptAnimating,
+        [msgIndex]: false,
+      };
       this.requestUpdate();
     }
   } else {
     await this._acceptAutomation(msgIndex, automation);
+    this._acceptAnimating = {
+      ...this._acceptAnimating,
+      [msgIndex]: false,
+    };
+    this.requestUpdate();
   }
 }
 async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
@@ -14709,13 +15573,16 @@ __export(automation_management_exports, {
   _clearAutomationSelection: () => _clearAutomationSelection,
   _closeBurgerMenus: () => _closeBurgerMenus,
   _deleteAutomation: () => _deleteAutomation,
+  _enableSavedAutomation: () => _enableSavedAutomation,
   _getSelectedAutomationIds: () => _getSelectedAutomationIds,
   _loadAutomationToChat: () => _loadAutomationToChat,
   _loadDiff: () => _loadDiff,
   _loadVersionHistory: () => _loadVersionHistory,
+  _openAutomationInHA: () => _openAutomationInHA,
   _openDiffViewer: () => _openDiffViewer,
   _openVersionHistory: () => _openVersionHistory,
   _restoreVersion: () => _restoreVersion,
+  _runAutomation: () => _runAutomation,
   _saveRenameAutomation: () => _saveRenameAutomation,
   _startRenameAutomation: () => _startRenameAutomation,
   _toggleAutomation: () => _toggleAutomation,
@@ -14880,6 +15747,66 @@ async function _toggleAutomation(entityId, automationId, enabled) {
     const message = err?.message || "unknown error";
     this._showToast(`Failed to toggle automation: ${message}`, "error");
   }
+}
+async function _enableSavedAutomation(entityId, automationId) {
+  if (!entityId || !automationId) return;
+  this._togglingAutomation = {
+    ...(this._togglingAutomation || {}),
+    [automationId]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: entityId,
+      enabled: true,
+    });
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
+    );
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to enable automation: ${message}`, "error");
+  } finally {
+    this._togglingAutomation = {
+      ...(this._togglingAutomation || {}),
+      [automationId]: false,
+    };
+    this.requestUpdate();
+  }
+}
+async function _runAutomation(entityId, automationId) {
+  if (!entityId) return;
+  const key = automationId || entityId;
+  this._runningAutomation = {
+    ...(this._runningAutomation || {}),
+    [key]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callService(
+      "automation",
+      "trigger",
+      { skip_condition: true },
+      { entity_id: entityId },
+    );
+    this._showToast("Automation triggered.", "success");
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to run automation: ${message}`, "error");
+  } finally {
+    this._runningAutomation = {
+      ...(this._runningAutomation || {}),
+      [key]: false,
+    };
+    this.requestUpdate();
+  }
+}
+function _openAutomationInHA(automationId) {
+  if (!automationId) return;
+  window.history.pushState(null, "", `/config/automation/edit/${automationId}`);
+  window.dispatchEvent(new Event("location-changed"));
 }
 function _toggleBurgerMenu(automationId, evt) {
   evt.stopPropagation();
@@ -15390,10 +16317,25 @@ var SeloraAIPanel = class extends s4 {
       _toastType: { type: String },
       // Detail drawer for compact grid
       _expandedDetailId: { type: String },
-      // New automation dialog
-      _showNewAutoDialog: { type: Boolean },
-      _newAutoName: { type: String },
-      _suggestingName: { type: Boolean },
+      // True when the user kicked off "New Automation" from the
+      // automations tab. Tweaks the empty-chat welcome copy and the
+      // composer placeholder so it's obvious the next message will
+      // start a fresh automation. Cleared on send.
+      _newAutomationMode: { type: Boolean },
+      // In-flight flag for the "Suggest one for me" button shown in
+      // new-automation mode — keeps the button disabled / spinning
+      // while the LLM is composing an idea.
+      _suggestingAutomation: { type: Boolean },
+      // Per-message-index flag set true the instant the user clicks
+      // Accept & Save. Drives a brief exit animation on the proposal's
+      // Accept button before the chat state flips to "saved" and the
+      // workflow row mounts — without it the swap would look like a
+      // sudden jump between two different UIs.
+      _acceptAnimating: { type: Object },
+      // Per-automation "Run now" in-flight flag — keeps the inline
+      // Run button disabled / spinning while the
+      // `automation.trigger` service call is round-tripping.
+      _runningAutomation: { type: Object },
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
       // Suggestions visible count (incremental load)
@@ -15543,9 +16485,10 @@ var SeloraAIPanel = class extends s4 {
     this._toastType = "info";
     this._toastTimer = null;
     this._expandedDetailId = null;
-    this._showNewAutoDialog = false;
-    this._newAutoName = "";
-    this._suggestingName = false;
+    this._newAutomationMode = false;
+    this._suggestingAutomation = false;
+    this._acceptAnimating = {};
+    this._runningAutomation = {};
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
     this._staleModalOpen = false;
@@ -16816,23 +17759,23 @@ var SeloraAIPanel = class extends s4 {
   // -------------------------------------------------------------------------
   // Render delegation wrappers
   // -------------------------------------------------------------------------
-  _renderNewAutomationDialog() {
-    return renderNewAutomationDialog(this);
-  }
   _renderChat() {
     return renderChat(this);
   }
   _renderMessage(msg, idx) {
     return renderMessage(this, msg, idx);
   }
-  _renderYamlEditor(key, originalYaml, onSave) {
-    return renderYamlEditor(this, key, originalYaml, onSave);
+  _renderYamlEditor(key, originalYaml, onSave, opts) {
+    return renderYamlEditor(this, key, originalYaml, onSave, opts);
   }
   _renderAutomationFlowchart(auto) {
     return renderAutomationFlowchart(this, auto);
   }
   _renderProposalCard(msg, msgIndex) {
     return renderProposalCard(this, msg, msgIndex);
+  }
+  _renderProposalActions(msg, msgIndex) {
+    return renderProposalActions(this, msg, msgIndex);
   }
   _renderSceneCard(msg, msgIndex) {
     return renderSceneCard(this, msg, msgIndex);

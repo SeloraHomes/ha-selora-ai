@@ -93,12 +93,41 @@ export const layoutStyles = css`
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
+    /* Allow narrow viewports (dev mode, side panel) to stack the
+       title row above the action buttons instead of squeezing the
+       heading into a wrapped two-line block. */
+    flex-wrap: wrap;
   }
   .section-card-header h3 {
     font-size: 20px;
     margin: 0;
     font-weight: 700;
     line-height: 1.2;
+    /* Title gets to grow but never shrink past its content — keeps
+       "Suggested for you" on a single line until it has the space
+       it needs. */
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  /* Title + count badge live together on the left. */
+  .section-card-title-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  /* Right-aligned cluster of action buttons. Wraps as a unit so the
+     header collapses cleanly: title row, then actions row. */
+  .section-card-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+  }
+  .section-card-actions .btn {
+    white-space: nowrap;
   }
   .section-card-subtitle {
     font-size: 13px;

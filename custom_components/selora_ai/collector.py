@@ -742,8 +742,13 @@ class DataCollector:
                 {
                     "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
                     "alias": alias,
-                    "description": f"[Selora AI] {description}",
+                    "description": description,
                     "initial_state": False,
+                    # The Selora AI label is attached via the entity
+                    # registry AFTER the reload — see the post-reload
+                    # block below. ``labels:`` is not a valid key in
+                    # the automation YAML schema; including it makes
+                    # HA load the automation as "unavailable".
                     "triggers": triggers,
                     "conditions": conditions or [],
                     "actions": actions,
@@ -803,6 +808,17 @@ class DataCollector:
                 await self._hass.services.async_call("automation", "reload", blocking=True)
             except Exception:
                 _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
+
+            # Attach the Selora AI label to each new automation entity
+            # via the entity registry. Best-effort; the YAML write is
+            # what actually creates the automation.
+            try:
+                from .automation_utils import _attach_selora_label_to_entity
+
+                for automation in new_automations:
+                    await _attach_selora_label_to_entity(self._hass, automation["id"])
+            except Exception:
+                _LOGGER.debug("Failed to attach Selora AI label to new automations")
 
         # Record first version for each new automation in the lifecycle store
         try:

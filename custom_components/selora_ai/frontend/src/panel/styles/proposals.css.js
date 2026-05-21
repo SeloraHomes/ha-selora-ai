@@ -197,38 +197,62 @@ export const proposalStyles = css`
     font-weight: 400;
   }
 
-  /* ---- Automation flowchart ---- */
+  /* ---- Automation flowchart ----
+     Sizes are deliberately closer to the surrounding chat bubble copy
+     (14px) than the tiny 12px the chart originally used, since the
+     flowchart is the primary signal of "here's what this automation
+     does". The label stays smaller so the hierarchy reads
+     "section heading → content" rather than two competing rows of
+     equal-weight text. */
   .flow-chart {
     display: flex;
     flex-direction: column;
     align-items: center;
-    margin: 10px 0 12px;
-    font-size: 12px;
+    margin: 12px 0 14px;
+    font-size: 14px;
   }
   .flow-section {
     width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    justify-content: center;
     text-align: center;
   }
+  .flow-section > .flow-label {
+    flex-basis: 100%;
+  }
+  /* Triggers and conditions are independent — multiple in the same
+     section mean "any of these" or "all of these" rather than a
+     sequence — so they flow side-by-side with the section's
+     default wrap behavior.
+     Actions, by contrast, run one after the other. We stack them
+     vertically with downward arrows between, so the rendered card
+     mirrors the YAML's top-to-bottom action list. Without this
+     column override they wrapped horizontally and the small arrows
+     between them ended up stranded between columns instead of
+     between sequential steps. */
+  .flow-section--stacked {
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+  }
   .flow-label {
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: normal;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    opacity: 0.5;
-    margin-bottom: 4px;
+    opacity: 0.55;
+    margin-bottom: 6px;
   }
   .flow-node {
     display: inline-block;
-    padding: 6px 12px;
-    border-radius: 8px;
-    margin-bottom: 4px;
+    padding: 8px 14px;
+    border-radius: 10px;
     max-width: 100%;
     word-break: break-word;
-    font-size: 12px;
-    line-height: 1.4;
-  }
-  .flow-node + .flow-node {
-    margin-top: 3px;
+    font-size: 14px;
+    line-height: 1.45;
   }
   .trigger-node,
   .condition-node,
@@ -237,18 +261,114 @@ export const proposalStyles = css`
     border: 1px solid rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15);
     color: var(--primary-text-color);
   }
+  /* Inline clickable entity reference embedded inside a flow-node's
+     description. Each referenced entity appears exactly once — as a
+     chip rather than as plain text — so users can click straight
+     through to HA's more-info dialog without "Decorative Lights"
+     being printed both as prose and as a separate chip row below.
+     Sized to read like part of the sentence: matches the surrounding
+     line-height, uses vertical-align: middle so it doesn't push the
+     line down, and lets a node split chip text across two lines
+     gracefully (white-space:normal). */
+  .flow-entity-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 8px;
+    margin: 0 1px;
+    font-size: inherit;
+    line-height: 1.3;
+    vertical-align: baseline;
+    border-radius: 999px;
+    background: rgba(251, 191, 36, 0.12);
+    border: 1px solid rgba(251, 191, 36, 0.32);
+    color: var(--primary-text-color);
+    font-family: inherit;
+    cursor: pointer;
+    white-space: nowrap;
+    transition:
+      background 0.15s,
+      border-color 0.15s,
+      transform 0.1s;
+  }
+  .flow-entity-chip:hover {
+    background: rgba(251, 191, 36, 0.22);
+    border-color: rgba(251, 191, 36, 0.6);
+  }
+  .flow-entity-chip:active {
+    transform: translateY(1px);
+  }
+  .flow-entity-chip ha-icon {
+    --mdc-icon-size: 14px;
+    color: rgba(251, 191, 36, 0.95);
+    flex-shrink: 0;
+  }
+  /* Branching action structure: each 'choose' branch, each
+     'parallel' / 'sequence' block, and each 'repeat' body gets
+     its own bordered panel with a small uppercase label ("If",
+     "Else if", "Otherwise", "In parallel", "Repeat 3 times"). Reads
+     like the YAML structure but human-friendly, so the user can
+     verify the rule without scrolling down to the YAML pane. */
+  /* Choose actions render their branches SIDE BY SIDE so the user
+     immediately reads them as alternative paths the automation
+     picks between, not as sequential steps. Each column carries
+     its own uppercase label ("If", "Else if", "Otherwise"). On
+     narrow viewports we stack vertically to keep flow-node text
+     legible without word-wrapping inside cramped columns. */
+  .flow-choose {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .flow-choose > .flow-branch {
+    flex: 1 1 200px;
+    min-width: 0;
+  }
+  @media (max-width: 600px) {
+    .flow-choose {
+      flex-direction: column;
+    }
+  }
+  .flow-branch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 10px 12px 12px;
+    border: 1px dashed rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.22);
+    border-radius: 10px;
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.025);
+  }
+  .flow-branch-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    opacity: 0.6;
+    align-self: center;
+    margin-bottom: 2px;
+  }
+  /* Nested branches inside a parent — slightly tighter borders so
+     two levels of nesting still read clearly. */
+  .flow-branch .flow-branch {
+    background: rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.04);
+  }
   .flow-arrow {
-    font-size: 16px;
+    font-size: 18px;
     line-height: 1;
-    opacity: 0.35;
-    padding: 3px 0;
+    opacity: 0.4;
+    padding: 4px 0;
     text-align: center;
   }
   .flow-arrow-sm {
-    font-size: 13px;
+    font-size: 14px;
     line-height: 1;
-    opacity: 0.3;
-    padding: 2px 0;
+    opacity: 0.35;
+    padding: 3px 0;
     text-align: center;
   }
 
@@ -256,13 +376,13 @@ export const proposalStyles = css`
   .toggle-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 12px;
     margin-top: 10px;
   }
   .toggle-switch {
     position: relative;
-    width: 40px;
-    height: 22px;
+    width: 48px;
+    height: 26px;
     flex-shrink: 0;
     cursor: pointer;
   }
@@ -275,7 +395,7 @@ export const proposalStyles = css`
   .toggle-track {
     position: absolute;
     inset: 0;
-    border-radius: 11px;
+    border-radius: 13px;
     background: var(--divider-color);
     border: 1px solid rgba(0, 0, 0, 0.15);
     transition: background 0.2s;
@@ -289,18 +409,18 @@ export const proposalStyles = css`
     position: absolute;
     top: 2px;
     left: 2px;
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: white;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
     transition: left 0.2s;
   }
   .toggle-track.on .toggle-thumb {
-    left: 20px;
+    left: 24px;
   }
   .toggle-label {
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     color: var(--secondary-text-color);
   }

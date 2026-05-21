@@ -13,12 +13,12 @@ import {
   renderChat,
   renderMessage,
   renderYamlEditor,
-  renderNewAutomationDialog,
 } from "./panel/render-chat.js";
 import {
   renderAutomations,
   renderAutomationFlowchart,
   renderProposalCard,
+  renderProposalActions,
   toggleYaml,
   masonryColumns,
 } from "./panel/render-automations.js";
@@ -296,10 +296,27 @@ class SeloraAIPanel extends LitElement {
       // Detail drawer for compact grid
       _expandedDetailId: { type: String },
 
-      // New automation dialog
-      _showNewAutoDialog: { type: Boolean },
-      _newAutoName: { type: String },
-      _suggestingName: { type: Boolean },
+      // True when the user kicked off "New Automation" from the
+      // automations tab. Tweaks the empty-chat welcome copy and the
+      // composer placeholder so it's obvious the next message will
+      // start a fresh automation. Cleared on send.
+      _newAutomationMode: { type: Boolean },
+      // In-flight flag for the "Suggest one for me" button shown in
+      // new-automation mode — keeps the button disabled / spinning
+      // while the LLM is composing an idea.
+      _suggestingAutomation: { type: Boolean },
+
+      // Per-message-index flag set true the instant the user clicks
+      // Accept & Save. Drives a brief exit animation on the proposal's
+      // Accept button before the chat state flips to "saved" and the
+      // workflow row mounts — without it the swap would look like a
+      // sudden jump between two different UIs.
+      _acceptAnimating: { type: Object },
+
+      // Per-automation "Run now" in-flight flag — keeps the inline
+      // Run button disabled / spinning while the
+      // `automation.trigger` service call is round-tripping.
+      _runningAutomation: { type: Object },
 
       // Generate suggestions loading
       _generatingSuggestions: { type: Boolean },
@@ -473,9 +490,10 @@ class SeloraAIPanel extends LitElement {
     this._toastType = "info";
     this._toastTimer = null;
     this._expandedDetailId = null;
-    this._showNewAutoDialog = false;
-    this._newAutoName = "";
-    this._suggestingName = false;
+    this._newAutomationMode = false;
+    this._suggestingAutomation = false;
+    this._acceptAnimating = {};
+    this._runningAutomation = {};
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
     this._staleModalOpen = false;
@@ -1984,10 +2002,6 @@ class SeloraAIPanel extends LitElement {
   // Render delegation wrappers
   // -------------------------------------------------------------------------
 
-  _renderNewAutomationDialog() {
-    return renderNewAutomationDialog(this);
-  }
-
   _renderChat() {
     return renderChat(this);
   }
@@ -1996,8 +2010,8 @@ class SeloraAIPanel extends LitElement {
     return renderMessage(this, msg, idx);
   }
 
-  _renderYamlEditor(key, originalYaml, onSave) {
-    return renderYamlEditor(this, key, originalYaml, onSave);
+  _renderYamlEditor(key, originalYaml, onSave, opts) {
+    return renderYamlEditor(this, key, originalYaml, onSave, opts);
   }
 
   _renderAutomationFlowchart(auto) {
@@ -2006,6 +2020,10 @@ class SeloraAIPanel extends LitElement {
 
   _renderProposalCard(msg, msgIndex) {
     return renderProposalCard(this, msg, msgIndex);
+  }
+
+  _renderProposalActions(msg, msgIndex) {
+    return renderProposalActions(this, msg, msgIndex);
   }
 
   _renderSceneCard(msg, msgIndex) {
