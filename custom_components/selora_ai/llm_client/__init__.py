@@ -20,6 +20,7 @@ from .command_policy import (
     _tool_failure_response,
     validate_command_action,
 )
+from .intent import _is_pure_greeting
 from .prompts import _read_prompt_files
 
 __all__ = [
@@ -27,6 +28,7 @@ __all__ = [
     "_build_command_confirmation",
     "_executed_service_calls_from_log",
     "_is_generic_acknowledgement",
+    "_is_pure_greeting",
     "_read_prompt_files",
     "_response_describes_executed_call",
     "_response_is_synthesized_confirmation",

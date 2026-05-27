@@ -162,6 +162,22 @@ _COMMAND_VERB = re.compile(
     r"activate|deactivate|enable|disable|run|trigger)\b"
 )
 
+# Meta-questions about capabilities ("suggest an automation", "what
+# automations can you create", "tell me about scenes") need to route
+# to the answer specialist — the automation/command specialists try
+# to *do* the thing, not describe it. Without this gate, "Cool, can
+# you suggest an automation for me?" goes to the automation LoRA,
+# which produces a hallucinated automation JSON the validator rejects
+# with "each trigger must include a platform". The gate is checked
+# before _AUTOMATION_PATTERNS so legitimate "every morning turn on …"
+# requests still reach the automation specialist.
+_META_QUESTION = re.compile(
+    r"\b(suggest|recommend|propose|examples?)\b"
+    r"|\b(tell|show|describe|explain)\s+(me|us)\b"
+    r"|\b(what|which)\s+(kinds?|types?|examples?|automations?|commands?|scenes?|things)\b",
+    re.IGNORECASE,
+)
+
 
 def _classify_chat_intent(user_message: str) -> str:
     """Cheap regex pre-classifier for low-context LoRA routing.
@@ -172,6 +188,8 @@ def _classify_chat_intent(user_message: str) -> str:
     """
     msg = user_message.lower().strip()
     if not msg:
+        return "answer"
+    if _META_QUESTION.search(msg):
         return "answer"
     for pat in _AUTOMATION_PATTERNS:
         if pat.search(msg):
