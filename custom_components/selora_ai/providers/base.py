@@ -119,6 +119,49 @@ class LLMProvider(ABC):
         override this.
         """
 
+    def set_chat_context(  # noqa: B027
+        self,
+        *,
+        user_message: str = "",
+        entities: list[Any] | None = None,
+        existing_automations: list[dict[str, Any]] | None = None,
+        history: list[dict[str, str]] | None = None,
+    ) -> None:
+        """Forward the raw chat context to the provider before send_request.
+
+        Default: no-op. Selora AI Local overrides this to rebuild the
+        outgoing system prompt + user content so each LoRA receives the
+        EXACT format it was trained on (per-specialist system prompt,
+        ``USER REQUEST: …`` body, multi-turn history). Cloud providers
+        ignore it — they consume LLMClient's pre-built ``system`` and
+        ``messages`` directly.
+        """
+
+    def convert_response_text(self, text: str) -> str:
+        """Post-process a complete response text before LLMClient parses it.
+
+        Default: pass-through. Selora AI Local overrides this to
+        translate v0.4.2 slim output schemas (``{r, q}`` / ``{c, r}``
+        / ``{q, o}``) into the ``{intent, response, calls/automation}``
+        envelope LLMClient's parser expects. Called by
+        ``parse_streamed_response`` after the stream finishes — the
+        non-streaming path already runs the same conversion inside
+        ``extract_text_response``.
+        """
+        return text
+
+    def reset_streaming_state(self) -> None:  # noqa: B027
+        """Drop any per-turn streaming state accumulated by the provider.
+
+        Default: no-op. Providers that buffer raw chunks across a
+        stream (e.g. Selora AI Local's ``_raw_response_buffer`` used
+        by ``convert_response_text``) override this so a previous
+        turn's buffer can't taint the next turn — particularly when a
+        greeting short-circuit in ``architect_chat_stream`` yields a
+        plain reply WITHOUT touching the streaming machinery that
+        would normally reset state at the start of a real call.
+        """
+
     def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
         """Extract token usage from a non-streaming response body.
 

@@ -789,15 +789,75 @@ CONF_GEMINI_MODEL = "gemini_model"
 DEFAULT_GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta"
 DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 
-# ── Selora AI Local (HA add-on, OpenAI-compatible) ─────────────────
-# The add-on (ha-app) runs libselora (custom Phi-3.5-mini INT8) on the
-# HA host and exposes /v1/chat/completions. Listens on :5310 (SELO).
-# The integration routes to one of four LoRA specialists per request type
-# (commands / automations / answers / clarifications) — no user-visible
-# model picker.
+# ── Selora AI Local (Selora hub via llama-server, OpenAI-compatible) ─
+# v0.4.2+ deployment: the SeloraHub runs llama-server with one base
+# model (Qwen3-1.7B Q4_K_M) plus four LoRA adapters loaded as slots
+# 0-3 (command, automation, answer, clarification). The integration
+# routes per request by (a) activating the right LoRA slot via
+# POST /lora-adapters and (b) capping output tokens per intent so a
+# 50-token answer doesn't consume the model's whole 1024-token window.
+#
+# Historical note: the same provider class was originally written for
+# the libselora HA add-on (Phi-3.5 INT8 on :5310 with model-name
+# routing). The OpenAI-compat surface is the same, so the integration
+# still works against either backend — slot routing is a no-op when
+# discovery reports zero LoRAs.
 CONF_SELORA_LOCAL_HOST = "selora_local_host"
 
 DEFAULT_SELORA_LOCAL_HOST = "http://localhost:5310"
+
+# Selora AI Local: maps a LLMClient call kind (set via
+# provider.set_call_kind) to the specialist intent name. The intent
+# name is then resolved to a LoRA slot via the discovery map built
+# from GET /lora-adapters at startup. Specific to Selora AI Local —
+# Selora Cloud and other providers have no per-kind routing.
+SELORA_LOCAL_KIND_TO_INTENT: dict[str, str] = {
+    "suggestions": "automation",
+    "command": "command",
+    "chat": "command",
+    "chat_command": "command",
+    "chat_automation": "automation",
+    "chat_answer": "answer",
+    "chat_clarification": "clarification",
+    "chat_tool_round": "command",
+    "session_title": "answer",
+    "health_check": "command",
+    "raw": "command",
+}
+SELORA_LOCAL_DEFAULT_INTENT = "command"
+
+# Selora AI Local: per-kind output token caps. Hub max_seq is 1024
+# (input + output combined); leaving the OpenAI default of 1024
+# starves the prompt and the engine RSTs the connection. The values
+# below match the slim v0.4.2+ output schemas — answer JSON
+# {"r":"...","q":[]} rarely exceeds 50 tokens; a full automation
+# YAML payload needs closer to 400.
+SELORA_LOCAL_MAX_TOKENS_BY_KIND: dict[str, int] = {
+    "chat_command": 80,
+    "chat_automation": 400,
+    "chat_answer": 50,
+    "chat_clarification": 40,
+    "chat": 192,
+    "chat_tool_round": 80,
+    "command": 80,
+    "suggestions": 400,
+    "session_title": 32,
+    "health_check": 8,
+    "raw": 192,
+}
+SELORA_LOCAL_DEFAULT_MAX_TOKENS = 192
+
+# Selora AI Local: substrings used to map a loaded LoRA's gguf
+# filename back to a specialist intent during slot discovery. e.g.
+# the v0.4.2 file ``selora-v044-automation.f16.gguf`` matches
+# "automation" → intent "automation". The order does not matter
+# — first hit wins per slot.
+SELORA_LOCAL_LORA_FILENAME_KEYWORDS: tuple[str, ...] = (
+    "command",
+    "automation",
+    "answer",
+    "clarification",
+)
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"

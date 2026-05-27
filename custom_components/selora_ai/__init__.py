@@ -2018,10 +2018,29 @@ async def _handle_websocket_chat_stream(
         updated_session = await store.get_session(session_id)
         assistant_message_index = len((updated_session or {}).get("messages", [])) - 1
 
-        # Auto-generate a better title if still the default
+        # Auto-generate a better title if still the default. Defer
+        # titling when the user's first turn is a pure greeting
+        # ("hello", "hi", "thanks") — every greeting would otherwise
+        # produce a sidebar entry titled "hello" and the next chat
+        # also titled "hello", looking like duplicates. The title
+        # gets generated on a later turn when the user sends a
+        # substantive message instead.
+        #
+        # ``append_message`` already promoted the title from
+        # "New conversation" to ``user_message[:60]`` before we got
+        # here, so for the deferred case the current title equals the
+        # prior turn's greeting (e.g. "hi"). Recognise that explicitly
+        # — without it, the second turn sees a title that matches
+        # neither sentinel and the title is never regenerated.
+        from .llm_client import _is_pure_greeting  # noqa: PLC0415
+
         current_title = (updated_session or {}).get("title", "")
-        is_default_title = current_title == "New conversation" or current_title == user_message[:60]
-        if is_default_title:
+        is_default_title = (
+            current_title == "New conversation"
+            or current_title == user_message[:60]
+            or _is_pure_greeting(current_title)
+        )
+        if is_default_title and not _is_pure_greeting(user_message):
 
             async def _generate_title() -> None:
                 try:
@@ -5695,6 +5714,26 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
                 "%s not reachable — will retry on next collection cycle",
                 llm.provider_name,
             )
+
+    # Selora AI Local pre-warm: discover the hub's loaded LoRAs + send
+    # one tiny request per chat specialist with the REAL HA entity list
+    # in the body. llama-server's cache_prompt only hits when the
+    # incoming prefix matches what's cached, so we have to prime with
+    # the exact entity block the user's first chat will send.
+    # Fire-and-forget — pre-warm failures are logged but never block setup.
+    if llm:
+        from .providers.selora_local import SeloraLocalProvider  # noqa: PLC0415
+
+        if isinstance(llm.provider, SeloraLocalProvider):
+            prewarm_entities = _collect_entity_states(hass)
+
+            async def _selora_local_prewarm() -> None:
+                try:
+                    await llm.provider.prewarm(entities=prewarm_entities)
+                except Exception:  # noqa: BLE001 — pre-warm must never crash setup
+                    _LOGGER.exception("Selora AI Local pre-warm task failed")
+
+            _bg.append(hass.async_create_task(_selora_local_prewarm()))
 
     # Start background collection + analysis
     if llm:

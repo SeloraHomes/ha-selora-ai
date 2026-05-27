@@ -43,7 +43,12 @@ from .command_policy import (
     _tool_failure_response,
     apply_command_policy,
 )
-from .intent import _classify_chat_intent, _is_pure_greeting
+from .intent import (
+    _classify_chat_intent,
+    _filter_entities_by_keywords,
+    _is_pure_greeting,
+    _low_context_keywords,
+)
 from .parsers import (
     parse_architect_response,
     parse_command_response_text,
@@ -129,6 +134,16 @@ class LLMClient:
     def is_configured(self) -> bool:
         """Whether the provider is ready to make requests."""
         return self._provider.is_configured
+
+    @property
+    def provider(self) -> LLMProvider:
+        """Public accessor for the underlying provider.
+
+        Used by ``__init__.py`` to dispatch provider-specific startup
+        hooks (e.g. Selora AI Local pre-warm) without reaching into
+        the private ``_provider`` attribute.
+        """
+        return self._provider
 
     # ── Shared history helpers ──────────────────────────────────────────
 
@@ -326,6 +341,31 @@ class LLMClient:
                 # in 1024 tokens.
                 intent_hint = _classify_chat_intent(user_message)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
+                # Filter the home snapshot to entities the user's
+                # message actually mentions BEFORE handing it to the
+                # provider. The Selora Local provider applies its own
+                # cap (25 for automation, 60 otherwise) downstream;
+                # without keyword filtering here, that cap would drop
+                # a requested device just because it appears later in
+                # the full snapshot. Cap at 60 — the maximum any
+                # low-context kind will accept — and let the provider
+                # tighten further.
+                relevant_entities = _filter_entities_by_keywords(
+                    entities,
+                    _low_context_keywords(user_message),
+                    cap=60,
+                )
+                # Pass the filtered chat context so providers like
+                # Selora AI Local can rebuild the outgoing payload to
+                # match their training-time format (per-specialist
+                # system prompt + USER REQUEST/EXISTING AUTOMATIONS/
+                # AVAILABLE ENTITIES body + last-3-turn history).
+                self._provider.set_chat_context(
+                    user_message=user_message,
+                    entities=relevant_entities,
+                    existing_automations=existing_automations,
+                    history=history,
+                )
                 system_prompt = build_minimal_architect_system_prompt(intent_hint)
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
@@ -465,6 +505,15 @@ class LLMClient:
             yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
             return
 
+        # Drop any provider-side streaming buffer left over from the
+        # previous turn before we decide whether to short-circuit. The
+        # greeting branch below skips the streaming machinery entirely,
+        # so providers that accumulate raw chunks across calls (Selora
+        # AI Local) would otherwise have the WS handler reparse the
+        # prior turn's slim JSON and replay its command/automation.
+        # No-op on stateless providers (cloud).
+        self._provider.reset_streaming_state()
+
         # Same short-circuit as architect_chat — a plain "hi"/"thanks"
         # gets a canned reply instead of an LLM round-trip and the
         # status-dump it tends to produce.
@@ -477,6 +526,25 @@ class LLMClient:
                 # See architect_chat — same low-context shortcut.
                 intent_hint = _classify_chat_intent(user_message)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
+                # Keyword-filter entities before handoff for the same
+                # reason as architect_chat: the provider's downstream
+                # 25/60 cap is positional, so an unfiltered handoff
+                # would drop the requested device when it lives past
+                # the cap in a large home.
+                relevant_entities = _filter_entities_by_keywords(
+                    entities,
+                    _low_context_keywords(user_message),
+                    cap=60,
+                )
+                # Pass the filtered chat context so providers like
+                # Selora AI Local can rebuild the outgoing payload to
+                # match training-time format. Same call as architect_chat.
+                self._provider.set_chat_context(
+                    user_message=user_message,
+                    entities=relevant_entities,
+                    existing_automations=existing_automations,
+                    history=history,
+                )
                 system_prompt = build_minimal_architect_system_prompt(intent_hint)
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
@@ -573,6 +641,16 @@ class LLMClient:
 
     async def generate_session_title(self, user_msg: str, assistant_response: str) -> str:
         """Ask the LLM for a concise 3-5 word conversation title."""
+        # Low-context providers (Selora AI Local) are trained on
+        # rigid JSON output schemas and can't generate free-form
+        # titles — they hallucinate "Short title: …" or echo the
+        # meta-instruction. Use the user's first message verbatim
+        # (truncated) instead, matching how the sidebar looked
+        # before the local-model refactor: "Help with Smart Home
+        # Automation", "Home Automation Control", etc.
+        if self._provider.is_low_context:
+            cleaned = (user_msg or "").strip()
+            return cleaned[:60] or "New conversation"
         system = (
             "Generate a concise 3-5 word title summarizing this conversation. "
             "Return only the title text, nothing else."
@@ -587,6 +665,19 @@ class LLMClient:
                 result, error = await self._provider.send_request(system=system, messages=messages)
                 if result:
                     title = result.strip().strip('"').strip("'")
+                    # Defensive: if any provider's converter returns an
+                    # enveloped JSON, peel one layer so we don't surface
+                    # '{"intent":"answer","response":"<title>"}' to the
+                    # sidebar.
+                    if title.startswith("{") and title.endswith("}"):
+                        try:
+                            parsed = json.loads(title)
+                        except json.JSONDecodeError, ValueError:
+                            parsed = None
+                        if isinstance(parsed, dict):
+                            extracted = parsed.get("response") or parsed.get("r")
+                            if isinstance(extracted, str) and extracted.strip():
+                                title = extracted.strip().strip('"').strip("'")
                     return title[:80]
             except Exception:
                 _LOGGER.debug("Title generation failed, using fallback")
@@ -614,6 +705,11 @@ class LLMClient:
         tool_log: list[dict[str, Any]] | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser."""
+        # Provider hook: Selora AI Local converts v0.4.2 slim output
+        # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
+        # calls/automation} envelope before the parser sees them. Cloud
+        # providers pass through unchanged.
+        text = self._provider.convert_response_text(text)
         return parse_streamed_response(text, self._hass, entities, tool_log)
 
     # ------------------------------------------------------------------

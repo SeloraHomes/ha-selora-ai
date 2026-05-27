@@ -77,6 +77,156 @@ def _unwrap_entity_markers(text: str, entities: list[dict[str, Any]]) -> str:
     return re.sub(r"\n{3,}", "\n\n", text).strip()
 
 
+# ── Smart-rewrite for follow-up affirmations ─────────────────────────
+# When a user replies "yes please" / "do it" / "sounds good" to an
+# automation suggestion ("Want me to also turn off the porch light?"),
+# the LoRA's multi-turn echo bias often regenerates the prior automation
+# instead of producing the suggested one. We bypass that by parsing the
+# prior turn's suggestion + trigger time into a self-contained single-
+# turn request and sending THAT as the user message (with history
+# cleared). v0.4.2 was retrained on multi-turn pairs but the rewrite
+# still helps on edge cases — and it costs nothing on cloud providers.
+
+# Gratitude-only closings ("thanks", "thank you", "thx", "ty") are
+# intentionally NOT in the leading alternation: in the common case a
+# user says "thanks" as a sign-off after an automation is created, not
+# as consent to a follow-up suggestion. They remain as a permitted
+# trailing modifier ("yes please thanks") so genuine affirmations
+# aren't rejected for ending with a polite tail.
+_AFFIRMATION_RE = re.compile(
+    r"^(yes|yeah|yep|yup|y|ya|sure|ok|okay|alright|fine|"
+    r"great|perfect|awesome|cool|nice|excellent|wonderful|"
+    r"sounds\s+good|sounds\s+great|that(?:'s| is)\s+(fine|good|great|perfect|nice)|"
+    r"please\s+do\s+(it|that)|do\s+(it|that)|go\s+ahead)"
+    r"(\s+(please|now|do\s+(it|that)|go\s+ahead|thanks?|thank\s+you|thx|ty|sure))*"
+    r"[\s!.,?]*$",
+    re.IGNORECASE,
+)
+# Bare affirmations are short. Reject anything past this word count so
+# "yes turn off the lights" isn't treated as a follow-up confirmation.
+_AFFIRMATION_MAX_WORDS = 5
+
+# Suggestion shapes the bot uses when proposing follow-ups (per the
+# v0.4.x automation system prompt + gen_multiturn.py training data).
+# Captures the action clause inside.
+_SUGGESTION_PATTERNS: tuple[re.Pattern[str], ...] = (
+    re.compile(r"Want me to (?:also )?(.+?)\?", re.IGNORECASE),
+    re.compile(r"Should I (?:also )?(.+?)\?", re.IGNORECASE),
+    re.compile(r"Would you like me to (?:also )?(.+?)\?", re.IGNORECASE),
+    re.compile(r"Want me to add a similar one to (.+?)\?", re.IGNORECASE),
+)
+
+_MARKDOWN_BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
+_ENTITY_LINK_RE = re.compile(r"\[\[entity:[^|\]]+\|([^\]]+)\]\]")
+_TIME_CLAUSE_RE = re.compile(
+    r"\b(at\s+\d|at\s+sunset|at\s+sunrise|every\s+(day|morning|night))\b",
+    re.IGNORECASE,
+)
+
+# Cap on the per-conversation last-result cache. Conversations are
+# typically <50 active per user; this prevents unbounded growth across
+# long-lived HA processes.
+_LAST_RESULT_CACHE_MAX = 50
+
+
+def _is_affirmation(message: str) -> bool:
+    """Return True when ``message`` is a bare affirmation with no other content."""
+    text = message.strip()
+    if not text or len(text.split()) > _AFFIRMATION_MAX_WORDS:
+        return False
+    return bool(_AFFIRMATION_RE.match(text))
+
+
+def _strip_response_markdown(text: str) -> str:
+    """Drop **bold** and [[entity:id|name]] markers so suggestion-extraction
+    sees plain text the LoRA can act on."""
+    text = _MARKDOWN_BOLD_RE.sub(r"\1", text)
+    text = _ENTITY_LINK_RE.sub(r"\1", text)
+    return text
+
+
+def _extract_suggestion(prior_response: str) -> str | None:
+    """Pull the action clause from a 'Want me to also X?' style suggestion.
+    Returns the clause with trailing punctuation trimmed, or None when no
+    suggestion is found."""
+    if not prior_response:
+        return None
+    clean = _strip_response_markdown(prior_response)
+    for pat in _SUGGESTION_PATTERNS:
+        m = pat.search(clean)
+        if m:
+            return m.group(1).strip().rstrip(".,;:")
+    return None
+
+
+def _format_time_at(at: str) -> str:
+    """Render a HA ``time`` trigger value (``HH:MM`` or ``HH:MM:SS``) as a
+    12-hour natural-language phrase.
+
+    Minutes and seconds are preserved when non-zero — dropping them as
+    earlier versions of this helper did would silently shift the
+    synthesized follow-up automation to the wrong moment when the prior
+    trigger was, say, ``07:30:00``. When the input can't be parsed
+    fall back to the literal value so the LoRA at least sees the
+    original spec.
+    """
+    parts = at.split(":")
+    try:
+        h = int(parts[0])
+        m = int(parts[1]) if len(parts) > 1 else 0
+        s = int(parts[2]) if len(parts) > 2 else 0
+    except ValueError, IndexError:
+        return at
+    if not (0 <= h <= 23 and 0 <= m <= 59 and 0 <= s <= 59):
+        return at
+    suffix = "am" if h < 12 else "pm"
+    h12 = h % 12 or 12
+    if s:
+        return f"{h12}:{m:02d}:{s:02d}{suffix}"
+    if m:
+        return f"{h12}:{m:02d}{suffix}"
+    return f"{h12}{suffix}"
+
+
+def _time_clause_from_automation(automation_obj: dict[str, Any] | None) -> str:
+    """Translate the prior automation's first time/sun trigger into a
+    natural-language time clause we can append to the suggestion when
+    the suggestion didn't already mention a time."""
+    if not isinstance(automation_obj, dict):
+        return ""
+    raw = automation_obj.get("triggers") or automation_obj.get("trigger") or []
+    triggers = [raw] if isinstance(raw, dict) else raw if isinstance(raw, list) else []
+    for t in triggers:
+        if not isinstance(t, dict):
+            continue
+        kind = t.get("trigger") or t.get("platform")
+        if kind == "time":
+            at = t.get("at")
+            if isinstance(at, str) and at:
+                return f" at {_format_time_at(at)} every day"
+        elif kind == "sun":
+            return f" at {t.get('event', 'sunset')} every day"
+    return ""
+
+
+def _synthesize_followup_request(
+    prior_response: str,
+    prior_automation: dict[str, Any] | None,
+) -> str | None:
+    """Convert an affirmation + prior automation suggestion into a
+    self-contained single-turn user request. Returns None when the
+    prior turn didn't propose a follow-up the LoRA can act on (so
+    the caller falls back to normal multi-turn classification)."""
+    if not isinstance(prior_automation, dict):
+        return None
+    suggestion = _extract_suggestion(prior_response)
+    if not suggestion:
+        return None
+    if not _TIME_CLAUSE_RE.search(suggestion):
+        suggestion = suggestion + _time_clause_from_automation(prior_automation)
+    return suggestion
+
+
 async def async_setup_entry(
     hass: HomeAssistant,
     config_entry: ConfigEntry,
@@ -106,6 +256,13 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         # Reverse index: scene_id → set of conversation_ids that had it.
         # Populated on delete so restore can precisely re-inject.
         self._deleted_scene_convs: dict[str, set[str]] = {}
+        # Per-conversation last-result cache used by the smart-rewrite
+        # path: when the user replies "yes please" to an automation
+        # suggestion, we look up the prior turn's response + automation
+        # here and synthesize a self-contained single-turn request.
+        # Bounded by _LAST_RESULT_CACHE_MAX (oldest entry evicted when
+        # full — Python 3.7+ dicts preserve insertion order).
+        self._last_result_by_conv: dict[str, dict[str, Any]] = {}
 
     async def async_added_to_hass(self) -> None:
         """Subscribe to scene lifecycle signals when added to HA."""
@@ -266,17 +423,43 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             (sid, name, yaml) for sid, (name, yaml) in conv_scenes.items() if yaml
         ]
 
+        # Smart-rewrite: when the user replies with a bare affirmation
+        # ("yes please", "do it", etc.) and the prior turn produced an
+        # automation with a "Want me to also X?" suggestion, synthesize
+        # a self-contained single-turn request from the suggestion + the
+        # prior automation's trigger time. Bypasses the LoRA's multi-
+        # turn echo bias by sending the rewritten message with no
+        # history. Falls back to the normal multi-turn path when the
+        # prior turn didn't propose anything we can parse.
+        effective_text: str = user_input.text
+        effective_history: list[dict[str, str]] | None = history or None
+        if conv_id is not None and _is_affirmation(user_input.text):
+            cached = self._last_result_by_conv.get(conv_id)
+            if cached:
+                synth = _synthesize_followup_request(
+                    cached.get("response", ""),
+                    cached.get("automation"),
+                )
+                if synth:
+                    _LOGGER.debug(
+                        "Selora AI smart-rewrite: %r → %r",
+                        user_input.text,
+                        synth,
+                    )
+                    effective_text = synth
+                    effective_history = None
+
         # Use architect_chat for rich responses and automation generation.
         # `for_assist=True` swaps the marker-emission rules in the prompt
         # for plain-prose rules — Assist renders the assistant text
         # verbatim, so `[[entity:…]]` markers would leak through as raw
         # syntax. The panel chat path keeps markers enabled.
-        _LOGGER.debug("Selora AI Assist processing: %s", user_input.text)
+        _LOGGER.debug("Selora AI Assist processing: %s", effective_text)
         result: dict[str, Any] = await llm.architect_chat(
-            user_input.text,
+            effective_text,
             entities,
             existing_automations=automations,
-            history=history or None,
+            history=effective_history,
             scene_context=assist_scenes or None,
             for_assist=True,
         )
@@ -297,6 +480,16 @@ class SeloraConversationEntity(conversation.ConversationEntity):
         response_text: str = result.get("response", "I'm not sure how to help with that.")
         intent_type: str = result.get("intent", "answer")
         scene_result: dict[str, Any] | None = None
+
+        # Invalidate the smart-rewrite cache when this turn isn't an
+        # automation. Otherwise an answer/command/scene reply followed
+        # by a later "yes" would synthesize the stale prior automation
+        # suggestion instead of responding to the actual preceding turn.
+        # The automation branch below repopulates the cache with the
+        # fresh result, so successive automation suggestions still
+        # support follow-up affirmations.
+        if conv_id is not None and intent_type != "automation":
+            self._last_result_by_conv.pop(conv_id, None)
 
         if intent_type == "command":
             # Execute immediate commands via HA Assist context
@@ -325,6 +518,21 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             if desc:
                 response_text += f"\n\nAutomation summary: {desc}"
             response_text += "\n\n(Draft automation created — review and enable it in the Selora AI sidebar panel.)"
+            # Cache for next-turn smart-rewrite. Only automations carry
+            # the "Want me to also X?" suggestion that the rewrite path
+            # parses, so other intents are skipped. We cache the raw
+            # LLM ``response`` field rather than ``response_text`` so
+            # the suggestion-regex isn't tripped up by the appended
+            # "Automation summary:" / "(Draft automation created…)"
+            # suffixes added above.
+            if conv_id is not None:
+                if len(self._last_result_by_conv) >= _LAST_RESULT_CACHE_MAX:
+                    oldest = next(iter(self._last_result_by_conv))
+                    self._last_result_by_conv.pop(oldest, None)
+                self._last_result_by_conv[conv_id] = {
+                    "response": result.get("response", "") or "",
+                    "automation": result["automation"],
+                }
 
         elif intent_type == "scene" and result.get("scene"):
             # Scene creation writes to scenes.yaml — require admin.
