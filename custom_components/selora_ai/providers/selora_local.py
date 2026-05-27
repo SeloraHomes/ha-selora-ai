@@ -36,6 +36,7 @@ import asyncio
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
+import json
 import logging
 from typing import Any
 
@@ -80,6 +81,36 @@ _KIND_TO_LORA: dict[str, str] = {
     "raw": "selora-v1-commands",  # send_request fallback
 }
 _DEFAULT_LORA = "selora-v1-commands"
+
+# Per-intent max_tokens ceilings. At ~5 tok/s on the 1.7B target, every
+# unnecessary output token costs ~200ms of wall time, so cap aggressively
+# per shape. Used as ``min(caller_value, cap)`` — callers that ask for
+# less still get less. Kinds not listed pass the caller value through.
+_MAX_TOKENS_PER_KIND: dict[str, int] = {
+    "chat_answer": 192,  # 1-3 sentence prose reply
+    "chat_clarification": 96,  # one short follow-up question
+    "chat_command": 320,  # JSON envelope + 1-2 service calls
+    "chat_automation": 1024,  # multi-trigger/action JSON (kept generous)
+    "suggestions": 1024,  # pattern → automation generation
+    "command": 320,
+    "session_title": 32,
+    "health_check": 16,
+}
+
+# Call kinds whose output is plain prose (no JSON envelope to repair)
+# AND for which the integration is fine landing on intent=answer
+# downstream. These stream natively; everything else (including
+# chat_clarification — short anyway, and needs intent re-tagging via
+# extract_text_response on the non-streaming path) collapses to a
+# single chunk after the non-streaming round-trip.
+_PROSE_KINDS: frozenset[str] = frozenset({"chat_answer", "session_title"})
+
+# Call kinds where the model emits plain prose but the parser must
+# still see a specific intent in the wrapped envelope. The provider
+# rewrites intent=answer → the kind's intent after normalize runs.
+_KIND_TO_INTENT: dict[str, str] = {
+    "chat_clarification": "clarification",
+}
 
 
 class SeloraLocalProvider(OpenAICompatibleProvider):
@@ -131,11 +162,12 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
 
     @property
     def supports_streaming(self) -> bool:
-        # Disabled because the JSON envelope repair below
-        # (normalize_response_content) only fires on the full payload —
-        # mid-stream chunks aren't guaranteed to be parseable JSON. A
-        # streaming-aware normalizer is parked as future work.
-        return False
+        # Prose intents (answer/clarification) skip JSON-envelope repair
+        # and stream natively; JSON intents (command/automation) still
+        # wait for the full payload so normalize_response_content can run.
+        # send_request_stream enforces this per-call by routing JSON
+        # intents through the non-streaming path.
+        return True
 
     def set_call_kind(self, kind: str | None) -> None:
         self._call_kind.set(kind)
@@ -156,6 +188,12 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         # (which reports against self._model) both see the right
         # specialist for this call.
         self._model = self._resolve_model()
+        # Clamp max_tokens to the per-intent ceiling so we never burn
+        # decode time running to the default 1024 ceiling on intents
+        # that only need ~64 tokens of output.
+        cap = _MAX_TOKENS_PER_KIND.get(self._call_kind.get() or "")
+        if cap is not None:
+            max_tokens = min(max_tokens, cap)
         payload = super().build_payload(
             system,
             messages,
@@ -163,6 +201,11 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             stream=stream,
             max_tokens=max_tokens,
         )
+        # OpenAICompatibleProvider.build_payload accepts max_tokens but
+        # never writes it to the body, so we must set it here ourselves —
+        # without this, llama-server falls back to its own default ceiling
+        # (typically n_ctx/2) and the per-intent caps are meaningless.
+        payload["max_tokens"] = max_tokens
         # llama-server accepts the basic OpenAI chat fields. Strip
         # extensions that some servers reject:
         # - tools: not supported by llama-server's compat layer (we also
@@ -255,9 +298,26 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         system: str,
         messages: list[dict[str, str]],
     ) -> AsyncIterator[str]:
-        async with self._with_active_lora():
-            async for chunk in super().send_request_stream(system, messages):
-                yield chunk
+        # Prose intents (answer/clarification) emit plain text — no JSON
+        # envelope to repair, so chunks can flow through unchanged. JSON
+        # intents (command/automation) require the full payload to run
+        # through normalize_response_content; for those we collapse to a
+        # single chunk after the non-streaming round-trip.
+        if (self._call_kind.get() or "") in _PROSE_KINDS:
+            async with self._with_active_lora():
+                async for chunk in super().send_request_stream(system, messages):
+                    yield chunk
+            return
+
+        result, error = await self.send_request(system, messages)
+        if error:
+            # Stream consumers (architect_chat_stream → websocket handler)
+            # only surface errors to the user when the generator raises
+            # ConnectionError; silently returning would persist an empty
+            # assistant message and report a successful "done" event.
+            raise ConnectionError(f"{self.provider_name}: {error}")
+        if result:
+            yield result
 
     # ── Response normalization ───────────────────────────────────────
 
@@ -265,7 +325,23 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         text = super().extract_text_response(response_data)
         if text is None:
             return None
-        return normalize_response_content(text)
+        normalized = normalize_response_content(text)
+        # The LoRA emits plain prose for chat_clarification (per the
+        # prose-only system prompt), which normalize_response_content
+        # wraps as {"intent":"answer",...} via coerce_to_answer. Re-tag
+        # to the call's true intent so parse_architect_response and the
+        # panel both classify the response correctly.
+        target_intent = _KIND_TO_INTENT.get(self._call_kind.get() or "")
+        if target_intent is None:
+            return normalized
+        try:
+            body = json.loads(normalized)
+        except json.JSONDecodeError:
+            return normalized
+        if isinstance(body, dict) and body.get("intent") == "answer":
+            body["intent"] = target_intent
+            return json.dumps(body, separators=(",", ":"))
+        return normalized
 
     # ── Health check ─────────────────────────────────────────────────
 
