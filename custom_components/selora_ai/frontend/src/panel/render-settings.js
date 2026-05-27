@@ -544,18 +544,6 @@ export function renderSettings(host) {
                       `
                     : isSeloraLocal
                       ? html`
-                          <div class="form-group">
-                            ${_textInput({
-                              label: "Add-on Host",
-                              value: host._config.selora_local_host,
-                              oninput: (e) =>
-                                host._updateConfig(
-                                  "selora_local_host",
-                                  e.target.value,
-                                ),
-                              placeholder: "http://localhost:5310",
-                            })}
-                          </div>
                           <p
                             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
                           >
