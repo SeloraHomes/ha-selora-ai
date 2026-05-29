@@ -3208,6 +3208,13 @@ async def _handle_websocket_get_config(
     config_data = {**entry.data, **entry.options}
     aigw = _aigateway_view(config_data)
 
+    from .providers import discover_selora_local_host
+
+    _selora_local_discovered_host = await discover_selora_local_host(
+        hass, config_data.get(CONF_SELORA_LOCAL_HOST)
+    )
+    _selora_local_available = _selora_local_discovered_host is not None
+
     connection.send_result(
         msg["id"],
         {
@@ -3228,6 +3235,8 @@ async def _handle_websocket_get_config(
             "ollama_host": config_data.get(CONF_OLLAMA_HOST, DEFAULT_OLLAMA_HOST),
             "ollama_model": config_data.get(CONF_OLLAMA_MODEL, DEFAULT_OLLAMA_MODEL),
             "selora_local_host": config_data.get(CONF_SELORA_LOCAL_HOST, DEFAULT_SELORA_LOCAL_HOST),
+            "selora_local_available": _selora_local_available,
+            "selora_local_discovered_host": _selora_local_discovered_host,
             # Background Services
             "collector_enabled": config_data.get(CONF_COLLECTOR_ENABLED, DEFAULT_COLLECTOR_ENABLED),
             "collector_mode": config_data.get(CONF_COLLECTOR_MODE, DEFAULT_COLLECTOR_MODE),

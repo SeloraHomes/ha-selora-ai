@@ -55,7 +55,7 @@
       },
       "selora_local": {
         "title": "Selora AI Local Configuration",
-        "description": "Connect to the Selora AI Local Home Assistant add-on (libselora running on-device). The add-on listens on port 5310. The default address below works for HA OS via the Supervisor gateway. The specialist model is selected automatically per request.",
+        "description": "Connect to the Selora AI Local Home Assistant add-on running on-device. The add-on listens on port 8080. The default address below works for HA OS via the Supervisor gateway. The specialist model is selected automatically per request.",
         "data": {
           "selora_local_host": "Add-on Host URL"
         }

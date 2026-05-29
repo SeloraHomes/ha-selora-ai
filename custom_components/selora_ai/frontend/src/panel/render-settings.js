@@ -89,8 +89,17 @@ const _PROVIDERS = [
   { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
 
+function _visibleProviders(host) {
+  const localAvailable = !!host._config?.selora_local_available;
+  const localSelected = host._config?.llm_provider === "selora_local";
+  return _PROVIDERS.filter(
+    (p) => p.value !== "selora_local" || localAvailable || localSelected,
+  );
+}
+
 function _renderProviderPicker(host) {
-  const current = _PROVIDERS.find((p) => p.value === host._config.llm_provider);
+  const providers = _visibleProviders(host);
+  const current = providers.find((p) => p.value === host._config.llm_provider);
   const open = host._providerDropdownOpen || false;
   return html`
     <div style="position:relative;">
@@ -120,7 +129,7 @@ function _renderProviderPicker(host) {
             <div
               style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
             >
-              ${_PROVIDERS.map(
+              ${providers.map(
                 (p) => html`
                   <button
                     style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p.value ===
@@ -137,6 +146,20 @@ function _renderProviderPicker(host) {
                       if (p.disabled) return;
                       host._providerDropdownOpen = false;
                       host._updateConfig("llm_provider", p.value);
+                      // Switching to Selora Local: if the backend was
+                      // detected at a non-default host (typical on HA OS
+                      // where the add-on lives on the Supervisor bridge),
+                      // prefill that host so saving the form doesn't
+                      // immediately fail validation against localhost.
+                      if (
+                        p.value === "selora_local" &&
+                        host._config?.selora_local_discovered_host
+                      ) {
+                        host._updateConfig(
+                          "selora_local_host",
+                          host._config.selora_local_discovered_host,
+                        );
+                      }
                       host._showApiKeyInput = false;
                       host._newApiKey = "";
                       host._llmSaveStatus = null;

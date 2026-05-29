@@ -1,7 +1,7 @@
 {
   "domain": "selora_ai",
   "name": "Selora AI",
-  "after_dependencies": ["recorder"],
+  "after_dependencies": ["hassio", "recorder"],
   "codeowners": ["@selorahomes"],
   "config_flow": true,
   "dependencies": ["conversation", "http"],

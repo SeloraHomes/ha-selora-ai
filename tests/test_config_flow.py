@@ -66,6 +66,29 @@ def _enable_custom_component(enable_custom_integrations):
 
 
 @pytest.fixture(autouse=True)
+def _stub_selora_local_probe():
+    """Skip the Selora AI Local availability probe in tests.
+
+    The probe attempts real socket connections (localhost + Supervisor
+    bridge IPs). pytest-socket blocks those, but the attempts still
+    register as "Socket opened during test" errors at teardown. Stub it
+    out so the config-flow tests don't have to worry about it."""
+    with (
+        patch(
+            "custom_components.selora_ai.providers.is_selora_local_available",
+            new_callable=AsyncMock,
+            return_value=False,
+        ),
+        patch(
+            "custom_components.selora_ai.providers.discover_selora_local_host",
+            new_callable=AsyncMock,
+            return_value=None,
+        ),
+    ):
+        yield
+
+
+@pytest.fixture(autouse=True)
 async def _setup_ha_dependencies(hass):
     """Set up HA components that our integration depends on (conversation, http)."""
     await async_setup_component(hass, "homeassistant", {})
