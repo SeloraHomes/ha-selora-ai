@@ -1,3 +1,36 @@
+## [0.9.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.1...v0.9.0) (2026-05-29)
+
+### Features
+
+* align refine-in-chat card with automations list ([ff43580](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ff43580c86839584877e5e2463d6ad0dad6b636e))
+* **approval:** tiered command approval flow ([2ac93b3](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2ac93b3c1230c4879e070d06b6921f335eec4153))
+* **chat:** autocomplete entities in composer ([6c638f4](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6c638f43db0cbd7e52375da0cc7641efbc5265b6))
+* enable accepted automations from chat ([e61556f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e61556fdd9f7f7b7484efcd8059d1c3ee4467aec))
+* Local Model Setup for model-0.4.2 ([4ace667](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4ace667ec2fd151c1ee3b116b71134500bc3c19d))
+* **panel:** persist active tab in URL path ([9c3e072](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9c3e072af0f6c4da67eb03545caf286fce54d2a6))
+* **recipes:** catalog-driven recipe wizard + hide unreachable Selora AI Local ([0489a7c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0489a7c3e1351a5f3f83d664b4a456e34be0503b))
+* **selora_local:** inline router into provider ([5a215c8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5a215c87a65422d7392e30d4f0e242e285d6a1b6))
+* **tools:** expand LLM tool surface for accuracy ([189ff88](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/189ff884a87ba76dd81141105123e91842c277f8))
+* **usage:** track tokens per provider/model ([0290c08](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0290c08016c57acd3e399bda285c62124405ed86))
+
+### Bug Fixes
+
+* auto-scroll chat to bottom on new messages ([5c29bfa](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5c29bfaacbf5f265e5181adf5eca4574b9185ebe))
+* **automation:** reject invalid trigger schemas before HA reload ([c610e62](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c610e62acf7c2f8e1d81c516d05f3d28e07d1283))
+* **chat:** drop sibling-domain tile from area paren ([b753ae1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/b753ae19d4fd1515535c2e6d1422b40c0c75077e))
+* reject automations with unknown entity_ids ([74b43bc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/74b43bc54386a49c2877babb1dedf74efcf50026))
+* render chat entity references as tile cards inline ([d8b0fee](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/d8b0feed512812a167aaea4dcb2d87d24e79d0d9))
+* respect user scroll position in chat ([619e64f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/619e64f86b4fdacc9c2bcb6274f75b808cb3aec3))
+* stop Selora Cloud health check from creating chat sessions ([644a036](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/644a0365be159326000f59f7331a3337af960384))
+
+### Performance
+
+* **selora_local:** cut chat latency on the 1.7B LoRA backend ([71edfcc](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/71edfcc7b8f3c9329aecc9123767f2ed13fdc732))
+
+### Code Refactoring
+
+* **llm_client:** split 2862-line module into focused package ([daf0cbd](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/daf0cbd59d21a8ccf40216e14229e9b0c8619314))
+
 ## [0.8.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.0...v0.8.1) (2026-05-07)
 
 ### Bug Fixes
