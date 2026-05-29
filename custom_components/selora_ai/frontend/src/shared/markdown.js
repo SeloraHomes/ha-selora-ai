@@ -28,9 +28,24 @@ export function stripAutomationBlock(text) {
   // Partial block (still streaming): ```<type> ... (no closing ```)
   const partialRe = new RegExp("```(" + blockTypes + ")[\\s\\S]*$");
   const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
-  const hasPartial = !!partialMatch;
+  let hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
+  }
+
+  // Bare-fence window: while streaming, the opening ``` arrives a few
+  // tokens before the type word (`command`, `automation`, …). In that
+  // gap neither the complete nor the typed-partial regex matches, so a
+  // lone ``` flashes in the bubble until the next chunk lands. Strip any
+  // dangling unclosed fence (odd ``` count → the last one has no closer)
+  // from the opener to end-of-text. Anchors to the FINAL fence so a
+  // complete earlier code block is left intact.
+  if (!hasComplete && !hasPartial) {
+    const fenceCount = (cleaned.match(/```/g) || []).length;
+    if (fenceCount % 2 === 1) {
+      cleaned = cleaned.replace(/```(?:(?!```)[\s\S])*$/, "").trim();
+      hasPartial = true;
+    }
   }
 
   // Spinners only make sense for the long-form blocks; quick_actions /

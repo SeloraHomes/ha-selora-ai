@@ -32,6 +32,14 @@ export function _checkTabParam() {
   // Deep-linking to /selora-ai/usage skips the Settings → Usage click that
   // normally triggers the stats load, so kick it off here.
   if (tab === "usage") this._loadUsageStats?.();
+  // Same for /selora-ai/settings — the grants and MCP token lists are
+  // mutable from elsewhere (the approval flow records Always grants
+  // server-side; revokes happen on this tab) so we refresh on every
+  // activation rather than serving the connectedCallback snapshot.
+  if (tab === "settings") {
+    this._loadApprovalGrants?.();
+    this._loadMcpTokens?.();
+  }
 
   // Handle "Create in Chat" from dashboard card
   const params = new URLSearchParams(window.location.search);

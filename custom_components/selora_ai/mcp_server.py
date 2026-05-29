@@ -1901,7 +1901,12 @@ def _safe_command_entity_allowlist(hass: HomeAssistant) -> set[str]:
     return allowed
 
 
-async def _tool_validate_action(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+async def _tool_validate_action(
+    hass: HomeAssistant,
+    arguments: dict[str, Any],
+    *,
+    session_id: str | None = None,
+) -> dict[str, Any]:
     """Validate a service call against the safe-command policy without executing it."""
     from .llm_client import validate_command_action
 
@@ -1926,19 +1931,30 @@ async def _tool_validate_action(hass: HomeAssistant, arguments: dict[str, Any]) 
 
     # Use the same allowlist as _tool_execute_command so this pre-flight
     # check can't approve an entity the dispatcher would later reject
-    # (unavailable, disabled, non-actionable, off-domain).
+    # (unavailable, disabled, non-actionable, off-domain). ``hass`` +
+    # ``session_id`` are also passed so REVIEW services covered by a
+    # standing Session/Always grant come back ``valid=True`` instead of
+    # ``requires_approval`` — without them the tool path would keep
+    # surfacing approval cards even after the user clicked Allow.
     return validate_command_action(
         service,
         target_ids,
         data,
         known_entity_ids=_safe_command_entity_allowlist(hass),
+        hass=hass,
+        session_id=session_id,
     )
 
 
 # ── Tool: selora_execute_command ───────────────────────────────────────────────
 
 
-async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) -> dict[str, Any]:
+async def _tool_execute_command(
+    hass: HomeAssistant,
+    arguments: dict[str, Any],
+    *,
+    session_id: str | None = None,
+) -> dict[str, Any]:
     """Validate and execute a service call within the safe-command allowlist.
 
     Replaces the legacy ``{"intent":"command","calls":[...]}`` JSON path for
@@ -1957,6 +1973,14 @@ async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) 
         target_ids: list[str] = [raw_entity.strip()] if raw_entity.strip() else []
     elif isinstance(raw_entity, list):
         target_ids = [str(e).strip() for e in raw_entity if str(e).strip()]
+    elif raw_entity is None:
+        # No-target services (notify.mobile_app_*, script.foo,
+        # shell_command.bar) are legitimate REVIEW calls — the validator
+        # decides whether an entity is required for this service. Don't
+        # short-circuit here, otherwise an approved no-target service
+        # would fail with "entity_id must be a string or list of strings"
+        # instead of executing.
+        target_ids = []
     else:
         return {"valid": False, "errors": ["entity_id must be a string or list of strings"]}
 
@@ -1966,18 +1990,29 @@ async def _tool_execute_command(hass: HomeAssistant, arguments: dict[str, Any]) 
     data: dict[str, Any] = data_raw or {}
 
     # Shared with _tool_validate_action so pre-flight checks and actual
-    # execution agree on which entities are permitted.
+    # execution agree on which entities are permitted. ``hass`` +
+    # ``session_id`` let the validator consult the approval store so
+    # REVIEW services with a standing Session/Always grant execute
+    # directly here instead of re-prompting the user every turn.
     validation = validate_command_action(
         service,
         target_ids,
         data,
         known_entity_ids=_safe_command_entity_allowlist(hass),
+        hass=hass,
+        session_id=session_id,
     )
     if not validation["valid"]:
         return validation
 
     domain, service_name = service.split(".", 1)
-    service_data = {"entity_id": target_ids, **data}
+    # No-target REVIEW services (notify.mobile_app_*, script.foo, …)
+    # must NOT carry an empty ``entity_id`` field — HA rejects it as
+    # an invalid target. Only include the entity_id key when the call
+    # actually targets entities.
+    service_data: dict[str, Any] = dict(data)
+    if target_ids:
+        service_data["entity_id"] = target_ids
     try:
         await hass.services.async_call(domain, service_name, service_data, blocking=True)
     except Exception as exc:  # noqa: BLE001 — surface failure to the LLM

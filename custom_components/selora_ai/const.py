@@ -1273,3 +1273,34 @@ MCP_TOKEN_PERMISSION_CUSTOM = "custom"
 MCP_TOKEN_VALID_PERMISSIONS = frozenset(
     {MCP_TOKEN_PERMISSION_READ_ONLY, MCP_TOKEN_PERMISSION_ADMIN, MCP_TOKEN_PERMISSION_CUSTOM}
 )
+
+# ── Command Approval Store ───────────────────────────────────────────
+# Persistent allowlist of services the user has approved for chat-driven
+# execution. Services not in the SAFE allowlist (light, switch, scene…)
+# but classified as REVIEW (tts, notify, lock.unlock, script, …) prompt
+# the user once and can be granted persistently from here. See
+# llm_client.command_policy and approval_store.
+APPROVAL_STORE_KEY = f"{DOMAIN}.command_approvals"
+APPROVAL_STORE_VERSION = 1
+
+# Risk levels surfaced on command_approval bubbles.
+APPROVAL_RISK_LOW = "low"
+APPROVAL_RISK_MEDIUM = "medium"
+APPROVAL_RISK_HIGH = "high"
+APPROVAL_VALID_RISK_LEVELS = frozenset(
+    {APPROVAL_RISK_LOW, APPROVAL_RISK_MEDIUM, APPROVAL_RISK_HIGH}
+)
+
+# Grant scopes the user can choose from in the approval card.
+APPROVAL_SCOPE_ONCE = "once"
+APPROVAL_SCOPE_SESSION = "session"
+APPROVAL_SCOPE_ALWAYS = "always"
+APPROVAL_SCOPE_DENY = "deny"
+APPROVAL_VALID_SCOPES = frozenset(
+    {
+        APPROVAL_SCOPE_ONCE,
+        APPROVAL_SCOPE_SESSION,
+        APPROVAL_SCOPE_ALWAYS,
+        APPROVAL_SCOPE_DENY,
+    }
+)

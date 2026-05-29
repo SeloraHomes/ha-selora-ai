@@ -211,6 +211,10 @@ class SeloraAIPanel extends LitElement {
       // Message view
       _messages: { type: Array },
       _input: { type: String },
+      // Shell-style ArrowUp/ArrowDown history navigation cursor. null
+      // means "not browsing history; _input is the live draft".
+      _historyIndex: { type: Number },
+      _historyDraft: { type: String },
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
       _chatScrolledAway: { type: Boolean },
@@ -396,6 +400,10 @@ class SeloraAIPanel extends LitElement {
       _creatingToken: { type: Boolean },
       _revokingTokenId: { type: String },
 
+      // Command approvals (Always-scope grants surfaced in settings)
+      _approvalGrants: { type: Array },
+      _revokingApprovalKey: { type: String },
+
       // Device detail drawer
       _deviceDetail: { type: Object },
       _deviceDetailLoading: { type: Boolean },
@@ -426,6 +434,8 @@ class SeloraAIPanel extends LitElement {
     this._activeSessionId = null;
     this._messages = [];
     this._input = "";
+    this._historyIndex = null;
+    this._historyDraft = "";
     this._loading = false;
     this._streaming = false;
     this._chatScrolledAway = false;
@@ -530,6 +540,9 @@ class SeloraAIPanel extends LitElement {
     this._feedbackCategory = "";
     this._feedbackEmail = "";
     this._submittingFeedback = false;
+    // Command approvals
+    this._approvalGrants = [];
+    this._revokingApprovalKey = null;
     // MCP tokens
     this._mcpTokens = [];
     this._showCreateTokenDialog = false;
@@ -580,6 +593,7 @@ class SeloraAIPanel extends LitElement {
     this._loadScenes();
     this._loadConfig();
     this._loadMcpTokens();
+    this._loadApprovalGrants();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e) => {
@@ -1083,6 +1097,7 @@ class SeloraAIPanel extends LitElement {
     this._setActiveTab("settings");
     this._loadConfig();
     this._loadMcpTokens();
+    this._loadApprovalGrants();
   }
 
   get _llmNeedsSetup() {
@@ -1375,6 +1390,43 @@ class SeloraAIPanel extends LitElement {
       this._showToast("Failed to revoke token: " + err.message, "error");
     } finally {
       this._revokingTokenId = null;
+      this.requestUpdate();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Command Approval Management
+  // -------------------------------------------------------------------------
+
+  async _loadApprovalGrants() {
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/list_approvals",
+      });
+      this._approvalGrants = result.grants || [];
+    } catch (err) {
+      console.error("Failed to load approval grants", err);
+    }
+  }
+
+  async _revokeApproval(grantKey) {
+    // ``grantKey`` is the full identifier from list_approvals
+    // ("service" or "service:entity_id"). Pass it back as ``key`` so
+    // the server can target per-entity grants precisely without
+    // tearing down a wildcard at the same time.
+    this._revokingApprovalKey = grantKey;
+    this.requestUpdate();
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/revoke_approval",
+        key: grantKey,
+      });
+      await this._loadApprovalGrants();
+      this._showToast("Approval revoked.", "success");
+    } catch (err) {
+      this._showToast("Failed to revoke approval: " + err.message, "error");
+    } finally {
+      this._revokingApprovalKey = null;
       this.requestUpdate();
     }
   }
@@ -1740,6 +1792,11 @@ class SeloraAIPanel extends LitElement {
           .split(",")
           .map((s) => s.trim())
           .filter(Boolean);
+        // ``data-no-features="true"`` lets specific call sites
+        // (currently the approval card) drop the tile's default
+        // action row so users can't tap "unlock" inside an
+        // "approve unlocking?" card and bypass the approval flow.
+        const noFeatures = grid.dataset.noFeatures === "true";
         let appended = 0;
         if (createTile) {
           // Build (areaName, ids[]) groups so multi-area lists render
@@ -1769,7 +1826,7 @@ class SeloraAIPanel extends LitElement {
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
-            const card = createTile(id);
+            const card = createTile(id, { noFeatures });
             if (!card) return null;
             card.hass = this.hass;
             // Hover tooltip with manufacturer / model — see the
@@ -1937,10 +1994,15 @@ class SeloraAIPanel extends LitElement {
           return [];
       }
     };
-    const buildConfig = (id) => ({
+    // ``noFeatures`` suppresses the tile's built-in action row
+    // (lock/unlock buttons on lock entities, open/close on covers, …).
+    // The approval card uses this — embedding live action buttons
+    // inside an "approve unlocking?" card would let the user bypass
+    // the approval flow entirely by tapping the tile's own button.
+    const buildConfig = (id, { noFeatures = false } = {}) => ({
       type: "tile",
       entity: id,
-      features: featuresForDomain(id),
+      features: noFeatures ? [] : featuresForDomain(id),
     });
 
     // Path 1: HA's documented helper.
@@ -1948,8 +2010,8 @@ class SeloraAIPanel extends LitElement {
       try {
         const helpers = await window.loadCardHelpers();
         if (helpers && typeof helpers.createCardElement === "function") {
-          this._tileCardCreator = (id) =>
-            helpers.createCardElement(buildConfig(id));
+          this._tileCardCreator = (id, opts) =>
+            helpers.createCardElement(buildConfig(id, opts));
           return this._tileCardCreator;
         }
       } catch (e) {
@@ -1966,9 +2028,9 @@ class SeloraAIPanel extends LitElement {
         new Promise((resolve) => setTimeout(() => resolve(false), 3000)),
       ]);
       if (ready) {
-        this._tileCardCreator = (id) => {
+        this._tileCardCreator = (id, opts) => {
           const el = document.createElement("hui-tile-card");
-          el.setConfig(buildConfig(id));
+          el.setConfig(buildConfig(id, opts));
           return el;
         };
         return this._tileCardCreator;

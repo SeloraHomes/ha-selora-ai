@@ -269,6 +269,39 @@ class TestScheduledTaskTracker:
         assert tracker._tasks == {}
 
     @pytest.mark.asyncio
+    async def test_schedule_at_time_approved_bypasses_risk_gate(
+        self, hass: MagicMock
+    ) -> None:
+        """A user-approved scheduled action forwards bypass_risk_gate=True so an
+        elevated-risk service the user authorised isn't written disabled (which
+        would make the one-shot silently never fire). Without approved=True the
+        gate stays on — see test_schedule_at_time_rejects_forced_disabled."""
+        tracker = ScheduledTaskTracker(hass)
+        calls = [{"service": "shell_command.backup"}]
+
+        with patch(
+            "custom_components.selora_ai.automation_utils.async_create_automation",
+            return_value={
+                "success": True,
+                "automation_id": "selora_ai_appr01",
+                "risk_level": "elevated",
+                "forced_disabled": False,
+            },
+        ) as mock_create, patch(
+            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+            return_value=MagicMock(),
+        ):
+            task = await tracker.schedule_at_time(
+                "session_1", calls, "23:00:00", "Backup at 11 PM", approved=True
+            )
+
+        assert task.status == "pending"
+        assert task.automation_id == "selora_ai_appr01"
+        assert mock_create.call_args.kwargs.get("bypass_risk_gate") is True
+        # Task registered — no rollback.
+        assert task.schedule_id in tracker._tasks
+
+    @pytest.mark.asyncio
     async def test_schedule_at_time_uses_local_date(self, hass: MagicMock) -> None:
         """Fire date must use HA local timezone, not UTC."""
         # 2026-04-25 23:00 EDT = 2026-04-26 03:00 UTC.

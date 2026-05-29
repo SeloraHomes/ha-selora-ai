@@ -475,6 +475,21 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
 # Name → ToolDef lookup for admin checks in the executor
 TOOL_MAP: dict[str, ToolDef] = {t.name: t for t in CHAT_TOOLS}
 
+# Tools needed to resolve + execute a plain device-control command.
+# Used to trim the tool schema on command-intent turns so the model
+# isn't handed device-discovery / suggestion / history tools it can't
+# use for "lock the door" — smaller schema = less prefill latency.
+COMMAND_TOOL_NAMES: frozenset[str] = frozenset(
+    {
+        "execute_command",
+        "activate_scene",
+        "find_entities_by_area",
+        "search_entities",
+        "get_entity_state",
+        "validate_action",
+    }
+)
+
 
 def get_tools_for_provider(provider: str) -> list[dict[str, Any]]:
     """Return tool definitions formatted for the given LLM provider.

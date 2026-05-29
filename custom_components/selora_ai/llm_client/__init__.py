@@ -18,6 +18,8 @@ from .command_policy import (
     _response_is_synthesized_confirmation,
     _suppress_duplicate_command_after_tool,
     _tool_failure_response,
+    call_required_approval,
+    synthesize_approval_from_tool_log,
     validate_command_action,
 )
 from .intent import _is_pure_greeting
@@ -34,5 +36,7 @@ __all__ = [
     "_response_is_synthesized_confirmation",
     "_suppress_duplicate_command_after_tool",
     "_tool_failure_response",
+    "call_required_approval",
+    "synthesize_approval_from_tool_log",
     "validate_command_action",
 ]

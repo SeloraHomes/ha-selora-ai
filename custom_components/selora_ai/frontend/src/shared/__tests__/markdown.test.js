@@ -70,6 +70,30 @@ describe("stripAutomationBlock", () => {
     expect(result.text).toBe("Creating scene:");
   });
 
+  it("strips a bare fence before the type word streams in", () => {
+    // The opening ``` lands a few tokens before "command"; the lone
+    // fence must not flash in the bubble.
+    const input = "Locking your Front Door now.\n\n```";
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.text).toBe("Locking your Front Door now.");
+    expect(result.text).not.toContain("```");
+  });
+
+  it("strips a bare fence with a partial type token", () => {
+    const input = "Locking your Front Door now.\n\n```comm";
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.text).toBe("Locking your Front Door now.");
+  });
+
+  it("leaves a complete generic code block intact while a later fence streams", () => {
+    const input = "Example:\n```\nyaml: here\n```\nNow running ```";
+    const result = stripAutomationBlock(input);
+    expect(result.text).toContain("yaml: here");
+    expect(result.text).not.toMatch(/Now running ```/);
+  });
+
   it("strips both automation and scene complete blocks", () => {
     const input =
       'Auto:\n```automation\nalias: Test\n```\nScene:\n```scene\n{"name":"Test"}\n```\nEnd.';

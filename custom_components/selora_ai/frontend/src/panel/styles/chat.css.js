@@ -472,6 +472,16 @@ export const chatStyles = css`
     border: 1px solid var(--selora-zinc-700);
     border-bottom-left-radius: 4px;
   }
+  /* When the assistant bubble's only content is an approval card, the
+     card already provides its own border + background — wrapping it
+     in the standard bubble shell would nest two cards. Strip the
+     bubble chrome so the card sits flush against the chat column. */
+  .bubble.assistant.bubble--approval {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
   .bubble-meta {
     font-size: 10px;
     opacity: 0.5;

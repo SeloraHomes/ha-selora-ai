@@ -34,14 +34,20 @@ from ..types import (
     EntitySnapshot,
     HomeSnapshot,
     ToolCallLog,
+    ToolWriteResult,
 )
 from .command_policy import (
+    APPROVAL_PENDING_HINT,
     _build_command_confirmation,
     _executed_service_calls_from_log,
+    _friendly_name_resolver,
+    _marker_entity_ids,
     _prose_is_trusted_after_tool,
     _suppress_duplicate_command_after_tool,
     _tool_failure_response,
     apply_command_policy,
+    build_executed_confirmation,
+    synthesize_approval_from_tool_log,
 )
 from .intent import (
     _classify_chat_intent,
@@ -73,6 +79,25 @@ if TYPE_CHECKING:
     from ..tool_executor import ToolExecutor
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _normalized_write_result(tool_name: str, result: dict[str, Any]) -> ToolWriteResult | None:
+    """Shape an executed write-tool result for ``build_executed_confirmation``.
+
+    ``activate_scene`` returns ``{entity_id, status}`` with no ``service``
+    field, so the confirmation builder would skip it (and a scene-only
+    request would render a bare "Done."). Map it to the synthetic
+    ``scene.turn_on`` call the builder understands. ``execute_command``
+    results already carry ``service``/``entity_ids`` and pass through.
+    Returns None when an activated scene lacks a resolvable entity_id.
+    """
+    if tool_name == "activate_scene":
+        entity_id = result.get("entity_id")
+        if isinstance(entity_id, str) and entity_id:
+            return {"service": "scene.turn_on", "entity_ids": [entity_id]}
+        return None
+    return result  # type: ignore[return-value]
+
 
 # ── Conversation history budget ────────────────────────────────────────
 # Maximum turns to keep in the LLM message list. Must be large enough
@@ -299,6 +324,7 @@ class LLMClient:
         areas: list[str] | None = None,
         *,
         for_assist: bool = False,
+        session_id: str | None = None,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -369,10 +395,21 @@ class LLMClient:
                 system_prompt = build_minimal_architect_system_prompt(intent_hint)
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
+                cloud_intent_hint: str | None = None
             else:
+                # Cloud path: classify intent so a plain device-control turn
+                # gets a slim prompt + trimmed tool schema. See
+                # architect_chat_stream for the rationale.
+                refining = bool(refining_context or refining_scene_context or scene_context)
+                cloud_intent_hint = (
+                    "command"
+                    if not refining and _classify_chat_intent(user_message) == "command"
+                    else None
+                )
                 system_prompt = build_architect_system_prompt(
                     tools_available=tool_executor is not None,
                     for_assist=for_assist,
+                    slim=cloud_intent_hint == "command",
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -387,7 +424,7 @@ class LLMClient:
                 )
             # Tool-calling path: LLM can invoke tools to inspect the home / manage integrations
             if tool_executor is not None:
-                tools = self._get_tools_for_provider()
+                tools = self._get_tools_for_provider(intent_hint=cloud_intent_hint)
                 result_text, error, tool_log = await self._send_request_with_tools(
                     system=system_prompt,
                     messages=messages,
@@ -445,7 +482,16 @@ class LLMClient:
                             parsed.get("response", ""), executed_calls, entities
                         ):
                             parsed["suppressed_duplicate_command"] = True
-                parsed = apply_command_policy(parsed, entities)
+                # Upgrade narrated requires_approval results to a proper
+                # command_approval card before policy runs. Also normalises
+                # an LLM-emitted ``intent: "command_approval"`` (mints
+                # proposal_id, attaches sentinel quick-actions) so the
+                # user always sees buttons they can act on, even when
+                # tool_log is empty.
+                parsed = synthesize_approval_from_tool_log(parsed, tool_log, self._hass)
+                parsed = apply_command_policy(
+                    parsed, entities, hass=self._hass, session_id=session_id
+                )
                 self._usage.flush("chat", intent=parsed.get("intent"))
                 if tool_log:
                     parsed["tool_calls"] = tool_log
@@ -472,7 +518,16 @@ class LLMClient:
                     "config_issue": is_config_issue,
                 }
 
-            parsed = apply_command_policy(parse_architect_response(result, self._hass), entities)
+            parsed = parse_architect_response(result, self._hass)
+            # Normalise LLM-emitted ``intent: "command_approval"`` so a
+            # low-context or non-tool provider that crafts its own
+            # approval card still gets the four sentinel quick-actions
+            # (and a minted proposal_id when absent). Without this the
+            # non-tool path could persist an unresolvable approval
+            # card while the tool / streaming paths handle the same
+            # shape correctly.
+            parsed = synthesize_approval_from_tool_log(parsed, tool_log=None, hass=self._hass)
+            parsed = apply_command_policy(parsed, entities, hass=self._hass, session_id=session_id)
             self._usage.flush("chat", intent=parsed.get("intent"))
             parsed["raw_response"] = result
             return parsed
@@ -488,6 +543,8 @@ class LLMClient:
         refining_scene_context: tuple[str, str] | None = None,
         scene_context: list[tuple[str, str, str]] | None = None,
         areas: list[str] | None = None,
+        *,
+        session_id: str | None = None,
     ) -> AsyncIterator[str]:
         """Async generator — streaming version of architect_chat.
 
@@ -548,9 +605,22 @@ class LLMClient:
                 system_prompt = build_minimal_architect_system_prompt(intent_hint)
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
+                cloud_intent_hint: str | None = None
             else:
+                # Cloud path: classify intent so a plain device-control turn
+                # ("lock the door") gets a slim prompt + trimmed tool schema
+                # instead of the full ~18K-token firehose. Skip the slim path
+                # for refinement turns, which need the full automation/scene
+                # rules.
+                refining = bool(refining_context or refining_scene_context or scene_context)
+                cloud_intent_hint = (
+                    "command"
+                    if not refining and _classify_chat_intent(user_message) == "command"
+                    else None
+                )
                 system_prompt = build_architect_stream_system_prompt(
                     tools_available=tool_executor is not None,
+                    slim=cloud_intent_hint == "command",
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -566,7 +636,7 @@ class LLMClient:
 
             # Tool-aware streaming: streams text tokens, handles tool calls inline
             if tool_executor is not None:
-                tools = self._get_tools_for_provider()
+                tools = self._get_tools_for_provider(intent_hint=cloud_intent_hint)
                 try:
                     async for chunk in self._stream_request_with_tools(
                         system=system_prompt,
@@ -703,6 +773,8 @@ class LLMClient:
         text: str,
         entities: list[EntitySnapshot] | None = None,
         tool_log: list[dict[str, Any]] | None = None,
+        *,
+        session_id: str | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser."""
         # Provider hook: Selora AI Local converts v0.4.2 slim output
@@ -710,25 +782,32 @@ class LLMClient:
         # calls/automation} envelope before the parser sees them. Cloud
         # providers pass through unchanged.
         text = self._provider.convert_response_text(text)
-        return parse_streamed_response(text, self._hass, entities, tool_log)
+        return parse_streamed_response(text, self._hass, entities, tool_log, session_id=session_id)
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration
     # ------------------------------------------------------------------
 
-    def _get_tools_for_provider(self) -> list[dict[str, Any]]:
+    def _get_tools_for_provider(self, *, intent_hint: str | None = None) -> list[dict[str, Any]]:
         """Return tool definitions formatted for the current provider.
 
         Tools marked ``large_context_only`` are dropped for providers with
         a tight context window (currently only selora_local).
+
+        When ``intent_hint == "command"`` the schema is trimmed to the
+        command-execution subset (``COMMAND_TOOL_NAMES``) — a plain
+        device-control turn never needs device-discovery, history, or
+        suggestion tools, and a smaller schema cuts prefill latency.
         """
-        from ..tool_registry import CHAT_TOOLS
+        from ..tool_registry import CHAT_TOOLS, COMMAND_TOOL_NAMES
 
         low_ctx = self._provider.is_low_context
+        command_only = intent_hint == "command"
         return [
             self._provider.format_tool(t)
             for t in CHAT_TOOLS
             if not (low_ctx and t.large_context_only)
+            and not (command_only and t.name not in COMMAND_TOOL_NAMES)
         ]
 
     async def _send_request_with_tools(
@@ -763,6 +842,9 @@ class LLMClient:
             self._usage.flush("chat_tool_round")
 
             # Execute each tool and build the result messages
+            requires_approval_hit = False
+            executed_results: list[ToolWriteResult] = []
+            non_write_tool_seen = False
             for tool_call in requested_tools:
                 _LOGGER.info(
                     "LLM tool call: %s(%s)",
@@ -779,6 +861,53 @@ class LLMClient:
                 )
 
                 self._provider.append_tool_result(messages, response_data, tool_call, result)
+
+                if isinstance(result, dict) and result.get("requires_approval"):
+                    requires_approval_hit = True
+                elif (
+                    tool_call["name"] in ("execute_command", "activate_scene")
+                    and isinstance(result, dict)
+                    and (result.get("executed") is True or result.get("status") == "activated")
+                ):
+                    normalized = _normalized_write_result(tool_call["name"], result)
+                    if normalized is not None:
+                        executed_results.append(normalized)
+                    else:
+                        non_write_tool_seen = True
+                else:
+                    non_write_tool_seen = True
+
+            # Short-circuit when any tool returned requires_approval:
+            # ``synthesize_approval_from_tool_log`` will build the approval
+            # card and replace this text on the way out. Return the hint
+            # (not "") so ``architect_chat`` doesn't treat the held action
+            # as an LLM failure — a falsy result_text there routes to the
+            # generic error path before synthesis ever runs. Saves a full
+            # provider round-trip (5–15s on slow backends).
+            if requires_approval_hit:
+                _LOGGER.debug(
+                    "Short-circuit tool loop: requires_approval result will "
+                    "drive approval card; skipping post-tool LLM round."
+                )
+                return APPROVAL_PENDING_HINT, None, tool_calls_log
+
+            # Short-circuit when this round was ONLY successful
+            # write-action tools. The follow-up LLM round would just
+            # narrate "X is now <state>" — 25+ seconds for a sentence
+            # we can build ourselves from the past-verb table + entity
+            # markers. Skipped when read tools were mixed in (the
+            # model may still need to answer something on top of the
+            # action) or when no write tool ran (no short-circuit
+            # signal).
+            if executed_results and not non_write_tool_seen:
+                friendly = _friendly_name_resolver(self._hass)
+                text = build_executed_confirmation(executed_results, friendly)
+                _LOGGER.debug(
+                    "Short-circuit tool loop: synthesized confirmation for "
+                    "%d executed write call(s); skipping post-tool LLM round.",
+                    len(executed_results),
+                )
+                return text, None, tool_calls_log
 
         # Exhausted rounds
         _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
@@ -821,6 +950,7 @@ class LLMClient:
 
         Yields text chunks (str) directly — same interface as send_request_stream.
         """
+        streamed_text_parts: list[str] = []
         for _round in range(MAX_TOOL_CALL_ROUNDS):
             tool_calls: list[dict[str, Any]] = []
             content_blocks: list[dict[str, Any]] = []
@@ -830,6 +960,7 @@ class LLMClient:
                     async for text in self._provider.stream_with_tools(
                         resp, tool_calls, content_blocks
                     ):
+                        streamed_text_parts.append(text)
                         yield text
 
             except ConnectionError:
@@ -857,6 +988,9 @@ class LLMClient:
 
             # Execute tool calls and append results for next round
             results: list[dict[str, Any]] = []
+            requires_approval_hit = False
+            executed_results: list[ToolWriteResult] = []
+            non_write_tool_seen = False
             for tc in tool_calls:
                 _LOGGER.info(
                     "LLM tool call: %s(%s)",
@@ -865,11 +999,56 @@ class LLMClient:
                 )
                 result = await tool_executor.execute(tc["name"], tc["arguments"])
                 results.append(result)
+                if isinstance(result, dict) and result.get("requires_approval"):
+                    requires_approval_hit = True
+                elif (
+                    tc["name"] in ("execute_command", "activate_scene")
+                    and isinstance(result, dict)
+                    and (result.get("executed") is True or result.get("status") == "activated")
+                ):
+                    normalized = _normalized_write_result(tc["name"], result)
+                    if normalized is not None:
+                        executed_results.append(normalized)
+                    else:
+                        non_write_tool_seen = True
+                else:
+                    non_write_tool_seen = True
 
             self._provider.append_streaming_tool_results(
                 messages, content_blocks, tool_calls, results
             )
             content_blocks = []
+
+            # Short-circuit: when any tool returned requires_approval,
+            # the synthesizer will replace whatever the LLM produces
+            # next with the approval-card text. Skip the next
+            # provider round-trip — saves 5–15s on slow backends
+            # (notably the on-device Selora AI Local model).
+            if requires_approval_hit:
+                _LOGGER.debug(
+                    "Stream short-circuit: requires_approval result will "
+                    "drive approval card; skipping post-tool LLM round."
+                )
+                return
+
+            # Short-circuit: round contained ONLY successful
+            # write-action tools. Synthesize the confirmation
+            # ("Unlocked Front Door." + entity marker) instead of
+            # paying for a second LLM round to write the same thing.
+            if executed_results and not non_write_tool_seen:
+                friendly = _friendly_name_resolver(self._hass)
+                # Entities the model already narrated with a tile marker in
+                # its pre-tool prose must not render a second card here.
+                shown_ids = set(_marker_entity_ids("".join(streamed_text_parts)))
+                yield build_executed_confirmation(
+                    executed_results, friendly, exclude_marker_ids=shown_ids
+                )
+                _LOGGER.debug(
+                    "Stream short-circuit: synthesized confirmation for %d "
+                    "executed write call(s); skipping post-tool LLM round.",
+                    len(executed_results),
+                )
+                return
 
         # Exhausted rounds — acknowledge anything execute_command already
         # fired so the user doesn't retry and double-execute the same service.

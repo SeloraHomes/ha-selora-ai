@@ -27,7 +27,7 @@ from collections.abc import AsyncIterator
 import logging
 import re
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import aiohttp
 from homeassistant.config_entries import ConfigEntry
@@ -44,6 +44,9 @@ from ..const import (
     DEFAULT_SELORA_CONNECT_URL,
 )
 from .openai_compat import OpenAICompatibleProvider
+
+if TYPE_CHECKING:
+    from ..types import OpenAIChatPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -173,7 +176,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         tools: list[dict[str, Any]] | None = None,
         stream: bool = False,
         max_tokens: int = 1024,
-    ) -> dict[str, Any]:
+    ) -> OpenAIChatPayload:
         # Connect's gateway picks the model server-side and overwrites any
         # client-supplied value; omit the field rather than send a misleading
         # one. Everything else stays OpenAI-compatible.
@@ -181,6 +184,13 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
             system, messages, tools=tools, stream=stream, max_tokens=max_tokens
         )
         payload.pop("model", None)
+        # Disable reasoning for the same reason as OpenRouter: for
+        # chat-action turns the reasoning trace burns the output
+        # budget and the model sometimes runs out of tokens before
+        # emitting the tool_calls JSON, falling back to plain prose
+        # that the safety policy then stomps. Connect's gateway
+        # forwards this hint to whichever model it routes to.
+        payload["reasoning"] = {"enabled": False}
         return payload
 
     # -- Token refresh -----------------------------------------------------

@@ -142,11 +142,18 @@ _SHARED_STATE_QUERY_RULES = (
     "- After answering a state query, offer a relevant follow-up action ONLY when the entity's "
     "domain is in the safe command list (light, switch, fan, media_player, climate, input_boolean) "
     "AND the state suggests the user might want to change it (e.g. lights left on, temperature too high). "
-    "Do NOT offer actions for domains outside the safe list (e.g. lock, cover, alarm) or when none is "
-    "useful (e.g. battery level reports, sensor readings the user can't change).\n"
+    "Do NOT offer follow-up actions for sensor readings the user can't change (battery levels, "
+    "temperature sensors, etc.).\n"
     "- When you offer an action, phrase it as a question (e.g. 'Want me to turn them off?'). "
     "If the user confirms ('yes', 'do it', 'please'), respond with intent \"command\" and include "
     "the service calls to execute it immediately.\n"
+    "- REVIEW-bucket actions (lock, unlock, alarm arm/disarm, garage / front door open, tts, "
+    "notify, script, shell_command) are NOT off-limits — the integration shows the user an "
+    "approval card and they tap Allow once / For this conversation / Always / Deny. When the "
+    'user explicitly asks for one of these, attempt the action by emitting `intent: "command"` '
+    "with the service call. Do NOT refuse, do NOT ask 'would you like me to go ahead?' in "
+    "prose, and do NOT tell the user to use the Home Assistant dashboard. The approval card "
+    "IS the confirmation step.\n"
 )
 
 _SHARED_TONE_RULES = (
@@ -243,8 +250,14 @@ _LOW_CONTEXT_SYSTEM_PROMPTS: dict[str, str] = {
         '{"entity_id":"<id>"},"data":{}}]}\n\n'
         "RULES:\n"
         "- Use entity_ids ONLY from AVAILABLE ENTITIES.\n"
-        "- Allowed domains: climate, fan, input_boolean, light, "
-        "media_player, switch.\n"
+        "- Allowed service domains: climate, fan, input_boolean, light, "
+        "media_player, scene, switch, cover, lock, alarm_control_panel, "
+        "vacuum, water_heater, tts, notify, script.\n"
+        "- ALWAYS emit the JSON, even for lock/alarm/cover/tts/notify — "
+        "the integration shows an approval card when the user hasn't "
+        "pre-approved that service. NEVER narrate the action in plain "
+        "prose ('Locking the door'); the safety policy rejects prose-"
+        "only confirmations.\n"
         "- response is one sentence; name the entity.\n"
         "- Output ONLY the JSON object."
     ),
@@ -339,8 +352,13 @@ def build_architect_system_prompt(
     *,
     tools_available: bool = False,
     for_assist: bool = False,
+    slim: bool = False,
 ) -> str:
     """System prompt for the Smart Home Architect role (JSON-mode).
+
+    ``slim`` drops the tool-policy and device-knowledge reference blocks
+    (~7.7K tokens) for plain device-control turns — see
+    ``build_architect_stream_system_prompt``.
 
     ``for_assist`` swaps the marker-emission rules for plain-prose
     rules. The Selora panel hydrates `[[entity:…]]` markers into HA
@@ -351,6 +369,16 @@ def build_architect_system_prompt(
     """
     execute_command_rules = (
         "\nTOOL-BASED COMMAND EXECUTION (preferred when entity_id is known):\n"
+        "MANDATORY: any user request to change device state (turn on/off, "
+        "lock/unlock, open/close, arm/disarm, start/stop, set temperature, "
+        "play/pause, announce, notify, run script, …) MUST go through the "
+        "`execute_command` tool. NEVER narrate the action in prose without "
+        "calling the tool first — sentences like 'Unlocking the front door' "
+        "or 'Turning off the lights' without a matching tool call will be "
+        "stomped by the safety policy because they cannot be verified. If "
+        "you're confident about the entity_id, CALL `execute_command`; if "
+        "the tool returns ``requires_approval: true``, that's the approval "
+        "card path (see below) — still not a reason to skip the tool.\n"
         "When you can resolve the user's request to a specific entity_id, prefer "
         "calling the `execute_command` tool over emitting a `command` intent. "
         "The tool runs the service call through the same safe-command policy and "
@@ -360,6 +388,20 @@ def build_architect_system_prompt(
         'response MUST be `{"intent":"answer", "response":"<1-sentence '
         'confirmation>"}`. Do NOT also emit `"intent":"command"` with a `calls` '
         "array, or the action will execute a second time.\n"
+        "If `execute_command` (or `validate_action`) returns "
+        '`{"requires_approval": true}`, the call did NOT run — it is held back '
+        "pending the user's explicit approval. Do NOT tell the user the action "
+        "failed or was refused. Do NOT retry with the same service. Do NOT ask "
+        "the user a confirmation question like 'would you like me to go ahead?' "
+        "— the approval card IS the confirmation step. Simply reply with "
+        '`{"intent":"answer", "response":"<one short neutral sentence>"}` '
+        '(e.g. "Queued — approve below to unlock the front door."). The '
+        "integration will surface the card under your reply with Allow once / "
+        "For this conversation / Always / Deny.\n"
+        "When the user directly asks for a REVIEW-bucket action (unlock, "
+        "disarm, open garage, run script, send tts, notify), CALL "
+        "`execute_command` immediately. Do NOT first call `validate_action` "
+        "and then refuse in prose; the approval card is automatic.\n"
         "Use the JSON `command` intent only when you must batch multiple calls "
         "in one turn or when an entity_id is genuinely ambiguous and you want "
         "the policy validator to flag it.\n"
@@ -531,7 +573,7 @@ def build_architect_system_prompt(
         "a confirmation.\n"
         "- Always return ONLY valid JSON. No markdown fences. No text outside the JSON object.\n"
         + "\n"
-        + _load_tool_policy()
+        + ("" if slim else _load_tool_policy())
         + "\n"
         + (_suggestions_prompt() if tools_available else "")
         + _SHARED_TONE_RULES
@@ -542,11 +584,13 @@ def build_architect_system_prompt(
         '- The structured "description" field MUST remain a precise, complete summary '
         "including all targeted entities so the user can verify before enabling.\n"
         + "\n"
-        + _load_device_knowledge()
+        + ("" if slim else _load_device_knowledge())
     )
 
 
-def build_architect_stream_system_prompt(*, tools_available: bool = False) -> str:
+def build_architect_stream_system_prompt(
+    *, tools_available: bool = False, slim: bool = False
+) -> str:
     """Streaming-optimised system prompt.
 
     Instead of requiring pure JSON (impossible to parse mid-stream), the LLM
@@ -557,7 +601,14 @@ def build_architect_stream_system_prompt(*, tools_available: bool = False) -> st
         ```automation
         { ... }
         ```
+
+    ``slim`` drops the tool-policy and device-knowledge reference blocks
+    (~7.7K tokens). Used for plain device-control turns, where that
+    reference text adds latency without affecting the service call —
+    the local command policy validates every call regardless.
     """
+    tool_policy = "" if slim else _load_tool_policy()
+    device_knowledge = "" if slim else _load_device_knowledge()
     return (
         "You are Selora AI, an expert Home Assistant architect and consultant.\n\n"
         "YOUR EXPERTISE:\n"
@@ -770,7 +821,7 @@ def build_architect_stream_system_prompt(*, tools_available: bool = False) -> st
         "- For device integration questions, give step-by-step guidance specific to HA.\n"
         "- For troubleshooting, ask targeted diagnostic questions and suggest concrete fixes.\n"
         + "\n"
-        + _load_tool_policy()
+        + tool_policy
         + "\n"
         + (_suggestions_prompt() if tools_available else "")
         + _SHARED_TONE_RULES
@@ -780,10 +831,7 @@ def build_architect_stream_system_prompt(*, tools_available: bool = False) -> st
         'the details. But the automation JSON "description" field MUST remain a precise, complete summary '
         "including all targeted entities so the user can verify before enabling.\n"
         "- Skip bullet lists unless comparing options or giving step-by-step instructions. "
-        "For simple answers, prefer a single flowing sentence.\n"
-        + "\n"
-        + _load_device_knowledge()
-        + "\n\n"
+        "For simple answers, prefer a single flowing sentence.\n" + "\n" + device_knowledge + "\n\n"
         "════════════════════════════════════════════════════════════\n"
         "FINAL REMINDER — ENTITY OUTPUT\n"
         "════════════════════════════════════════════════════════════\n"
