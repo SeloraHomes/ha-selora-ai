@@ -125,6 +125,403 @@ class TestValidateAutomationPayload:
         assert ok is False
         assert msg == "each trigger must include a platform"
 
+    def test_rejects_platform_and_trigger_both_present(self) -> None:
+        """HA rejects `{platform: zha, trigger: zha_event}` — validator must too."""
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "Conflict",
+                "trigger": [{"platform": "zha", "trigger": "zha_event"}],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "both 'platform' and 'trigger'" in msg
+
+    def test_accepts_integration_provided_no_dot_platform(self) -> None:
+        """Integrations register their own platforms (e.g. LiteJet, Tasmota)
+        without the dot-form. Validator must not block them — HA will catch
+        a truly invalid platform at reload."""
+        payload = {
+            "alias": "LiteJet",
+            "trigger": [{"platform": "litejet", "number": 1}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
+    def test_rejects_event_trigger_without_event_type(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "EventNoType",
+                "trigger": [{"platform": "event"}],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "event trigger requires 'event_type'" in msg
+
+    def test_accepts_zha_event_trigger(self) -> None:
+        payload = {
+            "alias": "ZHA",
+            "trigger": [
+                {
+                    "platform": "event",
+                    "event_type": "zha_event",
+                    "event_data": {"command": "single"},
+                }
+            ],
+            "action": [{"action": "scene.turn_on", "target": {"entity_id": "scene.x"}}],
+        }
+        ok, msg, result = validate_automation_payload(payload)
+        assert ok is True, msg
+        assert result["triggers"][0]["event_type"] == "zha_event"
+
+    def test_rejects_device_trigger_without_device_id(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "DevNoId",
+                "trigger": [{"platform": "device", "domain": "button", "type": "pressed"}],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "device trigger requires 'device_id'" in msg
+
+    def test_rejects_device_trigger_with_slug_device_id(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "DevSlug",
+                "trigger": [
+                    {
+                        "platform": "device",
+                        "device_id": "smart_button_master_bedroom",
+                        "domain": "button",
+                        "type": "pressed",
+                    }
+                ],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    @pytest.mark.parametrize(
+        "dotted_value",
+        ["timer.finished", "schedule.turned_on", "shelly.click"],
+    )
+    def test_rejects_dotted_trigger_type(self, dotted_value: str) -> None:
+        """`{trigger: "timer.finished"}` / `{platform: "timer.finished"}` are
+        not valid HA trigger types — those are event names, surfaced via
+        `{platform: event, event_type: "..."}` or a state trigger on the
+        entity. The validator must reject both with a helpful message."""
+        for key in ("trigger", "platform"):
+            payload = {
+                "alias": "Dotted",
+                "triggers": [{key: dotted_value}],
+                "actions": [{"action": "light.turn_on"}],
+            }
+            ok, msg, _ = validate_automation_payload(payload)
+            assert ok is False, f"key={key}"
+            assert "not a valid trigger type" in msg
+            assert "event_type" in msg
+
+    def test_coerces_new_schema_trigger_key_for_plain_platform(self) -> None:
+        """`{trigger: "state"}` (HA 2024.10+ key, plain platform value) is
+        coerced to `{platform: "state"}` so downstream code sees a uniform
+        shape."""
+        payload = {
+            "alias": "NewKeyPlain",
+            "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
+            "actions": [{"action": "light.turn_on"}],
+        }
+        ok, msg, result = validate_automation_payload(payload)
+        assert ok is True, msg
+        assert result["triggers"][0]["platform"] == "state"
+        assert "trigger" not in result["triggers"][0]
+
+    def test_accepts_device_trigger_with_hex_device_id(self) -> None:
+        """No hass → registry check skipped; hex shape still passes."""
+        payload = {
+            "alias": "DevHex",
+            "trigger": [
+                {
+                    "platform": "device",
+                    "device_id": "75fafa7181a925c27d66f3f48c1971da",
+                    "domain": "button",
+                    "type": "pressed",
+                }
+            ],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, msg, result = validate_automation_payload(payload)
+        assert ok is True, msg
+        assert result["triggers"][0]["device_id"] == "75fafa7181a925c27d66f3f48c1971da"
+
+    # -- condition gates --------------------------------------------------
+
+    def test_accepts_integration_provided_condition_type(self) -> None:
+        """Integrations register their own condition platforms (e.g. MQTT).
+        Validator must not block them — HA will catch a truly invalid type
+        at reload."""
+        payload = {
+            "alias": "MQTTCond",
+            "trigger": [{"platform": "time", "at": "08:00:00"}],
+            "condition": [{"condition": "mqtt", "topic": "home/state", "payload": "ready"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
+    def test_rejects_device_condition_with_slug_device_id(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "DevCondSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "condition": [
+                    {
+                        "condition": "device",
+                        "device_id": "kitchen_button",
+                        "domain": "binary_sensor",
+                        "type": "is_on",
+                    }
+                ],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_rejects_slug_device_id_inside_logical_group(self) -> None:
+        """Slug device_id buried in `and:` must still be caught."""
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "NestedSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "condition": [
+                    {
+                        "condition": "and",
+                        "conditions": [
+                            {
+                                "condition": "device",
+                                "device_id": "kitchen_button",
+                                "domain": "binary_sensor",
+                                "type": "is_on",
+                            }
+                        ],
+                    }
+                ],
+                "action": [{"action": "light.turn_on"}],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_accepts_shorthand_logical_condition(self) -> None:
+        """`{or: [...]}` shorthand must not be flagged as missing condition field."""
+        payload = {
+            "alias": "Shorthand",
+            "trigger": [{"platform": "time", "at": "08:00:00"}],
+            "condition": [
+                {
+                    "or": [
+                        {"condition": "state", "entity_id": "light.x", "state": "on"},
+                    ]
+                }
+            ],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
+    def test_rejects_slug_device_id_in_choose_branch(self) -> None:
+        """`choose[].conditions` is a valid HA spot for conditions — slug
+        device_id buried there must still be rejected."""
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "ChooseSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "choose": [
+                            {
+                                "conditions": [
+                                    {
+                                        "condition": "device",
+                                        "device_id": "kitchen_button",
+                                        "domain": "binary_sensor",
+                                        "type": "is_on",
+                                    }
+                                ],
+                                "sequence": [{"action": "light.turn_on"}],
+                            }
+                        ]
+                    }
+                ],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_rejects_slug_device_id_in_if_then(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "IfSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "if": [
+                            {
+                                "condition": "device",
+                                "device_id": "kitchen_button",
+                                "domain": "binary_sensor",
+                                "type": "is_on",
+                            }
+                        ],
+                        "then": [{"action": "light.turn_on"}],
+                    }
+                ],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_rejects_slug_device_id_in_repeat_while(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "RepeatSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "repeat": {
+                            "while": [
+                                {
+                                    "condition": "device",
+                                    "device_id": "kitchen_button",
+                                    "domain": "binary_sensor",
+                                    "type": "is_on",
+                                }
+                            ],
+                            "sequence": [{"action": "light.turn_on"}],
+                        }
+                    }
+                ],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_accepts_template_shorthand_condition_in_if(self) -> None:
+        """HA accepts a bare template string as a condition entry."""
+        payload = {
+            "alias": "TemplateShorthand",
+            "trigger": [{"platform": "time", "at": "08:00:00"}],
+            "action": [
+                {
+                    "if": ["{{ is_state('input_boolean.away', 'on') }}"],
+                    "then": [{"action": "light.turn_on"}],
+                }
+            ],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
+    def test_accepts_template_shorthand_in_choose_conditions(self) -> None:
+        payload = {
+            "alias": "TemplateChoose",
+            "trigger": [{"platform": "time", "at": "08:00:00"}],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": ["{{ is_state('sun.sun', 'below_horizon') }}"],
+                            "sequence": [{"action": "light.turn_on"}],
+                        }
+                    ]
+                }
+            ],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
+    def test_rejects_slug_device_id_in_wait_for_trigger(self) -> None:
+        """`wait_for_trigger` embeds full trigger dicts — slug device_id
+        inside must be caught with the same gate as top-level triggers."""
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "WaitSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "wait_for_trigger": [
+                            {
+                                "platform": "device",
+                                "device_id": "kitchen_button",
+                                "domain": "button",
+                                "type": "pressed",
+                            }
+                        ],
+                    },
+                    {"action": "light.turn_on"},
+                ],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_rejects_platform_trigger_conflict_in_wait_for_trigger(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "WaitConflict",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "wait_for_trigger": [{"platform": "zha", "trigger": "zha_event"}],
+                    },
+                    {"action": "light.turn_on"},
+                ],
+            }
+        )
+        assert ok is False
+        assert "both 'platform' and 'trigger'" in msg
+
+    def test_rejects_slug_device_id_in_inline_action_condition(self) -> None:
+        ok, msg, _ = validate_automation_payload(
+            {
+                "alias": "InlineSlug",
+                "trigger": [{"platform": "time", "at": "08:00:00"}],
+                "action": [
+                    {
+                        "condition": "device",
+                        "device_id": "kitchen_button",
+                        "domain": "binary_sensor",
+                        "type": "is_on",
+                    },
+                    {"action": "light.turn_on"},
+                ],
+            }
+        )
+        assert ok is False
+        assert "32-char hex" in msg
+
+    def test_accepts_logical_with_singular_dict_conditions(self) -> None:
+        payload = {
+            "alias": "SingularDict",
+            "trigger": [{"platform": "time", "at": "08:00:00"}],
+            "condition": [
+                {
+                    "condition": "and",
+                    "conditions": {
+                        "condition": "state",
+                        "entity_id": "light.x",
+                        "state": "on",
+                    },
+                }
+            ],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, msg, _ = validate_automation_payload(payload)
+        assert ok is True, msg
+
     # -- success / normalization ------------------------------------------
 
     def test_valid_automation_returns_normalized(self, sample_automation: dict) -> None:
@@ -457,11 +854,11 @@ class TestValidateActionDomains:
             "homeassistant": {"turn_on", "turn_off", "toggle"},
         }
         mock_hass = MagicMock()
-        mock_hass.services.has_service.side_effect = (
-            lambda domain, service: service in registry.get(domain, set())
+        mock_hass.services.has_service.side_effect = lambda domain, service: (
+            service in registry.get(domain, set())
         )
-        mock_hass.services.async_services_for_domain.side_effect = (
-            lambda domain: {svc: {} for svc in registry[domain]} if domain in registry else {}
+        mock_hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in registry[domain]} if domain in registry else {}
         )
         return mock_hass
 
@@ -599,17 +996,13 @@ class TestValidateEntityReferences:
             "homeassistant": {"turn_on", "turn_off", "toggle"},
         }
         hass = MagicMock()
-        hass.services.has_service.side_effect = (
-            lambda domain, service: service in service_registry.get(domain, set())
+        hass.services.has_service.side_effect = lambda domain, service: (
+            service in service_registry.get(domain, set())
         )
-        hass.services.async_services_for_domain.side_effect = (
-            lambda domain: {svc: {} for svc in service_registry[domain]}
-            if domain in service_registry
-            else {}
+        hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in service_registry[domain]} if domain in service_registry else {}
         )
-        hass.states.get.side_effect = (
-            lambda eid: MagicMock() if eid in known_entity_ids else None
-        )
+        hass.states.get.side_effect = lambda eid: MagicMock() if eid in known_entity_ids else None
         return hass
 
     @pytest.fixture(autouse=True)
@@ -619,9 +1012,7 @@ class TestValidateEntityReferences:
 
         def _fake_async_get(_hass: Any) -> Any:
             reg = MagicMock()
-            reg.async_get.side_effect = (
-                lambda eid: MagicMock() if eid in registry_ids else None
-            )
+            reg.async_get.side_effect = lambda eid: MagicMock() if eid in registry_ids else None
             return reg
 
         monkeypatch.setattr(
@@ -658,16 +1049,10 @@ class TestValidateEntityReferences:
         self._set_registry({"light.kitchen"})
         payload = {
             "alias": "Bad trigger",
-            "trigger": [
-                {"platform": "state", "entity_id": "automation.ghost", "to": "on"}
-            ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "trigger": [{"platform": "state", "entity_id": "automation.ghost", "to": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "automation.ghost" in reason
 
@@ -677,16 +1062,10 @@ class TestValidateEntityReferences:
         payload = {
             "alias": "Bad condition",
             "trigger": [{"platform": "time", "at": "07:00:00"}],
-            "condition": [
-                {"condition": "state", "entity_id": "switch.phantom", "state": "on"}
-            ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "condition": [{"condition": "state", "entity_id": "switch.phantom", "state": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "switch.phantom" in reason
 
@@ -695,12 +1074,8 @@ class TestValidateEntityReferences:
         self._set_registry({"light.kitchen", "switch.foyer"})
         payload = {
             "alias": "All known",
-            "trigger": [
-                {"platform": "state", "entity_id": "switch.foyer", "to": "on"}
-            ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "trigger": [{"platform": "state", "entity_id": "switch.foyer", "to": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
         valid, reason, _ = validate_automation_payload(
             payload, self._hass({"light.kitchen", "switch.foyer"})
@@ -714,12 +1089,8 @@ class TestValidateEntityReferences:
         self._set_registry({"switch.foyer", "light.kitchen"})
         payload = {
             "alias": "Disabled entity",
-            "trigger": [
-                {"platform": "state", "entity_id": "switch.foyer", "to": "on"}
-            ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "trigger": [{"platform": "state", "entity_id": "switch.foyer", "to": "on"}],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
         valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
         assert valid, reason
@@ -745,9 +1116,7 @@ class TestValidateEntityReferences:
         payload = {
             "alias": "No hass",
             "trigger": [{"platform": "time", "at": "07:00:00"}],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.phantom"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.phantom"}}],
         }
         valid, _, _ = validate_automation_payload(payload)
         assert valid
@@ -785,9 +1154,7 @@ class TestValidateEntityReferences:
                 }
             ],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "light.phantom" in reason
         assert "light.kitchen" not in reason
@@ -811,13 +1178,9 @@ class TestValidateEntityReferences:
                     "event_data": {"entity_id": "my_integration.not_a_state_entity"},
                 }
             ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert valid, reason
 
     def test_choose_branch_entity_validated(self) -> None:
@@ -849,9 +1212,7 @@ class TestValidateEntityReferences:
                 }
             ],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "light.phantom" in reason
 
@@ -874,13 +1235,9 @@ class TestValidateEntityReferences:
                     },
                 }
             ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "switch.phantom" in reason
 
@@ -907,9 +1264,7 @@ class TestValidateEntityReferences:
                 {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
             ],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "lock.phantom" in reason
 
@@ -933,13 +1288,9 @@ class TestValidateEntityReferences:
                     ]
                 }
             ],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "lock.phantom" in reason
 
@@ -963,9 +1314,7 @@ class TestValidateEntityReferences:
                 {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
             ],
         }
-        valid, reason, _ = validate_automation_payload(
-            payload, self._hass({"light.kitchen"})
-        )
+        valid, reason, _ = validate_automation_payload(payload, self._hass({"light.kitchen"}))
         assert not valid
         assert "binary_sensor.phantom_motion" in reason
 
@@ -976,9 +1325,7 @@ class TestValidateEntityReferences:
         payload = {
             "alias": "Deprecated form",
             "trigger": [{"platform": "time", "at": "07:00:00"}],
-            "action": [
-                {"action": "light.turn_on", "entity_id": "light.phantom"}
-            ],
+            "action": [{"action": "light.turn_on", "entity_id": "light.phantom"}],
         }
         valid, reason, _ = validate_automation_payload(payload, self._hass(set()))
         assert not valid
@@ -989,15 +1336,11 @@ class TestValidateEntityReferences:
         self._set_registry(set())
         payload = {
             "alias": "Many phantoms",
-            "trigger": [
-                {"platform": "state", "entity_id": "switch.a", "to": "on"}
-            ],
+            "trigger": [{"platform": "state", "entity_id": "switch.a", "to": "on"}],
             "action": [
                 {
                     "action": "light.turn_on",
-                    "target": {
-                        "entity_id": ["light.b", "light.c", "light.d", "light.e"]
-                    },
+                    "target": {"entity_id": ["light.b", "light.c", "light.d", "light.e"]},
                 }
             ],
         }
@@ -1013,12 +1356,10 @@ class TestValidateActionServices:
 
     @staticmethod
     def _mock_hass(services: dict[str, list[str]]) -> MagicMock:
-        registry = {
-            domain: set(svcs) for domain, svcs in services.items()
-        }
+        registry = {domain: set(svcs) for domain, svcs in services.items()}
         hass = MagicMock()
-        hass.services.has_service.side_effect = (
-            lambda domain, service: service in registry.get(domain, set())
+        hass.services.has_service.side_effect = lambda domain, service: (
+            service in registry.get(domain, set())
         )
         return hass
 
@@ -2301,7 +2642,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.a", "selora_ai_abc123",
+                "automation.a",
+                "selora_ai_abc123",
                 last_triggered=None,
                 friendly_name="Never triggered",
                 state_value="on",
@@ -2317,7 +2659,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.a", "selora_ai_abc123",
+                "automation.a",
+                "selora_ai_abc123",
                 last_triggered=None,
                 state_value="off",
             ),
@@ -2332,7 +2675,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.a", "selora_ai_abc123",
+                "automation.a",
+                "selora_ai_abc123",
                 last_triggered=recent,
             ),
         ]
@@ -2346,7 +2690,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.a", "selora_ai_abc123",
+                "automation.a",
+                "selora_ai_abc123",
                 last_triggered=old,
                 friendly_name="Old automation",
             ),
@@ -2359,7 +2704,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.user", "user_custom",
+                "automation.user",
+                "user_custom",
                 last_triggered=None,
             ),
         ]
@@ -2377,7 +2723,9 @@ class TestFindStaleAutomations:
             _make_automation_state("automation.b", "selora_ai_bbb", last_triggered=old),
             _make_automation_state("automation.c", "selora_ai_ccc", last_triggered=None),
             _make_automation_state("automation.d", "user_custom", last_triggered=None),
-            _make_automation_state("automation.e", "selora_ai_eee", last_triggered=None, state_value="off"),
+            _make_automation_state(
+                "automation.e", "selora_ai_eee", last_triggered=None, state_value="off"
+            ),
         ]
         stale = find_stale_automations(hass)
         assert len(stale) == 2
@@ -2389,7 +2737,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.bad", "selora_ai_bad",
+                "automation.bad",
+                "selora_ai_bad",
                 last_triggered="not-a-date",
             ),
         ]
@@ -2436,7 +2785,8 @@ class TestFindStaleAutomations:
         hass = MagicMock()
         hass.states.async_all.return_value = [
             _make_automation_state(
-                "automation.new", "selora_ai_new",
+                "automation.new",
+                "selora_ai_new",
                 last_triggered=None,
                 last_updated=datetime.now(UTC),  # just created
             ),
