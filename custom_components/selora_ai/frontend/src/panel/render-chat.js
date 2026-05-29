@@ -4,6 +4,7 @@ import { renderMarkdown, stripAutomationBlock } from "../shared/markdown.js";
 import { formatTime } from "../shared/date-utils.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
+import { renderApprovalCard } from "./render-approval-card.js";
 import {
   AUTOCOMPLETE_MIN_CHARS,
   buildSuggestionIndex,
@@ -235,7 +236,13 @@ export function renderChat(host) {
     lastMsg &&
     lastMsg.role !== "user" &&
     lastMsg.quick_actions &&
-    lastMsg.quick_actions.length
+    lastMsg.quick_actions.length &&
+    // Approval cards render their Allow/Deny row INLINE inside the
+    // bubble so the user sees the buttons next to the proposal
+    // they're approving. Without this guard the sticky composer row
+    // below would render the same four buttons again — 8 buttons
+    // on screen with no obvious link back to the card.
+    !lastMsg.command_approval
       ? lastMsg
       : null;
 
@@ -813,24 +820,76 @@ function _renderComposer(host, opts = {}) {
                   _acceptGhost(host, e.target);
                   return;
                 }
-                if (e.key === "ArrowUp" && !host._input) {
-                  const lastUser = [...host._messages]
-                    .reverse()
-                    .find((m) => m.role === "user" && m.content);
-                  if (lastUser) {
+                // Shell-style history navigation. ArrowUp walks back
+                // through prior user messages; ArrowDown walks forward
+                // and finally restores whatever draft the user was
+                // typing when they entered history. ``_historyIndex``
+                // points into ``userHistory`` from newest=0; ``null``
+                // means "not in history mode, ``_input`` is the live
+                // draft". Only triggers when the caret is at the
+                // start/end of the textarea so editing earlier in a
+                // multi-line message still works.
+                const userHistory = host._messages
+                  .filter((m) => m.role === "user" && m.content)
+                  .map((m) => stripEntityMarkers(m.content));
+                const ta = e.target;
+                const atStart =
+                  ta.selectionStart === 0 && ta.selectionEnd === 0;
+                const atEnd =
+                  ta.selectionStart === ta.value.length &&
+                  ta.selectionEnd === ta.value.length;
+                const inHistory =
+                  host._historyIndex !== null &&
+                  host._historyIndex !== undefined;
+                const applyHistory = (idx) => {
+                  const recalled = userHistory[userHistory.length - 1 - idx];
+                  host._historyIndex = idx;
+                  host._input = recalled;
+                  requestAnimationFrame(() => {
+                    ta.value = recalled;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                };
+                if (
+                  e.key === "ArrowUp" &&
+                  userHistory.length > 0 &&
+                  (inHistory || atStart || !host._input)
+                ) {
+                  // First step into history saves the in-progress draft
+                  // so ArrowDown past the newest entry can restore it.
+                  if (!inHistory) {
+                    host._historyDraft = host._input || "";
                     e.preventDefault();
-                    // Persisted messages can carry hidden [[entity:…]]
-                    // markers — strip them so recall mirrors what the user
-                    // sees in the bubble and doesn't resend stale markers.
-                    const recalled = stripEntityMarkers(lastUser.content);
-                    host._input = recalled;
-                    const ta = e.target;
-                    requestAnimationFrame(() => {
-                      ta.value = recalled;
-                      ta.setSelectionRange(ta.value.length, ta.value.length);
-                      _autoResize(ta);
-                    });
+                    applyHistory(0);
+                    return;
                   }
+                  if (host._historyIndex < userHistory.length - 1) {
+                    e.preventDefault();
+                    applyHistory(host._historyIndex + 1);
+                    return;
+                  }
+                  // Already at oldest — swallow so caret doesn't move.
+                  e.preventDefault();
+                  return;
+                }
+                if (e.key === "ArrowDown" && inHistory && atEnd) {
+                  e.preventDefault();
+                  if (host._historyIndex > 0) {
+                    applyHistory(host._historyIndex - 1);
+                    return;
+                  }
+                  // Past the newest entry — restore the in-progress draft.
+                  const draft = host._historyDraft || "";
+                  host._historyIndex = null;
+                  host._historyDraft = "";
+                  host._input = draft;
+                  requestAnimationFrame(() => {
+                    ta.value = draft;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                  return;
                 }
               }}
               placeholder=${host._newAutomationMode
@@ -881,6 +940,18 @@ export function renderMessage(host, msg, idx) {
       isPartialBlock && msg._streaming && partialBlockType === "automation";
     showSceneSpinner =
       isPartialBlock && msg._streaming && partialBlockType === "scene";
+    // Strip the trailing risk-level marker that older command_approval
+    // bubbles carried in prose (e.g. "… before I run it [MEDIUM]."). The
+    // card now surfaces the level on its own; leaving the marker in the
+    // sentence repeats it and (when truncated like "[M…") looks broken.
+    // Persisted messages may still contain the marker so this guard is
+    // permanent, not just a migration.
+    if (msg.command_approval) {
+      displayContent = displayContent
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
+        .trim();
+    }
   }
 
   return html`
@@ -899,15 +970,19 @@ export function renderMessage(host, msg, idx) {
               style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;"
             >
               <div
-                class="bubble assistant"
+                class="bubble assistant${msg.command_approval
+                  ? " bubble--approval"
+                  : ""}"
                 style="max-width:100%;align-self:auto;"
               >
-                <span
-                  class="msg-content ${msg._streaming
-                    ? "streaming-cursor"
-                    : ""}"
-                  .innerHTML=${renderMarkdown(displayContent)}
-                ></span>
+                ${msg.command_approval
+                  ? ""
+                  : html`<span
+                      class="msg-content ${msg._streaming
+                        ? "streaming-cursor"
+                        : ""}"
+                      .innerHTML=${renderMarkdown(displayContent)}
+                    ></span>`}
                 ${showAutomationSpinner
                   ? html`
                       <div
@@ -951,6 +1026,14 @@ export function renderMessage(host, msg, idx) {
                   : ""}
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                 ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
+                ${msg.command_approval
+                  ? renderApprovalCard(
+                      host,
+                      msg,
+                      msg.command_approval,
+                      msg.approval_status,
+                    )
+                  : ""}
                 ${msg._interrupted
                   ? html`
                       <div class="stream-interrupt">
@@ -972,6 +1055,31 @@ export function renderMessage(host, msg, idx) {
                   : ""}
               </div>
               ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
+              ${msg.quick_actions &&
+              msg.quick_actions.length &&
+              // Standard quick_actions only render on the latest
+              // message — once the conversation has moved on, an old
+              // suggestion chip is just clutter. Approval cards are
+              // the exception: a pending proposal must stay actionable
+              // even if the user typed something else before clicking,
+              // otherwise the only way to resolve it is to reload the
+              // session.
+              (idx === host._messages.length - 1 ||
+                (msg.command_approval &&
+                  msg.approval_status !== "approved" &&
+                  msg.approval_status !== "denied" &&
+                  msg.approval_status !== "resolving")) &&
+              // Hide approval action cards once the proposal has been
+              // resolved (or is mid-resolve). Re-clicking after the
+              // status flipped would 404 server-side, and the approved
+              // / denied chip already tells the user what happened.
+              msg.approval_status !== "approved" &&
+              msg.approval_status !== "denied" &&
+              msg.approval_status !== "resolving"
+                ? renderQuickActions(host, msg.quick_actions, {
+                    used: !!msg._qa_used,
+                  })
+                : ""}
               <div
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"

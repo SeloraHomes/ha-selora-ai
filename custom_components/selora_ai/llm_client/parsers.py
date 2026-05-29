@@ -26,9 +26,11 @@ from .command_policy import (
     _call_signature,
     _executed_call_signatures,
     _executed_service_calls_from_log,
+    _prose_describes_attempted_call,
     _prose_is_trusted_after_tool,
     _response_names_unbacked_entity,
     apply_command_policy,
+    synthesize_approval_from_tool_log,
 )
 
 if TYPE_CHECKING:
@@ -268,6 +270,8 @@ def parse_streamed_response(
     hass: HomeAssistant,
     entities: list[EntitySnapshot] | None = None,
     tool_log: list[dict[str, Any]] | None = None,
+    *,
+    session_id: str | None = None,
 ) -> ArchitectResponse:
     """Parse completed streamed text.
 
@@ -299,7 +303,12 @@ def parse_streamed_response(
         text = text[: qa_match.start()] + text[qa_match.end() :]
 
     def _attach_qa(r: ArchitectResponse) -> ArchitectResponse:
-        if quick_actions:
+        # A command_approval result carries the policy-generated
+        # ``approve:<scope>:<proposal_id>`` / ``deny`` sentinels — the only
+        # buttons that can resolve the proposal. Model-supplied quick_actions
+        # would have no proposal_id binding, so overwriting them leaves an
+        # unresolvable card. Keep the policy's actions for that intent.
+        if quick_actions and r.get("intent") != "command_approval":
             r["quick_actions"] = quick_actions
         # All proposal-intent returns (automation / scene) get their
         # response prose scrubbed of entity tile markers here so the
@@ -383,7 +392,7 @@ def parse_streamed_response(
                 "calls": data.get("calls", []),
             }
             if entities is not None:
-                result = apply_command_policy(result, entities)
+                result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
             return _attach_qa(result)
         except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse command block: %s", json_text[:200])
@@ -421,7 +430,7 @@ def parse_streamed_response(
             if "scheduled_time" in data:
                 result["scheduled_time"] = data["scheduled_time"]
             if entities is not None:
-                result = apply_command_policy(result, entities)
+                result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
             return _attach_qa(result)
         except json.JSONDecodeError, ValueError:
             _LOGGER.warning("Failed to parse delayed_command block: %s", json_text[:200])
@@ -516,17 +525,40 @@ def parse_streamed_response(
     if result.get("intent") == "answer" and tool_log:
         executed_calls = _executed_service_calls_from_log(tool_log)
         response_text = result.get("response", "")
-        if _prose_is_trusted_after_tool(response_text, executed_calls, entities) or (
-            command_block_fully_stripped
-            and executed_calls
-            and not _response_names_unbacked_entity(response_text, executed_calls, entities)
+        # Also accept the case where the LLM attempted execute_command
+        # / validate_action with a service whose action verb appears in
+        # the prose. The formal trust check requires ``executed:True``
+        # entries; if a service errored or returned an unexpected shape
+        # but the LLM clearly identified the entity (the tool referenced
+        # it), the strict "no entity matched" stomp below would be
+        # wrong. The narrower attempted-call test prevents the stomp
+        # from misfiring without trusting prose for unrelated tools.
+        attempted_match = _prose_describes_attempted_call(response_text, tool_log, entities)
+        if (
+            attempted_match
+            or _prose_is_trusted_after_tool(response_text, executed_calls, entities)
+            or (
+                command_block_fully_stripped
+                and executed_calls
+                and not _response_names_unbacked_entity(response_text, executed_calls, entities)
+            )
         ):
             result["suppressed_duplicate_command"] = True
+
+    # Promote REVIEW-bucket tool attempts to a proper command_approval
+    # proposal even when the LLM narrated the requires_approval result
+    # back at the user instead of emitting a command JSON block. Without
+    # this the chat shows "I can't unlock the door because it requires
+    # approval" with no card — the user has no way to actually approve.
+    # Also runs when the LLM directly emitted ``intent: "command_approval"``
+    # (no tool_log needed) so we can mint a proposal_id and attach the
+    # four sentinel quick-actions the chat UI needs.
+    result = synthesize_approval_from_tool_log(result, tool_log, hass)
 
     # Apply command safety policy if entities are available.
     # Always run the policy — even when calls is empty — so that
     # command intents with no calls get downgraded to "answer".
     if entities is not None:
-        result = apply_command_policy(result, entities)
+        result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
 
     return _attach_qa(result)

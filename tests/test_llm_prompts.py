@@ -662,9 +662,10 @@ class TestUnbackedActionConfirmation:
         assert "open_cover" in msg
         assert "close_cover" in msg
 
-    def test_lock_and_alarm_remain_blocked(self, hass) -> None:
-        """Locks and alarms intentionally stay outside the allowlist —
-        they're higher-risk and warrant a separate config gate."""
+    def test_lock_and_alarm_route_to_approval(self, hass) -> None:
+        """Locks and alarms are intentionally outside the SAFE allowlist —
+        they're high-risk and must be gated by an explicit user approval
+        rather than auto-executed or hard-rejected."""
         client = _make_client(hass)
         for service in ("lock.unlock", "alarm_control_panel.alarm_disarm"):
             result = apply_command_policy(
@@ -677,7 +678,11 @@ class TestUnbackedActionConfirmation:
                 },
                 [{"entity_id": f"{service.split('.')[0]}.front"}],
             )
-            assert result["intent"] == "answer", f"{service} unexpectedly allowed"
+            assert result["intent"] == "command_approval", (
+                f"{service} should route through the approval gate"
+            )
+            assert result.get("calls") == []  # nothing runs without explicit approval
+            assert result["command_approval"]["risk_level"] == "high"
 
     def test_standalone_done_is_replaced(self, hass) -> None:
         """A bare 'Done' confirmation with no trailing punctuation must still

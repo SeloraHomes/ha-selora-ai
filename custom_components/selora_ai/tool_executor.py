@@ -29,10 +29,18 @@ class ToolExecutor:
         device_manager: DeviceManager,
         *,
         is_admin: bool,
+        session_id: str | None = None,
     ) -> None:
         self._hass = hass
         self._device_manager = device_manager
         self._is_admin = is_admin
+        # Threaded through to ``_tool_execute_command`` /
+        # ``_tool_validate_action`` so they can honour the user's
+        # Session-scope and Always-scope approval grants. Without this
+        # the tool path would always answer ``requires_approval`` for
+        # a REVIEW service even after the user clicked Allow — every
+        # turn would surface another approval card.
+        self._session_id = session_id
         # Per-request log of tools that successfully dispatched. The
         # streaming chat handler reads this after the LLM stream ends
         # to suppress duplicate execute_command JSON blocks.
@@ -126,12 +134,12 @@ class ToolExecutor:
     async def _validate_action(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_validate_action
 
-        return await _tool_validate_action(self._hass, arguments)
+        return await _tool_validate_action(self._hass, arguments, session_id=self._session_id)
 
     async def _execute_command(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_execute_command
 
-        return await _tool_execute_command(self._hass, arguments)
+        return await _tool_execute_command(self._hass, arguments, session_id=self._session_id)
 
     async def _activate_scene(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_activate_scene

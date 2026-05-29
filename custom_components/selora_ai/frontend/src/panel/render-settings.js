@@ -801,6 +801,20 @@ export function renderSettings(host) {
 
         ${renderCreateTokenDialog(host)}
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>Command Approvals</h3>
+          </div>
+          <p
+            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
+          >
+            Services Selora AI is allowed to run on your behalf without
+            prompting. Granted by clicking <em>Always</em> on an approval card
+            in chat. Revoke any you no longer want auto-approved.
+          </p>
+          ${renderApprovalGrants(host)}
+        </div>
+
         <details class="section-card settings-section advanced-section" open>
           <summary class="advanced-toggle">
             Advanced settings
@@ -1123,6 +1137,96 @@ const MCP_TOOLS = [
   { name: "selora_list_devices", label: "List devices", admin: false },
   { name: "selora_get_device", label: "Get device", admin: false },
 ];
+
+function renderApprovalGrants(host) {
+  const grants = host._approvalGrants || [];
+  if (!grants.length) {
+    return html`<div
+      style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
+    >
+      No saved approvals yet. The next time Selora asks before running something
+      risky, click <em>Always</em> to remember it here.
+    </div>`;
+  }
+  const riskColor = {
+    low: "#3b82f6",
+    medium: "#f59e0b",
+    high: "#ef4444",
+  };
+  return html`
+    <div class="mcp-token-list">
+      ${grants.map((g) => {
+        // ``key`` is the full grant identifier ("service" for a
+        // wildcard, "service:entity_id" for a per-entity row).
+        // Legacy rows that predate the entity_id field may have only
+        // ``service`` — fall back so the row is still revocable.
+        const grantKey = g.key || g.service;
+        // Resolve the entity's friendly name (when keyed). Falls back
+        // to the bare entity_id so the row stays informative even if
+        // the entity has been deleted from HA.
+        const entityFriendly = g.entity_id
+          ? host?.hass?.states?.[g.entity_id]?.attributes?.friendly_name ||
+            g.entity_id
+          : null;
+        return html`
+          <div class="mcp-token-row">
+            <ha-icon
+              icon=${entityFriendly
+                ? "mdi:shield-account-outline"
+                : "mdi:shield-check-outline"}
+              style="--mdc-icon-size:20px;color:${riskColor[g.risk_level] ||
+              "var(--selora-accent)"};flex-shrink:0;"
+              title=${entityFriendly
+                ? "Per-entity approval"
+                : "Wildcard — applies to every entity of this service"}
+            ></ha-icon>
+            <div class="mcp-token-info">
+              <div class="mcp-token-name">
+                ${g.service}${entityFriendly
+                  ? html` <span
+                      style="color:var(--secondary-text-color);font-weight:400;"
+                      >→ ${entityFriendly}</span
+                    >`
+                  : html` <span
+                      style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
+                      >all</span
+                    >`}
+                <span
+                  class="mcp-token-badge"
+                  style="background:${riskColor[g.risk_level] ||
+                  "#3b82f6"};color:#fff;text-transform:uppercase;"
+                  >${g.risk_level || "low"}</span
+                >
+              </div>
+              <div class="mcp-token-meta">
+                <span
+                  >granted
+                  ${_timeAgo(g.granted_at)}${g.granted_by_name
+                    ? html` by <strong>${g.granted_by_name}</strong>`
+                    : ""}</span
+                >
+              </div>
+            </div>
+            <ha-icon-button
+              ?disabled=${host._revokingApprovalKey === grantKey}
+              @click=${() => host._revokeApproval(grantKey)}
+            >
+              ${host._revokingApprovalKey === grantKey
+                ? html`<span
+                    class="spinner"
+                    style="width:14px;height:14px;"
+                  ></span>`
+                : html`<ha-icon
+                    icon="mdi:delete-outline"
+                    style="--mdc-icon-size:20px;"
+                  ></ha-icon>`}
+            </ha-icon-button>
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
 
 function _timeAgo(isoString) {
   if (!isoString) return "never";

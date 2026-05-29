@@ -243,12 +243,28 @@ async def test_validate_action_valid_light_turn_on(
 
 @pytest.mark.asyncio
 async def test_validate_action_rejects_unknown_domain(hass: HomeAssistant) -> None:
+    # ``python_script.exec`` is on the BLOCKED denylist — it can never
+    # be auto-approved via the chat-driven approval flow.
+    result = await _tool_validate_action(
+        hass,
+        {"service": "python_script.exec", "entity_id": "python_script.foo"},
+    )
+    assert result["valid"] is False
+    assert any("allowlist" in e for e in result["errors"])
+
+
+@pytest.mark.asyncio
+async def test_validate_action_flags_review_service(hass: HomeAssistant) -> None:
+    """REVIEW-bucket services (lock.unlock, tts.*, …) come back as
+    ``valid=False`` but with ``requires_approval=True`` so the tool path
+    can route the call to the chat approval card rather than hard-reject."""
     result = await _tool_validate_action(
         hass,
         {"service": "lock.unlock", "entity_id": "lock.front_door"},
     )
     assert result["valid"] is False
-    assert any("allowlist" in e for e in result["errors"])
+    assert result.get("requires_approval") is True
+    assert result.get("risk_level") == "high"
 
 
 @pytest.mark.asyncio

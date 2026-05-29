@@ -2901,6 +2901,16 @@ var chatStyles = i`
     border: 1px solid var(--selora-zinc-700);
     border-bottom-left-radius: 4px;
   }
+  /* When the assistant bubble's only content is an approval card, the
+     card already provides its own border + background — wrapping it
+     in the standard bubble shell would nest two cards. Strip the
+     bubble chrome so the card sits flush against the chat column. */
+  .bubble.assistant.bubble--approval {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
   .bubble-meta {
     font-size: 10px;
     opacity: 0.5;
@@ -6042,6 +6052,17 @@ var quickActionStyles = i`
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 10px;
   }
+  /* Approval row (Allow once / For this conversation / Always / Deny)
+     packs into a strict 2-column grid so all four scopes fit in two
+     compact rows even in narrow chat columns. Card padding is also
+     reduced so the row doesn't dwarf the proposal it's gating. */
+  .qa-group--approval {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .qa-group--approval .qa-choice {
+    padding: 8px 12px;
+  }
   .qa-choice {
     --qa-radius: 12px;
     display: flex;
@@ -6117,18 +6138,20 @@ var quickActionStyles = i`
       opacity 0.15s;
   }
 
-  /* ── Confirmation buttons (Apply / Modify / Cancel) ── */
+  /* ── Confirmation buttons (Apply / Modify / Cancel, approval rows) ── */
+  /* Auto-fit grid so all buttons share the same width and height. Min
+     column is wide enough to fit the longest description (~150px) and
+     wraps to 2x2 on narrow chat columns. */
   .qa-group--confirmations {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
-    align-items: center;
   }
   .qa-confirm {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 8px 12px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -6136,11 +6159,12 @@ var quickActionStyles = i`
     transition:
       background 0.15s,
       border-color 0.15s;
-    white-space: nowrap;
     border: 1px solid
       var(--selora-inner-card-border, var(--divider-color, #3f3f46));
     background: transparent;
     color: var(--primary-text-color);
+    min-height: 44px;
+    text-align: left;
   }
   .qa-confirm:hover {
     border-color: var(--selora-accent);
@@ -6154,8 +6178,30 @@ var quickActionStyles = i`
     background: #f59e0b;
     border-color: #f59e0b;
   }
+  /* Approve / deny tones: icon-only colour cue so the buttons stay
+     visually quiet next to the risk card. Border and background stay
+     neutral until hover, then borrow the tone hue. */
+  .qa-confirm--approve:hover {
+    border-color: rgba(16, 185, 129, 0.7);
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .qa-confirm--deny:hover {
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.08);
+  }
   .qa-confirm ha-icon {
-    --mdc-icon-size: 14px;
+    --mdc-icon-size: 16px;
+    flex-shrink: 0;
+  }
+  .qa-confirm-label {
+    line-height: 1.1;
+  }
+  .qa-confirm-desc {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.6;
+    line-height: 1.2;
+    margin-top: 2px;
   }
 
   /* ── Disabled state (after selection) ── */
@@ -6470,9 +6516,16 @@ function stripAutomationBlock(text) {
   let cleaned = text.replace(completeRe, "").trim();
   const partialRe = new RegExp("```(" + blockTypes + ")[\\s\\S]*$"); // nosemgrep
   const partialMatch = !hasComplete ? cleaned.match(partialRe) : null;
-  const hasPartial = !!partialMatch;
+  let hasPartial = !!partialMatch;
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
+  }
+  if (!hasComplete && !hasPartial) {
+    const fenceCount = (cleaned.match(/```/g) || []).length;
+    if (fenceCount % 2 === 1) {
+      cleaned = cleaned.replace(/```(?:(?!```)[\s\S])*$/, "").trim();
+      hasPartial = true;
+    }
   }
   const spinnerType = ["automation", "scene"].includes(partialMatch?.[1])
     ? partialMatch[1]
@@ -6870,13 +6923,72 @@ function renderDeviceDetail(host) {
 }
 
 // src/panel/quick-actions.js
+var _APPROVAL_PRESENTATION = {
+  once: {
+    label: "Allow once",
+    icon: "mdi:check",
+    tone: "approve",
+    description: "Just this one request",
+  },
+  session: {
+    label: "For this conversation",
+    icon: "mdi:check-all",
+    tone: "approve",
+    description: "Allow for the rest of this conversation",
+  },
+  always: {
+    label: "Always",
+    icon: "mdi:shield-check",
+    tone: "approve",
+    description: "Remember this approval",
+  },
+  deny: {
+    label: "Deny",
+    icon: "mdi:close",
+    tone: "deny",
+    description: "Do not run this request",
+  },
+};
+function _approvalScope(value) {
+  if (typeof value !== "string" || !value.startsWith("approve:")) return null;
+  return value.split(":", 2)[1] || null;
+}
+function _normalizeApprovalActions(actions) {
+  let touched = false;
+  const out = actions.map((a4) => {
+    const scope = _approvalScope(a4?.value);
+    if (!scope) return a4;
+    const preset = _APPROVAL_PRESENTATION[scope];
+    if (!preset) return a4;
+    touched = true;
+    return {
+      ...a4,
+      // Override label too — older persisted messages may have shipped
+      // "Session" / "Allow once" wording, but we want the new copy
+      // ("For this conversation") to appear consistently.
+      label: preset.label,
+      mode: "choice",
+      icon: a4.icon || preset.icon,
+      tone: a4.tone || preset.tone,
+      description: a4.description || preset.description,
+    };
+  });
+  return touched ? out : actions;
+}
+function _isApprovalGroup(actions) {
+  return actions.some((a4) => _approvalScope(a4?.value));
+}
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
+  actions = _normalizeApprovalActions(actions);
   const mode = _detectMode(actions);
   const usedClass = opts.used ? " qa-group--used" : "";
   if (mode === "choice") {
+    const approvalClass = _isApprovalGroup(actions)
+      ? " qa-group--approval"
+      : "";
     return x`
-      <div class="qa-group qa-group--choices${usedClass}">
+      <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
         ${actions.map((a4) => _renderChoice(host, a4))}
       </div>
     `;
@@ -6917,10 +7029,47 @@ function _renderSuggestion(host, action) {
     </button>
   `;
 }
+var _TONE_OVERRIDES = {
+  approve: {
+    "--qa-spot-color": "#10b981",
+    "--qa-border-color": "rgba(16, 185, 129, 0.35)",
+    "--qa-bg-hover": "rgba(16, 185, 129, 0.10)",
+    "--qa-border-hover": "rgba(16, 185, 129, 0.85)",
+  },
+  deny: {
+    "--qa-spot-color": "#ef4444",
+    "--qa-border-color": "rgba(239, 68, 68, 0.35)",
+    "--qa-bg-hover": "rgba(239, 68, 68, 0.10)",
+    "--qa-border-hover": "rgba(239, 68, 68, 0.85)",
+  },
+};
+function _toneStyle(tone) {
+  const vars = _TONE_OVERRIDES[tone];
+  if (!vars) return "";
+  return Object.entries(vars)
+    .map(([k2, v2]) => `${k2}:${v2};`)
+    .join("");
+}
 function _renderChoice(host, action) {
   const leadingIcon = action.icon || "mdi:auto-fix";
+  const toneStyle = _toneStyle(action.tone);
+  const trailingIcon = action.tone
+    ? action.tone === "deny"
+      ? "mdi:close"
+      : "mdi:check"
+    : "mdi:chevron-right";
+  const tooltipDescription = action.tone && action.description;
+  const inlineDescription = !action.tone && action.description;
+  const cardTitle = tooltipDescription
+    ? `${action.label} \u2014 ${action.description}`
+    : action.label;
   return x`
-    <div class="qa-choice" @click=${() => _onSelect(host, action)}>
+    <div
+      class="qa-choice"
+      style=${toneStyle}
+      title=${cardTitle}
+      @click=${() => _onSelect(host, action)}
+    >
       <span class="qa-glow-track" aria-hidden="true">
         <span class="qa-glow-spot"></span>
       </span>
@@ -6930,20 +7079,375 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${action.description ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
+          ${inlineDescription ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
         </div>
-        <ha-icon class="qa-choice-trail" icon="mdi:chevron-right"></ha-icon>
+        <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
     </div>
   `;
 }
 function _renderConfirmation(host, action) {
-  const cls = action.primary ? "qa-confirm qa-confirm--primary" : "qa-confirm";
+  const tone = action.tone || (action.primary ? "primary" : null);
+  const toneClass = tone ? ` qa-confirm--${tone}` : "";
+  const cls = `qa-confirm${toneClass}`;
+  const iconStyle =
+    tone === "approve"
+      ? "color:#10b981;"
+      : tone === "deny"
+        ? "color:#ef4444;"
+        : "";
   return x`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
-      ${action.icon ? x`<ha-icon icon=${action.icon}></ha-icon>` : ""}
-      ${action.label}
+      ${
+        action.icon
+          ? x`<ha-icon
+            icon=${action.icon}
+            style="--mdc-icon-size:16px;${iconStyle}"
+          ></ha-icon>`
+          : ""
+      }
+      <span style="display:flex;flex-direction:column;align-items:flex-start;">
+        <span class="qa-confirm-label">${action.label}</span>
+        ${action.description ? x`<span class="qa-confirm-desc">${action.description}</span>` : ""}
+      </span>
     </button>
+  `;
+}
+
+// src/panel/action-format.js
+var DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  scene: "mdi:palette",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  climate: "mdi:thermostat",
+  input_boolean: "mdi:toggle-switch-outline",
+  media_player: "mdi:speaker",
+  lock: "mdi:lock",
+  alarm_control_panel: "mdi:shield-home",
+  vacuum: "mdi:robot-vacuum",
+  water_heater: "mdi:water-boiler",
+  tts: "mdi:account-voice",
+  notify: "mdi:bell",
+  script: "mdi:script-text-play",
+  shell_command: "mdi:console",
+};
+var SERVICE_FORMS = {
+  "lock.lock": { imperative: "Lock", past: "Locked" },
+  "lock.unlock": { imperative: "Unlock", past: "Unlocked" },
+  "lock.open": { imperative: "Open", past: "Opened" },
+  "tts.cloud_say": { imperative: "Announce on", past: "Announced on" },
+  "tts.google_translate_say": {
+    imperative: "Announce on",
+    past: "Announced on",
+  },
+  "tts.speak": { imperative: "Announce on", past: "Announced on" },
+  "alarm_control_panel.alarm_arm_home": {
+    imperative: "Arm (home mode)",
+    past: "Armed (home mode)",
+  },
+  "alarm_control_panel.alarm_arm_away": {
+    imperative: "Arm (away mode)",
+    past: "Armed (away mode)",
+  },
+  "alarm_control_panel.alarm_arm_night": {
+    imperative: "Arm (night mode)",
+    past: "Armed (night mode)",
+  },
+  "alarm_control_panel.alarm_disarm": {
+    imperative: "Disarm",
+    past: "Disarmed",
+  },
+  "vacuum.start": { imperative: "Start", past: "Started" },
+  "vacuum.pause": { imperative: "Pause", past: "Paused" },
+  "vacuum.stop": { imperative: "Stop", past: "Stopped" },
+  "vacuum.return_to_base": {
+    imperative: "Send to dock",
+    past: "Sent to dock",
+  },
+  "vacuum.clean_spot": {
+    imperative: "Spot-clean with",
+    past: "Spot-cleaned with",
+  },
+  "water_heater.set_temperature": {
+    imperative: "Set temperature on",
+    past: "Updated temperature on",
+  },
+  "water_heater.set_operation_mode": {
+    imperative: "Change mode on",
+    past: "Changed mode on",
+  },
+  // SAFE-bucket services that can appear in a bundled approval (the
+  // policy holds an entire turn back until the user clicks through
+  // the REVIEW call). Past tense matters here because these may also
+  // run via the Done message synthesizer below.
+  "light.turn_on": { imperative: "Turn on", past: "Turned on" },
+  "light.turn_off": { imperative: "Turn off", past: "Turned off" },
+  "light.toggle": { imperative: "Toggle", past: "Toggled" },
+  "switch.turn_on": { imperative: "Turn on", past: "Turned on" },
+  "switch.turn_off": { imperative: "Turn off", past: "Turned off" },
+  "scene.turn_on": { imperative: "Activate", past: "Activated" },
+};
+var DOMAIN_FORMS = {
+  tts: { imperative: "Announce on", past: "Announced on" },
+  notify: {
+    imperative: "Send a notification via",
+    past: "Sent a notification via",
+  },
+  script: { imperative: "Run script", past: "Ran script" },
+  shell_command: {
+    imperative: "Run shell command",
+    past: "Ran shell command",
+  },
+};
+function _domainOf(s6) {
+  return (s6 || "").split(".", 1)[0];
+}
+function _serviceSuffix(s6) {
+  const parts = (s6 || "").split(".");
+  return parts.length > 1 ? parts.slice(1).join(".") : "";
+}
+function _friendlyName(host, entityId) {
+  return host?.hass?.states?.[entityId]?.attributes?.friendly_name || entityId;
+}
+function actionIcon(service) {
+  return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
+}
+function describeCall(host, call) {
+  const service = call?.service || "";
+  const target = call?.target?.entity_id;
+  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const forms =
+    SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
+  const imperative = forms?.imperative || "Run";
+  const pastVerb = forms?.past || "Ran";
+  if (ids.length) {
+    const names = ids.map((eid) => _friendlyName(host, eid));
+    return {
+      verb: imperative,
+      pastVerb,
+      targetText: names.join(", "),
+      entityIds: ids,
+    };
+  }
+  const tail = _serviceSuffix(service);
+  return {
+    verb: imperative,
+    pastVerb,
+    targetText: tail || service,
+    entityIds: [],
+  };
+}
+
+// src/panel/render-approval-card.js
+var RISK_LEVEL_STYLES = {
+  low: {
+    accent: "#3b82f6",
+    icon: "mdi:information-outline",
+    explainer:
+      "Low risk: minor or fully reversible impact (sound, notifications, vacuum start/stop).",
+  },
+  medium: {
+    accent: "#f59e0b",
+    icon: "mdi:alert-outline",
+    explainer:
+      "Medium risk: noticeable side effects you may not want to undo (arming the alarm, locking a door, running a user script).",
+  },
+  high: {
+    accent: "#ef4444",
+    icon: "mdi:shield-alert-outline",
+    explainer:
+      "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
+  },
+};
+function _renderActionTile(call) {
+  const service = call?.service || "";
+  const icon = actionIcon(service);
+  const { verb } = describeCall({ hass: { states: {} } }, call);
+  return x`
+    <div
+      style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
+      title=${service}
+    >
+      <ha-icon
+        icon=${icon}
+        style="--mdc-icon-size:24px;color:var(--secondary-text-color);"
+      ></ha-icon>
+      <span
+        style="font-size:12px;font-weight:600;color:var(--primary-text-color);text-align:center;line-height:1.2;"
+        >${verb}</span
+      >
+    </div>
+  `;
+}
+function _renderCallRow(host, call, reason) {
+  const target = call?.target?.entity_id;
+  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const { targetText } = describeCall(host, call);
+  const rightSide = ids.length
+    ? x`
+        <div
+          class="selora-entity-grid"
+          data-entity-ids=${ids.join(",")}
+          data-no-features="true"
+          style="flex:1;min-width:0;margin:0;"
+        ></div>
+      `
+    : x`
+        <div
+          style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
+        >
+          ${targetText}
+        </div>
+      `;
+  return x`
+    <div
+      style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
+    >
+      <div style="display:flex;align-items:center;gap:10px;">
+        ${_renderActionTile(call)}
+        <ha-icon
+          icon="mdi:arrow-right"
+          style="--mdc-icon-size:18px;color:var(--secondary-text-color);flex-shrink:0;"
+        ></ha-icon>
+        ${rightSide}
+      </div>
+      ${
+        reason
+          ? x`<div
+            style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
+          >
+            ${reason}
+          </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+function _proposalEntityIds(approval) {
+  const seen = /* @__PURE__ */ new Set();
+  const ids = [];
+  for (const call of approval?.calls || []) {
+    const t3 = call?.target?.entity_id;
+    const list = Array.isArray(t3) ? t3 : t3 ? [t3] : [];
+    for (const eid of list) {
+      if (typeof eid === "string" && !seen.has(eid)) {
+        seen.add(eid);
+        ids.push(eid);
+      }
+    }
+  }
+  return ids;
+}
+function _domainOfEntity(entityId) {
+  return (entityId || "").split(".", 1)[0];
+}
+function _scopeLabel(host, scope, entityIds) {
+  if (!entityIds.length) return null;
+  if (scope === "all") {
+    const domains = new Set(entityIds.map(_domainOfEntity));
+    if (domains.size === 1) {
+      const d3 = [...domains][0];
+      return `All ${d3}s`;
+    }
+    return "All matching entities";
+  }
+  if (entityIds.length === 1) {
+    const friendly =
+      host?.hass?.states?.[entityIds[0]]?.attributes?.friendly_name ||
+      entityIds[0];
+    return `Just ${friendly}`;
+  }
+  return "Just these entities";
+}
+function renderApprovalCard(host, msg, approval, approvalStatus) {
+  if (!approval) return "";
+  const level = (approval.risk_level || "low").toLowerCase();
+  const { accent, icon, explainer } =
+    RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
+  const reasons = approval.risk_reasons || [];
+  const calls = approval.calls || [];
+  const entityIds = _proposalEntityIds(approval);
+  const scope = msg?._entityScope === "all" ? "all" : "this";
+  if (approvalStatus === "approved" || approvalStatus === "denied") {
+    const resolvedColor =
+      approvalStatus === "approved" ? "#10b981" : "var(--secondary-text-color)";
+    const resolvedIcon =
+      approvalStatus === "approved"
+        ? "mdi:check-circle-outline"
+        : "mdi:close-circle-outline";
+    return x`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
+      >
+        <ha-icon
+          icon=${resolvedIcon}
+          style="--mdc-icon-size:16px;flex-shrink:0;"
+        ></ha-icon>
+        <span>${approvalStatus === "approved" ? "Approved" : "Denied"}</span>
+      </div>
+    `;
+  }
+  if (approvalStatus === "resolving") {
+    return x`
+      <div
+        style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+      >
+        <span class="spinner" style="width:14px;height:14px;"></span>
+        <span>Working…</span>
+      </div>
+    `;
+  }
+  const reasonFor = (i5) => reasons[i5] || "";
+  return x`
+    <div
+      style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
+    >
+      <div
+        style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--primary-text-color);padding-bottom:10px;"
+      >
+        <ha-icon
+          icon=${icon}
+          style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
+        ></ha-icon>
+        <span>Approval required</span>
+        <span
+          title=${explainer}
+          style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
+          >${level.toUpperCase()}</span
+        >
+      </div>
+      <div style="display:flex;flex-direction:column;">
+        ${calls.map((c3, i5) => _renderCallRow(host, c3, reasonFor(i5)))}
+      </div>
+      ${
+        entityIds.length
+          ? x`
+            <div
+              style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
+            >
+              <span>For Session / Always:</span>
+              <button
+                @click=${() => host._toggleApprovalScope?.(msg)}
+                title="Click to switch between scoping the grant to just this entity, or to all entities of this service."
+                style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
+              >
+                <ha-icon
+                  icon=${scope === "all" ? "mdi:select-group" : "mdi:target"}
+                  style="--mdc-icon-size:14px;color:${scope === "all" ? "#f59e0b" : "#10b981"};"
+                ></ha-icon>
+                <span>${_scopeLabel(host, scope, entityIds)}</span>
+                <ha-icon
+                  icon="mdi:chevron-down"
+                  style="--mdc-icon-size:14px;opacity:0.6;"
+                ></ha-icon>
+              </button>
+            </div>
+          `
+          : ""
+      }
+    </div>
   `;
 }
 
@@ -6969,7 +7473,7 @@ var DEVICE_DOMAINS = /* @__PURE__ */ new Set([
   "remote",
   "lawn_mower",
 ]);
-var DOMAIN_ICONS = {
+var DOMAIN_ICONS2 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   lock: "mdi:lock",
@@ -7200,7 +7704,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
         label: friendly,
         area_id: areaId,
         area: areaName,
-        icon: DOMAIN_ICONS[domain] || "mdi:devices",
+        icon: DOMAIN_ICONS2[domain] || "mdi:devices",
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "scene") {
@@ -7211,7 +7715,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
         label: friendly,
         area_id: areaId,
         area: areaName,
-        icon: DOMAIN_ICONS.scene,
+        icon: DOMAIN_ICONS2.scene,
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "automation") {
@@ -7222,7 +7726,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
         label: friendly,
         area_id: null,
         area: null,
-        icon: DOMAIN_ICONS.automation,
+        icon: DOMAIN_ICONS2.automation,
         _lowerLabel: friendly.toLowerCase(),
       });
     } else if (domain === "script") {
@@ -7233,7 +7737,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
         label: friendly,
         area_id: null,
         area: null,
-        icon: DOMAIN_ICONS.script,
+        icon: DOMAIN_ICONS2.script,
         _lowerLabel: friendly.toLowerCase(),
       });
     }
@@ -7245,7 +7749,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
       area_id: areaId,
       label: name,
       area: null,
-      icon: DOMAIN_ICONS.area,
+      icon: DOMAIN_ICONS2.area,
       _lowerLabel: name.toLowerCase(),
     });
   }
@@ -7583,7 +8087,12 @@ function renderChat(host) {
     lastMsg &&
     lastMsg.role !== "user" &&
     lastMsg.quick_actions &&
-    lastMsg.quick_actions.length
+    lastMsg.quick_actions.length && // Approval cards render their Allow/Deny row INLINE inside the
+    // bubble so the user sees the buttons next to the proposal
+    // they're approving. Without this guard the sticky composer row
+    // below would render the same four buttons again — 8 buttons
+    // on screen with no obvious link back to the card.
+    !lastMsg.command_approval
       ? lastMsg
       : null;
   return x`
@@ -8057,21 +8566,62 @@ function _renderComposer(host, opts = {}) {
                   _acceptGhost(host, e5.target);
                   return;
                 }
-                if (e5.key === "ArrowUp" && !host._input) {
-                  const lastUser = [...host._messages]
-                    .reverse()
-                    .find((m2) => m2.role === "user" && m2.content);
-                  if (lastUser) {
+                const userHistory = host._messages
+                  .filter((m2) => m2.role === "user" && m2.content)
+                  .map((m2) => stripEntityMarkers(m2.content));
+                const ta = e5.target;
+                const atStart =
+                  ta.selectionStart === 0 && ta.selectionEnd === 0;
+                const atEnd =
+                  ta.selectionStart === ta.value.length &&
+                  ta.selectionEnd === ta.value.length;
+                const inHistory =
+                  host._historyIndex !== null && host._historyIndex !== void 0;
+                const applyHistory = (idx) => {
+                  const recalled = userHistory[userHistory.length - 1 - idx];
+                  host._historyIndex = idx;
+                  host._input = recalled;
+                  requestAnimationFrame(() => {
+                    ta.value = recalled;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                };
+                if (
+                  e5.key === "ArrowUp" &&
+                  userHistory.length > 0 &&
+                  (inHistory || atStart || !host._input)
+                ) {
+                  if (!inHistory) {
+                    host._historyDraft = host._input || "";
                     e5.preventDefault();
-                    const recalled = stripEntityMarkers(lastUser.content);
-                    host._input = recalled;
-                    const ta = e5.target;
-                    requestAnimationFrame(() => {
-                      ta.value = recalled;
-                      ta.setSelectionRange(ta.value.length, ta.value.length);
-                      _autoResize(ta);
-                    });
+                    applyHistory(0);
+                    return;
                   }
+                  if (host._historyIndex < userHistory.length - 1) {
+                    e5.preventDefault();
+                    applyHistory(host._historyIndex + 1);
+                    return;
+                  }
+                  e5.preventDefault();
+                  return;
+                }
+                if (e5.key === "ArrowDown" && inHistory && atEnd) {
+                  e5.preventDefault();
+                  if (host._historyIndex > 0) {
+                    applyHistory(host._historyIndex - 1);
+                    return;
+                  }
+                  const draft = host._historyDraft || "";
+                  host._historyIndex = null;
+                  host._historyDraft = "";
+                  host._input = draft;
+                  requestAnimationFrame(() => {
+                    ta.value = draft;
+                    ta.setSelectionRange(ta.value.length, ta.value.length);
+                    _autoResize(ta);
+                  });
+                  return;
                 }
               }}
               placeholder=${host._newAutomationMode ? "Describe the automation you'd like to create\u2026" : "Ask Selora AI anything\u2026"}
@@ -8118,6 +8668,12 @@ function renderMessage(host, msg, idx) {
       isPartialBlock && msg._streaming && partialBlockType === "automation";
     showSceneSpinner =
       isPartialBlock && msg._streaming && partialBlockType === "scene";
+    if (msg.command_approval) {
+      displayContent = displayContent
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*\.?$/i, "")
+        .replace(/\s*\[(?:LOW|MEDIUM|HIGH)\]\s*/gi, " ")
+        .trim();
+    }
   }
   return x`
     <div class="message-row">
@@ -8136,13 +8692,17 @@ function renderMessage(host, msg, idx) {
               style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;"
             >
               <div
-                class="bubble assistant"
+                class="bubble assistant${msg.command_approval ? " bubble--approval" : ""}"
                 style="max-width:100%;align-self:auto;"
               >
-                <span
-                  class="msg-content ${msg._streaming ? "streaming-cursor" : ""}"
-                  .innerHTML=${renderMarkdown(displayContent)}
-                ></span>
+                ${
+                  msg.command_approval
+                    ? ""
+                    : x`<span
+                      class="msg-content ${msg._streaming ? "streaming-cursor" : ""}"
+                      .innerHTML=${renderMarkdown(displayContent)}
+                    ></span>`
+                }
                 ${
                   showAutomationSpinner
                     ? x`
@@ -8193,6 +8753,16 @@ function renderMessage(host, msg, idx) {
                 ${msg.automation ? host._renderProposalCard(msg, idx) : ""}
                 ${msg.scene ? host._renderSceneCard(msg, idx) : ""}
                 ${
+                  msg.command_approval
+                    ? renderApprovalCard(
+                        host,
+                        msg,
+                        msg.command_approval,
+                        msg.approval_status,
+                      )
+                    : ""
+                }
+                ${
                   msg._interrupted
                     ? x`
                       <div class="stream-interrupt">
@@ -8210,6 +8780,31 @@ function renderMessage(host, msg, idx) {
                 ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(msg.tool_calls) : ""}
               </div>
               ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
+              ${
+                msg.quick_actions &&
+                msg.quick_actions.length && // Standard quick_actions only render on the latest
+                // message — once the conversation has moved on, an old
+                // suggestion chip is just clutter. Approval cards are
+                // the exception: a pending proposal must stay actionable
+                // even if the user typed something else before clicking,
+                // otherwise the only way to resolve it is to reload the
+                // session.
+                (idx === host._messages.length - 1 ||
+                  (msg.command_approval &&
+                    msg.approval_status !== "approved" &&
+                    msg.approval_status !== "denied" &&
+                    msg.approval_status !== "resolving")) && // Hide approval action cards once the proposal has been
+                // resolved (or is mid-resolve). Re-clicking after the
+                // status flipped would 404 server-side, and the approved
+                // / denied chip already tells the user what happened.
+                msg.approval_status !== "approved" &&
+                msg.approval_status !== "denied" &&
+                msg.approval_status !== "resolving"
+                  ? renderQuickActions(host, msg.quick_actions, {
+                      used: !!msg._qa_used,
+                    })
+                  : ""
+              }
               <div
                 class="bubble-meta"
                 style="display:flex;justify-content:space-between;align-items:center;width:100%;"
@@ -8257,7 +8852,7 @@ function renderMessage(host, msg, idx) {
     </div>
   `;
 }
-var DOMAIN_ICONS2 = {
+var DOMAIN_ICONS3 = {
   light: "mdi:lightbulb",
   switch: "mdi:toggle-switch",
   climate: "mdi:thermostat",
@@ -9672,7 +10267,7 @@ function renderFlowEntityChip(host, entityId) {
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
     stateObj?.attributes?.icon ||
-    DOMAIN_ICONS2[entityId.split(".")[0]] ||
+    DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
   return x`<button
     type="button"
@@ -11031,7 +11626,7 @@ function _renderEntityList(host, entities) {
     <div class="scene-entity-list">
       ${entries.map(([entityId, stateData]) => {
         const domain = entityId.split(".")[0];
-        const icon = DOMAIN_ICONS2[domain] || "mdi:devices";
+        const icon = DOMAIN_ICONS3[domain] || "mdi:devices";
         const state = stateData.state || "unknown";
         const attrs = _formatEntityAttrs(stateData);
         const name = fmtEntity(host.hass, entityId);
@@ -12439,6 +13034,20 @@ function renderSettings(host) {
 
         ${renderCreateTokenDialog(host)}
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>Command Approvals</h3>
+          </div>
+          <p
+            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
+          >
+            Services Selora AI is allowed to run on your behalf without
+            prompting. Granted by clicking <em>Always</em> on an approval card
+            in chat. Revoke any you no longer want auto-approved.
+          </p>
+          ${renderApprovalGrants(host)}
+        </div>
+
         <details class="section-card settings-section advanced-section" open>
           <summary class="advanced-toggle">
             Advanced settings
@@ -12763,6 +13372,84 @@ var MCP_TOOLS = [
   { name: "selora_list_devices", label: "List devices", admin: false },
   { name: "selora_get_device", label: "Get device", admin: false },
 ];
+function renderApprovalGrants(host) {
+  const grants = host._approvalGrants || [];
+  if (!grants.length) {
+    return x`<div
+      style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
+    >
+      No saved approvals yet. The next time Selora asks before running something
+      risky, click <em>Always</em> to remember it here.
+    </div>`;
+  }
+  const riskColor = {
+    low: "#3b82f6",
+    medium: "#f59e0b",
+    high: "#ef4444",
+  };
+  return x`
+    <div class="mcp-token-list">
+      ${grants.map((g2) => {
+        const grantKey = g2.key || g2.service;
+        const entityFriendly = g2.entity_id
+          ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
+            g2.entity_id
+          : null;
+        return x`
+          <div class="mcp-token-row">
+            <ha-icon
+              icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
+              style="--mdc-icon-size:20px;color:${riskColor[g2.risk_level] || "var(--selora-accent)"};flex-shrink:0;"
+              title=${entityFriendly ? "Per-entity approval" : "Wildcard \u2014 applies to every entity of this service"}
+            ></ha-icon>
+            <div class="mcp-token-info">
+              <div class="mcp-token-name">
+                ${g2.service}${
+                  entityFriendly
+                    ? x` <span
+                      style="color:var(--secondary-text-color);font-weight:400;"
+                      >→ ${entityFriendly}</span
+                    >`
+                    : x` <span
+                      style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
+                      >all</span
+                    >`
+                }
+                <span
+                  class="mcp-token-badge"
+                  style="background:${riskColor[g2.risk_level] || "#3b82f6"};color:#fff;text-transform:uppercase;"
+                  >${g2.risk_level || "low"}</span
+                >
+              </div>
+              <div class="mcp-token-meta">
+                <span
+                  >granted
+                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? x` by <strong>${g2.granted_by_name}</strong>` : ""}</span
+                >
+              </div>
+            </div>
+            <ha-icon-button
+              ?disabled=${host._revokingApprovalKey === grantKey}
+              @click=${() => host._revokeApproval(grantKey)}
+            >
+              ${
+                host._revokingApprovalKey === grantKey
+                  ? x`<span
+                    class="spinner"
+                    style="width:14px;height:14px;"
+                  ></span>`
+                  : x`<ha-icon
+                    icon="mdi:delete-outline"
+                    style="--mdc-icon-size:20px;"
+                  ></ha-icon>`
+              }
+            </ha-icon-button>
+          </div>
+        `;
+      })}
+    </div>
+  `;
+}
 function _timeAgo(isoString) {
   if (!isoString) return "never";
   const seconds = Math.floor(
@@ -14346,6 +15033,10 @@ function _checkTabParam() {
     if (tab !== "chat") this._showSidebar = false;
   }
   if (tab === "usage") this._loadUsageStats?.();
+  if (tab === "settings") {
+    this._loadApprovalGrants?.();
+    this._loadMcpTokens?.();
+  }
   const params = new URLSearchParams(window.location.search);
   const newAuto = params.get("new_automation");
   if (newAuto) {
@@ -14848,11 +15539,14 @@ __export(chat_actions_exports, {
   _copyMessageText: () => _copyMessageText,
   _onChatScroll: () => _onChatScroll,
   _quickStart: () => _quickStart,
+  _resolveApproval: () => _resolveApproval,
   _retryMessage: () => _retryMessage,
   _scrollChatToBottom: () => _scrollChatToBottom,
   _selectQuickAction: () => _selectQuickAction,
   _sendMessage: () => _sendMessage,
   _stopStreaming: () => _stopStreaming,
+  _toggleApprovalScope: () => _toggleApprovalScope,
+  looksTruncatedResponse: () => looksTruncatedResponse,
 });
 function _quickStart(message) {
   this._input = message;
@@ -14860,6 +15554,23 @@ function _quickStart(message) {
 }
 function _selectQuickAction(action) {
   const text = action.value || action.label;
+  if (typeof text === "string" && text.startsWith("approve:")) {
+    const parts = text.split(":");
+    if (parts.length >= 3) {
+      const scope = parts[1];
+      const proposalId = parts.slice(2).join(":");
+      let originatingMsg = null;
+      for (const msg of this._messages) {
+        if (msg.command_approval?.proposal_id === proposalId) {
+          msg._qa_used = true;
+          originatingMsg = msg;
+          break;
+        }
+      }
+      this._resolveApproval(originatingMsg, scope, proposalId);
+      return;
+    }
+  }
   for (const msg of this._messages) {
     if (msg.quick_actions && msg.quick_actions.includes(action)) {
       msg._qa_used = true;
@@ -14867,6 +15578,67 @@ function _selectQuickAction(action) {
     }
   }
   this._quickStart(text);
+}
+function _toggleApprovalScope(msg) {
+  if (!msg) return;
+  msg._entityScope = msg._entityScope === "all" ? "this" : "all";
+  this._messages = [...this._messages];
+}
+async function _resolveApproval(originatingMsg, scope, proposalId) {
+  if (!this._activeSessionId) return;
+  if (originatingMsg && originatingMsg._resolving) return;
+  let savedQuickActions = null;
+  if (originatingMsg) {
+    savedQuickActions = originatingMsg.quick_actions;
+    originatingMsg._resolving = true;
+    originatingMsg.quick_actions = null;
+    originatingMsg.approval_status = "resolving";
+    this._messages = [...this._messages];
+  }
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/resolve_approval",
+      session_id: this._activeSessionId,
+      proposal_id: proposalId,
+      scope,
+      // Per-entity vs wildcard recording is driven by the scope chip
+      // on the card. Defaults to "this" (least-privilege) when the
+      // user never touched it. The server ignores entity_scope for
+      // the ``once``/``deny`` scopes.
+      entity_scope: originatingMsg?._entityScope || "this",
+    });
+    if (originatingMsg) {
+      originatingMsg.approval_status = result.status;
+      this._messages = [...this._messages];
+    }
+    if (result.result_message) {
+      this._messages = [...this._messages, result.result_message];
+    }
+  } catch (err) {
+    if (originatingMsg && err?.code !== "in_flight") {
+      originatingMsg.approval_status = "pending";
+      originatingMsg.quick_actions = savedQuickActions;
+      originatingMsg._qa_used = false;
+      this._messages = [...this._messages];
+    }
+    this._showToast?.(`Approval failed: ${err.message || err}`, "error");
+  } finally {
+    if (originatingMsg) {
+      originatingMsg._resolving = false;
+    }
+  }
+}
+function looksTruncatedResponse(responseText, hasStructured) {
+  if (hasStructured) return false;
+  const trimmed = (responseText || "").trim();
+  if (trimmed.length === 0 || trimmed.length >= 400) return false;
+  const unterminatedBold = ((trimmed.match(/\*\*/g) || []).length & 1) === 1;
+  return (
+    /[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
+    unterminatedBold ||
+    /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
+    /\b(the|an?)\s*$/i.test(trimmed)
+  );
 }
 function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
@@ -14877,6 +15649,10 @@ function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
   host._messages = [...host._messages];
   host._loading = false;
   host._streaming = false;
+  host.updateComplete.then(() => {
+    const ta = host.shadowRoot?.querySelector(".composer-textarea");
+    if (ta && !ta.disabled) ta.focus();
+  });
 }
 async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
@@ -14889,6 +15665,8 @@ async function _sendMessage() {
   const userMsgForSend = marker ? userMsg + marker : userMsg;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
+  this._historyIndex = null;
+  this._historyDraft = "";
   this._autocompleteSelections = [];
   this._newAutomationMode = false;
   this._autocomplete = {
@@ -15003,16 +15781,7 @@ async function _sendMessage() {
           event.scene ||
           (event.executed && event.executed.length) ||
           (event.quick_actions && event.quick_actions.length);
-        const trimmed = responseText.trim();
-        const looksTruncated =
-          !hasStructured &&
-          trimmed.length > 0 &&
-          trimmed.length < 400 &&
-          (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
-            /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
-            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
-            /\b(the|an?)\s*$/i.test(trimmed));
-        if (looksTruncated) {
+        if (looksTruncatedResponse(responseText, hasStructured)) {
           cancelSubscription();
           assistantMsg.content = responseText;
           if (event.session_id) {
@@ -15043,20 +15812,33 @@ async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg.command_approval = event.command_approval || null;
+        assistantMsg.approval_status = event.command_approval
+          ? "pending"
+          : null;
         assistantMsg.tool_calls = event.tool_calls || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
         this._streaming = false;
+        this.updateComplete.then(() => {
+          const ta2 = this.shadowRoot?.querySelector(".composer-textarea");
+          if (ta2 && !ta2.disabled) ta2.focus();
+        });
         cancelSubscription();
         if (event.validation_error) {
-          const label =
-            event.validation_target === "scene" ? "Scene" : "Automation";
-          this._showToast(
-            `${label} validation failed: ${event.validation_error}`,
-            "error",
-          );
+          if (event.validation_target === "scene") {
+            this._showToast(
+              `Scene validation failed: ${event.validation_error}`,
+              "error",
+            );
+          } else if (event.validation_target === "automation") {
+            this._showToast(
+              `Automation validation failed: ${event.validation_error}`,
+              "error",
+            );
+          }
         }
         if (event.session_id) {
           if (event.session_id !== this._activeSessionId) {
@@ -16235,6 +17017,10 @@ var SeloraAIPanel = class extends s4 {
       // Message view
       _messages: { type: Array },
       _input: { type: String },
+      // Shell-style ArrowUp/ArrowDown history navigation cursor. null
+      // means "not browsing history; _input is the live draft".
+      _historyIndex: { type: Number },
+      _historyDraft: { type: String },
       _loading: { type: Boolean },
       _streaming: { type: Boolean },
       _chatScrolledAway: { type: Boolean },
@@ -16388,6 +17174,9 @@ var SeloraAIPanel = class extends s4 {
       _createdToken: { type: String },
       _creatingToken: { type: Boolean },
       _revokingTokenId: { type: String },
+      // Command approvals (Always-scope grants surfaced in settings)
+      _approvalGrants: { type: Array },
+      _revokingApprovalKey: { type: String },
       // Device detail drawer
       _deviceDetail: { type: Object },
       _deviceDetailLoading: { type: Boolean },
@@ -16414,6 +17203,8 @@ var SeloraAIPanel = class extends s4 {
     this._activeSessionId = null;
     this._messages = [];
     this._input = "";
+    this._historyIndex = null;
+    this._historyDraft = "";
     this._loading = false;
     this._streaming = false;
     this._chatScrolledAway = false;
@@ -16507,6 +17298,8 @@ var SeloraAIPanel = class extends s4 {
     this._feedbackCategory = "";
     this._feedbackEmail = "";
     this._submittingFeedback = false;
+    this._approvalGrants = [];
+    this._revokingApprovalKey = null;
     this._mcpTokens = [];
     this._showCreateTokenDialog = false;
     this._newTokenName = "";
@@ -16549,6 +17342,7 @@ var SeloraAIPanel = class extends s4 {
     this._loadScenes();
     this._loadConfig();
     this._loadMcpTokens();
+    this._loadApprovalGrants();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e5) => {
@@ -16974,6 +17768,7 @@ var SeloraAIPanel = class extends s4 {
     this._setActiveTab("settings");
     this._loadConfig();
     this._loadMcpTokens();
+    this._loadApprovalGrants();
   }
   get _llmNeedsSetup() {
     if (!this._config) return false;
@@ -17227,6 +18022,36 @@ var SeloraAIPanel = class extends s4 {
       this._showToast("Failed to revoke token: " + err.message, "error");
     } finally {
       this._revokingTokenId = null;
+      this.requestUpdate();
+    }
+  }
+  // -------------------------------------------------------------------------
+  // Command Approval Management
+  // -------------------------------------------------------------------------
+  async _loadApprovalGrants() {
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/list_approvals",
+      });
+      this._approvalGrants = result.grants || [];
+    } catch (err) {
+      console.error("Failed to load approval grants", err);
+    }
+  }
+  async _revokeApproval(grantKey) {
+    this._revokingApprovalKey = grantKey;
+    this.requestUpdate();
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/revoke_approval",
+        key: grantKey,
+      });
+      await this._loadApprovalGrants();
+      this._showToast("Approval revoked.", "success");
+    } catch (err) {
+      this._showToast("Failed to revoke approval: " + err.message, "error");
+    } finally {
+      this._revokingApprovalKey = null;
       this.requestUpdate();
     }
   }
@@ -17535,6 +18360,7 @@ var SeloraAIPanel = class extends s4 {
           .split(",")
           .map((s6) => s6.trim())
           .filter(Boolean);
+        const noFeatures = grid.dataset.noFeatures === "true";
         let appended = 0;
         if (createTile) {
           const groups = /* @__PURE__ */ new Map();
@@ -17558,7 +18384,7 @@ var SeloraAIPanel = class extends s4 {
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
-            const card = createTile(id);
+            const card = createTile(id, { noFeatures });
             if (!card) return null;
             card.hass = this.hass;
             const reg = registries.entities?.[id];
@@ -17693,17 +18519,17 @@ var SeloraAIPanel = class extends s4 {
           return [];
       }
     };
-    const buildConfig = (id) => ({
+    const buildConfig = (id, { noFeatures = false } = {}) => ({
       type: "tile",
       entity: id,
-      features: featuresForDomain(id),
+      features: noFeatures ? [] : featuresForDomain(id),
     });
     if (typeof window.loadCardHelpers === "function") {
       try {
         const helpers = await window.loadCardHelpers();
         if (helpers && typeof helpers.createCardElement === "function") {
-          this._tileCardCreator = (id) =>
-            helpers.createCardElement(buildConfig(id));
+          this._tileCardCreator = (id, opts) =>
+            helpers.createCardElement(buildConfig(id, opts));
           return this._tileCardCreator;
         }
       } catch (e5) {
@@ -17716,9 +18542,9 @@ var SeloraAIPanel = class extends s4 {
         new Promise((resolve) => setTimeout(() => resolve(false), 3e3)),
       ]);
       if (ready) {
-        this._tileCardCreator = (id) => {
+        this._tileCardCreator = (id, opts) => {
           const el = document.createElement("hui-tile-card");
-          el.setConfig(buildConfig(id));
+          el.setConfig(buildConfig(id, opts));
           return el;
         };
         return this._tileCardCreator;

@@ -963,6 +963,7 @@ async def async_create_automation(
     session_id: str | None = None,
     version_message: str = "Created",
     enabled: bool = False,
+    bypass_risk_gate: bool = False,
 ) -> AutomationCreateResult:
     """Write a single automation suggestion to automations.yaml and reload.
 
@@ -977,6 +978,13 @@ async def async_create_automation(
     execution — see :func:`assess_automation_risk`) are always written
     disabled, even when ``enabled=True`` is requested. The ``forced_disabled``
     flag in the result lets the caller surface this to the user.
+
+    ``bypass_risk_gate`` keeps an elevated-risk automation enabled despite
+    that gate. It exists for the explicit command-approval flow: the user
+    has already authorised these specific calls through the approval card,
+    so a one-shot absolute-time schedule must be allowed to fire (the
+    relative-delay path executes them directly, with no gate, so the two
+    must agree). Never set this for LLM-proposed automations.
     """
     automations_path = Path(hass.config.config_dir) / "automations.yaml"
 
@@ -994,13 +1002,21 @@ async def async_create_automation(
     risk = assess_automation_risk(normalized)
     forced_disabled = False
     if enabled and risk.get("level") == "elevated":
-        _LOGGER.warning(
-            "Forcing initial_state=False for elevated-risk automation '%s' (flags=%s)",
-            alias,
-            risk.get("flags"),
-        )
-        enabled = False
-        forced_disabled = True
+        if bypass_risk_gate:
+            _LOGGER.warning(
+                "Keeping elevated-risk automation '%s' enabled — risk gate "
+                "bypassed for a user-approved scheduled action (flags=%s)",
+                alias,
+                risk.get("flags"),
+            )
+        else:
+            _LOGGER.warning(
+                "Forcing initial_state=False for elevated-risk automation '%s' (flags=%s)",
+                alias,
+                risk.get("flags"),
+            )
+            enabled = False
+            forced_disabled = True
 
     short_id = uuid.uuid4().hex[:8]
     automation_id = f"{AUTOMATION_ID_PREFIX}{short_id}"

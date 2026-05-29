@@ -185,6 +185,17 @@ export const quickActionStyles = css`
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 10px;
   }
+  /* Approval row (Allow once / For this conversation / Always / Deny)
+     packs into a strict 2-column grid so all four scopes fit in two
+     compact rows even in narrow chat columns. Card padding is also
+     reduced so the row doesn't dwarf the proposal it's gating. */
+  .qa-group--approval {
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .qa-group--approval .qa-choice {
+    padding: 8px 12px;
+  }
   .qa-choice {
     --qa-radius: 12px;
     display: flex;
@@ -260,18 +271,20 @@ export const quickActionStyles = css`
       opacity 0.15s;
   }
 
-  /* ── Confirmation buttons (Apply / Modify / Cancel) ── */
+  /* ── Confirmation buttons (Apply / Modify / Cancel, approval rows) ── */
+  /* Auto-fit grid so all buttons share the same width and height. Min
+     column is wide enough to fit the longest description (~150px) and
+     wraps to 2x2 on narrow chat columns. */
   .qa-group--confirmations {
-    display: flex;
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
     gap: 8px;
-    align-items: center;
   }
   .qa-confirm {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
+    gap: 8px;
+    padding: 8px 12px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -279,11 +292,12 @@ export const quickActionStyles = css`
     transition:
       background 0.15s,
       border-color 0.15s;
-    white-space: nowrap;
     border: 1px solid
       var(--selora-inner-card-border, var(--divider-color, #3f3f46));
     background: transparent;
     color: var(--primary-text-color);
+    min-height: 44px;
+    text-align: left;
   }
   .qa-confirm:hover {
     border-color: var(--selora-accent);
@@ -297,8 +311,30 @@ export const quickActionStyles = css`
     background: #f59e0b;
     border-color: #f59e0b;
   }
+  /* Approve / deny tones: icon-only colour cue so the buttons stay
+     visually quiet next to the risk card. Border and background stay
+     neutral until hover, then borrow the tone hue. */
+  .qa-confirm--approve:hover {
+    border-color: rgba(16, 185, 129, 0.7);
+    background: rgba(16, 185, 129, 0.08);
+  }
+  .qa-confirm--deny:hover {
+    border-color: rgba(239, 68, 68, 0.7);
+    background: rgba(239, 68, 68, 0.08);
+  }
   .qa-confirm ha-icon {
-    --mdc-icon-size: 14px;
+    --mdc-icon-size: 16px;
+    flex-shrink: 0;
+  }
+  .qa-confirm-label {
+    line-height: 1.1;
+  }
+  .qa-confirm-desc {
+    font-size: 11px;
+    font-weight: 400;
+    opacity: 0.6;
+    line-height: 1.2;
+    margin-top: 2px;
   }
 
   /* ── Disabled state (after selection) ── */

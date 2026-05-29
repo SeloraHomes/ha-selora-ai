@@ -18,7 +18,7 @@ from .base import LLMProvider
 
 if TYPE_CHECKING:
     from ..tool_registry import ToolDef
-    from ..types import LLMUsageInfo
+    from ..types import LLMUsageInfo, OpenAIChatPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -48,8 +48,8 @@ class OpenAICompatibleProvider(LLMProvider):
         tools: list[dict[str, Any]] | None = None,
         stream: bool = False,
         max_tokens: int = 1024,
-    ) -> dict[str, Any]:
-        payload: dict[str, Any] = {
+    ) -> OpenAIChatPayload:
+        payload: OpenAIChatPayload = {
             "model": self._model,
             "messages": [{"role": "system", "content": system}, *messages],
         }

@@ -59,6 +59,7 @@ if TYPE_CHECKING:
 from .automation_utils import suggestion_content_fingerprint
 from .const import (
     AIGATEWAY_TOKEN_PATH,
+    APPROVAL_RISK_LOW,
     AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     COLLECTOR_DOMAINS,
@@ -260,6 +261,8 @@ class ConversationStore:
         scene_status: str | None = None,
         refine_scene_id: str | None = None,
         quick_actions: list[dict[str, Any]] | None = None,
+        command_approval: dict[str, Any] | None = None,
+        approval_status: str | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -313,6 +316,10 @@ class ConversationStore:
             message["refine_scene_id"] = refine_scene_id
         if quick_actions:
             message["quick_actions"] = quick_actions
+        if command_approval is not None:
+            message["command_approval"] = command_approval
+        if approval_status is not None:
+            message["approval_status"] = approval_status
 
         session["messages"].append(message)
 
@@ -368,6 +375,27 @@ class ConversationStore:
         msgs[message_index]["automation_status"] = status
         if automation_id is not None:
             msgs[message_index]["automation_id"] = automation_id
+        session["updated_at"] = dt_util.now().isoformat()
+        await self._store.async_save(self._data)
+        return True
+
+    async def set_approval_status(self, session_id: str, message_index: int, status: str) -> bool:
+        """Update the approval_status field of a command_approval message.
+
+        Called from the resolve_approval WS handler so reloading the
+        session shows the proposal as resolved (and the chat UI hides
+        the action buttons).
+        """
+        await self._ensure_loaded()
+        if self._data is None:
+            raise RuntimeError("Session store failed to load")
+        session = self._data["sessions"].get(session_id)
+        if not session:
+            return False
+        msgs = session["messages"]
+        if message_index < 0 or message_index >= len(msgs):
+            return False
+        msgs[message_index]["approval_status"] = status
         session["updated_at"] = dt_util.now().isoformat()
         await self._store.async_save(self._data)
         return True
@@ -1585,13 +1613,24 @@ def _inject_entity_markers(
 def _create_tool_executor(
     hass: HomeAssistant,
     connection: websocket_api.ActiveConnection,
+    *,
+    session_id: str | None = None,
 ) -> Any:
-    """Create a ToolExecutor if a DeviceManager is available."""
+    """Create a ToolExecutor if a DeviceManager is available.
+
+    ``session_id`` flows into ``_tool_execute_command`` /
+    ``_tool_validate_action`` so REVIEW services with a Session-scope
+    grant execute without re-prompting on the tool path.
+    """
     from .tool_executor import ToolExecutor
 
     device_mgr = _get_device_manager(hass)
     is_admin = getattr(getattr(connection, "user", None), "is_admin", False)
-    return ToolExecutor(hass, device_mgr, is_admin=is_admin) if device_mgr else None
+    return (
+        ToolExecutor(hass, device_mgr, is_admin=is_admin, session_id=session_id)
+        if device_mgr
+        else None
+    )
 
 
 @websocket_api.async_response
@@ -1647,7 +1686,7 @@ async def _handle_websocket_chat(
 
     entities = _collect_entity_states(hass)
     automations = _collect_existing_automations(hass)
-    tool_executor = _create_tool_executor(hass, connection)
+    tool_executor = _create_tool_executor(hass, connection, session_id=session_id)
     area_names = await get_area_names(hass)
 
     result = await llm.architect_chat(
@@ -1660,6 +1699,7 @@ async def _handle_websocket_chat(
         refining_scene_context=refining_scene,
         scene_context=scenes or None,
         areas=area_names,
+        session_id=session_id,
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -1706,6 +1746,9 @@ async def _handle_websocket_chat(
     refine_scene_id = result.get("refine_scene_id")
 
     # Persist the assistant response
+    command_approval_payload = (
+        result.get("command_approval") if intent_type == "command_approval" else None
+    )
     await store.append_message(
         session_id,
         "assistant",
@@ -1722,6 +1765,9 @@ async def _handle_websocket_chat(
         scene_yaml=scene_yaml_str,
         scene_status="pending" if scene_payload else None,
         refine_scene_id=refine_scene_id if scene_payload else None,
+        quick_actions=result.get("quick_actions"),
+        command_approval=command_approval_payload,
+        approval_status="pending" if command_approval_payload else None,
     )
 
     updated_session = await store.get_session(session_id)
@@ -1757,6 +1803,9 @@ async def _handle_websocket_chat(
             "refine_scene_id": refine_scene_id,
             "scene_message_index": assistant_message_index if scene_payload else None,
             "raw_response": result.get("raw_response"),
+            "command_approval": command_approval_payload,
+            "approval_message_index": assistant_message_index if command_approval_payload else None,
+            "quick_actions": result.get("quick_actions"),
         },
     )
 
@@ -1862,7 +1911,7 @@ async def _handle_websocket_chat_stream(
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
-        tool_executor = _create_tool_executor(hass, connection)
+        tool_executor = _create_tool_executor(hass, connection, session_id=session_id)
         area_names = await get_area_names(hass)
 
         full_text = ""
@@ -1882,6 +1931,7 @@ async def _handle_websocket_chat_stream(
             refining_scene_context=refining_scene,
             scene_context=scenes or None,
             areas=area_names,
+            session_id=session_id,
         ):
             full_text += chunk
             chunk_count += 1
@@ -1942,6 +1992,7 @@ async def _handle_websocket_chat_stream(
             full_text,
             entities=entities,
             tool_log=tool_executor.call_log if tool_executor else None,
+            session_id=session_id,
         )
 
         intent_type = parsed.get("intent", "answer")
@@ -1994,6 +2045,9 @@ async def _handle_websocket_chat_stream(
         # produced a usable reply. Splitting these would risk a half-turn
         # being saved if the assistant append fails, but they live in the
         # same list so the next reload sees a coherent conversation.
+        command_approval_payload = (
+            parsed.get("command_approval") if intent_type == "command_approval" else None
+        )
         await store.append_message(session_id, "user", user_message)
         await store.append_message(
             session_id,
@@ -2012,6 +2066,8 @@ async def _handle_websocket_chat_stream(
             scene_status="pending" if scene_payload else None,
             refine_scene_id=refine_scene_id if scene_payload else None,
             quick_actions=parsed.get("quick_actions"),
+            command_approval=command_approval_payload,
+            approval_status="pending" if command_approval_payload else None,
         )
         persisted_any = True
 
@@ -2086,6 +2142,10 @@ async def _handle_websocket_chat_stream(
                     if tool_executor and tool_executor.call_log
                     else None,
                     "raw_response": full_text,
+                    "command_approval": command_approval_payload,
+                    "approval_message_index": assistant_message_index
+                    if command_approval_payload
+                    else None,
                 },
             )
         )
@@ -5163,6 +5223,550 @@ async def _handle_websocket_revoke_mcp_token(
     connection.send_result(msg["id"], {"success": True})
 
 
+# ── Command Approvals (WebSocket) ────────────────────────────────────────────
+
+
+# Past-tense verbs live in ``command_policy`` so both the approval
+# resolver and the tool-loop short-circuit (in ``llm_client.client``)
+# pull from the same table — no duplication, no chance for the live
+# bubble and the persisted "Done" message to disagree on wording.
+from .llm_client.command_policy import past_verb_for as _past_verb_for  # noqa: E402, PLC0415
+
+
+def _friendly_name(hass: HomeAssistant, entity_id: str) -> str:
+    state = hass.states.get(entity_id)
+    if state is None:
+        return entity_id
+    return state.attributes.get("friendly_name") or entity_id
+
+
+def _build_approval_result_message(
+    hass: HomeAssistant,
+    calls: list[dict[str, Any]],
+    executed_indices: set[int],
+    scope: str,
+) -> tuple[str, list[str]]:
+    """Build the persisted "Done" message text + a list of executed entity_ids.
+
+    Each successfully executed call becomes a past-tense sentence like
+    "Locked Front Door." A trailing ``[[entities:…]]`` marker is appended
+    when any entity targets fired so the chat renders a real HA tile card.
+
+    The footnote on Always / Session scope tells the user the grant persists.
+    Returned even on empty inputs so the caller doesn't have to special-case.
+
+    ``executed_indices`` is the set of ``calls`` positions that actually
+    fired — index-based (not by service name) so a proposal containing
+    duplicate services (two ``lock.unlock`` targeting different doors,
+    where one raised) reports only the one that ran.
+    """
+    sentences: list[str] = []
+    all_entity_ids: list[str] = []
+    for idx, call in enumerate(calls):
+        if idx not in executed_indices:
+            continue
+        service = str(call.get("service", ""))
+        target = call.get("target") or {}
+        raw = target.get("entity_id") if isinstance(target, dict) else None
+        if isinstance(raw, str):
+            ids = [raw] if raw else []
+        elif isinstance(raw, list):
+            ids = [str(e) for e in raw if isinstance(e, str)]
+        else:
+            ids = []
+        past = _past_verb_for(service)
+        if ids:
+            target_text = ", ".join(_friendly_name(hass, eid) for eid in ids)
+            sentences.append(f"{past} {target_text}.")
+            all_entity_ids.extend(ids)
+        else:
+            # notify.mobile_app_x, script.bedtime — no entity, use the service tail
+            tail = service.split(".", 1)[1] if "." in service else service
+            sentences.append(f"{past} {tail}.")
+
+    content = " ".join(sentences) if sentences else "Approved, but nothing ran."
+    if all_entity_ids:
+        content += f"\n\n[[entities:{','.join(all_entity_ids)}]]"
+    if scope == "always":
+        content += "\n\n_Approval saved for future requests._"
+    elif scope == "session":
+        content += "\n\n_Allowed for the rest of this conversation._"
+    return content, all_entity_ids
+
+
+# Per-proposal in-flight guard. The chat WS handler runs on HA's single
+# asyncio event loop, but ``_handle_websocket_resolve_approval`` yields
+# on every ``await`` — between the "still pending?" check and the
+# status write, the loop can dispatch a second request for the same
+# proposal that ALSO sees "pending" and executes a second time.
+# Membership in this set is checked synchronously before any await, so
+# a duplicate click can't slip past the gate.
+_in_flight_approvals: set[str] = set()
+
+
+def _find_pending_approval(
+    session: dict[str, Any] | None,
+    proposal_id: str,
+) -> tuple[int, dict[str, Any]] | None:
+    """Locate an unresolved ``command_approval`` proposal in *session*.
+
+    Returns ``(message_index, message)`` or None. We look up by
+    proposal_id (not message_index) because the message position can
+    shift if pruning runs between the user's click and the WS arrival;
+    proposal_ids are uuid4s so collisions are negligible.
+    """
+    if not session:
+        return None
+    for idx, message in enumerate(session.get("messages", [])):
+        if message.get("intent") != "command_approval":
+            continue
+        approval = message.get("command_approval")
+        if not isinstance(approval, dict):
+            continue
+        if approval.get("proposal_id") != proposal_id:
+            continue
+        if message.get("approval_status") in ("approved", "denied"):
+            continue
+        return idx, message
+    return None
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/resolve_approval",
+        vol.Required("session_id"): str,
+        vol.Required("proposal_id"): str,
+        vol.Required("scope"): vol.In(["once", "session", "always", "deny"]),
+        # Per-entity vs wildcard recording of Session/Always grants:
+        # - "this": grant only for the entities in this proposal
+        #   (default; least-privilege).
+        # - "all":  grant the service wildcard for any future entity.
+        # Ignored for ``once``/``deny`` scopes.
+        vol.Optional("entity_scope", default="this"): vol.In(["this", "all"]),
+    }
+)
+async def _handle_websocket_resolve_approval(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Resolve a pending command approval (Once / Session / Always / Deny).
+
+    On allow-* scopes we execute the proposal's calls server-side; the
+    LLM is not involved in the second leg, so a denied call never runs
+    and an approved call can't be silently rewritten between display
+    and execution. The audit trail lives on the persisted message
+    (approval_status + executed list).
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
+    approval_store = hass.data.get(DOMAIN, {}).get("_approval_store")
+    if approval_store is None:
+        connection.send_error(msg["id"], "not_ready", "Approval store not initialized")
+        return
+
+    session_id = msg["session_id"]
+    proposal_id = msg["proposal_id"]
+    scope = msg["scope"]
+    entity_scope = msg.get("entity_scope", "this")
+
+    # Reject duplicate concurrent clicks BEFORE the first await. The
+    # frontend has its own guard, but only this synchronous check
+    # protects against rapid double-clicks that both reach the server
+    # while the first is mid-execution.
+    if proposal_id in _in_flight_approvals:
+        connection.send_error(msg["id"], "in_flight", "Approval is already being processed")
+        return
+    _in_flight_approvals.add(proposal_id)
+    try:
+        await _resolve_approval(
+            hass,
+            connection,
+            msg,
+            store,
+            approval_store,
+            session_id,
+            proposal_id,
+            scope,
+            entity_scope,
+        )
+    finally:
+        _in_flight_approvals.discard(proposal_id)
+
+
+async def _resolve_approval(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+    store: ConversationStore,
+    approval_store: Any,
+    session_id: str,
+    proposal_id: str,
+    scope: str,
+    entity_scope: str = "this",
+) -> None:
+    """Inner resolver — runs inside the in-flight guard."""
+    session = await store.get_session(session_id)
+    located = _find_pending_approval(session, proposal_id)
+    if located is None:
+        connection.send_error(
+            msg["id"],
+            "not_found",
+            "Approval proposal not found or already resolved",
+        )
+        return
+
+    message_index, message = located
+    approval = message["command_approval"]
+    calls: list[dict[str, Any]] = approval.get("calls", []) or []
+    risk_level: str = approval.get("risk_level", APPROVAL_RISK_LOW)
+    user = getattr(connection, "user", None)
+    user_id = getattr(user, "id", None)
+
+    if scope == "deny":
+        await store.set_approval_status(session_id, message_index, "denied")
+        denial_text = "Request denied. Nothing was executed."
+        persisted = await store.append_message(
+            session_id, "assistant", denial_text, intent="answer"
+        )
+        connection.send_result(
+            msg["id"],
+            {
+                "status": "denied",
+                "executed": [],
+                "result_message": persisted,
+            },
+        )
+        return
+
+    # Validate BEFORE persisting any grant. A model-supplied
+    # ``intent: "command_approval"`` payload (or a stale session-store
+    # entry) could carry malformed calls; granting Session/Always for
+    # them upfront would persist an approval that the validator
+    # rejects a moment later, giving the next request for that
+    # service a free pass. Validate first, grant only the services
+    # that actually survived validation AND required approval, then
+    # execute.
+    from .llm_client.command_policy import (
+        _classify_call,
+        _validate_review_call,
+        _validate_safe_call,
+        call_required_approval,
+    )
+    from .mcp_server import _safe_command_entity_allowlist
+
+    safe_entities = _safe_command_entity_allowlist(hass)
+    validated_calls: list[tuple[int, dict[str, Any]]] = []
+    errors: list[str] = []
+    for idx, call in enumerate(calls):
+        service = str(call.get("service", ""))
+        if "." not in service:
+            errors.append(f"invalid service: {service!r}")
+            continue
+        bucket, policy_entry = _classify_call(service)
+        if bucket == "blocked":
+            errors.append(f"{service}: blocked at execution time")
+            continue
+        if bucket == "review" and policy_entry is not None:
+            validated, shape_err = _validate_review_call(call, policy_entry)
+            if shape_err is not None or validated is None:
+                errors.append(f"{service}: {shape_err}")
+                continue
+            validated_calls.append((idx, validated))
+            calls[idx] = validated
+        elif bucket == "safe":
+            # Reapply the full SAFE policy here. The proposal arrived
+            # from the session store and could in principle carry a
+            # model-supplied ``intent: "command_approval"`` payload
+            # whose ``calls`` array never went through
+            # ``apply_command_policy`` — without this re-check,
+            # approving such a card would bypass the entity allowlist,
+            # max-target cap, and data-key whitelist for services
+            # like ``light.turn_on`` or ``scene.turn_on``.
+            validated_safe, shape_err = _validate_safe_call(call, safe_entities)
+            if shape_err is not None or validated_safe is None:
+                errors.append(f"{service}: {shape_err}")
+                continue
+            validated_calls.append((idx, validated_safe))
+            calls[idx] = validated_safe
+
+    # Grant ONLY the services that passed validation AND required
+    # approval. Skipping the validation step before persisting would
+    # let an attacker-shaped approval card (e.g. lock.unlock with no
+    # entity_id) record a permanent grant even though the validator
+    # rejects the actual call.
+    # Per-(service, entity_id) when entity_scope == "this" (default,
+    # least-privilege); per-service wildcard when entity_scope == "all".
+    # Note: targetless REVIEW services (notify.*, script.*,
+    # shell_command.*) always record under the wildcard key regardless
+    # of entity_scope — there's no entity to scope to.
+    grants_to_record: list[tuple[str, str | None]] = []
+    seen_pairs: set[tuple[str, str | None]] = set()
+    for _idx, call in validated_calls:
+        if not call_required_approval(hass, call):
+            continue
+        service = str(call.get("service", ""))
+        if not service:
+            continue
+        target = call.get("target") or {}
+        raw = target.get("entity_id") if isinstance(target, dict) else None
+        if isinstance(raw, str):
+            call_ids: list[str] = [raw] if raw else []
+        elif isinstance(raw, list):
+            call_ids = [eid for eid in raw if isinstance(eid, str)]
+        else:
+            call_ids = []
+        if entity_scope == "all" or not call_ids:
+            pair: tuple[str, str | None] = (service, None)
+            if pair not in seen_pairs:
+                seen_pairs.add(pair)
+                grants_to_record.append(pair)
+        else:
+            for eid in call_ids:
+                pair = (service, eid)
+                if pair not in seen_pairs:
+                    seen_pairs.add(pair)
+                    grants_to_record.append(pair)
+
+    if scope == "session":
+        for service, eid in grants_to_record:
+            approval_store.grant_session(service, session_id=session_id, entity_id=eid)
+    elif scope == "always":
+        for service, eid in grants_to_record:
+            await approval_store.async_grant_always(
+                service,
+                risk_level=risk_level,
+                granted_by_user_id=user_id,
+                entity_id=eid,
+            )
+
+    # Delayed-command approval: when the original LLM proposal was a
+    # ``delayed_command`` (e.g. "unlock the door in 10 minutes"), the
+    # delay metadata travels inside the proposal. Route through the
+    # ScheduledTaskTracker instead of firing services immediately —
+    # otherwise tapping Allow would unlock the door NOW, which is the
+    # opposite of what the user asked for.
+    if approval.get("original_intent") == "delayed_command":
+        from .scheduled_actions import (
+            ScheduledTaskTracker,
+            validate_delay_seconds,
+        )
+
+        tracker: ScheduledTaskTracker = hass.data[DOMAIN].setdefault(
+            "_scheduled_tasks", ScheduledTaskTracker(hass)
+        )
+        delay_seconds_raw = approval.get("delay_seconds")
+        scheduled_time_raw = approval.get("scheduled_time")
+        approved_calls = [c for _idx, c in validated_calls]
+        # Only let the persisted automation skip the risk gate when at
+        # least one call genuinely required approval. A card is never built
+        # for a pure-SAFE proposal, so this is belt-and-suspenders: it keeps
+        # ``bypass_risk_gate`` from ever firing on calls that never went
+        # through the approval flow.
+        any_required_approval = any(call_required_approval(hass, c) for _idx, c in validated_calls)
+        schedule_id: str | None = None
+        schedule_error: str | None = None
+        try:
+            if delay_seconds_raw is not None and approved_calls:
+                ok, reason = validate_delay_seconds(delay_seconds_raw)
+                if not ok:
+                    schedule_error = reason
+                else:
+                    task = await tracker.schedule_delayed(
+                        session_id, approved_calls, delay_seconds_raw, ""
+                    )
+                    schedule_id = task.schedule_id
+            elif scheduled_time_raw is not None and approved_calls:
+                task = await tracker.schedule_at_time(
+                    session_id,
+                    approved_calls,
+                    scheduled_time_raw,
+                    "",
+                    approved=any_required_approval,
+                )
+                schedule_id = task.schedule_id
+            else:
+                schedule_error = "delayed_command proposal missing delay metadata"
+        except Exception as exc:  # noqa: BLE001 — surface to user
+            _LOGGER.warning("Approved scheduled call failed: %s", exc)
+            schedule_error = str(exc)
+
+        await store.set_approval_status(session_id, message_index, "approved")
+        if schedule_error:
+            result_text = f"Approved, but scheduling failed: {schedule_error}"
+        else:
+            result_text = "Scheduled. The action will run at the requested time."
+        if scope == "always":
+            result_text += "\n\n_Approval saved for future requests._"
+        elif scope == "session":
+            result_text += "\n\n_Allowed for the rest of this conversation._"
+        # Surface calls dropped during revalidation (e.g. an entity removed
+        # between proposal creation and clicking Allow). The immediate path
+        # reports these; the scheduled path must too, otherwise part of the
+        # user's approved request is silently lost.
+        if errors:
+            result_text += f"\n\nErrors: {'; '.join(errors)}"
+        all_errors = ([schedule_error] if schedule_error else []) + errors
+        persisted = await store.append_message(
+            session_id, "assistant", result_text, intent="answer"
+        )
+        connection.send_result(
+            msg["id"],
+            {
+                "status": "approved",
+                "scope": scope,
+                "scheduled": schedule_id is not None,
+                "schedule_id": schedule_id,
+                "errors": all_errors,
+                "result_message": persisted,
+            },
+        )
+        return
+
+    # Execute validated calls. We deliberately call
+    # hass.services.async_call directly rather than reroute through
+    # the LLM — the proposal is validated and the user has
+    # explicitly authorised these specific calls.
+    executed: list[str] = []
+    executed_entity_ids: list[str] = []
+    executed_indices: set[int] = set()
+    for idx, call in validated_calls:
+        service = str(call.get("service", ""))
+        domain, service_name = service.split(".", 1)
+        target = call.get("target") or {}
+        data = call.get("data") or {}
+        service_data: dict[str, Any] = dict(data)
+        target_entity_id = target.get("entity_id") if isinstance(target, dict) else None
+        if target_entity_id:
+            service_data["entity_id"] = target_entity_id
+        try:
+            await hass.services.async_call(domain, service_name, service_data, blocking=True)
+            executed.append(service)
+            executed_indices.add(idx)
+            if isinstance(target_entity_id, str):
+                executed_entity_ids.append(target_entity_id)
+            elif isinstance(target_entity_id, list):
+                executed_entity_ids.extend(str(e) for e in target_entity_id if isinstance(e, str))
+        except Exception as exc:  # noqa: BLE001 — surface to user
+            _LOGGER.warning("Approved call %s failed: %s", service, exc)
+            errors.append(f"{service}: {exc}")
+
+    await store.set_approval_status(session_id, message_index, "approved")
+
+    # Persist the friendly past-tense result as a new assistant message
+    # so reloading the session shows what happened, not just "Approved".
+    # The chat renderer will turn [[entities:…]] markers into HA tile
+    # cards, same as for any other assistant message. We pass the
+    # successful-indices set rather than ``set(executed)`` because a
+    # multi-call approval can contain duplicate services (e.g. two
+    # ``lock.unlock`` calls targeting different doors) and one may
+    # fail — index-based tracking is the only way to distinguish
+    # which specific call ran.
+    result_text, _ = _build_approval_result_message(hass, calls, executed_indices, scope)
+    if errors:
+        result_text += f"\n\nErrors: {'; '.join(errors)}"
+    persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
+
+    connection.send_result(
+        msg["id"],
+        {
+            "status": "approved",
+            "scope": scope,
+            "executed": executed,
+            "executed_entity_ids": executed_entity_ids,
+            "errors": errors,
+            "result_message": persisted,
+        },
+    )
+
+
+@websocket_api.async_response
+@decorators.websocket_command({vol.Required("type"): "selora_ai/list_approvals"})
+async def _handle_websocket_list_approvals(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Return all persistent ('Always') approvals for the Manage UI.
+
+    Enriches each grant with the granting user's display name so the
+    Settings list shows "granted by Phil 11m ago" instead of an opaque
+    user_id. HA installs commonly have multiple users (family members
+    sharing a system), so attributing the auto-approval to a specific
+    account matters — otherwise revoking is a blind action.
+    """
+    if not _require_admin(connection, msg):
+        return
+    approval_store = hass.data.get(DOMAIN, {}).get("_approval_store")
+    if approval_store is None:
+        connection.send_error(msg["id"], "not_ready", "Approval store not initialized")
+        return
+    grants = await approval_store.async_list_grants()
+
+    # Resolve user_id → name once per unique id. Falls back to a short
+    # id prefix when the user has been deleted (so the row still
+    # carries SOME attribution rather than dropping the field).
+    enriched: list[dict[str, Any]] = []
+    name_cache: dict[str, str] = {}
+    for grant in grants:
+        out = dict(grant)
+        user_id = grant.get("granted_by_user_id")
+        if user_id:
+            name = name_cache.get(user_id)
+            if name is None:
+                user = await hass.auth.async_get_user(user_id)
+                name = (user.name if user and user.name else None) or f"user {user_id[:8]}"
+                name_cache[user_id] = name
+            out["granted_by_name"] = name
+        enriched.append(out)
+
+    connection.send_result(msg["id"], {"grants": enriched})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/revoke_approval",
+        # ``key`` is the full grant identifier — ``service`` for a
+        # wildcard or ``service:entity_id`` for a per-entity grant.
+        # The legacy ``service`` field is still accepted for one
+        # release so older bundled frontends continue to work; new
+        # callers should use ``key``.
+        vol.Exclusive("key", "approval_identifier"): str,
+        vol.Exclusive("service", "approval_identifier"): str,
+    }
+)
+async def _handle_websocket_revoke_approval(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Revoke a persistent approval by its grant key.
+
+    The ``list_approvals`` response includes a ``key`` field on each
+    grant; revoke passes that same string back. Per-entity grants
+    revoke just that pair, leaving any service wildcard intact.
+    """
+    if not _require_admin(connection, msg):
+        return
+    approval_store = hass.data.get(DOMAIN, {}).get("_approval_store")
+    if approval_store is None:
+        connection.send_error(msg["id"], "not_ready", "Approval store not initialized")
+        return
+    grant_key = msg.get("key") or msg.get("service")
+    if not grant_key:
+        connection.send_error(msg["id"], "invalid_params", "Missing 'key' or 'service'")
+        return
+    revoked = await approval_store.async_revoke(grant_key)
+    if not revoked:
+        connection.send_error(msg["id"], "not_found", "No persistent approval for that key")
+        return
+    connection.send_result(msg["id"], {"success": True})
+
+
 # ── Device Detail (WebSocket) ─────────────────────────────────────────────────
 
 
@@ -5371,6 +5975,10 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_create_mcp_token)
     websocket_api.async_register_command(hass, _handle_websocket_list_mcp_tokens)
     websocket_api.async_register_command(hass, _handle_websocket_revoke_mcp_token)
+    # Command approvals (Allow once/session/always/deny)
+    websocket_api.async_register_command(hass, _handle_websocket_resolve_approval)
+    websocket_api.async_register_command(hass, _handle_websocket_list_approvals)
+    websocket_api.async_register_command(hass, _handle_websocket_revoke_approval)
     # Device detail
     websocket_api.async_register_command(hass, _handle_websocket_get_device_detail)
     # Scene management
@@ -5617,6 +6225,16 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     mcp_token_store = MCPTokenStore(hass)
     await mcp_token_store.async_load()
     hass.data[DOMAIN]["mcp_token_store"] = mcp_token_store
+
+    # Command approval store — persists "Always allow <service>" grants so
+    # the LLM can run REVIEW-bucket services (tts.*, notify.*, lock.unlock,
+    # …) without re-prompting on every turn. Looked up by command_policy
+    # via hass.data[DOMAIN]["_approval_store"].
+    from .approval_store import ApprovalStore
+
+    approval_store = ApprovalStore(hass)
+    await approval_store.async_load()
+    hass.data[DOMAIN]["_approval_store"] = approval_store
 
     # Schedule periodic discovery if enabled
     options = entry.options

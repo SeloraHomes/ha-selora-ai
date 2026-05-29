@@ -90,6 +90,248 @@ def _executed(service: str, entity_id: str, data: dict | None = None) -> dict:
     }
 
 
+def _requires_approval(service: str, entity_id: str, risk_level: str = "high") -> dict:
+    """A tool-log entry where execute_command returned requires_approval."""
+    return {
+        "tool": "execute_command",
+        "arguments": {"service": service, "entity_id": entity_id},
+        "result": {
+            "valid": False,
+            "requires_approval": True,
+            "service": service,
+            "risk_level": risk_level,
+            "approval_reason": "test reason",
+        },
+    }
+
+
+def test_synthesize_approval_from_tool_log_upgrades_answer() -> None:
+    """Regression: when execute_command returns requires_approval and the
+    LLM narrates the result instead of emitting a command JSON block,
+    the integration must auto-synthesize a command_approval proposal so
+    the user still gets the approval card."""
+    from custom_components.selora_ai.llm_client import (
+        synthesize_approval_from_tool_log,
+    )
+
+    parsed = {
+        "intent": "answer",
+        "response": "I can't unlock the door directly — it requires approval.",
+    }
+    tool_log = [_requires_approval("lock.unlock", "lock.front")]
+    result = synthesize_approval_from_tool_log(parsed, tool_log)
+    assert result["intent"] == "command_approval"
+    assert result.get("calls") == []
+    approval = result["command_approval"]
+    assert approval["risk_level"] == "high"
+    assert len(approval["calls"]) == 1
+    assert approval["calls"][0]["service"] == "lock.unlock"
+    assert approval["calls"][0]["target"] == {"entity_id": ["lock.front"]}
+    assert result["quick_actions"]
+    assert all(qa["value"].startswith("approve:") for qa in result["quick_actions"])
+
+
+def test_synthesize_approval_skips_when_command_intent_present() -> None:
+    """If the LLM properly emitted a command intent, the explicit JSON
+    path takes precedence over synthesis from the tool log."""
+    from custom_components.selora_ai.llm_client import (
+        synthesize_approval_from_tool_log,
+    )
+
+    parsed = {
+        "intent": "command",
+        "response": "Unlocking.",
+        "calls": [{"service": "lock.unlock", "target": {"entity_id": "lock.front"}}],
+    }
+    tool_log = [_requires_approval("lock.unlock", "lock.front")]
+    result = synthesize_approval_from_tool_log(parsed, tool_log)
+    assert result is parsed  # untouched
+
+
+def test_synthesize_approval_preserves_executed_action() -> None:
+    """P2: when one tool round both EXECUTES a write (light off) and holds
+    another for approval (unlock), the executed action must be acknowledged
+    in the synthesized response — not dropped behind the approval card."""
+    from custom_components.selora_ai.llm_client import (
+        synthesize_approval_from_tool_log,
+    )
+
+    parsed = {"intent": "answer", "response": "Editorialised narration."}
+    tool_log = [
+        _executed("light.turn_off", "light.kitchen"),
+        _requires_approval("lock.unlock", "lock.front"),
+    ]
+    result = synthesize_approval_from_tool_log(parsed, tool_log)
+    assert result["intent"] == "command_approval"
+    # Executed light is confirmed; approval hint still present.
+    assert "Turned off" in result["response"]
+    assert "light.kitchen" in result["response"]
+    assert "approval" in result["response"].lower()
+    # The approval card holds ONLY the unlock — the executed light is not
+    # re-proposed for approval.
+    calls = result["command_approval"]["calls"]
+    assert len(calls) == 1
+    assert calls[0]["service"] == "lock.unlock"
+
+
+def test_synthesize_approval_normalizes_executed_scene() -> None:
+    """P3: an activated scene in the same round as a held call must surface
+    as 'Activated …' (scene.turn_on normalization), not be silently dropped
+    because the raw scene result carries no ``service`` field."""
+    from custom_components.selora_ai.llm_client import (
+        synthesize_approval_from_tool_log,
+    )
+
+    parsed = {"intent": "answer", "response": "narration"}
+    tool_log = [
+        _scene_activated("scene.movie_night"),
+        _requires_approval("lock.unlock", "lock.front"),
+    ]
+    result = synthesize_approval_from_tool_log(parsed, tool_log)
+    assert result["intent"] == "command_approval"
+    assert "Activated" in result["response"]
+    assert "scene.movie_night" in result["response"]
+
+
+def test_synthesize_approval_hint_only_when_nothing_executed() -> None:
+    """No executed write in the round → bare approval hint, no fabricated
+    confirmation prefix."""
+    from custom_components.selora_ai.llm_client import (
+        synthesize_approval_from_tool_log,
+    )
+
+    parsed = {"intent": "answer", "response": "narration"}
+    tool_log = [_requires_approval("lock.unlock", "lock.front")]
+    result = synthesize_approval_from_tool_log(parsed, tool_log)
+    assert result["response"] == "This request needs your approval before I run it."
+
+
+def test_normalized_write_result_maps_scene_to_turn_on() -> None:
+    """P3 (short-circuit path): activate_scene results carry no ``service``,
+    so they're mapped to scene.turn_on so build_executed_confirmation can
+    render them. execute_command results pass through unchanged."""
+    from custom_components.selora_ai.llm_client.client import (
+        _normalized_write_result,
+    )
+
+    scene = _normalized_write_result(
+        "activate_scene", {"entity_id": "scene.movie_night", "status": "activated"}
+    )
+    assert scene == {"service": "scene.turn_on", "entity_ids": ["scene.movie_night"]}
+    cmd = {"executed": True, "service": "light.turn_off", "entity_ids": ["light.kitchen"]}
+    assert _normalized_write_result("execute_command", cmd) is cmd
+    # A scene without entity_id can't be confirmed → None.
+    assert _normalized_write_result("activate_scene", {"status": "activated"}) is None
+
+
+def test_build_executed_confirmation_excludes_already_shown_marker() -> None:
+    """Regression: the model narrates 'Locking the Front Door' with an
+    [[entity:lock.front_door]] tile in its pre-tool prose, then the
+    short-circuit synthesizes 'Locked Front Door.' If the confirmation
+    re-emits a marker for the same entity, the chat renders two identical
+    cards. Excluding already-shown ids drops the duplicate marker while
+    keeping the sentence.
+    """
+    from custom_components.selora_ai.llm_client.command_policy import (
+        build_executed_confirmation,
+    )
+
+    calls = [{"service": "lock.lock", "entity_ids": ["lock.front_door"]}]
+    # No exclusion → marker present.
+    full = build_executed_confirmation(calls)
+    assert "[[entities:lock.front_door]]" in full
+    # Entity already shown upstream → marker dropped, sentence kept.
+    deduped = build_executed_confirmation(
+        calls, exclude_marker_ids={"lock.front_door"}
+    )
+    assert "[[entities:" not in deduped
+    assert "lock.front_door" in full and "Locked" in deduped
+
+
+def test_build_executed_confirmation_keeps_unshown_marker_ids() -> None:
+    """Only entities already shown are dropped; a second target still
+    renders its tile."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        build_executed_confirmation,
+    )
+
+    calls = [
+        {"service": "lock.lock", "entity_ids": ["lock.front_door", "lock.back_door"]}
+    ]
+    out = build_executed_confirmation(calls, exclude_marker_ids={"lock.front_door"})
+    assert "[[entities:lock.back_door]]" in out
+    assert "lock.front_door" not in out.split("[[entities:")[1]
+
+
+async def test_architect_chat_approval_short_circuit_yields_card(hass, monkeypatch) -> None:
+    """Regression (P2): the non-stream tool loop returns a non-empty sentinel
+    on an approval short-circuit. ``architect_chat`` treats a falsy
+    ``result_text`` as an LLM failure, so returning "" turned "unlock the
+    front door" into the generic LLM error instead of the approval card."""
+    from unittest.mock import AsyncMock
+
+    from custom_components.selora_ai.llm_client.command_policy import (
+        APPROVAL_PENDING_HINT,
+    )
+
+    client = _make_client(hass)
+    tool_log = [_requires_approval("lock.unlock", "lock.front")]
+    monkeypatch.setattr(
+        client,
+        "_send_request_with_tools",
+        AsyncMock(return_value=(APPROVAL_PENDING_HINT, None, tool_log)),
+    )
+
+    result = await client.architect_chat(
+        "unlock the front door",
+        entities=[_ent("lock.front")],
+        tool_executor=MagicMock(),
+    )
+
+    assert result["intent"] == "command_approval"
+    assert "error" not in result
+    assert result["command_approval"]["calls"][0]["service"] == "lock.unlock"
+
+
+async def test_architect_chat_nontool_approval_escalates_cover_risk(hass, monkeypatch) -> None:
+    """P2: the non-tool chat path must pass ``hass`` to
+    ``synthesize_approval_from_tool_log`` so device-class elevation applies.
+    A non-tool provider that emits an explicit ``command_approval`` for
+    ``cover.open_cover`` on a garage cover would otherwise show LOW risk
+    while approving executes a high-risk physical-access action.
+    """
+    import json
+    from unittest.mock import AsyncMock
+
+    hass.states.async_set("cover.garage", "closed", {"device_class": "garage"})
+    client = _make_client(hass)
+    card_json = json.dumps(
+        {
+            "intent": "command_approval",
+            "response": "needs approval",
+            "command_approval": {
+                "risk_level": "low",
+                "calls": [
+                    {"service": "cover.open_cover", "target": {"entity_id": ["cover.garage"]}},
+                ],
+            },
+        }
+    )
+    monkeypatch.setattr(
+        client._provider,
+        "send_request",
+        AsyncMock(return_value=(card_json, None)),
+    )
+
+    result = await client.architect_chat(
+        "open the garage",
+        entities=[_ent("cover.garage")],
+    )
+
+    assert result["intent"] == "command_approval"
+    assert result["command_approval"]["risk_level"] == "high"
+
+
 def _failed_validation(service: str, entity_id: str) -> dict:
     """A tool-log entry whose validation failed (no service ever ran)."""
     return {
@@ -245,9 +487,9 @@ def test_guard_no_change_for_answer_intent() -> None:
 def test_policy_validates_partial_strip_survivors(hass) -> None:
     """Regression: after a partial strip, the surviving call must still run
     through the safety policy. A model that mixes one tool-executed call
-    with another unsafe call (e.g. ``lock.unlock`` — outside the safe
-    domain allowlist) must have the unsafe call rejected, not smuggled
-    through.
+    with another REVIEW-bucket call (e.g. ``lock.unlock``) must route the
+    surviving call to ``command_approval`` so the user explicitly authorizes
+    it — never smuggled past the gate.
     """
     client = _make_client(hass)
     parsed = {
@@ -264,7 +506,8 @@ def test_policy_validates_partial_strip_survivors(hass) -> None:
     assert len(suppressed["calls"]) == 1
     assert suppressed["calls"][0]["service"] == "lock.unlock"
 
-    # Policy must reject lock.unlock — it's outside the safe allowlist.
+    # Policy must route lock.unlock through the approval gate — it's in
+    # the REVIEW bucket with HIGH risk, not the SAFE allowlist.
     final = apply_command_policy(
         suppressed,
         [
@@ -272,10 +515,87 @@ def test_policy_validates_partial_strip_survivors(hass) -> None:
             {"entity_id": "lock.front_door", "state": "locked", "attributes": {}},
         ],
     )
-    assert final["intent"] == "answer"
-    assert final.get("calls") == []
-    assert "validation_error" in final
-    assert "lock" in final["validation_error"]
+    assert final["intent"] == "command_approval"
+    assert final.get("calls") == []  # nothing executes until user approves
+    approval = final["command_approval"]
+    assert approval["risk_level"] == "high"
+    assert len(approval["calls"]) == 1
+    assert approval["calls"][0]["service"] == "lock.unlock"
+
+
+def test_streamed_command_approval_keeps_policy_quick_actions(hass) -> None:
+    """P2: a streamed response carrying both a ``command`` block (which the
+    policy converts to ``command_approval``) and a model-supplied
+    ``quick_actions`` block must keep the policy-generated
+    ``approve:<scope>:<proposal_id>`` / ``deny`` sentinels. Overwriting them
+    with the model's quick_actions leaves an unresolvable card.
+    """
+    client = _make_client(hass)
+    text = (
+        "I can unlock the front door, but it needs your OK.\n\n"
+        "```command\n"
+        '{"calls": [{"service": "lock.unlock", "target": {"entity_id": "lock.front_door"}}]}\n'
+        "```\n\n"
+        "```quick_actions\n"
+        '[{"label": "Sure", "value": "noop:yes"}, {"label": "Nope", "value": "noop:no"}]\n'
+        "```"
+    )
+    parsed = client.parse_streamed_response(
+        text, entities=[_ent("lock.front_door")], tool_log=None
+    )
+    assert parsed["intent"] == "command_approval"
+    pid = parsed["command_approval"]["proposal_id"]
+    values = [qa["value"] for qa in parsed["quick_actions"]]
+    assert f"approve:once:{pid}" in values
+    assert f"approve:deny:{pid}" in values
+    # Model's bogus actions did not leak through.
+    assert not any(v.startswith("noop:") for v in values)
+
+
+def _executed_targetless(service: str, data: dict) -> dict:
+    """Tool-log entry for a successful targetless write (notify/script/
+    shell_command) — execute_command returns an empty ``entity_ids``."""
+    return {
+        "tool": "execute_command",
+        "arguments": {"service": service, "data": data},
+        "result": {"executed": True, "service": service, "entity_ids": [], "states": []},
+    }
+
+
+def test_targetless_write_echo_is_suppressed(hass) -> None:
+    """P2: an approved targetless REVIEW write (notify.mobile_app_*) ran via
+    execute_command. The model echoes the same call in a final ``command``
+    block. Because executed signatures used to ignore empty entity_ids, the
+    echo slipped past the duplicate guard and fired a second notification.
+    The echo with a matching data payload must be stripped.
+    """
+    parsed = {
+        "intent": "command",
+        "response": "Sent the alert.",
+        "calls": [
+            {"service": "notify.mobile_app_phone", "data": {"message": "Garage left open"}},
+        ],
+    }
+    tool_log = [_executed_targetless("notify.mobile_app_phone", {"message": "Garage left open"})]
+    suppressed = _suppress_duplicate_command_after_tool(parsed, tool_log)
+    assert not suppressed.get("calls")
+
+
+def test_targetless_write_distinct_payload_survives(hass) -> None:
+    """A second targetless write with a different message is NOT a duplicate
+    — the data payload keeps the signatures distinct, so it must survive.
+    """
+    parsed = {
+        "intent": "command",
+        "response": "Sending both.",
+        "calls": [
+            {"service": "notify.mobile_app_phone", "data": {"message": "second alert"}},
+        ],
+    }
+    tool_log = [_executed_targetless("notify.mobile_app_phone", {"message": "first alert"})]
+    suppressed = _suppress_duplicate_command_after_tool(parsed, tool_log)
+    assert len(suppressed["calls"]) == 1
+    assert suppressed["calls"][0]["data"]["message"] == "second alert"
 
 
 def test_policy_validates_partial_strip_survivors_data_keys(hass) -> None:
@@ -815,15 +1135,15 @@ def test_parser_strips_model_supplied_suppressed_flag(hass) -> None:
     )
     parsed = parse_architect_response(malicious, hass)
     assert "suppressed_duplicate_command" not in parsed
-    # Policy MUST run normally — lock domain is outside the safe-command
-    # allowlist, so the call is rejected (not silently executed).
+    # Policy MUST run normally. lock.unlock is in the REVIEW bucket so
+    # the call is routed to command_approval — never executed silently.
     final = apply_command_policy(
         parsed,
         [{"entity_id": "lock.front", "state": "locked", "attributes": {}}],
     )
-    assert final["intent"] == "answer"
+    assert final["intent"] == "command_approval"
     assert final.get("calls") == []
-    assert "validation_error" in final
+    assert final["command_approval"]["risk_level"] == "high"
 
 
 def test_policy_rejects_bypass_flag_with_command_intent(hass) -> None:
@@ -845,10 +1165,10 @@ def test_policy_rejects_bypass_flag_with_command_intent(hass) -> None:
         [{"entity_id": "lock.front", "state": "locked", "attributes": {}}],
     )
     # The early-return must NOT trigger — policy validates the call and
-    # rejects lock.unlock as outside the safe allowlist.
-    assert final["intent"] == "answer"
+    # routes lock.unlock through the approval gate (REVIEW bucket).
+    assert final["intent"] == "command_approval"
     assert final.get("calls") == []
-    assert "validation_error" in final
+    assert final["command_approval"]["risk_level"] == "high"
 
 
 def test_policy_preserves_confirmation_after_suppression(hass) -> None:
@@ -867,6 +1187,86 @@ def test_policy_preserves_confirmation_after_suppression(hass) -> None:
     result = apply_command_policy(suppressed, [])
     assert result["response"] == "Turning off the kitchen light."
     assert "validation_error" not in result
+
+
+def test_unbacked_action_with_known_entity_marker_recovers_command(hass) -> None:
+    """Regression: model narrates 'Locking the front door' with an
+    [[entity:lock.front_door]] marker but emits NO calls. The entity is
+    known and the verb ('Locking') is unambiguous, so the policy rebuilds
+    the lock.lock call and routes it to the approval card instead of
+    nagging the user to retry.
+    """
+    result = {
+        "intent": "command",
+        "response": "Locking the front door now.\n\n[[entity:lock.front_door|Front Door]]",
+        "calls": [],
+    }
+    final = apply_command_policy(
+        result,
+        [{"entity_id": "lock.front_door", "state": "unlocked", "attributes": {}}],
+    )
+    # lock.lock is REVIEW → recovered call routes to an approval card.
+    assert final["intent"] == "command_approval"
+    assert final["command_approval"]["calls"][0]["service"] == "lock.lock"
+    target_ids = final["command_approval"]["calls"][0]["target"]["entity_id"]
+    assert "lock.front_door" in (
+        target_ids if isinstance(target_ids, list) else [target_ids]
+    )
+
+
+def test_unbacked_action_recovers_unlock_verb(hass) -> None:
+    """The verb table must prefer 'unlock' over 'lock' — 'unlocking'
+    contains the substring 'lock'."""
+    result = {
+        "intent": "command",
+        "response": "Unlocking the front door now.\n\n[[entity:lock.front_door|Front Door]]",
+        "calls": [],
+    }
+    final = apply_command_policy(
+        result,
+        [{"entity_id": "lock.front_door", "state": "locked", "attributes": {}}],
+    )
+    assert final["intent"] == "command_approval"
+    assert final["command_approval"]["calls"][0]["service"] == "lock.unlock"
+
+
+def test_unbacked_action_without_known_entity_keeps_no_match_message(hass) -> None:
+    """Unbacked action prose with no marker (or a marker for an unknown
+    entity) keeps the original 'no entity matched' wording — recovery
+    needs a known entity to rebuild the call.
+    """
+    result = {
+        "intent": "command",
+        "response": "Locking the front door now.",
+        "calls": [],
+    }
+    final = apply_command_policy(
+        result,
+        [{"entity_id": "light.kitchen", "state": "on", "attributes": {}}],
+    )
+    assert final["intent"] == "answer"
+    assert final["validation_error"] == "no_matching_entity_for_command"
+    assert "no entity clearly matched" in final["response"].lower()
+
+
+def test_unbacked_action_uninferable_verb_keeps_retry_message(hass) -> None:
+    """When the entity is known but the verb can't be inferred (the domain
+    has no verb-hint table), recovery is skipped and the accurate
+    command_not_emitted retry message is returned.
+    """
+    result = {
+        "intent": "command",
+        # 'vacuum' has no entry in _SERVICE_REPAIR_HINTS → no recovery.
+        "response": "Starting the vacuum now.\n\n[[entity:vacuum.roomba|Roomba]]",
+        "calls": [],
+    }
+    final = apply_command_policy(
+        result,
+        [{"entity_id": "vacuum.roomba", "state": "docked", "attributes": {}}],
+    )
+    assert final["intent"] == "answer"
+    assert final["validation_error"] == "command_not_emitted"
+    assert "again" in final["response"].lower()
 
 
 # ── parse_streamed_response with tool_log ───────────────────────────────────

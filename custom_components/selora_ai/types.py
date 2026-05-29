@@ -411,12 +411,35 @@ class QuickAction(TypedDict, total=False):
     primary: bool  # highlight as primary action (confirmation mode)
 
 
+class CommandApprovalProposal(TypedDict, total=False):
+    """A pending command waiting on user approval.
+
+    Created by ``command_policy.apply_command_policy`` when one or more
+    proposed calls fall in the REVIEW bucket (e.g. ``tts.*``, ``notify.*``,
+    ``script.*``, ``lock.unlock``). The chat handler persists this on the
+    assistant message; the user grants Once / Session / Always — or Deny —
+    and the chat WS handler then executes the calls.
+    """
+
+    proposal_id: Required[str]  # uuid, stable across grant scopes
+    risk_level: Required[str]  # "low" | "medium" | "high"
+    risk_reasons: list[str]  # human-readable reasons displayed above the card
+    calls: Required[list[ServiceCallDict]]  # validated service calls to run on approval
+    # Scheduling metadata carried through when the LLM proposed a
+    # ``delayed_command`` that needed approval. ``original_intent``
+    # is "delayed_command"; the resolver dispatches via the
+    # ScheduledTaskTracker instead of running calls immediately.
+    original_intent: str
+    delay_seconds: int | float
+    scheduled_time: str
+
+
 class ArchitectResponse(TypedDict, total=False):
     """Structured response from the LLM architect chat."""
 
     intent: Required[
         str
-    ]  # "command" | "automation" | "clarification" | "answer" | "delayed_command" | "cancel" | "scene"
+    ]  # "command" | "automation" | "clarification" | "answer" | "delayed_command" | "cancel" | "scene" | "command_approval"
     response: Required[str]
     automation: AutomationDict
     automation_yaml: str
@@ -432,6 +455,8 @@ class ArchitectResponse(TypedDict, total=False):
     delay_seconds: int | float
     scheduled_time: str
     schedule_id: str
+    # Approval flow (set when intent == "command_approval")
+    command_approval: CommandApprovalProposal
 
 
 class ServiceCallDict(TypedDict, total=False):
@@ -440,6 +465,68 @@ class ServiceCallDict(TypedDict, total=False):
     service: str
     target: dict[str, Any]
     data: dict[str, Any]
+
+
+class EntityStateSnapshot(TypedDict):
+    """Post-execution entity state captured by ``_tool_execute_command``."""
+
+    entity_id: str
+    state: str
+
+
+class OpenAIChatPayload(TypedDict, total=False):
+    """Request body for OpenAI-compatible chat-completion endpoints.
+
+    Used by ``OpenAICompatibleProvider`` and the OpenRouter / Selora
+    Cloud subclasses. ``messages`` items vary by role (system / user /
+    assistant / tool) and may carry ``tool_calls`` / ``tool_call_id``;
+    typing them precisely would explode for marginal gain, so they're
+    left as ``dict[str, Any]`` inside the list. The rest of the
+    request body is enumerated so the build_payload chain has a
+    stable contract.
+    """
+
+    model: str
+    messages: list[dict[str, Any]]
+    tools: list[dict[str, Any]]
+    tool_choice: Any  # "auto" | "required" | "none" | {"type":"function",...}
+    stream: bool
+    stream_options: dict[str, Any]
+    max_tokens: int
+    temperature: float
+    reasoning: dict[str, Any]
+    provider: dict[str, Any]  # OpenRouter routing prefs (e.g. {"sort": "latency"})
+
+
+class ToolWriteResult(TypedDict, total=False):
+    """Return shape for write-action tools (execute_command,
+    activate_scene). Used by the tool-loop short-circuit and the
+    duplicate-execution guard to detect successful side-effecting
+    calls without poking at ``dict[str, Any]``.
+
+    ``execute_command`` populates ``executed``/``service``/``entity_ids``/
+    ``states`` on success and ``executed``/``error`` on failure;
+    ``activate_scene`` populates ``status: "activated"`` and the
+    resolved ``entity_id``. ``requires_approval`` is set by both when
+    the validator held the call back pending user approval.
+    """
+
+    # execute_command success
+    executed: bool
+    service: str
+    entity_ids: list[str]
+    states: list[EntityStateSnapshot]
+    # activate_scene success
+    entity_id: str
+    status: str
+    # validator output (rejection / approval gate)
+    valid: bool
+    errors: list[str]
+    requires_approval: bool
+    risk_level: str
+    approval_reason: str
+    # failure path
+    error: str
 
 
 class ToolCallLog(TypedDict, total=False):
@@ -648,6 +735,11 @@ class ChatMessage(TypedDict, total=False):
     scene_id: str
     scene_status: str  # "pending" | "saved" | "declined" | "refining"
     quick_actions: list[QuickAction]
+    command_approval: CommandApprovalProposal
+    # "pending" | "approved" | "denied" | "expired" — set on assistant messages
+    # whose intent is "command_approval". The chat WS handler updates this
+    # when the user clicks one of the approval-row buttons.
+    approval_status: str
 
 
 class SessionData(TypedDict):

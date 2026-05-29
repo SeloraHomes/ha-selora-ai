@@ -216,12 +216,22 @@ class ScheduledTaskTracker:
         calls: list[dict[str, Any]],
         scheduled_time: str,
         description: str,
+        *,
+        approved: bool = False,
     ) -> ScheduledTask:
         """Schedule service calls at an absolute time via a persisted automation.
 
         Creates a one-shot ``[Selora AI]`` automation with a time trigger so the
         action survives HA restarts.  The automation is created *enabled* and
         fires once at the given HH:MM:SS.
+
+        ``approved`` marks calls that already cleared the command-approval
+        card. It bypasses the automation risk gate so an elevated-risk
+        service the user explicitly authorised (e.g. a scheduled
+        ``shell_command``) isn't written disabled — which would make the
+        one-shot silently never fire. The relative-delay path executes
+        approved calls directly with no gate, so this keeps the two paths
+        consistent.
 
         Raises ``RuntimeError`` when the pending task cap is reached or
         automation creation fails.
@@ -289,6 +299,7 @@ class ScheduledTaskTracker:
             automation_data,
             version_message=f"Scheduled action {schedule_id}",
             enabled=True,
+            bypass_risk_gate=approved,
         )
 
         if not result.get("success"):

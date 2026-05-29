@@ -2009,6 +2009,33 @@ class TestCreateAutomationValidation:
         assert new[0]["initial_state"] is False
 
     @pytest.mark.asyncio
+    async def test_bypass_risk_gate_keeps_approved_elevated_enabled(
+        self, hass, tmp_automations_yaml: Path, _patch_store
+    ) -> None:
+        """An explicitly user-approved scheduled action must stay enabled even
+        when elevated-risk. The relative-delay path fires approved calls with
+        no gate; the absolute-time path (which persists an automation) must
+        agree, or the one-shot would be written disabled and never fire."""
+        suggestion = {
+            "alias": "Approved Risky Webhook",
+            "trigger": [{"platform": "webhook", "webhook_id": "selora-approved"}],
+            "action": [{"action": "notify.notify", "data": {"message": "hi"}}],
+        }
+        ok, _, normalized = validate_automation_payload(suggestion)
+        assert ok is True
+        result = await async_create_automation(
+            hass, normalized, enabled=True, bypass_risk_gate=True
+        )
+        assert result["success"] is True
+        assert result.get("forced_disabled") is False
+        # Risk is still reported — the gate is bypassed, not the assessment.
+        assert result.get("risk_level") == "elevated"
+
+        content = yaml.safe_load(tmp_automations_yaml.read_text(encoding="utf-8"))
+        new = [a for a in content if "Approved Risky Webhook" in a.get("alias", "")]
+        assert new[0]["initial_state"] is True
+
+    @pytest.mark.asyncio
     async def test_invalid_suggestion_rejected(
         self, hass, tmp_automations_yaml: Path, _patch_store
     ) -> None:

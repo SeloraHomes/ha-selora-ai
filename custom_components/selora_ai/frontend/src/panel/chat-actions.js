@@ -12,7 +12,37 @@ export function _quickStart(message) {
 
 export function _selectQuickAction(action) {
   const text = action.value || action.label;
-  // Mark the originating message's actions as used
+  // Command-approval buttons carry a sentinel value of the form
+  // ``approve:<scope>:<proposal_id>``. These do not roundtrip through
+  // the LLM — they call the resolve_approval WS handler directly so a
+  // denied call never runs and an approved call can't be silently
+  // rewritten between display and execution.
+  //
+  // Find the originating message by proposal_id rather than by action
+  // reference: the quick-actions normalizer in quick-actions.js
+  // returns COPIES of approval actions (mode/icon/tone/description
+  // upgraded), so ``msg.quick_actions.includes(action)`` would never
+  // match the clicked copy. Without this we'd lose the originatingMsg
+  // pointer and the card would never flip to "resolving" / "approved".
+  if (typeof text === "string" && text.startsWith("approve:")) {
+    const parts = text.split(":");
+    if (parts.length >= 3) {
+      const scope = parts[1];
+      const proposalId = parts.slice(2).join(":");
+      let originatingMsg = null;
+      for (const msg of this._messages) {
+        if (msg.command_approval?.proposal_id === proposalId) {
+          msg._qa_used = true;
+          originatingMsg = msg;
+          break;
+        }
+      }
+      this._resolveApproval(originatingMsg, scope, proposalId);
+      return;
+    }
+  }
+  // Non-approval actions: action objects are not normalised, so the
+  // identity check still works for marking the originating message.
   for (const msg of this._messages) {
     if (msg.quick_actions && msg.quick_actions.includes(action)) {
       msg._qa_used = true;
@@ -20,6 +50,115 @@ export function _selectQuickAction(action) {
     }
   }
   this._quickStart(text);
+}
+
+// Flip the approval card's entity scope between "this" (default,
+// per-entity grant) and "all" (service-wide wildcard grant). Mounted
+// on the panel prototype so the inline chip click handler can call
+// ``host._toggleApprovalScope(msg)`` without piping anything through
+// a custom event. Triggers a re-render so the chip's label updates
+// immediately even though the WS payload only goes out on click.
+export function _toggleApprovalScope(msg) {
+  if (!msg) return;
+  msg._entityScope = msg._entityScope === "all" ? "this" : "all";
+  this._messages = [...this._messages];
+}
+
+export async function _resolveApproval(originatingMsg, scope, proposalId) {
+  if (!this._activeSessionId) return;
+  // Re-entry guard: a rapid double-click on the same card must not
+  // produce two WS calls. The server has its own in-flight guard, but
+  // we still want to suppress the UI feedback loop locally so the user
+  // isn't tempted to click again while the request is in flight.
+  if (originatingMsg && originatingMsg._resolving) return;
+  // Stash the action row BEFORE nulling so a transient WS/server
+  // failure can restore the buttons. Without this restore, a failed
+  // resolve leaves the message in "pending" server-side with no
+  // visible affordance to retry — the user has to reload the
+  // session to get the buttons back.
+  let savedQuickActions = null;
+  if (originatingMsg) {
+    savedQuickActions = originatingMsg.quick_actions;
+    originatingMsg._resolving = true;
+    // Hide the action row immediately so the buttons can't be clicked
+    // a second time. We also stash a synthetic "Working…" pill in
+    // approval_status so the card renders a spinner-equivalent state
+    // rather than disappearing entirely.
+    originatingMsg.quick_actions = null;
+    originatingMsg.approval_status = "resolving";
+    this._messages = [...this._messages];
+  }
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/resolve_approval",
+      session_id: this._activeSessionId,
+      proposal_id: proposalId,
+      scope,
+      // Per-entity vs wildcard recording is driven by the scope chip
+      // on the card. Defaults to "this" (least-privilege) when the
+      // user never touched it. The server ignores entity_scope for
+      // the ``once``/``deny`` scopes.
+      entity_scope: originatingMsg?._entityScope || "this",
+    });
+    if (originatingMsg) {
+      originatingMsg.approval_status = result.status;
+      this._messages = [...this._messages];
+    }
+    // The server persists the friendly "Locked the Front Door."
+    // message + [[entities:…]] markers and returns it in
+    // ``result_message``. Display that directly so reloading the
+    // session shows the same content (instead of having the live
+    // and post-reload views diverge).
+    if (result.result_message) {
+      this._messages = [...this._messages, result.result_message];
+    }
+  } catch (err) {
+    // Restore the action row so the user can retry — the request never
+    // resolved so the approval is still pending server-side (unless
+    // the in-flight guard rejected us, in which case the original
+    // resolution is on its way and we'll see its outcome shortly, so
+    // leave the "resolving" state in place).
+    // Also clear ``_qa_used`` — _selectQuickAction flipped it true on
+    // the first click, and ``renderQuickActions(..., {used:true})``
+    // sets ``pointer-events: none`` on the row, which would leave the
+    // restored buttons visibly present but inert.
+    if (originatingMsg && err?.code !== "in_flight") {
+      originatingMsg.approval_status = "pending";
+      originatingMsg.quick_actions = savedQuickActions;
+      originatingMsg._qa_used = false;
+      this._messages = [...this._messages];
+    }
+    this._showToast?.(`Approval failed: ${err.message || err}`, "error");
+  } finally {
+    if (originatingMsg) {
+      originatingMsg._resolving = false;
+    }
+  }
+}
+
+// Truncation detection: a clean "done" event whose prose looks like the
+// model was about to continue ("…in your setup:", "**Lights:**\n-"). A
+// clean stop after a colon / dash / open bullet / unterminated bold is not
+// something the model does on a useful answer; in practice it correlates
+// with upstream truncation (gateway dropped the rest of the stream). The
+// caller surfaces it as a retryable interruption. Skipped when the turn is
+// structurally complete (automation, scene, command calls, quick actions).
+export function looksTruncatedResponse(responseText, hasStructured) {
+  if (hasStructured) return false;
+  const trimmed = (responseText || "").trim();
+  if (trimmed.length === 0 || trimmed.length >= 400) return false;
+  // Truly unterminated bold means an ODD number of `**` markers. A closed
+  // span like `**Foo**` followed by more prose on the same line is NOT
+  // truncation — a naive `\*\*[^*\n]*$` test matched the closing `**` plus
+  // trailing text and falsely flagged complete answers ending in a question
+  // after a bold word.
+  const unterminatedBold = ((trimmed.match(/\*\*/g) || []).length & 1) === 1;
+  return (
+    /[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
+    unterminatedBold ||
+    /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
+    /\b(the|an?)\s*$/i.test(trimmed) // ends on a bare article — never a valid sentence end
+  );
 }
 
 // If a streaming response stalls or the WS drops, finalise the active
@@ -37,6 +176,12 @@ function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
   host._messages = [...host._messages];
   host._loading = false;
   host._streaming = false;
+  // Same focus-restore as the happy ``done`` path — textarea was
+  // disabled mid-stream so the user can keep typing without a click.
+  host.updateComplete.then(() => {
+    const ta = host.shadowRoot?.querySelector(".composer-textarea");
+    if (ta && !ta.disabled) ta.focus();
+  });
 }
 
 export async function _sendMessage() {
@@ -53,6 +198,11 @@ export async function _sendMessage() {
   const userMsgForSend = marker ? userMsg + marker : userMsg;
   this._messages = [...this._messages, { role: "user", content: userMsg }];
   this._input = "";
+  // Reset shell-style history cursor — a fresh send starts a new
+  // draft. ArrowUp on the next turn begins from the newest message,
+  // not from wherever the previous walk left off.
+  this._historyIndex = null;
+  this._historyDraft = "";
   this._autocompleteSelections = [];
   // The "new automation" entry point shapes the welcome copy and
   // composer placeholder. Once the user actually sends their first
@@ -213,16 +363,7 @@ export async function _sendMessage() {
           event.scene ||
           (event.executed && event.executed.length) ||
           (event.quick_actions && event.quick_actions.length);
-        const trimmed = responseText.trim();
-        const looksTruncated =
-          !hasStructured &&
-          trimmed.length > 0 &&
-          trimmed.length < 400 &&
-          (/[:,\-]\s*$/.test(trimmed) || // dangling colon / comma / bullet dash
-            /\*\*[^*\n]*$/.test(trimmed) || // unterminated bold
-            /^\s*-\s*$/.test(trimmed.split(/\n/).pop() || "") || // last line is just a bullet
-            /\b(the|an?)\s*$/i.test(trimmed)); // ends on a bare article — never a valid sentence end
-        if (looksTruncated) {
+        if (looksTruncatedResponse(responseText, hasStructured)) {
           cancelSubscription();
           // Preserve any tokens already streamed so the user can see
           // what was received before retrying.
@@ -255,12 +396,26 @@ export async function _sendMessage() {
         assistantMsg.scene_message_index = event.scene_message_index ?? null;
         assistantMsg.refine_scene_id = event.refine_scene_id || null;
         assistantMsg.quick_actions = event.quick_actions || null;
+        assistantMsg.command_approval = event.command_approval || null;
+        assistantMsg.approval_status = event.command_approval
+          ? "pending"
+          : null;
         assistantMsg.tool_calls = event.tool_calls || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
         this._loading = false;
         this._streaming = false;
+        // Composer textarea was disabled during streaming, which
+        // dropped focus. Restore it AFTER lit re-renders with
+        // ?disabled=false so the user can keep typing without a
+        // mouse click. updateComplete waits for the next paint —
+        // calling .focus() before the textarea is enabled again
+        // would no-op.
+        this.updateComplete.then(() => {
+          const ta = this.shadowRoot?.querySelector(".composer-textarea");
+          if (ta && !ta.disabled) ta.focus();
+        });
         // Actually unsubscribe (calls the unsub function and clears
         // the local reference). The previous `this._streamUnsub =
         // null` left HA's websocket client thinking the chat_stream
@@ -272,12 +427,26 @@ export async function _sendMessage() {
         // "I reloaded and my message was sent twice" symptom.
         cancelSubscription();
         if (event.validation_error) {
-          const label =
-            event.validation_target === "scene" ? "Scene" : "Automation";
-          this._showToast(
-            `${label} validation failed: ${event.validation_error}`,
-            "error",
-          );
+          // ``validation_target`` is set only for scene/automation
+          // proposal validation. Command-level errors (e.g.
+          // ``no_matching_entity_for_command``) leave it null —
+          // labelling those as "Automation validation failed" was
+          // misleading. Use a neutral label and skip the toast
+          // entirely for command rejections, since the chat bubble
+          // already shows the user-facing explanation.
+          if (event.validation_target === "scene") {
+            this._showToast(
+              `Scene validation failed: ${event.validation_error}`,
+              "error",
+            );
+          } else if (event.validation_target === "automation") {
+            this._showToast(
+              `Automation validation failed: ${event.validation_error}`,
+              "error",
+            );
+          }
+          // No toast for command-level validation — the bubble
+          // already says what went wrong, a duplicate toast is noise.
         }
 
         // Update session tracking
