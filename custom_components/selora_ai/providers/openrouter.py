@@ -16,6 +16,7 @@ from ..const import (
     DEFAULT_OPENROUTER_HOST,
     DEFAULT_OPENROUTER_MODEL,
     HEALTH_CHECK_TIMEOUT,
+    OPENROUTER_APP_CATEGORIES,
     OPENROUTER_APP_REFERER,
     OPENROUTER_APP_TITLE,
 )
@@ -54,7 +55,8 @@ class OpenRouterProvider(OpenAICompatibleProvider):
     def _get_headers(self) -> dict[str, str]:
         headers = super()._get_headers()
         headers["HTTP-Referer"] = OPENROUTER_APP_REFERER
-        headers["X-Title"] = OPENROUTER_APP_TITLE
+        headers["X-OpenRouter-Title"] = OPENROUTER_APP_TITLE
+        headers["X-OpenRouter-Categories"] = OPENROUTER_APP_CATEGORIES
         return headers
 
     async def health_check(self) -> bool:
