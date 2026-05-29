@@ -119,6 +119,36 @@ _SHARED_AUTOMATION_RULES = (
     "- Time values ('at' in triggers, 'after'/'before' in conditions) MUST be \"HH:MM:SS\" strings (e.g. \"07:00:00\"). NEVER use integer seconds since midnight.\n"
     '- In state conditions, the \'state\' field MUST be a string ("on"/"off", "home"/"away"). Never a boolean.\n'
     "- Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like {\"seconds\": 300}. Never a raw integer.\n"
+    "- TRIGGER PLATFORM: common core values are state, numeric_state, time, time_pattern, sun, "
+    "template, event, mqtt, webhook, zone, geo_location, device, calendar, tag, conversation, "
+    "homeassistant. Specific integrations may register their own (e.g. `platform: litejet`). "
+    "The platform value is ALWAYS a single token — there is NO dotted trigger type. "
+    "Integration-fired events (timer finishing, Shelly click, ZHA press, etc.) use the "
+    'EVENT trigger: `{platform: event, event_type: "timer.finished"}`. For timer or '
+    "schedule completion a plain state trigger on the entity also works: "
+    "`{platform: state, entity_id: timer.foo, to: idle}`. NEVER `platform: timer.finished` / "
+    "`platform: schedule.turned_on` / `trigger: timer.finished`; NEVER `platform: zha` / "
+    "`platform: zigbee2mqtt` / `platform: button`.\n"
+    "- A trigger object NEVER contains BOTH `platform` and `trigger` keys — pick one. "
+    "HA rejects `{platform: zha, trigger: zha_event}` with \"Cannot specify both 'platform' and 'trigger'\".\n"
+    "- For ZHA button presses, use the EVENT trigger:\n"
+    '    {"platform": "event", "event_type": "zha_event", "event_data": {"device_ieee": "<ieee>", "command": "single"}}\n'
+    "  For Zigbee2MQTT button presses, use an MQTT trigger on the device's action topic, "
+    "or a state trigger on its exposed `sensor.<device>_action` entity:\n"
+    '    {"platform": "mqtt", "topic": "zigbee2mqtt/<friendly_name>/action", "payload": "single"}\n'
+    '    {"platform": "state", "entity_id": "sensor.<device>_action", "to": "single"}\n'
+    '  (deCONZ devices use `event_type: "deconz_event"`; that is a deCONZ-only event '
+    "and will never fire on a Zigbee2MQTT install.) Do NOT invent a `platform: zha_event` "
+    "or `trigger: zha_event` shape.\n"
+    "- For DEVICE triggers (`platform: device`), `device_id` MUST be the 32-character hex registry id "
+    "as it appears in AVAILABLE DEVICES (e.g. `75fafa7181a925c27d66f3f48c1971da`). NEVER use a "
+    'name, slug, friendly label, or entity_id in the `device_id` field — HA replies "Unknown device." '
+    "If you don't have the hex id, use an `event` trigger instead.\n"
+    "- REUSE EXISTING SCENES: when the user asks to activate a named scene they already have "
+    "(e.g. 'trigger Good Night when I press X'), the action MUST be `{action: scene.turn_on, "
+    "target: {entity_id: scene.<existing_scene>}}`. Do NOT inline every light/lock/cover state "
+    "from that scene — calling the scene preserves the user's edits to it and keeps the "
+    "automation short.\n"
     "- Match entity names flexibly — 'kitchen lights' -> 'light.kitchen', etc.\n"
     "- BE ACTION-ORIENTED: always prefer executing a command over asking for clarification. "
     "Use the AVAILABLE ENTITIES list and their current states to resolve ambiguity yourself. "
@@ -885,7 +915,20 @@ def build_suggestions_system_prompt(max_suggestions: int) -> str:
         "9. In state conditions, the 'state' field MUST be a string: "
         '"on"/"off", "home"/"away", "locked"/"unlocked", etc. Never a boolean.\n'
         "10. Durations ('for', 'delay') must use \"HH:MM:SS\" format or a dict like "
-        '{"seconds": 300}. Never a raw integer.\n\n'
+        '{"seconds": 300}. Never a raw integer.\n'
+        "11. TRIGGER PLATFORM: common core values are state, numeric_state, time, time_pattern, "
+        "sun, template, event, mqtt, webhook, zone, geo_location, device, calendar, tag, "
+        "conversation, homeassistant. Specific integrations may register their own (e.g. "
+        "`platform: litejet`). The platform value is ALWAYS a single token — NEVER a dotted "
+        "form. Integration-fired events (timer finishing, Shelly click, ZHA press, etc.) use "
+        'the EVENT trigger: `{"platform": "event", "event_type": "timer.finished"}`. NEVER '
+        "`platform: timer.finished` / `trigger: timer.finished` / `platform: zha` / "
+        "`platform: zigbee2mqtt` / `platform: button` — HA rejects all of those.\n"
+        "12. A trigger NEVER contains both `platform` and `trigger` keys. HA rejects the combination.\n"
+        "13. For `platform: device`, `device_id` MUST be the 32-character hex device-registry id, "
+        "never a slug or friendly name. If you don't have that id, use an event trigger.\n"
+        "14. When activating an existing scene, use `{action: scene.turn_on, target: "
+        "{entity_id: scene.<id>}}` — DO NOT inline the scene members.\n\n"
         "EXAMPLE OUTPUT:\n"
         "[\n"
         "  {\n"

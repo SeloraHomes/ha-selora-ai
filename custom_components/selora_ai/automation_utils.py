@@ -8,6 +8,7 @@ import json
 import logging
 from math import floor
 from pathlib import Path
+import re
 from typing import TYPE_CHECKING, Any
 import uuid
 
@@ -44,6 +45,249 @@ _LOGGER = logging.getLogger(__name__)
 # this prefix — the detection helpers in helpers.py keep recognising
 # it so pre-migration automations remain identifiable.
 _LEGACY_SELORA_PREFIX = "[Selora AI]"
+
+
+# HA device registry IDs are 32 lowercase hex characters. The LLM has
+# been observed substituting a friendly slug (e.g. ``smart_button_master
+# _bedroom``), which HA reports as "Unknown device" at reload time.
+_DEVICE_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+
+
+# Logical condition operators that wrap a nested ``conditions:`` list (or
+# HA's shorthand ``{or: [...]}`` form). Used only to know when to recurse,
+# not as a closed allowlist of valid condition types — integrations can
+# register their own condition platforms (e.g. ``condition: mqtt``) which
+# must not be blocked here.
+_LOGICAL_CONDITION_TYPES: frozenset[str] = frozenset({"and", "or", "not"})
+
+
+def _validate_condition(
+    cond: dict[str, Any],
+    hass: HomeAssistant | None,
+) -> tuple[bool, str]:
+    """Validate a single condition dict against the same gates used for triggers.
+
+    Returns ``(True, "")`` on success or ``(False, message)`` on rejection.
+    Recurses into ``and`` / ``or`` / ``not`` logical wrappers — including
+    HA's shorthand form (``{or: [...]}``) and the singular-dict ``conditions``
+    sugar — so a slug ``device_id`` buried two levels deep is still caught
+    before HA reload.
+    """
+    # HA accepts a bare template string as a condition (e.g.
+    # ``if: ["{{ is_state('input_boolean.away', 'on') }}"]``). There are no
+    # device_id / event_type fields to validate on a string, so accept it
+    # and let HA's renderer surface a bad template at runtime.
+    if isinstance(cond, str):
+        return True, ""
+    if not isinstance(cond, dict):
+        return False, "condition must be an object"
+
+    # HA shorthand: `{or: [...]}` / `{and: [...]}` / `{not: [...]}` with no
+    # explicit `condition:` key. Treat the operator key as the type and the
+    # value as the nested list.
+    for op in ("and", "or", "not"):
+        if op in cond and "condition" not in cond:
+            nested = cond[op]
+            if isinstance(nested, dict):
+                nested = [nested]
+            if not isinstance(nested, list) or not nested:
+                return False, f"'{op}' shorthand requires a non-empty list"
+            for sub in nested:
+                ok, err = _validate_condition(sub, hass)
+                if not ok:
+                    return False, err
+            return True, ""
+
+    ctype = cond.get("condition")
+    if not ctype or not isinstance(ctype, str):
+        return False, "each condition must include a 'condition' field"
+    if ctype in _LOGICAL_CONDITION_TYPES:
+        nested = cond.get("conditions")
+        # HA accepts a singular dict here and normalizes it to a list.
+        if isinstance(nested, dict):
+            nested = [nested]
+        if not isinstance(nested, list) or not nested:
+            return False, f"'{ctype}' condition requires a non-empty 'conditions' list"
+        for sub in nested:
+            ok, err = _validate_condition(sub, hass)
+            if not ok:
+                return False, err
+        return True, ""
+    if ctype == "device":
+        device_id = cond.get("device_id")
+        if not device_id or not isinstance(device_id, str):
+            return False, "device condition requires 'device_id'"
+        if not _DEVICE_ID_RE.match(device_id):
+            return (
+                False,
+                f"device condition 'device_id' must be a 32-char hex registry "
+                f"identifier, not '{device_id}'",
+            )
+        if hass is not None:
+            device_reg = dr.async_get(hass)
+            if device_reg.async_get(device_id) is None:
+                return False, f"device condition references unknown device_id '{device_id}'"
+    return True, ""
+
+
+def _validate_trigger(
+    trig: dict[str, Any],
+    hass: HomeAssistant | None,
+) -> tuple[bool, str]:
+    """Apply the trigger schema gates shared by top-level and nested triggers.
+
+    Catches the `platform` + `trigger` key conflict, missing platform,
+    `event` trigger without `event_type`, and `device` trigger with a
+    non-hex or unknown ``device_id``.
+
+    Coerces HA 2024.10+ ``trigger:`` key to ``platform:`` so downstream
+    code sees one uniform shape. A dotted value under either key
+    (``timer.finished``, ``shelly.click``, …) is rejected — HA's
+    documented spelling for that case is an event trigger
+    (``{platform: event, event_type: timer.finished}``) or a state
+    trigger on the corresponding entity; a literal dotted trigger
+    type / platform makes ``automation.reload`` fail.
+    """
+    if not isinstance(trig, dict):
+        return False, "trigger must be an object"
+    if trig.get("platform") and trig.get("trigger"):
+        return False, "trigger must not contain both 'platform' and 'trigger' keys"
+
+    trigger_value = trig.get("trigger")
+    if not trig.get("platform") and isinstance(trigger_value, str) and trigger_value:
+        trig["platform"] = trig.pop("trigger")
+
+    platform = trig.get("platform")
+    if isinstance(platform, str) and "." in platform:
+        return (
+            False,
+            f"'{platform}' is not a valid trigger type — use "
+            f'`{{platform: event, event_type: "{platform}"}}` or a state trigger '
+            f"on the relevant entity instead",
+        )
+    if not platform:
+        return False, "each trigger must include a platform"
+    if platform == "event" and not trig.get("event_type"):
+        return False, "event trigger requires 'event_type'"
+    if platform == "device":
+        device_id = trig.get("device_id")
+        if not device_id or not isinstance(device_id, str):
+            return False, "device trigger requires 'device_id'"
+        if not _DEVICE_ID_RE.match(device_id):
+            return (
+                False,
+                f"device trigger 'device_id' must be a 32-char hex registry "
+                f"identifier, not '{device_id}'",
+            )
+        if hass is not None:
+            device_reg = dr.async_get(hass)
+            if device_reg.async_get(device_id) is None:
+                return False, f"device trigger references unknown device_id '{device_id}'"
+    return True, ""
+
+
+def _validate_action_conditions(
+    action: Any,
+    hass: HomeAssistant | None,
+) -> tuple[bool, str]:
+    """Walk an action step and validate any condition blocks it contains.
+
+    HA accepts condition blocks in several places inside an action sequence:
+    inline as an action step itself, in ``choose[].conditions``, ``if``,
+    ``repeat.while`` / ``repeat.until``, plus any nested ``sequence``
+    inside ``parallel`` / ``repeat`` / ``choose[].sequence`` /
+    ``choose.default`` / ``then`` / ``else``. Without recursing into all
+    of those, a slug ``device_id`` buried two levels deep in
+    ``choose[0].conditions`` slips past the top-level condition gate.
+    """
+    if isinstance(action, list):
+        for step in action:
+            ok, err = _validate_action_conditions(step, hass)
+            if not ok:
+                return False, err
+        return True, ""
+    if not isinstance(action, dict):
+        return True, ""
+
+    # Inline condition-as-action step (including shorthand or/and/not).
+    # A service call carries an ``action:`` or ``service:`` key, so skip
+    # those to avoid validating service-call payloads as conditions.
+    is_service_call = "action" in action or "service" in action
+    if not is_service_call and (
+        "condition" in action or any(op in action for op in _LOGICAL_CONDITION_TYPES)
+    ):
+        ok, err = _validate_condition(action, hass)
+        if not ok:
+            return False, err
+
+    # `choose: [{conditions: [...], sequence: [...]}, ...]` + optional default.
+    choose = action.get("choose")
+    if isinstance(choose, list):
+        for branch in choose:
+            if not isinstance(branch, dict):
+                continue
+            for cond in _as_condition_list(branch.get("conditions")):
+                ok, err = _validate_condition(cond, hass)
+                if not ok:
+                    return False, err
+            ok, err = _validate_action_conditions(branch.get("sequence"), hass)
+            if not ok:
+                return False, err
+    if "default" in action:
+        ok, err = _validate_action_conditions(action.get("default"), hass)
+        if not ok:
+            return False, err
+
+    # `if: [...], then: [...], else: [...]` action.
+    for cond in _as_condition_list(action.get("if")):
+        ok, err = _validate_condition(cond, hass)
+        if not ok:
+            return False, err
+    for branch_key in ("then", "else"):
+        ok, err = _validate_action_conditions(action.get(branch_key), hass)
+        if not ok:
+            return False, err
+
+    # `wait_for_trigger: [...]` embeds full trigger dicts; apply the same
+    # schema gates so a slug `device_id` buried inside a wait step is
+    # rejected before HA reload.
+    for trig in _as_condition_list(action.get("wait_for_trigger")):
+        if isinstance(trig, dict):
+            ok, err = _validate_trigger(trig, hass)
+            if not ok:
+                return False, err
+
+    # `repeat: {while|until: [...], sequence: [...]}`.
+    repeat = action.get("repeat")
+    if isinstance(repeat, dict):
+        for guard_key in ("while", "until"):
+            for cond in _as_condition_list(repeat.get(guard_key)):
+                ok, err = _validate_condition(cond, hass)
+                if not ok:
+                    return False, err
+        ok, err = _validate_action_conditions(repeat.get("sequence"), hass)
+        if not ok:
+            return False, err
+
+    # `parallel: [...]` and `sequence: [...]` just nest more action steps.
+    for nested_key in ("parallel", "sequence"):
+        ok, err = _validate_action_conditions(action.get(nested_key), hass)
+        if not ok:
+            return False, err
+
+    return True, ""
+
+
+def _as_condition_list(value: Any) -> list[Any]:
+    """HA accepts a singular dict where a list is expected (conditions,
+    triggers, wait_for_trigger, …). Wrap so callers iterate uniformly."""
+    if value is None:
+        return []
+    if isinstance(value, dict):
+        return [value]
+    if isinstance(value, list):
+        return value
+    return []
 
 
 def _strip_legacy_selora_prefix(text: str | None) -> str:
@@ -660,14 +904,17 @@ def validate_automation_payload(
         return False, "all conditions must be objects", None
 
     # --- Trigger normalization ---------------------------------------------
+    # No static allowlist of trigger platforms: HA integrations register
+    # their own platforms at runtime (e.g. ``platform: litejet``) and
+    # HA 2024.10+ adds the ``<domain>.<event>`` form. Trust HA to surface
+    # unknown platforms at reload — the schema gates in `_validate_trigger`
+    # catch the specific LLM failure modes we have seen in the wild.
     normalized_triggers: list[dict[str, Any]] = []
     for trig in triggers:
         fixed = _normalize_item(trig)
-        # Fix LLM using "trigger" key instead of "platform"
-        if not fixed.get("platform") and fixed.get("trigger"):
-            fixed["platform"] = fixed.pop("trigger")
-        if not fixed.get("platform"):
-            return False, "each trigger must include a platform", None
+        ok, err = _validate_trigger(fixed, hass)
+        if not ok:
+            return False, err, None
         # Remove None-valued to/from (LLM sometimes emits explicit nulls)
         for key in ("to", "from"):
             if key in fixed and fixed[key] is None:
@@ -675,9 +922,16 @@ def validate_automation_payload(
         normalized_triggers.append(fixed)
 
     # --- Condition normalization -------------------------------------------
+    # Apply the same shape gates the trigger block uses: unknown condition
+    # types and slug `device_id`s on device conditions cause HA to reject
+    # the whole automation at reload, after the YAML is already on disk.
     normalized_conditions: list[dict[str, Any]] = []
     for cond in conditions:
-        normalized_conditions.append(_normalize_item(cond))
+        norm_cond = _normalize_item(cond)
+        ok, err = _validate_condition(norm_cond, hass)
+        if not ok:
+            return False, err, None
+        normalized_conditions.append(norm_cond)
 
     # --- Action normalization ----------------------------------------------
     # When hass is available, validate actions against the service registry:
@@ -714,6 +968,15 @@ def validate_automation_payload(
                         None,
                     )
         normalized_actions.append(norm_act)
+
+    # Recurse into action control-flow (`choose`, `if`, `repeat`, etc.) so
+    # condition blocks embedded inside an action branch get the same
+    # validation as top-level conditions — otherwise a slug `device_id`
+    # inside `choose[].conditions` would pass here and explode at reload.
+    for norm_act in normalized_actions:
+        ok, err = _validate_action_conditions(norm_act, hass)
+        if not ok:
+            return False, err, None
 
     # --- Entity reference check --------------------------------------------
     # Reject payloads that reference entity_ids the running HA instance does
