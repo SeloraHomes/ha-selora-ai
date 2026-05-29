@@ -12281,8 +12281,16 @@ var _PROVIDERS = [
   { value: "ollama", label: "Ollama (Local)" },
   { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
+function _visibleProviders(host) {
+  const localAvailable = !!host._config?.selora_local_available;
+  const localSelected = host._config?.llm_provider === "selora_local";
+  return _PROVIDERS.filter(
+    (p2) => p2.value !== "selora_local" || localAvailable || localSelected,
+  );
+}
 function _renderProviderPicker(host) {
-  const current = _PROVIDERS.find(
+  const providers = _visibleProviders(host);
+  const current = providers.find(
     (p2) => p2.value === host._config.llm_provider,
   );
   const open = host._providerDropdownOpen || false;
@@ -12315,7 +12323,7 @@ function _renderProviderPicker(host) {
             <div
               style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
             >
-              ${_PROVIDERS.map(
+              ${providers.map(
                 (p2) => x`
                   <button
                     style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p2.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p2.disabled ? "var(--disabled-text-color, #999)" : p2.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p2.disabled ? "default" : "pointer"};opacity:${p2.disabled ? "0.5" : "1"};"
@@ -12323,6 +12331,15 @@ function _renderProviderPicker(host) {
                       if (p2.disabled) return;
                       host._providerDropdownOpen = false;
                       host._updateConfig("llm_provider", p2.value);
+                      if (
+                        p2.value === "selora_local" &&
+                        host._config?.selora_local_discovered_host
+                      ) {
+                        host._updateConfig(
+                          "selora_local_host",
+                          host._config.selora_local_discovered_host,
+                        );
+                      }
                       host._showApiKeyInput = false;
                       host._newApiKey = "";
                       host._llmSaveStatus = null;

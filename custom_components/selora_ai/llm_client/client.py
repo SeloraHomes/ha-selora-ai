@@ -121,7 +121,7 @@ _PROVIDER_TOKEN_BUDGETS: dict[str, int] = {
     LLM_PROVIDER_OPENROUTER: 110_000,  # Routes to many models, conservative budget
     LLM_PROVIDER_OLLAMA: 28_000,  # Ollama models: often 32K effective
     LLM_PROVIDER_SELORA_CLOUD: 110_000,  # OpenAI-compatible gateway, conservative
-    # libselora add-on caps max_seq at 1024 — leave room for the response.
+    # Selora AI Local caps max_seq at 1024 — leave room for the response.
     LLM_PROVIDER_SELORA_LOCAL: 700,
 }
 

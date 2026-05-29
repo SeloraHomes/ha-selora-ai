@@ -14,10 +14,8 @@ This provider:
    the first user request of each kind hits warm TTFT instead of the
    ~16s cold prefill on Vega 8.
 
-Historical note: same OpenAI-compat surface as the older libselora
-add-on (Phi-3.5 INT8 on port 5310). Slot routing is a no-op when
-discovery returns zero LoRAs, so the provider still works against
-single-model backends.
+Slot routing is a no-op when discovery returns zero LoRAs, so the
+provider still works against single-model backends.
 """
 
 from __future__ import annotations

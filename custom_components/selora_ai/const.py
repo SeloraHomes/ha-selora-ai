@@ -798,15 +798,9 @@ DEFAULT_GEMINI_MODEL = "gemini-2.5-flash"
 # routes per request by (a) activating the right LoRA slot via
 # POST /lora-adapters and (b) capping output tokens per intent so a
 # 50-token answer doesn't consume the model's whole 1024-token window.
-#
-# Historical note: the same provider class was originally written for
-# the libselora HA add-on (Phi-3.5 INT8 on :5310 with model-name
-# routing). The OpenAI-compat surface is the same, so the integration
-# still works against either backend — slot routing is a no-op when
-# discovery reports zero LoRAs.
 CONF_SELORA_LOCAL_HOST = "selora_local_host"
 
-DEFAULT_SELORA_LOCAL_HOST = "http://localhost:5310"
+DEFAULT_SELORA_LOCAL_HOST = "http://localhost:8080"
 
 # Selora AI Local: maps a LLMClient call kind (set via
 # provider.set_call_kind) to the specialist intent name. The intent

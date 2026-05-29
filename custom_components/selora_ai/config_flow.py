@@ -268,6 +268,10 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._provider: str = DEFAULT_LLM_PROVIDER
         # LLM config stored between steps (initial setup only)
         self._llm_data: dict[str, Any] | None = None
+        # First reachable Selora AI Local host, captured during the user
+        # step so the selora_local form can prefill it instead of the
+        # hardcoded localhost default.
+        self._selora_local_discovered_host: str | None = None
         # Device discovery state
         self._discovered_devices: list[dict[str, Any]] = []
         self._setup_results: list[dict[str, Any]] = []
@@ -325,6 +329,13 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             return await self.async_step_discover()
 
         # Initial setup: Choose LLM provider
+        from .providers import discover_selora_local_host
+
+        discovered_host = await discover_selora_local_host(self.hass)
+        if discovered_host is not None:
+            self._selora_local_discovered_host = discovered_host
+        selora_local_available = discovered_host is not None
+
         if user_input is not None:
             self._provider = user_input[CONF_LLM_PROVIDER]
             if self._provider == LLM_PROVIDER_SELORA_CLOUD:
@@ -339,7 +350,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_openrouter()
             if self._provider == LLM_PROVIDER_OLLAMA:
                 return await self.async_step_ollama()
-            if self._provider == LLM_PROVIDER_SELORA_LOCAL:
+            if self._provider == LLM_PROVIDER_SELORA_LOCAL and selora_local_available:
                 return await self.async_step_selora_local()
 
             # Skip for now
@@ -349,6 +360,18 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 title="Selora AI (Unconfigured)", data={CONF_LLM_PROVIDER: LLM_PROVIDER_NONE}
             )
 
+        provider_options: dict[str, str] = {
+            LLM_PROVIDER_SELORA_CLOUD: "Selora AI Cloud — Recommended",
+            LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude)",
+            LLM_PROVIDER_GEMINI: "Google Gemini",
+            LLM_PROVIDER_OPENAI: "OpenAI",
+            LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
+            LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
+        }
+        if selora_local_available:
+            provider_options[LLM_PROVIDER_SELORA_LOCAL] = "Selora AI Local (On-device)"
+        provider_options[LLM_PROVIDER_NONE] = "Skip for now (Configure later)"
+
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
@@ -356,18 +379,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     vol.Required(
                         CONF_LLM_PROVIDER,
                         default=DEFAULT_LLM_PROVIDER,
-                    ): vol.In(
-                        {
-                            LLM_PROVIDER_SELORA_CLOUD: "Selora AI Cloud — Recommended",
-                            LLM_PROVIDER_ANTHROPIC: "Anthropic (Claude)",
-                            LLM_PROVIDER_GEMINI: "Google Gemini",
-                            LLM_PROVIDER_OPENAI: "OpenAI",
-                            LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
-                            LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
-                            LLM_PROVIDER_SELORA_LOCAL: "Selora AI Local (On-device)",
-                            LLM_PROVIDER_NONE: "Skip for now (Configure later)",
-                        }
-                    ),
+                    ): vol.In(provider_options),
                 }
             ),
         )
@@ -547,13 +559,14 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
                 return await self.async_step_selora_connect()
 
+        host_default = self._selora_local_discovered_host or DEFAULT_SELORA_LOCAL_HOST
         return self.async_show_form(
             step_id="selora_local",
             data_schema=vol.Schema(
                 {
                     vol.Required(
                         CONF_SELORA_LOCAL_HOST,
-                        default=DEFAULT_SELORA_LOCAL_HOST,
+                        default=host_default,
                     ): str,
                 }
             ),
