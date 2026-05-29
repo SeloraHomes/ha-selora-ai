@@ -7,6 +7,7 @@ import pytest
 from custom_components.selora_ai.const import (
     DEFAULT_OPENROUTER_HOST,
     DEFAULT_OPENROUTER_MODEL,
+    OPENROUTER_APP_CATEGORIES,
     OPENROUTER_APP_REFERER,
     OPENROUTER_APP_TITLE,
 )
@@ -65,7 +66,9 @@ class TestOpenRouterHeaders:
     def test_attribution_headers(self, provider) -> None:
         headers = provider._get_headers()
         assert headers["HTTP-Referer"] == OPENROUTER_APP_REFERER
-        assert headers["X-Title"] == OPENROUTER_APP_TITLE
+        assert headers["X-OpenRouter-Title"] == OPENROUTER_APP_TITLE
+        assert headers["X-OpenRouter-Categories"] == OPENROUTER_APP_CATEGORIES
+        assert "X-Title" not in headers
 
 
 class TestOpenRouterRegistry:

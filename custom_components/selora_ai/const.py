@@ -777,10 +777,12 @@ CONF_OPENROUTER_MODEL = "openrouter_model"
 DEFAULT_OPENROUTER_HOST = "https://openrouter.ai/api"
 DEFAULT_OPENROUTER_MODEL = "anthropic/claude-sonnet-4.5"
 
-# Optional app-attribution headers recommended by OpenRouter.
-# https://openrouter.ai/docs/api-reference/overview#app-attribution
-OPENROUTER_APP_REFERER = "https://selorahomes.com"
+# App-attribution headers recommended by OpenRouter.
+# https://openrouter.ai/docs/app-attribution
+OPENROUTER_APP_REFERER = "https://selorahomes.com/selora-ai"
 OPENROUTER_APP_TITLE = "Selora AI"
+# Comma-separated, lowercase, hyphen-separated category slugs.
+OPENROUTER_APP_CATEGORIES = "personal-agent"
 
 # ── Google Gemini ──────────────────────────────────────────────────
 CONF_GEMINI_API_KEY = "gemini_api_key"
