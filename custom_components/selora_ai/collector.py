@@ -1000,10 +1000,11 @@ class DataCollector:
         """
         try:
             from .entity_capabilities import is_actionable_entity
-            from .entity_filter import EntityFilter
+            from .entity_filter import EntityFilter, resolve_ignored_entity_ids
 
             all_states = self._hass.states.async_all()
             ef = EntityFilter(self._hass, [s.entity_id for s in all_states])
+            ignored = resolve_ignored_entity_ids(self._hass)
             states = []
 
             for state in all_states:
@@ -1012,6 +1013,8 @@ class DataCollector:
                     if domain not in COLLECTOR_DOMAINS:
                         continue
                     if not ef.is_active(state.entity_id):
+                        continue
+                    if state.entity_id in ignored:
                         continue
                     if not is_actionable_entity(state.entity_id):
                         continue
@@ -1354,11 +1357,20 @@ class DataCollector:
                 get_significant_states,
             )
 
+            from .entity_filter import resolve_ignored_entity_ids
+
             now = datetime.now(UTC)
             start = now - timedelta(days=self._lookback_days)
 
-            # HA 2025.1+ requires entity_ids — collect all from state machine
-            entity_ids = [s.entity_id for s in self._hass.states.async_all()]
+            # HA 2025.1+ requires entity_ids — collect all from state machine,
+            # then drop any tagged with the Selora exclude label so their
+            # history never reaches the LLM. Without this, ignored entities
+            # are still mined for patterns and shipped to the configured
+            # provider as part of the snapshot.
+            ignored = resolve_ignored_entity_ids(self._hass)
+            entity_ids = [
+                s.entity_id for s in self._hass.states.async_all() if s.entity_id not in ignored
+            ]
             if not entity_ids:
                 return []
 

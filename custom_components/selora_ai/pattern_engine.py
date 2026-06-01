@@ -36,7 +36,7 @@ from .const import (
     PATTERN_TYPE_SEQUENCE,
     PATTERN_TYPE_TIME_BASED,
 )
-from .entity_filter import EntityFilter
+from .entity_filter import EntityFilter, resolve_ignored_entity_ids
 from .pattern_store import PatternStore
 
 _LOGGER = logging.getLogger(__name__)
@@ -211,6 +211,14 @@ class PatternEngine:
         history = await self._store.get_all_history()
         if not history:
             return []
+
+        # Drop ignored entities before detection so we never spend cycles
+        # mining patterns the user has explicitly opted out of.
+        ignored = resolve_ignored_entity_ids(self._hass)
+        if ignored:
+            history = {eid: ch for eid, ch in history.items() if eid not in ignored}
+            if not history:
+                return []
 
         new_patterns: list[PatternDict] = []
         new_patterns.extend(await self._detect_time_patterns(history))
