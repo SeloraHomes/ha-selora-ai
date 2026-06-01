@@ -21,6 +21,7 @@ LLM Backends:
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Callable
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
@@ -141,6 +142,8 @@ from .const import (
     PANEL_PATH,
     PANEL_TITLE,
     SELORA_AI_LABEL_ID,
+    SELORA_EXCLUDE_LABEL_ID,
+    SELORA_EXCLUDE_LABEL_NAME,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
@@ -2746,6 +2749,58 @@ async def _handle_websocket_rename_automation(
         connection.send_error(msg["id"], "error", str(exc))
 
 
+def _suggestion_ignore_filter(hass: HomeAssistant) -> Callable[[dict[str, Any]], bool]:
+    """Build a predicate that returns True if a suggestion should be hidden.
+
+    Three match paths so direct device / area references in HA's automation
+    forms (device triggers / conditions / actions, ``target.device_id``,
+    ``target.area_id``) are caught alongside entity references:
+
+    * any referenced entity_id is in the expanded ignored set
+    * any referenced device_id carries the exclude label directly
+    * any referenced area_id carries the exclude label directly
+
+    Without the device/area branches an automation that targets a labeled
+    device by ID — without naming any of its entities — would slip through.
+    """
+    from homeassistant.helpers import device_registry as dr
+
+    from .automation_utils import _collect_referenced_resources
+    from .entity_filter import resolve_ignored_entity_ids, resolve_label_tagged_items
+
+    ignored_entities = resolve_ignored_entity_ids(hass)
+    tagged = resolve_label_tagged_items(hass)
+    ignored_devices = set(tagged["devices"])
+    ignored_areas = set(tagged["areas"])
+
+    # Expand: a device that lives in a labeled area should also be treated
+    # as ignored, so a suggestion using `device_id` directly (device
+    # trigger, device action, target.device_id) for a device in a hidden
+    # area still gets filtered out.
+    if ignored_areas:
+        dev_reg = dr.async_get(hass)
+        for dev in dev_reg.devices.values():
+            if dev.area_id and dev.area_id in ignored_areas:
+                ignored_devices.add(dev.id)
+
+    if not ignored_entities and not ignored_devices and not ignored_areas:
+        return lambda _s: False
+
+    def _ignored(suggestion: dict[str, Any]) -> bool:
+        automation = suggestion.get("automation_data") or suggestion
+        try:
+            entities, devices, areas = _collect_referenced_resources(automation)
+        except Exception:
+            return False
+        if ignored_entities and any(eid in ignored_entities for eid in entities):
+            return True
+        if ignored_devices and any(did in ignored_devices for did in devices):
+            return True
+        return bool(ignored_areas) and any(aid in ignored_areas for aid in areas)
+
+    return _ignored
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -2764,6 +2819,9 @@ async def _handle_websocket_get_suggestions(
     suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
     if not suggestions:
         suggestions = hass.data.get(DOMAIN, {}).get("latest_suggestions", [])
+
+    is_ignored = _suggestion_ignore_filter(hass)
+    suggestions = [s for s in suggestions if not is_ignored(s)]
     connection.send_result(msg["id"], suggestions)
 
 
@@ -2834,12 +2892,15 @@ async def _handle_websocket_generate_suggestions(
 
         # 4. Return combined results: proactive first, then collector — skip existing
         #    Deduplicate by both alias AND content fingerprint (#46)
+        is_ignored = _suggestion_ignore_filter(hass)
         all_suggestions = []
         seen_aliases: set[str] = set()
         seen_fingerprints: set[str] = set()
         for s in list(hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])):
             alias = (s.get("alias") or "").strip().lower()
             if alias and (alias in existing_aliases or alias in seen_aliases):
+                continue
+            if is_ignored(s):
                 continue
             auto_data = s.get("automation_data", s)
             fp = suggestion_content_fingerprint(auto_data)
@@ -2852,6 +2913,8 @@ async def _handle_websocket_generate_suggestions(
         for s in hass.data.get(DOMAIN, {}).get("latest_suggestions", []):
             alias = (s.get("alias") or "").strip().lower()
             if alias and (alias in existing_aliases or alias in seen_aliases):
+                continue
+            if is_ignored(s):
                 continue
             auto_data = s.get("automation_data", s)
             fp = suggestion_content_fingerprint(auto_data)
@@ -3204,6 +3267,8 @@ async def _handle_websocket_get_config(
         connection.send_error(msg["id"], "not_configured", "Selora AI not configured")
         return
 
+    from .entity_filter import resolve_label_tagged_items
+
     # Merge entry data with options for a complete view
     config_data = {**entry.data, **entry.options}
     aigw = _aigateway_view(config_data)
@@ -3263,6 +3328,9 @@ async def _handle_websocket_get_config(
                 CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME
             ),
             "pattern_detection_enabled": config_data.get(CONF_PATTERN_ENABLED, True),
+            "exclude_label_id": SELORA_EXCLUDE_LABEL_ID,
+            "exclude_label_name": SELORA_EXCLUDE_LABEL_NAME,
+            "label_tagged": resolve_label_tagged_items(hass),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
@@ -3388,6 +3456,163 @@ async def _handle_websocket_update_config(
                 _LOGGER.exception("Failed to reload entry after config update")
 
         hass.async_create_task(_reload())
+
+
+def _ensure_exclude_label(hass: HomeAssistant) -> str | None:
+    """Return the Selora exclude label_id, creating the label if missing.
+
+    Called from the apply/remove WS handlers so a user labeling something
+    via the panel before integration startup has finished still works —
+    the label_id is the source of truth, and we shouldn't fail because
+    of a startup ordering quirk.
+    """
+    from homeassistant.helpers import label_registry as lr
+
+    from .entity_filter import resolve_exclude_label_id
+
+    label_id = resolve_exclude_label_id(hass)
+    if label_id is not None:
+        return label_id
+    try:
+        label_reg = lr.async_get(hass)
+        label = label_reg.async_create(
+            name=SELORA_EXCLUDE_LABEL_NAME,
+            icon="mdi:eye-off",
+            description=(
+                "Selora AI ignores entities, devices, and areas tagged with "
+                "this label when generating proactive suggestions."
+            ),
+        )
+        return label.label_id
+    except Exception:  # noqa: BLE001 — surface as None so the WS path errors cleanly
+        _LOGGER.debug("Failed to ensure Selora exclude label", exc_info=True)
+        return None
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/apply_exclude_label",
+        vol.Optional("entity_id"): str,
+        vol.Optional("device_id"): str,
+        vol.Optional("area_id"): str,
+    }
+)
+async def _handle_websocket_apply_exclude_label(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Tag an entity / device / area with the Selora exclude label."""
+    if not _require_admin(connection, msg):
+        return
+
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from .entity_filter import resolve_label_tagged_items
+
+    label_id = _ensure_exclude_label(hass)
+    if label_id is None:
+        connection.send_error(msg["id"], "label_unavailable", "Could not access label registry")
+        return
+
+    entity_id = msg.get("entity_id")
+    device_id = msg.get("device_id")
+    area_id = msg.get("area_id")
+    if not (entity_id or device_id or area_id):
+        connection.send_error(
+            msg["id"], "missing_target", "entity_id, device_id, or area_id required"
+        )
+        return
+
+    try:
+        if entity_id:
+            ent_reg = er.async_get(hass)
+            ent = ent_reg.async_get(entity_id)
+            if ent is None:
+                connection.send_error(msg["id"], "not_found", f"Unknown entity {entity_id}")
+                return
+            ent_reg.async_update_entity(entity_id, labels=set(ent.labels or ()) | {label_id})
+        if device_id:
+            dev_reg = dr.async_get(hass)
+            dev = dev_reg.async_get(device_id)
+            if dev is None:
+                connection.send_error(msg["id"], "not_found", f"Unknown device {device_id}")
+                return
+            dev_reg.async_update_device(device_id, labels=set(dev.labels or ()) | {label_id})
+        if area_id:
+            area_reg = ar.async_get(hass)
+            area = area_reg.async_get_area(area_id)
+            if area is None:
+                connection.send_error(msg["id"], "not_found", f"Unknown area {area_id}")
+                return
+            area_reg.async_update(area_id, labels=set(area.labels or ()) | {label_id})
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.exception("Failed to apply exclude label")
+        connection.send_error(msg["id"], "apply_failed", str(exc))
+        return
+
+    connection.send_result(msg["id"], {"label_tagged": resolve_label_tagged_items(hass)})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/remove_exclude_label",
+        vol.Optional("entity_id"): str,
+        vol.Optional("device_id"): str,
+        vol.Optional("area_id"): str,
+    }
+)
+async def _handle_websocket_remove_exclude_label(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Remove the Selora exclude label from an entity / device / area."""
+    if not _require_admin(connection, msg):
+        return
+
+    from homeassistant.helpers import area_registry as ar
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    from .entity_filter import resolve_exclude_label_id, resolve_label_tagged_items
+
+    label_id = resolve_exclude_label_id(hass)
+    if label_id is None:
+        # No label means nothing to untag — return current (empty) state.
+        connection.send_result(msg["id"], {"label_tagged": resolve_label_tagged_items(hass)})
+        return
+
+    entity_id = msg.get("entity_id")
+    device_id = msg.get("device_id")
+    area_id = msg.get("area_id")
+
+    try:
+        if entity_id:
+            ent_reg = er.async_get(hass)
+            ent = ent_reg.async_get(entity_id)
+            if ent is not None and label_id in (ent.labels or ()):
+                ent_reg.async_update_entity(entity_id, labels=set(ent.labels) - {label_id})
+        if device_id:
+            dev_reg = dr.async_get(hass)
+            dev = dev_reg.async_get(device_id)
+            if dev is not None and label_id in (dev.labels or ()):
+                dev_reg.async_update_device(device_id, labels=set(dev.labels) - {label_id})
+        if area_id:
+            area_reg = ar.async_get(hass)
+            area = area_reg.async_get_area(area_id)
+            if area is not None and label_id in (area.labels or ()):
+                area_reg.async_update(area_id, labels=set(area.labels) - {label_id})
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.exception("Failed to remove exclude label")
+        connection.send_error(msg["id"], "remove_failed", str(exc))
+        return
+
+    connection.send_result(msg["id"], {"label_tagged": resolve_label_tagged_items(hass)})
 
 
 @websocket_api.async_response
@@ -3830,6 +4055,9 @@ async def _handle_websocket_get_proactive_suggestions(
     else:
         all_suggestions = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
         suggestions = [s for s in all_suggestions if s.get("status") == status]
+
+    is_ignored = _suggestion_ignore_filter(hass)
+    suggestions = [s for s in suggestions if not is_ignored(s)]
     connection.send_result(msg["id"], suggestions)
 
 
@@ -5934,6 +6162,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_automations)
     websocket_api.async_register_command(hass, _handle_websocket_get_config)
     websocket_api.async_register_command(hass, _handle_websocket_update_config)
+    websocket_api.async_register_command(hass, _handle_websocket_apply_exclude_label)
+    websocket_api.async_register_command(hass, _handle_websocket_remove_exclude_label)
     websocket_api.async_register_command(hass, _handle_websocket_validate_llm_key)
     # Conversation sessions
     websocket_api.async_register_command(hass, _handle_websocket_get_sessions)
@@ -6098,6 +6328,28 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     provider = _resolve_llm_provider(entry.data)
+
+    # Auto-create the "Selora exclude" label so users can apply it from HA's
+    # native entity / device / area editors without a separate workflow.
+    # Looked up at filter time — see resolve_ignored_entity_ids.
+    try:
+        from homeassistant.helpers import label_registry as lr
+
+        label_reg = lr.async_get(hass)
+        if (
+            label_reg.async_get_label(SELORA_EXCLUDE_LABEL_ID) is None
+            and label_reg.async_get_label_by_name(SELORA_EXCLUDE_LABEL_NAME) is None
+        ):
+            label_reg.async_create(
+                name=SELORA_EXCLUDE_LABEL_NAME,
+                icon="mdi:eye-off",
+                description=(
+                    "Selora AI ignores entities, devices, and areas tagged with "
+                    "this label when generating proactive suggestions."
+                ),
+            )
+    except Exception:  # noqa: BLE001 — label bootstrap is best-effort
+        _LOGGER.debug("Failed to ensure Selora exclude label", exc_info=True)
 
     lookback = entry.data.get(CONF_RECORDER_LOOKBACK_DAYS, DEFAULT_RECORDER_LOOKBACK_DAYS)
     pricing_overrides = entry.options.get(CONF_LLM_PRICING_OVERRIDES) or {}
