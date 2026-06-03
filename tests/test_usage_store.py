@@ -356,16 +356,14 @@ class TestMonthBounds:
 
     async def test_prune_keeps_current_month_days(self, store) -> None:
         """Pruning must not drop early-month days even past the 30-day window."""
-        from homeassistant.util import dt as dt_util
+        from datetime import datetime, timezone
 
-        today = dt_util.now().date()
-        # Only meaningful when we're far enough into the month that
-        # day-1 is outside the rolling 30-day window. Skip otherwise.
-        days_into_month = (today - today.replace(day=1)).days
-        if days_into_month < USAGE_RETENTION_DAYS:
-            pytest.skip("not deep enough into month to trigger the edge case")
+        # Freeze "now" to a date deep enough into the month that day-1
+        # falls outside the rolling 30-day window. Day 31 of a 31-day
+        # month puts day-1 exactly past the retention cutoff.
+        frozen_now = datetime(2026, 1, 31, 12, 0, tzinfo=timezone.utc)
+        first_of_month = "2026-01-01"
 
-        first_of_month = today.replace(day=1).isoformat()
         store._data = {
             "version": 1,
             "days": {
@@ -382,7 +380,11 @@ class TestMonthBounds:
             },
         }
 
-        await store.record(_event(input_tokens=1))
+        with patch(
+            "custom_components.selora_ai.usage_store.dt_util.now",
+            return_value=frozen_now,
+        ):
+            await store.record(_event(input_tokens=1, timestamp=frozen_now.isoformat()))
 
         assert first_of_month in store._data["days"]
 
