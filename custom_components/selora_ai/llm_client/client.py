@@ -55,6 +55,7 @@ from .command_policy import (
     synthesize_approval_from_tool_log,
 )
 from .intent import (
+    _CLOUD_MAX_ENTITIES,
     _classify_chat_intent,
     _filter_entities_by_keywords,
     _is_pure_greeting,
@@ -1140,9 +1141,10 @@ class LLMClient:
             "input_select",
             "device_tracker",
             "person",
+            "weather",
         }
 
-        entity_lines: list[str] = []
+        eligible: list[EntitySnapshot] = []
         for e in entities:
             eid = e.get("entity_id", "")
             domain = eid.split(".")[0]
@@ -1150,11 +1152,13 @@ class LLMClient:
                 continue
             if not is_actionable_entity(eid):
                 continue
-            entity_lines.append(_format_entity_line(e))
+            eligible.append(e)
 
-        if len(entity_lines) > 500:
-            entity_lines = entity_lines[:500]
-            entity_lines.append("  - ... (truncated to 500 entities)")
+        keywords = _low_context_keywords(user_message)
+        if len(eligible) > _CLOUD_MAX_ENTITIES:
+            ranked = _filter_entities_by_keywords(eligible, keywords, cap=_CLOUD_MAX_ENTITIES)
+            eligible = ranked or eligible[:_CLOUD_MAX_ENTITIES]
+        entity_lines: list[str] = [_format_entity_line(e) for e in eligible]
 
         auto_lines: list[str] = []
         if existing_automations:
