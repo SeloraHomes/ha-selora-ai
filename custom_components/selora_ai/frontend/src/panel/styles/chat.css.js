@@ -450,6 +450,24 @@ export const chatStyles = css`
     display: flex;
     flex-direction: column;
   }
+  .assistant-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    max-width: 82%;
+    align-self: flex-start;
+  }
+  /* Approval / proposal cards bring their own card chrome. On narrow
+     viewports the 82% cap leaves a wasteful right gutter and crunches
+     the flowchart, so let the proposal stretch to the full chat
+     column. Desktop keeps the standard bubble width. */
+  @media (max-width: 870px) {
+    .assistant-wrap--approval {
+      display: flex;
+      max-width: 100%;
+      width: 100%;
+      align-self: stretch;
+    }
+  }
   .bubble {
     max-width: 82%;
     padding: 12px 16px;

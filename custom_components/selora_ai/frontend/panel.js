@@ -2879,6 +2879,24 @@ var chatStyles = i`
     display: flex;
     flex-direction: column;
   }
+  .assistant-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    max-width: 82%;
+    align-self: flex-start;
+  }
+  /* Approval / proposal cards bring their own card chrome. On narrow
+     viewports the 82% cap leaves a wasteful right gutter and crunches
+     the flowchart, so let the proposal stretch to the full chat
+     column. Desktop keeps the standard bubble width. */
+  @media (max-width: 870px) {
+    .assistant-wrap--approval {
+      display: flex;
+      max-width: 100%;
+      width: 100%;
+      align-self: stretch;
+    }
+  }
   .bubble {
     max-width: 82%;
     padding: 12px 16px;
@@ -3776,16 +3794,17 @@ var proposalStyles = i`
   }
   .flow-node {
     display: inline-block;
-    padding: 8px 14px;
+    padding: 10px 14px;
     border-radius: 10px;
     max-width: 100%;
     word-break: break-word;
     font-size: 14px;
-    /* Tall line-height gives wrapped entity-chip rows breathing space.
-       Chips render as inline-flex pills with vertical padding; without
-       this leading, consecutive chip rows visually collide because
-       padding extends beyond the line box. */
-    line-height: 2.1;
+    /* line-height kept tight so the box hugs its content evenly on
+       every wrap variant. Duration chips get visual breathing room
+       from their own vertical margin rather than from leading on the
+       node, which otherwise made boxes look top- or bottom-heavy
+       depending on which line held a chip vs. plain text. */
+    line-height: 1.5;
   }
   .trigger-node,
   .condition-node,
@@ -3795,59 +3814,64 @@ var proposalStyles = i`
     color: var(--primary-text-color);
   }
   /* Inline clickable entity reference embedded inside a flow-node's
-     description. Each referenced entity appears exactly once — as a
-     chip rather than as plain text — so users can click straight
-     through to HA's more-info dialog without "Decorative Lights"
-     being printed both as prose and as a separate chip row below.
-
-     Sized to read like part of the sentence: matches the surrounding
-     line-height and uses vertical-align: middle so it doesn't push the
-     line down.
-
-     white-space:normal + overflow-wrap:anywhere + max-width:100% let a
-     chip with a very long device name ("Airthings Wave2 (067574) Radon
-     1-day average") break across two lines inside the card's column
-     instead of overflowing the column's right edge and clipping
-     against the next card in the suggestions grid (ha-integration#109).
-
-     The flow-node sets a tall line-height (~2.1) so consecutive chip
-     rows stay visually separated — chip vertical padding extends past
-     the cap-height of the line box, and a tight line-height made the
-     pills look stacked on top of each other. */
-  .flow-entity-chip {
+     description. Rendered as a link rather than a pill so the prose
+     reads as a sentence ("Turn off Living Room Fan") instead of a
+     wall of chips. Each referenced entity still appears exactly once
+     and opens HA's more-info dialog on click. */
+  .flow-entity-link {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 10px;
-    margin: 2px 1px;
-    font-size: inherit;
-    line-height: 1.3;
-    vertical-align: middle;
-    border-radius: 8px;
-    background: rgba(251, 191, 36, 0.12);
-    border: 1px solid rgba(251, 191, 36, 0.32);
-    color: var(--primary-text-color);
-    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: var(--selora-accent, #fbbf24);
     cursor: pointer;
+    vertical-align: middle;
     max-width: 100%;
-    white-space: normal;
+  }
+  .flow-entity-link > span {
+    text-decoration: underline;
+    text-decoration-color: rgba(251, 191, 36, 0.5);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    word-break: break-word;
     overflow-wrap: anywhere;
-    transition:
-      background 0.15s,
-      border-color 0.15s,
-      transform 0.1s;
   }
-  .flow-entity-chip:hover {
-    background: rgba(251, 191, 36, 0.22);
-    border-color: rgba(251, 191, 36, 0.6);
+  .flow-entity-link:hover > span {
+    text-decoration-color: var(--selora-accent, #fbbf24);
   }
-  .flow-entity-chip:active {
-    transform: translateY(1px);
+  .flow-entity-link:focus-visible {
+    outline: 2px solid var(--selora-accent, #fbbf24);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
-  .flow-entity-chip ha-icon {
-    --mdc-icon-size: 14px;
-    color: rgba(251, 191, 36, 0.95);
+  .flow-entity-link ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent, #fbbf24);
     flex-shrink: 0;
+  }
+  /* Compact duration value lifted out of plain text ("10 min",
+     "1 hr 30 min") with a clock icon prefix. Read-only — duration
+     editing is deliberately not exposed here since it requires the
+     user to fall back to YAML to change anything else anyway. */
+  .flow-duration {
+    white-space: nowrap;
+    color: var(--primary-text-color);
+  }
+  /* Inline-block ha-icon with positional tweak: vertical-align:middle
+     centers a 14px glyph close to the parent text x-height; a 1px lift
+     accounts for ha-icon's internal padding so the clock face sits on
+     the same optical line as "for 10 min". */
+  .flow-duration ha-icon {
+    --mdc-icon-size: 14px;
+    color: var(--secondary-text-color);
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    margin-right: 3px;
   }
   /* Branching action structure: each 'choose' branch, each
      'parallel' / 'sequence' block, and each 'repeat' body gets
@@ -8706,7 +8730,7 @@ function renderMessage(host, msg, idx) {
           `
           : x`
             <div
-              style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;"
+              class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
               <div
                 class="bubble assistant${msg.command_approval ? " bubble--approval" : ""}"
@@ -8884,6 +8908,26 @@ var DOMAIN_ICONS3 = {
   humidifier: "mdi:air-humidifier",
   camera: "mdi:cctv",
   device_tracker: "mdi:map-marker",
+  person: "mdi:account",
+  zone: "mdi:map-marker-radius",
+  sun: "mdi:weather-sunny",
+  weather: "mdi:weather-partly-cloudy",
+  automation: "mdi:robot",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  input_boolean: "mdi:toggle-switch-variant",
+  input_number: "mdi:numeric",
+  input_select: "mdi:form-dropdown",
+  input_text: "mdi:form-textbox",
+  input_datetime: "mdi:calendar-clock",
+  input_button: "mdi:gesture-tap-button",
+  timer: "mdi:timer-outline",
+  counter: "mdi:counter",
+  group: "mdi:google-circles-communities",
+  notify: "mdi:bell",
+  alarm_control_panel: "mdi:shield-home",
+  air_quality: "mdi:air-filter",
+  remote: "mdi:remote",
 };
 function _stateColor2(state) {
   if (!state) return "var(--selora-zinc-400)";
@@ -10279,7 +10323,7 @@ function _renderStaleDetailModal(host) {
 }
 
 // src/panel/render-automations.js
-function renderFlowEntityChip(host, entityId) {
+function renderFlowEntityLink(host, entityId) {
   const stateObj = host.hass?.states?.[entityId];
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
@@ -10288,7 +10332,7 @@ function renderFlowEntityChip(host, entityId) {
     "mdi:circle-medium";
   return x`<button
     type="button"
-    class="flow-entity-chip"
+    class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
     @click=${(e5) => {
       e5.stopPropagation();
@@ -10301,14 +10345,39 @@ function renderFlowEntityChip(host, entityId) {
       );
     }}
   >
-    <ha-icon icon=${icon}></ha-icon>
-    <span>${friendly}</span>
+    <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
   </button>`;
+}
+var DURATION_RE =
+  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
+function expandDurationAbbrev(s6) {
+  return s6
+    .replace(/(\d+)\s*h\b/g, "$1 hr")
+    .replace(/(\d+)\s*m\b/g, "$1 min")
+    .replace(/(\d+)\s*s\b/g, "$1 sec");
+}
+function renderFlowDuration(raw) {
+  return x`<span class="flow-duration"
+    ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
+      raw,
+    )}</span
+  >`;
+}
+function splitDurations(text) {
+  const out = [];
+  let last = 0;
+  for (const m2 of text.matchAll(DURATION_RE)) {
+    if (m2.index > last) out.push(text.slice(last, m2.index));
+    out.push({ duration: m2[0] });
+    last = m2.index + m2[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
+  if (!description) return x`${description}`;
   const entityIds = collectFlowEntityIds(item);
-  if (!entityIds.length || !description) return x`${description}`;
   const lookups = entityIds
     .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
     .filter((l5) => l5.name)
@@ -10331,13 +10400,26 @@ function renderFlowDescription(host, item) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ chip: bestMatch.eid });
+    segments.push({ entity: bestMatch.eid });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
-  return x`${segments.map((s6) =>
-    typeof s6 === "string" ? s6 : renderFlowEntityChip(host, s6.chip),
-  )}`;
+  const final = [];
+  for (const seg of segments) {
+    if (typeof seg !== "string") {
+      final.push(seg);
+      continue;
+    }
+    for (const piece of splitDurations(seg)) {
+      final.push(piece);
+    }
+  }
+  return x`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.duration) return renderFlowDuration(s6.duration);
+    return "";
+  })}`;
 }
 function renderFlowNode(host, item, kind) {
   return x`<div class="flow-node ${kind}-node">
