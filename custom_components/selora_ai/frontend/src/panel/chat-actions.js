@@ -167,18 +167,20 @@ export function looksTruncatedResponse(responseText, hasStructured) {
 // Retry will resend — it must include any [[entity:…]] marker that was
 // appended during _sendMessage, otherwise the retry loses the
 // disambiguating context for the exact turn the user is retrying.
-// When `myTurn` is provided, host-level state (_loading, _streaming) is
-// only reset if that turn is still the active one. Without this guard, a
-// late-delivered ``done``/``error``/disconnect event from a prior,
-// already-finalised turn would clobber the next turn's host state and
-// leave the composer stuck — the user could keep typing into a thread
-// the assistant would never reply on again (ha-integration#108).
+// `isOwnSession`: host-level state (_loading, _streaming) is only
+// reset if the displayed conversation still matches the one this turn
+// was sent in. `sessionHasOtherLiveStream`: when truthy, another turn
+// in the same conversation is still streaming, so this interruption
+// must not clear the host busy flags — they belong to that other
+// turn. Both default to "single-turn / own-session" semantics when
+// omitted (legacy callers).
 function _finaliseInterruption(
   host,
   assistantMsg,
   retryPayload,
   reason,
-  myTurn,
+  isOwnSession,
+  sessionHasOtherLiveStream,
 ) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
@@ -186,7 +188,10 @@ function _finaliseInterruption(
   assistantMsg._interruptReason = reason;
   assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
-  if (myTurn === undefined || host._activeTurn === myTurn) {
+  const ownsView = isOwnSession === undefined || isOwnSession();
+  const newerLive =
+    sessionHasOtherLiveStream !== undefined && sessionHasOtherLiveStream();
+  if (ownsView && !newerLive) {
     host._loading = false;
     host._streaming = false;
     // Same focus-restore as the happy ``done`` path — textarea was
@@ -210,7 +215,11 @@ export async function _sendMessage() {
   );
   const marker = buildEntityMarker(activeSelections);
   const userMsgForSend = marker ? userMsg + marker : userMsg;
-  this._messages = [...this._messages, { role: "user", content: userMsg }];
+  // Keep an object reference so we can splice the SAME bubble back
+  // onto _messages if the user navigates away and reopens this
+  // session before ``done`` persists the pair server-side.
+  const userMsgObj = { role: "user", content: userMsg };
+  this._messages = [...this._messages, userMsgObj];
   this._input = "";
   // Reset shell-style history cursor — a fresh send starts a new
   // draft. ArrowUp on the next turn begins from the newest message,
@@ -231,15 +240,15 @@ export async function _sendMessage() {
     trigger: null,
   };
   this._loading = true;
-  // Per-turn token: every callback below (watchdog, WS event handler,
-  // disconnect listener) must check that the host's _activeTurn still
-  // matches this turn before mutating shared host state. Without this,
-  // a late event from a previous, already-finalised turn — the long
-  // automation request whose generation eventually finishes on the
-  // server after the watchdog fired — would clobber the new turn's
-  // _streaming / _loading flags and cancel its subscription, leaving
-  // the composer stuck and the thread unrecoverable (ha-integration#108).
-  const myTurn = (this._activeTurn = (this._activeTurn || 0) + 1);
+  // Per-turn session token: the user can switch to another conversation
+  // (+ New chat, open a different session) WITHOUT sending a new
+  // message. Snapshotting the session id at send time lets late events
+  // tell whether the currently-displayed session still matches the one
+  // they belong to, so a stale ``done`` cannot yank _activeSessionId
+  // back to the old conversation or unblock the composer on a thread
+  // it doesn't own.
+  const turnSessionId = this._activeSessionId;
+  const isOwnSession = () => this._activeSessionId === turnSessionId;
   // Reset textarea height after clearing input
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
@@ -269,7 +278,33 @@ export async function _sendMessage() {
   let lastActivityAt = Date.now();
   let watchdog = null;
   let onDisconnect = null;
+  // Per-turn entry registered in host._streams once subscription
+  // succeeds. The previous single-slot host pointers (_streamUnsub /
+  // _streamTeardown) could only track ONE stream, so as soon as a
+  // second send started (in this or another session) the old slot
+  // was overwritten and Stop / panel detach could no longer reach
+  // the older subscription. With background streams now allowed
+  // across session switches we need to track every live stream
+  // independently so _stopStreaming can target the user's current
+  // session and disconnectedCallback can kill them all.
+  this._streams ||= new Set();
+  const entry = {
+    sessionId: turnSessionId,
+    userMsg: userMsgObj,
+    assistantMsg,
+    teardown: () => {},
+    cancel: () => {},
+  };
+  let tornDown = false;
   const teardown = () => {
+    // Idempotent: watchdog + disconnect listener may try to tear
+    // each other down (e.g. watchdog interruption races a real WS
+    // disconnect), and _stopStreaming + a final ``done`` can both
+    // call teardown. Re-entering would double-removeEventListener
+    // (harmless but noisy) and re-clear local closures we still
+    // need read-only above.
+    if (tornDown) return;
+    tornDown = true;
     if (watchdog) {
       clearInterval(watchdog);
       watchdog = null;
@@ -278,16 +313,9 @@ export async function _sendMessage() {
       this.hass.connection.removeEventListener("disconnected", onDisconnect);
       onDisconnect = null;
     }
-    if (this._streamTeardown === teardown) {
-      this._streamTeardown = null;
-    }
   };
-  this._streamTeardown = teardown;
+  entry.teardown = teardown;
 
-  // Capture the unsub locally so a late callback from THIS turn can
-  // only cancel its own subscription, never the next turn's. The host
-  // pointer (this._streamUnsub) is still kept in sync for _stopStreaming
-  // / disconnect paths, but is only cleared if it still matches ours.
   let localUnsub = null;
   const cancelSubscription = () => {
     const u = localUnsub;
@@ -298,7 +326,36 @@ export async function _sendMessage() {
     } catch (_) {
       /* unsub may already be torn down */
     }
-    if (this._streamUnsub === u) this._streamUnsub = null;
+    // Entry stays in _streams even after the WS is cancelled, so
+    // _openSession can reattach interrupted turns the backend never
+    // got to persist. Removal happens explicitly on the success path
+    // (done) and from _stopStreaming.
+  };
+  entry.cancel = cancelSubscription;
+
+  // True iff another stream entry for the same session is still
+  // mid-flight. Same-session overlap is possible because Retry on a
+  // previously-interrupted bubble only checks _loading, not _streaming
+  // — once the first token of an existing turn cleared _loading, a
+  // Retry click can fire a second concurrent turn in the same
+  // conversation. The older turn's late ``done`` then needs to leave
+  // _loading / _streaming alone, otherwise it would hide the Stop
+  // button and re-enable the composer while the newer subscription
+  // is still running.
+  //
+  // Iterate over a snapshot — the host._streams Set can be mutated
+  // mid-traversal (a concurrent event handler might delete its own
+  // entry or _openSession may add/remove entries while restoring
+  // background turns), and iterating a Set during mutation is
+  // unspecified.
+  const sessionHasOtherLiveStream = () => {
+    for (const e of [...(this._streams || [])]) {
+      if (e === entry) continue;
+      if (e.sessionId === entry.sessionId && e.assistantMsg?._streaming) {
+        return true;
+      }
+    }
+    return false;
   };
 
   try {
@@ -317,13 +374,25 @@ export async function _sendMessage() {
     //    subscription, so finalise the bubble immediately.
     onDisconnect = () => {
       teardown();
+      // Cancel the subscription too. The WS dropped, but HA's client
+      // tracks subscription handles and replays them on reconnect —
+      // leaving this one registered would let the same chat_stream
+      // turn re-run after reconnect (same "subscription replay →
+      // duplicate send" failure the done path explicitly avoids).
+      cancelSubscription();
       _finaliseInterruption(
         this,
         assistantMsg,
         userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
-        myTurn,
+        isOwnSession,
+        sessionHasOtherLiveStream,
       );
+      // A disconnect on a brand-new session that never received its
+      // first ``done`` leaves entry.sessionId === null with no way to
+      // ever match it back to a sidebar entry — drop it so it doesn't
+      // linger forever in _streams.
+      if (entry.sessionId === null) this._streams?.delete(entry);
     };
     this.hass.connection.addEventListener("disconnected", onDisconnect);
 
@@ -331,12 +400,17 @@ export async function _sendMessage() {
     //    integration stops emitting tokens (provider hung, entry
     //    reload, upstream proxy dropped the SSE).
     //
-    //    The _streaming check uses the host flag rather than a closure
-    //    over our myTurn because _stopStreaming() / a happier next turn
-    //    will reset it; if our turn already finalised we still want to
-    //    tear our watcher down here on the next tick.
+    //    Bail-out keys off assistantMsg._streaming alone — the per-turn
+    //    flag flipped false by every finalisation path (done, error,
+    //    disconnect, _stopStreaming, prior watchdog interruption). The
+    //    _activeTurn check was removed because it killed the watchdog
+    //    for background streams as soon as the user sent a new message
+    //    in another session, leaving the original WS subscription
+    //    dangling and the original bubble stuck on "streaming…" with
+    //    no Retry — the exact background-stream case this branch is
+    //    trying to support.
     watchdog = setInterval(() => {
-      if (!this._streaming || this._activeTurn !== myTurn) {
+      if (assistantMsg._streaming === false) {
         teardown();
         return;
       }
@@ -351,8 +425,12 @@ export async function _sendMessage() {
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
-          myTurn,
+          isOwnSession,
+          sessionHasOtherLiveStream,
         );
+        // Stall on a first-turn send that never received any
+        // session_id leaves the entry unrestoreable. Drop it.
+        if (entry.sessionId === null) this._streams?.delete(entry);
       }
     }, 5_000);
 
@@ -368,7 +446,13 @@ export async function _sendMessage() {
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
-        if (this._activeTurn === myTurn) this._loading = false;
+        // Only clear _loading when this turn is the most recent live
+        // one in its session. With same-session overlap (Retry path)
+        // an OLDER turn's tokens must not unblock the composer while
+        // a newer turn in the same conversation is still streaming.
+        if (isOwnSession() && !sessionHasOtherLiveStream()) {
+          this._loading = false;
+        }
       } else if (event.type === "heartbeat") {
         // Server is alive but has nothing to forward yet (slow first
         // token, or JSON output being suppressed by the backend). Bump
@@ -410,19 +494,36 @@ export async function _sendMessage() {
           // Preserve any tokens already streamed so the user can see
           // what was received before retrying.
           assistantMsg.content = responseText;
-          if (event.session_id) {
-            if (event.session_id !== this._activeSessionId) {
-              this._activeSessionId = event.session_id;
-            }
-            this._loadSessions();
-          }
+          // Finalise BEFORE writing _activeSessionId from event.
+          // First-turn-of-new-session sends with turnSessionId === null;
+          // adopting event.session_id first would make isOwnSession()
+          // return false inside _finaliseInterruption and leave the
+          // composer stuck on Stop with no Retry.
           _finaliseInterruption(
             this,
             assistantMsg,
             userMsgForSend,
             "Response looks cut short — try again.",
-            myTurn,
+            isOwnSession,
+            sessionHasOtherLiveStream,
           );
+          if (event.session_id) {
+            if (entry.sessionId === null) entry.sessionId = event.session_id;
+            if (isOwnSession() && event.session_id !== this._activeSessionId) {
+              this._activeSessionId = event.session_id;
+            }
+            // Sidebar refresh runs even when the user has switched away
+            // — the truncated turn is still persisted server-side and
+            // the list preview needs to reflect it.
+            this._loadSessions();
+          }
+          // Drop the entry: the backend appended the user/assistant
+          // pair before emitting this ``done``, so a future
+          // _openSession will read the interrupted bubble from
+          // session.messages. Leaving it in _streams would splice
+          // a duplicate copy on top of the persisted one every time
+          // the user reopened this conversation.
+          this._streams?.delete(entry);
           return;
         }
         assistantMsg.content = responseText;
@@ -447,10 +548,14 @@ export async function _sendMessage() {
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
-        // Only release the composer if this is still the active turn.
-        // A late ``done`` from a previously-finalised turn must not
-        // touch the next turn's _loading / _streaming flags.
-        if (this._activeTurn === myTurn) {
+        // Release the composer when the user is on the conversation
+        // this ``done`` belongs to AND no newer turn in that same
+        // conversation is still streaming. The second clause matters
+        // when Retry on an old interrupted bubble fired a parallel
+        // turn before this one finished — letting the older ``done``
+        // clear _loading / _streaming then would hide Stop while the
+        // newer subscription is still running.
+        if (isOwnSession() && !sessionHasOtherLiveStream()) {
           this._loading = false;
           this._streaming = false;
           // Composer textarea was disabled during streaming, which
@@ -474,6 +579,10 @@ export async function _sendMessage() {
         // user+assistant pair to the session. That's the
         // "I reloaded and my message was sent twice" symptom.
         cancelSubscription();
+        // Drop the entry on the success path: the backend now has the
+        // full user+assistant pair, so a future _openSession will read
+        // it from session.messages — no need to keep a restore handle.
+        this._streams?.delete(entry);
         if (event.validation_error) {
           // ``validation_target`` is set only for scene/automation
           // proposal validation. Command-level errors (e.g.
@@ -497,9 +606,21 @@ export async function _sendMessage() {
           // already says what went wrong, a duplicate toast is noise.
         }
 
-        // Update session tracking
+        // Update session tracking. The _activeSessionId write must be
+        // guarded by isOwnSession() — otherwise a late ``done`` from a
+        // turn the user has since navigated away from would yank the
+        // UI back to the old session. The sidebar refresh runs
+        // unconditionally: the backend just persisted a new turn (and,
+        // for a first-message implicit session, the session entry
+        // itself), and the list needs to reflect that whether or not
+        // the user is still on this conversation.
         if (event.session_id) {
-          if (event.session_id !== this._activeSessionId) {
+          // First-turn sends with turnSessionId === null — the
+          // backend assigns the real id on done. Adopt it into the
+          // entry so any later restore lookup (interrupted retry,
+          // session reopen) can match by sessionId.
+          if (entry.sessionId === null) entry.sessionId = event.session_id;
+          if (isOwnSession() && event.session_id !== this._activeSessionId) {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
@@ -507,6 +628,15 @@ export async function _sendMessage() {
       } else if (event.type === "error") {
         teardown();
         cancelSubscription();
+        // Adopt event.session_id when present so a first-turn error
+        // (turnSessionId === null) still leaves a restoreable entry
+        // keyed by the real session id. Backends that emit ``error``
+        // without a session_id (e.g. provider failure before the
+        // session was committed) leave the entry orphaned — but no
+        // session exists in the sidebar to reopen anyway.
+        if (event.session_id && entry.sessionId === null) {
+          entry.sessionId = event.session_id;
+        }
         // Use the same finalisation path as interruptions so the user
         // gets a Retry affordance instead of a dead-end error bubble.
         _finaliseInterruption(
@@ -514,14 +644,19 @@ export async function _sendMessage() {
           assistantMsg,
           userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
-          myTurn,
+          isOwnSession,
+          sessionHasOtherLiveStream,
         );
+        // Backend errored before assigning a session id — entry
+        // can't be matched back to anything in the sidebar; drop.
+        if (entry.sessionId === null) this._streams?.delete(entry);
       }
     }, subscribePayload);
-    // Surface the unsub on the host too, so _stopStreaming() can reach
-    // it. cancelSubscription() guards with `if (this._streamUnsub === u)`
-    // so a late callback can never null out the NEXT turn's pointer.
-    this._streamUnsub = localUnsub;
+    // Register the entry now that the subscription is live. Going
+    // through host._streams (a Set, not a slot) means _stopStreaming
+    // and disconnectedCallback can reach every concurrent stream
+    // instead of clobbering each other's pointers.
+    this._streams.add(entry);
   } catch (err) {
     teardown();
     cancelSubscription();
@@ -530,42 +665,93 @@ export async function _sendMessage() {
       assistantMsg,
       userMsgForSend,
       err.message || "Couldn't start the chat session.",
-      myTurn,
+      isOwnSession,
+      sessionHasOtherLiveStream,
     );
   }
 }
 
 // Re-send a message that was previously interrupted. Called from the
 // Retry control rendered under interrupted bubbles.
-export function _retryMessage(text) {
+export function _retryMessage(text, sourceMsg) {
   if (!text || this._loading) return;
+  // Drop the source interrupted entry from _streams before kicking
+  // off the new turn. Otherwise the next _openSession on this
+  // conversation would splice the stale interrupted bubble back
+  // alongside the successful retry, and the set would keep growing
+  // with one orphan entry per retry over a long-lived panel.
+  if (sourceMsg && this._streams) {
+    for (const e of this._streams) {
+      if (e.assistantMsg === sourceMsg) {
+        this._streams.delete(e);
+        break;
+      }
+    }
+  }
   this._input = text;
   this._sendMessage();
 }
 
-export function _stopStreaming() {
-  if (this._streamTeardown) {
-    this._streamTeardown();
-  }
-  if (this._streamUnsub) {
-    this._streamUnsub();
-    this._streamUnsub = null;
+// `opts.all` kills every live stream (used by panel disconnectedCallback
+// where the host is going away and background turns can't keep mutating
+// a detached element). The user-driven Stop button calls with no opts so
+// it only targets the stream belonging to the conversation currently on
+// screen — background turns in other sessions stay alive so they can
+// finish or be retried from their own session.
+export function _stopStreaming(opts) {
+  const streams = this._streams;
+  const all = !!opts?.all;
+  const currentSession = this._activeSessionId;
+  const note = "\n\n_Cancelled by user_";
+  const cancelledHere = [];
+  if (streams) {
+    for (const entry of [...streams]) {
+      if (!all && entry.sessionId !== currentSession) continue;
+      try {
+        entry.teardown();
+      } catch (_) {
+        /* best-effort */
+      }
+      try {
+        entry.cancel();
+      } catch (_) {
+        /* best-effort */
+      }
+      // cancel() removes from set; defensive in case teardown ran twice
+      streams.delete(entry);
+      if (entry.assistantMsg && entry.sessionId === currentSession) {
+        cancelledHere.push(entry.assistantMsg);
+      }
+    }
   }
   this._streaming = false;
   this._loading = false;
-  const note = "\n\n_Cancelled by user_";
-  const lastMsg = this._messages[this._messages.length - 1];
-  if (lastMsg && lastMsg.role === "assistant") {
-    lastMsg._streaming = false;
-    if (!lastMsg.content?.endsWith(note)) {
-      lastMsg.content = (lastMsg.content || "") + note;
+  if (cancelledHere.length > 0) {
+    for (const msg of cancelledHere) {
+      msg._streaming = false;
+      if (!msg.content?.endsWith(note)) {
+        msg.content = (msg.content || "") + note;
+      }
     }
     this._messages = [...this._messages];
-  } else {
-    this._messages = [
-      ...this._messages,
-      { role: "assistant", content: note.trimStart() },
-    ];
+  } else if (!all) {
+    // Fallback for the legacy path where no entry was registered yet
+    // (e.g. user hit Stop between _sendMessage's UI flip and the
+    // subscribe-completes line). Annotate whatever assistant bubble is
+    // visible so the click still produces feedback.
+    const lastMsg = this._messages[this._messages.length - 1];
+    if (lastMsg && lastMsg.role === "assistant") {
+      lastMsg._streaming = false;
+      if (!lastMsg.content?.endsWith(note)) {
+        lastMsg.content = (lastMsg.content || "") + note;
+      }
+      this._messages = [...this._messages];
+    } else {
+      this._messages = [
+        ...this._messages,
+        { role: "assistant", content: note.trimStart() },
+      ];
+    }
   }
 }
 
