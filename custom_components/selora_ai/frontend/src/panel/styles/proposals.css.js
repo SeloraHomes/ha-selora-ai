@@ -252,7 +252,11 @@ export const proposalStyles = css`
     max-width: 100%;
     word-break: break-word;
     font-size: 14px;
-    line-height: 1.45;
+    /* Tall line-height gives wrapped entity-chip rows breathing space.
+       Chips render as inline-flex pills with vertical padding; without
+       this leading, consecutive chip rows visually collide because
+       padding extends beyond the line box. */
+    line-height: 2.1;
   }
   .trigger-node,
   .condition-node,
@@ -266,26 +270,39 @@ export const proposalStyles = css`
      chip rather than as plain text — so users can click straight
      through to HA's more-info dialog without "Decorative Lights"
      being printed both as prose and as a separate chip row below.
+
      Sized to read like part of the sentence: matches the surrounding
-     line-height, uses vertical-align: middle so it doesn't push the
-     line down, and lets a node split chip text across two lines
-     gracefully (white-space:normal). */
+     line-height and uses vertical-align: middle so it doesn't push the
+     line down.
+
+     white-space:normal + overflow-wrap:anywhere + max-width:100% let a
+     chip with a very long device name ("Airthings Wave2 (067574) Radon
+     1-day average") break across two lines inside the card's column
+     instead of overflowing the column's right edge and clipping
+     against the next card in the suggestions grid (ha-integration#109).
+
+     The flow-node sets a tall line-height (~2.1) so consecutive chip
+     rows stay visually separated — chip vertical padding extends past
+     the cap-height of the line box, and a tight line-height made the
+     pills look stacked on top of each other. */
   .flow-entity-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 1px 8px;
-    margin: 0 1px;
+    padding: 2px 10px;
+    margin: 2px 1px;
     font-size: inherit;
     line-height: 1.3;
-    vertical-align: baseline;
-    border-radius: 999px;
+    vertical-align: middle;
+    border-radius: 8px;
     background: rgba(251, 191, 36, 0.12);
     border: 1px solid rgba(251, 191, 36, 0.32);
     color: var(--primary-text-color);
     font-family: inherit;
     cursor: pointer;
-    white-space: nowrap;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     transition:
       background 0.15s,
       border-color 0.15s,

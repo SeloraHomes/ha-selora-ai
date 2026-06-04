@@ -789,6 +789,116 @@ def _collect_referenced_entity_ids(
     return {eid for eid in referenced if "." in eid and "{{" not in eid and "{%" not in eid}
 
 
+def _collect_referenced_resources(
+    automation: AutomationDict | dict[str, Any],
+) -> tuple[set[str], set[str], set[str]]:
+    """Walk an automation payload and return the entity / device / area IDs
+    it references in a single pass.
+
+    Counterpart to ``_collect_referenced_entity_ids`` for callers (like the
+    proactive-suggestion ignore filter) that also need to compare against
+    ignored devices and areas. Device IDs come from the device trigger /
+    condition / action forms and ``target.device_id``; area IDs come from
+    ``target.area_id``. The same control-flow descent (choose / if / repeat
+    / sequence / parallel) is applied so nested device or area references
+    don't slip through.
+
+    Entity-ID validation matches the entity-only walker: must contain a
+    ``.`` and not be a template. Device / area IDs are returned verbatim
+    (HA generates them as slugs / UUIDs with no dot).
+    """
+    entities: set[str] = set()
+    devices: set[str] = set()
+    areas: set[str] = set()
+
+    def _as_list(value: Any) -> list[Any]:
+        if isinstance(value, dict):
+            return [value]
+        if isinstance(value, list):
+            return value
+        return []
+
+    def _add(bucket: set[str], value: Any) -> None:
+        if isinstance(value, str):
+            for part in value.split(","):
+                stripped = part.strip()
+                if stripped:
+                    bucket.add(stripped)
+        elif isinstance(value, list):
+            for item in value:
+                _add(bucket, item)
+
+    def _walk_trigger(trigger: Any) -> None:
+        if not isinstance(trigger, dict):
+            return
+        _add(entities, trigger.get("entity_id"))
+        # Device triggers carry the device_id at top level.
+        _add(devices, trigger.get("device_id"))
+
+    def _walk_condition(condition: Any) -> None:
+        if not isinstance(condition, dict):
+            return
+        _add(entities, condition.get("entity_id"))
+        _add(devices, condition.get("device_id"))
+        for nested in _as_list(condition.get("conditions")):
+            _walk_condition(nested)
+        for key in ("and", "or", "not"):
+            for nested in _as_list(condition.get(key)):
+                _walk_condition(nested)
+
+    def _walk_action(action: Any) -> None:
+        if not isinstance(action, dict):
+            return
+        _walk_condition(action)
+
+        _add(entities, action.get("entity_id"))
+        # Device actions have device_id at the top level alongside entity_id.
+        _add(devices, action.get("device_id"))
+
+        target = action.get("target")
+        if isinstance(target, dict):
+            _add(entities, target.get("entity_id"))
+            _add(devices, target.get("device_id"))
+            _add(areas, target.get("area_id"))
+
+        data = action.get("data")
+        if isinstance(data, dict):
+            _add(entities, data.get("entity_id"))
+
+        for trigger in _as_list(action.get("wait_for_trigger")):
+            _walk_trigger(trigger)
+
+        for key in ("sequence", "then", "else", "default", "parallel"):
+            for nested in _as_list(action.get(key)):
+                _walk_action(nested)
+        for cond in _as_list(action.get("if")):
+            _walk_condition(cond)
+        for branch in _as_list(action.get("choose")):
+            if not isinstance(branch, dict):
+                continue
+            for cond in _as_list(branch.get("conditions")):
+                _walk_condition(cond)
+            for nested in _as_list(branch.get("sequence")):
+                _walk_action(nested)
+        repeat = action.get("repeat")
+        if isinstance(repeat, dict):
+            for nested in _as_list(repeat.get("sequence")):
+                _walk_action(nested)
+            for key in ("while", "until"):
+                for cond in _as_list(repeat.get(key)):
+                    _walk_condition(cond)
+
+    for trigger in _as_list(automation.get("trigger") or automation.get("triggers")):
+        _walk_trigger(trigger)
+    for condition in _as_list(automation.get("condition") or automation.get("conditions")):
+        _walk_condition(condition)
+    for action in _as_list(automation.get("action") or automation.get("actions")):
+        _walk_action(action)
+
+    valid_entities = {eid for eid in entities if "." in eid and "{{" not in eid and "{%" not in eid}
+    return valid_entities, devices, areas
+
+
 def _find_unknown_entity_ids(
     hass: HomeAssistant,
     entity_ids: set[str],
