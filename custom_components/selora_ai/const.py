@@ -985,6 +985,29 @@ HEALTH_CHECK_TIMEOUT = 15
 MAX_TOOL_CALL_ROUNDS = 5  # Maximum LLM-tool round trips per chat turn
 MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
 
+# ── Backend chat-stream guards ──────────────────────────────────────
+# Bound the SERVER side of architect_chat_stream so a hung provider, a
+# runaway-rambling model, or a panel that disconnected without
+# unsubscribing can't drain the LLM connection forever and inflate
+# HA's heap.
+#   * idle timeout — long enough to survive the slow prefill on
+#     low-context backends (Vega 8 cold prefill ≈ 16 s).
+#   * byte cap — well above any normal chat reply (cloud answers
+#     ~2–8 KB, automation envelopes peak around 30 KB), well below
+#     the point where a runaway loop becomes a memory problem.
+#   * tool-grace — bounded wait for an in-flight tool task on
+#     stream cancel/close, so a service call that already
+#     dispatched gets a chance to record itself in the call log
+#     before we cancel the coroutine.
+STREAM_IDLE_TIMEOUT_S = 30.0
+STREAM_MAX_BYTES = 256 * 1024
+STREAM_TOOL_KEEPALIVE_S = 15.0
+STREAM_TOOL_CANCEL_GRACE_S = 2.0
+# Sentinel chunk yielded by the LLM client to keep the watchdog quiet
+# during slow tool work. Picked so a provider that emits raw user text
+# (including arbitrary Unicode and isolated NULs) cannot collide.
+STREAM_KEEPALIVE = "\x00\x01selora-keepalive\x01\x00"
+
 # ── Data Collection ──────────────────────────────────────────────────
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"
