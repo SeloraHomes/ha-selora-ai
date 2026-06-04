@@ -1233,6 +1233,15 @@ SELORA_EXCLUDE_LABEL_NAME = "Selora exclude"
 SELORA_EXCLUDE_LABEL_ID = "selora_exclude"
 PATTERN_HISTORY_MAX_PER_ENTITY = 500
 PATTERN_HISTORY_RETENTION_DAYS = 14
+# Global ceiling on the total number of state-change records held in
+# pattern_store across ALL entities. The per-entity cap above bounds
+# each ring buffer, but with 200 entities at full ring buffer the
+# store would hold 100 000 records — persisted to disk every 50
+# events and loaded back into memory at startup. The global cap keeps
+# the file (and the heap representation) bounded regardless of how
+# many entities the user tracks. 20 000 records ≈ ~2 MB on disk and
+# is roughly 40 active entities at full per-entity capacity.
+PATTERN_HISTORY_MAX_TOTAL = 20000
 PATTERN_MAX_PATTERNS = 500
 PATTERN_MAX_SUGGESTIONS = 200
 PATTERN_MAX_DELETED_HASHES = 1000

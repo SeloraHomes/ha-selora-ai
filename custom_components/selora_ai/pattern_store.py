@@ -84,6 +84,7 @@ from .const import (
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
     DOMAIN,
     PATTERN_HISTORY_MAX_PER_ENTITY,
+    PATTERN_HISTORY_MAX_TOTAL,
     PATTERN_HISTORY_RETENTION_DAYS,
     PATTERN_MAX_DELETED_HASHES,
     PATTERN_MAX_PATTERNS,
@@ -140,7 +141,75 @@ class PatternStore:
 
     async def _save(self) -> None:
         if self._data is not None:
+            # Enforce the global history ceiling lazily, only on the save
+            # path. The per-entity ring buffer bounds each list at
+            # PATTERN_HISTORY_MAX_PER_ENTITY records, but with 200 entities
+            # at full capacity the store would hold 100 000 records.
+            # Without a global cap, the persisted file (and the heap
+            # representation reloaded at startup) grows linearly with the
+            # tracked-entity count. Save is already batched every 50 events
+            # so the O(N_entities) check is amortised away.
+            self._enforce_global_history_cap(self._data["state_history"])
             await self._store.async_save(self._data)
+
+    @staticmethod
+    def _enforce_global_history_cap(history: dict[str, list[StateChange]]) -> int:
+        """Drop the oldest records globally when total exceeds the ceiling.
+
+        Returns the count of records dropped (zero when within budget).
+        Resolves the "lots of entities × full ring buffer" leak: per-entity
+        caps alone scale the store linearly with tracked-entity count, so
+        on a busy install with 200 sensors the pattern_store JSON balloons
+        to tens of MB and the in-memory representation matches it.
+
+        Strategy: flatten to ``(ts, entity_id, index)`` triples, sort
+        newest-first, keep the top ``PATTERN_HISTORY_MAX_TOTAL``, and
+        rebuild each entity's bucket from the surviving indices. Cheaper
+        than re-sorting every entity individually because we only pay the
+        flatten/sort cost when the ceiling is actually breached.
+        """
+        total = sum(len(v) for v in history.values())
+        if total <= PATTERN_HISTORY_MAX_TOTAL:
+            return 0
+        # Build (ts, entity_id, local_index) triples. ts comes from each
+        # record's "ts" field — already an ISO-8601 string so string
+        # comparison sorts chronologically. Empty-string ts (rare) sorts
+        # to the tail and gets dropped first.
+        flat: list[tuple[str, str, int]] = []
+        for eid, entries in history.items():
+            for idx, e in enumerate(entries):
+                flat.append((e.get("ts", "") or "", eid, idx))
+        # Newest first; everything past the cap gets dropped.
+        flat.sort(key=lambda t: t[0], reverse=True)
+        keep_by_entity: dict[str, set[int]] = {}
+        for _, eid, idx in flat[:PATTERN_HISTORY_MAX_TOTAL]:
+            keep_by_entity.setdefault(eid, set()).add(idx)
+        dropped = 0
+        empty_keys: list[str] = []
+        for eid, entries in history.items():
+            keep = keep_by_entity.get(eid)
+            if keep is None:
+                dropped += len(entries)
+                empty_keys.append(eid)
+                continue
+            new_entries = [e for i, e in enumerate(entries) if i in keep]
+            dropped += len(entries) - len(new_entries)
+            if new_entries:
+                history[eid] = new_entries
+            else:
+                empty_keys.append(eid)
+        for eid in empty_keys:
+            history.pop(eid, None)
+        if dropped:
+            _LOGGER.info(
+                "Pattern store: dropped %d oldest state history records to stay "
+                "under the %d-record global cap (was %d, now %d).",
+                dropped,
+                PATTERN_HISTORY_MAX_TOTAL,
+                total,
+                total - dropped,
+            )
+        return dropped
 
     @staticmethod
     def _evict_oldest(items: dict[str, Any], max_size: int, time_key: str = "detected_at") -> None:
