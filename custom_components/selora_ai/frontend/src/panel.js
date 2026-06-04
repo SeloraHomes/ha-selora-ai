@@ -1210,6 +1210,15 @@ class SeloraAIPanel extends LitElement {
       const result = await this.hass.callWS({
         type: wsType,
         connect_url: this._config?.selora_connect_url || "",
+        // Hand HA the panel's CURRENT origin so the OAuth callback
+        // lands on the same URL the user is browsing from. Backend
+        // validates against HA's known internal+external URLs and
+        // falls back to the legacy external-preferred behaviour if
+        // we send something it doesn't recognise. Without this, a
+        // user opening the panel locally got an OAuth flow that
+        // bounced through their external URL — which breaks when the
+        // external endpoint blocks non-HA traffic.
+        panel_origin: window.location.origin,
       });
       const authorizeUrl = result?.authorize_url;
       if (!authorizeUrl) throw new Error("No authorize URL returned.");
