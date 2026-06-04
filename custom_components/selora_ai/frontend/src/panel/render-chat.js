@@ -967,7 +967,11 @@ export function renderMessage(host, msg, idx) {
           `
         : html`
             <div
-              style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;"
+              class="assistant-wrap${msg.command_approval ||
+              msg.automation ||
+              msg.scene
+                ? " assistant-wrap--approval"
+                : ""}"
             >
               <div
                 class="bubble assistant${msg.command_approval
@@ -1144,6 +1148,26 @@ export const DOMAIN_ICONS = {
   humidifier: "mdi:air-humidifier",
   camera: "mdi:cctv",
   device_tracker: "mdi:map-marker",
+  person: "mdi:account",
+  zone: "mdi:map-marker-radius",
+  sun: "mdi:weather-sunny",
+  weather: "mdi:weather-partly-cloudy",
+  automation: "mdi:robot",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  input_boolean: "mdi:toggle-switch-variant",
+  input_number: "mdi:numeric",
+  input_select: "mdi:form-dropdown",
+  input_text: "mdi:form-textbox",
+  input_datetime: "mdi:calendar-clock",
+  input_button: "mdi:gesture-tap-button",
+  timer: "mdi:timer-outline",
+  counter: "mdi:counter",
+  group: "mdi:google-circles-communities",
+  notify: "mdi:bell",
+  alarm_control_panel: "mdi:shield-home",
+  air_quality: "mdi:air-filter",
+  remote: "mdi:remote",
 };
 
 export function _stateColor(state) {
