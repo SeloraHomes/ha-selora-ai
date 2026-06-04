@@ -365,8 +365,12 @@ class TestDetectCorrelations:
         """
         from unittest.mock import patch
 
-        mock_entry_switch = MagicMock(device_id="device_123", disabled=False)
-        mock_entry_light = MagicMock(device_id="device_123", disabled=False)
+        mock_entry_switch = MagicMock(
+            device_id="device_123", disabled=False, entity_category=None
+        )
+        mock_entry_light = MagicMock(
+            device_id="device_123", disabled=False, entity_category=None
+        )
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "switch.closet": mock_entry_switch,
@@ -393,8 +397,8 @@ class TestDetectCorrelations:
         """Disabled entities must be excluded from correlation detection (#93)."""
         from unittest.mock import patch
 
-        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False)
-        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True)
+        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False, entity_category=None)
+        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True, entity_category=None)
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "light.hallway": mock_entry_ok,
@@ -484,8 +488,12 @@ class TestDetectSequences:
         """Entities sharing a device_id must not produce sequences (#93)."""
         from unittest.mock import patch
 
-        mock_entry_switch = MagicMock(device_id="device_123", disabled=False)
-        mock_entry_light = MagicMock(device_id="device_123", disabled=False)
+        mock_entry_switch = MagicMock(
+            device_id="device_123", disabled=False, entity_category=None
+        )
+        mock_entry_light = MagicMock(
+            device_id="device_123", disabled=False, entity_category=None
+        )
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "switch.closet": mock_entry_switch,
@@ -512,8 +520,8 @@ class TestDetectSequences:
         """Disabled entities must be excluded from sequence detection (#93)."""
         from unittest.mock import patch
 
-        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False)
-        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True)
+        mock_entry_ok = MagicMock(device_id="dev_1", disabled=False, entity_category=None)
+        mock_entry_disabled = MagicMock(device_id="dev_2", disabled=True, entity_category=None)
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "light.hallway": mock_entry_ok,

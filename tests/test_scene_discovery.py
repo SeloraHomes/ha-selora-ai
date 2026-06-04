@@ -57,6 +57,7 @@ class TestEntityAreaEnrichment:
         entity_entry.area_id = "area_k"
         entity_entry.device_id = None
         entity_entry.disabled = False
+        entity_entry.entity_category = None
         mock_entity_reg = MagicMock()
         mock_entity_reg.async_get.return_value = entity_entry
 
@@ -97,6 +98,7 @@ class TestEntityAreaEnrichment:
         entity_entry.area_id = None
         entity_entry.device_id = "device_1"
         entity_entry.disabled = False
+        entity_entry.entity_category = None
         mock_entity_reg = MagicMock()
         mock_entity_reg.async_get.return_value = entity_entry
 
@@ -137,6 +139,7 @@ class TestEntityAreaEnrichment:
         entity_entry.area_id = None
         entity_entry.device_id = None
         entity_entry.disabled = False
+        entity_entry.entity_category = None
         mock_entity_reg = MagicMock()
         mock_entity_reg.async_get.return_value = entity_entry
 
