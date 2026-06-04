@@ -1185,6 +1185,26 @@ PANEL_PATH = "selora-ai"
 DEFAULT_RECORDER_LOOKBACK_DAYS = 7
 CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 
+# Hard ceiling on the number of state-change records the collector
+# materialises into a HomeSnapshot per cycle. ``get_significant_states``
+# returns *every* change for *every* entity inside the lookback window;
+# on a 200-entity install with a busy week this can be tens of
+# thousands of dicts, all held in Python heap for the duration of the
+# LLM analysis call (up to ``ANALYSIS_LLM_TIMEOUT`` = 300 s).
+# 5 000 records is enough for the analyzer to spot daily / weekly
+# rhythms while keeping the snapshot well under the limits of every
+# supported provider, and well under any user's memory budget.
+DEFAULT_RECORDER_HISTORY_MAX_RECORDS = 5000
+
+# Batch size for the recorder query itself. The cap above bounds the
+# RESULT list, but a single ``get_significant_states(entity_ids=<all>,
+# start=Nd)`` materialises the full N-day × entity-count state-change
+# blob inside the recorder thread BEFORE returning — on low-RAM hosts
+# with high entity counts that's where HA OOMs. Splitting the query
+# into chunks of this many entity_ids caps the peak working set of any
+# single recorder fetch.
+DEFAULT_RECORDER_QUERY_BATCH_SIZE = 100
+
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
 # Maximum number of historical versions retained per automation. Older

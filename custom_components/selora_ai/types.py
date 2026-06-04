@@ -182,6 +182,14 @@ class StateChange(TypedDict):
     ts: str
 
 
+class RecorderHistoryRecord(TypedDict):
+    """A single recorder state-change record as the collector materialises it."""
+
+    entity_id: str
+    state: str
+    last_changed: str | None
+
+
 class PatternEvidence(TypedDict, total=False):
     """Evidence payload for a detected pattern."""
 
