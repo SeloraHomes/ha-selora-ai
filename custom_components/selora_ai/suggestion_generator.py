@@ -21,6 +21,7 @@ from .automation_utils import (
     suggestion_content_fingerprint,
     validate_automation_payload,
 )
+from .entity_filter import resolve_ignored_entity_ids
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
@@ -94,8 +95,17 @@ class SuggestionGenerator:
                 DISMISSAL_SUPPRESSION_WINDOW_DAYS,
             )
 
+        # Resolve the ignore list once per generation cycle. Used to skip
+        # patterns whose entities were marked off-limits after detection.
+        ignored_entities = resolve_ignored_entity_ids(self._hass)
+
         for pattern in patterns:
             if pattern["confidence"] < CONFIDENCE_MEDIUM:
+                continue
+
+            if ignored_entities and any(
+                eid in ignored_entities for eid in (pattern.get("entity_ids") or [])
+            ):
                 continue
 
             pattern_id = pattern.get("pattern_id", "")
