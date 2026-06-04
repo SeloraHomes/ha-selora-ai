@@ -22,13 +22,15 @@ from .command_policy import (
     synthesize_approval_from_tool_log,
     validate_command_action,
 )
-from .intent import _is_pure_greeting
+from .intent import _classify_chat_intent, _is_definite_automation, _is_pure_greeting
 from .prompts import _read_prompt_files
 
 __all__ = [
     "LLMClient",
     "_build_command_confirmation",
+    "_classify_chat_intent",
     "_executed_service_calls_from_log",
+    "_is_definite_automation",
     "_is_generic_acknowledgement",
     "_is_pure_greeting",
     "_read_prompt_files",

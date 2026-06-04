@@ -1986,6 +1986,28 @@ async def _handle_websocket_chat_stream(
         # the chunk that introduces the JSON-block opener so the prose
         # prefix still streams but the JSON tokens after it don't.
         sent_chars = 0
+
+        # ``stripAutomationBlock`` on the panel side flips the typing
+        # indicator to a "Building automation..." spinner the moment
+        # it sees a ```automation fence in the bubble's content. The
+        # SeloraLocal provider emits that sentinel itself, but cloud
+        # providers don't — they stream prose / raw JSON only. Emit
+        # the sentinel from here for cloud automation turns so the
+        # panel UX matches across providers. Skip when refining (the
+        # bubble is already pinned to the existing card) or when the
+        # provider is low-context (avoids double-sentinel).
+        from .llm_client import _is_definite_automation  # noqa: PLC0415
+
+        if (
+            not refining
+            and not refining_scene
+            and not getattr(llm.provider, "is_low_context", False)
+            and _is_definite_automation(user_message)
+        ):
+            connection.send_message(
+                websocket_api.event_message(msg["id"], {"type": "token", "text": "```automation\n"})
+            )
+
         async for chunk in _consume_stream_with_guards(
             llm.architect_chat_stream(
                 user_message,

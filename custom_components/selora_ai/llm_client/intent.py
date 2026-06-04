@@ -181,6 +181,33 @@ _META_QUESTION = re.compile(
 )
 
 
+# Strict predicate for the cloud automation-spinner sentinel. The broad
+# ``_classify_chat_intent`` returns ``automation`` for one-shot delayed
+# commands too ("after 5 min", "at 11 PM", "remind me in 10 min") because
+# the automation LoRA also handles delayed_command on the low-context
+# path. Emitting the ```automation fence for those turns leaves the panel
+# stuck on "Building automation..." when the stream returns a
+# ``delayed_command`` block instead.
+_DEFINITE_AUTOMATION = re.compile(
+    r"\b(automate|automation|schedule[ds]?|scheduling)\b"
+    r"|\bevery\s+(day|morning|night|evening|afternoon|hour|minute|"
+    r"monday|tuesday|wednesday|thursday|friday|saturday|sunday|weekday|weekend)\b"
+    r"|\b(when|whenever|if)\b.{0,40}\b(then|do|turn|start|stop|set|send|notify|alert)\b"
+    r"|\bcreate (an?|the)?\s*automation\b",
+    re.IGNORECASE,
+)
+
+
+def _is_definite_automation(user_message: str) -> bool:
+    """True only for recurring/conditional automation phrasing.
+
+    Excludes one-shot delayed commands which still route to the
+    automation LoRA via ``_classify_chat_intent`` but return a
+    ``delayed_command`` block.
+    """
+    return bool(_DEFINITE_AUTOMATION.search(user_message))
+
+
 def _classify_chat_intent(user_message: str) -> str:
     """Cheap regex pre-classifier for low-context LoRA routing.
 
