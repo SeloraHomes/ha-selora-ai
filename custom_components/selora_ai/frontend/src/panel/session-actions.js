@@ -92,6 +92,51 @@ export async function _openSession(sessionId) {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    // Restore in-flight OR interrupted background turns that the
+    // backend hasn't persisted. session.messages only contains pairs
+    // that reached ``done``, so anything still streaming (or that
+    // stalled / errored / disconnected while the user was looking at
+    // another conversation) is missing from the server snapshot.
+    //
+    // Splice every matching entry's user + assistant bubbles back
+    // onto _messages in the order they were sent. Re-attaching the
+    // SAME object references means a still-live stream's token
+    // mutations keep landing on bubbles the UI is now rendering, and
+    // an interrupted bubble keeps its Retry affordance.
+    //
+    // Re-raise the busy flags only if a stream is genuinely still
+    // running; interrupted entries leave the composer idle so the
+    // user can retry. _loading is only true while the live stream
+    // hasn't emitted its first token (no content yet).
+    const sessionEntries = [...(this._streams || [])].filter(
+      (e) =>
+        e.sessionId === session.id &&
+        (e.assistantMsg?._streaming || e.assistantMsg?._interrupted),
+    );
+    if (sessionEntries.length > 0) {
+      const tail = [];
+      for (const e of sessionEntries) {
+        if (e.userMsg) tail.push(e.userMsg);
+        tail.push(e.assistantMsg);
+      }
+      this._messages = [...this._messages, ...tail];
+      const liveEntry = sessionEntries.find((e) => e.assistantMsg?._streaming);
+      if (liveEntry) {
+        this._loading = !liveEntry.assistantMsg.content;
+        this._streaming = true;
+      } else {
+        this._loading = false;
+        this._streaming = false;
+      }
+    } else {
+      // Any in-flight turn from a previous session keeps streaming in
+      // the background; its event handlers check session match before
+      // touching these flags again, so resetting here is safe and
+      // prevents the Stop button / disabled composer from carrying
+      // over into this view.
+      this._loading = false;
+      this._streaming = false;
+    }
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -109,6 +154,8 @@ export async function _newSession() {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    this._loading = false;
+    this._streaming = false;
     this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
@@ -336,6 +383,7 @@ export async function _confirmDeleteSession() {
       type: "selora_ai/delete_session",
       session_id: sessionId,
     });
+    _pruneStreamsForSession.call(this, sessionId);
     if (this._activeSessionId === sessionId) {
       this._activeSessionId = null;
       this._messages = [];
@@ -343,6 +391,30 @@ export async function _confirmDeleteSession() {
     await this._loadSessions();
   } catch (err) {
     console.error("Failed to delete session", err);
+  }
+}
+
+// Cancel any live subscription for a deleted session and drop its
+// entries from _streams. Without this, an interrupted or still-
+// streaming background turn would survive the delete: _openSession
+// for the now-deleted id couldn't re-render it (no such session) but
+// the entry would keep consuming memory, and a still-live stream
+// would keep emitting events nothing in the UI listens for.
+function _pruneStreamsForSession(sessionId) {
+  if (!this._streams) return;
+  for (const e of [...this._streams]) {
+    if (e.sessionId !== sessionId) continue;
+    try {
+      e.teardown();
+    } catch (_) {
+      /* best-effort */
+    }
+    try {
+      e.cancel();
+    } catch (_) {
+      /* best-effort */
+    }
+    this._streams.delete(e);
   }
 }
 
@@ -385,6 +457,7 @@ export async function _confirmBulkDeleteSessions() {
         type: "selora_ai/delete_session",
         session_id: id,
       });
+      _pruneStreamsForSession.call(this, id);
       if (this._activeSessionId === id) {
         this._activeSessionId = null;
         this._messages = [];

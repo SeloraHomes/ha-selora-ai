@@ -8834,7 +8834,7 @@ function renderMessage(host, msg, idx) {
                       ? x` ·
                         <button
                           class="stream-interrupt-retry"
-                          @click=${() => host._retryMessage(msg._retryWith)}
+                          @click=${() => host._retryMessage(msg._retryWith, msg)}
                         >
                           <ha-icon
                             icon="mdi:refresh"
@@ -15617,6 +15617,32 @@ async function _openSession(sessionId) {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    const sessionEntries = [...(this._streams || [])].filter(
+      (e5) =>
+        e5.sessionId === session.id &&
+        (e5.assistantMsg?._streaming || e5.assistantMsg?._interrupted),
+    );
+    if (sessionEntries.length > 0) {
+      const tail = [];
+      for (const e5 of sessionEntries) {
+        if (e5.userMsg) tail.push(e5.userMsg);
+        tail.push(e5.assistantMsg);
+      }
+      this._messages = [...this._messages, ...tail];
+      const liveEntry = sessionEntries.find(
+        (e5) => e5.assistantMsg?._streaming,
+      );
+      if (liveEntry) {
+        this._loading = !liveEntry.assistantMsg.content;
+        this._streaming = true;
+      } else {
+        this._loading = false;
+        this._streaming = false;
+      }
+    } else {
+      this._loading = false;
+      this._streaming = false;
+    }
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -15633,6 +15659,8 @@ async function _newSession() {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    this._loading = false;
+    this._streaming = false;
     this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
@@ -15810,6 +15838,7 @@ async function _confirmDeleteSession() {
       type: "selora_ai/delete_session",
       session_id: sessionId,
     });
+    _pruneStreamsForSession.call(this, sessionId);
     if (this._activeSessionId === sessionId) {
       this._activeSessionId = null;
       this._messages = [];
@@ -15817,6 +15846,19 @@ async function _confirmDeleteSession() {
     await this._loadSessions();
   } catch (err) {
     console.error("Failed to delete session", err);
+  }
+}
+function _pruneStreamsForSession(sessionId) {
+  if (!this._streams) return;
+  for (const e5 of [...this._streams]) {
+    if (e5.sessionId !== sessionId) continue;
+    try {
+      e5.teardown();
+    } catch (_2) {}
+    try {
+      e5.cancel();
+    } catch (_2) {}
+    this._streams.delete(e5);
   }
 }
 function _toggleSessionSelection(sessionId) {
@@ -15855,6 +15897,7 @@ async function _confirmBulkDeleteSessions() {
         type: "selora_ai/delete_session",
         session_id: id,
       });
+      _pruneStreamsForSession.call(this, id);
       if (this._activeSessionId === id) {
         this._activeSessionId = null;
         this._messages = [];
@@ -16184,7 +16227,8 @@ function _finaliseInterruption(
   assistantMsg,
   retryPayload,
   reason,
-  myTurn,
+  isOwnSession,
+  sessionHasOtherLiveStream,
 ) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
@@ -16192,7 +16236,10 @@ function _finaliseInterruption(
   assistantMsg._interruptReason = reason;
   assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
-  if (myTurn === void 0 || host._activeTurn === myTurn) {
+  const ownsView = isOwnSession === void 0 || isOwnSession();
+  const newerLive =
+    sessionHasOtherLiveStream !== void 0 && sessionHasOtherLiveStream();
+  if (ownsView && !newerLive) {
     host._loading = false;
     host._streaming = false;
     host.updateComplete.then(() => {
@@ -16210,7 +16257,8 @@ async function _sendMessage() {
   );
   const marker = buildEntityMarker(activeSelections);
   const userMsgForSend = marker ? userMsg + marker : userMsg;
-  this._messages = [...this._messages, { role: "user", content: userMsg }];
+  const userMsgObj = { role: "user", content: userMsg };
+  this._messages = [...this._messages, userMsgObj];
   this._input = "";
   this._historyIndex = null;
   this._historyDraft = "";
@@ -16223,7 +16271,8 @@ async function _sendMessage() {
     trigger: null,
   };
   this._loading = true;
-  const myTurn = (this._activeTurn = (this._activeTurn || 0) + 1);
+  const turnSessionId = this._activeSessionId;
+  const isOwnSession = () => this._activeSessionId === turnSessionId;
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
   const sendStartedAt = Date.now();
@@ -16241,7 +16290,18 @@ async function _sendMessage() {
   let lastActivityAt = Date.now();
   let watchdog = null;
   let onDisconnect = null;
+  this._streams ||= /* @__PURE__ */ new Set();
+  const entry = {
+    sessionId: turnSessionId,
+    userMsg: userMsgObj,
+    assistantMsg,
+    teardown: () => {},
+    cancel: () => {},
+  };
+  let tornDown = false;
   const teardown = () => {
+    if (tornDown) return;
+    tornDown = true;
     if (watchdog) {
       clearInterval(watchdog);
       watchdog = null;
@@ -16250,11 +16310,8 @@ async function _sendMessage() {
       this.hass.connection.removeEventListener("disconnected", onDisconnect);
       onDisconnect = null;
     }
-    if (this._streamTeardown === teardown) {
-      this._streamTeardown = null;
-    }
   };
-  this._streamTeardown = teardown;
+  entry.teardown = teardown;
   let localUnsub = null;
   const cancelSubscription = () => {
     const u3 = localUnsub;
@@ -16263,7 +16320,16 @@ async function _sendMessage() {
     try {
       u3();
     } catch (_2) {}
-    if (this._streamUnsub === u3) this._streamUnsub = null;
+  };
+  entry.cancel = cancelSubscription;
+  const sessionHasOtherLiveStream = () => {
+    for (const e5 of [...(this._streams || [])]) {
+      if (e5 === entry) continue;
+      if (e5.sessionId === entry.sessionId && e5.assistantMsg?._streaming) {
+        return true;
+      }
+    }
+    return false;
   };
   try {
     const subscribePayload = {
@@ -16276,17 +16342,20 @@ async function _sendMessage() {
     this._streaming = true;
     onDisconnect = () => {
       teardown();
+      cancelSubscription();
       _finaliseInterruption(
         this,
         assistantMsg,
         userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
-        myTurn,
+        isOwnSession,
+        sessionHasOtherLiveStream,
       );
+      if (entry.sessionId === null) this._streams?.delete(entry);
     };
     this.hass.connection.addEventListener("disconnected", onDisconnect);
     watchdog = setInterval(() => {
-      if (!this._streaming || this._activeTurn !== myTurn) {
+      if (assistantMsg._streaming === false) {
         teardown();
         return;
       }
@@ -16301,8 +16370,10 @@ async function _sendMessage() {
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
-          myTurn,
+          isOwnSession,
+          sessionHasOtherLiveStream,
         );
+        if (entry.sessionId === null) this._streams?.delete(entry);
       }
     }, 5e3);
     localUnsub = await this.hass.connection.subscribeMessage((event) => {
@@ -16312,7 +16383,9 @@ async function _sendMessage() {
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
-        if (this._activeTurn === myTurn) this._loading = false;
+        if (isOwnSession() && !sessionHasOtherLiveStream()) {
+          this._loading = false;
+        }
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
       } else if (event.type === "done") {
@@ -16337,19 +16410,22 @@ async function _sendMessage() {
         if (looksTruncatedResponse(responseText, hasStructured)) {
           cancelSubscription();
           assistantMsg.content = responseText;
-          if (event.session_id) {
-            if (event.session_id !== this._activeSessionId) {
-              this._activeSessionId = event.session_id;
-            }
-            this._loadSessions();
-          }
           _finaliseInterruption(
             this,
             assistantMsg,
             userMsgForSend,
             "Response looks cut short \u2014 try again.",
-            myTurn,
+            isOwnSession,
+            sessionHasOtherLiveStream,
           );
+          if (event.session_id) {
+            if (entry.sessionId === null) entry.sessionId = event.session_id;
+            if (isOwnSession() && event.session_id !== this._activeSessionId) {
+              this._activeSessionId = event.session_id;
+            }
+            this._loadSessions();
+          }
+          this._streams?.delete(entry);
           return;
         }
         assistantMsg.content = responseText;
@@ -16374,7 +16450,7 @@ async function _sendMessage() {
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
-        if (this._activeTurn === myTurn) {
+        if (isOwnSession() && !sessionHasOtherLiveStream()) {
           this._loading = false;
           this._streaming = false;
           this.updateComplete.then(() => {
@@ -16383,6 +16459,7 @@ async function _sendMessage() {
           });
         }
         cancelSubscription();
+        this._streams?.delete(entry);
         if (event.validation_error) {
           if (event.validation_target === "scene") {
             this._showToast(
@@ -16397,7 +16474,8 @@ async function _sendMessage() {
           }
         }
         if (event.session_id) {
-          if (event.session_id !== this._activeSessionId) {
+          if (entry.sessionId === null) entry.sessionId = event.session_id;
+          if (isOwnSession() && event.session_id !== this._activeSessionId) {
             this._activeSessionId = event.session_id;
           }
           this._loadSessions();
@@ -16405,16 +16483,21 @@ async function _sendMessage() {
       } else if (event.type === "error") {
         teardown();
         cancelSubscription();
+        if (event.session_id && entry.sessionId === null) {
+          entry.sessionId = event.session_id;
+        }
         _finaliseInterruption(
           this,
           assistantMsg,
           userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
-          myTurn,
+          isOwnSession,
+          sessionHasOtherLiveStream,
         );
+        if (entry.sessionId === null) this._streams?.delete(entry);
       }
     }, subscribePayload);
-    this._streamUnsub = localUnsub;
+    this._streams.add(entry);
   } catch (err) {
     teardown();
     cancelSubscription();
@@ -16423,38 +16506,69 @@ async function _sendMessage() {
       assistantMsg,
       userMsgForSend,
       err.message || "Couldn't start the chat session.",
-      myTurn,
+      isOwnSession,
+      sessionHasOtherLiveStream,
     );
   }
 }
-function _retryMessage(text) {
+function _retryMessage(text, sourceMsg) {
   if (!text || this._loading) return;
+  if (sourceMsg && this._streams) {
+    for (const e5 of this._streams) {
+      if (e5.assistantMsg === sourceMsg) {
+        this._streams.delete(e5);
+        break;
+      }
+    }
+  }
   this._input = text;
   this._sendMessage();
 }
-function _stopStreaming() {
-  if (this._streamTeardown) {
-    this._streamTeardown();
-  }
-  if (this._streamUnsub) {
-    this._streamUnsub();
-    this._streamUnsub = null;
+function _stopStreaming(opts) {
+  const streams = this._streams;
+  const all = !!opts?.all;
+  const currentSession = this._activeSessionId;
+  const note = "\n\n_Cancelled by user_";
+  const cancelledHere = [];
+  if (streams) {
+    for (const entry of [...streams]) {
+      if (!all && entry.sessionId !== currentSession) continue;
+      try {
+        entry.teardown();
+      } catch (_2) {}
+      try {
+        entry.cancel();
+      } catch (_2) {}
+      streams.delete(entry);
+      if (entry.assistantMsg && entry.sessionId === currentSession) {
+        cancelledHere.push(entry.assistantMsg);
+      }
+    }
   }
   this._streaming = false;
   this._loading = false;
-  const note = "\n\n_Cancelled by user_";
-  const lastMsg = this._messages[this._messages.length - 1];
-  if (lastMsg && lastMsg.role === "assistant") {
-    lastMsg._streaming = false;
-    if (!lastMsg.content?.endsWith(note)) {
-      lastMsg.content = (lastMsg.content || "") + note;
+  if (cancelledHere.length > 0) {
+    for (const msg of cancelledHere) {
+      msg._streaming = false;
+      if (!msg.content?.endsWith(note)) {
+        msg.content = (msg.content || "") + note;
+      }
     }
     this._messages = [...this._messages];
-  } else {
-    this._messages = [
-      ...this._messages,
-      { role: "assistant", content: note.trimStart() },
-    ];
+  } else if (!all) {
+    const lastMsg = this._messages[this._messages.length - 1];
+    if (lastMsg && lastMsg.role === "assistant") {
+      lastMsg._streaming = false;
+      if (!lastMsg.content?.endsWith(note)) {
+        lastMsg.content = (lastMsg.content || "") + note;
+      }
+      this._messages = [...this._messages];
+    } else {
+      this._messages = [
+        ...this._messages,
+        { role: "assistant", content: note.trimStart() },
+      ];
+    }
   }
 }
 function _scrollChatToBottom() {
@@ -17775,7 +17889,7 @@ var SeloraAIPanel = class extends s4 {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
-    this._streamUnsub = null;
+    this._streams = /* @__PURE__ */ new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
     this._suggestions = [];
@@ -18167,11 +18281,11 @@ var SeloraAIPanel = class extends s4 {
       clearInterval(this._quotaTickTimer);
       this._quotaTickTimer = null;
     }
-    if (this._streamUnsub) {
+    if (this._streams && this._streams.size > 0) {
       try {
-        this._stopStreaming();
+        this._stopStreaming({ all: true });
       } catch (_e) {
-        this._streamUnsub = null;
+        this._streams.clear();
         this._streaming = false;
         this._loading = false;
         const lastMsg = this._messages[this._messages.length - 1];

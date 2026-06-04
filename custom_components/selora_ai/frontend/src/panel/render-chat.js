@@ -1094,7 +1094,8 @@ export function renderMessage(host, msg, idx) {
                     ? html` ·
                         <button
                           class="stream-interrupt-retry"
-                          @click=${() => host._retryMessage(msg._retryWith)}
+                          @click=${() =>
+                            host._retryMessage(msg._retryWith, msg)}
                         >
                           <ha-icon
                             icon="mdi:refresh"
