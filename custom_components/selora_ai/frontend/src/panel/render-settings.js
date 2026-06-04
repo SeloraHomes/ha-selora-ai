@@ -1,5 +1,7 @@
 import { html } from "lit";
 
+import { renderIgnoreList } from "./render-ignore-list.js";
+
 // Native <input> wrapper used in place of <ha-textfield>. Recent HA builds
 // wrap each panel in a scoped custom-element registry, which prevents
 // globally-registered HA components like <ha-textfield> from upgrading
@@ -822,7 +824,7 @@ export function renderSettings(host) {
           </button>
         </div>
 
-        ${renderCreateTokenDialog(host)}
+        ${renderCreateTokenDialog(host)} ${renderIgnoreList(host)}
 
         <div class="section-card settings-section">
           <div class="section-card-header">

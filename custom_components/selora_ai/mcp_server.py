@@ -48,7 +48,6 @@ See docs/selora-mcp-server.md and docs/adr/ADR-001-selora-mcp-server.md.
 from __future__ import annotations
 
 import asyncio
-from collections import defaultdict
 import contextlib
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -200,24 +199,79 @@ _RATE_LIMIT_AUTH_FAILURES = 5  # max auth failures per IP per window
 
 
 class _RateLimiter:
-    """Simple per-key sliding-window rate limiter (in-memory, no persistence)."""
+    """Simple per-key sliding-window rate limiter (in-memory, no persistence).
+
+    Buckets are evicted from ``_hits`` once their timestamps all age
+    past the window, so the dict stays bounded by the count of
+    CURRENTLY ACTIVE keys, not the cumulative count of all keys that
+    have ever queried us. Without eviction the dict grows one entry
+    per unique client IP forever: bots scanning from rotating IPs,
+    CGNAT customers, even normal cycling-DHCP clients each add a
+    permanent key, and the limiter becomes a slow but unbounded
+    memory leak across the lifetime of the HA process.
+    """
+
+    # Sweep stale keys at most once per ``_SWEEP_INTERVAL_S`` seconds
+    # of wall time. Cheap when called frequently (we early-return) and
+    # bounded when traffic spikes — the sweep walks every key but only
+    # runs at most once per minute regardless of request rate.
+    _SWEEP_INTERVAL_S: float = 60.0
 
     def __init__(self, window: int, max_hits: int) -> None:
         self._window = window
         self._max_hits = max_hits
-        self._hits: dict[str, list[float]] = defaultdict(list)
+        # Plain dict (not defaultdict) — defaultdict.__getitem__ inserts
+        # an empty list on EVERY read, which is the dict-growth path
+        # we're trying to close. Explicit .get() with absent-key handling
+        # below keeps the dict honest.
+        self._hits: dict[str, list[float]] = {}
+        self._last_sweep: float = 0.0
 
     def is_allowed(self, key: str) -> bool:
-        """Return True if the key is within the rate limit."""
+        """Return True if the key is within the rate limit.
+
+        Side effects:
+        * On allow: append the current timestamp to ``key``'s bucket
+          (creating the bucket on first hit).
+        * On deny: leave the bucket intact (so the next call still
+          sees it full and rejects) — empty-bucket eviction can't
+          fire on the denied path because the bucket is, by
+          construction, non-empty.
+        * Opportunistically sweeps stale keys whose timestamps have
+          all aged out, at most every ``_SWEEP_INTERVAL_S`` seconds.
+          Without this, a one-shot spike from many unique keys leaves
+          their entries in the dict until each one is re-queried (or
+          forever, if the spike was unique-per-IP).
+        """
         now = time.monotonic()
-        bucket = self._hits[key]
-        # Prune expired entries
         cutoff = now - self._window
-        self._hits[key] = bucket = [t for t in bucket if t > cutoff]
+        bucket = [t for t in self._hits.get(key, ()) if t > cutoff]
         if len(bucket) >= self._max_hits:
+            self._hits[key] = bucket
             return False
         bucket.append(now)
+        self._hits[key] = bucket
+        if now - self._last_sweep >= self._SWEEP_INTERVAL_S:
+            self._evict_empty(now=now, cutoff=cutoff)
+            self._last_sweep = now
         return True
+
+    def _evict_empty(self, *, now: float | None = None, cutoff: float | None = None) -> int:
+        """Drop keys whose buckets have aged out entirely.
+
+        Called opportunistically from ``is_allowed`` at most once per
+        ``_SWEEP_INTERVAL_S``. Returns the number of evicted entries.
+        ``now`` / ``cutoff`` are passed in by ``is_allowed`` to skip
+        re-reading the monotonic clock; tests can omit them.
+        """
+        if now is None:
+            now = time.monotonic()
+        if cutoff is None:
+            cutoff = now - self._window
+        stale = [k for k, ts in self._hits.items() if not any(t > cutoff for t in ts)]
+        for k in stale:
+            del self._hits[k]
+        return len(stale)
 
 
 _request_limiter = _RateLimiter(_RATE_LIMIT_WINDOW, _RATE_LIMIT_MAX_REQUESTS)

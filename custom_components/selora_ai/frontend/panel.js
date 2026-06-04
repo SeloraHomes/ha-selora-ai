@@ -12205,6 +12205,511 @@ function renderDeleteSceneModal(host) {
   `;
 }
 
+// src/panel/render-ignore-list.js
+var MIN_QUERY = 1;
+var KIND_ENTITY = "entity";
+var KIND_HA_DEVICE = "ha_device";
+var KIND_AREA = "area";
+var IGNORE_ENTITY_DOMAINS = /* @__PURE__ */ new Set([
+  "light",
+  "switch",
+  "lock",
+  "cover",
+  "fan",
+  "media_player",
+  "climate",
+  "vacuum",
+  "camera",
+  "humidifier",
+  "water_heater",
+  "input_boolean",
+  "input_select",
+  "input_number",
+  "input_button",
+  "remote",
+  "lawn_mower",
+  "sensor",
+  "binary_sensor",
+  "device_tracker",
+  "person",
+  "scene",
+  "automation",
+  "script",
+]);
+var IGNORE_DOMAIN_ICONS = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  lock: "mdi:lock",
+  cover: "mdi:window-shutter",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  climate: "mdi:thermostat",
+  vacuum: "mdi:robot-vacuum",
+  camera: "mdi:cctv",
+  humidifier: "mdi:air-humidifier",
+  water_heater: "mdi:water-boiler",
+  remote: "mdi:remote",
+  lawn_mower: "mdi:mower",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_select: "mdi:form-dropdown",
+  input_number: "mdi:numeric",
+  input_button: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  binary_sensor: "mdi:checkbox-marked-circle-outline",
+  device_tracker: "mdi:crosshairs-gps",
+  person: "mdi:account",
+  scene: "mdi:palette",
+  automation: "mdi:robot",
+  script: "mdi:script-text",
+};
+function _config(host) {
+  return host._config || {};
+}
+function _labelTagged(host) {
+  return _config(host).label_tagged || { entities: [], devices: [], areas: [] };
+}
+async function _refresh(host) {
+  await host._loadConfig?.();
+}
+async function _applyLabel(host, payload) {
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/apply_exclude_label",
+      ...payload,
+    });
+    await _refresh(host);
+  } catch (err) {
+    host._showToast?.(`Failed to apply label: ${err.message || err}`, "error");
+  }
+}
+async function _removeLabel(host, payload) {
+  try {
+    await host.hass.callWS({
+      type: "selora_ai/remove_exclude_label",
+      ...payload,
+    });
+    await _refresh(host);
+  } catch (err) {
+    host._showToast?.(`Failed to remove label: ${err.message || err}`, "error");
+  }
+}
+function _entityLabel(host, entityId) {
+  const state = host.hass?.states?.[entityId];
+  const friendly = state?.attributes?.friendly_name;
+  return friendly || entityId;
+}
+function _entityIcon(entityId) {
+  const domain = (entityId || "").split(".")[0];
+  return IGNORE_DOMAIN_ICONS[domain] || "mdi:devices";
+}
+function _cachedRegistries(host) {
+  if (
+    host._autocompleteRegCache === void 0 &&
+    typeof host._ensureFullRegistries === "function"
+  ) {
+    host._autocompleteRegCache = "pending";
+    host._ensureFullRegistries().then((reg) => {
+      host._autocompleteRegCache = reg || null;
+      host.requestUpdate();
+    });
+  }
+  return host._autocompleteRegCache && host._autocompleteRegCache !== "pending"
+    ? host._autocompleteRegCache
+    : null;
+}
+function _deviceLabel(host, deviceId) {
+  const cache = _cachedRegistries(host);
+  const dev = cache?.devices?.[deviceId];
+  return dev?.name_by_user || dev?.name || deviceId;
+}
+function _areaLabel(host, areaId) {
+  const cache = _cachedRegistries(host);
+  const area = cache?.areas?.[areaId] || host.hass?.areas?.[areaId];
+  return area?.name || areaId;
+}
+function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
+  const items = [];
+  if (!hass?.states) return items;
+  const areaById = {};
+  if (areasMap && typeof areasMap === "object") {
+    for (const [id, a4] of Object.entries(areasMap)) {
+      areaById[id] = a4?.name || id;
+    }
+  }
+  const entReg = entitiesMap || hass.entities || {};
+  for (const [entityId, state] of Object.entries(hass.states)) {
+    const domain = entityId.split(".")[0];
+    if (!IGNORE_ENTITY_DOMAINS.has(domain)) continue;
+    const friendly = state?.attributes?.friendly_name;
+    if (!friendly) continue;
+    const entry = entReg[entityId];
+    let areaId = entry?.area_id || null;
+    if (!areaId && entry?.device_id && devicesMap) {
+      areaId = devicesMap[entry.device_id]?.area_id || null;
+    }
+    const areaName = areaId ? areaById[areaId] || null : null;
+    items.push({
+      kind: KIND_ENTITY,
+      domain,
+      entity_id: entityId,
+      label: friendly,
+      area_id: areaId,
+      area: areaName,
+      icon: IGNORE_DOMAIN_ICONS[domain] || "mdi:devices",
+      _lowerLabel: friendly.toLowerCase(),
+    });
+  }
+  for (const [areaId, name] of Object.entries(areaById)) {
+    items.push({
+      kind: KIND_AREA,
+      area_id: areaId,
+      label: name,
+      icon: "mdi:floor-plan",
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return items;
+}
+function _buildDeviceIndex(devicesMap, areasMap) {
+  if (!devicesMap) return [];
+  const items = [];
+  for (const [id, dev] of Object.entries(devicesMap)) {
+    const name = dev?.name_by_user || dev?.name;
+    if (!name) continue;
+    const areaId = dev.area_id || null;
+    const areaName = areaId ? areasMap?.[areaId]?.name || null : null;
+    items.push({
+      kind: KIND_HA_DEVICE,
+      device_id: id,
+      label: name,
+      area_id: areaId,
+      area: areaName,
+      icon: "mdi:chip",
+      _lowerLabel: name.toLowerCase(),
+    });
+  }
+  return items;
+}
+function _interleave(lists, max) {
+  const out = [];
+  let i5 = 0;
+  while (out.length < max) {
+    let added = false;
+    for (const list of lists) {
+      if (i5 < list.length && out.length < max) {
+        out.push(list[i5]);
+        added = true;
+      }
+    }
+    if (!added) break;
+    i5++;
+  }
+  return out;
+}
+function _computeDropdownItems(host, query) {
+  const cache = _cachedRegistries(host);
+  const areasMap = cache?.areas || host.hass?.areas;
+  const entityIndex = _buildEntityIndex(
+    host.hass,
+    areasMap,
+    cache?.devices,
+    cache?.entities,
+  );
+  const deviceIndex = _buildDeviceIndex(cache?.devices, areasMap);
+  const q = (query || "").trim();
+  if (q.length < MIN_QUERY) return [];
+  const tagged = _labelTagged(host);
+  const taggedEntities = new Set(tagged.entities);
+  const taggedDevices = new Set(tagged.devices);
+  const taggedAreas = new Set(tagged.areas);
+  const entities = rankSuggestions(
+    entityIndex,
+    KIND_ENTITY,
+    q,
+    AUTOCOMPLETE_MAX_RESULTS,
+    null,
+  ).filter((it) => !taggedEntities.has(it.entity_id));
+  const devices = rankSuggestions(
+    deviceIndex,
+    KIND_HA_DEVICE,
+    q,
+    AUTOCOMPLETE_MAX_RESULTS,
+    null,
+  ).filter((it) => !taggedDevices.has(it.device_id));
+  const areas = rankSuggestions(
+    entityIndex,
+    KIND_AREA,
+    q,
+    AUTOCOMPLETE_MAX_RESULTS,
+    null,
+  ).filter((it) => !taggedAreas.has(it.area_id));
+  return _interleave([areas, devices, entities], AUTOCOMPLETE_MAX_RESULTS);
+}
+function _selectItem(host, item) {
+  if (!item) return;
+  host._ignoreInput = "";
+  host._ignoreDropdownOpen = false;
+  host._ignoreDropdownIndex = 0;
+  host.requestUpdate();
+  if (item.kind === KIND_AREA) {
+    _applyLabel(host, { area_id: item.area_id });
+  } else if (item.kind === KIND_HA_DEVICE) {
+    _applyLabel(host, { device_id: item.device_id });
+  } else {
+    _applyLabel(host, { entity_id: item.entity_id });
+  }
+}
+function _openEntity(host, entityId) {
+  host.dispatchEvent(
+    new CustomEvent("hass-more-info", {
+      bubbles: true,
+      composed: true,
+      detail: { entityId },
+    }),
+  );
+}
+function _navigate(path) {
+  window.history.pushState(null, "", path);
+  window.dispatchEvent(new Event("location-changed"));
+}
+function _renderChip({ icon, label, kindLabel, title, onOpen, onRemove }) {
+  return x`
+    <span class="composer-selection-chip" title=${title || label}>
+      <button
+        type="button"
+        @click=${onOpen}
+        style="display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;"
+      >
+        <ha-icon icon=${icon}></ha-icon>
+        ${label}
+        ${
+          kindLabel
+            ? x`<span
+              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
+              >${kindLabel}</span
+            >`
+            : ""
+        }
+      </button>
+      <button
+        type="button"
+        title="Remove label"
+        @click=${(e5) => {
+          e5.stopPropagation();
+          onRemove();
+        }}
+      >
+        ×
+      </button>
+    </span>
+  `;
+}
+function _renderDropdown(host, items, activeIndex) {
+  if (!items.length) return "";
+  return x`
+    <div
+      style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;max-height:240px;overflow-y:auto;"
+    >
+      ${items.map((item, idx) => {
+        let kindLabel = "";
+        if (item.kind === KIND_AREA) kindLabel = "Area";
+        else if (item.kind === KIND_HA_DEVICE) kindLabel = "Device";
+        const active = idx === activeIndex;
+        return x`
+          <button
+            type="button"
+            data-ignore-row=${idx}
+            style="display:flex;align-items:center;gap:8px;width:100%;text-align:left;padding:10px 12px;border:none;background:${active ? "var(--secondary-background-color)" : "transparent"};color:var(--primary-text-color);font-size:13px;cursor:pointer;"
+            @mouseenter=${() => {
+              host._ignoreDropdownIndex = idx;
+              host.requestUpdate();
+            }}
+            @mousedown=${(e5) => {
+              e5.preventDefault();
+              _selectItem(host, item);
+            }}
+          >
+            <ha-icon
+              icon=${item.icon}
+              style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
+            ></ha-icon>
+            <span style="flex:1;">${item.label}</span>
+            ${
+              kindLabel
+                ? x`<span
+                  style="font-size:11px;color:var(--secondary-text-color);"
+                  >${kindLabel}</span
+                >`
+                : item.area
+                  ? x`<span
+                    style="font-size:11px;color:var(--secondary-text-color);"
+                    >${item.area}</span
+                  >`
+                  : ""
+            }
+          </button>
+        `;
+      })}
+    </div>
+  `;
+}
+function _renderInfoCallout(labelName) {
+  return x`
+    <details
+      style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
+    >
+      <summary
+        style="display:flex;align-items:center;gap:8px;padding:8px 12px;cursor:pointer;font-size:13px;color:var(--secondary-text-color);list-style:none;"
+      >
+        <ha-icon
+          icon="mdi:information-outline"
+          style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
+        ></ha-icon>
+        How does this work?
+      </summary>
+      <div
+        style="padding:0 12px 10px 36px;font-size:13px;color:var(--secondary-text-color);line-height:1.45;"
+      >
+        Selora tags items with the
+        <strong>${labelName}</strong> HA label to skip them in proactive
+        suggestions. Add anything here, or apply the label directly from Home
+        Assistant — entity / device / area pages or Settings → Labels — for the
+        same effect. Tagging a device hides all its entities in one go.
+      </div>
+    </details>
+  `;
+}
+function _onInputKeydown(host, e5) {
+  if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e5.key)) return;
+  if (!host._ignoreDropdownOpen) {
+    if (e5.key === "Escape") {
+      e5.preventDefault();
+    }
+    return;
+  }
+  const items = _computeDropdownItems(host, host._ignoreInput || "");
+  if (!items.length) {
+    if (e5.key === "Escape") {
+      e5.preventDefault();
+      host._ignoreDropdownOpen = false;
+      host.requestUpdate();
+    }
+    return;
+  }
+  e5.preventDefault();
+  e5.stopPropagation();
+  const idx = host._ignoreDropdownIndex ?? 0;
+  if (e5.key === "ArrowDown") {
+    host._ignoreDropdownIndex = (idx + 1) % items.length;
+  } else if (e5.key === "ArrowUp") {
+    host._ignoreDropdownIndex = (idx - 1 + items.length) % items.length;
+  } else if (e5.key === "Enter") {
+    _selectItem(host, items[idx]);
+    return;
+  } else if (e5.key === "Escape") {
+    host._ignoreDropdownOpen = false;
+  }
+  host.requestUpdate();
+}
+function renderIgnoreList(host) {
+  const query = host._ignoreInput || "";
+  const open = host._ignoreDropdownOpen && query.trim().length >= MIN_QUERY;
+  const items = open ? _computeDropdownItems(host, query) : [];
+  if (
+    host._ignoreDropdownIndex == null ||
+    host._ignoreDropdownIndex >= items.length
+  ) {
+    host._ignoreDropdownIndex = 0;
+  }
+  const activeIndex = items.length ? host._ignoreDropdownIndex : -1;
+  const tagged = _labelTagged(host);
+  const total =
+    tagged.entities.length + tagged.devices.length + tagged.areas.length;
+  const labelName = _config(host).exclude_label_name || "Selora exclude";
+  return x`
+    <div class="section-card settings-section">
+      <div class="section-card-header">
+        <h3>Ignore in suggestions</h3>
+      </div>
+
+      ${_renderInfoCallout(labelName)}
+
+      <div style="position:relative;margin-top:12px;">
+        <input
+          class="form-select"
+          type="text"
+          .value=${query}
+          placeholder="Search an entity, device, or area…"
+          style="width:100%;box-sizing:border-box;"
+          @input=${(e5) => {
+            host._ignoreInput = e5.target.value;
+            host._ignoreDropdownOpen = true;
+            host._ignoreDropdownIndex = 0;
+            host.requestUpdate();
+          }}
+          @focus=${() => {
+            host._ignoreDropdownOpen = true;
+            host.requestUpdate();
+          }}
+          @blur=${() => {
+            setTimeout(() => {
+              host._ignoreDropdownOpen = false;
+              host.requestUpdate();
+            }, 150);
+          }}
+          @keydown=${(e5) => _onInputKeydown(host, e5)}
+        />
+        ${_renderDropdown(host, items, activeIndex)}
+      </div>
+
+      ${
+        total === 0
+          ? x`<div
+            style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
+          >
+            Nothing ignored yet.
+          </div>`
+          : x`
+            <div
+              class="composer-selections-inline"
+              style="margin-top:12px;gap:6px;"
+            >
+              ${tagged.devices.map((did) =>
+                _renderChip({
+                  icon: "mdi:chip",
+                  label: _deviceLabel(host, did),
+                  kindLabel: "device",
+                  title: `Open device \xB7 ${did}`,
+                  onOpen: () => _navigate(`/config/devices/device/${did}`),
+                  onRemove: () => _removeLabel(host, { device_id: did }),
+                }),
+              )}
+              ${tagged.entities.map((eid) =>
+                _renderChip({
+                  icon: _entityIcon(eid),
+                  label: _entityLabel(host, eid),
+                  title: `Open ${eid}`,
+                  onOpen: () => _openEntity(host, eid),
+                  onRemove: () => _removeLabel(host, { entity_id: eid }),
+                }),
+              )}
+              ${tagged.areas.map((aid) =>
+                _renderChip({
+                  icon: "mdi:floor-plan",
+                  label: _areaLabel(host, aid),
+                  kindLabel: "area",
+                  title: `Open area \xB7 ${aid}`,
+                  onOpen: () => _navigate(`/config/areas/area/${aid}`),
+                  onRemove: () => _removeLabel(host, { area_id: aid }),
+                }),
+              )}
+            </div>
+          `
+      }
+    </div>
+  `;
+}
+
 // src/panel/render-settings.js
 function _textInput({
   label,
@@ -13049,7 +13554,7 @@ function renderSettings(host) {
           </button>
         </div>
 
-        ${renderCreateTokenDialog(host)}
+        ${renderCreateTokenDialog(host)} ${renderIgnoreList(host)}
 
         <div class="section-card settings-section">
           <div class="section-card-header">
