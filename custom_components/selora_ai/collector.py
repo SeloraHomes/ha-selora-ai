@@ -61,7 +61,9 @@ from .const import (
     DEFAULT_DEVICES_PER_SUGGESTION,
     DEFAULT_MAX_SUGGESTIONS_CEILING,
     DEFAULT_MIN_SUGGESTIONS,
+    DEFAULT_RECORDER_HISTORY_MAX_RECORDS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
+    DEFAULT_RECORDER_QUERY_BATCH_SIZE,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
     MIN_RELEVANCE_SCORE,
@@ -79,10 +81,51 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from .pattern_store import PatternStore
-    from .types import AutomationDict, HomeSnapshot
+    from .types import AutomationDict, HomeSnapshot, RecorderHistoryRecord
 
 _LOGGER = logging.getLogger(__name__)
 _STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
+
+
+def _cap_history_records(
+    history: list[RecorderHistoryRecord],
+    max_records: int,
+    *,
+    lookback_days: int,
+    log_drop: bool = True,
+) -> list[RecorderHistoryRecord]:
+    """Enforce a hard ceiling on the materialised recorder history list.
+
+    Sort newest-first by ``last_changed`` and keep at most ``max_records``
+    so the analyzer sees the most recent rhythms; the dropped tail is the
+    oldest portion of the window. Records with no ``last_changed`` sort
+    to the tail via an empty-string key so the comparator never raises on
+    ``None``.
+
+    ``last_changed`` values come from ``State.last_changed.isoformat()``
+    on UTC datetimes, so lexicographic ordering on the ISO-8601 string
+    matches chronological ordering. Callers must preserve that invariant.
+
+    When ``log_drop`` is False, the cap is being applied as a streaming
+    trim between batches (not a final user-visible cap) and no info log
+    is emitted.
+    """
+    if len(history) <= max_records:
+        return history
+    history.sort(key=lambda r: r.get("last_changed") or "", reverse=True)
+    dropped = len(history) - max_records
+    kept = history[:max_records]
+    if log_drop:
+        _LOGGER.info(
+            "Recorder history capped at %d records (dropped %d oldest of %d "
+            "from %d-day lookback); raise lookback window or reduce entity "
+            "scope via the Selora ignore label to keep older patterns visible.",
+            max_records,
+            dropped,
+            dropped + max_records,
+            lookback_days,
+        )
+    return kept
 
 
 class DataCollector:
@@ -1374,31 +1417,66 @@ class DataCollector:
             if not entity_ids:
                 return []
 
-            states = await get_instance(self._hass).async_add_executor_job(
-                get_significant_states,
-                self._hass,
-                start,
-                now,
-                entity_ids,
-            )
-
-            history = []
-            for entity_id, entity_states in states.items():
-                for state in entity_states:
-                    history.append(
-                        {
-                            "entity_id": entity_id,
-                            "state": state.state,
-                            "last_changed": state.last_changed.isoformat()
-                            if state.last_changed
-                            else None,
-                        }
+            # Batch the recorder query to bound peak memory during the
+            # fetch itself. A single
+            # ``get_significant_states(entity_ids=<N entities>, start=7d)``
+            # materialises the full result inside the recorder thread
+            # BEFORE returning, so on low-RAM hosts (e.g. HA Green, 4 GB)
+            # with high entity counts and a multi-day window it crosses
+            # the OOM ceiling and the supervisor restarts the container.
+            # Capping the result list AFTER it returns doesn't help — the
+            # OOM happens during materialisation.
+            #
+            # After each batch, trim the accumulator back to the final cap
+            # once it grows beyond 2× the cap. This bounds peak memory to
+            # roughly ``cap + one batch's worth`` without ever skipping
+            # entities: a chatty early batch can't starve later entities
+            # whose state changes may be newer than the buffered set.
+            instance = get_instance(self._hass)
+            history: list[RecorderHistoryRecord] = []
+            trim_threshold = DEFAULT_RECORDER_HISTORY_MAX_RECORDS * 2
+            batches_run = 0
+            for offset in range(0, len(entity_ids), DEFAULT_RECORDER_QUERY_BATCH_SIZE):
+                batch = entity_ids[offset : offset + DEFAULT_RECORDER_QUERY_BATCH_SIZE]
+                states = await instance.async_add_executor_job(
+                    get_significant_states,
+                    self._hass,
+                    start,
+                    now,
+                    batch,
+                )
+                batches_run += 1
+                for entity_id, entity_states in states.items():
+                    for state in entity_states:
+                        history.append(
+                            {
+                                "entity_id": entity_id,
+                                "state": state.state,
+                                "last_changed": state.last_changed.isoformat()
+                                if state.last_changed
+                                else None,
+                            }
+                        )
+                if len(history) >= trim_threshold:
+                    history = _cap_history_records(
+                        history,
+                        DEFAULT_RECORDER_HISTORY_MAX_RECORDS,
+                        lookback_days=self._lookback_days,
+                        log_drop=False,
                     )
 
+            history = _cap_history_records(
+                history,
+                DEFAULT_RECORDER_HISTORY_MAX_RECORDS,
+                lookback_days=self._lookback_days,
+            )
+
             _LOGGER.debug(
-                "Collected %d history records (%d day lookback)",
+                "Collected %d history records (%d day lookback, %d batch(es) over %d entities)",
                 len(history),
                 self._lookback_days,
+                batches_run,
+                len(entity_ids),
             )
             return history
 
