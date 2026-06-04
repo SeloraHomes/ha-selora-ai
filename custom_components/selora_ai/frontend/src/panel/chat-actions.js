@@ -167,21 +167,35 @@ export function looksTruncatedResponse(responseText, hasStructured) {
 // Retry will resend — it must include any [[entity:…]] marker that was
 // appended during _sendMessage, otherwise the retry loses the
 // disambiguating context for the exact turn the user is retrying.
-function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
+// When `myTurn` is provided, host-level state (_loading, _streaming) is
+// only reset if that turn is still the active one. Without this guard, a
+// late-delivered ``done``/``error``/disconnect event from a prior,
+// already-finalised turn would clobber the next turn's host state and
+// leave the composer stuck — the user could keep typing into a thread
+// the assistant would never reply on again (ha-integration#108).
+function _finaliseInterruption(
+  host,
+  assistantMsg,
+  retryPayload,
+  reason,
+  myTurn,
+) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
   assistantMsg._interrupted = true;
   assistantMsg._interruptReason = reason;
   assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
-  host._loading = false;
-  host._streaming = false;
-  // Same focus-restore as the happy ``done`` path — textarea was
-  // disabled mid-stream so the user can keep typing without a click.
-  host.updateComplete.then(() => {
-    const ta = host.shadowRoot?.querySelector(".composer-textarea");
-    if (ta && !ta.disabled) ta.focus();
-  });
+  if (myTurn === undefined || host._activeTurn === myTurn) {
+    host._loading = false;
+    host._streaming = false;
+    // Same focus-restore as the happy ``done`` path — textarea was
+    // disabled mid-stream so the user can keep typing without a click.
+    host.updateComplete.then(() => {
+      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+      if (ta && !ta.disabled) ta.focus();
+    });
+  }
 }
 
 export async function _sendMessage() {
@@ -217,6 +231,15 @@ export async function _sendMessage() {
     trigger: null,
   };
   this._loading = true;
+  // Per-turn token: every callback below (watchdog, WS event handler,
+  // disconnect listener) must check that the host's _activeTurn still
+  // matches this turn before mutating shared host state. Without this,
+  // a late event from a previous, already-finalised turn — the long
+  // automation request whose generation eventually finishes on the
+  // server after the watchdog fired — would clobber the new turn's
+  // _streaming / _loading flags and cancel its subscription, leaving
+  // the composer stuck and the thread unrecoverable (ha-integration#108).
+  const myTurn = (this._activeTurn = (this._activeTurn || 0) + 1);
   // Reset textarea height after clearing input
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
@@ -261,15 +284,21 @@ export async function _sendMessage() {
   };
   this._streamTeardown = teardown;
 
+  // Capture the unsub locally so a late callback from THIS turn can
+  // only cancel its own subscription, never the next turn's. The host
+  // pointer (this._streamUnsub) is still kept in sync for _stopStreaming
+  // / disconnect paths, but is only cleared if it still matches ours.
+  let localUnsub = null;
   const cancelSubscription = () => {
-    if (this._streamUnsub) {
-      try {
-        this._streamUnsub();
-      } catch (_) {
-        /* unsub may already be torn down */
-      }
-      this._streamUnsub = null;
+    const u = localUnsub;
+    if (!u) return;
+    localUnsub = null;
+    try {
+      u();
+    } catch (_) {
+      /* unsub may already be torn down */
     }
+    if (this._streamUnsub === u) this._streamUnsub = null;
   };
 
   try {
@@ -293,6 +322,7 @@ export async function _sendMessage() {
         assistantMsg,
         userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
+        myTurn,
       );
     };
     this.hass.connection.addEventListener("disconnected", onDisconnect);
@@ -300,8 +330,13 @@ export async function _sendMessage() {
     // 2) Stall watchdog: covers cases where the WS stays up but the
     //    integration stops emitting tokens (provider hung, entry
     //    reload, upstream proxy dropped the SSE).
+    //
+    //    The _streaming check uses the host flag rather than a closure
+    //    over our myTurn because _stopStreaming() / a happier next turn
+    //    will reset it; if our turn already finalised we still want to
+    //    tear our watcher down here on the next tick.
     watchdog = setInterval(() => {
-      if (!this._streaming) {
+      if (!this._streaming || this._activeTurn !== myTurn) {
         teardown();
         return;
       }
@@ -316,17 +351,24 @@ export async function _sendMessage() {
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
+          myTurn,
         );
       }
     }, 5_000);
 
-    this._streamUnsub = await this.hass.connection.subscribeMessage((event) => {
+    localUnsub = await this.hass.connection.subscribeMessage((event) => {
+      // Drop any event delivered after this turn was interrupted /
+      // superseded. The bubble was already finalised (`server stopped
+      // responding`) and a newer turn may own host state — late
+      // tokens from this turn must not overwrite the new bubble's
+      // content or unblock the composer for a turn it doesn't own.
+      if (assistantMsg._streaming === false) return;
       if (event.type === "token") {
         firstTokenSeen = true;
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
-        this._loading = false;
+        if (this._activeTurn === myTurn) this._loading = false;
       } else if (event.type === "heartbeat") {
         // Server is alive but has nothing to forward yet (slow first
         // token, or JSON output being suppressed by the backend). Bump
@@ -379,6 +421,7 @@ export async function _sendMessage() {
             assistantMsg,
             userMsgForSend,
             "Response looks cut short — try again.",
+            myTurn,
           );
           return;
         }
@@ -404,18 +447,23 @@ export async function _sendMessage() {
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
-        this._loading = false;
-        this._streaming = false;
-        // Composer textarea was disabled during streaming, which
-        // dropped focus. Restore it AFTER lit re-renders with
-        // ?disabled=false so the user can keep typing without a
-        // mouse click. updateComplete waits for the next paint —
-        // calling .focus() before the textarea is enabled again
-        // would no-op.
-        this.updateComplete.then(() => {
-          const ta = this.shadowRoot?.querySelector(".composer-textarea");
-          if (ta && !ta.disabled) ta.focus();
-        });
+        // Only release the composer if this is still the active turn.
+        // A late ``done`` from a previously-finalised turn must not
+        // touch the next turn's _loading / _streaming flags.
+        if (this._activeTurn === myTurn) {
+          this._loading = false;
+          this._streaming = false;
+          // Composer textarea was disabled during streaming, which
+          // dropped focus. Restore it AFTER lit re-renders with
+          // ?disabled=false so the user can keep typing without a
+          // mouse click. updateComplete waits for the next paint —
+          // calling .focus() before the textarea is enabled again
+          // would no-op.
+          this.updateComplete.then(() => {
+            const ta = this.shadowRoot?.querySelector(".composer-textarea");
+            if (ta && !ta.disabled) ta.focus();
+          });
+        }
         // Actually unsubscribe (calls the unsub function and clears
         // the local reference). The previous `this._streamUnsub =
         // null` left HA's websocket client thinking the chat_stream
@@ -466,9 +514,14 @@ export async function _sendMessage() {
           assistantMsg,
           userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
+          myTurn,
         );
       }
     }, subscribePayload);
+    // Surface the unsub on the host too, so _stopStreaming() can reach
+    // it. cancelSubscription() guards with `if (this._streamUnsub === u)`
+    // so a late callback can never null out the NEXT turn's pointer.
+    this._streamUnsub = localUnsub;
   } catch (err) {
     teardown();
     cancelSubscription();
@@ -477,6 +530,7 @@ export async function _sendMessage() {
       assistantMsg,
       userMsgForSend,
       err.message || "Couldn't start the chat session.",
+      myTurn,
     );
   }
 }

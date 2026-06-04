@@ -1179,6 +1179,15 @@ DEFAULT_PATTERN_INTERVAL = 900  # 15 minutes
 CONF_ENRICHMENT_INTERVAL = "enrichment_interval"
 DEFAULT_ENRICHMENT_INTERVAL = 21600  # 6 hours
 CONF_PATTERN_ENABLED = "pattern_detection_enabled"
+
+# HA label that, when applied to an entity / device / area, marks it off-limits
+# for proactive suggestions. The integration auto-creates the label on first
+# setup and exposes WS commands to tag/untag from the Selora panel — but the
+# label registry is the single source of truth, so applying it from HA's
+# native UI (entity / device / area pages, or Settings → Labels) is fully
+# equivalent.
+SELORA_EXCLUDE_LABEL_NAME = "Selora exclude"
+SELORA_EXCLUDE_LABEL_ID = "selora_exclude"
 PATTERN_HISTORY_MAX_PER_ENTITY = 500
 PATTERN_HISTORY_RETENTION_DAYS = 14
 PATTERN_MAX_PATTERNS = 500
