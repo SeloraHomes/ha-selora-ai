@@ -10,7 +10,9 @@ tool-call serialisation) live in `providers/`.  This module owns:
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import AsyncIterator
+import contextlib
 import json
 import logging
 from typing import TYPE_CHECKING, Any
@@ -27,6 +29,9 @@ from ..const import (
     LLM_PROVIDER_SELORA_CLOUD,
     LLM_PROVIDER_SELORA_LOCAL,
     MAX_TOOL_CALL_ROUNDS,
+    STREAM_KEEPALIVE,
+    STREAM_TOOL_CANCEL_GRACE_S,
+    STREAM_TOOL_KEEPALIVE_S,
 )
 from ..entity_capabilities import is_actionable_entity
 from ..types import (
@@ -986,18 +991,52 @@ class LLMClient:
             # separately from the final answer.
             self._usage.flush("chat_tool_round")
 
-            # Execute tool calls and append results for next round
+            # Execute tool calls and append results for next round.
+            # Each execute() is wrapped in a shield-loop that yields
+            # keepalives every STREAM_TOOL_KEEPALIVE_S so the backend
+            # stream watchdog never mistakes slow tool work for a
+            # hung provider. On stream cancel/close the task is given
+            # STREAM_TOOL_CANCEL_GRACE_S to record its call-log entry
+            # before being cancelled — otherwise a service that
+            # already dispatched would be invisible to the
+            # double-execute safeguard upstream.
             results: list[dict[str, Any]] = []
             requires_approval_hit = False
             executed_results: list[ToolWriteResult] = []
             non_write_tool_seen = False
             for tc in tool_calls:
+                yield STREAM_KEEPALIVE
                 _LOGGER.info(
                     "LLM tool call: %s(%s)",
                     tc["name"],
                     json.dumps(tc["arguments"], default=str)[:200],
                 )
-                result = await tool_executor.execute(tc["name"], tc["arguments"])
+                exec_task = asyncio.ensure_future(
+                    tool_executor.execute(tc["name"], tc["arguments"])
+                )
+                try:
+                    while not exec_task.done():
+                        try:
+                            await asyncio.wait_for(
+                                asyncio.shield(exec_task),
+                                timeout=STREAM_TOOL_KEEPALIVE_S,
+                            )
+                        except TimeoutError:
+                            yield STREAM_KEEPALIVE
+                finally:
+                    if not exec_task.done():
+                        with contextlib.suppress(TimeoutError, asyncio.CancelledError):
+                            await asyncio.wait_for(
+                                asyncio.shield(exec_task),
+                                timeout=STREAM_TOOL_CANCEL_GRACE_S,
+                            )
+                        if not exec_task.done():
+                            exec_task.cancel()
+                            with contextlib.suppress(asyncio.CancelledError):
+                                await exec_task
+                if exec_task.cancelled():
+                    break
+                result = exec_task.result()
                 results.append(result)
                 if isinstance(result, dict) and result.get("requires_approval"):
                     requires_approval_hit = True
@@ -1049,6 +1088,10 @@ class LLMClient:
                     len(executed_results),
                 )
                 return
+
+            # Another keepalive before the next provider round-trip so the
+            # watchdog stays quiet during slow post-tool prefill.
+            yield STREAM_KEEPALIVE
 
         # Exhausted rounds — acknowledge anything execute_command already
         # fired so the user doesn't retry and double-execute the same service.
