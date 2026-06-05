@@ -13,18 +13,11 @@
 //   docs: / chore: / style: / test: → no release
 
 export default {
-  // Maintenance branches (e.g. `0.8.x`, `0.9.x`) are the active release
-  // channels. The glob pattern matches `N.x`, `N.N.x`, etc. and
-  // semantic-release enforces that the version stays inside the
-  // branch's range.
-  //
-  // `main` is intentionally excluded: keeping it in `branches` makes
-  // semantic-release treat it as the highest release channel, which
-  // sets the upper bound on every maintenance branch's range to main's
-  // latest tag. With main currently sitting at v0.9.0, that collapses
-  // the 0.9.x range to `>=0.9.0 <0.9.0` and blocks 0.9.1. Add `main`
-  // back once the next minor (v0.10.0) is cut from it.
-  branches: ["+([0-9])?(.{+([0-9]),x}).x"],
+  // Maintenance branches (e.g. `0.8.x`) cut from a release tag let us ship
+  // patch releases without merging unrelated main-branch work. The glob
+  // pattern matches `N.x`, `N.N.x`, etc. — semantic-release enforces that
+  // the version stays inside the branch's range.
+  branches: ["+([0-9])?(.{+([0-9]),x}).x", "main"],
   tagFormat: "v${version}",
 
   plugins: [
