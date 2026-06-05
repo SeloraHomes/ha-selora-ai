@@ -148,6 +148,7 @@ from .const import (
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
     SIGNAL_SCENE_DELETED,
+    STREAM_AUTOMATION_IDLE_TIMEOUT_S,
     STREAM_IDLE_TIMEOUT_S,
     STREAM_KEEPALIVE,
     STREAM_MAX_BYTES,
@@ -1973,6 +1974,10 @@ async def _handle_websocket_chat_stream(
     # inspect its call_log even if the failure happens before the executor
     # is created.
     tool_executor = None
+    # Pre-initialised so the except clauses (which reference it in the
+    # human-readable error message) never see an UnboundLocalError when
+    # an exception fires before the per-intent calculation below.
+    effective_idle_timeout = STREAM_IDLE_TIMEOUT_S
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -1998,15 +2003,40 @@ async def _handle_websocket_chat_stream(
         # provider is low-context (avoids double-sentinel).
         from .llm_client import _is_definite_automation  # noqa: PLC0415
 
-        if (
+        is_cloud_automation = (
             not refining
             and not refining_scene
             and not getattr(llm.provider, "is_low_context", False)
             and _is_definite_automation(user_message)
-        ):
+        )
+        if is_cloud_automation:
+            # `synthetic: True` tells the panel watchdog this token did
+            # not come from the provider, so it must NOT flip
+            # firstTokenSeen and shorten the grace to POST_TOKEN_GRACE_MS.
+            # `idle_timeout_ms` lifts the post-token grace to match the
+            # server-side budget too — provider pauses between real
+            # chunks routinely exceed the default 45s on heavy
+            # reasoning automation prompts.
             connection.send_message(
-                websocket_api.event_message(msg["id"], {"type": "token", "text": "```automation\n"})
+                websocket_api.event_message(
+                    msg["id"],
+                    {
+                        "type": "token",
+                        "text": "```automation\n",
+                        "synthetic": True,
+                        "idle_timeout_ms": int(STREAM_AUTOMATION_IDLE_TIMEOUT_S * 1000),
+                    },
+                )
             )
+
+        # Per-intent watchdog: automation turns get a longer idle
+        # tolerance because cloud first-token latency on a heavy
+        # reasoning prompt routinely exceeds the default 30s, and a
+        # premature timeout there forces the user to retry a request
+        # that was actually progressing.
+        effective_idle_timeout = (
+            STREAM_AUTOMATION_IDLE_TIMEOUT_S if is_cloud_automation else STREAM_IDLE_TIMEOUT_S
+        )
 
         async for chunk in _consume_stream_with_guards(
             llm.architect_chat_stream(
@@ -2021,7 +2051,7 @@ async def _handle_websocket_chat_stream(
                 areas=area_names,
                 session_id=session_id,
             ),
-            idle_timeout=STREAM_IDLE_TIMEOUT_S,
+            idle_timeout=effective_idle_timeout,
             max_bytes=STREAM_MAX_BYTES,
         ):
             if chunk == STREAM_KEEPALIVE:
@@ -2253,15 +2283,15 @@ async def _handle_websocket_chat_stream(
 
         if isinstance(exc, TimeoutError):
             error_msg = (
-                f"The model stopped sending tokens for {int(STREAM_IDLE_TIMEOUT_S)}s. Try again."
+                f"The model stopped sending tokens for {int(effective_idle_timeout)}s. Try again."
             )
             cause_suffix = (
-                f" Then the model went silent for {int(STREAM_IDLE_TIMEOUT_S)}s — "
+                f" Then the model went silent for {int(effective_idle_timeout)}s — "
                 "only retry if there's more to do."
             )
             _LOGGER.warning(
                 "Selora AI chat stream idle-timed-out after %.0fs (provider: %s)",
-                STREAM_IDLE_TIMEOUT_S,
+                effective_idle_timeout,
                 provider_type,
             )
         elif isinstance(exc, _StreamTooLarge):

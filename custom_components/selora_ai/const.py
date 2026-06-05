@@ -1000,6 +1000,12 @@ MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosio
 #     dispatched gets a chance to record itself in the call log
 #     before we cancel the coroutine.
 STREAM_IDLE_TIMEOUT_S = 30.0
+# Automation generation legitimately takes longer to first-token on
+# cloud providers — DeepSeek + SageMaker cold-start plus the
+# heavy-reasoning prompt routinely exceed the 30 s default for chat.
+# Pre-classified automation turns get this looser watchdog so the
+# default chat timeout still catches the genuinely-hung cases.
+STREAM_AUTOMATION_IDLE_TIMEOUT_S = 90.0
 STREAM_MAX_BYTES = 256 * 1024
 STREAM_TOOL_KEEPALIVE_S = 15.0
 STREAM_TOOL_CANCEL_GRACE_S = 2.0
