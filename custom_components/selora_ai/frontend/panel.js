@@ -7927,6 +7927,14 @@ function pruneStaleSelections(text, selections) {
 }
 
 // src/panel/render-chat.js
+var AUTOMATION_LABELS = [
+  "Building automation...",
+  "Drafting triggers...",
+  "Wiring conditions...",
+  "Composing actions...",
+  "Almost ready...",
+];
+var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
 var AUTOCOMPLETE_KIND_LABELS = {
   device: "Devices",
   area: "Areas",
@@ -8746,20 +8754,28 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   showAutomationSpinner
-                    ? x`
-                      <div
-                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                      >
+                    ? (() => {
+                        const startedAt = msg._sentAt || Date.now();
+                        const labelIdx =
+                          Math.floor(
+                            (Date.now() - startedAt) /
+                              AUTOMATION_LABEL_INTERVAL_MS,
+                          ) % AUTOMATION_LABELS.length;
+                        return x`
                         <div
-                          class="typing-dot"
-                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                        ></div>
-                        <span
-                          style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >Building automation...</span
+                          style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
-                      </div>
-                    `
+                          <div
+                            class="typing-dot"
+                            style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                          ></div>
+                          <span
+                            style="font-size:13px;font-weight:500;color:#fbbf24;"
+                            >${AUTOMATION_LABELS[labelIdx]}</span
+                          >
+                        </div>
+                      `;
+                      })()
                     : ""
                 }
                 ${
@@ -16368,6 +16384,7 @@ async function _sendMessage() {
   this._messages = [...this._messages, assistantMsg];
   const PRE_TOKEN_GRACE_MS = 12e4;
   const POST_TOKEN_GRACE_MS = 45e3;
+  let postTokenGraceMs = POST_TOKEN_GRACE_MS;
   let firstTokenSeen = false;
   let lastActivityAt = Date.now();
   let watchdog = null;
@@ -16441,7 +16458,8 @@ async function _sendMessage() {
         teardown();
         return;
       }
-      const grace = firstTokenSeen ? POST_TOKEN_GRACE_MS : PRE_TOKEN_GRACE_MS;
+      if (isOwnSession === void 0 || isOwnSession()) this.requestUpdate();
+      const grace = firstTokenSeen ? postTokenGraceMs : PRE_TOKEN_GRACE_MS;
       if (Date.now() - lastActivityAt > grace) {
         teardown();
         cancelSubscription();
@@ -16461,7 +16479,10 @@ async function _sendMessage() {
     localUnsub = await this.hass.connection.subscribeMessage((event) => {
       if (assistantMsg._streaming === false) return;
       if (event.type === "token") {
-        firstTokenSeen = true;
+        if (typeof event.idle_timeout_ms === "number") {
+          postTokenGraceMs = event.idle_timeout_ms;
+        }
+        if (!event.synthetic) firstTokenSeen = true;
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
@@ -16601,6 +16622,16 @@ function _retryMessage(text, sourceMsg) {
         this._streams.delete(e5);
         break;
       }
+    }
+  }
+  if (sourceMsg) {
+    const idx = this._messages.indexOf(sourceMsg);
+    const prev = idx > 0 ? this._messages[idx - 1] : null;
+    if (idx >= 0 && prev && prev.role === "user") {
+      this._messages = [
+        ...this._messages.slice(0, idx - 1),
+        ...this._messages.slice(idx + 1),
+      ];
     }
   }
   this._input = text;

@@ -1,6 +1,20 @@
 import { html } from "lit";
 import { keyed } from "lit/directives/keyed.js";
 import { renderMarkdown, stripAutomationBlock } from "../shared/markdown.js";
+
+// Cycled while an automation is generating so the user sees forward
+// progress even when first-token latency exceeds the static label's
+// staying power. Stepped every AUTOMATION_LABEL_INTERVAL_MS and wraps
+// — the panel re-renders on the watchdog's 5s tick so the visible
+// label keeps up without a dedicated timer.
+const AUTOMATION_LABELS = [
+  "Building automation...",
+  "Drafting triggers...",
+  "Wiring conditions...",
+  "Composing actions...",
+  "Almost ready...",
+];
+const AUTOMATION_LABEL_INTERVAL_MS = 5_000;
 import { formatTime } from "../shared/date-utils.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
@@ -988,20 +1002,28 @@ export function renderMessage(host, msg, idx) {
                       .innerHTML=${renderMarkdown(displayContent)}
                     ></span>`}
                 ${showAutomationSpinner
-                  ? html`
-                      <div
-                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                      >
+                  ? (() => {
+                      const startedAt = msg._sentAt || Date.now();
+                      const labelIdx =
+                        Math.floor(
+                          (Date.now() - startedAt) /
+                            AUTOMATION_LABEL_INTERVAL_MS,
+                        ) % AUTOMATION_LABELS.length;
+                      return html`
                         <div
-                          class="typing-dot"
-                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                        ></div>
-                        <span
-                          style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >Building automation...</span
+                          style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
-                      </div>
-                    `
+                          <div
+                            class="typing-dot"
+                            style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                          ></div>
+                          <span
+                            style="font-size:13px;font-weight:500;color:#fbbf24;"
+                            >${AUTOMATION_LABELS[labelIdx]}</span
+                          >
+                        </div>
+                      `;
+                    })()
                   : ""}
                 ${showSceneSpinner
                   ? html`

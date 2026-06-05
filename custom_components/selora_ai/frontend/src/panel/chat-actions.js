@@ -274,6 +274,12 @@ export async function _sendMessage() {
   // when we're confident silence means the server actually stalled.
   const PRE_TOKEN_GRACE_MS = 120_000;
   const POST_TOKEN_GRACE_MS = 45_000;
+  // Per-turn override raised by a synthetic token carrying
+  // `idle_timeout_ms` (cloud automation streams). Provider pauses
+  // between real chunks on heavy-reasoning prompts can exceed the 45s
+  // default; the backend already extends its own idle watchdog for
+  // those turns, so the client must match or it cancels first.
+  let postTokenGraceMs = POST_TOKEN_GRACE_MS;
   let firstTokenSeen = false;
   let lastActivityAt = Date.now();
   let watchdog = null;
@@ -414,7 +420,10 @@ export async function _sendMessage() {
         teardown();
         return;
       }
-      const grace = firstTokenSeen ? POST_TOKEN_GRACE_MS : PRE_TOKEN_GRACE_MS;
+      // Nudge a re-render so the cycling "Building automation..." spinner
+      // label in render-chat.js advances even when no token has arrived.
+      if (isOwnSession === undefined || isOwnSession()) this.requestUpdate();
+      const grace = firstTokenSeen ? postTokenGraceMs : PRE_TOKEN_GRACE_MS;
       if (Date.now() - lastActivityAt > grace) {
         teardown();
         cancelSubscription();
@@ -442,7 +451,19 @@ export async function _sendMessage() {
       // content or unblock the composer for a turn it doesn't own.
       if (assistantMsg._streaming === false) return;
       if (event.type === "token") {
-        firstTokenSeen = true;
+        // Synthetic tokens (e.g. the backend-injected ```automation
+        // sentinel for cloud automation turns) bump activity but must
+        // not flip firstTokenSeen — otherwise the watchdog shortens to
+        // postTokenGraceMs and a slow real first chunk between 45s and
+        // STREAM_AUTOMATION_IDLE_TIMEOUT_S still gets cancelled. The
+        // sentinel also carries the server-side idle budget so the
+        // post-token grace can match — otherwise a >45s pause between
+        // real provider chunks is cancelled by the client even though
+        // the server is still within its allowed window.
+        if (typeof event.idle_timeout_ms === "number") {
+          postTokenGraceMs = event.idle_timeout_ms;
+        }
+        if (!event.synthetic) firstTokenSeen = true;
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
@@ -686,6 +707,29 @@ export function _retryMessage(text, sourceMsg) {
         this._streams.delete(e);
         break;
       }
+    }
+  }
+  // Splice the failed pair (user echo + interrupted assistant bubble)
+  // out of the visible thread so a successful retry REPLACES the error
+  // instead of stacking under it — otherwise users see the original
+  // prompt twice plus the dead error bubble for every retry. Walk
+  // backward to find sourceMsg's index, then drop it plus the
+  // preceding user message when it matches the retry text. Falls back
+  // to a no-op if the structure isn't what we expect (defensive
+  // against renderers that may have inserted system rows in between).
+  if (sourceMsg) {
+    const idx = this._messages.indexOf(sourceMsg);
+    const prev = idx > 0 ? this._messages[idx - 1] : null;
+    // Match on role only — `text` is the raw send payload which may
+    // include the [[entity:...]] marker, while prev.content holds the
+    // clean user text. Comparing them directly drops the splice on any
+    // prompt that used autocomplete chips, leaving the duplicate-echo
+    // bug live for the exact heavy-automation case this fix targets.
+    if (idx >= 0 && prev && prev.role === "user") {
+      this._messages = [
+        ...this._messages.slice(0, idx - 1),
+        ...this._messages.slice(idx + 1),
+      ];
     }
   }
   this._input = text;
