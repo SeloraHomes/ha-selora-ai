@@ -17,18 +17,7 @@ export default {
   // patch releases without merging unrelated main-branch work. The glob
   // pattern matches `N.x`, `N.N.x`, etc. — semantic-release enforces that
   // the version stays inside the branch's range.
-  //
-  // The explicit `v0.9.x` entry pairs a v-prefixed maintenance branch
-  // with the matching SemVer range. Without it, semantic-release would
-  // either reject the branch (no glob match) or fail to derive the
-  // range from the literal name (`v0.9.x` does not parse as SemVer).
-  // Add a similar entry per v-prefixed maintenance branch as new minors
-  // are cut.
-  branches: [
-    { name: "v0.9.x", range: "0.9.x", channel: "0.9.x" },
-    "+([0-9])?(.{+([0-9]),x}).x",
-    "main",
-  ],
+  branches: ["+([0-9])?(.{+([0-9]),x}).x", "main"],
   tagFormat: "v${version}",
 
   plugins: [
