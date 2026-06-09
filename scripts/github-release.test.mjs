@@ -75,6 +75,21 @@ describe("ensureRelease", () => {
     assert.equal(apiFn.mock.calls[0].arguments[0].path, "/repos/owner/repo/releases");
   });
 
+  it("defaults target_commitish to main when none is given", async () => {
+    const apiFn = mock.fn(async () => ({ id: 1 }));
+    await ensureRelease({ ...baseArgs, apiFn });
+    const payload = JSON.parse(apiFn.mock.calls[0].arguments[1]);
+    assert.equal(payload.target_commitish, "main");
+  });
+
+  it("forwards a maintenance-commit target_commitish so the GitHub tag anchors there", async () => {
+    const apiFn = mock.fn(async () => ({ id: 1 }));
+    const sha = "deadbeefcafebabe1234567890abcdef00000000";
+    await ensureRelease({ ...baseArgs, targetCommitish: sha, apiFn });
+    const payload = JSON.parse(apiFn.mock.calls[0].arguments[1]);
+    assert.equal(payload.target_commitish, sha);
+  });
+
   it("reuses existing release on 422 conflict", async () => {
     const existingRelease = {
       id: 99,

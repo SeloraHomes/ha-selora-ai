@@ -98,6 +98,21 @@ release-script:
   script:
     - node --test scripts/github-release.test.mjs
 
+release-patch-script:
+  stage: test
+  image: python:3.14-slim
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - scripts/release_patch.py
+        - scripts/release_patch_test.py
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+      changes:
+        - scripts/release_patch.py
+        - scripts/release_patch_test.py
+  script:
+    - python3 scripts/release_patch_test.py
+
 # =============================================================================
 # STAGE: release (main branch only)
 # =============================================================================
