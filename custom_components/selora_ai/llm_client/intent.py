@@ -88,6 +88,23 @@ _LOW_CONTEXT_STOPWORDS = frozenset(
         "then",
         "now",
         "just",
+        "turn",
+        "set",
+        "make",
+        "get",
+        "got",
+        "let",
+        "put",
+        "tell",
+        "show",
+        "give",
+        "ask",
+        "see",
+        "use",
+        "run",
+        "try",
+        "want",
+        "need",
     }
 )
 
@@ -203,26 +220,108 @@ def _classify_chat_intent(user_message: str) -> str:
     return "command"
 
 
+# Domains in user-facing relevance order; an empty AVAILABLE ENTITIES
+# block makes the low-context LoRA hallucinate entity_ids.
+_LOW_CONTEXT_FALLBACK_DOMAINS: tuple[str, ...] = (
+    "light",
+    "switch",
+    "cover",
+    "lock",
+    "climate",
+    "media_player",
+    "fan",
+    "vacuum",
+    "scene",
+)
+
+# Weights tuned so one exact friendly_name token (5) outranks any
+# number of substring hits in unrelated fields. Domain match (2) keeps
+# `fan.bedroom` reachable when the user only typed "fan".
+_SCORE_FNAME_TOKEN_HIT = 5
+_SCORE_ENTITY_ID_HIT = 3
+_SCORE_DOMAIN_HIT = 2
+_SCORE_FNAME_SUBSTRING_HIT = 2
+_SCORE_AREA_HIT = 1
+
+
+def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -> int:
+    """Relevance score for ranking entities against user keywords."""
+    if not keywords:
+        return 0
+    eid = entity.get("entity_id", "").lower()
+    # Split eid into domain + local part. Local part used for substring
+    # hits ("light.kitchen" must NOT win keyword "light" via prefix),
+    # but exact `keyword == domain` match still scores so generic
+    # commands like "turn on the fan" reach `fan.*` entities whose
+    # friendly_name doesn't repeat the domain.
+    if "." in eid:
+        domain, eid_local = eid.split(".", 1)
+    else:
+        domain, eid_local = "", eid
+    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    fname_tokens = set(re.split(r"[^a-z0-9]+", fname)) - {""}
+    area = (entity.get("area_name") or "").lower()
+
+    score = 0
+    for kw in keywords:
+        if kw in fname_tokens:
+            score += _SCORE_FNAME_TOKEN_HIT
+        elif kw in fname:
+            score += _SCORE_FNAME_SUBSTRING_HIT
+        if kw in eid_local:
+            score += _SCORE_ENTITY_ID_HIT
+        if domain and kw == domain:
+            score += _SCORE_DOMAIN_HIT
+        if area and kw in area:
+            score += _SCORE_AREA_HIT
+    return score
+
+
+def _fallback_low_context_entities(
+    entities: list[EntitySnapshot],
+    *,
+    cap: int,
+) -> list[EntitySnapshot]:
+    """Up to ``cap`` controllable entities, prioritised by domain."""
+    if cap <= 0:
+        return []
+    by_domain: dict[str, list[EntitySnapshot]] = {d: [] for d in _LOW_CONTEXT_FALLBACK_DOMAINS}
+    for e in entities:
+        eid = e.get("entity_id", "")
+        if "." not in eid:
+            continue
+        domain = eid.split(".", 1)[0]
+        if domain in by_domain:
+            by_domain[domain].append(e)
+    out: list[EntitySnapshot] = []
+    for domain in _LOW_CONTEXT_FALLBACK_DOMAINS:
+        for e in by_domain[domain]:
+            out.append(e)
+            if len(out) >= cap:
+                return out
+    return out
+
+
 def _filter_entities_by_keywords(
     entities: list[EntitySnapshot],
     keywords: set[str],
     *,
     cap: int,
 ) -> list[EntitySnapshot]:
-    """Keep entities whose id, friendly_name, or area mentions any keyword."""
-    if not keywords:
-        return []
-    kept: list[EntitySnapshot] = []
-    for e in entities:
-        haystack = " ".join(
-            [
-                e.get("entity_id", ""),
-                str(e.get("attributes", {}).get("friendly_name", "")),
-                e.get("area_name", "") or "",
-            ]
-        ).lower()
-        if any(kw in haystack for kw in keywords):
-            kept.append(e)
-            if len(kept) >= cap:
-                break
-    return kept
+    """Rank entities by relevance to ``keywords``, return top ``cap``.
+
+    Falls back to controllable-domain entities when no keyword matched —
+    an empty entity list makes the LoRA hallucinate entity_ids.
+    """
+    if keywords:
+        scored: list[tuple[int, int, EntitySnapshot]] = []
+        for idx, e in enumerate(entities):
+            s = _score_entity_against_keywords(e, keywords)
+            if s > 0:
+                scored.append((s, idx, e))
+        if scored:
+            # Index as deterministic tiebreaker keeps the LoRA prefix
+            # cache warm across identical prompts.
+            scored.sort(key=lambda t: (-t[0], t[1]))
+            return [e for _, _, e in scored[:cap]]
+    return _fallback_low_context_entities(entities, cap=cap)

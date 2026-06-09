@@ -3781,7 +3781,11 @@ var proposalStyles = i`
     max-width: 100%;
     word-break: break-word;
     font-size: 14px;
-    line-height: 1.45;
+    /* Tall line-height gives wrapped entity-chip rows breathing space.
+       Chips render as inline-flex pills with vertical padding; without
+       this leading, consecutive chip rows visually collide because
+       padding extends beyond the line box. */
+    line-height: 2.1;
   }
   .trigger-node,
   .condition-node,
@@ -3795,26 +3799,43 @@ var proposalStyles = i`
      chip rather than as plain text — so users can click straight
      through to HA's more-info dialog without "Decorative Lights"
      being printed both as prose and as a separate chip row below.
+
      Sized to read like part of the sentence: matches the surrounding
-     line-height, uses vertical-align: middle so it doesn't push the
-     line down, and lets a node split chip text across two lines
-     gracefully (white-space:normal). */
+     line-height and uses vertical-align: middle so it doesn't push the
+     line down.
+
+     white-space:normal + overflow-wrap:anywhere + max-width:100% let a
+     chip with a very long device name ("Airthings Wave2 (067574) Radon
+     1-day average") break across two lines inside the card's column
+     instead of overflowing the column's right edge and clipping
+     against the next card in the suggestions grid (ha-integration#109).
+
+     The flow-node sets a tall line-height (~2.1) so consecutive chip
+     rows stay visually separated — chip vertical padding extends past
+     the cap-height of the line box, and a tight line-height made the
+     pills look stacked on top of each other. */
   .flow-entity-chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 1px 8px;
-    margin: 0 1px;
+    padding: 2px 10px;
+    margin: 2px 1px;
     font-size: inherit;
     line-height: 1.3;
-    vertical-align: baseline;
-    border-radius: 999px;
+    vertical-align: middle;
+    border-radius: 8px;
     background: rgba(251, 191, 36, 0.12);
     border: 1px solid rgba(251, 191, 36, 0.32);
     color: var(--primary-text-color);
     font-family: inherit;
     cursor: pointer;
-    white-space: nowrap;
+    /* border-box so padding + border count toward max-width; without
+       this, content-box adds ~22px and the pill overflows the card on
+       long device names. */
+    box-sizing: border-box;
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
     transition:
       background 0.15s,
       border-color 0.15s,
@@ -16162,19 +16183,27 @@ function looksTruncatedResponse(responseText, hasStructured) {
     /\b(the|an?)\s*$/i.test(trimmed)
   );
 }
-function _finaliseInterruption(host, assistantMsg, retryPayload, reason) {
+function _finaliseInterruption(
+  host,
+  assistantMsg,
+  retryPayload,
+  reason,
+  myTurn,
+) {
   if (!assistantMsg || assistantMsg._streaming === false) return;
   assistantMsg._streaming = false;
   assistantMsg._interrupted = true;
   assistantMsg._interruptReason = reason;
   assistantMsg._retryWith = retryPayload;
   host._messages = [...host._messages];
-  host._loading = false;
-  host._streaming = false;
-  host.updateComplete.then(() => {
-    const ta = host.shadowRoot?.querySelector(".composer-textarea");
-    if (ta && !ta.disabled) ta.focus();
-  });
+  if (myTurn === void 0 || host._activeTurn === myTurn) {
+    host._loading = false;
+    host._streaming = false;
+    host.updateComplete.then(() => {
+      const ta = host.shadowRoot?.querySelector(".composer-textarea");
+      if (ta && !ta.disabled) ta.focus();
+    });
+  }
 }
 async function _sendMessage() {
   if (!this._input.trim() || this._loading) return;
@@ -16198,6 +16227,7 @@ async function _sendMessage() {
     trigger: null,
   };
   this._loading = true;
+  const myTurn = (this._activeTurn = (this._activeTurn || 0) + 1);
   const ta = this.shadowRoot?.querySelector(".composer-textarea");
   if (ta) ta.style.height = "auto";
   const sendStartedAt = Date.now();
@@ -16229,13 +16259,15 @@ async function _sendMessage() {
     }
   };
   this._streamTeardown = teardown;
+  let localUnsub = null;
   const cancelSubscription = () => {
-    if (this._streamUnsub) {
-      try {
-        this._streamUnsub();
-      } catch (_2) {}
-      this._streamUnsub = null;
-    }
+    const u3 = localUnsub;
+    if (!u3) return;
+    localUnsub = null;
+    try {
+      u3();
+    } catch (_2) {}
+    if (this._streamUnsub === u3) this._streamUnsub = null;
   };
   try {
     const subscribePayload = {
@@ -16248,16 +16280,18 @@ async function _sendMessage() {
     this._streaming = true;
     onDisconnect = () => {
       teardown();
+      cancelSubscription();
       _finaliseInterruption(
         this,
         assistantMsg,
         userMsgForSend,
         "Connection to Home Assistant was lost mid-response.",
+        myTurn,
       );
     };
     this.hass.connection.addEventListener("disconnected", onDisconnect);
     watchdog = setInterval(() => {
-      if (!this._streaming) {
+      if (!this._streaming || this._activeTurn !== myTurn) {
         teardown();
         return;
       }
@@ -16272,16 +16306,21 @@ async function _sendMessage() {
           firstTokenSeen
             ? "The server stopped responding."
             : "The server didn't reply in time.",
+          myTurn,
         );
       }
     }, 5e3);
-    this._streamUnsub = await this.hass.connection.subscribeMessage((event) => {
+    localUnsub = await this.hass.connection.subscribeMessage((event) => {
+      if (assistantMsg._streaming === false) {
+        cancelSubscription();
+        return;
+      }
       if (event.type === "token") {
         firstTokenSeen = true;
         lastActivityAt = Date.now();
         assistantMsg.content += event.text;
         this._messages = [...this._messages];
-        this._loading = false;
+        if (this._activeTurn === myTurn) this._loading = false;
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
       } else if (event.type === "done") {
@@ -16317,6 +16356,7 @@ async function _sendMessage() {
             assistantMsg,
             userMsgForSend,
             "Response looks cut short \u2014 try again.",
+            myTurn,
           );
           return;
         }
@@ -16342,12 +16382,14 @@ async function _sendMessage() {
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
-        this._loading = false;
-        this._streaming = false;
-        this.updateComplete.then(() => {
-          const ta2 = this.shadowRoot?.querySelector(".composer-textarea");
-          if (ta2 && !ta2.disabled) ta2.focus();
-        });
+        if (this._activeTurn === myTurn) {
+          this._loading = false;
+          this._streaming = false;
+          this.updateComplete.then(() => {
+            const ta2 = this.shadowRoot?.querySelector(".composer-textarea");
+            if (ta2 && !ta2.disabled) ta2.focus();
+          });
+        }
         cancelSubscription();
         if (event.validation_error) {
           if (event.validation_target === "scene") {
@@ -16376,9 +16418,11 @@ async function _sendMessage() {
           assistantMsg,
           userMsgForSend,
           event.message || "Couldn't reach the LLM provider.",
+          myTurn,
         );
       }
     }, subscribePayload);
+    this._streamUnsub = localUnsub;
   } catch (err) {
     teardown();
     cancelSubscription();
@@ -16387,6 +16431,7 @@ async function _sendMessage() {
       assistantMsg,
       userMsgForSend,
       err.message || "Couldn't start the chat session.",
+      myTurn,
     );
   }
 }
