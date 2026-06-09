@@ -13,7 +13,7 @@
  */
 
 import { request } from "https";
-import { readFileSync } from "fs";
+import { readFileSync, rmSync } from "fs";
 import { execSync } from "child_process";
 
 export const GITHUB_REPO = "SeloraHomes/ha-selora-ai";
@@ -56,8 +56,22 @@ export function githubApi(options, body) {
 /**
  * Create a GitHub release or reuse an existing one (idempotent).
  * Returns the release object from the GitHub API.
+ *
+ * `targetCommitish` controls where GitHub creates the tag if it does
+ * not already exist on the mirror. For semantic-release runs on the
+ * default branch that's "main", but for maintenance patches it must
+ * be the actual tagged commit — otherwise GitHub auto-creates the tag
+ * on `main` and the source archives ship main's code under a
+ * maintenance version number.
  */
-export async function ensureRelease({ repo, tag, notes, token, apiFn = githubApi }) {
+export async function ensureRelease({
+  repo,
+  tag,
+  notes,
+  token,
+  targetCommitish = "main",
+  apiFn = githubApi,
+}) {
   const headers = {
     Authorization: `token ${token}`,
     "User-Agent": "semantic-release",
@@ -66,7 +80,7 @@ export async function ensureRelease({ repo, tag, notes, token, apiFn = githubApi
   try {
     const body = JSON.stringify({
       tag_name: tag,
-      target_commitish: "main",
+      target_commitish: targetCommitish,
       name: tag,
       body: notes,
     });
@@ -142,10 +156,17 @@ export async function uploadAsset({ repo, releaseId, filename, zipData, token, a
 }
 
 /** Main entry point — only runs when executed directly (not imported). */
-export async function main(version, token) {
+export async function main(version, token, targetCommitish = "main") {
   // 1. Build the zip first — fail early before touching GitHub
   //    Zips from inside the integration dir so paths are relative (no selora_ai/ prefix).
   //    HACS extracts directly into custom_components/selora_ai/, so the zip must be flat.
+  //
+  //    Remove any pre-existing zip before invoking `zip -r`. The
+  //    `zip` command UPDATES an existing archive rather than recreating
+  //    it, so a leftover from a direct invocation or interrupted publish
+  //    would carry over obsolete entries that aren't part of the tagged
+  //    commit — silently shipping stale files inside the HACS asset.
+  rmSync(ZIP_FILENAME, { force: true });
   execSync(
     `cd ${INTEGRATION_DIR} && zip -r ../../${ZIP_FILENAME} .` +
     ` -x "./frontend/node_modules/*"` +
@@ -166,7 +187,13 @@ export async function main(version, token) {
     try { return readFileSync("CHANGELOG.md", "utf8"); } catch { return ""; }
   })();
   const tag = `v${version}`;
-  const release = await ensureRelease({ repo: GITHUB_REPO, tag, notes: extractNotes(changelog), token });
+  const release = await ensureRelease({
+    repo: GITHUB_REPO,
+    tag,
+    notes: extractNotes(changelog),
+    token,
+    targetCommitish,
+  });
 
   // 3. Remove any stale asset (required — GitHub rejects duplicate names),
   //    then upload the replacement immediately
@@ -188,8 +215,9 @@ const isCliRun =
 
 if (isCliRun) {
   const version = process.argv[2];
+  const targetCommitish = process.argv[3] || "main";
   if (!version) {
-    console.error("Usage: github-release.mjs <version>");
+    console.error("Usage: github-release.mjs <version> [target-commitish]");
     process.exit(1);
   }
   const token = process.env.GH_TOKEN;
@@ -197,7 +225,7 @@ if (isCliRun) {
     console.error("GH_TOKEN env var is required");
     process.exit(1);
   }
-  main(version, token).catch((err) => {
+  main(version, token, targetCommitish).catch((err) => {
     console.error(err);
     process.exit(1);
   });

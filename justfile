@@ -93,6 +93,37 @@ deploy-no-restart: build (_sync-to-ha)
 _sync-to-ha:
     rsync -az -e 'ssh -p {{ ha_port }}' --delete --exclude node_modules custom_components/selora_ai/ {{ ha_host }}:{{ ha_path }}selora_ai/
 
+# ── Release (manual patch flow on maintenance branches) ────────────────────
+#
+# semantic-release CI handles main + the recommended workflow (cut a new
+# minor from main → branch a fresh N.N.x → backport patches once main has
+# moved past). That flow deadlocks the moment we want to patch the
+# current minor while main still has unreleased `feat:` commits
+# queued — maintenance branches collapse to an empty range against
+# main's tag. These two recipes are the escape hatch for that case.
+#
+# Usage:
+#   git checkout 0.9.x          # ON the maintenance branch you're patching
+#   <merge your fix MR>
+#   just release-patch 0.9.2    # bumps manifest, builds, prepends CHANGELOG,
+#                               # commits "chore(release): 0.9.2 [skip ci]",
+#                               # tags v0.9.2 — all local.
+#   git diff HEAD~1             # review what's about to ship
+#   just release-publish 0.9.2  # pushes branch + tag (prompts to unprotect
+#                               # `v*` if rejected), then mirrors to GitHub
+#                               # for HACS and creates the GitLab release.
+
+# Prepare a patch release locally: bump manifest, rebuild bundle,
+# generate CHANGELOG entry from conventional commits since the last tag,
+# commit + tag. Run from the N.N.x maintenance branch you're patching.
+release-patch version:
+    python3 scripts/release_patch.py {{ version }}
+
+# Publish the patch prepared by `release-patch`: push branch + tag,
+# create the GitHub release (HACS mirror) and the GitLab release page.
+release-publish version:
+    bash scripts/release_publish.sh {{ version }}
+
 # ── CI (mirrors pre-push checks) ────────────────────────────────────────────
 
 # Run the full pre-push check suite
