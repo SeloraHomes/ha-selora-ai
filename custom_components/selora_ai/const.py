@@ -825,14 +825,17 @@ SELORA_LOCAL_DEFAULT_INTENT = "command"
 # Selora AI Local: per-kind output token caps. Hub max_seq is 1024
 # (input + output combined); leaving the OpenAI default of 1024
 # starves the prompt and the engine RSTs the connection. The values
-# below match the slim v0.4.2+ output schemas — answer JSON
-# {"r":"...","q":[]} rarely exceeds 50 tokens; a full automation
-# YAML payload needs closer to 400.
+# below match the slim v0.4.2+ output schemas. answer and clarification
+# were originally sized for single-state replies; category-listing
+# prompts ("what lights are on?", "what locks do I have?") enumerate
+# multiple friendly_names in `r` and pack the `q` array — those
+# routinely exceeded the old 50 / 40 token caps and got truncated
+# mid-sentence. A full automation YAML payload still needs ~400.
 SELORA_LOCAL_MAX_TOKENS_BY_KIND: dict[str, int] = {
     "chat_command": 80,
     "chat_automation": 400,
-    "chat_answer": 50,
-    "chat_clarification": 40,
+    "chat_answer": 192,
+    "chat_clarification": 128,
     "chat": 192,
     "chat_tool_round": 80,
     "command": 80,
