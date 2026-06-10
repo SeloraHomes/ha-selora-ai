@@ -173,7 +173,10 @@ def _coerce_value(value: Any, expected_type: type) -> Any:
         return None
     try:
         result = expected_type(value)
-    except TypeError, ValueError:
+    except (
+        TypeError,
+        ValueError,
+    ):
         return None
     # Reject non-finite floats (nan, inf) — not meaningful HA targets.
     if isinstance(result, float) and not math.isfinite(result):
@@ -314,7 +317,10 @@ def validate_entity_states(
                     )
                 try:
                     coerced = [elem_type(v) for v in coerced]
-                except TypeError, ValueError:
+                except (
+                    TypeError,
+                    ValueError,
+                ):
                     return (
                         False,
                         f"{attr} elements must be {elem_type.__name__} for {entity_id}",
