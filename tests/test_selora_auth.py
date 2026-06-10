@@ -200,6 +200,18 @@ class TestSeloraJWTValidator:
         ctx = _make_validator().validate(token)
         assert ctx.user_id == "user-uuid-123"
 
+    def test_scopes_populated(self) -> None:
+        """All parsed scopes land on the auth context."""
+        token = _make_jwt({"scope": f"mcp:{INSTALLATION_ID} mcp:write"})
+        ctx = _make_validator().validate(token)
+        assert f"mcp:{INSTALLATION_ID}" in ctx.scopes
+        assert "mcp:write" in ctx.scopes
+
+    def test_scopes_default_empty_without_write(self) -> None:
+        """A token granting only the subdomain scope has no mcp:write."""
+        ctx = _make_validator().validate(_make_jwt())
+        assert "mcp:write" not in ctx.scopes
+
     def test_malformed_token(self) -> None:
         validator = _make_validator()
         with pytest.raises(AuthenticationError, match="malformed"):
@@ -479,3 +491,131 @@ class TestAuthenticateRequest:
         assert ctx.is_admin is False
         # allowed_tools must be None — read_only ignores any stored allowlist
         assert ctx.allowed_tools is None
+
+
+# ── Tool-access gating: Selora JWT mcp:write scope ──────────────────────────
+
+
+class TestJWTWriteScopeGating:
+    """Selora JWTs need 'mcp:write' scope (or admin role) for _ADMIN_TOOLS."""
+
+    def _ctx(
+        self,
+        *,
+        scopes: frozenset[str] = frozenset(),
+        is_admin: bool = False,
+        auth_type: str = "selora_jwt",
+    ) -> SeloraAuthContext:
+        return SeloraAuthContext(
+            user_id="u",
+            email=None,
+            is_admin=is_admin,
+            auth_type=auth_type,
+            scopes=scopes,
+        )
+
+    def test_jwt_without_write_scope_blocked_from_admin_tool(self) -> None:
+        from homeassistant.exceptions import Unauthorized
+
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _can_access_tool,
+            _check_tool_access,
+        )
+
+        ctx = self._ctx(scopes=frozenset({"mcp:sub"}))
+        assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is False
+        with pytest.raises(Unauthorized):
+            _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)
+
+    def test_jwt_with_write_scope_allowed(self) -> None:
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _can_access_tool,
+            _check_tool_access,
+        )
+
+        ctx = self._ctx(scopes=frozenset({"mcp:sub", "mcp:write"}))
+        assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
+        _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)  # no raise
+
+    def test_jwt_admin_role_still_allowed_without_scope(self) -> None:
+        """Backwards-compat: role-derived is_admin keeps working if Connect emits it."""
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _can_access_tool,
+        )
+
+        ctx = self._ctx(scopes=frozenset({"mcp:sub"}), is_admin=True)
+        assert _can_access_tool(ctx, TOOL_EXECUTE_COMMAND) is True
+
+    def test_jwt_read_only_tool_always_allowed(self) -> None:
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_GET_HOME_SNAPSHOT,
+            _can_access_tool,
+        )
+
+        ctx = self._ctx(scopes=frozenset({"mcp:sub"}))
+        assert _can_access_tool(ctx, TOOL_GET_HOME_SNAPSHOT) is True
+
+    def test_ha_token_unaffected_by_scope_logic(self) -> None:
+        """HA-token path still uses binary is_admin, ignores scopes."""
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _can_access_tool,
+        )
+
+        non_admin = self._ctx(auth_type="ha_token")
+        assert _can_access_tool(non_admin, TOOL_EXECUTE_COMMAND) is False
+        admin = self._ctx(auth_type="ha_token", is_admin=True)
+        assert _can_access_tool(admin, TOOL_EXECUTE_COMMAND) is True
+
+    def test_ha_token_non_admin_check_raises_cleanly(self) -> None:
+        """HA-token denial must raise Unauthorized without AttributeError."""
+        from homeassistant.exceptions import Unauthorized
+
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _check_tool_access,
+        )
+
+        ctx = self._ctx(auth_type="ha_token")
+        with pytest.raises(Unauthorized):
+            _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)
+
+    def test_mcp_token_allowlist_denial_raises_cleanly(self) -> None:
+        from homeassistant.exceptions import Unauthorized
+
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _check_tool_access,
+        )
+
+        ctx = SeloraAuthContext(
+            user_id="mcp_token:abc",
+            email=None,
+            is_admin=False,
+            auth_type="mcp_token",
+            allowed_tools=frozenset({"selora_get_home_snapshot"}),
+            token_id="abc",
+        )
+        with pytest.raises(Unauthorized):
+            _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)
+
+    def test_mcp_token_read_only_denial_raises_cleanly(self) -> None:
+        from homeassistant.exceptions import Unauthorized
+
+        from custom_components.selora_ai.mcp_server import (
+            TOOL_EXECUTE_COMMAND,
+            _check_tool_access,
+        )
+
+        ctx = SeloraAuthContext(
+            user_id="mcp_token:abc",
+            email=None,
+            is_admin=False,
+            auth_type="mcp_token",
+            token_id="abc",
+        )
+        with pytest.raises(Unauthorized):
+            _check_tool_access(ctx, TOOL_EXECUTE_COMMAND)

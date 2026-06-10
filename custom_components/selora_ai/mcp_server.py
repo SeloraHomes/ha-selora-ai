@@ -69,6 +69,7 @@ from .const import (
     COLLECTOR_DOMAINS,
     DOMAIN,
     SELORA_JWT_ISSUER,
+    SELORA_JWT_WRITE_SCOPE,
 )
 from .entity_capabilities import is_actionable_entity
 from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
@@ -368,26 +369,59 @@ _READ_ONLY_TOOLS = frozenset(
 )
 
 
+def _jwt_has_write(auth_ctx: SeloraAuthContext) -> bool:
+    """Selora JWT carries write capability via the ``mcp:write`` scope."""
+    return SELORA_JWT_WRITE_SCOPE in auth_ctx.scopes
+
+
 def _check_tool_access(auth_ctx: SeloraAuthContext, tool_name: str) -> None:
     """Raise Unauthorized if *auth_ctx* does not grant access to *tool_name*.
 
     For MCP tokens with ``allowed_tools`` set, only those tools are accessible.
     For MCP tokens with ``read_only`` permission, only read-only tools are accessible.
-    For all other auth types, the existing is_admin check applies.
+    For Selora JWTs, ``_ADMIN_TOOLS`` require either an admin role or the
+    ``mcp:write`` OAuth scope.
+    For HA tokens, the existing is_admin check applies.
     """
     if auth_ctx.auth_type == "mcp_token":
         if auth_ctx.allowed_tools is not None:
             # Custom permission: explicit tool allowlist
             if tool_name not in auth_ctx.allowed_tools:
-                raise Unauthorized(f"Token does not grant access to {tool_name}")
+                _LOGGER.warning(
+                    "MCP token %s allowlist denies tool %s",
+                    auth_ctx.token_id,
+                    tool_name,
+                )
+                raise Unauthorized
             return
         if not auth_ctx.is_admin and tool_name in _ADMIN_TOOLS:
-            raise Unauthorized(f"Read-only token cannot access {tool_name}")
+            _LOGGER.warning(
+                "Read-only MCP token %s refused tool %s",
+                auth_ctx.token_id,
+                tool_name,
+            )
+            raise Unauthorized
         return
 
-    # HA token / Selora JWT: binary admin check
+    if auth_ctx.auth_type == "selora_jwt":
+        if tool_name in _ADMIN_TOOLS and not (auth_ctx.is_admin or _jwt_has_write(auth_ctx)):
+            _LOGGER.warning(
+                "Selora JWT %s lacks '%s' scope; refused tool %s",
+                auth_ctx.user_id,
+                SELORA_JWT_WRITE_SCOPE,
+                tool_name,
+            )
+            raise Unauthorized
+        return
+
+    # HA token: binary admin check
     if tool_name in _ADMIN_TOOLS and not auth_ctx.is_admin:
-        raise Unauthorized("Admin access is required for this Selora MCP tool")
+        _LOGGER.warning(
+            "HA user %s lacks admin; refused tool %s",
+            auth_ctx.user_id,
+            tool_name,
+        )
+        raise Unauthorized
 
 
 def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
@@ -396,6 +430,10 @@ def _can_access_tool(auth_ctx: SeloraAuthContext, tool_name: str) -> bool:
         if auth_ctx.allowed_tools is not None:
             return tool_name in auth_ctx.allowed_tools
         return auth_ctx.is_admin or tool_name not in _ADMIN_TOOLS
+    if auth_ctx.auth_type == "selora_jwt":
+        if tool_name not in _ADMIN_TOOLS:
+            return True
+        return auth_ctx.is_admin or _jwt_has_write(auth_ctx)
     return auth_ctx.is_admin or tool_name not in _ADMIN_TOOLS
 
 

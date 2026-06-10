@@ -1295,6 +1295,7 @@ SELORA_JWT_ISSUER = DEFAULT_SELORA_CONNECT_URL  # default; overridden by entry d
 SELORA_JWT_MAX_SIZE = 8192  # bytes — reject tokens larger than this before decode
 SELORA_JWT_LEEWAY_SECONDS = 30  # clock skew tolerance for exp/nbf
 SELORA_ADMIN_ROLES = frozenset({"owner", "member"})
+SELORA_JWT_WRITE_SCOPE = "mcp:write"  # presence in JWT scope claim grants write access
 
 # ── Selora AI Gateway (LLM via OAuth) ───────────────────────────────
 # OAuth-protected LLM provider hosted by Selora. The flow:
