@@ -173,10 +173,66 @@ def _is_pure_greeting(message: str) -> bool:
     return bool(_PURE_GREETING.match(text))
 
 
-_COMMAND_VERB = re.compile(
-    r"\b(turn|switch|toggle|set|start|stop|play|pause|resume|open|close|"
+# Identity / capability meta-questions ("what are you?", "who are you?",
+# "what can you do?", "tell me about yourself"). These are
+# out-of-distribution for the command/automation specialists: asked to
+# describe itself the LoRA recites its role and, with repeat_penalty
+# pinned at 1.0 to keep JSON in-distribution, loops on it until
+# truncation. Detect them here so `_classify_chat_intent` can route to
+# the answer specialist — short-format, streamed, so any residual
+# repetition is visible immediately rather than stalling the JSON path
+# until the client times out. Anchored to the whole message so a real
+# request that merely contains "you" ("what are you going to do about
+# the porch light?") still falls through to normal routing.
+_IDENTITY_QUESTION = re.compile(
+    # Optional conversational lead-in: zero or more filler words ("okay
+    # cool ", "so ", "hey "), each followed by space/comma — so
+    # "Okay cool what can you do?" is still recognised.
+    r"^\s*(?:(?:hey|hi|hello|ok|okay|so|um|well|cool|nice|alright|sweet|oh|yo|hmm)[\s,]+)*"
+    r"(?:"
+    r"(?:who|what)(?:'?s|\s+is|\s+are|\s+r)?\s+(?:you|u|selora|this)\b"
+    r"|what\s+(?:can|could|do|would)\s+(?:you|u)\s+(?:do|help)\b"
+    r"|what\s+does\s+selora\s+do\b"
+    r"|how\s+does\s+selora\s+work\b"
+    r"|are\s+you\s+selora\b"
+    r"|what(?:'?s|\s+are)?\s+your\s+(?:name|purpose|job|capabilit\w*|function\w*)\b"
+    r"|(?:tell\s+me\s+about|introduce|describe)\s+(?:yourself|you|selora)\b"
+    r")"
+    r"[\s!.,?:;)]*$",
+    re.IGNORECASE,
+)
+
+
+def _is_identity_question(message: str) -> bool:
+    """Return True when ``message`` is a pure identity/capability question."""
+    if not message:
+        return False
+    text = message.strip()
+    if not text or len(text) > 60:
+        return False
+    return bool(_IDENTITY_QUESTION.match(text))
+
+
+_COMMAND_VERBS = (
+    r"turn|switch|toggle|set|start|stop|play|pause|resume|open|close|"
     r"lock|unlock|dim|brighten|increase|decrease|raise|lower|"
-    r"activate|deactivate|enable|disable|run|trigger)\b"
+    r"activate|deactivate|enable|disable|run|trigger"
+)
+_COMMAND_VERB = re.compile(rf"\b({_COMMAND_VERBS})\b")
+
+# Polite imperatives phrased as a question - "can you turn off the light",
+# "could you please open the garage", "would you set the thermostat to 21".
+# These open with a modal that _QUESTION_OPENER would otherwise grab and
+# misroute to the answer specialist (which only reports state instead of
+# acting). When the modal is aimed at the assistant ("... you/we/i ...")
+# and a command verb follows, it is a command. Capability/identity
+# questions ("what can you do") are caught earlier by
+# _is_identity_question / _META_QUESTION, and "what lights can I turn on"
+# stays a question because it opens with "what", not a bare modal.
+_POLITE_COMMAND = re.compile(
+    r"^\s*(?:(?:hey|hi|hello|ok|okay|so|well|cool|please|yo)[\s,]+)*"
+    rf"(?:can|could|would|will)\s+(?:you|we|i)\b.*?\b(?:{_COMMAND_VERBS})\b",
+    re.IGNORECASE,
 )
 
 # Meta-questions about capabilities ("suggest an automation", "what
@@ -233,11 +289,25 @@ def _classify_chat_intent(user_message: str) -> str:
     msg = user_message.lower().strip()
     if not msg:
         return "answer"
+    # Identity/capability questions ("what are you?", "what can you do?",
+    # incl. a conversational lead-in like "okay cool …") go to the answer
+    # specialist: it replies short + in-format and streams, so the panel
+    # gets the model's own words immediately. Routing them to the command
+    # default instead mishandles them and stalls the non-streaming JSON
+    # path, which the panel cancels as a timeout.
+    if _is_identity_question(user_message):
+        return "answer"
     if _META_QUESTION.search(msg):
         return "answer"
     for pat in _AUTOMATION_PATTERNS:
         if pat.search(msg):
             return "automation"
+    # Polite imperatives ("can you turn off the light") open with a modal
+    # that _QUESTION_OPENER would otherwise route to the answer specialist,
+    # which only reports state instead of acting. Catch them as commands
+    # before the question/greeting openers.
+    if _POLITE_COMMAND.match(msg):
+        return "command"
     if _GREETING_OPENER.match(msg):
         return "answer"
     if _QUESTION_OPENER.match(msg):
