@@ -1,3 +1,21 @@
+## [0.9.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.9.0...v0.9.1) (2026-06-05)
+
+### Bug Fixes
+
+* **chat:** automation watchdog + retry UX ([2ad697f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2ad697f))
+* **chat:** backend stream watchdog + max-bytes cap ([2c82b9a](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2c82b9a))
+* **chat:** cloud automation spinner sentinel ([1072262](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1072262))
+* **chat:** guard host state with per-turn token (#108) ([a0a7542](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/a0a7542))
+* **chat:** guard stream events with per-turn session token ([4c4ef60](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4c4ef60))
+* **cloud:** rank entity filter, drop truncation ([9edad38](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9edad38))
+* **collector:** cap recorder_history by record count ([465515b](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/465515b))
+* **mcp:** evict empty rate-limiter buckets ([5814889](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5814889))
+* **oauth:** prefer panel origin for callback URL ([ac6edf8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ac6edf8))
+* **pattern-store:** global state_history ceiling ([efd4e4d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/efd4e4d))
+* **snapshot:** drop diagnostic + config entities ([ec87fff](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ec87fff))
+* **ui:** let entity chip wrap for long device names (#109) ([779a961](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/779a961))
+* **ui:** wrap flow-entity-chip on long names ([1e1729c](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1e1729c))
+
 ## [0.9.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.8.1...v0.9.0) (2026-05-29)
 
 ### Features

@@ -35,3 +35,11 @@ skip-magic-trailing-comma = false
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+# Skip slow memory-soak tests by default. They run in pre-push (lefthook
+# `test-soak`) and in the dedicated CI `soak` job, where the wall-clock
+# cost is acceptable. Local `pytest tests/` skips them so the unit-test
+# loop stays under a few seconds.
+addopts = "-m 'not soak' --strict-markers"
+markers = [
+    "soak: long-running memory-leak soak tests (opt-in via `-m soak`)",
+]

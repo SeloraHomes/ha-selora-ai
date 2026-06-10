@@ -74,6 +74,20 @@ unit:
   script:
     - pytest tests/ -v
 
+soak:
+  stage: test
+  image: python:3.14-slim
+  <<: *pip-cache
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null
+    - pip install pytest pytest-asyncio pytest-homeassistant-custom-component "ruamel.yaml>=0.18" anthropic home-assistant-intents hassil PyJWT --quiet
+  script:
+    - pytest tests/ -m soak -v
+  # Soak tests sleep through rate-limiter windows and pump tens of
+  # thousands of records — wall time is dominated by sleeps, not CPU.
+  # Capping at 5 min stops a hang from blocking the pipeline forever.
+  timeout: 5 minutes
+
 frontend:
   stage: test
   image: node:lts-slim

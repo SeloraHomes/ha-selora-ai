@@ -21,7 +21,7 @@ LLM Backends:
 from __future__ import annotations
 
 import asyncio
-from collections.abc import Callable
+from collections.abc import AsyncGenerator, Callable
 from contextlib import suppress
 from datetime import UTC, datetime, timedelta
 import logging
@@ -148,6 +148,10 @@ from .const import (
     SIGNAL_DEVICES_UPDATED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
     SIGNAL_SCENE_DELETED,
+    STREAM_AUTOMATION_IDLE_TIMEOUT_S,
+    STREAM_IDLE_TIMEOUT_S,
+    STREAM_KEEPALIVE,
+    STREAM_MAX_BYTES,
 )
 from .scene_discovery import get_area_names
 
@@ -166,6 +170,65 @@ _SESSION_MAX_MESSAGES = 100
 # Maximum number of chat sessions retained.  When exceeded the oldest
 # sessions (by updated_at) are evicted to stay within budget.
 _SESSION_MAX_COUNT = 200
+
+
+class _StreamTooLarge(Exception):
+    """Accumulated streaming response exceeded ``STREAM_MAX_BYTES``."""
+
+    def __init__(self, size: int) -> None:
+        super().__init__(f"stream exceeded {size} bytes")
+        self.size = size
+
+
+async def _consume_stream_with_guards(
+    gen: AsyncGenerator[str],
+    *,
+    idle_timeout: float,
+    max_bytes: int,
+) -> AsyncGenerator[str]:
+    """Yield chunks from ``gen`` while enforcing idle-timeout + size cap.
+
+    Wraps ``llm.architect_chat_stream(...)`` so the websocket handler
+    can't get stuck in ``async for chunk`` if the provider stops
+    sending tokens (hung connection, rambling local model that
+    surpassed the panel watchdog) or the response runs away.
+
+    ``STREAM_KEEPALIVE`` sentinels reset the idle timer without counting
+    toward the byte cap and are yielded through so the caller can emit
+    a websocket heartbeat.
+
+    Size accounting is in UTF-8 bytes (not Python chars). Hungarian /
+    CJK responses are 2–4 B per glyph, and the cap is documented in
+    bytes — counting chars would silently let the buffer grow 2-4×
+    larger than advertised.
+
+    Raises:
+
+    * ``TimeoutError`` if no chunk arrives within ``idle_timeout``
+      seconds. The ``finally`` block ``aclose()``s the generator so
+      the upstream provider socket is released instead of being kept
+      alive while the error event is sent to the panel.
+    * ``_StreamTooLarge`` once accumulated bytes exceed ``max_bytes``.
+      Same ``aclose()`` discipline — the provider stops generating
+      and its KV cache is released.
+    """
+    accum = 0
+    try:
+        while True:
+            try:
+                chunk = await asyncio.wait_for(gen.__anext__(), timeout=idle_timeout)
+            except StopAsyncIteration:
+                return
+            if chunk == STREAM_KEEPALIVE:
+                yield chunk
+                continue
+            accum += len(chunk.encode("utf-8"))
+            if accum > max_bytes:
+                raise _StreamTooLarge(accum)
+            yield chunk
+    finally:
+        with suppress(Exception):
+            await gen.aclose()
 
 
 class ConversationStore:
@@ -1911,6 +1974,10 @@ async def _handle_websocket_chat_stream(
     # inspect its call_log even if the failure happens before the executor
     # is created.
     tool_executor = None
+    # Pre-initialised so the except clauses (which reference it in the
+    # human-readable error message) never see an UnboundLocalError when
+    # an exception fires before the per-intent calculation below.
+    effective_idle_timeout = STREAM_IDLE_TIMEOUT_S
     try:
         entities = _collect_entity_states(hass)
         automations = _collect_existing_automations(hass)
@@ -1924,18 +1991,74 @@ async def _handle_websocket_chat_stream(
         # the chunk that introduces the JSON-block opener so the prose
         # prefix still streams but the JSON tokens after it don't.
         sent_chars = 0
-        async for chunk in llm.architect_chat_stream(
-            user_message,
-            entities,
-            existing_automations=automations,
-            history=history,
-            tool_executor=tool_executor,
-            refining_context=refining,
-            refining_scene_context=refining_scene,
-            scene_context=scenes or None,
-            areas=area_names,
-            session_id=session_id,
+
+        # ``stripAutomationBlock`` on the panel side flips the typing
+        # indicator to a "Building automation..." spinner the moment
+        # it sees a ```automation fence in the bubble's content. The
+        # SeloraLocal provider emits that sentinel itself, but cloud
+        # providers don't — they stream prose / raw JSON only. Emit
+        # the sentinel from here for cloud automation turns so the
+        # panel UX matches across providers. Skip when refining (the
+        # bubble is already pinned to the existing card) or when the
+        # provider is low-context (avoids double-sentinel).
+        from .llm_client import _is_definite_automation  # noqa: PLC0415
+
+        is_cloud_automation = (
+            not refining
+            and not refining_scene
+            and not getattr(llm.provider, "is_low_context", False)
+            and _is_definite_automation(user_message)
+        )
+        if is_cloud_automation:
+            # `synthetic: True` tells the panel watchdog this token did
+            # not come from the provider, so it must NOT flip
+            # firstTokenSeen and shorten the grace to POST_TOKEN_GRACE_MS.
+            # `idle_timeout_ms` lifts the post-token grace to match the
+            # server-side budget too — provider pauses between real
+            # chunks routinely exceed the default 45s on heavy
+            # reasoning automation prompts.
+            connection.send_message(
+                websocket_api.event_message(
+                    msg["id"],
+                    {
+                        "type": "token",
+                        "text": "```automation\n",
+                        "synthetic": True,
+                        "idle_timeout_ms": int(STREAM_AUTOMATION_IDLE_TIMEOUT_S * 1000),
+                    },
+                )
+            )
+
+        # Per-intent watchdog: automation turns get a longer idle
+        # tolerance because cloud first-token latency on a heavy
+        # reasoning prompt routinely exceeds the default 30s, and a
+        # premature timeout there forces the user to retry a request
+        # that was actually progressing.
+        effective_idle_timeout = (
+            STREAM_AUTOMATION_IDLE_TIMEOUT_S if is_cloud_automation else STREAM_IDLE_TIMEOUT_S
+        )
+
+        async for chunk in _consume_stream_with_guards(
+            llm.architect_chat_stream(
+                user_message,
+                entities,
+                existing_automations=automations,
+                history=history,
+                tool_executor=tool_executor,
+                refining_context=refining,
+                refining_scene_context=refining_scene,
+                scene_context=scenes or None,
+                areas=area_names,
+                session_id=session_id,
+            ),
+            idle_timeout=effective_idle_timeout,
+            max_bytes=STREAM_MAX_BYTES,
         ):
+            if chunk == STREAM_KEEPALIVE:
+                connection.send_message(
+                    websocket_api.event_message(msg["id"], {"type": "heartbeat"})
+                )
+                continue
             full_text += chunk
             chunk_count += 1
             # Suppress streaming tokens when the LLM is emitting a
@@ -1988,7 +2111,7 @@ async def _handle_websocket_chat_stream(
             "Chat stream complete: chunks=%d total_chars=%d provider=%s",
             chunk_count,
             len(full_text),
-            getattr(llm._provider, "provider_type", "unknown"),
+            getattr(llm.provider, "provider_type", "unknown"),
         )
 
         parsed = llm.parse_streamed_response(
@@ -2155,30 +2278,67 @@ async def _handle_websocket_chat_stream(
     except asyncio.CancelledError:
         _LOGGER.debug("Streaming chat cancelled by client")
         await _discard_empty_session_if_needed()
-    except ConnectionError as exc:
-        # Transport / provider failure. If execute_command already fired
-        # one or more services this turn, we can't pretend nothing
-        # happened: a hard "error" event would tempt the user to retry
-        # and double-execute. Persist a synthesized confirmation and emit
-        # a "done" event instead. Otherwise fall through to the original
-        # error path (no actions ran → safe for the user to retry).
-        from .llm_client import (
+    except (TimeoutError, _StreamTooLarge, ConnectionError) as exc:
+        provider_type = getattr(getattr(llm, "provider", None), "provider_type", "unknown")
+
+        if isinstance(exc, TimeoutError):
+            error_msg = (
+                f"The model stopped sending tokens for {int(effective_idle_timeout)}s. Try again."
+            )
+            cause_suffix = (
+                f" Then the model went silent for {int(effective_idle_timeout)}s — "
+                "only retry if there's more to do."
+            )
+            _LOGGER.warning(
+                "Selora AI chat stream idle-timed-out after %.0fs (provider: %s)",
+                effective_idle_timeout,
+                provider_type,
+            )
+        elif isinstance(exc, _StreamTooLarge):
+            error_msg = (
+                f"Response exceeded {STREAM_MAX_BYTES // 1024} KB. "
+                f"Try a shorter or more specific request."
+            )
+            cause_suffix = (
+                f" Then the response exceeded {STREAM_MAX_BYTES // 1024} KB and was "
+                "cut off — only retry if there's more to do."
+            )
+            _LOGGER.warning(
+                "Selora AI chat stream exceeded %d-byte cap (got %d bytes, provider: %s)",
+                STREAM_MAX_BYTES,
+                exc.size,
+                provider_type,
+            )
+        else:
+            error_msg = (
+                str(exc)
+                if str(exc)
+                else (
+                    "Couldn't reach the LLM provider. Check your connection "
+                    "in Settings, then try again."
+                )
+            )
+            cause_suffix = (
+                " Then I lost the connection to the LLM — only retry if there's more to do."
+            )
+            _LOGGER.warning("Streaming chat unreachable: %s", exc)
+
+        # If tool_executor already ran HA service calls this turn, a
+        # plain "error" event would tempt the user to retry and
+        # double-execute. Persist a synthesized confirmation and emit
+        # "done" instead so the UI shows what already happened.
+        from .llm_client import (  # noqa: PLC0415
             _build_command_confirmation,
             _executed_service_calls_from_log,
         )
 
-        _LOGGER.warning("Streaming chat unreachable: %s", exc)
         executed_calls = (
             _executed_service_calls_from_log(tool_executor.call_log)
             if tool_executor is not None
             else []
         )
         if executed_calls:
-            synthesized = (
-                _build_command_confirmation(executed_calls)
-                + " Then I lost the connection to the LLM — only retry if "
-                "there's more to do."
-            )
+            synthesized = _build_command_confirmation(executed_calls) + cause_suffix
             await store.append_message(session_id, "user", user_message)
             await store.append_message(
                 session_id,
@@ -2205,15 +2365,7 @@ async def _handle_websocket_chat_stream(
         connection.send_message(
             websocket_api.event_message(
                 msg["id"],
-                {
-                    "type": "error",
-                    "message": str(exc)
-                    if str(exc)
-                    else (
-                        "Couldn't reach the LLM provider. Check your connection "
-                        "in Settings, then try again."
-                    ),
-                },
+                {"type": "error", "message": error_msg},
             )
         )
         await _discard_empty_session_if_needed()

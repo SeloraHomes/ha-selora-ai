@@ -985,6 +985,35 @@ HEALTH_CHECK_TIMEOUT = 15
 MAX_TOOL_CALL_ROUNDS = 5  # Maximum LLM-tool round trips per chat turn
 MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
 
+# ── Backend chat-stream guards ──────────────────────────────────────
+# Bound the SERVER side of architect_chat_stream so a hung provider, a
+# runaway-rambling model, or a panel that disconnected without
+# unsubscribing can't drain the LLM connection forever and inflate
+# HA's heap.
+#   * idle timeout — long enough to survive the slow prefill on
+#     low-context backends (Vega 8 cold prefill ≈ 16 s).
+#   * byte cap — well above any normal chat reply (cloud answers
+#     ~2–8 KB, automation envelopes peak around 30 KB), well below
+#     the point where a runaway loop becomes a memory problem.
+#   * tool-grace — bounded wait for an in-flight tool task on
+#     stream cancel/close, so a service call that already
+#     dispatched gets a chance to record itself in the call log
+#     before we cancel the coroutine.
+STREAM_IDLE_TIMEOUT_S = 30.0
+# Automation generation legitimately takes longer to first-token on
+# cloud providers — DeepSeek + SageMaker cold-start plus the
+# heavy-reasoning prompt routinely exceed the 30 s default for chat.
+# Pre-classified automation turns get this looser watchdog so the
+# default chat timeout still catches the genuinely-hung cases.
+STREAM_AUTOMATION_IDLE_TIMEOUT_S = 90.0
+STREAM_MAX_BYTES = 256 * 1024
+STREAM_TOOL_KEEPALIVE_S = 15.0
+STREAM_TOOL_CANCEL_GRACE_S = 2.0
+# Sentinel chunk yielded by the LLM client to keep the watchdog quiet
+# during slow tool work. Picked so a provider that emits raw user text
+# (including arbitrary Unicode and isolated NULs) cannot collide.
+STREAM_KEEPALIVE = "\x00\x01selora-keepalive\x01\x00"
+
 # ── Data Collection ──────────────────────────────────────────────────
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
 CONF_PUSH_INTERVAL = "push_interval"
@@ -1162,6 +1191,26 @@ PANEL_PATH = "selora-ai"
 DEFAULT_RECORDER_LOOKBACK_DAYS = 7
 CONF_RECORDER_LOOKBACK_DAYS = "recorder_lookback_days"
 
+# Hard ceiling on the number of state-change records the collector
+# materialises into a HomeSnapshot per cycle. ``get_significant_states``
+# returns *every* change for *every* entity inside the lookback window;
+# on a 200-entity install with a busy week this can be tens of
+# thousands of dicts, all held in Python heap for the duration of the
+# LLM analysis call (up to ``ANALYSIS_LLM_TIMEOUT`` = 300 s).
+# 5 000 records is enough for the analyzer to spot daily / weekly
+# rhythms while keeping the snapshot well under the limits of every
+# supported provider, and well under any user's memory budget.
+DEFAULT_RECORDER_HISTORY_MAX_RECORDS = 5000
+
+# Batch size for the recorder query itself. The cap above bounds the
+# RESULT list, but a single ``get_significant_states(entity_ids=<all>,
+# start=Nd)`` materialises the full N-day × entity-count state-change
+# blob inside the recorder thread BEFORE returning — on low-RAM hosts
+# with high entity counts that's where HA OOMs. Splitting the query
+# into chunks of this many entity_ids caps the peak working set of any
+# single recorder fetch.
+DEFAULT_RECORDER_QUERY_BATCH_SIZE = 100
+
 # ── Automation Lifecycle ──────────────────────────────────────────────
 AUTOMATION_STORE_KEY = "selora_ai_automations"
 # Maximum number of historical versions retained per automation. Older
@@ -1190,6 +1239,15 @@ SELORA_EXCLUDE_LABEL_NAME = "Selora exclude"
 SELORA_EXCLUDE_LABEL_ID = "selora_exclude"
 PATTERN_HISTORY_MAX_PER_ENTITY = 500
 PATTERN_HISTORY_RETENTION_DAYS = 14
+# Global ceiling on the total number of state-change records held in
+# pattern_store across ALL entities. The per-entity cap above bounds
+# each ring buffer, but with 200 entities at full ring buffer the
+# store would hold 100 000 records — persisted to disk every 50
+# events and loaded back into memory at startup. The global cap keeps
+# the file (and the heap representation) bounded regardless of how
+# many entities the user tracks. 20 000 records ≈ ~2 MB on disk and
+# is roughly 40 active entities at full per-entity capacity.
+PATTERN_HISTORY_MAX_TOTAL = 20000
 PATTERN_MAX_PATTERNS = 500
 PATTERN_MAX_SUGGESTIONS = 200
 PATTERN_MAX_DELETED_HASHES = 1000

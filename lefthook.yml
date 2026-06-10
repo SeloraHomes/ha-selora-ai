@@ -26,6 +26,11 @@ pre-commit:
 pre-push:
   parallel: true
   commands:
+    # Unit + soak share the same .venv. Running them as two parallel
+    # lefthook commands would race on the rm -rf / uv venv / uv pip
+    # install steps when .venv is absent or stale, producing
+    # nondeterministic pre-push failures. Keep both pytest invocations
+    # inside one command so the venv setup runs exactly once.
     test-python:
       glob: "**/*.py"
       run: >-
@@ -39,8 +44,10 @@ pre-push:
           uv venv .venv --python "${REQUIRED_PY}" &&
           uv pip install --python .venv/bin/python pytest pytest-asyncio pytest-homeassistant-custom-component 'ruamel.yaml>=0.18' anthropic home-assistant-intents hassil;
         fi &&
-        .venv/bin/python -m pytest tests/ -q
-      fail_text: "Python tests failed. Run: pytest tests/ -v"
+        .venv/bin/python -m pytest tests/ -q &&
+        echo "⚙ Running memory-leak soak tests..." &&
+        .venv/bin/python -m pytest tests/ -m soak -q
+      fail_text: "Python tests failed. Run: pytest tests/ -v (or pytest tests/ -m soak -v for soak)"
 
     test-frontend:
       glob:
