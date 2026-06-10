@@ -11,8 +11,10 @@ import { DOMAIN_ICONS } from "./render-chat.js";
 
 // Click target for entities mentioned in a trigger/condition/action. Opens
 // HA's built-in more-info dialog via the standard `hass-more-info` event
-// so users can dive into the device behind the chip without leaving chat.
-function renderFlowEntityChip(host, entityId) {
+// so users can dive into the entity without leaving chat. Rendered as an
+// inline link rather than a pill so prose like "Turn off Living Room Fan"
+// reads as a sentence instead of a chip-stuffed UI fragment.
+function renderFlowEntityLink(host, entityId) {
   const stateObj = host.hass?.states?.[entityId];
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
@@ -21,7 +23,7 @@ function renderFlowEntityChip(host, entityId) {
     "mdi:circle-medium";
   return html`<button
     type="button"
-    class="flow-entity-chip"
+    class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
     @click=${(e) => {
       e.stopPropagation();
@@ -34,9 +36,42 @@ function renderFlowEntityChip(host, entityId) {
       );
     }}
   >
-    <ha-icon icon=${icon}></ha-icon>
-    <span>${friendly}</span>
+    <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
   </button>`;
+}
+
+// Match the compact durations that `fmtDuration` emits ("10m", "1h 30m",
+// "45s", "1h 5m 30s"). Anchored on word boundary so "5m" inside a
+// friendly name like "AM5m" can't accidentally chip itself.
+const DURATION_RE =
+  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
+
+function expandDurationAbbrev(s) {
+  return s
+    .replace(/(\d+)\s*h\b/g, "$1 hr")
+    .replace(/(\d+)\s*m\b/g, "$1 min")
+    .replace(/(\d+)\s*s\b/g, "$1 sec");
+}
+
+function renderFlowDuration(raw) {
+  return html`<span class="flow-duration"
+    ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
+      raw,
+    )}</span
+  >`;
+}
+
+// Split a plain text segment into a mix of strings and duration chips.
+function splitDurations(text) {
+  const out = [];
+  let last = 0;
+  for (const m of text.matchAll(DURATION_RE)) {
+    if (m.index > last) out.push(text.slice(last, m.index));
+    out.push({ duration: m[0] });
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
 
 // Build a Lit template that inlines clickable entity chips at every spot
@@ -55,8 +90,8 @@ function renderFlowEntityChip(host, entityId) {
 // rewrite each case to template-style.
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
+  if (!description) return html`${description}`;
   const entityIds = collectFlowEntityIds(item);
-  if (!entityIds.length || !description) return html`${description}`;
 
   // Map each id to its display name once, longest first so multi-word
   // names match before any single-word substrings they happen to contain.
@@ -65,6 +100,7 @@ function renderFlowDescription(host, item) {
     .filter((l) => l.name)
     .sort((a, b) => b.name.length - a.name.length);
 
+  // Pass 1: split description on entity friendly names → text + entity links.
   const segments = [];
   let remaining = description;
   // Cap iterations defensively — a pathological input could otherwise
@@ -86,14 +122,31 @@ function renderFlowDescription(host, item) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ chip: bestMatch.eid });
+    segments.push({ entity: bestMatch.eid });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
 
-  return html`${segments.map((s) =>
-    typeof s === "string" ? s : renderFlowEntityChip(host, s.chip),
-  )}`;
+  // Pass 2: within each plain-text segment, lift compact durations
+  // ("10m", "1h 30m") out as their own chips so "clear for 10 min" reads
+  // as prose + a small badge instead of bare ASCII.
+  const final = [];
+  for (const seg of segments) {
+    if (typeof seg !== "string") {
+      final.push(seg);
+      continue;
+    }
+    for (const piece of splitDurations(seg)) {
+      final.push(piece);
+    }
+  }
+
+  return html`${final.map((s) => {
+    if (typeof s === "string") return s;
+    if (s.entity) return renderFlowEntityLink(host, s.entity);
+    if (s.duration) return renderFlowDuration(s.duration);
+    return "";
+  })}`;
 }
 
 function renderFlowNode(host, item, kind) {

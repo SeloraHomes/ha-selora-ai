@@ -447,7 +447,7 @@ class SeloraAIPanel extends LitElement {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
-    this._streamUnsub = null;
+    this._streams = new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
     this._suggestions = [];
@@ -910,18 +910,19 @@ class SeloraAIPanel extends LitElement {
       clearInterval(this._quotaTickTimer);
       this._quotaTickTimer = null;
     }
-    // Tear down an in-flight chat stream. Use the same cleanup path as
-    // the manual stop button so streaming/loading flags and the last
-    // message's _streaming marker are cleared — otherwise a
-    // detach/reattach of the same instance would leave the UI stuck in
-    // a loading state with no subscription left to receive done/error.
-    if (this._streamUnsub) {
+    // Tear down EVERY in-flight chat stream. With background streams
+    // allowed across session switches, this._streams can hold more
+    // than one entry; passing { all: true } makes _stopStreaming walk
+    // the whole set instead of just the current session's stream.
+    // Otherwise a detach/reattach would leave background subscriptions
+    // mutating a detached panel.
+    if (this._streams && this._streams.size > 0) {
       try {
-        this._stopStreaming();
+        this._stopStreaming({ all: true });
       } catch (_e) {
         // Already detached or websocket gone — flags must still be reset
         // so a reattach starts clean.
-        this._streamUnsub = null;
+        this._streams.clear();
         this._streaming = false;
         this._loading = false;
         const lastMsg = this._messages[this._messages.length - 1];
@@ -1210,6 +1211,15 @@ class SeloraAIPanel extends LitElement {
       const result = await this.hass.callWS({
         type: wsType,
         connect_url: this._config?.selora_connect_url || "",
+        // Hand HA the panel's CURRENT origin so the OAuth callback
+        // lands on the same URL the user is browsing from. Backend
+        // validates against HA's known internal+external URLs and
+        // falls back to the legacy external-preferred behaviour if
+        // we send something it doesn't recognise. Without this, a
+        // user opening the panel locally got an OAuth flow that
+        // bounced through their external URL — which breaks when the
+        // external endpoint blocks non-HA traffic.
+        panel_origin: window.location.origin,
       });
       const authorizeUrl = result?.authorize_url;
       if (!authorizeUrl) throw new Error("No authorize URL returned.");

@@ -123,17 +123,30 @@ class EntityFilter:
 
     def __init__(self, hass: HomeAssistant, entity_ids: Iterable[str]) -> None:
         registry = er.async_get(hass)
-        self._disabled: set[str] = set()
+        self._inactive: set[str] = set()
         self._device_ids: dict[str, str | None] = {}
         for eid in entity_ids:
             entry = registry.async_get(eid)
             self._device_ids[eid] = entry.device_id if entry else None
-            if entry and entry.disabled:
-                self._disabled.add(eid)
+            if entry is None:
+                continue
+            if entry.disabled:
+                self._inactive.add(eid)
+                continue
+            if entry.entity_category is not None:
+                self._inactive.add(eid)
 
     def is_active(self, entity_id: str) -> bool:
-        """Return True if the entity is not disabled."""
-        return entity_id not in self._disabled
+        """Return True if the entity is part of the user-facing surface.
+
+        False for entities that are disabled, marked as ``config``, or
+        marked as ``diagnostic`` in the entity registry. The pattern
+        engines, collector snapshot, and LLM context use this to skip
+        the per-device noise (battery level, signal strength, firmware
+        version, identify buttons, etc.) that ships with most Zigbee /
+        Z-Wave / Matter devices.
+        """
+        return entity_id not in self._inactive
 
     def same_device(self, entity_a: str, entity_b: str) -> bool:
         """Return True if both entities belong to the same physical device."""

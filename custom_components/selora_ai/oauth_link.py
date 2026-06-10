@@ -148,6 +148,64 @@ def _resolve_external_url(hass: HomeAssistant) -> str:
             ) from err
 
 
+def _known_ha_origins(hass: HomeAssistant) -> set[str]:
+    """Set of every URL prefix HA considers itself reachable on.
+
+    Used to validate a panel-supplied ``window.location.origin`` hint
+    before we trust it as the callback base. Caller-supplied URLs that
+    don't match any of these fall back to ``_resolve_external_url`` —
+    defensive against a panel running on a domain HA doesn't think it
+    serves (proxy mis-configuration, stale tab from a prior URL, etc).
+    """
+    origins: set[str] = set()
+    # Separate queries — get_url only ever returns one URL per call,
+    # picking by preference. We need every reachable origin, so we
+    # ask for each kind explicitly (internal, external, cloud).
+    for kwargs in (
+        {"allow_internal": True, "allow_external": False},
+        {"allow_internal": False, "allow_external": True},
+        {"require_cloud": True},
+    ):
+        try:
+            url = get_url(hass, **kwargs)
+        except NoURLAvailableError:
+            continue
+        if url:
+            origins.add(url.rstrip("/").lower())
+    return origins
+
+
+def _resolve_callback_base(hass: HomeAssistant, panel_origin: str = "") -> str:
+    """Return the URL prefix the OAuth callback should land on.
+
+    The panel passes its current ``window.location.origin`` as a hint;
+    if it matches one of HA's known reachable URLs (internal or
+    external) we use that, so a user opening the panel via the local
+    URL gets a callback back to the local URL — even when an external
+    URL exists.
+
+    Without this hint, ``_resolve_external_url`` always prefers the
+    external URL, which forces a user on the same Wi-Fi as HA to
+    bounce through their external endpoint. That breaks for users
+    whose external URL blocks anything other than HA-mediated traffic
+    (typical Cloudflare / proxy hardening setups). A Selora trial
+    user reported having to manually edit the callback URL during the
+    OAuth step (FB thread, 2026-06-03) for exactly this reason.
+
+    Falls back to ``_resolve_external_url`` when:
+
+    * no panel_origin was passed (older panel build, non-panel caller), OR
+    * the panel_origin doesn't match any URL HA thinks it serves
+      (defensive — we don't want a stray ``Origin`` header to redirect
+      OAuth callbacks to an attacker-controlled host).
+    """
+    if panel_origin:
+        candidate = panel_origin.rstrip("/")
+        if candidate.lower() in _known_ha_origins(hass):
+            return candidate
+    return _resolve_external_url(hass)
+
+
 # ── Exchange helpers (refactored from __init__.py WS handlers) ──────────────
 
 
@@ -503,13 +561,18 @@ async def _start_link(
     authorize_path: str,
     scope: str,
     extra_params: dict[str, str] | None = None,
+    panel_origin: str = "",
 ) -> dict[str, Any]:
     """Generate PKCE, store pending state, return authorize URL."""
     entry = _resolve_entry(hass)
     if entry is None:
         raise RuntimeError("Selora AI not configured")
 
-    base_url = _resolve_external_url(hass)
+    # Prefer the panel's current origin (window.location.origin) as the
+    # callback base when it matches one of HA's reachable URLs. Falls
+    # back to the external-first heuristic for legacy callers and for
+    # panel origins HA doesn't recognise. See _resolve_callback_base.
+    base_url = _resolve_callback_base(hass, panel_origin)
     redirect_uri = f"{base_url}{CALLBACK_PATH}"
     client_id = redirect_uri  # Public-client convention.
 
@@ -557,6 +620,7 @@ async def _start_link(
     {
         vol.Required("type"): "selora_ai/start_aigw_link",
         vol.Optional("connect_url", default=""): str,
+        vol.Optional("panel_origin", default=""): str,
     }
 )
 async def _ws_start_aigw_link(
@@ -577,6 +641,7 @@ async def _ws_start_aigw_link(
             extra_params={
                 "client_name": hass.config.location_name or "Home Assistant",
             },
+            panel_origin=msg.get("panel_origin", ""),
         )
     except RuntimeError as err:
         connection.send_error(msg["id"], "start_failed", str(err))
@@ -589,6 +654,7 @@ async def _ws_start_aigw_link(
     {
         vol.Required("type"): "selora_ai/start_connect_link",
         vol.Optional("connect_url", default=""): str,
+        vol.Optional("panel_origin", default=""): str,
     }
 )
 async def _ws_start_connect_link(
@@ -609,6 +675,7 @@ async def _ws_start_connect_link(
             extra_params={
                 "device_name": hass.config.location_name or "Home Assistant",
             },
+            panel_origin=msg.get("panel_origin", ""),
         )
     except RuntimeError as err:
         connection.send_error(msg["id"], "start_failed", str(err))

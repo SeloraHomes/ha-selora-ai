@@ -2879,6 +2879,24 @@ var chatStyles = i`
     display: flex;
     flex-direction: column;
   }
+  .assistant-wrap {
+    display: inline-flex;
+    flex-direction: column;
+    max-width: 82%;
+    align-self: flex-start;
+  }
+  /* Approval / proposal cards bring their own card chrome. On narrow
+     viewports the 82% cap leaves a wasteful right gutter and crunches
+     the flowchart, so let the proposal stretch to the full chat
+     column. Desktop keeps the standard bubble width. */
+  @media (max-width: 870px) {
+    .assistant-wrap--approval {
+      display: flex;
+      max-width: 100%;
+      width: 100%;
+      align-self: stretch;
+    }
+  }
   .bubble {
     max-width: 82%;
     padding: 12px 16px;
@@ -7907,6 +7925,14 @@ function pruneStaleSelections(text, selections) {
 }
 
 // src/panel/render-chat.js
+var AUTOMATION_LABELS = [
+  "Building automation...",
+  "Drafting triggers...",
+  "Wiring conditions...",
+  "Composing actions...",
+  "Almost ready...",
+];
+var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
 var AUTOCOMPLETE_KIND_LABELS = {
   device: "Devices",
   area: "Areas",
@@ -8710,7 +8736,7 @@ function renderMessage(host, msg, idx) {
           `
           : x`
             <div
-              style="display:inline-flex;flex-direction:column;max-width:82%;align-self:flex-start;"
+              class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
               <div
                 class="bubble assistant${msg.command_approval ? " bubble--approval" : ""}"
@@ -8726,20 +8752,28 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   showAutomationSpinner
-                    ? x`
-                      <div
-                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
-                      >
+                    ? (() => {
+                        const startedAt = msg._sentAt || Date.now();
+                        const labelIdx =
+                          Math.floor(
+                            (Date.now() - startedAt) /
+                              AUTOMATION_LABEL_INTERVAL_MS,
+                          ) % AUTOMATION_LABELS.length;
+                        return x`
                         <div
-                          class="typing-dot"
-                          style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
-                        ></div>
-                        <span
-                          style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >Building automation...</span
+                          style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
-                      </div>
-                    `
+                          <div
+                            class="typing-dot"
+                            style="animation:blink 1s infinite;width:8px;height:8px;border-radius:50%;background:#fbbf24;"
+                          ></div>
+                          <span
+                            style="font-size:13px;font-weight:500;color:#fbbf24;"
+                            >${AUTOMATION_LABELS[labelIdx]}</span
+                          >
+                        </div>
+                      `;
+                      })()
                     : ""
                 }
                 ${
@@ -8838,7 +8872,7 @@ function renderMessage(host, msg, idx) {
                       ? x` ·
                         <button
                           class="stream-interrupt-retry"
-                          @click=${() => host._retryMessage(msg._retryWith)}
+                          @click=${() => host._retryMessage(msg._retryWith, msg)}
                         >
                           <ha-icon
                             icon="mdi:refresh"
@@ -8888,6 +8922,26 @@ var DOMAIN_ICONS3 = {
   humidifier: "mdi:air-humidifier",
   camera: "mdi:cctv",
   device_tracker: "mdi:map-marker",
+  person: "mdi:account",
+  zone: "mdi:map-marker-radius",
+  sun: "mdi:weather-sunny",
+  weather: "mdi:weather-partly-cloudy",
+  automation: "mdi:robot",
+  scene: "mdi:palette",
+  script: "mdi:script-text",
+  input_boolean: "mdi:toggle-switch-variant",
+  input_number: "mdi:numeric",
+  input_select: "mdi:form-dropdown",
+  input_text: "mdi:form-textbox",
+  input_datetime: "mdi:calendar-clock",
+  input_button: "mdi:gesture-tap-button",
+  timer: "mdi:timer-outline",
+  counter: "mdi:counter",
+  group: "mdi:google-circles-communities",
+  notify: "mdi:bell",
+  alarm_control_panel: "mdi:shield-home",
+  air_quality: "mdi:air-filter",
+  remote: "mdi:remote",
 };
 function _stateColor2(state) {
   if (!state) return "var(--selora-zinc-400)";
@@ -10283,7 +10337,7 @@ function _renderStaleDetailModal(host) {
 }
 
 // src/panel/render-automations.js
-function renderFlowEntityChip(host, entityId) {
+function renderFlowEntityLink(host, entityId) {
   const stateObj = host.hass?.states?.[entityId];
   const friendly = stateObj?.attributes?.friendly_name || entityId;
   const icon =
@@ -10292,7 +10346,7 @@ function renderFlowEntityChip(host, entityId) {
     "mdi:circle-medium";
   return x`<button
     type="button"
-    class="flow-entity-chip"
+    class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
     @click=${(e5) => {
       e5.stopPropagation();
@@ -10305,14 +10359,39 @@ function renderFlowEntityChip(host, entityId) {
       );
     }}
   >
-    <ha-icon icon=${icon}></ha-icon>
-    <span>${friendly}</span>
+    <ha-icon icon=${icon}></ha-icon><span>${friendly}</span>
   </button>`;
+}
+var DURATION_RE =
+  /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
+function expandDurationAbbrev(s6) {
+  return s6
+    .replace(/(\d+)\s*h\b/g, "$1 hr")
+    .replace(/(\d+)\s*m\b/g, "$1 min")
+    .replace(/(\d+)\s*s\b/g, "$1 sec");
+}
+function renderFlowDuration(raw) {
+  return x`<span class="flow-duration"
+    ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
+      raw,
+    )}</span
+  >`;
+}
+function splitDurations(text) {
+  const out = [];
+  let last = 0;
+  for (const m2 of text.matchAll(DURATION_RE)) {
+    if (m2.index > last) out.push(text.slice(last, m2.index));
+    out.push({ duration: m2[0] });
+    last = m2.index + m2[0].length;
+  }
+  if (last < text.length) out.push(text.slice(last));
+  return out;
 }
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
+  if (!description) return x`${description}`;
   const entityIds = collectFlowEntityIds(item);
-  if (!entityIds.length || !description) return x`${description}`;
   const lookups = entityIds
     .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
     .filter((l5) => l5.name)
@@ -10335,13 +10414,26 @@ function renderFlowDescription(host, item) {
       break;
     }
     if (bestIdx > 0) segments.push(remaining.slice(0, bestIdx));
-    segments.push({ chip: bestMatch.eid });
+    segments.push({ entity: bestMatch.eid });
     remaining = remaining.slice(bestIdx + bestMatch.name.length);
   }
   if (remaining && safety <= 0) segments.push(remaining);
-  return x`${segments.map((s6) =>
-    typeof s6 === "string" ? s6 : renderFlowEntityChip(host, s6.chip),
-  )}`;
+  const final = [];
+  for (const seg of segments) {
+    if (typeof seg !== "string") {
+      final.push(seg);
+      continue;
+    }
+    for (const piece of splitDurations(seg)) {
+      final.push(piece);
+    }
+  }
+  return x`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.duration) return renderFlowDuration(s6.duration);
+    return "";
+  })}`;
 }
 function renderFlowNode(host, item, kind) {
   return x`<div class="flow-node ${kind}-node">
@@ -13856,12 +13948,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.9.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.9.1"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.9.0"}
+            Selora AI v${"0.9.1"}
           </a>
         </div>
       </div>
@@ -15621,6 +15713,32 @@ async function _openSession(sessionId) {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    const sessionEntries = [...(this._streams || [])].filter(
+      (e5) =>
+        e5.sessionId === session.id &&
+        (e5.assistantMsg?._streaming || e5.assistantMsg?._interrupted),
+    );
+    if (sessionEntries.length > 0) {
+      const tail = [];
+      for (const e5 of sessionEntries) {
+        if (e5.userMsg) tail.push(e5.userMsg);
+        tail.push(e5.assistantMsg);
+      }
+      this._messages = [...this._messages, ...tail];
+      const liveEntry = sessionEntries.find(
+        (e5) => e5.assistantMsg?._streaming,
+      );
+      if (liveEntry) {
+        this._loading = !liveEntry.assistantMsg.content;
+        this._streaming = true;
+      } else {
+        this._loading = false;
+        this._streaming = false;
+      }
+    } else {
+      this._loading = false;
+      this._streaming = false;
+    }
     this._setActiveTab("chat");
     if (this.narrow) this._showSidebar = false;
   } catch (err) {
@@ -15637,6 +15755,8 @@ async function _newSession() {
     this._deviceDetail = null;
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
+    this._loading = false;
+    this._streaming = false;
     this._setActiveTab("chat");
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
@@ -15814,6 +15934,7 @@ async function _confirmDeleteSession() {
       type: "selora_ai/delete_session",
       session_id: sessionId,
     });
+    _pruneStreamsForSession.call(this, sessionId);
     if (this._activeSessionId === sessionId) {
       this._activeSessionId = null;
       this._messages = [];
@@ -15821,6 +15942,19 @@ async function _confirmDeleteSession() {
     await this._loadSessions();
   } catch (err) {
     console.error("Failed to delete session", err);
+  }
+}
+function _pruneStreamsForSession(sessionId) {
+  if (!this._streams) return;
+  for (const e5 of [...this._streams]) {
+    if (e5.sessionId !== sessionId) continue;
+    try {
+      e5.teardown();
+    } catch (_2) {}
+    try {
+      e5.cancel();
+    } catch (_2) {}
+    this._streams.delete(e5);
   }
 }
 function _toggleSessionSelection(sessionId) {
@@ -15859,6 +15993,7 @@ async function _confirmBulkDeleteSessions() {
         type: "selora_ai/delete_session",
         session_id: id,
       });
+      _pruneStreamsForSession.call(this, id);
       if (this._activeSessionId === id) {
         this._activeSessionId = null;
         this._messages = [];
@@ -17783,7 +17918,7 @@ var SeloraAIPanel = class extends s4 {
     };
     this._autocompleteSelections = [];
     this._ghost = null;
-    this._streamUnsub = null;
+    this._streams = /* @__PURE__ */ new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
     this._suggestions = [];
@@ -18175,11 +18310,11 @@ var SeloraAIPanel = class extends s4 {
       clearInterval(this._quotaTickTimer);
       this._quotaTickTimer = null;
     }
-    if (this._streamUnsub) {
+    if (this._streams && this._streams.size > 0) {
       try {
-        this._stopStreaming();
+        this._stopStreaming({ all: true });
       } catch (_e) {
-        this._streamUnsub = null;
+        this._streams.clear();
         this._streaming = false;
         this._loading = false;
         const lastMsg = this._messages[this._messages.length - 1];
@@ -18431,6 +18566,15 @@ var SeloraAIPanel = class extends s4 {
       const result = await this.hass.callWS({
         type: wsType,
         connect_url: this._config?.selora_connect_url || "",
+        // Hand HA the panel's CURRENT origin so the OAuth callback
+        // lands on the same URL the user is browsing from. Backend
+        // validates against HA's known internal+external URLs and
+        // falls back to the legacy external-preferred behaviour if
+        // we send something it doesn't recognise. Without this, a
+        // user opening the panel locally got an OAuth flow that
+        // bounced through their external URL — which breaks when the
+        // external endpoint blocks non-HA traffic.
+        panel_origin: window.location.origin,
       });
       const authorizeUrl = result?.authorize_url;
       if (!authorizeUrl) throw new Error("No authorize URL returned.");
@@ -18717,7 +18861,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.9.0" : "unknown",
+        integration_version: true ? "0.9.1" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
