@@ -71,6 +71,7 @@ class SeloraAuthContext:
     auth_type: str  # "ha_token", "selora_jwt", or "mcp_token"
     allowed_tools: frozenset[str] | None = None  # None → use is_admin logic
     token_id: str | None = None  # set only for mcp_token
+    scopes: frozenset[str] = frozenset()  # OAuth scopes (selora_jwt only)
 
 
 # ── JWT Validator ─────────────────────────────────────────────────────────────
@@ -141,6 +142,7 @@ class SeloraJWTValidator:
             email=payload.get("email"),
             is_admin=is_admin,
             auth_type="selora_jwt",
+            scopes=frozenset(scopes),
         )
 
 
