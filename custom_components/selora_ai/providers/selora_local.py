@@ -1320,7 +1320,12 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
                 self._spinner_sentinel_emitted.set(True)
                 yield "```automation\n"
 
-            result, error = await self.send_request(system, messages)
+            # NOTE: call super().send_request, NOT self.send_request — we
+            # already hold self._request_lock and activated the slot above.
+            # self.send_request re-acquires the same (non-reentrant) lock,
+            # which deadlocks the whole JSON path (command/automation) until
+            # the client times out. super() runs the completion directly.
+            result, error = await super().send_request(system, messages)
             if error:
                 # Stream consumers (architect_chat_stream → websocket
                 # handler) only surface errors when the generator raises

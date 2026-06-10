@@ -14,7 +14,11 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
-from custom_components.selora_ai.llm_client.intent import _is_pure_greeting
+from custom_components.selora_ai.llm_client.intent import (
+    _classify_chat_intent,
+    _is_identity_question,
+    _is_pure_greeting,
+)
 from custom_components.selora_ai.providers import create_provider
 
 
@@ -94,6 +98,62 @@ class TestIsPureGreeting:
         assert _is_pure_greeting(message) is False
 
 
+class TestIsIdentityQuestion:
+    """Identity/capability questions route to the answer specialist.
+
+    "what are you?" etc. were classified as clarification and sent to the
+    command/automation LoRA, which recited its role and (with
+    repeat_penalty pinned at 1.0 to keep JSON in-distribution) looped on
+    it. Detecting them lets the classifier route to the answer
+    specialist instead — short-format, streamed — so any residual
+    repetition is visible rather than stalling the JSON path. Must not
+    eat real requests that merely contain "you".
+    """
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "what are you?",
+            "what are you",
+            "who are you?",
+            "WHAT ARE YOU",
+            "what can you do?",
+            "what do you do",
+            "what's your name",
+            "what is selora",
+            "tell me about yourself",
+            "introduce yourself",
+            "describe selora",
+            "what are your capabilities",
+            "who r u",
+            "so what are you?",
+            "what does selora do",
+            "how does selora work?",
+            "are you selora?",
+        ],
+    )
+    def test_recognises_identity_questions(self, message: str) -> None:
+        assert _is_identity_question(message) is True
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "",
+            "   ",
+            "turn off the kitchen light",
+            "can you turn off the kitchen light?",
+            "what's the outdoor temperature?",
+            "create an automation to turn on the porch light at sunset",
+            "turn off the light",
+            "what are you going to do about the porch light?",
+            "what lights are on?",
+            "is the front door locked?",
+        ],
+    )
+    def test_rejects_non_identity_questions(self, message: str) -> None:
+        assert _is_identity_question(message) is False
+
+
 class TestArchitectChatShortcut:
     """``architect_chat`` returns the canned reply without provider calls."""
 
@@ -123,6 +183,16 @@ class TestArchitectChatShortcut:
         result = await client.architect_chat("thanks!", entities=[])
         assert result["intent"] == "answer"
         client._provider.send_request.assert_not_called()
+
+    async def test_identity_question_calls_provider(self, hass) -> None:
+        # Identity questions now route to the answer specialist; the model
+        # owns the reply (no canned short-circuit), so the provider runs.
+        client = _make_client(hass)
+        client._provider.send_request = AsyncMock(
+            return_value=('{"intent": "answer", "response": "ok"}', None)
+        )
+        await client.architect_chat("what are you?", entities=[])
+        client._provider.send_request.assert_called_once()
 
 
 class TestArchitectChatStreamShortcut:
@@ -165,3 +235,38 @@ class TestArchitectChatStreamShortcut:
         finally:
             # Restore default attribute access on the class.
             del type(client._provider).is_low_context
+
+
+
+class TestClassifyChatIntent:
+    """Low-context intent routing for the LoRA specialists."""
+
+    @pytest.mark.parametrize(
+        ("message", "expected"),
+        [
+            ("what are you?", "answer"),
+            ("what can you do?", "answer"),
+            ("who are you", "answer"),
+            ("can you turn off the kitchen light", "command"),
+            ("could you please open the garage", "command"),
+            ("would you set the thermostat to 21", "command"),
+            # "should I/you/we …" stays on the answer path: advisory
+            # questions ("should I turn off the heater?") must not
+            # trigger device actions via the command specialist.
+            ("should I turn off the heater?", "answer"),
+            ("should we lock the front door?", "answer"),
+            ("hey can you turn off the bedroom light", "command"),
+            ("turn off the kitchen light", "command"),
+            ("turn on the porch light at sunset", "command"),
+            ("what lights can I turn on", "answer"),
+            ("what lights are on?", "answer"),
+            ("is the garage door open?", "answer"),
+            ("every day at sunset turn on the porch light", "automation"),
+            ("when the garage door opens, turn on the kitchen light", "automation"),
+            ("remind me to turn off the coffee maker at 9pm", "automation"),
+            ("hello", "answer"),
+            ("thanks", "answer"),
+        ],
+    )
+    def test_routes_to_expected_specialist(self, message: str, expected: str) -> None:
+        assert _classify_chat_intent(message) == expected
