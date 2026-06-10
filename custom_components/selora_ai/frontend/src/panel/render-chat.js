@@ -218,6 +218,7 @@ export function renderChat(host) {
                             ? "#fbbf24"
                             : host._primaryColor || "#03a9f4"}
                           .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                          .speed=${host._streaming || host._loading ? 2.2 : 1}
                         ></selora-particles>
                         ${_renderComposer(host, { welcome: true })}
                       </div>

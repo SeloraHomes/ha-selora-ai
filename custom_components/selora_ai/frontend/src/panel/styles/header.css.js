@@ -52,6 +52,48 @@ export const headerStyles = css`
     );
     filter: blur(4px);
     z-index: 3;
+    transition:
+      opacity 0.6s ease,
+      filter 0.6s ease;
+  }
+  :host([dark]) .header::after {
+    transition:
+      opacity 0.6s ease,
+      filter 0.6s ease;
+  }
+  @keyframes selora-glow-line-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    50% {
+      opacity: 0.6;
+      filter: brightness(0.78);
+    }
+  }
+  @keyframes selora-glow-halo-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: blur(4px) brightness(1);
+    }
+    50% {
+      opacity: 0.55;
+      filter: blur(4px) brightness(0.72);
+    }
+  }
+  :host([dark][processing]) .header::after {
+    animation: selora-glow-line-pulse 2.8s ease-in-out infinite;
+  }
+  :host([dark][processing]) .header::before {
+    animation: selora-glow-halo-pulse 2.8s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :host([dark][processing]) .header::after,
+    :host([dark][processing]) .header::before {
+      animation: none;
+    }
   }
   .header-toolbar {
     position: relative;
