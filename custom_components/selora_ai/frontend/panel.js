@@ -2087,6 +2087,48 @@ var headerStyles = i`
     );
     filter: blur(4px);
     z-index: 3;
+    transition:
+      opacity 0.6s ease,
+      filter 0.6s ease;
+  }
+  :host([dark]) .header::after {
+    transition:
+      opacity 0.6s ease,
+      filter 0.6s ease;
+  }
+  @keyframes selora-glow-line-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: brightness(1);
+    }
+    50% {
+      opacity: 0.6;
+      filter: brightness(0.78);
+    }
+  }
+  @keyframes selora-glow-halo-pulse {
+    0%,
+    100% {
+      opacity: 1;
+      filter: blur(4px) brightness(1);
+    }
+    50% {
+      opacity: 0.55;
+      filter: blur(4px) brightness(0.72);
+    }
+  }
+  :host([dark][processing]) .header::after {
+    animation: selora-glow-line-pulse 2.8s ease-in-out infinite;
+  }
+  :host([dark][processing]) .header::before {
+    animation: selora-glow-halo-pulse 2.8s ease-in-out infinite;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :host([dark][processing]) .header::after,
+    :host([dark][processing]) .header::before {
+      animation: none;
+    }
   }
   .header-toolbar {
     position: relative;
@@ -6288,6 +6330,9 @@ var SparkleEngine = class {
     this.count = opts.count || 400;
     this.maxOpacity = opts.maxOpacity ?? 1;
     this._rgb = parseHexColor(this.color);
+    this._currentSpeed = 1;
+    this._targetSpeed = opts.speed ?? 1;
+    this._speedEase = 0.05;
   }
   resize(width, height) {
     this.w = width;
@@ -6330,10 +6375,13 @@ var SparkleEngine = class {
   };
   _update() {
     const { w: w2, h: h3, maxOpacity, particles } = this;
+    this._currentSpeed +=
+      (this._targetSpeed - this._currentSpeed) * this._speedEase;
+    const s6 = this._currentSpeed;
     for (let i5 = 0, len = particles.length; i5 < len; i5++) {
       const p2 = particles[i5];
-      p2.x += p2.vx;
-      p2.y += p2.vy;
+      p2.x += p2.vx * s6;
+      p2.y += p2.vy * s6;
       if (p2.x < 0) p2.x = w2;
       else if (p2.x > w2) p2.x = 0;
       if (p2.y < 0) {
@@ -6342,7 +6390,7 @@ var SparkleEngine = class {
         const r4 = Math.random();
         p2.y = r4 * r4 * h3 * 0.5;
       }
-      p2.opacity += p2.opacitySpeed * p2.opacityDir;
+      p2.opacity += p2.opacitySpeed * p2.opacityDir * s6;
       if (p2.opacity >= maxOpacity) {
         p2.opacity = maxOpacity;
         p2.opacityDir = -1;
@@ -6396,6 +6444,15 @@ var SeloraParticles = class extends HTMLElement {
   get maxOpacity() {
     return this._maxOpacity;
   }
+  set speed(value) {
+    this._speed = value;
+    if (this._engine && value != null) {
+      this._engine._targetSpeed = value;
+    }
+  }
+  get speed() {
+    return this._speed;
+  }
   connectedCallback() {
     const canvas = document.createElement("canvas");
     canvas.setAttribute("aria-hidden", "true");
@@ -6407,7 +6464,14 @@ var SeloraParticles = class extends HTMLElement {
     const count = this.count || 400;
     const color = this._color || "#C7AE6A";
     const maxOpacity = this._maxOpacity ?? 1;
-    this._engine = new SparkleEngine(canvas, { color, count, maxOpacity });
+    const speed = this._speed ?? 1;
+    this._engine = new SparkleEngine(canvas, {
+      color,
+      count,
+      maxOpacity,
+      speed,
+    });
+    this._engine._currentSpeed = 1;
     this._ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
@@ -8100,6 +8164,7 @@ function renderChat(host) {
                           .count=${260}
                           .color=${host._isDark ? "#fbbf24" : host._primaryColor || "#03a9f4"}
                           .maxOpacity=${host._isDark ? 0.55 : 0.5}
+                          .speed=${host._streaming || host._loading ? 2.2 : 1}
                         ></selora-particles>
                         ${_renderComposer(host, { welcome: true })}
                       </div>
@@ -18905,6 +18970,7 @@ var SeloraAIPanel = class extends s4 {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
     }
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
+    this.toggleAttribute("processing", !!(this._streaming || this._loading));
     if (changedProps.has("hass")) {
       this._attachWsReadyListener();
       this._ensureQuotaSubscription();
@@ -20064,6 +20130,7 @@ var SeloraAIPanel = class extends s4 {
             .count=${this._quotaAlert ? (this._isDark ? 1600 : 600) : this._isDark ? 1200 : 400}
             .color=${this._quotaAlert ? "#ef4444" : this._isDark ? "#C7AE6A" : this._primaryColor || "#03a9f4"}
             .maxOpacity=${this._quotaAlert ? 1 : this._isDark ? 1 : 0.5}
+            .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
           ${this._renderQuotaBanner()}
           ${this._activeTab === "chat" ? this._renderChat() : ""}

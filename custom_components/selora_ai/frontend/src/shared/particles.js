@@ -30,6 +30,11 @@ class SparkleEngine {
     this.count = opts.count || 400;
     this.maxOpacity = opts.maxOpacity ?? 1.0;
     this._rgb = parseHexColor(this.color);
+    // Speed multiplier applied to movement + opacity pulse. Eases toward
+    // `_targetSpeed` so callers can ramp processing animation up/down smoothly.
+    this._currentSpeed = 1;
+    this._targetSpeed = opts.speed ?? 1;
+    this._speedEase = 0.05;
   }
 
   resize(width, height) {
@@ -80,10 +85,13 @@ class SparkleEngine {
 
   _update() {
     const { w, h, maxOpacity, particles } = this;
+    this._currentSpeed +=
+      (this._targetSpeed - this._currentSpeed) * this._speedEase;
+    const s = this._currentSpeed;
     for (let i = 0, len = particles.length; i < len; i++) {
       const p = particles[i];
-      p.x += p.vx;
-      p.y += p.vy;
+      p.x += p.vx * s;
+      p.y += p.vy * s;
       if (p.x < 0) p.x = w;
       else if (p.x > w) p.x = 0;
       if (p.y < 0) {
@@ -94,7 +102,7 @@ class SparkleEngine {
         const r = Math.random();
         p.y = r * r * h * 0.5;
       }
-      p.opacity += p.opacitySpeed * p.opacityDir;
+      p.opacity += p.opacitySpeed * p.opacityDir * s;
       if (p.opacity >= maxOpacity) {
         p.opacity = maxOpacity;
         p.opacityDir = -1;
@@ -151,6 +159,15 @@ class SeloraParticles extends HTMLElement {
   get maxOpacity() {
     return this._maxOpacity;
   }
+  set speed(value) {
+    this._speed = value;
+    if (this._engine && value != null) {
+      this._engine._targetSpeed = value;
+    }
+  }
+  get speed() {
+    return this._speed;
+  }
 
   connectedCallback() {
     // Build DOM
@@ -166,8 +183,16 @@ class SeloraParticles extends HTMLElement {
     const count = this.count || 400;
     const color = this._color || "#C7AE6A";
     const maxOpacity = this._maxOpacity ?? 1.0;
+    const speed = this._speed ?? 1;
 
-    this._engine = new SparkleEngine(canvas, { color, count, maxOpacity });
+    this._engine = new SparkleEngine(canvas, {
+      color,
+      count,
+      maxOpacity,
+      speed,
+    });
+    // Engine starts at currentSpeed=1 so first transition still eases.
+    this._engine._currentSpeed = 1;
 
     // Wait for layout to settle, then start
     this._ro = new ResizeObserver((entries) => {

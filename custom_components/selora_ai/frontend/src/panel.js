@@ -1602,6 +1602,8 @@ class SeloraAIPanel extends LitElement {
     // Reflect the active quota alert as a host attribute so CSS / status
     // chrome can react. Cheap toggle, fine to run every update.
     this.toggleAttribute("quota-exceeded", !!this._quotaAlert);
+    // Reflect active LLM activity so CSS can pulse the header glow line.
+    this.toggleAttribute("processing", !!(this._streaming || this._loading));
     if (changedProps.has("hass")) {
       // hass can land after connectedCallback (depends on the panel-mount
       // path) — kick the quota subscription as soon as it's available.
@@ -2904,6 +2906,7 @@ class SeloraAIPanel extends LitElement {
                 ? "#C7AE6A"
                 : this._primaryColor || "#03a9f4"}
             .maxOpacity=${this._quotaAlert ? 1.0 : this._isDark ? 1.0 : 0.5}
+            .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
           ${this._renderQuotaBanner()}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
