@@ -101,7 +101,10 @@ async def _probe_one(hass: HomeAssistant, host: str) -> str | None:
             asyncio.open_connection(parsed_host, parsed_port),
             timeout=_SELORA_LOCAL_PROBE_TIMEOUT,
         )
-    except TimeoutError, OSError:
+    except (
+        TimeoutError,
+        OSError,
+    ):
         return None
     except Exception:  # noqa: BLE001 - probe must not break callers
         _LOGGER.debug("Selora AI Local probe failed for %s", host, exc_info=True)

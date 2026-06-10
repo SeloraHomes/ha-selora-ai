@@ -903,7 +903,10 @@ def _data_signature(data: Any) -> str:
         return ""
     try:
         return json.dumps(cleaned, sort_keys=True, default=str)
-    except TypeError, ValueError:
+    except (
+        TypeError,
+        ValueError,
+    ):
         return str(sorted(cleaned.items()))
 
 

@@ -9,10 +9,12 @@ stages:
 variables:
   PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
   SAST_EXCLUDED_PATHS: ""
+  # Default Python for non-matrix jobs; matrix entries in `unit` override this.
+  PYTHON_VERSION: "3.14"
 
 .pip-cache: &pip-cache
   cache:
-    key: "pip-py314-$CI_COMMIT_REF_SLUG"
+    key: "pip-py$PYTHON_VERSION-$CI_COMMIT_REF_SLUG"
     paths:
       - .cache/pip
 
@@ -66,7 +68,10 @@ validate:
 
 unit:
   stage: test
-  image: python:3.14-slim
+  image: python:${PYTHON_VERSION}-slim
+  parallel:
+    matrix:
+      - PYTHON_VERSION: ["3.13", "3.14"]
   <<: *pip-cache
   before_script:
     - apt-get update -qq && apt-get install -y -qq gcc python3-dev > /dev/null

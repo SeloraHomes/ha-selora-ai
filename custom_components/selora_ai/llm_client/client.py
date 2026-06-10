@@ -742,7 +742,10 @@ class LLMClient:
                     if title.startswith("{") and title.endswith("}"):
                         try:
                             parsed = json.loads(title)
-                        except json.JSONDecodeError, ValueError:
+                        except (
+                            json.JSONDecodeError,
+                            ValueError,
+                        ):
                             parsed = None
                         if isinstance(parsed, dict):
                             extracted = parsed.get("response") or parsed.get("r")

@@ -175,7 +175,10 @@ def _format_time_at(at: str) -> str:
         h = int(parts[0])
         m = int(parts[1]) if len(parts) > 1 else 0
         s = int(parts[2]) if len(parts) > 2 else 0
-    except ValueError, IndexError:
+    except (
+        ValueError,
+        IndexError,
+    ):
         return at
     if not (0 <= h <= 23 and 0 <= m <= 59 and 0 <= s <= 59):
         return at

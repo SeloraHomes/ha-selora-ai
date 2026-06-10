@@ -2149,7 +2149,10 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     domain_filter = str(arguments.get("domain", "")).strip().lower()
     try:
         limit = int(arguments.get("limit", 10))
-    except TypeError, ValueError:
+    except (
+        TypeError,
+        ValueError,
+    ):
         limit = 10
     limit = max(1, min(limit, 25))
 
@@ -2180,11 +2183,14 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
         aliases = ""
         ent_area_id: str | None = None
         if entry is not None:
-            # entry.aliases is list[AliasEntry] where AliasEntry =
-            # str | ComputedNameType in current HA; compat_aliases is
-            # the stable list[str] view designed for downstream
-            # consumers that need plain strings.
-            aliases = " ".join(entry.compat_aliases).lower() if entry.compat_aliases else ""
+            # `compat_aliases` is the plain-string view added in HA
+            # 2026.x where `aliases` became list[AliasEntry]
+            # (str | ComputedNameType). Older HA exposes `aliases` as
+            # set[str], so fall back to it when compat_aliases is absent.
+            raw_aliases = getattr(entry, "compat_aliases", None)
+            if raw_aliases is None:
+                raw_aliases = entry.aliases
+            aliases = " ".join(str(a) for a in raw_aliases).lower() if raw_aliases else ""
             ent_area_id = entry.area_id
             if ent_area_id is None and entry.device_id:
                 device = dev_reg.async_get(entry.device_id)
@@ -2241,7 +2247,10 @@ async def _tool_get_entity_history(
 
     try:
         hours = float(arguments.get("hours", 6))
-    except TypeError, ValueError:
+    except (
+        TypeError,
+        ValueError,
+    ):
         hours = 6.0
     hours = max(0.25, min(hours, float(_HISTORY_MAX_HOURS)))
 
@@ -2592,7 +2601,10 @@ def _normalize_suggestion(
     confidence_raw: Any = raw.get("confidence", 0.7)
     try:
         confidence: float = max(0.0, min(1.0, float(confidence_raw)))
-    except TypeError, ValueError:
+    except (
+        TypeError,
+        ValueError,
+    ):
         confidence = 0.7
 
     entity_ids: list[str] = _collect_entity_ids(raw.get("automation_data") or raw)
@@ -2680,7 +2692,10 @@ async def _tool_list_patterns(
     if min_confidence_raw is not None:
         try:
             min_confidence = float(min_confidence_raw)
-        except TypeError, ValueError:
+        except (
+            TypeError,
+            ValueError,
+        ):
             min_confidence = None
 
     suggestions: list[dict[str, Any]] = await _phase2_suggestions(hass)
