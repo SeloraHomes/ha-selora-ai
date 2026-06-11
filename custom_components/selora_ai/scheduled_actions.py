@@ -413,10 +413,16 @@ class ScheduledTaskTracker:
             if not fire_date_str:
                 continue
 
-            # Extract trigger time (HH:MM:SS) from the time trigger
+            # Extract trigger time (HH:MM:SS) from the time trigger.
+            # Accept both the canonical HA 2024.10+ `trigger:` key and
+            # the legacy `platform:` key — validate_automation_payload
+            # normalises to `trigger:`, but YAML written before that
+            # normalisation landed (and YAML hand-edited by users) may
+            # still use `platform:`.
             trigger_time_str: str | None = None
             for trig in auto.get("triggers", []):
-                if trig.get("platform") == "time":
+                trig_kind = trig.get("trigger") or trig.get("platform")
+                if trig_kind == "time":
                     trigger_time_str = trig.get("at", "")
                     break
 
