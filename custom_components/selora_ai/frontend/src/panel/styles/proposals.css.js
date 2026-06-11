@@ -247,16 +247,12 @@ export const proposalStyles = css`
   }
   .flow-node {
     display: inline-block;
-    padding: 8px 14px;
+    padding: 10px 14px;
     border-radius: 10px;
     max-width: 100%;
     word-break: break-word;
     font-size: 14px;
-    /* Tall line-height gives wrapped entity-chip rows breathing space.
-       Chips render as inline-flex pills with vertical padding; without
-       this leading, consecutive chip rows visually collide because
-       padding extends beyond the line box. */
-    line-height: 2.1;
+    line-height: 1.5;
   }
   .trigger-node,
   .condition-node,
@@ -265,64 +261,54 @@ export const proposalStyles = css`
     border: 1px solid rgba(var(--rgb-primary-text-color, 255, 255, 255), 0.15);
     color: var(--primary-text-color);
   }
-  /* Inline clickable entity reference embedded inside a flow-node's
-     description. Each referenced entity appears exactly once — as a
-     chip rather than as plain text — so users can click straight
-     through to HA's more-info dialog without "Decorative Lights"
-     being printed both as prose and as a separate chip row below.
-
-     Sized to read like part of the sentence: matches the surrounding
-     line-height and uses vertical-align: middle so it doesn't push the
-     line down.
-
-     white-space:normal + overflow-wrap:anywhere + max-width:100% let a
-     chip with a very long device name ("Airthings Wave2 (067574) Radon
-     1-day average") break across two lines inside the card's column
-     instead of overflowing the column's right edge and clipping
-     against the next card in the suggestions grid (ha-integration#109).
-
-     The flow-node sets a tall line-height (~2.1) so consecutive chip
-     rows stay visually separated — chip vertical padding extends past
-     the cap-height of the line box, and a tight line-height made the
-     pills look stacked on top of each other. */
-  .flow-entity-chip {
+  .flow-entity-link {
     display: inline-flex;
-    align-items: center;
+    align-items: baseline;
     gap: 4px;
-    padding: 2px 10px;
-    margin: 2px 1px;
-    font-size: inherit;
-    line-height: 1.3;
-    vertical-align: middle;
-    border-radius: 8px;
-    background: rgba(251, 191, 36, 0.12);
-    border: 1px solid rgba(251, 191, 36, 0.32);
-    color: var(--primary-text-color);
-    font-family: inherit;
+    background: none;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font: inherit;
+    color: var(--selora-accent, #fbbf24);
     cursor: pointer;
-    /* border-box so padding + border count toward max-width; without
-       this, content-box adds ~22px and the pill overflows the card on
-       long device names. */
-    box-sizing: border-box;
+    vertical-align: baseline;
     max-width: 100%;
-    white-space: normal;
+  }
+  .flow-entity-link > span {
+    text-decoration: underline;
+    text-decoration-color: rgba(251, 191, 36, 0.5);
+    text-underline-offset: 3px;
+    text-decoration-thickness: 1px;
+    word-break: break-word;
     overflow-wrap: anywhere;
-    transition:
-      background 0.15s,
-      border-color 0.15s,
-      transform 0.1s;
   }
-  .flow-entity-chip:hover {
-    background: rgba(251, 191, 36, 0.22);
-    border-color: rgba(251, 191, 36, 0.6);
+  .flow-entity-link:hover > span {
+    text-decoration-color: var(--selora-accent, #fbbf24);
   }
-  .flow-entity-chip:active {
-    transform: translateY(1px);
+  .flow-entity-link:focus-visible {
+    outline: 2px solid var(--selora-accent, #fbbf24);
+    outline-offset: 2px;
+    border-radius: 2px;
   }
-  .flow-entity-chip ha-icon {
-    --mdc-icon-size: 14px;
-    color: rgba(251, 191, 36, 0.95);
+  .flow-entity-link ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent, #fbbf24);
     flex-shrink: 0;
+    align-self: center;
+    transform: translateY(-2px);
+  }
+  .flow-duration {
+    white-space: nowrap;
+    color: var(--primary-text-color);
+  }
+  .flow-duration ha-icon {
+    --mdc-icon-size: 14px;
+    color: var(--secondary-text-color);
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+    margin-right: 3px;
   }
   /* Branching action structure: each 'choose' branch, each
      'parallel' / 'sequence' block, and each 'repeat' body gets
