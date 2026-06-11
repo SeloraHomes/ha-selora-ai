@@ -553,6 +553,62 @@ class TestScheduledTaskTracker:
         assert pending[0].session_id == "sess_42"
 
     @pytest.mark.asyncio
+    async def test_cleanup_restores_pending_with_canonical_trigger_key(
+        self, hass: MagicMock
+    ) -> None:
+        """validate_automation_payload normalises to ``trigger: time`` (HA
+        2024.10+ canonical key). The cleanup reader must accept it — the
+        legacy ``platform:`` form alone would parse trigger_time_str as
+        empty and default the fire time to midnight, deleting same-day
+        automations as stale on restart."""
+        tracker = ScheduledTaskTracker(hass)
+        automations = [
+            {
+                "id": "selora_ai_future_canonical",
+                "alias": "Scheduled: Porch light",
+                "description": "[Selora AI] One-shot scheduled action (sched_can) [session:sess_99]",
+                "triggers": [{"trigger": "time", "at": "23:00:00"}],
+                "conditions": [
+                    {
+                        "condition": "template",
+                        "value_template": "{{ now().strftime('%Y-%m-%d') == '2099-12-31' }}",
+                    },
+                ],
+                "actions": [{"action": "light.turn_on", "target": {"entity_id": "light.porch"}}],
+            },
+        ]
+
+        async def fake_executor_job(func: Any, *args: Any) -> Any:
+            return automations
+
+        hass.async_add_executor_job = fake_executor_job
+
+        with patch(
+            "custom_components.selora_ai.automation_utils.async_delete_automation",
+        ) as mock_delete, patch(
+            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+            return_value=MagicMock(),
+        ):
+            removed = await tracker.async_cleanup_stale_automations()
+
+        # Future automation must not be deleted — its trigger time must
+        # parse via the canonical key, not default to midnight.
+        assert removed == 0
+        mock_delete.assert_not_called()
+        pending = tracker.get_pending_tasks("sess_99")
+        assert len(pending) == 1
+        assert pending[0].schedule_id == "sched_can"
+        # Fire time uses 23:00:00 from the canonical trigger, not 00:00.
+        # Restored as a tz-aware datetime in local tz; convert back to
+        # the configured local tz before asserting on the hour so the
+        # test is independent of the runner's system timezone.
+        from homeassistant.util import dt as dt_util  # noqa: PLC0415
+
+        local_fire = pending[0].fires_at.astimezone(dt_util.get_default_time_zone())
+        assert local_fire.hour == 23
+        assert local_fire.minute == 0
+
+    @pytest.mark.asyncio
     async def test_cleanup_removes_same_day_past_time(
         self, hass: MagicMock
     ) -> None:

@@ -153,11 +153,25 @@ def _validate_trigger(
     if trig.get("platform") and trig.get("trigger"):
         return False, "trigger must not contain both 'platform' and 'trigger' keys"
 
-    trigger_value = trig.get("trigger")
-    if not trig.get("platform") and isinstance(trigger_value, str) and trigger_value:
-        trig["platform"] = trig.pop("trigger")
+    # HA 2024.10+ uses `trigger:` as the canonical key (the legacy
+    # `platform:` form is still accepted at reload). Normalize TO
+    # `trigger:` — the wire envelope and downstream behavioural
+    # checks (chk_trigger_is_sun_event, chk_trigger_is_numeric_state)
+    # require the `trigger` field, and emitting the legacy `platform`
+    # key here makes them dead-end fail.
+    platform_value = trig.get("platform")
+    if not trig.get("trigger") and isinstance(platform_value, str) and platform_value:
+        trig["trigger"] = trig.pop("platform")
+    # Drop a co-existing empty legacy ``platform`` key whenever a
+    # valid ``trigger`` is present. Without this the normalised
+    # payload retains ``platform: ""`` next to the canonical
+    # ``trigger:`` value; the local schema doesn't object, but Home
+    # Assistant's reload-time validator rejects the unexpected extra
+    # key and the automation silently fails to load.
+    if trig.get("trigger") and "platform" in trig and not trig.get("platform"):
+        del trig["platform"]
 
-    platform = trig.get("platform")
+    platform = trig.get("trigger")
     if isinstance(platform, str) and "." in platform:
         return (
             False,

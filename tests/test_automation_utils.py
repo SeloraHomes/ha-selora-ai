@@ -226,9 +226,10 @@ class TestValidateAutomationPayload:
             assert "event_type" in msg
 
     def test_coerces_new_schema_trigger_key_for_plain_platform(self) -> None:
-        """`{trigger: "state"}` (HA 2024.10+ key, plain platform value) is
-        coerced to `{platform: "state"}` so downstream code sees a uniform
-        shape."""
+        """`{trigger: "state"}` (HA 2024.10+ canonical key) is kept as-is.
+        Downstream consumers — chk_trigger_* benchmark checks, the panel
+        renderer, parsers.py auto-correct — all read `trigger:`, not
+        `platform:`. Normalising backward to `platform:` would break them."""
         payload = {
             "alias": "NewKeyPlain",
             "triggers": [{"trigger": "state", "entity_id": "light.x", "to": "on"}],
@@ -236,8 +237,8 @@ class TestValidateAutomationPayload:
         }
         ok, msg, result = validate_automation_payload(payload)
         assert ok is True, msg
-        assert result["triggers"][0]["platform"] == "state"
-        assert "trigger" not in result["triggers"][0]
+        assert result["triggers"][0]["trigger"] == "state"
+        assert "platform" not in result["triggers"][0]
 
     def test_accepts_device_trigger_with_hex_device_id(self) -> None:
         """No hass → registry check skipped; hex shape still passes."""
@@ -578,16 +579,35 @@ class TestValidateAutomationPayload:
         assert isinstance(result["conditions"], list)
         assert len(result["conditions"]) == 1
 
-    def test_renames_trigger_key_to_platform(self) -> None:
+    def test_normalises_legacy_platform_to_trigger_key(self) -> None:
+        """Legacy ``platform: state`` form is normalised to the canonical
+        ``trigger: state`` form. Reverse direction from earlier behaviour
+        — see the doc on test_coerces_new_schema_trigger_key_for_plain_platform."""
         payload = {
             "alias": "Rename",
-            "trigger": [{"trigger": "state", "entity_id": "light.x"}],
+            "trigger": [{"platform": "state", "entity_id": "light.x"}],
             "action": [{"action": "light.turn_on"}],
         }
         ok, _, result = validate_automation_payload(payload)
         assert ok is True
-        assert result["triggers"][0]["platform"] == "state"
-        assert "trigger" not in result["triggers"][0]
+        assert result["triggers"][0]["trigger"] == "state"
+        assert "platform" not in result["triggers"][0]
+
+    def test_drops_empty_platform_when_trigger_key_is_valid(self) -> None:
+        """An LLM occasionally emits ``trigger: <valid>`` alongside an
+        empty ``platform: ""``. The normalised payload must drop the
+        legacy key — HA's reload-time validator rejects the extra
+        legacy field even though the local schema would accept it,
+        and the automation would then silently fail to load."""
+        payload = {
+            "alias": "EmptyLegacy",
+            "trigger": [{"trigger": "state", "platform": "", "entity_id": "light.x"}],
+            "action": [{"action": "light.turn_on"}],
+        }
+        ok, _, result = validate_automation_payload(payload)
+        assert ok is True
+        assert result["triggers"][0]["trigger"] == "state"
+        assert "platform" not in result["triggers"][0]
 
     # -- boolean / None / numeric coercion --------------------------------
 
