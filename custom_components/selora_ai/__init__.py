@@ -2119,6 +2119,7 @@ async def _handle_websocket_chat_stream(
             entities=entities,
             tool_log=tool_executor.call_log if tool_executor else None,
             session_id=session_id,
+            user_message=user_message,
         )
 
         intent_type = parsed.get("intent", "answer")
@@ -3135,7 +3136,9 @@ async def _handle_websocket_quick_create_automation(
         automation = result.get("automation")
         if not automation:
             # Try parsing from response text
-            parsed = llm.parse_streamed_response(result.get("response", ""), entities)
+            parsed = llm.parse_streamed_response(
+                result.get("response", ""), entities, user_message=prompt
+            )
             automation = parsed.get("automation")
 
         if not automation:

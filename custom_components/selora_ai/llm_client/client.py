@@ -459,7 +459,9 @@ class LLMClient:
                         "config_issue": is_config_issue,
                         "tool_calls": tool_log,
                     }
-                parsed = parse_architect_response(result_text, self._hass)
+                parsed = parse_architect_response(
+                    result_text, self._hass, entities, user_message=user_message
+                )
                 if tool_log:
                     parsed = _suppress_duplicate_command_after_tool(parsed, tool_log, entities)
                     # When a tool call already fired this turn AND the
@@ -518,7 +520,9 @@ class LLMClient:
                     "config_issue": is_config_issue,
                 }
 
-            parsed = parse_architect_response(result, self._hass)
+            parsed = parse_architect_response(
+                result, self._hass, entities, user_message=user_message
+            )
             # Normalise LLM-emitted ``intent: "command_approval"`` so a
             # low-context or non-tool provider that crafts its own
             # approval card still gets the four sentinel quick-actions
@@ -778,6 +782,7 @@ class LLMClient:
         tool_log: list[dict[str, Any]] | None = None,
         *,
         session_id: str | None = None,
+        user_message: str | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser."""
         # Provider hook: Selora AI Local converts v0.4.2 slim output
@@ -785,7 +790,14 @@ class LLMClient:
         # calls/automation} envelope before the parser sees them. Cloud
         # providers pass through unchanged.
         text = self._provider.convert_response_text(text)
-        return parse_streamed_response(text, self._hass, entities, tool_log, session_id=session_id)
+        return parse_streamed_response(
+            text,
+            self._hass,
+            entities,
+            tool_log,
+            session_id=session_id,
+            user_message=user_message,
+        )
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration
