@@ -357,13 +357,25 @@ def build_minimal_chat_messages(
 
     keywords = _low_context_keywords(user_message)
     filtered = _filter_entities_by_keywords(entities, keywords, cap=_LOW_CONTEXT_MAX_ENTITIES)
+    _LOGGER.debug(
+        "build_minimal_chat_messages: user_msg=%r keywords=%s n_in=%d n_filtered=%d "
+        "filtered_ids=%s",
+        user_message,
+        sorted(keywords),
+        len(entities),
+        len(filtered),
+        [e.get("entity_id") for e in filtered],
+    )
     entity_lines = [_format_entity_line(e) for e in filtered]
     entity_section = (
         "AVAILABLE ENTITIES:\n" + "\n".join(entity_lines)
         if entity_lines
         else "AVAILABLE ENTITIES: none relevant."
     )
-    context_prompt = f"USER REQUEST: {user_message}\n\n{entity_section}"
+    # Training-time shape: entity block precedes user request, `/no_think`
+    # prefix skips Qwen3 reasoning block. Slim-schema specialists go OOD
+    # if either is changed.
+    context_prompt = f"/no_think {entity_section}\n\n{user_message}"
 
     # Keep only the last turn of history — anything more risks
     # blowing the 1024-token engine ceiling.
