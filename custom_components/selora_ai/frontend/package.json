@@ -7,7 +7,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "lit": "^2.8.0"
+    "lit": "^3.0.0"
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
