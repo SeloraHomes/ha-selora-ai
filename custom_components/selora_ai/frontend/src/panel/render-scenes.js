@@ -1,6 +1,4 @@
 import { html } from "lit";
-import { DOMAIN_ICONS, _stateColor } from "./render-chat.js";
-import { fmtEntity } from "../shared/formatting.js";
 import { toggleYaml } from "./render-automations.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 
@@ -27,75 +25,144 @@ function _sceneCardHeader(name, badge) {
   `;
 }
 
-function _formatBrightness(val) {
-  if (val == null) return null;
-  const num = Number(val);
-  if (isNaN(num)) return null;
-  return `${Math.round((num / 255) * 100)}%`;
+function _entityArea(host, entityId) {
+  const entReg = host.hass?.entities?.[entityId];
+  const areaId =
+    entReg?.area_id || host.hass?.devices?.[entReg?.device_id]?.area_id || null;
+  return areaId ? host.hass?.areas?.[areaId]?.name || null : null;
 }
 
-function _formatPosition(val) {
-  if (val == null) return null;
-  const num = Number(val);
-  if (isNaN(num)) return null;
-  return `${Math.round(num)}%`;
-}
-
-function _formatEntityAttrs(stateData) {
-  const parts = [];
-  // brightness_pct (0-100) takes precedence; fall back to brightness (0-255)
-  const brightness =
-    stateData.brightness_pct != null
-      ? `${Math.round(Number(stateData.brightness_pct))}%`
-      : _formatBrightness(stateData.brightness);
-  if (brightness) parts.push(brightness);
-  if (stateData.color_temp != null)
-    parts.push(`${stateData.color_temp} mireds`);
-  if (stateData.temperature != null) parts.push(`${stateData.temperature}°`);
-  const position = _formatPosition(
-    stateData.position ?? stateData.current_position,
-  );
-  if (position) parts.push(position);
-  const fanSpeed = _formatPosition(stateData.percentage);
-  if (fanSpeed) parts.push(fanSpeed);
-  if (stateData.volume_level != null)
-    parts.push(`vol ${Math.round(stateData.volume_level * 100)}%`);
-  if (stateData.source != null) parts.push(stateData.source);
-  return parts.join(" · ");
-}
-
-function _renderEntityList(host, entities) {
-  const entries = Object.entries(entities);
-  if (!entries.length) return "";
+// One row, two real HA tiles for the same entity:
+//   - left ("Now"): the live entity — interactive, reflects real state.
+//   - right ("Scene sets"): the same tile forced to the scene's target
+//     state via data-scene-states, rendered read-only (pointer-events
+//     disabled in CSS) so it's a preview, not a second control.
+function _renderTargetRow(host, entityId, stateData, editSceneId) {
+  // The right tile shows the (possibly edited) target. When the scene is
+  // editable, its callService is intercepted (see _hydrateEntityChips)
+  // via data-scene-edit-id so dragging the tile changes the scene, not
+  // the device. Non-editable rows (chat proposals) stay read-only.
+  const target =
+    editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
+      ? host._sceneEditedEntities(editSceneId)[entityId]
+      : stateData;
+  const single = JSON.stringify({ [entityId]: target });
 
   return html`
-    <div class="scene-entity-list">
-      ${entries.map(([entityId, stateData]) => {
-        const domain = entityId.split(".")[0];
-        const icon = DOMAIN_ICONS[domain] || "mdi:devices";
-        const state = stateData.state || "unknown";
-        const attrs = _formatEntityAttrs(stateData);
-        const name = fmtEntity(host.hass, entityId);
-
-        return html`
-          <div class="scene-entity-row">
-            <div class="scene-entity-name">
-              <ha-icon
-                icon=${icon}
-                style="--mdc-icon-size:16px;color:var(--selora-accent);"
-              ></ha-icon>
-              <span>${name}</span>
-            </div>
-            <div class="scene-entity-state">
-              ${attrs
-                ? html`<span class="scene-entity-attr">${attrs}</span>`
-                : ""}
-              <span style="color:${_stateColor(state)};">${state}</span>
-            </div>
-          </div>
-        `;
-      })}
+    <div class="scene-ent-row">
+      <div
+        class="selora-entity-grid scene-ent-tile"
+        data-entity-ids=${entityId}
+      ></div>
+      <ha-icon class="scene-ent-arrow" icon="mdi:arrow-right"></ha-icon>
+      <div
+        class="selora-entity-grid scene-ent-tile ${editSceneId
+          ? "scene-ent-tile--edit"
+          : "scene-ent-tile--forced"}"
+        data-entity-ids=${entityId}
+        data-scene-states=${single}
+        data-scene-edit-id=${editSceneId || ""}
+      ></div>
     </div>
+  `;
+}
+
+function _renderEntityList(host, entities, editSceneId = null) {
+  const ids = Object.keys(entities || {});
+  if (!ids.length) return "";
+
+  // When editing, render rows from the working (edited) entity set so
+  // newly adjusted entities reflect immediately.
+  const source = editSceneId
+    ? host._sceneEditedEntities(editSceneId)
+    : entities;
+
+  // Group by area so multi-room scenes read cleanly; named areas first,
+  // unassigned last.
+  const groups = new Map();
+  for (const id of ids) {
+    const area = _entityArea(host, id);
+    if (!groups.has(area)) groups.set(area, []);
+    groups.get(area).push(id);
+  }
+  const sorted = [...groups.entries()].sort((a, b) => {
+    if (!a[0]) return 1;
+    if (!b[0]) return -1;
+    return a[0].localeCompare(b[0]);
+  });
+  const showHeaders = groups.size > 1;
+
+  return html`
+    ${editSceneId
+      ? html`<div class="scene-ent-hint">
+          <ha-icon icon="mdi:gesture-tap"></ha-icon>
+          <span
+            >Adjust each entity's desired state on the <strong>right</strong>.
+            Edits don't touch your devices until you <strong>Test</strong> or
+            activate the scene.</span
+          >
+        </div>`
+      : ""}
+    <div class="scene-ent-list">
+      <div class="scene-ent-head">
+        <span>Now</span>
+        <span></span>
+        <span class="scene-ent-cap--target">Scene sets</span>
+      </div>
+      ${sorted.map(
+        ([area, areaIds]) => html`
+          ${showHeaders
+            ? html`<div class="scene-ent-area">
+                <ha-icon icon="mdi:floor-plan"></ha-icon>
+                <span>${area || "Unassigned"}</span>
+              </div>`
+            : ""}
+          ${areaIds.map((id) =>
+            _renderTargetRow(host, id, source[id], editSceneId),
+          )}
+        `,
+      )}
+    </div>
+    ${editSceneId && host._sceneIsDirty(editSceneId)
+      ? html`<div class="scene-edit-bar">
+          <span class="scene-edit-bar-msg">
+            <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
+          </span>
+          <span class="scene-edit-bar-actions">
+            <button
+              class="btn btn-outline"
+              ?disabled=${host._savingScene?.[editSceneId] ||
+              host._testingScene?.[editSceneId]}
+              title="Apply these states to your devices now, without saving"
+              @click=${() => host._testSceneEdits(editSceneId)}
+            >
+              <ha-icon
+                icon="mdi:flask-outline"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              ${host._testingScene?.[editSceneId] ? "Testing…" : "Test"}
+            </button>
+            <button
+              class="btn btn-outline"
+              ?disabled=${host._savingScene?.[editSceneId]}
+              @click=${() => host._discardSceneEdits(editSceneId)}
+            >
+              Discard
+            </button>
+            <button
+              class="btn btn-success"
+              ?disabled=${host._savingScene?.[editSceneId]}
+              @click=${() => host._saveSceneEdits(editSceneId)}
+            >
+              <ha-icon
+                icon="mdi:content-save"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              ${host._savingScene?.[editSceneId] ? "Saving…" : "Save changes"}
+            </button>
+          </span>
+        </div>`
+      : ""}
   `;
 }
 
@@ -263,14 +330,26 @@ function _sceneEntityCount(scene) {
 export function renderScenes(host) {
   const filterText = (host._sceneFilter || "").toLowerCase();
   const sortBy = host._sceneSortBy || "recent";
+  const sortDir = host._sceneSortDir || "desc";
+  const statusFilter = host._sceneStatusFilter || "all";
 
-  let filtered = [...(host._scenes || [])];
+  const allScenes = host._scenes || [];
+  const seloraCount = allScenes.filter((s) => s.source === "selora").length;
+  const manualCount = allScenes.length - seloraCount;
+
+  let filtered = [...allScenes];
+  if (statusFilter === "selora") {
+    filtered = filtered.filter((s) => s.source === "selora");
+  } else if (statusFilter === "manual") {
+    filtered = filtered.filter((s) => s.source !== "selora");
+  }
   if (filterText) {
     filtered = filtered.filter((s) =>
       (s.name || "").toLowerCase().includes(filterText),
     );
   }
 
+  const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
     filtered.sort((a, b) => {
       const at = a.updated_at ? new Date(a.updated_at).getTime() : 0;
@@ -282,6 +361,9 @@ export function renderScenes(host) {
   } else if (sortBy === "size") {
     filtered.sort((a, b) => (b.entity_count || 0) - (a.entity_count || 0));
   }
+  if (sortDir !== naturalDir[sortBy]) {
+    filtered.reverse();
+  }
 
   return html`
     <div class="scroll-view">
@@ -291,8 +373,70 @@ export function renderScenes(host) {
         </div>
         ${(host._scenes || []).length > 0
           ? html`
-              <div class="filter-row" style="margin-top:12px;">
-                <div class="filter-input-wrap" style="flex:0 1 260px;">
+              <div class="filter-tabs-row" style="margin-top:12px;">
+                <div class="filter-tabs" role="tablist">
+                  <button
+                    role="tab"
+                    aria-selected=${statusFilter === "all"}
+                    class="filter-tab ${statusFilter === "all" ? "active" : ""}"
+                    @click=${() => {
+                      host._sceneStatusFilter = "all";
+                    }}
+                  >
+                    All
+                  </button>
+                  ${seloraCount > 0 && manualCount > 0
+                    ? html`
+                        <button
+                          role="tab"
+                          aria-selected=${statusFilter === "selora"}
+                          class="filter-tab ${statusFilter === "selora"
+                            ? "active"
+                            : ""}"
+                          @click=${() => {
+                            host._sceneStatusFilter = "selora";
+                          }}
+                        >
+                          <ha-icon
+                            icon="mdi:creation"
+                            style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
+                          ></ha-icon>
+                          <span>Selora AI (${seloraCount})</span>
+                        </button>
+                        <button
+                          role="tab"
+                          aria-selected=${statusFilter === "manual"}
+                          class="filter-tab ${statusFilter === "manual"
+                            ? "active"
+                            : ""}"
+                          @click=${() => {
+                            host._sceneStatusFilter = "manual";
+                          }}
+                        >
+                          Manual (${manualCount})
+                        </button>
+                      `
+                    : ""}
+                </div>
+                <div class="filter-tabs-actions">
+                  <button
+                    class="filter-row-action"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup
+                      ? "Configure an LLM provider first"
+                      : ""}
+                    @click=${() => host._newSceneChat()}
+                  >
+                    <ha-icon
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:13px;"
+                    ></ha-icon>
+                    New Scene
+                  </button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <div class="filter-input-wrap" style="flex:1 1 260px;">
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
@@ -312,39 +456,35 @@ export function renderScenes(host) {
                       ></ha-icon>`
                     : ""}
                 </div>
-                <select
-                  class="sort-select"
-                  .value=${host._sceneSortBy || "recent"}
-                  @change=${(e) => {
-                    host._sceneSortBy = e.target.value;
-                  }}
-                >
-                  <option value="recent">Recently updated</option>
-                  <option value="alpha">Alphabetical</option>
-                  <option value="size">Most entities</option>
-                </select>
-                <div
-                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                >
+                <div class="sort-group">
+                  <select
+                    class="sort-select"
+                    .value=${host._sceneSortBy || "recent"}
+                    @change=${(e) => {
+                      host._sceneSortBy = e.target.value;
+                    }}
+                  >
+                    <option value="recent">Recently updated</option>
+                    <option value="alpha">Alphabetical</option>
+                    <option value="size">Most entities</option>
+                  </select>
                   <button
-                    class="btn btn-accent"
-                    style="white-space:nowrap;"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup
-                      ? "Configure an LLM provider first"
-                      : ""}
-                    @click=${() => host._newSceneChat()}
+                    class="sort-dir-toggle"
+                    title=${sortDir === "desc"
+                      ? "Sort descending (click for ascending)"
+                      : "Sort ascending (click for descending)"}
+                    @click=${() => {
+                      host._sceneSortDir = sortDir === "desc" ? "asc" : "desc";
+                    }}
                   >
                     <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
+                      icon=${sortDir === "desc"
+                        ? "mdi:sort-descending"
+                        : "mdi:sort-ascending"}
+                      style="--mdc-icon-size:18px;"
                     ></ha-icon>
-                    New Scene
                   </button>
                 </div>
-              </div>
-              <div class="automations-summary">
-                ${filtered.length} scene${filtered.length !== 1 ? "s" : ""}
               </div>
               <div class="automations-list">
                 ${filtered.map((s) => {
@@ -537,7 +677,11 @@ export function renderScenes(host) {
                         ? html`
                             <div class="auto-row-expand">
                               ${Object.keys(entities).length
-                                ? _renderEntityList(host, entities)
+                                ? _renderEntityList(
+                                    host,
+                                    entities,
+                                    isSelora ? sceneId : null,
+                                  )
                                 : html`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
@@ -564,8 +708,11 @@ export function renderScenes(host) {
                                 ? html`
                                     <ha-code-editor
                                       mode="yaml"
-                                      .value=${s.yaml ||
-                                      "# YAML not available — open the scene in Home Assistant to view it."}
+                                      .value=${isSelora &&
+                                      host._sceneIsDirty(sceneId)
+                                        ? host._sceneEditYaml(sceneId, s.name)
+                                        : s.yaml ||
+                                          "# YAML not available — open the scene in Home Assistant to view it."}
                                       read-only
                                       style="--code-mirror-font-size:12px;"
                                     ></ha-code-editor>

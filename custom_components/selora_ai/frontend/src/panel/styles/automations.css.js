@@ -88,6 +88,30 @@ export const automationsStyles = css`
   .needs-attention-pill:hover {
     background: #c62828;
   }
+  .stale-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: transparent;
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .stale-pill ha-icon {
+    --mdc-icon-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+  }
   .selora-ai-mark {
     --mdc-icon-size: 12px;
     color: var(--selora-accent);
@@ -145,6 +169,145 @@ export const automationsStyles = css`
   .auto-row-expand {
     padding: 0 16px 16px;
   }
+  /* Scene desired-state list: each row = the entity's real HA tile
+     (left, rendered with the scene's target state) + the final desired
+     state spelled out (right). */
+  .scene-ent-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--selora-accent-soft, rgba(245, 184, 64, 0.1));
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.25));
+    font-size: 12px;
+    color: var(--primary-text-color);
+  }
+  .scene-ent-hint ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+  }
+  .scene-edit-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.3));
+  }
+  .scene-edit-bar-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .scene-edit-bar-msg ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent);
+  }
+  .scene-edit-bar-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .scene-ent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .scene-ent-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 2px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+  }
+  .scene-ent-area:not(:first-child) {
+    margin-top: 6px;
+  }
+  .scene-ent-area ha-icon {
+    --mdc-icon-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+  .scene-ent-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+  }
+  /* Column headers — same grid template as the rows so "Now" sits over
+     the live tiles and "Scene sets" over the forced tiles. Rendered once
+     at the top of the list, not repeated per row. */
+  .scene-ent-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary-text-color);
+  }
+  .scene-ent-cap--target {
+    color: var(--selora-accent);
+  }
+  /* Each tile is a single-entity .selora-entity-grid. Override the chat
+     grid's auto-fill columns + vertical margin so the lone tile fills
+     its cell instead of capping at 280px. */
+  .scene-ent-tile {
+    min-width: 0;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* The forced (scene-target) tile is a read-only preview — block taps
+     so the user can't drive the real device from it; the live "Now"
+     tile on the left is the control. */
+  .scene-ent-tile--forced {
+    pointer-events: none;
+  }
+  .scene-ent-tile:empty {
+    display: block;
+    min-height: 56px;
+    border-radius: 12px;
+    border: 1px solid var(--selora-zinc-700);
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    animation: scene-skel-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes scene-skel-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+  .scene-ent-arrow {
+    --mdc-icon-size: 20px;
+    color: var(--secondary-text-color);
+    justify-self: center;
+  }
+  @media (max-width: 600px) {
+    .scene-ent-row {
+      gap: 8px;
+    }
+    .scene-ent-arrow {
+      --mdc-icon-size: 16px;
+    }
+  }
   .last-run-prefix {
     display: none;
   }
@@ -188,6 +351,55 @@ export const automationsStyles = css`
       padding-bottom: 8px;
     }
   }
+  /* Row 1 — tabs (status filters) on the left, primary action on the
+     right. Tabs use underline-style; the action button keeps its pill
+     look. Borders bottom of the row gives the underline-tabs effect. */
+  .filter-tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--divider-color);
+    flex-wrap: wrap;
+  }
+  .filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    line-height: 1;
+    margin-bottom: -1px;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .filter-tab:hover {
+    color: var(--primary-text-color);
+  }
+  .filter-tab.active {
+    color: var(--selora-accent-text);
+    border-bottom-color: var(--selora-accent);
+  }
+  :host(:not([dark])) .filter-tab.active {
+    color: var(--primary-text-color);
+  }
+  /* Row 2 — filter input + sort select. */
   .filter-row {
     display: flex;
     align-items: center;
@@ -195,37 +407,137 @@ export const automationsStyles = css`
     margin-bottom: 12px;
     flex-wrap: wrap;
   }
+  /* Unified 36px control height across row 2. */
+  .filter-row .filter-input-wrap,
+  .filter-row .sort-select {
+    box-sizing: border-box;
+    height: 36px;
+  }
+  .filter-row .filter-input-wrap {
+    padding: 0 12px;
+  }
+  .filter-row .sort-select {
+    padding: 0 34px 0 14px;
+  }
+  .filter-tabs-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  .filter-row-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background: var(--selora-inner-card-bg);
+    color: var(--primary-text-color);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+  .filter-row-secondary:hover {
+    border-color: var(--selora-accent);
+  }
+  .sort-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sort-dir-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background: var(--selora-inner-card-bg);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .sort-dir-toggle:hover {
+    border-color: var(--selora-accent);
+  }
+  .filter-row-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--selora-accent-text);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .filter-row-action:hover:not(:disabled) {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: var(--selora-accent);
+  }
+  .filter-row-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  :host(:not([dark])) .filter-row-action {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #000;
+  }
+  :host(:not([dark])) .filter-row-action:hover:not(:disabled) {
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+  }
   @media (max-width: 600px) {
+    /* Row 1 — tabs scroll horizontally if they don't fit; the actions
+       group (Bulk edit + New Automation) drops below the tab strip and
+       spans full width with the buttons sharing the row. */
+    .filter-tabs-row {
+      gap: 8px;
+    }
+    .filter-tabs {
+      flex: 1 1 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+    .filter-tab {
+      flex: 0 0 auto;
+    }
+    .filter-tabs-actions {
+      flex: 1 1 100%;
+      justify-content: flex-end;
+    }
+    /* Row 2 — input on its own line, sort group below. */
     .filter-row {
       gap: 8px;
     }
-    /* Mobile layout:
-       Row 1 — filter input (full width)
-       Row 2 — status pills (full width)
-       Row 3 — sort select + "+ New X" share a row
-       Row 4 — bulk-edit / actions (own row) */
     .filter-row .filter-input-wrap {
       flex: 1 1 100% !important;
     }
-    .filter-row .status-pills {
+    .sort-group {
       flex: 1 1 100%;
-      justify-content: stretch;
     }
-    .filter-row .status-pills .status-pill {
-      flex: 1;
-    }
-    .filter-row .sort-select {
-      flex: 1 1 0;
+    .sort-group .sort-select {
+      flex: 1 1 auto;
       min-width: 0;
-    }
-    /* The trailing wrapper around "+ New X" — keep it on the same row
-       as the sort select, no longer pushed to its own line. */
-    .filter-row > div[style*="margin-left:auto"] {
-      flex: 0 1 auto;
-      margin-left: 0 !important;
-    }
-    .automations-summary span:first-child {
-      display: none;
     }
   }
   .status-pills {
@@ -263,9 +575,9 @@ export const automationsStyles = css`
     font-family: inherit;
     line-height: 1.2;
     padding: 9px 34px 9px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background-color: var(--selora-inner-card-bg);
     color: var(--primary-text-color);
     cursor: pointer;
     transition:
@@ -282,25 +594,41 @@ export const automationsStyles = css`
     background-size: 16px 16px;
   }
   .sort-select:hover {
-    border-color: rgba(255, 255, 255, 0.18);
-    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--selora-accent);
   }
   .sort-select:focus {
     outline: none;
-    border-color: rgba(251, 191, 36, 0.45);
+    border-color: var(--selora-accent);
   }
   :host(:not([dark])) .sort-select {
-    border-color: rgba(0, 0, 0, 0.1);
-    background-color: rgba(0, 0, 0, 0.05);
+    border-color: var(--selora-inner-card-border);
+    background-color: var(--selora-inner-card-bg);
   }
   :host(:not([dark])) .sort-select:hover {
-    border-color: rgba(0, 0, 0, 0.15);
-    background-color: rgba(0, 0, 0, 0.08);
+    border-color: var(--selora-accent);
   }
   .automations-summary {
     font-size: 12px;
     color: var(--secondary-text-color);
     margin-bottom: 12px;
+  }
+  /* Bulk edit (and Done) buttons inside the summary row use the same
+     inner-card background as filter input and sort select so the three
+     controls read as one visual family. */
+  .automations-summary .btn-outline,
+  .automations-summary .btn-outline:hover {
+    box-sizing: border-box;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 10px;
+    background: var(--selora-inner-card-bg);
+    border-color: var(--selora-inner-card-border);
+    color: var(--primary-text-color);
+  }
+  .automations-summary .btn-outline:hover {
+    border-color: var(--selora-accent);
   }
   .filter-input-wrap {
     display: flex;

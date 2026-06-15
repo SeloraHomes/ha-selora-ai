@@ -483,6 +483,13 @@ export const chatStyles = css`
     border: 1px solid var(--selora-accent) !important;
     border-bottom-right-radius: 4px;
   }
+  /* User messages are inserted verbatim via textContent, so newlines
+     are real text nodes. Preserve them (and wrap long lines) instead of
+     collapsing the message to a single line. */
+  .bubble.user .msg-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
   .bubble.assistant {
     align-self: flex-start;
     background: var(--card-background-color);

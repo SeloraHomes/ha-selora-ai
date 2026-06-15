@@ -497,9 +497,10 @@ export const usageStyles = css`
     border-color: var(--primary-text-color);
   }
   .usage-snippet-pill.active {
-    background: rgba(184, 134, 11, 0.85);
-    border-color: rgba(184, 134, 11, 0.85);
-    color: #fff;
+    background: var(--selora-zinc-700);
+    border-color: var(--selora-zinc-700);
+    color: var(--primary-text-color);
+    font-weight: 600;
   }
 
   .usage-copy-btn {

@@ -1214,12 +1214,13 @@ function renderApprovalGrants(host) {
                     >`
                   : html` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
-                      >all</span
+                      >→ all</span
                     >`}
                 <span
                   class="mcp-token-badge"
                   style="background:${riskColor[g.risk_level] ||
                   "#3b82f6"};color:#fff;text-transform:uppercase;"
+                  title=${_riskTooltip(g.risk_level)}
                   >${g.risk_level || "low"}</span
                 >
               </div>
@@ -1251,6 +1252,19 @@ function renderApprovalGrants(host) {
       })}
     </div>
   `;
+}
+
+function _riskTooltip(level) {
+  switch (level) {
+    case "high":
+      return "High risk — irreversible or safety-impacting action (locks, alarms, gates). Always asks for confirmation unless approved here.";
+    case "medium":
+      return "Medium risk — affects shared state or comfort (climate, scenes, media). Asks for confirmation unless approved here.";
+    case "low":
+      return "Low risk — easily reversible action (lights, switches). Runs without prompting.";
+    default:
+      return "Risk level unknown.";
+  }
 }
 
 function _timeAgo(isoString) {

@@ -261,6 +261,8 @@ export const headerStyles = css`
   }
   .header-new-chat-label {
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   /* Narrow: collapse back to a 44×44 icon-only circle */
   :host([narrow]) .header-new-chat {

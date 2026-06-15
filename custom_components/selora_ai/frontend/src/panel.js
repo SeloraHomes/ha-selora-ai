@@ -36,6 +36,7 @@ import * as chatActions from "./panel/chat-actions.js";
 import * as automationCrud from "./panel/automation-crud.js";
 import * as automationManagement from "./panel/automation-management.js";
 import * as sceneActions from "./panel/scene-actions.js";
+import * as sceneEdit from "./panel/scene-edit.js";
 
 // ---------------------------------------------------------------------------
 // Self-heal HA's <ha-panel-custom> when navigating back to this panel.
@@ -274,6 +275,7 @@ class SeloraAIPanel extends LitElement {
       _automationFilter: { type: String },
       _statusFilter: { type: String },
       _sortBy: { type: String },
+      _sortDir: { type: String },
 
       // Suggestion filter
       _suggestionFilter: { type: String },
@@ -375,12 +377,6 @@ class SeloraAIPanel extends LitElement {
       _unavailableAutoId: { type: String },
       _unavailableAutoName: { type: String },
 
-      // Stale automations modal
-      _staleModalOpen: { type: Boolean },
-      _staleSelected: { type: Object },
-      _staleDetailAuto: { type: Object },
-      _staleBulkDeleting: { type: Boolean },
-
       // Feedback modal
       _showFeedbackModal: { type: Boolean },
       _feedbackText: { type: String },
@@ -412,7 +408,12 @@ class SeloraAIPanel extends LitElement {
       _scenes: { type: Array },
       _sceneFilter: { type: String },
       _sceneSortBy: { type: String },
+      _sceneStatusFilter: { type: String },
+      _sceneSortDir: { type: String },
       _expandedScenes: { type: Object },
+      _sceneEdits: { type: Object },
+      _savingScene: { type: Object },
+      _testingScene: { type: Object },
       _sceneYamlOpen: { type: Object },
       _openSceneBurger: { type: String },
       _deletingScene: { type: Object },
@@ -484,6 +485,9 @@ class SeloraAIPanel extends LitElement {
     this._automationFilter = "";
     this._statusFilter = "all";
     this._sortBy = "recent";
+    this._sortDir = "desc";
+    this._sceneStatusFilter = "all";
+    this._sceneSortDir = "desc";
     this._suggestionFilter = "";
     this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
@@ -506,10 +510,6 @@ class SeloraAIPanel extends LitElement {
     this._runningAutomation = {};
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
-    this._staleModalOpen = false;
-    this._staleSelected = {};
-    this._staleDetailAuto = null;
-    this._staleBulkDeleting = false;
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
@@ -561,6 +561,9 @@ class SeloraAIPanel extends LitElement {
     this._sceneFilter = "";
     this._sceneSortBy = "recent";
     this._expandedScenes = {};
+    this._sceneEdits = {};
+    this._savingScene = {};
+    this._testingScene = {};
     this._sceneYamlOpen = {};
     this._openSceneBurger = null;
     this._deletingScene = {};
@@ -1647,7 +1650,10 @@ class SeloraAIPanel extends LitElement {
       this.hass &&
       (changedProps.has("_messages") ||
         changedProps.has("hass") ||
-        (changedProps.has("_activeTab") && this._activeTab === "chat"))
+        changedProps.has("_scenes") ||
+        changedProps.has("_expandedScenes") ||
+        changedProps.has("_sceneEdits") ||
+        changedProps.has("_activeTab"))
     ) {
       this._hydrateEntityChips();
     }
@@ -1797,7 +1803,59 @@ class SeloraAIPanel extends LitElement {
     const registries = await this._ensureFullRegistries();
 
     for (const grid of grids) {
-      const wired = grid.dataset.wired === "true";
+      // Lit may reuse a wired grid DOM node for a different scene/entity
+      // (reorder, filter) and just swap data-entity-ids. Treat the grid
+      // as un-wired when its ids no longer match what we built, so the
+      // stale tile is rebuilt for the new entity.
+      const wired =
+        grid.dataset.wired === "true" &&
+        grid.dataset.wiredIds === (grid.dataset.entityIds || "");
+
+      // Scene grids carry ``data-scene-states`` — a map of entity_id to
+      // the scene's *target* state. Feed the tiles a hass whose matching
+      // states are overridden with those targets so each widget previews
+      // the scene's desired values (brightness, position, volume, …) and
+      // matches the scene YAML, rather than showing live device state.
+      let gridHass = this.hass;
+      if (grid.dataset.sceneStates) {
+        try {
+          const overrides = this._mergeSceneStates(
+            JSON.parse(grid.dataset.sceneStates),
+          );
+          gridHass = {
+            ...this.hass,
+            states: { ...this.hass.states, ...overrides },
+          };
+        } catch (e) {
+          console.warn("Selora: bad scene-states payload", e);
+        }
+      }
+
+      // Editable scene-target tile: intercept service calls so adjusting
+      // the tile mutates the scene's desired state (and prompts a save)
+      // instead of driving the real device.
+      const sceneEditId = grid.dataset.sceneEditId;
+      if (sceneEditId) {
+        // The grid is single-entity, so route by its own id rather than
+        // digging entity_id out of the call: HA tile features pass the
+        // entity in the 4th ``target`` arg (not ``data``), and some calls
+        // carry no entity at all. data still holds service params
+        // (brightness_pct, position, …) used to derive the new state.
+        const editEntityId = grid.dataset.entityIds;
+        gridHass = {
+          ...gridHass,
+          callService: (domain, service, data = {}) => {
+            this._applySceneTileEdit(
+              sceneEditId,
+              editEntityId,
+              domain,
+              service,
+              data,
+            );
+            return Promise.resolve();
+          },
+        };
+      }
 
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
@@ -1809,6 +1867,10 @@ class SeloraAIPanel extends LitElement {
         // action row so users can't tap "unlock" inside an
         // "approve unlocking?" card and bypass the approval flow.
         const noFeatures = grid.dataset.noFeatures === "true";
+        // Clear any prior fallback text so a retry (after the tile
+        // creator becomes available) rebuilds cleanly instead of
+        // appending duplicates.
+        grid.replaceChildren();
         let appended = 0;
         if (createTile) {
           // Build (areaName, ids[]) groups so multi-area lists render
@@ -1838,9 +1900,14 @@ class SeloraAIPanel extends LitElement {
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
-            const card = createTile(id, { noFeatures });
+            // Editable scene-target tiles disable the body tap so it
+            // can't open more-info (which would control the real device).
+            const card = createTile(id, {
+              noFeatures,
+              noActions: !!sceneEditId,
+            });
             if (!card) return null;
-            card.hass = this.hass;
+            card.hass = gridHass;
             // Hover tooltip with manufacturer / model — see the
             // _ensureFullRegistries comment for why we can't rely on
             // hass.entities directly.
@@ -1890,13 +1957,17 @@ class SeloraAIPanel extends LitElement {
             }
           }
         }
-        if (appended === 0) {
+        if (appended > 0) {
+          // Only mark wired on success. Wiring on failure (creator not
+          // ready, or all ids briefly missing from hass.states) would
+          // lock the grid to the text fallback forever — the next pass
+          // must be free to retry.
+          grid.dataset.wired = "true";
+          grid.dataset.wiredIds = grid.dataset.entityIds || "";
+        } else {
           // Last-resort fallback so the message is still readable.
-          // Hits when neither construction path resolved or all ids
-          // were unknown/missing in hass.states.
           grid.textContent = ids.join(", ");
         }
-        grid.dataset.wired = "true";
       }
 
       // Keep cards' hass current so brightness, on/off, etc. stay live.
@@ -1906,12 +1977,66 @@ class SeloraAIPanel extends LitElement {
       // looks like "no change" and the card never re-renders. A shallow
       // copy guarantees a fresh reference; methods like callService
       // survive because they're own properties on hass.
-      for (const card of grid.children) {
-        if (card.hass !== undefined) {
-          card.hass = { ...this.hass };
+      //
+      // Scene-target grids are the exception: they pin the tile to the
+      // scene's desired state, so they must NOT be re-fed live hass on
+      // every tick. Doing so churns the tile and (for editable tiles)
+      // lets it re-issue callService, an unbounded loop that freezes the
+      // UI. Update them only when the target itself changes.
+      if (grid.dataset.sceneStates) {
+        // Include the edit-scene id in the signature: when Lit reuses a
+        // tile for a different scene with the same entity and identical
+        // target, the states JSON alone is unchanged, so without this
+        // the card keeps the previous scene's intercepted callService
+        // closure and edits would land on the wrong scene.
+        const sig = `${grid.dataset.sceneEditId || ""}|${grid.dataset.sceneStates}`;
+        if (grid.dataset.sceneSig !== sig) {
+          grid.dataset.sceneSig = sig;
+          for (const card of grid.children) {
+            if (card.hass !== undefined) card.hass = { ...gridHass };
+          }
+        }
+      } else {
+        for (const card of grid.children) {
+          if (card.hass !== undefined) card.hass = { ...gridHass };
         }
       }
     }
+  }
+
+  // Build a {entity_id: state} override map from a scene's target states.
+  // Each override merges the entity's live state object (so the tile has
+  // friendly_name, supported_features, etc.) with the scene's desired
+  // state + attributes. Scene-only shorthands are normalised to the
+  // attribute names HA tile features actually read (brightness 0-255,
+  // current_position) so the rendered slider matches the scene YAML.
+  _mergeSceneStates(sceneStates) {
+    const overrides = {};
+    for (const [id, target] of Object.entries(sceneStates || {})) {
+      if (!target || typeof target !== "object") continue;
+      const live = this.hass.states?.[id];
+      if (!live) continue;
+      const attrs = { ...(live.attributes || {}) };
+      for (const [k, v] of Object.entries(target)) {
+        if (k === "state") continue;
+        attrs[k] = v;
+      }
+      if (target.brightness_pct != null && target.brightness == null) {
+        attrs.brightness = Math.round(
+          (Number(target.brightness_pct) / 100) * 255,
+        );
+        delete attrs.brightness_pct;
+      }
+      if (target.position != null && target.current_position == null) {
+        attrs.current_position = Number(target.position);
+      }
+      overrides[id] = {
+        ...live,
+        state: String(target.state),
+        attributes: attrs,
+      };
+    }
+    return overrides;
   }
 
   // Lazily fetch the full entity + device registries via WS. The
@@ -1967,8 +2092,24 @@ class SeloraAIPanel extends LitElement {
   // registered the element. Cached on `this` so the chunk-load only
   // happens once per panel lifetime.
   async _getTileCardCreator() {
-    if (this._tileCardCreator !== undefined) return this._tileCardCreator;
+    // Cache the creator only on success. A previous version cached
+    // ``null`` on failure (helpers not ready / whenDefined timeout),
+    // which permanently disabled tiles for the panel's lifetime — the
+    // root cause of "sometimes the tiles never load". Now a failed load
+    // leaves the cache empty so the next hydration pass retries. The
+    // in-flight promise dedups concurrent callers during a single load.
+    if (this._tileCardCreator) return this._tileCardCreator;
+    if (this._tileCardCreatorPromise) return this._tileCardCreatorPromise;
+    this._tileCardCreatorPromise = (async () => {
+      const creator = await this._buildTileCardCreator();
+      if (creator) this._tileCardCreator = creator;
+      this._tileCardCreatorPromise = null;
+      return creator;
+    })();
+    return this._tileCardCreatorPromise;
+  }
 
+  async _buildTileCardCreator() {
     // Map each entity domain to the most useful inline tile feature so
     // chat cards visually match HA's default dashboard tile and keep
     // domain-appropriate controls (brightness slider, volume slider,
@@ -2011,11 +2152,28 @@ class SeloraAIPanel extends LitElement {
     // The approval card uses this — embedding live action buttons
     // inside an "approve unlocking?" card would let the user bypass
     // the approval flow entirely by tapping the tile's own button.
-    const buildConfig = (id, { noFeatures = false } = {}) => ({
-      type: "tile",
-      entity: id,
-      features: noFeatures ? [] : featuresForDomain(id),
-    });
+    // ``noActions`` disables the tile body's tap/hold/double-tap (which
+    // default to more-info). The scene editor uses this for the target
+    // tile: more-info would drive the real device via the live hass,
+    // breaking the promise that edits don't touch devices until Test or
+    // activate. Feature controls (slider, arrows) stay live — they're
+    // intercepted separately.
+    const buildConfig = (
+      id,
+      { noFeatures = false, noActions = false } = {},
+    ) => {
+      const config = {
+        type: "tile",
+        entity: id,
+        features: noFeatures ? [] : featuresForDomain(id),
+      };
+      if (noActions) {
+        config.tap_action = { action: "none" };
+        config.hold_action = { action: "none" };
+        config.double_tap_action = { action: "none" };
+      }
+      return config;
+    };
 
     // Path 1: HA's documented helper.
     if (typeof window.loadCardHelpers === "function") {
@@ -2984,5 +3142,8 @@ Object.assign(SeloraAIPanel.prototype, chatActions);
 Object.assign(SeloraAIPanel.prototype, automationCrud);
 Object.assign(SeloraAIPanel.prototype, automationManagement);
 Object.assign(SeloraAIPanel.prototype, sceneActions);
+Object.assign(SeloraAIPanel.prototype, sceneEdit);
 
-customElements.define("selora-ai", SeloraAIPanel);
+if (!customElements.get("selora-ai")) {
+  customElements.define("selora-ai", SeloraAIPanel);
+}
