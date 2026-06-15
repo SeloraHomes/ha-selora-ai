@@ -240,4 +240,10 @@ class SeloraParticles extends HTMLElement {
   }
 }
 
-customElements.define("selora-particles", SeloraParticles);
+// Guard against double-definition: the panel module can be evaluated
+// twice in one page (e.g. an old cached panel.js URL plus the new
+// cache-busted ?v= URL during a redeploy), and a duplicate define
+// throws "name has already been used with this registry".
+if (!customElements.get("selora-particles")) {
+  customElements.define("selora-particles", SeloraParticles);
+}

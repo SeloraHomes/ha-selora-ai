@@ -343,7 +343,20 @@ function _navigate(path) {
   window.dispatchEvent(new Event("location-changed"));
 }
 
-function _renderChip({ icon, label, kindLabel, title, onOpen, onRemove }) {
+function _renderChipGroup(title, chips) {
+  return html`
+    <div>
+      <div
+        style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
+      >
+        ${title}
+      </div>
+      <div class="composer-selections-inline" style="gap:6px;">${chips}</div>
+    </div>
+  `;
+}
+
+function _renderChip({ icon, label, title, onOpen, onRemove }) {
   return html`
     <span class="composer-selection-chip" title=${title || label}>
       <button
@@ -352,13 +365,7 @@ function _renderChip({ icon, label, kindLabel, title, onOpen, onRemove }) {
         style="display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;"
       >
         <ha-icon icon=${icon}></ha-icon>
-        ${label}
-        ${kindLabel
-          ? html`<span
-              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
-              >${kindLabel}</span
-            >`
-          : ""}
+        <span style="line-height:1;">${label}</span>
       </button>
       <button
         type="button"
@@ -558,38 +565,51 @@ export function renderIgnoreList(host) {
           </div>`
         : html`
             <div
-              class="composer-selections-inline"
-              style="margin-top:12px;gap:6px;"
+              style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
             >
-              ${tagged.devices.map((did) =>
-                _renderChip({
-                  icon: "mdi:chip",
-                  label: _deviceLabel(host, did),
-                  kindLabel: "device",
-                  title: `Open device · ${did}`,
-                  onOpen: () => _navigate(`/config/devices/device/${did}`),
-                  onRemove: () => _removeLabel(host, { device_id: did }),
-                }),
-              )}
-              ${tagged.entities.map((eid) =>
-                _renderChip({
-                  icon: _entityIcon(eid),
-                  label: _entityLabel(host, eid),
-                  title: `Open ${eid}`,
-                  onOpen: () => _openEntity(host, eid),
-                  onRemove: () => _removeLabel(host, { entity_id: eid }),
-                }),
-              )}
-              ${tagged.areas.map((aid) =>
-                _renderChip({
-                  icon: "mdi:floor-plan",
-                  label: _areaLabel(host, aid),
-                  kindLabel: "area",
-                  title: `Open area · ${aid}`,
-                  onOpen: () => _navigate(`/config/areas/area/${aid}`),
-                  onRemove: () => _removeLabel(host, { area_id: aid }),
-                }),
-              )}
+              ${tagged.areas.length
+                ? _renderChipGroup(
+                    "Areas",
+                    tagged.areas.map((aid) =>
+                      _renderChip({
+                        icon: "mdi:floor-plan",
+                        label: _areaLabel(host, aid),
+                        title: `Open area · ${aid}`,
+                        onOpen: () => _navigate(`/config/areas/area/${aid}`),
+                        onRemove: () => _removeLabel(host, { area_id: aid }),
+                      }),
+                    ),
+                  )
+                : ""}
+              ${tagged.devices.length
+                ? _renderChipGroup(
+                    "Devices",
+                    tagged.devices.map((did) =>
+                      _renderChip({
+                        icon: "mdi:chip",
+                        label: _deviceLabel(host, did),
+                        title: `Open device · ${did}`,
+                        onOpen: () =>
+                          _navigate(`/config/devices/device/${did}`),
+                        onRemove: () => _removeLabel(host, { device_id: did }),
+                      }),
+                    ),
+                  )
+                : ""}
+              ${tagged.entities.length
+                ? _renderChipGroup(
+                    "Entities",
+                    tagged.entities.map((eid) =>
+                      _renderChip({
+                        icon: _entityIcon(eid),
+                        label: _entityLabel(host, eid),
+                        title: `Open ${eid}`,
+                        onOpen: () => _openEntity(host, eid),
+                        onRemove: () => _removeLabel(host, { entity_id: eid }),
+                      }),
+                    ),
+                  )
+                : ""}
             </div>
           `}
     </div>

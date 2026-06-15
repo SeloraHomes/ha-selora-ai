@@ -2296,6 +2296,8 @@ var headerStyles = i`
   }
   .header-new-chat-label {
     white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
   }
   /* Narrow: collapse back to a 44×44 icon-only circle */
   :host([narrow]) .header-new-chat {
@@ -2953,6 +2955,13 @@ var chatStyles = i`
     color: var(--selora-zinc-200) !important;
     border: 1px solid var(--selora-accent) !important;
     border-bottom-right-radius: 4px;
+  }
+  /* User messages are inserted verbatim via textContent, so newlines
+     are real text nodes. Preserve them (and wrap long lines) instead of
+     collapsing the message to a single line. */
+  .bubble.user .msg-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .bubble.assistant {
     align-self: flex-start;
@@ -3786,6 +3795,117 @@ var proposalStyles = i`
     font-weight: 400;
   }
 
+  /* Scene entity tiles — HA-tile-card-like presentation, but the right
+     column is unambiguously the *target* state the scene applies on
+     activation (badge label + percentage bar), not the live state. */
+  .scene-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .scene-tile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+  }
+  .scene-tile-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    color: var(--tile-accent);
+  }
+  .scene-tile-icon ha-icon {
+    --mdc-icon-size: 22px;
+  }
+  .scene-tile-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .scene-tile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-tile-subtitle {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-tile-arrow {
+    flex-shrink: 0;
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    opacity: 0.5;
+  }
+  .scene-tile-target {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 110px;
+  }
+  .scene-tile-state {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .scene-tile-state.active {
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    color: var(--tile-accent);
+    border: 1px solid color-mix(in srgb, var(--tile-accent) 35%, transparent);
+  }
+  .scene-tile-state.inactive {
+    background: transparent;
+    color: var(--secondary-text-color);
+    border: 1px solid var(--divider-color);
+  }
+  .scene-tile-bar {
+    width: 130px;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    overflow: hidden;
+  }
+  .scene-tile-bar-fill {
+    height: 100%;
+    background: var(--tile-accent);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+  }
+  @media (max-width: 600px) {
+    .scene-tile-target {
+      min-width: 90px;
+    }
+    .scene-tile-bar {
+      width: 90px;
+    }
+  }
+
   /* ---- Automation flowchart ----
      Sizes are deliberately closer to the surrounding chat bubble copy
      (14px) than the tiny 12px the chart originally used, since the
@@ -4538,6 +4658,30 @@ var automationsStyles = i`
   .needs-attention-pill:hover {
     background: #c62828;
   }
+  .stale-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: transparent;
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .stale-pill ha-icon {
+    --mdc-icon-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+  }
   .selora-ai-mark {
     --mdc-icon-size: 12px;
     color: var(--selora-accent);
@@ -4595,6 +4739,145 @@ var automationsStyles = i`
   .auto-row-expand {
     padding: 0 16px 16px;
   }
+  /* Scene desired-state list: each row = the entity's real HA tile
+     (left, rendered with the scene's target state) + the final desired
+     state spelled out (right). */
+  .scene-ent-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    background: var(--selora-accent-soft, rgba(245, 184, 64, 0.1));
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.25));
+    font-size: 12px;
+    color: var(--primary-text-color);
+  }
+  .scene-ent-hint ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent);
+    flex-shrink: 0;
+  }
+  .scene-edit-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    border: 1px solid var(--selora-accent-border, rgba(245, 184, 64, 0.3));
+  }
+  .scene-edit-bar-msg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+  }
+  .scene-edit-bar-msg ha-icon {
+    --mdc-icon-size: 16px;
+    color: var(--selora-accent);
+  }
+  .scene-edit-bar-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .scene-ent-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .scene-ent-area {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 2px 0;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+  }
+  .scene-ent-area:not(:first-child) {
+    margin-top: 6px;
+  }
+  .scene-ent-area ha-icon {
+    --mdc-icon-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
+  .scene-ent-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    align-items: center;
+    gap: 16px;
+  }
+  /* Column headers — same grid template as the rows so "Now" sits over
+     the live tiles and "Scene sets" over the forced tiles. Rendered once
+     at the top of the list, not repeated per row. */
+  .scene-ent-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 24px minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--secondary-text-color);
+  }
+  .scene-ent-cap--target {
+    color: var(--selora-accent);
+  }
+  /* Each tile is a single-entity .selora-entity-grid. Override the chat
+     grid's auto-fill columns + vertical margin so the lone tile fills
+     its cell instead of capping at 280px. */
+  .scene-ent-tile {
+    min-width: 0;
+    margin: 0;
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* The forced (scene-target) tile is a read-only preview — block taps
+     so the user can't drive the real device from it; the live "Now"
+     tile on the left is the control. */
+  .scene-ent-tile--forced {
+    pointer-events: none;
+  }
+  .scene-ent-tile:empty {
+    display: block;
+    min-height: 56px;
+    border-radius: 12px;
+    border: 1px solid var(--selora-zinc-700);
+    background: var(--card-background-color, rgba(255, 255, 255, 0.03));
+    animation: scene-skel-pulse 1.2s ease-in-out infinite;
+  }
+  @keyframes scene-skel-pulse {
+    0%,
+    100% {
+      opacity: 0.45;
+    }
+    50% {
+      opacity: 0.85;
+    }
+  }
+  .scene-ent-arrow {
+    --mdc-icon-size: 20px;
+    color: var(--secondary-text-color);
+    justify-self: center;
+  }
+  @media (max-width: 600px) {
+    .scene-ent-row {
+      gap: 8px;
+    }
+    .scene-ent-arrow {
+      --mdc-icon-size: 16px;
+    }
+  }
   .last-run-prefix {
     display: none;
   }
@@ -4638,6 +4921,55 @@ var automationsStyles = i`
       padding-bottom: 8px;
     }
   }
+  /* Row 1 — tabs (status filters) on the left, primary action on the
+     right. Tabs use underline-style; the action button keeps its pill
+     look. Borders bottom of the row gives the underline-tabs effect. */
+  .filter-tabs-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--divider-color);
+    flex-wrap: wrap;
+  }
+  .filter-tabs {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+  }
+  .filter-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--secondary-text-color);
+    cursor: pointer;
+    line-height: 1;
+    margin-bottom: -1px;
+    transition:
+      color 0.2s,
+      border-color 0.2s;
+  }
+  .filter-tab:hover {
+    color: var(--primary-text-color);
+  }
+  .filter-tab.active {
+    color: var(--selora-accent-text);
+    border-bottom-color: var(--selora-accent);
+  }
+  :host(:not([dark])) .filter-tab.active {
+    color: var(--primary-text-color);
+  }
+  /* Row 2 — filter input + sort select. */
   .filter-row {
     display: flex;
     align-items: center;
@@ -4645,37 +4977,137 @@ var automationsStyles = i`
     margin-bottom: 12px;
     flex-wrap: wrap;
   }
+  /* Unified 36px control height across row 2. */
+  .filter-row .filter-input-wrap,
+  .filter-row .sort-select {
+    box-sizing: border-box;
+    height: 36px;
+  }
+  .filter-row .filter-input-wrap {
+    padding: 0 12px;
+  }
+  .filter-row .sort-select {
+    padding: 0 34px 0 14px;
+  }
+  .filter-tabs-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 0;
+    flex-shrink: 0;
+  }
+  .filter-row-secondary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background: var(--selora-inner-card-bg);
+    color: var(--primary-text-color);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    box-sizing: border-box;
+  }
+  .filter-row-secondary:hover {
+    border-color: var(--selora-accent);
+  }
+  .sort-group {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .sort-dir-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background: var(--selora-inner-card-bg);
+    color: var(--primary-text-color);
+    cursor: pointer;
+    flex-shrink: 0;
+    padding: 0;
+  }
+  .sort-dir-toggle:hover {
+    border-color: var(--selora-accent);
+  }
+  .filter-row-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    padding: 0 16px;
+    border-radius: 999px;
+    border: 1px solid rgba(251, 191, 36, 0.35);
+    background: rgba(251, 191, 36, 0.08);
+    color: var(--selora-accent-text);
+    font-size: 13px;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .filter-row-action:hover:not(:disabled) {
+    background: rgba(251, 191, 36, 0.14);
+    border-color: var(--selora-accent);
+  }
+  .filter-row-action:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  :host(:not([dark])) .filter-row-action {
+    background: var(--selora-accent);
+    border-color: var(--selora-accent);
+    color: #000;
+  }
+  :host(:not([dark])) .filter-row-action:hover:not(:disabled) {
+    background: var(--selora-accent-light);
+    border-color: var(--selora-accent-light);
+  }
   @media (max-width: 600px) {
+    /* Row 1 — tabs scroll horizontally if they don't fit; the actions
+       group (Bulk edit + New Automation) drops below the tab strip and
+       spans full width with the buttons sharing the row. */
+    .filter-tabs-row {
+      gap: 8px;
+    }
+    .filter-tabs {
+      flex: 1 1 100%;
+      overflow-x: auto;
+      flex-wrap: nowrap;
+    }
+    .filter-tab {
+      flex: 0 0 auto;
+    }
+    .filter-tabs-actions {
+      flex: 1 1 100%;
+      justify-content: flex-end;
+    }
+    /* Row 2 — input on its own line, sort group below. */
     .filter-row {
       gap: 8px;
     }
-    /* Mobile layout:
-       Row 1 — filter input (full width)
-       Row 2 — status pills (full width)
-       Row 3 — sort select + "+ New X" share a row
-       Row 4 — bulk-edit / actions (own row) */
     .filter-row .filter-input-wrap {
       flex: 1 1 100% !important;
     }
-    .filter-row .status-pills {
+    .sort-group {
       flex: 1 1 100%;
-      justify-content: stretch;
     }
-    .filter-row .status-pills .status-pill {
-      flex: 1;
-    }
-    .filter-row .sort-select {
-      flex: 1 1 0;
+    .sort-group .sort-select {
+      flex: 1 1 auto;
       min-width: 0;
-    }
-    /* The trailing wrapper around "+ New X" — keep it on the same row
-       as the sort select, no longer pushed to its own line. */
-    .filter-row > div[style*="margin-left:auto"] {
-      flex: 0 1 auto;
-      margin-left: 0 !important;
-    }
-    .automations-summary span:first-child {
-      display: none;
     }
   }
   .status-pills {
@@ -4713,9 +5145,9 @@ var automationsStyles = i`
     font-family: inherit;
     line-height: 1.2;
     padding: 9px 34px 9px 14px;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background-color: rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    border: 1px solid var(--selora-inner-card-border);
+    background-color: var(--selora-inner-card-bg);
     color: var(--primary-text-color);
     cursor: pointer;
     transition:
@@ -4732,25 +5164,41 @@ var automationsStyles = i`
     background-size: 16px 16px;
   }
   .sort-select:hover {
-    border-color: rgba(255, 255, 255, 0.18);
-    background-color: rgba(255, 255, 255, 0.1);
+    border-color: var(--selora-accent);
   }
   .sort-select:focus {
     outline: none;
-    border-color: rgba(251, 191, 36, 0.45);
+    border-color: var(--selora-accent);
   }
   :host(:not([dark])) .sort-select {
-    border-color: rgba(0, 0, 0, 0.1);
-    background-color: rgba(0, 0, 0, 0.05);
+    border-color: var(--selora-inner-card-border);
+    background-color: var(--selora-inner-card-bg);
   }
   :host(:not([dark])) .sort-select:hover {
-    border-color: rgba(0, 0, 0, 0.15);
-    background-color: rgba(0, 0, 0, 0.08);
+    border-color: var(--selora-accent);
   }
   .automations-summary {
     font-size: 12px;
     color: var(--secondary-text-color);
     margin-bottom: 12px;
+  }
+  /* Bulk edit (and Done) buttons inside the summary row use the same
+     inner-card background as filter input and sort select so the three
+     controls read as one visual family. */
+  .automations-summary .btn-outline,
+  .automations-summary .btn-outline:hover {
+    box-sizing: border-box;
+    height: 36px;
+    padding: 0 14px;
+    font-size: 13px;
+    line-height: 1;
+    border-radius: 10px;
+    background: var(--selora-inner-card-bg);
+    border-color: var(--selora-inner-card-border);
+    color: var(--primary-text-color);
+  }
+  .automations-summary .btn-outline:hover {
+    border-color: var(--selora-accent);
   }
   .filter-input-wrap {
     display: flex;
@@ -5906,9 +6354,10 @@ var usageStyles = i`
     border-color: var(--primary-text-color);
   }
   .usage-snippet-pill.active {
-    background: rgba(184, 134, 11, 0.85);
-    border-color: rgba(184, 134, 11, 0.85);
-    color: #fff;
+    background: var(--selora-zinc-700);
+    border-color: var(--selora-zinc-700);
+    color: var(--primary-text-color);
+    font-weight: 600;
   }
 
   .usage-copy-btn {
@@ -6496,7 +6945,9 @@ var SeloraParticles = class extends HTMLElement {
     }
   }
 };
-customElements.define("selora-particles", SeloraParticles);
+if (!customElements.get("selora-particles")) {
+  customElements.define("selora-particles", SeloraParticles);
+}
 
 // src/shared/date-utils.js
 function relativeTime(date) {
@@ -8994,39 +9445,6 @@ var DOMAIN_ICONS3 = {
   air_quality: "mdi:air-filter",
   remote: "mdi:remote",
 };
-function _stateColor2(state) {
-  if (!state) return "var(--selora-zinc-400)";
-  const s6 = state.toLowerCase();
-  if (
-    [
-      "on",
-      "home",
-      "open",
-      "unlocked",
-      "playing",
-      "heating",
-      "cooling",
-      "cleaning",
-    ].includes(s6)
-  )
-    return "var(--selora-accent)";
-  if (
-    [
-      "off",
-      "closed",
-      "locked",
-      "docked",
-      "idle",
-      "standby",
-      "not_home",
-      "paused",
-    ].includes(s6)
-  )
-    return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown", "error", "jammed"].includes(s6))
-    return "#ef4444";
-  return "var(--selora-zinc-200)";
-}
 function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
   const readOnly = !!opts.readOnly;
   host._initYamlEdit(key, originalYaml);
@@ -10047,11 +10465,9 @@ function _loadKept() {
 function _saveKept(kept) {
   localStorage.setItem(STALE_KEPT_KEY, JSON.stringify(kept));
 }
-function keepAutomation(host, automationId) {
-  const kept = _loadKept();
-  kept[automationId] = Date.now();
-  _saveKept(kept);
-  host.requestUpdate();
+function staleTooltip(host) {
+  const days = _staleDays(host);
+  return `The following Selora automations haven't triggered in ${days} day${days !== 1 ? "s" : ""}. You can remove ones you no longer need to free up space for new suggestions.`;
 }
 function getStaleAutomations(host) {
   if (!host._automations?.length) return [];
@@ -10080,311 +10496,6 @@ function getStaleAutomations(host) {
     }
     return new Date(a4.last_triggered).getTime() < cutoff;
   });
-}
-function renderStaleModal(host) {
-  if (!host._staleModalOpen) return "";
-  const stale = getStaleAutomations(host);
-  if (!stale.length) {
-    host._staleModalOpen = false;
-    return "";
-  }
-  const staleDays = _staleDays(host);
-  const selected = host._staleSelected || {};
-  const selectedCount = stale.filter((a4) => selected[a4.automation_id]).length;
-  const allSelected = selectedCount === stale.length;
-  const someSelected = selectedCount > 0 && !allSelected;
-  return x`
-    <div
-      class="modal-overlay"
-      @click=${() => {
-        host._staleModalOpen = false;
-        host._staleSelected = {};
-      }}
-    >
-      <div
-        class="modal-content"
-        style="max-width:560px;max-height:80vh;display:flex;flex-direction:column;border:1px solid var(--selora-accent);"
-        @click=${(e5) => e5.stopPropagation()}
-      >
-        <h3 class="modal-title" style="flex-shrink:0;">
-          <ha-icon
-            icon="mdi:clock-alert-outline"
-            style="--mdc-icon-size:22px;color:#f59e0b;vertical-align:middle;margin-right:6px;"
-          ></ha-icon>
-          Stale Automations
-          <span
-            style="font-size:13px;font-weight:400;color:var(--secondary-text-color);margin-left:8px;"
-            >${stale.length} automation${stale.length !== 1 ? "s" : ""}</span
-          >
-        </h3>
-        <p
-          style="font-size:14px;line-height:1.6;margin:0 0 4px;color:var(--primary-text-color);flex-shrink:0;"
-        >
-          The following Selora automations haven't triggered in ${staleDays}
-          day${staleDays !== 1 ? "s" : ""}. You can remove ones you no longer
-          need to free up space for new suggestions.
-        </p>
-
-        <!-- Select all + bulk actions -->
-        <div
-          style="display:flex;align-items:center;justify-content:space-between;margin:12px 0 4px;padding:0 2px;flex-shrink:0;"
-        >
-          <label
-            style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--secondary-text-color);cursor:pointer;user-select:none;"
-          >
-            <input
-              type="checkbox"
-              .checked=${allSelected}
-              .indeterminate=${someSelected}
-              @change=${(e5) => {
-                const next = {};
-                if (e5.target.checked) {
-                  stale.forEach((a4) => {
-                    next[a4.automation_id] = true;
-                  });
-                }
-                host._staleSelected = next;
-              }}
-            />
-            Select all
-          </label>
-          ${
-            selectedCount > 0
-              ? x`<button
-                class="modal-btn modal-cancel"
-                style="font-size:11px;padding:4px 10px;color:#ef4444;border-color:#ef4444;"
-                ?disabled=${host._staleBulkDeleting}
-                @click=${async () => {
-                  const toDelete = stale.filter(
-                    (a4) => selected[a4.automation_id],
-                  );
-                  if (
-                    !confirm(
-                      `Remove ${toDelete.length} automation${toDelete.length !== 1 ? "s" : ""} permanently?`,
-                    )
-                  )
-                    return;
-                  host._staleBulkDeleting = true;
-                  for (const a4 of toDelete) {
-                    try {
-                      await host.hass.callWS({
-                        type: "selora_ai/delete_automation",
-                        automation_id: a4.automation_id,
-                      });
-                    } catch (err) {
-                      console.error("Failed to delete", a4.alias, err);
-                    }
-                  }
-                  await host._loadAutomations();
-                  host._staleSelected = {};
-                  host._staleBulkDeleting = false;
-                  host._showToast(
-                    `Removed ${toDelete.length} automation${toDelete.length !== 1 ? "s" : ""}.`,
-                    "success",
-                  );
-                  host.requestUpdate();
-                }}
-              >
-                <ha-icon
-                  icon="mdi:trash-can-outline"
-                  style="--mdc-icon-size:13px;"
-                ></ha-icon>
-                Remove ${selectedCount} selected
-              </button>`
-              : ""
-          }
-        </div>
-
-        <!-- Scrollable list -->
-        <div
-          style="flex:1;min-height:0;overflow-y:auto;border:1px solid var(--divider-color);border-radius:8px;"
-        >
-          ${stale.map(
-            (a4) => x`
-              <div
-                style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--divider-color);gap:10px;"
-              >
-                <input
-                  type="checkbox"
-                  .checked=${!!selected[a4.automation_id]}
-                  @change=${(e5) => {
-                    const next = { ...host._staleSelected };
-                    if (e5.target.checked) {
-                      next[a4.automation_id] = true;
-                    } else {
-                      delete next[a4.automation_id];
-                    }
-                    host._staleSelected = next;
-                  }}
-                  @click=${(e5) => e5.stopPropagation()}
-                  style="flex-shrink:0;cursor:pointer;"
-                />
-                <div
-                  style="flex:1;min-width:0;cursor:pointer;"
-                  @click=${() => {
-                    host._staleDetailAuto = a4;
-                  }}
-                >
-                  <div
-                    style="font-size:13px;font-weight:600;color:var(--primary-text-color);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"
-                  >
-                    ${a4.alias || a4.entity_id}
-                  </div>
-                  <div
-                    style="font-size:11px;color:var(--secondary-text-color);margin-top:2px;"
-                  >
-                    Last triggered:
-                    ${a4.last_triggered ? formatTimeAgo(a4.last_triggered) : "Never"}
-                  </div>
-                </div>
-                <button
-                  class="modal-btn modal-cancel"
-                  style="flex-shrink:0;font-size:11px;padding:4px 10px;color:var(--selora-accent);border-color:var(--selora-accent);"
-                  @click=${(e5) => {
-                    e5.stopPropagation();
-                    keepAutomation(host, a4.automation_id);
-                    host._showToast(
-                      `"${a4.alias || "Automation"}" kept for ${staleDays} days.`,
-                      "info",
-                    );
-                  }}
-                >
-                  <ha-icon
-                    icon="mdi:check"
-                    style="--mdc-icon-size:13px;"
-                  ></ha-icon>
-                  Keep
-                </button>
-                <ha-icon
-                  icon="mdi:chevron-right"
-                  style="--mdc-icon-size:18px;color:var(--secondary-text-color);flex-shrink:0;cursor:pointer;"
-                  @click=${() => {
-                    host._staleDetailAuto = a4;
-                  }}
-                ></ha-icon>
-              </div>
-            `,
-          )}
-        </div>
-        <div
-          class="modal-actions"
-          style="justify-content:center;gap:12px;margin-top:16px;flex-shrink:0;"
-        >
-          <button
-            class="modal-btn modal-cancel"
-            @click=${() => {
-              host._staleModalOpen = false;
-              host._staleSelected = {};
-            }}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    </div>
-    ${_renderStaleDetailModal(host)}
-  `;
-}
-function _renderStaleDetailModal(host) {
-  const a4 = host._staleDetailAuto;
-  if (!a4) return "";
-  const staleDays = _staleDays(host);
-  return x`
-    <div
-      class="modal-overlay"
-      style="z-index:10002;"
-      @click=${() => {
-        host._staleDetailAuto = null;
-      }}
-    >
-      <div
-        class="modal-content"
-        style="max-width:520px;border:1px solid var(--selora-accent);"
-        @click=${(e5) => e5.stopPropagation()}
-      >
-        <h3 class="modal-title">
-          <ha-icon
-            icon="mdi:robot"
-            style="--mdc-icon-size:22px;color:var(--selora-accent);vertical-align:middle;margin-right:6px;"
-          ></ha-icon>
-          ${a4.alias || a4.entity_id}
-        </h3>
-        <div
-          style="font-size:12px;color:var(--secondary-text-color);margin-bottom:12px;"
-        >
-          Last triggered:
-          ${a4.last_triggered ? formatTimeAgo(a4.last_triggered) : "Never"} ·
-          State: ${a4.state || "unknown"}
-        </div>
-
-        ${
-          a4.description
-            ? x`<p
-              style="font-size:13px;margin:0 0 12px;color:var(--primary-text-color);"
-            >
-              ${a4.description}
-            </p>`
-            : ""
-        }
-        ${renderAutomationFlowchart(host, a4)}
-
-        <div
-          class="modal-actions"
-          style="justify-content:center;gap:12px;margin-top:16px;"
-        >
-          <button
-            class="modal-btn modal-cancel"
-            @click=${() => {
-              host._staleDetailAuto = null;
-            }}
-          >
-            Back
-          </button>
-          <button
-            class="modal-btn modal-cancel"
-            style="color:var(--selora-accent);border-color:var(--selora-accent);"
-            @click=${() => {
-              keepAutomation(host, a4.automation_id);
-              host._staleDetailAuto = null;
-              host._showToast(
-                `"${a4.alias || "Automation"}" kept for ${staleDays} days.`,
-                "info",
-              );
-            }}
-          >
-            <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            Keep
-          </button>
-          <button
-            class="modal-btn modal-cancel"
-            style="color:#ef4444;border-color:#ef4444;"
-            @click=${async () => {
-              if (!a4.automation_id) return;
-              if (!confirm("Remove this automation permanently?")) return;
-              try {
-                await host.hass.callWS({
-                  type: "selora_ai/delete_automation",
-                  automation_id: a4.automation_id,
-                });
-                await host._loadAutomations();
-                host._showToast("Automation removed.", "success");
-              } catch (err) {
-                host._showToast("Failed to remove: " + err.message, "error");
-              }
-              host._staleDetailAuto = null;
-              host.requestUpdate();
-            }}
-          >
-            <ha-icon
-              icon="mdi:trash-can-outline"
-              style="--mdc-icon-size:14px;"
-            ></ha-icon>
-            Remove
-          </button>
-        </div>
-      </div>
-    </div>
-  `;
 }
 
 // src/panel/render-automations.js
@@ -10904,7 +11015,10 @@ function renderAutomations(host) {
   const filterText = (host._automationFilter || "").toLowerCase();
   const statusFilter = host._statusFilter || "all";
   const sortBy = host._sortBy || "recent";
+  const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
+  const staleList = getStaleAutomations(host);
+  const staleSet = new Set(staleList.map((a4) => a4.automation_id));
   if (statusFilter === "enabled") {
     filteredAutomations = filteredAutomations.filter((a4) =>
       host._automationIsEnabled(a4),
@@ -10913,12 +11027,17 @@ function renderAutomations(host) {
     filteredAutomations = filteredAutomations.filter(
       (a4) => !host._automationIsEnabled(a4),
     );
+  } else if (statusFilter === "stale") {
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      staleSet.has(a4.automation_id),
+    );
   }
   if (filterText) {
     filteredAutomations = filteredAutomations.filter((a4) =>
       (a4.alias || "").toLowerCase().includes(filterText),
     );
   }
+  const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
     filteredAutomations.sort((a4, b2) => {
       const aTime = a4.last_triggered
@@ -10940,12 +11059,9 @@ function renderAutomations(host) {
       return aOn - bOn;
     });
   }
-  const enabledCount = host._automations.filter((a4) =>
-    host._automationIsEnabled(a4),
-  ).length;
-  const disabledCount = host._automations.filter(
-    (a4) => !host._automationIsEnabled(a4),
-  ).length;
+  if (sortDir !== naturalDir[sortBy]) {
+    filteredAutomations.reverse();
+  }
   const perPage = host._autosPerPage || 10;
   const totalAutoPages = Math.max(
     1,
@@ -10983,8 +11099,103 @@ function renderAutomations(host) {
         ${
           host._automations.length > 0
             ? x`
-              <div class="filter-row" style="margin-top:12px;">
-                <div class="filter-input-wrap" style="flex:0 1 260px;">
+              <div class="filter-tabs-row" style="margin-top:12px;">
+                <div class="filter-tabs" role="tablist">
+                  ${["all", "enabled", "disabled"].map(
+                    (s6) => x`
+                      <button
+                        role="tab"
+                        aria-selected=${host._statusFilter === s6}
+                        class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
+                        @click=${() => {
+                          host._statusFilter = s6;
+                          host._automationsPage = 1;
+                        }}
+                      >
+                        ${s6.charAt(0).toUpperCase() + s6.slice(1)}
+                      </button>
+                    `,
+                  )}
+                  ${
+                    staleSet.size > 0
+                      ? x`<button
+                        role="tab"
+                        aria-selected=${host._statusFilter === "stale"}
+                        class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
+                        title=${staleTooltip(host)}
+                        @click=${() => {
+                          host._statusFilter = "stale";
+                          host._automationsPage = 1;
+                        }}
+                      >
+                        <ha-icon
+                          icon="mdi:alert-outline"
+                          style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
+                        ></ha-icon>
+                        <span>Stale (${staleSet.size})</span>
+                      </button>`
+                      : ""
+                  }
+                </div>
+                <div class="filter-tabs-actions">
+                  ${
+                    host._bulkEditMode
+                      ? x`
+                        <label class="bulk-select-all">
+                          <input
+                            type="checkbox"
+                            ?checked=${allVisibleSelected}
+                            .indeterminate=${partiallyVisibleSelected}
+                            ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
+                            @change=${(e5) =>
+                              host._toggleSelectAllFiltered(
+                                filteredAutomations,
+                                e5.target.checked,
+                              )}
+                          />
+                          <span>Select all</span>
+                        </label>
+                        <button
+                          class="filter-row-secondary"
+                          @click=${() => {
+                            host._bulkEditMode = false;
+                            host._clearAutomationSelection();
+                          }}
+                        >
+                          Done
+                        </button>
+                      `
+                      : x`
+                        <button
+                          class="filter-row-secondary"
+                          @click=${() => {
+                            host._bulkEditMode = true;
+                          }}
+                        >
+                          <ha-icon
+                            icon="mdi:checkbox-multiple-outline"
+                            style="--mdc-icon-size:14px;"
+                          ></ha-icon>
+                          Bulk edit
+                        </button>
+                      `
+                  }
+                  <button
+                    class="filter-row-action"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                    @click=${() => host._startNewAutomationChat()}
+                  >
+                    <ha-icon
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:13px;"
+                    ></ha-icon>
+                    New Automation
+                  </button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <div class="filter-input-wrap" style="flex:1 1 260px;">
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
@@ -11008,117 +11219,31 @@ function renderAutomations(host) {
                       : ""
                   }
                 </div>
-                <div class="status-pills">
-                  ${["all", "enabled", "disabled"].map(
-                    (s6) => x`
-                      <button
-                        class="status-pill ${host._statusFilter === s6 ? "active" : ""}"
-                        @click=${() => {
-                          host._statusFilter = s6;
-                          host._automationsPage = 1;
-                        }}
-                      >
-                        ${s6.charAt(0).toUpperCase() + s6.slice(1)}
-                      </button>
-                    `,
-                  )}
-                </div>
-                <select
-                  class="sort-select"
-                  .value=${host._sortBy}
-                  @change=${(e5) => {
-                    host._sortBy = e5.target.value;
-                  }}
-                >
-                  <option value="recent">Recent activity</option>
-                  <option value="alpha">Alphabetical</option>
-                  <option value="enabled_first">Enabled first</option>
-                </select>
-                <div
-                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                >
+                <div class="sort-group">
+                  <select
+                    class="sort-select"
+                    .value=${host._sortBy}
+                    @change=${(e5) => {
+                      host._sortBy = e5.target.value;
+                    }}
+                  >
+                    <option value="recent">Recent activity</option>
+                    <option value="alpha">Alphabetical</option>
+                    <option value="enabled_first">Enabled first</option>
+                  </select>
                   <button
-                    class="btn btn-accent"
-                    style="white-space:nowrap;"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
-                    @click=${() => host._startNewAutomationChat()}
+                    class="sort-dir-toggle"
+                    title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
+                    @click=${() => {
+                      host._sortDir = sortDir === "desc" ? "asc" : "desc";
+                    }}
                   >
                     <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
+                      icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
+                      style="--mdc-icon-size:18px;"
                     ></ha-icon>
-                    New Automation
                   </button>
                 </div>
-              </div>
-              <div
-                class="automations-summary"
-                style="display:flex;align-items:center;justify-content:space-between;"
-              >
-                <span>
-                  ${filteredAutomations.length} existing
-                  automation${filteredAutomations.length !== 1 ? "s" : ""}
-                  (${enabledCount} enabled, ${disabledCount} disabled)
-                  ${(() => {
-                    const staleCount = getStaleAutomations(host).length;
-                    return staleCount > 0
-                      ? x`<span
-                          class="needs-attention-pill"
-                          style="margin-left:8px;cursor:pointer;"
-                          @click=${(e5) => {
-                            e5.stopPropagation();
-                            host._staleModalOpen = true;
-                          }}
-                          >${staleCount} stale</span
-                        >`
-                      : "";
-                  })()}
-                </span>
-                ${
-                  host._bulkEditMode
-                    ? x`
-                      <div style="display:flex;align-items:center;gap:10px;">
-                        <label class="bulk-select-all">
-                          <input
-                            type="checkbox"
-                            ?checked=${allVisibleSelected}
-                            .indeterminate=${partiallyVisibleSelected}
-                            ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
-                            @change=${(e5) =>
-                              host._toggleSelectAllFiltered(
-                                filteredAutomations,
-                                e5.target.checked,
-                              )}
-                          />
-                          <span>Select all</span>
-                        </label>
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            host._bulkEditMode = false;
-                            host._clearAutomationSelection();
-                          }}
-                        >
-                          Done
-                        </button>
-                      </div>
-                    `
-                    : x`
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => {
-                          host._bulkEditMode = true;
-                        }}
-                      >
-                        <ha-icon
-                          icon="mdi:checkbox-multiple-outline"
-                          style="--mdc-icon-size:14px;"
-                        ></ha-icon>
-                        Bulk edit
-                      </button>
-                    `
-                }
               </div>
               ${
                 host._bulkEditMode && selectedIds.length > 0
@@ -11248,17 +11373,35 @@ function renderAutomations(host) {
                         }
                         ${renderAutomationIdentity(a4.alias, a4.description, {
                           isSelora: !!a4.is_selora,
-                          titleSuffix: isUnavailable
-                            ? x`<span
-                                class="needs-attention-pill"
-                                @click=${(e5) => {
-                                  e5.stopPropagation();
-                                  host._unavailableAutoId = automationId;
-                                  host._unavailableAutoName = a4.alias;
-                                }}
-                                >Needs attention</span
-                              >`
-                            : null,
+                          titleSuffix: x`
+                            ${
+                              isUnavailable
+                                ? x`<span
+                                  class="needs-attention-pill"
+                                  @click=${(e5) => {
+                                    e5.stopPropagation();
+                                    host._unavailableAutoId = automationId;
+                                    host._unavailableAutoName = a4.alias;
+                                  }}
+                                  >Needs attention</span
+                                >`
+                                : ""
+                            }
+                            ${
+                              staleSet.has(automationId)
+                                ? x`<span
+                                  class="stale-pill"
+                                  title=${staleTooltip(host)}
+                                >
+                                  <ha-icon
+                                    icon="mdi:alert-outline"
+                                    style="--mdc-icon-size:12px;"
+                                  ></ha-icon>
+                                  Stale
+                                </span>`
+                                : ""
+                            }
+                          `,
                           nameOverride:
                             host._editingAlias === automationId
                               ? x`
@@ -11641,7 +11784,6 @@ function renderAutomations(host) {
         }
       </div>
       ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
-      ${renderStaleModal(host)}
     </div>
   `;
 }
@@ -11750,67 +11892,128 @@ function _sceneCardHeader(name, badge) {
     </div>
   `;
 }
-function _formatBrightness(val) {
-  if (val == null) return null;
-  const num = Number(val);
-  if (isNaN(num)) return null;
-  return `${Math.round((num / 255) * 100)}%`;
+function _entityArea(host, entityId) {
+  const entReg = host.hass?.entities?.[entityId];
+  const areaId =
+    entReg?.area_id || host.hass?.devices?.[entReg?.device_id]?.area_id || null;
+  return areaId ? host.hass?.areas?.[areaId]?.name || null : null;
 }
-function _formatPosition(val) {
-  if (val == null) return null;
-  const num = Number(val);
-  if (isNaN(num)) return null;
-  return `${Math.round(num)}%`;
-}
-function _formatEntityAttrs(stateData) {
-  const parts = [];
-  const brightness =
-    stateData.brightness_pct != null
-      ? `${Math.round(Number(stateData.brightness_pct))}%`
-      : _formatBrightness(stateData.brightness);
-  if (brightness) parts.push(brightness);
-  if (stateData.color_temp != null)
-    parts.push(`${stateData.color_temp} mireds`);
-  if (stateData.temperature != null) parts.push(`${stateData.temperature}\xB0`);
-  const position = _formatPosition(
-    stateData.position ?? stateData.current_position,
-  );
-  if (position) parts.push(position);
-  const fanSpeed = _formatPosition(stateData.percentage);
-  if (fanSpeed) parts.push(fanSpeed);
-  if (stateData.volume_level != null)
-    parts.push(`vol ${Math.round(stateData.volume_level * 100)}%`);
-  if (stateData.source != null) parts.push(stateData.source);
-  return parts.join(" \xB7 ");
-}
-function _renderEntityList(host, entities) {
-  const entries = Object.entries(entities);
-  if (!entries.length) return "";
+function _renderTargetRow(host, entityId, stateData, editSceneId) {
+  const target =
+    editSceneId && host._sceneEditedEntities(editSceneId)?.[entityId] != null
+      ? host._sceneEditedEntities(editSceneId)[entityId]
+      : stateData;
+  const single = JSON.stringify({ [entityId]: target });
   return x`
-    <div class="scene-entity-list">
-      ${entries.map(([entityId, stateData]) => {
-        const domain = entityId.split(".")[0];
-        const icon = DOMAIN_ICONS3[domain] || "mdi:devices";
-        const state = stateData.state || "unknown";
-        const attrs = _formatEntityAttrs(stateData);
-        const name = fmtEntity(host.hass, entityId);
-        return x`
-          <div class="scene-entity-row">
-            <div class="scene-entity-name">
-              <ha-icon
-                icon=${icon}
-                style="--mdc-icon-size:16px;color:var(--selora-accent);"
-              ></ha-icon>
-              <span>${name}</span>
-            </div>
-            <div class="scene-entity-state">
-              ${attrs ? x`<span class="scene-entity-attr">${attrs}</span>` : ""}
-              <span style="color:${_stateColor2(state)};">${state}</span>
-            </div>
-          </div>
-        `;
-      })}
+    <div class="scene-ent-row">
+      <div
+        class="selora-entity-grid scene-ent-tile"
+        data-entity-ids=${entityId}
+      ></div>
+      <ha-icon class="scene-ent-arrow" icon="mdi:arrow-right"></ha-icon>
+      <div
+        class="selora-entity-grid scene-ent-tile ${editSceneId ? "scene-ent-tile--edit" : "scene-ent-tile--forced"}"
+        data-entity-ids=${entityId}
+        data-scene-states=${single}
+        data-scene-edit-id=${editSceneId || ""}
+      ></div>
     </div>
+  `;
+}
+function _renderEntityList(host, entities, editSceneId = null) {
+  const ids = Object.keys(entities || {});
+  if (!ids.length) return "";
+  const source = editSceneId
+    ? host._sceneEditedEntities(editSceneId)
+    : entities;
+  const groups = /* @__PURE__ */ new Map();
+  for (const id of ids) {
+    const area = _entityArea(host, id);
+    if (!groups.has(area)) groups.set(area, []);
+    groups.get(area).push(id);
+  }
+  const sorted = [...groups.entries()].sort((a4, b2) => {
+    if (!a4[0]) return 1;
+    if (!b2[0]) return -1;
+    return a4[0].localeCompare(b2[0]);
+  });
+  const showHeaders = groups.size > 1;
+  return x`
+    ${
+      editSceneId
+        ? x`<div class="scene-ent-hint">
+          <ha-icon icon="mdi:gesture-tap"></ha-icon>
+          <span
+            >Adjust each entity's desired state on the <strong>right</strong>.
+            Edits don't touch your devices until you <strong>Test</strong> or
+            activate the scene.</span
+          >
+        </div>`
+        : ""
+    }
+    <div class="scene-ent-list">
+      <div class="scene-ent-head">
+        <span>Now</span>
+        <span></span>
+        <span class="scene-ent-cap--target">Scene sets</span>
+      </div>
+      ${sorted.map(
+        ([area, areaIds]) => x`
+          ${
+            showHeaders
+              ? x`<div class="scene-ent-area">
+                <ha-icon icon="mdi:floor-plan"></ha-icon>
+                <span>${area || "Unassigned"}</span>
+              </div>`
+              : ""
+          }
+          ${areaIds.map((id) =>
+            _renderTargetRow(host, id, source[id], editSceneId),
+          )}
+        `,
+      )}
+    </div>
+    ${
+      editSceneId && host._sceneIsDirty(editSceneId)
+        ? x`<div class="scene-edit-bar">
+          <span class="scene-edit-bar-msg">
+            <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
+          </span>
+          <span class="scene-edit-bar-actions">
+            <button
+              class="btn btn-outline"
+              ?disabled=${host._savingScene?.[editSceneId] || host._testingScene?.[editSceneId]}
+              title="Apply these states to your devices now, without saving"
+              @click=${() => host._testSceneEdits(editSceneId)}
+            >
+              <ha-icon
+                icon="mdi:flask-outline"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              ${host._testingScene?.[editSceneId] ? "Testing\u2026" : "Test"}
+            </button>
+            <button
+              class="btn btn-outline"
+              ?disabled=${host._savingScene?.[editSceneId]}
+              @click=${() => host._discardSceneEdits(editSceneId)}
+            >
+              Discard
+            </button>
+            <button
+              class="btn btn-success"
+              ?disabled=${host._savingScene?.[editSceneId]}
+              @click=${() => host._saveSceneEdits(editSceneId)}
+            >
+              <ha-icon
+                icon="mdi:content-save"
+                style="--mdc-icon-size:14px;"
+              ></ha-icon>
+              ${host._savingScene?.[editSceneId] ? "Saving\u2026" : "Save changes"}
+            </button>
+          </span>
+        </div>`
+        : ""
+    }
   `;
 }
 function renderSceneCard(host, msg, msgIndex) {
@@ -11964,12 +12167,23 @@ function _sceneEntityCount(scene) {
 function renderScenes(host) {
   const filterText = (host._sceneFilter || "").toLowerCase();
   const sortBy = host._sceneSortBy || "recent";
-  let filtered = [...(host._scenes || [])];
+  const sortDir = host._sceneSortDir || "desc";
+  const statusFilter = host._sceneStatusFilter || "all";
+  const allScenes = host._scenes || [];
+  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
+  const manualCount = allScenes.length - seloraCount;
+  let filtered = [...allScenes];
+  if (statusFilter === "selora") {
+    filtered = filtered.filter((s6) => s6.source === "selora");
+  } else if (statusFilter === "manual") {
+    filtered = filtered.filter((s6) => s6.source !== "selora");
+  }
   if (filterText) {
     filtered = filtered.filter((s6) =>
       (s6.name || "").toLowerCase().includes(filterText),
     );
   }
+  const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
     filtered.sort((a4, b2) => {
       const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
@@ -11981,6 +12195,9 @@ function renderScenes(host) {
   } else if (sortBy === "size") {
     filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
   }
+  if (sortDir !== naturalDir[sortBy]) {
+    filtered.reverse();
+  }
   return x`
     <div class="scroll-view">
       <div class="section-card">
@@ -11990,8 +12207,66 @@ function renderScenes(host) {
         ${
           (host._scenes || []).length > 0
             ? x`
-              <div class="filter-row" style="margin-top:12px;">
-                <div class="filter-input-wrap" style="flex:0 1 260px;">
+              <div class="filter-tabs-row" style="margin-top:12px;">
+                <div class="filter-tabs" role="tablist">
+                  <button
+                    role="tab"
+                    aria-selected=${statusFilter === "all"}
+                    class="filter-tab ${statusFilter === "all" ? "active" : ""}"
+                    @click=${() => {
+                      host._sceneStatusFilter = "all";
+                    }}
+                  >
+                    All
+                  </button>
+                  ${
+                    seloraCount > 0 && manualCount > 0
+                      ? x`
+                        <button
+                          role="tab"
+                          aria-selected=${statusFilter === "selora"}
+                          class="filter-tab ${statusFilter === "selora" ? "active" : ""}"
+                          @click=${() => {
+                            host._sceneStatusFilter = "selora";
+                          }}
+                        >
+                          <ha-icon
+                            icon="mdi:creation"
+                            style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
+                          ></ha-icon>
+                          <span>Selora AI (${seloraCount})</span>
+                        </button>
+                        <button
+                          role="tab"
+                          aria-selected=${statusFilter === "manual"}
+                          class="filter-tab ${statusFilter === "manual" ? "active" : ""}"
+                          @click=${() => {
+                            host._sceneStatusFilter = "manual";
+                          }}
+                        >
+                          Manual (${manualCount})
+                        </button>
+                      `
+                      : ""
+                  }
+                </div>
+                <div class="filter-tabs-actions">
+                  <button
+                    class="filter-row-action"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                    @click=${() => host._newSceneChat()}
+                  >
+                    <ha-icon
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:13px;"
+                    ></ha-icon>
+                    New Scene
+                  </button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <div class="filter-input-wrap" style="flex:1 1 260px;">
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
@@ -12013,37 +12288,31 @@ function renderScenes(host) {
                       : ""
                   }
                 </div>
-                <select
-                  class="sort-select"
-                  .value=${host._sceneSortBy || "recent"}
-                  @change=${(e5) => {
-                    host._sceneSortBy = e5.target.value;
-                  }}
-                >
-                  <option value="recent">Recently updated</option>
-                  <option value="alpha">Alphabetical</option>
-                  <option value="size">Most entities</option>
-                </select>
-                <div
-                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                >
+                <div class="sort-group">
+                  <select
+                    class="sort-select"
+                    .value=${host._sceneSortBy || "recent"}
+                    @change=${(e5) => {
+                      host._sceneSortBy = e5.target.value;
+                    }}
+                  >
+                    <option value="recent">Recently updated</option>
+                    <option value="alpha">Alphabetical</option>
+                    <option value="size">Most entities</option>
+                  </select>
                   <button
-                    class="btn btn-accent"
-                    style="white-space:nowrap;"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
-                    @click=${() => host._newSceneChat()}
+                    class="sort-dir-toggle"
+                    title=${sortDir === "desc" ? "Sort descending (click for ascending)" : "Sort ascending (click for descending)"}
+                    @click=${() => {
+                      host._sceneSortDir = sortDir === "desc" ? "asc" : "desc";
+                    }}
                   >
                     <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
+                      icon=${sortDir === "desc" ? "mdi:sort-descending" : "mdi:sort-ascending"}
+                      style="--mdc-icon-size:18px;"
                     ></ha-icon>
-                    New Scene
                   </button>
                 </div>
-              </div>
-              <div class="automations-summary">
-                ${filtered.length} scene${filtered.length !== 1 ? "s" : ""}
               </div>
               <div class="automations-list">
                 ${filtered.map((s6) => {
@@ -12244,7 +12513,11 @@ function renderScenes(host) {
                             <div class="auto-row-expand">
                               ${
                                 Object.keys(entities).length
-                                  ? _renderEntityList(host, entities)
+                                  ? _renderEntityList(
+                                      host,
+                                      entities,
+                                      isSelora ? sceneId : null,
+                                    )
                                   : x`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
@@ -12273,7 +12546,7 @@ function renderScenes(host) {
                                   ? x`
                                     <ha-code-editor
                                       mode="yaml"
-                                      .value=${s6.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
+                                      .value=${isSelora && host._sceneIsDirty(sceneId) ? host._sceneEditYaml(sceneId, s6.name) : s6.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
                                       read-only
                                       style="--code-mirror-font-size:12px;"
                                     ></ha-code-editor>
@@ -12636,7 +12909,19 @@ function _navigate(path) {
   window.history.pushState(null, "", path);
   window.dispatchEvent(new Event("location-changed"));
 }
-function _renderChip({ icon, label, kindLabel, title, onOpen, onRemove }) {
+function _renderChipGroup(title, chips) {
+  return x`
+    <div>
+      <div
+        style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
+      >
+        ${title}
+      </div>
+      <div class="composer-selections-inline" style="gap:6px;">${chips}</div>
+    </div>
+  `;
+}
+function _renderChip({ icon, label, title, onOpen, onRemove }) {
   return x`
     <span class="composer-selection-chip" title=${title || label}>
       <button
@@ -12645,15 +12930,7 @@ function _renderChip({ icon, label, kindLabel, title, onOpen, onRemove }) {
         style="display:inline-flex;align-items:center;gap:4px;background:none;border:none;color:inherit;font:inherit;cursor:pointer;padding:0;"
       >
         <ha-icon icon=${icon}></ha-icon>
-        ${label}
-        ${
-          kindLabel
-            ? x`<span
-              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
-              >${kindLabel}</span
-            >`
-            : ""
-        }
+        <span style="line-height:1;">${label}</span>
       </button>
       <button
         type="button"
@@ -12835,38 +13112,59 @@ function renderIgnoreList(host) {
           </div>`
           : x`
             <div
-              class="composer-selections-inline"
-              style="margin-top:12px;gap:6px;"
+              style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
             >
-              ${tagged.devices.map((did) =>
-                _renderChip({
-                  icon: "mdi:chip",
-                  label: _deviceLabel(host, did),
-                  kindLabel: "device",
-                  title: `Open device \xB7 ${did}`,
-                  onOpen: () => _navigate(`/config/devices/device/${did}`),
-                  onRemove: () => _removeLabel(host, { device_id: did }),
-                }),
-              )}
-              ${tagged.entities.map((eid) =>
-                _renderChip({
-                  icon: _entityIcon(eid),
-                  label: _entityLabel(host, eid),
-                  title: `Open ${eid}`,
-                  onOpen: () => _openEntity(host, eid),
-                  onRemove: () => _removeLabel(host, { entity_id: eid }),
-                }),
-              )}
-              ${tagged.areas.map((aid) =>
-                _renderChip({
-                  icon: "mdi:floor-plan",
-                  label: _areaLabel(host, aid),
-                  kindLabel: "area",
-                  title: `Open area \xB7 ${aid}`,
-                  onOpen: () => _navigate(`/config/areas/area/${aid}`),
-                  onRemove: () => _removeLabel(host, { area_id: aid }),
-                }),
-              )}
+              ${
+                tagged.areas.length
+                  ? _renderChipGroup(
+                      "Areas",
+                      tagged.areas.map((aid) =>
+                        _renderChip({
+                          icon: "mdi:floor-plan",
+                          label: _areaLabel(host, aid),
+                          title: `Open area \xB7 ${aid}`,
+                          onOpen: () => _navigate(`/config/areas/area/${aid}`),
+                          onRemove: () => _removeLabel(host, { area_id: aid }),
+                        }),
+                      ),
+                    )
+                  : ""
+              }
+              ${
+                tagged.devices.length
+                  ? _renderChipGroup(
+                      "Devices",
+                      tagged.devices.map((did) =>
+                        _renderChip({
+                          icon: "mdi:chip",
+                          label: _deviceLabel(host, did),
+                          title: `Open device \xB7 ${did}`,
+                          onOpen: () =>
+                            _navigate(`/config/devices/device/${did}`),
+                          onRemove: () =>
+                            _removeLabel(host, { device_id: did }),
+                        }),
+                      ),
+                    )
+                  : ""
+              }
+              ${
+                tagged.entities.length
+                  ? _renderChipGroup(
+                      "Entities",
+                      tagged.entities.map((eid) =>
+                        _renderChip({
+                          icon: _entityIcon(eid),
+                          label: _entityLabel(host, eid),
+                          title: `Open ${eid}`,
+                          onOpen: () => _openEntity(host, eid),
+                          onRemove: () =>
+                            _removeLabel(host, { entity_id: eid }),
+                        }),
+                      ),
+                    )
+                  : ""
+              }
             </div>
           `
       }
@@ -14098,12 +14396,13 @@ function renderApprovalGrants(host) {
                     >`
                     : x` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
-                      >all</span
+                      >→ all</span
                     >`
                 }
                 <span
                   class="mcp-token-badge"
                   style="background:${riskColor[g2.risk_level] || "#3b82f6"};color:#fff;text-transform:uppercase;"
+                  title=${_riskTooltip(g2.risk_level)}
                   >${g2.risk_level || "low"}</span
                 >
               </div>
@@ -14135,6 +14434,18 @@ function renderApprovalGrants(host) {
       })}
     </div>
   `;
+}
+function _riskTooltip(level) {
+  switch (level) {
+    case "high":
+      return "High risk \u2014 irreversible or safety-impacting action (locks, alarms, gates). Always asks for confirmation unless approved here.";
+    case "medium":
+      return "Medium risk \u2014 affects shared state or comfort (climate, scenes, media). Asks for confirmation unless approved here.";
+    case "low":
+      return "Low risk \u2014 easily reversible action (lights, switches). Runs without prompting.";
+    default:
+      return "Risk level unknown.";
+  }
 }
 function _timeAgo(isoString) {
   if (!isoString) return "never";
@@ -17631,6 +17942,216 @@ async function _loadSceneToChat(sceneId) {
   this.requestUpdate();
 }
 
+// src/panel/scene-edit.js
+var scene_edit_exports = {};
+__export(scene_edit_exports, {
+  _applySceneTileEdit: () => _applySceneTileEdit,
+  _discardSceneEdits: () => _discardSceneEdits,
+  _saveSceneEdits: () => _saveSceneEdits,
+  _sceneEditYaml: () => _sceneEditYaml,
+  _sceneEditedEntities: () => _sceneEditedEntities,
+  _sceneIsDirty: () => _sceneIsDirty,
+  _testSceneEdits: () => _testSceneEdits,
+});
+function _sceneStateFromService(domain, service, data, prev) {
+  const base = { ...(prev || {}) };
+  switch (domain) {
+    case "light": {
+      if (service === "turn_off") return { state: "off" };
+      if (service === "toggle") {
+        return base.state === "on"
+          ? { state: "off" }
+          : { ...base, state: "on" };
+      }
+      const next = { ...base, state: "on" };
+      if (data.brightness_pct != null) {
+        next.brightness = Math.round((Number(data.brightness_pct) / 100) * 255);
+        delete next.brightness_pct;
+      }
+      if (data.brightness != null) next.brightness = Number(data.brightness);
+      if (data.color_temp != null) next.color_temp = Number(data.color_temp);
+      if (data.color_temp_kelvin != null)
+        next.color_temp_kelvin = Number(data.color_temp_kelvin);
+      if (data.rgb_color != null) next.rgb_color = data.rgb_color;
+      if (data.hs_color != null) next.hs_color = data.hs_color;
+      if (data.xy_color != null) next.xy_color = data.xy_color;
+      if (data.effect != null) next.effect = data.effect;
+      return next;
+    }
+    case "cover": {
+      if (service === "open_cover")
+        return { ...base, state: "open", current_position: 100 };
+      if (service === "close_cover")
+        return { ...base, state: "closed", current_position: 0 };
+      if (service === "set_cover_position" && data.position != null) {
+        const p2 = Number(data.position);
+        return {
+          ...base,
+          state: p2 > 0 ? "open" : "closed",
+          current_position: p2,
+        };
+      }
+      return null;
+    }
+    case "fan": {
+      if (service === "turn_off") return { state: "off" };
+      if (service === "turn_on") return { ...base, state: "on" };
+      if (service === "set_percentage" && data.percentage != null) {
+        const p2 = Number(data.percentage);
+        return { ...base, state: p2 > 0 ? "on" : "off", percentage: p2 };
+      }
+      if (service === "set_preset_mode" && data.preset_mode != null) {
+        return { ...base, state: "on", preset_mode: data.preset_mode };
+      }
+      return null;
+    }
+    case "media_player": {
+      if (service === "turn_off") return { state: "off" };
+      if (service === "turn_on") return { ...base, state: "on" };
+      if (service === "media_play") return { ...base, state: "playing" };
+      if (service === "media_pause") return { ...base, state: "paused" };
+      if (service === "media_stop") return { ...base, state: "idle" };
+      if (service === "volume_set" && data.volume_level != null)
+        return { ...base, volume_level: Number(data.volume_level) };
+      if (service === "volume_mute" && data.is_volume_muted != null)
+        return { ...base, is_volume_muted: data.is_volume_muted };
+      if (service === "select_source" && data.source != null)
+        return { ...base, source: data.source };
+      return null;
+    }
+    case "switch":
+    case "input_boolean":
+    case "humidifier": {
+      if (service === "turn_off") return { state: "off" };
+      if (service === "turn_on") return { ...base, state: "on" };
+      if (service === "toggle")
+        return { ...base, state: base.state === "on" ? "off" : "on" };
+      return null;
+    }
+    case "lock": {
+      if (service === "lock") return { ...base, state: "locked" };
+      if (service === "unlock") return { ...base, state: "unlocked" };
+      return null;
+    }
+    case "climate": {
+      const next = { ...base };
+      if (data.temperature != null) next.temperature = Number(data.temperature);
+      if (data.hvac_mode != null) next.state = data.hvac_mode;
+      if (service === "turn_off") next.state = "off";
+      return next;
+    }
+    default:
+      return null;
+  }
+}
+function _cleanSceneEntities(entities) {
+  const out = {};
+  for (const [id, st] of Object.entries(entities || {})) {
+    const clean = {};
+    for (const [k2, v2] of Object.entries(st || {})) {
+      if (k2 === "state" || v2 != null) clean[k2] = v2;
+    }
+    out[id] = clean;
+  }
+  return out;
+}
+function _sceneEditedEntities(sceneId) {
+  const edited = this._sceneEdits?.[sceneId];
+  if (edited) return edited;
+  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
+  return scene?.entities || {};
+}
+function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
+  if (!sceneId || !entityId) return;
+  const current = this._sceneEditedEntities(sceneId);
+  const prev = current[entityId];
+  const next = _sceneStateFromService(domain, service, data || {}, prev);
+  if (!next) return;
+  if (prev && JSON.stringify(prev) === JSON.stringify(next)) return;
+  this._sceneEdits = {
+    ...this._sceneEdits,
+    [sceneId]: { ...current, [entityId]: next },
+  };
+  this.requestUpdate();
+}
+function _sceneIsDirty(sceneId) {
+  return !!this._sceneEdits?.[sceneId];
+}
+function _yamlScalar(v2) {
+  if (typeof v2 === "number") return String(v2);
+  if (typeof v2 === "boolean") return v2 ? "true" : "false";
+  if (Array.isArray(v2)) return `[${v2.map(_yamlScalar).join(", ")}]`;
+  return `'${String(v2).replace(/'/g, "''")}'`;
+}
+function _sceneEditYaml(sceneId, displayName) {
+  const entities = this._sceneEditedEntities(sceneId);
+  const name = String(displayName || "").replace(/^\[Selora AI\]\s*/, "");
+  const lines = [
+    "# Unsaved preview \u2014 Save changes to apply.",
+    `name: '[Selora AI] ${name.replace(/'/g, "''")}'`,
+    "entities:",
+  ];
+  for (const [id, st] of Object.entries(entities)) {
+    lines.push(`  ${id}:`);
+    if ("state" in st) lines.push(`    state: ${_yamlScalar(st.state)}`);
+    for (const [k2, val] of Object.entries(st)) {
+      if (k2 === "state") continue;
+      lines.push(`    ${k2}: ${_yamlScalar(val)}`);
+    }
+  }
+  return lines.join("\n");
+}
+async function _saveSceneEdits(sceneId) {
+  const submitted = this._sceneEdits?.[sceneId];
+  if (!submitted) return;
+  this._savingScene = { ...this._savingScene, [sceneId]: true };
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/save_scene_edits",
+      scene_id: sceneId,
+      entities: _cleanSceneEntities(submitted),
+    });
+    if (this._sceneEdits?.[sceneId] === submitted) {
+      const next = { ...this._sceneEdits };
+      delete next[sceneId];
+      this._sceneEdits = next;
+    }
+    await this._loadScenes();
+    this._showToast("Scene updated.", "success");
+  } catch (err) {
+    this._showToast("Failed to save scene: " + err.message, "error");
+  } finally {
+    this._savingScene = { ...this._savingScene, [sceneId]: false };
+    this.requestUpdate();
+  }
+}
+async function _testSceneEdits(sceneId) {
+  const entities = this._sceneEditedEntities(sceneId);
+  if (!entities || !Object.keys(entities).length) return;
+  this._testingScene = { ...this._testingScene, [sceneId]: true };
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/apply_scene_states",
+      entities: _cleanSceneEntities(entities),
+    });
+    this._showToast("Applied to your devices (not saved).", "success");
+  } catch (err) {
+    this._showToast("Failed to test scene: " + err.message, "error");
+  } finally {
+    this._testingScene = { ...this._testingScene, [sceneId]: false };
+    this.requestUpdate();
+  }
+}
+function _discardSceneEdits(sceneId) {
+  if (!this._sceneEdits?.[sceneId]) return;
+  const next = { ...this._sceneEdits };
+  delete next[sceneId];
+  this._sceneEdits = next;
+  this.requestUpdate();
+}
+
 // src/panel.js
 (() => {
   const PANEL_NAME = "selora-ai";
@@ -17825,6 +18346,7 @@ var SeloraAIPanel = class extends s4 {
       _automationFilter: { type: String },
       _statusFilter: { type: String },
       _sortBy: { type: String },
+      _sortDir: { type: String },
       // Suggestion filter
       _suggestionFilter: { type: String },
       _suggestionSourceFilter: { type: String },
@@ -17905,11 +18427,6 @@ var SeloraAIPanel = class extends s4 {
       // Unavailable automation modal
       _unavailableAutoId: { type: String },
       _unavailableAutoName: { type: String },
-      // Stale automations modal
-      _staleModalOpen: { type: Boolean },
-      _staleSelected: { type: Object },
-      _staleDetailAuto: { type: Object },
-      _staleBulkDeleting: { type: Boolean },
       // Feedback modal
       _showFeedbackModal: { type: Boolean },
       _feedbackText: { type: String },
@@ -17937,7 +18454,12 @@ var SeloraAIPanel = class extends s4 {
       _scenes: { type: Array },
       _sceneFilter: { type: String },
       _sceneSortBy: { type: String },
+      _sceneStatusFilter: { type: String },
+      _sceneSortDir: { type: String },
       _expandedScenes: { type: Object },
+      _sceneEdits: { type: Object },
+      _savingScene: { type: Object },
+      _testingScene: { type: Object },
       _sceneYamlOpen: { type: Object },
       _openSceneBurger: { type: String },
       _deletingScene: { type: Object },
@@ -18003,6 +18525,9 @@ var SeloraAIPanel = class extends s4 {
     this._automationFilter = "";
     this._statusFilter = "all";
     this._sortBy = "recent";
+    this._sortDir = "desc";
+    this._sceneStatusFilter = "all";
+    this._sceneSortDir = "desc";
     this._suggestionFilter = "";
     this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
@@ -18023,10 +18548,6 @@ var SeloraAIPanel = class extends s4 {
     this._runningAutomation = {};
     this._unavailableAutoId = null;
     this._unavailableAutoName = null;
-    this._staleModalOpen = false;
-    this._staleSelected = {};
-    this._staleDetailAuto = null;
-    this._staleBulkDeleting = false;
     this._generatingSuggestions = false;
     this._cardActiveTab = {};
     this._bulkEditMode = false;
@@ -18068,6 +18589,9 @@ var SeloraAIPanel = class extends s4 {
     this._sceneFilter = "";
     this._sceneSortBy = "recent";
     this._expandedScenes = {};
+    this._sceneEdits = {};
+    this._savingScene = {};
+    this._testingScene = {};
     this._sceneYamlOpen = {};
     this._openSceneBurger = null;
     this._deletingScene = {};
@@ -18990,7 +19514,10 @@ var SeloraAIPanel = class extends s4 {
       this.hass &&
       (changedProps.has("_messages") ||
         changedProps.has("hass") ||
-        (changedProps.has("_activeTab") && this._activeTab === "chat"))
+        changedProps.has("_scenes") ||
+        changedProps.has("_expandedScenes") ||
+        changedProps.has("_sceneEdits") ||
+        changedProps.has("_activeTab"))
     ) {
       this._hydrateEntityChips();
     }
@@ -19117,13 +19644,47 @@ var SeloraAIPanel = class extends s4 {
     const createTile = await this._getTileCardCreator();
     const registries = await this._ensureFullRegistries();
     for (const grid of grids) {
-      const wired = grid.dataset.wired === "true";
+      const wired =
+        grid.dataset.wired === "true" &&
+        grid.dataset.wiredIds === (grid.dataset.entityIds || "");
+      let gridHass = this.hass;
+      if (grid.dataset.sceneStates) {
+        try {
+          const overrides = this._mergeSceneStates(
+            JSON.parse(grid.dataset.sceneStates),
+          );
+          gridHass = {
+            ...this.hass,
+            states: { ...this.hass.states, ...overrides },
+          };
+        } catch (e5) {
+          console.warn("Selora: bad scene-states payload", e5);
+        }
+      }
+      const sceneEditId = grid.dataset.sceneEditId;
+      if (sceneEditId) {
+        const editEntityId = grid.dataset.entityIds;
+        gridHass = {
+          ...gridHass,
+          callService: (domain, service, data = {}) => {
+            this._applySceneTileEdit(
+              sceneEditId,
+              editEntityId,
+              domain,
+              service,
+              data,
+            );
+            return Promise.resolve();
+          },
+        };
+      }
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
           .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
+        grid.replaceChildren();
         let appended = 0;
         if (createTile) {
           const groups = /* @__PURE__ */ new Map();
@@ -19147,9 +19708,12 @@ var SeloraAIPanel = class extends s4 {
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
-            const card = createTile(id, { noFeatures });
+            const card = createTile(id, {
+              noFeatures,
+              noActions: !!sceneEditId,
+            });
             if (!card) return null;
-            card.hass = this.hass;
+            card.hass = gridHass;
             const reg = registries.entities?.[id];
             const dev = reg?.device_id
               ? registries.devices?.[reg.device_id]
@@ -19193,17 +19757,61 @@ var SeloraAIPanel = class extends s4 {
             }
           }
         }
-        if (appended === 0) {
+        if (appended > 0) {
+          grid.dataset.wired = "true";
+          grid.dataset.wiredIds = grid.dataset.entityIds || "";
+        } else {
           grid.textContent = ids.join(", ");
         }
-        grid.dataset.wired = "true";
       }
-      for (const card of grid.children) {
-        if (card.hass !== void 0) {
-          card.hass = { ...this.hass };
+      if (grid.dataset.sceneStates) {
+        const sig = `${grid.dataset.sceneEditId || ""}|${grid.dataset.sceneStates}`;
+        if (grid.dataset.sceneSig !== sig) {
+          grid.dataset.sceneSig = sig;
+          for (const card of grid.children) {
+            if (card.hass !== void 0) card.hass = { ...gridHass };
+          }
+        }
+      } else {
+        for (const card of grid.children) {
+          if (card.hass !== void 0) card.hass = { ...gridHass };
         }
       }
     }
+  }
+  // Build a {entity_id: state} override map from a scene's target states.
+  // Each override merges the entity's live state object (so the tile has
+  // friendly_name, supported_features, etc.) with the scene's desired
+  // state + attributes. Scene-only shorthands are normalised to the
+  // attribute names HA tile features actually read (brightness 0-255,
+  // current_position) so the rendered slider matches the scene YAML.
+  _mergeSceneStates(sceneStates) {
+    const overrides = {};
+    for (const [id, target] of Object.entries(sceneStates || {})) {
+      if (!target || typeof target !== "object") continue;
+      const live = this.hass.states?.[id];
+      if (!live) continue;
+      const attrs = { ...(live.attributes || {}) };
+      for (const [k2, v2] of Object.entries(target)) {
+        if (k2 === "state") continue;
+        attrs[k2] = v2;
+      }
+      if (target.brightness_pct != null && target.brightness == null) {
+        attrs.brightness = Math.round(
+          (Number(target.brightness_pct) / 100) * 255,
+        );
+        delete attrs.brightness_pct;
+      }
+      if (target.position != null && target.current_position == null) {
+        attrs.current_position = Number(target.position);
+      }
+      overrides[id] = {
+        ...live,
+        state: String(target.state),
+        attributes: attrs,
+      };
+    }
+    return overrides;
   }
   // Lazily fetch the full entity + device registries via WS. The
   // `hass.entities` object exposed to panels is the *display* registry
@@ -19252,7 +19860,17 @@ var SeloraAIPanel = class extends s4 {
   // registered the element. Cached on `this` so the chunk-load only
   // happens once per panel lifetime.
   async _getTileCardCreator() {
-    if (this._tileCardCreator !== void 0) return this._tileCardCreator;
+    if (this._tileCardCreator) return this._tileCardCreator;
+    if (this._tileCardCreatorPromise) return this._tileCardCreatorPromise;
+    this._tileCardCreatorPromise = (async () => {
+      const creator = await this._buildTileCardCreator();
+      if (creator) this._tileCardCreator = creator;
+      this._tileCardCreatorPromise = null;
+      return creator;
+    })();
+    return this._tileCardCreatorPromise;
+  }
+  async _buildTileCardCreator() {
     const featuresForDomain = (entityId) => {
       const domain = entityId.split(".")[0];
       switch (domain) {
@@ -19282,11 +19900,22 @@ var SeloraAIPanel = class extends s4 {
           return [];
       }
     };
-    const buildConfig = (id, { noFeatures = false } = {}) => ({
-      type: "tile",
-      entity: id,
-      features: noFeatures ? [] : featuresForDomain(id),
-    });
+    const buildConfig = (
+      id,
+      { noFeatures = false, noActions = false } = {},
+    ) => {
+      const config = {
+        type: "tile",
+        entity: id,
+        features: noFeatures ? [] : featuresForDomain(id),
+      };
+      if (noActions) {
+        config.tap_action = { action: "none" };
+        config.hold_action = { action: "none" };
+        config.double_tap_action = { action: "none" };
+      }
+      return config;
+    };
     if (typeof window.loadCardHelpers === "function") {
       try {
         const helpers = await window.loadCardHelpers();
@@ -20195,7 +20824,10 @@ Object.assign(SeloraAIPanel.prototype, chat_actions_exports);
 Object.assign(SeloraAIPanel.prototype, automation_crud_exports);
 Object.assign(SeloraAIPanel.prototype, automation_management_exports);
 Object.assign(SeloraAIPanel.prototype, scene_actions_exports);
-customElements.define("selora-ai", SeloraAIPanel);
+Object.assign(SeloraAIPanel.prototype, scene_edit_exports);
+if (!customElements.get("selora-ai")) {
+  customElements.define("selora-ai", SeloraAIPanel);
+}
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

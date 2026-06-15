@@ -2669,6 +2669,260 @@ async def _handle_websocket_accept_scene(
     )
 
 
+async def _async_apply_scene_entity(
+    hass: HomeAssistant,
+    entity_id: str,
+    state: dict[str, Any],
+) -> None:
+    """Apply one entity's target state with direct per-domain services.
+
+    Deliberately avoids scene.apply: its reproduce_state helpers call
+    services like fan.set_direction even when the attribute is absent,
+    which fails for entities whose direction is None. Here we only issue
+    services for the attributes we actually have.
+    """
+    domain = entity_id.split(".")[0]
+    st = state.get("state")
+    target = {"entity_id": entity_id}
+
+    def _attrs(*keys: str) -> dict[str, Any]:
+        out = dict(target)
+        for key in keys:
+            val = state.get(key)
+            if val is not None:
+                out[key] = val
+        return out
+
+    if domain == "light":
+        if st == "off":
+            await hass.services.async_call("light", "turn_off", target, blocking=True)
+        else:
+            await hass.services.async_call(
+                "light",
+                "turn_on",
+                _attrs(
+                    "brightness",
+                    "color_temp",
+                    "color_temp_kelvin",
+                    "rgb_color",
+                    "hs_color",
+                    "xy_color",
+                    "effect",
+                ),
+                blocking=True,
+            )
+    elif domain == "fan":
+        if st == "off":
+            await hass.services.async_call("fan", "turn_off", target, blocking=True)
+        else:
+            await hass.services.async_call("fan", "turn_on", target, blocking=True)
+            if state.get("percentage") is not None:
+                await hass.services.async_call(
+                    "fan", "set_percentage", _attrs("percentage"), blocking=True
+                )
+            if state.get("preset_mode") is not None:
+                await hass.services.async_call(
+                    "fan", "set_preset_mode", _attrs("preset_mode"), blocking=True
+                )
+    elif domain == "cover":
+        position = state.get("current_position", state.get("position"))
+        if position is not None:
+            await hass.services.async_call(
+                "cover",
+                "set_cover_position",
+                {"entity_id": entity_id, "position": position},
+                blocking=True,
+            )
+        elif st == "open":
+            await hass.services.async_call("cover", "open_cover", target, blocking=True)
+        elif st == "closed":
+            await hass.services.async_call("cover", "close_cover", target, blocking=True)
+    elif domain == "media_player":
+        if st == "off":
+            await hass.services.async_call("media_player", "turn_off", target, blocking=True)
+        else:
+            if st == "paused":
+                await hass.services.async_call("media_player", "media_pause", target, blocking=True)
+            elif st == "playing":
+                await hass.services.async_call("media_player", "media_play", target, blocking=True)
+            elif st in ("idle", "standby"):
+                await hass.services.async_call("media_player", "media_stop", target, blocking=True)
+            else:
+                # "on" — ensure the player is powered on, matching what
+                # activating the saved scene does.
+                await hass.services.async_call("media_player", "turn_on", target, blocking=True)
+            if state.get("volume_level") is not None:
+                await hass.services.async_call(
+                    "media_player", "volume_set", _attrs("volume_level"), blocking=True
+                )
+            if state.get("is_volume_muted") is not None:
+                await hass.services.async_call(
+                    "media_player", "volume_mute", _attrs("is_volume_muted"), blocking=True
+                )
+            if state.get("source") is not None:
+                await hass.services.async_call(
+                    "media_player", "select_source", _attrs("source"), blocking=True
+                )
+    elif domain in ("switch", "input_boolean", "humidifier"):
+        service = "turn_on" if st == "on" else "turn_off"
+        await hass.services.async_call(domain, service, target, blocking=True)
+    elif domain == "lock":
+        service = "lock" if st == "locked" else "unlock"
+        await hass.services.async_call("lock", service, target, blocking=True)
+    elif domain == "climate":
+        # HVAC mode first: integrations may reject temperature/preset
+        # while off, and HA's own climate reproduce applies mode first.
+        if st:
+            await hass.services.async_call(
+                "climate", "set_hvac_mode", {"entity_id": entity_id, "hvac_mode": st}, blocking=True
+            )
+        if state.get("temperature") is not None:
+            await hass.services.async_call(
+                "climate", "set_temperature", _attrs("temperature"), blocking=True
+            )
+        if state.get("preset_mode") is not None:
+            await hass.services.async_call(
+                "climate", "set_preset_mode", _attrs("preset_mode"), blocking=True
+            )
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/apply_scene_states",
+        vol.Required("entities"): dict,
+    }
+)
+async def _handle_websocket_apply_scene_states(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Apply a set of entity states live, without saving.
+
+    Used by the panel's "Test" button to preview an edited scene on the
+    real devices. Applies each entity with direct per-domain services
+    (not scene.apply) so optional attributes the scene omits (e.g. a
+    fan's direction) don't trigger service calls with None values.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    entities: dict[str, Any] = msg["entities"]
+    if not entities:
+        connection.send_error(msg["id"], "no_entities", "No entities to apply")
+        return
+
+    _LOGGER.debug("Applying scene states for test: %s", entities)
+    errors: list[str] = []
+    for entity_id, state in entities.items():
+        if not isinstance(state, dict) or "state" not in state:
+            continue
+        try:
+            await _async_apply_scene_entity(hass, entity_id, state)
+        except Exception as exc:  # noqa: BLE001
+            _LOGGER.error("Failed to apply %s: %s", entity_id, exc)
+            errors.append(f"{entity_id}: {exc}")
+
+    if errors:
+        connection.send_error(msg["id"], "apply_failed", "; ".join(errors))
+        return
+
+    connection.send_result(msg["id"], {"ok": True})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
+        vol.Required("type"): "selora_ai/save_scene_edits",
+        vol.Required("scene_id"): str,
+        vol.Required("entities"): dict,
+    }
+)
+async def _handle_websocket_save_scene_edits(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Persist user edits to a saved Selora scene's desired states.
+
+    The panel lets users adjust each entity's target state directly on the
+    scene card; this rewrites the matching ``scenes.yaml`` entry, refreshes
+    the scene store, and updates any session that references the scene.
+
+    The scene name is taken from the stored record (never the payload) and
+    the target is restricted to an existing Selora-managed scene, so a
+    crafted client cannot create or retarget an arbitrary scene.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    scene_id = msg["scene_id"]
+    scene_store = _get_scene_store(hass)
+    record = await scene_store.async_get_scene(scene_id)
+    if record is None or record.get("deleted_at") is not None:
+        connection.send_error(msg["id"], "not_found", "Scene not found")
+        return
+
+    # Strip the "[Selora AI] " display prefix so the writer (which re-adds
+    # it) doesn't double it.
+    raw_name = record.get("name") or ""
+    name = raw_name.removeprefix("[Selora AI] ").strip() or raw_name
+
+    from .scene_utils import async_create_scene, validate_scene_payload  # noqa: PLC0415
+
+    ok, reason, normalized = validate_scene_payload(
+        {"name": name, "entities": msg["entities"]}, hass
+    )
+    if not ok or normalized is None:
+        connection.send_error(msg["id"], "invalid_scene", reason)
+        return
+
+    try:
+        result = await async_create_scene(
+            hass,
+            normalized,
+            existing_scene_id=scene_id,
+            # Trusted admin edit of a known Selora scene — bypass the
+            # session-membership gate (None) but keep the prefix check.
+            session_scene_ids=None,
+        )
+    except Exception as exc:  # noqa: BLE001
+        _LOGGER.error("Failed to save scene edits for %s: %s", scene_id, exc)
+        connection.send_error(msg["id"], "save_failed", str(exc))
+        return
+
+    try:
+        await scene_store.async_add_scene(
+            result["scene_id"],
+            result["name"],
+            result["entity_count"],
+            entity_id=result.get("entity_id"),
+            content_hash=result.get("content_hash"),
+        )
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("Failed to update scene %s in store after edit", scene_id)
+
+    try:
+        store: ConversationStore = hass.data[DOMAIN].setdefault(
+            "_conv_store", ConversationStore(hass)
+        )
+        await store.update_scene_in_sessions(scene_id, result["name"], result["scene_yaml"])
+    except Exception:  # noqa: BLE001
+        _LOGGER.warning("Failed to propagate scene %s edits to sessions", scene_id)
+
+    connection.send_result(
+        msg["id"],
+        {
+            "scene_id": result["scene_id"],
+            "entity_id": result.get("entity_id"),
+            "entity_count": result["entity_count"],
+            "scene_yaml": result["scene_yaml"],
+            "entities": normalized["entities"],
+        },
+    )
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -6343,6 +6597,8 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
     websocket_api.async_register_command(hass, _handle_websocket_set_scene_status)
     websocket_api.async_register_command(hass, _handle_websocket_accept_scene)
+    websocket_api.async_register_command(hass, _handle_websocket_save_scene_edits)
+    websocket_api.async_register_command(hass, _handle_websocket_apply_scene_states)
     # Automation lifecycle
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_versions)
     websocket_api.async_register_command(hass, _handle_websocket_get_automation_diff)
@@ -6436,7 +6692,21 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
         )
 
     # Register custom side panel in the sidebar
+    # Cache-bust the panel module: the static path is served without a
+    # content hash, so browsers cache /api/selora_ai/panel.js indefinitely
+    # and never pick up a redeploy. Tagging the URL with the bundle's
+    # mtime forces a refetch whenever the file changes.
+    import os  # noqa: PLC0415
+
     from homeassistant.components import frontend
+
+    panel_file = hass.config.path(f"custom_components/{DOMAIN}/frontend/panel.js")
+    try:
+        panel_mtime = await hass.async_add_executor_job(os.path.getmtime, panel_file)
+        panel_version = str(int(panel_mtime))
+    except OSError:
+        panel_version = "0"
+    panel_module_url = f"/api/{DOMAIN}/panel.js?v={panel_version}"
 
     # In recent HA, async_register_panel might be deprecated or renamed
     # We try both async_register_panel and async_register_built_in_panel
@@ -6447,7 +6717,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
             webcomponent_name=PANEL_NAME,
             sidebar_title=PANEL_TITLE,
             sidebar_icon=PANEL_ICON,
-            module_url=f"/api/{DOMAIN}/panel.js",
+            module_url=panel_module_url,
             config={"domain": DOMAIN},
             require_admin=True,
         )
@@ -6462,7 +6732,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
                 config={
                     "_panel_custom": {
                         "name": PANEL_NAME,
-                        "module_url": f"/api/{DOMAIN}/panel.js",
+                        "module_url": panel_module_url,
                     },
                     "domain": DOMAIN,
                 },

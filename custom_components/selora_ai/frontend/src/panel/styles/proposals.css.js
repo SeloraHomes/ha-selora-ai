@@ -197,6 +197,117 @@ export const proposalStyles = css`
     font-weight: 400;
   }
 
+  /* Scene entity tiles — HA-tile-card-like presentation, but the right
+     column is unambiguously the *target* state the scene applies on
+     activation (badge label + percentage bar), not the live state. */
+  .scene-tiles {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  .scene-tile {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 14px;
+    border-radius: 14px;
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+  }
+  .scene-tile-icon {
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    color: var(--tile-accent);
+  }
+  .scene-tile-icon ha-icon {
+    --mdc-icon-size: 22px;
+  }
+  .scene-tile-body {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .scene-tile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-text-color);
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-tile-subtitle {
+    font-size: 12px;
+    color: var(--secondary-text-color);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .scene-tile-arrow {
+    flex-shrink: 0;
+    --mdc-icon-size: 18px;
+    color: var(--secondary-text-color);
+    opacity: 0.5;
+  }
+  .scene-tile-target {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+    min-width: 110px;
+  }
+  .scene-tile-state {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+    line-height: 1;
+  }
+  .scene-tile-state.active {
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    color: var(--tile-accent);
+    border: 1px solid color-mix(in srgb, var(--tile-accent) 35%, transparent);
+  }
+  .scene-tile-state.inactive {
+    background: transparent;
+    color: var(--secondary-text-color);
+    border: 1px solid var(--divider-color);
+  }
+  .scene-tile-bar {
+    width: 130px;
+    height: 6px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--tile-accent) 18%, transparent);
+    overflow: hidden;
+  }
+  .scene-tile-bar-fill {
+    height: 100%;
+    background: var(--tile-accent);
+    border-radius: 999px;
+    transition: width 0.25s ease;
+  }
+  @media (max-width: 600px) {
+    .scene-tile-target {
+      min-width: 90px;
+    }
+    .scene-tile-bar {
+      width: 90px;
+    }
+  }
+
   /* ---- Automation flowchart ----
      Sizes are deliberately closer to the surrounding chat bubble copy
      (14px) than the tiny 12px the chart originally used, since the

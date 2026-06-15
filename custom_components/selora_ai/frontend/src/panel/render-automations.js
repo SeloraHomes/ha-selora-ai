@@ -6,7 +6,7 @@ import {
 import { fmtEntity } from "../shared/formatting.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 import { renderSuggestionsSection } from "./render-suggestions.js";
-import { getStaleAutomations, renderStaleModal } from "./stale-automations.js";
+import { getStaleAutomations, staleTooltip } from "./stale-automations.js";
 import { DOMAIN_ICONS } from "./render-chat.js";
 
 // Click target for entities mentioned in a trigger/condition/action. Opens
@@ -625,8 +625,12 @@ export function renderAutomations(host) {
   const filterText = (host._automationFilter || "").toLowerCase();
   const statusFilter = host._statusFilter || "all";
   const sortBy = host._sortBy || "recent";
+  const sortDir = host._sortDir || "desc";
 
   let filteredAutomations = [...host._automations];
+
+  const staleList = getStaleAutomations(host);
+  const staleSet = new Set(staleList.map((a) => a.automation_id));
 
   // Status filter
   if (statusFilter === "enabled") {
@@ -637,6 +641,10 @@ export function renderAutomations(host) {
     filteredAutomations = filteredAutomations.filter(
       (a) => !host._automationIsEnabled(a),
     );
+  } else if (statusFilter === "stale") {
+    filteredAutomations = filteredAutomations.filter((a) =>
+      staleSet.has(a.automation_id),
+    );
   }
 
   // Text filter
@@ -646,7 +654,11 @@ export function renderAutomations(host) {
     );
   }
 
-  // Sort
+  // Sort. Each `sortBy` has a natural direction (recent: desc by time,
+  // alpha: A→Z asc, enabled_first: enabled→disabled). The toggle button
+  // flips that natural order — reverse the array when dir doesn't match
+  // the natural one, so the comparators stay simple.
+  const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
     filteredAutomations.sort((a, b) => {
       const aTime = a.last_triggered ? new Date(a.last_triggered).getTime() : 0;
@@ -664,14 +676,10 @@ export function renderAutomations(host) {
       return aOn - bOn;
     });
   }
+  if (sortDir !== naturalDir[sortBy]) {
+    filteredAutomations.reverse();
+  }
 
-  // Summary counts
-  const enabledCount = host._automations.filter((a) =>
-    host._automationIsEnabled(a),
-  ).length;
-  const disabledCount = host._automations.filter(
-    (a) => !host._automationIsEnabled(a),
-  ).length;
   const perPage = host._autosPerPage || 10;
   const totalAutoPages = Math.max(
     1,
@@ -709,8 +717,106 @@ export function renderAutomations(host) {
         </div>
         ${host._automations.length > 0
           ? html`
-              <div class="filter-row" style="margin-top:12px;">
-                <div class="filter-input-wrap" style="flex:0 1 260px;">
+              <div class="filter-tabs-row" style="margin-top:12px;">
+                <div class="filter-tabs" role="tablist">
+                  ${["all", "enabled", "disabled"].map(
+                    (s) => html`
+                      <button
+                        role="tab"
+                        aria-selected=${host._statusFilter === s}
+                        class="filter-tab ${host._statusFilter === s
+                          ? "active"
+                          : ""}"
+                        @click=${() => {
+                          host._statusFilter = s;
+                          host._automationsPage = 1;
+                        }}
+                      >
+                        ${s.charAt(0).toUpperCase() + s.slice(1)}
+                      </button>
+                    `,
+                  )}
+                  ${staleSet.size > 0
+                    ? html`<button
+                        role="tab"
+                        aria-selected=${host._statusFilter === "stale"}
+                        class="filter-tab ${host._statusFilter === "stale"
+                          ? "active"
+                          : ""}"
+                        title=${staleTooltip(host)}
+                        @click=${() => {
+                          host._statusFilter = "stale";
+                          host._automationsPage = 1;
+                        }}
+                      >
+                        <ha-icon
+                          icon="mdi:alert-outline"
+                          style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
+                        ></ha-icon>
+                        <span>Stale (${staleSet.size})</span>
+                      </button>`
+                    : ""}
+                </div>
+                <div class="filter-tabs-actions">
+                  ${host._bulkEditMode
+                    ? html`
+                        <label class="bulk-select-all">
+                          <input
+                            type="checkbox"
+                            ?checked=${allVisibleSelected}
+                            .indeterminate=${partiallyVisibleSelected}
+                            ?disabled=${selectableIds.length === 0 ||
+                            host._bulkActionInProgress}
+                            @change=${(e) =>
+                              host._toggleSelectAllFiltered(
+                                filteredAutomations,
+                                e.target.checked,
+                              )}
+                          />
+                          <span>Select all</span>
+                        </label>
+                        <button
+                          class="filter-row-secondary"
+                          @click=${() => {
+                            host._bulkEditMode = false;
+                            host._clearAutomationSelection();
+                          }}
+                        >
+                          Done
+                        </button>
+                      `
+                    : html`
+                        <button
+                          class="filter-row-secondary"
+                          @click=${() => {
+                            host._bulkEditMode = true;
+                          }}
+                        >
+                          <ha-icon
+                            icon="mdi:checkbox-multiple-outline"
+                            style="--mdc-icon-size:14px;"
+                          ></ha-icon>
+                          Bulk edit
+                        </button>
+                      `}
+                  <button
+                    class="filter-row-action"
+                    ?disabled=${host._llmNeedsSetup}
+                    title=${host._llmNeedsSetup
+                      ? "Configure an LLM provider first"
+                      : ""}
+                    @click=${() => host._startNewAutomationChat()}
+                  >
+                    <ha-icon
+                      icon="mdi:plus"
+                      style="--mdc-icon-size:13px;"
+                    ></ha-icon>
+                    New Automation
+                  </button>
+                </div>
+              </div>
+              <div class="filter-row">
+                <div class="filter-input-wrap" style="flex:1 1 260px;">
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
@@ -732,120 +838,35 @@ export function renderAutomations(host) {
                       ></ha-icon>`
                     : ""}
                 </div>
-                <div class="status-pills">
-                  ${["all", "enabled", "disabled"].map(
-                    (s) => html`
-                      <button
-                        class="status-pill ${host._statusFilter === s
-                          ? "active"
-                          : ""}"
-                        @click=${() => {
-                          host._statusFilter = s;
-                          host._automationsPage = 1;
-                        }}
-                      >
-                        ${s.charAt(0).toUpperCase() + s.slice(1)}
-                      </button>
-                    `,
-                  )}
-                </div>
-                <select
-                  class="sort-select"
-                  .value=${host._sortBy}
-                  @change=${(e) => {
-                    host._sortBy = e.target.value;
-                  }}
-                >
-                  <option value="recent">Recent activity</option>
-                  <option value="alpha">Alphabetical</option>
-                  <option value="enabled_first">Enabled first</option>
-                </select>
-                <div
-                  style="margin-left:auto;display:flex;align-items:center;gap:8px;"
-                >
+                <div class="sort-group">
+                  <select
+                    class="sort-select"
+                    .value=${host._sortBy}
+                    @change=${(e) => {
+                      host._sortBy = e.target.value;
+                    }}
+                  >
+                    <option value="recent">Recent activity</option>
+                    <option value="alpha">Alphabetical</option>
+                    <option value="enabled_first">Enabled first</option>
+                  </select>
                   <button
-                    class="btn btn-accent"
-                    style="white-space:nowrap;"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup
-                      ? "Configure an LLM provider first"
-                      : ""}
-                    @click=${() => host._startNewAutomationChat()}
+                    class="sort-dir-toggle"
+                    title=${sortDir === "desc"
+                      ? "Sort descending (click for ascending)"
+                      : "Sort ascending (click for descending)"}
+                    @click=${() => {
+                      host._sortDir = sortDir === "desc" ? "asc" : "desc";
+                    }}
                   >
                     <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
+                      icon=${sortDir === "desc"
+                        ? "mdi:sort-descending"
+                        : "mdi:sort-ascending"}
+                      style="--mdc-icon-size:18px;"
                     ></ha-icon>
-                    New Automation
                   </button>
                 </div>
-              </div>
-              <div
-                class="automations-summary"
-                style="display:flex;align-items:center;justify-content:space-between;"
-              >
-                <span>
-                  ${filteredAutomations.length} existing
-                  automation${filteredAutomations.length !== 1 ? "s" : ""}
-                  (${enabledCount} enabled, ${disabledCount} disabled)
-                  ${(() => {
-                    const staleCount = getStaleAutomations(host).length;
-                    return staleCount > 0
-                      ? html`<span
-                          class="needs-attention-pill"
-                          style="margin-left:8px;cursor:pointer;"
-                          @click=${(e) => {
-                            e.stopPropagation();
-                            host._staleModalOpen = true;
-                          }}
-                          >${staleCount} stale</span
-                        >`
-                      : "";
-                  })()}
-                </span>
-                ${host._bulkEditMode
-                  ? html`
-                      <div style="display:flex;align-items:center;gap:10px;">
-                        <label class="bulk-select-all">
-                          <input
-                            type="checkbox"
-                            ?checked=${allVisibleSelected}
-                            .indeterminate=${partiallyVisibleSelected}
-                            ?disabled=${selectableIds.length === 0 ||
-                            host._bulkActionInProgress}
-                            @change=${(e) =>
-                              host._toggleSelectAllFiltered(
-                                filteredAutomations,
-                                e.target.checked,
-                              )}
-                          />
-                          <span>Select all</span>
-                        </label>
-                        <button
-                          class="btn btn-outline"
-                          @click=${() => {
-                            host._bulkEditMode = false;
-                            host._clearAutomationSelection();
-                          }}
-                        >
-                          Done
-                        </button>
-                      </div>
-                    `
-                  : html`
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => {
-                          host._bulkEditMode = true;
-                        }}
-                      >
-                        <ha-icon
-                          icon="mdi:checkbox-multiple-outline"
-                          style="--mdc-icon-size:14px;"
-                        ></ha-icon>
-                        Bulk edit
-                      </button>
-                    `}
               </div>
               ${host._bulkEditMode && selectedIds.length > 0
                 ? html`
@@ -982,17 +1003,31 @@ export function renderAutomations(host) {
                           : ""}
                         ${renderAutomationIdentity(a.alias, a.description, {
                           isSelora: !!a.is_selora,
-                          titleSuffix: isUnavailable
-                            ? html`<span
-                                class="needs-attention-pill"
-                                @click=${(e) => {
-                                  e.stopPropagation();
-                                  host._unavailableAutoId = automationId;
-                                  host._unavailableAutoName = a.alias;
-                                }}
-                                >Needs attention</span
-                              >`
-                            : null,
+                          titleSuffix: html`
+                            ${isUnavailable
+                              ? html`<span
+                                  class="needs-attention-pill"
+                                  @click=${(e) => {
+                                    e.stopPropagation();
+                                    host._unavailableAutoId = automationId;
+                                    host._unavailableAutoName = a.alias;
+                                  }}
+                                  >Needs attention</span
+                                >`
+                              : ""}
+                            ${staleSet.has(automationId)
+                              ? html`<span
+                                  class="stale-pill"
+                                  title=${staleTooltip(host)}
+                                >
+                                  <ha-icon
+                                    icon="mdi:alert-outline"
+                                    style="--mdc-icon-size:12px;"
+                                  ></ha-icon>
+                                  Stale
+                                </span>`
+                              : ""}
+                          `,
                           nameOverride:
                             host._editingAlias === automationId
                               ? html`
@@ -1384,7 +1419,6 @@ export function renderAutomations(host) {
             </div>`}
       </div>
       ${host._renderDiffViewer()} ${renderUnavailableModal(host)}
-      ${renderStaleModal(host)}
     </div>
   `;
 }
