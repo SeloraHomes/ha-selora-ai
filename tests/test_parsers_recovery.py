@@ -28,16 +28,58 @@ import pytest
 from custom_components.selora_ai.llm_client.parsers import (
     _apply_entity_substitutions,
     _coerce_numeric_state_triggers,
+    _coerce_presence_for_duration_trigger,
     _coerce_sun_triggers,
     _extract_numeric_threshold,
+    _find_presence_entity,
+    _has_presence_for_duration,
     _humanise_unknown_entity_error,
+    _match_presence_for_duration,
+    _prompt_keyword_best_entity,
     _resolve_unknown_entity_ids,
     _service_verb_for_domain,
+    _synthesize_action_from_prompt,
 )
 
 
 def _entity(entity_id: str, friendly_name: str) -> dict[str, Any]:
     return {"entity_id": entity_id, "attributes": {"friendly_name": friendly_name}}
+
+
+class _FakeState:
+    def __init__(
+        self,
+        entity_id: str,
+        friendly_name: str = "",
+        *,
+        members: list[str] | None = None,
+        device_class: str | None = None,
+        state: str = "on",
+    ) -> None:
+        self.entity_id = entity_id
+        self.state = state
+        self.attributes: dict[str, Any] = {"friendly_name": friendly_name}
+        if members is not None:
+            self.attributes["entity_id"] = members
+        if device_class is not None:
+            self.attributes["device_class"] = device_class
+
+
+class _FakeStates:
+    def __init__(self, states: list[_FakeState]) -> None:
+        self._states = states
+        self._by_id = {s.entity_id: s for s in states}
+
+    def async_all(self) -> list[_FakeState]:
+        return self._states
+
+    def get(self, entity_id: str) -> _FakeState | None:
+        return self._by_id.get(entity_id)
+
+
+class _FakeHass:
+    def __init__(self, states: list[_FakeState]) -> None:
+        self.states = _FakeStates(states)
 
 
 class TestServiceVerbForDomain:
@@ -115,6 +157,105 @@ class TestResolveUnknownEntityIds:
         }
         entities = [_entity("switch.coffee_maker", "Coffee Maker")]
         patched, subs = _resolve_unknown_entity_ids(reason, automation, entities)
+        assert patched is None
+        assert subs == {}
+
+    def test_prompt_fallback_not_applied_to_trigger_entity(self) -> None:
+        """P1 — aggressive prompt-name fallback must not retarget a
+        TRIGGER. "turn on the kitchen light when the front door opens"
+        with a hallucinated ``light.front_door`` trigger must NOT become
+        a ``light.kitchen`` trigger (would fire on the kitchen light,
+        not the door). The prompt names exactly one device (kitchen
+        light) — fallback applies to action targets only."""
+        reason = "automation references unknown entity_id(s): light.front_door"
+        automation = {
+            "triggers": [{"trigger": "state", "entity_id": "light.front_door", "to": "on"}],
+            "actions": [
+                {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        entities = [_entity("light.kitchen", "Kitchen Light")]
+        patched, subs = _resolve_unknown_entity_ids(
+            reason,
+            automation,
+            entities,
+            user_message="turn on the kitchen light when the front door opens",
+            aggressive=True,
+        )
+        assert "light.front_door" not in subs
+
+    def test_prompt_fallback_not_used_when_named_device_is_trigger(self) -> None:
+        """P1 — when the prompt names only the TRIGGER device ("When the
+        Front Door opens, turn on a light"), an unknown action target
+        must NOT be filled with that trigger device. Refuse so the user
+        clarifies which light, instead of acting on the front door."""
+        reason = "automation references unknown entity_id(s): light.some_light"
+        automation = {
+            "triggers": [
+                {"trigger": "state", "entity_id": "cover.front_door", "to": "open"}
+            ],
+            "actions": [
+                {"service": "light.turn_on", "target": {"entity_id": "light.some_light"}}
+            ],
+        }
+        entities = [_entity("cover.front_door", "Front Door")]
+        patched, subs = _resolve_unknown_entity_ids(
+            reason,
+            automation,
+            entities,
+            user_message="When the Front Door opens, turn on a light",
+            aggressive=True,
+        )
+        assert "light.some_light" not in subs
+        # No valid substitution → refuse rather than retarget to the door.
+        assert subs == {}
+
+    def test_aggressive_still_refuses_intent_inversion(self) -> None:
+        """P1 — aggressive mode must NOT bypass the intent-inversion
+        gate. "turn off Movie when nobody is home for 10 minutes" with a
+        hallucinated ``light.movie`` resolving to ``scene.movie`` would
+        flip ``light.turn_off`` into ``scene.turn_on`` — refuse."""
+        reason = "automation references unknown entity_id(s): light.movie"
+        automation = {
+            "triggers": [{"trigger": "time", "at": "22:00:00"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.movie"}}
+            ],
+        }
+        entities = [_entity("scene.movie", "Movie Scene")]
+        patched, subs = _resolve_unknown_entity_ids(
+            reason,
+            automation,
+            entities,
+            user_message="turn off Movie when nobody is home for 10 minutes",
+            aggressive=True,
+        )
+        assert patched is None
+        assert subs == {}
+
+    def test_aggressive_still_refuses_incompatible_service_data(self) -> None:
+        """P1 — aggressive mode must NOT bypass the service-data gate. A
+        ``light.turn_on`` with ``brightness`` swapped to a switch fails
+        at runtime — refuse even in aggressive mode."""
+        reason = "automation references unknown entity_id(s): light.movie"
+        automation = {
+            "triggers": [{"trigger": "time", "at": "22:00:00"}],
+            "actions": [
+                {
+                    "service": "light.turn_on",
+                    "target": {"entity_id": "light.movie"},
+                    "data": {"brightness": 200},
+                }
+            ],
+        }
+        entities = [_entity("switch.movie", "Movie Switch")]
+        patched, subs = _resolve_unknown_entity_ids(
+            reason,
+            automation,
+            entities,
+            user_message="turn on Movie when someone is home for 10 minutes",
+            aggressive=True,
+        )
         assert patched is None
         assert subs == {}
 
@@ -744,6 +885,37 @@ class TestCoerceSunTriggers:
         changed = _coerce_sun_triggers(automation, "at sunset turn on the light")
         assert not changed
 
+    def test_opposing_actions_two_events_not_merged(self) -> None:
+        """P2 — "turn on at sunset and turn it off at sunrise" is a
+        multi-action automation. A valid sunset/turn_on automation must
+        NOT gain a sunrise trigger (would turn ON at sunrise too)."""
+        automation = {
+            "triggers": [{"trigger": "sun", "event": "sunset"}],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}],
+        }
+        changed = _coerce_sun_triggers(
+            automation,
+            "turn on the porch light at sunset and turn it off at sunrise",
+        )
+        assert changed is False
+        events = {t.get("event") for t in automation["triggers"]}
+        assert events == {"sunset"}
+
+    def test_same_action_two_events_still_merged(self) -> None:
+        """Same action for both events ("turn off at sunset and sunrise")
+        is safe to merge — both triggers share the one turn_off action."""
+        automation = {
+            "triggers": [{"trigger": "sun", "event": "sunset"}],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.porch"}}],
+        }
+        changed = _coerce_sun_triggers(
+            automation,
+            "turn off the porch light at sunset and at sunrise",
+        )
+        assert changed is True
+        events = {t.get("event") for t in automation["triggers"]}
+        assert events == {"sunset", "sunrise"}
+
     def test_after_sunset_condition_does_not_append_sun_trigger(self) -> None:
         """``after sunset`` scopes a sun condition, not a trigger. Must
         not append a sun trigger that would fire unconditionally at
@@ -987,6 +1159,25 @@ class TestCoerceSunTriggers:
         assert "time" in platforms
         time_tr = next(t for t in automation["triggers"] if t.get("trigger") == "time")
         assert time_tr["at"] == "22:00:00"
+
+    def test_sun_condition_with_motion_trigger_not_widened(self) -> None:
+        """P2 — "At sunset, turn on the lights if motion is detected": the
+        model emitted a valid motion trigger; sunset is a CONDITION. A
+        sun trigger must NOT be appended (HA ORs triggers → would fire on
+        motion at any time). No "or" → refuse the append."""
+        automation = {
+            "triggers": [
+                {"trigger": "state", "entity_id": "binary_sensor.motion", "to": "on"},
+            ],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.x"}}],
+        }
+        changed = _coerce_sun_triggers(
+            automation, "At sunset, turn on the lights if motion is detected"
+        )
+        assert changed is False
+        platforms = [t.get("trigger") for t in automation["triggers"]]
+        assert "sun" not in platforms
+        assert platforms == ["state"]
 
     def test_preserves_unrelated_triggers_appending_sun(self) -> None:
         """Multi-trigger automation must keep its motion trigger when the
@@ -1335,3 +1526,808 @@ class TestCoerceNumericStateTriggers:
         )
         assert not changed
         assert automation["triggers"][0]["from"] == "unknown"
+
+
+class TestMatchPresenceForDuration:
+    """Regex split between affirmative and negative presence phrasings."""
+
+    def test_negative_phrasing_returns_not_positive(self) -> None:
+        m = _match_presence_for_duration("when nobody is in the kitchen for 10 minutes")
+        assert m is not None
+        _, is_positive = m
+        assert is_positive is False
+
+    def test_positive_phrasing_returns_positive(self) -> None:
+        m = _match_presence_for_duration("when someone is in the kitchen for 10 minutes")
+        assert m is not None
+        _, is_positive = m
+        assert is_positive is True
+
+    def test_room_is_empty_is_negative(self) -> None:
+        m = _match_presence_for_duration("when the kitchen is empty for 10 minutes")
+        assert m is not None
+        _, is_positive = m
+        assert is_positive is False
+
+    def test_no_match_returns_none(self) -> None:
+        assert _match_presence_for_duration("turn on the porch light at sunset") is None
+
+    def test_has_presence_for_duration_covers_all_variants(self) -> None:
+        assert _has_presence_for_duration("when nobody is home for 5 minutes")
+        assert _has_presence_for_duration("if anyone is in the office for 3 hours")
+        assert _has_presence_for_duration("when the bedroom is empty for 30 minutes")
+        assert not _has_presence_for_duration("turn the light off at 10pm")
+
+
+class TestFindPresenceEntity:
+    """Room-named prompts must resolve to a room-matching entity."""
+
+    def test_room_match_wins(self) -> None:
+        hass = _FakeHass(
+            [
+                _FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy"),
+                _FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy"),
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid == "binary_sensor.kitchen_occupancy"
+
+    def test_room_without_matching_entity_returns_none(self) -> None:
+        """P1#2 — kitchen prompt with only a bedroom sensor returns None
+        rather than silently picking the bedroom sensor."""
+        hass = _FakeHass([_FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy")])
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid is None
+
+    def test_room_without_matching_entity_ignores_person(self) -> None:
+        """A household-level ``person.*`` is not a substitute for a missing
+        room-specific sensor when the prompt names a room."""
+        hass = _FakeHass([_FakeState("person.gunnar", "Gunnar")])
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid is None
+
+    def test_no_room_prompt_accepts_household_group(self) -> None:
+        """Whole-household prompts pick a ``group.*`` aggregate so the
+        trigger fires only when EVERY member is away — an individual
+        ``person.*`` would fire when one resident leaves while others
+        remain home, the opposite of "nobody is home"."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar", "person.alice"],
+                ),
+                _FakeState("person.gunnar", "Gunnar"),
+                _FakeState("person.alice", "Alice"),
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is home for 10 minutes")
+        assert eid == "group.all_persons"
+
+    def test_no_room_prompt_rejects_non_person_group(self) -> None:
+        """P1 — ``group.all_lights`` reports ``on``/``off``, never
+        ``not_home``. A synthesized ``to: not_home`` trigger against it
+        would never fire — return None instead of selecting it."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_lights",
+                    "All Lights",
+                    members=["light.kitchen", "light.bedroom"],
+                ),
+                _FakeState("light.kitchen", "Kitchen"),
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is home for 10 minutes")
+        assert eid is None
+
+    def test_no_room_prompt_rejects_empty_group(self) -> None:
+        """A group with no members reveals nothing about presence —
+        refuse rather than guess."""
+        hass = _FakeHass([_FakeState("group.empty", "Empty Group")])
+        eid = _find_presence_entity(hass, "when nobody is home for 10 minutes")
+        assert eid is None
+
+    def test_no_room_prompt_with_only_individual_person_refuses(self) -> None:
+        """P1#4 — no household-aggregate source → refuse rather than
+        pick a single ``person.*`` and silently narrow the meaning."""
+        hass = _FakeHass([_FakeState("person.gunnar", "Gunnar")])
+        eid = _find_presence_entity(hass, "when nobody is home for 10 minutes")
+        assert eid is None
+
+    def test_no_room_prompt_rejects_room_specific_sensor(self) -> None:
+        """Without a room hint, a room-specific occupancy sensor would
+        silently narrow the scope — return None instead."""
+        hass = _FakeHass([_FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy")])
+        eid = _find_presence_entity(hass, "when nobody is home for 10 minutes")
+        assert eid is None
+
+    def test_action_room_does_not_leak_into_presence_selection(self) -> None:
+        """P1 — action target's room must not be picked as the presence
+        room. "turn off the kitchen lights when nobody is home for 10
+        minutes" → presence is household-wide, NOT kitchen-occupancy."""
+        hass = _FakeHass(
+            [
+                _FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy"),
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                ),
+            ]
+        )
+        eid = _find_presence_entity(
+            hass,
+            "turn off the kitchen lights when nobody is home for 10 minutes",
+        )
+        assert eid == "group.all_persons"
+
+    def test_action_room_does_not_leak_when_no_household_group(self) -> None:
+        """Same prompt with NO household-aggregate present should
+        refuse, NOT pick up the action-target room's occupancy sensor."""
+        hass = _FakeHass(
+            [
+                _FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy"),
+            ]
+        )
+        eid = _find_presence_entity(
+            hass,
+            "turn off the kitchen lights when nobody is home for 10 minutes",
+        )
+        assert eid is None
+
+    def test_room_non_presence_binary_sensor_rejected(self) -> None:
+        """P1 — a room-matching binary_sensor that is NOT presence-class
+        (window/door) must not be selected. ``to: off`` on a window
+        would mean 'window closed', not 'nobody present'."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_window", "Kitchen Window")]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid is None
+
+    def test_room_presence_via_device_class(self) -> None:
+        """A room sensor with no presence keyword in its name but an
+        occupancy ``device_class`` is accepted."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "binary_sensor.kitchen_sensor_3",
+                    "Kitchen Sensor 3",
+                    device_class="occupancy",
+                )
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid == "binary_sensor.kitchen_sensor_3"
+
+    def test_room_light_group_rejected(self) -> None:
+        """P1 — a room-matching light group ("group.kitchen_lights")
+        reports on/off, never home/not_home. Must NOT be selected as the
+        kitchen presence source — a synthesized to:not_home trigger on it
+        would never fire."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.kitchen_lights",
+                    "Kitchen Lights",
+                    members=["light.kitchen_1", "light.kitchen_2"],
+                )
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid is None
+
+    def test_unavailable_sensor_skipped_for_live_one(self) -> None:
+        """P2 — an unavailable occupancy sensor must be skipped in favour
+        of a live lower-ranked motion sensor in the same room. A trigger
+        on a dead sensor validates but never fires."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "binary_sensor.kitchen_occupancy",
+                    "Kitchen Occupancy",
+                    state="unavailable",
+                ),
+                _FakeState(
+                    "binary_sensor.kitchen_motion",
+                    "Kitchen Motion",
+                    state="off",
+                ),
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid == "binary_sensor.kitchen_motion"
+
+    def test_all_room_sensors_unavailable_refuses(self) -> None:
+        """No live presence sensor in the room → refuse."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "binary_sensor.kitchen_occupancy",
+                    "Kitchen Occupancy",
+                    state="unavailable",
+                ),
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid is None
+
+    def test_room_person_group_accepted(self) -> None:
+        """A room-matching person group IS a valid presence source."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.kitchen_people",
+                    "Kitchen People",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        eid = _find_presence_entity(hass, "when nobody is in the kitchen for 10 minutes")
+        assert eid == "group.kitchen_people"
+
+    def test_leading_connector_splits_condition_clause(self) -> None:
+        """P1 — connector at message START splits correctly. "When
+        nobody is home for 10 minutes, turn off the kitchen lights" →
+        presence is household-wide, NOT kitchen."""
+        hass = _FakeHass(
+            [
+                _FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy"),
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                ),
+            ]
+        )
+        eid = _find_presence_entity(
+            hass,
+            "When nobody is home for 10 minutes, turn off the kitchen lights",
+        )
+        assert eid == "group.all_persons"
+
+    def test_leading_connector_no_punctuation_splits(self) -> None:
+        """P2 — leading connector with NO comma/"then": "When nobody is
+        home for 10 minutes turn off the kitchen lights". The condition
+        ends at "for 10 minutes"; "kitchen" in the action clause must NOT
+        leak into the presence-room scan → household group."""
+        hass = _FakeHass(
+            [
+                _FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy"),
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                ),
+            ]
+        )
+        eid = _find_presence_entity(
+            hass,
+            "When nobody is home for 10 minutes turn off the kitchen lights",
+        )
+        assert eid == "group.all_persons"
+
+    def test_user_defined_room_resolved_from_live_entities(self) -> None:
+        """P1 — a room absent from the static list ("conservatory") still
+        resolves to its occupancy sensor via the live-entity room
+        vocabulary, NOT falling back to household-wide presence."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "binary_sensor.conservatory_occupancy",
+                    "Conservatory Occupancy",
+                ),
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                ),
+            ]
+        )
+        eid = _find_presence_entity(
+            hass, "when nobody is in the conservatory for 10 minutes"
+        )
+        assert eid == "binary_sensor.conservatory_occupancy"
+
+
+class TestCoercePresenceForDurationTrigger:
+    """End-to-end coercion: presence + duration → state trigger with ``for:``."""
+
+    def test_negative_kitchen_emits_off_with_for(self) -> None:
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        # Time trigger that encoded the duration is dropped; synthesized
+        # state trigger replaces it.
+        assert len(triggers) == 1
+        tr = triggers[0]
+        assert tr["trigger"] == "state"
+        assert tr["entity_id"] == "binary_sensor.kitchen_occupancy"
+        assert tr["to"] == "off"
+        assert tr["for"] == {"minutes": 10}
+
+    def test_positive_kitchen_emits_on_with_for(self) -> None:
+        """P1#1 — affirmative phrasing must emit ``to: on``, not ``to: off``."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [
+                {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "turn on the kitchen light when someone is in the kitchen for 10 minutes", hass
+        )
+        assert changed is True
+        tr = automation["triggers"][0]
+        assert tr["to"] == "on"
+        assert tr["for"] == {"minutes": 10}
+
+    def test_positive_whole_home_emits_home(self) -> None:
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "when anyone is home for 10 minutes", hass
+        )
+        assert changed is True
+        tr = automation["triggers"][0]
+        assert tr["entity_id"] == "group.all_persons"
+        assert tr["to"] == "home"
+
+    def test_refuses_when_no_room_match(self) -> None:
+        """P1#2 — kitchen prompt with only bedroom sensor refuses recovery."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.bedroom_occupancy", "Bedroom Occupancy")]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+        )
+        assert changed is False
+        # Original time trigger is left alone for the caller to clarify.
+        assert automation["triggers"] == [{"trigger": "time", "at": "10:00:00"}]
+
+    def test_refuses_when_no_presence_entity_at_all(self) -> None:
+        """P1#3 — no presence/occupancy in the home → refuse, do NOT fall
+        back to using the controlled device as the trigger entity."""
+        hass = _FakeHass([_FakeState("light.porch", "Porch Light")])
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.porch"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "turn off the porch light when nobody is there for 10 minutes", hass
+        )
+        assert changed is False
+
+    def test_trigger_entity_is_single_string_not_comma(self) -> None:
+        """P1#4 — the synthesized trigger watches ONLY the presence entity,
+        not a comma-string that also watches the action target."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        _coerce_presence_for_duration_trigger(
+            automation, "turn off the kitchen light when nobody is in the kitchen for 10 minutes", hass
+        )
+        eid = automation["triggers"][0]["entity_id"]
+        assert "," not in eid
+        assert eid == "binary_sensor.kitchen_occupancy"
+
+    def test_preserves_compound_triggers_and_conditions(self) -> None:
+        """P1#5 — compound shape ("…or at sunset") and explicit conditions
+        survive the coercion. Only the LoRA's duration-misread time
+        trigger is dropped."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
+        )
+        sunset_trigger = {"trigger": "sun", "event": "sunset"}
+        condition = {"condition": "state", "entity_id": "light.kitchen", "state": "on"}
+        automation = {
+            "triggers": [
+                {"trigger": "time", "at": "10:00:00"},  # LoRA misread
+                sunset_trigger,
+            ],
+            "conditions": [condition],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "turn off the kitchen light when nobody is in the kitchen for 10 minutes or at sunset",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        # Sunset preserved; LoRA's misread time trigger removed; presence
+        # trigger appended.
+        assert sunset_trigger in triggers
+        assert all(
+            not (t.get("trigger") == "time" and t.get("at") == "10:00:00") for t in triggers
+        )
+        assert any(
+            t.get("trigger") == "state"
+            and t.get("entity_id") == "binary_sensor.kitchen_occupancy"
+            for t in triggers
+        )
+        # Conditions are preserved.
+        assert automation["conditions"] == [condition]
+
+    def test_no_match_returns_false_without_mutation(self) -> None:
+        hass = _FakeHass([_FakeState("binary_sensor.kitchen_occupancy", "Kitchen")])
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [],
+        }
+        original = {
+            "triggers": list(automation["triggers"]),
+            "actions": list(automation["actions"]),
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "turn on the kitchen light at sunset", hass
+        )
+        assert changed is False
+        assert automation["triggers"] == original["triggers"]
+
+    def test_everyone_phrasing_refused(self) -> None:
+        """P2 — "everyone is home" requires ALL members present; a
+        default person-group ``to: home`` fires when ANY member arrives.
+        Coercion refuses rather than emit a misleading trigger."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar", "person.alice"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "when everyone is home for 10 minutes", hass
+        )
+        assert changed is False
+
+    def test_if_presence_with_primary_trigger_becomes_condition(self) -> None:
+        """P1 — "At sunset, turn on the lights if nobody is home for 10
+        minutes": presence is a GATE on the sunset trigger, not its own
+        trigger. Emit it as a state condition; keep sunset as trigger."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "sun", "event": "sunset"}],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "At sunset, turn on the lights if nobody is home for 10 minutes",
+            hass,
+        )
+        assert changed is True
+        # Sunset stays as the only trigger.
+        triggers = automation["triggers"]
+        assert len(triggers) == 1
+        assert triggers[0]["trigger"] == "sun"
+        # Presence shipped as a state condition with the for: window.
+        conditions = automation["conditions"]
+        assert len(conditions) == 1
+        cond = conditions[0]
+        assert cond["condition"] == "state"
+        assert cond["entity_id"] == "group.all_persons"
+        assert cond["state"] == "not_home"
+        assert cond["for"] == {"minutes": 10}
+
+    def test_explicit_time_matching_duration_preserved(self) -> None:
+        """P1 — "At 10:00, turn off the lights if nobody is home for 10
+        minutes": the 10:00 trigger is GENUINE (prompt names it), not a
+        "for 10 minutes"→10:00 misread. Keep it as the primary trigger;
+        presence becomes a condition."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "At 10:00, turn off the lights if nobody is home for 10 minutes",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        # The explicit 10:00 time trigger survives.
+        assert any(
+            t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers
+        )
+        # Presence demoted to a condition (an "if"-introduced gate).
+        conditions = automation.get("conditions", [])
+        assert any(
+            c.get("condition") == "state" and c.get("for") == {"minutes": 10}
+            for c in conditions
+        )
+
+    def test_stray_hallucinated_time_trigger_dropped(self) -> None:
+        """P2 — standalone presence prompt "turn off the porch light when
+        nobody is home for 10 minutes" with a STRAY model time trigger at
+        12:00 (not named in the prompt). The stray trigger must be
+        dropped and presence become the trigger — not "at noon if nobody
+        is home"."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "12:00:00"}],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.porch"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "turn off the porch light when nobody is home for 10 minutes",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        # Stray noon trigger gone; presence is the trigger.
+        assert all(t.get("trigger") != "time" for t in triggers)
+        assert any(
+            t.get("trigger") == "state"
+            and t.get("entity_id") == "group.all_persons"
+            and t.get("for") == {"minutes": 10}
+            for t in triggers
+        )
+        # No phantom condition.
+        assert not automation.get("conditions")
+
+    def test_explicit_time_synthesized_when_model_dropped_trigger(self) -> None:
+        """P2 — model returned NO valid trigger for "At 10:00, turn off
+        the lights if nobody is home for 10 minutes". The explicit 10:00
+        is the primary trigger — synthesize it and keep presence as a
+        condition, NOT make presence the trigger (which would fire
+        whenever the home empties, ignoring the schedule)."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        # No trigger at all (model truncated / emitted invalid).
+        automation = {
+            "triggers": [],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "At 10:00, turn off the lights if nobody is home for 10 minutes",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        assert any(
+            t.get("trigger") == "time" and t.get("at") == "10:00:00" for t in triggers
+        )
+        # Presence is a condition, NOT a trigger.
+        assert all(t.get("trigger") != "state" for t in triggers)
+        conditions = automation.get("conditions", [])
+        assert any(
+            c.get("condition") == "state" and c.get("for") == {"minutes": 10}
+            for c in conditions
+        )
+
+    def test_when_presence_with_primary_trigger_becomes_condition(self) -> None:
+        """P1 — "At 10:00, turn off the lights WHEN nobody is home for 10
+        minutes": "when" (not just "if") gating a genuine time trigger is
+        a condition. Must NOT append a second presence trigger (HA would
+        OR them, firing whenever the home empties)."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "At 10:00, turn off the lights when nobody is home for 10 minutes",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        # Only the time trigger remains — no appended presence trigger.
+        assert [t.get("trigger") for t in triggers] == ["time"]
+        conditions = automation.get("conditions", [])
+        assert any(
+            c.get("condition") == "state"
+            and c.get("entity_id") == "group.all_persons"
+            and c.get("for") == {"minutes": 10}
+            for c in conditions
+        )
+
+    def test_when_presence_standalone_stays_trigger(self) -> None:
+        """"when nobody is home for 10 minutes" with no other trigger →
+        presence remains the trigger (not demoted to a condition)."""
+        hass = _FakeHass(
+            [
+                _FakeState(
+                    "group.all_persons",
+                    "All Persons",
+                    members=["person.gunnar"],
+                )
+            ]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "10:00:00"}],
+            "actions": [{"service": "light.turn_off", "target": {"entity_id": "light.hall"}}],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation, "when nobody is home for 10 minutes", hass
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        assert len(triggers) == 1
+        assert triggers[0]["trigger"] == "state"
+        assert triggers[0]["entity_id"] == "group.all_persons"
+        assert triggers[0]["to"] == "not_home"
+
+    def test_seconds_misread_time_trigger_dropped(self) -> None:
+        """P2 — "for 10 seconds" misread as ``at: 00:00:10`` (or
+        10:00:00) is dropped alongside synthesizing the presence
+        trigger."""
+        hass = _FakeHass(
+            [_FakeState("binary_sensor.kitchen_occupancy", "Kitchen Occupancy")]
+        )
+        automation = {
+            "triggers": [{"trigger": "time", "at": "00:00:10"}],
+            "actions": [
+                {"service": "light.turn_off", "target": {"entity_id": "light.kitchen"}}
+            ],
+        }
+        changed = _coerce_presence_for_duration_trigger(
+            automation,
+            "turn off the kitchen light when nobody is in the kitchen for 10 seconds",
+            hass,
+        )
+        assert changed is True
+        triggers = automation["triggers"]
+        assert len(triggers) == 1
+        assert triggers[0]["trigger"] == "state"
+        assert triggers[0]["for"] == {"seconds": 10}
+
+
+class TestSynthesizeActionFromPrompt:
+    """Last-ditch action synthesis from prompt verb + named target."""
+
+    def test_unique_overlap_synthesizes_action(self) -> None:
+        hass = _FakeHass([_FakeState("light.porch", "Porch Light")])
+        action = _synthesize_action_from_prompt(
+            hass, "turn off the porch light when nobody is home for 10 minutes"
+        )
+        assert action is not None
+        assert action["service"] == "light.turn_off"
+        assert action["target"]["entity_id"] == "light.porch"
+
+    def test_ambiguous_overlap_refuses(self) -> None:
+        """P2 — two entities tie on score + domain rank ("Front Porch
+        Light" vs "Back Porch Light" for "the porch light"). Refuse
+        rather than synthesize for an arbitrary one."""
+        hass = _FakeHass(
+            [
+                _FakeState("light.front_porch", "Front Porch Light"),
+                _FakeState("light.back_porch", "Back Porch Light"),
+            ]
+        )
+        action = _synthesize_action_from_prompt(
+            hass, "turn off the porch light when nobody is home for 10 minutes"
+        )
+        assert action is None
+
+    def test_no_overlap_returns_none(self) -> None:
+        hass = _FakeHass([_FakeState("light.bedroom", "Bedroom Lamp")])
+        action = _synthesize_action_from_prompt(
+            hass, "turn off the porch sconce when nobody is home for 10 minutes"
+        )
+        assert action is None
+
+    def test_no_verb_returns_none(self) -> None:
+        hass = _FakeHass([_FakeState("light.porch", "Porch Light")])
+        action = _synthesize_action_from_prompt(
+            hass, "nobody is home for 10 minutes"
+        )
+        assert action is None
+
+
+class TestPromptKeywordBestEntity:
+    """Last-ditch keyword overlap picker — must refuse ambiguous ties."""
+
+    def _ent(self, eid: str, fname: str) -> dict[str, Any]:
+        return {"entity_id": eid, "attributes": {"friendly_name": fname}}
+
+    def test_unique_overlap_picks_entity(self) -> None:
+        ents = [self._ent("light.porch", "Porch Light")]
+        assert (
+            _prompt_keyword_best_entity("turn off the porch light", ents)
+            == "light.porch"
+        )
+
+    def test_ambiguous_tie_refuses(self) -> None:
+        """P2 — equal overlap + domain rank across two entities ("Front
+        Porch Light" vs "Back Porch Light" for "the porch light") must
+        return None, not pick by entity_id order."""
+        ents = [
+            self._ent("light.front_porch", "Front Porch Light"),
+            self._ent("light.back_porch", "Back Porch Light"),
+        ]
+        assert _prompt_keyword_best_entity("turn off the porch light", ents) is None
+
+    def test_no_overlap_returns_none(self) -> None:
+        ents = [self._ent("light.bedroom", "Bedroom Lamp")]
+        assert _prompt_keyword_best_entity("turn off the porch sconce", ents) is None

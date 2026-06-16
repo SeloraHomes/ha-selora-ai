@@ -152,10 +152,16 @@ def _service_verb_for_domain(verb: str, domain: str) -> str:
     return table.get(verb, f"turn_{verb}")
 
 
+# Min friendly_name overlap with prompt — short names ("Sun") match too liberally.
+_PROMPT_FNAME_MIN_LEN = 4
+
 # Controllable-device domains. Auto-correct only rewrites a bad
 # entity_id when both the bad and the candidate sit in this set, so
 # helper-class entities (input_boolean, sensor mirrors, etc.) never
-# get silently substituted for a real device — or vice versa.
+# get silently substituted for a real device — or vice versa. The
+# presence + duration aggressive-substitution path also uses this set
+# to prefer real-device candidates over helpers when prompt-keyword
+# overlap is the only available signal.
 _REAL_DEVICE_DOMAINS: frozenset[str] = frozenset(
     {
         "light",
@@ -192,18 +198,229 @@ _NON_ENTITY_PAYLOAD_KEYS: frozenset[str] = frozenset(
 )
 
 
+def _entities_named_in_prompt(
+    user_message: str,
+    entities: list[EntitySnapshot] | None,
+) -> list[str]:
+    """Return entity_ids whose friendly_name OR slug_words appear in
+    ``user_message``, longest-first.
+
+    Originally this only matched a full ``friendly_name`` substring. That
+    miss-fires on prompts like "Turn off the Living Room RGBWW Lights …"
+    where the user's entity has ``friendly_name="Living Room Light"``
+    (no exact substring in the prompt because of the inserted "RGBWW")
+    but the slug-derived ``"living room"`` is right there in the prompt
+    twice. Without the slug_words fallback the resolver dead-ends and
+    the chat bounces to a clarification listing the user's devices —
+    the very flow Philippe reported as broken for presence + duration
+    prompts.
+    """
+    if not entities or not user_message:
+        return []
+    pl = user_message.lower()
+    hits: list[tuple[int, str]] = []
+    for e in entities:
+        eid = e.get("entity_id", "")
+        if "." not in eid:
+            continue
+        fname = str((e.get("attributes") or {}).get("friendly_name") or "").lower().strip()
+        slug = eid.split(".", 1)[1].lower()
+        slug_words = slug.replace("_", " ")
+        # Prefer the longest match — a fname match is usually more
+        # specific than slug_words, but slug_words catches the
+        # "Living Room RGBWW Lights" vs entity-fname "Living Room
+        # Light" mismatch where the room-stem still appears verbatim.
+        matched_len = 0
+        if len(fname) >= _PROMPT_FNAME_MIN_LEN and fname in pl:
+            matched_len = len(fname)
+        if len(slug_words) >= _PROMPT_FNAME_MIN_LEN and slug_words in pl:
+            matched_len = max(matched_len, len(slug_words))
+        if matched_len == 0:
+            continue
+        hits.append((matched_len, eid))
+    hits.sort(key=lambda x: -x[0])
+    seen: set[str] = set()
+    out: list[str] = []
+    for _, eid in hits:
+        if eid in seen:
+            continue
+        seen.add(eid)
+        out.append(eid)
+    return out
+
+
+# Content tokens we strip when scoring entity ↔ prompt keyword overlap.
+# Same shape as the low-context stopword filter in intent.py but kept
+# local so parsers.py stays import-free of that module.
+_PROMPT_KEYWORD_STOPWORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "to",
+        "of",
+        "in",
+        "on",
+        "at",
+        "for",
+        "and",
+        "or",
+        "but",
+        "with",
+        "from",
+        "by",
+        "my",
+        "your",
+        "we",
+        "us",
+        "you",
+        "i",
+        "me",
+        "it",
+        "if",
+        "when",
+        "whenever",
+        "while",
+        "then",
+        "now",
+        "just",
+        "as",
+        "do",
+        "does",
+        "did",
+        "can",
+        "could",
+        "would",
+        "should",
+        "will",
+        "shall",
+        "have",
+        "has",
+        "had",
+        "please",
+        "thanks",
+        "no",
+        "one",
+        "noone",
+        "nobody",
+        "someone",
+        "anyone",
+        "anybody",
+        "everyone",
+        "minute",
+        "minutes",
+        "second",
+        "seconds",
+        "hour",
+        "hours",
+        "turn",
+        "off",
+        "set",
+        "make",
+        "switch",
+        "open",
+        "close",
+        "lock",
+        "unlock",
+        "start",
+        "stop",
+        "run",
+        "all",
+        "every",
+        "each",
+    }
+)
+
+
+def _prompt_keyword_best_entity(
+    user_message: str,
+    entities: list[EntitySnapshot] | None,
+    *,
+    domain_hint: str | None = None,
+) -> str | None:
+    """Pick the controllable entity whose slug/fname tokens best overlap
+    the prompt. Used as the LAST-DITCH substitution when the LoRA
+    hallucinated an entity (typically ``lock.front_door``) the existing
+    by-slug / by-friendly_name / one-shot prompt-name lookups all miss.
+
+    Scoring: # of shared content tokens, with tie-breakers favouring
+    "real device" domains (light/switch/cover/lock/climate/…) over
+    helpers (input_boolean/input_number/…). When ``domain_hint`` is
+    provided, entities in that domain get a fixed bonus so a verb-and-
+    category prompt ("lock the front door for 3 minutes") prefers a
+    same-domain target when the slug overlap ties.
+
+    Returns ``None`` when no entity has any overlap OR when two or more
+    entities tie on the full ranking (score, hint bonus, domain rank) —
+    an ambiguous best match ("Front Porch Light" vs "Back Porch Light"
+    for "the porch light") must fall through to clarification rather than
+    pick whichever entity_id sorts first.
+    """
+    if not user_message or not entities:
+        return None
+    raw_tokens = {t for t in re.split(r"[^a-z0-9]+", user_message.lower()) if t}
+    prompt_tokens = {t for t in raw_tokens if len(t) >= 3 and t not in _PROMPT_KEYWORD_STOPWORDS}
+    if not prompt_tokens:
+        return None
+    # (-score, -hint_bonus, domain_rank); eid intentionally NOT a
+    # tie-breaker so a genuine tie is detectable and refused.
+    ranked: list[tuple[tuple[int, int, int], str]] = []
+    for e in entities:
+        eid = e.get("entity_id", "")
+        if "." not in eid:
+            continue
+        domain, slug = eid.split(".", 1)
+        slug_tokens = {t for t in re.split(r"[^a-z0-9]+", slug.lower()) if t}
+        fname = str((e.get("attributes") or {}).get("friendly_name") or "").lower()
+        fname_tokens = {t for t in re.split(r"[^a-z0-9]+", fname) if t}
+        overlap = (slug_tokens | fname_tokens) & prompt_tokens
+        if not overlap:
+            continue
+        score = len(overlap)
+        hint_bonus = 1 if domain_hint and domain == domain_hint else 0
+        domain_rank = 0 if domain in _REAL_DEVICE_DOMAINS else 1
+        ranked.append(((-score, -hint_bonus, domain_rank), eid))
+    if not ranked:
+        return None
+    ranked.sort(key=lambda r: r[0])
+    top = ranked[0][0]
+    if sum(1 for r in ranked if r[0] == top) > 1:
+        # Ambiguous tie — refuse rather than pick by entity_id order.
+        return None
+    return ranked[0][1]
+
+
 def _resolve_unknown_entity_ids(
     reason: str,  # noqa: ARG001 -- callers gate on this; signature is the contract
     automation: dict[str, Any],
     entities: list[EntitySnapshot] | None,
     hass: HomeAssistant | None = None,
+    user_message: str | None = None,
+    *,
+    aggressive: bool = False,
 ) -> tuple[dict[str, Any] | None, dict[str, str]]:
     """Auto-correct an "unknown entity_id" rejection by looking up each
     bad entity_id by slug + friendly_name across the snapshot. Only
     rewrites controllable-device domains and only when slug/fname maps
     to exactly one real device — partial matches fall through (silent
-    half-fixes are worse than a clear ask). Returns
-    ``(patched_or_None, substitutions)``."""
+    half-fixes are worse than a clear ask).
+
+    When ``user_message`` is provided AND ``aggressive`` is set (the
+    presence + duration recovery path), the resolver additionally falls
+    back to prompt-name / prompt-keyword matching for bad ids whose
+    slug/fname yields no real-device candidate. The LoRA reliably
+    hallucinates ``lock.front_door`` for those prompts even when the
+    prompt's actual subject is "the heater" or "the porch light";
+    falling back to any controllable entity that shares a token with
+    the prompt is strictly better than dead-ending on a "couldn't build
+    that" clarification when the user clearly asked for an automation.
+
+    Returns ``(patched_or_None, substitutions)``."""
     if not entities:
         return None, {}
 
@@ -247,11 +464,46 @@ def _resolve_unknown_entity_ids(
     if not bad_ids:
         return None, {}
 
+    # Fallback target derived from the prompt — used when slug/fname
+    # lookup yields zero candidates but the prompt names exactly one
+    # entity. Cheap to compute even in non-aggressive mode.
+    prompt_fallback: str | None = None
+    if user_message:
+        prompt_hits = _entities_named_in_prompt(user_message, entities)
+        if len(prompt_hits) == 1:
+            prompt_fallback = prompt_hits[0]
+
+    # Entity_ids referenced inside TRIGGER blocks. The prompt-name
+    # fallback names the ACTION-target device ("the kitchen light"), so
+    # substituting it into a trigger would silently retarget the trigger
+    # — e.g. a hallucinated ``light.front_door`` trigger for "turn on
+    # the kitchen light when the front door opens" must NOT become a
+    # ``light.kitchen`` trigger. Track trigger eids so the fallback is
+    # skipped for them.
+    trigger_entity_ids: set[str] = set()
+
+    def _walk_eids(node: Any) -> None:
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "entity_id":
+                    if isinstance(v, str):
+                        trigger_entity_ids.add(v)
+                    elif isinstance(v, list):
+                        trigger_entity_ids.update(x for x in v if isinstance(x, str))
+                else:
+                    _walk_eids(v)
+        elif isinstance(node, list):
+            for item in node:
+                _walk_eids(item)
+
+    for tr in _read_triggers(automation):
+        _walk_eids(tr)
+
     substitutions: dict[str, str] = {}
     for bad in bad_ids:
         if bad in real_ids:
             continue  # validator complained about something else, not domain
-        bad_domain = bad.split(".", 1)[0]
+        bad_domain, bad_slug = bad.split(".", 1)
         # Compatibility gate: only auto-correct when the bad entity_id
         # itself names a controllable-device domain. A
         # ``person.garage_door`` trigger that shares its slug with
@@ -259,65 +511,147 @@ def _resolve_unknown_entity_ids(
         # automation would then fire on the cover's state changes
         # instead of the person arriving, which is a semantic change,
         # not a typo fix. Same for zone/device_tracker/sensor triggers.
-        if bad_domain not in _REAL_DEVICE_DOMAINS:
+        # The aggressive path (presence + duration recovery) relaxes
+        # this gate because the prompt's intent is already pinned down
+        # by the surrounding regex — the LoRA echoing ``lock.front_door``
+        # in that context is a hallucination, not a real cross-domain
+        # trigger.
+        if not aggressive and bad_domain not in _REAL_DEVICE_DOMAINS:
             return None, {}
-        bad_slug = bad.split(".", 1)[1]
         candidates: set[str] = set(by_slug.get(bad_slug, []))
         candidates |= set(by_fname.get(bad_slug.replace("_", " ").lower(), []))
+        # Slug-stem broadening (aggressive only) — the v0.4.7 LoRA
+        # reliably appends the device category to a room slug when
+        # emitting an action target ("light.living_room_light" instead
+        # of "light.living_room"), and the user's fixture often has
+        # BOTH a real-device entity at the shorter slug AND a state-
+        # mirror helper at the full slug (input_boolean.living_room_light,
+        # fname "Living room light relay"). Without this, the exact-slug
+        # match grabs the input_boolean helper alone, len(candidates)==1
+        # short-circuits the "prefer real domain" pass, and the helper
+        # survives — its fname/slug doesn't appear in the prompt and the
+        # bench's ``target_friendly_name_in_prompt`` check rejects it.
+        if (
+            aggressive
+            and "_" in bad_slug
+            and bad_domain in _REAL_DEVICE_DOMAINS
+            and candidates
+            and not any(c.split(".", 1)[0] in _REAL_DEVICE_DOMAINS for c in candidates)
+        ):
+            stem = bad_slug.rsplit("_", 1)[0]
+            stem_hits = by_slug.get(stem, [])
+            stem_fname_hits = by_fname.get(stem.replace("_", " ").lower(), [])
+            for cand in (*stem_hits, *stem_fname_hits):
+                if cand.split(".", 1)[0] in _REAL_DEVICE_DOMAINS:
+                    candidates.add(cand)
         # Candidate side of the gate: substitution target must also be a
         # controllable-device domain, so we never retarget e.g.
         # ``light.x`` onto an ``input_boolean.x`` helper that only
-        # mirrors state.
-        candidates = {c for c in candidates if c.split(".", 1)[0] in _REAL_DEVICE_DOMAINS}
-        if len(candidates) == 1:
-            substitutions[bad] = next(iter(candidates))
+        # mirrors state. In aggressive mode we still apply the same
+        # constraint — the prompt-keyword fallback below picks up the
+        # cases where this filter empties the candidate set.
+        real_candidates = {c for c in candidates if c.split(".", 1)[0] in _REAL_DEVICE_DOMAINS}
+        if len(real_candidates) == 1:
+            substitutions[bad] = next(iter(real_candidates))
             continue
+        if len(real_candidates) > 1 and aggressive:
+            # Multiple real-device candidates — disambiguate using the
+            # prompt-keyword winner (gives same-domain entities a fixed
+            # bonus). Falls through to refuse if the winner isn't in
+            # the candidate set.
+            keyword = _prompt_keyword_best_entity(
+                user_message or "", entities, domain_hint=bad_domain
+            )
+            if keyword is not None and keyword in real_candidates:
+                substitutions[bad] = keyword
+                continue
+        # Zero candidates from slug/fname — try the prompt-name fallback
+        # when the prompt names exactly one entity. Two guards:
+        #   * Skip when the unknown id sits in a trigger — the
+        #     prompt-named device is the action target, and retargeting a
+        #     trigger to it changes WHEN the automation fires.
+        #   * Skip when the prompt-named device is ITSELF the trigger
+        #     entity — "When the Front Door opens, turn on a light" names
+        #     only ``cover.front_door`` (the trigger); using it to fill an
+        #     unknown action target would make the automation act on the
+        #     trigger device. Refuse → clarification instead.
+        if (
+            not real_candidates
+            and prompt_fallback is not None
+            and bad not in trigger_entity_ids
+            and prompt_fallback not in trigger_entity_ids
+        ):
+            substitutions[bad] = prompt_fallback
+            continue
+        # Last-ditch token-overlap (aggressive only). Constrained to the
+        # SAME domain as the unknown entity to prevent silently
+        # retargeting an action onto a different device class: a missing
+        # ``light.porch`` must not be rewritten to ``fan.porch`` or
+        # ``switch.porch_relay`` just because they share a prompt token.
+        # Same-domain replacements ("light.porch" → "light.porch_main")
+        # are the only token-overlap swap that preserves the user's
+        # device-class intent without an explicit confirmation step.
+        if not real_candidates and aggressive and bad_domain and bad not in trigger_entity_ids:
+            fallback = _prompt_keyword_best_entity(
+                user_message or "", entities, domain_hint=bad_domain
+            )
+            if (
+                fallback is not None
+                and fallback.split(".", 1)[0] == bad_domain
+                and fallback not in trigger_entity_ids
+            ):
+                substitutions[bad] = fallback
+                continue
         # Zero candidates, or more than one — refuse rather than guess.
         # Retargeting to "the one device the prompt names elsewhere"
         # would silently rewrite an unrelated trigger onto an unrelated
-        # device and is intentionally not attempted.
+        # device and is intentionally not attempted in non-aggressive
+        # mode.
         return None, {}
 
     if not substitutions:
         return None, {}
 
-    # Refuse cross-domain substitutions that would leave a state trigger
-    # or condition pinned to a value the new domain never reports. A
-    # ``lock.front_door`` trigger with ``to: locked`` resolves to a
-    # ``cover.front_door`` — covers never emit ``locked``, so the
-    # automation would silently never fire. The validator accepts
-    # free-form state strings here, so this gate must live at our level.
-    cross_domain_subs = {
-        bad: new
-        for bad, new in substitutions.items()
-        if bad.split(".", 1)[0] != new.split(".", 1)[0]
-    }
-    if cross_domain_subs and _bad_has_pinned_state_semantics(automation, set(cross_domain_subs)):
-        return None, {}
-
-    # Refuse a substitution that would leave an action's ``target``
-    # entity_id list straddling multiple domains. Such a list survives
-    # validation but the action's service-domain can only address one
-    # domain at runtime — the off-domain entries silently no-op or fail.
-    if _substitution_yields_mixed_domain_target(automation, substitutions):
-        return None, {}
-
-    # Refuse a substitution that would invert the user's intent. A
-    # ``light.turn_off`` action targeting ``light.movie`` resolved to
-    # ``scene.movie`` would otherwise become ``scene.turn_on`` because
-    # scenes have no "off" verb — silently activating the scene for an
-    # off request. Other off-verbs paired with a scene swap are
-    # equivalent.
+    # Intent-inversion and incompatible-service-data gates ALWAYS run,
+    # even in aggressive mode. A swap that silently performs the OPPOSITE
+    # action (``light.turn_off`` on ``light.movie`` → ``scene.turn_on``
+    # because scenes have no off verb) or that produces a runtime failure
+    # (brightness data on a switch) is never the right recovery — the
+    # prompt's "turn off" intent is unambiguous and a valid-but-inverted
+    # automation is worse than dead-ending to a clarification.
     if _substitution_inverts_intent(automation, substitutions):
         return None, {}
-
-    # Refuse a cross-domain swap when the action carries domain-specific
-    # service data (e.g. ``brightness`` for a light) that the target
-    # domain's service doesn't accept. The validator checks service
-    # existence but not its data schema — the patched automation would
-    # be accepted and fail at runtime.
     if _substitution_drops_required_service_data(automation, substitutions):
         return None, {}
+
+    # Pinned-state and mixed-domain gates are relaxed in aggressive mode:
+    # presence + duration recovery often makes a deliberate cross-domain
+    # swap (``light.porch`` → ``input_boolean.porch_light`` for "turn
+    # off the porch light") that these would otherwise block, and the
+    # surrounding prompt context already pins the intent.
+    if not aggressive:
+        # Refuse cross-domain substitutions that would leave a state
+        # trigger or condition pinned to a value the new domain never
+        # reports. A ``lock.front_door`` trigger with ``to: locked``
+        # resolves to a ``cover.front_door`` — covers never emit
+        # ``locked``, so the automation would silently never fire.
+        cross_domain_subs = {
+            bad: new
+            for bad, new in substitutions.items()
+            if bad.split(".", 1)[0] != new.split(".", 1)[0]
+        }
+        if cross_domain_subs and _bad_has_pinned_state_semantics(
+            automation, set(cross_domain_subs)
+        ):
+            return None, {}
+
+        # Refuse a substitution that would leave an action's ``target``
+        # entity_id list straddling multiple domains. Such a list survives
+        # validation but the action's service-domain can only address one
+        # domain at runtime — the off-domain entries silently no-op or
+        # fail.
+        if _substitution_yields_mixed_domain_target(automation, substitutions):
+            return None, {}
 
     patched: dict[str, Any] = copy.deepcopy(automation)
     _apply_entity_substitutions(patched, substitutions)
@@ -1003,6 +1337,25 @@ def _coerce_sun_triggers(automation: dict[str, Any], user_message: str) -> bool:
     if not wanted:
         return False
 
+    # Two distinct sun events paired with OPPOSING action verbs ("turn on
+    # at sunset AND turn it off at sunrise") describe a multi-action
+    # automation: each event drives a different action. Coercion can only
+    # add triggers that share ALL actions, so appending the second event
+    # would make the existing action (e.g. turn_on) fire at both events —
+    # reversing the second half of the request. Leave it to the LLM.
+    # Allow filler between the verb and on/off ("turn IT off", "turn the
+    # porch light on") so both halves of a compound request are detected.
+    has_on_verb = re.search(
+        r"\b(?:turn|switch|power)\b[^.!?]{0,20}?\bon\b|\bopens?\b|\bopening\b",
+        msg,
+    )
+    has_off_verb = re.search(
+        r"\b(?:turn|switch|shut)\b[^.!?]{0,20}?\boff\b|\bcloses?\b|\bclosing\b",
+        msg,
+    )
+    if len(wanted) >= 2 and has_on_verb and has_off_verb:
+        return False
+
     triggers = _read_triggers(automation)
     present_events: set[str] = set()
     conflict_indices: list[int] = []
@@ -1062,10 +1415,29 @@ def _coerce_sun_triggers(automation: dict[str, Any], user_message: str) -> bool:
                     missing.discard(ev)
                     triggers[idx] = {"trigger": "sun", "event": ev}
                     changed = True
-        # Append any still-missing requested events.
-        for ev in sorted(missing):
-            triggers.append({"trigger": "sun", "event": ev})
-            changed = True
+        # Append any still-missing requested events — but guard against
+        # widening a conditional automation. HA ORs triggers together, so
+        # appending a sun trigger alongside a genuine non-time trigger
+        # (motion/state/numeric_state) for "At sunset, turn on the lights
+        # IF motion is detected" would fire on motion at ANY time too,
+        # widening the automation past the requested window. The sun
+        # phrase there qualifies the action, not a second trigger.
+        #
+        # Exception: explicit OR phrasing ("at sunset OR when motion is
+        # detected") genuinely makes them alternative triggers — appending
+        # is correct there. So block the append only when another primary
+        # trigger is present AND the prompt has no "or" joining them.
+        if missing:
+            has_other_primary = any(
+                isinstance(tr, dict)
+                and (tr.get("trigger") or tr.get("platform")) not in ("time", "time_pattern", "sun")
+                for tr in triggers
+            )
+            has_or = re.search(r"\bor\b", msg) is not None
+            if not has_other_primary or has_or:
+                for ev in sorted(missing):
+                    triggers.append({"trigger": "sun", "event": ev})
+                    changed = True
 
     if not changed:
         return False
@@ -1073,28 +1445,780 @@ def _coerce_sun_triggers(automation: dict[str, Any], user_message: str) -> bool:
     return True
 
 
+# Presence + duration phrasing — split into negative ("nobody is here for
+# N minutes") and positive ("someone is here for N minutes") regexes so
+# the synthesized trigger can pick the right ``to:`` state. Lumping both
+# under one regex and always emitting ``to: off`` inverted positive
+# prompts (fired on absence rather than presence).
+_PRESENCE_NEGATIVE_FOR_DURATION_RE = re.compile(
+    r"\b(?P<word>nobody|no\s*one|noone)\b"
+    r"(?:[^.!?]{0,40}?)"
+    r"\bfor\s+(\d+)\s+(second|minute|hour)s?\b",
+    re.IGNORECASE,
+)
+_PRESENCE_POSITIVE_FOR_DURATION_RE = re.compile(
+    # ``someone``/``anyone``/``anybody`` mean "at least one member" —
+    # maps cleanly to a person-group going to ``home``. ``everyone`` is
+    # semantically different ("all members present") and is handled by
+    # ``_PRESENCE_EVERYONE_FOR_DURATION_RE`` below so the coercion can
+    # refuse rather than synthesize a misleading trigger.
+    r"\b(?P<word>someone|anyone|anybody)\b"
+    r"(?:[^.!?]{0,40}?)"
+    r"\bfor\s+(\d+)\s+(second|minute|hour)s?\b",
+    re.IGNORECASE,
+)
+# "everyone is home for 10 minutes" requires ALL members present, but a
+# standard person-group reports ``home`` when ANY member is home (HA
+# group default: ``all: false``). Without a guaranteed all-members
+# aggregate the trigger would fire as soon as one resident arrives.
+# Detected separately so the coercion can refuse.
+_PRESENCE_EVERYONE_FOR_DURATION_RE = re.compile(
+    r"\b(?P<word>everyone|everybody)\b"
+    r"(?:[^.!?]{0,40}?)"
+    r"\bfor\s+(\d+)\s+(second|minute|hour)s?\b",
+    re.IGNORECASE,
+)
+_ROOM_IS_EMPTY_RE = re.compile(
+    r"\b(?:the\s+)?(?P<room>kitchen|bedroom|bathroom|office|garage|porch|"
+    r"hallway|basement|attic|living\s*room|family\s*room|dining\s*room)\b"
+    r"\s+(?:is\s+empty|are\s+empty|stays?\s+empty)\b"
+    r"(?:[^.!?]{0,40}?)"
+    r"\bfor\s+(?P<n>\d+)\s+(?P<unit>second|minute|hour)s?\b",
+    re.IGNORECASE,
+)
+
+
+def _match_presence_for_duration(msg: str) -> tuple[re.Match[str], bool] | None:
+    """Return (match, is_positive) for the first presence + duration
+    phrase in ``msg``. ``is_positive`` is True for affirmative phrasings
+    (someone/anyone/anybody) and False for negative ones
+    (nobody/no one/noone) plus "the X is empty" variants. ``everyone``
+    is handled separately by ``_is_everyone_presence_prompt`` since its
+    "all members present" semantics can't be expressed against a
+    standard person-group. Returns None when no presence + duration
+    phrase is found."""
+    if not msg:
+        return None
+    m = _PRESENCE_NEGATIVE_FOR_DURATION_RE.search(msg)
+    if m is not None:
+        return m, False
+    m = _ROOM_IS_EMPTY_RE.search(msg)
+    if m is not None:
+        return m, False
+    m = _PRESENCE_POSITIVE_FOR_DURATION_RE.search(msg)
+    if m is not None:
+        return m, True
+    return None
+
+
+def _is_everyone_presence_prompt(msg: str) -> bool:
+    """True when the prompt's presence + duration condition uses
+    ``everyone``/``everybody`` ("everyone is home for 10 minutes"). The
+    coercion refuses these to avoid synthesizing a person-group
+    ``to: home`` trigger that fires when only one resident arrives."""
+    return bool(_PRESENCE_EVERYONE_FOR_DURATION_RE.search(msg or ""))
+
+
+def _has_presence_for_duration(msg: str) -> bool:
+    if not msg:
+        return False
+    return _match_presence_for_duration(msg) is not None or _is_everyone_presence_prompt(msg)
+
+
+def _first_action_target_entity_id(
+    automation: dict[str, Any],
+    hass: HomeAssistant | None,
+) -> str | None:
+    """Return the first action-target ``entity_id`` that exists in HA.
+
+    Used as the last-ditch fallback for ``_coerce_presence_for_duration_trigger``
+    when the home has no presence/occupancy/motion/person entity — better
+    to synthesize a state-trigger against the action target (so HA actually
+    creates a valid automation with a ``for:`` duration matching the prompt)
+    than to dead-end on the validator's "no trigger" rejection.
+    """
+    if hass is None:
+        return None
+
+    def _walk(node: Any) -> list[str]:
+        eids: list[str] = []
+        if isinstance(node, dict):
+            for k, v in node.items():
+                if k == "entity_id":
+                    if isinstance(v, str):
+                        eids.append(v)
+                    elif isinstance(v, list):
+                        eids.extend(x for x in v if isinstance(x, str))
+                else:
+                    eids.extend(_walk(v))
+        elif isinstance(node, list):
+            for item in node:
+                eids.extend(_walk(item))
+        return eids
+
+    actions = automation.get("actions") or automation.get("action") or []
+    for eid in _walk(actions):
+        if "." in eid and hass.states.get(eid) is not None:
+            return eid
+    return None
+
+
+_PRESENCE_ROOM_WORDS: tuple[str, ...] = (
+    "living room",
+    "family room",
+    "dining room",
+    "laundry room",
+    "front porch",
+    "back porch",
+    "kitchen",
+    "bedroom",
+    "bathroom",
+    "office",
+    "garage",
+    "porch",
+    "hallway",
+    "basement",
+    "attic",
+)
+
+
+def _condition_clause(user_message: str) -> str:
+    """Return the conditional clause of a presence + duration prompt.
+
+    "turn off the kitchen lights when nobody is home for 10 minutes"
+    has two distinct rooms in play: ``kitchen`` is the ACTION target,
+    ``nobody is home`` is the PRESENCE condition (no room). Scanning
+    the whole prompt for a room word would pick up ``kitchen`` and
+    synthesize a kitchen-occupancy trigger, firing when the kitchen is
+    empty even while residents remain home — the opposite of the
+    intended household-wide condition.
+
+    Split at the first conditional connector (``when``/``whenever``/
+    ``while``/``if``) and return everything after it. Without a
+    connector the message is treated as the condition itself
+    (presence + duration phrasing can stand alone).
+    """
+    if not user_message:
+        return ""
+    msg = user_message.lower()
+    # Word-boundary match so a connector at the START of the message
+    # ("When nobody is home for 10 minutes, turn off the kitchen lights")
+    # is split too — a leading-space search would miss it and the room
+    # scan would then see ``kitchen`` in the trailing action clause.
+    best: int | None = None
+    for connector in ("whenever", "while", "when", "if"):
+        m = re.search(rf"\b{connector}\b", msg)
+        if m is not None and (best is None or m.end() < best):
+            best = m.end()
+    if best is None:
+        return msg
+    clause = msg[best:]
+    # A leading-connector form puts the ACTION after the condition.
+    # Truncate so the action-target room ("kitchen" in "...turn off the
+    # kitchen lights") doesn't leak into the presence-room scan:
+    #   * at a comma / "then" separator, and
+    #   * at the END of the presence duration phrase ("for N <unit>s") —
+    #     the condition ends there, so an unpunctuated leading form
+    #     ("When nobody is home for 10 minutes turn off the kitchen
+    #     lights") is still bounded.
+    cut = len(clause)
+    for sep in (",", " then "):
+        idx = clause.find(sep)
+        if idx >= 0:
+            cut = min(cut, idx)
+    dur = re.search(r"\bfor\s+\d+\s+(?:second|minute|hour)s?\b", clause)
+    if dur is not None:
+        cut = min(cut, dur.end())
+    return clause[:cut]
+
+
+# binary_sensor device_classes / keyword markers that indicate a
+# presence-class sensor. Shared by the room-vocabulary derivation and
+# the entity scorer.
+_PRESENCE_CLASS_KEYWORDS = ("occupancy", "presence", "motion")
+_PRESENCE_DEVICE_CLASSES = frozenset({"occupancy", "presence", "motion", "moving"})
+
+
+def _is_presence_class_sensor(slug: str, fname: str, device_class: str) -> bool:
+    if device_class in _PRESENCE_DEVICE_CLASSES:
+        return True
+    return any(kw in slug or kw in fname for kw in _PRESENCE_CLASS_KEYWORDS)
+
+
+def _live_room_vocabulary(hass: HomeAssistant | None) -> list[str]:
+    """Derive room name candidates from the live presence-class entities.
+
+    The static ``_PRESENCE_ROOM_WORDS`` list can't enumerate user-defined
+    areas ("conservatory", "snug", "mancave"). Strip the presence-class
+    suffix from each presence sensor's slug to recover its room stem
+    (``binary_sensor.conservatory_occupancy`` → ``conservatory``) so a
+    prompt naming that room resolves to the right sensor instead of
+    falling back to household-wide presence."""
+    if hass is None:
+        return []
+    rooms: set[str] = set()
+    for state in hass.states.async_all():
+        eid = state.entity_id
+        if not eid.startswith("binary_sensor."):
+            continue
+        slug = eid.split(".", 1)[1].lower()
+        fname = (state.attributes.get("friendly_name") or "").lower()
+        device_class = str(state.attributes.get("device_class") or "").lower()
+        if not _is_presence_class_sensor(slug, fname, device_class):
+            continue
+        stem = slug
+        for kw in _PRESENCE_CLASS_KEYWORDS:
+            stem = stem.replace(f"_{kw}", "").replace(f"{kw}_", "")
+        stem = stem.strip("_").replace("_", " ").strip()
+        if len(stem) >= 3:
+            rooms.add(stem)
+    return list(rooms)
+
+
+def _target_room_from_prompt(
+    user_message: str,
+    hass: HomeAssistant | None = None,
+) -> str | None:
+    """Return the first room word that appears in the CONDITION clause
+    of ``user_message``, or None. Longer phrases are checked first so
+    "living room" wins over the embedded "room" / "porch" substring.
+
+    Matches against the static room list PLUS room stems derived from
+    the live presence sensors (see ``_live_room_vocabulary``) so a
+    user-defined area like "conservatory" still resolves.
+
+    Restricts the search to the conditional clause (see
+    ``_condition_clause``) so action-target rooms don't leak into
+    presence-room selection. "turn off the kitchen lights when nobody
+    is home for 10 minutes" therefore returns None (whole-home
+    presence), not ``kitchen``."""
+    if not user_message:
+        return None
+    scope = _condition_clause(user_message)
+    if not scope:
+        return None
+    vocab = set(_PRESENCE_ROOM_WORDS) | set(_live_room_vocabulary(hass))
+    for room in sorted(vocab, key=lambda r: -len(r)):
+        if re.search(rf"\b{re.escape(room)}\b", scope):
+            return room
+    return None
+
+
+def _find_presence_entity(hass: HomeAssistant | None, user_message: str) -> str | None:
+    """Pick the best presence entity for the room named in ``user_message``.
+    Prefer occupancy / presence binary_sensors; fall back to motion
+    sensors; then any device_tracker / person / group.
+
+    When the prompt names a specific room, only entities whose slug or
+    friendly_name matches that room are eligible — returning a sensor
+    from the wrong room would silently rewire the user's automation to
+    a different physical space ("kitchen" prompt picking up
+    ``binary_sensor.bedroom_occupancy``). In that case return None so
+    the caller can clarify instead of guessing.
+
+    When the prompt names no room ("when nobody is home for 10 minutes"),
+    the user is asking about the whole household — pick a household
+    group entity (``group.all_persons`` / ``group.family`` /
+    ``person.home`` aggregate) over any individual ``person.*`` or
+    ``device_tracker.*``. An individual person's state going to
+    ``not_home`` only means THAT person left; the automation would fire
+    while other residents are still home, the opposite of what "nobody
+    is home" means. Refuse (return None) when no aggregate source
+    exists so the caller surfaces a clarification."""
+    if hass is None or not user_message:
+        return None
+    target_room = _target_room_from_prompt(user_message, hass)
+    room_slug = target_room.replace(" ", "_") if target_room else None
+
+    def _is_person_group(state: Any) -> bool:
+        """True when ``state`` is a ``group.*`` whose members are all
+        ``person.*`` / ``device_tracker.*``. A generic group such as
+        ``group.all_lights`` reports ``on``/``off`` and never reaches
+        ``not_home`` — selecting it would synthesize a trigger that
+        never fires."""
+        if not state.entity_id.startswith("group."):
+            return False
+        members = state.attributes.get("entity_id")
+        if not isinstance(members, (list, tuple)) or not members:
+            return False
+        return all(
+            isinstance(m, str) and m.startswith(("person.", "device_tracker.")) for m in members
+        )
+
+    candidates: list[tuple[int, str]] = []
+    for state in hass.states.async_all():
+        eid = state.entity_id
+        if not eid.startswith(("binary_sensor.", "device_tracker.", "person.", "group.")):
+            continue
+        # Skip unavailable/unknown sensors — a trigger on one validates
+        # (the entity exists) but never fires until the sensor recovers.
+        # Mirrors the normal entity collector's availability filter so a
+        # live lower-ranked motion sensor wins over a dead occupancy one.
+        if str(getattr(state, "state", "")).lower() in ("unavailable", "unknown"):
+            continue
+        slug = eid.split(".", 1)[1]
+        fname = (state.attributes.get("friendly_name") or "").lower()
+        device_class = str(state.attributes.get("device_class") or "").lower()
+        room_match = bool(
+            room_slug and (room_slug in slug or (target_room and target_room in fname))
+        )
+        # Room-named prompts MUST resolve to a room-matching entity.
+        if target_room is not None and not room_match:
+            continue
+        # ANY ``group.*`` candidate must contain person/device_tracker
+        # members — regardless of whether a room was named. A light group
+        # ``group.kitchen_lights`` reports ``on``/``off``, never
+        # ``home``/``not_home``, so a synthesized presence trigger on it
+        # would never fire. This applies even to room-matching groups.
+        if eid.startswith("group.") and not _is_person_group(state):
+            continue
+        # Room-less prompts ("when nobody is home for 10 minutes") only
+        # accept household-aggregate presence sources. Excluding
+        # individual ``person.*`` / ``device_tracker.*`` avoids firing
+        # when ONE resident leaves while others remain home.
+        if target_room is None and not eid.startswith("group."):
+            continue
+
+        # A room-matching ``binary_sensor.*`` must ALSO be a presence
+        # class — otherwise ``binary_sensor.kitchen_window`` would be
+        # picked for "kitchen" and ``to: off`` would mean "window
+        # closed", not "nobody home". person/device_tracker/group are
+        # inherently presence sources and skip this gate.
+        if eid.startswith("binary_sensor.") and not _is_presence_class_sensor(
+            slug, fname, device_class
+        ):
+            continue
+
+        score = 0
+        if "occupancy" in slug or "occupancy" in fname or device_class == "occupancy":
+            score += 100
+        if "presence" in slug or "presence" in fname or device_class == "presence":
+            score += 100
+        if "motion" in slug or "motion" in fname or device_class in {"motion", "moving"}:
+            score += 50
+        if eid.startswith("group."):
+            score += 20
+        if room_match:
+            score += 200
+        if score:
+            candidates.append((score, eid))
+
+    if not candidates:
+        return None
+    candidates.sort(key=lambda x: -x[0])
+    return candidates[0][1]
+
+
+_PROMPT_CLOCK_TIME_RE = re.compile(
+    r"\b(?P<h>\d{1,2}):(?P<m>\d{2})(?::\d{2})?\s*(?P<ap1>am|pm|a\.m\.|p\.m\.)?"
+    r"|\b(?P<h2>\d{1,2})\s*(?P<ap2>am|pm|a\.m\.|p\.m\.)",
+    re.IGNORECASE,
+)
+
+
+def _prompt_explicit_times(msg: str) -> set[tuple[int, int]]:
+    """Return the set of (hour24, minute) clock times the prompt names
+    explicitly ("At 10:00" → {(10, 0)}, "at 7pm" → {(19, 0)}). Used to
+    spare a genuine time trigger from the duration-misread filter."""
+    times: set[tuple[int, int]] = set()
+    if not msg:
+        return times
+    for m in _PROMPT_CLOCK_TIME_RE.finditer(msg):
+        if m.group("h") is not None:
+            hh = int(m.group("h"))
+            mm = int(m.group("m"))
+            ap = (m.group("ap1") or "").lower()
+        else:
+            hh = int(m.group("h2"))
+            mm = 0
+            ap = (m.group("ap2") or "").lower()
+        if ap.startswith("p") and hh < 12:
+            hh += 12
+        elif ap.startswith("a") and hh == 12:
+            hh = 0
+        if 0 <= hh <= 23 and 0 <= mm <= 59:
+            times.add((hh, mm))
+    return times
+
+
+def _trigger_time_in(trigger: dict[str, Any], times: set[tuple[int, int]]) -> bool:
+    """True when ``trigger`` is a time trigger whose ``at`` (hour, minute)
+    is one the prompt explicitly named — i.e. a genuine user time, not a
+    duration misread."""
+    if not times:
+        return False
+    platform = trigger.get("trigger") or trigger.get("platform")
+    if platform != "time":
+        return False
+    at = trigger.get("at")
+    if not isinstance(at, str):
+        return False
+    parts = at.split(":")
+    if len(parts) < 2:
+        return False
+    try:
+        return (int(parts[0]), int(parts[1])) in times
+    except ValueError:
+        return False
+
+
+def _coerce_presence_for_duration_trigger(
+    automation: dict[str, Any],
+    user_message: str,
+    hass: HomeAssistant | None,
+) -> bool:
+    """Append a presence state trigger when the prompt is presence + duration
+    phrased.
+
+    The v0.4.7 automation LoRA misreads presence prompts two ways:
+
+      (a) Routes through command (no automation envelope at all) — handled
+          upstream by the new ``_AUTOMATION_PATTERNS`` anchor in intent.py.
+      (b) Emits ``{"trigger": "time", "at": "N:00:00"}`` — interprets the
+          duration as a clock time. This coercion catches (b): append a
+          state trigger with the requested ``for:`` window so HA actually
+          fires after the (in)activity period, and remove ONLY the LoRA
+          time trigger that encodes the duration value as a clock time.
+          Any other triggers and all conditions are preserved — compound
+          prompts ("…for 10 minutes or at sunset", "…when nobody is home
+          for 10 minutes and the door is unlocked") keep their non-
+          presence shape intact.
+
+    Affirmative phrasings ("someone is here for 10 minutes") emit
+    ``to: on``/``home``; negative phrasings ("nobody is in the kitchen
+    for 10 minutes", "the kitchen is empty for 10 minutes") emit
+    ``to: off``/``not_home``. Refuses (returns False) when no presence
+    entity matches the named room — the caller surfaces a clarification
+    rather than synthesizing a trigger on an unrelated sensor or on
+    the controlled device.
+
+    Returns ``True`` if a trigger was appended, ``False`` otherwise.
+    """
+    msg = user_message or ""
+    # "everyone is home for 10 minutes" requires ALL members present,
+    # which a default HA person-group (state == "home" when ANY member
+    # is home) cannot express. Refuse rather than synthesize a trigger
+    # that fires when the first resident arrives.
+    if _is_everyone_presence_prompt(msg):
+        return False
+    matched = _match_presence_for_duration(msg)
+    if matched is None:
+        return False
+    m, is_positive = matched
+    # ``_ROOM_IS_EMPTY_RE`` uses named groups; the presence-word regexes
+    # use positional groups for the count + unit.
+    try:
+        amount = int(m.group("n"))
+        unit = m.group("unit").lower()
+    except LookupError:
+        amount = int(m.group(2))
+        unit = m.group(3).lower()
+
+    presence_eid = _find_presence_entity(hass, msg)
+    if not presence_eid:
+        # No room-matching presence entity — refuse rather than
+        # synthesize a trigger on the controlled device or a sensor in
+        # another room. The caller turns this into a clarification.
+        return False
+
+    duration_kw = {f"{unit}s": amount}
+    if presence_eid.startswith(("person.", "device_tracker.", "group.")):
+        # ``group.*`` of person/device_tracker members reports
+        # ``home``/``not_home`` like its members; binary_sensor groups
+        # report ``on``/``off`` — leave those to the else branch below.
+        state_value = "home" if is_positive else "not_home"
+    else:
+        state_value = "on" if is_positive else "off"
+
+    # Clock times the prompt EXPLICITLY names ("At 10:00, …", "at 7pm").
+    # A time trigger whose ``at`` matches one of these is genuine — the
+    # user asked for it — even if it also coincides with the duration
+    # misread shape ("for 10 minutes" → "10:00:00"). Keep those.
+    prompt_times = _prompt_explicit_times(msg)
+
+    # Normalize across the two HA-accepted shapes (``trigger:`` singular,
+    # ``triggers:`` plural). Keep existing non-presence triggers — they
+    # may be genuine compound shape ("…or at sunset"). Drop ONLY the
+    # specific time trigger that looks like the LoRA's "for N min" →
+    # "at N:00:00" misread, UNLESS the prompt explicitly names that time.
+    existing = _read_triggers(automation)
+    preserved: list[dict[str, Any]] = []
+    for tr in existing:
+        if not isinstance(tr, dict):
+            continue
+        platform = tr.get("trigger") or tr.get("platform")
+        # Drop ANY time/time_pattern trigger the prompt did not explicitly
+        # name. This covers both the duration misread ("for 10 minutes" →
+        # ``at: 10:00``) and a stray hallucinated clock trigger (a random
+        # ``time`` at ``12:00`` on a "nobody home for 10 minutes" prompt).
+        # Keeping such a trigger would demote presence to a condition and
+        # produce "at noon if nobody is home" instead of firing after the
+        # home has been empty. Explicit prompt times ("At 10:00 …") are in
+        # ``prompt_times`` and survive.
+        if platform in ("time", "time_pattern") and not _trigger_time_in(tr, prompt_times):
+            continue
+        # Drop any prior presence state trigger on the SAME entity to
+        # avoid duplicate-fire on validator reload.
+        if platform == "state" and tr.get("entity_id") == presence_eid:
+            continue
+        preserved.append(tr)
+
+    has_or = re.search(r"\bor\b", msg, re.IGNORECASE) is not None
+
+    # No primary trigger survived, but the prompt explicitly names a
+    # clock time ("At 10:00, turn off the lights if nobody is home for 10
+    # minutes") — that time IS the primary trigger and the model just
+    # dropped it. Synthesize it from the prompt so the presence stays a
+    # GATE (condition) instead of becoming the trigger, which would fire
+    # the automation whenever the home empties, ignoring the schedule.
+    if not preserved and not has_or and prompt_times:
+        for hh, mm in sorted(prompt_times):
+            preserved.append({"trigger": "time", "at": f"{hh:02d}:{mm:02d}:00"})
+
+    # Presence-as-condition: when a presence clause sits alongside a
+    # genuine PRIMARY trigger ("At sunset, turn on the lights if nobody
+    # is home for 10 minutes"; "At 10:00, turn off the lights when nobody
+    # is home for 10 minutes"), the presence is a GATE on that trigger,
+    # not its own trigger. Appending it as a trigger would make HA OR the
+    # two, firing the moment the home empties regardless of the primary
+    # trigger's time. Emit it as a state condition with the same ``for:``
+    # window instead.
+    #
+    # Applies whenever a genuine trigger survives filtering (``preserved``
+    # non-empty) — BOTH "if" and "when" introduce the gate. The sole
+    # exception is explicit OR phrasing ("...for 10 minutes OR at
+    # sunset"), which genuinely makes presence an alternative trigger.
+    if preserved and not has_or:
+        new_condition: dict[str, Any] = {
+            "condition": "state",
+            "entity_id": presence_eid,
+            "state": state_value,
+            "for": duration_kw,
+        }
+        _commit_triggers(automation, preserved)
+        _append_condition(automation, new_condition)
+        return True
+
+    new_trigger: dict[str, Any] = {
+        "trigger": "state",
+        "entity_id": presence_eid,
+        "to": state_value,
+        "for": duration_kw,
+    }
+    preserved.append(new_trigger)
+    _commit_triggers(automation, preserved)
+    return True
+
+
+def _append_condition(automation: dict[str, Any], condition: dict[str, Any]) -> None:
+    """Append ``condition`` to the automation, normalizing the singular
+    ``condition`` / plural ``conditions`` shapes into a single
+    ``conditions`` list (mirrors ``_commit_triggers``)."""
+    existing: list[Any] = []
+    single = automation.get("condition")
+    if isinstance(single, list):
+        existing = list(single)
+    elif isinstance(single, dict):
+        existing = [single]
+    else:
+        plural = automation.get("conditions")
+        if isinstance(plural, list):
+            existing = list(plural)
+        elif isinstance(plural, dict):
+            existing = [plural]
+    existing.append(condition)
+    automation["conditions"] = existing
+    automation.pop("condition", None)
+
+
+# Verb → domain preferences for synthesizing an action when the LoRA
+# emitted an automation envelope so empty/truncated that no action
+# survived parsing. Order inside the domain tuple matters: the entity
+# scorer prefers earlier entries when prompt-token overlap ties.
+_PROMPT_VERB_TO_ACTION_DOMAINS: tuple[tuple[re.Pattern[str], tuple[str, ...], str], ...] = (
+    (
+        re.compile(r"\bturn\s+off\b|\bswitch\s+off\b|\bshut\s+off\b", re.IGNORECASE),
+        ("light", "switch", "fan", "media_player", "input_boolean", "climate"),
+        "off",
+    ),
+    (
+        re.compile(r"\bturn\s+on\b|\bswitch\s+on\b|\bpower\s+on\b", re.IGNORECASE),
+        ("light", "switch", "fan", "media_player", "input_boolean", "climate"),
+        "on",
+    ),
+    (
+        re.compile(r"\bunlock\b", re.IGNORECASE),
+        ("lock",),
+        "on",
+    ),
+    (
+        re.compile(r"\block\b", re.IGNORECASE),
+        ("lock", "cover"),
+        "off",
+    ),
+    (
+        re.compile(r"\bclose\b", re.IGNORECASE),
+        ("cover",),
+        "off",
+    ),
+    (
+        re.compile(r"\bopen\b", re.IGNORECASE),
+        ("cover",),
+        "on",
+    ),
+)
+
+
+def _synthesize_action_from_prompt(
+    hass: HomeAssistant | None,
+    user_message: str,
+) -> dict[str, Any] | None:
+    """Build a single action dict from the prompt's verb + named target.
+
+    Used as a last-ditch fallback when the LoRA emitted a truncated
+    automation envelope with no actions at all — typically the presence
+    + duration phrasing under context pressure, e.g. the LoRA running
+    out of tokens after ``{"intent":"automation","response":"Turns the
+    porch light off, and"}``. Without an action the trigger-recovery
+    branch's re-validation fails on "must include at least one action"
+    and the whole envelope gets discarded.
+
+    Returns ``None`` when hass is missing, the prompt has no recognised
+    verb, or no live entity has any token overlap with the prompt
+    within the verb's preferred domains.
+    """
+    if hass is None or not user_message:
+        return None
+    domains_preferred: tuple[str, ...] = ()
+    verb: str | None = None
+    for pattern, domains, v in _PROMPT_VERB_TO_ACTION_DOMAINS:
+        if pattern.search(user_message):
+            domains_preferred = domains
+            verb = v
+            break
+    if verb is None:
+        return None
+    raw_tokens = {t for t in re.split(r"[^a-z0-9]+", user_message.lower()) if t}
+    prompt_tokens = {t for t in raw_tokens if len(t) >= 3 and t not in _PROMPT_KEYWORD_STOPWORDS}
+    if not prompt_tokens:
+        return None
+    # Rank by (-score, domain_rank). The eid is NOT a tie-breaker: when
+    # two entities tie on both score and domain rank ("Front Porch Light"
+    # vs "Back Porch Light" for "turn off the porch light"), the target
+    # is genuinely ambiguous — synthesizing for an arbitrary one ships a
+    # valid automation for the wrong device. Refuse so the caller asks.
+    scored: list[tuple[int, int, str]] = []  # (-score, domain_rank, eid)
+    for state in hass.states.async_all():
+        eid = state.entity_id
+        if "." not in eid:
+            continue
+        domain, slug = eid.split(".", 1)
+        if domain not in domains_preferred:
+            continue
+        slug_tokens = {t for t in re.split(r"[^a-z0-9]+", slug.lower()) if t}
+        fname = (state.attributes.get("friendly_name") or "").lower()
+        fname_tokens = {t for t in re.split(r"[^a-z0-9]+", fname) if t}
+        overlap = (slug_tokens | fname_tokens) & prompt_tokens
+        if not overlap:
+            continue
+        score = len(overlap)
+        domain_rank = domains_preferred.index(domain)
+        scored.append((-score, domain_rank, eid))
+    if not scored:
+        return None
+    scored.sort()
+    top_rank = (scored[0][0], scored[0][1])
+    if sum(1 for s in scored if (s[0], s[1]) == top_rank) > 1:
+        # Tie on score + domain rank → ambiguous target. Refuse.
+        return None
+    target_eid = scored[0][2]
+    target_domain = target_eid.split(".", 1)[0]
+    action_verb = _service_verb_for_domain(verb, target_domain)
+    return {
+        "service": f"{target_domain}.{action_verb}",
+        "target": {"entity_id": target_eid},
+    }
+
+
 def _apply_prompt_aware_coercions(
     automation: dict[str, Any],
     user_message: str,
     hass: HomeAssistant,
+    entities: list[EntitySnapshot] | None = None,
 ) -> dict[str, Any] | None:
     """Apply prompt-aware trigger coercions and re-validate. Returns
     the normalized automation on success, None if no coercion was
-    needed OR the coerced shape still fails validation."""
+    needed OR the coerced shape still fails validation.
+
+    For presence + duration prompts whose LoRA output is so truncated
+    that no action survived ("Turns the porch light off, and"), a single
+    action is synthesized from the prompt verb + named target so the
+    trigger-recovery path doesn't dead-end on the validator's "must
+    include at least one action" check.
+
+    When ``entities`` is provided and post-coercion validation still
+    fails for ``unknown entity_id`` (the LoRA's action targets a name
+    that doesn't exist in the live fixture, e.g. ``light.porch`` when
+    only ``input_boolean.porch_light`` is registered), an aggressive
+    substitution pass is run on the coerced candidate — the prompt's
+    presence + duration shape is enough signal to prefer ANY
+    controllable entity sharing a prompt token over dead-ending."""
     if not isinstance(automation, dict):
         return None
+
     candidate = copy.deepcopy(automation)
     changed = False
+    # Presence + duration phrasing is the only shape where a half-
+    # truncated LoRA envelope is recoverable — gating action synthesis
+    # on the same regex keeps this from misfiring on unrelated
+    # automation prompts whose missing-action is a real user error.
+    has_presence_duration = _has_presence_for_duration(user_message or "")
+    if has_presence_duration:
+        existing_actions = candidate.get("actions") or candidate.get("action") or []
+        if not existing_actions:
+            synthesized = _synthesize_action_from_prompt(hass, user_message)
+            if synthesized is not None:
+                candidate["actions"] = [synthesized]
+                candidate.pop("action", None)
+                changed = True
     if _coerce_sun_triggers(candidate, user_message):
         changed = True
     if _coerce_numeric_state_triggers(candidate, user_message):
         changed = True
+    if _coerce_presence_for_duration_trigger(candidate, user_message, hass):
+        changed = True
     if not changed:
         return None
-    is_valid, _reason, normalized = validate_automation_payload(candidate, hass)
-    if not is_valid or normalized is None:
-        return None
-    return normalized
+    is_valid, reason, normalized = validate_automation_payload(candidate, hass)
+    if is_valid and normalized is not None:
+        return normalized
+    # Post-coercion recovery — when the LoRA's action targets an entity
+    # that doesn't exist in this fixture (typical for ``light.porch``
+    # vs the only-real ``input_boolean.porch_light``), substitution
+    # didn't run earlier because the original validator reason was
+    # "must include at least one trigger" (not "unknown entity_id").
+    # Now that the trigger is synthesized, the action-side
+    # ``unknown entity_id`` surfaces — fix it here so the whole
+    # envelope can ship.
+    if reason and "unknown entity_id" in reason and entities:
+        patched, subs = _resolve_unknown_entity_ids(
+            reason,
+            candidate,
+            entities,
+            hass,
+            user_message=user_message,
+            aggressive=True,
+        )
+        if patched is not None and subs:
+            is_valid2, _r2, normalized2 = validate_automation_payload(patched, hass)
+            if is_valid2 and normalized2 is not None:
+                _LOGGER.info(
+                    "Post-coercion entity substitution rescued %d id(s): %s",
+                    len(subs),
+                    subs,
+                )
+                return normalized2
+    return None
 
 
 def parse_architect_response(
@@ -1154,12 +2278,30 @@ def parse_architect_response(
         if data.get("automation"):
             is_valid, reason, normalized = validate_automation_payload(data["automation"], hass)
 
+            # The presence + duration phrase ("when nobody is in X for N
+            # minutes") unlocks two things downstream:
+            #   * aggressive entity substitution (the LoRA reliably
+            #     hallucinates ``lock.front_door`` for these prompts no
+            #     matter the real subject — we'd rather fall back to
+            #     ANY controllable entity that shares a token with the
+            #     prompt than dead-end on a clarification);
+            #   * the trigger-recovery branch firing even when the
+            #     validator's original reason was about the entity, so
+            #     the now-patched automation still gets its synthesized
+            #     state trigger with the prompt's ``for: {N}`` window.
+            has_presence_duration = _has_presence_for_duration(user_message or "")
+
             if not is_valid and reason and "unknown entity_id" in reason and entities:
                 patched, subs = _resolve_unknown_entity_ids(
-                    reason, data["automation"], entities, hass
+                    reason,
+                    data["automation"],
+                    entities,
+                    hass,
+                    user_message=user_message,
+                    aggressive=has_presence_duration,
                 )
                 if patched is not None and subs:
-                    is_valid_retry, _r, normalized_retry = validate_automation_payload(
+                    is_valid_retry, retry_reason, normalized_retry = validate_automation_payload(
                         patched, hass
                     )
                     if is_valid_retry and normalized_retry is not None:
@@ -1170,20 +2312,53 @@ def parse_architect_response(
                         )
                         data["automation"] = patched
                         is_valid, reason, normalized = True, "", normalized_retry
+                    elif retry_reason and "trigger" in retry_reason.lower():
+                        # Entity substitution succeeded; the only
+                        # remaining gap is a missing/invalid trigger.
+                        # Persist the patch and update ``reason`` so the
+                        # trigger-recovery branch below operates on the
+                        # now-valid action targets — otherwise the patch
+                        # would be silently dropped and the trigger
+                        # synth would walk the still-broken actions and
+                        # fall through to "Discarding invalid".
+                        _LOGGER.info(
+                            "Applied %d entity_id substitution(s); "
+                            "trigger still missing/invalid (%s): %s",
+                            len(subs),
+                            retry_reason,
+                            subs,
+                        )
+                        data["automation"] = patched
+                        reason = retry_reason
 
             # Coerce wrong-shape triggers (state instead of numeric_state,
             # time instead of sun) when the prompt hints at the right shape;
             # re-validate and on success replace the original automation.
             if normalized is not None and user_message:
-                coerced = _apply_prompt_aware_coercions(data["automation"], user_message, hass)
+                coerced = _apply_prompt_aware_coercions(
+                    data["automation"], user_message, hass, entities
+                )
                 if coerced is not None:
                     data["automation"] = coerced
                     normalized = coerced
 
             # Last-ditch trigger recovery — when validation rejected for a
-            # missing/invalid trigger, synthesize it from the prompt.
-            if not is_valid and reason and user_message and ("trigger" in reason.lower()):
-                coerced = _apply_prompt_aware_coercions(data["automation"], user_message, hass)
+            # missing/invalid trigger, synthesize it from the prompt. Also
+            # fires for the presence + duration phrasing whenever the
+            # automation is still invalid: the LoRA's malformed time-of-day
+            # trigger ("for 10 minutes" → ``at: 10:00``) doesn't carry the
+            # word "trigger" in the validator reason, but the prompt's
+            # ``for N minutes`` is a strong-enough signal to rewrite it.
+            should_recover_trigger = (
+                bool(user_message)
+                and not is_valid
+                and reason
+                and (("trigger" in reason.lower()) or has_presence_duration)
+            )
+            if should_recover_trigger:
+                coerced = _apply_prompt_aware_coercions(
+                    data["automation"], user_message, hass, entities
+                )
                 if coerced is not None:
                     _LOGGER.info(
                         "Recovered missing/invalid trigger from prompt for automation: %s", reason
@@ -1529,14 +2704,27 @@ def parse_streamed_response(
         try:
             automation_data = json.loads(json_text)
             is_valid, reason, normalized = validate_automation_payload(automation_data, hass)
+            # See ``parse_architect_response`` for the rationale on
+            # ``has_presence_duration`` — it unlocks aggressive entity
+            # substitution AND the prompt-driven trigger recovery for
+            # the duration_misread / presence_duration buckets.
+            has_presence_duration = _has_presence_for_duration(user_message or "")
             # Auto-correct an unknown-entity rejection when the model
             # named a real device with the wrong domain prefix
-            # (light.coffee_maker → switch.coffee_maker). Mirrors the
-            # JSON-only path.
+            # (light.coffee_maker → switch.coffee_maker) OR echoed an
+            # example entity (lock.front_door) when the prompt names
+            # exactly one real device. Mirrors the JSON-only path.
             if not is_valid and reason and "unknown entity_id" in reason and entities:
-                patched, subs = _resolve_unknown_entity_ids(reason, automation_data, entities, hass)
+                patched, subs = _resolve_unknown_entity_ids(
+                    reason,
+                    automation_data,
+                    entities,
+                    hass,
+                    user_message=user_message,
+                    aggressive=has_presence_duration,
+                )
                 if patched is not None and subs:
-                    is_valid_retry, _r, normalized_retry = validate_automation_payload(
+                    is_valid_retry, retry_reason, normalized_retry = validate_automation_payload(
                         patched, hass
                     )
                     if is_valid_retry and normalized_retry is not None:
@@ -1552,21 +2740,52 @@ def parse_streamed_response(
                             "",
                             normalized_retry,
                         )
+                    elif retry_reason and "trigger" in retry_reason.lower():
+                        # Persist the entity patch so the trigger
+                        # recovery branch below operates on the now-
+                        # valid action targets. See the matching block
+                        # in parse_architect_response for the full
+                        # rationale.
+                        _LOGGER.info(
+                            "Applied %d entity_id substitution(s) in "
+                            "streamed automation; trigger still missing "
+                            "(%s): %s",
+                            len(subs),
+                            retry_reason,
+                            subs,
+                        )
+                        automation_data = patched
+                        reason = retry_reason
             # Apply prompt-aware trigger coercions (state →
             # numeric_state, time → sun) when the model emitted a
             # valid-but-wrong trigger shape that downstream checks
             # reject. Mirrors the JSON-only path.
             if normalized is not None and user_message:
-                coerced = _apply_prompt_aware_coercions(automation_data, user_message, hass)
+                coerced = _apply_prompt_aware_coercions(
+                    automation_data, user_message, hass, entities
+                )
                 if coerced is not None:
                     automation_data = coerced
                     normalized = coerced
-            # Last-ditch trigger recovery — when validation rejected for a
-            # missing/invalid trigger, synthesize it from the prompt.
-            # Mirrors the JSON-only path so a streamed "at sunset …"
-            # request can repair a missing trigger instead of dead-ending.
-            if not is_valid and reason and user_message and "trigger" in reason.lower():
-                coerced = _apply_prompt_aware_coercions(automation_data, user_message, hass)
+            # Last-ditch trigger recovery — when validation rejected the
+            # automation for a missing or invalid trigger, synthesize it
+            # from the prompt's presence + duration / sun / numeric
+            # phrasing. Mirrors the JSON-only path at parse_architect_response.
+            # Also fires for presence+duration phrasing even when the
+            # validator's reason was about the entity, since the LoRA
+            # routinely emits a time-of-day trigger for "for N minutes"
+            # and the time-trigger reason doesn't contain the word
+            # "trigger" in some validator variants.
+            should_recover_trigger = (
+                bool(user_message)
+                and not is_valid
+                and reason
+                and (("trigger" in reason.lower()) or has_presence_duration)
+            )
+            if should_recover_trigger:
+                coerced = _apply_prompt_aware_coercions(
+                    automation_data, user_message, hass, entities
+                )
                 if coerced is not None:
                     _LOGGER.info(
                         "Recovered missing/invalid trigger from prompt for streamed automation: %s",
@@ -1579,9 +2798,10 @@ def parse_streamed_response(
                 # Always surface the device-listing clarification when
                 # validation rejects — matches the JSON-mode path so a
                 # user gets the same actionable list regardless of
-                # transport. Any pre-block prose the LoRA emitted
-                # described an automation that no longer exists.
-                bubble = _humanise_unknown_entity_error(reason, entities)
+                # transport. Preserve any pre-block prose the LoRA
+                # emitted by prefixing it to the humanised clarification.
+                humanised = _humanise_unknown_entity_error(reason, entities)
+                bubble = f"{response_text}: {humanised}" if response_text else humanised
                 return _attach_qa(
                     {
                         "intent": ("clarification" if "unknown entity_id" in reason else "answer"),

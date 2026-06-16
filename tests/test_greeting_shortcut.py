@@ -237,7 +237,6 @@ class TestArchitectChatStreamShortcut:
             del type(client._provider).is_low_context
 
 
-
 class TestClassifyChatIntent:
     """Low-context intent routing for the LoRA specialists."""
 
@@ -257,7 +256,7 @@ class TestClassifyChatIntent:
             ("should we lock the front door?", "answer"),
             ("hey can you turn off the bedroom light", "command"),
             ("turn off the kitchen light", "command"),
-            ("turn on the porch light at sunset", "command"),
+            ("turn on the porch light at sunset", "automation"),
             ("what lights can I turn on", "answer"),
             ("what lights are on?", "answer"),
             ("is the garage door open?", "answer"),
