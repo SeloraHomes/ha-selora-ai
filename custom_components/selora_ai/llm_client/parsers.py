@@ -1470,14 +1470,26 @@ def parse_streamed_response(
         ):
             _LOGGER.warning("Failed to parse delayed_command block: %s", json_text[:200])
 
-    # Check for scene fenced block — must be the terminal block in the
-    # response (anchored to end) so informational examples don't trigger
-    # real scene creation.
-    scene_match = re.search(r"```scene\s*\n?([\s\S]*?)```\s*$", text)
+    # Check for scene fenced block. The prompt asks the model to put
+    # the block at the end of the response, but some cloud models
+    # violate that and emit trailing prose ("This scene will ensure
+    # …"). Anchoring to end would drop the proposal entirely and the
+    # chat would show only prose with no Accept & Save card. Match
+    # the LAST ``` scene ``` block anywhere in the text instead — scene
+    # proposals are always gated behind the Accept card, so a stray
+    # example block can't auto-create.
+    scene_match: re.Match[str] | None = None
+    for m in re.finditer(r"```scene\s*\n?([\s\S]*?)```", text):
+        scene_match = m
     if scene_match:
         from ..scene_utils import validate_scene_payload
 
-        response_text = text[: scene_match.start()].strip()
+        # Splice prose around the block so any trailing summary stays
+        # in the bubble. Strip a single blank-line separator on either
+        # side so the joined prose doesn't collapse into a double gap.
+        prose_before = text[: scene_match.start()].rstrip()
+        prose_after = text[scene_match.end() :].lstrip()
+        response_text = "\n\n".join(p for p in (prose_before, prose_after) if p).strip()
         json_text = scene_match.group(1).strip()
         try:
             scene_data = json.loads(json_text)
