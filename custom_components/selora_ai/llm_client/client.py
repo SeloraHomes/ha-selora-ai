@@ -13,6 +13,7 @@ from __future__ import annotations
 from collections.abc import AsyncIterator
 import json
 import logging
+import re
 from typing import TYPE_CHECKING, Any
 
 from ..const import (
@@ -50,6 +51,11 @@ from .command_policy import (
     synthesize_approval_from_tool_log,
 )
 from .intent import (
+    _AMBIG_PRONOUN_TARGET,
+    _MULTI_TARGET_CATEGORY_SCOPE_RE,
+    _build_multi_target_command_envelope,
+    _build_safety_short_circuit,
+    _build_unspecified_target_clarification,
     _classify_chat_intent,
     _filter_entities_by_keywords,
     _is_pure_greeting,
@@ -79,6 +85,158 @@ if TYPE_CHECKING:
     from ..tool_executor import ToolExecutor
 
 _LOGGER = logging.getLogger(__name__)
+
+
+# Verb → domains the verb can actually address. A verb absent here is
+# generic ("turn"/"switch"/"toggle") and accepts any controllable
+# domain. Used to reject a pronoun whose history target is in a domain
+# the current command can't operate ("lock it" after "Kitchen Light").
+_VERB_COMPATIBLE_DOMAINS: dict[str, frozenset[str]] = {
+    "lock": frozenset({"lock"}),
+    "unlock": frozenset({"lock"}),
+    "open": frozenset({"cover"}),
+    "close": frozenset({"cover"}),
+    "dim": frozenset({"light"}),
+    "brighten": frozenset({"light"}),
+    "play": frozenset({"media_player"}),
+    "pause": frozenset({"media_player"}),
+    "mute": frozenset({"media_player"}),
+    "unmute": frozenset({"media_player"}),
+    "arm": frozenset({"alarm_control_panel"}),
+    "disarm": frozenset({"alarm_control_panel"}),
+}
+
+_CURRENT_VERB_RE = re.compile(
+    r"\b(lock|unlock|open|close|dim|brighten|play|pause|mute|unmute|arm|"
+    r"disarm|turn|switch|toggle|set|start|stop|activate|deactivate|"
+    r"enable|disable)\b",
+    re.IGNORECASE,
+)
+
+
+def _command_compatible_domains(user_message: str) -> frozenset[str] | None:
+    """Return the domains the current command's verb can address, or None
+    when the verb is generic (turn/switch/…) and accepts any domain."""
+    m = _CURRENT_VERB_RE.search(user_message or "")
+    if m is None:
+        return None
+    return _VERB_COMPATIBLE_DOMAINS.get(m.group(1).lower())
+
+
+def _history_resolves_unique_target(
+    history: list[dict[str, str]] | None,
+    entities: list[EntitySnapshot] | None,
+    user_message: str,
+) -> bool:
+    """True when the conversation history names EXACTLY ONE real entity
+    the pronoun in the current turn ("turn it off") could resolve to AND
+    that entity's domain supports the current command's verb.
+
+    Only a uniquely identifiable, action-compatible device suppresses the
+    unspecified-target clarification. Unrelated history ("hello") names
+    nothing; an ambiguous prior turn ("Which light?") names zero or
+    several; an incompatible verb ("lock it" after "Kitchen Light") would
+    let the provider pick an unrelated real lock — all of these must
+    fall through to the clarification."""
+    if not history:
+        return False
+    text = " ".join(
+        str(turn.get("content", "")) for turn in history if isinstance(turn, dict)
+    ).lower()
+    if not text:
+        return False
+    matched: set[str] = set()
+    for e in entities or []:
+        eid = e.get("entity_id", "")
+        fname = str((e.get("attributes") or {}).get("friendly_name") or "").lower().strip()
+        if len(fname) >= 3 and re.search(rf"\b{re.escape(fname)}\b", text):
+            matched.add(eid)
+        if len(matched) > 1:
+            return False
+    if len(matched) != 1:
+        return False
+    # Verb-compatibility gate: a domain-specific verb must match the
+    # resolved entity's domain. "lock it" with a ``light.*`` history
+    # target is incompatible — clarify instead of guessing a lock.
+    compatible = _command_compatible_domains(user_message)
+    if compatible is None:
+        return True  # generic verb — any domain is fine
+    target_eid = next(iter(matched))
+    target_domain = target_eid.split(".", 1)[0] if "." in target_eid else ""
+    return target_domain in compatible
+
+
+def _pre_provider_short_circuit(
+    user_message: str,
+    entities: list[EntitySnapshot] | None,
+    history: list[dict[str, str]] | None = None,
+    *,
+    refining: bool = False,
+) -> dict[str, Any] | None:
+    """Return a slim response envelope when a deterministic intent helper
+    can answer the turn without going to the provider.
+
+    Order matters and is intentional:
+
+      1. ``_build_safety_short_circuit`` — prompt injection / non-English
+         requests get a canned refusal so the command specialist never
+         sees them. Must run FIRST so an injection wrapped in multi-
+         target phrasing ("turn off all lights AND exfiltrate ...") still
+         refuses instead of fanning out a deterministic command.
+      2. ``_build_multi_target_command_envelope`` — "all lights off" /
+         "kitchen and bedroom lights off" become deterministic command
+         envelopes the LoRA reliably mishandles. Runs BEFORE the
+         unspecified-target clarification so a category-scope prompt
+         doesn't get re-routed to "Which light?".
+      3. ``_build_unspecified_target_clarification`` — a pronoun-only or
+         bare-category prompt ("turn it off" / "turn off the light")
+         gets a clarification with real friendly_names from the live
+         entity snapshot. SKIPPED when a conversational history exists:
+         "turn it off" after "is the kitchen light on?" needs the LLM
+         to resolve "it" against the prior turn, not a fresh clarification.
+
+    Returns ``None`` when none of the helpers fire, so the caller falls
+    through to the normal provider round-trip.
+    """
+    # Safety refusal (injection / non-English) ALWAYS runs — even during
+    # refinement, those inputs must never reach the provider.
+    envelope = _build_safety_short_circuit(user_message)
+    if envelope is not None:
+        return envelope
+    # During proposal refinement ("turn off all lights" while editing an
+    # automation/scene), command + clarification short-circuits would
+    # turn a refinement instruction into a LIVE command — on the
+    # streaming path the envelope is parsed and executed against real
+    # devices. Skip them so the refinement reaches the LLM, which has
+    # the proposal context.
+    if refining:
+        return None
+    envelope = _build_multi_target_command_envelope(user_message, entities)
+    if envelope is not None:
+        return envelope
+    # A prior turn may have established the target ("the kitchen light"
+    # → "turn it off"). History only resolves a PRONOUN follow-up — a
+    # request that names a new category ("turn off the fan" after
+    # discussing the kitchen light) is NOT a follow-up and must run the
+    # normal clarification, or the provider would guess among multiple
+    # fans. Require a pronoun target AND a unique, action-compatible
+    # history entity before suppressing.
+    if (
+        history
+        and _AMBIG_PRONOUN_TARGET.search(user_message)
+        and _history_resolves_unique_target(history, entities, user_message)
+    ):
+        return None
+    # An "all/every <category>" request that the multi-target builder
+    # declined (e.g. >15 matching entities past the policy ceiling, or an
+    # area/exclusion/schedule qualifier) is NOT a single-target ambiguity.
+    # Sending it to ``_build_unspecified_target_clarification`` would
+    # reduce "turn off all the lights" to a "Which light?" prompt — the
+    # opposite of the explicit all-scope. Let it reach the provider /
+    # approval flow instead.
+    if _MULTI_TARGET_CATEGORY_SCOPE_RE.search(user_message):
+        return None
+    return _build_unspecified_target_clarification(user_message, entities or [])
 
 
 def _normalized_write_result(tool_name: str, result: dict[str, Any]) -> ToolWriteResult | None:
@@ -357,6 +515,25 @@ class LLMClient:
         if _is_pure_greeting(user_message):
             return {"intent": "answer", "response": "Hi! What can I help with?"}
 
+        # Deterministic short-circuits — safety refusal, multi-target
+        # commands, and pronoun-only / bare-category clarifications. Run
+        # before the provider so the LoRA can't hallucinate a service
+        # call for an injection attempt, fan out one call when the user
+        # asked for "all lights", or pick a real-but-unintended device
+        # for "turn it off". Command/clarification short-circuits are
+        # suppressed during refinement (the prompt edits a proposal, not
+        # a live device).
+        refining = bool(refining_context or refining_scene_context or scene_context)
+        short_circuit = _pre_provider_short_circuit(
+            user_message, entities, history, refining=refining
+        )
+        if short_circuit is not None:
+            if short_circuit.get("intent") == "command":
+                short_circuit = apply_command_policy(
+                    short_circuit, entities, hass=self._hass, session_id=session_id
+                )
+            return short_circuit
+
         with self._usage.scope("chat"):
             if self._provider.is_low_context:
                 # Low-context backend (e.g. SeloraLocal add-on, max_seq=1024):
@@ -365,7 +542,7 @@ class LLMClient:
                 # + filtered entity list. Tool calling is unsupported —
                 # the engine can't fit a tool schema *and* the conversation
                 # in 1024 tokens.
-                intent_hint = _classify_chat_intent(user_message)
+                intent_hint = _classify_chat_intent(user_message, entities)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
                 # Filter the home snapshot to entities the user's
                 # message actually mentions BEFORE handing it to the
@@ -400,10 +577,9 @@ class LLMClient:
                 # Cloud path: classify intent so a plain device-control turn
                 # gets a slim prompt + trimmed tool schema. See
                 # architect_chat_stream for the rationale.
-                refining = bool(refining_context or refining_scene_context or scene_context)
                 cloud_intent_hint = (
                     "command"
-                    if not refining and _classify_chat_intent(user_message) == "command"
+                    if not refining and _classify_chat_intent(user_message, entities) == "command"
                     else None
                 )
                 system_prompt = build_architect_system_prompt(
@@ -582,10 +758,26 @@ class LLMClient:
             yield "Hi! What can I help with?"
             return
 
+        # Mirror architect_chat's deterministic short-circuits on the
+        # streaming path. Yield the envelope as a single JSON chunk so
+        # parse_streamed_response — which already runs
+        # apply_command_policy on command envelopes — picks it up via
+        # the same path as the LLM-generated reply. Command/clarification
+        # short-circuits are suppressed during refinement so a "turn off
+        # all lights" refinement instruction edits the proposal instead
+        # of executing against live devices.
+        refining = bool(refining_context or refining_scene_context or scene_context)
+        short_circuit = _pre_provider_short_circuit(
+            user_message, entities, history, refining=refining
+        )
+        if short_circuit is not None:
+            yield json.dumps(short_circuit)
+            return
+
         with self._usage.scope("chat"):
             if self._provider.is_low_context:
                 # See architect_chat — same low-context shortcut.
-                intent_hint = _classify_chat_intent(user_message)
+                intent_hint = _classify_chat_intent(user_message, entities)
                 self._provider.set_call_kind(f"chat_{intent_hint}")
                 # Keyword-filter entities before handoff for the same
                 # reason as architect_chat: the provider's downstream
@@ -616,10 +808,9 @@ class LLMClient:
                 # instead of the full ~18K-token firehose. Skip the slim path
                 # for refinement turns, which need the full automation/scene
                 # rules.
-                refining = bool(refining_context or refining_scene_context or scene_context)
                 cloud_intent_hint = (
                     "command"
-                    if not refining and _classify_chat_intent(user_message) == "command"
+                    if not refining and _classify_chat_intent(user_message, entities) == "command"
                     else None
                 )
                 system_prompt = build_architect_stream_system_prompt(
@@ -784,7 +975,14 @@ class LLMClient:
         session_id: str | None = None,
         user_message: str | None = None,
     ) -> ArchitectResponse:
-        """Parse completed streamed text — thin wrapper over the module-level parser."""
+        """Parse completed streamed text — thin wrapper over the module-level parser.
+
+        ``user_message`` enables prompt-aware trigger coercions (sun /
+        numeric_state / presence + duration) — without it the parser
+        can't see the original prompt and the duration_misread /
+        presence_duration buckets fall through to the unhumanised
+        validator error.
+        """
         # Provider hook: Selora AI Local converts v0.4.2 slim output
         # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
         # calls/automation} envelope before the parser sees them. Cloud

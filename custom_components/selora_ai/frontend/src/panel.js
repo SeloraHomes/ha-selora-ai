@@ -2032,6 +2032,38 @@ class SeloraAIPanel extends LitElement {
       if (target.position != null && target.current_position == null) {
         attrs.current_position = Number(target.position);
       }
+      // When the scene turns the entity OFF/closed/locked, the live
+      // brightness/color/position attributes carried over above are
+      // stale — an off light has no brightness. Strip them (unless the
+      // scene explicitly set one) so the target tile renders fully off
+      // instead of off-icon + the live "71%" bar.
+      const stateStr = String(target.state).toLowerCase();
+      const INACTIVE = [
+        "off",
+        "closed",
+        "locked",
+        "not_home",
+        "standby",
+        "idle",
+      ];
+      if (INACTIVE.includes(stateStr)) {
+        for (const k of [
+          "brightness",
+          "brightness_pct",
+          "color_temp",
+          "color_temp_kelvin",
+          "rgb_color",
+          "rgbw_color",
+          "rgbww_color",
+          "hs_color",
+          "xy_color",
+          "effect",
+          "current_position",
+          "current_tilt_position",
+        ]) {
+          if (target[k] == null) delete attrs[k];
+        }
+      }
       overrides[id] = {
         ...live,
         state: String(target.state),
