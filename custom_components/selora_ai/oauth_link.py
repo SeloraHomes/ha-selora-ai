@@ -26,6 +26,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass, field
 import hashlib
+import html
 import json
 import logging
 import secrets
@@ -58,6 +59,7 @@ from .const import (
     DOMAIN,
     LLM_PROVIDER_SELORA_CLOUD,
 )
+from .providers.selora_cloud import _mask_tokens
 
 if TYPE_CHECKING:
     from homeassistant.config_entries import ConfigEntry
@@ -241,7 +243,7 @@ async def exchange_connect_code(
                 timeout=timeout,
             ) as resp:
                 if resp.status != 200:
-                    body = await resp.text()
+                    body = _mask_tokens(await resp.text())[:200]
                     _LOGGER.warning("Connect token exchange failed (%s): %s", resp.status, body)
                     raise RuntimeError(f"Connect returned HTTP {resp.status}")
                 token_data = await resp.json()
@@ -260,7 +262,7 @@ async def exchange_connect_code(
                 timeout=timeout,
             ) as resp:
                 if resp.status != 200:
-                    body = await resp.text()
+                    body = _mask_tokens(await resp.text())[:200]
                     _LOGGER.warning(
                         "Connect device registration failed (%s): %s", resp.status, body
                     )
@@ -352,7 +354,7 @@ async def exchange_aigateway_code(
                 timeout=timeout,
             ) as resp:
                 if resp.status != 200:
-                    body = await resp.text()
+                    body = _mask_tokens(await resp.text())[:200]
                     _LOGGER.warning("AI Gateway token exchange failed (%s): %s", resp.status, body)
                     raise RuntimeError(f"AI Gateway returned HTTP {resp.status}")
                 token_data = await resp.json()
@@ -513,15 +515,23 @@ class SeloraOAuthCallbackView(HomeAssistantView):
 
 
 def _render_result(title: str, message: str, *, ok: bool) -> web.Response:
-    """Tiny self-contained HTML page — no HA assets required."""
+    """Tiny self-contained HTML page — no HA assets required.
+
+    title/message can contain text echoed by a remote OAuth endpoint
+    (``error_description`` from the IdP, RuntimeError messages built
+    from upstream payloads), so both fields are HTML-escaped and the
+    response carries a strict CSP to neutralise any script injection.
+    """
     color = "#16a34a" if ok else "#dc2626"
     icon = "✓" if ok else "✕"
-    html = f"""<!doctype html>
+    safe_title = html.escape(title)
+    safe_message = html.escape(message)
+    body = f"""<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title} — Selora AI</title>
+<title>{safe_title} — Selora AI</title>
 <style>
   html, body {{ margin:0; padding:0; height:100%; background:#0b0d10; color:#e6e8eb;
     font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }}
@@ -537,12 +547,24 @@ def _render_result(title: str, message: str, *, ok: bool) -> web.Response:
 <body>
   <div class="wrap"><div class="card">
     <div class="icon">{icon}</div>
-    <h1>{title}</h1>
-    <p>{message}</p>
+    <h1>{safe_title}</h1>
+    <p>{safe_message}</p>
   </div></div>
 </body>
 </html>"""
-    return web.Response(text=html, content_type="text/html", charset="utf-8")
+    return web.Response(
+        text=body,
+        content_type="text/html",
+        charset="utf-8",
+        headers={
+            "Content-Security-Policy": (
+                "default-src 'none'; style-src 'unsafe-inline'; base-uri 'none'; "
+                "form-action 'none'; frame-ancestors 'none'"
+            ),
+            "X-Content-Type-Options": "nosniff",
+            "Referrer-Policy": "no-referrer",
+        },
+    )
 
 
 # ── WS handlers: start_link ────────────────────────────────────────────────

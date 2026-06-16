@@ -23,7 +23,8 @@ import time
 from typing import TYPE_CHECKING, Any
 import uuid
 
-from homeassistant.core import HomeAssistant
+from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
+from homeassistant.core import CoreState, HomeAssistant, callback
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.event import async_track_time_interval
@@ -85,6 +86,13 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 _STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
+
+# Grace period after HOMEASSISTANT_STARTED before firing the first
+# collection cycle. The Selora Cloud proxy can still be in cold-start
+# for several seconds after HA reports started — kicking the LLM call
+# immediately on the start event exhausts the retry budget and logs
+# a noisy "upstream unreachable" warning on every restart.
+_INITIAL_CYCLE_BOOT_GRACE: float = 60.0
 
 
 def _cap_history_records(
@@ -149,6 +157,7 @@ class DataCollector:
         self._last_analysis_time: float = 0.0
         self._is_first_cycle: bool = True
         self._initial_cycle_task: asyncio.Task[None] | None = None
+        self._initial_cycle_unsub: Callable[[], None] | None = None
 
     def _get_pattern_store(self) -> PatternStore | None:
         """Find the PatternStore from any active config entry."""
@@ -228,13 +237,40 @@ class DataCollector:
         # HA's bootstrap surfaces that as "Waiting for integrations to
         # complete setup". The periodic timer keeps subsequent cycles on
         # schedule independently.
-        async def _initial_cycle() -> None:
+        #
+        # Defer the first cycle until HA has fully started AND a short
+        # grace window has elapsed: the Selora Cloud proxy can be in
+        # cold-start during and right after boot, and firing the initial
+        # LLM call exhausts the retry budget and logs a noisy "upstream
+        # unreachable" warning on every restart. On reload (HA already
+        # running), fire immediately — the upstream is already warm.
+        async def _initial_cycle(delay_seconds: float = 0.0) -> None:
+            if delay_seconds > 0:
+                with contextlib.suppress(asyncio.CancelledError):
+                    await asyncio.sleep(delay_seconds)
             try:
                 await self._collect_analyze_log()
             except Exception:
                 _LOGGER.exception("Initial collection cycle failed — will retry on next interval")
 
-        self._initial_cycle_task = self._hass.async_create_task(_initial_cycle())
+        def _schedule_initial_cycle(delay_seconds: float = 0.0) -> None:
+            self._initial_cycle_task = self._hass.async_create_task(_initial_cycle(delay_seconds))
+
+        if self._hass.state == CoreState.running:
+            _schedule_initial_cycle()
+        else:
+
+            @callback
+            def _on_started(_event: Any) -> None:
+                # @callback marks this as event-loop safe so HA does
+                # not dispatch it via the executor — async_create_task
+                # is loop-only and would raise from any other thread.
+                self._initial_cycle_unsub = None
+                _schedule_initial_cycle(_INITIAL_CYCLE_BOOT_GRACE)
+
+            self._initial_cycle_unsub = self._hass.bus.async_listen_once(
+                EVENT_HOMEASSISTANT_STARTED, _on_started
+            )
 
         self._unsub_timer = async_track_time_interval(
             self._hass,
@@ -248,6 +284,9 @@ class DataCollector:
         if self._unsub_timer:
             self._unsub_timer()
             self._unsub_timer = None
+        if self._initial_cycle_unsub:
+            self._initial_cycle_unsub()
+            self._initial_cycle_unsub = None
         if self._initial_cycle_task and not self._initial_cycle_task.done():
             self._initial_cycle_task.cancel()
             with contextlib.suppress(asyncio.CancelledError, Exception):
