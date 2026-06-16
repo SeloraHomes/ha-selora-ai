@@ -1,3 +1,27 @@
+## [0.10.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.9.0...v0.10.0) (2026-06-16)
+
+### Features
+
+* **frontend:** speed up sparkles during LLM processing ([3cf7208](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3cf7208d59e020bdf3d080bd77e597c9f974d3b2))
+* **local:** editable host for Selora AI Local provider ([60e1786](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/60e1786faeb2b5d4ab65b53b6e1fb5e07508ba59))
+* **mcp:** gate write tools on JWT mcp:write scope ([cd9007f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/cd9007fe1541666f82d907620170173efd7a75a6))
+* **scenes:** in-place desired-state editor + UI polish ([6afa7c1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/6afa7c11fddbb628819e38d907539708c409dd44))
+* **suggestions:** ignore entities, devices, areas via HA label + panel UI ([e491895](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/e491895e4c8c3d773a9ddd8c14aa4c8742c23490))
+
+### Bug Fixes
+
+* **chat:** short-circuit identity questions (Selora Local v0.4.7) ([624b1fe](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/624b1febb0be186e6cd2b5fd8e1f54a3c33fde27))
+* **deps:** update dependency lit to v3 ([9105b82](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/9105b826c200b4c0de33ef3c5c47f80542a85b36))
+* **integration:** close presence + duration automation gaps ([06b3eee](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/06b3eeebad5559b85a804c0afc99c2d98cb3be04))
+* **local:** bump answer + clarification caps ([0f12e04](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/0f12e04eeb010831d3850f7cf895a1a929748ed0))
+* **local:** rank entity filter + add fallback ([ad324b9](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ad324b90ff670abd64cd5cae528efcebb3b10302))
+* **local:** v0.4.7 adaptation — provider format, prompt, validator ([ef9086e](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/ef9086e30f2d07f6b2ed9882b07a2dbfc6d55655))
+* **parsers:** accept scene block with trailing prose ([c2054ed](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c2054ed5f73cd593adac3ccb0b5272bdcc6459b9))
+* **parsers:** humanise unknown-entity errors + auto-correct domain ([7b2dfac](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7b2dfac614e7daeec5482fed88567f876e113d7b))
+* python-3 except-clause syntax across the integration ([c7de863](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/c7de8635baaea9a54c7eb85609080410f1c724b0))
+* scope eval_template, harden OAuth callback, defer collector boot cycle ([f5b77a6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/f5b77a67d688736df8e660dad9476c15ed7eee92))
+* **ui:** restore flow-entity-link styling lost in css split ([96dcec1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/96dcec1af93aab7631484a210ee9b455e0f2c009))
+
 ## [0.9.1](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.9.0...v0.9.1) (2026-06-05)
 
 ### Bug Fixes
