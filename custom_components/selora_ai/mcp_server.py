@@ -324,7 +324,10 @@ TOOL_CREATE_SCENE = "selora_create_scene"
 TOOL_DELETE_SCENE = "selora_delete_scene"
 TOOL_ACTIVATE_SCENE = "selora_activate_scene"
 
-# Tools that require admin privileges (write/mutating operations)
+# Tools that require admin / write scope: mutating operations plus
+# eval_template, which exposes HA's full Jinja engine — broad state
+# enumeration and non-trivial CPU cost make it too powerful for a
+# read-only credential.
 _ADMIN_TOOLS = frozenset(
     {
         TOOL_CREATE_AUTOMATION,
@@ -339,6 +342,7 @@ _ADMIN_TOOLS = frozenset(
         TOOL_DELETE_SCENE,
         TOOL_ACTIVATE_SCENE,
         TOOL_EXECUTE_COMMAND,
+        TOOL_EVAL_TEMPLATE,
     }
 )
 
@@ -360,7 +364,6 @@ _READ_ONLY_TOOLS = frozenset(
         TOOL_VALIDATE_ACTION,
         TOOL_SEARCH_ENTITIES,
         TOOL_GET_ENTITY_HISTORY,
-        TOOL_EVAL_TEMPLATE,
         TOOL_HOME_ANALYTICS,
         TOOL_LIST_SCENES,
         TOOL_GET_SCENE,
