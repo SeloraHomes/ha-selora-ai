@@ -244,6 +244,7 @@ class SeloraAIPanel extends LitElement {
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
+      _seloraLocalAdvanced: { type: Boolean },
 
       // Usage tab (linked from Settings → LLM Provider)
       _usageStats: { type: Object },
@@ -467,6 +468,7 @@ class SeloraAIPanel extends LitElement {
     this._llmSaveStatus = null;
     this._showApiKeyInput = false;
     this._newApiKey = "";
+    this._seloraLocalAdvanced = false;
     // Version history
     this._versionHistoryOpen = {};
     this._versions = {};

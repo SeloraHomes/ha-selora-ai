@@ -83,24 +83,16 @@ function _renderUsageHeaderLink(host) {
 
 const _PROVIDERS = [
   { value: "selora_cloud", label: "Selora AI Cloud" },
+  { value: "selora_local", label: "Selora AI Local" },
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
-  { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
 
-function _visibleProviders(host) {
-  const localAvailable = !!host._config?.selora_local_available;
-  const localSelected = host._config?.llm_provider === "selora_local";
-  return _PROVIDERS.filter(
-    (p) => p.value !== "selora_local" || localAvailable || localSelected,
-  );
-}
-
 function _renderProviderPicker(host) {
-  const providers = _visibleProviders(host);
+  const providers = _PROVIDERS;
   const current = providers.find((p) => p.value === host._config.llm_provider);
   const open = host._providerDropdownOpen || false;
   return html`
@@ -569,13 +561,48 @@ export function renderSettings(host) {
                       `
                     : isSeloraLocal
                       ? html`
-                          <p
-                            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
+                          <button
+                            class="btn-link"
+                            style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
+                            @click=${() => {
+                              host._seloraLocalAdvanced =
+                                !host._seloraLocalAdvanced;
+                              host.requestUpdate();
+                            }}
                           >
-                            Selora AI picks the right specialist model
-                            (commands, automations, answers, clarifications) per
-                            request automatically.
-                          </p>
+                            ${host._seloraLocalAdvanced ? "Hide" : "Show"}
+                            advanced options
+                          </button>
+                          ${host._seloraLocalAdvanced
+                            ? html`
+                                <p
+                                  style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
+                                >
+                                  Selora Hubs come pre-configured. To use a
+                                  self-hosted llama-server running the Selora AI
+                                  model, enter its address below.
+                                </p>
+                                <div class="form-group" style="margin-top:8px;">
+                                  ${_textInput({
+                                    label: "Host",
+                                    value: host._config.selora_local_host || "",
+                                    oninput: (e) =>
+                                      host._updateConfig(
+                                        "selora_local_host",
+                                        e.target.value,
+                                      ),
+                                    placeholder: "http://localhost:8080",
+                                  })}
+                                  <p
+                                    style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+                                  >
+                                    Auto-detected:
+                                    ${host._config
+                                      .selora_local_discovered_host || "none"}.
+                                  </p>
+                                </div>
+                              `
+                            : ""}
                         `
                       : html`
                           <div class="form-group">

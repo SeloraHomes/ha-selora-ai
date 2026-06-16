@@ -13241,22 +13241,15 @@ function _renderUsageHeaderLink(host) {
 }
 var _PROVIDERS = [
   { value: "selora_cloud", label: "Selora AI Cloud" },
+  { value: "selora_local", label: "Selora AI Local" },
   { value: "anthropic", label: "Anthropic (Claude)" },
   { value: "gemini", label: "Google Gemini" },
   { value: "openai", label: "OpenAI (ChatGPT)" },
   { value: "openrouter", label: "OpenRouter" },
   { value: "ollama", label: "Ollama (Local)" },
-  { value: "selora_local", label: "Selora AI Local (On-device)" },
 ];
-function _visibleProviders(host) {
-  const localAvailable = !!host._config?.selora_local_available;
-  const localSelected = host._config?.llm_provider === "selora_local";
-  return _PROVIDERS.filter(
-    (p2) => p2.value !== "selora_local" || localAvailable || localSelected,
-  );
-}
 function _renderProviderPicker(host) {
-  const providers = _visibleProviders(host);
+  const providers = _PROVIDERS;
   const current = providers.find(
     (p2) => p2.value === host._config.llm_provider,
   );
@@ -13741,13 +13734,49 @@ function renderSettings(host) {
                       `
                       : isSeloraLocal
                         ? x`
-                          <p
-                            style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
+                          <button
+                            class="btn-link"
+                            style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
+                            @click=${() => {
+                              host._seloraLocalAdvanced =
+                                !host._seloraLocalAdvanced;
+                              host.requestUpdate();
+                            }}
                           >
-                            Selora AI picks the right specialist model
-                            (commands, automations, answers, clarifications) per
-                            request automatically.
-                          </p>
+                            ${host._seloraLocalAdvanced ? "Hide" : "Show"}
+                            advanced options
+                          </button>
+                          ${
+                            host._seloraLocalAdvanced
+                              ? x`
+                                <p
+                                  style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
+                                >
+                                  Selora Hubs come pre-configured. To use a
+                                  self-hosted llama-server running the Selora AI
+                                  model, enter its address below.
+                                </p>
+                                <div class="form-group" style="margin-top:8px;">
+                                  ${_textInput({
+                                    label: "Host",
+                                    value: host._config.selora_local_host || "",
+                                    oninput: (e5) =>
+                                      host._updateConfig(
+                                        "selora_local_host",
+                                        e5.target.value,
+                                      ),
+                                    placeholder: "http://localhost:8080",
+                                  })}
+                                  <p
+                                    style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
+                                  >
+                                    Auto-detected:
+                                    ${host._config.selora_local_discovered_host || "none"}.
+                                  </p>
+                                </div>
+                              `
+                              : ""
+                          }
                         `
                         : x`
                           <div class="form-group">
@@ -18318,6 +18347,7 @@ var SeloraAIPanel = class extends s4 {
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
+      _seloraLocalAdvanced: { type: Boolean },
       // Usage tab (linked from Settings → LLM Provider)
       _usageStats: { type: Object },
       _usageRecent: { type: Array },
@@ -18510,6 +18540,7 @@ var SeloraAIPanel = class extends s4 {
     this._llmSaveStatus = null;
     this._showApiKeyInput = false;
     this._newApiKey = "";
+    this._seloraLocalAdvanced = false;
     this._versionHistoryOpen = {};
     this._versions = {};
     this._loadingVersions = {};

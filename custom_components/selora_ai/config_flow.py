@@ -334,7 +334,6 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         discovered_host = await discover_selora_local_host(self.hass)
         if discovered_host is not None:
             self._selora_local_discovered_host = discovered_host
-        selora_local_available = discovered_host is not None
 
         if user_input is not None:
             self._provider = user_input[CONF_LLM_PROVIDER]
@@ -350,7 +349,7 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return await self.async_step_openrouter()
             if self._provider == LLM_PROVIDER_OLLAMA:
                 return await self.async_step_ollama()
-            if self._provider == LLM_PROVIDER_SELORA_LOCAL and selora_local_available:
+            if self._provider == LLM_PROVIDER_SELORA_LOCAL:
                 return await self.async_step_selora_local()
 
             # Skip for now
@@ -367,9 +366,13 @@ class SeloraAiConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             LLM_PROVIDER_OPENAI: "OpenAI",
             LLM_PROVIDER_OPENROUTER: "OpenRouter (Multi-Model Aggregator)",
             LLM_PROVIDER_OLLAMA: "Ollama (Local LLM)",
+            # Selora AI Local is always offered. Auto-discovery
+            # prefills the host field when it succeeds, but a failed
+            # probe must not hide the option — users on a remote
+            # llama-server or custom port can still pick it and enter
+            # their own host. Submission validates by HTTP probe.
+            LLM_PROVIDER_SELORA_LOCAL: "Selora AI Local",
         }
-        if selora_local_available:
-            provider_options[LLM_PROVIDER_SELORA_LOCAL] = "Selora AI Local (On-device)"
         provider_options[LLM_PROVIDER_NONE] = "Skip for now (Configure later)"
 
         return self.async_show_form(
