@@ -659,19 +659,29 @@ class TestParseStreamedSceneResponse:
         # Falls back to JSON parser, which treats it as answer
         assert result["intent"] == "answer"
 
-    def test_mid_text_scene_block_is_not_actionable(self, hass) -> None:
-        """A scene block followed by more text is informational, not a command."""
+    def test_scene_block_with_trailing_prose_is_actionable(self, hass) -> None:
+        """Scene block followed by a trailing summary still produces a proposal.
+
+        Observed in production: cloud models routinely emit ``​​​scene`` then
+        continue with a closing summary ("This scene will ensure …") instead
+        of ending after the closing fence. Anchoring to end-of-text dropped
+        the proposal silently, so the chat showed prose with no Accept card.
+        Scene proposals are gated behind Accept, so the worst case for a
+        stray informational block is a dismissible card.
+        """
+        hass.states.async_set("light.living_room", "on")
         client = self._make_client(hass)
         text = (
-            "Here's an example scene definition:\n\n"
+            "I will create a scene that turns off the light.\n\n"
             "```scene\n"
-            '{"name": "Movie Time", "entities": {"light.living_room": {"state": "on"}}}\n'
+            '{"name": "Movie Time", "entities": {"light.living_room": {"state": "off"}}}\n'
             "```\n\n"
-            "You can customize the brightness and color temperature as needed."
+            "This scene will turn off the living room when activated."
         )
         result = client.parse_streamed_response(text)
-        assert result["intent"] == "answer"
-        assert "scene" not in result or result.get("scene") is None
+        assert result["intent"] == "scene"
+        assert result["scene"]["name"] == "Movie Time"
+        assert "This scene will turn off" in result["response"]
 
     def test_terminal_scene_block_with_trailing_whitespace(self, hass) -> None:
         """A scene block at the end with trailing whitespace is still actionable."""
