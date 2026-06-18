@@ -64,7 +64,7 @@ function _renderUsageHeaderLink(host) {
   return html`
     <button
       class="section-card-action"
-      title="View token usage"
+      title=${host._t("settings_view_token_usage_title", "View token usage")}
       @click=${() => {
         host._setActiveTab("usage");
         host._loadUsageStats?.();
@@ -72,7 +72,11 @@ function _renderUsageHeaderLink(host) {
       }}
     >
       <ha-icon icon="mdi:chart-line-variant"></ha-icon>
-      <span>${hasData ? "Usage" : "View usage"}</span>
+      <span
+        >${hasData
+          ? host._t("settings_usage_label", "Usage")
+          : host._t("settings_view_usage_label", "View usage")}</span
+      >
       <ha-icon
         icon="mdi:chevron-right"
         class="section-card-action-chevron"
@@ -105,7 +109,14 @@ function _renderProviderPicker(host) {
           host.requestUpdate();
         }}
       >
-        <span>${current ? current.label : "Select..."}</span>
+        <span
+          >${current
+            ? current.label
+            : host._t(
+                "settings_provider_select_placeholder",
+                "Select...",
+              )}</span
+        >
         <ha-icon
           icon="mdi:chevron-down"
           style="--mdc-icon-size:18px;opacity:0.6;"
@@ -199,10 +210,17 @@ export function renderSettings(host) {
           class="settings-doc-banner"
         >
           <div style="flex:1;">
-            <strong>Configuration guide</strong>
+            <strong
+              >${host._t(
+                "settings_doc_banner_title",
+                "Configuration guide",
+              )}</strong
+            >
             <span
-              >Learn how to set up LLM providers, remote access, and MCP
-              tokens.</span
+              >${host._t(
+                "settings_doc_banner_desc",
+                "Learn how to set up LLM providers, remote access, and MCP tokens.",
+              )}</span
             >
           </div>
           <ha-icon
@@ -212,18 +230,23 @@ export function renderSettings(host) {
         </a>
         <div class="section-card settings-section">
           <div class="section-card-header section-card-header--with-action">
-            <h3>LLM Provider</h3>
+            <h3>${host._t("settings_llm_provider_heading", "LLM Provider")}</h3>
             ${_renderUsageHeaderLink(host)}
           </div>
           <div class="form-group">
-            <label>Provider</label>
+            <label>${host._t("settings_provider_label", "Provider")}</label>
             ${_renderProviderPicker(host)}
           </div>
 
           ${isSeloraCloud
             ? html`
                 <div class="form-group">
-                  <label>Selora account</label>
+                  <label
+                    >${host._t(
+                      "settings_selora_account_label",
+                      "Selora account",
+                    )}</label
+                  >
                   ${host._config.aigateway_linked
                     ? html`
                         <div
@@ -248,7 +271,10 @@ export function renderSettings(host) {
                             <div
                               style="font-size:12px;color:var(--secondary-text-color);"
                             >
-                              Selora Cloud is providing your LLM backend.
+                              ${host._t(
+                                "settings_selora_cloud_backend_desc",
+                                "Selora Cloud is providing your LLM backend.",
+                              )}
                             </div>
                           </div>
                           <button
@@ -256,7 +282,7 @@ export function renderSettings(host) {
                             style="flex-shrink:0;"
                             @click=${() => host._unlinkAIGateway()}
                           >
-                            Unlink
+                            ${host._t("settings_unlink_button", "Unlink")}
                           </button>
                         </div>
                       `
@@ -267,13 +293,18 @@ export function renderSettings(host) {
                           <p
                             style="font-size:13px;color:var(--secondary-text-color);margin:0;"
                           >
-                            Sign in with your Selora account to use the hosted
-                            LLM backend. No API key required.
+                            ${host._t(
+                              "settings_signin_selora_desc",
+                              "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
+                            )}
                           </p>
                           ${host._config.developer_mode
                             ? html`
                                 ${_textInput({
-                                  label: "Selora Cloud URL",
+                                  label: host._t(
+                                    "settings_selora_cloud_url_label",
+                                    "Selora Cloud URL",
+                                  ),
                                   value:
                                     host._config.selora_connect_url ||
                                     "https://connect.selorahomes.com",
@@ -286,8 +317,10 @@ export function renderSettings(host) {
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
                                 >
-                                  OAuth and chat completions both use this URL.
-                                  Saved automatically when you link.
+                                  ${host._t(
+                                    "settings_selora_cloud_url_hint",
+                                    "OAuth and chat completions both use this URL. Saved automatically when you link.",
+                                  )}
                                 </div>
                               `
                             : ""}
@@ -299,7 +332,10 @@ export function renderSettings(host) {
                                 rel="noopener noreferrer"
                                 style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
                               >
-                                Open sign-in page →
+                                ${host._t(
+                                  "settings_open_signin_page",
+                                  "Open sign-in page →",
+                                )}
                               </a>`
                             : html`<button
                                 class="btn btn-primary"
@@ -312,15 +348,23 @@ export function renderSettings(host) {
                                         class="spinner"
                                         style="width:14px;height:14px;"
                                       ></span>
-                                      Preparing…`
-                                  : "Link Selora account"}
+                                      ${host._t(
+                                        "settings_preparing_label",
+                                        "Preparing…",
+                                      )}`
+                                  : host._t(
+                                      "settings_link_selora_account_button",
+                                      "Link Selora account",
+                                    )}
                               </button>`}
                           ${host._aigwAuthorizeUrl
                             ? html`<div
                                 style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                               >
-                                Opens in a new tab. After signing in, return to
-                                this page — the panel updates automatically.
+                                ${host._t(
+                                  "settings_signin_new_tab_hint",
+                                  "Opens in a new tab. After signing in, return to this page — the panel updates automatically.",
+                                )}
                               </div>`
                             : ""}
                         </div>
@@ -337,7 +381,10 @@ export function renderSettings(host) {
                   ? html`
                       <div class="form-group">
                         ${_textInput({
-                          label: "Selora Cloud URL",
+                          label: host._t(
+                            "settings_selora_cloud_url_label",
+                            "Selora Cloud URL",
+                          ),
                           value:
                             host._config.selora_connect_url ||
                             "https://connect.selorahomes.com",
@@ -354,11 +401,16 @@ export function renderSettings(host) {
             : isGemini
               ? html`
                   <div class="form-group">
-                    <label>API Key</label>
+                    <label
+                      >${host._t("settings_api_key_label", "API Key")}</label
+                    >
                     ${host._config.gemini_api_key_set
                       ? html`<button
                           class="key-hint key-set key-hint-btn"
-                          title="Click to replace key"
+                          title=${host._t(
+                            "settings_click_replace_key_title",
+                            "Click to replace key",
+                          )}
                           @click=${() => {
                             host._showApiKeyInput = !host._showApiKeyInput;
                             if (!host._showApiKeyInput) host._newApiKey = "";
@@ -381,8 +433,14 @@ export function renderSettings(host) {
                     ${!host._config.gemini_api_key_set || host._showApiKeyInput
                       ? _textInput({
                           label: host._config.gemini_api_key_set
-                            ? "Enter new key"
-                            : "Enter API key",
+                            ? host._t(
+                                "settings_enter_new_key_label",
+                                "Enter new key",
+                              )
+                            : host._t(
+                                "settings_enter_api_key_label",
+                                "Enter API key",
+                              ),
                           type: "password",
                           value: host._newApiKey,
                           oninput: (e) => (host._newApiKey = e.target.value),
@@ -393,7 +451,7 @@ export function renderSettings(host) {
                   </div>
                   <div class="form-group">
                     ${_textInput({
-                      label: "Model",
+                      label: host._t("settings_model_label", "Model"),
                       value: host._config.gemini_model,
                       oninput: (e) =>
                         host._updateConfig("gemini_model", e.target.value),
@@ -403,11 +461,16 @@ export function renderSettings(host) {
               : isAnthropic
                 ? html`
                     <div class="form-group">
-                      <label>API Key</label>
+                      <label
+                        >${host._t("settings_api_key_label", "API Key")}</label
+                      >
                       ${host._config.anthropic_api_key_set
                         ? html`<button
                             class="key-hint key-set key-hint-btn"
-                            title="Click to replace key"
+                            title=${host._t(
+                              "settings_click_replace_key_title",
+                              "Click to replace key",
+                            )}
                             @click=${() => {
                               host._showApiKeyInput = !host._showApiKeyInput;
                               if (!host._showApiKeyInput) host._newApiKey = "";
@@ -431,8 +494,14 @@ export function renderSettings(host) {
                       host._showApiKeyInput
                         ? _textInput({
                             label: host._config.anthropic_api_key_set
-                              ? "Enter new key"
-                              : "Enter API key",
+                              ? host._t(
+                                  "settings_enter_new_key_label",
+                                  "Enter new key",
+                                )
+                              : host._t(
+                                  "settings_enter_api_key_label",
+                                  "Enter API key",
+                                ),
                             type: "password",
                             value: host._newApiKey,
                             oninput: (e) => (host._newApiKey = e.target.value),
@@ -443,7 +512,7 @@ export function renderSettings(host) {
                     </div>
                     <div class="form-group">
                       ${_textInput({
-                        label: "Model",
+                        label: host._t("settings_model_label", "Model"),
                         value: host._config.anthropic_model,
                         oninput: (e) =>
                           host._updateConfig("anthropic_model", e.target.value),
@@ -453,11 +522,19 @@ export function renderSettings(host) {
                 : isOpenAI
                   ? html`
                       <div class="form-group">
-                        <label>API Key</label>
+                        <label
+                          >${host._t(
+                            "settings_api_key_label",
+                            "API Key",
+                          )}</label
+                        >
                         ${host._config.openai_api_key_set
                           ? html`<button
                               class="key-hint key-set key-hint-btn"
-                              title="Click to replace key"
+                              title=${host._t(
+                                "settings_click_replace_key_title",
+                                "Click to replace key",
+                              )}
                               @click=${() => {
                                 host._showApiKeyInput = !host._showApiKeyInput;
                                 if (!host._showApiKeyInput)
@@ -482,8 +559,14 @@ export function renderSettings(host) {
                         host._showApiKeyInput
                           ? _textInput({
                               label: host._config.openai_api_key_set
-                                ? "Enter new key"
-                                : "Enter API key",
+                                ? host._t(
+                                    "settings_enter_new_key_label",
+                                    "Enter new key",
+                                  )
+                                : host._t(
+                                    "settings_enter_api_key_label",
+                                    "Enter API key",
+                                  ),
                               type: "password",
                               value: host._newApiKey,
                               oninput: (e) =>
@@ -495,7 +578,7 @@ export function renderSettings(host) {
                       </div>
                       <div class="form-group">
                         ${_textInput({
-                          label: "Model",
+                          label: host._t("settings_model_label", "Model"),
                           value: host._config.openai_model,
                           oninput: (e) =>
                             host._updateConfig("openai_model", e.target.value),
@@ -505,11 +588,19 @@ export function renderSettings(host) {
                   : isOpenRouter
                     ? html`
                         <div class="form-group">
-                          <label>API Key</label>
+                          <label
+                            >${host._t(
+                              "settings_api_key_label",
+                              "API Key",
+                            )}</label
+                          >
                           ${host._config.openrouter_api_key_set
                             ? html`<button
                                 class="key-hint key-set key-hint-btn"
-                                title="Click to replace key"
+                                title=${host._t(
+                                  "settings_click_replace_key_title",
+                                  "Click to replace key",
+                                )}
                                 @click=${() => {
                                   host._showApiKeyInput =
                                     !host._showApiKeyInput;
@@ -535,8 +626,14 @@ export function renderSettings(host) {
                           host._showApiKeyInput
                             ? _textInput({
                                 label: host._config.openrouter_api_key_set
-                                  ? "Enter new key"
-                                  : "Enter API key",
+                                  ? host._t(
+                                      "settings_enter_new_key_label",
+                                      "Enter new key",
+                                    )
+                                  : host._t(
+                                      "settings_enter_api_key_label",
+                                      "Enter API key",
+                                    ),
                                 type: "password",
                                 value: host._newApiKey,
                                 oninput: (e) =>
@@ -548,7 +645,7 @@ export function renderSettings(host) {
                         </div>
                         <div class="form-group">
                           ${_textInput({
-                            label: "Model",
+                            label: host._t("settings_model_label", "Model"),
                             value: host._config.openrouter_model,
                             oninput: (e) =>
                               host._updateConfig(
@@ -570,21 +667,32 @@ export function renderSettings(host) {
                               host.requestUpdate();
                             }}
                           >
-                            ${host._seloraLocalAdvanced ? "Hide" : "Show"}
-                            advanced options
+                            ${host._seloraLocalAdvanced
+                              ? host._t(
+                                  "settings_selora_local_hide_advanced",
+                                  "Hide advanced options",
+                                )
+                              : host._t(
+                                  "settings_selora_local_show_advanced",
+                                  "Show advanced options",
+                                )}
                           </button>
                           ${host._seloraLocalAdvanced
                             ? html`
                                 <p
                                   style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                 >
-                                  Selora Hubs come pre-configured. To use a
-                                  self-hosted llama-server running the Selora AI
-                                  model, enter its address below.
+                                  ${host._t(
+                                    "settings_selora_local_advanced_desc",
+                                    "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+                                  )}
                                 </p>
                                 <div class="form-group" style="margin-top:8px;">
                                   ${_textInput({
-                                    label: "Host",
+                                    label: host._t(
+                                      "settings_selora_local_host_label",
+                                      "Host",
+                                    ),
                                     value: host._config.selora_local_host || "",
                                     oninput: (e) =>
                                       host._updateConfig(
@@ -596,9 +704,16 @@ export function renderSettings(host) {
                                   <p
                                     style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                                   >
-                                    Auto-detected:
+                                    ${host._t(
+                                      "settings_selora_local_auto_detected_prefix",
+                                      "Auto-detected:",
+                                    )}
                                     ${host._config
-                                      .selora_local_discovered_host || "none"}.
+                                      .selora_local_discovered_host ||
+                                    host._t(
+                                      "settings_selora_local_auto_detected_none",
+                                      "none",
+                                    )}.
                                   </p>
                                 </div>
                               `
@@ -607,7 +722,10 @@ export function renderSettings(host) {
                       : html`
                           <div class="form-group">
                             ${_textInput({
-                              label: "Host",
+                              label: host._t(
+                                "settings_ollama_host_label",
+                                "Host",
+                              ),
                               value: host._config.ollama_host,
                               oninput: (e) =>
                                 host._updateConfig(
@@ -618,7 +736,7 @@ export function renderSettings(host) {
                           </div>
                           <div class="form-group">
                             ${_textInput({
-                              label: "Model",
+                              label: host._t("settings_model_label", "Model"),
                               value: host._config.ollama_model,
                               oninput: (e) =>
                                 host._updateConfig(
@@ -642,8 +760,8 @@ export function renderSettings(host) {
                             class="spinner"
                             style="width:14px;height:14px;"
                           ></span>
-                          Validating…`
-                      : "Save"}
+                          ${host._t("settings_validating_label", "Validating…")}`
+                      : host._t("settings_save_button", "Save")}
                   </button>
                 </div>
               `}
@@ -664,11 +782,13 @@ export function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>MCP Server</h3>
+            <h3>${host._t("settings_mcp_server_heading", "MCP Server")}</h3>
           </div>
           <p class="section-card-subtitle">
-            Expose your home to external AI tools like Openclaw, Claude Desktop,
-            Cursor, or Windsurf.
+            ${host._t(
+              "settings_mcp_server_subtitle",
+              "Expose your home to external AI tools like Openclaw, Claude Desktop, Cursor, or Windsurf.",
+            )}
           </p>
 
           <div class="settings-connect-block">
@@ -677,9 +797,17 @@ export function renderSettings(host) {
               style="border-bottom:none;padding-bottom:0;"
             >
               <div class="service-label-group">
-                <label>Connect via Selora account</label>
+                <label
+                  >${host._t(
+                    "settings_connect_via_selora_label",
+                    "Connect via Selora account",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Makes your MCP server reachable by external tools</span
+                  >${host._t(
+                    "settings_connect_via_selora_desc",
+                    "Makes your MCP server reachable by external tools",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -712,13 +840,18 @@ export function renderSettings(host) {
                     rel="noopener noreferrer"
                     style="align-self:flex-start;text-decoration:none;"
                   >
-                    Open sign-in page →
+                    ${host._t(
+                      "settings_open_signin_page",
+                      "Open sign-in page →",
+                    )}
                   </a>
                   <div
                     style="font-size:12px;color:var(--secondary-text-color);"
                   >
-                    Opens in a new tab. After signing in, return to this page —
-                    the panel updates automatically.
+                    ${host._t(
+                      "settings_signin_new_tab_hint",
+                      "Opens in a new tab. After signing in, return to this page — the panel updates automatically.",
+                    )}
                   </div>
                 </div>`
               : ""}
@@ -739,7 +872,10 @@ export function renderSettings(host) {
                           `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
                         navigator.clipboard.writeText(mcpUrl);
                         host._showToast(
-                          "MCP URL copied to clipboard",
+                          host._t(
+                            "settings_mcp_url_copied_toast",
+                            "MCP URL copied to clipboard",
+                          ),
                           "success",
                         );
                       }}
@@ -757,7 +893,10 @@ export function renderSettings(host) {
               ? html`
                   <div style="padding:8px 0 0;">
                     ${_textInput({
-                      label: "Connect Server URL",
+                      label: host._t(
+                        "settings_connect_server_url_label",
+                        "Connect Server URL",
+                      ),
                       value:
                         host._config.selora_connect_url ||
                         "https://connect.selorahomes.com",
@@ -772,19 +911,22 @@ export function renderSettings(host) {
               : ""}
           </div>
 
-          <div class="settings-section-title">MCP TOKENS</div>
+          <div class="settings-section-title">
+            ${host._t("settings_mcp_tokens_section_title", "MCP TOKENS")}
+          </div>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
           >
-            MCP tokens are an alternative to Selora Connect. Use them for tools
-            that don't support OAuth or when you prefer token-based
-            authentication.
+            ${host._t(
+              "settings_mcp_tokens_desc",
+              "MCP tokens are an alternative to Selora Connect. Use them for tools that don't support OAuth or when you prefer token-based authentication.",
+            )}
           </p>
           ${host._mcpTokens.length === 0
             ? html`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
               >
-                No tokens yet.
+                ${host._t("settings_no_tokens_yet", "No tokens yet.")}
               </div>`
             : html`
                 <div class="mcp-token-list">
@@ -847,7 +989,7 @@ export function renderSettings(host) {
             @click=${() => host._openCreateTokenDialog()}
           >
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>
-            Add token
+            ${host._t("settings_add_token_button", "Add token")}
           </button>
         </div>
 
@@ -855,7 +997,12 @@ export function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>Command Approvals</h3>
+            <h3>
+              ${host._t(
+                "settings_command_approvals_heading",
+                "Command Approvals",
+              )}
+            </h3>
           </div>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
@@ -869,7 +1016,10 @@ export function renderSettings(host) {
 
         <details class="section-card settings-section advanced-section" open>
           <summary class="advanced-toggle">
-            Advanced settings
+            ${host._t(
+              "settings_advanced_settings_heading",
+              "Advanced settings",
+            )}
             <ha-icon
               icon="mdi:chevron-right"
               class="advanced-chevron"
@@ -878,15 +1028,26 @@ export function renderSettings(host) {
           </summary>
 
           <div class="settings-section-title" style="margin-top:16px;">
-            BACKGROUND SERVICES
+            ${host._t(
+              "settings_background_services_title",
+              "BACKGROUND SERVICES",
+            )}
           </div>
 
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Data collector (AI analysis)</label>
+                <label
+                  >${host._t(
+                    "settings_data_collector_label",
+                    "Data collector (AI analysis)",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Feeds entity history to Selora AI</span
+                  >${host._t(
+                    "settings_data_collector_desc",
+                    "Feeds entity history to Selora AI",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -900,7 +1061,7 @@ export function renderSettings(host) {
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>Mode</label>
+                        <label>${host._t("settings_mode_label", "Mode")}</label>
                         <select
                           class="form-select"
                           .value=${host._config.collector_mode}
@@ -910,15 +1071,27 @@ export function renderSettings(host) {
                               e.target.value,
                             )}
                         >
-                          <option value="continuous">Continuous</option>
-                          <option value="scheduled">Scheduled Window</option>
+                          <option value="continuous">
+                            ${host._t("settings_mode_continuous", "Continuous")}
+                          </option>
+                          <option value="scheduled">
+                            ${host._t(
+                              "settings_mode_scheduled_window",
+                              "Scheduled Window",
+                            )}
+                          </option>
                         </select>
                       </div>
                       <div
                         class="form-group"
                         style="width:130px;margin-bottom:0;"
                       >
-                        <label>Interval (s)</label>
+                        <label
+                          >${host._t(
+                            "settings_interval_seconds_label",
+                            "Interval (s)",
+                          )}</label
+                        >
                         <input
                           class="form-select"
                           type="number"
@@ -937,7 +1110,10 @@ export function renderSettings(host) {
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "Start (HH:MM)",
+                                label: host._t(
+                                  "settings_start_hhmm_label",
+                                  "Start (HH:MM)",
+                                ),
                                 value: host._config.collector_start_time,
                                 oninput: (e) =>
                                   host._updateConfig(
@@ -948,7 +1124,10 @@ export function renderSettings(host) {
                             </div>
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "End (HH:MM)",
+                                label: host._t(
+                                  "settings_end_hhmm_label",
+                                  "End (HH:MM)",
+                                ),
                                 value: host._config.collector_end_time,
                                 oninput: (e) =>
                                   host._updateConfig(
@@ -968,9 +1147,17 @@ export function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Network discovery</label>
+                <label
+                  >${host._t(
+                    "settings_network_discovery_label",
+                    "Network discovery",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Scans local network for new devices</span
+                  >${host._t(
+                    "settings_network_discovery_desc",
+                    "Scans local network for new devices",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -984,7 +1171,7 @@ export function renderSettings(host) {
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>Mode</label>
+                        <label>${host._t("settings_mode_label", "Mode")}</label>
                         <select
                           class="form-select"
                           .value=${host._config.discovery_mode}
@@ -994,15 +1181,27 @@ export function renderSettings(host) {
                               e.target.value,
                             )}
                         >
-                          <option value="continuous">Continuous</option>
-                          <option value="scheduled">Scheduled Window</option>
+                          <option value="continuous">
+                            ${host._t("settings_mode_continuous", "Continuous")}
+                          </option>
+                          <option value="scheduled">
+                            ${host._t(
+                              "settings_mode_scheduled_window",
+                              "Scheduled Window",
+                            )}
+                          </option>
                         </select>
                       </div>
                       <div
                         class="form-group"
                         style="width:130px;margin-bottom:0;"
                       >
-                        <label>Interval (s)</label>
+                        <label
+                          >${host._t(
+                            "settings_interval_seconds_label",
+                            "Interval (s)",
+                          )}</label
+                        >
                         <input
                           class="form-select"
                           type="number"
@@ -1021,7 +1220,10 @@ export function renderSettings(host) {
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "Start (HH:MM)",
+                                label: host._t(
+                                  "settings_start_hhmm_label",
+                                  "Start (HH:MM)",
+                                ),
                                 value: host._config.discovery_start_time,
                                 oninput: (e) =>
                                   host._updateConfig(
@@ -1032,7 +1234,10 @@ export function renderSettings(host) {
                             </div>
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "End (HH:MM)",
+                                label: host._t(
+                                  "settings_end_hhmm_label",
+                                  "End (HH:MM)",
+                                ),
                                 value: host._config.discovery_end_time,
                                 oninput: (e) =>
                                   host._updateConfig(
@@ -1052,10 +1257,17 @@ export function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Pattern detection</label>
+                <label
+                  >${host._t(
+                    "settings_pattern_detection_label",
+                    "Pattern detection",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Detects recurring usage patterns and proposes
-                  automations</span
+                  >${host._t(
+                    "settings_pattern_detection_desc",
+                    "Detects recurring usage patterns and proposes automations",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -1072,7 +1284,12 @@ export function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Auto-remove stale automations</label>
+                <label
+                  >${host._t(
+                    "settings_auto_remove_stale_label",
+                    "Auto-remove stale automations",
+                  )}</label
+                >
                 <span class="service-desc"
                   >Deletes automations inactive for
                   ${host._config.stale_days || 5}+ days</span
@@ -1089,9 +1306,17 @@ export function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Developer mode</label>
+                <label
+                  >${host._t(
+                    "settings_developer_mode_label",
+                    "Developer mode",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Exposes raw entity payloads and debug logs</span
+                  >${host._t(
+                    "settings_developer_mode_desc",
+                    "Exposes raw entity payloads and debug logs",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -1105,7 +1330,13 @@ export function renderSettings(host) {
                       config: { developer_mode: val },
                     });
                   } catch (err) {
-                    host._showToast("Failed to save developer mode.", "error");
+                    host._showToast(
+                      host._t(
+                        "settings_dev_mode_save_failed_toast",
+                        "Failed to save developer mode.",
+                      ),
+                      "error",
+                    );
                   }
                 }}
               ></ha-switch>
@@ -1118,7 +1349,9 @@ export function renderSettings(host) {
               @click=${host._saveAdvancedConfig}
               ?disabled=${host._savingAdvancedConfig}
             >
-              ${host._savingAdvancedConfig ? "Saving…" : "Save"}
+              ${host._savingAdvancedConfig
+                ? host._t("settings_saving_label", "Saving…")
+                : host._t("settings_save_button", "Save")}
             </button>
           </div>
         </details>
@@ -1196,8 +1429,12 @@ function renderApprovalGrants(host) {
     return html`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
-      No saved approvals yet. The next time Selora asks before running something
-      risky, click <em>Always</em> to remember it here.
+      ${host._t(
+        "settings_no_approvals_yet_prefix",
+        "No saved approvals yet. The next time Selora asks before running something risky, click",
+      )}
+      <em>${host._t("settings_no_approvals_always_word", "Always")}</em>
+      ${host._t("settings_no_approvals_yet_suffix", "to remember it here.")}
     </div>`;
   }
   const riskColor = {
@@ -1229,8 +1466,14 @@ function renderApprovalGrants(host) {
               style="--mdc-icon-size:20px;color:${riskColor[g.risk_level] ||
               "var(--selora-accent)"};flex-shrink:0;"
               title=${entityFriendly
-                ? "Per-entity approval"
-                : "Wildcard — applies to every entity of this service"}
+                ? host._t(
+                    "settings_per_entity_approval_title",
+                    "Per-entity approval",
+                  )
+                : host._t(
+                    "settings_wildcard_approval_title",
+                    "Wildcard — applies to every entity of this service",
+                  )}
             ></ha-icon>
             <div class="mcp-token-info">
               <div class="mcp-token-name">
@@ -1241,7 +1484,7 @@ function renderApprovalGrants(host) {
                     >`
                   : html` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
-                      >→ all</span
+                      >→ ${host._t("settings_approval_all_label", "all")}</span
                     >`}
                 <span
                   class="mcp-token-badge"
@@ -1320,11 +1563,16 @@ function renderCreateTokenDialog(host) {
           style="max-width:480px;"
           @click=${(e) => e.stopPropagation()}
         >
-          <h3 style="margin:0 0 12px;">Token Created</h3>
+          <h3 style="margin:0 0 12px;">
+            ${host._t("settings_token_created_heading", "Token Created")}
+          </h3>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
           >
-            Copy this token now — it won't be shown again.
+            ${host._t(
+              "settings_token_created_desc",
+              "Copy this token now — it won't be shown again.",
+            )}
           </p>
           <div
             style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card-background-color);border:1px solid var(--selora-accent);border-radius:8px;font-family:monospace;font-size:13px;word-break:break-all;"
@@ -1334,7 +1582,13 @@ function renderCreateTokenDialog(host) {
               style="background:none;border:none;color:var(--selora-accent);cursor:pointer;padding:8px;border-radius:50%;flex-shrink:0;"
               @click=${() => {
                 navigator.clipboard.writeText(host._createdToken);
-                host._showToast("Token copied to clipboard", "success");
+                host._showToast(
+                  host._t(
+                    "settings_token_copied_toast",
+                    "Token copied to clipboard",
+                  ),
+                  "success",
+                );
               }}
             >
               <ha-icon
@@ -1348,7 +1602,7 @@ function renderCreateTokenDialog(host) {
               class="btn btn-primary"
               @click=${() => host._closeCreateTokenDialog()}
             >
-              Done
+              ${host._t("settings_done_button", "Done")}
             </button>
           </div>
         </div>
@@ -1365,14 +1619,19 @@ function renderCreateTokenDialog(host) {
         style="max-width:480px;"
         @click=${(e) => e.stopPropagation()}
       >
-        <h3 style="margin:0 0 16px;">Create MCP Token</h3>
+        <h3 style="margin:0 0 16px;">
+          ${host._t("settings_create_mcp_token_heading", "Create MCP Token")}
+        </h3>
 
         <div class="form-group">
-          <label>Name</label>
+          <label>${host._t("settings_token_name_label", "Name")}</label>
           <input
             class="modal-input"
             type="text"
-            placeholder="e.g. Claude Desktop"
+            placeholder=${host._t(
+              "settings_token_name_placeholder",
+              "e.g. Claude Desktop",
+            )}
             .value=${host._newTokenName}
             @input=${(e) => {
               host._newTokenName = e.target.value;
@@ -1382,7 +1641,12 @@ function renderCreateTokenDialog(host) {
         </div>
 
         <div class="form-group">
-          <label>Permission Level</label>
+          <label
+            >${host._t(
+              "settings_permission_level_label",
+              "Permission Level",
+            )}</label
+          >
           <select
             class="form-select"
             .value=${permission}
@@ -1391,16 +1655,27 @@ function renderCreateTokenDialog(host) {
               host.requestUpdate();
             }}
           >
-            <option value="read_only">Read Only</option>
-            <option value="admin">Admin (all tools)</option>
-            <option value="custom">Custom (select tools)</option>
+            <option value="read_only">
+              ${host._t("settings_perm_read_only", "Read Only")}
+            </option>
+            <option value="admin">
+              ${host._t("settings_perm_admin_all", "Admin (all tools)")}
+            </option>
+            <option value="custom">
+              ${host._t("settings_perm_custom", "Custom (select tools)")}
+            </option>
           </select>
         </div>
 
         ${permission === "custom"
           ? html`
               <div class="form-group">
-                <label>Allowed Tools</label>
+                <label
+                  >${host._t(
+                    "settings_allowed_tools_label",
+                    "Allowed Tools",
+                  )}</label
+                >
                 <div class="mcp-tool-checklist">
                   ${MCP_TOOLS.map(
                     (tool) => html`
@@ -1421,7 +1696,7 @@ function renderCreateTokenDialog(host) {
                           ? html`<span
                               class="mcp-token-badge mcp-token-badge--admin"
                               style="font-size:10px;padding:1px 5px;"
-                              >admin</span
+                              >${host._t("settings_admin_badge", "admin")}</span
                             >`
                           : ""}
                       </label>
@@ -1433,7 +1708,12 @@ function renderCreateTokenDialog(host) {
           : ""}
 
         <div class="form-group">
-          <label>Expiration (optional)</label>
+          <label
+            >${host._t(
+              "settings_expiration_label",
+              "Expiration (optional)",
+            )}</label
+          >
           <select
             class="form-select"
             .value=${host._newTokenExpiry}
@@ -1442,11 +1722,21 @@ function renderCreateTokenDialog(host) {
               host.requestUpdate();
             }}
           >
-            <option value="">Never expires</option>
-            <option value="7">7 days</option>
-            <option value="30">30 days</option>
-            <option value="90">90 days</option>
-            <option value="365">1 year</option>
+            <option value="">
+              ${host._t("settings_expiry_never", "Never expires")}
+            </option>
+            <option value="7">
+              ${host._t("settings_expiry_7_days", "7 days")}
+            </option>
+            <option value="30">
+              ${host._t("settings_expiry_30_days", "30 days")}
+            </option>
+            <option value="90">
+              ${host._t("settings_expiry_90_days", "90 days")}
+            </option>
+            <option value="365">
+              ${host._t("settings_expiry_1_year", "1 year")}
+            </option>
           </select>
         </div>
 
@@ -1457,7 +1747,7 @@ function renderCreateTokenDialog(host) {
             class="btn btn-outline"
             @click=${() => host._closeCreateTokenDialog()}
           >
-            Cancel
+            ${host._t("settings_cancel_button", "Cancel")}
           </button>
           <button
             class="btn btn-primary"
@@ -1469,7 +1759,7 @@ function renderCreateTokenDialog(host) {
                   class="spinner"
                   style="width:14px;height:14px;"
                 ></span>`
-              : "Create Token"}
+              : host._t("settings_create_token_button", "Create Token")}
           </button>
         </div>
       </div>

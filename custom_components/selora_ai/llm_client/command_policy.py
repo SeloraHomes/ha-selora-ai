@@ -35,6 +35,31 @@ _LOGGER = logging.getLogger(__name__)
 # LLM failure before ``synthesize_approval_from_tool_log`` builds the card.
 APPROVAL_PENDING_HINT = "This request needs your approval before I run it."
 
+# Localized variants of the pending-approval hint. The English entry is
+# kept identical to the module-level constant so legacy callers (tests,
+# any code path that compares against the sentinel) still match. Missing
+# locales fall through to English via ``approval_pending_hint``.
+_APPROVAL_PENDING_HINT_BY_LANG: dict[str, str] = {
+    "en": APPROVAL_PENDING_HINT,
+    "fr": "Cette requête nécessite votre approbation avant que je l'exécute.",
+    "de": "Diese Anfrage erfordert Ihre Genehmigung, bevor ich sie ausführe.",
+    "es": "Esta solicitud necesita su aprobación antes de que la ejecute.",
+    "it": "Questa richiesta richiede la tua approvazione prima che la esegua.",
+    "nl": "Dit verzoek vereist uw goedkeuring voordat ik het uitvoer.",
+    "hu": "Ennek a kérésnek a végrehajtásához az Ön jóváhagyása szükséges.",
+}
+
+
+def approval_pending_hint(language: str | None = None) -> str:
+    """Localized variant of ``APPROVAL_PENDING_HINT``.
+
+    Returns the English sentinel when ``language`` is None / unknown so
+    the existing test fixtures and any equality checks against the bare
+    constant keep working.
+    """
+    base = (language or "en").lower().split("-")[0]
+    return _APPROVAL_PENDING_HINT_BY_LANG.get(base, APPROVAL_PENDING_HINT)
+
 
 def _all_targets_approved(
     approval_store: ApprovalStore | None,
@@ -1175,17 +1200,300 @@ _PAST_VERBS_BY_DOMAIN: dict[str, str] = {
     "shell_command": "Ran shell command",
 }
 
+# Locale overrides. Only keys translated here override the EN tables;
+# anything missing falls back to English (acceptable for rarely-seen
+# services). Keep this in sync with the EN dicts above when adding
+# entries; missing keys = English passthrough, not an error.
+_PAST_VERBS_BY_SERVICE_BY_LANG: dict[str, dict[str, str]] = {
+    "fr": {
+        "lock.lock": "Verrouillé",
+        "lock.unlock": "Déverrouillé",
+        "lock.open": "Ouvert",
+        "tts.cloud_say": "Annoncé sur",
+        "tts.google_translate_say": "Annoncé sur",
+        "tts.speak": "Annoncé sur",
+        "alarm_control_panel.alarm_arm_home": "Armé (mode maison)",
+        "alarm_control_panel.alarm_arm_away": "Armé (mode absent)",
+        "alarm_control_panel.alarm_arm_night": "Armé (mode nuit)",
+        "alarm_control_panel.alarm_disarm": "Désarmé",
+        "vacuum.start": "Démarré",
+        "vacuum.pause": "Mis en pause",
+        "vacuum.stop": "Arrêté",
+        "vacuum.return_to_base": "Renvoyé à la base",
+        "vacuum.clean_spot": "Nettoyé localement avec",
+        "water_heater.set_temperature": "Température mise à jour sur",
+        "water_heater.set_operation_mode": "Mode changé sur",
+        "light.turn_on": "Allumé",
+        "light.turn_off": "Éteint",
+        "light.toggle": "Basculé",
+        "switch.turn_on": "Allumé",
+        "switch.turn_off": "Éteint",
+        "scene.turn_on": "Activée",
+        "cover.open_cover": "Ouvert",
+        "cover.close_cover": "Fermé",
+        "cover.toggle": "Basculé",
+        "cover.stop_cover": "Arrêté",
+        "cover.set_cover_position": "Repositionné",
+    },
+    "de": {
+        "lock.lock": "Verriegelt",
+        "lock.unlock": "Entriegelt",
+        "lock.open": "Geöffnet",
+        "tts.cloud_say": "Angekündigt auf",
+        "tts.google_translate_say": "Angekündigt auf",
+        "tts.speak": "Angekündigt auf",
+        "alarm_control_panel.alarm_arm_home": "Aktiviert (Modus zu Hause)",
+        "alarm_control_panel.alarm_arm_away": "Aktiviert (Modus abwesend)",
+        "alarm_control_panel.alarm_arm_night": "Aktiviert (Nachtmodus)",
+        "alarm_control_panel.alarm_disarm": "Deaktiviert",
+        "vacuum.start": "Gestartet",
+        "vacuum.pause": "Pausiert",
+        "vacuum.stop": "Gestoppt",
+        "vacuum.return_to_base": "Zurück zur Basis geschickt",
+        "vacuum.clean_spot": "Punktuell gereinigt mit",
+        "water_heater.set_temperature": "Temperatur aktualisiert auf",
+        "water_heater.set_operation_mode": "Modus geändert auf",
+        "light.turn_on": "Eingeschaltet",
+        "light.turn_off": "Ausgeschaltet",
+        "light.toggle": "Umgeschaltet",
+        "switch.turn_on": "Eingeschaltet",
+        "switch.turn_off": "Ausgeschaltet",
+        "scene.turn_on": "Aktiviert",
+        "cover.open_cover": "Geöffnet",
+        "cover.close_cover": "Geschlossen",
+        "cover.toggle": "Umgeschaltet",
+        "cover.stop_cover": "Gestoppt",
+        "cover.set_cover_position": "Neu positioniert",
+    },
+    "es": {
+        "lock.lock": "Bloqueado",
+        "lock.unlock": "Desbloqueado",
+        "lock.open": "Abierto",
+        "tts.cloud_say": "Anunciado en",
+        "tts.google_translate_say": "Anunciado en",
+        "tts.speak": "Anunciado en",
+        "alarm_control_panel.alarm_arm_home": "Armado (modo casa)",
+        "alarm_control_panel.alarm_arm_away": "Armado (modo fuera)",
+        "alarm_control_panel.alarm_arm_night": "Armado (modo noche)",
+        "alarm_control_panel.alarm_disarm": "Desarmado",
+        "vacuum.start": "Iniciado",
+        "vacuum.pause": "Pausado",
+        "vacuum.stop": "Detenido",
+        "vacuum.return_to_base": "Enviado a la base",
+        "vacuum.clean_spot": "Limpiado localmente con",
+        "water_heater.set_temperature": "Temperatura actualizada en",
+        "water_heater.set_operation_mode": "Modo cambiado en",
+        "light.turn_on": "Encendido",
+        "light.turn_off": "Apagado",
+        "light.toggle": "Alternado",
+        "switch.turn_on": "Encendido",
+        "switch.turn_off": "Apagado",
+        "scene.turn_on": "Activada",
+        "cover.open_cover": "Abierto",
+        "cover.close_cover": "Cerrado",
+        "cover.toggle": "Alternado",
+        "cover.stop_cover": "Detenido",
+        "cover.set_cover_position": "Reposicionado",
+    },
+    "it": {
+        "lock.lock": "Bloccato",
+        "lock.unlock": "Sbloccato",
+        "lock.open": "Aperto",
+        "tts.cloud_say": "Annunciato su",
+        "tts.google_translate_say": "Annunciato su",
+        "tts.speak": "Annunciato su",
+        "alarm_control_panel.alarm_arm_home": "Inserito (modalità casa)",
+        "alarm_control_panel.alarm_arm_away": "Inserito (modalità fuori)",
+        "alarm_control_panel.alarm_arm_night": "Inserito (modalità notte)",
+        "alarm_control_panel.alarm_disarm": "Disinserito",
+        "vacuum.start": "Avviato",
+        "vacuum.pause": "In pausa",
+        "vacuum.stop": "Fermato",
+        "vacuum.return_to_base": "Rinviato alla base",
+        "vacuum.clean_spot": "Pulito localmente con",
+        "water_heater.set_temperature": "Temperatura aggiornata su",
+        "water_heater.set_operation_mode": "Modalità cambiata su",
+        "light.turn_on": "Acceso",
+        "light.turn_off": "Spento",
+        "light.toggle": "Commutato",
+        "switch.turn_on": "Acceso",
+        "switch.turn_off": "Spento",
+        "scene.turn_on": "Attivata",
+        "cover.open_cover": "Aperto",
+        "cover.close_cover": "Chiuso",
+        "cover.toggle": "Commutato",
+        "cover.stop_cover": "Fermato",
+        "cover.set_cover_position": "Riposizionato",
+    },
+    "nl": {
+        "lock.lock": "Vergrendeld",
+        "lock.unlock": "Ontgrendeld",
+        "lock.open": "Geopend",
+        "tts.cloud_say": "Aangekondigd op",
+        "tts.google_translate_say": "Aangekondigd op",
+        "tts.speak": "Aangekondigd op",
+        "alarm_control_panel.alarm_arm_home": "Ingeschakeld (thuis-modus)",
+        "alarm_control_panel.alarm_arm_away": "Ingeschakeld (afwezig-modus)",
+        "alarm_control_panel.alarm_arm_night": "Ingeschakeld (nachtmodus)",
+        "alarm_control_panel.alarm_disarm": "Uitgeschakeld",
+        "vacuum.start": "Gestart",
+        "vacuum.pause": "Gepauzeerd",
+        "vacuum.stop": "Gestopt",
+        "vacuum.return_to_base": "Naar dock gestuurd",
+        "vacuum.clean_spot": "Lokaal gereinigd met",
+        "water_heater.set_temperature": "Temperatuur bijgewerkt voor",
+        "water_heater.set_operation_mode": "Modus gewijzigd voor",
+        "light.turn_on": "Aangezet",
+        "light.turn_off": "Uitgezet",
+        "light.toggle": "Omgeschakeld",
+        "switch.turn_on": "Aangezet",
+        "switch.turn_off": "Uitgezet",
+        "scene.turn_on": "Geactiveerd",
+        "cover.open_cover": "Geopend",
+        "cover.close_cover": "Gesloten",
+        "cover.toggle": "Omgeschakeld",
+        "cover.stop_cover": "Gestopt",
+        "cover.set_cover_position": "Herpositioneerd",
+    },
+    "hu": {
+        "lock.lock": "Zárolva",
+        "lock.unlock": "Feloldva",
+        "lock.open": "Megnyitva",
+        "tts.cloud_say": "Bejelentve",
+        "tts.google_translate_say": "Bejelentve",
+        "tts.speak": "Bejelentve",
+        "alarm_control_panel.alarm_arm_home": "Élesítve (otthon mód)",
+        "alarm_control_panel.alarm_arm_away": "Élesítve (távol mód)",
+        "alarm_control_panel.alarm_arm_night": "Élesítve (éjszakai mód)",
+        "alarm_control_panel.alarm_disarm": "Hatástalanítva",
+        "vacuum.start": "Elindítva",
+        "vacuum.pause": "Szüneteltetve",
+        "vacuum.stop": "Megállítva",
+        "vacuum.return_to_base": "Bázisra küldve",
+        "vacuum.clean_spot": "Foltot tisztítva ezzel",
+        "water_heater.set_temperature": "Hőmérséklet frissítve ezen",
+        "water_heater.set_operation_mode": "Mód módosítva ezen",
+        "light.turn_on": "Bekapcsolva",
+        "light.turn_off": "Kikapcsolva",
+        "light.toggle": "Átkapcsolva",
+        "switch.turn_on": "Bekapcsolva",
+        "switch.turn_off": "Kikapcsolva",
+        "scene.turn_on": "Aktiválva",
+        "cover.open_cover": "Megnyitva",
+        "cover.close_cover": "Bezárva",
+        "cover.toggle": "Átkapcsolva",
+        "cover.stop_cover": "Megállítva",
+        "cover.set_cover_position": "Áthelyezve",
+    },
+}
 
-def past_verb_for(service: str) -> str:
+_PAST_VERBS_BY_DOMAIN_BY_LANG: dict[str, dict[str, str]] = {
+    "fr": {
+        "tts": "Annoncé sur",
+        "notify": "Notification envoyée via",
+        "script": "Script exécuté",
+        "shell_command": "Commande shell exécutée",
+    },
+    "de": {
+        "tts": "Angekündigt auf",
+        "notify": "Benachrichtigung gesendet über",
+        "script": "Skript ausgeführt",
+        "shell_command": "Shell-Befehl ausgeführt",
+    },
+    "es": {
+        "tts": "Anunciado en",
+        "notify": "Notificación enviada vía",
+        "script": "Script ejecutado",
+        "shell_command": "Comando shell ejecutado",
+    },
+    "it": {
+        "tts": "Annunciato su",
+        "notify": "Notifica inviata tramite",
+        "script": "Script eseguito",
+        "shell_command": "Comando shell eseguito",
+    },
+    "nl": {
+        "tts": "Aangekondigd op",
+        "notify": "Melding verzonden via",
+        "script": "Script uitgevoerd",
+        "shell_command": "Shell-commando uitgevoerd",
+    },
+    "hu": {
+        "tts": "Bejelentve",
+        "notify": "Értesítés elküldve via",
+        "script": "Szkript lefuttatva",
+        "shell_command": "Shell parancs lefuttatva",
+    },
+}
+
+_GENERIC_RAN_BY_LANG: dict[str, str] = {
+    "fr": "Exécuté",
+    "de": "Ausgeführt",
+    "es": "Ejecutado",
+    "it": "Eseguito",
+    "nl": "Uitgevoerd",
+    "hu": "Lefuttatva",
+}
+
+_DONE_BY_LANG: dict[str, str] = {
+    "fr": "Terminé.",
+    "de": "Fertig.",
+    "es": "Hecho.",
+    "it": "Fatto.",
+    "nl": "Klaar.",
+    "hu": "Kész.",
+}
+
+# Sentence template per locale. Non-EN locales use a colon-separator so
+# the past participle reads as a status label ("Allumé : Kitchen Lights")
+# rather than a verb that needs gender/number agreement with the object —
+# entity names from HA are in the user's setup language (often English)
+# and won't agree with French/Italian past participles. FR follows the
+# convention of space-colon-space; other languages use plain colon.
+_SENTENCE_FORMAT_BY_LANG: dict[str, str] = {
+    "en": "{past} {target}.",
+    "fr": "{past} : {target}.",
+    "de": "{past}: {target}.",
+    "es": "{past}: {target}.",
+    "it": "{past}: {target}.",
+    "nl": "{past}: {target}.",
+    "hu": "{past}: {target}.",
+}
+
+
+def _normalize_lang(language: str | None) -> str:
+    if not language:
+        return "en"
+    base = str(language).lower().split("-")[0]
+    return base if base in _PAST_VERBS_BY_SERVICE_BY_LANG else "en"
+
+
+def past_verb_for(service: str, language: str | None = None) -> str:
     """Return a past-tense verb phrase for *service*.
 
     Falls back to the domain-level table, then to the generic "Ran"
     so an unknown service still produces a readable sentence.
     """
+    lang = _normalize_lang(language)
+    if lang != "en":
+        loc = _PAST_VERBS_BY_SERVICE_BY_LANG.get(lang, {})
+        if service in loc:
+            return loc[service]
     if service in _PAST_VERBS_BY_SERVICE:
         return _PAST_VERBS_BY_SERVICE[service]
     domain = service.split(".", 1)[0] if "." in service else ""
+    if lang != "en":
+        loc_d = _PAST_VERBS_BY_DOMAIN_BY_LANG.get(lang, {})
+        if domain in loc_d:
+            return loc_d[domain]
+        if domain not in _PAST_VERBS_BY_DOMAIN:
+            return _GENERIC_RAN_BY_LANG.get(lang, "Ran")
     return _PAST_VERBS_BY_DOMAIN.get(domain, "Ran")
+
+
+def _done_text(language: str | None) -> str:
+    lang = _normalize_lang(language)
+    return _DONE_BY_LANG.get(lang, "Done.")
 
 
 def _friendly_name_resolver(hass: HomeAssistant | None) -> Callable[[str], str]:
@@ -1211,6 +1519,7 @@ def build_executed_confirmation(
     friendly_name_resolver: Callable[[str], str] | None = None,
     *,
     exclude_marker_ids: set[str] | None = None,
+    language: str | None = None,
 ) -> str:
     """Compose a friendly post-execution message from successful tool
     calls.
@@ -1233,8 +1542,11 @@ def build_executed_confirmation(
     doesn't show two identical entity cards for one executed action.
     """
     excluded = exclude_marker_ids or set()
+    done_text = _done_text(language)
     if not executed_calls:
-        return "Done."
+        return done_text
+    lang = _normalize_lang(language)
+    fmt = _SENTENCE_FORMAT_BY_LANG.get(lang, _SENTENCE_FORMAT_BY_LANG["en"])
     sentences: list[str] = []
     entity_ids: list[str] = []
     for call in executed_calls:
@@ -1251,30 +1563,31 @@ def build_executed_confirmation(
                 ids = [e for e in raw if isinstance(e, str)]
             else:
                 ids = []
-        past = past_verb_for(service)
+        past = past_verb_for(service, language)
         if ids:
             names = [friendly_name_resolver(eid) if friendly_name_resolver else eid for eid in ids]
-            sentences.append(f"{past} {', '.join(names)}.")
+            sentences.append(fmt.format(past=past, target=", ".join(names)))
             entity_ids.extend(ids)
         else:
             tail = service.split(".", 1)[1] if "." in service else service
-            sentences.append(f"{past} {tail}.")
-    content = " ".join(sentences) if sentences else "Done."
+            sentences.append(fmt.format(past=past, target=tail))
+    content = " ".join(sentences) if sentences else done_text
     marker_ids = [eid for eid in entity_ids if eid not in excluded]
     if marker_ids:
         content += f"\n\n[[entities:{','.join(marker_ids)}]]"
     return content
 
 
-def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
+def _build_command_confirmation(calls: list[dict[str, Any]], language: str | None = None) -> str:
     """Build a human-readable confirmation from a list of validated service calls.
 
     Only called after ``apply_command_policy`` has validated the calls,
     so types are guaranteed.  Used as fallback when the LLM returns a
     command intent without a ``response`` field (#94).
     """
+    done_text = _done_text(language)
     if not isinstance(calls, list) or not calls:
-        return "Done."
+        return done_text
     parts: list[str] = []
     for call in calls:
         if not isinstance(call, dict):
@@ -1296,8 +1609,11 @@ def _build_command_confirmation(calls: list[dict[str, Any]]) -> str:
         elif action:
             parts.append(action)
     if not parts:
-        return "Done."
-    return "Done — " + "; ".join(parts) + "."
+        return done_text
+    # Use the locale-aware "Done"; drop the trailing period since we
+    # append our own list separator and a final dot below.
+    done_prefix = done_text.rstrip(".")
+    return done_prefix + " — " + "; ".join(parts) + "."
 
 
 def _pending_approval_calls_from_log(
@@ -1560,6 +1876,8 @@ def synthesize_approval_from_tool_log(
     result: ArchitectResponse,
     tool_log: list[dict[str, Any]] | None,
     hass: HomeAssistant | None = None,
+    *,
+    language: str | None = None,
 ) -> ArchitectResponse:
     """If the LLM tried ``execute_command`` on a REVIEW service and the
     tool returned ``requires_approval=True``, upgrade *result* to a
@@ -1594,7 +1912,11 @@ def synthesize_approval_from_tool_log(
     # card. The model's text often editorialises ("I can't execute this
     # because…") which is misleading once the card is up — the action
     # is one click away, not refused.
-    hint = APPROVAL_PENDING_HINT
+    # Prefer the request locale so the hint matches the user's
+    # frontend language. Server-wide hass.config.language stays as the
+    # fallback for callers that don't thread a request locale through.
+    effective_language = language or (hass.config.language if hass is not None else None)
+    hint = approval_pending_hint(effective_language)
     # When other write tools already FIRED in the same round (e.g. "turn
     # off the kitchen light and unlock the door" — the light executes,
     # the unlock holds for approval), acknowledge the executed actions
@@ -1606,7 +1928,7 @@ def synthesize_approval_from_tool_log(
     executed = _iter_executed_write_actions(tool_log)
     if executed:
         resolver = _friendly_name_resolver(hass)
-        confirmation = build_executed_confirmation(executed, resolver)
+        confirmation = build_executed_confirmation(executed, resolver, language=effective_language)
         upgraded["response"] = f"{confirmation}\n\n{hint}"
     else:
         upgraded["response"] = hint
@@ -2108,10 +2430,93 @@ def _prose_is_trusted_after_tool(
     )
 
 
+_EXHAUSTION_RAN_OUT_BY_LANG: dict[str, str] = {
+    "en": (
+        "Then I ran out of tool rounds before finishing — please try a "
+        "more specific request only if there's more to do."
+    ),
+    "fr": (
+        "Puis j'ai épuisé les tours d'outils avant de terminer — "
+        "réessayez avec une demande plus précise uniquement s'il reste "
+        "des choses à faire."
+    ),
+    "de": (
+        "Dann gingen mir die Tool-Runden aus, bevor ich fertig war — "
+        "bitte versuchen Sie es nur mit einer spezifischeren Anfrage "
+        "erneut, wenn noch etwas zu tun ist."
+    ),
+    "es": (
+        "Luego se me acabaron las rondas de herramientas antes de "
+        "terminar — vuelva a intentarlo con una solicitud más "
+        "específica solo si queda algo por hacer."
+    ),
+    "it": (
+        "Poi ho esaurito i giri di strumenti prima di finire — riprova "
+        "con una richiesta più specifica solo se c'è ancora qualcosa da "
+        "fare."
+    ),
+    "nl": (
+        "Daarna raakten mijn tool-rondes op voordat ik klaar was — "
+        "probeer het alleen opnieuw met een specifiekere vraag als er "
+        "nog iets te doen is."
+    ),
+    "hu": (
+        "Ezután elfogytak az eszközforduló-keretek, mielőtt befejeztem "
+        "volna — csak akkor próbálkozzon konkrétabb kéréssel, ha még "
+        "van tennivaló."
+    ),
+}
+
+_EXHAUSTION_NO_EXEC_BY_LANG: dict[str, str] = {
+    "en": (
+        "I used several tools but couldn't complete the analysis. "
+        "Please try a more specific request."
+    ),
+    "fr": (
+        "J'ai utilisé plusieurs outils mais je n'ai pas pu terminer "
+        "l'analyse. Veuillez réessayer avec une demande plus précise."
+    ),
+    "de": (
+        "Ich habe mehrere Tools verwendet, konnte die Analyse aber "
+        "nicht abschließen. Bitte versuchen Sie es mit einer "
+        "spezifischeren Anfrage."
+    ),
+    "es": (
+        "Usé varias herramientas pero no pude completar el análisis. "
+        "Por favor intente con una solicitud más específica."
+    ),
+    "it": (
+        "Ho usato vari strumenti ma non sono riuscito a completare "
+        "l'analisi. Riprova con una richiesta più specifica."
+    ),
+    "nl": (
+        "Ik gebruikte meerdere tools maar kon de analyse niet "
+        "voltooien. Probeer het opnieuw met een specifiekere vraag."
+    ),
+    "hu": (
+        "Több eszközt használtam, de nem tudtam befejezni az "
+        "elemzést. Próbálkozzon konkrétabb kéréssel."
+    ),
+}
+
+
+def _exhaustion_text(language: str | None, executed_any: bool) -> str:
+    """Localized tool-loop exhaustion suffix.
+
+    Two phrasings: one acknowledges that something ran (so the user
+    doesn't retry and double-execute), the other admits nothing
+    completed. Falls back to English for unknown locales.
+    """
+    table = _EXHAUSTION_RAN_OUT_BY_LANG if executed_any else _EXHAUSTION_NO_EXEC_BY_LANG
+    lang = _normalize_lang(language)
+    return table.get(lang, table["en"])
+
+
 def _tool_failure_response(
     tool_log: list[dict[str, Any]] | None,
     *,
-    suffix: str,
+    suffix: str | None = None,
+    language: str | None = None,
 ) -> str:
     """Compose a user-facing message when the tool loop bailed out.
 
@@ -2119,11 +2524,18 @@ def _tool_failure_response(
     something like ``"Done — light turn_off (kitchen). " + suffix`` so the
     user sees what already happened and is not tempted to retry and run
     the same service a second time. Otherwise just ``suffix`` is returned.
+
+    ``suffix`` is optional — when omitted the locale-aware default is
+    used (preferred call shape). Legacy callers that still pass a raw
+    suffix string keep working.
     """
     executed = _executed_service_calls_from_log(tool_log)
+    effective_suffix = (
+        suffix if suffix is not None else _exhaustion_text(language, executed_any=bool(executed))
+    )
     if not executed:
-        return suffix
-    return _build_command_confirmation(executed) + " " + suffix
+        return effective_suffix
+    return _build_command_confirmation(executed, language=language) + " " + effective_suffix
 
 
 def _blocked_command_result(
@@ -2368,6 +2780,7 @@ def apply_command_policy(
     hass: HomeAssistant | None = None,
     approval_store: ApprovalStore | None = None,
     session_id: str | None = None,
+    language: str | None = None,
 ) -> ArchitectResponse:
     """Reject unsafe immediate commands before any caller can execute them."""
     approval_store = _resolve_approval_store(hass, approval_store)
@@ -2676,12 +3089,15 @@ def apply_command_policy(
         approval_result["command_approval"] = proposal
         approval_result["quick_actions"] = _approval_quick_actions(proposal["proposal_id"])
         if not approval_result.get("response"):
-            approval_result["response"] = "This request needs your approval before I run it."
+            approval_result["response"] = approval_pending_hint(language)
         return approval_result
 
     result["calls"] = validated_calls
     # Generate a human-readable fallback so callers never show raw JSON (#94).
-    # Only set after policy validation confirms the calls are safe.
+    # Only set after policy validation confirms the calls are safe. The
+    # locale-aware `_build_command_confirmation` matches the user's
+    # locale rather than dropping back to English when the model
+    # returned a valid command without a `response` field.
     if "response" not in result:
-        result["response"] = _build_command_confirmation(validated_calls)
+        result["response"] = _build_command_confirmation(validated_calls, language=language)
     return result

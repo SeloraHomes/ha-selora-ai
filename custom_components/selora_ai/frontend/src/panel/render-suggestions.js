@@ -175,7 +175,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                   icon="mdi:sitemap-outline"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                Flow
+                ${host._t("suggestions_tab_flow", "Flow")}
               </button>
               <span class="card-tab-sep">|</span>
             `
@@ -193,7 +193,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          YAML
+          ${host._t("suggestions_tab_yaml", "YAML")}
         </button>
         <ha-icon
           icon="mdi:chevron-down"
@@ -247,7 +247,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                 )}
         >
           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
-          ${accepting ? "Creating…" : "Accept"}
+          ${accepting
+            ? host._t("suggestions_btn_creating", "Creating…")
+            : host._t("suggestions_btn_accept", "Accept")}
         </button>
         <button
           class="btn btn-outline"
@@ -259,7 +261,9 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
               : host._discardSuggestion(item._original)}
         >
           <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
-          ${dismissing ? "Dismissing…" : "Dismiss"}
+          ${dismissing
+            ? host._t("suggestions_btn_dismissing", "Dismissing…")
+            : host._t("suggestions_btn_dismiss", "Dismiss")}
         </button>
       </div>
     </div>
@@ -283,9 +287,11 @@ export function renderSuggestionsSection(host) {
     <div class="section-card suggestions-section">
       <div class="section-card-header">
         <div class="section-card-title-group">
-          <h3>Suggested for you</h3>
+          <h3>${host._t("suggestions_section_title", "Suggested for you")}</h3>
           ${totalCount > 0
-            ? html`<span class="badge">${totalCount} new</span>`
+            ? html`<span class="badge"
+                >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
+              >`
             : ""}
         </div>
         ${isDev
@@ -295,7 +301,10 @@ export function renderSuggestionsSection(host) {
                   class="btn"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
                   title=${host._llmNeedsSetup
-                    ? "Configure an LLM provider first"
+                    ? host._t(
+                        "suggestions_llm_setup_required",
+                        "Configure an LLM provider first",
+                      )
                     : ""}
                   @click=${() => host._triggerPatternScan()}
                 >
@@ -303,14 +312,19 @@ export function renderSuggestionsSection(host) {
                     icon="mdi:refresh"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._loadingProactive ? "Scanning…" : "Scan Now"}
+                  ${host._loadingProactive
+                    ? host._t("suggestions_btn_scanning", "Scanning…")
+                    : host._t("suggestions_btn_scan_now", "Scan Now")}
                 </button>
                 <button
                   class="btn btn-primary"
                   ?disabled=${host._generatingSuggestions ||
                   host._llmNeedsSetup}
                   title=${host._llmNeedsSetup
-                    ? "Configure an LLM provider first"
+                    ? host._t(
+                        "suggestions_llm_setup_required",
+                        "Configure an LLM provider first",
+                      )
                     : ""}
                   @click=${() => host._triggerGenerateSuggestions()}
                 >
@@ -323,7 +337,9 @@ export function renderSuggestionsSection(host) {
                         icon="mdi:auto-fix"
                         style="--mdc-icon-size:14px;"
                       ></ha-icon>`}
-                  ${host._generatingSuggestions ? "Analyzing…" : "Generate"}
+                  ${host._generatingSuggestions
+                    ? host._t("suggestions_btn_analyzing", "Analyzing…")
+                    : host._t("suggestions_btn_generate", "Generate")}
                 </button>
               </div>
             `
@@ -331,13 +347,19 @@ export function renderSuggestionsSection(host) {
       </div>
 
       <div class="section-card-subtitle">
-        Based on observed patterns and AI analysis in your home.
+        ${host._t(
+          "suggestions_section_subtitle",
+          "Based on observed patterns and AI analysis in your home.",
+        )}
       </div>
 
       ${totalCount === 0
         ? html`
             <p style="opacity:0.45;margin:0;font-size:13px;">
-              No suggestions yet. Tap "Generate" to analyze your home.
+              ${host._t(
+                "suggestions_empty_state",
+                'No suggestions yet. Tap "Generate" to analyze your home.',
+              )}
             </p>
           `
         : html`
@@ -347,7 +369,10 @@ export function renderSuggestionsSection(host) {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
                       type="text"
-                      placeholder="Filter suggestions…"
+                      placeholder=${host._t(
+                        "suggestions_filter_placeholder",
+                        "Filter suggestions…",
+                      )}
                       .value=${host._suggestionFilter}
                       @input=${(e) => {
                         host._suggestionFilter = e.target.value;
@@ -369,9 +394,15 @@ export function renderSuggestionsSection(host) {
                     ? html`
                         <div class="status-pills">
                           ${[
-                            ["all", "All"],
-                            ["pattern", "Patterns"],
-                            ["ai", "AI"],
+                            ["all", host._t("suggestions_filter_all", "All")],
+                            [
+                              "pattern",
+                              host._t(
+                                "suggestions_filter_patterns",
+                                "Patterns",
+                              ),
+                            ],
+                            ["ai", host._t("suggestions_filter_ai", "AI")],
                           ].map(
                             ([val, label]) => html`
                               <button
@@ -399,8 +430,12 @@ export function renderSuggestionsSection(host) {
                       host._suggestionSortBy = e.target.value;
                     }}
                   >
-                    <option value="recent">Recent</option>
-                    <option value="alpha">Alphabetical</option>
+                    <option value="recent">
+                      ${host._t("suggestions_sort_recent", "Recent")}
+                    </option>
+                    <option value="alpha">
+                      ${host._t("suggestions_sort_alpha", "Alphabetical")}
+                    </option>
                   </select>
                   <div
                     style="margin-left:auto;display:flex;align-items:center;gap:8px;"
@@ -408,7 +443,8 @@ export function renderSuggestionsSection(host) {
                     ${bulkMode
                       ? html`
                           <span style="font-size:12px;opacity:0.7;">
-                            ${selectedCount} selected
+                            ${selectedCount}
+                            ${host._t("suggestions_bulk_selected", "selected")}
                           </span>
                           <button
                             class="btn btn-primary"
@@ -433,7 +469,10 @@ export function renderSuggestionsSection(host) {
                               host._suggestionBulkMode = false;
                             }}
                           >
-                            Accept selected
+                            ${host._t(
+                              "suggestions_bulk_accept_selected",
+                              "Accept selected",
+                            )}
                           </button>
                           <button
                             class="btn btn-outline"
@@ -454,7 +493,10 @@ export function renderSuggestionsSection(host) {
                               host._suggestionBulkMode = false;
                             }}
                           >
-                            Dismiss selected
+                            ${host._t(
+                              "suggestions_bulk_dismiss_selected",
+                              "Dismiss selected",
+                            )}
                           </button>
                           <button
                             class="btn btn-outline"
@@ -463,7 +505,7 @@ export function renderSuggestionsSection(host) {
                               host._selectedSuggestionKeys = {};
                             }}
                           >
-                            Done
+                            ${host._t("suggestions_bulk_done", "Done")}
                           </button>
                         `
                       : html`
@@ -477,7 +519,7 @@ export function renderSuggestionsSection(host) {
                               icon="mdi:checkbox-multiple-outline"
                               style="--mdc-icon-size:14px;"
                             ></ha-icon>
-                            Bulk edit
+                            ${host._t("suggestions_bulk_edit", "Bulk edit")}
                           </button>
                         `}
                   </div>
@@ -498,7 +540,7 @@ export function renderSuggestionsSection(host) {
                       host._suggestionsVisibleCount = visibleCount + 10;
                     }}
                   >
-                    Show more suggestions
+                    ${host._t("suggestions_show_more", "Show more suggestions")}
                   </button>
                 `
               : ""}

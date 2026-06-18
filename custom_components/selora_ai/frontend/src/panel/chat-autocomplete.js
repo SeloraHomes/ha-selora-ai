@@ -70,73 +70,380 @@ const DOMAIN_ICONS = {
 // typed an actuating verb that signals they're addressing a controllable
 // thing. Power users who want to bypass natural-language heuristics can
 // use the explicit `@` trigger to query any kind.
-const TRIGGERS = [
-  // Universal explicit trigger — `@` opens devices regardless of context.
-  // `includeAreas` adds the area registry to the same dropdown so the
-  // user can pick "Bedroom" the area as easily as "Bed Light" the device.
+// Universal triggers — fire regardless of UI language.
+// `@` opens devices+areas dropdown as an explicit power-user shortcut.
+const BASE_TRIGGERS = [
   { kind: "device", pattern: /(?:^|\s)@$/, includeAreas: true },
-
-  // Areas — "in the kitchen", "in kitchen", "lights of the kitchen"
-  { kind: "area", pattern: /\bin (?:the |a )?$/i },
-  { kind: "area", pattern: /\bof (?:the |a )?$/i },
-
-  // Scenes — "activate movie night", "scene cozy", "set the scene cozy"
-  { kind: "scene", pattern: /\bactivate $/i },
-  { kind: "scene", pattern: /\bset (?:the )?scene $/i },
-  { kind: "scene", pattern: /\bscene $/i },
-
-  // Automations — "run morning routine", "trigger lights off"
-  { kind: "automation", pattern: /\brun $/i },
-  { kind: "automation", pattern: /\btrigger $/i },
-  { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
-
-  // Devices — verb-led only, grouped by the domains each verb actually
-  // operates on. "lock the …" shouldn't suggest sensors or lights;
-  // "dim the …" shouldn't suggest doors. Domain hints keep the
-  // dropdown short and unambiguous. `turn on/off` and `set` stay
-  // unconstrained because they apply to virtually any actuating entity.
-  {
-    kind: "device",
-    pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
-    domains: ["lock"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
-    domains: ["light"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:open|close) (?:the |my )?$/i,
-    domains: ["cover", "lock"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
-    domains: ["media_player"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:start|stop) (?:the |my )?$/i,
-    domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-  },
-  // Generic actuation — no domain constraint. Also surface areas so
-  // "turn on the bedroom" can disambiguate into the Bedroom area
-  // (i.e. all devices in it) instead of forcing the LLM to guess.
-  {
-    kind: "device",
-    pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
-    includeAreas: true,
-  },
-  // Bare "the " / "my " as a fallback. These fire in plenty of regular
-  // prose ("tell me the weather"), so we lean on the 3-char minimum
-  // and the no-match guard to stay quiet: the dropdown only opens when
-  // a typed-3+chars query actually matches a device or area name.
-  // That covers natural phrasings like "Create an automation with the
-  // kitchen's ceiling lights" without a verb up front.
-  { kind: "device", pattern: /\bthe $/i, includeAreas: true },
-  { kind: "device", pattern: /\bmy $/i, includeAreas: true },
 ];
+
+// Locale-specific intent-driven triggers. Each list mirrors the English
+// semantics: areas via "in/of the", scenes via "activate/scene", automations
+// via "run/trigger/execute", devices via verb-led patterns and bare articles.
+// Adding a locale: copy the EN block, translate verbs/articles, keep regex
+// shape (word-boundary leading, trailing `$` at caret).
+const LOCALE_TRIGGERS = {
+  en: [
+    { kind: "area", pattern: /\bin (?:the |a )?$/i },
+    { kind: "area", pattern: /\bof (?:the |a )?$/i },
+    { kind: "scene", pattern: /\bactivate $/i },
+    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+    { kind: "scene", pattern: /\bscene $/i },
+    { kind: "automation", pattern: /\brun $/i },
+    { kind: "automation", pattern: /\btrigger $/i },
+    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|close) (?:the |my )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:the |my )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bthe $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmy $/i, includeAreas: true },
+  ],
+  fr: [
+    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
+    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
+    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
+    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
+    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
+    {
+      kind: "automation",
+      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\ble $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\bles $/i, includeAreas: true },
+    { kind: "device", pattern: /\bl['’]$/i, includeAreas: true },
+    { kind: "device", pattern: /\bmon $/i, includeAreas: true },
+    { kind: "device", pattern: /\bma $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmes $/i, includeAreas: true },
+  ],
+  de: [
+    { kind: "area", pattern: /\bim $/i },
+    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
+    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
+    { kind: "scene", pattern: /\bSzene $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
+    },
+    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdimme (?:die |das |meine )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bdie $/i, includeAreas: true },
+    { kind: "device", pattern: /\bder $/i, includeAreas: true },
+    { kind: "device", pattern: /\bdas $/i, includeAreas: true },
+    { kind: "device", pattern: /\bden $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmein(?:e|en|er|em)? $/i, includeAreas: true },
+  ],
+  es: [
+    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
+    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
+    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
+    { kind: "scene", pattern: /\bescena $/i },
+    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
+    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bel $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\blos $/i, includeAreas: true },
+    { kind: "device", pattern: /\blas $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmi $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmis $/i, includeAreas: true },
+  ],
+  it: [
+    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
+    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
+    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
+    { kind: "scene", pattern: /\bscena $/i },
+    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bil $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\bi $/i, includeAreas: true },
+    { kind: "device", pattern: /\ble $/i, includeAreas: true },
+    { kind: "device", pattern: /\bgli $/i, includeAreas: true },
+    { kind: "device", pattern: /\blo $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmio $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmia $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmiei $/i, includeAreas: true },
+  ],
+  nl: [
+    { kind: "area", pattern: /\bin (?:de |het )?$/i },
+    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
+    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdim (?:de |het |mijn )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bde $/i, includeAreas: true },
+    { kind: "device", pattern: /\bhet $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmijn $/i, includeAreas: true },
+  ],
+  hu: [
+    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
+    { kind: "scene", pattern: /\bjelenet $/i },
+    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
+    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\ba $/i, includeAreas: true },
+    { kind: "device", pattern: /\baz $/i, includeAreas: true },
+  ],
+};
+
+// Rewrite a trigger regex so its leading `\b` honours Unicode word
+// chars. JS `\b` is ASCII-only — for verbs that start with an accented
+// letter (French `éteins`, German `öffne`, Hungarian `állítsd`), `\b`
+// treats both the preceding space *and* the leading accented letter
+// as non-word characters, so the boundary doesn't fire and the verb
+// never opens device autocomplete. Replacing the leading `\b` with a
+// Unicode-aware negative lookbehind on letters/digits/underscore
+// reproduces the intent — match at start-of-string or after any
+// non-letter char — and the `u` flag opts the rest of the pattern
+// into Unicode semantics for `\b` elsewhere too.
+function _toUnicodeBoundary(re) {
+  let src = re.source;
+  if (src.startsWith("\\b")) {
+    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
+  }
+  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
+  return new RegExp(src, flags);
+}
+
+// Patch every trigger pattern in place once at module load — cheap,
+// done once per page, and keeps the literal-regex authoring style
+// readable above (writing `/\b…/i` rather than `new RegExp(...)`
+// everywhere is the path of least friction when contributors add a
+// locale or a new verb).
+for (const t of BASE_TRIGGERS) {
+  t.pattern = _toUnicodeBoundary(t.pattern);
+}
+for (const list of Object.values(LOCALE_TRIGGERS)) {
+  for (const t of list) {
+    t.pattern = _toUnicodeBoundary(t.pattern);
+  }
+}
+
+function _langKey(lang) {
+  const base = String(lang || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return LOCALE_TRIGGERS[base] ? base : "en";
+}
+
+function _triggersFor(lang) {
+  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey(lang)]];
+}
 
 // Stop chars that end the "query being typed" — newline and sentence
 // terminators only. Spaces are allowed because friendly names like
@@ -158,73 +465,426 @@ const MAX_QUERY_LEN = 40;
 // intent. The longer form is still reachable: once the user has
 // typed "automation", the matcher returns null (already complete);
 // typing one more "s" past it bypasses the ghost entirely.
-const GHOST_VOCABULARY = [
-  "automation",
-  "automations",
-  "trigger",
-  "triggers",
-  "condition",
-  "conditions",
-  "action",
-  "actions",
-  "scene",
-  "scenes",
-  "script",
-  "scripts",
-  "device",
-  "devices",
-  "entity",
-  "entities",
-  "schedule",
-  "weekday",
-  "weekdays",
-  "weekend",
-  "weekends",
-  "midnight",
-  "morning",
-  "afternoon",
-  "evening",
-  "sunrise",
-  "sunset",
-  "minutes",
-  "hours",
-  "seconds",
-  "temperature",
-  "brightness",
-  "thermostat",
-  "lights",
-  "lighting",
-  "bedroom",
-  "bathroom",
-  "kitchen",
-  "living",
-  "garage",
-  "office",
-  "hallway",
-  "basement",
-  "downstairs",
-  "upstairs",
-  "outside",
-  "create",
-  "suggest",
-  "notify",
-  "notification",
-  "between",
-  "before",
-  "after",
-  "during",
-  "while",
-  "everyone",
-  "nobody",
-].sort((a, b) => a.length - b.length);
+const GHOST_VOCABULARY_BY_LANG = {
+  en: [
+    "automation",
+    "automations",
+    "trigger",
+    "triggers",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scene",
+    "scenes",
+    "script",
+    "scripts",
+    "device",
+    "devices",
+    "entity",
+    "entities",
+    "schedule",
+    "weekday",
+    "weekdays",
+    "weekend",
+    "weekends",
+    "midnight",
+    "morning",
+    "afternoon",
+    "evening",
+    "sunrise",
+    "sunset",
+    "minutes",
+    "hours",
+    "seconds",
+    "temperature",
+    "brightness",
+    "thermostat",
+    "lights",
+    "lighting",
+    "bedroom",
+    "bathroom",
+    "kitchen",
+    "living",
+    "garage",
+    "office",
+    "hallway",
+    "basement",
+    "downstairs",
+    "upstairs",
+    "outside",
+    "create",
+    "suggest",
+    "notify",
+    "notification",
+    "between",
+    "before",
+    "after",
+    "during",
+    "while",
+    "everyone",
+    "nobody",
+  ],
+  fr: [
+    "automatisation",
+    "automatisations",
+    "déclencheur",
+    "déclencheurs",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scène",
+    "scènes",
+    "script",
+    "scripts",
+    "appareil",
+    "appareils",
+    "entité",
+    "entités",
+    "planification",
+    "semaine",
+    "week-end",
+    "minuit",
+    "matin",
+    "après-midi",
+    "soir",
+    "lever",
+    "coucher",
+    "minutes",
+    "heures",
+    "secondes",
+    "température",
+    "luminosité",
+    "thermostat",
+    "lumière",
+    "lumières",
+    "éclairage",
+    "chambre",
+    "salle de bains",
+    "cuisine",
+    "salon",
+    "garage",
+    "bureau",
+    "couloir",
+    "sous-sol",
+    "étage",
+    "rez-de-chaussée",
+    "extérieur",
+    "créer",
+    "suggérer",
+    "notifier",
+    "notification",
+    "entre",
+    "avant",
+    "après",
+    "pendant",
+    "tout le monde",
+    "personne",
+  ],
+  de: [
+    "Automatisierung",
+    "Automatisierungen",
+    "Auslöser",
+    "Bedingung",
+    "Bedingungen",
+    "Aktion",
+    "Aktionen",
+    "Szene",
+    "Szenen",
+    "Skript",
+    "Skripte",
+    "Gerät",
+    "Geräte",
+    "Entität",
+    "Entitäten",
+    "Zeitplan",
+    "Wochentag",
+    "Wochenende",
+    "Mitternacht",
+    "Morgen",
+    "Nachmittag",
+    "Abend",
+    "Sonnenaufgang",
+    "Sonnenuntergang",
+    "Minuten",
+    "Stunden",
+    "Sekunden",
+    "Temperatur",
+    "Helligkeit",
+    "Thermostat",
+    "Licht",
+    "Lichter",
+    "Beleuchtung",
+    "Schlafzimmer",
+    "Badezimmer",
+    "Küche",
+    "Wohnzimmer",
+    "Garage",
+    "Büro",
+    "Flur",
+    "Keller",
+    "draußen",
+    "erstelle",
+    "vorschlagen",
+    "benachrichtigen",
+    "Benachrichtigung",
+    "zwischen",
+    "vor",
+    "nach",
+    "während",
+    "jeder",
+    "niemand",
+  ],
+  es: [
+    "automatización",
+    "automatizaciones",
+    "disparador",
+    "disparadores",
+    "condición",
+    "condiciones",
+    "acción",
+    "acciones",
+    "escena",
+    "escenas",
+    "script",
+    "scripts",
+    "dispositivo",
+    "dispositivos",
+    "entidad",
+    "entidades",
+    "programación",
+    "semana",
+    "fin de semana",
+    "medianoche",
+    "mañana",
+    "tarde",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "minutos",
+    "horas",
+    "segundos",
+    "temperatura",
+    "brillo",
+    "termostato",
+    "luz",
+    "luces",
+    "iluminación",
+    "dormitorio",
+    "baño",
+    "cocina",
+    "salón",
+    "garaje",
+    "oficina",
+    "pasillo",
+    "sótano",
+    "exterior",
+    "crear",
+    "sugerir",
+    "notificar",
+    "notificación",
+    "entre",
+    "antes",
+    "después",
+    "durante",
+    "mientras",
+    "todos",
+    "nadie",
+  ],
+  it: [
+    "automazione",
+    "automazioni",
+    "trigger",
+    "condizione",
+    "condizioni",
+    "azione",
+    "azioni",
+    "scena",
+    "scene",
+    "script",
+    "dispositivo",
+    "dispositivi",
+    "entità",
+    "pianificazione",
+    "settimana",
+    "fine settimana",
+    "mezzanotte",
+    "mattina",
+    "pomeriggio",
+    "sera",
+    "alba",
+    "tramonto",
+    "minuti",
+    "ore",
+    "secondi",
+    "temperatura",
+    "luminosità",
+    "termostato",
+    "luce",
+    "luci",
+    "illuminazione",
+    "camera",
+    "bagno",
+    "cucina",
+    "soggiorno",
+    "garage",
+    "ufficio",
+    "corridoio",
+    "cantina",
+    "esterno",
+    "crea",
+    "suggerisci",
+    "notifica",
+    "tra",
+    "prima",
+    "dopo",
+    "durante",
+    "mentre",
+    "tutti",
+    "nessuno",
+  ],
+  nl: [
+    "automatisering",
+    "automatiseringen",
+    "trigger",
+    "triggers",
+    "voorwaarde",
+    "voorwaarden",
+    "actie",
+    "acties",
+    "scène",
+    "scènes",
+    "script",
+    "scripts",
+    "apparaat",
+    "apparaten",
+    "entiteit",
+    "entiteiten",
+    "planning",
+    "weekdag",
+    "weekend",
+    "middernacht",
+    "ochtend",
+    "middag",
+    "avond",
+    "zonsopgang",
+    "zonsondergang",
+    "minuten",
+    "uren",
+    "seconden",
+    "temperatuur",
+    "helderheid",
+    "thermostaat",
+    "licht",
+    "lichten",
+    "verlichting",
+    "slaapkamer",
+    "badkamer",
+    "keuken",
+    "woonkamer",
+    "garage",
+    "kantoor",
+    "gang",
+    "kelder",
+    "buiten",
+    "maak",
+    "suggereer",
+    "meld",
+    "melding",
+    "tussen",
+    "voor",
+    "na",
+    "tijdens",
+    "terwijl",
+    "iedereen",
+    "niemand",
+  ],
+  hu: [
+    "automatizmus",
+    "automatizmusok",
+    "trigger",
+    "triggerek",
+    "feltétel",
+    "feltételek",
+    "művelet",
+    "műveletek",
+    "jelenet",
+    "jelenetek",
+    "szkript",
+    "szkriptek",
+    "eszköz",
+    "eszközök",
+    "entitás",
+    "entitások",
+    "ütemezés",
+    "hétköznap",
+    "hétvége",
+    "éjfél",
+    "reggel",
+    "délután",
+    "este",
+    "napkelte",
+    "napnyugta",
+    "percek",
+    "órák",
+    "másodpercek",
+    "hőmérséklet",
+    "fényerő",
+    "termosztát",
+    "fény",
+    "fények",
+    "világítás",
+    "hálószoba",
+    "fürdőszoba",
+    "konyha",
+    "nappali",
+    "garázs",
+    "iroda",
+    "folyosó",
+    "pince",
+    "kint",
+    "létrehoz",
+    "javasol",
+    "értesít",
+    "értesítés",
+    "között",
+    "előtt",
+    "után",
+    "alatt",
+    "közben",
+    "mindenki",
+    "senki",
+  ],
+};
+
+// Pre-sort once per locale: shortest-first so the matcher picks the
+// shortest completion (e.g. "automation" not "automations" for "auto").
+const _ghostSorted = {};
+function _ghostVocabFor(lang) {
+  const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  if (!_ghostSorted[key]) {
+    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
+      (a, b) => a.length - b.length,
+    );
+  }
+  return _ghostSorted[key];
+}
 
 const GHOST_MIN_PREFIX = 3;
 
 // Find the partial word ending at the caret. Returns { word, start } or null.
+// Unicode word-char test. `\w` is ASCII-only in JS regex; localized
+// ghost vocabularies contain accented characters (German `Gerät`,
+// French `déclencheur`, Italian `temperatura`) so an ASCII walk
+// would stop at the accent and the prefix detector would return an
+// empty word — no ghost suggestion ever surfaces for those terms.
+const _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
+
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
   let i = caret;
-  while (i > 0 && /\w/.test(text[i - 1])) i--;
+  while (i > 0 && _WORD_CHAR_RE.test(text[i - 1])) i--;
   const word = text.slice(i, caret);
   if (!word) return null;
   return { word, start: i };
@@ -235,18 +895,23 @@ function _partialWordAt(text, caret) {
 // the canonical (lowercase) form of the vocabulary entry — which is
 // what users typing "Create an Auto" expect to see continued as
 // "mation" (lowercase, since that's how they tend to type the tail).
-export function findGhostSuggestion(text, caret) {
+export function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
   // Ignore when the next char is a word char — we're mid-word, not
   // at a place where extending makes sense.
-  if (caret < text.length && /\w/.test(text[caret])) return null;
+  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
   const part = _partialWordAt(text, caret);
   if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
   const lower = part.word.toLowerCase();
-  for (const w of GHOST_VOCABULARY) {
-    if (w === lower) return null; // already complete
-    if (w.startsWith(lower)) {
-      return { suffix: w.slice(lower.length), word: w, start: part.start };
+  for (const w of _ghostVocabFor(lang)) {
+    const wLower = w.toLowerCase();
+    if (wLower === lower) return null; // already complete
+    if (wLower.startsWith(lower)) {
+      return {
+        suffix: w.slice(part.word.length),
+        word: w,
+        start: part.start,
+      };
     }
   }
   return null;
@@ -258,7 +923,48 @@ export function findGhostSuggestion(text, caret) {
 // suppress the dropdown until they type a real word. Without this the
 // dropdown pops up the instant the article is complete, even though
 // no device has been named yet.
-const ARTICLE_WORDS = new Set(["the", "my", "a", "an"]);
+const ARTICLE_WORDS_BY_LANG = {
+  en: ["the", "my", "a", "an"],
+  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
+  de: [
+    "die",
+    "der",
+    "das",
+    "den",
+    "dem",
+    "mein",
+    "meine",
+    "meinen",
+    "meiner",
+    "meinem",
+    "ein",
+    "eine",
+    "einen",
+  ],
+  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
+  it: [
+    "il",
+    "la",
+    "lo",
+    "i",
+    "le",
+    "gli",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "un",
+    "una",
+    "uno",
+  ],
+  nl: ["de", "het", "een", "mijn"],
+  hu: ["a", "az", "egy"],
+};
+
+function _articleWordsFor(lang) {
+  const key = ARTICLE_WORDS_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  return new Set(ARTICLE_WORDS_BY_LANG[key]);
+}
 
 // ── Trigger detection ─────────────────────────────────────────────────
 
@@ -266,9 +972,11 @@ const ARTICLE_WORDS = new Set(["the", "my", "a", "an"]);
 // or null if none. Returns { kind, query, start, end } where [start, end)
 // is the slice of `text` that should be REPLACED when the user picks a
 // suggestion (i.e. the partial query, NOT the trigger phrase itself).
-export function detectTrigger(text, caret) {
+export function detectTrigger(text, caret, lang) {
   if (typeof text !== "string" || caret == null || caret < 0) return null;
   const before = text.slice(0, caret);
+  const triggers = _triggersFor(lang);
+  const articleWords = _articleWordsFor(lang);
 
   // The query is whatever the user has typed since the last whitespace/
   // newline-bounded trigger phrase. We scan back from the caret to find the
@@ -299,7 +1007,7 @@ export function detectTrigger(text, caret) {
   let best = null;
   for (let qs = queryStart; qs <= caret; qs++) {
     const prefix = before.slice(0, qs);
-    for (const trig of TRIGGERS) {
+    for (const trig of triggers) {
       if (trig.pattern.test(prefix)) {
         best = {
           kind: trig.kind,
@@ -322,7 +1030,7 @@ export function detectTrigger(text, caret) {
   // If the user has typed only an article ("turn on the"), the verb-led
   // trigger matched the shorter "turn on " form and treated "the" as the
   // query. Wait until they start typing the device name.
-  if (ARTICLE_WORDS.has(best.query.trim().toLowerCase())) return null;
+  if (articleWords.has(best.query.trim().toLowerCase())) return null;
   return best;
 }
 

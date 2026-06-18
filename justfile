@@ -13,6 +13,7 @@ default:
 
 # Build the frontend (panel.js + card.js)
 build:
+    cd {{ frontend_dir }} && [ -d node_modules/esbuild ] || npm ci
     cd {{ frontend_dir }} && npm run build
 
 # Install frontend dependencies

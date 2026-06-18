@@ -124,8 +124,14 @@ export function describeCall(host, call) {
 
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
-  const imperative = forms?.imperative || "Run";
-  const pastVerb = forms?.past || "Ran";
+  // describeCall is reachable from approval cards that pass a stub `host`
+  // (no `_t`) when the proposal arrives before the LitElement is fully
+  // wired. Guard the helper call so an unknown service like an elevated
+  // `cover.open_cover` doesn't throw and blank the card.
+  const t =
+    typeof host?._t === "function" ? (k, fb) => host._t(k, fb) : (_k, fb) => fb;
+  const imperative = forms?.imperative || t("action_format_run_verb", "Run");
+  const pastVerb = forms?.past || t("action_format_ran_verb", "Ran");
 
   if (ids.length) {
     const names = ids.map((eid) => _friendlyName(host, eid));

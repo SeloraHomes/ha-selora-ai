@@ -9,6 +9,7 @@ import { sharedScrollbar } from "./shared/styles/scrollbar.css.js";
 import { allPanelStyles } from "./panel/styles/index.css.js";
 import "./shared/particles.js";
 import { formatDate } from "./shared/date-utils.js";
+import { localize as i18nLocalize } from "./shared/i18n.js";
 import {
   renderChat,
   renderMessage,
@@ -824,7 +825,7 @@ class SeloraAIPanel extends LitElement {
     if (p === "openrouter") return "OpenRouter";
     if (p === "gemini") return "Gemini";
     if (p === "ollama") return "Ollama";
-    return "your LLM provider";
+    return this._t("panel_quota_provider_default", "your LLM provider");
   }
 
   _renderQuotaBanner() {
@@ -837,14 +838,18 @@ class SeloraAIPanel extends LitElement {
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
-          <strong>${this._quotaProviderLabel()} quota reached.</strong>
+          <strong
+            >${this._quotaProviderLabel()}
+            ${this._t("panel_quota_reached", "quota reached.")}</strong
+          >
           ${remaining > 0
-            ? html` Try again in ${remaining}s.`
-            : " Retrying now…"}
+            ? html` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+              ${remaining}s.`
+            : ` ${this._t("panel_quota_retrying_now", "Retrying now…")}`}
         </div>
         <button
           class="quota-banner-close"
-          aria-label="Dismiss"
+          aria-label=${this._t("panel_quota_dismiss", "Dismiss")}
           @click=${() => this._dismissQuotaAlert()}
         >
           <ha-icon icon="mdi:close"></ha-icon>
@@ -985,7 +990,10 @@ class SeloraAIPanel extends LitElement {
         await this._loadConfig();
         this._llmSaveStatus = {
           type: "success",
-          message: "Switched to Selora Cloud.",
+          message: this._t(
+            "panel_llm_switched_selora_cloud",
+            "Switched to Selora Cloud.",
+          ),
         };
         setTimeout(() => {
           this._llmSaveStatus = null;
@@ -1037,7 +1045,12 @@ class SeloraAIPanel extends LitElement {
         if (!result.valid) {
           this._llmSaveStatus = {
             type: "error",
-            message: result.error || "Invalid API key or provider unreachable.",
+            message:
+              result.error ||
+              this._t(
+                "panel_llm_invalid_key",
+                "Invalid API key or provider unreachable.",
+              ),
           };
           return;
         }
@@ -1050,7 +1063,10 @@ class SeloraAIPanel extends LitElement {
       this._newApiKey = "";
       this._showApiKeyInput = false;
       await this._loadConfig();
-      this._llmSaveStatus = { type: "success", message: "LLM settings saved." };
+      this._llmSaveStatus = {
+        type: "success",
+        message: this._t("panel_llm_settings_saved", "LLM settings saved."),
+      };
       setTimeout(() => {
         this._llmSaveStatus = null;
         this.requestUpdate();
@@ -1091,7 +1107,10 @@ class SeloraAIPanel extends LitElement {
         config: payload,
       });
       await this._loadConfig();
-      this._showToast("Advanced settings saved.", "success");
+      this._showToast(
+        this._t("panel_advanced_settings_saved", "Advanced settings saved."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to save: " + err.message, "error");
     } finally {
@@ -1209,7 +1228,9 @@ class SeloraAIPanel extends LitElement {
         if (data.ok) {
           onSuccess();
         } else {
-          onError(data.error || "Linking failed.");
+          onError(
+            data.error || this._t("panel_linking_failed", "Linking failed."),
+          );
         }
       }, "selora_ai_oauth_linked");
 
@@ -1242,13 +1263,18 @@ class SeloraAIPanel extends LitElement {
       timeout = setTimeout(() => {
         cleanup();
         onError(
-          "Linking timed out. Please try again — make sure you finish " +
-            "signing in within 10 minutes.",
+          this._t(
+            "panel_linking_timed_out",
+            "Linking timed out. Please try again — make sure you finish signing in within 10 minutes.",
+          ),
         );
       }, this._OAUTH_LINK_TIMEOUT_MS);
     } catch (err) {
       cleanup();
-      onError(err.message || "Failed to start linking.");
+      onError(
+        err.message ||
+          this._t("panel_linking_start_failed", "Failed to start linking."),
+      );
     }
   }
 
@@ -1263,7 +1289,13 @@ class SeloraAIPanel extends LitElement {
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingConnect = false;
-        this._showToast("Selora Connect linked successfully.", "success");
+        this._showToast(
+          this._t(
+            "panel_connect_linked_success",
+            "Selora Connect linked successfully.",
+          ),
+          "success",
+        );
         this.requestUpdate();
       },
       onError: (msg) => {
@@ -1276,7 +1308,10 @@ class SeloraAIPanel extends LitElement {
 
   async _unlinkConnect() {
     const ok = window.confirm(
-      "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+      this._t(
+        "panel_unlink_connect_confirm",
+        "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+      ),
     );
     if (!ok) {
       // The toggle has already flipped to "off" in the DOM — refresh
@@ -1288,7 +1323,10 @@ class SeloraAIPanel extends LitElement {
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
-      this._showToast("Selora Connect unlinked.", "success");
+      this._showToast(
+        this._t("panel_connect_unlinked", "Selora Connect unlinked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -1320,7 +1358,13 @@ class SeloraAIPanel extends LitElement {
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingAIGateway = false;
-        this._showToast("Selora Cloud linked successfully.", "success");
+        this._showToast(
+          this._t(
+            "panel_cloud_linked_success",
+            "Selora Cloud linked successfully.",
+          ),
+          "success",
+        );
         this.requestUpdate();
       },
       onError: (msg) => {
@@ -1333,13 +1377,19 @@ class SeloraAIPanel extends LitElement {
 
   async _unlinkAIGateway() {
     const ok = window.confirm(
-      "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+      this._t(
+        "panel_unlink_cloud_confirm",
+        "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+      ),
     );
     if (!ok) return;
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
       await this._loadConfig();
-      this._showToast("Selora Cloud unlinked.", "success");
+      this._showToast(
+        this._t("panel_cloud_unlinked", "Selora Cloud unlinked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -1381,7 +1431,10 @@ class SeloraAIPanel extends LitElement {
       const result = await this.hass.callWS(payload);
       this._createdToken = result.token;
       await this._loadMcpTokens();
-      this._showToast("MCP token created.", "success");
+      this._showToast(
+        this._t("panel_mcp_token_created", "MCP token created."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to create token: " + err.message, "error");
       this._showCreateTokenDialog = false;
@@ -1400,7 +1453,10 @@ class SeloraAIPanel extends LitElement {
         token_id: tokenId,
       });
       await this._loadMcpTokens();
-      this._showToast("Token revoked.", "success");
+      this._showToast(
+        this._t("panel_mcp_token_revoked", "Token revoked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to revoke token: " + err.message, "error");
     } finally {
@@ -1437,7 +1493,10 @@ class SeloraAIPanel extends LitElement {
         key: grantKey,
       });
       await this._loadApprovalGrants();
-      this._showToast("Approval revoked.", "success");
+      this._showToast(
+        this._t("panel_approval_revoked", "Approval revoked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to revoke approval: " + err.message, "error");
     } finally {
@@ -1515,9 +1574,7 @@ class SeloraAIPanel extends LitElement {
   }
 
   _t(key, fallback) {
-    return (
-      this.hass?.localize?.(`component.selora_ai.common.${key}`) || fallback
-    );
+    return i18nLocalize(this.hass, key, fallback);
   }
 
   _openFeedback() {
@@ -1943,7 +2000,8 @@ class SeloraAIPanel extends LitElement {
                 : "mdi:help-circle-outline";
               icon.className = "selora-area-icon";
               const label = document.createElement("span");
-              label.textContent = areaName || "Unassigned";
+              label.textContent =
+                areaName || this._t("area_unassigned", "Unassigned");
               header.append(icon, label);
               grid.appendChild(header);
             }
@@ -2403,7 +2461,9 @@ class SeloraAIPanel extends LitElement {
 
   async _openDeviceDetail(deviceId) {
     if (!deviceId || !this.hass) return;
-    this._deviceDetail = { name: "Loading..." };
+    this._deviceDetail = {
+      name: this._t("panel_device_loading", "Loading..."),
+    };
     this._deviceDetailLoading = true;
     try {
       const result = await this.hass.connection.sendMessagePromise({
@@ -2412,7 +2472,10 @@ class SeloraAIPanel extends LitElement {
       });
       this._deviceDetail = result;
     } catch (err) {
-      this._deviceDetail = { name: "Error loading device", error: err.message };
+      this._deviceDetail = {
+        name: this._t("panel_device_error_loading", "Error loading device"),
+        error: err.message,
+      };
     }
     this._deviceDetailLoading = false;
     await this.updateComplete;
@@ -2686,7 +2749,7 @@ class SeloraAIPanel extends LitElement {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
-                >Conversations</span
+                >${this._t("panel_tab_conversations", "Conversations")}</span
               >
             </div>
             <div
@@ -2699,7 +2762,7 @@ class SeloraAIPanel extends LitElement {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:robot-outline" class="tab-icon"></ha-icon
-                >Automations</span
+                >${this._t("panel_tab_automations", "Automations")}</span
               >
             </div>
             <div
@@ -2712,7 +2775,7 @@ class SeloraAIPanel extends LitElement {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:palette-outline" class="tab-icon"></ha-icon
-                >Scenes</span
+                >${this._t("panel_tab_scenes", "Scenes")}</span
               >
             </div>
           </div>
@@ -2720,8 +2783,8 @@ class SeloraAIPanel extends LitElement {
           ${this._activeTab !== "chat" || this._messages.length > 0
             ? html`<button
                 class="header-new-chat"
-                title="New chat"
-                aria-label="New chat"
+                title=${this._t("nav_new_chat", "New chat")}
+                aria-label=${this._t("nav_new_chat", "New chat")}
                 @click=${() => {
                   this._showOverflowMenu = false;
                   if (this._messages.length === 0) {
@@ -2733,13 +2796,15 @@ class SeloraAIPanel extends LitElement {
                 }}
               >
                 <ha-icon icon="mdi:square-edit-outline"></ha-icon>
-                <span class="header-new-chat-label">New chat</span>
+                <span class="header-new-chat-label"
+                  >${this._t("nav_new_chat", "New chat")}</span
+                >
               </button>`
             : ""}
           <div class="overflow-btn-wrap">
             <button
               class="overflow-btn selora-menu-btn"
-              aria-label="Selora menu"
+              aria-label=${this._t("nav_selora_menu", "Selora menu")}
               @click=${(e) => {
                 e.stopPropagation();
                 const opening = !this._showOverflowMenu;
@@ -2765,7 +2830,7 @@ class SeloraAIPanel extends LitElement {
                         }}
                       >
                         <ha-icon icon="mdi:chat-outline"></ha-icon>
-                        Conversations
+                        ${this._t("nav_conversations", "Conversations")}
                       </button>
                       <button
                         class="overflow-item ${this._activeTab === "automations"
@@ -2779,7 +2844,7 @@ class SeloraAIPanel extends LitElement {
                         }}
                       >
                         <ha-icon icon="mdi:robot-outline"></ha-icon>
-                        Automations
+                        ${this._t("nav_automations", "Automations")}
                       </button>
                       <button
                         class="overflow-item ${this._activeTab === "scenes"
@@ -2793,7 +2858,7 @@ class SeloraAIPanel extends LitElement {
                         }}
                       >
                         <ha-icon icon="mdi:palette-outline"></ha-icon>
-                        Scenes
+                        ${this._t("nav_scenes", "Scenes")}
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -2809,7 +2874,7 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:cog-outline"></ha-icon>
-                      Settings
+                      ${this._t("nav_settings", "Settings")}
                     </button>
                     <div class="overflow-divider"></div>
                     <a
@@ -2822,7 +2887,9 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      <span class="overflow-item-label">Documentation</span>
+                      <span class="overflow-item-label"
+                        >${this._t("nav_documentation", "Documentation")}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -2836,7 +2903,12 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      <span class="overflow-item-label">Give Feedback</span>
+                      <span class="overflow-item-label"
+                        >${this._t(
+                          "feedback_button_label",
+                          "Give Feedback",
+                        )}</span
+                      >
                     </button>
                     <a
                       class="overflow-item"
@@ -2848,7 +2920,9 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:github"></ha-icon>
-                      <span class="overflow-item-label">GitHub Issues</span>
+                      <span class="overflow-item-label"
+                        >${this._t("nav_github_issues", "GitHub Issues")}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -2864,7 +2938,12 @@ class SeloraAIPanel extends LitElement {
                       }}
                     >
                       <ha-icon icon="mdi:gitlab"></ha-icon>
-                      <span class="overflow-item-label">GitLab Repository</span>
+                      <span class="overflow-item-label"
+                        >${this._t(
+                          "nav_gitlab_repo",
+                          "GitLab Repository",
+                        )}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -2880,7 +2959,9 @@ class SeloraAIPanel extends LitElement {
       <div class="body">
         <div class="sidebar ${this._showSidebar ? "open" : ""}" part="sidebar">
           <div class="sidebar-header">
-            <span>Conversations</span>
+            <span
+              >${this._t("panel_sidebar_conversations", "Conversations")}</span
+            >
             <div
               style="display:flex;align-items:center;gap:6px;margin-left:auto;"
             >
@@ -2895,7 +2976,7 @@ class SeloraAIPanel extends LitElement {
                               this._selectedSessionIds = {};
                             }}
                           >
-                            Done
+                            ${this._t("panel_sidebar_done", "Done")}
                           </button>
                         `
                       : html`
@@ -2905,7 +2986,7 @@ class SeloraAIPanel extends LitElement {
                               this._selectChatsMode = true;
                             }}
                           >
-                            Select
+                            ${this._t("panel_sidebar_select", "Select")}
                           </button>
                         `}
                   `
@@ -2931,7 +3012,12 @@ class SeloraAIPanel extends LitElement {
                         (s) => this._selectedSessionIds[s.id],
                       )}
                     />
-                    <span>Select all</span>
+                    <span
+                      >${this._t(
+                        "panel_sidebar_select_all",
+                        "Select all",
+                      )}</span
+                    >
                   </label>
                   <button
                     class="btn-delete-selected"
@@ -2944,7 +3030,7 @@ class SeloraAIPanel extends LitElement {
                       icon="mdi:delete-outline"
                       style="--mdc-icon-size:14px;"
                     ></ha-icon>
-                    Delete
+                    ${this._t("panel_sidebar_delete", "Delete")}
                     (${Object.values(this._selectedSessionIds).filter(Boolean)
                       .length})
                   </button>
@@ -2960,13 +3046,16 @@ class SeloraAIPanel extends LitElement {
                     icon="mdi:plus"
                     style="--mdc-icon-size:16px;"
                   ></ha-icon>
-                  New Chat
+                  ${this._t("panel_sidebar_new_chat", "New Chat")}
                 </button>
               `}
           <div class="session-list">
             ${this._sessions.length === 0
               ? html`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
-                  No conversations yet.
+                  ${this._t(
+                    "panel_sidebar_no_conversations",
+                    "No conversations yet.",
+                  )}
                 </div>`
               : this._sessions.map(
                   (s) => html`
@@ -2986,7 +3075,10 @@ class SeloraAIPanel extends LitElement {
                         ? html`
                             <div class="session-item session-delete-confirm">
                               <span class="session-delete-confirm-label"
-                                >Delete?</span
+                                >${this._t(
+                                  "panel_session_delete_confirm",
+                                  "Delete?",
+                                )}</span
                               >
                               <div
                                 style="display:flex;gap:6px;margin-left:auto;"
@@ -2999,7 +3091,7 @@ class SeloraAIPanel extends LitElement {
                                     this._confirmDeleteSession();
                                   }}
                                 >
-                                  Delete
+                                  ${this._t("panel_session_delete", "Delete")}
                                 </button>
                                 <button
                                   class="btn btn-outline btn-sm"
@@ -3009,7 +3101,7 @@ class SeloraAIPanel extends LitElement {
                                     this._deleteConfirmSessionId = null;
                                   }}
                                 >
-                                  Cancel
+                                  ${this._t("panel_session_cancel", "Cancel")}
                                 </button>
                               </div>
                             </div>
@@ -3066,7 +3158,10 @@ class SeloraAIPanel extends LitElement {
                                       icon="mdi:delete-outline"
                                       @click=${(e) =>
                                         this._deleteSession(s.id, e)}
-                                      title="Delete"
+                                      title=${this._t(
+                                        "panel_session_delete_title",
+                                        "Delete",
+                                      )}
                                     ></ha-icon>
                                   `
                                 : ""}
@@ -3124,7 +3219,7 @@ class SeloraAIPanel extends LitElement {
                 style="max-width:400px;text-align:center;"
               >
                 <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-                  Delete Conversations
+                  ${this._t("panel_bulk_delete_title", "Delete Conversations")}
                 </div>
                 <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
                   Delete
@@ -3139,14 +3234,14 @@ class SeloraAIPanel extends LitElement {
                       this._deleteConfirmSessionId = null;
                     }}
                   >
-                    Cancel
+                    ${this._t("panel_bulk_delete_cancel", "Cancel")}
                   </button>
                   <button
                     class="btn"
                     style="background:#ef4444;color:#fff;border-color:#ef4444;"
                     @click=${() => this._confirmBulkDeleteSessions()}
                   >
-                    Delete
+                    ${this._t("panel_bulk_delete_confirm", "Delete")}
                   </button>
                 </div>
               </div>

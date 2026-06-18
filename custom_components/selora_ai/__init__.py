@@ -1838,6 +1838,7 @@ def _create_tool_executor(
         vol.Required("type"): "selora_ai/chat",
         vol.Required("message"): str,
         vol.Optional("session_id"): str,
+        vol.Optional("language"): vol.Any(str, None),
     }
 )
 async def _handle_websocket_chat(
@@ -1899,6 +1900,7 @@ async def _handle_websocket_chat(
         scene_context=scenes or None,
         areas=area_names,
         session_id=session_id,
+        language=msg.get("language"),
     )
 
     if "error" in result and result.get("intent") != "answer":
@@ -2015,6 +2017,7 @@ async def _handle_websocket_chat(
         vol.Required("type"): "selora_ai/chat_stream",
         vol.Required("message"): str,
         vol.Optional("session_id"): str,
+        vol.Optional("language"): vol.Any(str, None),
     }
 )
 async def _handle_websocket_chat_stream(
@@ -2187,6 +2190,7 @@ async def _handle_websocket_chat_stream(
                 scene_context=scenes or None,
                 areas=area_names,
                 session_id=session_id,
+                language=msg.get("language"),
             ),
             idle_timeout=effective_idle_timeout,
             max_bytes=STREAM_MAX_BYTES,
@@ -2316,6 +2320,7 @@ async def _handle_websocket_chat_stream(
             tool_log=tool_executor.call_log if tool_executor else None,
             session_id=session_id,
             user_message=user_message,
+            language=msg.get("language"),
         )
 
         intent_type = parsed.get("intent", "answer")
@@ -6075,7 +6080,70 @@ async def _handle_websocket_revoke_mcp_token(
 # resolver and the tool-loop short-circuit (in ``llm_client.client``)
 # pull from the same table — no duplication, no chance for the live
 # bubble and the persisted "Done" message to disagree on wording.
+from .llm_client.command_policy import (  # noqa: E402, PLC0415
+    _SENTENCE_FORMAT_BY_LANG,
+    _normalize_lang,
+)
 from .llm_client.command_policy import past_verb_for as _past_verb_for  # noqa: E402, PLC0415
+
+# Localized footer / empty / error strings for the persisted approval
+# result message. Keys mirror the locales supported elsewhere; missing
+# locales fall through to the English entry.
+_APPROVAL_EMPTY_BY_LANG: dict[str, str] = {
+    "en": "Approved, but nothing ran.",
+    "fr": "Approuvé, mais rien n'a été exécuté.",
+    "de": "Genehmigt, aber nichts wurde ausgeführt.",
+    "es": "Aprobado, pero no se ejecutó nada.",
+    "it": "Approvato, ma non è stato eseguito nulla.",
+    "nl": "Goedgekeurd, maar er is niets uitgevoerd.",
+    "hu": "Jóváhagyva, de semmi sem futott le.",
+}
+
+_APPROVAL_SAVED_BY_LANG: dict[str, str] = {
+    "en": "_Approval saved for future requests._",
+    "fr": "_Approbation enregistrée pour les futures demandes._",
+    "de": "_Genehmigung für zukünftige Anfragen gespeichert._",
+    "es": "_Aprobación guardada para futuras solicitudes._",
+    "it": "_Approvazione salvata per le future richieste._",
+    "nl": "_Goedkeuring opgeslagen voor toekomstige verzoeken._",
+    "hu": "_Jóváhagyás mentve a jövőbeli kérésekhez._",
+}
+
+_APPROVAL_SESSION_BY_LANG: dict[str, str] = {
+    "en": "_Allowed for the rest of this conversation._",
+    "fr": "_Autorisé pour le reste de cette conversation._",
+    "de": "_Für den Rest dieses Gesprächs erlaubt._",
+    "es": "_Permitido para el resto de esta conversación._",
+    "it": "_Consentito per il resto di questa conversazione._",
+    "nl": "_Toegestaan voor de rest van dit gesprek._",
+    "hu": "_A beszélgetés hátralévő részében engedélyezve._",
+}
+
+_APPROVAL_ERRORS_BY_LANG: dict[str, str] = {
+    "en": "Errors:",
+    "fr": "Erreurs :",
+    "de": "Fehler:",
+    "es": "Errores:",
+    "it": "Errori:",
+    "nl": "Fouten:",
+    "hu": "Hibák:",
+}
+
+_APPROVAL_DENIED_BY_LANG: dict[str, str] = {
+    "en": "Request denied. Nothing was executed.",
+    "fr": "Demande refusée. Rien n'a été exécuté.",
+    "de": "Anfrage abgelehnt. Es wurde nichts ausgeführt.",
+    "es": "Solicitud denegada. No se ejecutó nada.",
+    "it": "Richiesta rifiutata. Non è stato eseguito nulla.",
+    "nl": "Verzoek geweigerd. Er is niets uitgevoerd.",
+    "hu": "Kérés elutasítva. Semmi sem futott le.",
+}
+
+
+def _approval_phrase(table: dict[str, str], language: str | None) -> str:
+    """Look up a localized approval-message phrase with EN fallback."""
+    lang = _normalize_lang(language)
+    return table.get(lang, table["en"])
 
 
 def _friendly_name(hass: HomeAssistant, entity_id: str) -> str:
@@ -6090,6 +6158,8 @@ def _build_approval_result_message(
     calls: list[dict[str, Any]],
     executed_indices: set[int],
     scope: str,
+    *,
+    language: str | None = None,
 ) -> tuple[str, list[str]]:
     """Build the persisted "Done" message text + a list of executed entity_ids.
 
@@ -6105,6 +6175,13 @@ def _build_approval_result_message(
     duplicate services (two ``lock.unlock`` targeting different doors,
     where one raised) reports only the one that ran.
     """
+    # Prefer the requesting user's locale (passed in from the WS
+    # message) so the persisted "Done" bubble matches the language
+    # the user saw on the approval card. Falls back to the
+    # server-wide HA locale only when no request locale was provided
+    # (e.g. legacy clients that don't forward `language`).
+    lang = _normalize_lang(language or hass.config.language)
+    fmt = _SENTENCE_FORMAT_BY_LANG.get(lang, _SENTENCE_FORMAT_BY_LANG["en"])
     sentences: list[str] = []
     all_entity_ids: list[str] = []
     for idx, call in enumerate(calls):
@@ -6119,23 +6196,23 @@ def _build_approval_result_message(
             ids = [str(e) for e in raw if isinstance(e, str)]
         else:
             ids = []
-        past = _past_verb_for(service)
+        past = _past_verb_for(service, lang)
         if ids:
             target_text = ", ".join(_friendly_name(hass, eid) for eid in ids)
-            sentences.append(f"{past} {target_text}.")
+            sentences.append(fmt.format(past=past, target=target_text))
             all_entity_ids.extend(ids)
         else:
             # notify.mobile_app_x, script.bedtime — no entity, use the service tail
             tail = service.split(".", 1)[1] if "." in service else service
-            sentences.append(f"{past} {tail}.")
+            sentences.append(fmt.format(past=past, target=tail))
 
-    content = " ".join(sentences) if sentences else "Approved, but nothing ran."
+    content = " ".join(sentences) if sentences else _approval_phrase(_APPROVAL_EMPTY_BY_LANG, lang)
     if all_entity_ids:
         content += f"\n\n[[entities:{','.join(all_entity_ids)}]]"
     if scope == "always":
-        content += "\n\n_Approval saved for future requests._"
+        content += "\n\n" + _approval_phrase(_APPROVAL_SAVED_BY_LANG, lang)
     elif scope == "session":
-        content += "\n\n_Allowed for the rest of this conversation._"
+        content += "\n\n" + _approval_phrase(_APPROVAL_SESSION_BY_LANG, lang)
     return content, all_entity_ids
 
 
@@ -6189,6 +6266,7 @@ def _find_pending_approval(
         # - "all":  grant the service wildcard for any future entity.
         # Ignored for ``once``/``deny`` scopes.
         vol.Optional("entity_scope", default="this"): vol.In(["this", "all"]),
+        vol.Optional("language"): vol.Any(str, None),
     }
 )
 async def _handle_websocket_resolve_approval(
@@ -6237,6 +6315,7 @@ async def _handle_websocket_resolve_approval(
             proposal_id,
             scope,
             entity_scope,
+            language=msg.get("language"),
         )
     finally:
         _in_flight_approvals.discard(proposal_id)
@@ -6252,6 +6331,7 @@ async def _resolve_approval(
     proposal_id: str,
     scope: str,
     entity_scope: str = "this",
+    language: str | None = None,
 ) -> None:
     """Inner resolver — runs inside the in-flight guard."""
     session = await store.get_session(session_id)
@@ -6271,9 +6351,16 @@ async def _resolve_approval(
     user = getattr(connection, "user", None)
     user_id = getattr(user, "id", None)
 
+    # Resolve the effective language ONCE for this resolver call. Both
+    # the deny path (which fires early, before the success path's own
+    # resolution) and the approval-success path below pull from this so
+    # we don't end up with one English sentence next to a localized one
+    # on the same persisted bubble.
+    effective_language = language or hass.config.language
+
     if scope == "deny":
         await store.set_approval_status(session_id, message_index, "denied")
-        denial_text = "Request denied. Nothing was executed."
+        denial_text = _approval_phrase(_APPROVAL_DENIED_BY_LANG, effective_language)
         persisted = await store.append_message(
             session_id, "assistant", denial_text, intent="answer"
         )
@@ -6510,9 +6597,12 @@ async def _resolve_approval(
     # ``lock.unlock`` calls targeting different doors) and one may
     # fail — index-based tracking is the only way to distinguish
     # which specific call ran.
-    result_text, _ = _build_approval_result_message(hass, calls, executed_indices, scope)
+    result_text, _ = _build_approval_result_message(
+        hass, calls, executed_indices, scope, language=effective_language
+    )
     if errors:
-        result_text += f"\n\nErrors: {'; '.join(errors)}"
+        errors_label = _approval_phrase(_APPROVAL_ERRORS_BY_LANG, effective_language)
+        result_text += f"\n\n{errors_label} {'; '.join(errors)}"
     persisted = await store.append_message(session_id, "assistant", result_text, intent="answer")
 
     connection.send_result(

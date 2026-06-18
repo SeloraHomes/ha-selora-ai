@@ -432,18 +432,20 @@ function _renderDashboardSnippet(host, sensors) {
           document.execCommand("copy");
           document.body.removeChild(ta);
           const btn = e.currentTarget;
-          btn.textContent = "Copied!";
+          btn.textContent = host._t("usage_snippet_copied_label", "Copied!");
           setTimeout(() => {
-            btn.textContent = "Copy";
+            btn.textContent = host._t("usage_snippet_copy_button", "Copy");
           }, 1500);
         }}
       >
-        Copy
+        ${host._t("usage_snippet_copy_button", "Copy")}
       </button>
     </div>
     <p class="usage-help" style="margin-top: 8px;">
-      The visual card picker will also find these sensors after the Recorder's
-      first hourly compilation.
+      ${host._t(
+        "usage_snippet_help",
+        "The visual card picker will also find these sensors after the Recorder's first hourly compilation.",
+      )}
     </p>
   `;
 }
@@ -641,7 +643,13 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
     !Number.isFinite(outNum) ||
     outNum < 0
   ) {
-    host._showToast?.("Pricing must be non-negative numbers.", "error");
+    host._showToast?.(
+      host._t(
+        "usage_pricing_invalid_error",
+        "Pricing must be non-negative numbers.",
+      ),
+      "error",
+    );
     return;
   }
   perProvider[model] = [inNum, outNum];
@@ -653,10 +661,18 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
     });
     host._config = { ...host._config, llm_pricing_overrides: current };
     host._pricingEdit = null;
-    host._showToast?.("Pricing override saved.", "success");
+    host._showToast?.(
+      host._t("usage_pricing_saved_toast", "Pricing override saved."),
+      "success",
+    );
     host.requestUpdate();
   } catch (err) {
-    host._showToast?.("Failed to save pricing: " + err.message, "error");
+    host._showToast?.(
+      host._t("usage_pricing_save_failed", "Failed to save pricing:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 
@@ -678,10 +694,18 @@ async function _clearPricingOverride(host, provider, model) {
     });
     host._config = { ...host._config, llm_pricing_overrides: current };
     host._pricingEdit = null;
-    host._showToast?.("Reset to default pricing.", "success");
+    host._showToast?.(
+      host._t("usage_pricing_reset_toast", "Reset to default pricing."),
+      "success",
+    );
     host.requestUpdate();
   } catch (err) {
-    host._showToast?.("Failed to reset pricing: " + err.message, "error");
+    host._showToast?.(
+      host._t("usage_pricing_reset_failed", "Failed to reset pricing:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 
@@ -693,12 +717,16 @@ function _renderPricingCard(host) {
     return html`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Pricing</h3>
-          <span class="usage-section-sub">Selora Cloud</span>
+          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
+          <span class="usage-section-sub"
+            >${host._t("usage_pricing_selora_cloud_sub", "Selora Cloud")}</span
+          >
         </div>
         <p class="usage-help" style="margin-top:0;">
-          Selora Cloud usage is metered and billed in your Selora Homes account.
-          It is not counted in this integration's sensors or charts.
+          ${host._t(
+            "usage_pricing_selora_cloud_help",
+            "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+          )}
         </p>
         <div class="usage-pricing-actions">
           <a
@@ -711,7 +739,10 @@ function _renderPricingCard(host) {
               icon="mdi:open-in-new"
               style="--mdc-icon-size:16px;"
             ></ha-icon>
-            View usage in your Selora Homes account
+            ${host._t(
+              "usage_pricing_view_cloud_link",
+              "View usage in your Selora Homes account",
+            )}
           </a>
         </div>
       </div>
@@ -721,14 +752,23 @@ function _renderPricingCard(host) {
     return html`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Pricing</h3>
+          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
         </div>
         <p class="usage-help">
           ${provider === "ollama"
-            ? "Ollama runs locally — no token costs to track."
+            ? host._t(
+                "usage_pricing_ollama_help",
+                "Ollama runs locally — no token costs to track.",
+              )
             : provider === "selora_local"
-              ? "Selora AI Local runs on your hardware — no token costs to track."
-              : "Configure an LLM provider and model in Settings to set custom pricing."}
+              ? host._t(
+                  "usage_pricing_selora_local_help",
+                  "Selora AI Local runs on your hardware — no token costs to track.",
+                )
+              : host._t(
+                  "usage_pricing_no_model_help",
+                  "Configure an LLM provider and model in Settings to set custom pricing.",
+                )}
         </p>
       </div>
     `;
@@ -744,43 +784,59 @@ function _renderPricingCard(host) {
   return html`
     <div class="section-card">
       <div class="section-card-header">
-        <h3>Pricing</h3>
+        <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
         <span class="usage-section-sub">${provider} · ${model}</span>
       </div>
       <p class="usage-help" style="margin-top:0;">
-        Cost estimates use these per-million-token rates. Anthropic defaults
-        come from the
+        ${host._t(
+          "usage_pricing_intro_prefix",
+          "Cost estimates use these per-million-token rates. Anthropic defaults come from the",
+        )}
         <a
           href="https://platform.claude.com/docs/en/about-claude/pricing"
           target="_blank"
           rel="noopener noreferrer"
-          >official pricing page</a
-        >; override here if you have negotiated rates or are tracking a
-        different model.
+          >${host._t(
+            "usage_pricing_official_page_link",
+            "official pricing page",
+          )}</a
+        >${host._t(
+          "usage_pricing_intro_suffix",
+          "; override here if you have negotiated rates or are tracking a different model.",
+        )}
       </p>
 
       <div class="usage-pricing-row">
         <div class="usage-pricing-cell">
-          <span class="usage-pricing-label">Input</span>
+          <span class="usage-pricing-label"
+            >${host._t("usage_pricing_input_label", "Input")}</span
+          >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[0]) : "—"}
           </span>
           ${defaults
             ? html`<span class="usage-pricing-default">
-                default ${_formatPrice(defaults[0])}
+                ${host._t("usage_pricing_default_prefix", "default")}
+                ${_formatPrice(defaults[0])}
               </span>`
             : html`<span class="usage-pricing-default"
-                >no built-in default</span
+                >${host._t(
+                  "usage_pricing_no_default",
+                  "no built-in default",
+                )}</span
               >`}
         </div>
         <div class="usage-pricing-cell">
-          <span class="usage-pricing-label">Output</span>
+          <span class="usage-pricing-label"
+            >${host._t("usage_pricing_output_label", "Output")}</span
+          >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[1]) : "—"}
           </span>
           ${defaults
             ? html`<span class="usage-pricing-default">
-                default ${_formatPrice(defaults[1])}
+                ${host._t("usage_pricing_default_prefix", "default")}
+                ${_formatPrice(defaults[1])}
               </span>`
             : ""}
         </div>
@@ -790,7 +846,10 @@ function _renderPricingCard(host) {
         ? html`
             <div class="usage-pricing-edit">
               <ha-textfield
-                label="Input ($/MTok)"
+                label=${host._t(
+                  "usage_pricing_input_field_label",
+                  "Input ($/MTok)",
+                )}
                 type="number"
                 step="0.01"
                 min="0"
@@ -804,7 +863,10 @@ function _renderPricingCard(host) {
                 style="flex:1;min-width:120px;"
               ></ha-textfield>
               <ha-textfield
-                label="Output ($/MTok)"
+                label=${host._t(
+                  "usage_pricing_output_field_label",
+                  "Output ($/MTok)",
+                )}
                 type="number"
                 step="0.01"
                 min="0"
@@ -825,7 +887,7 @@ function _renderPricingCard(host) {
                     host.requestUpdate();
                   }}
                 >
-                  Cancel
+                  ${host._t("usage_pricing_cancel_button", "Cancel")}
                 </button>
                 <button
                   class="btn btn-primary"
@@ -838,7 +900,7 @@ function _renderPricingCard(host) {
                       host._pricingEdit.output,
                     )}
                 >
-                  Save
+                  ${host._t("usage_pricing_save_button", "Save")}
                 </button>
               </div>
             </div>
@@ -861,7 +923,15 @@ function _renderPricingCard(host) {
                   icon=${override ? "mdi:pencil" : "mdi:cash-edit"}
                   style="--mdc-icon-size:16px;"
                 ></ha-icon>
-                ${override ? "Edit override" : "Set custom pricing"}
+                ${override
+                  ? host._t(
+                      "usage_pricing_edit_override_button",
+                      "Edit override",
+                    )
+                  : host._t(
+                      "usage_pricing_set_custom_button",
+                      "Set custom pricing",
+                    )}
               </button>
               ${override
                 ? html`
@@ -870,7 +940,10 @@ function _renderPricingCard(host) {
                       @click=${() =>
                         _clearPricingOverride(host, provider, model)}
                     >
-                      Reset to default
+                      ${host._t(
+                        "usage_pricing_reset_default_button",
+                        "Reset to default",
+                      )}
                     </button>
                   `
                 : ""}
@@ -1004,7 +1077,7 @@ export function renderUsage(host) {
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
               @click=${() => setFilter(null, null)}
             >
-              All providers
+              ${host._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
               (p) => html`
@@ -1029,7 +1102,7 @@ export function renderUsage(host) {
                       : ""}"
                     @click=${() => setFilter(filter.provider, null)}
                   >
-                    All models
+                    ${host._t("usage_filter_all_models", "All models")}
                   </button>
                   ${modelOptions.map(
                     (m) => html`
@@ -1039,7 +1112,7 @@ export function renderUsage(host) {
                           : ""}"
                         @click=${() => setFilter(filter.provider, m)}
                       >
-                        ${m || "(no model)"}
+                        ${m || host._t("usage_filter_no_model", "(no model)")}
                       </button>
                     `,
                   )}
@@ -1061,10 +1134,10 @@ export function renderUsage(host) {
           }}
         >
           <ha-icon icon="mdi:chevron-left"></ha-icon>
-          <span>Back to settings</span>
+          <span>${host._t("usage_back_to_settings", "Back to settings")}</span>
         </a>
         <div class="usage-title-row">
-          <h2>Token usage</h2>
+          <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
           ${lastProvider
             ? html`
                 <span class="usage-subtitle">
@@ -1083,12 +1156,17 @@ export function renderUsage(host) {
                   style="--mdc-icon-size:20px;"
                 ></ha-icon>
                 <div>
-                  <strong>No usage data yet.</strong>
+                  <strong
+                    >${host._t(
+                      "usage_empty_title",
+                      "No usage data yet.",
+                    )}</strong
+                  >
                   <p>
-                    Usage will appear after the first LLM call. Try chatting
-                    with Selora AI or running a suggestion cycle. If you've
-                    already used Selora AI and still see this, restart Home
-                    Assistant so the new sensors get registered.
+                    ${host._t(
+                      "usage_empty_body",
+                      "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -1098,27 +1176,33 @@ export function renderUsage(host) {
                 ? html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Totals</h3>
+                        <h3>${host._t("usage_totals_title", "Totals")}</h3>
                       </div>
                       <div class="usage-tile-grid">
                         ${_renderTile({
-                          label: "Cost",
+                          label: host._t("usage_tile_cost_label", "Cost"),
                           value: _fmtUsd(dispCost),
-                          sub: "USD estimate",
+                          sub: host._t("usage_tile_cost_sub", "USD estimate"),
                           icon: "mdi:cash",
                         })}
                         ${_renderTile({
-                          label: "Calls",
+                          label: host._t("usage_tile_calls_label", "Calls"),
                           value: _fmtInt(dispCalls),
                           icon: "mdi:counter",
                         })}
                         ${_renderTile({
-                          label: "Tokens in",
+                          label: host._t(
+                            "usage_tile_tokens_in_label",
+                            "Tokens in",
+                          ),
                           value: _fmtTokens(dispTokensIn),
                           icon: "mdi:upload",
                         })}
                         ${_renderTile({
-                          label: "Tokens out",
+                          label: host._t(
+                            "usage_tile_tokens_out_label",
+                            "Tokens out",
+                          ),
                           value: _fmtTokens(dispTokensOut),
                           icon: "mdi:download",
                         })}
@@ -1130,15 +1214,32 @@ export function renderUsage(host) {
                 ? html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>By period</h3>
+                        <h3>
+                          ${host._t("usage_by_period_title", "By period")}
+                        </h3>
                       </div>
-                      ${_renderPeriodRow("Today", periodStats?.today)}
-                      ${_renderPeriodRow("Last 7 days", periodStats?.week)}
-                      ${_renderPeriodRow("This month", periodStats?.month)}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_today", "Today"),
+                        periodStats?.today,
+                      )}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_last_7_days", "Last 7 days"),
+                        periodStats?.week,
+                      )}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_this_month", "This month"),
+                        periodStats?.month,
+                      )}
                       <div class="usage-period-note">
                         ${filterActive
-                          ? "Period buckets come from the integration's usage store (kept for 30 days)."
-                          : "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here."}
+                          ? host._t(
+                              "usage_period_note_filtered",
+                              "Period buckets come from the integration's usage store (kept for 30 days).",
+                            )
+                          : host._t(
+                              "usage_period_note_unfiltered",
+                              "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
+                            )}
                       </div>
                     </div>
                   `
@@ -1146,14 +1247,19 @@ export function renderUsage(host) {
 
               <div class="section-card">
                 <div class="section-card-header">
-                  <h3>Where tokens go</h3>
+                  <h3>
+                    ${host._t("usage_where_tokens_go_title", "Where tokens go")}
+                  </h3>
                   <span class="usage-section-sub">
-                    Last
+                    ${host._t("usage_where_tokens_last_prefix", "Last")}
                     ${filteredRecent === null ? "…" : filteredRecent.length}
                     call${filteredRecent && filteredRecent.length === 1
                       ? ""
                       : "s"}
-                    · resets on HA restart
+                    ${host._t(
+                      "usage_where_tokens_resets_suffix",
+                      "· resets on HA restart",
+                    )}
                   </span>
                 </div>
                 ${filteredRecent && filteredRecent.length > 0
@@ -1171,7 +1277,7 @@ export function renderUsage(host) {
                             host.requestUpdate();
                           }}
                         >
-                          By kind
+                          ${host._t("usage_group_by_kind_button", "By kind")}
                         </button>
                         <button
                           class="usage-snippet-pill ${groupingMode ===
@@ -1183,16 +1289,24 @@ export function renderUsage(host) {
                             host.requestUpdate();
                           }}
                         >
-                          By provider
+                          ${host._t(
+                            "usage_group_by_provider_button",
+                            "By provider",
+                          )}
                         </button>
                       </div>
                     `
                   : ""}
                 ${filteredRecent === null
-                  ? html`<div class="usage-period-loading">Loading…</div>`
+                  ? html`<div class="usage-period-loading">
+                      ${host._t("usage_loading", "Loading…")}
+                    </div>`
                   : filteredRecent.length === 0
                     ? html`<div class="usage-period-empty">
-                        No calls recorded yet.
+                        ${host._t(
+                          "usage_no_calls_recorded",
+                          "No calls recorded yet.",
+                        )}
                       </div>`
                     : _renderBreakdown(breakdown, totalCost)}
               </div>
@@ -1201,7 +1315,9 @@ export function renderUsage(host) {
                 ? html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Recent calls</h3>
+                        <h3>
+                          ${host._t("usage_recent_calls_title", "Recent calls")}
+                        </h3>
                       </div>
                       ${_renderRecentList(filteredRecent.slice(-15).reverse())}
                     </div>
@@ -1212,25 +1328,40 @@ export function renderUsage(host) {
                 ? html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Dashboard sensors</h3>
+                        <h3>
+                          ${host._t(
+                            "usage_dashboard_sensors_title",
+                            "Dashboard sensors",
+                          )}
+                        </h3>
                       </div>
                       <p class="usage-help">
-                        Restart Home Assistant to register the usage sensors.
-                        Once registered, you can add them to any dashboard with
-                        a
-                        <code>statistics-graph</code> card.
+                        ${host._t(
+                          "usage_dashboard_sensors_help_prefix",
+                          "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
+                        )}
+                        <code>statistics-graph</code> ${host._t(
+                          "usage_dashboard_sensors_help_suffix",
+                          "card.",
+                        )}
                       </p>
                     </div>
                   `
                 : html`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Add to your dashboard</h3>
+                        <h3>
+                          ${host._t(
+                            "usage_add_to_dashboard_title",
+                            "Add to your dashboard",
+                          )}
+                        </h3>
                       </div>
                       <p class="usage-help">
-                        Each metric has a different scale — create one card per
-                        sensor. Pick a metric, copy the YAML, then paste it in a
-                        dashboard's YAML editor.
+                        ${host._t(
+                          "usage_add_to_dashboard_help",
+                          "Each metric has a different scale — create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
+                        )}
                       </p>
                       ${_renderDashboardSnippet(host, sensors)}
                     </div>

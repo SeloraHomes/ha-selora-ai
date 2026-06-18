@@ -465,6 +465,7 @@ class SeloraConversationEntity(conversation.ConversationEntity):
             history=effective_history,
             scene_context=assist_scenes or None,
             for_assist=True,
+            language=user_input.language,
         )
 
         response = intent.IntentResponse(language=user_input.language)

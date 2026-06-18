@@ -739,6 +739,14 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         self._history_for_lora: ContextVar[list[dict[str, str]] | None] = ContextVar(
             "selora_ai_local_history", default=None
         )
+        # Request locale forwarded by LLMClient.set_chat_context. The
+        # LoRA specialist prompt replaces LLMClient's pre-built system
+        # text in build_payload, so the language directive baked into
+        # that prompt would otherwise be discarded; build_payload re-
+        # prepends a directive based on this locale.
+        self._language_for_lora: ContextVar[str | None] = ContextVar(
+            "selora_ai_local_language", default=None
+        )
         # Per-specialist trained system prompts. Loaded lazily on the
         # first send_request/raw_request via hass.async_add_executor_job
         # so the constructor — which runs on the event loop during
@@ -923,6 +931,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         entities: list[Any] | None = None,
         existing_automations: list[dict[str, Any]] | None = None,
         history: list[dict[str, str]] | None = None,
+        language: str | None = None,
     ) -> None:
         """Capture the raw chat context from LLMClient so build_payload
         can reconstruct the v0.4.2 training-format request body.
@@ -946,6 +955,7 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         self._entities_for_lora.set(list(entities or []))
         self._automations_for_lora.set(list(existing_automations or []))
         self._history_for_lora.set(list(history or []))
+        self._language_for_lora.set(language)
 
     def _resolve_intent(self) -> str:
         """Return the specialist intent for the current call (command,
@@ -1132,6 +1142,15 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         # separation that the pre-v0.4.7 user content carried inline.
         if trained_system:
             trained_system = f"{trained_system}{_SELORA_LOCAL_UNTRUSTED_DATA_BOUNDARY}"
+        # Re-attach the request-language directive. LLMClient prepends one
+        # to the generic system prompt; swapping in the specialist prompt
+        # above drops it, so reinstate based on the locale captured in
+        # set_chat_context. No-op for English / unknown locales.
+        from ..llm_client.prompts import _language_directive
+
+        lang_directive = _language_directive(self._language_for_lora.get())
+        if lang_directive and trained_system:
+            trained_system = f"{lang_directive}{trained_system}"
         training_messages = self._build_training_messages(messages)
         payload = super().build_payload(
             trained_system,

@@ -121,7 +121,12 @@ export async function _acceptAutomation(msgIndex, automation) {
       );
     }
   } catch (err) {
-    this._showToast("Failed to save automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_save_failed", "Failed to save automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 
@@ -166,7 +171,10 @@ export async function _autoEnableAfterAccept(automationId, createResult, msg) {
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
     this._showToast(
-      "Automation saved, but Home Assistant hasn't surfaced the entity yet — toggle it on from the Automations tab once it appears.",
+      this._t(
+        "automation_crud_entity_not_surfaced",
+        "Automation saved, but Home Assistant hasn't surfaced the entity yet — toggle it on from the Automations tab once it appears.",
+      ),
       "warning",
     );
     return;
@@ -194,9 +202,17 @@ export async function _autoEnableAfterAccept(automationId, createResult, msg) {
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
     this._showToast(
-      "Automation saved but couldn't be enabled automatically: " +
-        (err?.message || "unknown error") +
-        ". Use the Enable button on the card to try again.",
+      this._t(
+        "automation_crud_auto_enable_failed_prefix",
+        "Automation saved but couldn't be enabled automatically:",
+      ) +
+        " " +
+        (err?.message ||
+          this._t("automation_crud_unknown_error", "unknown error")) +
+        this._t(
+          "automation_crud_auto_enable_failed_suffix",
+          ". Use the Enable button on the card to try again.",
+        ),
       "warning",
     );
   }
@@ -227,10 +243,21 @@ export async function _dismissDraft(draftId) {
       draft_id: draftId,
     });
     await this._loadAutomations();
-    this._showToast("Draft dismissed.", "info");
+    this._showToast(
+      this._t("automation_crud_draft_dismissed", "Draft dismissed."),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to dismiss draft", err);
-    this._showToast("Failed to dismiss draft: " + err.message, "error");
+    this._showToast(
+      this._t(
+        "automation_crud_dismiss_draft_failed",
+        "Failed to dismiss draft:",
+      ) +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 
@@ -290,7 +317,12 @@ export async function _createAutomationFromSuggestion(automation) {
     const toast = _createdToast(automation.alias, result);
     this._showToast(toast.message, toast.type);
   } catch (err) {
-    this._showToast("Failed to create automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 
@@ -375,7 +407,12 @@ export async function _acceptAutomationWithEdits(
       }
     } catch (err) {
       this._showToast(
-        "Failed to save automation from edited YAML: " + err.message,
+        this._t(
+          "automation_crud_save_edited_yaml_failed",
+          "Failed to save automation from edited YAML:",
+        ) +
+          " " +
+          err.message,
         "error",
       );
     } finally {
@@ -432,7 +469,12 @@ export async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     };
     this._highlightAndScrollToNew();
   } catch (err) {
-    this._showToast("Failed to create automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   } finally {
     this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
     this.requestUpdate();
@@ -453,9 +495,20 @@ export async function _saveActiveAutomationYaml(automationId, yamlKey) {
     // Clear edits and refresh
     this._editedYaml = { ...this._editedYaml, [yamlKey]: undefined };
     await this._loadAutomations();
-    this._showToast("Automation YAML saved.", "success");
+    this._showToast(
+      this._t("automation_crud_yaml_saved", "Automation YAML saved."),
+      "success",
+    );
   } catch (err) {
-    this._showToast("Failed to save changes: " + err.message, "error");
+    this._showToast(
+      this._t(
+        "automation_crud_save_changes_failed",
+        "Failed to save changes:",
+      ) +
+        " " +
+        err.message,
+      "error",
+    );
   } finally {
     this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
     this.requestUpdate();
