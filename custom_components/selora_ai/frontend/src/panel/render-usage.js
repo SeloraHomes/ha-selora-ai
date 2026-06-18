@@ -178,8 +178,6 @@ export async function loadUsageStats(host) {
   // upgrade the store starts empty (we don't backfill from the legacy
   // sensors), so the existing sensor-/statistics-based "All providers"
   // view stays the default instead of misleadingly showing $0.
-  // Selora Cloud is never recorded locally — clear any prior filter so
-  // we don't display stale numbers from the previously active provider.
   if (!host._usageFilterUserSet) {
     const activeProvider = host?._config?.llm_provider || null;
     const activeBucket = activeProvider
@@ -187,11 +185,7 @@ export async function loadUsageStats(host) {
       : null;
     const hasDataForActive =
       activeBucket && Object.keys(activeBucket).length > 0;
-    if (
-      activeProvider &&
-      activeProvider !== "selora_cloud" &&
-      hasDataForActive
-    ) {
+    if (activeProvider && hasDataForActive) {
       host._usageFilter = { provider: activeProvider, model: null };
     } else {
       host._usageFilter = { provider: null, model: null };
@@ -725,7 +719,7 @@ function _renderPricingCard(host) {
         <p class="usage-help" style="margin-top:0;">
           ${host._t(
             "usage_pricing_selora_cloud_help",
-            "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+            "Token and call counts are tracked locally in this integration's sensors and charts. Selora Cloud is billed in prepaid credits in your Selora Homes account, so no per-token cost estimate is shown here.",
           )}
         </p>
         <div class="usage-pricing-actions">
@@ -974,7 +968,7 @@ export function renderUsage(host) {
   // Always include the active provider so the user can toggle even if
   // the store hasn't recorded anything for it yet (e.g. just deployed).
   const providerOptionSet = new Set(Object.keys(persistedBreakdown));
-  if (activeProvider && activeProvider !== "selora_cloud") {
+  if (activeProvider) {
     providerOptionSet.add(activeProvider);
   }
   const providerOptions = [...providerOptionSet];

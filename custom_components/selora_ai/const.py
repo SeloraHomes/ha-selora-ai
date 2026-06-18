@@ -965,6 +965,9 @@ def estimate_llm_cost_usd(
             pricing = override_entry
     if pricing is None:
         pricing = LLM_PRICING_USD_PER_MTOK.get(provider, {}).get(model)
+    # Selora Cloud bills in prepaid credits (volume-discounted packs), not
+    # per-token USD, so there is no meaningful token→USD rate to apply here.
+    # Token and call counts are still recorded; cost stays unset.
     if not pricing or len(pricing) < 2:
         return 0.0
     in_price = float(pricing[0])

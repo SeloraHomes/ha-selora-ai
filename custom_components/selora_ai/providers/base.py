@@ -190,8 +190,9 @@ class LLMProvider(ABC):
             return
         if not (usage.get("input_tokens") or usage.get("output_tokens")):
             return
+        model = usage.get("model") or self._model
         try:
-            self._usage_callback(self.provider_type, self._model, usage)
+            self._usage_callback(self.provider_type, model, usage)
         except Exception:  # noqa: BLE001 — never let telemetry break a request
             _LOGGER.exception("LLM usage callback failed")
 

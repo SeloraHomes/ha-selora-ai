@@ -7478,7 +7478,7 @@ var en_default = {
     usage_pricing_title: "Pricing",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+      "Token and call counts are tracked locally in this integration's sensors and charts. Selora Cloud is billed in prepaid credits in your Selora Homes account, so no per-token cost estimate is shown here.",
     usage_pricing_view_cloud_link: "View usage in your Selora Homes account",
     usage_pricing_ollama_help:
       "Ollama runs locally \u2014 no token costs to track.",
@@ -8207,7 +8207,7 @@ var fr_default = {
     usage_pricing_title: "Tarification",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "L'utilisation de Selora Cloud est mesur\xE9e et factur\xE9e sur votre compte Selora Homes. Elle n'est pas comptabilis\xE9e dans les capteurs ou graphiques de cette int\xE9gration.",
+      "Le nombre de jetons et d'appels est suivi localement dans les capteurs et graphiques de cette int\xE9gration. Selora Cloud est factur\xE9 en cr\xE9dits pr\xE9pay\xE9s sur votre compte Selora Homes ; aucune estimation de co\xFBt par jeton n'est donc affich\xE9e ici.",
     usage_pricing_view_cloud_link:
       "Voir l'utilisation dans votre compte Selora Homes",
     usage_pricing_ollama_help:
@@ -8950,7 +8950,7 @@ var de_default = {
     usage_pricing_title: "Preise",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Die Nutzung von Selora Cloud wird gemessen und in Ihrem Selora Homes-Konto abgerechnet. Sie wird in den Sensoren oder Diagrammen dieser Integration nicht gez\xE4hlt.",
+      "Token- und Aufrufzahlen werden lokal in den Sensoren und Diagrammen dieser Integration erfasst. Selora Cloud wird \xFCber vorausbezahlte Credits in Ihrem Selora Homes-Konto abgerechnet, daher wird hier keine Kostensch\xE4tzung pro Token angezeigt.",
     usage_pricing_view_cloud_link:
       "Nutzung in Ihrem Selora Homes-Konto anzeigen",
     usage_pricing_ollama_help:
@@ -9688,7 +9688,7 @@ var es_default = {
     usage_pricing_title: "Precios",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "El uso de Selora Cloud se mide y se factura en su cuenta de Selora Homes. No se contabiliza en los sensores ni gr\xE1ficos de esta integraci\xF3n.",
+      "El n\xFAmero de tokens y llamadas se registra localmente en los sensores y gr\xE1ficos de esta integraci\xF3n. Selora Cloud se factura con cr\xE9ditos prepagados en su cuenta de Selora Homes, por lo que aqu\xED no se muestra ninguna estimaci\xF3n de coste por token.",
     usage_pricing_view_cloud_link: "Ver uso en su cuenta de Selora Homes",
     usage_pricing_ollama_help:
       "Ollama se ejecuta localmente \u2014 sin costes de tokens que rastrear.",
@@ -10416,7 +10416,7 @@ var it_default = {
     usage_pricing_title: "Prezzi",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "L'utilizzo di Selora Cloud viene misurato e fatturato nel Suo account Selora Homes. Non \xE8 conteggiato nei sensori o nei grafici di questa integrazione.",
+      "Il numero di token e chiamate viene registrato localmente nei sensori e nei grafici di questa integrazione. Selora Cloud viene fatturato con crediti prepagati nel Suo account Selora Homes, quindi qui non viene mostrata alcuna stima del costo per token.",
     usage_pricing_view_cloud_link:
       "Visualizza l'utilizzo nel Suo account Selora Homes",
     usage_pricing_ollama_help:
@@ -11160,7 +11160,7 @@ var nl_default = {
     usage_pricing_title: "Prijzen",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud-gebruik wordt gemeten en gefactureerd in uw Selora Homes-account. Het wordt niet meegeteld in de sensoren of grafieken van deze integratie.",
+      "Token- en oproepaantallen worden lokaal bijgehouden in de sensoren en grafieken van deze integratie. Selora Cloud wordt afgerekend met vooraf betaalde credits in uw Selora Homes-account, dus hier wordt geen kostenraming per token getoond.",
     usage_pricing_view_cloud_link:
       "Bekijk het gebruik in uw Selora Homes-account",
     usage_pricing_ollama_help:
@@ -11909,7 +11909,7 @@ var hu_default = {
     usage_pricing_title: "\xC1raz\xE1s",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "A Selora Cloud haszn\xE1lata m\xE9rve \xE9s sz\xE1ml\xE1zva van az \xD6n Selora Homes-fi\xF3kj\xE1ban. Nem sz\xE1m\xEDt bele az integr\xE1ci\xF3 szenzoraiba vagy diagramjaiba.",
+      "A token- \xE9s h\xEDv\xE1ssz\xE1mok helyben k\xF6vethet\u0151k az integr\xE1ci\xF3 szenzoraiban \xE9s diagramjaiban. A Selora Cloud el\u0151re fizetett kreditekkel ker\xFCl sz\xE1ml\xE1z\xE1sra az \xD6n Selora Homes-fi\xF3kj\xE1ban, ez\xE9rt itt nem jelenik meg tokenenk\xE9nti k\xF6lts\xE9gbecsl\xE9s.",
     usage_pricing_view_cloud_link:
       "Haszn\xE1lat megtekint\xE9se a Selora Homes-fi\xF3kj\xE1ban",
     usage_pricing_ollama_help:
@@ -12640,7 +12640,7 @@ var pt_default = {
     usage_pricing_title: "Pre\xE7os",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "A utiliza\xE7\xE3o do Selora Cloud \xE9 medida e faturada na sua conta Selora Homes. N\xE3o \xE9 contabilizada nos sensores ou gr\xE1ficos desta integra\xE7\xE3o.",
+      "As contagens de tokens e chamadas s\xE3o registadas localmente nos sensores e gr\xE1ficos desta integra\xE7\xE3o. O Selora Cloud \xE9 faturado em cr\xE9ditos pr\xE9-pagos na sua conta Selora Homes, pelo que n\xE3o \xE9 apresentada aqui qualquer estimativa de custo por token.",
     usage_pricing_view_cloud_link:
       "Ver utiliza\xE7\xE3o na sua conta Selora Homes",
     usage_pricing_ollama_help:
@@ -13594,7 +13594,7 @@ var ru_default = {
     usage_pricing_title: "\u0426\u0435\u043D\u044B",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 Selora Cloud \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0438 \u043E\u043F\u043B\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u0432\u0430\u0448\u0435\u0439 \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora Homes. \u041E\u043D\u043E \u043D\u0435 \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u0434\u0430\u0442\u0447\u0438\u043A\u0430\u0445 \u0438 \u0433\u0440\u0430\u0444\u0438\u043A\u0430\u0445 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438.",
+      "\u041A\u043E\u043B\u0438\u0447\u0435\u0441\u0442\u0432\u043E \u0442\u043E\u043A\u0435\u043D\u043E\u0432 \u0438 \u0432\u044B\u0437\u043E\u0432\u043E\u0432 \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E \u0432 \u0434\u0430\u0442\u0447\u0438\u043A\u0430\u0445 \u0438 \u0433\u0440\u0430\u0444\u0438\u043A\u0430\u0445 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438. Selora Cloud \u043E\u043F\u043B\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u043F\u0440\u0435\u0434\u043E\u043F\u043B\u0430\u0447\u0435\u043D\u043D\u044B\u043C\u0438 \u043A\u0440\u0435\u0434\u0438\u0442\u0430\u043C\u0438 \u0432 \u0432\u0430\u0448\u0435\u0439 \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora Homes, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u043E\u0446\u0435\u043D\u043A\u0430 \u0441\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u0438 \u0437\u0430 \u0442\u043E\u043A\u0435\u043D \u0437\u0434\u0435\u0441\u044C \u043D\u0435 \u043E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442\u0441\u044F.",
     usage_pricing_view_cloud_link:
       "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0432 \u0432\u0430\u0448\u0435\u0439 \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora Homes",
     usage_pricing_ollama_help:
@@ -14535,7 +14535,7 @@ var ja_default = {
     usage_pricing_title: "\u6599\u91D1",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud \u306E\u4F7F\u7528\u91CF\u306F\u8A08\u6E2C\u3055\u308C\u3001Selora Homes \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u8ACB\u6C42\u3055\u308C\u307E\u3059\u3002\u3053\u306E\u7D71\u5408\u306E\u30BB\u30F3\u30B5\u30FC\u3084\u30C1\u30E3\u30FC\u30C8\u306B\u306F\u30AB\u30A6\u30F3\u30C8\u3055\u308C\u307E\u305B\u3093\u3002",
+      "\u30C8\u30FC\u30AF\u30F3\u6570\u3068\u547C\u3073\u51FA\u3057\u56DE\u6570\u306F\u3001\u3053\u306E\u7D71\u5408\u306E\u30BB\u30F3\u30B5\u30FC\u3084\u30C1\u30E3\u30FC\u30C8\u306B\u30ED\u30FC\u30AB\u30EB\u3067\u8A18\u9332\u3055\u308C\u307E\u3059\u3002Selora Cloud \u306F Selora Homes \u30A2\u30AB\u30A6\u30F3\u30C8\u306E\u30D7\u30EA\u30DA\u30A4\u30C9\u30AF\u30EC\u30B8\u30C3\u30C8\u3067\u8ACB\u6C42\u3055\u308C\u308B\u305F\u3081\u3001\u3053\u3053\u3067\u306F\u30C8\u30FC\u30AF\u30F3\u3042\u305F\u308A\u306E\u30B3\u30B9\u30C8\u898B\u7A4D\u3082\u308A\u306F\u8868\u793A\u3055\u308C\u307E\u305B\u3093\u3002",
     usage_pricing_view_cloud_link:
       "Selora Homes \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u4F7F\u7528\u91CF\u3092\u8868\u793A",
     usage_pricing_ollama_help:
@@ -15391,7 +15391,7 @@ var ko_default = {
     usage_pricing_title: "\uAC00\uACA9",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud \uC0AC\uC6A9\uB7C9\uC740 Selora Homes \uACC4\uC815\uC5D0\uC11C \uCE21\uC815\uB418\uACE0 \uCCAD\uAD6C\uB429\uB2C8\uB2E4. \uC774 \uD1B5\uD569\uC758 \uC13C\uC11C\uB098 \uCC28\uD2B8\uC5D0\uB294 \uC9D1\uACC4\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+      "\uD1A0\uD070 \uBC0F \uD638\uCD9C \uD69F\uC218\uB294 \uC774 \uD1B5\uD569\uC758 \uC13C\uC11C\uC640 \uCC28\uD2B8\uC5D0 \uB85C\uCEEC\uB85C \uAE30\uB85D\uB429\uB2C8\uB2E4. Selora Cloud\uB294 Selora Homes \uACC4\uC815\uC758 \uC120\uBD88 \uD06C\uB808\uB527\uC73C\uB85C \uCCAD\uAD6C\uB418\uBBC0\uB85C \uC5EC\uAE30\uC5D0\uB294 \uD1A0\uD070\uB2F9 \uBE44\uC6A9 \uCD94\uC815\uCE58\uAC00 \uD45C\uC2DC\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
     usage_pricing_view_cloud_link:
       "Selora Homes \uACC4\uC815\uC5D0\uC11C \uC0AC\uC6A9\uB7C9 \uBCF4\uAE30",
     usage_pricing_ollama_help:
@@ -16191,7 +16191,7 @@ var zh_Hans_default = {
     usage_pricing_title: "\u4EF7\u683C",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud \u7528\u91CF\u6309\u4F7F\u7528\u8BA1\u91CF\u5E76\u5728\u60A8\u7684 Selora Homes \u8D26\u6237\u4E2D\u8BA1\u8D39\u3002\u5B83\u4E0D\u4F1A\u8BA1\u5165\u672C\u96C6\u6210\u7684\u4F20\u611F\u5668\u6216\u56FE\u8868\u4E2D\u3002",
+      "\u4EE4\u724C\u6570\u548C\u8C03\u7528\u6B21\u6570\u4F1A\u5728\u672C\u96C6\u6210\u7684\u4F20\u611F\u5668\u548C\u56FE\u8868\u4E2D\u672C\u5730\u8BB0\u5F55\u3002Selora Cloud \u901A\u8FC7\u60A8 Selora Homes \u8D26\u6237\u4E2D\u7684\u9884\u4ED8\u989D\u5EA6\u8BA1\u8D39\uFF0C\u56E0\u6B64\u6B64\u5904\u4E0D\u663E\u793A\u6309\u4EE4\u724C\u7684\u8D39\u7528\u4F30\u7B97\u3002",
     usage_pricing_view_cloud_link:
       "\u5728\u60A8\u7684 Selora Homes \u8D26\u6237\u4E2D\u67E5\u770B\u7528\u91CF",
     usage_pricing_ollama_help:
@@ -16978,7 +16978,7 @@ var zh_Hant_default = {
     usage_pricing_title: "\u50F9\u683C",
     usage_pricing_selora_cloud_sub: "Selora Cloud",
     usage_pricing_selora_cloud_help:
-      "Selora Cloud \u7684\u7528\u91CF\u6703\u8A08\u91CF\u4E26\u8A08\u5165\u60A8\u7684 Selora Homes \u5E33\u865F\u5E33\u55AE\u3002\u9019\u4E0D\u6703\u8A08\u5165\u672C\u6574\u5408\u7684\u611F\u6E2C\u5668\u6216\u5716\u8868\u4E2D\u3002",
+      "\u6B0A\u6756\u6578\u8207\u547C\u53EB\u6B21\u6578\u6703\u5728\u672C\u6574\u5408\u7684\u611F\u6E2C\u5668\u548C\u5716\u8868\u4E2D\u65BC\u672C\u6A5F\u8A18\u9304\u3002Selora Cloud \u900F\u904E\u60A8 Selora Homes \u5E33\u865F\u4E2D\u7684\u9810\u4ED8\u984D\u5EA6\u8A08\u8CBB\uFF0C\u56E0\u6B64\u6B64\u8655\u4E0D\u6703\u986F\u793A\u6309\u6B0A\u6756\u7684\u8CBB\u7528\u4F30\u7B97\u3002",
     usage_pricing_view_cloud_link:
       "\u5728\u60A8\u7684 Selora Homes \u5E33\u865F\u4E2D\u6AA2\u8996\u7528\u91CF",
     usage_pricing_ollama_help:
@@ -27526,11 +27526,7 @@ async function loadUsageStats(host) {
       : null;
     const hasDataForActive =
       activeBucket && Object.keys(activeBucket).length > 0;
-    if (
-      activeProvider &&
-      activeProvider !== "selora_cloud" &&
-      hasDataForActive
-    ) {
+    if (activeProvider && hasDataForActive) {
       host._usageFilter = { provider: activeProvider, model: null };
     } else {
       host._usageFilter = { provider: null, model: null };
@@ -28018,7 +28014,7 @@ function _renderPricingCard(host) {
         <p class="usage-help" style="margin-top:0;">
           ${host._t(
             "usage_pricing_selora_cloud_help",
-            "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+            "Token and call counts are tracked locally in this integration's sensors and charts. Selora Cloud is billed in prepaid credits in your Selora Homes account, so no per-token cost estimate is shown here.",
           )}
         </p>
         <div class="usage-pricing-actions">
@@ -28269,7 +28265,7 @@ function renderUsage(host) {
   const groupingMode = host._usageGrouping || "kind";
   const activeProvider = host?._config?.llm_provider || null;
   const providerOptionSet = new Set(Object.keys(persistedBreakdown));
-  if (activeProvider && activeProvider !== "selora_cloud") {
+  if (activeProvider) {
     providerOptionSet.add(activeProvider);
   }
   const providerOptions = [...providerOptionSet];

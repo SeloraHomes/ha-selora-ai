@@ -436,7 +436,7 @@
     "usage_pricing_reset_failed": "Terugzetten van prijs mislukt:",
     "usage_pricing_title": "Prijzen",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud-gebruik wordt gemeten en gefactureerd in uw Selora Homes-account. Het wordt niet meegeteld in de sensoren of grafieken van deze integratie.",
+    "usage_pricing_selora_cloud_help": "Token- en oproepaantallen worden lokaal bijgehouden in de sensoren en grafieken van deze integratie. Selora Cloud wordt afgerekend met vooraf betaalde credits in uw Selora Homes-account, dus hier wordt geen kostenraming per token getoond.",
     "usage_pricing_view_cloud_link": "Bekijk het gebruik in uw Selora Homes-account",
     "usage_pricing_ollama_help": "Ollama draait lokaal — geen tokenkosten om bij te houden.",
     "usage_pricing_selora_local_help": "Selora AI Local draait op uw hardware — geen tokenkosten om bij te houden.",

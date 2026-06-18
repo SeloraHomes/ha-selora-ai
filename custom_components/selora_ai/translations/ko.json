@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "가격을 재설정하지 못했습니다:",
     "usage_pricing_title": "가격",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud 사용량은 Selora Homes 계정에서 측정되고 청구됩니다. 이 통합의 센서나 차트에는 집계되지 않습니다.",
+    "usage_pricing_selora_cloud_help": "토큰 및 호출 횟수는 이 통합의 센서와 차트에 로컬로 기록됩니다. Selora Cloud는 Selora Homes 계정의 선불 크레딧으로 청구되므로 여기에는 토큰당 비용 추정치가 표시되지 않습니다.",
     "usage_pricing_view_cloud_link": "Selora Homes 계정에서 사용량 보기",
     "usage_pricing_ollama_help": "Ollama는 로컬에서 실행됩니다 — 추적할 토큰 비용이 없습니다.",
     "usage_pricing_selora_local_help": "Selora AI Local은 사용자의 하드웨어에서 실행됩니다 — 추적할 토큰 비용이 없습니다.",

@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "Preise konnten nicht zurückgesetzt werden:",
     "usage_pricing_title": "Preise",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Die Nutzung von Selora Cloud wird gemessen und in Ihrem Selora Homes-Konto abgerechnet. Sie wird in den Sensoren oder Diagrammen dieser Integration nicht gezählt.",
+    "usage_pricing_selora_cloud_help": "Token- und Aufrufzahlen werden lokal in den Sensoren und Diagrammen dieser Integration erfasst. Selora Cloud wird über vorausbezahlte Credits in Ihrem Selora Homes-Konto abgerechnet, daher wird hier keine Kostenschätzung pro Token angezeigt.",
     "usage_pricing_view_cloud_link": "Nutzung in Ihrem Selora Homes-Konto anzeigen",
     "usage_pricing_ollama_help": "Ollama läuft lokal — keine Token-Kosten zu erfassen.",
     "usage_pricing_selora_local_help": "Selora AI Local läuft auf Ihrer Hardware — keine Token-Kosten zu erfassen.",
