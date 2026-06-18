@@ -172,6 +172,90 @@ _SESSION_MAX_MESSAGES = 100
 _SESSION_MAX_COUNT = 200
 
 
+# Detects a fence-less structural block streaming in: the type word
+# (`automation` / `scene`) alone on its own line, immediately followed by
+# a JSON `{` body. Scope matches exactly what ``parse_streamed_response``
+# salvages on the final parse (bare automation/scene with a ``{`` body) —
+# we must not suppress shapes the backend can't extract (YAML bodies,
+# other block types), or the block would silently vanish with no card. A
+# prose mention ("I built an automation\nthat does X") has no ``{`` on the
+# next line, so it never matches.
+_STREAM_BARE_BLOCK_RE = re.compile(r"(?:^|\n)[ \t]*(?:automation|scene)[ \t]*\n[ \t]*\{")
+
+# Fenced structural openers the suppressor watches for mid-stream.
+_STREAM_FENCED_OPENERS = (
+    "```command",
+    "```delayed_command",
+    "```cancel",
+    "```automation",
+    "```scene",
+)
+
+# Bare type words that, alone on a line, begin a fence-less block.
+_STREAM_BARE_WORDS = ("automation", "scene")
+
+
+def _pending_opener_start(text: str) -> int:
+    """Index where an *incomplete* structural opener begins at the tail of
+    ``text``, else ``-1``.
+
+    The complete-opener checks (``_STREAM_FENCED_OPENERS`` /
+    ``_STREAM_BARE_BLOCK_RE``) only fire once the body arrives. While the
+    opener itself is still streaming — a partial fence (```` ```autom ````)
+    or a bare type word ("Autom…") — the suppressor would forward it,
+    flashing the fragment in the bubble for a chunk or two. We withhold
+    from the fragment's start until the next tokens either confirm the
+    block (then it's suppressed) or diverge into prose (then released).
+    """
+    # Case C: a fenced opener still arriving — the text ends with a
+    # non-empty prefix of one of the fenced needles (```` ``` ````,
+    # ```` ```a ````, …). A complete fence is matched by the caller's
+    # ``find`` and never reaches here.
+    last_fence = text.rfind("```")
+    if last_fence != -1:
+        frag = text[last_fence:]
+        if any(n.startswith(frag) for n in _STREAM_FENCED_OPENERS):
+            return last_fence
+
+    # Bare-word holds (Cases A/B) must skip candidates inside an existing
+    # ``` fence — a code example, not a real block (mirrors the opener
+    # detection and parsers.py). Odd ``` count before the line = enclosed.
+    def _in_fence(pos: int) -> bool:
+        return text.count("```", 0, pos) % 2 == 1
+
+    nl = text.rfind("\n")
+    line_start = nl + 1
+    last = text[line_start:]
+    stripped = last.lstrip(" \t")
+    indent = len(last) - len(stripped)
+    # Case A: the type word is still being typed on the final line (a
+    # non-empty prefix of a type word, with nothing after it yet).
+    if (
+        stripped
+        and any(w.startswith(stripped) for w in _STREAM_BARE_WORDS)
+        and not _in_fence(line_start)
+    ):
+        return line_start + indent
+    # Case B: the type word finished on the previous line and we're
+    # waiting on the body line. Only the JSON `{` body is backend-
+    # supported, so hold ONLY while the body line is still empty (the
+    # `{` not yet arrived). The instant any non-whitespace char lands it
+    # is either `{` — caught by ``_STREAM_BARE_BLOCK_RE`` before this is
+    # called — or something else, in which case it's not an extractable
+    # block and must be released as raw text rather than held forever.
+    if nl != -1:
+        prev_start = text.rfind("\n", 0, nl) + 1
+        prev_raw = text[prev_start:nl]
+        if (
+            prev_raw.strip(" \t") in _STREAM_BARE_WORDS
+            and stripped == ""
+            and not _in_fence(prev_start)
+        ):
+            prev_indent = len(prev_raw) - len(prev_raw.lstrip(" \t"))
+            return prev_start + prev_indent
+    return -1
+
+
 class _StreamTooLarge(Exception):
     """Accumulated streaming response exceeded ``STREAM_MAX_BYTES``."""
 
@@ -1196,6 +1280,11 @@ _LIST_HEADER_RE = re.compile(r"[A-Za-z][A-Za-z _-]*\s*\(\d+[^)]*\)\s*:?")
 
 _ENTITY_ID_RE = re.compile(r"^[a-z_]+\.[a-z0-9_\-]+$")
 
+# Same shape but anchored to a token boundary so we can scan a bullet
+# line for an embedded entity_id reference (e.g. inside `…` backticks,
+# or as the suffix after `— `).
+_INLINE_ENTITY_ID_RE = re.compile(r"(?<![a-z0-9_.])([a-z_]+\.[a-z0-9_\-]+)(?![a-z0-9_.])")
+
 # A line that consists ONLY of one entity marker (with optional
 # surrounding whitespace). Used to detect a LLM-emitted trailing marker
 # that we want to move inline.
@@ -1278,9 +1367,24 @@ def _inject_entity_markers(
          (media_player.kitchen) and surface spurious tiles.
 
     Entities the LLM already wrapped in a marker are never double-marked.
+
+    Fenced code blocks (```...```) are extracted before scanning and
+    restored verbatim afterward. A YAML / JSON snippet listing
+    ``- light.kitchen`` would otherwise look like a friendly-name bullet
+    run and get rewritten into a tile-grid marker, corrupting code the
+    user is meant to copy.
     """
     if not text or not entities:
         return text
+
+    fenced_blocks: list[str] = []
+
+    def _stash_fence(match: re.Match[str]) -> str:
+        fenced_blocks.append(match.group(0))
+        return f"\x00CB{len(fenced_blocks) - 1}\x00"
+
+    text = re.sub(r"```[\s\S]*?```", _stash_fence, text)
+
     already = _entity_ids_already_in_text(text)
 
     # Longest friendly_name first so "Garage Door" beats "Door" and we
@@ -1319,6 +1423,12 @@ def _inject_entity_markers(
                 standalone_markers[i] = ids
 
     # Pass 1a: every bullet line that resolves to a known entity.
+    # If the line ALSO contains a raw entity_id token (e.g.
+    # ``- **Kitchen** — `binary_sensor.foo` ``), that token IS the
+    # explicit reference — prefer it over the friendly_name lookup.
+    # Without this guard, "Kitchen" (an area label in the prose) would
+    # match a `media_player.kitchen` speaker entity and a kitchen-speaker
+    # tile would render between water-leak sensors.
     bullet_eid: dict[int, str] = {}
     captured_in_bullets: set[str] = set()
     for i, line in enumerate(lines):
@@ -1328,9 +1438,17 @@ def _inject_entity_markers(
         name_part = m.group("name").strip()
         if not name_part:
             continue
-        eid = name_to_eid.get(_normalized_name(name_part))
-        if eid is None and _ENTITY_ID_RE.match(name_part) and name_part in eid_set:
-            eid = name_part
+        line_eids = [tok for tok in _INLINE_ENTITY_ID_RE.findall(line) if tok in eid_set]
+        eid: str | None = None
+        if len(line_eids) == 1:
+            # Exactly one known entity_id on the line — that's the target,
+            # regardless of any friendly_name match the prose might suggest.
+            eid = line_eids[0]
+        elif not line_eids:
+            eid = name_to_eid.get(_normalized_name(name_part))
+            if eid is None and _ENTITY_ID_RE.match(name_part) and name_part in eid_set:
+                eid = name_part
+        # Multiple entity_ids on one line is ambiguous — skip.
         if not eid or eid in captured_in_bullets:
             continue
         bullet_eid[i] = eid
@@ -1652,6 +1770,12 @@ def _inject_entity_markers(
                     prose_eids.append(eid)
 
     if not lines_to_strip and not prose_eids:
+        if fenced_blocks:
+            text = re.sub(
+                r"\x00CB(\d+)\x00",
+                lambda m: fenced_blocks[int(m.group(1))],
+                text,
+            )
         return text
 
     # Wrap each inserted marker in blank lines on both sides so the
@@ -1673,7 +1797,16 @@ def _inject_entity_markers(
     result = "\n".join(out)
     if prose_eids:
         result = result.rstrip() + f"\n\n[[entities:{','.join(prose_eids)}]]"
-    return re.sub(r"\n{3,}", "\n\n", result).strip()
+    result = re.sub(r"\n{3,}", "\n\n", result).strip()
+
+    if fenced_blocks:
+
+        def _restore_fence(match: re.Match[str]) -> str:
+            return fenced_blocks[int(match.group(1))]
+
+        result = re.sub(r"\x00CB(\d+)\x00", _restore_fence, result)
+
+    return result
 
 
 def _create_tool_executor(
@@ -1991,6 +2124,9 @@ async def _handle_websocket_chat_stream(
         # the chunk that introduces the JSON-block opener so the prose
         # prefix still streams but the JSON tokens after it don't.
         sent_chars = 0
+        # True once a ```automation / ```scene spinner sentinel has been
+        # forwarded, so the mid-stream suppressor doesn't send a second.
+        spinner_sentinel_sent = False
 
         # ``stripAutomationBlock`` on the panel side flips the typing
         # indicator to a "Building automation..." spinner the moment
@@ -2028,6 +2164,7 @@ async def _handle_websocket_chat_stream(
                     },
                 )
             )
+            spinner_sentinel_sent = True
 
         # Per-intent watchdog: automation turns get a longer idle
         # tolerance because cloud first-token latency on a heavy
@@ -2065,7 +2202,14 @@ async def _handle_websocket_chat_stream(
             # structural block the "done" event will carry as parsed data:
             # • Full-JSON response: entire response starts with `{`
             # • Fenced structural block: ```command / ```delayed_command /
-            #   ```cancel opener detected mid-stream
+            #   ```cancel / ```automation / ```scene opener mid-stream
+            # • Bare typed block: the model drops the opening ``` and emits
+            #   `automation\n{…}` / `scene\n{…}` directly. The frontend
+            #   cannot reliably hide a fence-less block once it is mixed
+            #   with other content (yaml snippets, prose-in-fence boxes),
+            #   so the JSON leaks into the bubble. Stop forwarding the
+            #   tokens here — the "done" event re-attaches the parsed
+            #   block as a proposal card regardless.
             # We deliberately do NOT suppress on arbitrary `{"` in the
             # prose — normal answers often include inline JSON examples
             # (e.g. `{"state":"on"}`) that must still reach the client.
@@ -2074,33 +2218,85 @@ async def _handle_websocket_chat_stream(
                 if full_text.lstrip().startswith("{"):
                     opener_idx = full_text.index("{")
                 else:
-                    for needle in (
-                        "```command",
-                        "```delayed_command",
-                        "```cancel",
-                    ):
+                    for needle in _STREAM_FENCED_OPENERS:
                         idx = full_text.find(needle)
                         if idx >= 0 and (opener_idx < 0 or idx < opener_idx):
                             opener_idx = idx
+                    # Bare typed opener (no ``` fence): the type word alone
+                    # on its own line, immediately followed by a JSON `{`.
+                    # The body-opener requirement keeps prose like "I built
+                    # an automation\nthat does X" from matching. Skip any
+                    # candidate inside an existing ``` fence (odd fence
+                    # count before it) — that's an illustrative code
+                    # example the final parse won't attach as a proposal,
+                    # so suppressing it would wrongly show a spinner.
+                    # Mirrors parsers.py `_find_bare_block` and the panel's
+                    # `stripAutomationBlock`.
+                    for bare in _STREAM_BARE_BLOCK_RE.finditer(full_text):
+                        if full_text.count("```", 0, bare.start()) % 2 == 1:
+                            continue
+                        bare_idx = bare.start()
+                        # Anchor at the type word, not the leading newline,
+                        # so the prose before it keeps its line break.
+                        if full_text[bare_idx] == "\n":
+                            bare_idx += 1
+                        if opener_idx < 0 or bare_idx < opener_idx:
+                            opener_idx = bare_idx
+                        break
                 if opener_idx >= 0:
                     looks_like_json = True
-                    # Stream only the prose portion of this chunk (if
-                    # any) up to the opener position. Anything past it
-                    # is JSON tokens the user shouldn't see.
-                    send_until = max(0, opener_idx - sent_chars)
-                    prefix = chunk[:send_until]
-                    if prefix:
+                    # Stream the confirmed-prose portion up to the opener;
+                    # everything past it is block tokens the user shouldn't
+                    # see. Position-based (absolute) so any fragment held
+                    # back on a prior chunk is included.
+                    prose = full_text[sent_chars:opener_idx]
+                    if prose:
                         connection.send_message(
-                            websocket_api.event_message(
-                                msg["id"], {"type": "token", "text": prefix}
-                            )
+                            websocket_api.event_message(msg["id"], {"type": "token", "text": prose})
                         )
-                        sent_chars += len(prefix)
+                        sent_chars += len(prose)
+                    # Surface the building spinner for automation / scene
+                    # blocks that weren't pre-flagged as a definite
+                    # automation turn. Without this the bubble goes quiet
+                    # between the prose prefix and the "done" card. The
+                    # sentinel text is hidden by ``stripAutomationBlock``
+                    # on the panel and only flips the spinner state.
+                    if not spinner_sentinel_sent:
+                        opener = full_text[opener_idx:]
+                        sentinel = None
+                        if opener.startswith(("```scene", "scene")):
+                            sentinel = "```scene\n"
+                        elif opener.startswith(("```automation", "automation")):
+                            sentinel = "```automation\n"
+                        if sentinel is not None:
+                            connection.send_message(
+                                websocket_api.event_message(
+                                    msg["id"],
+                                    {
+                                        "type": "token",
+                                        "text": sentinel,
+                                        "synthetic": True,
+                                        "idle_timeout_ms": int(
+                                            STREAM_AUTOMATION_IDLE_TIMEOUT_S * 1000
+                                        ),
+                                    },
+                                )
+                            )
+                            spinner_sentinel_sent = True
                 else:
-                    connection.send_message(
-                        websocket_api.event_message(msg["id"], {"type": "token", "text": chunk})
-                    )
-                    sent_chars += len(chunk)
+                    # No confirmed opener. Withhold a trailing fragment
+                    # that could be the START of one still streaming in
+                    # (partial fence / bare type word) so it doesn't flash
+                    # in the bubble; release it once the next chunk shows
+                    # whether it's a block or prose.
+                    hold = _pending_opener_start(full_text)
+                    send_to = hold if hold >= 0 else len(full_text)
+                    prose = full_text[sent_chars:send_to]
+                    if prose:
+                        connection.send_message(
+                            websocket_api.event_message(msg["id"], {"type": "token", "text": prose})
+                        )
+                        sent_chars += len(prose)
 
         # Visibility for "stream ended cleanly but the bubble looks
         # truncated" diagnosis. Most useful when comparing Selora Cloud

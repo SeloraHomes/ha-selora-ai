@@ -40,19 +40,54 @@ export function stripAutomationBlock(text) {
   // dangling unclosed fence (odd ``` count → the last one has no closer)
   // from the opener to end-of-text. Anchors to the FINAL fence so a
   // complete earlier code block is left intact.
+  let barePartialType = null;
   if (!hasComplete && !hasPartial) {
     const fenceCount = (cleaned.match(/```/g) || []).length;
     if (fenceCount % 2 === 1) {
       cleaned = cleaned.replace(/```(?:(?!```)[\s\S])*$/, "").trim();
       hasPartial = true;
+    } else {
+      // Bare typed block (no opening ``` fence): some models drop the
+      // opener and stream `automation\n{ …` directly. While the body
+      // streams there is no fence to hide it, so the raw JSON fills the
+      // bubble until the response finalizes. Detect the type word alone
+      // on its own line followed by a JSON `{` body and strip from there
+      // to end-of-text, surfacing the building spinner instead.
+      //
+      // SCOPE: only `automation` / `scene` with a `{` body — exactly the
+      // shapes `parse_streamed_response` salvages on the final parse (see
+      // llm_client/parsers.py). We must NOT hide bare shapes the backend
+      // can't extract (other block types, or YAML `key:` bodies): with no
+      // structural fallback the final message would silently lose the
+      // block. Those keep rendering as raw text instead.
+      //
+      // And NOT matches inside a ``` code fence: a normal fenced example
+      // (```\nautomation\n{...}\n```) is shown as code, not a proposal —
+      // stripping it would truncate the answer to a dangling fence. Walk
+      // the opener candidates and take the first one outside any fence
+      // (an odd number of ``` before it means it's enclosed).
+      const openerRe = /(?:^|\n)[ \t]*(automation|scene)[ \t]*\n[ \t]*\{/g;
+      let bm;
+      while ((bm = openerRe.exec(cleaned)) !== null) {
+        let idx = bm.index;
+        if (cleaned[idx] === "\n") idx += 1;
+        const fencesBefore = (cleaned.slice(0, idx).match(/```/g) || []).length;
+        if (fencesBefore % 2 === 0) {
+          cleaned = cleaned.slice(0, idx).trim();
+          hasPartial = true;
+          barePartialType = bm[1];
+          break;
+        }
+      }
     }
   }
 
   // Spinners only make sense for the long-form blocks; quick_actions /
   // delayed_command / cancel are short and finalize quickly, so we don't
   // surface a building-state UI for them.
-  const spinnerType = ["automation", "scene"].includes(partialMatch?.[1])
-    ? partialMatch[1]
+  const spinnerCandidate = partialMatch?.[1] || barePartialType;
+  const spinnerType = ["automation", "scene"].includes(spinnerCandidate)
+    ? spinnerCandidate
     : null;
 
   return {
@@ -228,23 +263,43 @@ export function renderMarkdown(text) {
     .replace(/^\[([A-Za-z_ ]+)\]\s*\(\d+[^)]*\)\s*:?\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
-  // Run the salvage BEFORE escaping so we can match the raw source.
+  // Stash code spans before any entity/marker processing. A YAML block
+  // showing `entities: [light.kitchen]` must not have its entity_id
+  // coalesced into a tile grid, and a model-emitted `[[entity:…]]`
+  // inside a fenced snippet must not substitute into a live HA card.
+  // Code stays literal — markers and salvage only fire on prose.
+  // Sentinels use Unicode Private Use Area (U+E000) so they never
+  // collide with real LLM output.
+  const STASH_OPEN = "";
+  const STASH_CLOSE = "";
+  /** @type {string[]} */
+  const codeBlocks = [];
+  // The language tag (`yaml`, `json`, …) that follows the opening
+  // fence is renderer metadata, not content to display. Strip it
+  // only when it sits on its OWN line — `` ```yaml\nfoo\n``` `` consumes
+  // `yaml` as the lang; `` ```some code``` `` keeps `some code` as
+  // body verbatim (no newline after the opener, so the first token
+  // is content, not a lang tag).
+  text = text.replace(
+    /```(?:[ \t]*([a-zA-Z][a-zA-Z0-9_+\-]*)[ \t]*\n)?([\s\S]*?)```/g,
+    (_m, _lang, body) => {
+      codeBlocks.push(body);
+      return `${STASH_OPEN}CB${codeBlocks.length - 1}${STASH_CLOSE}`;
+    },
+  );
+  /** @type {string[]} */
+  const inlineCode = [];
+  text = text.replace(/`([^`\n]+)`/g, (_m, body) => {
+    inlineCode.push(body);
+    return `${STASH_OPEN}IC${inlineCode.length - 1}${STASH_CLOSE}`;
+  });
+  // Run the salvage BEFORE escaping so we can match the raw source —
+  // sentinels above ensure it only sees prose.
   text = _coalesceEntityListings(text);
   let escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-
-  // Code blocks (```)
-  escaped = escaped.replace(
-    /```([\s\S]*?)```/g,
-    '<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
-  );
-  // Inline code
-  escaped = escaped.replace(
-    /`([^`]+)`/g,
-    '<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">$1</code>',
-  );
   // Headings (#### → h6, ### → h5, ## → h4, # → h3) — sized for chat bubbles
   escaped = escaped.replace(
     /^####\s+(.+)$/gm,
@@ -317,6 +372,20 @@ export function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
+
+  // Restore stashed code with HTML-escaped bodies wrapped in <pre> / <code>.
+  // Done last so prior passes never touched the code contents — entity_ids
+  // and `[[entity:…]]` markers inside YAML or other snippets stay literal.
+  const escapeCode = (s) =>
+    s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const stashRe = new RegExp(STASH_OPEN + "(CB|IC)(\\d+)" + STASH_CLOSE, "g");
+  escaped = escaped.replace(stashRe, (_m, kind, idx) => {
+    const body = (kind === "CB" ? codeBlocks : inlineCode)[Number(idx)] ?? "";
+    if (kind === "CB") {
+      return `<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">${escapeCode(body)}</pre>`;
+    }
+    return `<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">${escapeCode(body)}</code>`;
+  });
 
   return escaped;
 }

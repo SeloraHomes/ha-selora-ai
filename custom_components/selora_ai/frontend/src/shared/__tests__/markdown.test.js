@@ -103,6 +103,78 @@ describe("stripAutomationBlock", () => {
     expect(result.text).not.toContain("```automation");
     expect(result.text).not.toContain("```scene");
   });
+
+  it("hides a fence-less automation block streaming in (JSON body)", () => {
+    // Model dropped the opening ``` and streams `automation\n{ …`. No
+    // fence exists yet to hide it, so without the bare-partial path the
+    // raw JSON fills the bubble. We hide it and show the building spinner.
+    const input =
+      'I found your sensors.\n\nautomation\n{\n  "alias": "Water Leak Alert",\n  "triggers": [';
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.partialBlockType).toBe("automation");
+    expect(result.text).toBe("I found your sensors.");
+    expect(result.text).not.toContain('"alias"');
+  });
+
+  it("does NOT hide a fence-less YAML automation block", () => {
+    // The backend only salvages a `{` (JSON) body, not YAML. Hiding a
+    // YAML body here would drop the block from the final render with no
+    // proposal card and no visible fallback. It must render as raw text.
+    const input =
+      "Setting up.\n\nautomation\nalias: Leak\ntriggers:\n  - platform: state";
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(false);
+    expect(result.text).toContain("alias: Leak");
+  });
+
+  it("does NOT hide a fence-less command block (no parser fallback)", () => {
+    // Only automation/scene are salvaged bare. A bare `command\n{…}` has
+    // no backend extraction, so hiding it would silently lose the call.
+    const input = 'Running it.\n\ncommand\n{\n  "calls": []';
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(false);
+    expect(result.text).toContain('"calls"');
+  });
+
+  it("hides a fence-less scene block streaming in", () => {
+    const input = 'Building scene.\n\nscene\n{\n  "name": "Cozy",';
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.partialBlockType).toBe("scene");
+    expect(result.text).toBe("Building scene.");
+  });
+
+  it("does not treat a prose mention of 'automation' as a bare block", () => {
+    const input = "I built an automation for you. Want me to refine it?";
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(false);
+    expect(result.text).toContain("automation for you");
+  });
+
+  it("does NOT strip a bare block inside a generic code fence", () => {
+    // A fenced example (```\nautomation\n{...}\n```) is shown as code,
+    // not a proposal. Stripping it would truncate the answer to a
+    // dangling fence. The bare matcher must ignore in-fence matches.
+    const input =
+      'Here\'s the shape:\n\n```\nautomation\n{\n  "alias": "Example"\n}\n```\n\nWant one for real?';
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(false);
+    expect(result.text).toContain('"alias": "Example"');
+    expect(result.text).toContain("Want one for real?");
+  });
+
+  it("strips a real bare block that follows a fenced example", () => {
+    // Example inside a fence is skipped; the real proposal after it
+    // (outside any fence) is still hidden.
+    const input =
+      'For example:\n\n```\nautomation\n{"alias":"Ex"}\n```\n\nDone.\n\nautomation\n{\n  "alias": "Real"';
+    const result = stripAutomationBlock(input);
+    expect(result.isPartialBlock).toBe(true);
+    expect(result.partialBlockType).toBe("automation");
+    expect(result.text).toContain('"alias":"Ex"'); // example kept
+    expect(result.text).not.toContain('"alias": "Real"'); // proposal hidden
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -137,10 +209,82 @@ describe("renderMarkdown", () => {
     expect(result).toContain("some code");
   });
 
+  it("preserves single-line fenced blocks without a language tag", () => {
+    // Regression: an earlier stash regex made the language newline
+    // optional, so `` ```hello``` `` got parsed as lang="hello" / body=""
+    // and the rendered <pre> came out empty. Single-line content must
+    // round-trip verbatim.
+    const a = renderMarkdown("```hello```");
+    expect(a).toContain("<pre");
+    expect(a).toContain("hello");
+
+    const b = renderMarkdown("```some code```");
+    expect(b).toContain("<pre");
+    // Both tokens kept — `some` was being treated as a lang tag and dropped.
+    expect(b).toContain("some code");
+  });
+
+  it("strips the language tag from the rendered code block body", () => {
+    // ```yaml on the opening fence is renderer metadata, not content.
+    // The body inside <pre> must start with the first real line of code.
+    const result = renderMarkdown("```yaml\ngroup:\n  foo: bar\n```");
+    expect(result).toContain("<pre");
+    expect(result).toContain("group:");
+    expect(result).toContain("foo: bar");
+    // Find the body inside <pre>…</pre> and assert "yaml" isn't its first token.
+    const preBody = result.match(/<pre[^>]*>([\s\S]*?)<\/pre>/)?.[1] || "";
+    expect(preBody.trimStart().startsWith("yaml")).toBe(false);
+  });
+
   it("renders inline code", () => {
     const result = renderMarkdown("Use `entity_id` here.");
     expect(result).toContain("<code");
     expect(result).toContain("entity_id");
+  });
+
+  it("leaves entity markers inside fenced code blocks literal", () => {
+    // YAML / config snippets must stay verbatim — a tile card replacing
+    // an `[[entity:…]]` mention inside a code block would corrupt the
+    // snippet the user is supposed to copy.
+    const input =
+      "Add this to configuration.yaml:\n" +
+      "```\n" +
+      "group:\n" +
+      "  all_water_leak_sensors:\n" +
+      "    entities:\n" +
+      "      - [[entity:binary_sensor.basement|Basement]]\n" +
+      "      - binary_sensor.kitchen\n" +
+      "```";
+    const result = renderMarkdown(input);
+    expect(result).toContain("<pre");
+    // Marker stays as literal text inside the block, no tile div.
+    expect(result).toContain("[[entity:binary_sensor.basement|Basement]]");
+    expect(result).toContain("binary_sensor.kitchen");
+    // No tile grid was injected anywhere in the output (the bare-id
+    // line inside the block must not coalesce into a tile either).
+    expect(result).not.toContain("selora-entity-grid");
+  });
+
+  it("leaves entity_id-only bullet lines inside fenced code blocks alone", () => {
+    // Bare `light.kitchen` bullets in prose would coalesce into a tile
+    // grid; inside a fenced block they must stay literal.
+    const input = ["```yaml", "- light.kitchen", "- light.office", "```"].join(
+      "\n",
+    );
+    const result = renderMarkdown(input);
+    expect(result).toContain("<pre");
+    expect(result).toContain("light.kitchen");
+    expect(result).toContain("light.office");
+    expect(result).not.toContain("selora-entity-grid");
+  });
+
+  it("leaves entity markers inside inline code spans literal", () => {
+    const result = renderMarkdown(
+      "Reference it as `[[entity:light.kitchen|Kitchen]]` in your snippet.",
+    );
+    expect(result).toContain("<code");
+    expect(result).toContain("[[entity:light.kitchen|Kitchen]]");
+    expect(result).not.toContain("selora-entity-grid");
   });
 
   it("renders headings", () => {

@@ -38,6 +38,7 @@ from .command_policy import (
     apply_command_policy,
     synthesize_approval_from_tool_log,
 )
+from .intent import _is_definite_automation
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -52,6 +53,48 @@ _LOGGER = logging.getLogger(__name__)
 # prompt) shoves an irrelevant brightness slider into the proposal
 # card. Strip the markers from the prose before we hand it off.
 _ENTITY_MARKER_RE = re.compile(r"\s*\[\[(?:entity|entities|areas):[^\]]+\]\]")
+
+
+def _find_bare_block(text: str, type_word: str) -> tuple[str, int, int] | None:
+    """Locate a fence-less ``<type_word>\\n{...}`` block and decode the
+    first balanced JSON object starting at the ``{``.
+
+    Returns ``(json_text, start, end)`` where ``start``/``end`` bound the
+    whole block (the type-word line through the JSON object, plus an
+    optional trailing ```` ``` ```` fence) so the caller can splice the
+    surrounding prose; ``None`` when no bare block is present or the JSON
+    is malformed.
+
+    A balanced ``raw_decode`` — not a greedy ``\\{[\\s\\S]*\\}`` regex —
+    so trailing prose containing a ``}`` (a follow-up sentence with
+    ``{}``, a Jinja ``{{ … }}`` snippet, …) cannot extend the capture
+    past the automation/scene object and break ``json.loads``.
+
+    Matches enclosed by an existing ```` ``` ```` fence are skipped: a
+    generic fenced example (```` ```\nautomation\n{...}\n``` ````, shown
+    when the user asks to see the JSON shape) is illustrative code, not a
+    proposal — salvaging it would strip the example from the answer and
+    surface a spurious Accept card. An odd ```` ``` ```` count before the
+    candidate means it sits inside a fence.
+    """
+    for m in re.finditer(
+        rf"(?:^|\n)[ \t]*{type_word}[ \t]*\n[ \t]*(?=\{{)",
+        text,
+    ):
+        if text.count("```", 0, m.start()) % 2 == 1:
+            continue  # inside a fenced code example — not a real block
+        brace = m.end()
+        try:
+            _obj, end = json.JSONDecoder().raw_decode(text, brace)
+        except ValueError:
+            continue
+        json_text = text[brace:end]
+        # Absorb an optional closing fence sitting right after the object
+        # so it doesn't survive as a stray ``` in the spliced prose.
+        fence = re.match(r"[ \t]*\n?[ \t]*```[ \t]*", text[end:])
+        block_end = end + (fence.end() if fence else 0)
+        return json_text, m.start(), block_end
+    return None
 
 
 def _strip_entity_markers(text: str) -> str:
@@ -2653,19 +2696,31 @@ def parse_streamed_response(
     # the LAST ``` scene ``` block anywhere in the text instead — scene
     # proposals are always gated behind the Accept card, so a stray
     # example block can't auto-create.
-    scene_match: re.Match[str] | None = None
+    scene_json: str | None = None
+    scene_start = scene_end = -1
+    scene_fenced: re.Match[str] | None = None
     for m in re.finditer(r"```scene\s*\n?([\s\S]*?)```", text):
-        scene_match = m
-    if scene_match:
+        scene_fenced = m
+    if scene_fenced is not None:
+        scene_json = scene_fenced.group(1).strip()
+        scene_start, scene_end = scene_fenced.start(), scene_fenced.end()
+    else:
+        # Bare scene block fallback — model dropped the opening ``` and
+        # emitted `scene\n{...}`. Balanced decode so neither nested JSON
+        # objects nor trailing prose braces mis-bound the body.
+        bare = _find_bare_block(text, "scene")
+        if bare is not None:
+            scene_json, scene_start, scene_end = bare
+    if scene_json is not None:
         from ..scene_utils import validate_scene_payload
 
         # Splice prose around the block so any trailing summary stays
         # in the bubble. Strip a single blank-line separator on either
         # side so the joined prose doesn't collapse into a double gap.
-        prose_before = text[: scene_match.start()].rstrip()
-        prose_after = text[scene_match.end() :].lstrip()
+        prose_before = text[:scene_start].rstrip()
+        prose_after = text[scene_end:].lstrip()
         response_text = "\n\n".join(p for p in (prose_before, prose_after) if p).strip()
-        json_text = scene_match.group(1).strip()
+        json_text = scene_json
         try:
             scene_data = json.loads(json_text)
             is_valid, reason, normalized = validate_scene_payload(scene_data, hass)
@@ -2695,12 +2750,56 @@ def parse_streamed_response(
         ):
             _LOGGER.warning("Failed to parse scene block: %s", json_text[:200])
 
-    # Check for automation fenced block — must be the terminal block
-    # so informational examples don't trigger real automation creation.
-    auto_match = re.search(r"```automation\s*\n?([\s\S]*?)```\s*$", text)
-    if auto_match:
-        response_text = text[: auto_match.start()].strip()
-        json_text = auto_match.group(1).strip()
+    # Check for automation fenced block. The prompt asks the model to put
+    # the proposal at the END, but some models append a trailing summary
+    # ("This automation monitors all 5 leak detectors…"). A strict
+    # end-anchor would drop those proposals (no Accept card, raw JSON
+    # leaking in the bubble); matching the last block ANYWHERE would do
+    # the opposite — misclassify an illustrative ```automation example in
+    # a how-to answer as a real proposal.
+    #
+    # The reliable discriminator is the USER's intent, not the trailing
+    # text (a short "adjust the entity IDs" example and a short real
+    # summary look identical by length/keywords). So: a TERMINAL block is
+    # always the proposal; a block with trailing prose counts only when
+    # the user actually asked to CREATE an automation. A how-to /
+    # "show me an example" question (``_is_definite_automation`` is False)
+    # leaves its non-terminal example rendered as code.
+    wants_automation = _is_definite_automation(user_message or "")
+
+    def _is_proposal(end_pos: int) -> bool:
+        return text[end_pos:].strip() == "" or wants_automation
+
+    auto_json: str | None = None
+    auto_start = auto_end = -1
+    auto_fenced: re.Match[str] | None = None
+    for m in re.finditer(r"```automation\s*\n?([\s\S]*?)```", text):
+        if _is_proposal(m.end()):
+            auto_fenced = m
+    if auto_fenced is not None:
+        auto_json = auto_fenced.group(1).strip()
+        auto_start, auto_end = auto_fenced.start(), auto_fenced.end()
+    else:
+        # Fallback when the model drops the OPENING ``` and emits a bare
+        # `automation\n{...}` block (with or without a stray closing
+        # fence). Balanced decode (not a greedy `\{[\s\S]*\}`) so trailing
+        # prose containing a `}` — a follow-up sentence with `{}`, a Jinja
+        # `{{ … }}` snippet — can't extend the capture past the JSON
+        # object and break json.loads. The body MUST start with `{`
+        # (architect emits JSON, not YAML) and the `automation` token MUST
+        # be alone on its own line, so prose mentions like "I built an
+        # automation for you" don't trigger. Same terminal/intent gate as
+        # the fenced path.
+        bare = _find_bare_block(text, "automation")
+        if bare is not None and _is_proposal(bare[2]):
+            auto_json, auto_start, auto_end = bare
+    if auto_json is not None:
+        # Splice prose around the block so any trailing summary stays in
+        # the bubble (mirrors the scene path).
+        prose_before = text[:auto_start].rstrip()
+        prose_after = text[auto_end:].lstrip()
+        response_text = "\n\n".join(p for p in (prose_before, prose_after) if p).strip()
+        json_text = auto_json
         try:
             automation_data = json.loads(json_text)
             is_valid, reason, normalized = validate_automation_payload(automation_data, hass)

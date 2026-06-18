@@ -5,597 +5,619 @@ var __export = (target, all) => {
 };
 
 // node_modules/@lit/reactive-element/css-tag.js
-var t = globalThis;
+var t = window;
 var e =
   t.ShadowRoot &&
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
 var s = /* @__PURE__ */ Symbol();
-var o = /* @__PURE__ */ new WeakMap();
-var n = class {
-  constructor(t4, e5, o5) {
-    if (((this._$cssResult$ = true), o5 !== s))
+var n = /* @__PURE__ */ new WeakMap();
+var o = class {
+  constructor(t3, e5, n5) {
+    if (((this._$cssResult$ = true), n5 !== s))
       throw Error(
         "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
       );
-    ((this.cssText = t4), (this.t = e5));
+    ((this.cssText = t3), (this.t = e5));
   }
   get styleSheet() {
-    let t4 = this.o;
-    const s4 = this.t;
-    if (e && void 0 === t4) {
-      const e5 = void 0 !== s4 && 1 === s4.length;
-      (e5 && (t4 = o.get(s4)),
-        void 0 === t4 &&
-          ((this.o = t4 = new CSSStyleSheet()).replaceSync(this.cssText),
-          e5 && o.set(s4, t4)));
+    let t3 = this.o;
+    const s6 = this.t;
+    if (e && void 0 === t3) {
+      const e5 = void 0 !== s6 && 1 === s6.length;
+      (e5 && (t3 = n.get(s6)),
+        void 0 === t3 &&
+          ((this.o = t3 = new CSSStyleSheet()).replaceSync(this.cssText),
+          e5 && n.set(s6, t3)));
     }
-    return t4;
+    return t3;
   }
   toString() {
     return this.cssText;
   }
 };
-var r = (t4) => new n("string" == typeof t4 ? t4 : t4 + "", void 0, s);
-var i = (t4, ...e5) => {
-  const o5 =
-    1 === t4.length
-      ? t4[0]
+var r = (t3) => new o("string" == typeof t3 ? t3 : t3 + "", void 0, s);
+var i = (t3, ...e5) => {
+  const n5 =
+    1 === t3.length
+      ? t3[0]
       : e5.reduce(
-          (e6, s4, o6) =>
+          (e6, s6, n6) =>
             e6 +
-            ((t5) => {
-              if (true === t5._$cssResult$) return t5.cssText;
-              if ("number" == typeof t5) return t5;
+            ((t4) => {
+              if (true === t4._$cssResult$) return t4.cssText;
+              if ("number" == typeof t4) return t4;
               throw Error(
                 "Value passed to 'css' function must be a 'css' function result: " +
-                  t5 +
+                  t4 +
                   ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
               );
-            })(s4) +
-            t4[o6 + 1],
-          t4[0],
+            })(s6) +
+            t3[n6 + 1],
+          t3[0],
         );
-  return new n(o5, t4, s);
+  return new o(n5, t3, s);
 };
-var S = (s4, o5) => {
-  if (e)
-    s4.adoptedStyleSheets = o5.map((t4) =>
-      t4 instanceof CSSStyleSheet ? t4 : t4.styleSheet,
-    );
-  else
-    for (const e5 of o5) {
-      const o6 = document.createElement("style"),
-        n4 = t.litNonce;
-      (void 0 !== n4 && o6.setAttribute("nonce", n4),
-        (o6.textContent = e5.cssText),
-        s4.appendChild(o6));
-    }
+var S = (s6, n5) => {
+  e
+    ? (s6.adoptedStyleSheets = n5.map((t3) =>
+        t3 instanceof CSSStyleSheet ? t3 : t3.styleSheet,
+      ))
+    : n5.forEach((e5) => {
+        const n6 = document.createElement("style"),
+          o5 = t.litNonce;
+        (void 0 !== o5 && n6.setAttribute("nonce", o5),
+          (n6.textContent = e5.cssText),
+          s6.appendChild(n6));
+      });
 };
 var c = e
-  ? (t4) => t4
-  : (t4) =>
-      t4 instanceof CSSStyleSheet
-        ? ((t5) => {
+  ? (t3) => t3
+  : (t3) =>
+      t3 instanceof CSSStyleSheet
+        ? ((t4) => {
             let e5 = "";
-            for (const s4 of t5.cssRules) e5 += s4.cssText;
+            for (const s6 of t4.cssRules) e5 += s6.cssText;
             return r(e5);
-          })(t4)
-        : t4;
+          })(t3)
+        : t3;
 
 // node_modules/@lit/reactive-element/reactive-element.js
-var {
-  is: i2,
-  defineProperty: e2,
-  getOwnPropertyDescriptor: h,
-  getOwnPropertyNames: r2,
-  getOwnPropertySymbols: o2,
-  getPrototypeOf: n2,
-} = Object;
-var a = globalThis;
-var c2 = a.trustedTypes;
-var l = c2 ? c2.emptyScript : "";
-var p = a.reactiveElementPolyfillSupport;
-var d = (t4, s4) => t4;
-var u = {
-  toAttribute(t4, s4) {
-    switch (s4) {
+var s2;
+var e2 = window;
+var r2 = e2.trustedTypes;
+var h = r2 ? r2.emptyScript : "";
+var o2 = e2.reactiveElementPolyfillSupport;
+var n2 = {
+  toAttribute(t3, i5) {
+    switch (i5) {
       case Boolean:
-        t4 = t4 ? l : null;
+        t3 = t3 ? h : null;
         break;
       case Object:
       case Array:
-        t4 = null == t4 ? t4 : JSON.stringify(t4);
+        t3 = null == t3 ? t3 : JSON.stringify(t3);
     }
-    return t4;
+    return t3;
   },
-  fromAttribute(t4, s4) {
-    let i7 = t4;
-    switch (s4) {
+  fromAttribute(t3, i5) {
+    let s6 = t3;
+    switch (i5) {
       case Boolean:
-        i7 = null !== t4;
+        s6 = null !== t3;
         break;
       case Number:
-        i7 = null === t4 ? null : Number(t4);
+        s6 = null === t3 ? null : Number(t3);
         break;
       case Object:
       case Array:
         try {
-          i7 = JSON.parse(t4);
-        } catch (t5) {
-          i7 = null;
+          s6 = JSON.parse(t3);
+        } catch (t4) {
+          s6 = null;
         }
     }
-    return i7;
+    return s6;
   },
 };
-var f = (t4, s4) => !i2(t4, s4);
-var b = {
+var a = (t3, i5) => i5 !== t3 && (i5 == i5 || t3 == t3);
+var l = {
   attribute: true,
   type: String,
-  converter: u,
+  converter: n2,
   reflect: false,
-  useDefault: false,
-  hasChanged: f,
+  hasChanged: a,
 };
-((Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata")),
-  (a.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap()));
-var y = class extends HTMLElement {
-  static addInitializer(t4) {
-    (this._$Ei(), (this.l ??= []).push(t4));
+var d = "finalized";
+var u = class extends HTMLElement {
+  constructor() {
+    (super(),
+      (this._$Ei = /* @__PURE__ */ new Map()),
+      (this.isUpdatePending = false),
+      (this.hasUpdated = false),
+      (this._$El = null),
+      this._$Eu());
+  }
+  static addInitializer(t3) {
+    var i5;
+    (this.finalize(),
+      (null !== (i5 = this.h) && void 0 !== i5 ? i5 : (this.h = [])).push(t3));
   }
   static get observedAttributes() {
-    return (this.finalize(), this._$Eh && [...this._$Eh.keys()]);
+    this.finalize();
+    const t3 = [];
+    return (
+      this.elementProperties.forEach((i5, s6) => {
+        const e5 = this._$Ep(s6, i5);
+        void 0 !== e5 && (this._$Ev.set(e5, s6), t3.push(e5));
+      }),
+      t3
+    );
   }
-  static createProperty(t4, s4 = b) {
+  static createProperty(t3, i5 = l) {
     if (
-      (s4.state && (s4.attribute = false),
-      this._$Ei(),
-      this.prototype.hasOwnProperty(t4) &&
-        ((s4 = Object.create(s4)).wrapped = true),
-      this.elementProperties.set(t4, s4),
-      !s4.noAccessor)
+      (i5.state && (i5.attribute = false),
+      this.finalize(),
+      this.elementProperties.set(t3, i5),
+      !i5.noAccessor && !this.prototype.hasOwnProperty(t3))
     ) {
-      const i7 = /* @__PURE__ */ Symbol(),
-        h3 = this.getPropertyDescriptor(t4, i7, s4);
-      void 0 !== h3 && e2(this.prototype, t4, h3);
+      const s6 = "symbol" == typeof t3 ? /* @__PURE__ */ Symbol() : "__" + t3,
+        e5 = this.getPropertyDescriptor(t3, s6, i5);
+      void 0 !== e5 && Object.defineProperty(this.prototype, t3, e5);
     }
   }
-  static getPropertyDescriptor(t4, s4, i7) {
-    const { get: e5, set: r4 } = h(this.prototype, t4) ?? {
-      get() {
-        return this[s4];
-      },
-      set(t5) {
-        this[s4] = t5;
-      },
-    };
+  static getPropertyDescriptor(t3, i5, s6) {
     return {
-      get: e5,
-      set(s5) {
-        const h3 = e5?.call(this);
-        (r4?.call(this, s5), this.requestUpdate(t4, h3, i7));
+      get() {
+        return this[i5];
+      },
+      set(e5) {
+        const r4 = this[t3];
+        ((this[i5] = e5), this.requestUpdate(t3, r4, s6));
       },
       configurable: true,
       enumerable: true,
     };
   }
-  static getPropertyOptions(t4) {
-    return this.elementProperties.get(t4) ?? b;
-  }
-  static _$Ei() {
-    if (this.hasOwnProperty(d("elementProperties"))) return;
-    const t4 = n2(this);
-    (t4.finalize(),
-      void 0 !== t4.l && (this.l = [...t4.l]),
-      (this.elementProperties = new Map(t4.elementProperties)));
+  static getPropertyOptions(t3) {
+    return this.elementProperties.get(t3) || l;
   }
   static finalize() {
-    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.hasOwnProperty(d)) return false;
+    this[d] = true;
+    const t3 = Object.getPrototypeOf(this);
     if (
-      ((this.finalized = true),
-      this._$Ei(),
-      this.hasOwnProperty(d("properties")))
+      (t3.finalize(),
+      void 0 !== t3.h && (this.h = [...t3.h]),
+      (this.elementProperties = new Map(t3.elementProperties)),
+      (this._$Ev = /* @__PURE__ */ new Map()),
+      this.hasOwnProperty("properties"))
     ) {
-      const t5 = this.properties,
-        s4 = [...r2(t5), ...o2(t5)];
-      for (const i7 of s4) this.createProperty(i7, t5[i7]);
+      const t4 = this.properties,
+        i5 = [
+          ...Object.getOwnPropertyNames(t4),
+          ...Object.getOwnPropertySymbols(t4),
+        ];
+      for (const s6 of i5) this.createProperty(s6, t4[s6]);
     }
-    const t4 = this[Symbol.metadata];
-    if (null !== t4) {
-      const s4 = litPropertyMetadata.get(t4);
-      if (void 0 !== s4)
-        for (const [t5, i7] of s4) this.elementProperties.set(t5, i7);
-    }
-    this._$Eh = /* @__PURE__ */ new Map();
-    for (const [t5, s4] of this.elementProperties) {
-      const i7 = this._$Eu(t5, s4);
-      void 0 !== i7 && this._$Eh.set(i7, t5);
-    }
-    this.elementStyles = this.finalizeStyles(this.styles);
+    return ((this.elementStyles = this.finalizeStyles(this.styles)), true);
   }
-  static finalizeStyles(s4) {
-    const i7 = [];
-    if (Array.isArray(s4)) {
-      const e5 = new Set(s4.flat(1 / 0).reverse());
-      for (const s5 of e5) i7.unshift(c(s5));
-    } else void 0 !== s4 && i7.push(c(s4));
-    return i7;
+  static finalizeStyles(i5) {
+    const s6 = [];
+    if (Array.isArray(i5)) {
+      const e5 = new Set(i5.flat(1 / 0).reverse());
+      for (const i6 of e5) s6.unshift(c(i6));
+    } else void 0 !== i5 && s6.push(c(i5));
+    return s6;
   }
-  static _$Eu(t4, s4) {
-    const i7 = s4.attribute;
-    return false === i7
+  static _$Ep(t3, i5) {
+    const s6 = i5.attribute;
+    return false === s6
       ? void 0
-      : "string" == typeof i7
-        ? i7
-        : "string" == typeof t4
-          ? t4.toLowerCase()
+      : "string" == typeof s6
+        ? s6
+        : "string" == typeof t3
+          ? t3.toLowerCase()
           : void 0;
   }
-  constructor() {
-    (super(),
-      (this._$Ep = void 0),
-      (this.isUpdatePending = false),
-      (this.hasUpdated = false),
-      (this._$Em = null),
-      this._$Ev());
-  }
-  _$Ev() {
-    ((this._$ES = new Promise((t4) => (this.enableUpdating = t4))),
+  _$Eu() {
+    var t3;
+    ((this._$E_ = new Promise((t4) => (this.enableUpdating = t4))),
       (this._$AL = /* @__PURE__ */ new Map()),
-      this._$E_(),
+      this._$Eg(),
       this.requestUpdate(),
-      this.constructor.l?.forEach((t4) => t4(this)));
+      null === (t3 = this.constructor.h) ||
+        void 0 === t3 ||
+        t3.forEach((t4) => t4(this)));
   }
-  addController(t4) {
-    ((this._$EO ??= /* @__PURE__ */ new Set()).add(t4),
-      void 0 !== this.renderRoot && this.isConnected && t4.hostConnected?.());
+  addController(t3) {
+    var i5, s6;
+    ((null !== (i5 = this._$ES) && void 0 !== i5 ? i5 : (this._$ES = [])).push(
+      t3,
+    ),
+      void 0 !== this.renderRoot &&
+        this.isConnected &&
+        (null === (s6 = t3.hostConnected) || void 0 === s6 || s6.call(t3)));
   }
-  removeController(t4) {
-    this._$EO?.delete(t4);
+  removeController(t3) {
+    var i5;
+    null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.splice(this._$ES.indexOf(t3) >>> 0, 1);
   }
-  _$E_() {
-    const t4 = /* @__PURE__ */ new Map(),
-      s4 = this.constructor.elementProperties;
-    for (const i7 of s4.keys())
-      this.hasOwnProperty(i7) && (t4.set(i7, this[i7]), delete this[i7]);
-    t4.size > 0 && (this._$Ep = t4);
+  _$Eg() {
+    this.constructor.elementProperties.forEach((t3, i5) => {
+      this.hasOwnProperty(i5) && (this._$Ei.set(i5, this[i5]), delete this[i5]);
+    });
   }
   createRenderRoot() {
-    const t4 =
-      this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return (S(t4, this.constructor.elementStyles), t4);
+    var t3;
+    const s6 =
+      null !== (t3 = this.shadowRoot) && void 0 !== t3
+        ? t3
+        : this.attachShadow(this.constructor.shadowRootOptions);
+    return (S(s6, this.constructor.elementStyles), s6);
   }
   connectedCallback() {
-    ((this.renderRoot ??= this.createRenderRoot()),
+    var t3;
+    (void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()),
       this.enableUpdating(true),
-      this._$EO?.forEach((t4) => t4.hostConnected?.()));
+      null === (t3 = this._$ES) ||
+        void 0 === t3 ||
+        t3.forEach((t4) => {
+          var i5;
+          return null === (i5 = t4.hostConnected) || void 0 === i5
+            ? void 0
+            : i5.call(t4);
+        }));
   }
-  enableUpdating(t4) {}
+  enableUpdating(t3) {}
   disconnectedCallback() {
-    this._$EO?.forEach((t4) => t4.hostDisconnected?.());
+    var t3;
+    null === (t3 = this._$ES) ||
+      void 0 === t3 ||
+      t3.forEach((t4) => {
+        var i5;
+        return null === (i5 = t4.hostDisconnected) || void 0 === i5
+          ? void 0
+          : i5.call(t4);
+      });
   }
-  attributeChangedCallback(t4, s4, i7) {
-    this._$AK(t4, i7);
+  attributeChangedCallback(t3, i5, s6) {
+    this._$AK(t3, s6);
   }
-  _$ET(t4, s4) {
-    const i7 = this.constructor.elementProperties.get(t4),
-      e5 = this.constructor._$Eu(t4, i7);
-    if (void 0 !== e5 && true === i7.reflect) {
+  _$EO(t3, i5, s6 = l) {
+    var e5;
+    const r4 = this.constructor._$Ep(t3, s6);
+    if (void 0 !== r4 && true === s6.reflect) {
       const h3 = (
-        void 0 !== i7.converter?.toAttribute ? i7.converter : u
-      ).toAttribute(s4, i7.type);
-      ((this._$Em = t4),
-        null == h3 ? this.removeAttribute(e5) : this.setAttribute(e5, h3),
-        (this._$Em = null));
+        void 0 !==
+        (null === (e5 = s6.converter) || void 0 === e5
+          ? void 0
+          : e5.toAttribute)
+          ? s6.converter
+          : n2
+      ).toAttribute(i5, s6.type);
+      ((this._$El = t3),
+        null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3),
+        (this._$El = null));
     }
   }
-  _$AK(t4, s4) {
-    const i7 = this.constructor,
-      e5 = i7._$Eh.get(t4);
-    if (void 0 !== e5 && this._$Em !== e5) {
-      const t5 = i7.getPropertyOptions(e5),
+  _$AK(t3, i5) {
+    var s6;
+    const e5 = this.constructor,
+      r4 = e5._$Ev.get(t3);
+    if (void 0 !== r4 && this._$El !== r4) {
+      const t4 = e5.getPropertyOptions(r4),
         h3 =
-          "function" == typeof t5.converter
-            ? { fromAttribute: t5.converter }
-            : void 0 !== t5.converter?.fromAttribute
-              ? t5.converter
-              : u;
-      this._$Em = e5;
-      const r4 = h3.fromAttribute(s4, t5.type);
-      ((this[e5] = r4 ?? this._$Ej?.get(e5) ?? r4), (this._$Em = null));
+          "function" == typeof t4.converter
+            ? { fromAttribute: t4.converter }
+            : void 0 !==
+                (null === (s6 = t4.converter) || void 0 === s6
+                  ? void 0
+                  : s6.fromAttribute)
+              ? t4.converter
+              : n2;
+      ((this._$El = r4),
+        (this[r4] = h3.fromAttribute(i5, t4.type)),
+        (this._$El = null));
     }
   }
-  requestUpdate(t4, s4, i7, e5 = false, h3) {
-    if (void 0 !== t4) {
-      const r4 = this.constructor;
-      if (
-        (false === e5 && (h3 = this[t4]),
-        (i7 ??= r4.getPropertyOptions(t4)),
-        !(
-          (i7.hasChanged ?? f)(h3, s4) ||
-          (i7.useDefault &&
-            i7.reflect &&
-            h3 === this._$Ej?.get(t4) &&
-            !this.hasAttribute(r4._$Eu(t4, i7)))
-        ))
+  requestUpdate(t3, i5, s6) {
+    let e5 = true;
+    (void 0 !== t3 &&
+      (((s6 = s6 || this.constructor.getPropertyOptions(t3)).hasChanged || a)(
+        this[t3],
+        i5,
       )
-        return;
-      this.C(t4, s4, i7);
-    }
-    false === this.isUpdatePending && (this._$ES = this._$EP());
+        ? (this._$AL.has(t3) || this._$AL.set(t3, i5),
+          true === s6.reflect &&
+            this._$El !== t3 &&
+            (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()),
+            this._$EC.set(t3, s6)))
+        : (e5 = false)),
+      !this.isUpdatePending && e5 && (this._$E_ = this._$Ej()));
   }
-  C(t4, s4, { useDefault: i7, reflect: e5, wrapped: h3 }, r4) {
-    (i7 &&
-      !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t4) &&
-      (this._$Ej.set(t4, r4 ?? s4 ?? this[t4]),
-      true !== h3 || void 0 !== r4)) ||
-      (this._$AL.has(t4) ||
-        (this.hasUpdated || i7 || (s4 = void 0), this._$AL.set(t4, s4)),
-      true === e5 &&
-        this._$Em !== t4 &&
-        (this._$Eq ??= /* @__PURE__ */ new Set()).add(t4));
-  }
-  async _$EP() {
+  async _$Ej() {
     this.isUpdatePending = true;
     try {
-      await this._$ES;
-    } catch (t5) {
-      Promise.reject(t5);
+      await this._$E_;
+    } catch (t4) {
+      Promise.reject(t4);
     }
-    const t4 = this.scheduleUpdate();
-    return (null != t4 && (await t4), !this.isUpdatePending);
+    const t3 = this.scheduleUpdate();
+    return (null != t3 && (await t3), !this.isUpdatePending);
   }
   scheduleUpdate() {
     return this.performUpdate();
   }
   performUpdate() {
+    var t3;
     if (!this.isUpdatePending) return;
-    if (!this.hasUpdated) {
-      if (((this.renderRoot ??= this.createRenderRoot()), this._$Ep)) {
-        for (const [t6, s5] of this._$Ep) this[t6] = s5;
-        this._$Ep = void 0;
-      }
-      const t5 = this.constructor.elementProperties;
-      if (t5.size > 0)
-        for (const [s5, i7] of t5) {
-          const { wrapped: t6 } = i7,
-            e5 = this[s5];
-          true !== t6 ||
-            this._$AL.has(s5) ||
-            void 0 === e5 ||
-            this.C(s5, void 0, i7, e5);
-        }
-    }
-    let t4 = false;
-    const s4 = this._$AL;
+    (this.hasUpdated,
+      this._$Ei &&
+        (this._$Ei.forEach((t4, i6) => (this[i6] = t4)), (this._$Ei = void 0)));
+    let i5 = false;
+    const s6 = this._$AL;
     try {
-      ((t4 = this.shouldUpdate(s4)),
-        t4
-          ? (this.willUpdate(s4),
-            this._$EO?.forEach((t5) => t5.hostUpdate?.()),
-            this.update(s4))
-          : this._$EM());
-    } catch (s5) {
-      throw ((t4 = false), this._$EM(), s5);
+      ((i5 = this.shouldUpdate(s6)),
+        i5
+          ? (this.willUpdate(s6),
+            null === (t3 = this._$ES) ||
+              void 0 === t3 ||
+              t3.forEach((t4) => {
+                var i6;
+                return null === (i6 = t4.hostUpdate) || void 0 === i6
+                  ? void 0
+                  : i6.call(t4);
+              }),
+            this.update(s6))
+          : this._$Ek());
+    } catch (t4) {
+      throw ((i5 = false), this._$Ek(), t4);
     }
-    t4 && this._$AE(s4);
+    i5 && this._$AE(s6);
   }
-  willUpdate(t4) {}
-  _$AE(t4) {
-    (this._$EO?.forEach((t5) => t5.hostUpdated?.()),
-      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t4)),
-      this.updated(t4));
+  willUpdate(t3) {}
+  _$AE(t3) {
+    var i5;
+    (null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.forEach((t4) => {
+        var i6;
+        return null === (i6 = t4.hostUpdated) || void 0 === i6
+          ? void 0
+          : i6.call(t4);
+      }),
+      this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t3)),
+      this.updated(t3));
   }
-  _$EM() {
+  _$Ek() {
     ((this._$AL = /* @__PURE__ */ new Map()), (this.isUpdatePending = false));
   }
   get updateComplete() {
     return this.getUpdateComplete();
   }
   getUpdateComplete() {
-    return this._$ES;
+    return this._$E_;
   }
-  shouldUpdate(t4) {
+  shouldUpdate(t3) {
     return true;
   }
-  update(t4) {
-    ((this._$Eq &&= this._$Eq.forEach((t5) => this._$ET(t5, this[t5]))),
-      this._$EM());
+  update(t3) {
+    (void 0 !== this._$EC &&
+      (this._$EC.forEach((t4, i5) => this._$EO(i5, this[i5], t4)),
+      (this._$EC = void 0)),
+      this._$Ek());
   }
-  updated(t4) {}
-  firstUpdated(t4) {}
+  updated(t3) {}
+  firstUpdated(t3) {}
 };
-((y.elementStyles = []),
-  (y.shadowRootOptions = { mode: "open" }),
-  (y[d("elementProperties")] = /* @__PURE__ */ new Map()),
-  (y[d("finalized")] = /* @__PURE__ */ new Map()),
-  p?.({ ReactiveElement: y }),
-  (a.reactiveElementVersions ??= []).push("2.1.2"));
+((u[d] = true),
+  (u.elementProperties = /* @__PURE__ */ new Map()),
+  (u.elementStyles = []),
+  (u.shadowRootOptions = { mode: "open" }),
+  null == o2 || o2({ ReactiveElement: u }),
+  (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2
+    ? s2
+    : (e2.reactiveElementVersions = [])
+  ).push("1.6.3"));
 
 // node_modules/lit-html/lit-html.js
-var t2 = globalThis;
-var i3 = (t4) => t4;
-var s2 = t2.trustedTypes;
-var e3 = s2 ? s2.createPolicy("lit-html", { createHTML: (t4) => t4 }) : void 0;
-var h2 = "$lit$";
-var o3 = `lit$${Math.random().toFixed(9).slice(2)}$`;
-var n3 = "?" + o3;
-var r3 = `<${n3}>`;
-var l2 = document;
-var c3 = () => l2.createComment("");
-var a2 = (t4) =>
-  null === t4 || ("object" != typeof t4 && "function" != typeof t4);
-var u2 = Array.isArray;
-var d2 = (t4) => u2(t4) || "function" == typeof t4?.[Symbol.iterator];
-var f2 = "[ 	\n\f\r]";
-var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var t2;
+var i2 = window;
+var s3 = i2.trustedTypes;
+var e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t3) => t3 }) : void 0;
+var o3 = "$lit$";
+var n3 = `lit$${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}$`;
+var l2 = "?" + n3;
+var h2 = `<${l2}>`;
+var r3 = document;
+var u2 = () => r3.createComment("");
+var d2 = (t3) =>
+  null === t3 || ("object" != typeof t3 && "function" != typeof t3);
+var c2 = Array.isArray;
+var v = (t3) =>
+  c2(t3) || "function" == typeof (null == t3 ? void 0 : t3[Symbol.iterator]);
+var a2 = "[ 	\n\f\r]";
+var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
 var _ = /-->/g;
 var m = />/g;
-var p2 = RegExp(
-  `>|${f2}(?:([^\\s"'>=/]+)(${f2}*=${f2}*(?:[^ 	 // nosemgrep
+var p = RegExp(
+  `>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
 \f\r"'\`<>=]|("|')|))|$)`,
   "g",
 );
 var g = /'/g;
 var $ = /"/g;
-var y2 = /^(?:script|style|textarea|title)$/i;
-var x =
-  (t4) =>
-  (i7, ...s4) => ({ _$litType$: t4, strings: i7, values: s4 });
-var b2 = x(1);
-var w = x(2);
-var T = x(3);
-var E = /* @__PURE__ */ Symbol.for("lit-noChange");
+var y = /^(?:script|style|textarea|title)$/i;
+var w =
+  (t3) =>
+  (i5, ...s6) => ({ _$litType$: t3, strings: i5, values: s6 });
+var x = w(1);
+var b = w(2);
+var T = /* @__PURE__ */ Symbol.for("lit-noChange");
 var A = /* @__PURE__ */ Symbol.for("lit-nothing");
-var C = /* @__PURE__ */ new WeakMap();
-var P = l2.createTreeWalker(l2, 129);
-function V(t4, i7) {
-  if (!u2(t4) || !t4.hasOwnProperty("raw"))
+var E = /* @__PURE__ */ new WeakMap();
+var C = r3.createTreeWalker(r3, 129, null, false);
+function P(t3, i5) {
+  if (!Array.isArray(t3) || !t3.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i7) : i7;
+  return void 0 !== e3 ? e3.createHTML(i5) : i5;
 }
-var N = (t4, i7) => {
-  const s4 = t4.length - 1,
+var V = (t3, i5) => {
+  const s6 = t3.length - 1,
     e5 = [];
-  let n4,
-    l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "",
-    c4 = v;
-  for (let i8 = 0; i8 < s4; i8++) {
-    const s5 = t4[i8];
-    let a3,
-      u3,
-      d3 = -1,
-      f3 = 0;
+  let l5,
+    r4 = 2 === i5 ? "<svg>" : "",
+    u3 = f;
+  for (let i6 = 0; i6 < s6; i6++) {
+    const s7 = t3[i6];
+    let d3,
+      c3,
+      v2 = -1,
+      a4 = 0;
     for (
       ;
-      f3 < s5.length && ((c4.lastIndex = f3), (u3 = c4.exec(s5)), null !== u3);
+      a4 < s7.length && ((u3.lastIndex = a4), (c3 = u3.exec(s7)), null !== c3);
     )
-      ((f3 = c4.lastIndex),
-        c4 === v
-          ? "!--" === u3[1]
-            ? (c4 = _)
-            : void 0 !== u3[1]
-              ? (c4 = m)
-              : void 0 !== u3[2]
-                ? (y2.test(u3[2]) && (n4 = RegExp("</" + u3[2], "g")),
-                  (c4 = p2))
-                : void 0 !== u3[3] && (c4 = p2)
-          : c4 === p2
-            ? ">" === u3[0]
-              ? ((c4 = n4 ?? v), (d3 = -1))
-              : void 0 === u3[1]
-                ? (d3 = -2)
-                : ((d3 = c4.lastIndex - u3[2].length),
-                  (a3 = u3[1]),
-                  (c4 = void 0 === u3[3] ? p2 : '"' === u3[3] ? $ : g))
-            : c4 === $ || c4 === g
-              ? (c4 = p2)
-              : c4 === _ || c4 === m
-                ? (c4 = v)
-                : ((c4 = p2), (n4 = void 0))); // nosemgrep
-    const x2 = c4 === p2 && t4[i8 + 1].startsWith("/>") ? " " : "";
-    l3 +=
-      c4 === v
-        ? s5 + r3
-        : d3 >= 0
-          ? (e5.push(a3), s5.slice(0, d3) + h2 + s5.slice(d3) + o3 + x2)
-          : s5 + o3 + (-2 === d3 ? i8 : x2);
+      ((a4 = u3.lastIndex),
+        u3 === f
+          ? "!--" === c3[1]
+            ? (u3 = _)
+            : void 0 !== c3[1]
+              ? (u3 = m)
+              : void 0 !== c3[2]
+                ? (y.test(c3[2]) && (l5 = RegExp("</" + c3[2], "g")), (u3 = p))
+                : void 0 !== c3[3] && (u3 = p)
+          : u3 === p
+            ? ">" === c3[0]
+              ? ((u3 = null != l5 ? l5 : f), (v2 = -1))
+              : void 0 === c3[1]
+                ? (v2 = -2)
+                : ((v2 = u3.lastIndex - c3[2].length),
+                  (d3 = c3[1]),
+                  (u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g))
+            : u3 === $ || u3 === g
+              ? (u3 = p)
+              : u3 === _ || u3 === m
+                ? (u3 = f)
+                : ((u3 = p), (l5 = void 0))); // nosemgrep
+    const w2 = u3 === p && t3[i6 + 1].startsWith("/>") ? " " : "";
+    r4 +=
+      u3 === f
+        ? s7 + h2
+        : v2 >= 0
+          ? (e5.push(d3), s7.slice(0, v2) + o3 + s7.slice(v2) + n3 + w2)
+          : s7 + n3 + (-2 === v2 ? (e5.push(void 0), i6) : w2);
   }
-  return [
-    V(
-      t4,
-      l3 +
-        (t4[s4] || "<?>") +
-        (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : ""),
-    ),
-    e5,
-  ];
+  return [P(t3, r4 + (t3[s6] || "<?>") + (2 === i5 ? "</svg>" : "")), e5];
 };
-var S2 = class _S {
-  constructor({ strings: t4, _$litType$: i7 }, e5) {
-    let r4;
+var N = class _N {
+  constructor({ strings: t3, _$litType$: i5 }, e5) {
+    let h3;
     this.parts = [];
-    let l3 = 0,
-      a3 = 0;
-    const u3 = t4.length - 1,
-      d3 = this.parts,
-      [f3, v2] = N(t4, i7);
+    let r4 = 0,
+      d3 = 0;
+    const c3 = t3.length - 1,
+      v2 = this.parts,
+      [a4, f2] = V(t3, i5);
     if (
-      ((this.el = _S.createElement(f3, e5)),
-      (P.currentNode = this.el.content),
-      2 === i7 || 3 === i7)
+      ((this.el = _N.createElement(a4, e5)),
+      (C.currentNode = this.el.content),
+      2 === i5)
     ) {
-      const t5 = this.el.content.firstChild;
-      t5.replaceWith(...t5.childNodes);
+      const t4 = this.el.content,
+        i6 = t4.firstChild;
+      (i6.remove(), t4.append(...i6.childNodes));
     }
-    for (; null !== (r4 = P.nextNode()) && d3.length < u3; ) {
-      if (1 === r4.nodeType) {
-        if (r4.hasAttributes())
-          for (const t5 of r4.getAttributeNames())
-            if (t5.endsWith(h2)) {
-              const i8 = v2[a3++],
-                s4 = r4.getAttribute(t5).split(o3),
-                e6 = /([.?@])?(.*)/.exec(i8);
-              (d3.push({
-                type: 1,
-                index: l3,
-                name: e6[2],
-                strings: s4,
-                ctor:
-                  "." === e6[1] ? I : "?" === e6[1] ? L : "@" === e6[1] ? z : H,
-              }),
-                r4.removeAttribute(t5));
-            } else
-              t5.startsWith(o3) &&
-                (d3.push({ type: 6, index: l3 }), r4.removeAttribute(t5));
-        if (y2.test(r4.tagName)) {
-          const t5 = r4.textContent.split(o3),
-            i8 = t5.length - 1;
-          if (i8 > 0) {
-            r4.textContent = s2 ? s2.emptyScript : "";
-            for (let s4 = 0; s4 < i8; s4++)
-              (r4.append(t5[s4], c3()),
-                P.nextNode(),
-                d3.push({ type: 2, index: ++l3 }));
-            r4.append(t5[i8], c3());
+    for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
+      if (1 === h3.nodeType) {
+        if (h3.hasAttributes()) {
+          const t4 = [];
+          for (const i6 of h3.getAttributeNames())
+            if (i6.endsWith(o3) || i6.startsWith(n3)) {
+              const s6 = f2[d3++];
+              if ((t4.push(i6), void 0 !== s6)) {
+                const t5 = h3.getAttribute(s6.toLowerCase() + o3).split(n3),
+                  i7 = /([.?@])?(.*)/.exec(s6);
+                v2.push({
+                  type: 1,
+                  index: r4,
+                  name: i7[2],
+                  strings: t5,
+                  ctor:
+                    "." === i7[1]
+                      ? H
+                      : "?" === i7[1]
+                        ? L
+                        : "@" === i7[1]
+                          ? z
+                          : k,
+                });
+              } else v2.push({ type: 6, index: r4 });
+            }
+          for (const i6 of t4) h3.removeAttribute(i6);
+        }
+        if (y.test(h3.tagName)) {
+          const t4 = h3.textContent.split(n3),
+            i6 = t4.length - 1;
+          if (i6 > 0) {
+            h3.textContent = s3 ? s3.emptyScript : "";
+            for (let s6 = 0; s6 < i6; s6++)
+              (h3.append(t4[s6], u2()),
+                C.nextNode(),
+                v2.push({ type: 2, index: ++r4 }));
+            h3.append(t4[i6], u2());
           }
         }
-      } else if (8 === r4.nodeType)
-        if (r4.data === n3) d3.push({ type: 2, index: l3 });
+      } else if (8 === h3.nodeType)
+        if (h3.data === l2) v2.push({ type: 2, index: r4 });
         else {
-          let t5 = -1;
-          for (; -1 !== (t5 = r4.data.indexOf(o3, t5 + 1)); )
-            (d3.push({ type: 7, index: l3 }), (t5 += o3.length - 1));
+          let t4 = -1;
+          for (; -1 !== (t4 = h3.data.indexOf(n3, t4 + 1)); )
+            (v2.push({ type: 7, index: r4 }), (t4 += n3.length - 1));
         }
-      l3++;
+      r4++;
     }
   }
-  static createElement(t4, i7) {
-    const s4 = l2.createElement("template");
-    return ((s4.innerHTML = t4), s4);
+  static createElement(t3, i5) {
+    const s6 = r3.createElement("template");
+    return ((s6.innerHTML = t3), s6);
   }
 };
-function M(t4, i7, s4 = t4, e5) {
-  if (i7 === E) return i7;
-  let h3 = void 0 !== e5 ? s4._$Co?.[e5] : s4._$Cl;
-  const o5 = a2(i7) ? void 0 : i7._$litDirective$;
+function S2(t3, i5, s6 = t3, e5) {
+  var o5, n5, l5, h3;
+  if (i5 === T) return i5;
+  let r4 =
+    void 0 !== e5
+      ? null === (o5 = s6._$Co) || void 0 === o5
+        ? void 0
+        : o5[e5]
+      : s6._$Cl;
+  const u3 = d2(i5) ? void 0 : i5._$litDirective$;
   return (
-    h3?.constructor !== o5 &&
-      (h3?._$AO?.(false),
-      void 0 === o5 ? (h3 = void 0) : ((h3 = new o5(t4)), h3._$AT(t4, s4, e5)),
-      void 0 !== e5 ? ((s4._$Co ??= [])[e5] = h3) : (s4._$Cl = h3)),
-    void 0 !== h3 && (i7 = M(t4, h3._$AS(t4, i7.values), h3, e5)),
-    i7
+    (null == r4 ? void 0 : r4.constructor) !== u3 &&
+      (null === (n5 = null == r4 ? void 0 : r4._$AO) ||
+        void 0 === n5 ||
+        n5.call(r4, false),
+      void 0 === u3 ? (r4 = void 0) : ((r4 = new u3(t3)), r4._$AT(t3, s6, e5)),
+      void 0 !== e5
+        ? ((null !== (l5 = (h3 = s6)._$Co) && void 0 !== l5
+            ? l5
+            : (h3._$Co = []))[e5] = r4)
+        : (s6._$Cl = r4)),
+    void 0 !== r4 && (i5 = S2(t3, r4._$AS(t3, i5.values), r4, e5)),
+    i5
   );
 }
-var R = class {
-  constructor(t4, i7) {
+var M = class {
+  constructor(t3, i5) {
     ((this._$AV = []),
       (this._$AN = void 0),
-      (this._$AD = t4),
-      (this._$AM = i7));
+      (this._$AD = t3),
+      (this._$AM = i5));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -603,60 +625,79 @@ var R = class {
   get _$AU() {
     return this._$AM._$AU;
   }
-  u(t4) {
+  u(t3) {
+    var i5;
     const {
-        el: { content: i7 },
-        parts: s4,
+        el: { content: s6 },
+        parts: e5,
       } = this._$AD,
-      e5 = (t4?.creationScope ?? l2).importNode(i7, true);
-    P.currentNode = e5;
-    let h3 = P.nextNode(),
-      o5 = 0,
-      n4 = 0,
-      r4 = s4[0];
-    for (; void 0 !== r4; ) {
-      if (o5 === r4.index) {
-        let i8;
-        (2 === r4.type
-          ? (i8 = new k(h3, h3.nextSibling, this, t4))
-          : 1 === r4.type
-            ? (i8 = new r4.ctor(h3, r4.name, r4.strings, this, t4))
-            : 6 === r4.type && (i8 = new Z(h3, this, t4)),
-          this._$AV.push(i8),
-          (r4 = s4[++n4]));
+      o5 = (
+        null !== (i5 = null == t3 ? void 0 : t3.creationScope) && void 0 !== i5
+          ? i5
+          : r3
+      ).importNode(s6, true);
+    C.currentNode = o5;
+    let n5 = C.nextNode(),
+      l5 = 0,
+      h3 = 0,
+      u3 = e5[0];
+    for (; void 0 !== u3; ) {
+      if (l5 === u3.index) {
+        let i6;
+        (2 === u3.type
+          ? (i6 = new R(n5, n5.nextSibling, this, t3))
+          : 1 === u3.type
+            ? (i6 = new u3.ctor(n5, u3.name, u3.strings, this, t3))
+            : 6 === u3.type && (i6 = new Z(n5, this, t3)),
+          this._$AV.push(i6),
+          (u3 = e5[++h3]));
       }
-      o5 !== r4?.index && ((h3 = P.nextNode()), o5++);
+      l5 !== (null == u3 ? void 0 : u3.index) && ((n5 = C.nextNode()), l5++);
     }
-    return ((P.currentNode = l2), e5);
+    return ((C.currentNode = r3), o5);
   }
-  p(t4) {
-    let i7 = 0;
-    for (const s4 of this._$AV)
-      (void 0 !== s4 &&
-        (void 0 !== s4.strings
-          ? (s4._$AI(t4, s4, i7), (i7 += s4.strings.length - 2))
-          : s4._$AI(t4[i7])),
-        i7++);
+  v(t3) {
+    let i5 = 0;
+    for (const s6 of this._$AV)
+      (void 0 !== s6 &&
+        (void 0 !== s6.strings
+          ? (s6._$AI(t3, s6, i5), (i5 += s6.strings.length - 2))
+          : s6._$AI(t3[i5])),
+        i5++);
   }
 };
-var k = class _k {
-  get _$AU() {
-    return this._$AM?._$AU ?? this._$Cv;
-  }
-  constructor(t4, i7, s4, e5) {
+var R = class _R {
+  constructor(t3, i5, s6, e5) {
+    var o5;
     ((this.type = 2),
       (this._$AH = A),
       (this._$AN = void 0),
-      (this._$AA = t4),
-      (this._$AB = i7),
-      (this._$AM = s4),
+      (this._$AA = t3),
+      (this._$AB = i5),
+      (this._$AM = s6),
       (this.options = e5),
-      (this._$Cv = e5?.isConnected ?? true));
+      (this._$Cp =
+        null === (o5 = null == e5 ? void 0 : e5.isConnected) ||
+        void 0 === o5 ||
+        o5));
+  }
+  get _$AU() {
+    var t3, i5;
+    return null !==
+      (i5 = null === (t3 = this._$AM) || void 0 === t3 ? void 0 : t3._$AU) &&
+      void 0 !== i5
+      ? i5
+      : this._$Cp;
   }
   get parentNode() {
-    let t4 = this._$AA.parentNode;
-    const i7 = this._$AM;
-    return (void 0 !== i7 && 11 === t4?.nodeType && (t4 = i7.parentNode), t4);
+    let t3 = this._$AA.parentNode;
+    const i5 = this._$AM;
+    return (
+      void 0 !== i5 &&
+        11 === (null == t3 ? void 0 : t3.nodeType) &&
+        (t3 = i5.parentNode),
+      t3
+    );
   }
   get startNode() {
     return this._$AA;
@@ -664,236 +705,298 @@ var k = class _k {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t4, i7 = this) {
-    ((t4 = M(this, t4, i7)),
-      a2(t4)
-        ? t4 === A || null == t4 || "" === t4
+  _$AI(t3, i5 = this) {
+    ((t3 = S2(this, t3, i5)),
+      d2(t3)
+        ? t3 === A || null == t3 || "" === t3
           ? (this._$AH !== A && this._$AR(), (this._$AH = A))
-          : t4 !== this._$AH && t4 !== E && this._(t4)
-        : void 0 !== t4._$litType$
-          ? this.$(t4)
-          : void 0 !== t4.nodeType
-            ? this.T(t4)
-            : d2(t4)
-              ? this.k(t4)
-              : this._(t4));
+          : t3 !== this._$AH && t3 !== T && this._(t3)
+        : void 0 !== t3._$litType$
+          ? this.g(t3)
+          : void 0 !== t3.nodeType
+            ? this.$(t3)
+            : v(t3)
+              ? this.T(t3)
+              : this._(t3));
   }
-  O(t4) {
-    return this._$AA.parentNode.insertBefore(t4, this._$AB);
+  k(t3) {
+    return this._$AA.parentNode.insertBefore(t3, this._$AB);
   }
-  T(t4) {
-    this._$AH !== t4 && (this._$AR(), (this._$AH = this.O(t4)));
+  $(t3) {
+    this._$AH !== t3 && (this._$AR(), (this._$AH = this.k(t3)));
   }
-  _(t4) {
-    (this._$AH !== A && a2(this._$AH)
-      ? (this._$AA.nextSibling.data = t4)
-      : this.T(l2.createTextNode(t4)),
-      (this._$AH = t4));
+  _(t3) {
+    (this._$AH !== A && d2(this._$AH)
+      ? (this._$AA.nextSibling.data = t3)
+      : this.$(r3.createTextNode(t3)),
+      (this._$AH = t3));
   }
-  $(t4) {
-    const { values: i7, _$litType$: s4 } = t4,
-      e5 =
-        "number" == typeof s4
-          ? this._$AC(t4)
-          : (void 0 === s4.el &&
-              (s4.el = S2.createElement(V(s4.h, s4.h[0]), this.options)),
-            s4);
-    if (this._$AH?._$AD === e5) this._$AH.p(i7);
+  g(t3) {
+    var i5;
+    const { values: s6, _$litType$: e5 } = t3,
+      o5 =
+        "number" == typeof e5
+          ? this._$AC(t3)
+          : (void 0 === e5.el &&
+              (e5.el = N.createElement(P(e5.h, e5.h[0]), this.options)),
+            e5);
+    if ((null === (i5 = this._$AH) || void 0 === i5 ? void 0 : i5._$AD) === o5)
+      this._$AH.v(s6);
     else {
-      const t5 = new R(e5, this),
-        s5 = t5.u(this.options);
-      (t5.p(i7), this.T(s5), (this._$AH = t5));
+      const t4 = new M(o5, this),
+        i6 = t4.u(this.options);
+      (t4.v(s6), this.$(i6), (this._$AH = t4));
     }
   }
-  _$AC(t4) {
-    let i7 = C.get(t4.strings);
-    return (void 0 === i7 && C.set(t4.strings, (i7 = new S2(t4))), i7);
+  _$AC(t3) {
+    let i5 = E.get(t3.strings);
+    return (void 0 === i5 && E.set(t3.strings, (i5 = new N(t3))), i5);
   }
-  k(t4) {
-    u2(this._$AH) || ((this._$AH = []), this._$AR());
-    const i7 = this._$AH;
-    let s4,
+  T(t3) {
+    c2(this._$AH) || ((this._$AH = []), this._$AR());
+    const i5 = this._$AH;
+    let s6,
       e5 = 0;
-    for (const h3 of t4)
-      (e5 === i7.length
-        ? i7.push((s4 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
-        : (s4 = i7[e5]),
-        s4._$AI(h3),
+    for (const o5 of t3)
+      (e5 === i5.length
+        ? i5.push((s6 = new _R(this.k(u2()), this.k(u2()), this, this.options)))
+        : (s6 = i5[e5]),
+        s6._$AI(o5),
         e5++);
-    e5 < i7.length &&
-      (this._$AR(s4 && s4._$AB.nextSibling, e5), (i7.length = e5));
+    e5 < i5.length &&
+      (this._$AR(s6 && s6._$AB.nextSibling, e5), (i5.length = e5));
   }
-  _$AR(t4 = this._$AA.nextSibling, s4) {
-    for (this._$AP?.(false, true, s4); t4 !== this._$AB; ) {
-      const s5 = i3(t4).nextSibling;
-      (i3(t4).remove(), (t4 = s5));
+  _$AR(t3 = this._$AA.nextSibling, i5) {
+    var s6;
+    for (
+      null === (s6 = this._$AP) ||
+      void 0 === s6 ||
+      s6.call(this, false, true, i5);
+      t3 && t3 !== this._$AB;
+    ) {
+      const i6 = t3.nextSibling;
+      (t3.remove(), (t3 = i6));
     }
   }
-  setConnected(t4) {
-    void 0 === this._$AM && ((this._$Cv = t4), this._$AP?.(t4));
+  setConnected(t3) {
+    var i5;
+    void 0 === this._$AM &&
+      ((this._$Cp = t3),
+      null === (i5 = this._$AP) || void 0 === i5 || i5.call(this, t3));
   }
 };
-var H = class {
+var k = class {
+  constructor(t3, i5, s6, e5, o5) {
+    ((this.type = 1),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this.element = t3),
+      (this.name = i5),
+      (this._$AM = e5),
+      (this.options = o5),
+      s6.length > 2 || "" !== s6[0] || "" !== s6[1]
+        ? ((this._$AH = Array(s6.length - 1).fill(new String())),
+          (this.strings = s6))
+        : (this._$AH = A));
+  }
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t4, i7, s4, e5, h3) {
-    ((this.type = 1),
-      (this._$AH = A),
-      (this._$AN = void 0),
-      (this.element = t4),
-      (this.name = i7),
-      (this._$AM = e5),
-      (this.options = h3),
-      s4.length > 2 || "" !== s4[0] || "" !== s4[1]
-        ? ((this._$AH = Array(s4.length - 1).fill(new String())),
-          (this.strings = s4))
-        : (this._$AH = A));
-  }
-  _$AI(t4, i7 = this, s4, e5) {
-    const h3 = this.strings;
-    let o5 = false;
-    if (void 0 === h3)
-      ((t4 = M(this, t4, i7, 0)),
-        (o5 = !a2(t4) || (t4 !== this._$AH && t4 !== E)),
-        o5 && (this._$AH = t4));
+  _$AI(t3, i5 = this, s6, e5) {
+    const o5 = this.strings;
+    let n5 = false;
+    if (void 0 === o5)
+      ((t3 = S2(this, t3, i5, 0)),
+        (n5 = !d2(t3) || (t3 !== this._$AH && t3 !== T)),
+        n5 && (this._$AH = t3));
     else {
-      const e6 = t4;
-      let n4, r4;
-      for (t4 = h3[0], n4 = 0; n4 < h3.length - 1; n4++)
-        ((r4 = M(this, e6[s4 + n4], i7, n4)),
-          r4 === E && (r4 = this._$AH[n4]),
-          (o5 ||= !a2(r4) || r4 !== this._$AH[n4]),
-          r4 === A ? (t4 = A) : t4 !== A && (t4 += (r4 ?? "") + h3[n4 + 1]),
-          (this._$AH[n4] = r4));
+      const e6 = t3;
+      let l5, h3;
+      for (t3 = o5[0], l5 = 0; l5 < o5.length - 1; l5++)
+        ((h3 = S2(this, e6[s6 + l5], i5, l5)),
+          h3 === T && (h3 = this._$AH[l5]),
+          n5 || (n5 = !d2(h3) || h3 !== this._$AH[l5]),
+          h3 === A
+            ? (t3 = A)
+            : t3 !== A && (t3 += (null != h3 ? h3 : "") + o5[l5 + 1]),
+          (this._$AH[l5] = h3));
     }
-    o5 && !e5 && this.j(t4);
+    n5 && !e5 && this.j(t3);
   }
-  j(t4) {
-    t4 === A
+  j(t3) {
+    t3 === A
       ? this.element.removeAttribute(this.name)
-      : this.element.setAttribute(this.name, t4 ?? "");
+      : this.element.setAttribute(this.name, null != t3 ? t3 : "");
   }
 };
-var I = class extends H {
+var H = class extends k {
   constructor() {
     (super(...arguments), (this.type = 3));
   }
-  j(t4) {
-    this.element[this.name] = t4 === A ? void 0 : t4;
+  j(t3) {
+    this.element[this.name] = t3 === A ? void 0 : t3;
   }
 };
-var L = class extends H {
+var I = s3 ? s3.emptyScript : "";
+var L = class extends k {
   constructor() {
     (super(...arguments), (this.type = 4));
   }
-  j(t4) {
-    this.element.toggleAttribute(this.name, !!t4 && t4 !== A);
+  j(t3) {
+    t3 && t3 !== A
+      ? this.element.setAttribute(this.name, I)
+      : this.element.removeAttribute(this.name);
   }
 };
-var z = class extends H {
-  constructor(t4, i7, s4, e5, h3) {
-    (super(t4, i7, s4, e5, h3), (this.type = 5));
+var z = class extends k {
+  constructor(t3, i5, s6, e5, o5) {
+    (super(t3, i5, s6, e5, o5), (this.type = 5));
   }
-  _$AI(t4, i7 = this) {
-    if ((t4 = M(this, t4, i7, 0) ?? A) === E) return;
-    const s4 = this._$AH,
-      e5 =
-        (t4 === A && s4 !== A) ||
-        t4.capture !== s4.capture ||
-        t4.once !== s4.once ||
-        t4.passive !== s4.passive,
-      h3 = t4 !== A && (s4 === A || e5);
-    (e5 && this.element.removeEventListener(this.name, this, s4),
-      h3 && this.element.addEventListener(this.name, this, t4),
-      (this._$AH = t4));
+  _$AI(t3, i5 = this) {
+    var s6;
+    if (
+      (t3 = null !== (s6 = S2(this, t3, i5, 0)) && void 0 !== s6 ? s6 : A) === T
+    )
+      return;
+    const e5 = this._$AH,
+      o5 =
+        (t3 === A && e5 !== A) ||
+        t3.capture !== e5.capture ||
+        t3.once !== e5.once ||
+        t3.passive !== e5.passive,
+      n5 = t3 !== A && (e5 === A || o5);
+    (o5 && this.element.removeEventListener(this.name, this, e5),
+      n5 && this.element.addEventListener(this.name, this, t3),
+      (this._$AH = t3));
   }
-  handleEvent(t4) {
+  handleEvent(t3) {
+    var i5, s6;
     "function" == typeof this._$AH
-      ? this._$AH.call(this.options?.host ?? this.element, t4)
-      : this._$AH.handleEvent(t4);
+      ? this._$AH.call(
+          null !==
+            (s6 =
+              null === (i5 = this.options) || void 0 === i5
+                ? void 0
+                : i5.host) && void 0 !== s6
+            ? s6
+            : this.element,
+          t3,
+        )
+      : this._$AH.handleEvent(t3);
   }
 };
 var Z = class {
-  constructor(t4, i7, s4) {
-    ((this.element = t4),
+  constructor(t3, i5, s6) {
+    ((this.element = t3),
       (this.type = 6),
       (this._$AN = void 0),
-      (this._$AM = i7),
-      (this.options = s4));
+      (this._$AM = i5),
+      (this.options = s6));
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AI(t4) {
-    M(this, t4);
+  _$AI(t3) {
+    S2(this, t3);
   }
 };
 var j = {
-  M: h2,
-  P: o3,
-  A: n3,
+  O: o3,
+  P: n3,
+  A: l2,
   C: 1,
-  L: N,
-  R,
-  D: d2,
-  V: M,
-  I: k,
-  H,
-  N: L,
-  U: z,
-  B: I,
+  M: V,
+  L: M,
+  R: v,
+  D: S2,
+  I: R,
+  V: k,
+  H: L,
+  N: z,
+  U: H,
   F: Z,
 };
-var B = t2.litHtmlPolyfillSupport;
-(B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.3"));
-var D = (t4, i7, s4) => {
-  const e5 = s4?.renderBefore ?? i7;
-  let h3 = e5._$litPart$;
-  if (void 0 === h3) {
-    const t5 = s4?.renderBefore ?? null;
-    e5._$litPart$ = h3 = new k(i7.insertBefore(c3(), t5), t5, void 0, s4 ?? {});
+var B = i2.litHtmlPolyfillSupport;
+(null == B || B(N, R),
+  (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2
+    ? t2
+    : (i2.litHtmlVersions = [])
+  ).push("2.8.0"));
+var D = (t3, i5, s6) => {
+  var e5, o5;
+  const n5 =
+    null !== (e5 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== e5
+      ? e5
+      : i5;
+  let l5 = n5._$litPart$;
+  if (void 0 === l5) {
+    const t4 =
+      null !== (o5 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== o5
+        ? o5
+        : null;
+    n5._$litPart$ = l5 = new R(
+      i5.insertBefore(u2(), t4),
+      t4,
+      void 0,
+      null != s6 ? s6 : {},
+    );
   }
-  return (h3._$AI(t4), h3);
+  return (l5._$AI(t3), l5);
 };
 
 // node_modules/lit-element/lit-element.js
-var s3 = globalThis;
-var i4 = class extends y {
+var l3;
+var o4;
+var s4 = class extends u {
   constructor() {
     (super(...arguments),
       (this.renderOptions = { host: this }),
       (this._$Do = void 0));
   }
   createRenderRoot() {
-    const t4 = super.createRenderRoot();
-    return ((this.renderOptions.renderBefore ??= t4.firstChild), t4);
+    var t3, e5;
+    const i5 = super.createRenderRoot();
+    return (
+      (null !== (t3 = (e5 = this.renderOptions).renderBefore) &&
+        void 0 !== t3) ||
+        (e5.renderBefore = i5.firstChild),
+      i5
+    );
   }
-  update(t4) {
-    const r4 = this.render();
+  update(t3) {
+    const i5 = this.render();
     (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
-      super.update(t4),
-      (this._$Do = D(r4, this.renderRoot, this.renderOptions)));
+      super.update(t3),
+      (this._$Do = D(i5, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
-    (super.connectedCallback(), this._$Do?.setConnected(true));
+    var t3;
+    (super.connectedCallback(),
+      null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(true));
   }
   disconnectedCallback() {
-    (super.disconnectedCallback(), this._$Do?.setConnected(false));
+    var t3;
+    (super.disconnectedCallback(),
+      null === (t3 = this._$Do) || void 0 === t3 || t3.setConnected(false));
   }
   render() {
-    return E;
+    return T;
   }
 };
-((i4._$litElement$ = true),
-  (i4["finalized"] = true),
-  s3.litElementHydrateSupport?.({ LitElement: i4 }));
-var o4 = s3.litElementPolyfillSupport;
-o4?.({ LitElement: i4 });
-(s3.litElementVersions ??= []).push("4.2.2");
+((s4.finalized = true),
+  (s4._$litElement$ = true),
+  null === (l3 = globalThis.litElementHydrateSupport) ||
+    void 0 === l3 ||
+    l3.call(globalThis, { LitElement: s4 }));
+var n4 = globalThis.litElementPolyfillSupport;
+null == n4 || n4({ LitElement: s4 });
+(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4
+  ? o4
+  : (globalThis.litElementVersions = [])
+).push("3.3.3");
 
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
@@ -6645,8 +6748,8 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 function parseHexColor(hex) {
-  const n4 = parseInt(hex.slice(1), 16);
-  return [(n4 >> 16) & 255, (n4 >> 8) & 255, n4 & 255];
+  const n5 = parseInt(hex.slice(1), 16);
+  return [(n5 >> 16) & 255, (n5 >> 8) & 255, n5 & 255];
 }
 var SparkleEngine = class {
   constructor(canvas, opts) {
@@ -6675,7 +6778,7 @@ var SparkleEngine = class {
   }
   init() {
     this.particles = [];
-    for (let i7 = 0; i7 < this.count; i7++) {
+    for (let i5 = 0; i5 < this.count; i5++) {
       const yBias = Math.random();
       this.particles.push({
         x: rand(0, this.w),
@@ -6709,39 +6812,39 @@ var SparkleEngine = class {
     const { w: w2, h: h3, maxOpacity, particles } = this;
     this._currentSpeed +=
       (this._targetSpeed - this._currentSpeed) * this._speedEase;
-    const s4 = this._currentSpeed;
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      p4.x += p4.vx * s4;
-      p4.y += p4.vy * s4;
-      if (p4.x < 0) p4.x = w2;
-      else if (p4.x > w2) p4.x = 0;
-      if (p4.y < 0) {
-        p4.y = h3;
-      } else if (p4.y > h3) {
+    const s6 = this._currentSpeed;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      p2.x += p2.vx * s6;
+      p2.y += p2.vy * s6;
+      if (p2.x < 0) p2.x = w2;
+      else if (p2.x > w2) p2.x = 0;
+      if (p2.y < 0) {
+        p2.y = h3;
+      } else if (p2.y > h3) {
         const r4 = Math.random();
-        p4.y = r4 * r4 * h3 * 0.5;
+        p2.y = r4 * r4 * h3 * 0.5;
       }
-      p4.opacity += p4.opacitySpeed * p4.opacityDir * s4;
-      if (p4.opacity >= maxOpacity) {
-        p4.opacity = maxOpacity;
-        p4.opacityDir = -1;
-      } else if (p4.opacity <= 0.1) {
-        p4.opacity = 0.1;
-        p4.opacityDir = 1;
+      p2.opacity += p2.opacitySpeed * p2.opacityDir * s6;
+      if (p2.opacity >= maxOpacity) {
+        p2.opacity = maxOpacity;
+        p2.opacityDir = -1;
+      } else if (p2.opacity <= 0.1) {
+        p2.opacity = 0.1;
+        p2.opacityDir = 1;
       }
     }
   }
   _draw() {
     const { ctx, w: w2, h: h3, particles, _rgb } = this;
-    const [r4, g2, b3] = _rgb;
+    const [r4, g2, b2] = _rgb;
     ctx.clearRect(0, 0, w2, h3);
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      ctx.globalAlpha = p4.opacity;
-      ctx.fillStyle = `rgb(${r4},${g2},${b3})`;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      ctx.globalAlpha = p2.opacity;
+      ctx.fillStyle = `rgb(${r4},${g2},${b2})`;
       ctx.beginPath();
-      ctx.arc(p4.x, p4.y, p4.size, 0, TAU);
+      ctx.arc(p2.x, p2.y, p2.size, 0, TAU);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -6899,40 +7002,40 @@ function formatTime(iso) {
 
 // node_modules/lit-html/directive.js
 var e4 =
-  (t4) =>
-  (...e5) => ({ _$litDirective$: t4, values: e5 });
-var i5 = class {
-  constructor(t4) {}
+  (t3) =>
+  (...e5) => ({ _$litDirective$: t3, values: e5 });
+var i3 = class {
+  constructor(t3) {}
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AT(t4, e5, i7) {
-    ((this._$Ct = t4), (this._$AM = e5), (this._$Ci = i7));
+  _$AT(t3, e5, i5) {
+    ((this._$Ct = t3), (this._$AM = e5), (this._$Ci = i5));
   }
-  _$AS(t4, e5) {
-    return this.update(t4, e5);
+  _$AS(t3, e5) {
+    return this.update(t3, e5);
   }
-  update(t4, e5) {
+  update(t3, e5) {
     return this.render(...e5);
   }
 };
 
 // node_modules/lit-html/directive-helpers.js
-var { I: t3 } = j;
-var m2 = {};
-var p3 = (o5, t4 = m2) => (o5._$AH = t4);
+var { I: l4 } = j;
+var s5 = {};
+var a3 = (o5, l5 = s5) => (o5._$AH = l5);
 
 // node_modules/lit-html/directives/keyed.js
-var i6 = e4(
-  class extends i5 {
+var i4 = e4(
+  class extends i3 {
     constructor() {
       (super(...arguments), (this.key = A));
     }
-    render(r4, t4) {
-      return ((this.key = r4), t4);
+    render(r4, t3) {
+      return ((this.key = r4), t3);
     }
-    update(r4, [t4, e5]) {
-      return (t4 !== this.key && (p3(r4), (this.key = t4)), e5);
+    update(r4, [t3, e5]) {
+      return (t3 !== this.key && (a3(r4), (this.key = t3)), e5);
     }
   },
 );
@@ -6957,15 +7060,31 @@ function stripAutomationBlock(text) {
   if (hasPartial) {
     cleaned = cleaned.replace(partialRe, "").trim();
   }
+  let barePartialType = null;
   if (!hasComplete && !hasPartial) {
     const fenceCount = (cleaned.match(/```/g) || []).length;
     if (fenceCount % 2 === 1) {
       cleaned = cleaned.replace(/```(?:(?!```)[\s\S])*$/, "").trim();
       hasPartial = true;
+    } else {
+      const openerRe = /(?:^|\n)[ \t]*(automation|scene)[ \t]*\n[ \t]*\{/g;
+      let bm;
+      while ((bm = openerRe.exec(cleaned)) !== null) {
+        let idx = bm.index;
+        if (cleaned[idx] === "\n") idx += 1;
+        const fencesBefore = (cleaned.slice(0, idx).match(/```/g) || []).length;
+        if (fencesBefore % 2 === 0) {
+          cleaned = cleaned.slice(0, idx).trim();
+          hasPartial = true;
+          barePartialType = bm[1];
+          break;
+        }
+      }
     }
   }
-  const spinnerType = ["automation", "scene"].includes(partialMatch?.[1])
-    ? partialMatch[1]
+  const spinnerCandidate = partialMatch?.[1] || barePartialType;
+  const spinnerType = ["automation", "scene"].includes(spinnerCandidate)
+    ? spinnerCandidate
     : null;
   return {
     text: cleaned,
@@ -6984,7 +7103,7 @@ function _coalesceEntityListings(text) {
   const BLANK = /^\s*$/;
   const lines = text.split("\n");
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   const skipBlanks = (j2) => {
     while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
     return j2;
@@ -7004,58 +7123,58 @@ function _coalesceEntityListings(text) {
     if (multi) {
       return multi[1]
         .split(",")
-        .map((s4) => s4.trim())
-        .filter((s4) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s4));
+        .map((s6) => s6.trim())
+        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
     }
     return [];
   };
   const BARE_MARKER =
     /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
-  while (i7 < lines.length) {
+  while (i5 < lines.length) {
     const tryCoalesce = (firstLineRe) => {
-      if (!firstLineRe.test(lines[i7])) return false;
+      if (!firstLineRe.test(lines[i5])) return false;
       const runIds = [];
-      let j3 = i7;
+      let j3 = i5;
       while (j3 < lines.length) {
-        const m3 = lines[j3].match(firstLineRe);
-        if (!m3) break;
-        for (const id of idsFromMarker(m3[1])) runIds.push(id);
+        const m2 = lines[j3].match(firstLineRe);
+        if (!m2) break;
+        for (const id of idsFromMarker(m2[1])) runIds.push(id);
         j3++;
         j3 = skipStateLines(j3);
         j3 = skipBlanks(j3);
       }
       if (runIds.length === 0) return false;
       out.push(`[[entities:${runIds.join(",")}]]`);
-      i7 = j3;
+      i5 = j3;
       return true;
     };
     if (tryCoalesce(MARKER_BULLET)) continue;
     if (tryCoalesce(BARE_MARKER)) continue;
-    const tailMatch = lines[i7].match(MARKER_TAIL_STATE);
+    const tailMatch = lines[i5].match(MARKER_TAIL_STATE);
     if (tailMatch) {
       out.push(tailMatch[1]);
-      let j3 = i7 + 1;
+      let j3 = i5 + 1;
       j3 = skipStateLines(j3);
-      i7 = j3;
+      i5 = j3;
       continue;
     }
     const ids = [];
-    let j2 = i7;
+    let j2 = i5;
     while (j2 < lines.length) {
-      const m3 = lines[j2].match(ID_LINE);
-      if (!m3) break;
-      ids.push(m3[1]);
+      const m2 = lines[j2].match(ID_LINE);
+      if (!m2) break;
+      ids.push(m2[1]);
       j2++;
       j2 = skipStateLines(j2);
       j2 = skipBlanks(j2);
     }
     if (ids.length >= 1) {
       out.push(`[[entities:${ids.join(",")}]]`);
-      i7 = j2;
+      i5 = j2;
       continue;
     }
-    out.push(lines[i7]);
-    i7++;
+    out.push(lines[i5]);
+    i5++;
   }
   return out.join("\n");
 }
@@ -7066,19 +7185,26 @@ function renderMarkdown(text) {
     .replace(/^\[([A-Za-z_ ]+)\]\s*\(\d+[^)]*\)\s*:?\s*$/gm, "")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+  const STASH_OPEN = "\uE000";
+  const STASH_CLOSE = "\uE001";
+  const codeBlocks = [];
+  text = text.replace(
+    /```(?:[ \t]*([a-zA-Z][a-zA-Z0-9_+\-]*)[ \t]*\n)?([\s\S]*?)```/g,
+    (_m, _lang, body) => {
+      codeBlocks.push(body);
+      return `${STASH_OPEN}CB${codeBlocks.length - 1}${STASH_CLOSE}`;
+    },
+  );
+  const inlineCode = [];
+  text = text.replace(/`([^`\n]+)`/g, (_m, body) => {
+    inlineCode.push(body);
+    return `${STASH_OPEN}IC${inlineCode.length - 1}${STASH_CLOSE}`;
+  });
   text = _coalesceEntityListings(text);
   let escaped = text
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
-  escaped = escaped.replace(
-    /```([\s\S]*?)```/g,
-    '<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">$1</pre>',
-  );
-  escaped = escaped.replace(
-    /`([^`]+)`/g,
-    '<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">$1</code>',
-  );
   escaped = escaped.replace(
     /^####\s+(.+)$/gm,
     '<div style="font-weight:700;font-size:14px;margin:10px 0 4px;">$1</div>',
@@ -7128,6 +7254,16 @@ function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
+  const escapeCode = (s6) =>
+    s6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const stashRe = new RegExp(STASH_OPEN + "(CB|IC)(\\d+)" + STASH_CLOSE, "g"); // nosemgrep
+  escaped = escaped.replace(stashRe, (_m, kind, idx) => {
+    const body = (kind === "CB" ? codeBlocks : inlineCode)[Number(idx)] ?? "";
+    if (kind === "CB") {
+      return `<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">${escapeCode(body)}</pre>`;
+    }
+    return `<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">${escapeCode(body)}</code>`;
+  });
   return escaped;
 }
 
@@ -7139,12 +7275,12 @@ function _formatTimestamp(iso) {
 }
 function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
-  const s4 = String(state).toLowerCase();
-  if (["on", "open", "home", "playing", "active"].includes(s4))
+  const s6 = String(state).toLowerCase();
+  if (["on", "open", "home", "playing", "active"].includes(s6))
     return "var(--selora-accent, #fbbf24)";
-  if (["off", "closed", "not_home", "idle", "standby"].includes(s4))
+  if (["off", "closed", "not_home", "idle", "standby"].includes(s6))
     return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown"].includes(s4)) return "#ef4444";
+  if (["unavailable", "unknown"].includes(s6)) return "#ef4444";
   return "var(--selora-zinc-200)";
 }
 function _deviceIcon(domains) {
@@ -7168,7 +7304,7 @@ function renderDeviceDetail(host) {
   const detail = host._deviceDetail;
   if (!detail) return "";
   const loading = host._deviceDetailLoading;
-  return b2`
+  return x`
     <div
       class="device-detail-drawer"
       style="
@@ -7180,10 +7316,10 @@ function renderDeviceDetail(host) {
     >
       ${
         loading
-          ? b2`<span style="font-size:13px;color:var(--selora-zinc-400);"
+          ? x`<span style="font-size:13px;color:var(--selora-zinc-400);"
             >Loading device detail...</span
           >`
-          : b2`
+          : x`
             <!-- Header -->
             <div
               style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"
@@ -7203,7 +7339,7 @@ function renderDeviceDetail(host) {
                     ${[detail.area, detail.manufacturer, detail.model].filter(Boolean).join(" \xB7 ")}
                     ${
                       detail.integration
-                        ? b2` ·
+                        ? x` ·
                           <span style="opacity:0.7"
                             >${detail.integration}</span
                           >`
@@ -7229,7 +7365,7 @@ function renderDeviceDetail(host) {
             <!-- Entities -->
             ${
               detail.entities?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -7237,7 +7373,7 @@ function renderDeviceDetail(host) {
                       Entities
                     </div>
                     ${detail.entities.map(
-                      (e5) => b2`
+                      (e5) => x`
                         <div
                           style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
@@ -7262,7 +7398,7 @@ function renderDeviceDetail(host) {
             <!-- State History -->
             ${
               detail.state_history?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -7271,7 +7407,7 @@ function renderDeviceDetail(host) {
                     </div>
                     <div style="max-height:150px;overflow-y:auto;">
                       ${detail.state_history.slice(0, 30).map(
-                        (h3) => b2`
+                        (h3) => x`
                           <div
                             style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
                           >
@@ -7296,7 +7432,7 @@ function renderDeviceDetail(host) {
             <!-- Linked Automations -->
             ${
               detail.linked_automations?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -7304,13 +7440,13 @@ function renderDeviceDetail(host) {
                       Linked Automations
                     </div>
                     ${detail.linked_automations.map(
-                      (a3) => b2`
+                      (a4) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <span
                             style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${a3.alias || a3.id}</span
+                            >${a4.alias || a4.id}</span
                           >
                         </div>
                       `,
@@ -7323,7 +7459,7 @@ function renderDeviceDetail(host) {
             <!-- Related Patterns -->
             ${
               detail.related_patterns?.length
-                ? b2`
+                ? x`
                   <div>
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -7331,19 +7467,19 @@ function renderDeviceDetail(host) {
                       Detected Patterns
                     </div>
                     ${detail.related_patterns.map(
-                      (p4) => b2`
+                      (p2) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <div
                             style="font-size:12px;color:var(--selora-zinc-200);"
                           >
-                            ${p4.description}
+                            ${p2.description}
                           </div>
                           <div
                             style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                           >
-                            ${p4.type} · ${Math.round(p4.confidence * 100)}%
+                            ${p2.type} · ${Math.round(p2.confidence * 100)}%
                             confidence
                           </div>
                         </div>
@@ -7392,28 +7528,28 @@ function _approvalScope(value) {
 }
 function _normalizeApprovalActions(actions) {
   let touched = false;
-  const out = actions.map((a3) => {
-    const scope = _approvalScope(a3?.value);
-    if (!scope) return a3;
+  const out = actions.map((a4) => {
+    const scope = _approvalScope(a4?.value);
+    if (!scope) return a4;
     const preset = _APPROVAL_PRESENTATION[scope];
-    if (!preset) return a3;
+    if (!preset) return a4;
     touched = true;
     return {
-      ...a3,
+      ...a4,
       // Override label too — older persisted messages may have shipped
       // "Session" / "Allow once" wording, but we want the new copy
       // ("For this conversation") to appear consistently.
       label: preset.label,
       mode: "choice",
-      icon: a3.icon || preset.icon,
-      tone: a3.tone || preset.tone,
-      description: a3.description || preset.description,
+      icon: a4.icon || preset.icon,
+      tone: a4.tone || preset.tone,
+      description: a4.description || preset.description,
     };
   });
   return touched ? out : actions;
 }
 function _isApprovalGroup(actions) {
-  return actions.some((a3) => _approvalScope(a3?.value));
+  return actions.some((a4) => _approvalScope(a4?.value));
 }
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
@@ -7424,30 +7560,30 @@ function renderQuickActions(host, actions, opts = {}) {
     const approvalClass = _isApprovalGroup(actions)
       ? " qa-group--approval"
       : "";
-    return b2`
+    return x`
       <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a3) => _renderChoice(host, a3))}
+        ${actions.map((a4) => _renderChoice(host, a4))}
       </div>
     `;
   }
   if (mode === "confirmation") {
-    return b2`
+    return x`
       <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a3) => _renderConfirmation(host, a3))}
+        ${actions.map((a4) => _renderConfirmation(host, a4))}
       </div>
     `;
   }
-  return b2`
+  return x`
     <div class="qa-group${usedClass}">
-      ${actions.map((a3) => _renderSuggestion(host, a3))}
+      ${actions.map((a4) => _renderSuggestion(host, a4))}
     </div>
   `;
 }
 function _detectMode(actions) {
   const first = actions[0];
   if (first.mode) return first.mode;
-  if (actions.some((a3) => a3.primary !== void 0)) return "confirmation";
-  if (actions.some((a3) => a3.description)) return "choice";
+  if (actions.some((a4) => a4.primary !== void 0)) return "confirmation";
+  if (actions.some((a4) => a4.description)) return "choice";
   return "suggestion";
 }
 function _onSelect(host, action) {
@@ -7455,7 +7591,7 @@ function _onSelect(host, action) {
 }
 function _renderSuggestion(host, action) {
   const leadingIcon = action.icon || "mdi:auto-fix";
-  return b2`
+  return x`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
       <span class="qa-glow-track" aria-hidden="true">
         <span class="qa-glow-spot"></span>
@@ -7500,7 +7636,7 @@ function _renderChoice(host, action) {
   const cardTitle = tooltipDescription
     ? `${action.label} \u2014 ${action.description}`
     : action.label;
-  return b2`
+  return x`
     <div
       class="qa-choice"
       style=${toneStyle}
@@ -7516,7 +7652,7 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${inlineDescription ? b2`<span class="qa-choice-desc">${action.description}</span>` : ""}
+          ${inlineDescription ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
         </div>
         <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
@@ -7533,11 +7669,11 @@ function _renderConfirmation(host, action) {
       : tone === "deny"
         ? "color:#ef4444;"
         : "";
-  return b2`
+  return x`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
       ${
         action.icon
-          ? b2`<ha-icon
+          ? x`<ha-icon
             icon=${action.icon}
             style="--mdc-icon-size:16px;${iconStyle}"
           ></ha-icon>`
@@ -7545,7 +7681,7 @@ function _renderConfirmation(host, action) {
       }
       <span style="display:flex;flex-direction:column;align-items:flex-start;">
         <span class="qa-confirm-label">${action.label}</span>
-        ${action.description ? b2`<span class="qa-confirm-desc">${action.description}</span>` : ""}
+        ${action.description ? x`<span class="qa-confirm-desc">${action.description}</span>` : ""}
       </span>
     </button>
   `;
@@ -7638,11 +7774,11 @@ var DOMAIN_FORMS = {
     past: "Ran shell command",
   },
 };
-function _domainOf(s4) {
-  return (s4 || "").split(".", 1)[0];
+function _domainOf(s6) {
+  return (s6 || "").split(".", 1)[0];
 }
-function _serviceSuffix(s4) {
-  const parts = (s4 || "").split(".");
+function _serviceSuffix(s6) {
+  const parts = (s6 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
 function _friendlyName(host, entityId) {
@@ -7702,7 +7838,7 @@ function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
   const { verb } = describeCall({ hass: { states: {} } }, call);
-  return b2`
+  return x`
     <div
       style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
       title=${service}
@@ -7723,7 +7859,7 @@ function _renderCallRow(host, call, reason) {
   const ids = Array.isArray(target) ? target : target ? [target] : [];
   const { targetText } = describeCall(host, call);
   const rightSide = ids.length
-    ? b2`
+    ? x`
         <div
           class="selora-entity-grid"
           data-entity-ids=${ids.join(",")}
@@ -7731,14 +7867,14 @@ function _renderCallRow(host, call, reason) {
           style="flex:1;min-width:0;margin:0;"
         ></div>
       `
-    : b2`
+    : x`
         <div
           style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
         >
           ${targetText}
         </div>
       `;
-  return b2`
+  return x`
     <div
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
     >
@@ -7752,7 +7888,7 @@ function _renderCallRow(host, call, reason) {
       </div>
       ${
         reason
-          ? b2`<div
+          ? x`<div
             style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
           >
             ${reason}
@@ -7766,8 +7902,8 @@ function _proposalEntityIds(approval) {
   const seen = /* @__PURE__ */ new Set();
   const ids = [];
   for (const call of approval?.calls || []) {
-    const t4 = call?.target?.entity_id;
-    const list = Array.isArray(t4) ? t4 : t4 ? [t4] : [];
+    const t3 = call?.target?.entity_id;
+    const list = Array.isArray(t3) ? t3 : t3 ? [t3] : [];
     for (const eid of list) {
       if (typeof eid === "string" && !seen.has(eid)) {
         seen.add(eid);
@@ -7814,7 +7950,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       approvalStatus === "approved"
         ? "mdi:check-circle-outline"
         : "mdi:close-circle-outline";
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
       >
@@ -7827,7 +7963,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
     `;
   }
   if (approvalStatus === "resolving") {
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
@@ -7836,8 +7972,8 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       </div>
     `;
   }
-  const reasonFor = (i7) => reasons[i7] || "";
-  return b2`
+  const reasonFor = (i5) => reasons[i5] || "";
+  return x`
     <div
       style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
     >
@@ -7856,11 +7992,11 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
+        ${calls.map((c3, i5) => _renderCallRow(host, c3, reasonFor(i5)))}
       </div>
       ${
         entityIds.length
-          ? b2`
+          ? x`
             <div
               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
             >
@@ -8056,15 +8192,15 @@ var GHOST_VOCABULARY = [
   "while",
   "everyone",
   "nobody",
-].sort((a3, b3) => a3.length - b3.length);
+].sort((a4, b2) => a4.length - b2.length);
 var GHOST_MIN_PREFIX = 3;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
-  let i7 = caret;
-  while (i7 > 0 && /\w/.test(text[i7 - 1])) i7--;
-  const word = text.slice(i7, caret);
+  let i5 = caret;
+  while (i5 > 0 && /\w/.test(text[i5 - 1])) i5--;
+  const word = text.slice(i5, caret);
   if (!word) return null;
-  return { word, start: i7 };
+  return { word, start: i5 };
 }
 function findGhostSuggestion(text, caret) {
   if (typeof text !== "string") return null;
@@ -8118,8 +8254,8 @@ function buildSuggestionIndex(hass, areas, devices = null) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
+    for (const [id, a4] of Object.entries(areas)) {
+      areaById[id] = a4?.name || a4?.area_id || id;
     }
   }
   const entReg = hass.entities || {};
@@ -8205,8 +8341,8 @@ function _scoreItem(item, lowerQuery) {
   }
   if (label.includes(lowerQuery)) return 100;
   let qi = 0;
-  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
-    if (label[i7] === lowerQuery[qi]) qi += 1;
+  for (let i5 = 0; i5 < label.length && qi < lowerQuery.length; i5++) {
+    if (label[i5] === lowerQuery[qi]) qi += 1;
   }
   if (qi === lowerQuery.length) return 10;
   return 0;
@@ -8220,7 +8356,7 @@ function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
     if (!domainSet.has(it.domain)) continue;
     out.push(it);
   }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  out.sort((a4, b2) => a4.label.localeCompare(b2.label));
   return out.slice(0, max);
 }
 function findExactMatches(items, kind, query, domains = null) {
@@ -8254,14 +8390,14 @@ function rankSuggestions(
     const score = _scoreItem(it, lowerQuery);
     if (score > 0) scored.push({ item: it, score });
   }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
+  scored.sort((a4, b2) => {
+    if (b2.score !== a4.score) return b2.score - a4.score;
+    if (a4.item.label.length !== b2.item.label.length) {
+      return a4.item.label.length - b2.item.label.length;
     }
-    return a3.item.label.localeCompare(b3.item.label);
+    return a4.item.label.localeCompare(b2.item.label);
   });
-  return scored.slice(0, max).map((s4) => s4.item);
+  return scored.slice(0, max).map((s6) => s6.item);
 }
 function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
@@ -8307,16 +8443,16 @@ function stripEntityMarkers(text) {
     .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
     .trimEnd();
 }
-function _escapeRegex(s4) {
-  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function pruneStaleSelections(text, selections) {
   if (!selections?.length) return selections;
-  return selections.filter((s4) => {
-    if (!s4.label) return false;
-    const escaped = _escapeRegex(s4.label);
-    const startWord = /^\w/.test(s4.label);
-    const endWord = /\w$/.test(s4.label);
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const escaped = _escapeRegex(s6.label);
+    const startWord = /^\w/.test(s6.label);
+    const endWord = /\w$/.test(s6.label);
     const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
     return new RegExp(pattern, "i").test(text); // nosemgrep
   });
@@ -8365,7 +8501,7 @@ function _formatToolArgs(args) {
   return parts.join(", ");
 }
 function renderToolCalls(toolCalls) {
-  return b2`
+  return x`
     <details
       class="dev-tool-calls"
       style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
@@ -8383,13 +8519,13 @@ function renderToolCalls(toolCalls) {
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
       >
         ${toolCalls.map(
-          (tc, i7) => b2`
+          (tc, i5) => x`
             <div
-              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+              style="padding:2px 0;${i5 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
+              >${tc.arguments && Object.keys(tc.arguments).length ? x`<span>(${_formatToolArgs(tc.arguments)})</span>` : x`<span>()</span>`}
             </div>
           `,
         )}
@@ -8416,7 +8552,7 @@ var WELCOME_SUGGESTIONS = [
 ];
 function renderAutomationSuggestButton(host) {
   const busy = !!host._suggestingAutomation;
-  return b2`
+  return x`
     <button
       class="welcome-suggest-btn"
       ?disabled=${busy || host._loading || host._streaming}
@@ -8424,8 +8560,8 @@ function renderAutomationSuggestButton(host) {
     >
       ${
         busy
-          ? b2`<span class="spinner green"></span>`
-          : b2`<ha-icon
+          ? x`<span class="spinner green"></span>`
+          : x`<ha-icon
             icon="mdi:auto-fix"
             style="--mdc-icon-size:14px;"
           ></ha-icon>`
@@ -8437,12 +8573,12 @@ function renderAutomationSuggestButton(host) {
 function renderChat(host) {
   const isEmpty = host._messages.length === 0;
   if (isEmpty) {
-    return b2`
+    return x`
       <div class="chat-pane">
         <div class="chat-welcome-center" id="chat-messages">
-          ${i6(
+          ${i4(
             host._welcomeKey || 0,
-            b2`
+            x`
               <div class="welcome-center-content">
                 <img
                   src="/api/selora_ai/logo.png"
@@ -8450,7 +8586,7 @@ function renderChat(host) {
                   style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  ${host._newAutomationMode ? b2`New <span class="gold-text">Automation</span>` : b2`Welcome to <span class="gold-text">Selora AI</span>`}
+                  ${host._newAutomationMode ? x`New <span class="gold-text">Automation</span>` : x`Welcome to <span class="gold-text">Selora AI</span>`}
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
@@ -8460,7 +8596,7 @@ function renderChat(host) {
 
                 ${
                   host._llmNeedsSetup
-                    ? b2`
+                    ? x`
                       <div
                         style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
                         @click=${() => host._goToSettings()}
@@ -8491,7 +8627,7 @@ function renderChat(host) {
                         </span>
                       </div>
                     `
-                    : b2`
+                    : x`
                       <div class="welcome-composer-area">
                         <selora-particles
                           class="welcome-composer-particles"
@@ -8506,7 +8642,7 @@ function renderChat(host) {
                       ${
                         host._newAutomationMode
                           ? renderAutomationSuggestButton(host)
-                          : b2`
+                          : x`
                             <details class="welcome-quickstart">
                               <summary class="welcome-quickstart-summary">
                                 <span>Quick start</span>
@@ -8541,7 +8677,7 @@ function renderChat(host) {
     !lastMsg.command_approval
       ? lastMsg
       : null;
-  return b2`
+  return x`
     <div class="chat-pane">
       <div
         class="chat-messages"
@@ -8552,7 +8688,7 @@ function renderChat(host) {
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
           host._loading
-            ? b2`
+            ? x`
               <div class="typing-bubble">
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
@@ -8566,7 +8702,7 @@ function renderChat(host) {
       <div class="chat-input-wrapper">
         ${
           host._chatScrolledAway && host._messages.length > 0
-            ? b2`
+            ? x`
               <button
                 class="chat-jump-bottom"
                 @click=${() => host._scrollChatToBottom()}
@@ -8580,7 +8716,7 @@ function renderChat(host) {
         }
         ${
           lastQuickActions
-            ? b2`
+            ? x`
               <div class="chat-quick-actions">
                 ${renderQuickActions(host, lastQuickActions.quick_actions, {
                   used: !!lastQuickActions._qa_used,
@@ -8638,7 +8774,7 @@ function _measureCaretInTextarea(textarea) {
   const mirror = document.createElement("div");
   const style = mirror.style;
   const cs = window.getComputedStyle(textarea);
-  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
+  for (const p2 of _MIRROR_COPY_PROPS) style[p2] = cs[p2];
   style.position = "absolute";
   style.visibility = "hidden";
   style.top = "0";
@@ -8765,7 +8901,7 @@ function _renderGhostOverlay(host) {
   if (!suffix) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
-  return b2`
+  return x`
     <span
       class="composer-ghost-suffix"
       aria-hidden="true"
@@ -8822,7 +8958,7 @@ function _selectAutocompleteItem(host, textarea, item) {
 }
 function _removeSelection(host, idx) {
   const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
+  host._autocompleteSelections = sels.filter((_2, i5) => i5 !== idx);
 }
 function _renderAutocomplete(host) {
   const ac = host._autocomplete;
@@ -8849,11 +8985,11 @@ function _renderAutocomplete(host) {
     }
     groups.get(item.kind).push(item);
   }
-  return b2`
+  return x`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
         const header = AUTOCOMPLETE_KIND_LABELS[kind] || "Suggestions";
-        return b2`
+        return x`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
           </div>
@@ -8868,7 +9004,7 @@ function _renderAutocomplete(host) {
 }
 function _renderAutocompleteRow(host, ac, item) {
   const idx = ac.items.indexOf(item);
-  return b2`<button
+  return x`<button
     type="button"
     class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
     role="option"
@@ -8883,22 +9019,22 @@ function _renderAutocompleteRow(host, ac, item) {
   >
     <ha-icon icon=${item.icon}></ha-icon>
     <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+    ${item.area ? x`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
   </button>`;
 }
 function _renderSelectionChips(host) {
   const sels = host._autocompleteSelections || [];
   if (!sels.length) return "";
-  return b2`
+  return x`
     <div class="composer-selections-inline">
       ${sels.map(
-        (s4, idx) => b2`
+        (s6, idx) => x`
           <span
             class="composer-selection-chip"
-            title=${s4.entity_id || s4.area_id || ""}
+            title=${s6.entity_id || s6.area_id || ""}
           >
-            <ha-icon icon=${s4.icon}></ha-icon>
-            ${s4.label}
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
             <button
               type="button"
               title="Remove"
@@ -8914,7 +9050,7 @@ function _renderSelectionChips(host) {
 }
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
-  return b2`
+  return x`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
@@ -9013,8 +9149,8 @@ function _renderComposer(host, opts = {}) {
                   return;
                 }
                 const userHistory = host._messages
-                  .filter((m3) => m3.role === "user" && m3.content)
-                  .map((m3) => stripEntityMarkers(m3.content));
+                  .filter((m2) => m2.role === "user" && m2.content)
+                  .map((m2) => stripEntityMarkers(m2.content));
                 const ta = e5.target;
                 const atStart =
                   ta.selectionStart === 0 && ta.selectionEnd === 0;
@@ -9079,14 +9215,14 @@ function _renderComposer(host, opts = {}) {
         </div>
         ${
           host._streaming
-            ? b2`<button
+            ? x`<button
               class="composer-send"
               @click=${() => host._stopStreaming()}
               title="Stop generating"
             >
               <ha-icon icon="mdi:stop"></ha-icon>
             </button>`
-            : b2`<button
+            : x`<button
               class="composer-send"
               @click=${() => host._sendMessage()}
               ?disabled=${host._loading || !host._input.trim()}
@@ -9101,7 +9237,7 @@ function _renderComposer(host, opts = {}) {
 }
 function renderMessage(host, msg, idx) {
   const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return b2``;
+  if (msg._streaming && !msg.content) return x``;
   let displayContent = msg.content;
   let showAutomationSpinner = false;
   let showSceneSpinner = false;
@@ -9121,11 +9257,11 @@ function renderMessage(host, msg, idx) {
         .trim();
     }
   }
-  return b2`
+  return x`
     <div class="message-row">
       ${
         isUser
-          ? b2`
+          ? x`
             <div class="bubble user">
               <span
                 class="msg-content"
@@ -9133,7 +9269,7 @@ function renderMessage(host, msg, idx) {
               ></span>
             </div>
           `
-          : b2`
+          : x`
             <div
               class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
@@ -9144,7 +9280,7 @@ function renderMessage(host, msg, idx) {
                 ${
                   msg.command_approval
                     ? ""
-                    : b2`<span
+                    : x`<span
                       class="msg-content ${msg._streaming ? "streaming-cursor" : ""}"
                       .innerHTML=${renderMarkdown(displayContent)}
                     ></span>`
@@ -9158,7 +9294,7 @@ function renderMessage(host, msg, idx) {
                             (Date.now() - startedAt) /
                               AUTOMATION_LABEL_INTERVAL_MS,
                           ) % AUTOMATION_LABELS.length;
-                        return b2`
+                        return x`
                         <div
                           style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
@@ -9177,7 +9313,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   showSceneSpinner
-                    ? b2`
+                    ? x`
                       <div
                         style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                       >
@@ -9195,7 +9331,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg.config_issue
-                    ? b2`
+                    ? x`
                       <div style="margin-top: 10px;">
                         <mwc-button dense raised @click=${host._goToSettings}
                           >Go to Settings</mwc-button
@@ -9218,7 +9354,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg._interrupted
-                    ? b2`
+                    ? x`
                       <div class="stream-interrupt">
                         <ha-icon
                           icon="mdi:alert-circle-outline"
@@ -9268,7 +9404,7 @@ function renderMessage(host, msg, idx) {
                   ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
                   ${
                     msg._interrupted && msg._retryWith
-                      ? b2` ·
+                      ? x` ·
                         <button
                           class="stream-interrupt-retry"
                           @click=${() => host._retryMessage(msg._retryWith, msg)}
@@ -9298,7 +9434,7 @@ function renderMessage(host, msg, idx) {
       }
       ${
         isUser
-          ? b2` <div class="bubble-meta">
+          ? x` <div class="bubble-meta">
             You · ${formatTime(msg.timestamp)}
           </div>`
           : ""
@@ -9350,7 +9486,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     : (host._editedYaml[key] ?? originalYaml);
   const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
-  return b2`
+  return x`
     <ha-code-editor
       mode="yaml"
       .value=${current}
@@ -9364,11 +9500,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     ></ha-code-editor>
     ${
       isDirty || (onSave && !readOnly)
-        ? b2`
+        ? x`
           <div class="yaml-edit-bar">
             ${
               isDirty
-                ? b2`
+                ? x`
                   <span class="yaml-unsaved">
                     <ha-icon
                       icon="mdi:circle-edit-outline"
@@ -9377,11 +9513,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                     Unsaved changes
                   </span>
                 `
-                : b2`<span style="flex:1;"></span>`
+                : x`<span style="flex:1;"></span>`
             }
             ${
               onSave
-                ? b2`
+                ? x`
                   <button
                     class="btn btn-primary"
                     ?disabled=${saving || !isDirty}
@@ -9408,7 +9544,7 @@ function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (c4) => c4.toUpperCase());
+    .replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 function fmtEntity(hass, id) {
   if (!id) return "";
@@ -9421,7 +9557,7 @@ function fmtEntity(hass, id) {
     /_/g,
     " ",
   );
-  return raw.replace(/\b\w/g, (c4) => c4.toUpperCase());
+  return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 function fmtEntities(hass, val) {
   if (!val) return "";
@@ -9440,7 +9576,7 @@ function fmtEntities(hass, val) {
 }
 function fmtState(state) {
   if (state == null) return null;
-  const s4 = String(state);
+  const s6 = String(state);
   const friendly = {
     on: "on",
     off: "off",
@@ -9456,7 +9592,7 @@ function fmtState(state) {
     unavailable: "unavailable",
     unknown: "unknown",
   };
-  return friendly[s4] || s4.replace(/_/g, " ");
+  return friendly[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -9497,45 +9633,45 @@ function fmtNumericValue(entityId, value) {
 }
 function fmtTime(hass, val) {
   if (val == null) return String(val);
-  const s4 = String(val).trim();
-  if (s4.includes("{{") || s4.includes("{%")) {
-    const m3 = s4.match(/states\(['"]([^'"]+)['"]\)/);
-    if (m3) return fmtEntity(hass, m3[1]);
-    const m22 = s4.match(/state_attr\(['"]([^'"]+)['"]/);
+  const s6 = String(val).trim();
+  if (s6.includes("{{") || s6.includes("{%")) {
+    const m2 = s6.match(/states\(['"]([^'"]+)['"]\)/);
+    if (m2) return fmtEntity(hass, m2[1]);
+    const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
     if (m22) return fmtEntity(hass, m22[1]);
     return "a calculated time";
   }
-  const num = Number(s4);
-  if (!isNaN(num) && num >= 0 && num <= 86400 && !s4.includes(":")) {
+  const num = Number(s6);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
     const h3 = Math.floor(num / 3600);
-    const m3 = Math.floor((num % 3600) / 60);
-    return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = Math.floor((num % 3600) / 60);
+    return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
   }
-  const parts = s4.split(":");
+  const parts = s6.split(":");
   if (parts.length >= 2) {
     const h3 = parseInt(parts[0], 10);
-    const m3 = parseInt(parts[1], 10);
-    if (!isNaN(h3) && !isNaN(m3)) {
-      return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = parseInt(parts[1], 10);
+    if (!isNaN(h3) && !isNaN(m2)) {
+      return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
     }
   }
-  if (s4.startsWith("input_datetime.") || s4.startsWith("sensor."))
-    return fmtEntity(hass, s4);
-  return s4;
+  if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
+    return fmtEntity(hass, s6);
+  return s6;
 }
 
 // src/shared/flow-description.js
 function describeFlowItem(hass, item) {
   if (!item || typeof item !== "object") return String(item ?? "");
-  const p4 = item.platform || item.trigger;
-  if (p4 === "time") {
+  const p2 = item.platform || item.trigger;
+  if (p2 === "time") {
     const raw = item.at;
     if (Array.isArray(raw)) {
-      return `When the time is ${raw.map((t4) => fmtTime(hass, t4)).join(" or ")}`;
+      return `When the time is ${raw.map((t3) => fmtTime(hass, t3)).join(" or ")}`;
     }
     return `When the time is ${fmtTime(hass, raw)}`;
   }
-  if (p4 === "sun") {
+  if (p2 === "sun") {
     const ev =
       item.event === "sunset"
         ? "sunset"
@@ -9545,17 +9681,17 @@ function describeFlowItem(hass, item) {
     if (item.offset) {
       const neg = item.offset.startsWith("-");
       const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h3, m3, s4] = raw.split(":").map(Number);
+      const [h3, m2, s6] = raw.split(":").map(Number);
       const parts = [];
       if (h3) parts.push(`${h3}h`);
-      if (m3) parts.push(`${m3}min`);
-      if (s4) parts.push(`${s4}s`);
+      if (m2) parts.push(`${m2}min`);
+      if (s6) parts.push(`${s6}s`);
       const label = parts.join(" ") || item.offset;
       return `${label} ${neg ? "before" : "after"} ${ev}`;
     }
     return `When it is ${ev}`;
   }
-  if (p4 === "state") {
+  if (p2 === "state") {
     const eid = fmtEntities(hass, item.entity_id);
     const fromState = fmtState(item.from);
     const toState = fmtState(item.to);
@@ -9568,7 +9704,7 @@ function describeFlowItem(hass, item) {
     if (toState) return `When ${eid} becomes ${toState}${dur}`;
     return `When ${eid} changes state${dur}`;
   }
-  if (p4 === "numeric_state") {
+  if (p2 === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
@@ -9578,7 +9714,7 @@ function describeFlowItem(hass, item) {
     if (item.below != null) return `When ${eid} drops below ${below}`;
     return `When ${eid} value changes`;
   }
-  if (p4 === "homeassistant") {
+  if (p2 === "homeassistant") {
     const ev =
       item.event === "start"
         ? "starts"
@@ -9587,7 +9723,7 @@ function describeFlowItem(hass, item) {
           : "changes state";
     return `When Home Assistant ${ev}`;
   }
-  if (p4 === "time_pattern") {
+  if (p2 === "time_pattern") {
     if (item.seconds != null)
       return `Every ${item.seconds} second${Number(item.seconds) === 1 ? "" : "s"}`;
     if (item.minutes != null)
@@ -9596,20 +9732,20 @@ function describeFlowItem(hass, item) {
       return `Every ${item.hours} hour${Number(item.hours) === 1 ? "" : "s"}`;
     return "On a time pattern";
   }
-  if (p4 === "template") {
+  if (p2 === "template") {
     const tmpl = item.value_template || "";
     const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
     if (entityMatch)
       return `When ${fmtEntity(hass, entityMatch[1])} condition is met`;
     return "When a template condition is met";
   }
-  if (p4 === "event") {
+  if (p2 === "event") {
     const name = item.event_type
       ? humanizeToken(item.event_type).toLowerCase()
       : "an event";
     return `When ${name} happens`;
   }
-  if (p4 === "device") {
+  if (p2 === "device") {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
       : "triggered";
@@ -9617,7 +9753,7 @@ function describeFlowItem(hass, item) {
       ? `When a device ${triggerType}`
       : `When a device is ${triggerType}`;
   }
-  if (p4 === "zone") {
+  if (p2 === "zone") {
     const eid = fmtEntities(hass, item.entity_id);
     const zone = fmtEntity(hass, item.zone);
     const eventMap = {
@@ -9628,15 +9764,15 @@ function describeFlowItem(hass, item) {
     const ev = eventMap[rawEvent] || humanizeToken(rawEvent).toLowerCase();
     return `${eid} ${ev} ${zone}`.trim();
   }
-  if (p4 === "mqtt")
+  if (p2 === "mqtt")
     return item.topic
       ? `When a device message arrives (${item.topic})`
       : "When a device message arrives";
-  if (p4 === "webhook") return "When an outside service sends an update";
-  if (p4 === "tag")
+  if (p2 === "webhook") return "When an outside service sends an update";
+  if (p2 === "tag")
     return `When a tag is scanned${item.tag_id ? ` (${item.tag_id})` : ""}`;
-  if (p4 === "geo_location") return "When a location update is received";
-  if (p4 === "calendar") {
+  if (p2 === "geo_location") return "When a location update is received";
+  if (p2 === "calendar") {
     const eventName = item.event
       ? humanizeToken(item.event).toLowerCase()
       : "event";
@@ -9645,7 +9781,7 @@ function describeFlowItem(hass, item) {
       : "";
     return `When a calendar ${eventName} begins${entity}`;
   }
-  if (p4) return "When this trigger happens";
+  if (p2) return "When this trigger happens";
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id);
@@ -9713,7 +9849,7 @@ function describeFlowItem(hass, item) {
     if (domain === "notify") {
       const target = svcName
         .replace(/_/g, " ")
-        .replace(/\b\w/g, (c4) => c4.toUpperCase());
+        .replace(/\b\w/g, (c3) => c3.toUpperCase());
       const msg = item.data?.message;
       const title = item.data?.title;
       if (title) return `Notify ${target}: "${title}"`;
@@ -9746,9 +9882,9 @@ function describeFlowItem(hass, item) {
     };
     const name =
       friendlyActions[svcName] ||
-      svcName.replace(/_/g, " ").replace(/\b\w/g, (c4) => c4.toUpperCase());
+      svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
-    const t4 = fmtEntities(hass, targets);
+    const t3 = fmtEntities(hass, targets);
     const extras = [];
     if (item.data?.brightness_pct != null)
       extras.push(`at ${item.data.brightness_pct}%`);
@@ -9766,7 +9902,7 @@ function describeFlowItem(hass, item) {
     if (item.data?.title && !String(item.data.title).includes("{{"))
       extras.push(item.data.title);
     const detail = extras.length ? ` (${extras.join(", ")})` : "";
-    return t4 ? `${name} ${t4}${detail}` : `${name}${detail}`;
+    return t3 ? `${name} ${t3}${detail}` : `${name}${detail}`;
   }
   if (item.delay) {
     const d3 = item.delay;
@@ -9847,17 +9983,17 @@ function collectFlowEntityIds(item) {
 // src/panel/render-suggestions.js
 var MIN_CONF = 0.8;
 var COLLAPSED_COUNT = 3;
-function normalizeProactive(s4) {
+function normalizeProactive(s6) {
   return {
     type: "proactive",
-    cardKey: `proactive_${s4.suggestion_id}`,
-    title: s4.description,
-    subtitle: s4.evidence_summary || null,
+    cardKey: `proactive_${s6.suggestion_id}`,
+    title: s6.description,
+    subtitle: s6.evidence_summary || null,
     risk: null,
-    automationYaml: s4.automation_yaml || "",
-    automationData: s4.automation_data || null,
-    _original: s4,
-    _suggestionId: s4.suggestion_id,
+    automationYaml: s6.automation_yaml || "",
+    automationData: s6.automation_data || null,
+    _original: s6,
+    _suggestionId: s6.suggestion_id,
   };
 }
 function normalizeLLM(item) {
@@ -9877,12 +10013,12 @@ function normalizeLLM(item) {
 function buildQualified(host) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s4 of host._proactiveSuggestions || []) {
-    if ((s4.confidence || 0) < MIN_CONF) continue;
-    const key = (s4.description || "").toLowerCase().trim();
+  for (const s6 of host._proactiveSuggestions || []) {
+    if ((s6.confidence || 0) < MIN_CONF) continue;
+    const key = (s6.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    qualified.push(normalizeProactive(s4));
+    qualified.push(normalizeProactive(s6));
   }
   for (const item of host._suggestions || []) {
     const auto = item.automation || item.automation_data;
@@ -9908,12 +10044,12 @@ function applyFilters(host, qualified) {
     return true;
   });
   if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.title || "").localeCompare(b3.title || ""));
+    filtered.sort((a4, b2) => (a4.title || "").localeCompare(b2.title || ""));
   } else {
-    filtered.sort((a3, b3) => {
-      if (a3.type !== b3.type) return a3.type === "llm" ? -1 : 1;
-      const confA = a3._original?.confidence || 0;
-      const confB = b3._original?.confidence || 0;
+    filtered.sort((a4, b2) => {
+      if (a4.type !== b2.type) return a4.type === "llm" ? -1 : 1;
+      const confA = a4._original?.confidence || 0;
+      const confB = b2._original?.confidence || 0;
       return confB - confA;
     });
   }
@@ -9939,7 +10075,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     ? !!host._dismissingProactive[item._suggestionId]
     : false;
   const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
-  return b2`
+  return x`
     <div
       class="card${fadingOut ? " fading-out" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
@@ -9947,7 +10083,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-header" style="margin-bottom:0;">
         ${
           bulkMode
-            ? b2`
+            ? x`
               <label class="card-select">
                 <input
                   type="checkbox"
@@ -9970,7 +10106,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
 
       ${
         item.subtitle
-          ? b2`
+          ? x`
             <div
               style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
             >
@@ -9981,7 +10117,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       }
       ${
         item.risk?.level === "elevated"
-          ? b2`
+          ? x`
             <div
               class="proposal-status"
               style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
@@ -9996,7 +10132,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-tabs" style="margin-top:12px;">
         ${
           hasFlow
-            ? b2`
+            ? x`
               <button
                 class="card-tab ${activeTab === "flow" ? "active" : ""}"
                 @click=${() => {
@@ -10047,7 +10183,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
       ${
         activeTab === "yaml"
-          ? b2`
+          ? x`
             <div style="margin-top:6px;">
               <ha-code-editor
                 mode="yaml"
@@ -10110,16 +10246,16 @@ function renderSuggestionsSection(host) {
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
-  return b2`
+  return x`
     <div class="section-card suggestions-section">
       <div class="section-card-header">
         <div class="section-card-title-group">
           <h3>Suggested for you</h3>
-          ${totalCount > 0 ? b2`<span class="badge">${totalCount} new</span>` : ""}
+          ${totalCount > 0 ? x`<span class="badge">${totalCount} new</span>` : ""}
         </div>
         ${
           isDev
-            ? b2`
+            ? x`
               <div class="section-card-actions">
                 <button
                   class="btn"
@@ -10141,11 +10277,11 @@ function renderSuggestionsSection(host) {
                 >
                   ${
                     host._generatingSuggestions
-                      ? b2`<span
+                      ? x`<span
                         class="spinner"
                         style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
                       ></span>`
-                      : b2`<ha-icon
+                      : x`<ha-icon
                         icon="mdi:auto-fix"
                         style="--mdc-icon-size:14px;"
                       ></ha-icon>`
@@ -10164,15 +10300,15 @@ function renderSuggestionsSection(host) {
 
       ${
         totalCount === 0
-          ? b2`
+          ? x`
             <p style="opacity:0.45;margin:0;font-size:13px;">
               No suggestions yet. Tap "Generate" to analyze your home.
             </p>
           `
-          : b2`
+          : x`
             ${
               expanded
-                ? b2`<div class="filter-row" style="margin-bottom:12px;">
+                ? x`<div class="filter-row" style="margin-bottom:12px;">
                   <div class="filter-input-wrap" style="flex:0 1 260px;">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
@@ -10186,7 +10322,7 @@ function renderSuggestionsSection(host) {
                     />
                     ${
                       host._suggestionFilter
-                        ? b2`<ha-icon
+                        ? x`<ha-icon
                           icon="mdi:close-circle"
                           style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                           @click=${() => {
@@ -10199,14 +10335,14 @@ function renderSuggestionsSection(host) {
                   </div>
                   ${
                     isDev
-                      ? b2`
+                      ? x`
                         <div class="status-pills">
                           ${[
                             ["all", "All"],
                             ["pattern", "Patterns"],
                             ["ai", "AI"],
                           ].map(
-                            ([val, label]) => b2`
+                            ([val, label]) => x`
                               <button
                                 class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
                                 @click=${() => {
@@ -10238,7 +10374,7 @@ function renderSuggestionsSection(host) {
                   >
                     ${
                       bulkMode
-                        ? b2`
+                        ? x`
                           <span style="font-size:12px;opacity:0.7;">
                             ${selectedCount} selected
                           </span>
@@ -10298,7 +10434,7 @@ function renderSuggestionsSection(host) {
                             Done
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="btn btn-outline"
                             @click=${() => {
@@ -10326,7 +10462,7 @@ function renderSuggestionsSection(host) {
 
             ${
               remainingCount > 0
-                ? b2`
+                ? x`
                   <button
                     class="show-more-link"
                     @click=${() => {
@@ -10380,18 +10516,18 @@ function getStaleAutomations(host) {
     }
   }
   if (dirty) _saveKept(kept);
-  return host._automations.filter((a3) => {
-    if (!host._automationIsEnabled(a3)) return false;
-    if (!a3.automation_id?.startsWith("selora_ai_")) return false;
-    if (kept[a3.automation_id]) return false;
-    if (!a3.last_triggered) {
-      if (a3.last_updated) {
-        const created = new Date(a3.last_updated).getTime();
+  return host._automations.filter((a4) => {
+    if (!host._automationIsEnabled(a4)) return false;
+    if (!a4.automation_id?.startsWith("selora_ai_")) return false;
+    if (kept[a4.automation_id]) return false;
+    if (!a4.last_triggered) {
+      if (a4.last_updated) {
+        const created = new Date(a4.last_updated).getTime();
         if (created >= cutoff) return false;
       }
       return true;
     }
-    return new Date(a3.last_triggered).getTime() < cutoff;
+    return new Date(a4.last_triggered).getTime() < cutoff;
   });
 }
 
@@ -10403,7 +10539,7 @@ function renderFlowEntityLink(host, entityId) {
     stateObj?.attributes?.icon ||
     DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
-  return b2`<button
+  return x`<button
     type="button"
     class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
@@ -10423,14 +10559,14 @@ function renderFlowEntityLink(host, entityId) {
 }
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
-function expandDurationAbbrev(s4) {
-  return s4
+function expandDurationAbbrev(s6) {
+  return s6
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
     .replace(/(\d+)\s*s\b/g, "$1 sec");
 }
 function renderFlowDuration(raw) {
-  return b2`<span class="flow-duration"
+  return x`<span class="flow-duration"
     ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
       raw,
     )}</span
@@ -10439,33 +10575,33 @@ function renderFlowDuration(raw) {
 function splitDurations(text) {
   const out = [];
   let last = 0;
-  for (const m3 of text.matchAll(DURATION_RE)) {
-    if (m3.index > last) out.push(text.slice(last, m3.index));
-    out.push({ duration: m3[0] });
-    last = m3.index + m3[0].length;
+  for (const m2 of text.matchAll(DURATION_RE)) {
+    if (m2.index > last) out.push(text.slice(last, m2.index));
+    out.push({ duration: m2[0] });
+    last = m2.index + m2[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
-  if (!description) return b2`${description}`;
+  if (!description) return x`${description}`;
   const entityIds = collectFlowEntityIds(item);
   const lookups = entityIds
     .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
-    .filter((l3) => l3.name)
-    .sort((a3, b3) => b3.name.length - a3.name.length);
+    .filter((l5) => l5.name)
+    .sort((a4, b2) => b2.name.length - a4.name.length);
   const segments = [];
   let remaining = description;
   let safety = 32;
   while (remaining && safety-- > 0) {
     let bestIdx = -1;
     let bestMatch = null;
-    for (const l3 of lookups) {
-      const idx = remaining.indexOf(l3.name);
+    for (const l5 of lookups) {
+      const idx = remaining.indexOf(l5.name);
       if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
         bestIdx = idx;
-        bestMatch = l3;
+        bestMatch = l5;
       }
     }
     if (!bestMatch) {
@@ -10487,55 +10623,55 @@ function renderFlowDescription(host, item) {
       final.push(piece);
     }
   }
-  return b2`${final.map((s4) => {
-    if (typeof s4 === "string") return s4;
-    if (s4.entity) return renderFlowEntityLink(host, s4.entity);
-    if (s4.duration) return renderFlowDuration(s4.duration);
+  return x`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
 function renderFlowNode(host, item, kind) {
-  return b2`<div class="flow-node ${kind}-node">
+  return x`<div class="flow-node ${kind}-node">
     ${renderFlowDescription(host, item)}
   </div>`;
 }
 function renderActionItem(host, action) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
-    return b2`<div class="flow-choose">
+    return x`<div class="flow-choose">
       ${action.choose.map(
-        (branch, i7) => b2`
+        (branch, i5) => x`
           <div class="flow-branch">
-            <div class="flow-branch-label">${i7 === 0 ? "If" : "Else if"}</div>
+            <div class="flow-branch-label">${i5 === 0 ? "If" : "Else if"}</div>
             ${(branch.conditions || []).map(
-              (c4) => b2`<div class="flow-node condition-node">
-                  ${renderFlowDescription(host, c4)}
+              (c3) => x`<div class="flow-node condition-node">
+                  ${renderFlowDescription(host, c3)}
                 </div>`,
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${(branch.sequence || []).map((s4) => renderActionItem(host, s4))}
+            ${(branch.sequence || []).map((s6) => renderActionItem(host, s6))}
           </div>
         `,
       )}
       ${
         Array.isArray(action.default) && action.default.length
-          ? b2`<div class="flow-branch">
+          ? x`<div class="flow-branch">
             <div class="flow-branch-label">Otherwise</div>
-            ${action.default.map((s4) => renderActionItem(host, s4))}
+            ${action.default.map((s6) => renderActionItem(host, s6))}
           </div>`
           : ""
       }
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.parallel)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">In parallel</div>
-      ${action.parallel.map((s4) => renderActionItem(host, s4))}
+      ${action.parallel.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">In sequence</div>
-      ${action.sequence.map((s4) => renderActionItem(host, s4))}
+      ${action.sequence.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -10548,10 +10684,10 @@ function renderActionItem(host, action) {
       if (r4.until) return "Repeat until condition is met";
       return "Repeat";
     })();
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s4) =>
-        renderActionItem(host, s4),
+      ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
+        renderActionItem(host, s6),
       )}
     </div>`;
   }
@@ -10569,7 +10705,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     /^\[Selora AI\]\s*/,
     "",
   );
-  return b2`
+  return x`
     <ha-icon
       icon="mdi:robot"
       style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
@@ -10578,11 +10714,11 @@ function renderAutomationIdentity(alias, description, opts = {}) {
       ${
         nameOverride
           ? nameOverride
-          : b2`<div class="auto-row-title-row">
+          : x`<div class="auto-row-title-row">
             <span class="auto-row-title">${alias}</span>
             ${
               isSelora && !badge
-                ? b2`<ha-icon
+                ? x`<ha-icon
                   class="selora-ai-mark"
                   icon="mdi:creation"
                   title="Created by Selora AI"
@@ -10592,7 +10728,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             ${titleSuffix || ""}
             ${
               badge
-                ? b2`<span
+                ? x`<span
                   style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
                   >${badge}</span
                 >`
@@ -10600,39 +10736,39 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             }
           </div>`
       }
-      ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
+      ${cleanedDescription ? x`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
       ${tail || ""}
     </div>
   `;
 }
 function renderAutomationFlowchart(host, auto) {
-  if (!auto) return b2``;
+  if (!auto) return x``;
   const triggers = (() => {
-    const t4 = auto.triggers ?? auto.trigger ?? [];
-    return Array.isArray(t4) ? t4 : [t4];
+    const t3 = auto.triggers ?? auto.trigger ?? [];
+    return Array.isArray(t3) ? t3 : [t3];
   })();
   const conditions = (() => {
-    const c4 = auto.conditions ?? auto.condition ?? [];
-    return Array.isArray(c4) ? c4 : [c4];
+    const c3 = auto.conditions ?? auto.condition ?? [];
+    return Array.isArray(c3) ? c3 : [c3];
   })().filter(Boolean);
   const actions = (() => {
-    const a3 = auto.actions ?? auto.action ?? [];
-    return Array.isArray(a3) ? a3 : [a3];
+    const a4 = auto.actions ?? auto.action ?? [];
+    return Array.isArray(a4) ? a4 : [a4];
   })();
-  if (!triggers.length && !actions.length) return b2``;
-  return b2`
+  if (!triggers.length && !actions.length) return x``;
+  return x`
     <div class="flow-chart">
       <div class="flow-section flow-section--inline">
         <div class="flow-label">Trigger</div>
-        ${triggers.map((t4) => renderFlowNode(host, t4, "trigger"))}
+        ${triggers.map((t3) => renderFlowNode(host, t3, "trigger"))}
       </div>
       ${
         conditions.length
-          ? b2`
+          ? x`
             <div class="flow-arrow">↓</div>
             <div class="flow-section flow-section--inline">
               <div class="flow-label">Condition</div>
-              ${conditions.map((c4) => renderFlowNode(host, c4, "condition"))}
+              ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
             </div>
           `
           : ""
@@ -10640,7 +10776,7 @@ function renderAutomationFlowchart(host, auto) {
       <div class="flow-arrow">↓</div>
       <div class="flow-section flow-section--stacked">
         <div class="flow-label">Actions</div>
-        ${actions.map((a3) => renderActionItem(host, a3))}
+        ${actions.map((a4) => renderActionItem(host, a4))}
       </div>
     </div>
   `;
@@ -10655,7 +10791,7 @@ function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey2 = `saved_${msgIndex}`;
     const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -10666,7 +10802,7 @@ function renderProposalCard(host, msg, msgIndex) {
           ${renderAutomationFlowchart(host, automation)}
           ${
             yaml
-              ? b2`
+              ? x`
                 <div
                   class="yaml-toggle"
                   style="margin-top:12px;"
@@ -10680,7 +10816,7 @@ function renderProposalCard(host, msg, msgIndex) {
                 </div>
                 ${
                   yamlOpen2
-                    ? b2`<div style="margin-top:6px;">
+                    ? x`<div style="margin-top:6px;">
                       ${host._renderYamlEditor(yamlKey2, yaml, null, {
                         readOnly: true,
                       })}
@@ -10695,7 +10831,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -10711,7 +10847,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(
@@ -10730,7 +10866,7 @@ function renderProposalCard(host, msg, msgIndex) {
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
-  return b2`
+  return x`
     <div class="automation-subcard">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -10740,7 +10876,7 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard-body">
         ${
           risk?.level === "elevated"
-            ? b2`
+            ? x`
               <div
                 class="proposal-status"
                 style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);"
@@ -10751,7 +10887,7 @@ function renderProposalCard(host, msg, msgIndex) {
                   <div style="margin-top:4px;">${risk.summary}</div>
                   ${
                     risk.reasons?.length
-                      ? b2`<div style="margin-top:6px; font-size:12px;">
+                      ? x`<div style="margin-top:6px; font-size:12px;">
                         ${risk.reasons.join(" ")}
                       </div>`
                       : ""
@@ -10776,11 +10912,11 @@ function renderProposalCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen
-            ? b2`<div style="margin-top:6px;">
+            ? x`<div style="margin-top:6px;">
               ${host._renderYamlEditor(yamlKey, yaml)}
               ${
                 hasEdits
-                  ? b2`<div class="proposal-verify">
+                  ? x`<div class="proposal-verify">
                     Your YAML edits will be used when you accept.
                   </div>`
                   : ""
@@ -10796,7 +10932,7 @@ function _savedIsEnabled(host, msg) {
   const savedAutomationId = msg.automation_id || null;
   if (!savedAutomationId) return false;
   const created = (host._automations || []).find(
-    (a3) => a3.automation_id === savedAutomationId,
+    (a4) => a4.automation_id === savedAutomationId,
   );
   return created ? host._automationIsEnabled(created) : false;
 }
@@ -10809,7 +10945,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const savedAutomationId = msg.automation_id || null;
     const created = savedAutomationId
       ? (host._automations || []).find(
-          (a3) => a3.automation_id === savedAutomationId,
+          (a4) => a4.automation_id === savedAutomationId,
         )
       : null;
     if (!created) return "";
@@ -10817,7 +10953,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      return b2`<div class="qa-group automation-card-actions">
+      return x`<div class="qa-group automation-card-actions">
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
@@ -10845,7 +10981,7 @@ function renderProposalActions(host, msg, msgIndex) {
         </button>
       </div>`;
     }
-    return b2`
+    return x`
       <div class="automation-card-actions">
         <button
           class="btn btn-success"
@@ -10861,7 +10997,7 @@ function renderProposalActions(host, msg, msgIndex) {
       </div>
       ${
         elevated
-          ? b2`<p class="automation-workflow-note elevated">
+          ? x`<p class="automation-workflow-note elevated">
             <ha-icon
               icon="mdi:shield-alert-outline"
               style="--mdc-icon-size:14px;"
@@ -10877,7 +11013,7 @@ function renderProposalActions(host, msg, msgIndex) {
     return "";
   }
   const yamlKey = `proposal_${msgIndex}`;
-  return b2`<div
+  return x`<div
     class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
   >
     <button
@@ -10901,10 +11037,10 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
   const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
   const buckets = Array.from({ length: numCols }, () => []);
-  cards.forEach((c4, i7) => buckets[i7 % numCols].push(c4));
+  cards.forEach((c3, i5) => buckets[i5 % numCols].push(c3));
   return buckets.map(
-    (col, i7) => b2`<div class="masonry-col">
-        ${col}${i7 === 0 && firstColFooter ? firstColFooter : ""}
+    (col, i5) => x`<div class="masonry-col">
+        ${col}${i5 === 0 && firstColFooter ? firstColFooter : ""}
       </div>`,
   );
 }
@@ -10915,44 +11051,44 @@ function renderAutomations(host) {
   const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
   const staleList = getStaleAutomations(host);
-  const staleSet = new Set(staleList.map((a3) => a3.automation_id));
+  const staleSet = new Set(staleList.map((a4) => a4.automation_id));
   if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      host._automationIsEnabled(a3),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a3) => !host._automationIsEnabled(a3),
+      (a4) => !host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "stale") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      staleSet.has(a3.automation_id),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      staleSet.has(a4.automation_id),
     );
   }
   if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      (a3.alias || "").toLowerCase().includes(filterText),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      (a4.alias || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
-    filteredAutomations.sort((a3, b3) => {
-      const aTime = a3.last_triggered
-        ? new Date(a3.last_triggered).getTime()
+    filteredAutomations.sort((a4, b2) => {
+      const aTime = a4.last_triggered
+        ? new Date(a4.last_triggered).getTime()
         : 0;
-      const bTime = b3.last_triggered
-        ? new Date(b3.last_triggered).getTime()
+      const bTime = b2.last_triggered
+        ? new Date(b2.last_triggered).getTime()
         : 0;
       return bTime - aTime;
     });
   } else if (sortBy === "alpha") {
-    filteredAutomations.sort((a3, b3) =>
-      (a3.alias || "").localeCompare(b3.alias || ""),
+    filteredAutomations.sort((a4, b2) =>
+      (a4.alias || "").localeCompare(b2.alias || ""),
     );
   } else if (sortBy === "enabled_first") {
-    filteredAutomations.sort((a3, b3) => {
-      const aOn = host._automationIsEnabled(a3) ? 0 : 1;
-      const bOn = host._automationIsEnabled(b3) ? 0 : 1;
+    filteredAutomations.sort((a4, b2) => {
+      const aOn = host._automationIsEnabled(a4) ? 0 : 1;
+      const bOn = host._automationIsEnabled(b2) ? 0 : 1;
       return aOn - bOn;
     });
   }
@@ -10970,9 +11106,9 @@ function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
-  const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
+  const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
   const selectedVisibleCount = selectableIds.filter(
     (id) => host._selectedAutomationIds[id],
@@ -10986,7 +11122,7 @@ function renderAutomations(host) {
     selectedIds.length - selectedVisibleCount,
   );
   const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
-  return b2`
+  return x`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
       ${renderSuggestionsSection(host)}
       <div class="section-card">
@@ -10995,27 +11131,27 @@ function renderAutomations(host) {
         </div>
         ${
           host._automations.length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   ${["all", "enabled", "disabled"].map(
-                    (s4) => b2`
+                    (s6) => x`
                       <button
                         role="tab"
-                        aria-selected=${host._statusFilter === s4}
-                        class="filter-tab ${host._statusFilter === s4 ? "active" : ""}"
+                        aria-selected=${host._statusFilter === s6}
+                        class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
                         @click=${() => {
-                          host._statusFilter = s4;
+                          host._statusFilter = s6;
                           host._automationsPage = 1;
                         }}
                       >
-                        ${s4.charAt(0).toUpperCase() + s4.slice(1)}
+                        ${s6.charAt(0).toUpperCase() + s6.slice(1)}
                       </button>
                     `,
                   )}
                   ${
                     staleSet.size > 0
-                      ? b2`<button
+                      ? x`<button
                         role="tab"
                         aria-selected=${host._statusFilter === "stale"}
                         class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
@@ -11037,7 +11173,7 @@ function renderAutomations(host) {
                 <div class="filter-tabs-actions">
                   ${
                     host._bulkEditMode
-                      ? b2`
+                      ? x`
                         <label class="bulk-select-all">
                           <input
                             type="checkbox"
@@ -11062,7 +11198,7 @@ function renderAutomations(host) {
                           Done
                         </button>
                       `
-                      : b2`
+                      : x`
                         <button
                           class="filter-row-secondary"
                           @click=${() => {
@@ -11105,7 +11241,7 @@ function renderAutomations(host) {
                   />
                   ${
                     host._automationFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -11144,20 +11280,20 @@ function renderAutomations(host) {
               </div>
               ${
                 host._bulkEditMode && selectedIds.length > 0
-                  ? b2`
+                  ? x`
                     <div class="bulk-actions-row">
                       <div class="left">
                         ${selectedIds.length}
                         selected${
                           hiddenSelectedCount > 0
-                            ? b2` <span style="opacity:0.65;font-weight:500;"
+                            ? x` <span style="opacity:0.65;font-weight:500;"
                               >(${hiddenSelectedCount} hidden by filter)</span
                             >`
                             : ""
                         }
                         ${
                           host._bulkActionInProgress
-                            ? b2`<span style="opacity:0.75;font-weight:500;">
+                            ? x`<span style="opacity:0.75;font-weight:500;">
                               · ${host._bulkActionLabel}</span
                             >`
                             : ""
@@ -11198,24 +11334,24 @@ function renderAutomations(host) {
                   : ""
               }
               <div class="automations-list">
-                ${pagedAutomations.map((a3) => {
-                  const isDraft = !!a3._draft;
-                  const isOn = host._automationIsEnabled(a3);
-                  const isUnavailable = a3.state === "unavailable";
-                  const automationId = a3.automation_id || "";
+                ${pagedAutomations.map((a4) => {
+                  const isDraft = !!a4._draft;
+                  const isOn = host._automationIsEnabled(a4);
+                  const isUnavailable = a4.state === "unavailable";
+                  const automationId = a4.automation_id || "";
                   const hasAutomationId = !!automationId;
                   const canToggle =
                     hasAutomationId && !host._bulkActionInProgress;
                   const deleting = host._deletingAutomation[automationId];
                   const loadingChat = host._loadingToChat[automationId];
                   const burgerOpen = host._openBurgerMenu === automationId;
-                  const cardExpanded = !!host._cardActiveTab[a3.entity_id];
-                  const ago = formatTimeAgo(a3.last_triggered);
+                  const cardExpanded = !!host._cardActiveTab[a4.entity_id];
+                  const ago = formatTimeAgo(a4.last_triggered);
                   const lastRun = ago ? ago : !isOn ? "Disabled" : "Never";
-                  return b2`
+                  return x`
                     <div
-                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
-                      data-entity-id="${a3.entity_id}"
+                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
+                      data-entity-id="${a4.entity_id}"
                     >
                       <div
                         class="auto-row-main"
@@ -11226,32 +11362,32 @@ function renderAutomations(host) {
                             )
                           )
                             return;
-                          const current = host._cardActiveTab[a3.entity_id];
+                          const current = host._cardActiveTab[a4.entity_id];
                           if (current) {
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: null,
+                              [a4.entity_id]: null,
                             };
                           } else {
                             const defaultTab =
-                              (a3.triggers ?? a3.trigger)?.length ||
-                              (a3.actions ?? a3.action)?.length
+                              (a4.triggers ?? a4.trigger)?.length ||
+                              (a4.actions ?? a4.action)?.length
                                 ? "flow"
-                                : a3.yaml_text
+                                : a4.yaml_text
                                   ? "yaml"
                                   : hasAutomationId
                                     ? "history"
                                     : null;
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: defaultTab,
+                              [a4.entity_id]: defaultTab,
                             };
                           }
                         }}
                       >
                         ${
                           host._bulkEditMode && hasAutomationId
-                            ? b2`
+                            ? x`
                               <label class="card-select">
                                 <input
                                   type="checkbox"
@@ -11268,17 +11404,17 @@ function renderAutomations(host) {
                             `
                             : ""
                         }
-                        ${renderAutomationIdentity(a3.alias, a3.description, {
-                          isSelora: !!a3.is_selora,
-                          titleSuffix: b2`
+                        ${renderAutomationIdentity(a4.alias, a4.description, {
+                          isSelora: !!a4.is_selora,
+                          titleSuffix: x`
                             ${
                               isUnavailable
-                                ? b2`<span
+                                ? x`<span
                                   class="needs-attention-pill"
                                   @click=${(e5) => {
                                     e5.stopPropagation();
                                     host._unavailableAutoId = automationId;
-                                    host._unavailableAutoName = a3.alias;
+                                    host._unavailableAutoName = a4.alias;
                                   }}
                                   >Needs attention</span
                                 >`
@@ -11286,7 +11422,7 @@ function renderAutomations(host) {
                             }
                             ${
                               staleSet.has(automationId)
-                                ? b2`<span
+                                ? x`<span
                                   class="stale-pill"
                                   title=${staleTooltip(host)}
                                 >
@@ -11301,7 +11437,7 @@ function renderAutomations(host) {
                           `,
                           nameOverride:
                             host._editingAlias === automationId
-                              ? b2`
+                              ? x`
                                   <input
                                     class="rename-input"
                                     data-id="${automationId}"
@@ -11331,7 +11467,7 @@ function renderAutomations(host) {
                                   </button>
                                 `
                               : null,
-                          tail: b2`<span class="auto-row-mobile-meta">
+                          tail: x`<span class="auto-row-mobile-meta">
                             <span>Last run: ${lastRun}</span>
                             <ha-icon
                               icon="mdi:chevron-down"
@@ -11343,11 +11479,11 @@ function renderAutomations(host) {
                         <span class="auto-row-last-run"
                           ><span class="last-run-prefix">Last run: </span
                           >${lastRun}${
-                            a3.last_triggered
-                              ? b2`<span class="setting-tooltip"
+                            a4.last_triggered
+                              ? x`<span class="setting-tooltip"
                                 >Last run:
                                 ${new Date(
-                                  a3.last_triggered,
+                                  a4.last_triggered,
                                 ).toLocaleString()}</span
                               >`
                               : ""
@@ -11375,7 +11511,7 @@ function renderAutomations(host) {
                             @change=${(e5) => {
                               if (!canToggle) return;
                               host._toggleAutomation(
-                                a3.entity_id,
+                                a4.entity_id,
                                 automationId,
                                 e5.target.checked,
                               );
@@ -11387,7 +11523,7 @@ function renderAutomations(host) {
                         </label>
                         ${
                           hasAutomationId
-                            ? b2`
+                            ? x`
                               <div class="burger-menu-wrapper">
                                 <button
                                   class="burger-btn"
@@ -11402,7 +11538,7 @@ function renderAutomations(host) {
                                 </button>
                                 ${
                                   burgerOpen
-                                    ? b2`
+                                    ? x`
                                       <div class="burger-dropdown">
                                         <button
                                           class="burger-item"
@@ -11427,7 +11563,7 @@ function renderAutomations(host) {
                                             e5.stopPropagation();
                                             host._startRenameAutomation(
                                               automationId,
-                                              a3.alias,
+                                              a4.alias,
                                             );
                                           }}
                                         >
@@ -11486,21 +11622,21 @@ function renderAutomations(host) {
                       </div>
                       ${
                         cardExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               <div class="card-tabs" style="margin-top:0;">
                                 ${
-                                  (a3.triggers ?? a3.trigger)?.length ||
-                                  (a3.actions ?? a3.action)?.length
-                                    ? b2`
+                                  (a4.triggers ?? a4.trigger)?.length ||
+                                  (a4.actions ?? a4.action)?.length
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "flow"
                                                 ? null
                                                 : "flow",
@@ -11518,16 +11654,16 @@ function renderAutomations(host) {
                                     : ""
                                 }
                                 ${
-                                  a3.yaml_text
-                                    ? b2`
+                                  a4.yaml_text
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "yaml"
                                                 ? null
                                                 : "yaml",
@@ -11546,17 +11682,17 @@ function renderAutomations(host) {
                                 }
                                 ${
                                   hasAutomationId
-                                    ? b2`
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
                                         @click=${() => {
                                           const isActive =
                                             host._cardActiveTab[
-                                              a3.entity_id
+                                              a4.entity_id
                                             ] === "history";
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]: isActive
+                                            [a4.entity_id]: isActive
                                               ? null
                                               : "history",
                                           };
@@ -11580,22 +11716,22 @@ function renderAutomations(host) {
                                     : ""
                                 }
                               </div>
-                              ${host._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host, a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "flow" && ((a4.triggers ?? a4.trigger)?.length || (a4.actions ?? a4.action)?.length) ? renderAutomationFlowchart(host, a4) : ""}
                               ${
-                                host._cardActiveTab[a3.entity_id] === "yaml" &&
-                                a3.yaml_text
+                                host._cardActiveTab[a4.entity_id] === "yaml" &&
+                                a4.yaml_text
                                   ? host._renderYamlEditor(
-                                      `yaml_${a3.entity_id}`,
-                                      a3.yaml_text,
+                                      `yaml_${a4.entity_id}`,
+                                      a4.yaml_text,
                                       (key) =>
                                         host._saveActiveAutomationYaml(
-                                          a3.automation_id,
+                                          a4.automation_id,
                                           key,
                                         ),
                                     )
                                   : ""
                               }
-                              ${host._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}
                             </div>
                           `
                           : ""
@@ -11606,7 +11742,7 @@ function renderAutomations(host) {
               </div>
               ${
                 totalAutoPages > 1
-                  ? b2`
+                  ? x`
                     <div class="pagination">
                       <button
                         class="btn btn-outline"
@@ -11651,7 +11787,7 @@ function renderAutomations(host) {
               }
               ${
                 filteredAutomations.length === 0 && host._automations.length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No automations match "${host._automationFilter}"
@@ -11659,7 +11795,7 @@ function renderAutomations(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:robot-vacuum-variant"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -11686,7 +11822,7 @@ function renderAutomations(host) {
 }
 function renderUnavailableModal(host) {
   if (!host._unavailableAutoId) return "";
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${() => {
@@ -11772,7 +11908,7 @@ function renderUnavailableModal(host) {
 
 // src/panel/render-scenes.js
 function _sceneCardHeader(name, badge) {
-  return b2`
+  return x`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
         icon="mdi:palette"
@@ -11801,7 +11937,7 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
       ? host._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
-  return b2`
+  return x`
     <div class="scene-ent-row">
       <div
         class="selora-entity-grid scene-ent-tile"
@@ -11829,16 +11965,16 @@ function _renderEntityList(host, entities, editSceneId = null) {
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
   }
-  const sorted = [...groups.entries()].sort((a3, b3) => {
-    if (!a3[0]) return 1;
-    if (!b3[0]) return -1;
-    return a3[0].localeCompare(b3[0]);
+  const sorted = [...groups.entries()].sort((a4, b2) => {
+    if (!a4[0]) return 1;
+    if (!b2[0]) return -1;
+    return a4[0].localeCompare(b2[0]);
   });
   const showHeaders = groups.size > 1;
-  return b2`
+  return x`
     ${
       editSceneId
-        ? b2`<div class="scene-ent-hint">
+        ? x`<div class="scene-ent-hint">
           <ha-icon icon="mdi:gesture-tap"></ha-icon>
           <span
             >Adjust each entity's desired state on the <strong>right</strong>.
@@ -11855,10 +11991,10 @@ function _renderEntityList(host, entities, editSceneId = null) {
         <span class="scene-ent-cap--target">Scene sets</span>
       </div>
       ${sorted.map(
-        ([area, areaIds]) => b2`
+        ([area, areaIds]) => x`
           ${
             showHeaders
-              ? b2`<div class="scene-ent-area">
+              ? x`<div class="scene-ent-area">
                 <ha-icon icon="mdi:floor-plan"></ha-icon>
                 <span>${area || "Unassigned"}</span>
               </div>`
@@ -11872,7 +12008,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
     </div>
     ${
       editSceneId && host._sceneIsDirty(editSceneId)
-        ? b2`<div class="scene-edit-bar">
+        ? x`<div class="scene-edit-bar">
           <span class="scene-edit-bar-msg">
             <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
           </span>
@@ -11920,7 +12056,7 @@ function renderSceneCard(host, msg, msgIndex) {
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
   if (status === "saved") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px;">
         <div class="proposal-header">
           <ha-icon icon="mdi:check-circle"></ha-icon>
@@ -11963,7 +12099,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -11979,14 +12115,14 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div style="margin-top:12px;padding:14px 0 0;">
         ${_sceneCardHeader(scene.name, "Being Refined")}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? b2`<div
+              ? x`<div
                 class="yaml-toggle"
                 style="margin-top:10px;margin-bottom:0;"
                 @click=${() => toggleYaml(host, yamlKey)}
@@ -12001,7 +12137,7 @@ function renderSceneCard(host, msg, msgIndex) {
           }
           ${
             yamlOpen && msg.scene_yaml
-              ? b2`
+              ? x`
                 <ha-code-editor
                   mode="yaml"
                   .value=${msg.scene_yaml}
@@ -12015,7 +12151,7 @@ function renderSceneCard(host, msg, msgIndex) {
       </div>
     `;
   }
-  return b2`
+  return x`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(scene.name, "Proposal")}
       <div class="proposal-body" style="padding:0;">
@@ -12034,7 +12170,7 @@ function renderSceneCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen && msg.scene_yaml
-            ? b2`
+            ? x`
               <ha-code-editor
                 mode="yaml"
                 .value=${msg.scene_yaml}
@@ -12067,35 +12203,35 @@ function renderScenes(host) {
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
-  const seloraCount = allScenes.filter((s4) => s4.source === "selora").length;
+  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
   if (statusFilter === "selora") {
-    filtered = filtered.filter((s4) => s4.source === "selora");
+    filtered = filtered.filter((s6) => s6.source === "selora");
   } else if (statusFilter === "manual") {
-    filtered = filtered.filter((s4) => s4.source !== "selora");
+    filtered = filtered.filter((s6) => s6.source !== "selora");
   }
   if (filterText) {
-    filtered = filtered.filter((s4) =>
-      (s4.name || "").toLowerCase().includes(filterText),
+    filtered = filtered.filter((s6) =>
+      (s6.name || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
-    filtered.sort((a3, b3) => {
-      const at = a3.updated_at ? new Date(a3.updated_at).getTime() : 0;
-      const bt = b3.updated_at ? new Date(b3.updated_at).getTime() : 0;
+    filtered.sort((a4, b2) => {
+      const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
+      const bt = b2.updated_at ? new Date(b2.updated_at).getTime() : 0;
       return bt - at;
     });
   } else if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.name || "").localeCompare(b3.name || ""));
+    filtered.sort((a4, b2) => (a4.name || "").localeCompare(b2.name || ""));
   } else if (sortBy === "size") {
-    filtered.sort((a3, b3) => (b3.entity_count || 0) - (a3.entity_count || 0));
+    filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
   }
   if (sortDir !== naturalDir[sortBy]) {
     filtered.reverse();
   }
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="section-card">
         <div class="section-card-header">
@@ -12103,7 +12239,7 @@ function renderScenes(host) {
         </div>
         ${
           (host._scenes || []).length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   <button
@@ -12118,7 +12254,7 @@ function renderScenes(host) {
                   </button>
                   ${
                     seloraCount > 0 && manualCount > 0
-                      ? b2`
+                      ? x`
                         <button
                           role="tab"
                           aria-selected=${statusFilter === "selora"}
@@ -12175,7 +12311,7 @@ function renderScenes(host) {
                   />
                   ${
                     host._sceneFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -12212,20 +12348,20 @@ function renderScenes(host) {
                 </div>
               </div>
               <div class="automations-list">
-                ${filtered.map((s4) => {
-                  const sceneId = s4.scene_id;
-                  const sceneEntityId = s4.entity_id;
-                  const entities = s4.entities || {};
-                  const entityCount = _sceneEntityCount(s4);
+                ${filtered.map((s6) => {
+                  const sceneId = s6.scene_id;
+                  const sceneEntityId = s6.entity_id;
+                  const entities = s6.entities || {};
+                  const entityCount = _sceneEntityCount(s6);
                   const isExpanded = !!host._expandedScenes?.[sceneId];
                   const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                   const burgerOpen = host._openSceneBurger === sceneId;
                   const deleting = !!host._deletingScene?.[sceneId];
                   const loadingChat = !!host._loadingToChat?.[sceneId];
-                  const updated = formatTimeAgo(s4.updated_at);
+                  const updated = formatTimeAgo(s6.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
-                  const isSelora = s4.source === "selora";
-                  return b2`
+                  const isSelora = s6.source === "selora";
+                  return x`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
                       data-scene-id="${sceneId}"
@@ -12254,7 +12390,7 @@ function renderScenes(host) {
                           ></ha-icon>
                           ${
                             !isSelora && host.narrow
-                              ? b2`<span
+                              ? x`<span
                                 style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                 >HA</span
                               >`
@@ -12263,10 +12399,10 @@ function renderScenes(host) {
                         </div>
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
-                            <span class="auto-row-title">${s4.name}</span>
+                            <span class="auto-row-title">${s6.name}</span>
                             ${
                               !isSelora && !host.narrow
-                                ? b2`<span
+                                ? x`<span
                                   style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
                                   >HA</span
                                 >`
@@ -12297,7 +12433,7 @@ function renderScenes(host) {
                               const id = sceneEntityId
                                 ? sceneEntityId.replace(/^scene\./, "")
                                 : sceneId;
-                              host._activateScene(id, s4.name);
+                              host._activateScene(id, s6.name);
                             }}
                             title="Activate scene"
                           >
@@ -12325,7 +12461,7 @@ function renderScenes(host) {
                             </button>
                             ${
                               burgerOpen
-                                ? b2`
+                                ? x`
                                   <div class="burger-dropdown">
                                     <button
                                       class="burger-item"
@@ -12377,7 +12513,7 @@ function renderScenes(host) {
                                     </button>
                                     ${
                                       isSelora
-                                        ? b2`<button
+                                        ? x`<button
                                           class="burger-item danger"
                                           ?disabled=${deleting}
                                           @click=${(e5) => {
@@ -12386,7 +12522,7 @@ function renderScenes(host) {
                                             host._deleteSceneConfirmId =
                                               sceneId;
                                             host._deleteSceneConfirmName =
-                                              s4.name;
+                                              s6.name;
                                           }}
                                         >
                                           <ha-icon
@@ -12406,7 +12542,7 @@ function renderScenes(host) {
                       </div>
                       ${
                         isExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               ${
                                 Object.keys(entities).length
@@ -12415,7 +12551,7 @@ function renderScenes(host) {
                                       entities,
                                       isSelora ? sceneId : null,
                                     )
-                                  : b2`<div
+                                  : x`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
                                     No entity details available — open the scene
@@ -12440,10 +12576,10 @@ function renderScenes(host) {
                               </div>
                               ${
                                 yamlOpen
-                                  ? b2`
+                                  ? x`
                                     <ha-code-editor
                                       mode="yaml"
-                                      .value=${isSelora && host._sceneIsDirty(sceneId) ? host._sceneEditYaml(sceneId, s4.name) : s4.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
+                                      .value=${isSelora && host._sceneIsDirty(sceneId) ? host._sceneEditYaml(sceneId, s6.name) : s6.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
                                       read-only
                                       style="--code-mirror-font-size:12px;"
                                     ></ha-code-editor>
@@ -12460,7 +12596,7 @@ function renderScenes(host) {
               </div>
               ${
                 filtered.length === 0 && (host._scenes || []).length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No scenes match "${host._sceneFilter}"
@@ -12468,7 +12604,7 @@ function renderScenes(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:palette"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -12498,7 +12634,7 @@ function renderScenes(host) {
 function renderDeleteSceneModal(host) {
   if (!host._deleteSceneConfirmId) return "";
   const name = host._deleteSceneConfirmName || "this scene";
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${(e5) => {
@@ -12666,8 +12802,8 @@ function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areasMap && typeof areasMap === "object") {
-    for (const [id, a3] of Object.entries(areasMap)) {
-      areaById[id] = a3?.name || id;
+    for (const [id, a4] of Object.entries(areasMap)) {
+      areaById[id] = a4?.name || id;
     }
   }
   const entReg = entitiesMap || hass.entities || {};
@@ -12726,17 +12862,17 @@ function _buildDeviceIndex(devicesMap, areasMap) {
 }
 function _interleave(lists, max) {
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   while (out.length < max) {
     let added = false;
     for (const list of lists) {
-      if (i7 < list.length && out.length < max) {
-        out.push(list[i7]);
+      if (i5 < list.length && out.length < max) {
+        out.push(list[i5]);
         added = true;
       }
     }
     if (!added) break;
-    i7++;
+    i5++;
   }
   return out;
 }
@@ -12807,7 +12943,7 @@ function _navigate(path) {
   window.dispatchEvent(new Event("location-changed"));
 }
 function _renderChipGroup(title, chips) {
-  return b2`
+  return x`
     <div>
       <div
         style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
@@ -12819,7 +12955,7 @@ function _renderChipGroup(title, chips) {
   `;
 }
 function _renderChip({ icon, label, title, onOpen, onRemove }) {
-  return b2`
+  return x`
     <span class="composer-selection-chip" title=${title || label}>
       <button
         type="button"
@@ -12844,7 +12980,7 @@ function _renderChip({ icon, label, title, onOpen, onRemove }) {
 }
 function _renderDropdown(host, items, activeIndex) {
   if (!items.length) return "";
-  return b2`
+  return x`
     <div
       style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;max-height:240px;overflow-y:auto;"
     >
@@ -12853,7 +12989,7 @@ function _renderDropdown(host, items, activeIndex) {
         if (item.kind === KIND_AREA) kindLabel = "Area";
         else if (item.kind === KIND_HA_DEVICE) kindLabel = "Device";
         const active = idx === activeIndex;
-        return b2`
+        return x`
           <button
             type="button"
             data-ignore-row=${idx}
@@ -12874,12 +13010,12 @@ function _renderDropdown(host, items, activeIndex) {
             <span style="flex:1;">${item.label}</span>
             ${
               kindLabel
-                ? b2`<span
+                ? x`<span
                   style="font-size:11px;color:var(--secondary-text-color);"
                   >${kindLabel}</span
                 >`
                 : item.area
-                  ? b2`<span
+                  ? x`<span
                     style="font-size:11px;color:var(--secondary-text-color);"
                     >${item.area}</span
                   >`
@@ -12892,7 +13028,7 @@ function _renderDropdown(host, items, activeIndex) {
   `;
 }
 function _renderInfoCallout(labelName) {
-  return b2`
+  return x`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
     >
@@ -12964,7 +13100,7 @@ function renderIgnoreList(host) {
   const total =
     tagged.entities.length + tagged.devices.length + tagged.areas.length;
   const labelName = _config(host).exclude_label_name || "Selora exclude";
-  return b2`
+  return x`
     <div class="section-card settings-section">
       <div class="section-card-header">
         <h3>Ignore in suggestions</h3>
@@ -13002,12 +13138,12 @@ function renderIgnoreList(host) {
 
       ${
         total === 0
-          ? b2`<div
+          ? x`<div
             style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
           >
             Nothing ignored yet.
           </div>`
-          : b2`
+          : x`
             <div
               style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
             >
@@ -13078,10 +13214,10 @@ function _textInput({
   placeholder = "",
   style = "",
 }) {
-  return b2`
+  return x`
     ${
       label
-        ? b2`<label
+        ? x`<label
           style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
           >${label}</label
         >`
@@ -13117,7 +13253,7 @@ function _todayCostHint(host) {
 function _renderUsageHeaderLink(host) {
   const cost = _todayCostHint(host);
   const hasData = cost !== null && cost > 0;
-  return b2`
+  return x`
     <button
       class="section-card-action"
       title="View token usage"
@@ -13148,10 +13284,10 @@ var _PROVIDERS = [
 function _renderProviderPicker(host) {
   const providers = _PROVIDERS;
   const current = providers.find(
-    (p4) => p4.value === host._config.llm_provider,
+    (p2) => p2.value === host._config.llm_provider,
   );
   const open = host._providerDropdownOpen || false;
-  return b2`
+  return x`
     <div style="position:relative;">
       <button
         class="form-select"
@@ -13169,7 +13305,7 @@ function _renderProviderPicker(host) {
       </button>
       ${
         open
-          ? b2`
+          ? x`
             <div
               style="position:fixed;inset:0;z-index:9;"
               @click=${() => {
@@ -13181,15 +13317,15 @@ function _renderProviderPicker(host) {
               style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
             >
               ${providers.map(
-                (p4) => b2`
+                (p2) => x`
                   <button
-                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
+                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p2.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p2.disabled ? "var(--disabled-text-color, #999)" : p2.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p2.disabled ? "default" : "pointer"};opacity:${p2.disabled ? "0.5" : "1"};"
                     @click=${() => {
-                      if (p4.disabled) return;
+                      if (p2.disabled) return;
                       host._providerDropdownOpen = false;
-                      host._updateConfig("llm_provider", p4.value);
+                      host._updateConfig("llm_provider", p2.value);
                       if (
-                        p4.value === "selora_local" &&
+                        p2.value === "selora_local" &&
                         host._config?.selora_local_discovered_host
                       ) {
                         host._updateConfig(
@@ -13202,7 +13338,7 @@ function _renderProviderPicker(host) {
                       host._llmSaveStatus = null;
                     }}
                   >
-                    ${p4.label}
+                    ${p2.label}
                   </button>
                 `,
               )}
@@ -13215,7 +13351,7 @@ function _renderProviderPicker(host) {
 }
 function renderSettings(host) {
   if (!host._config) {
-    return b2`
+    return x`
       <div
         class="scroll-view"
         style="display:flex; justify-content:center; padding-top:64px;"
@@ -13230,7 +13366,7 @@ function renderSettings(host) {
   const isOpenAI = host._config.llm_provider === "openai";
   const isOpenRouter = host._config.llm_provider === "openrouter";
   const isSeloraLocal = host._config.llm_provider === "selora_local";
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="settings-form">
         <a
@@ -13263,12 +13399,12 @@ function renderSettings(host) {
 
           ${
             isSeloraCloud
-              ? b2`
+              ? x`
                 <div class="form-group">
                   <label>Selora account</label>
                   ${
                     host._config.aigateway_linked
-                      ? b2`
+                      ? x`
                         <div
                           style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
                         >
@@ -13282,7 +13418,7 @@ function renderSettings(host) {
                             >
                               Linked${
                                 host._config.aigateway_user_email
-                                  ? b2` as
+                                  ? x` as
                                     <strong
                                       >${host._config.aigateway_user_email}</strong
                                     >`
@@ -13304,7 +13440,7 @@ function renderSettings(host) {
                           </button>
                         </div>
                       `
-                      : b2`
+                      : x`
                         <div
                           style="display:flex;flex-direction:column;gap:10px;"
                         >
@@ -13316,7 +13452,7 @@ function renderSettings(host) {
                           </p>
                           ${
                             host._config.developer_mode
-                              ? b2`
+                              ? x`
                                 ${_textInput({
                                   label: "Selora Cloud URL",
                                   value:
@@ -13339,7 +13475,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<a
+                              ? x`<a
                                 class="btn btn-primary"
                                 href=${host._aigwAuthorizeUrl}
                                 target="_blank"
@@ -13348,7 +13484,7 @@ function renderSettings(host) {
                               >
                                 Open sign-in page →
                               </a>`
-                              : b2`<button
+                              : x`<button
                                 class="btn btn-primary"
                                 ?disabled=${host._linkingAIGateway}
                                 @click=${() => host._startAIGatewayLink()}
@@ -13356,7 +13492,7 @@ function renderSettings(host) {
                               >
                                 ${
                                   host._linkingAIGateway
-                                    ? b2`<span
+                                    ? x`<span
                                         class="spinner"
                                         style="width:14px;height:14px;"
                                       ></span>
@@ -13367,7 +13503,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<div
+                              ? x`<div
                                 style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                               >
                                 Opens in a new tab. After signing in, return to
@@ -13380,7 +13516,7 @@ function renderSettings(host) {
                   }
                   ${
                     host._aigatewayError
-                      ? b2`<div
+                      ? x`<div
                         style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
                       >
                         ${host._aigatewayError}
@@ -13390,7 +13526,7 @@ function renderSettings(host) {
                 </div>
                 ${
                   host._config.aigateway_linked && host._config.developer_mode
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         ${_textInput({
                           label: "Selora Cloud URL",
@@ -13409,12 +13545,12 @@ function renderSettings(host) {
                 }
               `
               : isGemini
-                ? b2`
+                ? x`
                   <div class="form-group">
                     <label>API Key</label>
                     ${
                       host._config.gemini_api_key_set
-                        ? b2`<button
+                        ? x`<button
                           class="key-hint key-set key-hint-btn"
                           title="Click to replace key"
                           @click=${() => {
@@ -13461,12 +13597,12 @@ function renderSettings(host) {
                   </div>
                 `
                 : isAnthropic
-                  ? b2`
+                  ? x`
                     <div class="form-group">
                       <label>API Key</label>
                       ${
                         host._config.anthropic_api_key_set
-                          ? b2`<button
+                          ? x`<button
                             class="key-hint key-set key-hint-btn"
                             title="Click to replace key"
                             @click=${() => {
@@ -13517,12 +13653,12 @@ function renderSettings(host) {
                     </div>
                   `
                   : isOpenAI
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         <label>API Key</label>
                         ${
                           host._config.openai_api_key_set
-                            ? b2`<button
+                            ? x`<button
                               class="key-hint key-set key-hint-btn"
                               title="Click to replace key"
                               @click=${() => {
@@ -13571,12 +13707,12 @@ function renderSettings(host) {
                       </div>
                     `
                     : isOpenRouter
-                      ? b2`
+                      ? x`
                         <div class="form-group">
                           <label>API Key</label>
                           ${
                             host._config.openrouter_api_key_set
-                              ? b2`<button
+                              ? x`<button
                                 class="key-hint key-set key-hint-btn"
                                 title="Click to replace key"
                                 @click=${() => {
@@ -13630,7 +13766,7 @@ function renderSettings(host) {
                         </div>
                       `
                       : isSeloraLocal
-                        ? b2`
+                        ? x`
                           <button
                             class="btn-link"
                             style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
@@ -13645,7 +13781,7 @@ function renderSettings(host) {
                           </button>
                           ${
                             host._seloraLocalAdvanced
-                              ? b2`
+                              ? x`
                                 <p
                                   style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                 >
@@ -13675,7 +13811,7 @@ function renderSettings(host) {
                               : ""
                           }
                         `
-                        : b2`
+                        : x`
                           <div class="form-group">
                             ${_textInput({
                               label: "Host",
@@ -13703,7 +13839,7 @@ function renderSettings(host) {
           ${
             isSeloraCloud && !host._config.aigateway_linked
               ? ""
-              : b2`
+              : x`
                 <div class="card-save-bar">
                   <button
                     class="btn btn-primary"
@@ -13712,7 +13848,7 @@ function renderSettings(host) {
                   >
                     ${
                       host._savingLlmConfig
-                        ? b2`<span
+                        ? x`<span
                             class="spinner"
                             style="width:14px;height:14px;"
                           ></span>
@@ -13725,7 +13861,7 @@ function renderSettings(host) {
           }
           ${
             host._llmSaveStatus
-              ? b2`<div
+              ? x`<div
                 class="save-feedback save-feedback--${host._llmSaveStatus.type}"
               >
                 <ha-icon
@@ -13772,7 +13908,7 @@ function renderSettings(host) {
             </div>
             ${
               host._connectError
-                ? b2`<div
+                ? x`<div
                   style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
                 >
                   ${host._connectError}
@@ -13781,7 +13917,7 @@ function renderSettings(host) {
             }
             ${
               host._connectAuthorizeUrl
-                ? b2`<div
+                ? x`<div
                   style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
                 >
                   <a
@@ -13804,7 +13940,7 @@ function renderSettings(host) {
             }
             ${
               host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div
                     style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
                   >
@@ -13836,7 +13972,7 @@ function renderSettings(host) {
             ${
               host._config.developer_mode &&
               !host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div style="padding:8px 0 0;">
                     ${_textInput({
                       label: "Connect Server URL",
@@ -13865,15 +14001,15 @@ function renderSettings(host) {
           </p>
           ${
             host._mcpTokens.length === 0
-              ? b2`<div
+              ? x`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
               >
                 No tokens yet.
               </div>`
-              : b2`
+              : x`
                 <div class="mcp-token-list">
                   ${host._mcpTokens.map(
-                    (t4) => b2`
+                    (t3) => x`
                       <div class="mcp-token-row">
                         <ha-icon
                           icon="mdi:key-variant"
@@ -13881,19 +14017,19 @@ function renderSettings(host) {
                         ></ha-icon>
                         <div class="mcp-token-info">
                           <div class="mcp-token-name">
-                            ${t4.name}
+                            ${t3.name}
                             <span
-                              class="mcp-token-badge mcp-token-badge--${t4.permission_level}"
-                              >${t4.permission_level.replace("_", " ")}</span
+                              class="mcp-token-badge mcp-token-badge--${t3.permission_level}"
+                              >${t3.permission_level.replace("_", " ")}</span
                             >
                           </div>
                           <div class="mcp-token-meta">
-                            <span>${t4.token_prefix}${"*".repeat(8)}</span>
+                            <span>${t3.token_prefix}${"*".repeat(8)}</span>
                             ${
-                              t4.expires_at
-                                ? b2`<span
+                              t3.expires_at
+                                ? x`<span
                                   >&middot; expires
-                                  ${new Date(t4.expires_at).toLocaleDateString(
+                                  ${new Date(t3.expires_at).toLocaleDateString(
                                     void 0,
                                     { month: "short", day: "numeric" },
                                   )}</span
@@ -13901,26 +14037,26 @@ function renderSettings(host) {
                                 : ""
                             }
                             ${
-                              t4.last_used_at
-                                ? b2`<span
+                              t3.last_used_at
+                                ? x`<span
                                   >&middot; used
-                                  ${_timeAgo(t4.last_used_at)}</span
+                                  ${_timeAgo(t3.last_used_at)}</span
                                 >`
                                 : ""
                             }
                           </div>
                         </div>
                         <ha-icon-button
-                          ?disabled=${host._revokingTokenId === t4.id}
-                          @click=${() => host._revokeMcpToken(t4.id)}
+                          ?disabled=${host._revokingTokenId === t3.id}
+                          @click=${() => host._revokeMcpToken(t3.id)}
                         >
                           ${
-                            host._revokingTokenId === t4.id
-                              ? b2`<span
+                            host._revokingTokenId === t3.id
+                              ? x`<span
                                 class="spinner"
                                 style="width:14px;height:14px;"
                               ></span>`
-                              : b2`<ha-icon
+                              : x`<ha-icon
                                 icon="mdi:delete-outline"
                                 style="--mdc-icon-size:20px;"
                               ></ha-icon>`
@@ -13987,7 +14123,7 @@ function renderSettings(host) {
             </div>
             ${
               host._config.collector_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -14025,7 +14161,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.collector_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -14074,7 +14210,7 @@ function renderSettings(host) {
             </div>
             ${
               host._config.discovery_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -14112,7 +14248,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.discovery_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -14285,7 +14421,7 @@ var MCP_TOOLS = [
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
   if (!grants.length) {
-    return b2`<div
+    return x`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
       No saved approvals yet. The next time Selora asks before running something
@@ -14297,7 +14433,7 @@ function renderApprovalGrants(host) {
     medium: "#f59e0b",
     high: "#ef4444",
   };
-  return b2`
+  return x`
     <div class="mcp-token-list">
       ${grants.map((g2) => {
         const grantKey = g2.key || g2.service;
@@ -14305,7 +14441,7 @@ function renderApprovalGrants(host) {
           ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
             g2.entity_id
           : null;
-        return b2`
+        return x`
           <div class="mcp-token-row">
             <ha-icon
               icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
@@ -14316,11 +14452,11 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-name">
                 ${g2.service}${
                   entityFriendly
-                    ? b2` <span
+                    ? x` <span
                       style="color:var(--secondary-text-color);font-weight:400;"
                       >→ ${entityFriendly}</span
                     >`
-                    : b2` <span
+                    : x` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
                       >→ all</span
                     >`
@@ -14335,7 +14471,7 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-meta">
                 <span
                   >granted
-                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? b2` by <strong>${g2.granted_by_name}</strong>` : ""}</span
+                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? x` by <strong>${g2.granted_by_name}</strong>` : ""}</span
                 >
               </div>
             </div>
@@ -14345,11 +14481,11 @@ function renderApprovalGrants(host) {
             >
               ${
                 host._revokingApprovalKey === grantKey
-                  ? b2`<span
+                  ? x`<span
                     class="spinner"
                     style="width:14px;height:14px;"
                   ></span>`
-                  : b2`<ha-icon
+                  : x`<ha-icon
                     icon="mdi:delete-outline"
                     style="--mdc-icon-size:20px;"
                   ></ha-icon>`
@@ -14389,7 +14525,7 @@ function _timeAgo(isoString) {
 function renderCreateTokenDialog(host) {
   if (!host._showCreateTokenDialog) return "";
   if (host._createdToken) {
-    return b2`
+    return x`
       <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
         <div
           class="modal-content"
@@ -14432,7 +14568,7 @@ function renderCreateTokenDialog(host) {
     `;
   }
   const permission = host._newTokenPermission;
-  return b2`
+  return x`
     <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
       <div
         class="modal-content"
@@ -14473,12 +14609,12 @@ function renderCreateTokenDialog(host) {
 
         ${
           permission === "custom"
-            ? b2`
+            ? x`
               <div class="form-group">
                 <label>Allowed Tools</label>
                 <div class="mcp-tool-checklist">
                   ${MCP_TOOLS.map(
-                    (tool) => b2`
+                    (tool) => x`
                       <label class="mcp-tool-check">
                         <input
                           type="checkbox"
@@ -14494,7 +14630,7 @@ function renderCreateTokenDialog(host) {
                         <span>${tool.label}</span>
                         ${
                           tool.admin
-                            ? b2`<span
+                            ? x`<span
                               class="mcp-token-badge mcp-token-badge--admin"
                               style="font-size:10px;padding:1px 5px;"
                               >admin</span
@@ -14544,7 +14680,7 @@ function renderCreateTokenDialog(host) {
           >
             ${
               host._creatingToken
-                ? b2`<span
+                ? x`<span
                   class="spinner"
                   style="width:14px;height:14px;"
                 ></span>`
@@ -14595,20 +14731,20 @@ function _findUsageSensors(hass) {
   }
   return result;
 }
-function _fmtTokens(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtTokens(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
   if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
   return Math.round(v2).toLocaleString();
 }
-function _fmtUsd(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtUsd(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 === 0) return "$0.00";
   if (v2 < 0.01) return "<$0.01";
   return "$" + v2.toFixed(2);
 }
-function _fmtInt(n4) {
-  return (Number(n4) || 0).toLocaleString();
+function _fmtInt(n5) {
+  return (Number(n5) || 0).toLocaleString();
 }
 async function _fetchPeriodStats(hass, statisticIds, periodStart) {
   if (!hass) return {};
@@ -14629,8 +14765,8 @@ async function _fetchPeriodStats(hass, statisticIds, periodStart) {
 function _sumChange(buckets) {
   if (!Array.isArray(buckets)) return 0;
   let total = 0;
-  for (const b3 of buckets) {
-    const v2 = Number(b3?.change ?? 0);
+  for (const b2 of buckets) {
+    const v2 = Number(b2?.change ?? 0);
     if (Number.isFinite(v2)) total += v2;
   }
   return total;
@@ -14784,9 +14920,9 @@ function _groupByProviderModel(events) {
     g2.cost_usd += Number(e5.cost_usd) || 0;
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _groupByKind(events) {
@@ -14814,17 +14950,17 @@ function _groupByKind(events) {
     }
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _formatRelativeTime(iso) {
   if (!iso) return "";
-  const t4 = new Date(iso).getTime();
-  if (Number.isNaN(t4)) return "";
+  const t3 = new Date(iso).getTime();
+  if (Number.isNaN(t3)) return "";
   const now = Date.now();
-  const sec = Math.max(1, Math.round((now - t4) / 1e3));
+  const sec = Math.max(1, Math.round((now - t3) / 1e3));
   if (sec < 60) return `${sec}s ago`;
   const min = Math.round(sec / 60);
   if (min < 60) return `${min}m ago`;
@@ -14855,27 +14991,27 @@ function _highlightYaml(yamlStr) {
     const rest = line.slice(indent.length);
     const listMatch = rest.match(/^(- )(.*)$/);
     if (listMatch) {
-      return b2`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
     }
     const kvMatch = rest.match(/^([\w_-]+)(:)(.*)$/);
     if (kvMatch) {
       const val = kvMatch[3].trim();
-      return b2`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? b2` <span class="yaml-val">${val}</span>` : ""}</div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? x` <span class="yaml-val">${val}</span>` : ""}</div>`;
     }
-    return b2`<div class="yaml-line">${line}</div>`;
+    return x`<div class="yaml-line">${line}</div>`;
   });
 }
 function _renderDashboardSnippet(host, sensors) {
   const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
-  const s4 = sensors[selected];
-  const entityId = s4?.entityId || `sensor.${selected}`;
+  const s6 = sensors[selected];
+  const entityId = s6?.entityId || `sensor.${selected}`;
   const label =
-    s4?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+    s6?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
   const yaml = _yamlForSensor(entityId, label);
-  return b2`
+  return x`
     <div class="usage-snippet-pills">
       ${_USAGE_KEYS.map(
-        (key) => b2`
+        (key) => x`
           <button
             class="usage-snippet-pill ${key === selected ? "active" : ""}"
             @click=${() => {
@@ -14927,20 +15063,20 @@ function _renderDashboardSnippet(host, sensors) {
   `;
 }
 function _renderTile({ label, value, sub, icon }) {
-  return b2`
+  return x`
     <div class="usage-tile">
       <div class="usage-tile-head">
-        ${icon ? b2`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
+        ${icon ? x`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
         <span class="usage-tile-label">${label}</span>
       </div>
       <div class="usage-tile-value">${value}</div>
-      ${sub ? b2`<div class="usage-tile-sub">${sub}</div>` : ""}
+      ${sub ? x`<div class="usage-tile-sub">${sub}</div>` : ""}
     </div>
   `;
 }
 function _renderPeriodRow(title, stats) {
   if (!stats) {
-    return b2`
+    return x`
       <div class="usage-period-row usage-period-row--loading">
         <span class="usage-period-title">${title}</span>
         <span class="usage-period-loading">Loading…</span>
@@ -14952,13 +15088,13 @@ function _renderPeriodRow(title, stats) {
   const calls = stats.llm_calls || 0;
   const cost = stats.llm_cost || 0;
   const empty = !tokensIn && !tokensOut && !calls && !cost;
-  return b2`
+  return x`
     <div class="usage-period-row">
       <span class="usage-period-title">${title}</span>
       ${
         empty
-          ? b2`<span class="usage-period-empty">No activity</span>`
-          : b2`
+          ? x`<span class="usage-period-empty">No activity</span>`
+          : x`
             <span class="usage-period-cost">${_fmtUsd(cost)}</span>
             <span class="usage-period-tokens">
               ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
@@ -14971,16 +15107,16 @@ function _renderPeriodRow(title, stats) {
 }
 function _renderBreakdown(groups, totalCost) {
   if (!groups || groups.length === 0) return "";
-  return b2`
+  return x`
     <div class="usage-breakdown">
       ${groups.map((g2) => {
         const pct =
           totalCost > 0 ? Math.round((g2.cost_usd / totalCost) * 100) : 0;
         const tokens = g2.input_tokens + g2.output_tokens;
         const intentEntries = [...g2.intents.entries()].sort(
-          (a3, b3) => b3[1] - a3[1],
+          (a4, b2) => b2[1] - a4[1],
         );
-        return b2`
+        return x`
           <div class="usage-breakdown-row">
             <div class="usage-breakdown-head">
               <span class="usage-breakdown-label">${_kindLabel(g2.kind)}</span>
@@ -14996,14 +15132,14 @@ function _renderBreakdown(groups, totalCost) {
               <span>${_fmtInt(g2.calls)} call${g2.calls === 1 ? "" : "s"}</span>
               <span>·</span>
               <span>${_fmtTokens(tokens)} tokens</span>
-              ${totalCost > 0 ? b2`<span>·</span> <span>${pct}% of cost</span>` : ""}
+              ${totalCost > 0 ? x`<span>·</span> <span>${pct}% of cost</span>` : ""}
             </div>
             ${
               intentEntries.length > 0
-                ? b2`
+                ? x`
                   <div class="usage-breakdown-intents">
                     ${intentEntries.map(
-                      ([intent, count]) => b2`
+                      ([intent, count]) => x`
                         <span class="usage-intent-pill">
                           ${_intentLabel(intent)} · ${_fmtInt(count)}
                         </span>
@@ -15020,15 +15156,15 @@ function _renderBreakdown(groups, totalCost) {
   `;
 }
 function _renderRecentList(events) {
-  return b2`
+  return x`
     <div class="usage-recent-list">
       ${events.map((e5) => {
         const intent = _intentLabel(e5.intent);
-        return b2`
+        return x`
           <div class="usage-recent-row">
             <div class="usage-recent-main">
               <span class="usage-recent-kind">${_kindLabel(e5.kind)}</span>
-              ${intent ? b2`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
+              ${intent ? x`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
               <span class="usage-recent-time">
                 ${_formatRelativeTime(e5.timestamp)}
               </span>
@@ -15074,8 +15210,8 @@ var _PROVIDER_LABELS = {
   selora_local: "Selora AI Local",
   selora_cloud: "Selora Cloud",
 };
-function _providerLabel(p4) {
-  return _PROVIDER_LABELS[p4] || p4;
+function _providerLabel(p2) {
+  return _PROVIDER_LABELS[p2] || p2;
 }
 function _defaultPriceFor(host, provider, model) {
   const table = host?._pricingDefaults || {};
@@ -15085,8 +15221,8 @@ function _overridePriceFor(host, provider, model) {
   const overrides = host?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
-function _formatPrice(n4) {
-  const v2 = Number(n4);
+function _formatPrice(n5) {
+  const v2 = Number(n5);
   if (!Number.isFinite(v2)) return "\u2014";
   return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
@@ -15148,7 +15284,7 @@ var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
 function _renderPricingCard(host) {
   const { provider, model } = _activeProviderModel(host);
   if (provider === "selora_cloud") {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>Pricing</h3>
@@ -15176,7 +15312,7 @@ function _renderPricingCard(host) {
     `;
   }
   if (provider === "ollama" || provider === "selora_local" || !model) {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>Pricing</h3>
@@ -15193,7 +15329,7 @@ function _renderPricingCard(host) {
     host._pricingEdit?.provider === provider &&
     host._pricingEdit?.model === model;
   const effective = override || defaults;
-  return b2`
+  return x`
     <div class="section-card">
       <div class="section-card-header">
         <h3>Pricing</h3>
@@ -15219,10 +15355,10 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 default ${_formatPrice(defaults[0])}
               </span>`
-              : b2`<span class="usage-pricing-default"
+              : x`<span class="usage-pricing-default"
                 >no built-in default</span
               >`
           }
@@ -15234,7 +15370,7 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 default ${_formatPrice(defaults[1])}
               </span>`
               : ""
@@ -15244,7 +15380,7 @@ function _renderPricingCard(host) {
 
       ${
         editing
-          ? b2`
+          ? x`
             <div class="usage-pricing-edit">
               <ha-textfield
                 label="Input ($/MTok)"
@@ -15300,7 +15436,7 @@ function _renderPricingCard(host) {
               </div>
             </div>
           `
-          : b2`
+          : x`
             <div class="usage-pricing-actions">
               <button
                 class="btn btn-outline"
@@ -15322,7 +15458,7 @@ function _renderPricingCard(host) {
               </button>
               ${
                 override
-                  ? b2`
+                  ? x`
                     <button
                       class="btn btn-outline"
                       @click=${() => _clearPricingOverride(host, provider, model)}
@@ -15389,13 +15525,13 @@ function renderUsage(host) {
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
   const bufTokensIn = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.input_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.input_tokens, 0)
     : 0;
   const bufTokensOut = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.output_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.output_tokens, 0)
     : 0;
   const bufCalls = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.calls, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
     : 0;
   let dispTokensIn;
   let dispTokensOut;
@@ -15403,14 +15539,14 @@ function renderUsage(host) {
   let dispCost;
   let periodStats = stats;
   if (filterActive && filteredTotals?.totals) {
-    const t4 = filteredTotals.totals;
-    dispTokensIn = t4.input || 0;
-    dispTokensOut = t4.output || 0;
-    dispCalls = t4.calls || 0;
-    dispCost = t4.cost_usd || 0;
-    const p4 = filteredTotals.periods || {};
+    const t3 = filteredTotals.totals;
+    dispTokensIn = t3.input || 0;
+    dispTokensOut = t3.output || 0;
+    dispCalls = t3.calls || 0;
+    dispCost = t3.cost_usd || 0;
+    const p2 = filteredTotals.periods || {};
     const pick = (k2) => {
-      const v2 = p4[k2] || {};
+      const v2 = p2[k2] || {};
       return {
         llm_tokens_in: v2.input || 0,
         llm_tokens_out: v2.output || 0,
@@ -15441,7 +15577,7 @@ function renderUsage(host) {
   const filterChips =
     providerOptions.length === 0
       ? ""
-      : b2`
+      : x`
           <div class="usage-snippet-pills" style="margin-bottom:12px;">
             <button
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
@@ -15450,19 +15586,19 @@ function renderUsage(host) {
               All providers
             </button>
             ${providerOptions.map(
-              (p4) => b2`
+              (p2) => x`
                 <button
-                  class="usage-snippet-pill ${filter.provider === p4 && filter.model == null ? "active" : ""}"
-                  @click=${() => setFilter(p4, null)}
+                  class="usage-snippet-pill ${filter.provider === p2 && filter.model == null ? "active" : ""}"
+                  @click=${() => setFilter(p2, null)}
                 >
-                  ${_providerLabel(p4)}
+                  ${_providerLabel(p2)}
                 </button>
               `,
             )}
           </div>
           ${
             filter.provider && modelOptions.length > 1
-              ? b2`
+              ? x`
                 <div class="usage-snippet-pills" style="margin-bottom:12px;">
                   <button
                     class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
@@ -15471,12 +15607,12 @@ function renderUsage(host) {
                     All models
                   </button>
                   ${modelOptions.map(
-                    (m3) => b2`
+                    (m2) => x`
                       <button
-                        class="usage-snippet-pill ${filter.model === m3 ? "active" : ""}"
-                        @click=${() => setFilter(filter.provider, m3)}
+                        class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
+                        @click=${() => setFilter(filter.provider, m2)}
                       >
-                        ${m3 || "(no model)"}
+                        ${m2 || "(no model)"}
                       </button>
                     `,
                   )}
@@ -15485,7 +15621,7 @@ function renderUsage(host) {
               : ""
           }
         `;
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="usage-view">
         <a
@@ -15504,7 +15640,7 @@ function renderUsage(host) {
           <h2>Token usage</h2>
           ${
             lastProvider
-              ? b2`
+              ? x`
                 <span class="usage-subtitle">
                   ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
                 </span>
@@ -15516,7 +15652,7 @@ function renderUsage(host) {
         ${filterChips}
         ${
           sensorsMissing && recent !== null && recent.length === 0
-            ? b2`
+            ? x`
               <div class="section-card usage-empty">
                 <ha-icon
                   icon="mdi:information-outline"
@@ -15533,10 +15669,10 @@ function renderUsage(host) {
                 </div>
               </div>
             `
-            : b2`
+            : x`
               ${
                 hasTotals
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Totals</h3>
@@ -15570,7 +15706,7 @@ function renderUsage(host) {
               }
               ${
                 !sensorsMissing || filterActive
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>By period</h3>
@@ -15598,7 +15734,7 @@ function renderUsage(host) {
                 </div>
                 ${
                   filteredRecent && filteredRecent.length > 0
-                    ? b2`
+                    ? x`
                       <div
                         class="usage-snippet-pills"
                         style="margin-bottom:12px;"
@@ -15627,9 +15763,9 @@ function renderUsage(host) {
                 }
                 ${
                   filteredRecent === null
-                    ? b2`<div class="usage-period-loading">Loading…</div>`
+                    ? x`<div class="usage-period-loading">Loading…</div>`
                     : filteredRecent.length === 0
-                      ? b2`<div class="usage-period-empty">
+                      ? x`<div class="usage-period-empty">
                         No calls recorded yet.
                       </div>`
                       : _renderBreakdown(breakdown, totalCost)
@@ -15638,7 +15774,7 @@ function renderUsage(host) {
 
               ${
                 filteredRecent && filteredRecent.length > 0
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Recent calls</h3>
@@ -15651,7 +15787,7 @@ function renderUsage(host) {
               ${_renderPricingCard(host)}
               ${
                 sensorsMissing
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Dashboard sensors</h3>
@@ -15664,7 +15800,7 @@ function renderUsage(host) {
                       </p>
                     </div>
                   `
-                  : b2`
+                  : x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>Add to your dashboard</h3>
@@ -15686,27 +15822,27 @@ function renderUsage(host) {
 }
 
 // src/panel/render-version-history.js
-function renderVersionHistoryDrawer(host, a3) {
-  const automationId = a3.automation_id || a3.entity_id;
+function renderVersionHistoryDrawer(host, a4) {
+  const automationId = a4.automation_id || a4.entity_id;
   const versions = host._versions[automationId] || [];
   const loading = host._loadingVersions[automationId];
-  return b2`
+  return x`
     <div class="version-history">
       ${
         loading
-          ? b2`<div class="version-history-empty">Loading…</div>`
+          ? x`<div class="version-history-empty">Loading…</div>`
           : versions.length === 0
-            ? b2`<div class="version-history-empty">
+            ? x`<div class="version-history-empty">
               No version history yet.
             </div>`
-            : b2`
+            : x`
               <ol class="version-list">
-                ${versions.map((v2, i7) =>
+                ${versions.map((v2, i5) =>
                   renderVersionEntry(
                     host,
                     automationId,
                     v2,
-                    i7,
+                    i5,
                     versions.length,
                   ),
                 )}
@@ -15716,29 +15852,29 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function renderVersionEntry(host, automationId, v2, i7, total) {
+function renderVersionEntry(host, automationId, v2, i5, total) {
   const key = `${automationId}_${v2.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v2.created_at);
   const timeAgo = relativeTime(date);
-  const isCurrent = i7 === 0;
+  const isCurrent = i5 === 0;
   const message = v2.message || v2.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
-  const versionNumber = total - i7;
-  return b2`
+  const versionNumber = total - i5;
+  return x`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
       <div class="version-entry-card">
         <header class="version-entry-head">
           <div class="version-entry-title">
             <span class="version-entry-num">v${versionNumber}</span>
-            ${isCurrent ? b2`<span class="version-entry-badge">Current</span>` : ""}
+            ${isCurrent ? x`<span class="version-entry-badge">Current</span>` : ""}
           </div>
           <time class="version-entry-time" title=${date.toISOString()}
             >${timeAgo}</time
           >
         </header>
-        ${message ? b2`<p class="version-entry-message">${message}</p>` : ""}
+        ${message ? x`<p class="version-entry-message">${message}</p>` : ""}
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
@@ -15752,7 +15888,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
           </button>
           ${
             !isCurrent
-              ? b2`
+              ? x`
                 <button
                   class="btn btn-outline version-entry-btn"
                   ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
@@ -15775,7 +15911,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
         </div>
         ${
           yamlOpen
-            ? b2`<div class="version-entry-yaml">
+            ? x`<div class="version-entry-yaml">
               <ha-code-editor
                 mode="yaml"
                 .value=${v2.yaml || v2.yaml_content || "(no YAML stored)"}
@@ -15793,7 +15929,7 @@ function renderDiffViewer(host) {
   if (!host._diffOpen) return "";
   const automationId = host._diffAutomationId;
   const versions = host._versions[automationId] || [];
-  return b2`
+  return x`
     <div
       style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
       @click=${(e5) => {
@@ -15843,8 +15979,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -15865,8 +16001,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -15876,14 +16012,14 @@ function renderDiffViewer(host) {
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${
             host._loadingDiff
-              ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+              ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                 Loading diff…
               </div>`
               : host._diffResult.length === 0
-                ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+                ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                   No differences found.
                 </div>`
-                : b2`<pre
+                : x`<pre
                   style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
                 >
 ${host._diffResult.map((line) => {
@@ -15897,7 +16033,7 @@ ${host._diffResult.map((line) => {
     : line.startsWith("-")
       ? "#fa5252"
       : "var(--primary-text-color)";
-  return b2`<span
+  return x`<span
                       style="display:block;background:${bg};color:${color};padding:1px 4px;"
                       >${line}</span
                     >`;
@@ -16253,14 +16389,14 @@ function _toggleSessionSelection(sessionId) {
 }
 function _toggleSelectAllSessions() {
   const allSelected = this._sessions.every(
-    (s4) => this._selectedSessionIds[s4.id],
+    (s6) => this._selectedSessionIds[s6.id],
   );
   if (allSelected) {
     this._selectedSessionIds = {};
   } else {
     const selected = {};
-    this._sessions.forEach((s4) => {
-      selected[s4.id] = true;
+    this._sessions.forEach((s6) => {
+      selected[s6.id] = true;
     });
     this._selectedSessionIds = selected;
   }
@@ -16324,17 +16460,17 @@ async function _triggerGenerateSuggestions() {
       type: "selora_ai/generate_suggestions",
     });
     const existingAliases = new Set(
-      (this._suggestions || []).map((s4) => {
-        const a3 = s4.automation || s4.automation_data || {};
-        return (a3.alias || "").toLowerCase();
+      (this._suggestions || []).map((s6) => {
+        const a4 = s6.automation || s6.automation_data || {};
+        return (a4.alias || "").toLowerCase();
       }),
     );
     const added = [];
-    for (const s4 of newSuggestions || []) {
-      const a3 = s4.automation || s4.automation_data || {};
-      const alias = (a3.alias || "").toLowerCase();
+    for (const s6 of newSuggestions || []) {
+      const a4 = s6.automation || s6.automation_data || {};
+      const alias = (a4.alias || "").toLowerCase();
       if (!existingAliases.has(alias)) {
-        added.push(s4);
+        added.push(s6);
         existingAliases.add(alias);
       }
     }
@@ -16368,7 +16504,7 @@ async function _loadAutomations() {
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(
-      this._automations.map((a3) => a3.automation_id).filter(Boolean),
+      this._automations.map((a4) => a4.automation_id).filter(Boolean),
     );
     this._selectedAutomationIds = Object.fromEntries(
       Object.entries(this._selectedAutomationIds || {}).filter(
@@ -16388,8 +16524,8 @@ async function _loadProactiveSuggestions() {
       status: "pending",
     });
     const seen = /* @__PURE__ */ new Set();
-    this._proactiveSuggestions = (suggestions || []).filter((s4) => {
-      const key = (s4.description || "").toLowerCase().trim();
+    this._proactiveSuggestions = (suggestions || []).filter((s6) => {
+      const key = (s6.description || "").toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -16427,7 +16563,7 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     await this._loadAutomations();
     await new Promise((r4) => setTimeout(r4, 650));
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -16455,7 +16591,7 @@ async function _dismissProactiveSuggestion(suggestionId) {
       action: "dismissed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast("Suggestion dismissed", "info");
   } catch (err) {
@@ -16474,7 +16610,7 @@ async function _snoozeProactiveSuggestion(suggestionId) {
       action: "snoozed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast("Suggestion snoozed for 24h", "info");
   } catch (err) {
@@ -16956,10 +17092,10 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
-  for (const m3 of this._messages) {
-    if (m3.automation_status === "refining") {
-      if (m3.automation_id) return m3.automation_id;
-      if (m3.automation?.id) return m3.automation.id;
+  for (const m2 of this._messages) {
+    if (m2.automation_status === "refining") {
+      if (m2.automation_id) return m2.automation_id;
+      if (m2.automation?.id) return m2.automation.id;
     }
   }
   return null;
@@ -17046,14 +17182,14 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     msg?.risk_assessment?.level === "elevated";
   if (elevated) return;
   const created = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!created?.entity_id) {
     await new Promise((r4) => setTimeout(r4, 250));
     await this._loadAutomations();
   }
   const target = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
@@ -17063,8 +17199,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     );
     return;
   }
-  this._automations = (this._automations || []).map((a3) =>
-    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+  this._automations = (this._automations || []).map((a4) =>
+    a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
   );
   this.requestUpdate();
   try {
@@ -17075,8 +17211,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
       enabled: true,
     });
   } catch (err) {
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "off" } : a4,
     );
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
@@ -17092,7 +17228,7 @@ async function _removeDraftForSession(sessionId) {
   if (!sessionId) return;
   try {
     const draft = this._automations.find(
-      (a3) => a3._draft && a3._linked_session === sessionId,
+      (a4) => a4._draft && a4._linked_session === sessionId,
     );
     if (draft && draft._draft_id) {
       await this.hass.callWS({
@@ -17173,7 +17309,7 @@ async function _createAutomationFromSuggestion(automation) {
   }
 }
 function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
+  this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
 }
 var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
@@ -17276,9 +17412,9 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     const toast = _createdToast(auto.alias, createResult);
     this._showToast(toast.message, toast.type);
     await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s4) => {
-      const a3 = s4.automation || s4.automation_data;
-      return `sug_${a3?.alias}` !== yamlKey;
+    this._suggestions = this._suggestions.filter((s6) => {
+      const a4 = s6.automation || s6.automation_data;
+      return `sug_${a4?.alias}` !== yamlKey;
     });
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -17381,7 +17517,7 @@ function _toggleAutomationSelection(automationId, evt) {
 }
 function _toggleSelectAllFiltered(filteredAutomations, checked) {
   const selectable = (filteredAutomations || []).filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
@@ -17398,12 +17534,12 @@ async function _bulkToggleSelected(enable) {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id)
-    .filter((a3) =>
-      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
+    .filter((a4) => a4 && !a4._draft && a4.automation_id)
+    .filter((a4) =>
+      enable ? !this._automationIsEnabled(a4) : this._automationIsEnabled(a4),
     );
   const skippedCount = selectedIds.length - targets.length;
   if (!targets.length) {
@@ -17455,10 +17591,10 @@ async function _bulkSoftDeleteSelected() {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id);
+    .filter((a4) => a4 && !a4._draft && a4.automation_id);
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
@@ -17522,8 +17658,8 @@ async function _enableSavedAutomation(entityId, automationId) {
       entity_id: entityId,
       enabled: true,
     });
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
     );
   } catch (err) {
     const message = err?.message || "unknown error";
@@ -17910,11 +18046,11 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "close_cover")
         return { ...base, state: "closed", current_position: 0 };
       if (service === "set_cover_position" && data.position != null) {
-        const p4 = Number(data.position);
+        const p2 = Number(data.position);
         return {
           ...base,
-          state: p4 > 0 ? "open" : "closed",
-          current_position: p4,
+          state: p2 > 0 ? "open" : "closed",
+          current_position: p2,
         };
       }
       return null;
@@ -17923,8 +18059,8 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "turn_off") return { state: "off" };
       if (service === "turn_on") return { ...base, state: "on" };
       if (service === "set_percentage" && data.percentage != null) {
-        const p4 = Number(data.percentage);
-        return { ...base, state: p4 > 0 ? "on" : "off", percentage: p4 };
+        const p2 = Number(data.percentage);
+        return { ...base, state: p2 > 0 ? "on" : "off", percentage: p2 };
       }
       if (service === "set_preset_mode" && data.preset_mode != null) {
         return { ...base, state: "on", preset_mode: data.preset_mode };
@@ -17984,7 +18120,7 @@ function _cleanSceneEntities(entities) {
 function _sceneEditedEntities(sceneId) {
   const edited = this._sceneEdits?.[sceneId];
   if (edited) return edited;
-  const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
+  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
   return scene?.entities || {};
 }
 function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
@@ -18113,8 +18249,8 @@ function _discardSceneEdits(sceneId) {
     }
     for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
     new MutationObserver((muts) => {
-      for (const m3 of muts) {
-        for (const n4 of m3.addedNodes) if (n4.nodeType === 1) fix(n4);
+      for (const m2 of muts) {
+        for (const n5 of m2.addedNodes) if (n5.nodeType === 1) fix(n5);
       }
     }).observe(resolver, { childList: true });
   };
@@ -18134,7 +18270,7 @@ var _SHA256_K = new Uint32Array([
   2756734187, 3204031479, 3329325298,
 ]);
 function _sha256(msgBytes) {
-  const rotr = (x2, n4) => (x2 >>> n4) | (x2 << (32 - n4));
+  const rotr = (x2, n5) => (x2 >>> n5) | (x2 << (32 - n5));
   const len = msgBytes.length;
   const bitLen = len * 8;
   const blocks = Math.ceil((len + 9) / 64);
@@ -18148,49 +18284,49 @@ function _sha256(msgBytes) {
     528734635, 1541459225,
   ];
   const w2 = new Uint32Array(64);
-  for (let i7 = 0; i7 < padded.length; i7 += 64) {
-    for (let t4 = 0; t4 < 16; t4++) w2[t4] = dv.getUint32(i7 + t4 * 4, false);
-    for (let t4 = 16; t4 < 64; t4++) {
+  for (let i5 = 0; i5 < padded.length; i5 += 64) {
+    for (let t3 = 0; t3 < 16; t3++) w2[t3] = dv.getUint32(i5 + t3 * 4, false);
+    for (let t3 = 16; t3 < 64; t3++) {
       const s0 =
-        rotr(w2[t4 - 15], 7) ^ rotr(w2[t4 - 15], 18) ^ (w2[t4 - 15] >>> 3);
+        rotr(w2[t3 - 15], 7) ^ rotr(w2[t3 - 15], 18) ^ (w2[t3 - 15] >>> 3);
       const s1 =
-        rotr(w2[t4 - 2], 17) ^ rotr(w2[t4 - 2], 19) ^ (w2[t4 - 2] >>> 10);
-      w2[t4] = (w2[t4 - 16] + s0 + w2[t4 - 7] + s1) | 0;
+        rotr(w2[t3 - 2], 17) ^ rotr(w2[t3 - 2], 19) ^ (w2[t3 - 2] >>> 10);
+      w2[t3] = (w2[t3 - 16] + s0 + w2[t3 - 7] + s1) | 0;
     }
-    let [a3, b3, c4, d3, e5, f3, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
-    for (let t4 = 0; t4 < 64; t4++) {
+    let [a4, b2, c3, d3, e5, f2, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    for (let t3 = 0; t3 < 64; t3++) {
       const S1 = rotr(e5, 6) ^ rotr(e5, 11) ^ rotr(e5, 25);
-      const ch = (e5 & f3) ^ (~e5 & g2);
-      const t1 = (h8 + S1 + ch + _SHA256_K[t4] + w2[t4]) | 0;
-      const S0 = rotr(a3, 2) ^ rotr(a3, 13) ^ rotr(a3, 22);
-      const maj = (a3 & b3) ^ (a3 & c4) ^ (b3 & c4);
+      const ch = (e5 & f2) ^ (~e5 & g2);
+      const t1 = (h8 + S1 + ch + _SHA256_K[t3] + w2[t3]) | 0;
+      const S0 = rotr(a4, 2) ^ rotr(a4, 13) ^ rotr(a4, 22);
+      const maj = (a4 & b2) ^ (a4 & c3) ^ (b2 & c3);
       const t22 = (S0 + maj) | 0;
       h8 = g2;
-      g2 = f3;
-      f3 = e5;
+      g2 = f2;
+      f2 = e5;
       e5 = (d3 + t1) | 0;
-      d3 = c4;
-      c4 = b3;
-      b3 = a3;
-      a3 = (t1 + t22) | 0;
+      d3 = c3;
+      c3 = b2;
+      b2 = a4;
+      a4 = (t1 + t22) | 0;
     }
-    h0 = (h0 + a3) | 0;
-    h1 = (h1 + b3) | 0;
-    h22 = (h22 + c4) | 0;
+    h0 = (h0 + a4) | 0;
+    h1 = (h1 + b2) | 0;
+    h22 = (h22 + c3) | 0;
     h3 = (h3 + d3) | 0;
     h4 = (h4 + e5) | 0;
-    h5 = (h5 + f3) | 0;
+    h5 = (h5 + f2) | 0;
     h6 = (h6 + g2) | 0;
     h7 = (h7 + h8) | 0;
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i7) =>
-    ov.setUint32(i7 * 4, v2, false),
+  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i5) =>
+    ov.setUint32(i5 * 4, v2, false),
   );
   return out;
 }
-var SeloraAIPanel = class extends i4 {
+var SeloraAIPanel = class extends s4 {
   // HA's recent panel resolver wraps each panel in a scoped custom-element
   // registry (via @webcomponents/scoped-custom-element-registry). With the
   // default attachShadow options, our shadow root gets a fresh per-panel
@@ -18202,7 +18338,7 @@ var SeloraAIPanel = class extends i4 {
   // so attachShadow uses the global registry. Lit reads this static for
   // its default createRenderRoot, which keeps style adoption intact.
   static shadowRootOptions = {
-    ...i4.shadowRootOptions,
+    ...s4.shadowRootOptions,
     customElements: window.customElements,
   };
   static get properties() {
@@ -18721,13 +18857,13 @@ var SeloraAIPanel = class extends i4 {
     this.requestUpdate();
   }
   _quotaProviderLabel() {
-    const p4 = this._quotaAlert?.provider;
-    if (p4 === "selora_cloud") return "Selora Cloud";
-    if (p4 === "anthropic") return "Anthropic";
-    if (p4 === "openai") return "OpenAI";
-    if (p4 === "openrouter") return "OpenRouter";
-    if (p4 === "gemini") return "Gemini";
-    if (p4 === "ollama") return "Ollama";
+    const p2 = this._quotaAlert?.provider;
+    if (p2 === "selora_cloud") return "Selora Cloud";
+    if (p2 === "anthropic") return "Anthropic";
+    if (p2 === "openai") return "OpenAI";
+    if (p2 === "openrouter") return "OpenRouter";
+    if (p2 === "gemini") return "Gemini";
+    if (p2 === "ollama") return "Ollama";
     return "your LLM provider";
   }
   _renderQuotaBanner() {
@@ -18736,12 +18872,12 @@ var SeloraAIPanel = class extends i4 {
       0,
       Math.ceil((this._quotaAlert.until - Date.now()) / 1e3),
     );
-    return b2`
+    return x`
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
           <strong>${this._quotaProviderLabel()} quota reached.</strong>
-          ${remaining > 0 ? b2` Try again in ${remaining}s.` : " Retrying now\u2026"}
+          ${remaining > 0 ? x` Try again in ${remaining}s.` : " Retrying now\u2026"}
         </div>
         <button
           class="quota-banner-close"
@@ -18999,9 +19135,9 @@ var SeloraAIPanel = class extends i4 {
     while (result.length < length) {
       const arr = new Uint8Array(length - result.length);
       crypto.getRandomValues(arr);
-      for (const b3 of arr) {
-        if (b3 < limit && result.length < length) {
-          result.push(chars[b3 % chars.length]);
+      for (const b2 of arr) {
+        if (b2 < limit && result.length < length) {
+          result.push(chars[b2 % chars.length]);
         }
       }
     }
@@ -19204,7 +19340,7 @@ var SeloraAIPanel = class extends i4 {
       };
       if (this._newTokenPermission === "custom") {
         payload.allowed_tools = Object.keys(this._newTokenTools).filter(
-          (t4) => this._newTokenTools[t4],
+          (t3) => this._newTokenTools[t3],
         );
       }
       if (this._newTokenExpiry) {
@@ -19424,11 +19560,11 @@ var SeloraAIPanel = class extends i4 {
       this.shadowRoot?.appendChild(probe);
       const resolved = getComputedStyle(probe).color;
       probe.remove();
-      const m3 = resolved.match(/\d+/g);
-      if (m3 && m3.length >= 3) {
+      const m2 = resolved.match(/\d+/g);
+      if (m2 && m2.length >= 3) {
         this._primaryColor =
           "#" +
-          [m3[0], m3[1], m3[2]]
+          [m2[0], m2[1], m2[2]]
             .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
             .join("");
       }
@@ -19502,21 +19638,21 @@ var SeloraAIPanel = class extends i4 {
     let lastTop = container ? container.scrollTop : 0;
     const tick = () => {
       if (!this._chatPinDeadline) return;
-      const c4 = this.shadowRoot?.getElementById("chat-messages");
-      if (!c4) {
+      const c3 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c3) {
         this._chatPinDeadline = 0;
         return;
       }
       const userScrolled =
-        c4.scrollTop < lastTop - 2 && c4.scrollHeight === lastHeight;
+        c3.scrollTop < lastTop - 2 && c3.scrollHeight === lastHeight;
       if (userScrolled) {
         this._chatScrolledAway = true;
         this._chatPinDeadline = 0;
         return;
       }
-      c4.scrollTop = c4.scrollHeight;
-      lastHeight = c4.scrollHeight;
-      lastTop = c4.scrollTop;
+      c3.scrollTop = c3.scrollHeight;
+      lastHeight = c3.scrollHeight;
+      lastTop = c3.scrollTop;
       if (Date.now() >= this._chatPinDeadline) {
         this._chatPinDeadline = 0;
         return;
@@ -19609,7 +19745,7 @@ var SeloraAIPanel = class extends i4 {
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
-          .map((s4) => s4.trim())
+          .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
         grid.replaceChildren();
@@ -19629,10 +19765,10 @@ var SeloraAIPanel = class extends i4 {
             if (!groups.has(areaName)) groups.set(areaName, []);
             groups.get(areaName).push(id);
           }
-          const sortedGroups = [...groups.entries()].sort((a3, b3) => {
-            if (!a3[0]) return 1;
-            if (!b3[0]) return -1;
-            return a3[0].localeCompare(b3[0]);
+          const sortedGroups = [...groups.entries()].sort((a4, b2) => {
+            if (!a4[0]) return 1;
+            if (!b2[0]) return -1;
+            return a4[0].localeCompare(b2[0]);
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
@@ -19655,8 +19791,8 @@ var SeloraAIPanel = class extends i4 {
             return card;
           };
           const areaIdByName = /* @__PURE__ */ new Map();
-          for (const a3 of Object.values(registries.areas || {})) {
-            if (a3.name) areaIdByName.set(a3.name, a3.area_id);
+          for (const a4 of Object.values(registries.areas || {})) {
+            if (a4.name) areaIdByName.set(a4.name, a4.area_id);
           }
           for (const [areaName, areaIds] of sortedGroups) {
             if (showHeaders) {
@@ -19796,7 +19932,7 @@ var SeloraAIPanel = class extends i4 {
         const devices = {};
         for (const d3 of deviceList) devices[d3.id] = d3;
         const areas = {};
-        for (const a3 of areaList) areas[a3.area_id] = a3;
+        for (const a4 of areaList) areas[a4.area_id] = a4;
         return { entities, devices, areas };
       } catch (e5) {
         console.warn("Selora: registry list failed", e5);
@@ -19970,7 +20106,7 @@ var SeloraAIPanel = class extends i4 {
     if (!scene) return;
     const sessionId = scene.session_id;
     const known = sessionId
-      ? this._sessions.find((s4) => s4.id === sessionId)
+      ? this._sessions.find((s6) => s6.id === sessionId)
       : null;
     try {
       if (known) {
@@ -20076,8 +20212,8 @@ var SeloraAIPanel = class extends i4 {
   async _loadUsageStats() {
     await loadUsageStats(this);
   }
-  _renderVersionHistoryDrawer(a3) {
-    return renderVersionHistoryDrawer(this, a3);
+  _renderVersionHistoryDrawer(a4) {
+    return renderVersionHistoryDrawer(this, a4);
   }
   _renderDiffViewer() {
     return renderDiffViewer(this);
@@ -20112,7 +20248,7 @@ var SeloraAIPanel = class extends i4 {
         label: this._t("feedback_category_general", "General"),
       },
     ];
-    return b2`
+    return x`
       <div
         class="modal-overlay"
         @click=${(e5) => {
@@ -20168,7 +20304,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             ${ratingOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackRating === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -20193,7 +20329,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
             ${categoryOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackCategory === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -20251,12 +20387,12 @@ var SeloraAIPanel = class extends i4 {
   // Render
   // -------------------------------------------------------------------------
   render() {
-    return b2`
+    return x`
       <div class="header">
         <div class="header-toolbar">
           ${
             this.narrow
-              ? b2`<button
+              ? x`<button
                 class="menu-btn"
                 @click=${() =>
                   this.dispatchEvent(
@@ -20334,7 +20470,7 @@ var SeloraAIPanel = class extends i4 {
           <span class="header-spacer"></span>
           ${
             this._activeTab !== "chat" || this._messages.length > 0
-              ? b2`<button
+              ? x`<button
                 class="header-new-chat"
                 title="New chat"
                 aria-label="New chat"
@@ -20368,7 +20504,7 @@ var SeloraAIPanel = class extends i4 {
             </button>
             ${
               this._showOverflowMenu
-                ? b2`
+                ? x`
                   <div class="overflow-menu selora-menu">
                     <div class="overflow-section narrow-only">
                       <button
@@ -20496,10 +20632,10 @@ var SeloraAIPanel = class extends i4 {
             >
               ${
                 this._sessions.length > 0
-                  ? b2`
+                  ? x`
                     ${
                       this._selectChatsMode
-                        ? b2`
+                        ? x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -20510,7 +20646,7 @@ var SeloraAIPanel = class extends i4 {
                             Done
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -20533,7 +20669,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           ${
             this._selectChatsMode
-              ? b2`
+              ? x`
                 <div class="select-actions-bar">
                   <label
                     class="select-all-label"
@@ -20544,7 +20680,7 @@ var SeloraAIPanel = class extends i4 {
                       .checked=${
                         this._sessions.length > 0 &&
                         this._sessions.every(
-                          (s4) => this._selectedSessionIds[s4.id],
+                          (s6) => this._selectedSessionIds[s6.id],
                         )
                       }
                     />
@@ -20567,7 +20703,7 @@ var SeloraAIPanel = class extends i4 {
                   </button>
                 </div>
               `
-              : b2`
+              : x`
                 <button
                   class="btn btn-primary new-chat-btn"
                   style="width:calc(100% - 24px);"
@@ -20584,23 +20720,23 @@ var SeloraAIPanel = class extends i4 {
           <div class="session-list">
             ${
               this._sessions.length === 0
-                ? b2`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
+                ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
                   No conversations yet.
                 </div>`
                 : this._sessions.map(
-                    (s4) => b2`
+                    (s6) => x`
                     <div
-                      class="session-item-wrapper ${this._swipedSessionId === s4.id ? "reveal-delete" : ""}"
+                      class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
                     >
                       <div
                         class="session-item-delete-bg"
-                        @click=${(e5) => this._deleteSession(s4.id, e5)}
+                        @click=${(e5) => this._deleteSession(s6.id, e5)}
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </div>
                       ${
-                        this._deleteConfirmSessionId === s4.id
-                          ? b2`
+                        this._deleteConfirmSessionId === s6.id
+                          ? x`
                             <div class="session-item session-delete-confirm">
                               <span class="session-delete-confirm-label"
                                 >Delete?</span
@@ -20631,50 +20767,50 @@ var SeloraAIPanel = class extends i4 {
                               </div>
                             </div>
                           `
-                          : b2`
+                          : x`
                             <div
-                              class="session-item ${s4.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s4.id ? "swiped" : ""}"
+                              class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
                               @click=${() => {
-                                if (this._swipedSessionId === s4.id) {
+                                if (this._swipedSessionId === s6.id) {
                                   this._swipedSessionId = null;
                                   return;
                                 }
                                 this._selectChatsMode
-                                  ? this._toggleSessionSelection(s4.id)
-                                  : this._openSession(s4.id);
+                                  ? this._toggleSessionSelection(s6.id)
+                                  : this._openSession(s6.id);
                               }}
-                              @touchstart=${(e5) => this._onSessionTouchStart(e5, s4.id)}
-                              @touchmove=${(e5) => this._onSessionTouchMove(e5, s4.id)}
-                              @touchend=${(e5) => this._onSessionTouchEnd(e5, s4.id)}
+                              @touchstart=${(e5) => this._onSessionTouchStart(e5, s6.id)}
+                              @touchmove=${(e5) => this._onSessionTouchMove(e5, s6.id)}
+                              @touchend=${(e5) => this._onSessionTouchEnd(e5, s6.id)}
                             >
                               ${
                                 this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <input
                                       type="checkbox"
                                       class="session-checkbox"
-                                      .checked=${!!this._selectedSessionIds[s4.id]}
+                                      .checked=${!!this._selectedSessionIds[s6.id]}
                                       @click=${(e5) => {
                                         e5.stopPropagation();
-                                        this._toggleSessionSelection(s4.id);
+                                        this._toggleSessionSelection(s6.id);
                                       }}
                                     />
                                   `
                                   : ""
                               }
                               <div style="flex:1; min-width:0;">
-                                <div class="session-title">${s4.title}</div>
+                                <div class="session-title">${s6.title}</div>
                                 <div class="session-meta">
-                                  ${formatDate(s4.updated_at)}
+                                  ${formatDate(s6.updated_at)}
                                 </div>
                               </div>
                               ${
                                 !this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <ha-icon
                                       class="session-delete"
                                       icon="mdi:delete-outline"
-                                      @click=${(e5) => this._deleteSession(s4.id, e5)}
+                                      @click=${(e5) => this._deleteSession(s6.id, e5)}
                                       title="Delete"
                                     ></ha-icon>
                                   `
@@ -20714,7 +20850,7 @@ var SeloraAIPanel = class extends i4 {
       ${this._renderFeedbackModal()}
       ${
         this._deleteConfirmSessionId === "__bulk__"
-          ? b2`
+          ? x`
             <div
               class="modal-overlay"
               @click=${(e5) => {
@@ -20758,7 +20894,7 @@ var SeloraAIPanel = class extends i4 {
       }
       ${
         this._toast
-          ? b2`
+          ? x`
             <div class="toast ${this._toastType}">
               <span>${this._toast}</span>
               <ha-icon
