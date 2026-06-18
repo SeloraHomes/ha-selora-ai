@@ -6,32 +6,49 @@ import { html } from "lit";
 // stored. Detection is by sentinel value prefix ``approve:<scope>:…``
 // — that's the contract between backend and frontend, so it's stable
 // across versions.
-const _APPROVAL_PRESENTATION = {
-  once: {
-    label: "Allow once",
-    icon: "mdi:check",
-    tone: "approve",
-    description: "Just this one request",
-  },
-  session: {
-    label: "For this conversation",
-    icon: "mdi:check-all",
-    tone: "approve",
-    description: "Allow for the rest of this conversation",
-  },
-  always: {
-    label: "Always",
-    icon: "mdi:shield-check",
-    tone: "approve",
-    description: "Remember this approval",
-  },
-  deny: {
-    label: "Deny",
-    icon: "mdi:close",
-    tone: "deny",
-    description: "Do not run this request",
-  },
-};
+function _approvalPresentation(host) {
+  return {
+    once: {
+      label: host._t("quick_actions_approve_once_label", "Allow once"),
+      icon: "mdi:check",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_once_desc",
+        "Just this one request",
+      ),
+    },
+    session: {
+      label: host._t(
+        "quick_actions_approve_session_label",
+        "For this conversation",
+      ),
+      icon: "mdi:check-all",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_session_desc",
+        "Allow for the rest of this conversation",
+      ),
+    },
+    always: {
+      label: host._t("quick_actions_approve_always_label", "Always"),
+      icon: "mdi:shield-check",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_always_desc",
+        "Remember this approval",
+      ),
+    },
+    deny: {
+      label: host._t("quick_actions_deny_label", "Deny"),
+      icon: "mdi:close",
+      tone: "deny",
+      description: host._t(
+        "quick_actions_deny_desc",
+        "Do not run this request",
+      ),
+    },
+  };
+}
 
 function _approvalScope(value) {
   if (typeof value !== "string" || !value.startsWith("approve:")) return null;
@@ -42,12 +59,13 @@ function _approvalScope(value) {
 // to the choice-card presentation (icon + tone + description). Untouched
 // when no approval sentinels are present so existing AI-suggested
 // choices keep their original payload.
-function _normalizeApprovalActions(actions) {
+function _normalizeApprovalActions(host, actions) {
   let touched = false;
+  const presentation = _approvalPresentation(host);
   const out = actions.map((a) => {
     const scope = _approvalScope(a?.value);
     if (!scope) return a;
-    const preset = _APPROVAL_PRESENTATION[scope];
+    const preset = presentation[scope];
     if (!preset) return a;
     touched = true;
     return {
@@ -86,7 +104,7 @@ function _isApprovalGroup(actions) {
  */
 export function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
-  actions = _normalizeApprovalActions(actions);
+  actions = _normalizeApprovalActions(host, actions);
 
   const mode = _detectMode(actions);
   const usedClass = opts.used ? " qa-group--used" : "";

@@ -38,7 +38,6 @@ from ..types import (
     ToolWriteResult,
 )
 from .command_policy import (
-    APPROVAL_PENDING_HINT,
     _build_command_confirmation,
     _executed_service_calls_from_log,
     _friendly_name_resolver,
@@ -47,6 +46,7 @@ from .command_policy import (
     _suppress_duplicate_command_after_tool,
     _tool_failure_response,
     apply_command_policy,
+    approval_pending_hint,
     build_executed_confirmation,
     synthesize_approval_from_tool_log,
 )
@@ -237,6 +237,38 @@ def _pre_provider_short_circuit(
     if _MULTI_TARGET_CATEGORY_SCOPE_RE.search(user_message):
         return None
     return _build_unspecified_target_clarification(user_message, entities or [])
+
+
+# Localized canned replies. The two early-return branches in
+# architect_chat / architect_chat_stream bypass the LLM entirely (and
+# therefore the system prompt's language directive); each canned line
+# must carry its own translation. Missing locales fall through to the
+# English entry. Keep keys in sync with the locales we ship — adding a
+# locale here is enough; the lookup is locale-base only.
+_CANNED_NOT_CONFIGURED: dict[str, str] = {
+    "en": "Please configure your LLM provider credentials in the Settings tab to start chatting.",
+    "fr": "Veuillez configurer les identifiants de votre fournisseur LLM dans l'onglet Paramètres pour commencer à discuter.",
+    "de": "Bitte konfigurieren Sie die Anmeldedaten Ihres LLM-Anbieters im Einstellungen-Tab, um mit dem Chatten zu beginnen.",
+    "es": "Por favor configure las credenciales de su proveedor LLM en la pestaña Configuración para empezar a chatear.",
+    "it": "Configura le credenziali del tuo provider LLM nella scheda Impostazioni per iniziare a chattare.",
+    "nl": "Configureer de inloggegevens van uw LLM-provider in het tabblad Instellingen om te beginnen met chatten.",
+    "hu": "Kérjük, állítsa be az LLM-szolgáltató hitelesítő adatait a Beállítások lapon a csevegés elindításához.",
+}
+
+_CANNED_GREETING: dict[str, str] = {
+    "en": "Hi! What can I help with?",
+    "fr": "Bonjour ! En quoi puis-je vous aider ?",
+    "de": "Hallo! Womit kann ich helfen?",
+    "es": "¡Hola! ¿En qué puedo ayudarle?",
+    "it": "Ciao! Come posso aiutarti?",
+    "nl": "Hallo! Waarmee kan ik helpen?",
+    "hu": "Üdvözlöm! Miben segíthetek?",
+}
+
+
+def _canned(table: dict[str, str], language: str | None) -> str:
+    base = (language or "en").lower().split("-")[0]
+    return table.get(base, table["en"])
 
 
 def _normalized_write_result(tool_name: str, result: dict[str, Any]) -> ToolWriteResult | None:
@@ -483,6 +515,7 @@ class LLMClient:
         *,
         for_assist: bool = False,
         session_id: str | None = None,
+        language: str | None = None,
     ) -> ArchitectResponse:
         """Conversational architect — classifies intent and handles commands, automations, or questions.
 
@@ -501,10 +534,11 @@ class LLMClient:
         For "command":
           calls: list of HA service call dicts
         """
+        effective_language = language or self._hass.config.language
         if not self._provider.is_configured:
             return {
                 "intent": "answer",
-                "response": "Please configure your LLM provider credentials in the Settings tab to start chatting.",
+                "response": _canned(_CANNED_NOT_CONFIGURED, effective_language),
                 "config_issue": True,
             }
 
@@ -513,7 +547,10 @@ class LLMClient:
         # short-circuit those with a canned reply so we never burn tokens
         # or risk a hallucinated recap.
         if _is_pure_greeting(user_message):
-            return {"intent": "answer", "response": "Hi! What can I help with?"}
+            return {
+                "intent": "answer",
+                "response": _canned(_CANNED_GREETING, effective_language),
+            }
 
         # Deterministic short-circuits — safety refusal, multi-target
         # commands, and pronoun-only / bare-category clarifications. Run
@@ -568,8 +605,11 @@ class LLMClient:
                     entities=relevant_entities,
                     existing_automations=existing_automations,
                     history=history,
+                    language=language or self._hass.config.language,
                 )
-                system_prompt = build_minimal_architect_system_prompt(intent_hint)
+                system_prompt = build_minimal_architect_system_prompt(
+                    intent_hint, language=language or self._hass.config.language
+                )
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
                 cloud_intent_hint: str | None = None
@@ -586,6 +626,7 @@ class LLMClient:
                     tools_available=tool_executor is not None,
                     for_assist=for_assist,
                     slim=cloud_intent_hint == "command",
+                    language=language or self._hass.config.language,
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -606,6 +647,7 @@ class LLMClient:
                     messages=messages,
                     tool_executor=tool_executor,
                     tools=tools,
+                    language=language,
                 )
                 if not result_text:
                     is_config_issue = bool(
@@ -636,7 +678,11 @@ class LLMClient:
                         "tool_calls": tool_log,
                     }
                 parsed = parse_architect_response(
-                    result_text, self._hass, entities, user_message=user_message
+                    result_text,
+                    self._hass,
+                    entities,
+                    user_message=user_message,
+                    language=language,
                 )
                 if tool_log:
                     parsed = _suppress_duplicate_command_after_tool(parsed, tool_log, entities)
@@ -666,9 +712,15 @@ class LLMClient:
                 # proposal_id, attaches sentinel quick-actions) so the
                 # user always sees buttons they can act on, even when
                 # tool_log is empty.
-                parsed = synthesize_approval_from_tool_log(parsed, tool_log, self._hass)
+                parsed = synthesize_approval_from_tool_log(
+                    parsed, tool_log, self._hass, language=language
+                )
                 parsed = apply_command_policy(
-                    parsed, entities, hass=self._hass, session_id=session_id
+                    parsed,
+                    entities,
+                    hass=self._hass,
+                    session_id=session_id,
+                    language=language,
                 )
                 self._usage.flush("chat", intent=parsed.get("intent"))
                 if tool_log:
@@ -697,7 +749,11 @@ class LLMClient:
                 }
 
             parsed = parse_architect_response(
-                result, self._hass, entities, user_message=user_message
+                result,
+                self._hass,
+                entities,
+                user_message=user_message,
+                language=language,
             )
             # Normalise LLM-emitted ``intent: "command_approval"`` so a
             # low-context or non-tool provider that crafts its own
@@ -706,8 +762,16 @@ class LLMClient:
             # non-tool path could persist an unresolvable approval
             # card while the tool / streaming paths handle the same
             # shape correctly.
-            parsed = synthesize_approval_from_tool_log(parsed, tool_log=None, hass=self._hass)
-            parsed = apply_command_policy(parsed, entities, hass=self._hass, session_id=session_id)
+            parsed = synthesize_approval_from_tool_log(
+                parsed, tool_log=None, hass=self._hass, language=language
+            )
+            parsed = apply_command_policy(
+                parsed,
+                entities,
+                hass=self._hass,
+                session_id=session_id,
+                language=language,
+            )
             self._usage.flush("chat", intent=parsed.get("intent"))
             parsed["raw_response"] = result
             return parsed
@@ -725,6 +789,7 @@ class LLMClient:
         areas: list[str] | None = None,
         *,
         session_id: str | None = None,
+        language: str | None = None,
     ) -> AsyncIterator[str]:
         """Async generator — streaming version of architect_chat.
 
@@ -738,8 +803,9 @@ class LLMClient:
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
         """
+        effective_language = language or self._hass.config.language
         if not self._provider.is_configured:
-            yield "Please configure your LLM provider credentials in the Settings tab to start chatting."
+            yield _canned(_CANNED_NOT_CONFIGURED, effective_language)
             return
 
         # Drop any provider-side streaming buffer left over from the
@@ -755,7 +821,7 @@ class LLMClient:
         # gets a canned reply instead of an LLM round-trip and the
         # status-dump it tends to produce.
         if _is_pure_greeting(user_message):
-            yield "Hi! What can I help with?"
+            yield _canned(_CANNED_GREETING, effective_language)
             return
 
         # Mirror architect_chat's deterministic short-circuits on the
@@ -797,8 +863,11 @@ class LLMClient:
                     entities=relevant_entities,
                     existing_automations=existing_automations,
                     history=history,
+                    language=language or self._hass.config.language,
                 )
-                system_prompt = build_minimal_architect_system_prompt(intent_hint)
+                system_prompt = build_minimal_architect_system_prompt(
+                    intent_hint, language=language or self._hass.config.language
+                )
                 messages = build_minimal_chat_messages(user_message, entities, history)
                 tool_executor = None
                 cloud_intent_hint: str | None = None
@@ -816,6 +885,7 @@ class LLMClient:
                 system_prompt = build_architect_stream_system_prompt(
                     tools_available=tool_executor is not None,
                     slim=cloud_intent_hint == "command",
+                    language=language or self._hass.config.language,
                 )
                 messages = self._build_chat_messages(
                     user_message,
@@ -838,6 +908,7 @@ class LLMClient:
                         messages=messages,
                         tool_executor=tool_executor,
                         tools=tools,
+                        language=language,
                     ):
                         yield chunk
                 finally:
@@ -902,7 +973,12 @@ class LLMClient:
             _LOGGER.warning("%s command failed: %s", self.provider_name, error)
             return {"calls": [], "response": f"LLM error: {error or 'unknown'}"}
 
-        return apply_command_policy(parse_command_response_text(result), entities)
+        return apply_command_policy(
+            parse_command_response_text(result),
+            entities,
+            hass=self._hass,
+            language=self._hass.config.language,
+        )
 
     async def generate_session_title(self, user_msg: str, assistant_response: str) -> str:
         """Ask the LLM for a concise 3-5 word conversation title."""
@@ -974,6 +1050,7 @@ class LLMClient:
         *,
         session_id: str | None = None,
         user_message: str | None = None,
+        language: str | None = None,
     ) -> ArchitectResponse:
         """Parse completed streamed text — thin wrapper over the module-level parser.
 
@@ -995,6 +1072,7 @@ class LLMClient:
             tool_log,
             session_id=session_id,
             user_message=user_message,
+            language=language,
         )
 
     # ------------------------------------------------------------------
@@ -1029,6 +1107,8 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tool_executor: ToolExecutor,
         tools: list[dict[str, Any]],
+        *,
+        language: str | None = None,
     ) -> tuple[str | None, str | None, list[ToolCallLog]]:
         """Send request with tools and execute a multi-turn tool loop.
 
@@ -1102,7 +1182,7 @@ class LLMClient:
                     "Short-circuit tool loop: requires_approval result will "
                     "drive approval card; skipping post-tool LLM round."
                 )
-                return APPROVAL_PENDING_HINT, None, tool_calls_log
+                return approval_pending_hint(language), None, tool_calls_log
 
             # Short-circuit when this round was ONLY successful
             # write-action tools. The follow-up LLM round would just
@@ -1114,7 +1194,11 @@ class LLMClient:
             # signal).
             if executed_results and not non_write_tool_seen:
                 friendly = _friendly_name_resolver(self._hass)
-                text = build_executed_confirmation(executed_results, friendly)
+                text = build_executed_confirmation(
+                    executed_results,
+                    friendly,
+                    language=language or self._hass.config.language,
+                )
                 _LOGGER.debug(
                     "Short-circuit tool loop: synthesized confirmation for "
                     "%d executed write call(s); skipping post-tool LLM round.",
@@ -1124,23 +1208,16 @@ class LLMClient:
 
         # Exhausted rounds
         _LOGGER.warning("Tool call loop exhausted after %d rounds", MAX_TOOL_CALL_ROUNDS)
-        if _executed_service_calls_from_log(tool_calls_log):
-            # Acknowledge anything execute_command already fired so the user
-            # doesn't retry and double-execute the same service.
-            exhaustion_text = _tool_failure_response(
-                tool_calls_log,
-                suffix=(
-                    "Then I ran out of tool rounds before finishing — please try a "
-                    "more specific request only if there's more to do."
-                ),
-            )
-        else:
-            # No completed action — keep the original phrasing so the user
-            # isn't told something ran when nothing did.
-            exhaustion_text = (
-                "I used several tools but couldn't complete the analysis. "
-                "Please try a more specific request."
-            )
+        # _tool_failure_response handles both branches (executed-something
+        # vs nothing-completed) and produces locale-aware copy.
+        # Use the same effective-locale fallback as the prompt builders
+        # above so legacy callers (MCP, standalone background path) that
+        # omit `language` get a response in the server's configured
+        # locale instead of dropping back to English.
+        exhaustion_text = _tool_failure_response(
+            tool_calls_log,
+            language=language or self._hass.config.language,
+        )
         return (
             exhaustion_text,
             None,
@@ -1153,6 +1230,8 @@ class LLMClient:
         messages: list[dict[str, Any]],
         tool_executor: ToolExecutor,
         tools: list[dict[str, Any]],
+        *,
+        language: str | None = None,
     ) -> AsyncIterator[str]:
         """True streaming with inline tool-call detection.
 
@@ -1254,7 +1333,10 @@ class LLMClient:
                 # its pre-tool prose must not render a second card here.
                 shown_ids = set(_marker_entity_ids("".join(streamed_text_parts)))
                 yield build_executed_confirmation(
-                    executed_results, friendly, exclude_marker_ids=shown_ids
+                    executed_results,
+                    friendly,
+                    exclude_marker_ids=shown_ids,
+                    language=language or self._hass.config.language,
                 )
                 _LOGGER.debug(
                     "Stream short-circuit: synthesized confirmation for %d "
@@ -1267,12 +1349,7 @@ class LLMClient:
         # fired so the user doesn't retry and double-execute the same service.
         yield _tool_failure_response(
             tool_executor.call_log,
-            suffix=(
-                "Then I ran out of tool rounds before finishing — try a more "
-                "specific request only if there's more to do."
-                if _executed_service_calls_from_log(tool_executor.call_log)
-                else "I used several tools but couldn't complete the analysis."
-            ),
+            language=language or self._hass.config.language,
         )
 
     # ------------------------------------------------------------------

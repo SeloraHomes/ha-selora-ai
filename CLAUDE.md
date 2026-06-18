@@ -42,7 +42,7 @@ custom_components/selora_ai/
 ├── const.py             # Constants, config keys, known integrations database
 ├── manifest.json        # HA integration manifest
 ├── strings.json         # UI strings for config flow
-├── translations/en.json # English translations (must match strings.json)
+├── translations/         # HA-side translations (en, fr, de, es, it) — all keys must match strings.json
 ├── brand/               # Logo and icon assets
 └── frontend/
     └── src/
@@ -88,6 +88,14 @@ custom_components/selora_ai/
 - Anthropic step shows a form for the user's API key (never auto-configure)
 - `strings.json` and `translations/en.json` must always stay in sync
 - Step IDs must match keys in strings.json: `user`, `anthropic`, `ollama`, `select_devices`, `results`
+
+### i18n / Translations
+- Backend (config flow, entity names, errors): HA standard. `strings.json` is the source of truth (English). `translations/<lang>.json` mirrors its structure for each supported locale.
+- Supported locales: `en`, `fr`, `de`, `es`, `it`. When adding a string to `strings.json`, add the same key to ALL `translations/*.json` files in the same commit. Hassfest fails CI if any locale is missing a key.
+- Preserve placeholders (`{count}`, `{device_list}`, `{succeeded}`, `{failed}`, `{needs_attention}`, `{details}`) verbatim across all locales.
+- Frontend (panel) i18n is partially wired: a `_t()` helper exists in `frontend/src/panel.js` and resolves keys under the `component.selora_ai.common.*` namespace via `hass.localize()`. Today only the feedback modal uses it (~19 calls out of ~5,000 user-facing literals — see `frontend/src/panel/*.js`, `frontend/src/shared/*.js`).
+- When touching frontend UI text: prefer `_t('key')` over hardcoded strings. Add the key to `common` in `strings.json` AND every `translations/*.json` locale. Use ICU-style placeholders for interpolation.
+- Bulk frontend extraction is a separate ongoing effort — do not block small PRs on it, but do not introduce new hardcoded literals when an existing key fits.
 
 ### Frontend File Organization
 - `panel.js` is the LitElement host — it owns properties, lifecycle, and render dispatch only. Do not add feature logic or templates here.

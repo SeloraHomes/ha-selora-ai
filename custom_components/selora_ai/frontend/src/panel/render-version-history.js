@@ -9,10 +9,12 @@ export function renderVersionHistoryDrawer(host, a) {
   return html`
     <div class="version-history">
       ${loading
-        ? html`<div class="version-history-empty">Loading…</div>`
+        ? html`<div class="version-history-empty">
+            ${host._t("version_history_loading", "Loading…")}
+          </div>`
         : versions.length === 0
           ? html`<div class="version-history-empty">
-              No version history yet.
+              ${host._t("version_history_empty", "No version history yet.")}
             </div>`
           : html`
               <ol class="version-list">
@@ -42,7 +44,9 @@ function renderVersionEntry(host, automationId, v, i, total) {
           <div class="version-entry-title">
             <span class="version-entry-num">v${versionNumber}</span>
             ${isCurrent
-              ? html`<span class="version-entry-badge">Current</span>`
+              ? html`<span class="version-entry-badge"
+                  >${host._t("version_history_current_badge", "Current")}</span
+                >`
               : ""}
           </div>
           <time class="version-entry-time" title=${date.toISOString()}
@@ -59,7 +63,9 @@ function renderVersionEntry(host, automationId, v, i, total) {
               icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${yamlOpen ? "Hide YAML" : "View YAML"}
+            ${yamlOpen
+              ? host._t("version_history_hide_yaml", "Hide YAML")
+              : host._t("version_history_view_yaml", "View YAML")}
           </button>
           ${!isCurrent
             ? html`
@@ -77,7 +83,12 @@ function renderVersionEntry(host, automationId, v, i, total) {
                     icon="mdi:restore"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${restoring ? "Restoring…" : "Restore this version"}
+                  ${restoring
+                    ? host._t("version_history_restoring", "Restoring…")
+                    : host._t(
+                        "version_history_restore_button",
+                        "Restore this version",
+                      )}
                 </button>
               `
             : ""}
@@ -86,7 +97,9 @@ function renderVersionEntry(host, automationId, v, i, total) {
           ? html`<div class="version-entry-yaml">
               <ha-code-editor
                 mode="yaml"
-                .value=${v.yaml || v.yaml_content || "(no YAML stored)"}
+                .value=${v.yaml ||
+                v.yaml_content ||
+                host._t("version_history_no_yaml_stored", "(no YAML stored)")}
                 read-only
                 style="--code-mirror-font-size:13px;"
               ></ha-code-editor>
@@ -122,7 +135,7 @@ export function renderDiffViewer(host) {
               icon="mdi:compare"
               style="--mdc-icon-size:17px;vertical-align:middle;margin-right:6px;"
             ></ha-icon>
-            Compare Versions
+            ${host._t("version_history_compare_title", "Compare Versions")}
           </span>
           <ha-icon
             icon="mdi:close"
@@ -137,7 +150,12 @@ export function renderDiffViewer(host) {
           style="padding:12px 20px;border-bottom:1px solid var(--divider-color);display:flex;gap:12px;align-items:center;flex-wrap:wrap;"
         >
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;opacity:0.7;">Version A (newer):</span>
+            <span style="font-size:12px;opacity:0.7;"
+              >${host._t(
+                "version_history_version_a_label",
+                "Version A (newer):",
+              )}</span
+            >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionA || ""}
@@ -162,7 +180,12 @@ export function renderDiffViewer(host) {
             </select>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;opacity:0.7;">Version B (older):</span>
+            <span style="font-size:12px;opacity:0.7;"
+              >${host._t(
+                "version_history_version_b_label",
+                "Version B (older):",
+              )}</span
+            >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionB || ""}
@@ -190,11 +213,11 @@ export function renderDiffViewer(host) {
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${host._loadingDiff
             ? html`<div style="opacity:0.5;text-align:center;padding:24px;">
-                Loading diff…
+                ${host._t("version_history_loading_diff", "Loading diff…")}
               </div>`
             : host._diffResult.length === 0
               ? html`<div style="opacity:0.5;text-align:center;padding:24px;">
-                  No differences found.
+                  ${host._t("version_history_no_diff", "No differences found.")}
                 </div>`
               : html`<pre
                   style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"

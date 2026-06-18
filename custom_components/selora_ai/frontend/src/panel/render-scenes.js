@@ -183,12 +183,15 @@ export function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px;">
         <div class="proposal-header">
           <ha-icon icon="mdi:check-circle"></ha-icon>
-          Scene Created
+          ${host._t("scenes_card_created_title", "Scene Created")}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${scene.name}</div>
           <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> Saved to Home Assistant
+            <ha-icon icon="mdi:check"></ha-icon> ${host._t(
+              "scenes_card_saved_status",
+              "Saved to Home Assistant",
+            )}
           </div>
           <div class="proposal-actions">
             <button
@@ -204,7 +207,7 @@ export function renderSceneCard(host, msg, msgIndex) {
               }}
             >
               <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-              Activate
+              ${host._t("scenes_card_activate_button", "Activate")}
             </button>
             <button
               class="btn btn-outline"
@@ -217,7 +220,7 @@ export function renderSceneCard(host, msg, msgIndex) {
                 icon="mdi:open-in-new"
                 style="--mdc-icon-size:14px;"
               ></ha-icon>
-              View in HA
+              ${host._t("scenes_card_view_in_ha_button", "View in HA")}
             </button>
           </div>
         </div>
@@ -230,12 +233,15 @@ export function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-          Scene Declined
+          ${host._t("scenes_card_declined_title", "Scene Declined")}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${scene.name}</div>
           <div class="proposal-status declined">
-            Dismissed. You can refine it by replying below.
+            ${host._t(
+              "scenes_card_declined_message",
+              "Dismissed. You can refine it by replying below.",
+            )}
           </div>
         </div>
       </div>
@@ -245,7 +251,10 @@ export function renderSceneCard(host, msg, msgIndex) {
   if (status === "refining") {
     return html`
       <div style="margin-top:12px;padding:14px 0 0;">
-        ${_sceneCardHeader(scene.name, "Being Refined")}
+        ${_sceneCardHeader(
+          scene.name,
+          host._t("scenes_card_refining_badge", "Being Refined"),
+        )}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
           ${msg.scene_yaml
@@ -258,7 +267,9 @@ export function renderSceneCard(host, msg, msgIndex) {
                   icon="mdi:code-braces"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                ${yamlOpen ? "Hide YAML" : "View YAML"}
+                ${yamlOpen
+                  ? host._t("scenes_hide_yaml", "Hide YAML")
+                  : host._t("scenes_view_yaml", "View YAML")}
               </div>`
             : ""}
           ${yamlOpen && msg.scene_yaml
@@ -279,7 +290,10 @@ export function renderSceneCard(host, msg, msgIndex) {
   // Pending proposal — full review UI
   return html`
     <div style="margin-top:12px;padding:14px 0 0;">
-      ${_sceneCardHeader(scene.name, "Proposal")}
+      ${_sceneCardHeader(
+        scene.name,
+        host._t("scenes_card_proposal_badge", "Proposal"),
+      )}
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
@@ -292,7 +306,9 @@ export function renderSceneCard(host, msg, msgIndex) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${yamlOpen ? "Hide YAML" : "View YAML"}
+          ${yamlOpen
+            ? host._t("scenes_hide_yaml", "Hide YAML")
+            : host._t("scenes_view_yaml", "View YAML")}
         </div>
         ${yamlOpen && msg.scene_yaml
           ? html`
@@ -310,7 +326,7 @@ export function renderSceneCard(host, msg, msgIndex) {
             @click=${() => host._acceptScene(msgIndex)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            Accept &amp; Save
+            ${host._t("scenes_card_accept_save_button", "Accept & Save")}
           </button>
         </div>
       </div>
@@ -369,7 +385,7 @@ export function renderScenes(host) {
     <div class="scroll-view">
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Your Scenes</h3>
+          <h3>${host._t("scenes_section_title", "Your Scenes")}</h3>
         </div>
         ${(host._scenes || []).length > 0
           ? html`
@@ -383,7 +399,7 @@ export function renderScenes(host) {
                       host._sceneStatusFilter = "all";
                     }}
                   >
-                    All
+                    ${host._t("scenes_status_tab_all", "All")}
                   </button>
                   ${seloraCount > 0 && manualCount > 0
                     ? html`
@@ -401,7 +417,10 @@ export function renderScenes(host) {
                             icon="mdi:creation"
                             style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
                           ></ha-icon>
-                          <span>Selora AI (${seloraCount})</span>
+                          <span
+                            >${host._t("scenes_status_tab_selora", "Selora AI")}
+                            (${seloraCount})</span
+                          >
                         </button>
                         <button
                           role="tab"
@@ -413,7 +432,8 @@ export function renderScenes(host) {
                             host._sceneStatusFilter = "manual";
                           }}
                         >
-                          Manual (${manualCount})
+                          ${host._t("scenes_status_tab_manual", "Manual")}
+                          (${manualCount})
                         </button>
                       `
                     : ""}
@@ -423,7 +443,10 @@ export function renderScenes(host) {
                     class="filter-row-action"
                     ?disabled=${host._llmNeedsSetup}
                     title=${host._llmNeedsSetup
-                      ? "Configure an LLM provider first"
+                      ? host._t(
+                          "scenes_llm_needs_setup_tooltip",
+                          "Configure an LLM provider first",
+                        )
                       : ""}
                     @click=${() => host._newSceneChat()}
                   >
@@ -431,7 +454,7 @@ export function renderScenes(host) {
                       icon="mdi:plus"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    New Scene
+                    ${host._t("scenes_new_scene_button", "New Scene")}
                   </button>
                 </div>
               </div>
@@ -440,7 +463,10 @@ export function renderScenes(host) {
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
-                    placeholder="Filter scenes…"
+                    placeholder=${host._t(
+                      "scenes_filter_placeholder",
+                      "Filter scenes…",
+                    )}
                     .value=${host._sceneFilter || ""}
                     @input=${(e) => {
                       host._sceneFilter = e.target.value;
@@ -464,9 +490,15 @@ export function renderScenes(host) {
                       host._sceneSortBy = e.target.value;
                     }}
                   >
-                    <option value="recent">Recently updated</option>
-                    <option value="alpha">Alphabetical</option>
-                    <option value="size">Most entities</option>
+                    <option value="recent">
+                      ${host._t("scenes_sort_recent", "Recently updated")}
+                    </option>
+                    <option value="alpha">
+                      ${host._t("scenes_sort_alpha", "Alphabetical")}
+                    </option>
+                    <option value="size">
+                      ${host._t("scenes_sort_size", "Most entities")}
+                    </option>
                   </select>
                   <button
                     class="sort-dir-toggle"
@@ -570,13 +602,16 @@ export function renderScenes(host) {
                                 : sceneId;
                               host._activateScene(id, s.name);
                             }}
-                            title="Activate scene"
+                            title=${host._t(
+                              "scenes_activate_scene_tooltip",
+                              "Activate scene",
+                            )}
                           >
                             <ha-icon
                               icon="mdi:play"
                               style="--mdc-icon-size:14px;"
                             ></ha-icon>
-                            Activate
+                            ${host._t("scenes_activate_button", "Activate")}
                           </button>
                           <div class="burger-menu-wrapper">
                             <button
@@ -587,7 +622,10 @@ export function renderScenes(host) {
                                   ? null
                                   : sceneId;
                               }}
-                              title="More actions"
+                              title=${host._t(
+                                "scenes_more_actions_tooltip",
+                                "More actions",
+                              )}
                             >
                               <ha-icon
                                 icon="mdi:dots-vertical"
@@ -611,8 +649,14 @@ export function renderScenes(host) {
                                         style="--mdc-icon-size:14px;"
                                       ></ha-icon>
                                       ${loadingChat
-                                        ? "Loading…"
-                                        : "Refine in chat"}
+                                        ? host._t(
+                                            "scenes_loading_label",
+                                            "Loading…",
+                                          )
+                                        : host._t(
+                                            "scenes_refine_in_chat_button",
+                                            "Refine in chat",
+                                          )}
                                     </button>
                                     <button
                                       class="burger-item"
@@ -645,7 +689,10 @@ export function renderScenes(host) {
                                         icon="mdi:open-in-new"
                                         style="--mdc-icon-size:14px;"
                                       ></ha-icon>
-                                      Open in HA
+                                      ${host._t(
+                                        "scenes_open_in_ha_button",
+                                        "Open in HA",
+                                      )}
                                     </button>
                                     ${isSelora
                                       ? html`<button
@@ -664,7 +711,15 @@ export function renderScenes(host) {
                                             icon="mdi:trash-can-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${deleting ? "Deleting…" : "Delete"}
+                                          ${deleting
+                                            ? host._t(
+                                                "scenes_deleting_label",
+                                                "Deleting…",
+                                              )
+                                            : host._t(
+                                                "scenes_delete_button",
+                                                "Delete",
+                                              )}
                                         </button>`
                                       : ""}
                                   </div>
@@ -685,8 +740,10 @@ export function renderScenes(host) {
                                 : html`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
-                                    No entity details available — open the scene
-                                    in Home Assistant to inspect it.
+                                    ${host._t(
+                                      "scenes_no_entity_details",
+                                      "No entity details available — open the scene in Home Assistant to inspect it.",
+                                    )}
                                   </div>`}
                               <div
                                 class="yaml-toggle"
@@ -702,7 +759,9 @@ export function renderScenes(host) {
                                   icon="mdi:code-braces"
                                   style="--mdc-icon-size:14px;"
                                 ></ha-icon>
-                                ${yamlOpen ? "Hide YAML" : "View YAML"}
+                                ${yamlOpen
+                                  ? host._t("scenes_hide_yaml", "Hide YAML")
+                                  : host._t("scenes_view_yaml", "View YAML")}
                               </div>
                               ${yamlOpen
                                 ? html`
@@ -712,7 +771,10 @@ export function renderScenes(host) {
                                       host._sceneIsDirty(sceneId)
                                         ? host._sceneEditYaml(sceneId, s.name)
                                         : s.yaml ||
-                                          "# YAML not available — open the scene in Home Assistant to view it."}
+                                          host._t(
+                                            "scenes_yaml_unavailable_comment",
+                                            "# YAML not available — open the scene in Home Assistant to view it.",
+                                          )}
                                       read-only
                                       style="--code-mirror-font-size:12px;"
                                     ></ha-code-editor>
@@ -739,13 +801,19 @@ export function renderScenes(host) {
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">
-                No scenes found. Ask Selora to create one.
+                ${host._t(
+                  "scenes_empty_state",
+                  "No scenes found. Ask Selora to create one.",
+                )}
               </p>
               <button
                 class="btn btn-accent"
                 ?disabled=${host._llmNeedsSetup}
                 title=${host._llmNeedsSetup
-                  ? "Configure an LLM provider first"
+                  ? host._t(
+                      "scenes_llm_needs_setup_tooltip",
+                      "Configure an LLM provider first",
+                    )
                   : ""}
                 @click=${() => host._newSceneChat()}
               >
@@ -753,7 +821,7 @@ export function renderScenes(host) {
                   icon="mdi:plus"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                New Scene
+                ${host._t("scenes_new_scene_button", "New Scene")}
               </button>
             </div>`}
       </div>
@@ -764,7 +832,9 @@ export function renderScenes(host) {
 
 function renderDeleteSceneModal(host) {
   if (!host._deleteSceneConfirmId) return "";
-  const name = host._deleteSceneConfirmName || "this scene";
+  const name =
+    host._deleteSceneConfirmName ||
+    host._t("scenes_delete_modal_fallback_name", "this scene");
   return html`
     <div
       class="modal-overlay"
@@ -777,11 +847,14 @@ function renderDeleteSceneModal(host) {
     >
       <div class="modal-content" style="max-width:420px;text-align:center;">
         <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-          Delete Scene
+          ${host._t("scenes_delete_modal_title", "Delete Scene")}
         </div>
         <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
-          Delete <strong>${name}</strong>? This removes the scene from Home
-          Assistant and cannot be undone.
+          ${host._t("scenes_delete_modal_prefix", "Delete")}
+          <strong>${name}</strong>${host._t(
+            "scenes_delete_modal_suffix",
+            "? This removes the scene from Home Assistant and cannot be undone.",
+          )}
         </div>
         <div style="display:flex;gap:10px;justify-content:center;">
           <button
@@ -791,14 +864,14 @@ function renderDeleteSceneModal(host) {
               host._deleteSceneConfirmName = null;
             }}
           >
-            Cancel
+            ${host._t("scenes_delete_modal_cancel_button", "Cancel")}
           </button>
           <button
             class="btn"
             style="background:#ef4444;color:#fff;border-color:#ef4444;"
             @click=${() => host._confirmDeleteScene()}
           >
-            Delete
+            ${host._t("scenes_delete_modal_confirm_button", "Delete")}
           </button>
         </div>
       </div>

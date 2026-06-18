@@ -129,6 +129,7 @@ class LLMProvider(ABC):
         entities: list[Any] | None = None,
         existing_automations: list[dict[str, Any]] | None = None,
         history: list[dict[str, str]] | None = None,
+        language: str | None = None,
     ) -> None:
         """Forward the raw chat context to the provider before send_request.
 

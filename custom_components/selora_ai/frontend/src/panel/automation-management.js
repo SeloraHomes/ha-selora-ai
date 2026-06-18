@@ -230,7 +230,10 @@ export async function _runAutomation(entityId, automationId) {
       { skip_condition: true },
       { entity_id: entityId },
     );
-    this._showToast("Automation triggered.", "success");
+    this._showToast(
+      this._t("automation_management_triggered", "Automation triggered."),
+      "success",
+    );
   } catch (err) {
     const message = err?.message || "unknown error";
     this._showToast(`Failed to run automation: ${message}`, "error");
@@ -300,7 +303,10 @@ export async function _saveRenameAutomation(automationId) {
       alias: newAlias,
     });
     this._editingAlias = null;
-    this._showToast("Automation renamed", "success");
+    this._showToast(
+      this._t("automation_management_renamed", "Automation renamed"),
+      "success",
+    );
     await this._loadAutomations();
   } catch (err) {
     console.error("Failed to rename automation", err);
@@ -404,7 +410,10 @@ export async function _restoreVersion(automationId, versionId, yamlText) {
     };
     this._versions = { ...this._versions, [automationId]: null };
     await this._loadAutomations();
-    this._showToast("Version restored.", "success");
+    this._showToast(
+      this._t("automation_management_version_restored", "Version restored."),
+      "success",
+    );
   } catch (err) {
     console.error("Failed to restore version", err);
     this._showToast("Failed to restore version: " + err.message, "error");
@@ -419,7 +428,15 @@ export async function _restoreVersion(automationId, versionId, yamlText) {
 // -------------------------------------------------------------------------
 
 export async function _deleteAutomation(automationId) {
-  if (!confirm("Delete this automation permanently?")) return;
+  if (
+    !confirm(
+      this._t(
+        "automation_management_delete_confirm",
+        "Delete this automation permanently?",
+      ),
+    )
+  )
+    return;
   this._deletingAutomation = {
     ...this._deletingAutomation,
     [automationId]: true,
@@ -430,7 +447,10 @@ export async function _deleteAutomation(automationId) {
       automation_id: automationId,
     });
     await this._loadAutomations();
-    this._showToast("Automation deleted.", "success");
+    this._showToast(
+      this._t("automation_management_deleted", "Automation deleted."),
+      "success",
+    );
   } catch (err) {
     console.error("Failed to delete automation", err);
     this._showToast("Failed to delete automation: " + err.message, "error");
@@ -450,7 +470,10 @@ export async function _deleteAutomation(automationId) {
 export async function _loadAutomationToChat(automationId) {
   if (!automationId) {
     this._showToast(
-      "This automation cannot be refined because it has no automation ID.",
+      this._t(
+        "automation_management_cannot_refine_no_id",
+        "This automation cannot be refined because it has no automation ID.",
+      ),
       "error",
     );
     return;
@@ -468,7 +491,13 @@ export async function _loadAutomationToChat(automationId) {
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);
-      this._showToast("Automation loaded into chat.", "success");
+      this._showToast(
+        this._t(
+          "automation_management_loaded_to_chat",
+          "Automation loaded into chat.",
+        ),
+        "success",
+      );
     }
   } catch (err) {
     console.error("Failed to load automation to chat", err);

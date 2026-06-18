@@ -56,7 +56,10 @@ export function renderDeviceDetail(host) {
     >
       ${loading
         ? html`<span style="font-size:13px;color:var(--selora-zinc-400);"
-            >Loading device detail...</span
+            >${host._t(
+              "device_detail_loading",
+              "Loading device detail...",
+            )}</span
           >`
         : html`
             <!-- Header -->
@@ -92,7 +95,7 @@ export function renderDeviceDetail(host) {
                 @click=${() => {
                   host._deviceDetail = null;
                 }}
-                title="Close"
+                title=${host._t("device_detail_close", "Close")}
               >
                 <ha-icon
                   icon="mdi:close"
@@ -108,7 +111,7 @@ export function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Entities
+                      ${host._t("device_detail_entities_heading", "Entities")}
                     </div>
                     ${detail.entities.map(
                       (e) => html`
@@ -139,7 +142,10 @@ export function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      State History (24h)
+                      ${host._t(
+                        "device_detail_state_history_heading",
+                        "State History (24h)",
+                      )}
                     </div>
                     <div style="max-height:150px;overflow-y:auto;">
                       ${detail.state_history.slice(0, 30).map(
@@ -171,7 +177,10 @@ export function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Linked Automations
+                      ${host._t(
+                        "device_detail_linked_automations_heading",
+                        "Linked Automations",
+                      )}
                     </div>
                     ${detail.linked_automations.map(
                       (a) => html`
@@ -196,7 +205,10 @@ export function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Detected Patterns
+                      ${host._t(
+                        "device_detail_detected_patterns_heading",
+                        "Detected Patterns",
+                      )}
                     </div>
                     ${detail.related_patterns.map(
                       (p) => html`
@@ -212,7 +224,10 @@ export function renderDeviceDetail(host) {
                             style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                           >
                             ${p.type} · ${Math.round(p.confidence * 100)}%
-                            confidence
+                            ${host._t(
+                              "device_detail_confidence_label",
+                              "confidence",
+                            )}
                           </div>
                         </div>
                       `,

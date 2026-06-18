@@ -99,6 +99,9 @@ export async function _resolveApproval(originatingMsg, scope, proposalId) {
       // user never touched it. The server ignores entity_scope for
       // the ``once``/``deny`` scopes.
       entity_scope: originatingMsg?._entityScope || "this",
+      // Pass the panel's active language so the persisted "Done"
+      // message matches the locale the user has been seeing in chat.
+      ...(this.hass?.language ? { language: this.hass.language } : {}),
     });
     if (originatingMsg) {
       originatingMsg.approval_status = result.status;
@@ -309,6 +312,13 @@ export async function _sendMessage() {
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
     }
+    // Forward the panel's active language so the backend renders LLM
+    // responses and synthesized confirmations in the user's locale,
+    // even when hass.config.language (server-wide) differs from the
+    // viewing user's frontend locale.
+    if (this.hass?.language) {
+      subscribePayload.language = this.hass.language;
+    }
 
     this._streaming = true;
 
@@ -325,7 +335,10 @@ export async function _sendMessage() {
         this,
         assistantMsg,
         userMsgForSend,
-        "Connection to Home Assistant was lost mid-response.",
+        this._t(
+          "chat_actions_interrupt_disconnect",
+          "Connection to Home Assistant was lost mid-response.",
+        ),
         myTurn,
       );
     };
@@ -353,8 +366,14 @@ export async function _sendMessage() {
           assistantMsg,
           userMsgForSend,
           firstTokenSeen
-            ? "The server stopped responding."
-            : "The server didn't reply in time.",
+            ? this._t(
+                "chat_actions_interrupt_server_stopped",
+                "The server stopped responding.",
+              )
+            : this._t(
+                "chat_actions_interrupt_server_no_reply",
+                "The server didn't reply in time.",
+              ),
           myTurn,
         );
       }
@@ -430,7 +449,10 @@ export async function _sendMessage() {
             this,
             assistantMsg,
             userMsgForSend,
-            "Response looks cut short — try again.",
+            this._t(
+              "chat_actions_interrupt_truncated",
+              "Response looks cut short — try again.",
+            ),
             myTurn,
           );
           return;
@@ -523,7 +545,11 @@ export async function _sendMessage() {
           this,
           assistantMsg,
           userMsgForSend,
-          event.message || "Couldn't reach the LLM provider.",
+          event.message ||
+            this._t(
+              "chat_actions_interrupt_llm_unreachable",
+              "Couldn't reach the LLM provider.",
+            ),
           myTurn,
         );
       }
@@ -539,7 +565,11 @@ export async function _sendMessage() {
       this,
       assistantMsg,
       userMsgForSend,
-      err.message || "Couldn't start the chat session.",
+      err.message ||
+        this._t(
+          "chat_actions_interrupt_session_start_failed",
+          "Couldn't start the chat session.",
+        ),
       myTurn,
     );
   }
@@ -563,7 +593,8 @@ export function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
-  const note = "\n\n_Cancelled by user_";
+  const note =
+    "\n\n" + this._t("chat_actions_cancelled_by_user", "_Cancelled by user_");
   const lastMsg = this._messages[this._messages.length - 1];
   if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;

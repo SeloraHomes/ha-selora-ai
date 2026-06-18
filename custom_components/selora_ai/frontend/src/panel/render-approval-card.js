@@ -20,21 +20,24 @@ const RISK_LEVEL_STYLES = {
   low: {
     accent: "#3b82f6",
     icon: "mdi:information-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_low",
+    explainerFallback:
       "Low risk: minor or fully reversible impact (sound, notifications, " +
       "vacuum start/stop).",
   },
   medium: {
     accent: "#f59e0b",
     icon: "mdi:alert-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_medium",
+    explainerFallback:
       "Medium risk: noticeable side effects you may not want to undo " +
       "(arming the alarm, locking a door, running a user script).",
   },
   high: {
     accent: "#ef4444",
     icon: "mdi:shield-alert-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_high",
+    explainerFallback:
       "High risk: physical access, security, or host-level impact " +
       "(unlocking a door, disarming the alarm, running shell commands).",
   },
@@ -147,7 +150,7 @@ function _scopeLabel(host, scope, entityIds) {
       const d = [...domains][0];
       return `All ${d}s`;
     }
-    return "All matching entities";
+    return host._t("approval_scope_all_matching", "All matching entities");
   }
   if (entityIds.length === 1) {
     const friendly =
@@ -155,7 +158,7 @@ function _scopeLabel(host, scope, entityIds) {
       entityIds[0];
     return `Just ${friendly}`;
   }
-  return "Just these entities";
+  return host._t("approval_scope_just_these", "Just these entities");
 }
 
 /**
@@ -171,8 +174,9 @@ function _scopeLabel(host, scope, entityIds) {
 export function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
   const level = (approval.risk_level || "low").toLowerCase();
-  const { accent, icon, explainer } =
+  const { accent, icon, explainerKey, explainerFallback } =
     RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
+  const explainer = host._t(explainerKey, explainerFallback);
   const reasons = approval.risk_reasons || [];
   const calls = approval.calls || [];
   const entityIds = _proposalEntityIds(approval);
@@ -195,7 +199,11 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
           icon=${resolvedIcon}
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
-        <span>${approvalStatus === "approved" ? "Approved" : "Denied"}</span>
+        <span
+          >${approvalStatus === "approved"
+            ? host._t("approval_status_approved", "Approved")
+            : host._t("approval_status_denied", "Denied")}</span
+        >
       </div>
     `;
   }
@@ -206,7 +214,7 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>Working…</span>
+        <span>${host._t("approval_working", "Working…")}</span>
       </div>
     `;
   }
@@ -228,7 +236,7 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
           icon=${icon}
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
-        <span>Approval required</span>
+        <span>${host._t("approval_required_title", "Approval required")}</span>
         <span
           title=${explainer}
           style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
@@ -243,10 +251,18 @@ export function renderApprovalCard(host, msg, approval, approvalStatus) {
             <div
               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
             >
-              <span>For Session / Always:</span>
+              <span
+                >${host._t(
+                  "approval_scope_label",
+                  "For Session / Always:",
+                )}</span
+              >
               <button
                 @click=${() => host._toggleApprovalScope?.(msg)}
-                title="Click to switch between scoping the grant to just this entity, or to all entities of this service."
+                title=${host._t(
+                  "approval_scope_button_title",
+                  "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+                )}
                 style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
               >
                 <ha-icon

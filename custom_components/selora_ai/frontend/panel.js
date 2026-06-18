@@ -7000,6 +7000,5167 @@ function formatTime(iso) {
   }
 }
 
+// ../translations/en.json
+var en_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Configure Selora AI",
+        description:
+          "Choose which LLM backend to use for automation suggestions.",
+        data: {
+          llm_provider: "LLM Provider",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          'Selora AI Cloud uses your Selora account \u2014 no API key needed. After setup, open the Selora AI panel and click "Link Selora account" to authenticate.',
+      },
+      anthropic: {
+        title: "Anthropic (Claude) Configuration",
+        description:
+          "Enter your Anthropic API key. Get one at console.anthropic.com.",
+        data: {
+          anthropic_api_key: "API Key",
+          anthropic_model: "Model",
+        },
+      },
+      gemini: {
+        title: "Google Gemini Configuration",
+        description:
+          "Enter your Google Gemini API key. Get one at aistudio.google.com.",
+        data: {
+          gemini_api_key: "API Key",
+          gemini_model: "Model",
+        },
+      },
+      openai: {
+        title: "OpenAI Configuration",
+        description:
+          "Enter your OpenAI API key. Get one at platform.openai.com.",
+        data: {
+          openai_api_key: "API Key",
+          openai_model: "Model",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter Configuration",
+        description:
+          "Enter your OpenRouter API key. Get one at openrouter.ai/keys. Use vendor-prefixed model names like 'anthropic/claude-sonnet-4.5'.",
+        data: {
+          openrouter_api_key: "API Key",
+          openrouter_model: "Model",
+        },
+      },
+      ollama: {
+        title: "Ollama (Local) Configuration",
+        description:
+          "Enter your local Ollama server details. Make sure the model is pulled.",
+        data: {
+          ollama_host: "Ollama Host URL",
+          ollama_model: "Model Name",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local Configuration",
+        description:
+          "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+        data: {
+          selora_local_host: "Host URL",
+        },
+      },
+      select_devices: {
+        title: "Select Devices to Onboard",
+        description:
+          "Selora AI found {count} devices on your network. Assign a room to add a device, or select 'Skip' to skip it.\n\n{device_list}",
+      },
+      results: {
+        title: "Device Setup Results",
+        description:
+          "Setup complete: {succeeded} succeeded, {failed} failed, {needs_attention} need manual attention.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Unable to connect. Check your API key, or verify Ollama is running and the model is pulled.",
+      invalid_auth:
+        "Invalid Selora Connect credentials. Please check your email and password.",
+      unknown: "An unexpected error occurred.",
+    },
+    abort: {
+      already_configured: "Selora AI is already configured.",
+      cannot_connect:
+        "Unable to connect to Selora AI cloud service. Please try again later.",
+      unknown: "An unexpected error occurred during setup.",
+      llm_not_ready:
+        "Selora AI LLM backend is not running. Please configure it first.",
+      no_devices_found:
+        "No new devices were discovered on your network. Try again later.",
+      no_devices_selected: "No devices were selected.",
+      select_devices_failed:
+        "Device onboarding hit an unexpected error. Selora AI was set up without device onboarding \u2014 you can try again later from Settings > Devices > Add Entry. Check Home Assistant logs for details.",
+    },
+  },
+  common: {
+    feedback_button_label: "Give Feedback",
+    feedback_modal_title: "Share Feedback",
+    feedback_privacy_notice:
+      "Feedback is anonymous and contains no personal data.",
+    feedback_textarea_placeholder:
+      "What's on your mind? (10 characters minimum)",
+    feedback_rating_label: "Rating:",
+    feedback_rating_thumbsup: "Thumbs up",
+    feedback_rating_thumbsdown: "Thumbs down",
+    feedback_category_label: "Category (optional):",
+    feedback_category_bug: "Bug",
+    feedback_category_feature: "Feature Request",
+    feedback_category_general: "General",
+    feedback_submit: "Send Feedback",
+    feedback_submitting: "Sending\u2026",
+    feedback_email_label: "Email (optional):",
+    feedback_email_placeholder:
+      "your@email.com \u2014 only if you\u2019d like a reply",
+    feedback_cancel: "Cancel",
+    feedback_min_length_error: "Please enter at least 10 characters.",
+    feedback_success: "Thanks for your feedback!",
+    feedback_error: "Couldn\u2019t send feedback \u2014 please try again.",
+    nav_new_chat: "New chat",
+    nav_selora_menu: "Selora menu",
+    nav_conversations: "Conversations",
+    nav_automations: "Automations",
+    nav_scenes: "Scenes",
+    nav_settings: "Settings",
+    nav_documentation: "Documentation",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab Repository",
+    welcome_title_prefix: "Welcome to",
+    welcome_subtitle: "Your intelligent home automation architect",
+    new_automation_title_prefix: "New",
+    new_automation_gold: "Automation",
+    new_automation_subtitle:
+      "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
+    get_started: "Get started",
+    get_started_body:
+      "Configure your LLM provider in the Settings tab to start chatting with your home.",
+    open_settings: "Open Settings",
+    quick_start: "Quick start",
+    composer_placeholder_ask: "Ask Selora AI anything\u2026",
+    composer_placeholder_automation:
+      "Describe the automation you\u2019d like to create\u2026",
+    panel_quota_provider_default: "your LLM provider",
+    panel_quota_reached: "quota reached.",
+    panel_quota_try_again_prefix: "Try again in",
+    panel_quota_retrying_now: "Retrying now\u2026",
+    panel_quota_dismiss: "Dismiss",
+    panel_llm_switched_selora_cloud: "Switched to Selora Cloud.",
+    panel_llm_invalid_key: "Invalid API key or provider unreachable.",
+    panel_llm_settings_saved: "LLM settings saved.",
+    panel_advanced_settings_saved: "Advanced settings saved.",
+    panel_linking_failed: "Linking failed.",
+    panel_linking_timed_out:
+      "Linking timed out. Please try again \u2014 make sure you finish signing in within 10 minutes.",
+    panel_linking_start_failed: "Failed to start linking.",
+    panel_connect_linked_success: "Selora Connect linked successfully.",
+    panel_unlink_connect_confirm:
+      "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+    panel_connect_unlinked: "Selora Connect unlinked.",
+    panel_cloud_linked_success: "Selora Cloud linked successfully.",
+    panel_unlink_cloud_confirm:
+      "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+    panel_cloud_unlinked: "Selora Cloud unlinked.",
+    panel_mcp_token_created: "MCP token created.",
+    panel_mcp_token_revoked: "Token revoked.",
+    panel_approval_revoked: "Approval revoked.",
+    panel_device_loading: "Loading...",
+    panel_device_error_loading: "Error loading device",
+    panel_tab_conversations: "Conversations",
+    panel_tab_automations: "Automations",
+    panel_tab_scenes: "Scenes",
+    panel_sidebar_conversations: "Conversations",
+    panel_sidebar_done: "Done",
+    panel_sidebar_select: "Select",
+    panel_sidebar_select_all: "Select all",
+    panel_sidebar_delete: "Delete",
+    panel_sidebar_new_chat: "New Chat",
+    panel_sidebar_no_conversations: "No conversations yet.",
+    panel_session_delete_confirm: "Delete?",
+    panel_session_delete: "Delete",
+    panel_session_cancel: "Cancel",
+    panel_session_delete_title: "Delete",
+    panel_bulk_delete_title: "Delete Conversations",
+    panel_bulk_delete_cancel: "Cancel",
+    panel_bulk_delete_confirm: "Delete",
+    chat_suggest_thinking: "Thinking\u2026",
+    chat_suggest_one_for_me: "Suggest one for me",
+    chat_jump_to_latest: "Go to latest message",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+    chat_selection_remove: "Remove",
+    chat_stop_generating: "Stop generating",
+    chat_send: "Send",
+    chat_building_scene: "Building scene...",
+    chat_go_to_settings: "Go to Settings",
+    chat_response_cut_short: "Response was cut short.",
+    chat_retry: "Retry",
+    chat_copy_message: "Copy message",
+    chat_you: "You",
+    chat_yaml_unsaved_changes: "Unsaved changes",
+    chat_yaml_saving: "Saving\u2026",
+    chat_yaml_save_changes: "Save changes",
+    chat_tools_used: "Tools used",
+    chat_automation_label_building: "Building automation...",
+    chat_automation_label_triggers: "Drafting triggers...",
+    chat_automation_label_conditions: "Wiring conditions...",
+    chat_automation_label_actions: "Composing actions...",
+    chat_automation_label_almost: "Almost ready...",
+    chat_autocomplete_kind_devices: "Devices",
+    chat_autocomplete_kind_areas: "Areas",
+    chat_autocomplete_kind_scenes: "Scenes",
+    chat_autocomplete_kind_automations: "Automations",
+    chat_autocomplete_kind_suggestions: "Suggestions",
+    chat_welcome_suggestion_lights_label: "Turn off all lights at midnight",
+    chat_welcome_suggestion_lights_value:
+      "Create an automation that turns off all lights at midnight",
+    chat_welcome_suggestion_devices_label: "What devices do I have?",
+    chat_welcome_suggestion_devices_value:
+      "What devices do I have and which ones are currently on?",
+    chat_welcome_suggestion_suggest_label: "Suggest automations for my home",
+    chat_welcome_suggestion_suggest_value:
+      "Suggest useful automations based on my devices and usage patterns",
+    settings_view_token_usage_title: "View token usage",
+    settings_usage_label: "Usage",
+    settings_view_usage_label: "View usage",
+    settings_provider_select_placeholder: "Select...",
+    settings_doc_banner_title: "Configuration guide",
+    settings_doc_banner_desc:
+      "Learn how to set up LLM providers, remote access, and MCP tokens.",
+    settings_llm_provider_heading: "LLM Provider",
+    settings_provider_label: "Provider",
+    settings_selora_account_label: "Selora account",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud is providing your LLM backend.",
+    settings_unlink_button: "Unlink",
+    settings_signin_selora_desc:
+      "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth and chat completions both use this URL. Saved automatically when you link.",
+    settings_open_signin_page: "Open sign-in page \u2192",
+    settings_preparing_label: "Preparing\u2026",
+    settings_link_selora_account_button: "Link Selora account",
+    settings_signin_new_tab_hint:
+      "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
+    settings_api_key_label: "API Key",
+    settings_click_replace_key_title: "Click to replace key",
+    settings_enter_new_key_label: "Enter new key",
+    settings_enter_api_key_label: "Enter API key",
+    settings_model_label: "Model",
+    settings_selora_local_desc:
+      "Selora AI picks the right specialist model (commands, automations, answers, clarifications) per request automatically.",
+    settings_ollama_host_label: "Host",
+    settings_selora_local_show_advanced: "Show advanced options",
+    settings_selora_local_hide_advanced: "Hide advanced options",
+    settings_selora_local_advanced_desc:
+      "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+    settings_selora_local_host_label: "Host",
+    settings_selora_local_auto_detected_prefix: "Auto-detected:",
+    settings_selora_local_auto_detected_none: "none",
+    settings_validating_label: "Validating\u2026",
+    settings_save_button: "Save",
+    settings_mcp_server_heading: "MCP Server",
+    settings_mcp_server_subtitle:
+      "Expose your home to external AI tools like Openclaw, Claude Desktop, Cursor, or Windsurf.",
+    settings_connect_via_selora_label: "Connect via Selora account",
+    settings_connect_via_selora_desc:
+      "Makes your MCP server reachable by external tools",
+    settings_mcp_url_copied_toast: "MCP URL copied to clipboard",
+    settings_connect_server_url_label: "Connect Server URL",
+    settings_mcp_tokens_section_title: "MCP TOKENS",
+    settings_mcp_tokens_desc:
+      "MCP tokens are an alternative to Selora Connect. Use them for tools that don't support OAuth or when you prefer token-based authentication.",
+    settings_no_tokens_yet: "No tokens yet.",
+    settings_add_token_button: "Add token",
+    settings_command_approvals_heading: "Command Approvals",
+    settings_advanced_settings_heading: "Advanced settings",
+    settings_background_services_title: "BACKGROUND SERVICES",
+    settings_data_collector_label: "Data collector (AI analysis)",
+    settings_data_collector_desc: "Feeds entity history to Selora AI",
+    settings_mode_label: "Mode",
+    settings_mode_continuous: "Continuous",
+    settings_mode_scheduled_window: "Scheduled Window",
+    settings_interval_seconds_label: "Interval (s)",
+    settings_start_hhmm_label: "Start (HH:MM)",
+    settings_end_hhmm_label: "End (HH:MM)",
+    settings_network_discovery_label: "Network discovery",
+    settings_network_discovery_desc: "Scans local network for new devices",
+    settings_pattern_detection_label: "Pattern detection",
+    settings_pattern_detection_desc:
+      "Detects recurring usage patterns and proposes automations",
+    settings_auto_remove_stale_label: "Auto-remove stale automations",
+    settings_developer_mode_label: "Developer mode",
+    settings_developer_mode_desc: "Exposes raw entity payloads and debug logs",
+    settings_dev_mode_save_failed_toast: "Failed to save developer mode.",
+    settings_saving_label: "Saving\u2026",
+    settings_no_approvals_yet_prefix:
+      "No saved approvals yet. The next time Selora asks before running something risky, click",
+    settings_no_approvals_always_word: "Always",
+    settings_no_approvals_yet_suffix: "to remember it here.",
+    settings_per_entity_approval_title: "Per-entity approval",
+    settings_wildcard_approval_title:
+      "Wildcard \u2014 applies to every entity of this service",
+    settings_approval_all_label: "all",
+    settings_token_created_heading: "Token Created",
+    settings_token_created_desc:
+      "Copy this token now \u2014 it won't be shown again.",
+    settings_token_copied_toast: "Token copied to clipboard",
+    settings_done_button: "Done",
+    settings_create_mcp_token_heading: "Create MCP Token",
+    settings_token_name_label: "Name",
+    settings_token_name_placeholder: "e.g. Claude Desktop",
+    settings_permission_level_label: "Permission Level",
+    settings_perm_read_only: "Read Only",
+    settings_perm_admin_all: "Admin (all tools)",
+    settings_perm_custom: "Custom (select tools)",
+    settings_allowed_tools_label: "Allowed Tools",
+    settings_admin_badge: "admin",
+    settings_expiration_label: "Expiration (optional)",
+    settings_expiry_never: "Never expires",
+    settings_expiry_7_days: "7 days",
+    settings_expiry_30_days: "30 days",
+    settings_expiry_90_days: "90 days",
+    settings_expiry_1_year: "1 year",
+    settings_cancel_button: "Cancel",
+    settings_create_token_button: "Create Token",
+    automations_flow_branch_if: "If",
+    automations_flow_branch_else_if: "Else if",
+    automations_flow_branch_otherwise: "Otherwise",
+    automations_flow_branch_in_parallel: "In parallel",
+    automations_flow_branch_in_sequence: "In sequence",
+    automations_flow_repeat_while: "Repeat while condition holds",
+    automations_flow_repeat_until: "Repeat until condition is met",
+    automations_flow_repeat: "Repeat",
+    automations_flow_label_trigger: "Trigger",
+    automations_flow_label_condition: "Condition",
+    automations_flow_label_actions: "Actions",
+    automations_badge_enabled: "Enabled",
+    automations_badge_saved: "Saved",
+    automations_yaml_toggle_hide: "Hide YAML",
+    automations_yaml_toggle_view: "View YAML",
+    automations_yaml_toggle_edit: "Edit YAML",
+    automations_proposal_declined_title: "Automation Declined",
+    automations_proposal_declined_body:
+      "Dismissed. You can refine it by replying below.",
+    automations_badge_being_refined: "Being Refined",
+    automations_badge_proposal: "Proposal",
+    automations_proposal_elevated_risk: "Elevated risk review recommended.",
+    automations_proposal_yaml_edits_note:
+      "Your YAML edits will be used when you accept.",
+    automations_action_run_tooltip:
+      "Trigger the actions now to verify they work",
+    automations_action_running: "Running\u2026",
+    automations_action_run_now: "Run now",
+    automations_action_open_in_ha_tooltip:
+      "Open this automation in Home Assistant",
+    automations_action_view_in_ha: "View in HA",
+    automations_action_enabling: "Enabling\u2026",
+    automations_action_enable_automation: "Enable automation",
+    automations_elevated_risk_note:
+      "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
+    automations_action_accept_and_save: "Accept & Save",
+    automations_section_title: "Your Automations",
+    automations_filter_placeholder: "Filter automations\u2026",
+    automations_sort_recent: "Recent activity",
+    automations_sort_alpha: "Alphabetical",
+    automations_sort_enabled_first: "Enabled first",
+    automations_llm_setup_required_tooltip: "Configure an LLM provider first",
+    automations_new_automation_button: "New Automation",
+    automations_status_tab_all: "All",
+    automations_status_tab_enabled: "Enabled",
+    automations_status_tab_disabled: "Disabled",
+    automations_status_tab_stale: "Stale",
+    automations_bulk_select_all: "Select all",
+    automations_bulk_done: "Done",
+    automations_bulk_edit: "Bulk edit",
+    automations_bulk_working: "Working\u2026",
+    automations_bulk_enable_all: "Enable all",
+    automations_bulk_disable_all: "Disable all",
+    automations_bulk_delete_selected: "Delete selected",
+    automations_bulk_clear: "Clear",
+    automations_last_run_disabled: "Disabled",
+    automations_last_run_never: "Never",
+    automations_needs_attention_pill: "Needs attention",
+    automations_rename_save_tooltip: "Save",
+    automations_last_run_prefix: "Last run:",
+    automations_last_run_prefix_inline: "Last run:",
+    automations_toggle_enabled: "Enabled",
+    automations_toggle_disabled: "Disabled",
+    automations_toggle_unavailable: "Unavailable",
+    automations_toast_toggle_unresolved:
+      "Unable to toggle: automation id was not resolved. Reload and try again.",
+    automations_more_actions_tooltip: "More actions",
+    automations_burger_loading: "Loading\u2026",
+    automations_burger_refine_in_chat: "Refine in chat",
+    automations_burger_rename: "Rename",
+    automations_burger_view_in_ha: "View in HA",
+    automations_burger_deleting: "Deleting\u2026",
+    automations_burger_delete: "Delete",
+    automations_card_tab_flow: "Flow",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "History",
+    automations_pagination_prev: "\u2039 Prev",
+    automations_pagination_per_page: "Per page:",
+    automations_pagination_next: "Next \u203A",
+    automations_empty_state: "No automations yet.",
+    automations_unavailable_modal_title: "Automation Unavailable",
+    automations_unavailable_default_name: "This automation",
+    automations_unavailable_modal_intro:
+      "is marked as unavailable by Home Assistant. This usually means:",
+    automations_unavailable_reason_entity:
+      "A trigger or condition references an entity that no longer exists",
+    automations_unavailable_reason_yaml:
+      "The automation YAML has a configuration error",
+    automations_unavailable_reason_integration:
+      "A required integration was removed or is not loaded",
+    automations_unavailable_modal_advice:
+      "Open the automation in Home Assistant Settings to review and fix the configuration.",
+    automations_unavailable_modal_close: "Close",
+    automations_unavailable_modal_edit_states: "Edit States",
+    automations_unavailable_modal_open_in_automations: "Open in Automations",
+    scenes_card_created_title: "Scene Created",
+    scenes_card_saved_status: "Saved to Home Assistant",
+    scenes_card_activate_button: "Activate",
+    scenes_card_view_in_ha_button: "View in HA",
+    scenes_card_declined_title: "Scene Declined",
+    scenes_card_declined_message:
+      "Dismissed. You can refine it by replying below.",
+    scenes_card_refining_badge: "Being Refined",
+    scenes_hide_yaml: "Hide YAML",
+    scenes_view_yaml: "View YAML",
+    scenes_card_proposal_badge: "Proposal",
+    scenes_card_accept_save_button: "Accept & Save",
+    scenes_section_title: "Your Scenes",
+    scenes_filter_placeholder: "Filter scenes\u2026",
+    scenes_sort_recent: "Recently updated",
+    scenes_sort_alpha: "Alphabetical",
+    scenes_sort_size: "Most entities",
+    scenes_llm_needs_setup_tooltip: "Configure an LLM provider first",
+    scenes_new_scene_button: "New Scene",
+    scenes_status_tab_all: "All",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manual",
+    scenes_activate_scene_tooltip: "Activate scene",
+    scenes_activate_button: "Activate",
+    scenes_more_actions_tooltip: "More actions",
+    scenes_loading_label: "Loading\u2026",
+    scenes_refine_in_chat_button: "Refine in chat",
+    scenes_open_in_ha_button: "Open in HA",
+    scenes_deleting_label: "Deleting\u2026",
+    scenes_delete_button: "Delete",
+    scenes_no_entity_details:
+      "No entity details available \u2014 open the scene in Home Assistant to inspect it.",
+    scenes_yaml_unavailable_comment:
+      "# YAML not available \u2014 open the scene in Home Assistant to view it.",
+    scenes_empty_state: "No scenes found. Ask Selora to create one.",
+    scenes_delete_modal_fallback_name: "this scene",
+    scenes_delete_modal_title: "Delete Scene",
+    scenes_delete_modal_prefix: "Delete",
+    scenes_delete_modal_suffix:
+      "? This removes the scene from Home Assistant and cannot be undone.",
+    scenes_delete_modal_cancel_button: "Cancel",
+    scenes_delete_modal_confirm_button: "Delete",
+    usage_pricing_invalid_error: "Pricing must be non-negative numbers.",
+    usage_pricing_saved_toast: "Pricing override saved.",
+    usage_pricing_save_failed: "Failed to save pricing:",
+    usage_pricing_reset_toast: "Reset to default pricing.",
+    usage_pricing_reset_failed: "Failed to reset pricing:",
+    usage_pricing_title: "Pricing",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+    usage_pricing_view_cloud_link: "View usage in your Selora Homes account",
+    usage_pricing_ollama_help:
+      "Ollama runs locally \u2014 no token costs to track.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local runs on your hardware \u2014 no token costs to track.",
+    usage_pricing_no_model_help:
+      "Configure an LLM provider and model in Settings to set custom pricing.",
+    usage_pricing_intro_prefix:
+      "Cost estimates use these per-million-token rates. Anthropic defaults come from the",
+    usage_pricing_official_page_link: "official pricing page",
+    usage_pricing_intro_suffix:
+      "; override here if you have negotiated rates or are tracking a different model.",
+    usage_pricing_input_label: "Input",
+    usage_pricing_default_prefix: "default",
+    usage_pricing_no_default: "no built-in default",
+    usage_pricing_output_label: "Output",
+    usage_pricing_input_field_label: "Input ($/MTok)",
+    usage_pricing_output_field_label: "Output ($/MTok)",
+    usage_pricing_cancel_button: "Cancel",
+    usage_pricing_save_button: "Save",
+    usage_pricing_edit_override_button: "Edit override",
+    usage_pricing_set_custom_button: "Set custom pricing",
+    usage_pricing_reset_default_button: "Reset to default",
+    usage_snippet_copied_label: "Copied!",
+    usage_snippet_copy_button: "Copy",
+    usage_snippet_help:
+      "The visual card picker will also find these sensors after the Recorder's first hourly compilation.",
+    usage_back_to_settings: "Back to settings",
+    usage_token_usage_title: "Token usage",
+    usage_empty_title: "No usage data yet.",
+    usage_empty_body:
+      "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
+    usage_totals_title: "Totals",
+    usage_tile_cost_label: "Cost",
+    usage_tile_cost_sub: "USD estimate",
+    usage_tile_calls_label: "Calls",
+    usage_tile_tokens_in_label: "Tokens in",
+    usage_tile_tokens_out_label: "Tokens out",
+    usage_by_period_title: "By period",
+    usage_period_today: "Today",
+    usage_period_last_7_days: "Last 7 days",
+    usage_period_this_month: "This month",
+    usage_period_note_filtered:
+      "Period buckets come from the integration's usage store (kept for 30 days).",
+    usage_period_note_unfiltered:
+      "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
+    usage_where_tokens_go_title: "Where tokens go",
+    usage_where_tokens_last_prefix: "Last",
+    usage_where_tokens_resets_suffix: "\xB7 resets on HA restart",
+    usage_group_by_kind_button: "By kind",
+    usage_group_by_provider_button: "By provider",
+    usage_loading: "Loading\u2026",
+    usage_no_calls_recorded: "No calls recorded yet.",
+    usage_recent_calls_title: "Recent calls",
+    usage_dashboard_sensors_title: "Dashboard sensors",
+    usage_dashboard_sensors_help_prefix:
+      "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
+    usage_dashboard_sensors_help_suffix: "card.",
+    usage_add_to_dashboard_title: "Add to your dashboard",
+    usage_add_to_dashboard_help:
+      "Each metric has a different scale \u2014 create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
+    usage_filter_all_providers: "All providers",
+    usage_filter_all_models: "All models",
+    usage_filter_no_model: "(no model)",
+    suggestions_tab_flow: "Flow",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Creating\u2026",
+    suggestions_btn_accept: "Accept",
+    suggestions_btn_dismissing: "Dismissing\u2026",
+    suggestions_btn_dismiss: "Dismiss",
+    suggestions_section_title: "Suggested for you",
+    suggestions_badge_new: "new",
+    suggestions_llm_setup_required: "Configure an LLM provider first",
+    suggestions_btn_scanning: "Scanning\u2026",
+    suggestions_btn_scan_now: "Scan Now",
+    suggestions_btn_analyzing: "Analyzing\u2026",
+    suggestions_btn_generate: "Generate",
+    suggestions_section_subtitle:
+      "Based on observed patterns and AI analysis in your home.",
+    suggestions_empty_state:
+      'No suggestions yet. Tap "Generate" to analyze your home.',
+    suggestions_filter_placeholder: "Filter suggestions\u2026",
+    suggestions_filter_all: "All",
+    suggestions_filter_patterns: "Patterns",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "Recent",
+    suggestions_sort_alpha: "Alphabetical",
+    suggestions_bulk_selected: "selected",
+    suggestions_bulk_accept_selected: "Accept selected",
+    suggestions_bulk_dismiss_selected: "Dismiss selected",
+    suggestions_bulk_done: "Done",
+    suggestions_bulk_edit: "Bulk edit",
+    suggestions_show_more: "Show more suggestions",
+    version_history_loading: "Loading\u2026",
+    version_history_empty: "No version history yet.",
+    version_history_current_badge: "Current",
+    version_history_hide_yaml: "Hide YAML",
+    version_history_view_yaml: "View YAML",
+    version_history_restoring: "Restoring\u2026",
+    version_history_restore_button: "Restore this version",
+    version_history_no_yaml_stored: "(no YAML stored)",
+    version_history_compare_title: "Compare Versions",
+    version_history_version_a_label: "Version A (newer):",
+    version_history_version_b_label: "Version B (older):",
+    version_history_loading_diff: "Loading diff\u2026",
+    version_history_no_diff: "No differences found.",
+    device_detail_loading: "Loading device detail...",
+    device_detail_close: "Close",
+    device_detail_entities_heading: "Entities",
+    device_detail_state_history_heading: "State History (24h)",
+    device_detail_linked_automations_heading: "Linked Automations",
+    device_detail_detected_patterns_heading: "Detected Patterns",
+    device_detail_confidence_label: "confidence",
+    ignore_list_remove_label: "Remove label",
+    ignore_list_chip_kind_device: "device",
+    ignore_list_chip_kind_area: "area",
+    ignore_list_dropdown_kind_area: "Area",
+    ignore_list_dropdown_kind_device: "Device",
+    ignore_list_how_it_works: "How does this work?",
+    ignore_list_section_title: "Ignore in suggestions",
+    ignore_list_search_placeholder: "Search an entity, device, or area\u2026",
+    ignore_list_empty_state: "Nothing ignored yet.",
+    approval_risk_explainer_low:
+      "Low risk: minor or fully reversible impact (sound, notifications, vacuum start/stop).",
+    approval_risk_explainer_medium:
+      "Medium risk: noticeable side effects you may not want to undo (arming the alarm, locking a door, running a user script).",
+    approval_risk_explainer_high:
+      "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
+    approval_scope_all_matching: "All matching entities",
+    approval_scope_just_these: "Just these entities",
+    approval_status_approved: "Approved",
+    approval_status_denied: "Denied",
+    approval_working: "Working\u2026",
+    approval_required_title: "Approval required",
+    approval_scope_label: "For Session / Always:",
+    approval_scope_button_title:
+      "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+    quick_actions_approve_once_label: "Allow once",
+    quick_actions_approve_once_desc: "Just this one request",
+    quick_actions_approve_session_label: "For this conversation",
+    quick_actions_approve_session_desc:
+      "Allow for the rest of this conversation",
+    quick_actions_approve_always_label: "Always",
+    quick_actions_approve_always_desc: "Remember this approval",
+    quick_actions_deny_label: "Deny",
+    quick_actions_deny_desc: "Do not run this request",
+    stale_modal_title: "Stale Automations",
+    stale_select_all: "Select all",
+    stale_last_triggered_label: "Last triggered:",
+    stale_never: "Never",
+    stale_keep_button: "Keep",
+    stale_close_button: "Close",
+    stale_state_label: "State:",
+    stale_state_unknown: "unknown",
+    stale_back_button: "Back",
+    stale_remove_confirm: "Remove this automation permanently?",
+    stale_remove_success: "Automation removed.",
+    stale_remove_failed_prefix: "Failed to remove:",
+    stale_remove_button: "Remove",
+    automation_management_triggered: "Automation triggered.",
+    automation_management_renamed: "Automation renamed",
+    automation_management_version_restored: "Version restored.",
+    automation_management_delete_confirm: "Delete this automation permanently?",
+    automation_management_deleted: "Automation deleted.",
+    automation_management_cannot_refine_no_id:
+      "This automation cannot be refined because it has no automation ID.",
+    automation_management_loaded_to_chat: "Automation loaded into chat.",
+    action_format_run_verb: "Run",
+    action_format_ran_verb: "Ran",
+    chat_actions_interrupt_disconnect:
+      "Connection to Home Assistant was lost mid-response.",
+    chat_actions_interrupt_server_stopped: "The server stopped responding.",
+    chat_actions_interrupt_server_no_reply: "The server didn't reply in time.",
+    chat_actions_interrupt_truncated:
+      "Response looks cut short \u2014 try again.",
+    chat_actions_interrupt_llm_unreachable: "Couldn't reach the LLM provider.",
+    chat_actions_interrupt_session_start_failed:
+      "Couldn't start the chat session.",
+    chat_actions_cancelled_by_user: "_Cancelled by user_",
+    automation_crud_save_failed: "Failed to save automation:",
+    automation_crud_entity_not_surfaced:
+      "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automation saved but couldn't be enabled automatically:",
+    automation_crud_unknown_error: "unknown error",
+    automation_crud_auto_enable_failed_suffix:
+      ". Use the Enable button on the card to try again.",
+    automation_crud_draft_dismissed: "Draft dismissed.",
+    automation_crud_dismiss_draft_failed: "Failed to dismiss draft:",
+    automation_crud_create_failed: "Failed to create automation:",
+    automation_crud_save_edited_yaml_failed:
+      "Failed to save automation from edited YAML:",
+    automation_crud_yaml_saved: "Automation YAML saved.",
+    automation_crud_save_changes_failed: "Failed to save changes:",
+    scene_actions_refine_default_name: "the scene",
+    session_toast_new_automation_chat_failed:
+      "Failed to start a new automation chat:",
+    session_toast_ai_no_suggestion:
+      "AI didn't return a suggestion \u2014 try again.",
+    session_toast_suggest_failed:
+      "Failed to generate a suggestion \u2014 check LLM config.",
+    suggestions_analysis_no_new:
+      "Analysis complete \u2014 no new suggestions at this time",
+    suggestions_accepted_toast: "Suggestion accepted \u2014 automation created",
+    suggestions_accept_failed: "Failed to accept suggestion",
+    suggestions_dismissed_toast: "Suggestion dismissed",
+    suggestions_snoozed_toast: "Suggestion snoozed for 24h",
+    suggestions_pattern_scan_failed: "Pattern scan failed",
+    area_unassigned: "Unassigned",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Background Services Settings",
+        description: "Configure background services for Selora AI.",
+        data: {
+          collector_enabled: "Data Collector (AI Analysis) Enabled",
+          collector_mode: "Execution Mode",
+          collector_interval: "Analysis Interval (seconds)",
+          collector_start_time: "Scheduled Start Time",
+          collector_end_time: "Scheduled End Time",
+          discovery_enabled: "Network Discovery Enabled",
+          discovery_mode: "Execution Mode",
+          discovery_interval: "Discovery Interval (seconds)",
+          discovery_start_time: "Scheduled Start Time",
+          discovery_end_time: "Scheduled End Time",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/fr.json
+var fr_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Configurer Selora AI",
+        description:
+          "Choisissez le backend LLM \xE0 utiliser pour les suggestions d'automatisation.",
+        data: {
+          llm_provider: "Fournisseur LLM",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud utilise votre compte Selora \u2014 aucune cl\xE9 API requise. Apr\xE8s la configuration, ouvrez le panneau Selora AI et cliquez sur \xAB Lier le compte Selora \xBB pour vous authentifier.",
+      },
+      anthropic: {
+        title: "Configuration Anthropic (Claude)",
+        description:
+          "Saisissez votre cl\xE9 API Anthropic. Obtenez-en une sur console.anthropic.com.",
+        data: {
+          anthropic_api_key: "Cl\xE9 API",
+          anthropic_model: "Mod\xE8le",
+        },
+      },
+      gemini: {
+        title: "Configuration Google Gemini",
+        description:
+          "Saisissez votre cl\xE9 API Google Gemini. Obtenez-en une sur aistudio.google.com.",
+        data: {
+          gemini_api_key: "Cl\xE9 API",
+          gemini_model: "Mod\xE8le",
+        },
+      },
+      openai: {
+        title: "Configuration OpenAI",
+        description:
+          "Saisissez votre cl\xE9 API OpenAI. Obtenez-en une sur platform.openai.com.",
+        data: {
+          openai_api_key: "Cl\xE9 API",
+          openai_model: "Mod\xE8le",
+        },
+      },
+      openrouter: {
+        title: "Configuration OpenRouter",
+        description:
+          "Saisissez votre cl\xE9 API OpenRouter. Obtenez-en une sur openrouter.ai/keys. Utilisez des noms de mod\xE8les pr\xE9fix\xE9s par le fournisseur comme \xAB anthropic/claude-sonnet-4.5 \xBB.",
+        data: {
+          openrouter_api_key: "Cl\xE9 API",
+          openrouter_model: "Mod\xE8le",
+        },
+      },
+      ollama: {
+        title: "Configuration Ollama (Local)",
+        description:
+          "Saisissez les d\xE9tails de votre serveur Ollama local. Assurez-vous que le mod\xE8le est t\xE9l\xE9charg\xE9.",
+        data: {
+          ollama_host: "URL de l'h\xF4te Ollama",
+          ollama_model: "Nom du mod\xE8le",
+        },
+      },
+      selora_local: {
+        title: "Configuration Selora AI Local",
+        description:
+          "Connectez-vous au module compl\xE9mentaire Selora AI Local Home Assistant ex\xE9cut\xE9 sur l'appareil. Le module \xE9coute sur le port 8080. L'adresse par d\xE9faut ci-dessous fonctionne pour HA OS via la passerelle Supervisor. Le mod\xE8le sp\xE9cialis\xE9 est s\xE9lectionn\xE9 automatiquement \xE0 chaque requ\xEAte.",
+        data: {
+          selora_local_host: "URL de l'h\xF4te du module",
+        },
+      },
+      select_devices: {
+        title: "S\xE9lectionner les appareils \xE0 int\xE9grer",
+        description:
+          "Selora AI a trouv\xE9 {count} appareils sur votre r\xE9seau. Attribuez une pi\xE8ce pour ajouter un appareil, ou s\xE9lectionnez \xAB Ignorer \xBB pour le passer.\n\n{device_list}",
+      },
+      results: {
+        title: "R\xE9sultats de la configuration des appareils",
+        description:
+          "Configuration termin\xE9e : {succeeded} r\xE9ussis, {failed} \xE9chou\xE9s, {needs_attention} n\xE9cessitent une attention manuelle.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Impossible de se connecter. V\xE9rifiez votre cl\xE9 API, ou que Ollama est en cours d'ex\xE9cution et que le mod\xE8le est t\xE9l\xE9charg\xE9.",
+      invalid_auth:
+        "Identifiants Selora Connect invalides. Veuillez v\xE9rifier votre e-mail et votre mot de passe.",
+      unknown: "Une erreur inattendue s'est produite.",
+    },
+    abort: {
+      already_configured: "Selora AI est d\xE9j\xE0 configur\xE9.",
+      cannot_connect:
+        "Impossible de se connecter au service Selora AI cloud. Veuillez r\xE9essayer plus tard.",
+      unknown: "Une erreur inattendue s'est produite lors de la configuration.",
+      llm_not_ready:
+        "Le backend LLM Selora AI n'est pas en cours d'ex\xE9cution. Veuillez le configurer d'abord.",
+      no_devices_found:
+        "Aucun nouvel appareil n'a \xE9t\xE9 d\xE9couvert sur votre r\xE9seau. R\xE9essayez plus tard.",
+      no_devices_selected: "Aucun appareil n'a \xE9t\xE9 s\xE9lectionn\xE9.",
+      select_devices_failed:
+        "L'int\xE9gration des appareils a rencontr\xE9 une erreur inattendue. Selora AI a \xE9t\xE9 configur\xE9 sans int\xE9gration d'appareils \u2014 vous pouvez r\xE9essayer plus tard depuis Param\xE8tres > Appareils > Ajouter une entr\xE9e. Consultez les journaux Home Assistant pour plus de d\xE9tails.",
+    },
+  },
+  common: {
+    feedback_button_label: "Donner un avis",
+    feedback_modal_title: "Partager un avis",
+    feedback_privacy_notice:
+      "Les avis sont anonymes et ne contiennent aucune donn\xE9e personnelle.",
+    feedback_textarea_placeholder:
+      "Qu'avez-vous en t\xEAte ? (10 caract\xE8res minimum)",
+    feedback_rating_label: "Note :",
+    feedback_rating_thumbsup: "Pouce lev\xE9",
+    feedback_rating_thumbsdown: "Pouce baiss\xE9",
+    feedback_category_label: "Cat\xE9gorie (facultatif) :",
+    feedback_category_bug: "Bug",
+    feedback_category_feature: "Demande de fonctionnalit\xE9",
+    feedback_category_general: "G\xE9n\xE9ral",
+    feedback_submit: "Envoyer l'avis",
+    feedback_submitting: "Envoi\u2026",
+    feedback_email_label: "E-mail (facultatif) :",
+    feedback_email_placeholder:
+      "votre@email.com \u2014 uniquement si vous souhaitez une r\xE9ponse",
+    feedback_cancel: "Annuler",
+    feedback_min_length_error: "Veuillez saisir au moins 10 caract\xE8res.",
+    feedback_success: "Merci pour votre avis !",
+    feedback_error:
+      "Impossible d\u2019envoyer l\u2019avis \u2014 veuillez r\xE9essayer.",
+    nav_new_chat: "Nouvelle conversation",
+    nav_selora_menu: "Menu Selora",
+    nav_conversations: "Conversations",
+    nav_automations: "Automatisations",
+    nav_scenes: "Sc\xE8nes",
+    nav_settings: "Param\xE8tres",
+    nav_documentation: "Documentation",
+    nav_github_issues: "Tickets GitHub",
+    nav_gitlab_repo: "D\xE9p\xF4t GitLab",
+    welcome_title_prefix: "Bienvenue sur",
+    welcome_subtitle: "Votre architecte intelligent de domotique",
+    new_automation_title_prefix: "Nouvelle",
+    new_automation_gold: "Automatisation",
+    new_automation_subtitle:
+      "D\xE9crivez ce que vous souhaitez automatiser \u2014 mentionnez les appareils, horaires ou conditions concern\xE9s.",
+    get_started: "Commencer",
+    get_started_body:
+      "Configurez votre fournisseur LLM dans l'onglet Param\xE8tres pour commencer \xE0 discuter avec votre maison.",
+    open_settings: "Ouvrir les param\xE8tres",
+    quick_start: "D\xE9marrage rapide",
+    composer_placeholder_ask: "Demandez n'importe quoi \xE0 Selora AI\u2026",
+    composer_placeholder_automation:
+      "D\xE9crivez l'automatisation que vous souhaitez cr\xE9er\u2026",
+    panel_quota_provider_default: "votre fournisseur LLM",
+    panel_quota_reached: "quota atteint.",
+    panel_quota_try_again_prefix: "R\xE9essayer dans",
+    panel_quota_retrying_now: "Nouvelle tentative en cours\u2026",
+    panel_quota_dismiss: "Ignorer",
+    panel_llm_switched_selora_cloud: "Bascul\xE9 vers Selora Cloud.",
+    panel_llm_invalid_key: "Cl\xE9 API invalide ou fournisseur injoignable.",
+    panel_llm_settings_saved: "Param\xE8tres LLM enregistr\xE9s.",
+    panel_advanced_settings_saved: "Param\xE8tres avanc\xE9s enregistr\xE9s.",
+    panel_linking_failed: "\xC9chec de la liaison.",
+    panel_linking_timed_out:
+      "D\xE9lai de liaison d\xE9pass\xE9. Veuillez r\xE9essayer \u2014 assurez-vous de terminer la connexion dans les 10 minutes.",
+    panel_linking_start_failed: "Impossible de d\xE9marrer la liaison.",
+    panel_connect_linked_success: "Selora Connect li\xE9 avec succ\xE8s.",
+    panel_unlink_connect_confirm:
+      "Dissocier Selora Connect ?\n\nLes outils MCP externes (Openclaw, Claude Desktop, Cursor, Windsurf) perdront l'acc\xE8s jusqu'\xE0 ce que vous les r\xE9associiez.",
+    panel_connect_unlinked: "Selora Connect dissoci\xE9.",
+    panel_cloud_linked_success: "Selora Cloud li\xE9 avec succ\xE8s.",
+    panel_unlink_cloud_confirm:
+      "Dissocier Selora Cloud ?\n\nLes suggestions de chat et d'automatisation s'arr\xEAteront jusqu'\xE0 ce que vous r\xE9associiez votre compte dans Param\xE8tres.",
+    panel_cloud_unlinked: "Selora Cloud dissoci\xE9.",
+    panel_mcp_token_created: "Jeton MCP cr\xE9\xE9.",
+    panel_mcp_token_revoked: "Jeton r\xE9voqu\xE9.",
+    panel_approval_revoked: "Approbation r\xE9voqu\xE9e.",
+    panel_device_loading: "Chargement...",
+    panel_device_error_loading: "Erreur lors du chargement de l'appareil",
+    panel_tab_conversations: "Conversations",
+    panel_tab_automations: "Automatisations",
+    panel_tab_scenes: "Sc\xE8nes",
+    panel_sidebar_conversations: "Conversations",
+    panel_sidebar_done: "Termin\xE9",
+    panel_sidebar_select: "S\xE9lectionner",
+    panel_sidebar_select_all: "Tout s\xE9lectionner",
+    panel_sidebar_delete: "Supprimer",
+    panel_sidebar_new_chat: "Nouveau chat",
+    panel_sidebar_no_conversations: "Aucune conversation pour l'instant.",
+    panel_session_delete_confirm: "Supprimer ?",
+    panel_session_delete: "Supprimer",
+    panel_session_cancel: "Annuler",
+    panel_session_delete_title: "Supprimer",
+    panel_bulk_delete_title: "Supprimer les conversations",
+    panel_bulk_delete_cancel: "Annuler",
+    panel_bulk_delete_confirm: "Supprimer",
+    chat_suggest_thinking: "R\xE9flexion\u2026",
+    chat_suggest_one_for_me: "Sugg\xE9rez-en une pour moi",
+    chat_jump_to_latest: "Aller au dernier message",
+    chat_autocomplete_hint:
+      "\u2191\u2193 naviguer \xB7 \u21B5 ins\xE9rer \xB7 \xC9chap fermer",
+    chat_selection_remove: "Retirer",
+    chat_stop_generating: "Arr\xEAter la g\xE9n\xE9ration",
+    chat_send: "Envoyer",
+    chat_building_scene: "Cr\xE9ation de la sc\xE8ne...",
+    chat_go_to_settings: "Aller aux Param\xE8tres",
+    chat_response_cut_short: "La r\xE9ponse a \xE9t\xE9 tronqu\xE9e.",
+    chat_retry: "R\xE9essayer",
+    chat_copy_message: "Copier le message",
+    chat_you: "Vous",
+    chat_yaml_unsaved_changes: "Modifications non enregistr\xE9es",
+    chat_yaml_saving: "Enregistrement\u2026",
+    chat_yaml_save_changes: "Enregistrer les modifications",
+    chat_tools_used: "Outils utilis\xE9s",
+    chat_automation_label_building: "Cr\xE9ation de l'automatisation...",
+    chat_automation_label_triggers: "R\xE9daction des d\xE9clencheurs...",
+    chat_automation_label_conditions: "C\xE2blage des conditions...",
+    chat_automation_label_actions: "Composition des actions...",
+    chat_automation_label_almost: "Presque pr\xEAt...",
+    chat_autocomplete_kind_devices: "Appareils",
+    chat_autocomplete_kind_areas: "Pi\xE8ces",
+    chat_autocomplete_kind_scenes: "Sc\xE8nes",
+    chat_autocomplete_kind_automations: "Automatisations",
+    chat_autocomplete_kind_suggestions: "Suggestions",
+    chat_welcome_suggestion_lights_label:
+      "\xC9teindre toutes les lumi\xE8res \xE0 minuit",
+    chat_welcome_suggestion_lights_value:
+      "Cr\xE9er une automatisation qui \xE9teint toutes les lumi\xE8res \xE0 minuit",
+    chat_welcome_suggestion_devices_label: "Quels appareils ai-je ?",
+    chat_welcome_suggestion_devices_value:
+      "Quels appareils ai-je et lesquels sont actuellement allum\xE9s ?",
+    chat_welcome_suggestion_suggest_label:
+      "Sugg\xE9rer des automatisations pour mon domicile",
+    chat_welcome_suggestion_suggest_value:
+      "Sugg\xE9rer des automatisations utiles bas\xE9es sur mes appareils et mes habitudes d'utilisation",
+    settings_view_token_usage_title: "Voir l'utilisation des jetons",
+    settings_usage_label: "Utilisation",
+    settings_view_usage_label: "Voir l'utilisation",
+    settings_provider_select_placeholder: "S\xE9lectionner...",
+    settings_doc_banner_title: "Guide de configuration",
+    settings_doc_banner_desc:
+      "Apprenez \xE0 configurer les fournisseurs LLM, l'acc\xE8s distant et les jetons MCP.",
+    settings_llm_provider_heading: "Fournisseur LLM",
+    settings_provider_label: "Fournisseur",
+    settings_selora_account_label: "Compte Selora",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud fournit votre backend LLM.",
+    settings_unlink_button: "Dissocier",
+    settings_signin_selora_desc:
+      "Connectez-vous avec votre compte Selora pour utiliser le backend LLM h\xE9berg\xE9. Aucune cl\xE9 API requise.",
+    settings_selora_cloud_url_label: "URL Selora Cloud",
+    settings_selora_cloud_url_hint:
+      "OAuth et les compl\xE9tions de chat utilisent tous deux cette URL. Enregistr\xE9e automatiquement lors de la liaison.",
+    settings_open_signin_page: "Ouvrir la page de connexion \u2192",
+    settings_preparing_label: "Pr\xE9paration\u2026",
+    settings_link_selora_account_button: "Lier le compte Selora",
+    settings_signin_new_tab_hint:
+      "S'ouvre dans un nouvel onglet. Apr\xE8s vous \xEAtre connect\xE9, revenez sur cette page \u2014 le panneau se met \xE0 jour automatiquement.",
+    settings_api_key_label: "Cl\xE9 API",
+    settings_click_replace_key_title: "Cliquez pour remplacer la cl\xE9",
+    settings_enter_new_key_label: "Saisir une nouvelle cl\xE9",
+    settings_enter_api_key_label: "Saisir la cl\xE9 API",
+    settings_model_label: "Mod\xE8le",
+    settings_selora_local_desc:
+      "Selora AI choisit automatiquement le bon mod\xE8le sp\xE9cialis\xE9 (commandes, automatisations, r\xE9ponses, clarifications) pour chaque requ\xEAte.",
+    settings_ollama_host_label: "H\xF4te",
+    settings_selora_local_show_advanced: "Afficher les options avanc\xE9es",
+    settings_selora_local_hide_advanced: "Masquer les options avanc\xE9es",
+    settings_selora_local_advanced_desc:
+      "Les hubs Selora sont pr\xE9configur\xE9s. Pour utiliser un llama-server auto-h\xE9berg\xE9 ex\xE9cutant le mod\xE8le Selora AI, saisissez son adresse ci-dessous.",
+    settings_selora_local_host_label: "H\xF4te",
+    settings_selora_local_auto_detected_prefix:
+      "D\xE9tect\xE9 automatiquement :",
+    settings_selora_local_auto_detected_none: "aucun",
+    settings_validating_label: "Validation\u2026",
+    settings_save_button: "Enregistrer",
+    settings_mcp_server_heading: "Serveur MCP",
+    settings_mcp_server_subtitle:
+      "Exposez votre domicile \xE0 des outils d'IA externes comme Openclaw, Claude Desktop, Cursor ou Windsurf.",
+    settings_connect_via_selora_label: "Connexion via le compte Selora",
+    settings_connect_via_selora_desc:
+      "Rend votre serveur MCP accessible aux outils externes",
+    settings_mcp_url_copied_toast: "URL MCP copi\xE9e dans le presse-papiers",
+    settings_connect_server_url_label: "URL du serveur Connect",
+    settings_mcp_tokens_section_title: "JETONS MCP",
+    settings_mcp_tokens_desc:
+      "Les jetons MCP sont une alternative \xE0 Selora Connect. Utilisez-les pour les outils qui ne prennent pas en charge OAuth ou lorsque vous pr\xE9f\xE9rez une authentification par jeton.",
+    settings_no_tokens_yet: "Aucun jeton pour l'instant.",
+    settings_add_token_button: "Ajouter un jeton",
+    settings_command_approvals_heading: "Approbations de commandes",
+    settings_advanced_settings_heading: "Param\xE8tres avanc\xE9s",
+    settings_background_services_title: "SERVICES EN ARRI\xC8RE-PLAN",
+    settings_data_collector_label: "Collecteur de donn\xE9es (analyse IA)",
+    settings_data_collector_desc:
+      "Transmet l'historique des entit\xE9s \xE0 Selora AI",
+    settings_mode_label: "Mode",
+    settings_mode_continuous: "Continu",
+    settings_mode_scheduled_window: "Fen\xEAtre planifi\xE9e",
+    settings_interval_seconds_label: "Intervalle (s)",
+    settings_start_hhmm_label: "D\xE9but (HH:MM)",
+    settings_end_hhmm_label: "Fin (HH:MM)",
+    settings_network_discovery_label: "D\xE9couverte r\xE9seau",
+    settings_network_discovery_desc:
+      "Analyse le r\xE9seau local \xE0 la recherche de nouveaux appareils",
+    settings_pattern_detection_label: "D\xE9tection de motifs",
+    settings_pattern_detection_desc:
+      "D\xE9tecte les motifs d'utilisation r\xE9currents et propose des automatisations",
+    settings_auto_remove_stale_label:
+      "Supprimer automatiquement les automatisations obsol\xE8tes",
+    settings_developer_mode_label: "Mode d\xE9veloppeur",
+    settings_developer_mode_desc:
+      "Expose les charges utiles brutes des entit\xE9s et les journaux de d\xE9bogage",
+    settings_dev_mode_save_failed_toast:
+      "Impossible d'enregistrer le mode d\xE9veloppeur.",
+    settings_saving_label: "Enregistrement\u2026",
+    settings_no_approvals_yet_prefix:
+      "Aucune approbation enregistr\xE9e pour l'instant. La prochaine fois que Selora vous demandera avant d'ex\xE9cuter une action risqu\xE9e, cliquez sur",
+    settings_no_approvals_always_word: "Toujours",
+    settings_no_approvals_yet_suffix: "pour la m\xE9moriser ici.",
+    settings_per_entity_approval_title: "Approbation par entit\xE9",
+    settings_wildcard_approval_title:
+      "Joker \u2014 s'applique \xE0 toutes les entit\xE9s de ce service",
+    settings_approval_all_label: "toutes",
+    settings_token_created_heading: "Jeton cr\xE9\xE9",
+    settings_token_created_desc:
+      "Copiez ce jeton maintenant \u2014 il ne sera plus affich\xE9.",
+    settings_token_copied_toast: "Jeton copi\xE9 dans le presse-papiers",
+    settings_done_button: "Termin\xE9",
+    settings_create_mcp_token_heading: "Cr\xE9er un jeton MCP",
+    settings_token_name_label: "Nom",
+    settings_token_name_placeholder: "ex. Claude Desktop",
+    settings_permission_level_label: "Niveau d'autorisation",
+    settings_perm_read_only: "Lecture seule",
+    settings_perm_admin_all: "Admin (tous les outils)",
+    settings_perm_custom: "Personnalis\xE9 (s\xE9lectionner les outils)",
+    settings_allowed_tools_label: "Outils autoris\xE9s",
+    settings_admin_badge: "admin",
+    settings_expiration_label: "Expiration (optionnel)",
+    settings_expiry_never: "N'expire jamais",
+    settings_expiry_7_days: "7 jours",
+    settings_expiry_30_days: "30 jours",
+    settings_expiry_90_days: "90 jours",
+    settings_expiry_1_year: "1 an",
+    settings_cancel_button: "Annuler",
+    settings_create_token_button: "Cr\xE9er le jeton",
+    automations_flow_branch_if: "Si",
+    automations_flow_branch_else_if: "Sinon si",
+    automations_flow_branch_otherwise: "Sinon",
+    automations_flow_branch_in_parallel: "En parall\xE8le",
+    automations_flow_branch_in_sequence: "En s\xE9quence",
+    automations_flow_repeat_while:
+      "R\xE9p\xE9ter tant que la condition est remplie",
+    automations_flow_repeat_until:
+      "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit remplie",
+    automations_flow_repeat: "R\xE9p\xE9ter",
+    automations_flow_label_trigger: "D\xE9clencheur",
+    automations_flow_label_condition: "Condition",
+    automations_flow_label_actions: "Actions",
+    automations_badge_enabled: "Activ\xE9",
+    automations_badge_saved: "Enregistr\xE9",
+    automations_yaml_toggle_hide: "Masquer le YAML",
+    automations_yaml_toggle_view: "Afficher le YAML",
+    automations_yaml_toggle_edit: "Modifier le YAML",
+    automations_proposal_declined_title: "Automatisation refus\xE9e",
+    automations_proposal_declined_body:
+      "Ignor\xE9e. Vous pouvez l'affiner en r\xE9pondant ci-dessous.",
+    automations_badge_being_refined: "En cours d'affinage",
+    automations_badge_proposal: "Proposition",
+    automations_proposal_elevated_risk:
+      "Examen recommand\xE9 pour risque \xE9lev\xE9.",
+    automations_proposal_yaml_edits_note:
+      "Vos modifications YAML seront prises en compte lors de l'acceptation.",
+    automations_action_run_tooltip:
+      "D\xE9clencher les actions maintenant pour v\xE9rifier leur fonctionnement",
+    automations_action_running: "Ex\xE9cution\u2026",
+    automations_action_run_now: "Ex\xE9cuter maintenant",
+    automations_action_open_in_ha_tooltip:
+      "Ouvrir cette automatisation dans Home Assistant",
+    automations_action_view_in_ha: "Voir dans HA",
+    automations_action_enabling: "Activation\u2026",
+    automations_action_enable_automation: "Activer l'automatisation",
+    automations_elevated_risk_note:
+      "Utilise des actions \xE0 risque \xE9lev\xE9 \u2014 v\xE9rifiez le flux et le YAML avant d'activer.",
+    automations_action_accept_and_save: "Accepter et enregistrer",
+    automations_section_title: "Vos automatisations",
+    automations_filter_placeholder: "Filtrer les automatisations\u2026",
+    automations_sort_recent: "Activit\xE9 r\xE9cente",
+    automations_sort_alpha: "Alphab\xE9tique",
+    automations_sort_enabled_first: "Activ\xE9es d'abord",
+    automations_llm_setup_required_tooltip:
+      "Configurez d'abord un fournisseur LLM",
+    automations_new_automation_button: "Nouvelle automatisation",
+    automations_status_tab_all: "Toutes",
+    automations_status_tab_enabled: "Activ\xE9es",
+    automations_status_tab_disabled: "D\xE9sactiv\xE9es",
+    automations_status_tab_stale: "Obsol\xE8tes",
+    automations_bulk_select_all: "Tout s\xE9lectionner",
+    automations_bulk_done: "Termin\xE9",
+    automations_bulk_edit: "Modification group\xE9e",
+    automations_bulk_working: "Traitement\u2026",
+    automations_bulk_enable_all: "Tout activer",
+    automations_bulk_disable_all: "Tout d\xE9sactiver",
+    automations_bulk_delete_selected: "Supprimer la s\xE9lection",
+    automations_bulk_clear: "Effacer",
+    automations_last_run_disabled: "D\xE9sactiv\xE9",
+    automations_last_run_never: "Jamais",
+    automations_needs_attention_pill: "N\xE9cessite votre attention",
+    automations_rename_save_tooltip: "Enregistrer",
+    automations_last_run_prefix: "Derni\xE8re ex\xE9cution :",
+    automations_last_run_prefix_inline: "Derni\xE8re ex\xE9cution :",
+    automations_toggle_enabled: "Activ\xE9",
+    automations_toggle_disabled: "D\xE9sactiv\xE9",
+    automations_toggle_unavailable: "Indisponible",
+    automations_toast_toggle_unresolved:
+      "Impossible de basculer : l'ID de l'automatisation n'a pas \xE9t\xE9 r\xE9solu. Rechargez et r\xE9essayez.",
+    automations_more_actions_tooltip: "Plus d'actions",
+    automations_burger_loading: "Chargement\u2026",
+    automations_burger_refine_in_chat: "Affiner dans le chat",
+    automations_burger_rename: "Renommer",
+    automations_burger_view_in_ha: "Voir dans HA",
+    automations_burger_deleting: "Suppression\u2026",
+    automations_burger_delete: "Supprimer",
+    automations_card_tab_flow: "Flux",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Historique",
+    automations_pagination_prev: "\u2039 Pr\xE9c\xE9dent",
+    automations_pagination_per_page: "Par page :",
+    automations_pagination_next: "Suivant \u203A",
+    automations_empty_state: "Aucune automatisation pour l'instant.",
+    automations_unavailable_modal_title: "Automatisation indisponible",
+    automations_unavailable_default_name: "Cette automatisation",
+    automations_unavailable_modal_intro:
+      "est marqu\xE9e comme indisponible par Home Assistant. Cela signifie g\xE9n\xE9ralement :",
+    automations_unavailable_reason_entity:
+      "Un d\xE9clencheur ou une condition fait r\xE9f\xE9rence \xE0 une entit\xE9 qui n'existe plus",
+    automations_unavailable_reason_yaml:
+      "Le YAML de l'automatisation contient une erreur de configuration",
+    automations_unavailable_reason_integration:
+      "Une int\xE9gration requise a \xE9t\xE9 supprim\xE9e ou n'est pas charg\xE9e",
+    automations_unavailable_modal_advice:
+      "Ouvrez l'automatisation dans les Param\xE8tres de Home Assistant pour v\xE9rifier et corriger la configuration.",
+    automations_unavailable_modal_close: "Fermer",
+    automations_unavailable_modal_edit_states: "Modifier les \xE9tats",
+    automations_unavailable_modal_open_in_automations:
+      "Ouvrir dans Automatisations",
+    scenes_card_created_title: "Sc\xE8ne cr\xE9\xE9e",
+    scenes_card_saved_status: "Enregistr\xE9e dans Home Assistant",
+    scenes_card_activate_button: "Activer",
+    scenes_card_view_in_ha_button: "Voir dans HA",
+    scenes_card_declined_title: "Sc\xE8ne refus\xE9e",
+    scenes_card_declined_message:
+      "Ignor\xE9e. Vous pouvez l'affiner en r\xE9pondant ci-dessous.",
+    scenes_card_refining_badge: "En cours d'affinage",
+    scenes_hide_yaml: "Masquer le YAML",
+    scenes_view_yaml: "Afficher le YAML",
+    scenes_card_proposal_badge: "Proposition",
+    scenes_card_accept_save_button: "Accepter et enregistrer",
+    scenes_section_title: "Vos sc\xE8nes",
+    scenes_filter_placeholder: "Filtrer les sc\xE8nes\u2026",
+    scenes_sort_recent: "R\xE9cemment mises \xE0 jour",
+    scenes_sort_alpha: "Alphab\xE9tique",
+    scenes_sort_size: "Plus d'entit\xE9s",
+    scenes_llm_needs_setup_tooltip: "Configurez d'abord un fournisseur LLM",
+    scenes_new_scene_button: "Nouvelle sc\xE8ne",
+    scenes_status_tab_all: "Toutes",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manuelles",
+    scenes_activate_scene_tooltip: "Activer la sc\xE8ne",
+    scenes_activate_button: "Activer",
+    scenes_more_actions_tooltip: "Plus d'actions",
+    scenes_loading_label: "Chargement\u2026",
+    scenes_refine_in_chat_button: "Affiner dans le chat",
+    scenes_open_in_ha_button: "Ouvrir dans HA",
+    scenes_deleting_label: "Suppression\u2026",
+    scenes_delete_button: "Supprimer",
+    scenes_no_entity_details:
+      "Aucun d\xE9tail d'entit\xE9 disponible \u2014 ouvrez la sc\xE8ne dans Home Assistant pour l'inspecter.",
+    scenes_yaml_unavailable_comment:
+      "# YAML non disponible \u2014 ouvrez la sc\xE8ne dans Home Assistant pour la consulter.",
+    scenes_empty_state:
+      "Aucune sc\xE8ne trouv\xE9e. Demandez \xE0 Selora d'en cr\xE9er une.",
+    scenes_delete_modal_fallback_name: "cette sc\xE8ne",
+    scenes_delete_modal_title: "Supprimer la sc\xE8ne",
+    scenes_delete_modal_prefix: "Supprimer",
+    scenes_delete_modal_suffix:
+      "? Cela retire la sc\xE8ne de Home Assistant et ne peut pas \xEAtre annul\xE9.",
+    scenes_delete_modal_cancel_button: "Annuler",
+    scenes_delete_modal_confirm_button: "Supprimer",
+    usage_pricing_invalid_error:
+      "Les tarifs doivent \xEAtre des nombres non n\xE9gatifs.",
+    usage_pricing_saved_toast: "Tarification personnalis\xE9e enregistr\xE9e.",
+    usage_pricing_save_failed:
+      "\xC9chec de l'enregistrement de la tarification :",
+    usage_pricing_reset_toast: "Tarification par d\xE9faut r\xE9tablie.",
+    usage_pricing_reset_failed:
+      "\xC9chec de la r\xE9initialisation de la tarification :",
+    usage_pricing_title: "Tarification",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "L'utilisation de Selora Cloud est mesur\xE9e et factur\xE9e sur votre compte Selora Homes. Elle n'est pas comptabilis\xE9e dans les capteurs ou graphiques de cette int\xE9gration.",
+    usage_pricing_view_cloud_link:
+      "Voir l'utilisation dans votre compte Selora Homes",
+    usage_pricing_ollama_help:
+      "Ollama s'ex\xE9cute localement \u2014 pas de co\xFBts en jetons \xE0 suivre.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local s'ex\xE9cute sur votre mat\xE9riel \u2014 pas de co\xFBts en jetons \xE0 suivre.",
+    usage_pricing_no_model_help:
+      "Configurez un fournisseur LLM et un mod\xE8le dans Param\xE8tres pour d\xE9finir une tarification personnalis\xE9e.",
+    usage_pricing_intro_prefix:
+      "Les estimations de co\xFBt utilisent ces tarifs par million de jetons. Les valeurs par d\xE9faut d'Anthropic proviennent de la",
+    usage_pricing_official_page_link: "page de tarification officielle",
+    usage_pricing_intro_suffix:
+      "; remplacez ici si vous avez n\xE9goci\xE9 des tarifs ou si vous suivez un mod\xE8le diff\xE9rent.",
+    usage_pricing_input_label: "Entr\xE9e",
+    usage_pricing_default_prefix: "par d\xE9faut",
+    usage_pricing_no_default: "aucune valeur par d\xE9faut int\xE9gr\xE9e",
+    usage_pricing_output_label: "Sortie",
+    usage_pricing_input_field_label: "Entr\xE9e ($/MTok)",
+    usage_pricing_output_field_label: "Sortie ($/MTok)",
+    usage_pricing_cancel_button: "Annuler",
+    usage_pricing_save_button: "Enregistrer",
+    usage_pricing_edit_override_button: "Modifier le remplacement",
+    usage_pricing_set_custom_button:
+      "D\xE9finir une tarification personnalis\xE9e",
+    usage_pricing_reset_default_button: "R\xE9initialiser par d\xE9faut",
+    usage_snippet_copied_label: "Copi\xE9 !",
+    usage_snippet_copy_button: "Copier",
+    usage_snippet_help:
+      "Le s\xE9lecteur visuel de carte trouvera \xE9galement ces capteurs apr\xE8s la premi\xE8re compilation horaire du Recorder.",
+    usage_back_to_settings: "Retour aux param\xE8tres",
+    usage_token_usage_title: "Utilisation des jetons",
+    usage_empty_title: "Aucune donn\xE9e d'utilisation pour l'instant.",
+    usage_empty_body:
+      "L'utilisation appara\xEEtra apr\xE8s le premier appel LLM. Essayez de discuter avec Selora AI ou de lancer un cycle de suggestions. Si vous avez d\xE9j\xE0 utilis\xE9 Selora AI et que vous voyez toujours ce message, red\xE9marrez Home Assistant pour que les nouveaux capteurs soient enregistr\xE9s.",
+    usage_totals_title: "Totaux",
+    usage_tile_cost_label: "Co\xFBt",
+    usage_tile_cost_sub: "Estimation en USD",
+    usage_tile_calls_label: "Appels",
+    usage_tile_tokens_in_label: "Jetons entrants",
+    usage_tile_tokens_out_label: "Jetons sortants",
+    usage_by_period_title: "Par p\xE9riode",
+    usage_period_today: "Aujourd'hui",
+    usage_period_last_7_days: "7 derniers jours",
+    usage_period_this_month: "Ce mois-ci",
+    usage_period_note_filtered:
+      "Les p\xE9riodes proviennent du magasin d'utilisation de l'int\xE9gration (conserv\xE9 pendant 30 jours).",
+    usage_period_note_unfiltered:
+      "Les p\xE9riodes proviennent des statistiques \xE0 long terme de Home Assistant, qui sont compil\xE9es chaque heure. Une nouvelle activit\xE9 peut prendre jusqu'\xE0 une heure pour appara\xEEtre ici.",
+    usage_where_tokens_go_title: "O\xF9 vont les jetons",
+    usage_where_tokens_last_prefix: "Dernier",
+    usage_where_tokens_resets_suffix:
+      "\xB7 r\xE9initialis\xE9 au red\xE9marrage de HA",
+    usage_group_by_kind_button: "Par type",
+    usage_group_by_provider_button: "Par fournisseur",
+    usage_loading: "Chargement\u2026",
+    usage_no_calls_recorded: "Aucun appel enregistr\xE9 pour l'instant.",
+    usage_recent_calls_title: "Appels r\xE9cents",
+    usage_dashboard_sensors_title: "Capteurs du tableau de bord",
+    usage_dashboard_sensors_help_prefix:
+      "Red\xE9marrez Home Assistant pour enregistrer les capteurs d'utilisation. Une fois enregistr\xE9s, vous pouvez les ajouter \xE0 n'importe quel tableau de bord avec une carte",
+    usage_dashboard_sensors_help_suffix: ".",
+    usage_add_to_dashboard_title: "Ajouter \xE0 votre tableau de bord",
+    usage_add_to_dashboard_help:
+      "Chaque m\xE9trique a une \xE9chelle diff\xE9rente \u2014 cr\xE9ez une carte par capteur. Choisissez une m\xE9trique, copiez le YAML, puis collez-le dans l'\xE9diteur YAML d'un tableau de bord.",
+    usage_filter_all_providers: "Tous les fournisseurs",
+    usage_filter_all_models: "Tous les mod\xE8les",
+    usage_filter_no_model: "(aucun mod\xE8le)",
+    suggestions_tab_flow: "Flux",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Cr\xE9ation\u2026",
+    suggestions_btn_accept: "Accepter",
+    suggestions_btn_dismissing: "Rejet\u2026",
+    suggestions_btn_dismiss: "Ignorer",
+    suggestions_section_title: "Suggestions pour vous",
+    suggestions_badge_new: "nouvelles",
+    suggestions_llm_setup_required: "Configurez d'abord un fournisseur LLM",
+    suggestions_btn_scanning: "Analyse\u2026",
+    suggestions_btn_scan_now: "Analyser maintenant",
+    suggestions_btn_analyzing: "Analyse en cours\u2026",
+    suggestions_btn_generate: "G\xE9n\xE9rer",
+    suggestions_section_subtitle:
+      "Bas\xE9 sur les motifs observ\xE9s et l'analyse IA de votre domicile.",
+    suggestions_empty_state:
+      "Aucune suggestion pour l'instant. Appuyez sur \xAB G\xE9n\xE9rer \xBB pour analyser votre domicile.",
+    suggestions_filter_placeholder: "Filtrer les suggestions\u2026",
+    suggestions_filter_all: "Toutes",
+    suggestions_filter_patterns: "Motifs",
+    suggestions_filter_ai: "IA",
+    suggestions_sort_recent: "R\xE9cent",
+    suggestions_sort_alpha: "Alphab\xE9tique",
+    suggestions_bulk_selected: "s\xE9lectionn\xE9(s)",
+    suggestions_bulk_accept_selected: "Accepter la s\xE9lection",
+    suggestions_bulk_dismiss_selected: "Ignorer la s\xE9lection",
+    suggestions_bulk_done: "Termin\xE9",
+    suggestions_bulk_edit: "Modification group\xE9e",
+    suggestions_show_more: "Afficher plus de suggestions",
+    version_history_loading: "Chargement\u2026",
+    version_history_empty: "Aucun historique de version pour l'instant.",
+    version_history_current_badge: "Actuelle",
+    version_history_hide_yaml: "Masquer le YAML",
+    version_history_view_yaml: "Afficher le YAML",
+    version_history_restoring: "Restauration\u2026",
+    version_history_restore_button: "Restaurer cette version",
+    version_history_no_yaml_stored: "(aucun YAML stock\xE9)",
+    version_history_compare_title: "Comparer les versions",
+    version_history_version_a_label: "Version A (plus r\xE9cente) :",
+    version_history_version_b_label: "Version B (plus ancienne) :",
+    version_history_loading_diff: "Chargement du diff\u2026",
+    version_history_no_diff: "Aucune diff\xE9rence trouv\xE9e.",
+    device_detail_loading: "Chargement des d\xE9tails de l'appareil...",
+    device_detail_close: "Fermer",
+    device_detail_entities_heading: "Entit\xE9s",
+    device_detail_state_history_heading: "Historique d'\xE9tat (24 h)",
+    device_detail_linked_automations_heading: "Automatisations li\xE9es",
+    device_detail_detected_patterns_heading: "Motifs d\xE9tect\xE9s",
+    device_detail_confidence_label: "confiance",
+    ignore_list_remove_label: "Retirer l'\xE9tiquette",
+    ignore_list_chip_kind_device: "appareil",
+    ignore_list_chip_kind_area: "pi\xE8ce",
+    ignore_list_dropdown_kind_area: "Pi\xE8ce",
+    ignore_list_dropdown_kind_device: "Appareil",
+    ignore_list_how_it_works: "Comment cela fonctionne-t-il ?",
+    ignore_list_section_title: "Ignorer dans les suggestions",
+    ignore_list_search_placeholder:
+      "Rechercher une entit\xE9, un appareil ou une pi\xE8ce\u2026",
+    ignore_list_empty_state: "Rien d'ignor\xE9 pour l'instant.",
+    approval_risk_explainer_low:
+      "Risque faible : impact mineur ou enti\xE8rement r\xE9versible (son, notifications, d\xE9marrage/arr\xEAt de l'aspirateur).",
+    approval_risk_explainer_medium:
+      "Risque moyen : effets secondaires notables que vous pourriez ne pas vouloir annuler (armement de l'alarme, verrouillage d'une porte, ex\xE9cution d'un script utilisateur).",
+    approval_risk_explainer_high:
+      "Risque \xE9lev\xE9 : acc\xE8s physique, s\xE9curit\xE9 ou impact au niveau de l'h\xF4te (d\xE9verrouillage d'une porte, d\xE9sarmement de l'alarme, ex\xE9cution de commandes shell).",
+    approval_scope_all_matching: "Toutes les entit\xE9s correspondantes",
+    approval_scope_just_these: "Uniquement ces entit\xE9s",
+    approval_status_approved: "Approuv\xE9",
+    approval_status_denied: "Refus\xE9",
+    approval_working: "Traitement\u2026",
+    approval_required_title: "Approbation requise",
+    approval_scope_label: "Pour la session / Toujours :",
+    approval_scope_button_title:
+      "Cliquez pour basculer entre limiter l'autorisation \xE0 cette seule entit\xE9 ou \xE0 toutes les entit\xE9s de ce service.",
+    quick_actions_approve_once_label: "Autoriser une fois",
+    quick_actions_approve_once_desc: "Uniquement cette requ\xEAte",
+    quick_actions_approve_session_label: "Pour cette conversation",
+    quick_actions_approve_session_desc:
+      "Autoriser pour le reste de cette conversation",
+    quick_actions_approve_always_label: "Toujours",
+    quick_actions_approve_always_desc: "M\xE9moriser cette approbation",
+    quick_actions_deny_label: "Refuser",
+    quick_actions_deny_desc: "Ne pas ex\xE9cuter cette requ\xEAte",
+    stale_modal_title: "Automatisations obsol\xE8tes",
+    stale_select_all: "Tout s\xE9lectionner",
+    stale_last_triggered_label: "Dernier d\xE9clenchement :",
+    stale_never: "Jamais",
+    stale_keep_button: "Conserver",
+    stale_close_button: "Fermer",
+    stale_state_label: "\xC9tat :",
+    stale_state_unknown: "inconnu",
+    stale_back_button: "Retour",
+    stale_remove_confirm: "Supprimer cette automatisation d\xE9finitivement ?",
+    stale_remove_success: "Automatisation supprim\xE9e.",
+    stale_remove_failed_prefix: "\xC9chec de la suppression :",
+    stale_remove_button: "Supprimer",
+    automation_management_triggered: "Automatisation d\xE9clench\xE9e.",
+    automation_management_renamed: "Automatisation renomm\xE9e",
+    automation_management_version_restored: "Version restaur\xE9e.",
+    automation_management_delete_confirm:
+      "Supprimer cette automatisation d\xE9finitivement ?",
+    automation_management_deleted: "Automatisation supprim\xE9e.",
+    automation_management_cannot_refine_no_id:
+      "Cette automatisation ne peut pas \xEAtre affin\xE9e car elle n'a pas d'ID d'automatisation.",
+    automation_management_loaded_to_chat:
+      "Automatisation charg\xE9e dans le chat.",
+    action_format_run_verb: "Ex\xE9cuter",
+    action_format_ran_verb: "Ex\xE9cut\xE9e",
+    chat_actions_interrupt_disconnect:
+      "La connexion \xE0 Home Assistant a \xE9t\xE9 perdue en cours de r\xE9ponse.",
+    chat_actions_interrupt_server_stopped:
+      "Le serveur a cess\xE9 de r\xE9pondre.",
+    chat_actions_interrupt_server_no_reply:
+      "Le serveur n'a pas r\xE9pondu \xE0 temps.",
+    chat_actions_interrupt_truncated:
+      "La r\xE9ponse semble tronqu\xE9e \u2014 r\xE9essayez.",
+    chat_actions_interrupt_llm_unreachable:
+      "Impossible de joindre le fournisseur LLM.",
+    chat_actions_interrupt_session_start_failed:
+      "Impossible de d\xE9marrer la session de chat.",
+    chat_actions_cancelled_by_user: "_Annul\xE9 par l'utilisateur_",
+    automation_crud_save_failed:
+      "\xC9chec de l'enregistrement de l'automatisation :",
+    automation_crud_entity_not_surfaced:
+      "Automatisation enregistr\xE9e, mais Home Assistant n'a pas encore fait appara\xEEtre l'entit\xE9 \u2014 activez-la depuis l'onglet Automatisations d\xE8s qu'elle appara\xEEt.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automatisation enregistr\xE9e mais n'a pas pu \xEAtre activ\xE9e automatiquement :",
+    automation_crud_unknown_error: "erreur inconnue",
+    automation_crud_auto_enable_failed_suffix:
+      ". Utilisez le bouton Activer sur la carte pour r\xE9essayer.",
+    automation_crud_draft_dismissed: "Brouillon ignor\xE9.",
+    automation_crud_dismiss_draft_failed:
+      "\xC9chec de l'ignorance du brouillon :",
+    automation_crud_create_failed:
+      "\xC9chec de la cr\xE9ation de l'automatisation :",
+    automation_crud_save_edited_yaml_failed:
+      "\xC9chec de l'enregistrement de l'automatisation depuis le YAML modifi\xE9 :",
+    automation_crud_yaml_saved: "YAML d'automatisation enregistr\xE9.",
+    automation_crud_save_changes_failed:
+      "\xC9chec de l'enregistrement des modifications :",
+    scene_actions_refine_default_name: "la sc\xE8ne",
+    session_toast_new_automation_chat_failed:
+      "\xC9chec du d\xE9marrage d'un nouveau chat d'automatisation :",
+    session_toast_ai_no_suggestion:
+      "L'IA n'a pas retourn\xE9 de suggestion \u2014 r\xE9essayez.",
+    session_toast_suggest_failed:
+      "\xC9chec de la g\xE9n\xE9ration d'une suggestion \u2014 v\xE9rifiez la configuration LLM.",
+    suggestions_analysis_no_new:
+      "Analyse termin\xE9e \u2014 aucune nouvelle suggestion pour le moment",
+    suggestions_accepted_toast:
+      "Suggestion accept\xE9e \u2014 automatisation cr\xE9\xE9e",
+    suggestions_accept_failed: "\xC9chec de l'acceptation de la suggestion",
+    suggestions_dismissed_toast: "Suggestion ignor\xE9e",
+    suggestions_snoozed_toast: "Suggestion report\xE9e pendant 24 h",
+    suggestions_pattern_scan_failed: "\xC9chec de l'analyse des motifs",
+    area_unassigned: "Non assign\xE9",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Param\xE8tres des services en arri\xE8re-plan",
+        description:
+          "Configurer les services en arri\xE8re-plan pour Selora AI.",
+        data: {
+          collector_enabled: "Collecteur de donn\xE9es (analyse IA) activ\xE9",
+          collector_mode: "Mode d'ex\xE9cution",
+          collector_interval: "Intervalle d'analyse (secondes)",
+          collector_start_time: "Heure de d\xE9but planifi\xE9e",
+          collector_end_time: "Heure de fin planifi\xE9e",
+          discovery_enabled: "D\xE9couverte r\xE9seau activ\xE9e",
+          discovery_mode: "Mode d'ex\xE9cution",
+          discovery_interval: "Intervalle de d\xE9couverte (secondes)",
+          discovery_start_time: "Heure de d\xE9but planifi\xE9e",
+          discovery_end_time: "Heure de fin planifi\xE9e",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/de.json
+var de_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Selora AI konfigurieren",
+        description:
+          "W\xE4hlen Sie das LLM-Backend f\xFCr Automatisierungsvorschl\xE4ge aus.",
+        data: {
+          llm_provider: "LLM-Anbieter",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud nutzt Ihr Selora-Konto \u2013 kein API-Schl\xFCssel erforderlich. \xD6ffnen Sie nach der Einrichtung das Selora AI-Panel und klicken Sie auf \u201ESelora-Konto verkn\xFCpfen\u201C, um sich zu authentifizieren.",
+      },
+      anthropic: {
+        title: "Anthropic (Claude) Konfiguration",
+        description:
+          "Geben Sie Ihren Anthropic-API-Schl\xFCssel ein. Erh\xE4ltlich unter console.anthropic.com.",
+        data: {
+          anthropic_api_key: "API-Schl\xFCssel",
+          anthropic_model: "Modell",
+        },
+      },
+      gemini: {
+        title: "Google Gemini Konfiguration",
+        description:
+          "Geben Sie Ihren Google-Gemini-API-Schl\xFCssel ein. Erh\xE4ltlich unter aistudio.google.com.",
+        data: {
+          gemini_api_key: "API-Schl\xFCssel",
+          gemini_model: "Modell",
+        },
+      },
+      openai: {
+        title: "OpenAI Konfiguration",
+        description:
+          "Geben Sie Ihren OpenAI-API-Schl\xFCssel ein. Erh\xE4ltlich unter platform.openai.com.",
+        data: {
+          openai_api_key: "API-Schl\xFCssel",
+          openai_model: "Modell",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter Konfiguration",
+        description:
+          "Geben Sie Ihren OpenRouter-API-Schl\xFCssel ein. Erh\xE4ltlich unter openrouter.ai/keys. Verwenden Sie anbieterpr\xE4fixierte Modellnamen wie \u201Eanthropic/claude-sonnet-4.5\u201C.",
+        data: {
+          openrouter_api_key: "API-Schl\xFCssel",
+          openrouter_model: "Modell",
+        },
+      },
+      ollama: {
+        title: "Ollama (Lokal) Konfiguration",
+        description:
+          "Geben Sie die Details Ihres lokalen Ollama-Servers ein. Stellen Sie sicher, dass das Modell heruntergeladen ist.",
+        data: {
+          ollama_host: "Ollama-Host-URL",
+          ollama_model: "Modellname",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local Konfiguration",
+        description:
+          "Verbinden Sie sich mit dem Selora AI Local Home Assistant Add-on, das auf dem Ger\xE4t l\xE4uft. Das Add-on lauscht auf Port 8080. Die Standardadresse unten funktioniert f\xFCr HA OS \xFCber das Supervisor-Gateway. Das Spezialmodell wird pro Anfrage automatisch ausgew\xE4hlt.",
+        data: {
+          selora_local_host: "Add-on-Host-URL",
+        },
+      },
+      select_devices: {
+        title: "Ger\xE4te zum Einbinden ausw\xE4hlen",
+        description:
+          "Selora AI hat {count} Ger\xE4te in Ihrem Netzwerk gefunden. Weisen Sie einen Raum zu, um ein Ger\xE4t hinzuzuf\xFCgen, oder w\xE4hlen Sie \u201E\xDCberspringen\u201C.\n\n{device_list}",
+      },
+      results: {
+        title: "Ergebnisse der Ger\xE4teeinrichtung",
+        description:
+          "Einrichtung abgeschlossen: {succeeded} erfolgreich, {failed} fehlgeschlagen, {needs_attention} ben\xF6tigen manuelle Aufmerksamkeit.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Verbindung nicht m\xF6glich. \xDCberpr\xFCfen Sie Ihren API-Schl\xFCssel oder stellen Sie sicher, dass Ollama l\xE4uft und das Modell heruntergeladen ist.",
+      invalid_auth:
+        "Ung\xFCltige Selora-Connect-Anmeldedaten. Bitte \xFCberpr\xFCfen Sie Ihre E-Mail und Ihr Passwort.",
+      unknown: "Ein unerwarteter Fehler ist aufgetreten.",
+    },
+    abort: {
+      already_configured: "Selora AI ist bereits konfiguriert.",
+      cannot_connect:
+        "Verbindung zum Selora AI Cloud-Dienst nicht m\xF6glich. Bitte versuchen Sie es sp\xE4ter erneut.",
+      unknown:
+        "W\xE4hrend der Einrichtung ist ein unerwarteter Fehler aufgetreten.",
+      llm_not_ready:
+        "Das Selora AI LLM-Backend l\xE4uft nicht. Bitte konfigurieren Sie es zuerst.",
+      no_devices_found:
+        "Keine neuen Ger\xE4te in Ihrem Netzwerk gefunden. Versuchen Sie es sp\xE4ter erneut.",
+      no_devices_selected: "Keine Ger\xE4te ausgew\xE4hlt.",
+      select_devices_failed:
+        "Beim Einbinden der Ger\xE4te ist ein unerwarteter Fehler aufgetreten. Selora AI wurde ohne Ger\xE4teeinbindung eingerichtet \u2014 Sie k\xF6nnen es sp\xE4ter unter Einstellungen > Ger\xE4te > Eintrag hinzuf\xFCgen erneut versuchen. Details finden Sie in den Home Assistant-Protokollen.",
+    },
+  },
+  common: {
+    feedback_button_label: "Feedback geben",
+    feedback_modal_title: "Feedback teilen",
+    feedback_privacy_notice:
+      "Feedback ist anonym und enth\xE4lt keine pers\xF6nlichen Daten.",
+    feedback_textarea_placeholder:
+      "Was besch\xE4ftigt Sie? (mindestens 10 Zeichen)",
+    feedback_rating_label: "Bewertung:",
+    feedback_rating_thumbsup: "Daumen hoch",
+    feedback_rating_thumbsdown: "Daumen runter",
+    feedback_category_label: "Kategorie (optional):",
+    feedback_category_bug: "Fehler",
+    feedback_category_feature: "Funktionswunsch",
+    feedback_category_general: "Allgemein",
+    feedback_submit: "Feedback senden",
+    feedback_submitting: "Senden\u2026",
+    feedback_email_label: "E-Mail (optional):",
+    feedback_email_placeholder:
+      "ihre@email.com \u2014 nur wenn Sie eine Antwort w\xFCnschen",
+    feedback_cancel: "Abbrechen",
+    feedback_min_length_error: "Bitte geben Sie mindestens 10 Zeichen ein.",
+    feedback_success: "Vielen Dank f\xFCr Ihr Feedback!",
+    feedback_error:
+      "Feedback konnte nicht gesendet werden \u2014 bitte versuchen Sie es erneut.",
+    nav_new_chat: "Neuer Chat",
+    nav_selora_menu: "Selora-Men\xFC",
+    nav_conversations: "Unterhaltungen",
+    nav_automations: "Automatisierungen",
+    nav_scenes: "Szenen",
+    nav_settings: "Einstellungen",
+    nav_documentation: "Dokumentation",
+    nav_github_issues: "GitHub-Issues",
+    nav_gitlab_repo: "GitLab-Repository",
+    welcome_title_prefix: "Willkommen bei",
+    welcome_subtitle: "Ihr intelligenter Heimautomatisierungs-Architekt",
+    new_automation_title_prefix: "Neue",
+    new_automation_gold: "Automatisierung",
+    new_automation_subtitle:
+      "Beschreiben Sie, was Sie automatisieren m\xF6chten \u2014 nennen Sie die beteiligten Ger\xE4te, Zeiten oder Bedingungen.",
+    get_started: "Loslegen",
+    get_started_body:
+      "Konfigurieren Sie Ihren LLM-Anbieter im Einstellungen-Tab, um mit Ihrem Zuhause zu chatten.",
+    open_settings: "Einstellungen \xF6ffnen",
+    quick_start: "Schnellstart",
+    composer_placeholder_ask: "Fragen Sie Selora AI alles\u2026",
+    composer_placeholder_automation:
+      "Beschreiben Sie die Automatisierung, die Sie erstellen m\xF6chten\u2026",
+    panel_quota_provider_default: "Ihr LLM-Anbieter",
+    panel_quota_reached: "Kontingent erreicht.",
+    panel_quota_try_again_prefix: "Erneut versuchen in",
+    panel_quota_retrying_now: "Wiederhole jetzt\u2026",
+    panel_quota_dismiss: "Schlie\xDFen",
+    panel_llm_switched_selora_cloud: "Zu Selora Cloud gewechselt.",
+    panel_llm_invalid_key:
+      "Ung\xFCltiger API-Schl\xFCssel oder Anbieter nicht erreichbar.",
+    panel_llm_settings_saved: "LLM-Einstellungen gespeichert.",
+    panel_advanced_settings_saved: "Erweiterte Einstellungen gespeichert.",
+    panel_linking_failed: "Verkn\xFCpfung fehlgeschlagen.",
+    panel_linking_timed_out:
+      "Zeit\xFCberschreitung bei der Verkn\xFCpfung. Bitte versuchen Sie es erneut \u2014 stellen Sie sicher, dass Sie sich innerhalb von 10 Minuten anmelden.",
+    panel_linking_start_failed: "Verkn\xFCpfung konnte nicht gestartet werden.",
+    panel_connect_linked_success: "Selora Connect erfolgreich verkn\xFCpft.",
+    panel_unlink_connect_confirm:
+      "Selora Connect trennen?\n\nExterne MCP-Tools (Openclaw, Claude Desktop, Cursor, Windsurf) verlieren den Zugriff, bis Sie erneut verkn\xFCpfen.",
+    panel_connect_unlinked: "Selora Connect getrennt.",
+    panel_cloud_linked_success: "Selora Cloud erfolgreich verkn\xFCpft.",
+    panel_unlink_cloud_confirm:
+      "Selora Cloud trennen?\n\nChat- und Automatisierungsvorschl\xE4ge werden gestoppt, bis Sie Ihr Konto in den Einstellungen erneut verkn\xFCpfen.",
+    panel_cloud_unlinked: "Selora Cloud getrennt.",
+    panel_mcp_token_created: "MCP-Token erstellt.",
+    panel_mcp_token_revoked: "Token widerrufen.",
+    panel_approval_revoked: "Genehmigung widerrufen.",
+    panel_device_loading: "Wird geladen...",
+    panel_device_error_loading: "Fehler beim Laden des Ger\xE4ts",
+    panel_tab_conversations: "Konversationen",
+    panel_tab_automations: "Automatisierungen",
+    panel_tab_scenes: "Szenen",
+    panel_sidebar_conversations: "Konversationen",
+    panel_sidebar_done: "Fertig",
+    panel_sidebar_select: "Ausw\xE4hlen",
+    panel_sidebar_select_all: "Alle ausw\xE4hlen",
+    panel_sidebar_delete: "L\xF6schen",
+    panel_sidebar_new_chat: "Neuer Chat",
+    panel_sidebar_no_conversations: "Noch keine Konversationen.",
+    panel_session_delete_confirm: "L\xF6schen?",
+    panel_session_delete: "L\xF6schen",
+    panel_session_cancel: "Abbrechen",
+    panel_session_delete_title: "L\xF6schen",
+    panel_bulk_delete_title: "Konversationen l\xF6schen",
+    panel_bulk_delete_cancel: "Abbrechen",
+    panel_bulk_delete_confirm: "L\xF6schen",
+    chat_suggest_thinking: "Denke nach\u2026",
+    chat_suggest_one_for_me: "Schlagen Sie mir eine vor",
+    chat_jump_to_latest: "Zur neuesten Nachricht springen",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navigieren \xB7 \u21B5 einf\xFCgen \xB7 Esc schlie\xDFen",
+    chat_selection_remove: "Entfernen",
+    chat_stop_generating: "Generierung stoppen",
+    chat_send: "Senden",
+    chat_building_scene: "Szene wird erstellt...",
+    chat_go_to_settings: "Zu den Einstellungen",
+    chat_response_cut_short: "Antwort wurde abgeschnitten.",
+    chat_retry: "Wiederholen",
+    chat_copy_message: "Nachricht kopieren",
+    chat_you: "Sie",
+    chat_yaml_unsaved_changes: "Nicht gespeicherte \xC4nderungen",
+    chat_yaml_saving: "Speichere\u2026",
+    chat_yaml_save_changes: "\xC4nderungen speichern",
+    chat_tools_used: "Verwendete Tools",
+    chat_automation_label_building: "Automatisierung wird erstellt...",
+    chat_automation_label_triggers: "Ausl\xF6ser werden entworfen...",
+    chat_automation_label_conditions: "Bedingungen werden verkn\xFCpft...",
+    chat_automation_label_actions: "Aktionen werden zusammengestellt...",
+    chat_automation_label_almost: "Fast fertig...",
+    chat_autocomplete_kind_devices: "Ger\xE4te",
+    chat_autocomplete_kind_areas: "Bereiche",
+    chat_autocomplete_kind_scenes: "Szenen",
+    chat_autocomplete_kind_automations: "Automatisierungen",
+    chat_autocomplete_kind_suggestions: "Vorschl\xE4ge",
+    chat_welcome_suggestion_lights_label:
+      "Alle Lichter um Mitternacht ausschalten",
+    chat_welcome_suggestion_lights_value:
+      "Erstellen Sie eine Automatisierung, die alle Lichter um Mitternacht ausschaltet",
+    chat_welcome_suggestion_devices_label: "Welche Ger\xE4te habe ich?",
+    chat_welcome_suggestion_devices_value:
+      "Welche Ger\xE4te habe ich und welche davon sind derzeit eingeschaltet?",
+    chat_welcome_suggestion_suggest_label:
+      "Automatisierungen f\xFCr mein Zuhause vorschlagen",
+    chat_welcome_suggestion_suggest_value:
+      "Schlagen Sie n\xFCtzliche Automatisierungen basierend auf meinen Ger\xE4ten und Nutzungsmustern vor",
+    settings_view_token_usage_title: "Token-Nutzung anzeigen",
+    settings_usage_label: "Nutzung",
+    settings_view_usage_label: "Nutzung anzeigen",
+    settings_provider_select_placeholder: "Ausw\xE4hlen...",
+    settings_doc_banner_title: "Konfigurationsanleitung",
+    settings_doc_banner_desc:
+      "Erfahren Sie, wie Sie LLM-Anbieter, Fernzugriff und MCP-Token einrichten.",
+    settings_llm_provider_heading: "LLM-Anbieter",
+    settings_provider_label: "Anbieter",
+    settings_selora_account_label: "Selora-Konto",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud stellt Ihr LLM-Backend bereit.",
+    settings_unlink_button: "Trennen",
+    settings_signin_selora_desc:
+      "Melden Sie sich mit Ihrem Selora-Konto an, um das gehostete LLM-Backend zu nutzen. Kein API-Schl\xFCssel erforderlich.",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth und Chat-Vervollst\xE4ndigungen verwenden beide diese URL. Wird beim Verkn\xFCpfen automatisch gespeichert.",
+    settings_open_signin_page: "Anmeldeseite \xF6ffnen \u2192",
+    settings_preparing_label: "Vorbereiten\u2026",
+    settings_link_selora_account_button: "Selora-Konto verkn\xFCpfen",
+    settings_signin_new_tab_hint:
+      "\xD6ffnet in einem neuen Tab. Kehren Sie nach der Anmeldung zu dieser Seite zur\xFCck \u2014 das Panel aktualisiert sich automatisch.",
+    settings_api_key_label: "API-Schl\xFCssel",
+    settings_click_replace_key_title:
+      "Klicken Sie, um den Schl\xFCssel zu ersetzen",
+    settings_enter_new_key_label: "Neuen Schl\xFCssel eingeben",
+    settings_enter_api_key_label: "API-Schl\xFCssel eingeben",
+    settings_model_label: "Modell",
+    settings_selora_local_desc:
+      "Selora AI w\xE4hlt automatisch das passende Spezialmodell (Befehle, Automatisierungen, Antworten, Klarstellungen) pro Anfrage aus.",
+    settings_ollama_host_label: "Host",
+    settings_selora_local_show_advanced: "Erweiterte Optionen anzeigen",
+    settings_selora_local_hide_advanced: "Erweiterte Optionen ausblenden",
+    settings_selora_local_advanced_desc:
+      "Selora-Hubs sind vorkonfiguriert. Um einen selbst gehosteten llama-server mit dem Selora-AI-Modell zu verwenden, geben Sie unten dessen Adresse ein.",
+    settings_selora_local_host_label: "Host",
+    settings_selora_local_auto_detected_prefix: "Automatisch erkannt:",
+    settings_selora_local_auto_detected_none: "keine",
+    settings_validating_label: "Validiere\u2026",
+    settings_save_button: "Speichern",
+    settings_mcp_server_heading: "MCP-Server",
+    settings_mcp_server_subtitle:
+      "Machen Sie Ihr Zuhause f\xFCr externe KI-Tools wie Openclaw, Claude Desktop, Cursor oder Windsurf zug\xE4nglich.",
+    settings_connect_via_selora_label: "\xDCber Selora-Konto verbinden",
+    settings_connect_via_selora_desc:
+      "Macht Ihren MCP-Server f\xFCr externe Tools erreichbar",
+    settings_mcp_url_copied_toast: "MCP-URL in die Zwischenablage kopiert",
+    settings_connect_server_url_label: "Connect-Server-URL",
+    settings_mcp_tokens_section_title: "MCP-TOKEN",
+    settings_mcp_tokens_desc:
+      "MCP-Token sind eine Alternative zu Selora Connect. Verwenden Sie sie f\xFCr Tools, die OAuth nicht unterst\xFCtzen, oder wenn Sie die tokenbasierte Authentifizierung bevorzugen.",
+    settings_no_tokens_yet: "Noch keine Token.",
+    settings_add_token_button: "Token hinzuf\xFCgen",
+    settings_command_approvals_heading: "Befehlsgenehmigungen",
+    settings_advanced_settings_heading: "Erweiterte Einstellungen",
+    settings_background_services_title: "HINTERGRUNDDIENSTE",
+    settings_data_collector_label: "Datensammler (KI-Analyse)",
+    settings_data_collector_desc:
+      "\xDCbermittelt den Entit\xE4tsverlauf an Selora AI",
+    settings_mode_label: "Modus",
+    settings_mode_continuous: "Kontinuierlich",
+    settings_mode_scheduled_window: "Geplantes Zeitfenster",
+    settings_interval_seconds_label: "Intervall (s)",
+    settings_start_hhmm_label: "Start (HH:MM)",
+    settings_end_hhmm_label: "Ende (HH:MM)",
+    settings_network_discovery_label: "Netzwerksuche",
+    settings_network_discovery_desc:
+      "Durchsucht das lokale Netzwerk nach neuen Ger\xE4ten",
+    settings_pattern_detection_label: "Mustererkennung",
+    settings_pattern_detection_desc:
+      "Erkennt wiederkehrende Nutzungsmuster und schl\xE4gt Automatisierungen vor",
+    settings_auto_remove_stale_label:
+      "Veraltete Automatisierungen automatisch entfernen",
+    settings_developer_mode_label: "Entwicklermodus",
+    settings_developer_mode_desc:
+      "Stellt rohe Entit\xE4ts-Payloads und Debug-Logs bereit",
+    settings_dev_mode_save_failed_toast:
+      "Entwicklermodus konnte nicht gespeichert werden.",
+    settings_saving_label: "Speichere\u2026",
+    settings_no_approvals_yet_prefix:
+      "Noch keine gespeicherten Genehmigungen. Wenn Selora das n\xE4chste Mal fragt, bevor etwas Riskantes ausgef\xFChrt wird, klicken Sie auf",
+    settings_no_approvals_always_word: "Immer",
+    settings_no_approvals_yet_suffix: ", um es hier zu merken.",
+    settings_per_entity_approval_title: "Genehmigung pro Entit\xE4t",
+    settings_wildcard_approval_title:
+      "Platzhalter \u2014 gilt f\xFCr jede Entit\xE4t dieses Dienstes",
+    settings_approval_all_label: "alle",
+    settings_token_created_heading: "Token erstellt",
+    settings_token_created_desc:
+      "Kopieren Sie dieses Token jetzt \u2014 es wird nicht erneut angezeigt.",
+    settings_token_copied_toast: "Token in die Zwischenablage kopiert",
+    settings_done_button: "Fertig",
+    settings_create_mcp_token_heading: "MCP-Token erstellen",
+    settings_token_name_label: "Name",
+    settings_token_name_placeholder: "z. B. Claude Desktop",
+    settings_permission_level_label: "Berechtigungsstufe",
+    settings_perm_read_only: "Nur Lesen",
+    settings_perm_admin_all: "Admin (alle Tools)",
+    settings_perm_custom: "Benutzerdefiniert (Tools ausw\xE4hlen)",
+    settings_allowed_tools_label: "Erlaubte Tools",
+    settings_admin_badge: "admin",
+    settings_expiration_label: "Ablauf (optional)",
+    settings_expiry_never: "L\xE4uft nie ab",
+    settings_expiry_7_days: "7 Tage",
+    settings_expiry_30_days: "30 Tage",
+    settings_expiry_90_days: "90 Tage",
+    settings_expiry_1_year: "1 Jahr",
+    settings_cancel_button: "Abbrechen",
+    settings_create_token_button: "Token erstellen",
+    automations_flow_branch_if: "Wenn",
+    automations_flow_branch_else_if: "Sonst wenn",
+    automations_flow_branch_otherwise: "Andernfalls",
+    automations_flow_branch_in_parallel: "Parallel",
+    automations_flow_branch_in_sequence: "Nacheinander",
+    automations_flow_repeat_while:
+      "Wiederholen, solange Bedingung erf\xFCllt ist",
+    automations_flow_repeat_until: "Wiederholen, bis Bedingung erf\xFCllt ist",
+    automations_flow_repeat: "Wiederholen",
+    automations_flow_label_trigger: "Ausl\xF6ser",
+    automations_flow_label_condition: "Bedingung",
+    automations_flow_label_actions: "Aktionen",
+    automations_badge_enabled: "Aktiviert",
+    automations_badge_saved: "Gespeichert",
+    automations_yaml_toggle_hide: "YAML ausblenden",
+    automations_yaml_toggle_view: "YAML anzeigen",
+    automations_yaml_toggle_edit: "YAML bearbeiten",
+    automations_proposal_declined_title: "Automatisierung abgelehnt",
+    automations_proposal_declined_body:
+      "Abgelehnt. Sie k\xF6nnen sie verfeinern, indem Sie unten antworten.",
+    automations_badge_being_refined: "Wird verfeinert",
+    automations_badge_proposal: "Vorschlag",
+    automations_proposal_elevated_risk:
+      "\xDCberpr\xFCfung aufgrund erh\xF6hten Risikos empfohlen.",
+    automations_proposal_yaml_edits_note:
+      "Ihre YAML-\xC4nderungen werden bei der Annahme verwendet.",
+    automations_action_run_tooltip:
+      "L\xF6sen Sie die Aktionen jetzt aus, um zu pr\xFCfen, ob sie funktionieren",
+    automations_action_running: "L\xE4uft\u2026",
+    automations_action_run_now: "Jetzt ausf\xFChren",
+    automations_action_open_in_ha_tooltip:
+      "Diese Automatisierung in Home Assistant \xF6ffnen",
+    automations_action_view_in_ha: "In HA anzeigen",
+    automations_action_enabling: "Aktiviere\u2026",
+    automations_action_enable_automation: "Automatisierung aktivieren",
+    automations_elevated_risk_note:
+      "Verwendet Aktionen mit erh\xF6htem Risiko \u2014 pr\xFCfen Sie den Ablauf und YAML vor der Aktivierung.",
+    automations_action_accept_and_save: "Annehmen & Speichern",
+    automations_section_title: "Ihre Automatisierungen",
+    automations_filter_placeholder: "Automatisierungen filtern\u2026",
+    automations_sort_recent: "Letzte Aktivit\xE4t",
+    automations_sort_alpha: "Alphabetisch",
+    automations_sort_enabled_first: "Aktivierte zuerst",
+    automations_llm_setup_required_tooltip:
+      "Konfigurieren Sie zuerst einen LLM-Anbieter",
+    automations_new_automation_button: "Neue Automatisierung",
+    automations_status_tab_all: "Alle",
+    automations_status_tab_enabled: "Aktiviert",
+    automations_status_tab_disabled: "Deaktiviert",
+    automations_status_tab_stale: "Veraltet",
+    automations_bulk_select_all: "Alle ausw\xE4hlen",
+    automations_bulk_done: "Fertig",
+    automations_bulk_edit: "Massenbearbeitung",
+    automations_bulk_working: "Arbeite\u2026",
+    automations_bulk_enable_all: "Alle aktivieren",
+    automations_bulk_disable_all: "Alle deaktivieren",
+    automations_bulk_delete_selected: "Ausgew\xE4hlte l\xF6schen",
+    automations_bulk_clear: "Zur\xFCcksetzen",
+    automations_last_run_disabled: "Deaktiviert",
+    automations_last_run_never: "Nie",
+    automations_needs_attention_pill: "Ben\xF6tigt Aufmerksamkeit",
+    automations_rename_save_tooltip: "Speichern",
+    automations_last_run_prefix: "Letzte Ausf\xFChrung:",
+    automations_last_run_prefix_inline: "Letzte Ausf\xFChrung:",
+    automations_toggle_enabled: "Aktiviert",
+    automations_toggle_disabled: "Deaktiviert",
+    automations_toggle_unavailable: "Nicht verf\xFCgbar",
+    automations_toast_toggle_unresolved:
+      "Umschalten nicht m\xF6glich: Automatisierungs-ID konnte nicht aufgel\xF6st werden. Laden Sie neu und versuchen Sie es erneut.",
+    automations_more_actions_tooltip: "Weitere Aktionen",
+    automations_burger_loading: "Lade\u2026",
+    automations_burger_refine_in_chat: "Im Chat verfeinern",
+    automations_burger_rename: "Umbenennen",
+    automations_burger_view_in_ha: "In HA anzeigen",
+    automations_burger_deleting: "L\xF6sche\u2026",
+    automations_burger_delete: "L\xF6schen",
+    automations_card_tab_flow: "Ablauf",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Verlauf",
+    automations_pagination_prev: "\u2039 Zur\xFCck",
+    automations_pagination_per_page: "Pro Seite:",
+    automations_pagination_next: "Weiter \u203A",
+    automations_empty_state: "Noch keine Automatisierungen.",
+    automations_unavailable_modal_title: "Automatisierung nicht verf\xFCgbar",
+    automations_unavailable_default_name: "Diese Automatisierung",
+    automations_unavailable_modal_intro:
+      "ist von Home Assistant als nicht verf\xFCgbar markiert. Das bedeutet normalerweise:",
+    automations_unavailable_reason_entity:
+      "Ein Ausl\xF6ser oder eine Bedingung verweist auf eine Entit\xE4t, die nicht mehr existiert",
+    automations_unavailable_reason_yaml:
+      "Das Automatisierungs-YAML enth\xE4lt einen Konfigurationsfehler",
+    automations_unavailable_reason_integration:
+      "Eine erforderliche Integration wurde entfernt oder ist nicht geladen",
+    automations_unavailable_modal_advice:
+      "\xD6ffnen Sie die Automatisierung in den Home Assistant-Einstellungen, um die Konfiguration zu \xFCberpr\xFCfen und zu korrigieren.",
+    automations_unavailable_modal_close: "Schlie\xDFen",
+    automations_unavailable_modal_edit_states: "Zust\xE4nde bearbeiten",
+    automations_unavailable_modal_open_in_automations:
+      "In Automatisierungen \xF6ffnen",
+    scenes_card_created_title: "Szene erstellt",
+    scenes_card_saved_status: "In Home Assistant gespeichert",
+    scenes_card_activate_button: "Aktivieren",
+    scenes_card_view_in_ha_button: "In HA anzeigen",
+    scenes_card_declined_title: "Szene abgelehnt",
+    scenes_card_declined_message:
+      "Abgelehnt. Sie k\xF6nnen sie verfeinern, indem Sie unten antworten.",
+    scenes_card_refining_badge: "Wird verfeinert",
+    scenes_hide_yaml: "YAML ausblenden",
+    scenes_view_yaml: "YAML anzeigen",
+    scenes_card_proposal_badge: "Vorschlag",
+    scenes_card_accept_save_button: "Annehmen & Speichern",
+    scenes_section_title: "Ihre Szenen",
+    scenes_filter_placeholder: "Szenen filtern\u2026",
+    scenes_sort_recent: "K\xFCrzlich aktualisiert",
+    scenes_sort_alpha: "Alphabetisch",
+    scenes_sort_size: "Meiste Entit\xE4ten",
+    scenes_llm_needs_setup_tooltip:
+      "Konfigurieren Sie zuerst einen LLM-Anbieter",
+    scenes_new_scene_button: "Neue Szene",
+    scenes_status_tab_all: "Alle",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manuell",
+    scenes_activate_scene_tooltip: "Szene aktivieren",
+    scenes_activate_button: "Aktivieren",
+    scenes_more_actions_tooltip: "Weitere Aktionen",
+    scenes_loading_label: "Lade\u2026",
+    scenes_refine_in_chat_button: "Im Chat verfeinern",
+    scenes_open_in_ha_button: "In HA \xF6ffnen",
+    scenes_deleting_label: "L\xF6sche\u2026",
+    scenes_delete_button: "L\xF6schen",
+    scenes_no_entity_details:
+      "Keine Entit\xE4tsdetails verf\xFCgbar \u2014 \xF6ffnen Sie die Szene in Home Assistant, um sie zu pr\xFCfen.",
+    scenes_yaml_unavailable_comment:
+      "# YAML nicht verf\xFCgbar \u2014 \xF6ffnen Sie die Szene in Home Assistant, um sie anzuzeigen.",
+    scenes_empty_state:
+      "Keine Szenen gefunden. Bitten Sie Selora, eine zu erstellen.",
+    scenes_delete_modal_fallback_name: "diese Szene",
+    scenes_delete_modal_title: "Szene l\xF6schen",
+    scenes_delete_modal_prefix: "L\xF6schen",
+    scenes_delete_modal_suffix:
+      "? Dies entfernt die Szene aus Home Assistant und kann nicht r\xFCckg\xE4ngig gemacht werden.",
+    scenes_delete_modal_cancel_button: "Abbrechen",
+    scenes_delete_modal_confirm_button: "L\xF6schen",
+    usage_pricing_invalid_error: "Preise m\xFCssen nicht-negative Zahlen sein.",
+    usage_pricing_saved_toast: "Preis\xFCberschreibung gespeichert.",
+    usage_pricing_save_failed: "Preise konnten nicht gespeichert werden:",
+    usage_pricing_reset_toast: "Auf Standardpreise zur\xFCckgesetzt.",
+    usage_pricing_reset_failed: "Preise konnten nicht zur\xFCckgesetzt werden:",
+    usage_pricing_title: "Preise",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Die Nutzung von Selora Cloud wird gemessen und in Ihrem Selora Homes-Konto abgerechnet. Sie wird in den Sensoren oder Diagrammen dieser Integration nicht gez\xE4hlt.",
+    usage_pricing_view_cloud_link:
+      "Nutzung in Ihrem Selora Homes-Konto anzeigen",
+    usage_pricing_ollama_help:
+      "Ollama l\xE4uft lokal \u2014 keine Token-Kosten zu erfassen.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local l\xE4uft auf Ihrer Hardware \u2014 keine Token-Kosten zu erfassen.",
+    usage_pricing_no_model_help:
+      "Konfigurieren Sie einen LLM-Anbieter und ein Modell in den Einstellungen, um benutzerdefinierte Preise festzulegen.",
+    usage_pricing_intro_prefix:
+      "Kostensch\xE4tzungen verwenden diese Raten pro Million Token. Anthropic-Standardwerte stammen von der",
+    usage_pricing_official_page_link: "offiziellen Preisseite",
+    usage_pricing_intro_suffix:
+      "; \xFCberschreiben Sie hier, wenn Sie ausgehandelte Tarife haben oder ein anderes Modell verfolgen.",
+    usage_pricing_input_label: "Eingabe",
+    usage_pricing_default_prefix: "Standard",
+    usage_pricing_no_default: "kein integrierter Standard",
+    usage_pricing_output_label: "Ausgabe",
+    usage_pricing_input_field_label: "Eingabe ($/MTok)",
+    usage_pricing_output_field_label: "Ausgabe ($/MTok)",
+    usage_pricing_cancel_button: "Abbrechen",
+    usage_pricing_save_button: "Speichern",
+    usage_pricing_edit_override_button: "\xDCberschreibung bearbeiten",
+    usage_pricing_set_custom_button: "Benutzerdefinierte Preise festlegen",
+    usage_pricing_reset_default_button: "Auf Standard zur\xFCcksetzen",
+    usage_snippet_copied_label: "Kopiert!",
+    usage_snippet_copy_button: "Kopieren",
+    usage_snippet_help:
+      "Die visuelle Karten-Auswahl findet diese Sensoren ebenfalls nach der ersten st\xFCndlichen Kompilierung des Recorders.",
+    usage_back_to_settings: "Zur\xFCck zu den Einstellungen",
+    usage_token_usage_title: "Token-Nutzung",
+    usage_empty_title: "Noch keine Nutzungsdaten.",
+    usage_empty_body:
+      "Die Nutzung wird nach dem ersten LLM-Aufruf angezeigt. Versuchen Sie, mit Selora AI zu chatten oder einen Vorschlagszyklus auszuf\xFChren. Wenn Sie Selora AI bereits verwendet haben und dies immer noch sehen, starten Sie Home Assistant neu, damit die neuen Sensoren registriert werden.",
+    usage_totals_title: "Summen",
+    usage_tile_cost_label: "Kosten",
+    usage_tile_cost_sub: "USD-Sch\xE4tzung",
+    usage_tile_calls_label: "Aufrufe",
+    usage_tile_tokens_in_label: "Eingabe-Token",
+    usage_tile_tokens_out_label: "Ausgabe-Token",
+    usage_by_period_title: "Nach Zeitraum",
+    usage_period_today: "Heute",
+    usage_period_last_7_days: "Letzte 7 Tage",
+    usage_period_this_month: "Dieser Monat",
+    usage_period_note_filtered:
+      "Zeitraum-Buckets stammen aus dem Nutzungsspeicher der Integration (30 Tage aufbewahrt).",
+    usage_period_note_unfiltered:
+      "Zeitraum-Buckets stammen aus den Langzeitstatistiken von Home Assistant, die st\xFCndlich kompiliert werden. Neue Aktivit\xE4t kann bis zu einer Stunde brauchen, bis sie hier erscheint.",
+    usage_where_tokens_go_title: "Wohin die Token gehen",
+    usage_where_tokens_last_prefix: "Letzte",
+    usage_where_tokens_resets_suffix: "\xB7 Zur\xFCcksetzen beim HA-Neustart",
+    usage_group_by_kind_button: "Nach Art",
+    usage_group_by_provider_button: "Nach Anbieter",
+    usage_loading: "Lade\u2026",
+    usage_no_calls_recorded: "Noch keine Aufrufe aufgezeichnet.",
+    usage_recent_calls_title: "Letzte Aufrufe",
+    usage_dashboard_sensors_title: "Dashboard-Sensoren",
+    usage_dashboard_sensors_help_prefix:
+      "Starten Sie Home Assistant neu, um die Nutzungssensoren zu registrieren. Nach der Registrierung k\xF6nnen Sie sie zu einem beliebigen Dashboard mit einer",
+    usage_dashboard_sensors_help_suffix: "-Karte hinzuf\xFCgen.",
+    usage_add_to_dashboard_title: "Zu Ihrem Dashboard hinzuf\xFCgen",
+    usage_add_to_dashboard_help:
+      "Jede Metrik hat eine andere Skala \u2014 erstellen Sie eine Karte pro Sensor. W\xE4hlen Sie eine Metrik, kopieren Sie das YAML und f\xFCgen Sie es im YAML-Editor eines Dashboards ein.",
+    usage_filter_all_providers: "Alle Anbieter",
+    usage_filter_all_models: "Alle Modelle",
+    usage_filter_no_model: "(kein Modell)",
+    suggestions_tab_flow: "Ablauf",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Erstelle\u2026",
+    suggestions_btn_accept: "Annehmen",
+    suggestions_btn_dismissing: "Verwerfe\u2026",
+    suggestions_btn_dismiss: "Verwerfen",
+    suggestions_section_title: "F\xFCr Sie vorgeschlagen",
+    suggestions_badge_new: "neu",
+    suggestions_llm_setup_required:
+      "Konfigurieren Sie zuerst einen LLM-Anbieter",
+    suggestions_btn_scanning: "Scanne\u2026",
+    suggestions_btn_scan_now: "Jetzt scannen",
+    suggestions_btn_analyzing: "Analysiere\u2026",
+    suggestions_btn_generate: "Generieren",
+    suggestions_section_subtitle:
+      "Basierend auf beobachteten Mustern und KI-Analyse in Ihrem Zuhause.",
+    suggestions_empty_state:
+      'Noch keine Vorschl\xE4ge. Tippen Sie auf "Generieren", um Ihr Zuhause zu analysieren.',
+    suggestions_filter_placeholder: "Vorschl\xE4ge filtern\u2026",
+    suggestions_filter_all: "Alle",
+    suggestions_filter_patterns: "Muster",
+    suggestions_filter_ai: "KI",
+    suggestions_sort_recent: "K\xFCrzlich",
+    suggestions_sort_alpha: "Alphabetisch",
+    suggestions_bulk_selected: "ausgew\xE4hlt",
+    suggestions_bulk_accept_selected: "Ausgew\xE4hlte annehmen",
+    suggestions_bulk_dismiss_selected: "Ausgew\xE4hlte verwerfen",
+    suggestions_bulk_done: "Fertig",
+    suggestions_bulk_edit: "Massenbearbeitung",
+    suggestions_show_more: "Weitere Vorschl\xE4ge anzeigen",
+    version_history_loading: "Lade\u2026",
+    version_history_empty: "Noch kein Versionsverlauf.",
+    version_history_current_badge: "Aktuell",
+    version_history_hide_yaml: "YAML ausblenden",
+    version_history_view_yaml: "YAML anzeigen",
+    version_history_restoring: "Stelle wieder her\u2026",
+    version_history_restore_button: "Diese Version wiederherstellen",
+    version_history_no_yaml_stored: "(kein YAML gespeichert)",
+    version_history_compare_title: "Versionen vergleichen",
+    version_history_version_a_label: "Version A (neuer):",
+    version_history_version_b_label: "Version B (\xE4lter):",
+    version_history_loading_diff: "Lade Diff\u2026",
+    version_history_no_diff: "Keine Unterschiede gefunden.",
+    device_detail_loading: "Lade Ger\xE4tedetails...",
+    device_detail_close: "Schlie\xDFen",
+    device_detail_entities_heading: "Entit\xE4ten",
+    device_detail_state_history_heading: "Zustandsverlauf (24h)",
+    device_detail_linked_automations_heading: "Verkn\xFCpfte Automatisierungen",
+    device_detail_detected_patterns_heading: "Erkannte Muster",
+    device_detail_confidence_label: "Konfidenz",
+    ignore_list_remove_label: "Bezeichnung entfernen",
+    ignore_list_chip_kind_device: "Ger\xE4t",
+    ignore_list_chip_kind_area: "Bereich",
+    ignore_list_dropdown_kind_area: "Bereich",
+    ignore_list_dropdown_kind_device: "Ger\xE4t",
+    ignore_list_how_it_works: "Wie funktioniert das?",
+    ignore_list_section_title: "In Vorschl\xE4gen ignorieren",
+    ignore_list_search_placeholder:
+      "Eine Entit\xE4t, ein Ger\xE4t oder einen Bereich suchen\u2026",
+    ignore_list_empty_state: "Noch nichts ignoriert.",
+    approval_risk_explainer_low:
+      "Geringes Risiko: geringf\xFCgige oder vollst\xE4ndig umkehrbare Auswirkung (Ton, Benachrichtigungen, Saugroboter starten/stoppen).",
+    approval_risk_explainer_medium:
+      "Mittleres Risiko: sp\xFCrbare Nebenwirkungen, die Sie m\xF6glicherweise nicht r\xFCckg\xE4ngig machen m\xF6chten (Alarmanlage scharfschalten, T\xFCr verriegeln, ein Benutzerskript ausf\xFChren).",
+    approval_risk_explainer_high:
+      "Hohes Risiko: physischer Zugang, Sicherheit oder Auswirkungen auf Host-Ebene (T\xFCr entriegeln, Alarmanlage entsch\xE4rfen, Shell-Befehle ausf\xFChren).",
+    approval_scope_all_matching: "Alle passenden Entit\xE4ten",
+    approval_scope_just_these: "Nur diese Entit\xE4ten",
+    approval_status_approved: "Genehmigt",
+    approval_status_denied: "Abgelehnt",
+    approval_working: "Arbeite\u2026",
+    approval_required_title: "Genehmigung erforderlich",
+    approval_scope_label: "F\xFCr Sitzung / Immer:",
+    approval_scope_button_title:
+      "Klicken Sie, um zwischen der Beschr\xE4nkung der Genehmigung auf nur diese Entit\xE4t oder auf alle Entit\xE4ten dieses Dienstes umzuschalten.",
+    quick_actions_approve_once_label: "Einmal erlauben",
+    quick_actions_approve_once_desc: "Nur f\xFCr diese eine Anfrage",
+    quick_actions_approve_session_label: "F\xFCr diese Konversation",
+    quick_actions_approve_session_desc:
+      "F\xFCr den Rest dieser Konversation erlauben",
+    quick_actions_approve_always_label: "Immer",
+    quick_actions_approve_always_desc: "Diese Genehmigung merken",
+    quick_actions_deny_label: "Ablehnen",
+    quick_actions_deny_desc: "Diese Anfrage nicht ausf\xFChren",
+    stale_modal_title: "Veraltete Automatisierungen",
+    stale_select_all: "Alle ausw\xE4hlen",
+    stale_last_triggered_label: "Zuletzt ausgel\xF6st:",
+    stale_never: "Nie",
+    stale_keep_button: "Behalten",
+    stale_close_button: "Schlie\xDFen",
+    stale_state_label: "Zustand:",
+    stale_state_unknown: "unbekannt",
+    stale_back_button: "Zur\xFCck",
+    stale_remove_confirm: "Diese Automatisierung dauerhaft entfernen?",
+    stale_remove_success: "Automatisierung entfernt.",
+    stale_remove_failed_prefix: "Entfernen fehlgeschlagen:",
+    stale_remove_button: "Entfernen",
+    automation_management_triggered: "Automatisierung ausgel\xF6st.",
+    automation_management_renamed: "Automatisierung umbenannt",
+    automation_management_version_restored: "Version wiederhergestellt.",
+    automation_management_delete_confirm:
+      "Diese Automatisierung dauerhaft l\xF6schen?",
+    automation_management_deleted: "Automatisierung gel\xF6scht.",
+    automation_management_cannot_refine_no_id:
+      "Diese Automatisierung kann nicht verfeinert werden, da sie keine Automatisierungs-ID hat.",
+    automation_management_loaded_to_chat:
+      "Automatisierung in den Chat geladen.",
+    action_format_run_verb: "Ausf\xFChren",
+    action_format_ran_verb: "Ausgef\xFChrt",
+    chat_actions_interrupt_disconnect:
+      "Die Verbindung zu Home Assistant wurde w\xE4hrend der Antwort unterbrochen.",
+    chat_actions_interrupt_server_stopped:
+      "Der Server hat nicht mehr geantwortet.",
+    chat_actions_interrupt_server_no_reply:
+      "Der Server hat nicht rechtzeitig geantwortet.",
+    chat_actions_interrupt_truncated:
+      "Antwort wirkt abgeschnitten \u2014 versuchen Sie es erneut.",
+    chat_actions_interrupt_llm_unreachable:
+      "LLM-Anbieter konnte nicht erreicht werden.",
+    chat_actions_interrupt_session_start_failed:
+      "Chat-Sitzung konnte nicht gestartet werden.",
+    chat_actions_cancelled_by_user: "_Vom Benutzer abgebrochen_",
+    automation_crud_save_failed:
+      "Automatisierung konnte nicht gespeichert werden:",
+    automation_crud_entity_not_surfaced:
+      "Automatisierung gespeichert, aber Home Assistant hat die Entit\xE4t noch nicht bereitgestellt \u2014 aktivieren Sie sie im Reiter Automatisierungen, sobald sie erscheint.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automatisierung gespeichert, konnte aber nicht automatisch aktiviert werden:",
+    automation_crud_unknown_error: "unbekannter Fehler",
+    automation_crud_auto_enable_failed_suffix:
+      ". Verwenden Sie die Schaltfl\xE4che Aktivieren auf der Karte, um es erneut zu versuchen.",
+    automation_crud_draft_dismissed: "Entwurf verworfen.",
+    automation_crud_dismiss_draft_failed:
+      "Entwurf konnte nicht verworfen werden:",
+    automation_crud_create_failed:
+      "Automatisierung konnte nicht erstellt werden:",
+    automation_crud_save_edited_yaml_failed:
+      "Automatisierung konnte nicht aus bearbeitetem YAML gespeichert werden:",
+    automation_crud_yaml_saved: "Automatisierungs-YAML gespeichert.",
+    automation_crud_save_changes_failed:
+      "\xC4nderungen konnten nicht gespeichert werden:",
+    scene_actions_refine_default_name: "die Szene",
+    session_toast_new_automation_chat_failed:
+      "Neuer Automatisierungs-Chat konnte nicht gestartet werden:",
+    session_toast_ai_no_suggestion:
+      "KI hat keinen Vorschlag zur\xFCckgegeben \u2014 versuchen Sie es erneut.",
+    session_toast_suggest_failed:
+      "Vorschlag konnte nicht generiert werden \u2014 pr\xFCfen Sie die LLM-Konfiguration.",
+    suggestions_analysis_no_new:
+      "Analyse abgeschlossen \u2014 derzeit keine neuen Vorschl\xE4ge",
+    suggestions_accepted_toast:
+      "Vorschlag angenommen \u2014 Automatisierung erstellt",
+    suggestions_accept_failed: "Vorschlag konnte nicht angenommen werden",
+    suggestions_dismissed_toast: "Vorschlag verworfen",
+    suggestions_snoozed_toast: "Vorschlag f\xFCr 24h zur\xFCckgestellt",
+    suggestions_pattern_scan_failed: "Musterscan fehlgeschlagen",
+    area_unassigned: "Nicht zugewiesen",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Einstellungen f\xFCr Hintergrunddienste",
+        description: "Hintergrunddienste f\xFCr Selora AI konfigurieren.",
+        data: {
+          collector_enabled: "Datensammler (KI-Analyse) aktiviert",
+          collector_mode: "Ausf\xFChrungsmodus",
+          collector_interval: "Analyseintervall (Sekunden)",
+          collector_start_time: "Geplante Startzeit",
+          collector_end_time: "Geplante Endzeit",
+          discovery_enabled: "Netzwerkerkennung aktiviert",
+          discovery_mode: "Ausf\xFChrungsmodus",
+          discovery_interval: "Erkennungsintervall (Sekunden)",
+          discovery_start_time: "Geplante Startzeit",
+          discovery_end_time: "Geplante Endzeit",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/es.json
+var es_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Configurar Selora AI",
+        description:
+          "Elija qu\xE9 backend de LLM utilizar para las sugerencias de automatizaci\xF3n.",
+        data: {
+          llm_provider: "Proveedor de LLM",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud utiliza su cuenta Selora \u2014 no se necesita clave API. Despu\xE9s de la configuraci\xF3n, abra el panel de Selora AI y haga clic en \xABVincular cuenta Selora\xBB para autenticarse.",
+      },
+      anthropic: {
+        title: "Configuraci\xF3n de Anthropic (Claude)",
+        description:
+          "Introduzca su clave API de Anthropic. Obtenga una en console.anthropic.com.",
+        data: {
+          anthropic_api_key: "Clave API",
+          anthropic_model: "Modelo",
+        },
+      },
+      gemini: {
+        title: "Configuraci\xF3n de Google Gemini",
+        description:
+          "Introduzca su clave API de Google Gemini. Obtenga una en aistudio.google.com.",
+        data: {
+          gemini_api_key: "Clave API",
+          gemini_model: "Modelo",
+        },
+      },
+      openai: {
+        title: "Configuraci\xF3n de OpenAI",
+        description:
+          "Introduzca su clave API de OpenAI. Obtenga una en platform.openai.com.",
+        data: {
+          openai_api_key: "Clave API",
+          openai_model: "Modelo",
+        },
+      },
+      openrouter: {
+        title: "Configuraci\xF3n de OpenRouter",
+        description:
+          "Introduzca su clave API de OpenRouter. Obtenga una en openrouter.ai/keys. Use nombres de modelos con prefijo de proveedor como \xABanthropic/claude-sonnet-4.5\xBB.",
+        data: {
+          openrouter_api_key: "Clave API",
+          openrouter_model: "Modelo",
+        },
+      },
+      ollama: {
+        title: "Configuraci\xF3n de Ollama (Local)",
+        description:
+          "Introduzca los detalles de su servidor Ollama local. Aseg\xFArese de que el modelo est\xE9 descargado.",
+        data: {
+          ollama_host: "URL del host Ollama",
+          ollama_model: "Nombre del modelo",
+        },
+      },
+      selora_local: {
+        title: "Configuraci\xF3n de Selora AI Local",
+        description:
+          "Con\xE9ctese al complemento Selora AI Local Home Assistant que se ejecuta en el dispositivo. El complemento escucha en el puerto 8080. La direcci\xF3n predeterminada de abajo funciona para HA OS a trav\xE9s de la puerta de enlace Supervisor. El modelo especializado se selecciona autom\xE1ticamente en cada solicitud.",
+        data: {
+          selora_local_host: "URL del host del complemento",
+        },
+      },
+      select_devices: {
+        title: "Seleccionar dispositivos para incorporar",
+        description:
+          "Selora AI encontr\xF3 {count} dispositivos en su red. Asigne una habitaci\xF3n para a\xF1adir un dispositivo, o seleccione \xABOmitir\xBB para omitirlo.\n\n{device_list}",
+      },
+      results: {
+        title: "Resultados de configuraci\xF3n de dispositivos",
+        description:
+          "Configuraci\xF3n completada: {succeeded} con \xE9xito, {failed} fallidos, {needs_attention} requieren atenci\xF3n manual.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "No se puede conectar. Verifique su clave API, o que Ollama est\xE9 en ejecuci\xF3n y el modelo descargado.",
+      invalid_auth:
+        "Credenciales de Selora Connect no v\xE1lidas. Por favor verifique su correo electr\xF3nico y contrase\xF1a.",
+      unknown: "Ha ocurrido un error inesperado.",
+    },
+    abort: {
+      already_configured: "Selora AI ya est\xE1 configurado.",
+      cannot_connect:
+        "No se puede conectar al servicio Selora AI cloud. Por favor int\xE9ntelo de nuevo m\xE1s tarde.",
+      unknown: "Ha ocurrido un error inesperado durante la configuraci\xF3n.",
+      llm_not_ready:
+        "El backend LLM de Selora AI no est\xE1 en ejecuci\xF3n. Por favor config\xFArelo primero.",
+      no_devices_found:
+        "No se descubrieron nuevos dispositivos en su red. Int\xE9ntelo de nuevo m\xE1s tarde.",
+      no_devices_selected: "No se seleccionaron dispositivos.",
+      select_devices_failed:
+        "La incorporaci\xF3n de dispositivos encontr\xF3 un error inesperado. Selora AI se configur\xF3 sin incorporaci\xF3n de dispositivos \u2014 puede intentarlo de nuevo m\xE1s tarde desde Configuraci\xF3n > Dispositivos > A\xF1adir entrada. Consulte los registros de Home Assistant para m\xE1s detalles.",
+    },
+  },
+  common: {
+    feedback_button_label: "Dar opini\xF3n",
+    feedback_modal_title: "Compartir opini\xF3n",
+    feedback_privacy_notice:
+      "La opini\xF3n es an\xF3nima y no contiene datos personales.",
+    feedback_textarea_placeholder:
+      "\xBFQu\xE9 tiene en mente? (m\xEDnimo 10 caracteres)",
+    feedback_rating_label: "Valoraci\xF3n:",
+    feedback_rating_thumbsup: "Pulgar arriba",
+    feedback_rating_thumbsdown: "Pulgar abajo",
+    feedback_category_label: "Categor\xEDa (opcional):",
+    feedback_category_bug: "Error",
+    feedback_category_feature: "Solicitud de funci\xF3n",
+    feedback_category_general: "General",
+    feedback_submit: "Enviar opini\xF3n",
+    feedback_submitting: "Enviando\u2026",
+    feedback_email_label: "Correo electr\xF3nico (opcional):",
+    feedback_email_placeholder:
+      "su@email.com \u2014 solo si desea una respuesta",
+    feedback_cancel: "Cancelar",
+    feedback_min_length_error: "Por favor introduzca al menos 10 caracteres.",
+    feedback_success: "\xA1Gracias por su opini\xF3n!",
+    feedback_error:
+      "No se pudo enviar la opini\xF3n \u2014 por favor int\xE9ntelo de nuevo.",
+    nav_new_chat: "Nuevo chat",
+    nav_selora_menu: "Men\xFA Selora",
+    nav_conversations: "Conversaciones",
+    nav_automations: "Automatizaciones",
+    nav_scenes: "Escenas",
+    nav_settings: "Configuraci\xF3n",
+    nav_documentation: "Documentaci\xF3n",
+    nav_github_issues: "Incidencias de GitHub",
+    nav_gitlab_repo: "Repositorio GitLab",
+    welcome_title_prefix: "Bienvenido a",
+    welcome_subtitle: "Su arquitecto inteligente de dom\xF3tica",
+    new_automation_title_prefix: "Nueva",
+    new_automation_gold: "Automatizaci\xF3n",
+    new_automation_subtitle:
+      "Describa lo que desea automatizar \u2014 mencione los dispositivos, horarios o condiciones involucrados.",
+    get_started: "Comenzar",
+    get_started_body:
+      "Configure su proveedor LLM en la pesta\xF1a Configuraci\xF3n para empezar a chatear con su hogar.",
+    open_settings: "Abrir configuraci\xF3n",
+    quick_start: "Inicio r\xE1pido",
+    composer_placeholder_ask: "Pregunte cualquier cosa a Selora AI\u2026",
+    composer_placeholder_automation:
+      "Describa la automatizaci\xF3n que desea crear\u2026",
+    panel_quota_provider_default: "su proveedor de LLM",
+    panel_quota_reached: "cuota alcanzada.",
+    panel_quota_try_again_prefix: "Vuelva a intentarlo en",
+    panel_quota_retrying_now: "Reintentando ahora\u2026",
+    panel_quota_dismiss: "Descartar",
+    panel_llm_switched_selora_cloud: "Se cambi\xF3 a Selora Cloud.",
+    panel_llm_invalid_key:
+      "Clave de API no v\xE1lida o proveedor no accesible.",
+    panel_llm_settings_saved: "Configuraci\xF3n de LLM guardada.",
+    panel_advanced_settings_saved: "Configuraci\xF3n avanzada guardada.",
+    panel_linking_failed: "La vinculaci\xF3n fall\xF3.",
+    panel_linking_timed_out:
+      "Se agot\xF3 el tiempo de vinculaci\xF3n. Int\xE9ntelo de nuevo \u2014 aseg\xFArese de completar el inicio de sesi\xF3n en 10 minutos.",
+    panel_linking_start_failed: "No se pudo iniciar la vinculaci\xF3n.",
+    panel_connect_linked_success: "Selora Connect vinculado correctamente.",
+    panel_unlink_connect_confirm:
+      "\xBFDesvincular Selora Connect?\n\nLas herramientas MCP externas (Openclaw, Claude Desktop, Cursor, Windsurf) perder\xE1n el acceso hasta que vuelva a vincular.",
+    panel_connect_unlinked: "Selora Connect desvinculado.",
+    panel_cloud_linked_success: "Selora Cloud vinculado correctamente.",
+    panel_unlink_cloud_confirm:
+      "\xBFDesvincular Selora Cloud?\n\nEl chat y las sugerencias de automatizaci\xF3n se detendr\xE1n hasta que vuelva a vincular su cuenta en Configuraci\xF3n.",
+    panel_cloud_unlinked: "Selora Cloud desvinculado.",
+    panel_mcp_token_created: "Token MCP creado.",
+    panel_mcp_token_revoked: "Token revocado.",
+    panel_approval_revoked: "Aprobaci\xF3n revocada.",
+    panel_device_loading: "Cargando...",
+    panel_device_error_loading: "Error al cargar el dispositivo",
+    panel_tab_conversations: "Conversaciones",
+    panel_tab_automations: "Automatizaciones",
+    panel_tab_scenes: "Escenas",
+    panel_sidebar_conversations: "Conversaciones",
+    panel_sidebar_done: "Listo",
+    panel_sidebar_select: "Seleccionar",
+    panel_sidebar_select_all: "Seleccionar todo",
+    panel_sidebar_delete: "Eliminar",
+    panel_sidebar_new_chat: "Nuevo chat",
+    panel_sidebar_no_conversations: "A\xFAn no hay conversaciones.",
+    panel_session_delete_confirm: "\xBFEliminar?",
+    panel_session_delete: "Eliminar",
+    panel_session_cancel: "Cancelar",
+    panel_session_delete_title: "Eliminar",
+    panel_bulk_delete_title: "Eliminar conversaciones",
+    panel_bulk_delete_cancel: "Cancelar",
+    panel_bulk_delete_confirm: "Eliminar",
+    chat_suggest_thinking: "Pensando\u2026",
+    chat_suggest_one_for_me: "Sugi\xE9rame una",
+    chat_jump_to_latest: "Ir al \xFAltimo mensaje",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navegar \xB7 \u21B5 insertar \xB7 Esc descartar",
+    chat_selection_remove: "Quitar",
+    chat_stop_generating: "Detener generaci\xF3n",
+    chat_send: "Enviar",
+    chat_building_scene: "Construyendo escena...",
+    chat_go_to_settings: "Ir a Configuraci\xF3n",
+    chat_response_cut_short: "La respuesta se cort\xF3.",
+    chat_retry: "Reintentar",
+    chat_copy_message: "Copiar mensaje",
+    chat_you: "Usted",
+    chat_yaml_unsaved_changes: "Cambios sin guardar",
+    chat_yaml_saving: "Guardando\u2026",
+    chat_yaml_save_changes: "Guardar cambios",
+    chat_tools_used: "Herramientas utilizadas",
+    chat_automation_label_building: "Construyendo automatizaci\xF3n...",
+    chat_automation_label_triggers: "Redactando disparadores...",
+    chat_automation_label_conditions: "Conectando condiciones...",
+    chat_automation_label_actions: "Componiendo acciones...",
+    chat_automation_label_almost: "Casi listo...",
+    chat_autocomplete_kind_devices: "Dispositivos",
+    chat_autocomplete_kind_areas: "\xC1reas",
+    chat_autocomplete_kind_scenes: "Escenas",
+    chat_autocomplete_kind_automations: "Automatizaciones",
+    chat_autocomplete_kind_suggestions: "Sugerencias",
+    chat_welcome_suggestion_lights_label: "Apagar todas las luces a medianoche",
+    chat_welcome_suggestion_lights_value:
+      "Crea una automatizaci\xF3n que apague todas las luces a medianoche",
+    chat_welcome_suggestion_devices_label: "\xBFQu\xE9 dispositivos tengo?",
+    chat_welcome_suggestion_devices_value:
+      "\xBFQu\xE9 dispositivos tengo y cu\xE1les est\xE1n encendidos en este momento?",
+    chat_welcome_suggestion_suggest_label:
+      "Sugerir automatizaciones para mi hogar",
+    chat_welcome_suggestion_suggest_value:
+      "Sugiere automatizaciones \xFAtiles basadas en mis dispositivos y patrones de uso",
+    settings_view_token_usage_title: "Ver uso de tokens",
+    settings_usage_label: "Uso",
+    settings_view_usage_label: "Ver uso",
+    settings_provider_select_placeholder: "Seleccionar...",
+    settings_doc_banner_title: "Gu\xEDa de configuraci\xF3n",
+    settings_doc_banner_desc:
+      "Aprenda a configurar proveedores de LLM, acceso remoto y tokens MCP.",
+    settings_llm_provider_heading: "Proveedor de LLM",
+    settings_provider_label: "Proveedor",
+    settings_selora_account_label: "Cuenta de Selora",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud est\xE1 proporcionando su backend de LLM.",
+    settings_unlink_button: "Desvincular",
+    settings_signin_selora_desc:
+      "Inicie sesi\xF3n con su cuenta de Selora para usar el backend de LLM alojado. No se requiere clave de API.",
+    settings_selora_cloud_url_label: "URL de Selora Cloud",
+    settings_selora_cloud_url_hint:
+      "OAuth y las finalizaciones de chat usan esta URL. Se guarda autom\xE1ticamente al vincular.",
+    settings_open_signin_page: "Abrir p\xE1gina de inicio de sesi\xF3n \u2192",
+    settings_preparing_label: "Preparando\u2026",
+    settings_link_selora_account_button: "Vincular cuenta de Selora",
+    settings_signin_new_tab_hint:
+      "Se abre en una pesta\xF1a nueva. Despu\xE9s de iniciar sesi\xF3n, vuelva a esta p\xE1gina \u2014 el panel se actualizar\xE1 autom\xE1ticamente.",
+    settings_api_key_label: "Clave de API",
+    settings_click_replace_key_title: "Haga clic para reemplazar la clave",
+    settings_enter_new_key_label: "Introduzca la nueva clave",
+    settings_enter_api_key_label: "Introduzca la clave de API",
+    settings_model_label: "Modelo",
+    settings_selora_local_desc:
+      "Selora AI elige autom\xE1ticamente el modelo especialista adecuado (comandos, automatizaciones, respuestas, aclaraciones) por solicitud.",
+    settings_ollama_host_label: "Host",
+    settings_selora_local_show_advanced: "Mostrar opciones avanzadas",
+    settings_selora_local_hide_advanced: "Ocultar opciones avanzadas",
+    settings_selora_local_advanced_desc:
+      "Los hubs Selora vienen preconfigurados. Para usar un llama-server autoalojado que ejecute el modelo Selora AI, introduce su direcci\xF3n a continuaci\xF3n.",
+    settings_selora_local_host_label: "Host",
+    settings_selora_local_auto_detected_prefix: "Detectado autom\xE1ticamente:",
+    settings_selora_local_auto_detected_none: "ninguno",
+    settings_validating_label: "Validando\u2026",
+    settings_save_button: "Guardar",
+    settings_mcp_server_heading: "Servidor MCP",
+    settings_mcp_server_subtitle:
+      "Exponga su hogar a herramientas de IA externas como Openclaw, Claude Desktop, Cursor o Windsurf.",
+    settings_connect_via_selora_label: "Conectar mediante la cuenta de Selora",
+    settings_connect_via_selora_desc:
+      "Hace que su servidor MCP sea accesible por herramientas externas",
+    settings_mcp_url_copied_toast: "URL de MCP copiada al portapapeles",
+    settings_connect_server_url_label: "URL del servidor de Connect",
+    settings_mcp_tokens_section_title: "TOKENS MCP",
+    settings_mcp_tokens_desc:
+      "Los tokens MCP son una alternativa a Selora Connect. \xDAselos para herramientas que no admiten OAuth o cuando prefiera la autenticaci\xF3n basada en tokens.",
+    settings_no_tokens_yet: "A\xFAn no hay tokens.",
+    settings_add_token_button: "A\xF1adir token",
+    settings_command_approvals_heading: "Aprobaciones de comandos",
+    settings_advanced_settings_heading: "Configuraci\xF3n avanzada",
+    settings_background_services_title: "SERVICIOS EN SEGUNDO PLANO",
+    settings_data_collector_label: "Recopilador de datos (an\xE1lisis de IA)",
+    settings_data_collector_desc:
+      "Alimenta el historial de entidades a Selora AI",
+    settings_mode_label: "Modo",
+    settings_mode_continuous: "Continuo",
+    settings_mode_scheduled_window: "Ventana programada",
+    settings_interval_seconds_label: "Intervalo (s)",
+    settings_start_hhmm_label: "Inicio (HH:MM)",
+    settings_end_hhmm_label: "Fin (HH:MM)",
+    settings_network_discovery_label: "Descubrimiento de red",
+    settings_network_discovery_desc:
+      "Busca nuevos dispositivos en la red local",
+    settings_pattern_detection_label: "Detecci\xF3n de patrones",
+    settings_pattern_detection_desc:
+      "Detecta patrones de uso recurrentes y propone automatizaciones",
+    settings_auto_remove_stale_label:
+      "Eliminar autom\xE1ticamente automatizaciones obsoletas",
+    settings_developer_mode_label: "Modo desarrollador",
+    settings_developer_mode_desc:
+      "Expone cargas \xFAtiles de entidades sin procesar y registros de depuraci\xF3n",
+    settings_dev_mode_save_failed_toast:
+      "No se pudo guardar el modo desarrollador.",
+    settings_saving_label: "Guardando\u2026",
+    settings_no_approvals_yet_prefix:
+      "A\xFAn no hay aprobaciones guardadas. La pr\xF3xima vez que Selora pregunte antes de ejecutar algo arriesgado, haga clic en",
+    settings_no_approvals_always_word: "Siempre",
+    settings_no_approvals_yet_suffix: "para recordarlo aqu\xED.",
+    settings_per_entity_approval_title: "Aprobaci\xF3n por entidad",
+    settings_wildcard_approval_title:
+      "Comod\xEDn \u2014 se aplica a todas las entidades de este servicio",
+    settings_approval_all_label: "todas",
+    settings_token_created_heading: "Token creado",
+    settings_token_created_desc:
+      "Copie este token ahora \u2014 no se mostrar\xE1 de nuevo.",
+    settings_token_copied_toast: "Token copiado al portapapeles",
+    settings_done_button: "Listo",
+    settings_create_mcp_token_heading: "Crear token MCP",
+    settings_token_name_label: "Nombre",
+    settings_token_name_placeholder: "p. ej. Claude Desktop",
+    settings_permission_level_label: "Nivel de permiso",
+    settings_perm_read_only: "Solo lectura",
+    settings_perm_admin_all: "Administrador (todas las herramientas)",
+    settings_perm_custom: "Personalizado (seleccionar herramientas)",
+    settings_allowed_tools_label: "Herramientas permitidas",
+    settings_admin_badge: "administrador",
+    settings_expiration_label: "Caducidad (opcional)",
+    settings_expiry_never: "Nunca caduca",
+    settings_expiry_7_days: "7 d\xEDas",
+    settings_expiry_30_days: "30 d\xEDas",
+    settings_expiry_90_days: "90 d\xEDas",
+    settings_expiry_1_year: "1 a\xF1o",
+    settings_cancel_button: "Cancelar",
+    settings_create_token_button: "Crear token",
+    automations_flow_branch_if: "Si",
+    automations_flow_branch_else_if: "Si no, si",
+    automations_flow_branch_otherwise: "De lo contrario",
+    automations_flow_branch_in_parallel: "En paralelo",
+    automations_flow_branch_in_sequence: "En secuencia",
+    automations_flow_repeat_while: "Repetir mientras se cumpla la condici\xF3n",
+    automations_flow_repeat_until:
+      "Repetir hasta que se cumpla la condici\xF3n",
+    automations_flow_repeat: "Repetir",
+    automations_flow_label_trigger: "Disparador",
+    automations_flow_label_condition: "Condici\xF3n",
+    automations_flow_label_actions: "Acciones",
+    automations_badge_enabled: "Activado",
+    automations_badge_saved: "Guardado",
+    automations_yaml_toggle_hide: "Ocultar YAML",
+    automations_yaml_toggle_view: "Ver YAML",
+    automations_yaml_toggle_edit: "Editar YAML",
+    automations_proposal_declined_title: "Automatizaci\xF3n rechazada",
+    automations_proposal_declined_body:
+      "Descartada. Puede refinarla respondiendo abajo.",
+    automations_badge_being_refined: "En refinamiento",
+    automations_badge_proposal: "Propuesta",
+    automations_proposal_elevated_risk:
+      "Se recomienda revisi\xF3n por riesgo elevado.",
+    automations_proposal_yaml_edits_note:
+      "Sus ediciones de YAML se usar\xE1n cuando acepte.",
+    automations_action_run_tooltip:
+      "Active las acciones ahora para verificar que funcionan",
+    automations_action_running: "Ejecutando\u2026",
+    automations_action_run_now: "Ejecutar ahora",
+    automations_action_open_in_ha_tooltip:
+      "Abrir esta automatizaci\xF3n en Home Assistant",
+    automations_action_view_in_ha: "Ver en HA",
+    automations_action_enabling: "Activando\u2026",
+    automations_action_enable_automation: "Activar automatizaci\xF3n",
+    automations_elevated_risk_note:
+      "Usa acciones de riesgo elevado \u2014 revise el flujo y el YAML antes de activarla.",
+    automations_action_accept_and_save: "Aceptar y guardar",
+    automations_section_title: "Sus automatizaciones",
+    automations_filter_placeholder: "Filtrar automatizaciones\u2026",
+    automations_sort_recent: "Actividad reciente",
+    automations_sort_alpha: "Alfab\xE9tico",
+    automations_sort_enabled_first: "Activadas primero",
+    automations_llm_setup_required_tooltip:
+      "Configure primero un proveedor de LLM",
+    automations_new_automation_button: "Nueva automatizaci\xF3n",
+    automations_status_tab_all: "Todas",
+    automations_status_tab_enabled: "Activadas",
+    automations_status_tab_disabled: "Desactivadas",
+    automations_status_tab_stale: "Obsoletas",
+    automations_bulk_select_all: "Seleccionar todo",
+    automations_bulk_done: "Listo",
+    automations_bulk_edit: "Edici\xF3n en lote",
+    automations_bulk_working: "Trabajando\u2026",
+    automations_bulk_enable_all: "Activar todas",
+    automations_bulk_disable_all: "Desactivar todas",
+    automations_bulk_delete_selected: "Eliminar seleccionadas",
+    automations_bulk_clear: "Limpiar",
+    automations_last_run_disabled: "Desactivado",
+    automations_last_run_never: "Nunca",
+    automations_needs_attention_pill: "Requiere atenci\xF3n",
+    automations_rename_save_tooltip: "Guardar",
+    automations_last_run_prefix: "\xDAltima ejecuci\xF3n:",
+    automations_last_run_prefix_inline: "\xDAltima ejecuci\xF3n:",
+    automations_toggle_enabled: "Activado",
+    automations_toggle_disabled: "Desactivado",
+    automations_toggle_unavailable: "No disponible",
+    automations_toast_toggle_unresolved:
+      "No se puede alternar: no se resolvi\xF3 el ID de la automatizaci\xF3n. Recargue e int\xE9ntelo de nuevo.",
+    automations_more_actions_tooltip: "M\xE1s acciones",
+    automations_burger_loading: "Cargando\u2026",
+    automations_burger_refine_in_chat: "Refinar en el chat",
+    automations_burger_rename: "Cambiar nombre",
+    automations_burger_view_in_ha: "Ver en HA",
+    automations_burger_deleting: "Eliminando\u2026",
+    automations_burger_delete: "Eliminar",
+    automations_card_tab_flow: "Flujo",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Historial",
+    automations_pagination_prev: "\u2039 Anterior",
+    automations_pagination_per_page: "Por p\xE1gina:",
+    automations_pagination_next: "Siguiente \u203A",
+    automations_empty_state: "A\xFAn no hay automatizaciones.",
+    automations_unavailable_modal_title: "Automatizaci\xF3n no disponible",
+    automations_unavailable_default_name: "Esta automatizaci\xF3n",
+    automations_unavailable_modal_intro:
+      "est\xE1 marcada como no disponible por Home Assistant. Esto suele significar:",
+    automations_unavailable_reason_entity:
+      "Un disparador o condici\xF3n hace referencia a una entidad que ya no existe",
+    automations_unavailable_reason_yaml:
+      "El YAML de la automatizaci\xF3n tiene un error de configuraci\xF3n",
+    automations_unavailable_reason_integration:
+      "Se elimin\xF3 una integraci\xF3n requerida o no est\xE1 cargada",
+    automations_unavailable_modal_advice:
+      "Abra la automatizaci\xF3n en la Configuraci\xF3n de Home Assistant para revisar y corregir la configuraci\xF3n.",
+    automations_unavailable_modal_close: "Cerrar",
+    automations_unavailable_modal_edit_states: "Editar estados",
+    automations_unavailable_modal_open_in_automations:
+      "Abrir en Automatizaciones",
+    scenes_card_created_title: "Escena creada",
+    scenes_card_saved_status: "Guardado en Home Assistant",
+    scenes_card_activate_button: "Activar",
+    scenes_card_view_in_ha_button: "Ver en HA",
+    scenes_card_declined_title: "Escena rechazada",
+    scenes_card_declined_message:
+      "Descartada. Puede refinarla respondiendo abajo.",
+    scenes_card_refining_badge: "En refinamiento",
+    scenes_hide_yaml: "Ocultar YAML",
+    scenes_view_yaml: "Ver YAML",
+    scenes_card_proposal_badge: "Propuesta",
+    scenes_card_accept_save_button: "Aceptar y guardar",
+    scenes_section_title: "Sus escenas",
+    scenes_filter_placeholder: "Filtrar escenas\u2026",
+    scenes_sort_recent: "Actualizadas recientemente",
+    scenes_sort_alpha: "Alfab\xE9tico",
+    scenes_sort_size: "M\xE1s entidades",
+    scenes_llm_needs_setup_tooltip: "Configure primero un proveedor de LLM",
+    scenes_new_scene_button: "Nueva escena",
+    scenes_status_tab_all: "Todas",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manuales",
+    scenes_activate_scene_tooltip: "Activar escena",
+    scenes_activate_button: "Activar",
+    scenes_more_actions_tooltip: "M\xE1s acciones",
+    scenes_loading_label: "Cargando\u2026",
+    scenes_refine_in_chat_button: "Refinar en el chat",
+    scenes_open_in_ha_button: "Abrir en HA",
+    scenes_deleting_label: "Eliminando\u2026",
+    scenes_delete_button: "Eliminar",
+    scenes_no_entity_details:
+      "No hay detalles de entidad disponibles \u2014 abra la escena en Home Assistant para inspeccionarla.",
+    scenes_yaml_unavailable_comment:
+      "# YAML no disponible \u2014 abra la escena en Home Assistant para verla.",
+    scenes_empty_state:
+      "No se encontraron escenas. P\xEDdale a Selora que cree una.",
+    scenes_delete_modal_fallback_name: "esta escena",
+    scenes_delete_modal_title: "Eliminar escena",
+    scenes_delete_modal_prefix: "\xBFEliminar",
+    scenes_delete_modal_suffix:
+      "? Esto elimina la escena de Home Assistant y no se puede deshacer.",
+    scenes_delete_modal_cancel_button: "Cancelar",
+    scenes_delete_modal_confirm_button: "Eliminar",
+    usage_pricing_invalid_error:
+      "Los precios deben ser n\xFAmeros no negativos.",
+    usage_pricing_saved_toast: "Anulaci\xF3n de precios guardada.",
+    usage_pricing_save_failed: "No se pudieron guardar los precios:",
+    usage_pricing_reset_toast: "Restablecido a los precios predeterminados.",
+    usage_pricing_reset_failed: "No se pudieron restablecer los precios:",
+    usage_pricing_title: "Precios",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "El uso de Selora Cloud se mide y se factura en su cuenta de Selora Homes. No se contabiliza en los sensores ni gr\xE1ficos de esta integraci\xF3n.",
+    usage_pricing_view_cloud_link: "Ver uso en su cuenta de Selora Homes",
+    usage_pricing_ollama_help:
+      "Ollama se ejecuta localmente \u2014 sin costes de tokens que rastrear.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local se ejecuta en su hardware \u2014 sin costes de tokens que rastrear.",
+    usage_pricing_no_model_help:
+      "Configure un proveedor de LLM y un modelo en Configuraci\xF3n para establecer precios personalizados.",
+    usage_pricing_intro_prefix:
+      "Las estimaciones de coste utilizan estas tarifas por mill\xF3n de tokens. Los valores predeterminados de Anthropic provienen de la",
+    usage_pricing_official_page_link: "p\xE1gina oficial de precios",
+    usage_pricing_intro_suffix:
+      "; anule aqu\xED si ha negociado tarifas o est\xE1 rastreando un modelo diferente.",
+    usage_pricing_input_label: "Entrada",
+    usage_pricing_default_prefix: "predeterminado",
+    usage_pricing_no_default: "sin valor predeterminado integrado",
+    usage_pricing_output_label: "Salida",
+    usage_pricing_input_field_label: "Entrada ($/MTok)",
+    usage_pricing_output_field_label: "Salida ($/MTok)",
+    usage_pricing_cancel_button: "Cancelar",
+    usage_pricing_save_button: "Guardar",
+    usage_pricing_edit_override_button: "Editar anulaci\xF3n",
+    usage_pricing_set_custom_button: "Establecer precios personalizados",
+    usage_pricing_reset_default_button: "Restablecer al predeterminado",
+    usage_snippet_copied_label: "\xA1Copiado!",
+    usage_snippet_copy_button: "Copiar",
+    usage_snippet_help:
+      "El selector visual de tarjetas tambi\xE9n encontrar\xE1 estos sensores tras la primera compilaci\xF3n horaria del Recorder.",
+    usage_back_to_settings: "Volver a configuraci\xF3n",
+    usage_token_usage_title: "Uso de tokens",
+    usage_empty_title: "A\xFAn no hay datos de uso.",
+    usage_empty_body:
+      "El uso aparecer\xE1 despu\xE9s de la primera llamada al LLM. Pruebe a chatear con Selora AI o ejecute un ciclo de sugerencias. Si ya ha usado Selora AI y sigue viendo esto, reinicie Home Assistant para que se registren los nuevos sensores.",
+    usage_totals_title: "Totales",
+    usage_tile_cost_label: "Coste",
+    usage_tile_cost_sub: "Estimaci\xF3n en USD",
+    usage_tile_calls_label: "Llamadas",
+    usage_tile_tokens_in_label: "Tokens de entrada",
+    usage_tile_tokens_out_label: "Tokens de salida",
+    usage_by_period_title: "Por periodo",
+    usage_period_today: "Hoy",
+    usage_period_last_7_days: "\xDAltimos 7 d\xEDas",
+    usage_period_this_month: "Este mes",
+    usage_period_note_filtered:
+      "Los grupos por periodo provienen del almac\xE9n de uso de la integraci\xF3n (se conservan 30 d\xEDas).",
+    usage_period_note_unfiltered:
+      "Los grupos por periodo provienen de las estad\xEDsticas a largo plazo de Home Assistant, que se compilan cada hora. La nueva actividad puede tardar hasta una hora en aparecer aqu\xED.",
+    usage_where_tokens_go_title: "A d\xF3nde van los tokens",
+    usage_where_tokens_last_prefix: "\xDAltimos",
+    usage_where_tokens_resets_suffix: "\xB7 se restablece al reiniciar HA",
+    usage_group_by_kind_button: "Por tipo",
+    usage_group_by_provider_button: "Por proveedor",
+    usage_loading: "Cargando\u2026",
+    usage_no_calls_recorded: "A\xFAn no se han registrado llamadas.",
+    usage_recent_calls_title: "Llamadas recientes",
+    usage_dashboard_sensors_title: "Sensores del panel de control",
+    usage_dashboard_sensors_help_prefix:
+      "Reinicie Home Assistant para registrar los sensores de uso. Una vez registrados, puede a\xF1adirlos a cualquier panel de control con una tarjeta",
+    usage_dashboard_sensors_help_suffix: ".",
+    usage_add_to_dashboard_title: "A\xF1adir a su panel de control",
+    usage_add_to_dashboard_help:
+      "Cada m\xE9trica tiene una escala diferente \u2014 cree una tarjeta por sensor. Elija una m\xE9trica, copie el YAML y luego p\xE9guelo en el editor YAML de un panel de control.",
+    usage_filter_all_providers: "Todos los proveedores",
+    usage_filter_all_models: "Todos los modelos",
+    usage_filter_no_model: "(sin modelo)",
+    suggestions_tab_flow: "Flujo",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Creando\u2026",
+    suggestions_btn_accept: "Aceptar",
+    suggestions_btn_dismissing: "Descartando\u2026",
+    suggestions_btn_dismiss: "Descartar",
+    suggestions_section_title: "Sugerido para usted",
+    suggestions_badge_new: "nuevas",
+    suggestions_llm_setup_required: "Configure primero un proveedor de LLM",
+    suggestions_btn_scanning: "Escaneando\u2026",
+    suggestions_btn_scan_now: "Escanear ahora",
+    suggestions_btn_analyzing: "Analizando\u2026",
+    suggestions_btn_generate: "Generar",
+    suggestions_section_subtitle:
+      "Basado en patrones observados y an\xE1lisis de IA en su hogar.",
+    suggestions_empty_state:
+      'A\xFAn no hay sugerencias. Toque "Generar" para analizar su hogar.',
+    suggestions_filter_placeholder: "Filtrar sugerencias\u2026",
+    suggestions_filter_all: "Todas",
+    suggestions_filter_patterns: "Patrones",
+    suggestions_filter_ai: "IA",
+    suggestions_sort_recent: "Recientes",
+    suggestions_sort_alpha: "Alfab\xE9tico",
+    suggestions_bulk_selected: "seleccionadas",
+    suggestions_bulk_accept_selected: "Aceptar seleccionadas",
+    suggestions_bulk_dismiss_selected: "Descartar seleccionadas",
+    suggestions_bulk_done: "Listo",
+    suggestions_bulk_edit: "Edici\xF3n en lote",
+    suggestions_show_more: "Mostrar m\xE1s sugerencias",
+    version_history_loading: "Cargando\u2026",
+    version_history_empty: "A\xFAn no hay historial de versiones.",
+    version_history_current_badge: "Actual",
+    version_history_hide_yaml: "Ocultar YAML",
+    version_history_view_yaml: "Ver YAML",
+    version_history_restoring: "Restaurando\u2026",
+    version_history_restore_button: "Restaurar esta versi\xF3n",
+    version_history_no_yaml_stored: "(no se almacen\xF3 YAML)",
+    version_history_compare_title: "Comparar versiones",
+    version_history_version_a_label: "Versi\xF3n A (m\xE1s reciente):",
+    version_history_version_b_label: "Versi\xF3n B (m\xE1s antigua):",
+    version_history_loading_diff: "Cargando diferencias\u2026",
+    version_history_no_diff: "No se encontraron diferencias.",
+    device_detail_loading: "Cargando detalle del dispositivo...",
+    device_detail_close: "Cerrar",
+    device_detail_entities_heading: "Entidades",
+    device_detail_state_history_heading: "Historial de estados (24h)",
+    device_detail_linked_automations_heading: "Automatizaciones vinculadas",
+    device_detail_detected_patterns_heading: "Patrones detectados",
+    device_detail_confidence_label: "confianza",
+    ignore_list_remove_label: "Quitar etiqueta",
+    ignore_list_chip_kind_device: "dispositivo",
+    ignore_list_chip_kind_area: "\xE1rea",
+    ignore_list_dropdown_kind_area: "\xC1rea",
+    ignore_list_dropdown_kind_device: "Dispositivo",
+    ignore_list_how_it_works: "\xBFC\xF3mo funciona esto?",
+    ignore_list_section_title: "Ignorar en sugerencias",
+    ignore_list_search_placeholder:
+      "Buscar una entidad, dispositivo o \xE1rea\u2026",
+    ignore_list_empty_state: "A\xFAn no se ignora nada.",
+    approval_risk_explainer_low:
+      "Riesgo bajo: impacto menor o totalmente reversible (sonido, notificaciones, iniciar/detener aspiradora).",
+    approval_risk_explainer_medium:
+      "Riesgo medio: efectos secundarios notables que quiz\xE1 no quiera deshacer (armar la alarma, cerrar una puerta, ejecutar un script de usuario).",
+    approval_risk_explainer_high:
+      "Riesgo alto: acceso f\xEDsico, seguridad o impacto a nivel de host (desbloquear una puerta, desarmar la alarma, ejecutar comandos de shell).",
+    approval_scope_all_matching: "Todas las entidades coincidentes",
+    approval_scope_just_these: "Solo estas entidades",
+    approval_status_approved: "Aprobado",
+    approval_status_denied: "Denegado",
+    approval_working: "Trabajando\u2026",
+    approval_required_title: "Aprobaci\xF3n requerida",
+    approval_scope_label: "Para sesi\xF3n / Siempre:",
+    approval_scope_button_title:
+      "Haga clic para alternar entre limitar la concesi\xF3n solo a esta entidad o a todas las entidades de este servicio.",
+    quick_actions_approve_once_label: "Permitir una vez",
+    quick_actions_approve_once_desc: "Solo esta solicitud",
+    quick_actions_approve_session_label: "Para esta conversaci\xF3n",
+    quick_actions_approve_session_desc:
+      "Permitir durante el resto de esta conversaci\xF3n",
+    quick_actions_approve_always_label: "Siempre",
+    quick_actions_approve_always_desc: "Recordar esta aprobaci\xF3n",
+    quick_actions_deny_label: "Denegar",
+    quick_actions_deny_desc: "No ejecutar esta solicitud",
+    stale_modal_title: "Automatizaciones obsoletas",
+    stale_select_all: "Seleccionar todo",
+    stale_last_triggered_label: "\xDAltima activaci\xF3n:",
+    stale_never: "Nunca",
+    stale_keep_button: "Conservar",
+    stale_close_button: "Cerrar",
+    stale_state_label: "Estado:",
+    stale_state_unknown: "desconocido",
+    stale_back_button: "Atr\xE1s",
+    stale_remove_confirm:
+      "\xBFEliminar esta automatizaci\xF3n permanentemente?",
+    stale_remove_success: "Automatizaci\xF3n eliminada.",
+    stale_remove_failed_prefix: "No se pudo eliminar:",
+    stale_remove_button: "Eliminar",
+    automation_management_triggered: "Automatizaci\xF3n activada.",
+    automation_management_renamed: "Automatizaci\xF3n renombrada",
+    automation_management_version_restored: "Versi\xF3n restaurada.",
+    automation_management_delete_confirm:
+      "\xBFEliminar esta automatizaci\xF3n permanentemente?",
+    automation_management_deleted: "Automatizaci\xF3n eliminada.",
+    automation_management_cannot_refine_no_id:
+      "Esta automatizaci\xF3n no se puede refinar porque no tiene ID de automatizaci\xF3n.",
+    automation_management_loaded_to_chat:
+      "Automatizaci\xF3n cargada en el chat.",
+    action_format_run_verb: "Ejecutar",
+    action_format_ran_verb: "Ejecutado",
+    chat_actions_interrupt_disconnect:
+      "Se perdi\xF3 la conexi\xF3n con Home Assistant a mitad de respuesta.",
+    chat_actions_interrupt_server_stopped: "El servidor dej\xF3 de responder.",
+    chat_actions_interrupt_server_no_reply:
+      "El servidor no respondi\xF3 a tiempo.",
+    chat_actions_interrupt_truncated:
+      "La respuesta parece cortada \u2014 int\xE9ntelo de nuevo.",
+    chat_actions_interrupt_llm_unreachable:
+      "No se pudo conectar con el proveedor de LLM.",
+    chat_actions_interrupt_session_start_failed:
+      "No se pudo iniciar la sesi\xF3n de chat.",
+    chat_actions_cancelled_by_user: "_Cancelado por el usuario_",
+    automation_crud_save_failed: "No se pudo guardar la automatizaci\xF3n:",
+    automation_crud_entity_not_surfaced:
+      "Automatizaci\xF3n guardada, pero Home Assistant a\xFAn no ha expuesto la entidad \u2014 act\xEDvela desde la pesta\xF1a Automatizaciones cuando aparezca.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automatizaci\xF3n guardada pero no se pudo activar autom\xE1ticamente:",
+    automation_crud_unknown_error: "error desconocido",
+    automation_crud_auto_enable_failed_suffix:
+      ". Use el bot\xF3n Activar de la tarjeta para volver a intentarlo.",
+    automation_crud_draft_dismissed: "Borrador descartado.",
+    automation_crud_dismiss_draft_failed: "No se pudo descartar el borrador:",
+    automation_crud_create_failed: "No se pudo crear la automatizaci\xF3n:",
+    automation_crud_save_edited_yaml_failed:
+      "No se pudo guardar la automatizaci\xF3n desde el YAML editado:",
+    automation_crud_yaml_saved: "YAML de la automatizaci\xF3n guardado.",
+    automation_crud_save_changes_failed: "No se pudieron guardar los cambios:",
+    scene_actions_refine_default_name: "la escena",
+    session_toast_new_automation_chat_failed:
+      "No se pudo iniciar un nuevo chat de automatizaci\xF3n:",
+    session_toast_ai_no_suggestion:
+      "La IA no devolvi\xF3 una sugerencia \u2014 int\xE9ntelo de nuevo.",
+    session_toast_suggest_failed:
+      "No se pudo generar una sugerencia \u2014 revise la configuraci\xF3n del LLM.",
+    suggestions_analysis_no_new:
+      "An\xE1lisis completo \u2014 no hay nuevas sugerencias en este momento",
+    suggestions_accepted_toast:
+      "Sugerencia aceptada \u2014 automatizaci\xF3n creada",
+    suggestions_accept_failed: "No se pudo aceptar la sugerencia",
+    suggestions_dismissed_toast: "Sugerencia descartada",
+    suggestions_snoozed_toast: "Sugerencia pospuesta 24h",
+    suggestions_pattern_scan_failed: "Fall\xF3 el escaneo de patrones",
+    area_unassigned: "Sin asignar",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Configuraci\xF3n de servicios en segundo plano",
+        description: "Configurar servicios en segundo plano para Selora AI.",
+        data: {
+          collector_enabled: "Recolector de datos (an\xE1lisis de IA) activado",
+          collector_mode: "Modo de ejecuci\xF3n",
+          collector_interval: "Intervalo de an\xE1lisis (segundos)",
+          collector_start_time: "Hora de inicio programada",
+          collector_end_time: "Hora de fin programada",
+          discovery_enabled: "Descubrimiento de red activado",
+          discovery_mode: "Modo de ejecuci\xF3n",
+          discovery_interval: "Intervalo de descubrimiento (segundos)",
+          discovery_start_time: "Hora de inicio programada",
+          discovery_end_time: "Hora de fin programada",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/it.json
+var it_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Configura Selora AI",
+        description:
+          "Scegli quale backend LLM utilizzare per i suggerimenti di automazione.",
+        data: {
+          llm_provider: "Provider LLM",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud utilizza il tuo account Selora \u2014 non \xE8 necessaria alcuna chiave API. Dopo la configurazione, apri il pannello Selora AI e fai clic su \xABCollega account Selora\xBB per autenticarti.",
+      },
+      anthropic: {
+        title: "Configurazione Anthropic (Claude)",
+        description:
+          "Inserisci la tua chiave API Anthropic. Ottienine una su console.anthropic.com.",
+        data: {
+          anthropic_api_key: "Chiave API",
+          anthropic_model: "Modello",
+        },
+      },
+      gemini: {
+        title: "Configurazione Google Gemini",
+        description:
+          "Inserisci la tua chiave API Google Gemini. Ottienine una su aistudio.google.com.",
+        data: {
+          gemini_api_key: "Chiave API",
+          gemini_model: "Modello",
+        },
+      },
+      openai: {
+        title: "Configurazione OpenAI",
+        description:
+          "Inserisci la tua chiave API OpenAI. Ottienine una su platform.openai.com.",
+        data: {
+          openai_api_key: "Chiave API",
+          openai_model: "Modello",
+        },
+      },
+      openrouter: {
+        title: "Configurazione OpenRouter",
+        description:
+          "Inserisci la tua chiave API OpenRouter. Ottienine una su openrouter.ai/keys. Usa nomi di modello con prefisso del provider come \xABanthropic/claude-sonnet-4.5\xBB.",
+        data: {
+          openrouter_api_key: "Chiave API",
+          openrouter_model: "Modello",
+        },
+      },
+      ollama: {
+        title: "Configurazione Ollama (Locale)",
+        description:
+          "Inserisci i dettagli del tuo server Ollama locale. Assicurati che il modello sia scaricato.",
+        data: {
+          ollama_host: "URL dell'host Ollama",
+          ollama_model: "Nome del modello",
+        },
+      },
+      selora_local: {
+        title: "Configurazione Selora AI Local",
+        description:
+          "Connettiti al componente aggiuntivo Selora AI Local Home Assistant in esecuzione sul dispositivo. Il componente aggiuntivo ascolta sulla porta 8080. L'indirizzo predefinito qui sotto funziona per HA OS tramite il gateway Supervisor. Il modello specializzato viene selezionato automaticamente per ogni richiesta.",
+        data: {
+          selora_local_host: "URL dell'host del componente aggiuntivo",
+        },
+      },
+      select_devices: {
+        title: "Seleziona i dispositivi da integrare",
+        description:
+          "Selora AI ha trovato {count} dispositivi sulla tua rete. Assegna una stanza per aggiungere un dispositivo, o seleziona \xABSalta\xBB per ignorarlo.\n\n{device_list}",
+      },
+      results: {
+        title: "Risultati della configurazione dei dispositivi",
+        description:
+          "Configurazione completata: {succeeded} riusciti, {failed} falliti, {needs_attention} richiedono attenzione manuale.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Impossibile connettersi. Controlla la tua chiave API, o verifica che Ollama sia in esecuzione e il modello scaricato.",
+      invalid_auth:
+        "Credenziali Selora Connect non valide. Verifica la tua email e password.",
+      unknown: "Si \xE8 verificato un errore imprevisto.",
+    },
+    abort: {
+      already_configured: "Selora AI \xE8 gi\xE0 configurato.",
+      cannot_connect:
+        "Impossibile connettersi al servizio Selora AI cloud. Riprova pi\xF9 tardi.",
+      unknown:
+        "Si \xE8 verificato un errore imprevisto durante la configurazione.",
+      llm_not_ready:
+        "Il backend LLM di Selora AI non \xE8 in esecuzione. Configuralo prima.",
+      no_devices_found:
+        "Nessun nuovo dispositivo \xE8 stato rilevato sulla tua rete. Riprova pi\xF9 tardi.",
+      no_devices_selected: "Nessun dispositivo selezionato.",
+      select_devices_failed:
+        "L'integrazione dei dispositivi ha incontrato un errore imprevisto. Selora AI \xE8 stato configurato senza integrazione dei dispositivi \u2014 puoi riprovare pi\xF9 tardi da Impostazioni > Dispositivi > Aggiungi voce. Controlla i log di Home Assistant per i dettagli.",
+    },
+  },
+  common: {
+    feedback_button_label: "Lascia un feedback",
+    feedback_modal_title: "Condividi feedback",
+    feedback_privacy_notice:
+      "Il feedback \xE8 anonimo e non contiene dati personali.",
+    feedback_textarea_placeholder: "Cosa hai in mente? (minimo 10 caratteri)",
+    feedback_rating_label: "Valutazione:",
+    feedback_rating_thumbsup: "Pollice in su",
+    feedback_rating_thumbsdown: "Pollice in gi\xF9",
+    feedback_category_label: "Categoria (opzionale):",
+    feedback_category_bug: "Bug",
+    feedback_category_feature: "Richiesta di funzionalit\xE0",
+    feedback_category_general: "Generale",
+    feedback_submit: "Invia feedback",
+    feedback_submitting: "Invio\u2026",
+    feedback_email_label: "Email (opzionale):",
+    feedback_email_placeholder:
+      "tua@email.com \u2014 solo se desideri una risposta",
+    feedback_cancel: "Annulla",
+    feedback_min_length_error: "Inserisci almeno 10 caratteri.",
+    feedback_success: "Grazie per il tuo feedback!",
+    feedback_error: "Impossibile inviare il feedback \u2014 riprova.",
+    nav_new_chat: "Nuova chat",
+    nav_selora_menu: "Menu Selora",
+    nav_conversations: "Conversazioni",
+    nav_automations: "Automazioni",
+    nav_scenes: "Scene",
+    nav_settings: "Impostazioni",
+    nav_documentation: "Documentazione",
+    nav_github_issues: "Issue di GitHub",
+    nav_gitlab_repo: "Repository GitLab",
+    welcome_title_prefix: "Benvenuto in",
+    welcome_subtitle: "Il tuo architetto intelligente di domotica",
+    new_automation_title_prefix: "Nuova",
+    new_automation_gold: "Automazione",
+    new_automation_subtitle:
+      "Descrivi cosa vuoi automatizzare \u2014 menziona i dispositivi, gli orari o le condizioni coinvolte.",
+    get_started: "Inizia",
+    get_started_body:
+      "Configura il tuo provider LLM nella scheda Impostazioni per iniziare a chattare con la tua casa.",
+    open_settings: "Apri impostazioni",
+    quick_start: "Avvio rapido",
+    composer_placeholder_ask: "Chiedi qualsiasi cosa a Selora AI\u2026",
+    composer_placeholder_automation:
+      "Descrivi l'automazione che vuoi creare\u2026",
+    panel_quota_provider_default: "il Suo provider LLM",
+    panel_quota_reached: "quota raggiunta.",
+    panel_quota_try_again_prefix: "Riprovi tra",
+    panel_quota_retrying_now: "Nuovo tentativo in corso\u2026",
+    panel_quota_dismiss: "Ignora",
+    panel_llm_switched_selora_cloud: "Passato a Selora Cloud.",
+    panel_llm_invalid_key:
+      "Chiave API non valida o provider non raggiungibile.",
+    panel_llm_settings_saved: "Impostazioni LLM salvate.",
+    panel_advanced_settings_saved: "Impostazioni avanzate salvate.",
+    panel_linking_failed: "Collegamento non riuscito.",
+    panel_linking_timed_out:
+      "Tempo di collegamento scaduto. Riprovi \u2014 si assicuri di completare l'accesso entro 10 minuti.",
+    panel_linking_start_failed: "Impossibile avviare il collegamento.",
+    panel_connect_linked_success: "Selora Connect collegato con successo.",
+    panel_unlink_connect_confirm:
+      "Scollegare Selora Connect?\n\nGli strumenti MCP esterni (Openclaw, Claude Desktop, Cursor, Windsurf) perderanno l'accesso finch\xE9 non lo ricollegher\xE0.",
+    panel_connect_unlinked: "Selora Connect scollegato.",
+    panel_cloud_linked_success: "Selora Cloud collegato con successo.",
+    panel_unlink_cloud_confirm:
+      "Scollegare Selora Cloud?\n\nLa chat e i suggerimenti di automazione si interromperanno finch\xE9 non ricollegher\xE0 il Suo account in Impostazioni.",
+    panel_cloud_unlinked: "Selora Cloud scollegato.",
+    panel_mcp_token_created: "Token MCP creato.",
+    panel_mcp_token_revoked: "Token revocato.",
+    panel_approval_revoked: "Approvazione revocata.",
+    panel_device_loading: "Caricamento...",
+    panel_device_error_loading: "Errore nel caricamento del dispositivo",
+    panel_tab_conversations: "Conversazioni",
+    panel_tab_automations: "Automazioni",
+    panel_tab_scenes: "Scene",
+    panel_sidebar_conversations: "Conversazioni",
+    panel_sidebar_done: "Fatto",
+    panel_sidebar_select: "Seleziona",
+    panel_sidebar_select_all: "Seleziona tutto",
+    panel_sidebar_delete: "Elimina",
+    panel_sidebar_new_chat: "Nuova chat",
+    panel_sidebar_no_conversations: "Nessuna conversazione ancora.",
+    panel_session_delete_confirm: "Eliminare?",
+    panel_session_delete: "Elimina",
+    panel_session_cancel: "Annulla",
+    panel_session_delete_title: "Elimina",
+    panel_bulk_delete_title: "Elimina conversazioni",
+    panel_bulk_delete_cancel: "Annulla",
+    panel_bulk_delete_confirm: "Elimina",
+    chat_suggest_thinking: "Sto pensando\u2026",
+    chat_suggest_one_for_me: "Suggeriscine uno",
+    chat_jump_to_latest: "Vai all'ultimo messaggio",
+    chat_autocomplete_hint:
+      "\u2191\u2193 naviga \xB7 \u21B5 inserisci \xB7 Esc chiudi",
+    chat_selection_remove: "Rimuovi",
+    chat_stop_generating: "Interrompi generazione",
+    chat_send: "Invia",
+    chat_building_scene: "Creazione scena in corso...",
+    chat_go_to_settings: "Vai a Impostazioni",
+    chat_response_cut_short: "La risposta \xE8 stata troncata.",
+    chat_retry: "Riprova",
+    chat_copy_message: "Copia messaggio",
+    chat_you: "Lei",
+    chat_yaml_unsaved_changes: "Modifiche non salvate",
+    chat_yaml_saving: "Salvataggio\u2026",
+    chat_yaml_save_changes: "Salva modifiche",
+    chat_tools_used: "Strumenti utilizzati",
+    chat_automation_label_building: "Creazione automazione in corso...",
+    chat_automation_label_triggers: "Stesura dei trigger...",
+    chat_automation_label_conditions: "Collegamento delle condizioni...",
+    chat_automation_label_actions: "Composizione delle azioni...",
+    chat_automation_label_almost: "Quasi pronta...",
+    chat_autocomplete_kind_devices: "Dispositivi",
+    chat_autocomplete_kind_areas: "Aree",
+    chat_autocomplete_kind_scenes: "Scene",
+    chat_autocomplete_kind_automations: "Automazioni",
+    chat_autocomplete_kind_suggestions: "Suggerimenti",
+    chat_welcome_suggestion_lights_label: "Spegni tutte le luci a mezzanotte",
+    chat_welcome_suggestion_lights_value:
+      "Crea un'automazione che spenga tutte le luci a mezzanotte",
+    chat_welcome_suggestion_devices_label: "Quali dispositivi ho?",
+    chat_welcome_suggestion_devices_value:
+      "Quali dispositivi ho e quali sono attualmente accesi?",
+    chat_welcome_suggestion_suggest_label:
+      "Suggerisci automazioni per la mia casa",
+    chat_welcome_suggestion_suggest_value:
+      "Suggerisci automazioni utili in base ai miei dispositivi e ai modelli di utilizzo",
+    settings_view_token_usage_title: "Visualizza utilizzo token",
+    settings_usage_label: "Utilizzo",
+    settings_view_usage_label: "Visualizza utilizzo",
+    settings_provider_select_placeholder: "Seleziona...",
+    settings_doc_banner_title: "Guida alla configurazione",
+    settings_doc_banner_desc:
+      "Scopra come configurare i provider LLM, l'accesso remoto e i token MCP.",
+    settings_llm_provider_heading: "Provider LLM",
+    settings_provider_label: "Provider",
+    settings_selora_account_label: "Account Selora",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud sta fornendo il Suo backend LLM.",
+    settings_unlink_button: "Scollega",
+    settings_signin_selora_desc:
+      "Acceda con il Suo account Selora per utilizzare il backend LLM ospitato. Nessuna chiave API richiesta.",
+    settings_selora_cloud_url_label: "URL Selora Cloud",
+    settings_selora_cloud_url_hint:
+      "Sia OAuth sia i completamenti chat utilizzano questo URL. Salvato automaticamente al collegamento.",
+    settings_open_signin_page: "Apri pagina di accesso \u2192",
+    settings_preparing_label: "Preparazione\u2026",
+    settings_link_selora_account_button: "Collega account Selora",
+    settings_signin_new_tab_hint:
+      "Si apre in una nuova scheda. Dopo l'accesso, torni a questa pagina \u2014 il pannello si aggiorna automaticamente.",
+    settings_api_key_label: "Chiave API",
+    settings_click_replace_key_title: "Clicchi per sostituire la chiave",
+    settings_enter_new_key_label: "Inserisca la nuova chiave",
+    settings_enter_api_key_label: "Inserisca la chiave API",
+    settings_model_label: "Modello",
+    settings_selora_local_desc:
+      "Selora AI sceglie automaticamente il modello specialistico pi\xF9 adatto (comandi, automazioni, risposte, chiarimenti) per ogni richiesta.",
+    settings_ollama_host_label: "Host",
+    settings_selora_local_show_advanced: "Mostra opzioni avanzate",
+    settings_selora_local_hide_advanced: "Nascondi opzioni avanzate",
+    settings_selora_local_advanced_desc:
+      "Gli hub Selora sono preconfigurati. Per usare un llama-server self-hosted che esegue il modello Selora AI, inserisci il suo indirizzo qui sotto.",
+    settings_selora_local_host_label: "Host",
+    settings_selora_local_auto_detected_prefix: "Rilevato automaticamente:",
+    settings_selora_local_auto_detected_none: "nessuno",
+    settings_validating_label: "Convalida in corso\u2026",
+    settings_save_button: "Salva",
+    settings_mcp_server_heading: "Server MCP",
+    settings_mcp_server_subtitle:
+      "Esponga la Sua casa a strumenti AI esterni come Openclaw, Claude Desktop, Cursor o Windsurf.",
+    settings_connect_via_selora_label: "Connetti tramite account Selora",
+    settings_connect_via_selora_desc:
+      "Rende il Suo server MCP raggiungibile da strumenti esterni",
+    settings_mcp_url_copied_toast: "URL MCP copiato negli appunti",
+    settings_connect_server_url_label: "URL del server Connect",
+    settings_mcp_tokens_section_title: "TOKEN MCP",
+    settings_mcp_tokens_desc:
+      "I token MCP sono un'alternativa a Selora Connect. Li utilizzi per strumenti che non supportano OAuth o quando preferisce l'autenticazione basata su token.",
+    settings_no_tokens_yet: "Nessun token ancora.",
+    settings_add_token_button: "Aggiungi token",
+    settings_command_approvals_heading: "Approvazioni comandi",
+    settings_advanced_settings_heading: "Impostazioni avanzate",
+    settings_background_services_title: "SERVIZI IN BACKGROUND",
+    settings_data_collector_label: "Raccoglitore dati (analisi AI)",
+    settings_data_collector_desc:
+      "Invia la cronologia delle entit\xE0 a Selora AI",
+    settings_mode_label: "Modalit\xE0",
+    settings_mode_continuous: "Continua",
+    settings_mode_scheduled_window: "Finestra pianificata",
+    settings_interval_seconds_label: "Intervallo (s)",
+    settings_start_hhmm_label: "Inizio (HH:MM)",
+    settings_end_hhmm_label: "Fine (HH:MM)",
+    settings_network_discovery_label: "Rilevamento di rete",
+    settings_network_discovery_desc:
+      "Scansiona la rete locale alla ricerca di nuovi dispositivi",
+    settings_pattern_detection_label: "Rilevamento pattern",
+    settings_pattern_detection_desc:
+      "Rileva pattern di utilizzo ricorrenti e propone automazioni",
+    settings_auto_remove_stale_label:
+      "Rimuovi automaticamente automazioni obsolete",
+    settings_developer_mode_label: "Modalit\xE0 sviluppatore",
+    settings_developer_mode_desc:
+      "Espone i payload grezzi delle entit\xE0 e i log di debug",
+    settings_dev_mode_save_failed_toast:
+      "Impossibile salvare la modalit\xE0 sviluppatore.",
+    settings_saving_label: "Salvataggio\u2026",
+    settings_no_approvals_yet_prefix:
+      "Nessuna approvazione salvata ancora. La prossima volta che Selora chieder\xE0 conferma prima di eseguire qualcosa di rischioso, clicchi",
+    settings_no_approvals_always_word: "Sempre",
+    settings_no_approvals_yet_suffix: "per ricordarla qui.",
+    settings_per_entity_approval_title: "Approvazione per entit\xE0",
+    settings_wildcard_approval_title:
+      "Wildcard \u2014 si applica a ogni entit\xE0 di questo servizio",
+    settings_approval_all_label: "tutte",
+    settings_token_created_heading: "Token creato",
+    settings_token_created_desc:
+      "Copi questo token ora \u2014 non verr\xE0 pi\xF9 mostrato.",
+    settings_token_copied_toast: "Token copiato negli appunti",
+    settings_done_button: "Fatto",
+    settings_create_mcp_token_heading: "Crea token MCP",
+    settings_token_name_label: "Nome",
+    settings_token_name_placeholder: "es. Claude Desktop",
+    settings_permission_level_label: "Livello di permesso",
+    settings_perm_read_only: "Sola lettura",
+    settings_perm_admin_all: "Admin (tutti gli strumenti)",
+    settings_perm_custom: "Personalizzato (seleziona strumenti)",
+    settings_allowed_tools_label: "Strumenti consentiti",
+    settings_admin_badge: "admin",
+    settings_expiration_label: "Scadenza (opzionale)",
+    settings_expiry_never: "Non scade mai",
+    settings_expiry_7_days: "7 giorni",
+    settings_expiry_30_days: "30 giorni",
+    settings_expiry_90_days: "90 giorni",
+    settings_expiry_1_year: "1 anno",
+    settings_cancel_button: "Annulla",
+    settings_create_token_button: "Crea token",
+    automations_flow_branch_if: "Se",
+    automations_flow_branch_else_if: "Altrimenti se",
+    automations_flow_branch_otherwise: "Altrimenti",
+    automations_flow_branch_in_parallel: "In parallelo",
+    automations_flow_branch_in_sequence: "In sequenza",
+    automations_flow_repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
+    automations_flow_repeat_until:
+      "Ripeti finch\xE9 la condizione non \xE8 soddisfatta",
+    automations_flow_repeat: "Ripeti",
+    automations_flow_label_trigger: "Trigger",
+    automations_flow_label_condition: "Condizione",
+    automations_flow_label_actions: "Azioni",
+    automations_badge_enabled: "Attivato",
+    automations_badge_saved: "Salvato",
+    automations_yaml_toggle_hide: "Nascondi YAML",
+    automations_yaml_toggle_view: "Visualizza YAML",
+    automations_yaml_toggle_edit: "Modifica YAML",
+    automations_proposal_declined_title: "Automazione rifiutata",
+    automations_proposal_declined_body:
+      "Ignorata. Pu\xF2 perfezionarla rispondendo qui sotto.",
+    automations_badge_being_refined: "In fase di perfezionamento",
+    automations_badge_proposal: "Proposta",
+    automations_proposal_elevated_risk:
+      "Si consiglia una revisione per rischio elevato.",
+    automations_proposal_yaml_edits_note:
+      "Le Sue modifiche YAML verranno utilizzate quando accetter\xE0.",
+    automations_action_run_tooltip:
+      "Attivi le azioni ora per verificare che funzionino",
+    automations_action_running: "In esecuzione\u2026",
+    automations_action_run_now: "Esegui ora",
+    automations_action_open_in_ha_tooltip:
+      "Apra questa automazione in Home Assistant",
+    automations_action_view_in_ha: "Apri in HA",
+    automations_action_enabling: "Attivazione\u2026",
+    automations_action_enable_automation: "Attiva automazione",
+    automations_elevated_risk_note:
+      "Utilizza azioni a rischio elevato \u2014 riveda il flusso e lo YAML prima di attivare.",
+    automations_action_accept_and_save: "Accetta e salva",
+    automations_section_title: "Le Sue automazioni",
+    automations_filter_placeholder: "Filtra automazioni\u2026",
+    automations_sort_recent: "Attivit\xE0 recente",
+    automations_sort_alpha: "Alfabetico",
+    automations_sort_enabled_first: "Prima le attivate",
+    automations_llm_setup_required_tooltip: "Configuri prima un provider LLM",
+    automations_new_automation_button: "Nuova automazione",
+    automations_status_tab_all: "Tutte",
+    automations_status_tab_enabled: "Attive",
+    automations_status_tab_disabled: "Disattivate",
+    automations_status_tab_stale: "Obsolete",
+    automations_bulk_select_all: "Seleziona tutto",
+    automations_bulk_done: "Fatto",
+    automations_bulk_edit: "Modifica in blocco",
+    automations_bulk_working: "In corso\u2026",
+    automations_bulk_enable_all: "Attiva tutte",
+    automations_bulk_disable_all: "Disattiva tutte",
+    automations_bulk_delete_selected: "Elimina selezionate",
+    automations_bulk_clear: "Deseleziona",
+    automations_last_run_disabled: "Disattivato",
+    automations_last_run_never: "Mai",
+    automations_needs_attention_pill: "Richiede attenzione",
+    automations_rename_save_tooltip: "Salva",
+    automations_last_run_prefix: "Ultima esecuzione:",
+    automations_last_run_prefix_inline: "Ultima esecuzione:",
+    automations_toggle_enabled: "Attivato",
+    automations_toggle_disabled: "Disattivato",
+    automations_toggle_unavailable: "Non disponibile",
+    automations_toast_toggle_unresolved:
+      "Impossibile cambiare stato: ID automazione non risolto. Ricarichi e riprovi.",
+    automations_more_actions_tooltip: "Altre azioni",
+    automations_burger_loading: "Caricamento\u2026",
+    automations_burger_refine_in_chat: "Perfeziona in chat",
+    automations_burger_rename: "Rinomina",
+    automations_burger_view_in_ha: "Apri in HA",
+    automations_burger_deleting: "Eliminazione\u2026",
+    automations_burger_delete: "Elimina",
+    automations_card_tab_flow: "Flusso",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Cronologia",
+    automations_pagination_prev: "\u2039 Precedente",
+    automations_pagination_per_page: "Per pagina:",
+    automations_pagination_next: "Successiva \u203A",
+    automations_empty_state: "Nessuna automazione ancora.",
+    automations_unavailable_modal_title: "Automazione non disponibile",
+    automations_unavailable_default_name: "Questa automazione",
+    automations_unavailable_modal_intro:
+      "\xE8 contrassegnata come non disponibile da Home Assistant. Di solito significa:",
+    automations_unavailable_reason_entity:
+      "Un trigger o una condizione fa riferimento a un'entit\xE0 che non esiste pi\xF9",
+    automations_unavailable_reason_yaml:
+      "Lo YAML dell'automazione contiene un errore di configurazione",
+    automations_unavailable_reason_integration:
+      "Un'integrazione richiesta \xE8 stata rimossa o non \xE8 caricata",
+    automations_unavailable_modal_advice:
+      "Apra l'automazione nelle Impostazioni di Home Assistant per rivedere e correggere la configurazione.",
+    automations_unavailable_modal_close: "Chiudi",
+    automations_unavailable_modal_edit_states: "Modifica stati",
+    automations_unavailable_modal_open_in_automations: "Apri in Automazioni",
+    scenes_card_created_title: "Scena creata",
+    scenes_card_saved_status: "Salvata in Home Assistant",
+    scenes_card_activate_button: "Attiva",
+    scenes_card_view_in_ha_button: "Apri in HA",
+    scenes_card_declined_title: "Scena rifiutata",
+    scenes_card_declined_message:
+      "Ignorata. Pu\xF2 perfezionarla rispondendo qui sotto.",
+    scenes_card_refining_badge: "In fase di perfezionamento",
+    scenes_hide_yaml: "Nascondi YAML",
+    scenes_view_yaml: "Visualizza YAML",
+    scenes_card_proposal_badge: "Proposta",
+    scenes_card_accept_save_button: "Accetta e salva",
+    scenes_section_title: "Le Sue scene",
+    scenes_filter_placeholder: "Filtra scene\u2026",
+    scenes_sort_recent: "Aggiornate di recente",
+    scenes_sort_alpha: "Alfabetico",
+    scenes_sort_size: "Pi\xF9 entit\xE0",
+    scenes_llm_needs_setup_tooltip: "Configuri prima un provider LLM",
+    scenes_new_scene_button: "Nuova scena",
+    scenes_status_tab_all: "Tutte",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manuali",
+    scenes_activate_scene_tooltip: "Attiva scena",
+    scenes_activate_button: "Attiva",
+    scenes_more_actions_tooltip: "Altre azioni",
+    scenes_loading_label: "Caricamento\u2026",
+    scenes_refine_in_chat_button: "Perfeziona in chat",
+    scenes_open_in_ha_button: "Apri in HA",
+    scenes_deleting_label: "Eliminazione\u2026",
+    scenes_delete_button: "Elimina",
+    scenes_no_entity_details:
+      "Nessun dettaglio sull'entit\xE0 disponibile \u2014 apra la scena in Home Assistant per ispezionarla.",
+    scenes_yaml_unavailable_comment:
+      "# YAML non disponibile \u2014 apra la scena in Home Assistant per visualizzarlo.",
+    scenes_empty_state:
+      "Nessuna scena trovata. Chieda a Selora di crearne una.",
+    scenes_delete_modal_fallback_name: "questa scena",
+    scenes_delete_modal_title: "Elimina scena",
+    scenes_delete_modal_prefix: "Eliminare",
+    scenes_delete_modal_suffix:
+      "? Questo rimuove la scena da Home Assistant e non pu\xF2 essere annullato.",
+    scenes_delete_modal_cancel_button: "Annulla",
+    scenes_delete_modal_confirm_button: "Elimina",
+    usage_pricing_invalid_error: "I prezzi devono essere numeri non negativi.",
+    usage_pricing_saved_toast: "Override prezzi salvato.",
+    usage_pricing_save_failed: "Impossibile salvare i prezzi:",
+    usage_pricing_reset_toast: "Ripristinati i prezzi predefiniti.",
+    usage_pricing_reset_failed: "Impossibile ripristinare i prezzi:",
+    usage_pricing_title: "Prezzi",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "L'utilizzo di Selora Cloud viene misurato e fatturato nel Suo account Selora Homes. Non \xE8 conteggiato nei sensori o nei grafici di questa integrazione.",
+    usage_pricing_view_cloud_link:
+      "Visualizza l'utilizzo nel Suo account Selora Homes",
+    usage_pricing_ollama_help:
+      "Ollama gira localmente \u2014 nessun costo di token da tracciare.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local gira sul Suo hardware \u2014 nessun costo di token da tracciare.",
+    usage_pricing_no_model_help:
+      "Configuri un provider LLM e un modello in Impostazioni per impostare prezzi personalizzati.",
+    usage_pricing_intro_prefix:
+      "Le stime dei costi utilizzano queste tariffe per milione di token. I valori predefiniti di Anthropic provengono dalla",
+    usage_pricing_official_page_link: "pagina ufficiale dei prezzi",
+    usage_pricing_intro_suffix:
+      "; sovrascriva qui se ha tariffe negoziate o sta tracciando un modello diverso.",
+    usage_pricing_input_label: "Input",
+    usage_pricing_default_prefix: "predefinito",
+    usage_pricing_no_default: "nessun valore predefinito integrato",
+    usage_pricing_output_label: "Output",
+    usage_pricing_input_field_label: "Input ($/MTok)",
+    usage_pricing_output_field_label: "Output ($/MTok)",
+    usage_pricing_cancel_button: "Annulla",
+    usage_pricing_save_button: "Salva",
+    usage_pricing_edit_override_button: "Modifica override",
+    usage_pricing_set_custom_button: "Imposta prezzi personalizzati",
+    usage_pricing_reset_default_button: "Ripristina predefiniti",
+    usage_snippet_copied_label: "Copiato!",
+    usage_snippet_copy_button: "Copia",
+    usage_snippet_help:
+      "Il selettore visuale di schede trover\xE0 anche questi sensori dopo la prima compilazione oraria del Recorder.",
+    usage_back_to_settings: "Torna a Impostazioni",
+    usage_token_usage_title: "Utilizzo token",
+    usage_empty_title: "Nessun dato di utilizzo ancora.",
+    usage_empty_body:
+      "L'utilizzo apparir\xE0 dopo la prima chiamata LLM. Provi a chattare con Selora AI o a eseguire un ciclo di suggerimenti. Se ha gi\xE0 usato Selora AI e vede ancora questo, riavvii Home Assistant per registrare i nuovi sensori.",
+    usage_totals_title: "Totali",
+    usage_tile_cost_label: "Costo",
+    usage_tile_cost_sub: "stima in USD",
+    usage_tile_calls_label: "Chiamate",
+    usage_tile_tokens_in_label: "Token in ingresso",
+    usage_tile_tokens_out_label: "Token in uscita",
+    usage_by_period_title: "Per periodo",
+    usage_period_today: "Oggi",
+    usage_period_last_7_days: "Ultimi 7 giorni",
+    usage_period_this_month: "Questo mese",
+    usage_period_note_filtered:
+      "I bucket dei periodi provengono dall'archivio di utilizzo dell'integrazione (conservati per 30 giorni).",
+    usage_period_note_unfiltered:
+      "I bucket dei periodi provengono dalle statistiche a lungo termine di Home Assistant, compilate ogni ora. Le nuove attivit\xE0 possono impiegare fino a un'ora per apparire qui.",
+    usage_where_tokens_go_title: "Dove finiscono i token",
+    usage_where_tokens_last_prefix: "Ultimi",
+    usage_where_tokens_resets_suffix: "\xB7 si azzera al riavvio di HA",
+    usage_group_by_kind_button: "Per tipo",
+    usage_group_by_provider_button: "Per provider",
+    usage_loading: "Caricamento\u2026",
+    usage_no_calls_recorded: "Nessuna chiamata registrata ancora.",
+    usage_recent_calls_title: "Chiamate recenti",
+    usage_dashboard_sensors_title: "Sensori per dashboard",
+    usage_dashboard_sensors_help_prefix:
+      "Riavvii Home Assistant per registrare i sensori di utilizzo. Una volta registrati, pu\xF2 aggiungerli a qualsiasi dashboard con una scheda",
+    usage_dashboard_sensors_help_suffix: ".",
+    usage_add_to_dashboard_title: "Aggiungi alla Sua dashboard",
+    usage_add_to_dashboard_help:
+      "Ogni metrica ha una scala diversa \u2014 crei una scheda per sensore. Scelga una metrica, copi lo YAML, poi lo incolli nell'editor YAML di una dashboard.",
+    usage_filter_all_providers: "Tutti i provider",
+    usage_filter_all_models: "Tutti i modelli",
+    usage_filter_no_model: "(nessun modello)",
+    suggestions_tab_flow: "Flusso",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Creazione\u2026",
+    suggestions_btn_accept: "Accetta",
+    suggestions_btn_dismissing: "Rifiuto\u2026",
+    suggestions_btn_dismiss: "Ignora",
+    suggestions_section_title: "Suggeriti per Lei",
+    suggestions_badge_new: "nuovi",
+    suggestions_llm_setup_required: "Configuri prima un provider LLM",
+    suggestions_btn_scanning: "Scansione\u2026",
+    suggestions_btn_scan_now: "Scansiona ora",
+    suggestions_btn_analyzing: "Analisi\u2026",
+    suggestions_btn_generate: "Genera",
+    suggestions_section_subtitle:
+      "Basati sui pattern osservati e sull'analisi AI della Sua casa.",
+    suggestions_empty_state:
+      'Nessun suggerimento ancora. Tocchi "Genera" per analizzare la Sua casa.',
+    suggestions_filter_placeholder: "Filtra suggerimenti\u2026",
+    suggestions_filter_all: "Tutti",
+    suggestions_filter_patterns: "Pattern",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "Recenti",
+    suggestions_sort_alpha: "Alfabetico",
+    suggestions_bulk_selected: "selezionati",
+    suggestions_bulk_accept_selected: "Accetta selezionati",
+    suggestions_bulk_dismiss_selected: "Ignora selezionati",
+    suggestions_bulk_done: "Fatto",
+    suggestions_bulk_edit: "Modifica in blocco",
+    suggestions_show_more: "Mostra altri suggerimenti",
+    version_history_loading: "Caricamento\u2026",
+    version_history_empty: "Nessuna cronologia delle versioni ancora.",
+    version_history_current_badge: "Attuale",
+    version_history_hide_yaml: "Nascondi YAML",
+    version_history_view_yaml: "Visualizza YAML",
+    version_history_restoring: "Ripristino\u2026",
+    version_history_restore_button: "Ripristina questa versione",
+    version_history_no_yaml_stored: "(nessuno YAML memorizzato)",
+    version_history_compare_title: "Confronta versioni",
+    version_history_version_a_label: "Versione A (pi\xF9 recente):",
+    version_history_version_b_label: "Versione B (precedente):",
+    version_history_loading_diff: "Caricamento differenze\u2026",
+    version_history_no_diff: "Nessuna differenza trovata.",
+    device_detail_loading: "Caricamento dettagli dispositivo...",
+    device_detail_close: "Chiudi",
+    device_detail_entities_heading: "Entit\xE0",
+    device_detail_state_history_heading: "Cronologia stati (24h)",
+    device_detail_linked_automations_heading: "Automazioni collegate",
+    device_detail_detected_patterns_heading: "Pattern rilevati",
+    device_detail_confidence_label: "confidenza",
+    ignore_list_remove_label: "Rimuovi etichetta",
+    ignore_list_chip_kind_device: "dispositivo",
+    ignore_list_chip_kind_area: "area",
+    ignore_list_dropdown_kind_area: "Area",
+    ignore_list_dropdown_kind_device: "Dispositivo",
+    ignore_list_how_it_works: "Come funziona?",
+    ignore_list_section_title: "Ignora nei suggerimenti",
+    ignore_list_search_placeholder:
+      "Cerchi un'entit\xE0, un dispositivo o un'area\u2026",
+    ignore_list_empty_state: "Nulla \xE8 stato ignorato ancora.",
+    approval_risk_explainer_low:
+      "Rischio basso: impatto minore o completamente reversibile (suoni, notifiche, avvio/arresto aspirapolvere).",
+    approval_risk_explainer_medium:
+      "Rischio medio: effetti collaterali percepibili che potrebbe non voler annullare (inserimento allarme, blocco di una porta, esecuzione di uno script utente).",
+    approval_risk_explainer_high:
+      "Rischio alto: accesso fisico, sicurezza o impatto a livello host (sblocco di una porta, disinserimento dell'allarme, esecuzione di comandi shell).",
+    approval_scope_all_matching: "Tutte le entit\xE0 corrispondenti",
+    approval_scope_just_these: "Solo queste entit\xE0",
+    approval_status_approved: "Approvato",
+    approval_status_denied: "Negato",
+    approval_working: "In corso\u2026",
+    approval_required_title: "Approvazione richiesta",
+    approval_scope_label: "Per sessione / Sempre:",
+    approval_scope_button_title:
+      "Clicchi per alternare tra applicare l'autorizzazione solo a questa entit\xE0, o a tutte le entit\xE0 di questo servizio.",
+    quick_actions_approve_once_label: "Consenti una volta",
+    quick_actions_approve_once_desc: "Solo questa richiesta",
+    quick_actions_approve_session_label: "Per questa conversazione",
+    quick_actions_approve_session_desc:
+      "Consenti per il resto di questa conversazione",
+    quick_actions_approve_always_label: "Sempre",
+    quick_actions_approve_always_desc: "Ricorda questa approvazione",
+    quick_actions_deny_label: "Nega",
+    quick_actions_deny_desc: "Non eseguire questa richiesta",
+    stale_modal_title: "Automazioni obsolete",
+    stale_select_all: "Seleziona tutto",
+    stale_last_triggered_label: "Ultima attivazione:",
+    stale_never: "Mai",
+    stale_keep_button: "Mantieni",
+    stale_close_button: "Chiudi",
+    stale_state_label: "Stato:",
+    stale_state_unknown: "sconosciuto",
+    stale_back_button: "Indietro",
+    stale_remove_confirm: "Rimuovere questa automazione in modo permanente?",
+    stale_remove_success: "Automazione rimossa.",
+    stale_remove_failed_prefix: "Impossibile rimuovere:",
+    stale_remove_button: "Rimuovi",
+    automation_management_triggered: "Automazione attivata.",
+    automation_management_renamed: "Automazione rinominata",
+    automation_management_version_restored: "Versione ripristinata.",
+    automation_management_delete_confirm:
+      "Eliminare questa automazione in modo permanente?",
+    automation_management_deleted: "Automazione eliminata.",
+    automation_management_cannot_refine_no_id:
+      "Questa automazione non pu\xF2 essere perfezionata perch\xE9 non ha un ID automazione.",
+    automation_management_loaded_to_chat: "Automazione caricata nella chat.",
+    action_format_run_verb: "Esegui",
+    action_format_ran_verb: "Eseguito",
+    chat_actions_interrupt_disconnect:
+      "La connessione a Home Assistant \xE8 stata persa durante la risposta.",
+    chat_actions_interrupt_server_stopped: "Il server ha smesso di rispondere.",
+    chat_actions_interrupt_server_no_reply:
+      "Il server non ha risposto in tempo.",
+    chat_actions_interrupt_truncated:
+      "La risposta sembra troncata \u2014 riprovi.",
+    chat_actions_interrupt_llm_unreachable:
+      "Impossibile raggiungere il provider LLM.",
+    chat_actions_interrupt_session_start_failed:
+      "Impossibile avviare la sessione di chat.",
+    chat_actions_cancelled_by_user: "_Annullato dall'utente_",
+    automation_crud_save_failed: "Impossibile salvare l'automazione:",
+    automation_crud_entity_not_surfaced:
+      "Automazione salvata, ma Home Assistant non ha ancora reso disponibile l'entit\xE0 \u2014 la attivi dalla scheda Automazioni una volta che appare.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automazione salvata ma non \xE8 stato possibile attivarla automaticamente:",
+    automation_crud_unknown_error: "errore sconosciuto",
+    automation_crud_auto_enable_failed_suffix:
+      ". Usi il pulsante Attiva sulla scheda per riprovare.",
+    automation_crud_draft_dismissed: "Bozza ignorata.",
+    automation_crud_dismiss_draft_failed: "Impossibile ignorare la bozza:",
+    automation_crud_create_failed: "Impossibile creare l'automazione:",
+    automation_crud_save_edited_yaml_failed:
+      "Impossibile salvare l'automazione dallo YAML modificato:",
+    automation_crud_yaml_saved: "YAML dell'automazione salvato.",
+    automation_crud_save_changes_failed: "Impossibile salvare le modifiche:",
+    scene_actions_refine_default_name: "la scena",
+    session_toast_new_automation_chat_failed:
+      "Impossibile avviare una nuova chat di automazione:",
+    session_toast_ai_no_suggestion:
+      "L'AI non ha restituito un suggerimento \u2014 riprovi.",
+    session_toast_suggest_failed:
+      "Impossibile generare un suggerimento \u2014 controlli la configurazione LLM.",
+    suggestions_analysis_no_new:
+      "Analisi completata \u2014 nessun nuovo suggerimento al momento",
+    suggestions_accepted_toast:
+      "Suggerimento accettato \u2014 automazione creata",
+    suggestions_accept_failed: "Impossibile accettare il suggerimento",
+    suggestions_dismissed_toast: "Suggerimento ignorato",
+    suggestions_snoozed_toast: "Suggerimento rinviato di 24h",
+    suggestions_pattern_scan_failed: "Scansione pattern non riuscita",
+    area_unassigned: "Non assegnato",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Impostazioni servizi in background",
+        description: "Configura i servizi in background per Selora AI.",
+        data: {
+          collector_enabled: "Raccoglitore dati (analisi IA) attivato",
+          collector_mode: "Modalit\xE0 di esecuzione",
+          collector_interval: "Intervallo di analisi (secondi)",
+          collector_start_time: "Orario di inizio programmato",
+          collector_end_time: "Orario di fine programmato",
+          discovery_enabled: "Rilevamento di rete attivato",
+          discovery_mode: "Modalit\xE0 di esecuzione",
+          discovery_interval: "Intervallo di rilevamento (secondi)",
+          discovery_start_time: "Orario di inizio programmato",
+          discovery_end_time: "Orario di fine programmato",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/nl.json
+var nl_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Selora AI configureren",
+        description:
+          "Kies welke LLM-backend u wilt gebruiken voor automatiseringssuggesties.",
+        data: {
+          llm_provider: "LLM-provider",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud gebruikt uw Selora-account \u2014 er is geen API-sleutel nodig. Open na de configuratie het Selora AI-paneel en klik op \u201ESelora-account koppelen\u201D om u te authenticeren.",
+      },
+      anthropic: {
+        title: "Anthropic (Claude) configuratie",
+        description:
+          "Voer uw Anthropic API-sleutel in. U kunt er een aanvragen op console.anthropic.com.",
+        data: {
+          anthropic_api_key: "API-sleutel",
+          anthropic_model: "Model",
+        },
+      },
+      gemini: {
+        title: "Google Gemini configuratie",
+        description:
+          "Voer uw Google Gemini API-sleutel in. U kunt er een aanvragen op aistudio.google.com.",
+        data: {
+          gemini_api_key: "API-sleutel",
+          gemini_model: "Model",
+        },
+      },
+      openai: {
+        title: "OpenAI configuratie",
+        description:
+          "Voer uw OpenAI API-sleutel in. U kunt er een aanvragen op platform.openai.com.",
+        data: {
+          openai_api_key: "API-sleutel",
+          openai_model: "Model",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter configuratie",
+        description:
+          "Voer uw OpenRouter API-sleutel in. U kunt er een aanvragen op openrouter.ai/keys. Gebruik modelnamen met provider-voorvoegsel, bijvoorbeeld \u201Eanthropic/claude-sonnet-4.5\u201D.",
+        data: {
+          openrouter_api_key: "API-sleutel",
+          openrouter_model: "Model",
+        },
+      },
+      ollama: {
+        title: "Ollama (lokaal) configuratie",
+        description:
+          "Voer de gegevens van uw lokale Ollama-server in. Zorg ervoor dat het model is gedownload.",
+        data: {
+          ollama_host: "Ollama-host-URL",
+          ollama_model: "Modelnaam",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local configuratie",
+        description:
+          "Maak verbinding met de Selora AI Local Home Assistant-add-on die op het apparaat draait. De add-on luistert op poort 8080. Het standaardadres hieronder werkt voor HA OS via de Supervisor-gateway. Het specialistmodel wordt automatisch per verzoek geselecteerd.",
+        data: {
+          selora_local_host: "Add-on-host-URL",
+        },
+      },
+      select_devices: {
+        title: "Selecteer apparaten om te onboarden",
+        description:
+          "Selora AI heeft {count} apparaten op uw netwerk gevonden. Wijs een ruimte toe om een apparaat toe te voegen, of kies \u201EOverslaan\u201D om het over te slaan.\n\n{device_list}",
+      },
+      results: {
+        title: "Resultaten van apparaatinstelling",
+        description:
+          "Installatie voltooid: {succeeded} geslaagd, {failed} mislukt, {needs_attention} hebben handmatige aandacht nodig.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Verbinding mislukt. Controleer uw API-sleutel of verifieer dat Ollama draait en het model is gedownload.",
+      invalid_auth:
+        "Ongeldige Selora Connect-aanmeldgegevens. Controleer uw e-mailadres en wachtwoord.",
+      unknown: "Er is een onverwachte fout opgetreden.",
+    },
+    abort: {
+      already_configured: "Selora AI is al geconfigureerd.",
+      cannot_connect:
+        "Kan geen verbinding maken met de Selora AI-cloudservice. Probeer het later opnieuw.",
+      unknown: "Er is een onverwachte fout opgetreden tijdens de installatie.",
+      llm_not_ready:
+        "De Selora AI LLM-backend draait niet. Configureer deze eerst.",
+      no_devices_found:
+        "Er zijn geen nieuwe apparaten op uw netwerk gevonden. Probeer het later opnieuw.",
+      no_devices_selected: "Er zijn geen apparaten geselecteerd.",
+      select_devices_failed:
+        "Het onboarden van apparaten is op een onverwachte fout gestuit. Selora AI is opgezet zonder apparaatonboarding \u2014 u kunt het later opnieuw proberen via Instellingen > Apparaten > Vermelding toevoegen. Raadpleeg de Home Assistant-logs voor details.",
+    },
+  },
+  options: {
+    step: {
+      init: {
+        title: "Instellingen voor achtergronddiensten",
+        description: "Configureer achtergronddiensten voor Selora AI.",
+        data: {
+          collector_enabled: "Gegevensverzamelaar (AI-analyse) ingeschakeld",
+          collector_mode: "Uitvoeringsmodus",
+          collector_interval: "Analyse-interval (seconden)",
+          collector_start_time: "Geplande starttijd",
+          collector_end_time: "Geplande eindtijd",
+          discovery_enabled: "Netwerkdetectie ingeschakeld",
+          discovery_mode: "Uitvoeringsmodus",
+          discovery_interval: "Detectie-interval (seconden)",
+          discovery_start_time: "Geplande starttijd",
+          discovery_end_time: "Geplande eindtijd",
+        },
+      },
+    },
+  },
+  common: {
+    feedback_button_label: "Feedback geven",
+    feedback_modal_title: "Feedback delen",
+    feedback_privacy_notice:
+      "Feedback is anoniem en bevat geen persoonlijke gegevens.",
+    feedback_textarea_placeholder: "Wat houdt u bezig? (minimaal 10 tekens)",
+    feedback_rating_label: "Beoordeling:",
+    feedback_rating_thumbsup: "Duim omhoog",
+    feedback_rating_thumbsdown: "Duim omlaag",
+    feedback_category_label: "Categorie (optioneel):",
+    feedback_category_bug: "Bug",
+    feedback_category_feature: "Functieverzoek",
+    feedback_category_general: "Algemeen",
+    feedback_submit: "Feedback verzenden",
+    feedback_submitting: "Verzenden\u2026",
+    feedback_email_label: "E-mail (optioneel):",
+    feedback_email_placeholder:
+      "uw@email.com \u2014 alleen als u een reactie wenst",
+    feedback_cancel: "Annuleren",
+    feedback_min_length_error: "Voer ten minste 10 tekens in.",
+    feedback_success: "Bedankt voor uw feedback!",
+    feedback_error: "Kon feedback niet verzenden \u2014 probeer het opnieuw.",
+    nav_new_chat: "Nieuw gesprek",
+    nav_selora_menu: "Selora-menu",
+    nav_conversations: "Gesprekken",
+    nav_automations: "Automatiseringen",
+    nav_scenes: "Sc\xE8nes",
+    nav_settings: "Instellingen",
+    nav_documentation: "Documentatie",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab-repository",
+    welcome_title_prefix: "Welkom bij",
+    welcome_subtitle: "Uw intelligente architect voor woningautomatisering",
+    new_automation_title_prefix: "Nieuwe",
+    new_automation_gold: "Automatisering",
+    new_automation_subtitle:
+      "Beschrijf wat u wilt automatiseren \u2014 vermeld de betrokken apparaten, tijden of voorwaarden.",
+    get_started: "Aan de slag",
+    get_started_body:
+      "Configureer uw LLM-provider in het tabblad Instellingen om met uw woning te gaan chatten.",
+    open_settings: "Instellingen openen",
+    quick_start: "Snelstart",
+    composer_placeholder_ask: "Vraag Selora AI iets\u2026",
+    composer_placeholder_automation:
+      "Beschrijf de automatisering die u wilt aanmaken\u2026",
+    panel_quota_provider_default: "uw LLM-provider",
+    panel_quota_reached: "quotum bereikt.",
+    panel_quota_try_again_prefix: "Probeer opnieuw over",
+    panel_quota_retrying_now: "Nu opnieuw proberen\u2026",
+    panel_quota_dismiss: "Sluiten",
+    panel_llm_switched_selora_cloud: "Overgeschakeld naar Selora Cloud.",
+    panel_llm_invalid_key: "Ongeldige API-sleutel of provider niet bereikbaar.",
+    panel_llm_settings_saved: "LLM-instellingen opgeslagen.",
+    panel_advanced_settings_saved: "Geavanceerde instellingen opgeslagen.",
+    panel_linking_failed: "Koppelen mislukt.",
+    panel_linking_timed_out:
+      "Koppelen verlopen. Probeer het opnieuw \u2014 zorg dat u binnen 10 minuten klaar bent met aanmelden.",
+    panel_linking_start_failed: "Kon koppelen niet starten.",
+    panel_connect_linked_success: "Selora Connect succesvol gekoppeld.",
+    panel_unlink_connect_confirm:
+      "Selora Connect ontkoppelen?\n\nExterne MCP-tools (Openclaw, Claude Desktop, Cursor, Windsurf) verliezen toegang totdat u opnieuw koppelt.",
+    panel_connect_unlinked: "Selora Connect ontkoppeld.",
+    panel_cloud_linked_success: "Selora Cloud succesvol gekoppeld.",
+    panel_unlink_cloud_confirm:
+      "Selora Cloud ontkoppelen?\n\nChat- en automatiseringssuggesties stoppen totdat u uw account opnieuw koppelt in Instellingen.",
+    panel_cloud_unlinked: "Selora Cloud ontkoppeld.",
+    panel_mcp_token_created: "MCP-token aangemaakt.",
+    panel_mcp_token_revoked: "Token ingetrokken.",
+    panel_approval_revoked: "Goedkeuring ingetrokken.",
+    panel_device_loading: "Laden...",
+    panel_device_error_loading: "Fout bij laden van apparaat",
+    panel_tab_conversations: "Gesprekken",
+    panel_tab_automations: "Automatiseringen",
+    panel_tab_scenes: "Sc\xE8nes",
+    panel_sidebar_conversations: "Gesprekken",
+    panel_sidebar_done: "Gereed",
+    panel_sidebar_select: "Selecteren",
+    panel_sidebar_select_all: "Alles selecteren",
+    panel_sidebar_delete: "Verwijderen",
+    panel_sidebar_new_chat: "Nieuw gesprek",
+    panel_sidebar_no_conversations: "Nog geen gesprekken.",
+    panel_session_delete_confirm: "Verwijderen?",
+    panel_session_delete: "Verwijderen",
+    panel_session_cancel: "Annuleren",
+    panel_session_delete_title: "Verwijderen",
+    panel_bulk_delete_title: "Gesprekken verwijderen",
+    panel_bulk_delete_cancel: "Annuleren",
+    panel_bulk_delete_confirm: "Verwijderen",
+    chat_suggest_thinking: "Aan het denken\u2026",
+    chat_suggest_one_for_me: "Stel er een voor mij voor",
+    chat_jump_to_latest: "Ga naar het laatste bericht",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navigeren \xB7 \u21B5 invoegen \xB7 Esc sluiten",
+    chat_selection_remove: "Verwijderen",
+    chat_stop_generating: "Generatie stoppen",
+    chat_send: "Verzenden",
+    chat_building_scene: "Sc\xE8ne bouwen...",
+    chat_go_to_settings: "Ga naar Instellingen",
+    chat_response_cut_short: "Antwoord werd afgekapt.",
+    chat_retry: "Opnieuw proberen",
+    chat_copy_message: "Bericht kopi\xEBren",
+    chat_you: "U",
+    chat_yaml_unsaved_changes: "Niet-opgeslagen wijzigingen",
+    chat_yaml_saving: "Opslaan\u2026",
+    chat_yaml_save_changes: "Wijzigingen opslaan",
+    chat_tools_used: "Gebruikte tools",
+    chat_automation_label_building: "Automatisering bouwen...",
+    chat_automation_label_triggers: "Triggers opstellen...",
+    chat_automation_label_conditions: "Voorwaarden bedraden...",
+    chat_automation_label_actions: "Acties samenstellen...",
+    chat_automation_label_almost: "Bijna klaar...",
+    chat_autocomplete_kind_devices: "Apparaten",
+    chat_autocomplete_kind_areas: "Gebieden",
+    chat_autocomplete_kind_scenes: "Sc\xE8nes",
+    chat_autocomplete_kind_automations: "Automatiseringen",
+    chat_autocomplete_kind_suggestions: "Suggesties",
+    chat_welcome_suggestion_lights_label:
+      "Alle lampen om middernacht uitschakelen",
+    chat_welcome_suggestion_lights_value:
+      "Maak een automatisering die alle lampen om middernacht uitschakelt",
+    chat_welcome_suggestion_devices_label: "Welke apparaten heb ik?",
+    chat_welcome_suggestion_devices_value:
+      "Welke apparaten heb ik en welke staan momenteel aan?",
+    chat_welcome_suggestion_suggest_label:
+      "Stel automatiseringen voor mijn woning voor",
+    chat_welcome_suggestion_suggest_value:
+      "Stel nuttige automatiseringen voor op basis van mijn apparaten en gebruikspatronen",
+    settings_view_token_usage_title: "Tokengebruik bekijken",
+    settings_usage_label: "Gebruik",
+    settings_view_usage_label: "Gebruik bekijken",
+    settings_provider_select_placeholder: "Selecteren...",
+    settings_doc_banner_title: "Configuratiehandleiding",
+    settings_doc_banner_desc:
+      "Leer hoe u LLM-providers, externe toegang en MCP-tokens instelt.",
+    settings_llm_provider_heading: "LLM-provider",
+    settings_provider_label: "Provider",
+    settings_selora_account_label: "Selora-account",
+    settings_selora_cloud_backend_desc: "Selora Cloud levert uw LLM-backend.",
+    settings_unlink_button: "Ontkoppelen",
+    settings_signin_selora_desc:
+      "Meld u aan met uw Selora-account om de gehoste LLM-backend te gebruiken. Geen API-sleutel vereist.",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth en chatcompleties gebruiken beide deze URL. Wordt automatisch opgeslagen wanneer u koppelt.",
+    settings_open_signin_page: "Aanmeldpagina openen \u2192",
+    settings_preparing_label: "Voorbereiden\u2026",
+    settings_link_selora_account_button: "Selora-account koppelen",
+    settings_signin_new_tab_hint:
+      "Wordt geopend in een nieuw tabblad. Keer na het aanmelden terug naar deze pagina \u2014 het paneel wordt automatisch bijgewerkt.",
+    settings_api_key_label: "API-sleutel",
+    settings_click_replace_key_title: "Klik om sleutel te vervangen",
+    settings_enter_new_key_label: "Nieuwe sleutel invoeren",
+    settings_enter_api_key_label: "API-sleutel invoeren",
+    settings_model_label: "Model",
+    settings_selora_local_desc:
+      "Selora AI kiest automatisch het juiste specialistische model (commando's, automatiseringen, antwoorden, verduidelijkingen) per verzoek.",
+    settings_ollama_host_label: "Host",
+    settings_selora_local_show_advanced: "Geavanceerde opties tonen",
+    settings_selora_local_hide_advanced: "Geavanceerde opties verbergen",
+    settings_selora_local_advanced_desc:
+      "Selora-hubs worden voorgeconfigureerd geleverd. Voer hieronder het adres in om een zelf-gehoste llama-server met het Selora AI-model te gebruiken.",
+    settings_selora_local_host_label: "Host",
+    settings_selora_local_auto_detected_prefix: "Automatisch gedetecteerd:",
+    settings_selora_local_auto_detected_none: "geen",
+    settings_validating_label: "Valideren\u2026",
+    settings_save_button: "Opslaan",
+    settings_mcp_server_heading: "MCP-server",
+    settings_mcp_server_subtitle:
+      "Stel uw woning beschikbaar aan externe AI-tools zoals Openclaw, Claude Desktop, Cursor of Windsurf.",
+    settings_connect_via_selora_label: "Verbinden via Selora-account",
+    settings_connect_via_selora_desc:
+      "Maakt uw MCP-server bereikbaar voor externe tools",
+    settings_mcp_url_copied_toast: "MCP-URL gekopieerd naar klembord",
+    settings_connect_server_url_label: "Connect-server-URL",
+    settings_mcp_tokens_section_title: "MCP-TOKENS",
+    settings_mcp_tokens_desc:
+      "MCP-tokens zijn een alternatief voor Selora Connect. Gebruik ze voor tools die geen OAuth ondersteunen of wanneer u de voorkeur geeft aan tokengebaseerde authenticatie.",
+    settings_no_tokens_yet: "Nog geen tokens.",
+    settings_add_token_button: "Token toevoegen",
+    settings_command_approvals_heading: "Commandogoedkeuringen",
+    settings_advanced_settings_heading: "Geavanceerde instellingen",
+    settings_background_services_title: "ACHTERGRONDDIENSTEN",
+    settings_data_collector_label: "Gegevensverzamelaar (AI-analyse)",
+    settings_data_collector_desc: "Voert entiteitsgeschiedenis aan Selora AI",
+    settings_mode_label: "Modus",
+    settings_mode_continuous: "Continu",
+    settings_mode_scheduled_window: "Gepland venster",
+    settings_interval_seconds_label: "Interval (s)",
+    settings_start_hhmm_label: "Begin (HH:MM)",
+    settings_end_hhmm_label: "Einde (HH:MM)",
+    settings_network_discovery_label: "Netwerkontdekking",
+    settings_network_discovery_desc:
+      "Scant het lokale netwerk op nieuwe apparaten",
+    settings_pattern_detection_label: "Patroondetectie",
+    settings_pattern_detection_desc:
+      "Detecteert terugkerende gebruikspatronen en stelt automatiseringen voor",
+    settings_auto_remove_stale_label:
+      "Verouderde automatiseringen automatisch verwijderen",
+    settings_developer_mode_label: "Ontwikkelaarsmodus",
+    settings_developer_mode_desc: "Toont ruwe entiteitsgegevens en debuglogs",
+    settings_dev_mode_save_failed_toast:
+      "Opslaan van ontwikkelaarsmodus mislukt.",
+    settings_saving_label: "Opslaan\u2026",
+    settings_no_approvals_yet_prefix:
+      "Nog geen opgeslagen goedkeuringen. De volgende keer dat Selora vraagt voordat er iets risicovols wordt uitgevoerd, klik op",
+    settings_no_approvals_always_word: "Altijd",
+    settings_no_approvals_yet_suffix: "om het hier te onthouden.",
+    settings_per_entity_approval_title: "Goedkeuring per entiteit",
+    settings_wildcard_approval_title:
+      "Wildcard \u2014 geldt voor elke entiteit van deze service",
+    settings_approval_all_label: "alle",
+    settings_token_created_heading: "Token aangemaakt",
+    settings_token_created_desc:
+      "Kopieer dit token nu \u2014 het wordt niet opnieuw getoond.",
+    settings_token_copied_toast: "Token gekopieerd naar klembord",
+    settings_done_button: "Gereed",
+    settings_create_mcp_token_heading: "MCP-token aanmaken",
+    settings_token_name_label: "Naam",
+    settings_token_name_placeholder: "bijv. Claude Desktop",
+    settings_permission_level_label: "Permissieniveau",
+    settings_perm_read_only: "Alleen-lezen",
+    settings_perm_admin_all: "Beheerder (alle tools)",
+    settings_perm_custom: "Aangepast (tools selecteren)",
+    settings_allowed_tools_label: "Toegestane tools",
+    settings_admin_badge: "beheerder",
+    settings_expiration_label: "Vervaldatum (optioneel)",
+    settings_expiry_never: "Verloopt nooit",
+    settings_expiry_7_days: "7 dagen",
+    settings_expiry_30_days: "30 dagen",
+    settings_expiry_90_days: "90 dagen",
+    settings_expiry_1_year: "1 jaar",
+    settings_cancel_button: "Annuleren",
+    settings_create_token_button: "Token aanmaken",
+    automations_flow_branch_if: "Als",
+    automations_flow_branch_else_if: "Anders als",
+    automations_flow_branch_otherwise: "Anders",
+    automations_flow_branch_in_parallel: "Parallel",
+    automations_flow_branch_in_sequence: "Op volgorde",
+    automations_flow_repeat_while: "Herhaal zolang voorwaarde geldt",
+    automations_flow_repeat_until: "Herhaal totdat voorwaarde is voldaan",
+    automations_flow_repeat: "Herhalen",
+    automations_flow_label_trigger: "Trigger",
+    automations_flow_label_condition: "Voorwaarde",
+    automations_flow_label_actions: "Acties",
+    automations_badge_enabled: "Aangezet",
+    automations_badge_saved: "Opgeslagen",
+    automations_yaml_toggle_hide: "YAML verbergen",
+    automations_yaml_toggle_view: "YAML bekijken",
+    automations_yaml_toggle_edit: "YAML bewerken",
+    automations_proposal_declined_title: "Automatisering geweigerd",
+    automations_proposal_declined_body:
+      "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
+    automations_badge_being_refined: "Wordt verfijnd",
+    automations_badge_proposal: "Voorstel",
+    automations_proposal_elevated_risk:
+      "Beoordeling van verhoogd risico aanbevolen.",
+    automations_proposal_yaml_edits_note:
+      "Uw YAML-wijzigingen worden gebruikt wanneer u accepteert.",
+    automations_action_run_tooltip:
+      "Voer de acties nu uit om te controleren of ze werken",
+    automations_action_running: "Uitvoeren\u2026",
+    automations_action_run_now: "Nu uitvoeren",
+    automations_action_open_in_ha_tooltip:
+      "Open deze automatisering in Home Assistant",
+    automations_action_view_in_ha: "Bekijken in HA",
+    automations_action_enabling: "Aanzetten\u2026",
+    automations_action_enable_automation: "Automatisering aanzetten",
+    automations_elevated_risk_note:
+      "Gebruikt acties met verhoogd risico \u2014 bekijk de flow en YAML voordat u inschakelt.",
+    automations_action_accept_and_save: "Accepteren & opslaan",
+    automations_section_title: "Uw automatiseringen",
+    automations_filter_placeholder: "Automatiseringen filteren\u2026",
+    automations_sort_recent: "Recente activiteit",
+    automations_sort_alpha: "Alfabetisch",
+    automations_sort_enabled_first: "Aangezet eerst",
+    automations_llm_setup_required_tooltip:
+      "Configureer eerst een LLM-provider",
+    automations_new_automation_button: "Nieuwe automatisering",
+    automations_status_tab_all: "Alle",
+    automations_status_tab_enabled: "Ingeschakeld",
+    automations_status_tab_disabled: "Uitgeschakeld",
+    automations_status_tab_stale: "Verouderd",
+    automations_bulk_select_all: "Alles selecteren",
+    automations_bulk_done: "Gereed",
+    automations_bulk_edit: "Bulkbewerking",
+    automations_bulk_working: "Bezig\u2026",
+    automations_bulk_enable_all: "Alles aanzetten",
+    automations_bulk_disable_all: "Alles uitzetten",
+    automations_bulk_delete_selected: "Selectie verwijderen",
+    automations_bulk_clear: "Wissen",
+    automations_last_run_disabled: "Uitgezet",
+    automations_last_run_never: "Nooit",
+    automations_needs_attention_pill: "Heeft aandacht nodig",
+    automations_rename_save_tooltip: "Opslaan",
+    automations_last_run_prefix: "Laatste uitvoering:",
+    automations_last_run_prefix_inline: "Laatste uitvoering:",
+    automations_toggle_enabled: "Aangezet",
+    automations_toggle_disabled: "Uitgezet",
+    automations_toggle_unavailable: "Niet beschikbaar",
+    automations_toast_toggle_unresolved:
+      "Kan niet schakelen: automatisering-id kon niet worden opgelost. Herlaad en probeer opnieuw.",
+    automations_more_actions_tooltip: "Meer acties",
+    automations_burger_loading: "Laden\u2026",
+    automations_burger_refine_in_chat: "Verfijnen in chat",
+    automations_burger_rename: "Naam wijzigen",
+    automations_burger_view_in_ha: "Bekijken in HA",
+    automations_burger_deleting: "Verwijderen\u2026",
+    automations_burger_delete: "Verwijderen",
+    automations_card_tab_flow: "Flow",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Geschiedenis",
+    automations_pagination_prev: "\u2039 Vorige",
+    automations_pagination_per_page: "Per pagina:",
+    automations_pagination_next: "Volgende \u203A",
+    automations_empty_state: "Nog geen automatiseringen.",
+    automations_unavailable_modal_title: "Automatisering niet beschikbaar",
+    automations_unavailable_default_name: "Deze automatisering",
+    automations_unavailable_modal_intro:
+      "is door Home Assistant gemarkeerd als niet beschikbaar. Dit betekent meestal:",
+    automations_unavailable_reason_entity:
+      "Een trigger of voorwaarde verwijst naar een entiteit die niet meer bestaat",
+    automations_unavailable_reason_yaml:
+      "De YAML van de automatisering bevat een configuratiefout",
+    automations_unavailable_reason_integration:
+      "Een vereiste integratie is verwijderd of niet geladen",
+    automations_unavailable_modal_advice:
+      "Open de automatisering in Home Assistant Instellingen om de configuratie te bekijken en te repareren.",
+    automations_unavailable_modal_close: "Sluiten",
+    automations_unavailable_modal_edit_states: "Statussen bewerken",
+    automations_unavailable_modal_open_in_automations:
+      "Openen in Automatiseringen",
+    scenes_card_created_title: "Sc\xE8ne aangemaakt",
+    scenes_card_saved_status: "Opgeslagen in Home Assistant",
+    scenes_card_activate_button: "Activeren",
+    scenes_card_view_in_ha_button: "Bekijken in HA",
+    scenes_card_declined_title: "Sc\xE8ne geweigerd",
+    scenes_card_declined_message:
+      "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
+    scenes_card_refining_badge: "Wordt verfijnd",
+    scenes_hide_yaml: "YAML verbergen",
+    scenes_view_yaml: "YAML bekijken",
+    scenes_card_proposal_badge: "Voorstel",
+    scenes_card_accept_save_button: "Accepteren & opslaan",
+    scenes_section_title: "Uw sc\xE8nes",
+    scenes_filter_placeholder: "Sc\xE8nes filteren\u2026",
+    scenes_sort_recent: "Recent bijgewerkt",
+    scenes_sort_alpha: "Alfabetisch",
+    scenes_sort_size: "Meeste entiteiten",
+    scenes_llm_needs_setup_tooltip: "Configureer eerst een LLM-provider",
+    scenes_new_scene_button: "Nieuwe sc\xE8ne",
+    scenes_status_tab_all: "Alle",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Handmatig",
+    scenes_activate_scene_tooltip: "Sc\xE8ne activeren",
+    scenes_activate_button: "Activeren",
+    scenes_more_actions_tooltip: "Meer acties",
+    scenes_loading_label: "Laden\u2026",
+    scenes_refine_in_chat_button: "Verfijnen in chat",
+    scenes_open_in_ha_button: "Openen in HA",
+    scenes_deleting_label: "Verwijderen\u2026",
+    scenes_delete_button: "Verwijderen",
+    scenes_no_entity_details:
+      "Geen entiteitsdetails beschikbaar \u2014 open de sc\xE8ne in Home Assistant om deze te bekijken.",
+    scenes_yaml_unavailable_comment:
+      "# YAML niet beschikbaar \u2014 open de sc\xE8ne in Home Assistant om deze te bekijken.",
+    scenes_empty_state:
+      "Geen sc\xE8nes gevonden. Vraag Selora om er een aan te maken.",
+    scenes_delete_modal_fallback_name: "deze sc\xE8ne",
+    scenes_delete_modal_title: "Sc\xE8ne verwijderen",
+    scenes_delete_modal_prefix: "Verwijder",
+    scenes_delete_modal_suffix:
+      "? Hiermee wordt de sc\xE8ne uit Home Assistant verwijderd en dit kan niet ongedaan worden gemaakt.",
+    scenes_delete_modal_cancel_button: "Annuleren",
+    scenes_delete_modal_confirm_button: "Verwijderen",
+    usage_pricing_invalid_error: "Prijzen moeten niet-negatieve getallen zijn.",
+    usage_pricing_saved_toast: "Prijsoverschrijving opgeslagen.",
+    usage_pricing_save_failed: "Opslaan van prijs mislukt:",
+    usage_pricing_reset_toast: "Teruggezet naar standaardprijzen.",
+    usage_pricing_reset_failed: "Terugzetten van prijs mislukt:",
+    usage_pricing_title: "Prijzen",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud-gebruik wordt gemeten en gefactureerd in uw Selora Homes-account. Het wordt niet meegeteld in de sensoren of grafieken van deze integratie.",
+    usage_pricing_view_cloud_link:
+      "Bekijk het gebruik in uw Selora Homes-account",
+    usage_pricing_ollama_help:
+      "Ollama draait lokaal \u2014 geen tokenkosten om bij te houden.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local draait op uw hardware \u2014 geen tokenkosten om bij te houden.",
+    usage_pricing_no_model_help:
+      "Configureer een LLM-provider en model in Instellingen om aangepaste prijzen in te stellen.",
+    usage_pricing_intro_prefix:
+      "Kostenschattingen gebruiken deze tarieven per miljoen tokens. Standaardwaarden voor Anthropic komen van de",
+    usage_pricing_official_page_link: "offici\xEBle prijspagina",
+    usage_pricing_intro_suffix:
+      "; pas hier aan als u onderhandelde tarieven heeft of een ander model bijhoudt.",
+    usage_pricing_input_label: "Invoer",
+    usage_pricing_default_prefix: "standaard",
+    usage_pricing_no_default: "geen ingebouwde standaard",
+    usage_pricing_output_label: "Uitvoer",
+    usage_pricing_input_field_label: "Invoer ($/MTok)",
+    usage_pricing_output_field_label: "Uitvoer ($/MTok)",
+    usage_pricing_cancel_button: "Annuleren",
+    usage_pricing_save_button: "Opslaan",
+    usage_pricing_edit_override_button: "Overschrijving bewerken",
+    usage_pricing_set_custom_button: "Aangepaste prijzen instellen",
+    usage_pricing_reset_default_button: "Terugzetten naar standaard",
+    usage_snippet_copied_label: "Gekopieerd!",
+    usage_snippet_copy_button: "Kopi\xEBren",
+    usage_snippet_help:
+      "De visuele kaartkiezer vindt deze sensoren ook na de eerste uurlijkse compilatie van de Recorder.",
+    usage_back_to_settings: "Terug naar instellingen",
+    usage_token_usage_title: "Tokengebruik",
+    usage_empty_title: "Nog geen gebruiksgegevens.",
+    usage_empty_body:
+      "Gebruik verschijnt na de eerste LLM-aanroep. Probeer met Selora AI te chatten of een suggestiecyclus uit te voeren. Als u Selora AI al heeft gebruikt en dit nog steeds ziet, start Home Assistant opnieuw zodat de nieuwe sensoren worden geregistreerd.",
+    usage_totals_title: "Totalen",
+    usage_tile_cost_label: "Kosten",
+    usage_tile_cost_sub: "USD-schatting",
+    usage_tile_calls_label: "Aanroepen",
+    usage_tile_tokens_in_label: "Tokens in",
+    usage_tile_tokens_out_label: "Tokens uit",
+    usage_by_period_title: "Per periode",
+    usage_period_today: "Vandaag",
+    usage_period_last_7_days: "Laatste 7 dagen",
+    usage_period_this_month: "Deze maand",
+    usage_period_note_filtered:
+      "Periodebakken komen uit de gebruiksopslag van de integratie (30 dagen bewaard).",
+    usage_period_note_unfiltered:
+      "Periodebakken komen uit de langetermijnstatistieken van Home Assistant, die elk uur worden samengesteld. Het kan tot een uur duren voordat nieuwe activiteit hier verschijnt.",
+    usage_where_tokens_go_title: "Waar tokens heen gaan",
+    usage_where_tokens_last_prefix: "Laatste",
+    usage_where_tokens_resets_suffix: "\xB7 wordt gereset bij herstart van HA",
+    usage_group_by_kind_button: "Op soort",
+    usage_group_by_provider_button: "Op provider",
+    usage_loading: "Laden\u2026",
+    usage_no_calls_recorded: "Nog geen aanroepen geregistreerd.",
+    usage_recent_calls_title: "Recente aanroepen",
+    usage_dashboard_sensors_title: "Dashboard-sensoren",
+    usage_dashboard_sensors_help_prefix:
+      "Start Home Assistant opnieuw om de gebruikssensoren te registreren. Na registratie kunt u ze aan elk dashboard toevoegen met een",
+    usage_dashboard_sensors_help_suffix: "kaart.",
+    usage_add_to_dashboard_title: "Toevoegen aan uw dashboard",
+    usage_add_to_dashboard_help:
+      "Elke metriek heeft een andere schaal \u2014 maak \xE9\xE9n kaart per sensor. Kies een metriek, kopieer de YAML en plak deze in de YAML-editor van een dashboard.",
+    usage_filter_all_providers: "Alle providers",
+    usage_filter_all_models: "Alle modellen",
+    usage_filter_no_model: "(geen model)",
+    suggestions_tab_flow: "Flow",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "Aanmaken\u2026",
+    suggestions_btn_accept: "Accepteren",
+    suggestions_btn_dismissing: "Afwijzen\u2026",
+    suggestions_btn_dismiss: "Afwijzen",
+    suggestions_section_title: "Voor u voorgesteld",
+    suggestions_badge_new: "nieuw",
+    suggestions_llm_setup_required: "Configureer eerst een LLM-provider",
+    suggestions_btn_scanning: "Scannen\u2026",
+    suggestions_btn_scan_now: "Nu scannen",
+    suggestions_btn_analyzing: "Analyseren\u2026",
+    suggestions_btn_generate: "Genereren",
+    suggestions_section_subtitle:
+      "Op basis van waargenomen patronen en AI-analyse in uw woning.",
+    suggestions_empty_state:
+      'Nog geen suggesties. Tik op "Genereren" om uw woning te analyseren.',
+    suggestions_filter_placeholder: "Suggesties filteren\u2026",
+    suggestions_filter_all: "Alle",
+    suggestions_filter_patterns: "Patronen",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "Recent",
+    suggestions_sort_alpha: "Alfabetisch",
+    suggestions_bulk_selected: "geselecteerd",
+    suggestions_bulk_accept_selected: "Selectie accepteren",
+    suggestions_bulk_dismiss_selected: "Selectie afwijzen",
+    suggestions_bulk_done: "Gereed",
+    suggestions_bulk_edit: "Bulkbewerking",
+    suggestions_show_more: "Meer suggesties tonen",
+    version_history_loading: "Laden\u2026",
+    version_history_empty: "Nog geen versiegeschiedenis.",
+    version_history_current_badge: "Huidig",
+    version_history_hide_yaml: "YAML verbergen",
+    version_history_view_yaml: "YAML bekijken",
+    version_history_restoring: "Herstellen\u2026",
+    version_history_restore_button: "Deze versie herstellen",
+    version_history_no_yaml_stored: "(geen YAML opgeslagen)",
+    version_history_compare_title: "Versies vergelijken",
+    version_history_version_a_label: "Versie A (nieuwer):",
+    version_history_version_b_label: "Versie B (ouder):",
+    version_history_loading_diff: "Diff laden\u2026",
+    version_history_no_diff: "Geen verschillen gevonden.",
+    device_detail_loading: "Apparaatdetails laden...",
+    device_detail_close: "Sluiten",
+    device_detail_entities_heading: "Entiteiten",
+    device_detail_state_history_heading: "Statusgeschiedenis (24u)",
+    device_detail_linked_automations_heading: "Gekoppelde automatiseringen",
+    device_detail_detected_patterns_heading: "Gedetecteerde patronen",
+    device_detail_confidence_label: "vertrouwen",
+    ignore_list_remove_label: "Label verwijderen",
+    ignore_list_chip_kind_device: "apparaat",
+    ignore_list_chip_kind_area: "gebied",
+    ignore_list_dropdown_kind_area: "Gebied",
+    ignore_list_dropdown_kind_device: "Apparaat",
+    ignore_list_how_it_works: "Hoe werkt dit?",
+    ignore_list_section_title: "Negeren in suggesties",
+    ignore_list_search_placeholder:
+      "Zoek een entiteit, apparaat of gebied\u2026",
+    ignore_list_empty_state: "Nog niets genegeerd.",
+    approval_risk_explainer_low:
+      "Laag risico: geringe of volledig omkeerbare impact (geluid, meldingen, stofzuiger start/stop).",
+    approval_risk_explainer_medium:
+      "Gemiddeld risico: merkbare neveneffecten die u mogelijk niet ongedaan wilt maken (alarm inschakelen, deur op slot doen, een gebruikersscript uitvoeren).",
+    approval_risk_explainer_high:
+      "Hoog risico: fysieke toegang, beveiliging of impact op hostniveau (deur ontgrendelen, alarm uitschakelen, shell-commando's uitvoeren).",
+    approval_scope_all_matching: "Alle overeenkomende entiteiten",
+    approval_scope_just_these: "Alleen deze entiteiten",
+    approval_status_approved: "Goedgekeurd",
+    approval_status_denied: "Geweigerd",
+    approval_working: "Bezig\u2026",
+    approval_required_title: "Goedkeuring vereist",
+    approval_scope_label: "Voor sessie / Altijd:",
+    approval_scope_button_title:
+      "Klik om te schakelen tussen het toekennen van de rechten aan alleen deze entiteit of aan alle entiteiten van deze service.",
+    quick_actions_approve_once_label: "Eenmalig toestaan",
+    quick_actions_approve_once_desc: "Alleen dit ene verzoek",
+    quick_actions_approve_session_label: "Voor dit gesprek",
+    quick_actions_approve_session_desc: "Toestaan voor de rest van dit gesprek",
+    quick_actions_approve_always_label: "Altijd",
+    quick_actions_approve_always_desc: "Onthoud deze goedkeuring",
+    quick_actions_deny_label: "Weigeren",
+    quick_actions_deny_desc: "Dit verzoek niet uitvoeren",
+    stale_modal_title: "Verouderde automatiseringen",
+    stale_select_all: "Alles selecteren",
+    stale_last_triggered_label: "Laatst geactiveerd:",
+    stale_never: "Nooit",
+    stale_keep_button: "Behouden",
+    stale_close_button: "Sluiten",
+    stale_state_label: "Status:",
+    stale_state_unknown: "onbekend",
+    stale_back_button: "Terug",
+    stale_remove_confirm: "Deze automatisering definitief verwijderen?",
+    stale_remove_success: "Automatisering verwijderd.",
+    stale_remove_failed_prefix: "Verwijderen mislukt:",
+    stale_remove_button: "Verwijderen",
+    automation_management_triggered: "Automatisering geactiveerd.",
+    automation_management_renamed: "Naam van automatisering gewijzigd",
+    automation_management_version_restored: "Versie hersteld.",
+    automation_management_delete_confirm:
+      "Deze automatisering definitief verwijderen?",
+    automation_management_deleted: "Automatisering verwijderd.",
+    automation_management_cannot_refine_no_id:
+      "Deze automatisering kan niet worden verfijnd omdat ze geen automatisering-ID heeft.",
+    automation_management_loaded_to_chat: "Automatisering geladen in chat.",
+    action_format_run_verb: "Uitvoeren",
+    action_format_ran_verb: "Uitgevoerd",
+    chat_actions_interrupt_disconnect:
+      "Verbinding met Home Assistant verbroken tijdens antwoord.",
+    chat_actions_interrupt_server_stopped: "De server reageert niet meer.",
+    chat_actions_interrupt_server_no_reply:
+      "De server heeft niet op tijd geantwoord.",
+    chat_actions_interrupt_truncated:
+      "Antwoord lijkt afgekapt \u2014 probeer het opnieuw.",
+    chat_actions_interrupt_llm_unreachable:
+      "Kon de LLM-provider niet bereiken.",
+    chat_actions_interrupt_session_start_failed:
+      "Kon de chatsessie niet starten.",
+    chat_actions_cancelled_by_user: "_Geannuleerd door gebruiker_",
+    automation_crud_save_failed: "Opslaan van automatisering mislukt:",
+    automation_crud_entity_not_surfaced:
+      "Automatisering opgeslagen, maar Home Assistant heeft de entiteit nog niet weergegeven \u2014 zet ze aan vanuit het tabblad Automatiseringen zodra ze verschijnt.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automatisering opgeslagen, maar kon niet automatisch worden aangezet:",
+    automation_crud_unknown_error: "onbekende fout",
+    automation_crud_auto_enable_failed_suffix:
+      ". Gebruik de Aanzetten-knop op de kaart om het opnieuw te proberen.",
+    automation_crud_draft_dismissed: "Concept afgewezen.",
+    automation_crud_dismiss_draft_failed: "Afwijzen van concept mislukt:",
+    automation_crud_create_failed: "Aanmaken van automatisering mislukt:",
+    automation_crud_save_edited_yaml_failed:
+      "Opslaan van automatisering uit bewerkte YAML mislukt:",
+    automation_crud_yaml_saved: "YAML van automatisering opgeslagen.",
+    automation_crud_save_changes_failed: "Opslaan van wijzigingen mislukt:",
+    scene_actions_refine_default_name: "de sc\xE8ne",
+    session_toast_new_automation_chat_failed:
+      "Starten van nieuw automatiseringsgesprek mislukt:",
+    session_toast_ai_no_suggestion:
+      "AI heeft geen suggestie geretourneerd \u2014 probeer het opnieuw.",
+    session_toast_suggest_failed:
+      "Genereren van suggestie mislukt \u2014 controleer LLM-configuratie.",
+    suggestions_analysis_no_new:
+      "Analyse voltooid \u2014 momenteel geen nieuwe suggesties",
+    suggestions_accepted_toast:
+      "Suggestie geaccepteerd \u2014 automatisering aangemaakt",
+    suggestions_accept_failed: "Accepteren van suggestie mislukt",
+    suggestions_dismissed_toast: "Suggestie afgewezen",
+    suggestions_snoozed_toast: "Suggestie 24u uitgesteld",
+    suggestions_pattern_scan_failed: "Patroonscan mislukt",
+    area_unassigned: "Niet toegewezen",
+  },
+};
+
+// ../translations/hu.json
+var hu_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Selora AI konfigur\xE1l\xE1sa",
+        description:
+          "V\xE1lassza ki, melyik LLM-h\xE1tt\xE9rrendszert szeretn\xE9 haszn\xE1lni az automatiz\xE1l\xE1si javaslatokhoz.",
+        data: {
+          llm_provider: "LLM-szolg\xE1ltat\xF3",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "A Selora AI Cloud az \xD6n Selora-fi\xF3kj\xE1t haszn\xE1lja \u2014 nincs sz\xFCks\xE9g API-kulcsra. A be\xE1ll\xEDt\xE1s ut\xE1n nyissa meg a Selora AI panelt, \xE9s kattintson a \u201ESelora-fi\xF3k \xF6sszekapcsol\xE1sa\u201D gombra a hiteles\xEDt\xE9shez.",
+      },
+      anthropic: {
+        title: "Anthropic (Claude) konfigur\xE1ci\xF3",
+        description:
+          "Adja meg az Anthropic API-kulcs\xE1t. K\xE9rhet egyet itt: console.anthropic.com.",
+        data: {
+          anthropic_api_key: "API-kulcs",
+          anthropic_model: "Modell",
+        },
+      },
+      gemini: {
+        title: "Google Gemini konfigur\xE1ci\xF3",
+        description:
+          "Adja meg a Google Gemini API-kulcs\xE1t. K\xE9rhet egyet itt: aistudio.google.com.",
+        data: {
+          gemini_api_key: "API-kulcs",
+          gemini_model: "Modell",
+        },
+      },
+      openai: {
+        title: "OpenAI konfigur\xE1ci\xF3",
+        description:
+          "Adja meg az OpenAI API-kulcs\xE1t. K\xE9rhet egyet itt: platform.openai.com.",
+        data: {
+          openai_api_key: "API-kulcs",
+          openai_model: "Modell",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter konfigur\xE1ci\xF3",
+        description:
+          "Adja meg az OpenRouter API-kulcs\xE1t. K\xE9rhet egyet itt: openrouter.ai/keys. Haszn\xE1ljon szolg\xE1ltat\xF3el\u0151taggal ell\xE1tott modellneveket, p\xE9ld\xE1ul \u201Eanthropic/claude-sonnet-4.5\u201D.",
+        data: {
+          openrouter_api_key: "API-kulcs",
+          openrouter_model: "Modell",
+        },
+      },
+      ollama: {
+        title: "Ollama (helyi) konfigur\xE1ci\xF3",
+        description:
+          "Adja meg a helyi Ollama-kiszolg\xE1l\xF3 adatait. Gy\u0151z\u0151dj\xF6n meg r\xF3la, hogy a modell le van t\xF6ltve.",
+        data: {
+          ollama_host: "Ollama-kiszolg\xE1l\xF3 URL",
+          ollama_model: "Modell neve",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local konfigur\xE1ci\xF3",
+        description:
+          "Csatlakozzon az eszk\xF6z\xF6n fut\xF3 Selora AI Local Home Assistant kieg\xE9sz\xEDt\u0151h\xF6z. A kieg\xE9sz\xEDt\u0151 a 8080-as porton figyel. Az al\xE1bbi alap\xE9rtelmezett c\xEDm HA OS eset\xE9n a Supervisor \xE1tj\xE1r\xF3n kereszt\xFCl m\u0171k\xF6dik. A specialista modell automatikusan ker\xFCl kiv\xE1laszt\xE1sra k\xE9r\xE9senk\xE9nt.",
+        data: {
+          selora_local_host: "Kieg\xE9sz\xEDt\u0151-kiszolg\xE1l\xF3 URL",
+        },
+      },
+      select_devices: {
+        title: "Eszk\xF6z\xF6k kiv\xE1laszt\xE1sa be\xFCzemel\xE9shez",
+        description:
+          "A Selora AI {count} eszk\xF6zt tal\xE1lt a h\xE1l\xF3zat\xE1n. Rendeljen hozz\xE1 egy szob\xE1t egy eszk\xF6z hozz\xE1ad\xE1s\xE1hoz, vagy v\xE1lassza a \u201EKihagy\xE1s\u201D lehet\u0151s\xE9get az \xE1tugr\xE1shoz.\n\n{device_list}",
+      },
+      results: {
+        title: "Eszk\xF6zbe\xE1ll\xEDt\xE1s eredm\xE9nyei",
+        description:
+          "Be\xE1ll\xEDt\xE1s k\xE9sz: {succeeded} sikeres, {failed} sikertelen, {needs_attention} k\xE9zi beavatkoz\xE1st ig\xE9nyel.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "Nem siker\xFClt csatlakozni. Ellen\u0151rizze az API-kulcs\xE1t, vagy gy\u0151z\u0151dj\xF6n meg arr\xF3l, hogy az Ollama fut \xE9s a modell le van t\xF6ltve.",
+      invalid_auth:
+        "\xC9rv\xE9nytelen Selora Connect hiteles\xEDt\u0151 adatok. K\xE9rj\xFCk, ellen\u0151rizze az e-mail-c\xEDm\xE9t \xE9s a jelszav\xE1t.",
+      unknown: "V\xE1ratlan hiba t\xF6rt\xE9nt.",
+    },
+    abort: {
+      already_configured: "A Selora AI m\xE1r be van \xE1ll\xEDtva.",
+      cannot_connect:
+        "Nem siker\xFClt csatlakozni a Selora AI felh\u0151szolg\xE1ltat\xE1shoz. K\xE9rj\xFCk, pr\xF3b\xE1lja \xFAjra k\xE9s\u0151bb.",
+      unknown: "V\xE1ratlan hiba t\xF6rt\xE9nt a be\xE1ll\xEDt\xE1s sor\xE1n.",
+      llm_not_ready:
+        "A Selora AI LLM-h\xE1tt\xE9rrendszer nem fut. K\xE9rj\xFCk, el\u0151sz\xF6r \xE1ll\xEDtsa be.",
+      no_devices_found:
+        "Nem tal\xE1lhat\xF3 \xFAj eszk\xF6z a h\xE1l\xF3zat\xE1n. Pr\xF3b\xE1lja \xFAjra k\xE9s\u0151bb.",
+      no_devices_selected: "Nem v\xE1lasztott ki eszk\xF6zt.",
+      select_devices_failed:
+        "Az eszk\xF6z\xF6k be\xFCzemel\xE9se sor\xE1n v\xE1ratlan hiba t\xF6rt\xE9nt. A Selora AI eszk\xF6zbe\xFCzemel\xE9s n\xE9lk\xFCl lett be\xE1ll\xEDtva \u2014 k\xE9s\u0151bb \xFAjra megpr\xF3b\xE1lhatja a Be\xE1ll\xEDt\xE1sok > Eszk\xF6z\xF6k > Bejegyz\xE9s hozz\xE1ad\xE1sa men\xFCpontb\xF3l. A r\xE9szletek\xE9rt tekintse meg a Home Assistant napl\xF3it.",
+    },
+  },
+  options: {
+    step: {
+      init: {
+        title: "H\xE1tt\xE9rszolg\xE1ltat\xE1sok be\xE1ll\xEDt\xE1sai",
+        description:
+          "H\xE1tt\xE9rszolg\xE1ltat\xE1sok be\xE1ll\xEDt\xE1sa a Selora AI-hoz.",
+        data: {
+          collector_enabled:
+            "Adatgy\u0171jt\u0151 (MI elemz\xE9s) enged\xE9lyezve",
+          collector_mode: "V\xE9grehajt\xE1si m\xF3d",
+          collector_interval: "Elemz\xE9si id\u0151k\xF6z (m\xE1sodperc)",
+          collector_start_time: "\xDCtemezett kezd\xE9si id\u0151",
+          collector_end_time: "\xDCtemezett befejez\xE9si id\u0151",
+          discovery_enabled: "H\xE1l\xF3zati felder\xEDt\xE9s enged\xE9lyezve",
+          discovery_mode: "V\xE9grehajt\xE1si m\xF3d",
+          discovery_interval: "Felder\xEDt\xE9si id\u0151k\xF6z (m\xE1sodperc)",
+          discovery_start_time: "\xDCtemezett kezd\xE9si id\u0151",
+          discovery_end_time: "\xDCtemezett befejez\xE9si id\u0151",
+        },
+      },
+    },
+  },
+  common: {
+    feedback_button_label: "Visszajelz\xE9s k\xFCld\xE9se",
+    feedback_modal_title: "Visszajelz\xE9s megoszt\xE1sa",
+    feedback_privacy_notice:
+      "A visszajelz\xE9s anonim, \xE9s nem tartalmaz szem\xE9lyes adatokat.",
+    feedback_textarea_placeholder:
+      "Mi j\xE1r a fej\xE9ben? (legal\xE1bb 10 karakter)",
+    feedback_rating_label: "\xC9rt\xE9kel\xE9s:",
+    feedback_rating_thumbsup: "Tetszik",
+    feedback_rating_thumbsdown: "Nem tetszik",
+    feedback_category_label: "Kateg\xF3ria (nem k\xF6telez\u0151):",
+    feedback_category_bug: "Hiba",
+    feedback_category_feature: "Funkci\xF3k\xE9r\xE9s",
+    feedback_category_general: "\xC1ltal\xE1nos",
+    feedback_submit: "Visszajelz\xE9s k\xFCld\xE9se",
+    feedback_submitting: "K\xFCld\xE9s\u2026",
+    feedback_email_label: "E-mail (nem k\xF6telez\u0151):",
+    feedback_email_placeholder:
+      "az@email.cime \u2014 csak ha v\xE1laszt szeretne",
+    feedback_cancel: "M\xE9gse",
+    feedback_min_length_error:
+      "K\xE9rj\xFCk, adjon meg legal\xE1bb 10 karaktert.",
+    feedback_success: "K\xF6sz\xF6nj\xFCk a visszajelz\xE9s\xE9t!",
+    feedback_error:
+      "A visszajelz\xE9st nem siker\xFClt elk\xFCldeni \u2014 k\xE9rj\xFCk, pr\xF3b\xE1lja \xFAjra.",
+    nav_new_chat: "\xDAj besz\xE9lget\xE9s",
+    nav_selora_menu: "Selora men\xFC",
+    nav_conversations: "Besz\xE9lget\xE9sek",
+    nav_automations: "Automatizmusok",
+    nav_scenes: "Jelenetek",
+    nav_settings: "Be\xE1ll\xEDt\xE1sok",
+    nav_documentation: "Dokument\xE1ci\xF3",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab t\xE1rhely",
+    welcome_title_prefix: "\xDCdv\xF6zli a",
+    welcome_subtitle:
+      "Az \xD6n intelligens otthonautomatiz\xE1l\xE1si \xE9p\xEDt\xE9sze",
+    new_automation_title_prefix: "\xDAj",
+    new_automation_gold: "Automatizmus",
+    new_automation_subtitle:
+      "\xCDrja le, mit szeretne automatiz\xE1lni \u2014 eml\xEDtse meg az \xE9rintett eszk\xF6z\xF6ket, id\u0151pontokat vagy felt\xE9teleket.",
+    get_started: "Kezd\u0151 l\xE9p\xE9sek",
+    get_started_body:
+      "Konfigur\xE1lja LLM-szolg\xE1ltat\xF3j\xE1t a Be\xE1ll\xEDt\xE1sok lapon, hogy elkezdhessen besz\xE9lgetni az otthon\xE1val.",
+    open_settings: "Be\xE1ll\xEDt\xE1sok megnyit\xE1sa",
+    quick_start: "Gyors kezd\xE9s",
+    composer_placeholder_ask: "K\xE9rdezzen b\xE1rmit a Selora AI-t\xF3l\u2026",
+    composer_placeholder_automation:
+      "\xCDrja le a l\xE9trehozni k\xEDv\xE1nt automatizmust\u2026",
+    panel_quota_provider_default: "az \xD6n LLM-szolg\xE1ltat\xF3ja",
+    panel_quota_reached: "kv\xF3ta el\xE9rve.",
+    panel_quota_try_again_prefix:
+      "Pr\xF3b\xE1lja \xFAjra ennyi id\u0151 m\xFAlva:",
+    panel_quota_retrying_now: "\xDAjrapr\xF3b\xE1lkoz\xE1s most\u2026",
+    panel_quota_dismiss: "Elvet\xE9s",
+    panel_llm_switched_selora_cloud: "\xC1tv\xE1ltva a Selora Cloud-ra.",
+    panel_llm_invalid_key:
+      "\xC9rv\xE9nytelen API-kulcs, vagy a szolg\xE1ltat\xF3 nem \xE9rhet\u0151 el.",
+    panel_llm_settings_saved: "LLM-be\xE1ll\xEDt\xE1sok mentve.",
+    panel_advanced_settings_saved: "Speci\xE1lis be\xE1ll\xEDt\xE1sok mentve.",
+    panel_linking_failed: "Az \xF6sszekapcsol\xE1s sikertelen.",
+    panel_linking_timed_out:
+      "Az \xF6sszekapcsol\xE1s id\u0151t\xFAll\xE9p\xE9s miatt megszakadt. K\xE9rj\xFCk, pr\xF3b\xE1lja \xFAjra \u2014 gy\u0151z\u0151dj\xF6n meg r\xF3la, hogy 10 percen bel\xFCl befejezi a bejelentkez\xE9st.",
+    panel_linking_start_failed:
+      "Nem siker\xFClt elind\xEDtani az \xF6sszekapcsol\xE1st.",
+    panel_connect_linked_success:
+      "A Selora Connect sikeresen \xF6sszekapcsolva.",
+    panel_unlink_connect_confirm:
+      "Megsz\xFCnteti a Selora Connect kapcsolat\xE1t?\n\nA k\xFCls\u0151 MCP-eszk\xF6z\xF6k (Openclaw, Claude Desktop, Cursor, Windsurf) elvesz\xEDtik a hozz\xE1f\xE9r\xE9st, am\xEDg \xFAjra \xF6ssze nem kapcsolja.",
+    panel_connect_unlinked: "A Selora Connect kapcsolata megsz\xFCntetve.",
+    panel_cloud_linked_success: "A Selora Cloud sikeresen \xF6sszekapcsolva.",
+    panel_unlink_cloud_confirm:
+      "Megsz\xFCnteti a Selora Cloud kapcsolat\xE1t?\n\nA besz\xE9lget\xE9s \xE9s az automatiz\xE1l\xE1si javaslatok le\xE1llnak, am\xEDg \xFAjra \xF6ssze nem kapcsolja fi\xF3kj\xE1t a Be\xE1ll\xEDt\xE1sokban.",
+    panel_cloud_unlinked: "A Selora Cloud kapcsolata megsz\xFCntetve.",
+    panel_mcp_token_created: "MCP-token l\xE9trehozva.",
+    panel_mcp_token_revoked: "Token visszavonva.",
+    panel_approval_revoked: "J\xF3v\xE1hagy\xE1s visszavonva.",
+    panel_device_loading: "Bet\xF6lt\xE9s...",
+    panel_device_error_loading: "Hiba az eszk\xF6z bet\xF6lt\xE9sekor",
+    panel_tab_conversations: "Besz\xE9lget\xE9sek",
+    panel_tab_automations: "Automatizmusok",
+    panel_tab_scenes: "Jelenetek",
+    panel_sidebar_conversations: "Besz\xE9lget\xE9sek",
+    panel_sidebar_done: "K\xE9sz",
+    panel_sidebar_select: "Kiv\xE1laszt\xE1s",
+    panel_sidebar_select_all: "\xD6sszes kiv\xE1laszt\xE1sa",
+    panel_sidebar_delete: "T\xF6rl\xE9s",
+    panel_sidebar_new_chat: "\xDAj besz\xE9lget\xE9s",
+    panel_sidebar_no_conversations: "M\xE9g nincsenek besz\xE9lget\xE9sek.",
+    panel_session_delete_confirm: "T\xF6rli?",
+    panel_session_delete: "T\xF6rl\xE9s",
+    panel_session_cancel: "M\xE9gse",
+    panel_session_delete_title: "T\xF6rl\xE9s",
+    panel_bulk_delete_title: "Besz\xE9lget\xE9sek t\xF6rl\xE9se",
+    panel_bulk_delete_cancel: "M\xE9gse",
+    panel_bulk_delete_confirm: "T\xF6rl\xE9s",
+    chat_suggest_thinking: "Gondolkodom\u2026",
+    chat_suggest_one_for_me: "Javasoljon nekem egyet",
+    chat_jump_to_latest: "Ugr\xE1s a legut\xF3bbi \xFCzenetre",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navig\xE1ci\xF3 \xB7 \u21B5 besz\xFAr\xE1s \xB7 Esc bez\xE1r\xE1s",
+    chat_selection_remove: "Elt\xE1vol\xEDt\xE1s",
+    chat_stop_generating: "Gener\xE1l\xE1s le\xE1ll\xEDt\xE1sa",
+    chat_send: "K\xFCld\xE9s",
+    chat_building_scene: "Jelenet \xE9p\xEDt\xE9se...",
+    chat_go_to_settings: "Ugr\xE1s a Be\xE1ll\xEDt\xE1sokhoz",
+    chat_response_cut_short: "A v\xE1lasz csonka maradt.",
+    chat_retry: "\xDAjrapr\xF3b\xE1lkoz\xE1s",
+    chat_copy_message: "\xDCzenet m\xE1sol\xE1sa",
+    chat_you: "\xD6n",
+    chat_yaml_unsaved_changes: "Nem mentett v\xE1ltoz\xE1sok",
+    chat_yaml_saving: "Ment\xE9s\u2026",
+    chat_yaml_save_changes: "V\xE1ltoz\xE1sok ment\xE9se",
+    chat_tools_used: "Haszn\xE1lt eszk\xF6z\xF6k",
+    chat_automation_label_building: "Automatizmus \xE9p\xEDt\xE9se...",
+    chat_automation_label_triggers: "Triggerek megfogalmaz\xE1sa...",
+    chat_automation_label_conditions: "Felt\xE9telek bek\xF6t\xE9se...",
+    chat_automation_label_actions:
+      "M\u0171veletek \xF6ssze\xE1ll\xEDt\xE1sa...",
+    chat_automation_label_almost: "Majdnem k\xE9sz...",
+    chat_autocomplete_kind_devices: "Eszk\xF6z\xF6k",
+    chat_autocomplete_kind_areas: "Ter\xFCletek",
+    chat_autocomplete_kind_scenes: "Jelenetek",
+    chat_autocomplete_kind_automations: "Automatizmusok",
+    chat_autocomplete_kind_suggestions: "Javaslatok",
+    chat_welcome_suggestion_lights_label:
+      "Minden l\xE1mpa lekapcsol\xE1sa \xE9jf\xE9lkor",
+    chat_welcome_suggestion_lights_value:
+      "Hozzon l\xE9tre egy automatizmust, amely \xE9jf\xE9lkor lekapcsolja az \xF6sszes l\xE1mp\xE1t",
+    chat_welcome_suggestion_devices_label: "Milyen eszk\xF6zeim vannak?",
+    chat_welcome_suggestion_devices_value:
+      "Milyen eszk\xF6zeim vannak, \xE9s melyek vannak jelenleg bekapcsolva?",
+    chat_welcome_suggestion_suggest_label:
+      "Javasoljon automatizmusokat az otthonomhoz",
+    chat_welcome_suggestion_suggest_value:
+      "Javasoljon hasznos automatizmusokat az eszk\xF6zeim \xE9s haszn\xE1lati szok\xE1saim alapj\xE1n",
+    settings_view_token_usage_title: "Tokenhaszn\xE1lat megtekint\xE9se",
+    settings_usage_label: "Haszn\xE1lat",
+    settings_view_usage_label: "Haszn\xE1lat megtekint\xE9se",
+    settings_provider_select_placeholder: "Kiv\xE1laszt\xE1s...",
+    settings_doc_banner_title: "Konfigur\xE1ci\xF3s \xFAtmutat\xF3",
+    settings_doc_banner_desc:
+      "Ismerje meg, hogyan \xE1ll\xEDthatja be az LLM-szolg\xE1ltat\xF3kat, a t\xE1voli hozz\xE1f\xE9r\xE9st \xE9s az MCP-tokeneket.",
+    settings_llm_provider_heading: "LLM-szolg\xE1ltat\xF3",
+    settings_provider_label: "Szolg\xE1ltat\xF3",
+    settings_selora_account_label: "Selora-fi\xF3k",
+    settings_selora_cloud_backend_desc:
+      "A Selora Cloud biztos\xEDtja az \xD6n LLM-h\xE1tt\xE9rrendszer\xE9t.",
+    settings_unlink_button: "Kapcsolat megsz\xFCntet\xE9se",
+    settings_signin_selora_desc:
+      "Jelentkezzen be Selora-fi\xF3kj\xE1val a hostolt LLM-h\xE1tt\xE9rrendszer haszn\xE1lat\xE1hoz. Nincs sz\xFCks\xE9g API-kulcsra.",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "Az OAuth \xE9s a besz\xE9lget\xE9sekhez egyar\xE1nt ezt az URL-t haszn\xE1lja a rendszer. Az \xF6sszekapcsol\xE1skor automatikusan ment\xE9sre ker\xFCl.",
+    settings_open_signin_page: "Bejelentkez\xE9si oldal megnyit\xE1sa \u2192",
+    settings_preparing_label: "El\u0151k\xE9sz\xEDt\xE9s\u2026",
+    settings_link_selora_account_button: "Selora-fi\xF3k \xF6sszekapcsol\xE1sa",
+    settings_signin_new_tab_hint:
+      "\xDAj lapon ny\xEDlik meg. A bejelentkez\xE9s ut\xE1n t\xE9rjen vissza erre az oldalra \u2014 a panel automatikusan friss\xFCl.",
+    settings_api_key_label: "API-kulcs",
+    settings_click_replace_key_title:
+      "Kattintson a kulcs lecser\xE9l\xE9s\xE9hez",
+    settings_enter_new_key_label: "Adjon meg egy \xFAj kulcsot",
+    settings_enter_api_key_label: "Adja meg az API-kulcsot",
+    settings_model_label: "Modell",
+    settings_selora_local_desc:
+      "A Selora AI automatikusan kiv\xE1lasztja a megfelel\u0151 szak\xE9rt\u0151i modellt (parancsok, automatizmusok, v\xE1laszok, tiszt\xE1z\xE1sok) k\xE9r\xE9senk\xE9nt.",
+    settings_ollama_host_label: "Gazdag\xE9p",
+    settings_selora_local_show_advanced:
+      "Speci\xE1lis be\xE1ll\xEDt\xE1sok megjelen\xEDt\xE9se",
+    settings_selora_local_hide_advanced:
+      "Speci\xE1lis be\xE1ll\xEDt\xE1sok elrejt\xE9se",
+    settings_selora_local_advanced_desc:
+      "A Selora hubok el\u0151re konfigur\xE1lva \xE9rkeznek. Saj\xE1t \xFCzemeltet\xE9s\u0171, a Selora AI modellt futtat\xF3 llama-server haszn\xE1lat\xE1hoz adja meg annak c\xEDm\xE9t al\xE1bb.",
+    settings_selora_local_host_label: "Gazdag\xE9p",
+    settings_selora_local_auto_detected_prefix: "Automatikusan \xE9szlelve:",
+    settings_selora_local_auto_detected_none: "nincs",
+    settings_validating_label: "\xC9rv\xE9nyes\xEDt\xE9s\u2026",
+    settings_save_button: "Ment\xE9s",
+    settings_mcp_server_heading: "MCP-kiszolg\xE1l\xF3",
+    settings_mcp_server_subtitle:
+      "Tegye el\xE9rhet\u0151v\xE9 otthon\xE1t olyan k\xFCls\u0151 AI-eszk\xF6z\xF6k sz\xE1m\xE1ra, mint az Openclaw, a Claude Desktop, a Cursor vagy a Windsurf.",
+    settings_connect_via_selora_label:
+      "Kapcsol\xF3d\xE1s Selora-fi\xF3kon kereszt\xFCl",
+    settings_connect_via_selora_desc:
+      "El\xE9rhet\u0151v\xE9 teszi az MCP-kiszolg\xE1l\xF3t k\xFCls\u0151 eszk\xF6z\xF6k sz\xE1m\xE1ra",
+    settings_mcp_url_copied_toast: "Az MCP URL a v\xE1g\xF3lapra m\xE1solva",
+    settings_connect_server_url_label: "Connect-kiszolg\xE1l\xF3 URL-je",
+    settings_mcp_tokens_section_title: "MCP-TOKENEK",
+    settings_mcp_tokens_desc:
+      "Az MCP-tokenek a Selora Connect alternat\xEDv\xE1i. Olyan eszk\xF6z\xF6kh\xF6z haszn\xE1lja \u0151ket, amelyek nem t\xE1mogatj\xE1k az OAuth-ot, vagy ha a token-alap\xFA hiteles\xEDt\xE9st r\xE9szes\xEDti el\u0151nyben.",
+    settings_no_tokens_yet: "M\xE9g nincsenek tokenek.",
+    settings_add_token_button: "Token hozz\xE1ad\xE1sa",
+    settings_command_approvals_heading: "Parancsj\xF3v\xE1hagy\xE1sok",
+    settings_advanced_settings_heading: "Speci\xE1lis be\xE1ll\xEDt\xE1sok",
+    settings_background_services_title: "H\xC1TT\xC9RSZOLG\xC1LTAT\xC1SOK",
+    settings_data_collector_label: "Adatgy\u0171jt\u0151 (AI-elemz\xE9s)",
+    settings_data_collector_desc:
+      "Entit\xE1sok el\u0151zm\xE9nyeit tov\xE1bb\xEDtja a Selora AI-hoz",
+    settings_mode_label: "M\xF3d",
+    settings_mode_continuous: "Folyamatos",
+    settings_mode_scheduled_window: "\xDCtemezett id\u0151ablak",
+    settings_interval_seconds_label: "Id\u0151k\xF6z (mp)",
+    settings_start_hhmm_label: "Kezd\xE9s (\xD3\xD3:PP)",
+    settings_end_hhmm_label: "V\xE9ge (\xD3\xD3:PP)",
+    settings_network_discovery_label: "H\xE1l\xF3zati felder\xEDt\xE9s",
+    settings_network_discovery_desc:
+      "\xDAj eszk\xF6z\xF6ket keres a helyi h\xE1l\xF3zaton",
+    settings_pattern_detection_label: "Mintafelismer\xE9s",
+    settings_pattern_detection_desc:
+      "Ism\xE9tl\u0151d\u0151 haszn\xE1lati mint\xE1kat \xE9szlel \xE9s automatizmusokat javasol",
+    settings_auto_remove_stale_label:
+      "Elavult automatizmusok automatikus elt\xE1vol\xEDt\xE1sa",
+    settings_developer_mode_label: "Fejleszt\u0151i m\xF3d",
+    settings_developer_mode_desc:
+      "Megjelen\xEDti a nyers entit\xE1sadatokat \xE9s a hibakeres\xE9si napl\xF3kat",
+    settings_dev_mode_save_failed_toast:
+      "A fejleszt\u0151i m\xF3d ment\xE9se nem siker\xFClt.",
+    settings_saving_label: "Ment\xE9s\u2026",
+    settings_no_approvals_yet_prefix:
+      "M\xE9g nincsenek mentett j\xF3v\xE1hagy\xE1sok. A k\xF6vetkez\u0151 alkalommal, amikor a Selora valami kock\xE1zatos m\u0171velet el\u0151tt r\xE1k\xE9rdez, kattintson a",
+    settings_no_approvals_always_word: "Mindig",
+    settings_no_approvals_yet_suffix: "gombra, hogy itt megjegyezze.",
+    settings_per_entity_approval_title:
+      "Entit\xE1sonk\xE9nti j\xF3v\xE1hagy\xE1s",
+    settings_wildcard_approval_title:
+      "Helyettes\xEDt\u0151 \u2014 \xE9rv\xE9nyes a szolg\xE1ltat\xE1s minden entit\xE1s\xE1ra",
+    settings_approval_all_label: "\xF6sszes",
+    settings_token_created_heading: "Token l\xE9trehozva",
+    settings_token_created_desc:
+      "M\xE1solja ki most a tokent \u2014 k\xE9s\u0151bb nem jelenik meg \xFAjra.",
+    settings_token_copied_toast: "Token a v\xE1g\xF3lapra m\xE1solva",
+    settings_done_button: "K\xE9sz",
+    settings_create_mcp_token_heading: "MCP-token l\xE9trehoz\xE1sa",
+    settings_token_name_label: "N\xE9v",
+    settings_token_name_placeholder: "pl. Claude Desktop",
+    settings_permission_level_label: "Jogosults\xE1gi szint",
+    settings_perm_read_only: "Csak olvas\xE1s",
+    settings_perm_admin_all: "Adminisztr\xE1tor (\xF6sszes eszk\xF6z)",
+    settings_perm_custom: "Egyedi (eszk\xF6z\xF6k kiv\xE1laszt\xE1sa)",
+    settings_allowed_tools_label: "Enged\xE9lyezett eszk\xF6z\xF6k",
+    settings_admin_badge: "admin",
+    settings_expiration_label: "Lej\xE1rat (nem k\xF6telez\u0151)",
+    settings_expiry_never: "Soha nem j\xE1r le",
+    settings_expiry_7_days: "7 nap",
+    settings_expiry_30_days: "30 nap",
+    settings_expiry_90_days: "90 nap",
+    settings_expiry_1_year: "1 \xE9v",
+    settings_cancel_button: "M\xE9gse",
+    settings_create_token_button: "Token l\xE9trehoz\xE1sa",
+    automations_flow_branch_if: "Ha",
+    automations_flow_branch_else_if: "Egy\xE9bk\xE9nt ha",
+    automations_flow_branch_otherwise: "Egy\xE9bk\xE9nt",
+    automations_flow_branch_in_parallel: "P\xE1rhuzamosan",
+    automations_flow_branch_in_sequence: "Sorban",
+    automations_flow_repeat_while:
+      "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
+    automations_flow_repeat_until:
+      "Ism\xE9tl\xE9s a felt\xE9tel teljes\xFCl\xE9s\xE9ig",
+    automations_flow_repeat: "Ism\xE9tl\xE9s",
+    automations_flow_label_trigger: "Trigger",
+    automations_flow_label_condition: "Felt\xE9tel",
+    automations_flow_label_actions: "M\u0171veletek",
+    automations_badge_enabled: "Bekapcsolva",
+    automations_badge_saved: "Mentve",
+    automations_yaml_toggle_hide: "YAML elrejt\xE9se",
+    automations_yaml_toggle_view: "YAML megtekint\xE9se",
+    automations_yaml_toggle_edit: "YAML szerkeszt\xE9se",
+    automations_proposal_declined_title: "Automatizmus elutas\xEDtva",
+    automations_proposal_declined_body:
+      "Elvetve. Az al\xE1bbi v\xE1lasszal finom\xEDthatja.",
+    automations_badge_being_refined: "Finom\xEDt\xE1s alatt",
+    automations_badge_proposal: "Javaslat",
+    automations_proposal_elevated_risk:
+      "Magasabb kock\xE1zat\xFA fel\xFClvizsg\xE1lat aj\xE1nlott.",
+    automations_proposal_yaml_edits_note:
+      "Az \xD6n YAML-m\xF3dos\xEDt\xE1sait a rendszer az elfogad\xE1skor haszn\xE1lja fel.",
+    automations_action_run_tooltip:
+      "Most futtassa a m\u0171veleteket, hogy ellen\u0151rizze, m\u0171k\xF6dnek-e",
+    automations_action_running: "Futtat\xE1s\u2026",
+    automations_action_run_now: "Futtat\xE1s most",
+    automations_action_open_in_ha_tooltip:
+      "Automatizmus megnyit\xE1sa a Home Assistantban",
+    automations_action_view_in_ha: "Megtekint\xE9s a HA-ban",
+    automations_action_enabling: "Bekapcsol\xE1s\u2026",
+    automations_action_enable_automation: "Automatizmus bekapcsol\xE1sa",
+    automations_elevated_risk_note:
+      "Magasabb kock\xE1zat\xFA m\u0171veleteket haszn\xE1l \u2014 bekapcsol\xE1s el\u0151tt ellen\u0151rizze a folyamatot \xE9s a YAML-t.",
+    automations_action_accept_and_save: "Elfogad\xE1s \xE9s ment\xE9s",
+    automations_section_title: "Az \xD6n automatizmusai",
+    automations_filter_placeholder: "Automatizmusok sz\u0171r\xE9se\u2026",
+    automations_sort_recent: "Legut\xF3bbi tev\xE9kenys\xE9g",
+    automations_sort_alpha: "Bet\u0171rend",
+    automations_sort_enabled_first: "Bekapcsoltak el\u0151re",
+    automations_llm_setup_required_tooltip:
+      "El\u0151sz\xF6r konfigur\xE1ljon egy LLM-szolg\xE1ltat\xF3t",
+    automations_new_automation_button: "\xDAj automatizmus",
+    automations_status_tab_all: "Mind",
+    automations_status_tab_enabled: "Enged\xE9lyezve",
+    automations_status_tab_disabled: "Letiltva",
+    automations_status_tab_stale: "Elavult",
+    automations_bulk_select_all: "\xD6sszes kiv\xE1laszt\xE1sa",
+    automations_bulk_done: "K\xE9sz",
+    automations_bulk_edit: "T\xF6meges szerkeszt\xE9s",
+    automations_bulk_working: "Folyamatban\u2026",
+    automations_bulk_enable_all: "\xD6sszes bekapcsol\xE1sa",
+    automations_bulk_disable_all: "\xD6sszes kikapcsol\xE1sa",
+    automations_bulk_delete_selected: "Kijel\xF6ltek t\xF6rl\xE9se",
+    automations_bulk_clear: "T\xF6rl\xE9s",
+    automations_last_run_disabled: "Kikapcsolva",
+    automations_last_run_never: "Soha",
+    automations_needs_attention_pill: "Figyelmet ig\xE9nyel",
+    automations_rename_save_tooltip: "Ment\xE9s",
+    automations_last_run_prefix: "Utols\xF3 futtat\xE1s:",
+    automations_last_run_prefix_inline: "Utols\xF3 futtat\xE1s:",
+    automations_toggle_enabled: "Bekapcsolva",
+    automations_toggle_disabled: "Kikapcsolva",
+    automations_toggle_unavailable: "Nem el\xE9rhet\u0151",
+    automations_toast_toggle_unresolved:
+      "Az \xE1tkapcsol\xE1s nem lehets\xE9ges: az automatizmus azonos\xEDt\xF3ja nem oldhat\xF3 fel. T\xF6ltse \xFAjra az oldalt, \xE9s pr\xF3b\xE1lja \xFAjra.",
+    automations_more_actions_tooltip: "Tov\xE1bbi m\u0171veletek",
+    automations_burger_loading: "Bet\xF6lt\xE9s\u2026",
+    automations_burger_refine_in_chat: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
+    automations_burger_rename: "\xC1tnevez\xE9s",
+    automations_burger_view_in_ha: "Megtekint\xE9s a HA-ban",
+    automations_burger_deleting: "T\xF6rl\xE9s\u2026",
+    automations_burger_delete: "T\xF6rl\xE9s",
+    automations_card_tab_flow: "Folyamat",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "El\u0151zm\xE9nyek",
+    automations_pagination_prev: "\u2039 El\u0151z\u0151",
+    automations_pagination_per_page: "Oldalank\xE9nt:",
+    automations_pagination_next: "K\xF6vetkez\u0151 \u203A",
+    automations_empty_state: "M\xE9g nincsenek automatizmusok.",
+    automations_unavailable_modal_title: "Automatizmus nem el\xE9rhet\u0151",
+    automations_unavailable_default_name: "Ez az automatizmus",
+    automations_unavailable_modal_intro:
+      "nem el\xE9rhet\u0151k\xE9nt van megjel\xF6lve a Home Assistant \xE1ltal. Ez \xE1ltal\xE1ban a k\xF6vetkez\u0151ket jelenti:",
+    automations_unavailable_reason_entity:
+      "Egy trigger vagy felt\xE9tel olyan entit\xE1sra hivatkozik, amely m\xE1r nem l\xE9tezik",
+    automations_unavailable_reason_yaml:
+      "Az automatizmus YAML-j\xE9ben konfigur\xE1ci\xF3s hiba van",
+    automations_unavailable_reason_integration:
+      "Egy sz\xFCks\xE9ges integr\xE1ci\xF3 el lett t\xE1vol\xEDtva vagy nincs bet\xF6ltve",
+    automations_unavailable_modal_advice:
+      "Nyissa meg az automatizmust a Home Assistant be\xE1ll\xEDt\xE1saiban a konfigur\xE1ci\xF3 \xE1tn\xE9z\xE9s\xE9hez \xE9s jav\xEDt\xE1s\xE1hoz.",
+    automations_unavailable_modal_close: "Bez\xE1r\xE1s",
+    automations_unavailable_modal_edit_states: "\xC1llapotok szerkeszt\xE9se",
+    automations_unavailable_modal_open_in_automations:
+      "Megnyit\xE1s az Automatizmusokban",
+    scenes_card_created_title: "Jelenet l\xE9trehozva",
+    scenes_card_saved_status: "Mentve a Home Assistantba",
+    scenes_card_activate_button: "Aktiv\xE1l\xE1s",
+    scenes_card_view_in_ha_button: "Megtekint\xE9s a HA-ban",
+    scenes_card_declined_title: "Jelenet elutas\xEDtva",
+    scenes_card_declined_message:
+      "Elvetve. Az al\xE1bbi v\xE1lasszal finom\xEDthatja.",
+    scenes_card_refining_badge: "Finom\xEDt\xE1s alatt",
+    scenes_hide_yaml: "YAML elrejt\xE9se",
+    scenes_view_yaml: "YAML megtekint\xE9se",
+    scenes_card_proposal_badge: "Javaslat",
+    scenes_card_accept_save_button: "Elfogad\xE1s \xE9s ment\xE9s",
+    scenes_section_title: "Az \xD6n jelenetei",
+    scenes_filter_placeholder: "Jelenetek sz\u0171r\xE9se\u2026",
+    scenes_sort_recent: "Legut\xF3bb friss\xEDtett",
+    scenes_sort_alpha: "Bet\u0171rend",
+    scenes_sort_size: "Legt\xF6bb entit\xE1s",
+    scenes_llm_needs_setup_tooltip:
+      "El\u0151sz\xF6r konfigur\xE1ljon egy LLM-szolg\xE1ltat\xF3t",
+    scenes_new_scene_button: "\xDAj jelenet",
+    scenes_status_tab_all: "Mind",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "K\xE9zi",
+    scenes_activate_scene_tooltip: "Jelenet aktiv\xE1l\xE1sa",
+    scenes_activate_button: "Aktiv\xE1l\xE1s",
+    scenes_more_actions_tooltip: "Tov\xE1bbi m\u0171veletek",
+    scenes_loading_label: "Bet\xF6lt\xE9s\u2026",
+    scenes_refine_in_chat_button: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
+    scenes_open_in_ha_button: "Megnyit\xE1s a HA-ban",
+    scenes_deleting_label: "T\xF6rl\xE9s\u2026",
+    scenes_delete_button: "T\xF6rl\xE9s",
+    scenes_no_entity_details:
+      "Nincsenek el\xE9rhet\u0151 entit\xE1sr\xE9szletek \u2014 a jelenet megtekint\xE9s\xE9hez nyissa meg a Home Assistantban.",
+    scenes_yaml_unavailable_comment:
+      "# YAML nem el\xE9rhet\u0151 \u2014 a jelenet megtekint\xE9s\xE9hez nyissa meg a Home Assistantban.",
+    scenes_empty_state:
+      "Nem tal\xE1lhat\xF3 jelenet. K\xE9rje meg a Selor\xE1t, hogy hozzon l\xE9tre egyet.",
+    scenes_delete_modal_fallback_name: "ez a jelenet",
+    scenes_delete_modal_title: "Jelenet t\xF6rl\xE9se",
+    scenes_delete_modal_prefix: "T\xF6rli a k\xF6vetkez\u0151t:",
+    scenes_delete_modal_suffix:
+      "? Ez elt\xE1vol\xEDtja a jelenetet a Home Assistantb\xF3l, \xE9s nem vonhat\xF3 vissza.",
+    scenes_delete_modal_cancel_button: "M\xE9gse",
+    scenes_delete_modal_confirm_button: "T\xF6rl\xE9s",
+    usage_pricing_invalid_error:
+      "Az \xE1raknak nem negat\xEDv sz\xE1moknak kell lenni\xFCk.",
+    usage_pricing_saved_toast:
+      "Az \xE1raz\xE1si fel\xFClb\xEDr\xE1l\xE1s mentve.",
+    usage_pricing_save_failed: "Az \xE1raz\xE1s ment\xE9se nem siker\xFClt:",
+    usage_pricing_reset_toast:
+      "Vissza\xE1ll\xEDtva az alap\xE9rtelmezett \xE1raz\xE1sra.",
+    usage_pricing_reset_failed:
+      "Az \xE1raz\xE1s vissza\xE1ll\xEDt\xE1sa nem siker\xFClt:",
+    usage_pricing_title: "\xC1raz\xE1s",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "A Selora Cloud haszn\xE1lata m\xE9rve \xE9s sz\xE1ml\xE1zva van az \xD6n Selora Homes-fi\xF3kj\xE1ban. Nem sz\xE1m\xEDt bele az integr\xE1ci\xF3 szenzoraiba vagy diagramjaiba.",
+    usage_pricing_view_cloud_link:
+      "Haszn\xE1lat megtekint\xE9se a Selora Homes-fi\xF3kj\xE1ban",
+    usage_pricing_ollama_help:
+      "Az Ollama helyileg fut \u2014 nincsenek nyomon k\xF6vetend\u0151 tokenk\xF6lts\xE9gek.",
+    usage_pricing_selora_local_help:
+      "A Selora AI Local az \xD6n hardver\xE9n fut \u2014 nincsenek nyomon k\xF6vetend\u0151 tokenk\xF6lts\xE9gek.",
+    usage_pricing_no_model_help:
+      "Konfigur\xE1ljon egy LLM-szolg\xE1ltat\xF3t \xE9s modellt a Be\xE1ll\xEDt\xE1sokban az egyedi \xE1raz\xE1s megad\xE1s\xE1hoz.",
+    usage_pricing_intro_prefix:
+      "A k\xF6lts\xE9gbecsl\xE9sek ezeket a milli\xF3 tokenenk\xE9nti d\xEDjakat haszn\xE1lj\xE1k. Az Anthropic alap\xE9rtelmez\xE9sek a",
+    usage_pricing_official_page_link: "hivatalos \xE1raz\xE1si oldalr\xF3l",
+    usage_pricing_intro_suffix:
+      "sz\xE1rmaznak; itt fel\xFClb\xEDr\xE1lhatja, ha kialkudott d\xEDjai vannak, vagy m\xE1sik modellt k\xF6vet.",
+    usage_pricing_input_label: "Bemenet",
+    usage_pricing_default_prefix: "alap\xE9rtelmezett",
+    usage_pricing_no_default: "nincs be\xE9p\xEDtett alap\xE9rtelmez\xE9s",
+    usage_pricing_output_label: "Kimenet",
+    usage_pricing_input_field_label: "Bemenet ($/MTok)",
+    usage_pricing_output_field_label: "Kimenet ($/MTok)",
+    usage_pricing_cancel_button: "M\xE9gse",
+    usage_pricing_save_button: "Ment\xE9s",
+    usage_pricing_edit_override_button:
+      "Fel\xFClb\xEDr\xE1l\xE1s szerkeszt\xE9se",
+    usage_pricing_set_custom_button: "Egyedi \xE1raz\xE1s be\xE1ll\xEDt\xE1sa",
+    usage_pricing_reset_default_button:
+      "Vissza\xE1ll\xEDt\xE1s alap\xE9rtelmezettre",
+    usage_snippet_copied_label: "M\xE1solva!",
+    usage_snippet_copy_button: "M\xE1sol\xE1s",
+    usage_snippet_help:
+      "A vizu\xE1lis k\xE1rtyav\xE1laszt\xF3 is megtal\xE1lja ezeket a szenzorokat a Recorder els\u0151 \xF3r\xE1nk\xE9nti \xF6sszegz\xE9se ut\xE1n.",
+    usage_back_to_settings: "Vissza a be\xE1ll\xEDt\xE1sokhoz",
+    usage_token_usage_title: "Tokenhaszn\xE1lat",
+    usage_empty_title: "M\xE9g nincsenek haszn\xE1lati adatok.",
+    usage_empty_body:
+      "A haszn\xE1lat az els\u0151 LLM-h\xEDv\xE1s ut\xE1n jelenik meg. Pr\xF3b\xE1ljon meg besz\xE9lgetni a Selora AI-jal, vagy futtasson egy javaslati ciklust. Ha m\xE1r haszn\xE1lta a Selora AI-t, \xE9s tov\xE1bbra is ezt l\xE1tja, ind\xEDtsa \xFAjra a Home Assistantot, hogy az \xFAj szenzorok regisztr\xE1lva legyenek.",
+    usage_totals_title: "\xD6sszegek",
+    usage_tile_cost_label: "K\xF6lts\xE9g",
+    usage_tile_cost_sub: "USD-becsl\xE9s",
+    usage_tile_calls_label: "H\xEDv\xE1sok",
+    usage_tile_tokens_in_label: "Bemen\u0151 tokenek",
+    usage_tile_tokens_out_label: "Kimen\u0151 tokenek",
+    usage_by_period_title: "Id\u0151szak szerint",
+    usage_period_today: "Ma",
+    usage_period_last_7_days: "Elm\xFAlt 7 nap",
+    usage_period_this_month: "Ez a h\xF3nap",
+    usage_period_note_filtered:
+      "Az id\u0151szaki gy\u0171jt\u0151k az integr\xE1ci\xF3 haszn\xE1lati t\xE1rol\xF3j\xE1b\xF3l sz\xE1rmaznak (30 napig meg\u0151rizve).",
+    usage_period_note_unfiltered:
+      "Az id\u0151szaki gy\u0171jt\u0151k a Home Assistant hossz\xFA t\xE1v\xFA statisztik\xE1ib\xF3l sz\xE1rmaznak, amelyek \xF3r\xE1nk\xE9nt k\xE9sz\xFClnek. \xDAj tev\xE9kenys\xE9g ak\xE1r egy \xF3ra m\xFAlva is megjelenhet itt.",
+    usage_where_tokens_go_title: "Hov\xE1 mennek a tokenek",
+    usage_where_tokens_last_prefix: "Utols\xF3",
+    usage_where_tokens_resets_suffix:
+      "\xB7 HA \xFAjraind\xEDt\xE1sakor vissza\xE1ll",
+    usage_group_by_kind_button: "T\xEDpus szerint",
+    usage_group_by_provider_button: "Szolg\xE1ltat\xF3 szerint",
+    usage_loading: "Bet\xF6lt\xE9s\u2026",
+    usage_no_calls_recorded: "M\xE9g nincsenek r\xF6gz\xEDtett h\xEDv\xE1sok.",
+    usage_recent_calls_title: "Legut\xF3bbi h\xEDv\xE1sok",
+    usage_dashboard_sensors_title: "Vez\xE9rl\u0151pult szenzorai",
+    usage_dashboard_sensors_help_prefix:
+      "Ind\xEDtsa \xFAjra a Home Assistantot a haszn\xE1lati szenzorok regisztr\xE1l\xE1s\xE1hoz. Regisztr\xE1ci\xF3 ut\xE1n hozz\xE1adhatja \u0151ket b\xE1rmely vez\xE9rl\u0151pulthoz egy",
+    usage_dashboard_sensors_help_suffix: "k\xE1rty\xE1val.",
+    usage_add_to_dashboard_title: "Hozz\xE1ad\xE1s a vez\xE9rl\u0151pulthoz",
+    usage_add_to_dashboard_help:
+      "Minden metrik\xE1nak elt\xE9r\u0151 sk\xE1l\xE1ja van \u2014 szenzoronk\xE9nt hozzon l\xE9tre egy k\xE1rty\xE1t. V\xE1lasszon egy metrik\xE1t, m\xE1solja a YAML-t, majd illessze be egy vez\xE9rl\u0151pult YAML-szerkeszt\u0151j\xE9be.",
+    usage_filter_all_providers: "\xD6sszes szolg\xE1ltat\xF3",
+    usage_filter_all_models: "\xD6sszes modell",
+    usage_filter_no_model: "(nincs modell)",
+    suggestions_tab_flow: "Folyamat",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "L\xE9trehoz\xE1s\u2026",
+    suggestions_btn_accept: "Elfogad\xE1s",
+    suggestions_btn_dismissing: "Elvet\xE9s\u2026",
+    suggestions_btn_dismiss: "Elvet\xE9s",
+    suggestions_section_title: "\xD6nnek javasoljuk",
+    suggestions_badge_new: "\xFAj",
+    suggestions_llm_setup_required:
+      "El\u0151sz\xF6r konfigur\xE1ljon egy LLM-szolg\xE1ltat\xF3t",
+    suggestions_btn_scanning: "Vizsg\xE1lat\u2026",
+    suggestions_btn_scan_now: "Vizsg\xE1lat most",
+    suggestions_btn_analyzing: "Elemz\xE9s\u2026",
+    suggestions_btn_generate: "Gener\xE1l\xE1s",
+    suggestions_section_subtitle:
+      "Az otthon\xE1ban megfigyelt mint\xE1kon \xE9s AI-elemz\xE9sen alapul.",
+    suggestions_empty_state:
+      "M\xE9g nincsenek javaslatok. Az otthon\xE1nak elemz\xE9s\xE9hez koppintson a \u201EGener\xE1l\xE1s\u201D gombra.",
+    suggestions_filter_placeholder: "Javaslatok sz\u0171r\xE9se\u2026",
+    suggestions_filter_all: "\xD6sszes",
+    suggestions_filter_patterns: "Mint\xE1k",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "Legut\xF3bbi",
+    suggestions_sort_alpha: "Bet\u0171rend",
+    suggestions_bulk_selected: "kijel\xF6lve",
+    suggestions_bulk_accept_selected: "Kijel\xF6ltek elfogad\xE1sa",
+    suggestions_bulk_dismiss_selected: "Kijel\xF6ltek elvet\xE9se",
+    suggestions_bulk_done: "K\xE9sz",
+    suggestions_bulk_edit: "T\xF6meges szerkeszt\xE9s",
+    suggestions_show_more: "T\xF6bb javaslat megjelen\xEDt\xE9se",
+    version_history_loading: "Bet\xF6lt\xE9s\u2026",
+    version_history_empty: "M\xE9g nincsenek verzi\xF3el\u0151zm\xE9nyek.",
+    version_history_current_badge: "Jelenlegi",
+    version_history_hide_yaml: "YAML elrejt\xE9se",
+    version_history_view_yaml: "YAML megtekint\xE9se",
+    version_history_restoring: "Vissza\xE1ll\xEDt\xE1s\u2026",
+    version_history_restore_button:
+      "Ennek a verzi\xF3nak a vissza\xE1ll\xEDt\xE1sa",
+    version_history_no_yaml_stored: "(nincs t\xE1rolt YAML)",
+    version_history_compare_title: "Verzi\xF3k \xF6sszehasonl\xEDt\xE1sa",
+    version_history_version_a_label: "A verzi\xF3 (\xFAjabb):",
+    version_history_version_b_label: "B verzi\xF3 (r\xE9gebbi):",
+    version_history_loading_diff: "K\xFCl\xF6nbs\xE9g bet\xF6lt\xE9se\u2026",
+    version_history_no_diff: "Nem tal\xE1lhat\xF3 elt\xE9r\xE9s.",
+    device_detail_loading: "Eszk\xF6zadatok bet\xF6lt\xE9se...",
+    device_detail_close: "Bez\xE1r\xE1s",
+    device_detail_entities_heading: "Entit\xE1sok",
+    device_detail_state_history_heading:
+      "\xC1llapotel\u0151zm\xE9nyek (24 \xF3)",
+    device_detail_linked_automations_heading: "Kapcsolt automatizmusok",
+    device_detail_detected_patterns_heading: "\xC9szlelt mint\xE1k",
+    device_detail_confidence_label: "megb\xEDzhat\xF3s\xE1g",
+    ignore_list_remove_label: "C\xEDmke elt\xE1vol\xEDt\xE1sa",
+    ignore_list_chip_kind_device: "eszk\xF6z",
+    ignore_list_chip_kind_area: "ter\xFClet",
+    ignore_list_dropdown_kind_area: "Ter\xFClet",
+    ignore_list_dropdown_kind_device: "Eszk\xF6z",
+    ignore_list_how_it_works: "Hogyan m\u0171k\xF6dik ez?",
+    ignore_list_section_title:
+      "Figyelmen k\xEDv\xFCl hagy\xE1s a javaslatokn\xE1l",
+    ignore_list_search_placeholder:
+      "Entit\xE1s, eszk\xF6z vagy ter\xFClet keres\xE9se\u2026",
+    ignore_list_empty_state: "M\xE9g semmi sincs figyelmen k\xEDv\xFCl hagyva.",
+    approval_risk_explainer_low:
+      "Alacsony kock\xE1zat: kisebb vagy teljesen visszaford\xEDthat\xF3 hat\xE1s (hang, \xE9rtes\xEDt\xE9sek, porsz\xEDv\xF3 ind\xEDt\xE1sa/le\xE1ll\xEDt\xE1sa).",
+    approval_risk_explainer_medium:
+      "K\xF6zepes kock\xE1zat: \xE9szrevehet\u0151 mell\xE9khat\xE1sok, amelyeket esetleg nem szeretne visszavonni (riaszt\xF3 \xE9les\xEDt\xE9se, ajt\xF3 z\xE1r\xE1sa, felhaszn\xE1l\xF3i szkript futtat\xE1sa).",
+    approval_risk_explainer_high:
+      "Magas kock\xE1zat: fizikai hozz\xE1f\xE9r\xE9s, biztons\xE1g vagy gazdag\xE9p szint\u0171 hat\xE1s (ajt\xF3 kinyit\xE1sa, riaszt\xF3 kikapcsol\xE1sa, h\xE9jparancsok futtat\xE1sa).",
+    approval_scope_all_matching: "\xD6sszes egyez\u0151 entit\xE1s",
+    approval_scope_just_these: "Csak ezek az entit\xE1sok",
+    approval_status_approved: "J\xF3v\xE1hagyva",
+    approval_status_denied: "Megtagadva",
+    approval_working: "Folyamatban\u2026",
+    approval_required_title: "J\xF3v\xE1hagy\xE1s sz\xFCks\xE9ges",
+    approval_scope_label: "Munkamenetre / Mindig:",
+    approval_scope_button_title:
+      "Kattintson, hogy \xE1tv\xE1ltson a j\xF3v\xE1hagy\xE1s csak ehhez az entit\xE1shoz, vagy a szolg\xE1ltat\xE1s \xF6sszes entit\xE1s\xE1hoz val\xF3 hozz\xE1rendel\xE9se k\xF6z\xF6tt.",
+    quick_actions_approve_once_label: "Enged\xE9lyez\xE9s egyszer",
+    quick_actions_approve_once_desc: "Csak ehhez az egy k\xE9r\xE9shez",
+    quick_actions_approve_session_label: "Ehhez a besz\xE9lget\xE9shez",
+    quick_actions_approve_session_desc:
+      "Enged\xE9lyez\xE9s a besz\xE9lget\xE9s h\xE1tral\xE9v\u0151 r\xE9sz\xE9re",
+    quick_actions_approve_always_label: "Mindig",
+    quick_actions_approve_always_desc: "J\xF3v\xE1hagy\xE1s megjegyz\xE9se",
+    quick_actions_deny_label: "Megtagad\xE1s",
+    quick_actions_deny_desc: "Ne futtassa ezt a k\xE9r\xE9st",
+    stale_modal_title: "Elavult automatizmusok",
+    stale_select_all: "\xD6sszes kiv\xE1laszt\xE1sa",
+    stale_last_triggered_label: "Utolj\xE1ra aktiv\xE1lva:",
+    stale_never: "Soha",
+    stale_keep_button: "Megtart\xE1s",
+    stale_close_button: "Bez\xE1r\xE1s",
+    stale_state_label: "\xC1llapot:",
+    stale_state_unknown: "ismeretlen",
+    stale_back_button: "Vissza",
+    stale_remove_confirm:
+      "V\xE9glegesen elt\xE1vol\xEDtja ezt az automatizmust?",
+    stale_remove_success: "Automatizmus elt\xE1vol\xEDtva.",
+    stale_remove_failed_prefix: "Az elt\xE1vol\xEDt\xE1s nem siker\xFClt:",
+    stale_remove_button: "Elt\xE1vol\xEDt\xE1s",
+    automation_management_triggered: "Automatizmus aktiv\xE1lva.",
+    automation_management_renamed: "Automatizmus \xE1tnevezve",
+    automation_management_version_restored: "Verzi\xF3 vissza\xE1ll\xEDtva.",
+    automation_management_delete_confirm:
+      "V\xE9glegesen t\xF6rli ezt az automatizmust?",
+    automation_management_deleted: "Automatizmus t\xF6r\xF6lve.",
+    automation_management_cannot_refine_no_id:
+      "Ez az automatizmus nem finom\xEDthat\xF3, mert nincs automatizmusazonos\xEDt\xF3ja.",
+    automation_management_loaded_to_chat:
+      "Automatizmus bet\xF6ltve a besz\xE9lget\xE9sbe.",
+    action_format_run_verb: "Futtat\xE1s",
+    action_format_ran_verb: "Lefutott",
+    chat_actions_interrupt_disconnect:
+      "A Home Assistanttal val\xF3 kapcsolat megszakadt v\xE1lasz k\xF6zben.",
+    chat_actions_interrupt_server_stopped:
+      "A kiszolg\xE1l\xF3 nem v\xE1laszol tov\xE1bb.",
+    chat_actions_interrupt_server_no_reply:
+      "A kiszolg\xE1l\xF3 nem v\xE1laszolt id\u0151ben.",
+    chat_actions_interrupt_truncated:
+      "A v\xE1lasz csonk\xE1nak t\u0171nik \u2014 pr\xF3b\xE1lja \xFAjra.",
+    chat_actions_interrupt_llm_unreachable:
+      "Az LLM-szolg\xE1ltat\xF3 nem \xE9rhet\u0151 el.",
+    chat_actions_interrupt_session_start_failed:
+      "Nem siker\xFClt elind\xEDtani a besz\xE9lget\xE9si munkamenetet.",
+    chat_actions_cancelled_by_user: "_A felhaszn\xE1l\xF3 megszak\xEDtotta_",
+    automation_crud_save_failed: "Az automatizmus ment\xE9se nem siker\xFClt:",
+    automation_crud_entity_not_surfaced:
+      "Az automatizmus mentve, de a Home Assistant m\xE9g nem jelen\xEDtette meg az entit\xE1st \u2014 kapcsolja be az Automatizmusok lapon, amint megjelenik.",
+    automation_crud_auto_enable_failed_prefix:
+      "Az automatizmus mentve, de nem siker\xFClt automatikusan bekapcsolni:",
+    automation_crud_unknown_error: "ismeretlen hiba",
+    automation_crud_auto_enable_failed_suffix:
+      ". A k\xE1rty\xE1n tal\xE1lhat\xF3 Bekapcsol\xE1s gombbal pr\xF3b\xE1lkozzon \xFAjra.",
+    automation_crud_draft_dismissed: "V\xE1zlat elvetve.",
+    automation_crud_dismiss_draft_failed:
+      "A v\xE1zlat elvet\xE9se nem siker\xFClt:",
+    automation_crud_create_failed:
+      "Az automatizmus l\xE9trehoz\xE1sa nem siker\xFClt:",
+    automation_crud_save_edited_yaml_failed:
+      "A szerkesztett YAML-b\u0151l az automatizmus ment\xE9se nem siker\xFClt:",
+    automation_crud_yaml_saved: "Az automatizmus YAML-je mentve.",
+    automation_crud_save_changes_failed:
+      "A v\xE1ltoz\xE1sok ment\xE9se nem siker\xFClt:",
+    scene_actions_refine_default_name: "a jelenet",
+    session_toast_new_automation_chat_failed:
+      "Nem siker\xFClt \xFAj automatizmus-besz\xE9lget\xE9st ind\xEDtani:",
+    session_toast_ai_no_suggestion:
+      "Az AI nem adott vissza javaslatot \u2014 pr\xF3b\xE1lja \xFAjra.",
+    session_toast_suggest_failed:
+      "Nem siker\xFClt javaslatot gener\xE1lni \u2014 ellen\u0151rizze az LLM-konfigur\xE1ci\xF3t.",
+    suggestions_analysis_no_new:
+      "Az elemz\xE9s befejez\u0151d\xF6tt \u2014 jelenleg nincsenek \xFAj javaslatok",
+    suggestions_accepted_toast:
+      "Javaslat elfogadva \u2014 automatizmus l\xE9trehozva",
+    suggestions_accept_failed: "A javaslat elfogad\xE1sa nem siker\xFClt",
+    suggestions_dismissed_toast: "Javaslat elvetve",
+    suggestions_snoozed_toast: "Javaslat 24 \xF3r\xE1ra szundira \xE1ll\xEDtva",
+    suggestions_pattern_scan_failed: "A mintavizsg\xE1lat sikertelen",
+    area_unassigned: "Hozz\xE1 nem rendelt",
+  },
+};
+
+// src/shared/i18n.js
+var CATALOG = {
+  en: en_default,
+  fr: fr_default,
+  de: de_default,
+  es: es_default,
+  it: it_default,
+  nl: nl_default,
+  hu: hu_default,
+};
+function pickLocale(hass) {
+  const raw = hass?.language || hass?.locale?.language || "en";
+  const base = String(raw).toLowerCase().split("-")[0];
+  return CATALOG[base] ? base : "en";
+}
+function localize(hass, key, fallback) {
+  const lang = pickLocale(hass);
+  return CATALOG[lang]?.common?.[key] ?? CATALOG.en?.common?.[key] ?? fallback;
+}
+
 // node_modules/lit-html/directive.js
 var e4 =
   (t3) =>
@@ -7317,7 +12478,10 @@ function renderDeviceDetail(host) {
       ${
         loading
           ? x`<span style="font-size:13px;color:var(--selora-zinc-400);"
-            >Loading device detail...</span
+            >${host._t(
+              "device_detail_loading",
+              "Loading device detail...",
+            )}</span
           >`
           : x`
             <!-- Header -->
@@ -7353,7 +12517,7 @@ function renderDeviceDetail(host) {
                 @click=${() => {
                   host._deviceDetail = null;
                 }}
-                title="Close"
+                title=${host._t("device_detail_close", "Close")}
               >
                 <ha-icon
                   icon="mdi:close"
@@ -7370,7 +12534,7 @@ function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Entities
+                      ${host._t("device_detail_entities_heading", "Entities")}
                     </div>
                     ${detail.entities.map(
                       (e5) => x`
@@ -7403,7 +12567,10 @@ function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      State History (24h)
+                      ${host._t(
+                        "device_detail_state_history_heading",
+                        "State History (24h)",
+                      )}
                     </div>
                     <div style="max-height:150px;overflow-y:auto;">
                       ${detail.state_history.slice(0, 30).map(
@@ -7437,7 +12604,10 @@ function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Linked Automations
+                      ${host._t(
+                        "device_detail_linked_automations_heading",
+                        "Linked Automations",
+                      )}
                     </div>
                     ${detail.linked_automations.map(
                       (a4) => x`
@@ -7464,7 +12634,10 @@ function renderDeviceDetail(host) {
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
                     >
-                      Detected Patterns
+                      ${host._t(
+                        "device_detail_detected_patterns_heading",
+                        "Detected Patterns",
+                      )}
                     </div>
                     ${detail.related_patterns.map(
                       (p2) => x`
@@ -7480,7 +12653,10 @@ function renderDeviceDetail(host) {
                             style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                           >
                             ${p2.type} · ${Math.round(p2.confidence * 100)}%
-                            confidence
+                            ${host._t(
+                              "device_detail_confidence_label",
+                              "confidence",
+                            )}
                           </div>
                         </div>
                       `,
@@ -7496,42 +12672,60 @@ function renderDeviceDetail(host) {
 }
 
 // src/panel/quick-actions.js
-var _APPROVAL_PRESENTATION = {
-  once: {
-    label: "Allow once",
-    icon: "mdi:check",
-    tone: "approve",
-    description: "Just this one request",
-  },
-  session: {
-    label: "For this conversation",
-    icon: "mdi:check-all",
-    tone: "approve",
-    description: "Allow for the rest of this conversation",
-  },
-  always: {
-    label: "Always",
-    icon: "mdi:shield-check",
-    tone: "approve",
-    description: "Remember this approval",
-  },
-  deny: {
-    label: "Deny",
-    icon: "mdi:close",
-    tone: "deny",
-    description: "Do not run this request",
-  },
-};
+function _approvalPresentation(host) {
+  return {
+    once: {
+      label: host._t("quick_actions_approve_once_label", "Allow once"),
+      icon: "mdi:check",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_once_desc",
+        "Just this one request",
+      ),
+    },
+    session: {
+      label: host._t(
+        "quick_actions_approve_session_label",
+        "For this conversation",
+      ),
+      icon: "mdi:check-all",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_session_desc",
+        "Allow for the rest of this conversation",
+      ),
+    },
+    always: {
+      label: host._t("quick_actions_approve_always_label", "Always"),
+      icon: "mdi:shield-check",
+      tone: "approve",
+      description: host._t(
+        "quick_actions_approve_always_desc",
+        "Remember this approval",
+      ),
+    },
+    deny: {
+      label: host._t("quick_actions_deny_label", "Deny"),
+      icon: "mdi:close",
+      tone: "deny",
+      description: host._t(
+        "quick_actions_deny_desc",
+        "Do not run this request",
+      ),
+    },
+  };
+}
 function _approvalScope(value) {
   if (typeof value !== "string" || !value.startsWith("approve:")) return null;
   return value.split(":", 2)[1] || null;
 }
-function _normalizeApprovalActions(actions) {
+function _normalizeApprovalActions(host, actions) {
   let touched = false;
+  const presentation = _approvalPresentation(host);
   const out = actions.map((a4) => {
     const scope = _approvalScope(a4?.value);
     if (!scope) return a4;
-    const preset = _APPROVAL_PRESENTATION[scope];
+    const preset = presentation[scope];
     if (!preset) return a4;
     touched = true;
     return {
@@ -7553,7 +12747,7 @@ function _isApprovalGroup(actions) {
 }
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
-  actions = _normalizeApprovalActions(actions);
+  actions = _normalizeApprovalActions(host, actions);
   const mode = _detectMode(actions);
   const usedClass = opts.used ? " qa-group--used" : "";
   if (mode === "choice") {
@@ -7793,8 +12987,12 @@ function describeCall(host, call) {
   const ids = Array.isArray(target) ? target : target ? [target] : [];
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
-  const imperative = forms?.imperative || "Run";
-  const pastVerb = forms?.past || "Ran";
+  const t3 =
+    typeof host?._t === "function"
+      ? (k2, fb) => host._t(k2, fb)
+      : (_k, fb) => fb;
+  const imperative = forms?.imperative || t3("action_format_run_verb", "Run");
+  const pastVerb = forms?.past || t3("action_format_ran_verb", "Ran");
   if (ids.length) {
     const names = ids.map((eid) => _friendlyName(host, eid));
     return {
@@ -7818,19 +13016,22 @@ var RISK_LEVEL_STYLES = {
   low: {
     accent: "#3b82f6",
     icon: "mdi:information-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_low",
+    explainerFallback:
       "Low risk: minor or fully reversible impact (sound, notifications, vacuum start/stop).",
   },
   medium: {
     accent: "#f59e0b",
     icon: "mdi:alert-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_medium",
+    explainerFallback:
       "Medium risk: noticeable side effects you may not want to undo (arming the alarm, locking a door, running a user script).",
   },
   high: {
     accent: "#ef4444",
     icon: "mdi:shield-alert-outline",
-    explainer:
+    explainerKey: "approval_risk_explainer_high",
+    explainerFallback:
       "High risk: physical access, security, or host-level impact (unlocking a door, disarming the alarm, running shell commands).",
   },
 };
@@ -7924,7 +13125,7 @@ function _scopeLabel(host, scope, entityIds) {
       const d3 = [...domains][0];
       return `All ${d3}s`;
     }
-    return "All matching entities";
+    return host._t("approval_scope_all_matching", "All matching entities");
   }
   if (entityIds.length === 1) {
     const friendly =
@@ -7932,13 +13133,14 @@ function _scopeLabel(host, scope, entityIds) {
       entityIds[0];
     return `Just ${friendly}`;
   }
-  return "Just these entities";
+  return host._t("approval_scope_just_these", "Just these entities");
 }
 function renderApprovalCard(host, msg, approval, approvalStatus) {
   if (!approval) return "";
   const level = (approval.risk_level || "low").toLowerCase();
-  const { accent, icon, explainer } =
+  const { accent, icon, explainerKey, explainerFallback } =
     RISK_LEVEL_STYLES[level] || RISK_LEVEL_STYLES.low;
+  const explainer = host._t(explainerKey, explainerFallback);
   const reasons = approval.risk_reasons || [];
   const calls = approval.calls || [];
   const entityIds = _proposalEntityIds(approval);
@@ -7958,7 +13160,9 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
           icon=${resolvedIcon}
           style="--mdc-icon-size:16px;flex-shrink:0;"
         ></ha-icon>
-        <span>${approvalStatus === "approved" ? "Approved" : "Denied"}</span>
+        <span
+          >${approvalStatus === "approved" ? host._t("approval_status_approved", "Approved") : host._t("approval_status_denied", "Denied")}</span
+        >
       </div>
     `;
   }
@@ -7968,7 +13172,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
         <span class="spinner" style="width:14px;height:14px;"></span>
-        <span>Working…</span>
+        <span>${host._t("approval_working", "Working\u2026")}</span>
       </div>
     `;
   }
@@ -7984,7 +13188,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
           icon=${icon}
           style="--mdc-icon-size:16px;color:${accent};flex-shrink:0;"
         ></ha-icon>
-        <span>Approval required</span>
+        <span>${host._t("approval_required_title", "Approval required")}</span>
         <span
           title=${explainer}
           style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:0.06em;padding:2px 6px;border-radius:4px;color:${accent};border:1px solid ${accent};line-height:1.2;cursor:help;"
@@ -8000,10 +13204,18 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
             <div
               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
             >
-              <span>For Session / Always:</span>
+              <span
+                >${host._t(
+                  "approval_scope_label",
+                  "For Session / Always:",
+                )}</span
+              >
               <button
                 @click=${() => host._toggleApprovalScope?.(msg)}
-                title="Click to switch between scoping the grant to just this entity, or to all entities of this service."
+                title=${host._t(
+                  "approval_scope_button_title",
+                  "Click to switch between scoping the grant to just this entity, or to all entities of this service.",
+                )}
                 style="display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;border:1px solid var(--divider-color);background:transparent;color:var(--primary-text-color);font-size:12px;cursor:pointer;"
               >
                 <ha-icon
@@ -8069,157 +13281,832 @@ var DOMAIN_ICONS2 = {
   script: "mdi:script-text",
   area: "mdi:floor-plan",
 };
-var TRIGGERS = [
-  // Universal explicit trigger — `@` opens devices regardless of context.
-  // `includeAreas` adds the area registry to the same dropdown so the
-  // user can pick "Bedroom" the area as easily as "Bed Light" the device.
+var BASE_TRIGGERS = [
   { kind: "device", pattern: /(?:^|\s)@$/, includeAreas: true },
-  // Areas — "in the kitchen", "in kitchen", "lights of the kitchen"
-  { kind: "area", pattern: /\bin (?:the |a )?$/i },
-  { kind: "area", pattern: /\bof (?:the |a )?$/i },
-  // Scenes — "activate movie night", "scene cozy", "set the scene cozy"
-  { kind: "scene", pattern: /\bactivate $/i },
-  { kind: "scene", pattern: /\bset (?:the )?scene $/i },
-  { kind: "scene", pattern: /\bscene $/i },
-  // Automations — "run morning routine", "trigger lights off"
-  { kind: "automation", pattern: /\brun $/i },
-  { kind: "automation", pattern: /\btrigger $/i },
-  { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
-  // Devices — verb-led only, grouped by the domains each verb actually
-  // operates on. "lock the …" shouldn't suggest sensors or lights;
-  // "dim the …" shouldn't suggest doors. Domain hints keep the
-  // dropdown short and unambiguous. `turn on/off` and `set` stay
-  // unconstrained because they apply to virtually any actuating entity.
-  {
-    kind: "device",
-    pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
-    domains: ["lock"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
-    domains: ["light"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:open|close) (?:the |my )?$/i,
-    domains: ["cover", "lock"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
-    domains: ["media_player"],
-  },
-  {
-    kind: "device",
-    pattern: /\b(?:start|stop) (?:the |my )?$/i,
-    domains: ["vacuum", "lawn_mower", "media_player", "fan"],
-  },
-  // Generic actuation — no domain constraint. Also surface areas so
-  // "turn on the bedroom" can disambiguate into the Bedroom area
-  // (i.e. all devices in it) instead of forcing the LLM to guess.
-  {
-    kind: "device",
-    pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
-    includeAreas: true,
-  },
-  // Bare "the " / "my " as a fallback. These fire in plenty of regular
-  // prose ("tell me the weather"), so we lean on the 3-char minimum
-  // and the no-match guard to stay quiet: the dropdown only opens when
-  // a typed-3+chars query actually matches a device or area name.
-  // That covers natural phrasings like "Create an automation with the
-  // kitchen's ceiling lights" without a verb up front.
-  { kind: "device", pattern: /\bthe $/i, includeAreas: true },
-  { kind: "device", pattern: /\bmy $/i, includeAreas: true },
 ];
+var LOCALE_TRIGGERS = {
+  en: [
+    { kind: "area", pattern: /\bin (?:the |a )?$/i },
+    { kind: "area", pattern: /\bof (?:the |a )?$/i },
+    { kind: "scene", pattern: /\bactivate $/i },
+    { kind: "scene", pattern: /\bset (?:the )?scene $/i },
+    { kind: "scene", pattern: /\bscene $/i },
+    { kind: "automation", pattern: /\brun $/i },
+    { kind: "automation", pattern: /\btrigger $/i },
+    { kind: "automation", pattern: /\bexecute (?:the )?automation $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:lock|unlock) (?:the |my )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:dim|brighten) (?:the |my )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|close) (?:the |my )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:play|pause|resume|mute|unmute) (?:the |my )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:the |my )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:turn (?:on|off)|set) (?:the |my )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bthe $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmy $/i, includeAreas: true },
+  ],
+  fr: [
+    { kind: "area", pattern: /\bdans (?:la |le |les |l['’])?$/i },
+    { kind: "area", pattern: /\bde (?:la |le |les |l['’])?$/i },
+    { kind: "scene", pattern: /\bactive(?:r|z)? (?:la )?$/i },
+    { kind: "scene", pattern: /\bdéfini(?:r|s|ssez) la scène $/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\blance(?:r|z)? $/i },
+    { kind: "automation", pattern: /\bdéclenche(?:r|z)? $/i },
+    {
+      kind: "automation",
+      pattern: /\bexécute(?:r|z)? (?:l['’]automatisation )?$/i,
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:verrouille(?:r|z)?|déverrouille(?:r|z)?) (?:la |le |mon |ma )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:tamise(?:r|z)?|baisse(?:r|z)?|monte(?:r|z)?) (?:la |le |les |mes )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:ouvre(?:r|z)?|ferme(?:r|z)?) (?:la |le |les )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:joue(?:r|z)?|met(?:s|tre|tez) en pause|reprend(?:s|re|ez)|coupe(?:r|z)? le son) (?:le |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:démarre(?:r|z)?|arrête(?:r|z)?) (?:le |la |les )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:allume(?:r|z)?|éteins|éteindre|éteignez|règle(?:r|z)?) (?:la |le |les |mon |ma |mes |l['’])?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\ble $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\bles $/i, includeAreas: true },
+    { kind: "device", pattern: /\bl['’]$/i, includeAreas: true },
+    { kind: "device", pattern: /\bmon $/i, includeAreas: true },
+    { kind: "device", pattern: /\bma $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmes $/i, includeAreas: true },
+  ],
+  de: [
+    { kind: "area", pattern: /\bim $/i },
+    { kind: "area", pattern: /\bin (?:der |dem |den |die |das )?$/i },
+    { kind: "scene", pattern: /\b(?:aktiviere|aktivieren|aktiviert) $/i },
+    { kind: "scene", pattern: /\bSzene $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:starte|starten|führe (?:die |meine )?aus) $/i,
+    },
+    { kind: "automation", pattern: /\b(?:löse (?:die |meine )?aus) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:sperre|entsperre) (?:die |das |meine |mein )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdimme (?:die |das |meine )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:öffne|schließe) (?:die |das |meine )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:spiele|pausiere|stoppe|stumm schalten) (?:die |das )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:starte|stoppe) (?:die |den |das )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:schalte (?:ein|aus)|stelle) (?:die |das |den |meine |mein |meinen )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bdie $/i, includeAreas: true },
+    { kind: "device", pattern: /\bder $/i, includeAreas: true },
+    { kind: "device", pattern: /\bdas $/i, includeAreas: true },
+    { kind: "device", pattern: /\bden $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmein(?:e|en|er|em)? $/i, includeAreas: true },
+  ],
+  es: [
+    { kind: "area", pattern: /\ben (?:la |el |las |los )?$/i },
+    { kind: "area", pattern: /\bde (?:la |el |las |los )?$/i },
+    { kind: "scene", pattern: /\b(?:activa|activar) (?:la )?$/i },
+    { kind: "scene", pattern: /\bescena $/i },
+    { kind: "automation", pattern: /\b(?:ejecuta|ejecutar|corre|corra) $/i },
+    { kind: "automation", pattern: /\b(?:dispara|disparar) $/i },
+    {
+      kind: "device",
+      pattern: /\b(?:bloquea|desbloquea) (?:la |el |mi )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:atenúa|atenuar|sube|baja) (?:la |el |los |las |mis )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:abre|cierra) (?:la |el |las |los )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:reproduce|pausa|reanuda|silencia) (?:el |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:inicia|detén|para) (?:el |la |los )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:enciende|apaga|ajusta) (?:la |el |los |las |mi |mis )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bel $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\blos $/i, includeAreas: true },
+    { kind: "device", pattern: /\blas $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmi $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmis $/i, includeAreas: true },
+  ],
+  it: [
+    { kind: "area", pattern: /\bin (?:la |il |le |i |gli |lo )?$/i },
+    { kind: "area", pattern: /\bnel(?:la|le|lo|l['’])?\s$/i },
+    { kind: "scene", pattern: /\b(?:attiva|attivare) (?:la )?$/i },
+    { kind: "scene", pattern: /\bscena $/i },
+    { kind: "automation", pattern: /\b(?:esegui|lancia|avvia) $/i },
+    {
+      kind: "automation",
+      pattern: /\b(?:scatena|attiva) (?:l['’]automazione )?$/i,
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:blocca|sblocca) (?:la |il |il mio |la mia )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:regola|abbassa|alza) (?:la |il |le |i )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:apri|chiudi) (?:la |il |le |i )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:riproduci|metti in pausa|riprendi|silenzia) (?:il |la )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:avvia|ferma|interrompi) (?:il |la |i |gli )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern:
+        /\b(?:accendi|spegni|imposta) (?:la |il |le |i |gli |lo |il mio |la mia |i miei )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bil $/i, includeAreas: true },
+    { kind: "device", pattern: /\bla $/i, includeAreas: true },
+    { kind: "device", pattern: /\bi $/i, includeAreas: true },
+    { kind: "device", pattern: /\ble $/i, includeAreas: true },
+    { kind: "device", pattern: /\bgli $/i, includeAreas: true },
+    { kind: "device", pattern: /\blo $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmio $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmia $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmiei $/i, includeAreas: true },
+  ],
+  nl: [
+    { kind: "area", pattern: /\bin (?:de |het )?$/i },
+    { kind: "scene", pattern: /\bactiveer (?:de )?$/i },
+    { kind: "scene", pattern: /\bscène $/i },
+    { kind: "automation", pattern: /\b(?:voer|start) (?:de )?$/i },
+    { kind: "automation", pattern: /\btrigger (?:de )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:vergrendel|ontgrendel) (?:de |het |mijn )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\bdim (?:de |het |mijn )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:open|sluit) (?:de |het |mijn )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:speel|pauzeer|hervat|demp) (?:de |het |mijn )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:start|stop) (?:de |het |mijn )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:zet|schakel|stel) (?:de |het |mijn )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\bde $/i, includeAreas: true },
+    { kind: "device", pattern: /\bhet $/i, includeAreas: true },
+    { kind: "device", pattern: /\bmijn $/i, includeAreas: true },
+  ],
+  hu: [
+    { kind: "scene", pattern: /\baktiváld (?:a |az )?$/i },
+    { kind: "scene", pattern: /\bjelenet $/i },
+    { kind: "automation", pattern: /\bfuttasd (?:a |az )?$/i },
+    { kind: "automation", pattern: /\bváltsd ki (?:a |az )?$/i },
+    {
+      kind: "device",
+      pattern: /\b(?:zárd|zárd be|zárd le|nyisd ki|oldd fel) (?:a |az )?$/i,
+      domains: ["lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:tompítsd|világosítsd) (?:a |az )?$/i,
+      domains: ["light"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:nyisd ki|csukd be) (?:a |az )?$/i,
+      domains: ["cover", "lock"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:játszd le|szüneteltesd|folytasd|némítsd) (?:a |az )?$/i,
+      domains: ["media_player"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:indítsd el|állítsd le) (?:a |az )?$/i,
+      domains: ["vacuum", "lawn_mower", "media_player", "fan"],
+    },
+    {
+      kind: "device",
+      pattern: /\b(?:kapcsold be|kapcsold ki|állítsd be) (?:a |az )?$/i,
+      includeAreas: true,
+    },
+    { kind: "device", pattern: /\ba $/i, includeAreas: true },
+    { kind: "device", pattern: /\baz $/i, includeAreas: true },
+  ],
+};
+function _toUnicodeBoundary(re) {
+  let src = re.source;
+  if (src.startsWith("\\b")) {
+    src = "(?<![\\p{L}\\p{N}_])" + src.slice(2);
+  }
+  const flags = re.flags.includes("u") ? re.flags : re.flags + "u";
+  return new RegExp(src, flags); // nosemgrep
+}
+for (const t3 of BASE_TRIGGERS) {
+  t3.pattern = _toUnicodeBoundary(t3.pattern);
+}
+for (const list of Object.values(LOCALE_TRIGGERS)) {
+  for (const t3 of list) {
+    t3.pattern = _toUnicodeBoundary(t3.pattern);
+  }
+}
+function _langKey(lang) {
+  const base = String(lang || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return LOCALE_TRIGGERS[base] ? base : "en";
+}
+function _triggersFor(lang) {
+  return [...BASE_TRIGGERS, ...LOCALE_TRIGGERS[_langKey(lang)]];
+}
 var QUERY_STOP_RE = /[\n.?!]/;
 var MAX_QUERY_LEN = 40;
-var GHOST_VOCABULARY = [
-  "automation",
-  "automations",
-  "trigger",
-  "triggers",
-  "condition",
-  "conditions",
-  "action",
-  "actions",
-  "scene",
-  "scenes",
-  "script",
-  "scripts",
-  "device",
-  "devices",
-  "entity",
-  "entities",
-  "schedule",
-  "weekday",
-  "weekdays",
-  "weekend",
-  "weekends",
-  "midnight",
-  "morning",
-  "afternoon",
-  "evening",
-  "sunrise",
-  "sunset",
-  "minutes",
-  "hours",
-  "seconds",
-  "temperature",
-  "brightness",
-  "thermostat",
-  "lights",
-  "lighting",
-  "bedroom",
-  "bathroom",
-  "kitchen",
-  "living",
-  "garage",
-  "office",
-  "hallway",
-  "basement",
-  "downstairs",
-  "upstairs",
-  "outside",
-  "create",
-  "suggest",
-  "notify",
-  "notification",
-  "between",
-  "before",
-  "after",
-  "during",
-  "while",
-  "everyone",
-  "nobody",
-].sort((a4, b2) => a4.length - b2.length);
+var GHOST_VOCABULARY_BY_LANG = {
+  en: [
+    "automation",
+    "automations",
+    "trigger",
+    "triggers",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "scene",
+    "scenes",
+    "script",
+    "scripts",
+    "device",
+    "devices",
+    "entity",
+    "entities",
+    "schedule",
+    "weekday",
+    "weekdays",
+    "weekend",
+    "weekends",
+    "midnight",
+    "morning",
+    "afternoon",
+    "evening",
+    "sunrise",
+    "sunset",
+    "minutes",
+    "hours",
+    "seconds",
+    "temperature",
+    "brightness",
+    "thermostat",
+    "lights",
+    "lighting",
+    "bedroom",
+    "bathroom",
+    "kitchen",
+    "living",
+    "garage",
+    "office",
+    "hallway",
+    "basement",
+    "downstairs",
+    "upstairs",
+    "outside",
+    "create",
+    "suggest",
+    "notify",
+    "notification",
+    "between",
+    "before",
+    "after",
+    "during",
+    "while",
+    "everyone",
+    "nobody",
+  ],
+  fr: [
+    "automatisation",
+    "automatisations",
+    "d\xE9clencheur",
+    "d\xE9clencheurs",
+    "condition",
+    "conditions",
+    "action",
+    "actions",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "appareil",
+    "appareils",
+    "entit\xE9",
+    "entit\xE9s",
+    "planification",
+    "semaine",
+    "week-end",
+    "minuit",
+    "matin",
+    "apr\xE8s-midi",
+    "soir",
+    "lever",
+    "coucher",
+    "minutes",
+    "heures",
+    "secondes",
+    "temp\xE9rature",
+    "luminosit\xE9",
+    "thermostat",
+    "lumi\xE8re",
+    "lumi\xE8res",
+    "\xE9clairage",
+    "chambre",
+    "salle de bains",
+    "cuisine",
+    "salon",
+    "garage",
+    "bureau",
+    "couloir",
+    "sous-sol",
+    "\xE9tage",
+    "rez-de-chauss\xE9e",
+    "ext\xE9rieur",
+    "cr\xE9er",
+    "sugg\xE9rer",
+    "notifier",
+    "notification",
+    "entre",
+    "avant",
+    "apr\xE8s",
+    "pendant",
+    "tout le monde",
+    "personne",
+  ],
+  de: [
+    "Automatisierung",
+    "Automatisierungen",
+    "Ausl\xF6ser",
+    "Bedingung",
+    "Bedingungen",
+    "Aktion",
+    "Aktionen",
+    "Szene",
+    "Szenen",
+    "Skript",
+    "Skripte",
+    "Ger\xE4t",
+    "Ger\xE4te",
+    "Entit\xE4t",
+    "Entit\xE4ten",
+    "Zeitplan",
+    "Wochentag",
+    "Wochenende",
+    "Mitternacht",
+    "Morgen",
+    "Nachmittag",
+    "Abend",
+    "Sonnenaufgang",
+    "Sonnenuntergang",
+    "Minuten",
+    "Stunden",
+    "Sekunden",
+    "Temperatur",
+    "Helligkeit",
+    "Thermostat",
+    "Licht",
+    "Lichter",
+    "Beleuchtung",
+    "Schlafzimmer",
+    "Badezimmer",
+    "K\xFCche",
+    "Wohnzimmer",
+    "Garage",
+    "B\xFCro",
+    "Flur",
+    "Keller",
+    "drau\xDFen",
+    "erstelle",
+    "vorschlagen",
+    "benachrichtigen",
+    "Benachrichtigung",
+    "zwischen",
+    "vor",
+    "nach",
+    "w\xE4hrend",
+    "jeder",
+    "niemand",
+  ],
+  es: [
+    "automatizaci\xF3n",
+    "automatizaciones",
+    "disparador",
+    "disparadores",
+    "condici\xF3n",
+    "condiciones",
+    "acci\xF3n",
+    "acciones",
+    "escena",
+    "escenas",
+    "script",
+    "scripts",
+    "dispositivo",
+    "dispositivos",
+    "entidad",
+    "entidades",
+    "programaci\xF3n",
+    "semana",
+    "fin de semana",
+    "medianoche",
+    "ma\xF1ana",
+    "tarde",
+    "noche",
+    "amanecer",
+    "atardecer",
+    "minutos",
+    "horas",
+    "segundos",
+    "temperatura",
+    "brillo",
+    "termostato",
+    "luz",
+    "luces",
+    "iluminaci\xF3n",
+    "dormitorio",
+    "ba\xF1o",
+    "cocina",
+    "sal\xF3n",
+    "garaje",
+    "oficina",
+    "pasillo",
+    "s\xF3tano",
+    "exterior",
+    "crear",
+    "sugerir",
+    "notificar",
+    "notificaci\xF3n",
+    "entre",
+    "antes",
+    "despu\xE9s",
+    "durante",
+    "mientras",
+    "todos",
+    "nadie",
+  ],
+  it: [
+    "automazione",
+    "automazioni",
+    "trigger",
+    "condizione",
+    "condizioni",
+    "azione",
+    "azioni",
+    "scena",
+    "scene",
+    "script",
+    "dispositivo",
+    "dispositivi",
+    "entit\xE0",
+    "pianificazione",
+    "settimana",
+    "fine settimana",
+    "mezzanotte",
+    "mattina",
+    "pomeriggio",
+    "sera",
+    "alba",
+    "tramonto",
+    "minuti",
+    "ore",
+    "secondi",
+    "temperatura",
+    "luminosit\xE0",
+    "termostato",
+    "luce",
+    "luci",
+    "illuminazione",
+    "camera",
+    "bagno",
+    "cucina",
+    "soggiorno",
+    "garage",
+    "ufficio",
+    "corridoio",
+    "cantina",
+    "esterno",
+    "crea",
+    "suggerisci",
+    "notifica",
+    "tra",
+    "prima",
+    "dopo",
+    "durante",
+    "mentre",
+    "tutti",
+    "nessuno",
+  ],
+  nl: [
+    "automatisering",
+    "automatiseringen",
+    "trigger",
+    "triggers",
+    "voorwaarde",
+    "voorwaarden",
+    "actie",
+    "acties",
+    "sc\xE8ne",
+    "sc\xE8nes",
+    "script",
+    "scripts",
+    "apparaat",
+    "apparaten",
+    "entiteit",
+    "entiteiten",
+    "planning",
+    "weekdag",
+    "weekend",
+    "middernacht",
+    "ochtend",
+    "middag",
+    "avond",
+    "zonsopgang",
+    "zonsondergang",
+    "minuten",
+    "uren",
+    "seconden",
+    "temperatuur",
+    "helderheid",
+    "thermostaat",
+    "licht",
+    "lichten",
+    "verlichting",
+    "slaapkamer",
+    "badkamer",
+    "keuken",
+    "woonkamer",
+    "garage",
+    "kantoor",
+    "gang",
+    "kelder",
+    "buiten",
+    "maak",
+    "suggereer",
+    "meld",
+    "melding",
+    "tussen",
+    "voor",
+    "na",
+    "tijdens",
+    "terwijl",
+    "iedereen",
+    "niemand",
+  ],
+  hu: [
+    "automatizmus",
+    "automatizmusok",
+    "trigger",
+    "triggerek",
+    "felt\xE9tel",
+    "felt\xE9telek",
+    "m\u0171velet",
+    "m\u0171veletek",
+    "jelenet",
+    "jelenetek",
+    "szkript",
+    "szkriptek",
+    "eszk\xF6z",
+    "eszk\xF6z\xF6k",
+    "entit\xE1s",
+    "entit\xE1sok",
+    "\xFCtemez\xE9s",
+    "h\xE9tk\xF6znap",
+    "h\xE9tv\xE9ge",
+    "\xE9jf\xE9l",
+    "reggel",
+    "d\xE9lut\xE1n",
+    "este",
+    "napkelte",
+    "napnyugta",
+    "percek",
+    "\xF3r\xE1k",
+    "m\xE1sodpercek",
+    "h\u0151m\xE9rs\xE9klet",
+    "f\xE9nyer\u0151",
+    "termoszt\xE1t",
+    "f\xE9ny",
+    "f\xE9nyek",
+    "vil\xE1g\xEDt\xE1s",
+    "h\xE1l\xF3szoba",
+    "f\xFCrd\u0151szoba",
+    "konyha",
+    "nappali",
+    "gar\xE1zs",
+    "iroda",
+    "folyos\xF3",
+    "pince",
+    "kint",
+    "l\xE9trehoz",
+    "javasol",
+    "\xE9rtes\xEDt",
+    "\xE9rtes\xEDt\xE9s",
+    "k\xF6z\xF6tt",
+    "el\u0151tt",
+    "ut\xE1n",
+    "alatt",
+    "k\xF6zben",
+    "mindenki",
+    "senki",
+  ],
+};
+var _ghostSorted = {};
+function _ghostVocabFor(lang) {
+  const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  if (!_ghostSorted[key]) {
+    _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
+      (a4, b2) => a4.length - b2.length,
+    );
+  }
+  return _ghostSorted[key];
+}
 var GHOST_MIN_PREFIX = 3;
+var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
   let i5 = caret;
-  while (i5 > 0 && /\w/.test(text[i5 - 1])) i5--;
+  while (i5 > 0 && _WORD_CHAR_RE.test(text[i5 - 1])) i5--;
   const word = text.slice(i5, caret);
   if (!word) return null;
   return { word, start: i5 };
 }
-function findGhostSuggestion(text, caret) {
+function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
-  if (caret < text.length && /\w/.test(text[caret])) return null;
+  if (caret < text.length && _WORD_CHAR_RE.test(text[caret])) return null;
   const part = _partialWordAt(text, caret);
   if (!part || part.word.length < GHOST_MIN_PREFIX) return null;
   const lower = part.word.toLowerCase();
-  for (const w2 of GHOST_VOCABULARY) {
-    if (w2 === lower) return null;
-    if (w2.startsWith(lower)) {
-      return { suffix: w2.slice(lower.length), word: w2, start: part.start };
+  for (const w2 of _ghostVocabFor(lang)) {
+    const wLower = w2.toLowerCase();
+    if (wLower === lower) return null;
+    if (wLower.startsWith(lower)) {
+      return {
+        suffix: w2.slice(part.word.length),
+        word: w2,
+        start: part.start,
+      };
     }
   }
   return null;
 }
-var ARTICLE_WORDS = /* @__PURE__ */ new Set(["the", "my", "a", "an"]);
-function detectTrigger(text, caret) {
+var ARTICLE_WORDS_BY_LANG = {
+  en: ["the", "my", "a", "an"],
+  fr: ["le", "la", "les", "l", "mon", "ma", "mes", "un", "une", "des"],
+  de: [
+    "die",
+    "der",
+    "das",
+    "den",
+    "dem",
+    "mein",
+    "meine",
+    "meinen",
+    "meiner",
+    "meinem",
+    "ein",
+    "eine",
+    "einen",
+  ],
+  es: ["el", "la", "los", "las", "mi", "mis", "un", "una", "unos", "unas"],
+  it: [
+    "il",
+    "la",
+    "lo",
+    "i",
+    "le",
+    "gli",
+    "mio",
+    "mia",
+    "miei",
+    "mie",
+    "un",
+    "una",
+    "uno",
+  ],
+  nl: ["de", "het", "een", "mijn"],
+  hu: ["a", "az", "egy"],
+};
+function _articleWordsFor(lang) {
+  const key = ARTICLE_WORDS_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
+  return new Set(ARTICLE_WORDS_BY_LANG[key]);
+}
+function detectTrigger(text, caret, lang) {
   if (typeof text !== "string" || caret == null || caret < 0) return null;
   const before = text.slice(0, caret);
+  const triggers = _triggersFor(lang);
+  const articleWords = _articleWordsFor(lang);
   let queryStart = caret;
   while (queryStart > 0) {
     const ch = before[queryStart - 1];
@@ -8230,7 +14117,7 @@ function detectTrigger(text, caret) {
   let best = null;
   for (let qs = queryStart; qs <= caret; qs++) {
     const prefix = before.slice(0, qs);
-    for (const trig of TRIGGERS) {
+    for (const trig of triggers) {
       if (trig.pattern.test(prefix)) {
         best = {
           kind: trig.kind,
@@ -8246,7 +14133,7 @@ function detectTrigger(text, caret) {
   }
   if (!best) return null;
   if (!best.query.trim() && !best.domains) return null;
-  if (ARTICLE_WORDS.has(best.query.trim().toLowerCase())) return null;
+  if (articleWords.has(best.query.trim().toLowerCase())) return null;
   return best;
 }
 function buildSuggestionIndex(hass, areas, devices = null) {
@@ -8459,19 +14346,19 @@ function pruneStaleSelections(text, selections) {
 }
 
 // src/panel/render-chat.js
-var AUTOMATION_LABELS = [
-  "Building automation...",
-  "Drafting triggers...",
-  "Wiring conditions...",
-  "Composing actions...",
-  "Almost ready...",
+var AUTOMATION_LABEL_KEYS = [
+  ["chat_automation_label_building", "Building automation..."],
+  ["chat_automation_label_triggers", "Drafting triggers..."],
+  ["chat_automation_label_conditions", "Wiring conditions..."],
+  ["chat_automation_label_actions", "Composing actions..."],
+  ["chat_automation_label_almost", "Almost ready..."],
 ];
 var AUTOMATION_LABEL_INTERVAL_MS = 5e3;
-var AUTOCOMPLETE_KIND_LABELS = {
-  device: "Devices",
-  area: "Areas",
-  scene: "Scenes",
-  automation: "Automations",
+var AUTOCOMPLETE_KIND_LABEL_KEYS = {
+  device: ["chat_autocomplete_kind_devices", "Devices"],
+  area: ["chat_autocomplete_kind_areas", "Areas"],
+  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
+  automation: ["chat_autocomplete_kind_automations", "Automations"],
 };
 function _formatReplyMs(ms) {
   if (ms < 1e3) return `${ms} ms`;
@@ -8500,7 +14387,7 @@ function _formatToolArgs(args) {
   }
   return parts.join(", ");
 }
-function renderToolCalls(toolCalls) {
+function renderToolCalls(host, toolCalls) {
   return x`
     <details
       class="dev-tool-calls"
@@ -8513,7 +14400,10 @@ function renderToolCalls(toolCalls) {
           icon="mdi:wrench-outline"
           style="--mdc-icon-size:14px;"
         ></ha-icon>
-        <span>Tools used (${toolCalls.length})</span>
+        <span
+          >${host._t("chat_tools_used", "Tools used")}
+          (${toolCalls.length})</span
+        >
       </summary>
       <div
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
@@ -8533,23 +14423,43 @@ function renderToolCalls(toolCalls) {
     </details>
   `;
 }
-var WELCOME_SUGGESTIONS = [
-  {
-    label: "Turn off all lights at midnight",
-    value: "Create an automation that turns off all lights at midnight",
-    icon: "mdi:lightbulb-off-outline",
-  },
-  {
-    label: "What devices do I have?",
-    value: "What devices do I have and which ones are currently on?",
-    icon: "mdi:devices",
-  },
-  {
-    label: "Suggest automations for my home",
-    value: "Suggest useful automations based on my devices and usage patterns",
-    icon: "mdi:auto-fix",
-  },
-];
+function _welcomeSuggestions(host) {
+  return [
+    {
+      label: host._t(
+        "chat_welcome_suggestion_lights_label",
+        "Turn off all lights at midnight",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_lights_value",
+        "Create an automation that turns off all lights at midnight",
+      ),
+      icon: "mdi:lightbulb-off-outline",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_devices_label",
+        "What devices do I have?",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_devices_value",
+        "What devices do I have and which ones are currently on?",
+      ),
+      icon: "mdi:devices",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_suggest_label",
+        "Suggest automations for my home",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_suggest_value",
+        "Suggest useful automations based on my devices and usage patterns",
+      ),
+      icon: "mdi:auto-fix",
+    },
+  ];
+}
 function renderAutomationSuggestButton(host) {
   const busy = !!host._suggestingAutomation;
   return x`
@@ -8566,7 +14476,9 @@ function renderAutomationSuggestButton(host) {
             style="--mdc-icon-size:14px;"
           ></ha-icon>`
       }
-      <span>${busy ? "Thinking\u2026" : "Suggest one for me"}</span>
+      <span
+        >${busy ? host._t("chat_suggest_thinking", "Thinking\u2026") : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+      >
     </button>
   `;
 }
@@ -8586,12 +14498,30 @@ function renderChat(host) {
                   style="width:72px;height:72px;border-radius:16px;margin-bottom:16px;"
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
-                  ${host._newAutomationMode ? x`New <span class="gold-text">Automation</span>` : x`Welcome to <span class="gold-text">Selora AI</span>`}
+                  ${
+                    host._newAutomationMode
+                      ? x`${host._t("new_automation_title_prefix", "New")}
+                        <span class="gold-text"
+                          >${host._t("new_automation_gold", "Automation")}</span
+                        >`
+                      : x`${host._t("welcome_title_prefix", "Welcome to")}
+                        <span class="gold-text">Selora AI</span>`
+                  }
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
-                  ${host._newAutomationMode ? "Describe what you want to automate \u2014 mention the devices, times, or conditions involved." : "Your intelligent home automation architect"}
+                  ${
+                    host._newAutomationMode
+                      ? host._t(
+                          "new_automation_subtitle",
+                          "Describe what you want to automate \u2014 mention the devices, times, or conditions involved.",
+                        )
+                      : host._t(
+                          "welcome_subtitle",
+                          "Your intelligent home automation architect",
+                        )
+                  }
                 </div>
 
                 ${
@@ -8608,18 +14538,20 @@ function renderChat(host) {
                         <div
                           style="font-size:16px;font-weight:700;margin-bottom:6px;"
                         >
-                          Get started
+                          ${host._t("get_started", "Get started")}
                         </div>
                         <div
                           style="font-size:13px;opacity:0.6;margin-bottom:16px;"
                         >
-                          Configure your LLM provider in the Settings tab to
-                          start chatting with your home.
+                          ${host._t(
+                            "get_started_body",
+                            "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                          )}
                         </div>
                         <span
                           style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
                         >
-                          Open Settings
+                          ${host._t("open_settings", "Open Settings")}
                           <ha-icon
                             icon="mdi:arrow-right"
                             style="--mdc-icon-size:16px;"
@@ -8645,13 +14577,21 @@ function renderChat(host) {
                           : x`
                             <details class="welcome-quickstart">
                               <summary class="welcome-quickstart-summary">
-                                <span>Quick start</span>
+                                <span
+                                  >${host._t(
+                                    "quick_start",
+                                    "Quick start",
+                                  )}</span
+                                >
                                 <ha-icon
                                   icon="mdi:chevron-down"
                                   class="welcome-quickstart-chevron"
                                 ></ha-icon>
                               </summary>
-                              ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                              ${renderQuickActions(
+                                host,
+                                _welcomeSuggestions(host),
+                              )}
                             </details>
                           `
                       }
@@ -8706,8 +14646,11 @@ function renderChat(host) {
               <button
                 class="chat-jump-bottom"
                 @click=${() => host._scrollChatToBottom()}
-                title="Go to latest message"
-                aria-label="Go to latest message"
+                title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                aria-label=${host._t(
+                  "chat_jump_to_latest",
+                  "Go to latest message",
+                )}
               >
                 <ha-icon icon="mdi:chevron-down"></ha-icon>
               </button>
@@ -8800,7 +14743,7 @@ function _measureCaretInTextarea(textarea) {
 function _updateAutocomplete(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(value, caret);
+  const trigger = detectTrigger(value, caret, host.hass?.language);
   const closeIfOpen = () => {
     if (host._autocomplete?.open) {
       host._autocomplete = {
@@ -8871,7 +14814,7 @@ function _updateAutocomplete(host, textarea) {
 function _updateGhost(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const hit = findGhostSuggestion(value, caret);
+  const hit = findGhostSuggestion(value, caret, host.hass?.language);
   if (!hit) {
     host._ghost = null;
     return;
@@ -8988,7 +14931,10 @@ function _renderAutocomplete(host) {
   return x`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
-        const header = AUTOCOMPLETE_KIND_LABELS[kind] || "Suggestions";
+        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
+        const header = headerKV
+          ? host._t(headerKV[0], headerKV[1])
+          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
         return x`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
@@ -8997,7 +14943,10 @@ function _renderAutocomplete(host) {
         `;
       })}
       <div class="composer-autocomplete-hint">
-        ↑↓ navigate · ↵ insert · Esc dismiss
+        ${host._t(
+          "chat_autocomplete_hint",
+          "\u2191\u2193 navigate \xB7 \u21B5 insert \xB7 Esc dismiss",
+        )}
       </div>
     </div>
   `;
@@ -9037,7 +14986,7 @@ function _renderSelectionChips(host) {
             ${s6.label}
             <button
               type="button"
-              title="Remove"
+              title=${host._t("chat_selection_remove", "Remove")}
               @click=${() => _removeSelection(host, idx)}
             >
               ×
@@ -9206,7 +15155,17 @@ function _renderComposer(host, opts = {}) {
                   return;
                 }
               }}
-              placeholder=${host._newAutomationMode ? "Describe the automation you'd like to create\u2026" : "Ask Selora AI anything\u2026"}
+              placeholder=${
+                host._newAutomationMode
+                  ? host._t(
+                      "composer_placeholder_automation",
+                      "Describe the automation you\u2019d like to create\u2026",
+                    )
+                  : host._t(
+                      "composer_placeholder_ask",
+                      "Ask Selora AI anything\u2026",
+                    )
+              }
               ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
@@ -9218,7 +15177,7 @@ function _renderComposer(host, opts = {}) {
             ? x`<button
               class="composer-send"
               @click=${() => host._stopStreaming()}
-              title="Stop generating"
+              title=${host._t("chat_stop_generating", "Stop generating")}
             >
               <ha-icon icon="mdi:stop"></ha-icon>
             </button>`
@@ -9226,7 +15185,7 @@ function _renderComposer(host, opts = {}) {
               class="composer-send"
               @click=${() => host._sendMessage()}
               ?disabled=${host._loading || !host._input.trim()}
-              title="Send"
+              title=${host._t("chat_send", "Send")}
             >
               <ha-icon icon="mdi:arrow-up"></ha-icon>
             </button>`
@@ -9293,7 +15252,9 @@ function renderMessage(host, msg, idx) {
                           Math.floor(
                             (Date.now() - startedAt) /
                               AUTOMATION_LABEL_INTERVAL_MS,
-                          ) % AUTOMATION_LABELS.length;
+                          ) % AUTOMATION_LABEL_KEYS.length;
+                        const [labelKey, labelFallback] =
+                          AUTOMATION_LABEL_KEYS[labelIdx];
                         return x`
                         <div
                           style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
@@ -9304,7 +15265,7 @@ function renderMessage(host, msg, idx) {
                           ></div>
                           <span
                             style="font-size:13px;font-weight:500;color:#fbbf24;"
-                            >${AUTOMATION_LABELS[labelIdx]}</span
+                            >${host._t(labelKey, labelFallback)}</span
                           >
                         </div>
                       `;
@@ -9323,7 +15284,10 @@ function renderMessage(host, msg, idx) {
                         ></div>
                         <span
                           style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >Building scene...</span
+                          >${host._t(
+                            "chat_building_scene",
+                            "Building scene...",
+                          )}</span
                         >
                       </div>
                     `
@@ -9334,7 +15298,10 @@ function renderMessage(host, msg, idx) {
                     ? x`
                       <div style="margin-top: 10px;">
                         <mwc-button dense raised @click=${host._goToSettings}
-                          >Go to Settings</mwc-button
+                          >${host._t(
+                            "chat_go_to_settings",
+                            "Go to Settings",
+                          )}</mwc-button
                         >
                       </div>
                     `
@@ -9361,13 +15328,19 @@ function renderMessage(host, msg, idx) {
                           style="--mdc-icon-size:16px;flex-shrink:0;"
                         ></ha-icon>
                         <span class="stream-interrupt-text"
-                          >${msg._interruptReason || "Response was cut short."}</span
+                          >${
+                            msg._interruptReason ||
+                            host._t(
+                              "chat_response_cut_short",
+                              "Response was cut short.",
+                            )
+                          }</span
                         >
                       </div>
                     `
                     : ""
                 }
-                ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(msg.tool_calls) : ""}
+                ${host._config?.developer_mode && msg.tool_calls && msg.tool_calls.length ? renderToolCalls(host, msg.tool_calls) : ""}
               </div>
               ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
               ${
@@ -9413,14 +15386,14 @@ function renderMessage(host, msg, idx) {
                             icon="mdi:refresh"
                             style="--mdc-icon-size:12px;"
                           ></ha-icon>
-                          Retry
+                          ${host._t("chat_retry", "Retry")}
                         </button>`
                       : ""
                   }
                 </span>
                 <button
                   class="copy-msg-btn"
-                  title="Copy message"
+                  title=${host._t("chat_copy_message", "Copy message")}
                   @click=${(e5) => host._copyMessageText(msg, e5.currentTarget)}
                 >
                   <ha-icon
@@ -9435,7 +15408,7 @@ function renderMessage(host, msg, idx) {
       ${
         isUser
           ? x` <div class="bubble-meta">
-            You · ${formatTime(msg.timestamp)}
+            ${host._t("chat_you", "You")} · ${formatTime(msg.timestamp)}
           </div>`
           : ""
       }
@@ -9510,7 +15483,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                       icon="mdi:circle-edit-outline"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    Unsaved changes
+                    ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
                   </span>
                 `
                 : x`<span style="flex:1;"></span>`
@@ -9527,7 +15500,7 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                       icon="mdi:content-save"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    ${saving ? "Saving\u2026" : "Save changes"}
+                    ${saving ? host._t("chat_yaml_saving", "Saving\u2026") : host._t("chat_yaml_save_changes", "Save changes")}
                   </button>
                 `
                 : ""
@@ -9559,25 +15532,39 @@ function fmtEntity(hass, id) {
   );
   return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
-function fmtEntities(hass, val) {
+var _LIST_CONNECTORS = {
+  en: { last: " and ", oxford: ", and " },
+  fr: { last: " et ", oxford: " et " },
+  de: { last: " und ", oxford: " und " },
+  es: { last: " y ", oxford: " y " },
+  it: { last: " e ", oxford: " e " },
+  nl: { last: " en ", oxford: " en " },
+  hu: { last: " \xE9s ", oxford: " \xE9s " },
+};
+function _langKey2(language, table) {
+  const base = String(language || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return table[base] ? base : "en";
+}
+function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
+  const c3 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
-    return `${fmtEntity(hass, arr[0])} and ${fmtEntity(hass, arr[1])}`;
+    return `${fmtEntity(hass, arr[0])}${c3.last}${fmtEntity(hass, arr[1])}`;
   return (
     arr
       .slice(0, -1)
       .map((e5) => fmtEntity(hass, e5))
       .join(", ") +
-    ", and " +
+    c3.oxford +
     fmtEntity(hass, arr[arr.length - 1])
   );
 }
-function fmtState(state) {
-  if (state == null) return null;
-  const s6 = String(state);
-  const friendly = {
+var _STATE_NAMES = {
+  en: {
     on: "on",
     off: "off",
     home: "home",
@@ -9591,8 +15578,103 @@ function fmtState(state) {
     idle: "idle",
     unavailable: "unavailable",
     unknown: "unknown",
-  };
-  return friendly[s6] || s6.replace(/_/g, " ");
+  },
+  fr: {
+    on: "allum\xE9",
+    off: "\xE9teint",
+    home: "\xE0 la maison",
+    not_home: "absent",
+    open: "ouvert",
+    closed: "ferm\xE9",
+    locked: "verrouill\xE9",
+    unlocked: "d\xE9verrouill\xE9",
+    playing: "en lecture",
+    paused: "en pause",
+    idle: "inactif",
+    unavailable: "indisponible",
+    unknown: "inconnu",
+  },
+  de: {
+    on: "eingeschaltet",
+    off: "ausgeschaltet",
+    home: "zu Hause",
+    not_home: "abwesend",
+    open: "offen",
+    closed: "geschlossen",
+    locked: "verriegelt",
+    unlocked: "entriegelt",
+    playing: "wiedergegeben",
+    paused: "pausiert",
+    idle: "inaktiv",
+    unavailable: "nicht verf\xFCgbar",
+    unknown: "unbekannt",
+  },
+  es: {
+    on: "encendido",
+    off: "apagado",
+    home: "en casa",
+    not_home: "fuera",
+    open: "abierto",
+    closed: "cerrado",
+    locked: "bloqueado",
+    unlocked: "desbloqueado",
+    playing: "en reproducci\xF3n",
+    paused: "en pausa",
+    idle: "inactivo",
+    unavailable: "no disponible",
+    unknown: "desconocido",
+  },
+  it: {
+    on: "acceso",
+    off: "spento",
+    home: "a casa",
+    not_home: "fuori",
+    open: "aperto",
+    closed: "chiuso",
+    locked: "bloccato",
+    unlocked: "sbloccato",
+    playing: "in riproduzione",
+    paused: "in pausa",
+    idle: "inattivo",
+    unavailable: "non disponibile",
+    unknown: "sconosciuto",
+  },
+  nl: {
+    on: "aan",
+    off: "uit",
+    home: "thuis",
+    not_home: "afwezig",
+    open: "open",
+    closed: "gesloten",
+    locked: "vergrendeld",
+    unlocked: "ontgrendeld",
+    playing: "aan het afspelen",
+    paused: "gepauzeerd",
+    idle: "inactief",
+    unavailable: "niet beschikbaar",
+    unknown: "onbekend",
+  },
+  hu: {
+    on: "bekapcsolva",
+    off: "kikapcsolva",
+    home: "otthon",
+    not_home: "t\xE1vol",
+    open: "nyitva",
+    closed: "z\xE1rva",
+    locked: "z\xE1rolva",
+    unlocked: "feloldva",
+    playing: "lej\xE1tsz\xE1s alatt",
+    paused: "sz\xFCneteltetve",
+    idle: "t\xE9tlen",
+    unavailable: "nem el\xE9rhet\u0151",
+    unknown: "ismeretlen",
+  },
+};
+function fmtState(state, language) {
+  if (state == null) return null;
+  const s6 = String(state);
+  const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
+  return table[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -9606,9 +15688,8 @@ function fmtDuration(value) {
   if (parts.length) return parts.join(" ");
   return String(value);
 }
-function fmtWeekdays(value) {
-  if (!value) return "";
-  const dayMap = {
+var _WEEKDAYS = {
+  en: {
     mon: "Mon",
     tue: "Tue",
     wed: "Wed",
@@ -9616,7 +15697,65 @@ function fmtWeekdays(value) {
     fri: "Fri",
     sat: "Sat",
     sun: "Sun",
-  };
+  },
+  fr: {
+    mon: "lun",
+    tue: "mar",
+    wed: "mer",
+    thu: "jeu",
+    fri: "ven",
+    sat: "sam",
+    sun: "dim",
+  },
+  de: {
+    mon: "Mo",
+    tue: "Di",
+    wed: "Mi",
+    thu: "Do",
+    fri: "Fr",
+    sat: "Sa",
+    sun: "So",
+  },
+  es: {
+    mon: "lun",
+    tue: "mar",
+    wed: "mi\xE9",
+    thu: "jue",
+    fri: "vie",
+    sat: "s\xE1b",
+    sun: "dom",
+  },
+  it: {
+    mon: "lun",
+    tue: "mar",
+    wed: "mer",
+    thu: "gio",
+    fri: "ven",
+    sat: "sab",
+    sun: "dom",
+  },
+  nl: {
+    mon: "ma",
+    tue: "di",
+    wed: "wo",
+    thu: "do",
+    fri: "vr",
+    sat: "za",
+    sun: "zo",
+  },
+  hu: {
+    mon: "h",
+    tue: "k",
+    wed: "sze",
+    thu: "cs",
+    fri: "p",
+    sat: "szo",
+    sun: "v",
+  },
+};
+function fmtWeekdays(value, language) {
+  if (!value) return "";
+  const dayMap = _WEEKDAYS[_langKey2(language, _WEEKDAYS)];
   const days = Array.isArray(value) ? value : [value];
   return days.map((d3) => dayMap[String(d3)] || humanizeToken(d3)).join(", ");
 }
@@ -9661,22 +15800,778 @@ function fmtTime(hass, val) {
 }
 
 // src/shared/flow-description.js
+var PHRASES = {
+  en: {
+    when_time_is: (t3) => `When the time is ${t3}`,
+    when_time_is_any: (list) => `When the time is ${list}`,
+    or: " or ",
+    when_it_is: (ev) => `When it is ${ev}`,
+    sun_offset: (label, neg, ev) =>
+      `${label} ${neg ? "before" : "after"} ${ev}`,
+    sunset: "sunset",
+    sunrise: "sunrise",
+    when_turns_on: (eid, dur) => `When ${eid} turns on${dur}`,
+    when_turns_off: (eid, dur) => `When ${eid} turns off${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `When ${eid} changes from ${from} to ${to}${dur}`,
+    when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
+    when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
+    for_duration: (d3) => ` for ${d3}`,
+    when_between: (eid, a4, b2) => `When ${eid} is between ${a4} and ${b2}`,
+    when_rises_above: (eid, v2) => `When ${eid} rises above ${v2}`,
+    when_drops_below: (eid, v2) => `When ${eid} drops below ${v2}`,
+    when_value_changes: (eid) => `When ${eid} value changes`,
+    when_ha: (ev) => `When Home Assistant ${ev}`,
+    ha_starts: "starts",
+    ha_shuts_down: "shuts down",
+    ha_changes_state: "changes state",
+    every_seconds: (n5) => `Every ${n5} second${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Every ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Every ${n5} hour${Number(n5) === 1 ? "" : "s"}`,
+    on_time_pattern: "On a time pattern",
+    when_template_entity: (e5) => `When ${e5} condition is met`,
+    when_template_met: "When a template condition is met",
+    when_event: (n5) => `When ${n5} happens`,
+    when_event_generic: "When an event happens",
+    when_device_triggered: (t3) => `When a device ${t3}`,
+    when_device_is: (t3) => `When a device is ${t3}`,
+    triggered: "triggered",
+    zone_enters: "enters",
+    zone_leaves: "leaves",
+    when_mqtt_topic: (t3) => `When a device message arrives (${t3})`,
+    when_mqtt: "When a device message arrives",
+    when_webhook: "When an outside service sends an update",
+    when_tag: (id) => `When a tag is scanned${id ? ` (${id})` : ""}`,
+    when_geo: "When a location update is received",
+    when_calendar: (ev, entity) => `When a calendar ${ev} begins${entity}`,
+    calendar_event: "event",
+    on_entity: (e5) => ` on ${e5}`,
+    when_trigger_happens: "When this trigger happens",
+    cond_is: (eid, st) => `${eid} is ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} between ${a4} and ${b2}`,
+    cond_above: (eid, v2) => `${eid} above ${v2}`,
+    cond_below: (eid, v2) => `${eid} below ${v2}`,
+    cond_numeric: (eid) => `${eid} numeric check`,
+    cond_after_time: (t3) => `after ${t3}`,
+    cond_before_time: (t3) => `before ${t3}`,
+    cond_on_weekday: (d3) => `on ${d3}`,
+    cond_time_window: "Time window",
+    cond_template_true: "Template evaluates to true",
+    cond_after_sun: (s6) => `after ${s6}`,
+    cond_before_sun: (s6) => `before ${s6}`,
+    cond_sun_position: "Sun position",
+    cond_all: (n5) => `All ${n5} conditions must be true`,
+    cond_any: (n5) => `Any of ${n5} conditions is true`,
+    cond_none: "None of the conditions are true",
+    cond_in_zone: (eid, z2) => `${eid} is in ${z2 || "zone"}`,
+    cond_device: "Device condition",
+    notify_quoted: (q) => `Notify: "${q}"`,
+    notify_target: (tgt, q) => `Notify ${tgt}: "${q}"`,
+    notify_via: (tgt) => `Notify via ${tgt}`,
+    send_notification: "Send a notification",
+    say_quoted: (q) => `Say: "${q}"`,
+    tts: "Text-to-speech",
+    action_turn_on: "Turn on",
+    action_turn_off: "Turn off",
+    action_toggle: "Toggle",
+    action_lock: "Lock",
+    action_unlock: "Unlock",
+    action_open_cover: "Open",
+    action_close_cover: "Close",
+    action_set_temperature: "Set temperature for",
+    action_set_value: "Set value for",
+    action_send_command: "Send command to",
+    action_reload: "Reload",
+    extra_brightness: (v2) => `at ${v2}%`,
+    extra_temp: (v2) => `to ${v2}\xB0`,
+    extra_color_temp: (v2) => `color temp ${v2}`,
+    wait_str: (d3) => `Wait ${d3}`,
+    wait_parts: (p2) => `Wait ${p2}`,
+    wait_plain: "Wait",
+    wait_until: "Wait until condition is met",
+    wait_for_trigger: "Wait for a trigger",
+    activate_scene: (e5) => `Activate scene: ${e5}`,
+    choose_between: (n5) => `Choose between ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `Repeat ${n5} time${n5 !== 1 ? "s" : ""}`,
+    repeat_while: "Repeat while condition holds",
+    repeat_until: "Repeat until condition is met",
+    repeat: "Repeat",
+    parallel: (n5) => `Run ${n5} actions in parallel`,
+    sequence: (n5) => `Run a sequence of ${n5} steps`,
+    set_variables: "Set variables",
+    stop_label: (s6) => `Stop: ${s6}`,
+    fire_event: (e5) => `Fire event: ${e5}`,
+    automation_step: "Automation step",
+    joiner_dot: " \xB7 ",
+  },
+  fr: {
+    when_time_is: (t3) => `Quand l'heure est ${t3}`,
+    when_time_is_any: (list) => `Quand l'heure est ${list}`,
+    or: " ou ",
+    when_it_is: (ev) => `Quand c'est ${ev}`,
+    sun_offset: (label, neg, ev) =>
+      `${label} ${neg ? "avant" : "apr\xE8s"} ${ev}`,
+    sunset: "le coucher du soleil",
+    sunrise: "le lever du soleil",
+    when_turns_on: (eid, dur) => `Quand ${eid} s'allume${dur}`,
+    when_turns_off: (eid, dur) => `Quand ${eid} s'\xE9teint${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Quand ${eid} passe de ${from} \xE0 ${to}${dur}`,
+    when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
+    when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
+    for_duration: (d3) => ` pendant ${d3}`,
+    when_between: (eid, a4, b2) => `Quand ${eid} est entre ${a4} et ${b2}`,
+    when_rises_above: (eid, v2) => `Quand ${eid} d\xE9passe ${v2}`,
+    when_drops_below: (eid, v2) => `Quand ${eid} descend sous ${v2}`,
+    when_value_changes: (eid) => `Quand la valeur de ${eid} change`,
+    when_ha: (ev) => `Quand Home Assistant ${ev}`,
+    ha_starts: "d\xE9marre",
+    ha_shuts_down: "s'arr\xEAte",
+    ha_changes_state: "change d'\xE9tat",
+    every_seconds: (n5) =>
+      `Toutes les ${n5} seconde${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) =>
+      `Toutes les ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Toutes les ${n5} heure${Number(n5) === 1 ? "" : "s"}`,
+    on_time_pattern: "Selon un sch\xE9ma temporel",
+    when_template_entity: (e5) => `Quand la condition sur ${e5} est vraie`,
+    when_template_met: "Quand une condition mod\xE8le est vraie",
+    when_event: (n5) => `Quand ${n5} se produit`,
+    when_event_generic: "Quand un \xE9v\xE9nement se produit",
+    when_device_triggered: (t3) => `Quand un appareil ${t3}`,
+    when_device_is: (t3) => `Quand un appareil est ${t3}`,
+    triggered: "d\xE9clench\xE9",
+    zone_enters: "entre dans",
+    zone_leaves: "quitte",
+    when_mqtt_topic: (t3) => `Quand un message d'appareil arrive (${t3})`,
+    when_mqtt: "Quand un message d'appareil arrive",
+    when_webhook: "Quand un service externe envoie une mise \xE0 jour",
+    when_tag: (id) => `Quand un tag est scann\xE9${id ? ` (${id})` : ""}`,
+    when_geo: "Quand une mise \xE0 jour de position est re\xE7ue",
+    when_calendar: (ev, entity) =>
+      `Quand un ${ev} de calendrier commence${entity}`,
+    calendar_event: "\xE9v\xE9nement",
+    on_entity: (e5) => ` sur ${e5}`,
+    when_trigger_happens: "Quand ce d\xE9clencheur se produit",
+    cond_is: (eid, st) => `${eid} est ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} et ${b2}`,
+    cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
+    cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
+    cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
+    cond_after_time: (t3) => `apr\xE8s ${t3}`,
+    cond_before_time: (t3) => `avant ${t3}`,
+    cond_on_weekday: (d3) => `le ${d3}`,
+    cond_time_window: "Fen\xEAtre temporelle",
+    cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
+    cond_after_sun: (s6) => `apr\xE8s ${s6}`,
+    cond_before_sun: (s6) => `avant ${s6}`,
+    cond_sun_position: "Position du soleil",
+    cond_all: (n5) => `Les ${n5} conditions doivent \xEAtre vraies`,
+    cond_any: (n5) => `L'une des ${n5} conditions est vraie`,
+    cond_none: "Aucune des conditions n'est vraie",
+    cond_in_zone: (eid, z2) => `${eid} est dans ${z2 || "la zone"}`,
+    cond_device: "Condition d'appareil",
+    notify_quoted: (q) => `Notification : \xAB ${q} \xBB`,
+    notify_target: (tgt, q) => `Notifier ${tgt} : \xAB ${q} \xBB`,
+    notify_via: (tgt) => `Notifier via ${tgt}`,
+    send_notification: "Envoyer une notification",
+    say_quoted: (q) => `Dire : \xAB ${q} \xBB`,
+    tts: "Synth\xE8se vocale",
+    action_turn_on: "Allumer",
+    action_turn_off: "\xC9teindre",
+    action_toggle: "Basculer",
+    action_lock: "Verrouiller",
+    action_unlock: "D\xE9verrouiller",
+    action_open_cover: "Ouvrir",
+    action_close_cover: "Fermer",
+    action_set_temperature: "R\xE9gler la temp\xE9rature de",
+    action_set_value: "D\xE9finir la valeur de",
+    action_send_command: "Envoyer la commande \xE0",
+    action_reload: "Recharger",
+    extra_brightness: (v2) => `\xE0 ${v2}%`,
+    extra_temp: (v2) => `\xE0 ${v2}\xB0`,
+    extra_color_temp: (v2) => `temp. de couleur ${v2}`,
+    wait_str: (d3) => `Attendre ${d3}`,
+    wait_parts: (p2) => `Attendre ${p2}`,
+    wait_plain: "Attendre",
+    wait_until: "Attendre que la condition soit vraie",
+    wait_for_trigger: "Attendre un d\xE9clencheur",
+    activate_scene: (e5) => `Activer la sc\xE8ne : ${e5}`,
+    choose_between: (n5) => `Choisir parmi ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `R\xE9p\xE9ter ${n5} fois`,
+    repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
+    repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
+    repeat: "R\xE9p\xE9ter",
+    parallel: (n5) => `Ex\xE9cuter ${n5} actions en parall\xE8le`,
+    sequence: (n5) => `Ex\xE9cuter une s\xE9quence de ${n5} \xE9tapes`,
+    set_variables: "D\xE9finir des variables",
+    stop_label: (s6) => `Arr\xEAter : ${s6}`,
+    fire_event: (e5) => `D\xE9clencher l'\xE9v\xE9nement : ${e5}`,
+    automation_step: "\xC9tape d'automatisation",
+    joiner_dot: " \xB7 ",
+  },
+  de: {
+    when_time_is: (t3) => `Wenn die Uhrzeit ${t3} ist`,
+    when_time_is_any: (list) => `Wenn die Uhrzeit ${list} ist`,
+    or: " oder ",
+    when_it_is: (ev) => `Wenn ${ev} ist`,
+    sun_offset: (label, neg, ev) => `${label} ${neg ? "vor" : "nach"} ${ev}`,
+    sunset: "Sonnenuntergang",
+    sunrise: "Sonnenaufgang",
+    when_turns_on: (eid, dur) => `Wenn ${eid} eingeschaltet wird${dur}`,
+    when_turns_off: (eid, dur) => `Wenn ${eid} ausgeschaltet wird${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Wenn ${eid} von ${from} zu ${to} wechselt${dur}`,
+    when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
+    when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
+    for_duration: (d3) => ` f\xFCr ${d3}`,
+    when_between: (eid, a4, b2) => `Wenn ${eid} zwischen ${a4} und ${b2} liegt`,
+    when_rises_above: (eid, v2) => `Wenn ${eid} \xFCber ${v2} steigt`,
+    when_drops_below: (eid, v2) => `Wenn ${eid} unter ${v2} f\xE4llt`,
+    when_value_changes: (eid) => `Wenn sich der Wert von ${eid} \xE4ndert`,
+    when_ha: (ev) => `Wenn Home Assistant ${ev}`,
+    ha_starts: "startet",
+    ha_shuts_down: "herunterf\xE4hrt",
+    ha_changes_state: "den Zustand \xE4ndert",
+    every_seconds: (n5) => `Alle ${n5} Sekunde${Number(n5) === 1 ? "" : "n"}`,
+    every_minutes: (n5) => `Alle ${n5} Minute${Number(n5) === 1 ? "" : "n"}`,
+    every_hours: (n5) => `Alle ${n5} Stunde${Number(n5) === 1 ? "" : "n"}`,
+    on_time_pattern: "Nach einem Zeitmuster",
+    when_template_entity: (e5) => `Wenn Bedingung f\xFCr ${e5} erf\xFCllt ist`,
+    when_template_met: "Wenn eine Template-Bedingung erf\xFCllt ist",
+    when_event: (n5) => `Wenn ${n5} eintritt`,
+    when_event_generic: "Wenn ein Ereignis eintritt",
+    when_device_triggered: (t3) => `Wenn ein Ger\xE4t ${t3}`,
+    when_device_is: (t3) => `Wenn ein Ger\xE4t ${t3} ist`,
+    triggered: "ausgel\xF6st",
+    zone_enters: "betritt",
+    zone_leaves: "verl\xE4sst",
+    when_mqtt_topic: (t3) => `Wenn eine Ger\xE4tenachricht eintrifft (${t3})`,
+    when_mqtt: "Wenn eine Ger\xE4tenachricht eintrifft",
+    when_webhook: "Wenn ein externer Dienst ein Update sendet",
+    when_tag: (id) => `Wenn ein Tag gescannt wird${id ? ` (${id})` : ""}`,
+    when_geo: "Wenn ein Standort-Update empfangen wird",
+    when_calendar: (ev, entity) => `Wenn ein Kalender-${ev} beginnt${entity}`,
+    calendar_event: "Ereignis",
+    on_entity: (e5) => ` auf ${e5}`,
+    when_trigger_happens: "Wenn dieser Ausl\xF6ser eintritt",
+    cond_is: (eid, st) => `${eid} ist ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} zwischen ${a4} und ${b2}`,
+    cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
+    cond_below: (eid, v2) => `${eid} unter ${v2}`,
+    cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
+    cond_after_time: (t3) => `nach ${t3}`,
+    cond_before_time: (t3) => `vor ${t3}`,
+    cond_on_weekday: (d3) => `am ${d3}`,
+    cond_time_window: "Zeitfenster",
+    cond_template_true: "Template wird zu wahr ausgewertet",
+    cond_after_sun: (s6) => `nach ${s6}`,
+    cond_before_sun: (s6) => `vor ${s6}`,
+    cond_sun_position: "Sonnenposition",
+    cond_all: (n5) => `Alle ${n5} Bedingungen m\xFCssen erf\xFCllt sein`,
+    cond_any: (n5) => `Eine der ${n5} Bedingungen ist erf\xFCllt`,
+    cond_none: "Keine der Bedingungen ist erf\xFCllt",
+    cond_in_zone: (eid, z2) => `${eid} ist in ${z2 || "Zone"}`,
+    cond_device: "Ger\xE4tebedingung",
+    notify_quoted: (q) => `Benachrichtigen: \u201E${q}\u201C`,
+    notify_target: (tgt, q) => `${tgt} benachrichtigen: \u201E${q}\u201C`,
+    notify_via: (tgt) => `Benachrichtigen \xFCber ${tgt}`,
+    send_notification: "Eine Benachrichtigung senden",
+    say_quoted: (q) => `Sagen: \u201E${q}\u201C`,
+    tts: "Sprachausgabe",
+    action_turn_on: "Einschalten",
+    action_turn_off: "Ausschalten",
+    action_toggle: "Umschalten",
+    action_lock: "Verriegeln",
+    action_unlock: "Entriegeln",
+    action_open_cover: "\xD6ffnen",
+    action_close_cover: "Schlie\xDFen",
+    action_set_temperature: "Temperatur einstellen f\xFCr",
+    action_set_value: "Wert setzen f\xFCr",
+    action_send_command: "Befehl senden an",
+    action_reload: "Neu laden",
+    extra_brightness: (v2) => `auf ${v2}%`,
+    extra_temp: (v2) => `auf ${v2}\xB0`,
+    extra_color_temp: (v2) => `Farbtemp. ${v2}`,
+    wait_str: (d3) => `${d3} warten`,
+    wait_parts: (p2) => `${p2} warten`,
+    wait_plain: "Warten",
+    wait_until: "Warten bis Bedingung erf\xFCllt ist",
+    wait_for_trigger: "Auf Ausl\xF6ser warten",
+    activate_scene: (e5) => `Szene aktivieren: ${e5}`,
+    choose_between: (n5) => `Aus ${n5} Optionen w\xE4hlen`,
+    repeat_count: (n5) => `${n5}-mal wiederholen`,
+    repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
+    repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
+    repeat: "Wiederholen",
+    parallel: (n5) => `${n5} Aktionen parallel ausf\xFChren`,
+    sequence: (n5) => `Eine Sequenz von ${n5} Schritten ausf\xFChren`,
+    set_variables: "Variablen setzen",
+    stop_label: (s6) => `Stoppen: ${s6}`,
+    fire_event: (e5) => `Ereignis ausl\xF6sen: ${e5}`,
+    automation_step: "Automatisierungsschritt",
+    joiner_dot: " \xB7 ",
+  },
+  es: {
+    when_time_is: (t3) => `Cuando la hora sea ${t3}`,
+    when_time_is_any: (list) => `Cuando la hora sea ${list}`,
+    or: " o ",
+    when_it_is: (ev) => `Cuando sea ${ev}`,
+    sun_offset: (label, neg, ev) =>
+      `${label} ${neg ? "antes" : "despu\xE9s"} ${ev}`,
+    sunset: "atardecer",
+    sunrise: "amanecer",
+    when_turns_on: (eid, dur) => `Cuando ${eid} se encienda${dur}`,
+    when_turns_off: (eid, dur) => `Cuando ${eid} se apague${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Cuando ${eid} cambie de ${from} a ${to}${dur}`,
+    when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
+    when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
+    for_duration: (d3) => ` durante ${d3}`,
+    when_between: (eid, a4, b2) => `Cuando ${eid} est\xE9 entre ${a4} y ${b2}`,
+    when_rises_above: (eid, v2) => `Cuando ${eid} supere ${v2}`,
+    when_drops_below: (eid, v2) => `Cuando ${eid} baje de ${v2}`,
+    when_value_changes: (eid) => `Cuando cambie el valor de ${eid}`,
+    when_ha: (ev) => `Cuando Home Assistant ${ev}`,
+    ha_starts: "se inicie",
+    ha_shuts_down: "se apague",
+    ha_changes_state: "cambie de estado",
+    every_seconds: (n5) => `Cada ${n5} segundo${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Cada ${n5} minuto${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Cada ${n5} hora${Number(n5) === 1 ? "" : "s"}`,
+    on_time_pattern: "En un patr\xF3n temporal",
+    when_template_entity: (e5) => `Cuando se cumpla la condici\xF3n de ${e5}`,
+    when_template_met: "Cuando se cumpla una condici\xF3n de plantilla",
+    when_event: (n5) => `Cuando ocurra ${n5}`,
+    when_event_generic: "Cuando ocurra un evento",
+    when_device_triggered: (t3) => `Cuando un dispositivo ${t3}`,
+    when_device_is: (t3) => `Cuando un dispositivo est\xE9 ${t3}`,
+    triggered: "activado",
+    zone_enters: "entra en",
+    zone_leaves: "sale de",
+    when_mqtt_topic: (t3) => `Cuando llegue un mensaje de dispositivo (${t3})`,
+    when_mqtt: "Cuando llegue un mensaje de dispositivo",
+    when_webhook: "Cuando un servicio externo env\xEDe una actualizaci\xF3n",
+    when_tag: (id) => `Cuando se escanee una etiqueta${id ? ` (${id})` : ""}`,
+    when_geo: "Cuando se reciba una actualizaci\xF3n de ubicaci\xF3n",
+    when_calendar: (ev, entity) =>
+      `Cuando comience un ${ev} de calendario${entity}`,
+    calendar_event: "evento",
+    on_entity: (e5) => ` en ${e5}`,
+    when_trigger_happens: "Cuando ocurra este disparador",
+    cond_is: (eid, st) => `${eid} es ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} y ${b2}`,
+    cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
+    cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
+    cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
+    cond_after_time: (t3) => `despu\xE9s de ${t3}`,
+    cond_before_time: (t3) => `antes de ${t3}`,
+    cond_on_weekday: (d3) => `el ${d3}`,
+    cond_time_window: "Ventana temporal",
+    cond_template_true: "La plantilla se eval\xFAa como verdadera",
+    cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
+    cond_before_sun: (s6) => `antes de ${s6}`,
+    cond_sun_position: "Posici\xF3n del sol",
+    cond_all: (n5) => `Las ${n5} condiciones deben ser verdaderas`,
+    cond_any: (n5) => `Cualquiera de las ${n5} condiciones es verdadera`,
+    cond_none: "Ninguna de las condiciones es verdadera",
+    cond_in_zone: (eid, z2) => `${eid} est\xE1 en ${z2 || "la zona"}`,
+    cond_device: "Condici\xF3n de dispositivo",
+    notify_quoted: (q) => `Notificar: \xAB${q}\xBB`,
+    notify_target: (tgt, q) => `Notificar a ${tgt}: \xAB${q}\xBB`,
+    notify_via: (tgt) => `Notificar v\xEDa ${tgt}`,
+    send_notification: "Enviar una notificaci\xF3n",
+    say_quoted: (q) => `Decir: \xAB${q}\xBB`,
+    tts: "S\xEDntesis de voz",
+    action_turn_on: "Encender",
+    action_turn_off: "Apagar",
+    action_toggle: "Alternar",
+    action_lock: "Bloquear",
+    action_unlock: "Desbloquear",
+    action_open_cover: "Abrir",
+    action_close_cover: "Cerrar",
+    action_set_temperature: "Establecer temperatura para",
+    action_set_value: "Establecer valor para",
+    action_send_command: "Enviar comando a",
+    action_reload: "Recargar",
+    extra_brightness: (v2) => `al ${v2}%`,
+    extra_temp: (v2) => `a ${v2}\xB0`,
+    extra_color_temp: (v2) => `temp. de color ${v2}`,
+    wait_str: (d3) => `Esperar ${d3}`,
+    wait_parts: (p2) => `Esperar ${p2}`,
+    wait_plain: "Esperar",
+    wait_until: "Esperar hasta que se cumpla la condici\xF3n",
+    wait_for_trigger: "Esperar un disparador",
+    activate_scene: (e5) => `Activar escena: ${e5}`,
+    choose_between: (n5) =>
+      `Elegir entre ${n5} opci${n5 !== 1 ? "ones" : "\xF3n"}`,
+    repeat_count: (n5) => `Repetir ${n5} ve${n5 !== 1 ? "ces" : "z"}`,
+    repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
+    repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
+    repeat: "Repetir",
+    parallel: (n5) => `Ejecutar ${n5} acciones en paralelo`,
+    sequence: (n5) => `Ejecutar una secuencia de ${n5} pasos`,
+    set_variables: "Establecer variables",
+    stop_label: (s6) => `Detener: ${s6}`,
+    fire_event: (e5) => `Disparar evento: ${e5}`,
+    automation_step: "Paso de automatizaci\xF3n",
+    joiner_dot: " \xB7 ",
+  },
+  it: {
+    when_time_is: (t3) => `Quando l'ora \xE8 ${t3}`,
+    when_time_is_any: (list) => `Quando l'ora \xE8 ${list}`,
+    or: " o ",
+    when_it_is: (ev) => `Quando \xE8 ${ev}`,
+    sun_offset: (label, neg, ev) => `${label} ${neg ? "prima" : "dopo"} ${ev}`,
+    sunset: "tramonto",
+    sunrise: "alba",
+    when_turns_on: (eid, dur) => `Quando ${eid} si accende${dur}`,
+    when_turns_off: (eid, dur) => `Quando ${eid} si spegne${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Quando ${eid} passa da ${from} a ${to}${dur}`,
+    when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
+    when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
+    for_duration: (d3) => ` per ${d3}`,
+    when_between: (eid, a4, b2) => `Quando ${eid} \xE8 tra ${a4} e ${b2}`,
+    when_rises_above: (eid, v2) => `Quando ${eid} supera ${v2}`,
+    when_drops_below: (eid, v2) => `Quando ${eid} scende sotto ${v2}`,
+    when_value_changes: (eid) => `Quando il valore di ${eid} cambia`,
+    when_ha: (ev) => `Quando Home Assistant ${ev}`,
+    ha_starts: "si avvia",
+    ha_shuts_down: "si arresta",
+    ha_changes_state: "cambia stato",
+    every_seconds: (n5) => `Ogni ${n5} second${Number(n5) === 1 ? "o" : "i"}`,
+    every_minutes: (n5) => `Ogni ${n5} minut${Number(n5) === 1 ? "o" : "i"}`,
+    every_hours: (n5) => `Ogni ${n5} or${Number(n5) === 1 ? "a" : "e"}`,
+    on_time_pattern: "Su uno schema temporale",
+    when_template_entity: (e5) =>
+      `Quando la condizione su ${e5} \xE8 soddisfatta`,
+    when_template_met: "Quando una condizione del modello \xE8 soddisfatta",
+    when_event: (n5) => `Quando ${n5} si verifica`,
+    when_event_generic: "Quando si verifica un evento",
+    when_device_triggered: (t3) => `Quando un dispositivo ${t3}`,
+    when_device_is: (t3) => `Quando un dispositivo \xE8 ${t3}`,
+    triggered: "attivato",
+    zone_enters: "entra in",
+    zone_leaves: "esce da",
+    when_mqtt_topic: (t3) =>
+      `Quando arriva un messaggio del dispositivo (${t3})`,
+    when_mqtt: "Quando arriva un messaggio del dispositivo",
+    when_webhook: "Quando un servizio esterno invia un aggiornamento",
+    when_tag: (id) => `Quando un tag viene scansionato${id ? ` (${id})` : ""}`,
+    when_geo: "Quando si riceve un aggiornamento di posizione",
+    when_calendar: (ev, entity) =>
+      `Quando inizia un ${ev} del calendario${entity}`,
+    calendar_event: "evento",
+    on_entity: (e5) => ` su ${e5}`,
+    when_trigger_happens: "Quando si verifica questo trigger",
+    cond_is: (eid, st) => `${eid} \xE8 ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} tra ${a4} e ${b2}`,
+    cond_above: (eid, v2) => `${eid} sopra ${v2}`,
+    cond_below: (eid, v2) => `${eid} sotto ${v2}`,
+    cond_numeric: (eid) => `verifica numerica di ${eid}`,
+    cond_after_time: (t3) => `dopo ${t3}`,
+    cond_before_time: (t3) => `prima di ${t3}`,
+    cond_on_weekday: (d3) => `il ${d3}`,
+    cond_time_window: "Finestra temporale",
+    cond_template_true: "Il modello \xE8 valutato vero",
+    cond_after_sun: (s6) => `dopo ${s6}`,
+    cond_before_sun: (s6) => `prima di ${s6}`,
+    cond_sun_position: "Posizione del sole",
+    cond_all: (n5) => `Tutte le ${n5} condizioni devono essere vere`,
+    cond_any: (n5) => `Una delle ${n5} condizioni \xE8 vera`,
+    cond_none: "Nessuna delle condizioni \xE8 vera",
+    cond_in_zone: (eid, z2) => `${eid} \xE8 in ${z2 || "zona"}`,
+    cond_device: "Condizione del dispositivo",
+    notify_quoted: (q) => `Notifica: \xAB${q}\xBB`,
+    notify_target: (tgt, q) => `Notifica a ${tgt}: \xAB${q}\xBB`,
+    notify_via: (tgt) => `Notifica tramite ${tgt}`,
+    send_notification: "Invia una notifica",
+    say_quoted: (q) => `Dire: \xAB${q}\xBB`,
+    tts: "Sintesi vocale",
+    action_turn_on: "Accendi",
+    action_turn_off: "Spegni",
+    action_toggle: "Commuta",
+    action_lock: "Blocca",
+    action_unlock: "Sblocca",
+    action_open_cover: "Apri",
+    action_close_cover: "Chiudi",
+    action_set_temperature: "Imposta temperatura per",
+    action_set_value: "Imposta valore per",
+    action_send_command: "Invia comando a",
+    action_reload: "Ricarica",
+    extra_brightness: (v2) => `al ${v2}%`,
+    extra_temp: (v2) => `a ${v2}\xB0`,
+    extra_color_temp: (v2) => `temp. colore ${v2}`,
+    wait_str: (d3) => `Attendi ${d3}`,
+    wait_parts: (p2) => `Attendi ${p2}`,
+    wait_plain: "Attendi",
+    wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
+    wait_for_trigger: "Attendi un trigger",
+    activate_scene: (e5) => `Attiva scena: ${e5}`,
+    choose_between: (n5) => `Scegli tra ${n5} opzion${n5 !== 1 ? "i" : "e"}`,
+    repeat_count: (n5) => `Ripeti ${n5} volt${n5 !== 1 ? "e" : "a"}`,
+    repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
+    repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
+    repeat: "Ripeti",
+    parallel: (n5) => `Esegui ${n5} azioni in parallelo`,
+    sequence: (n5) => `Esegui una sequenza di ${n5} passaggi`,
+    set_variables: "Imposta variabili",
+    stop_label: (s6) => `Ferma: ${s6}`,
+    fire_event: (e5) => `Lancia evento: ${e5}`,
+    automation_step: "Passo di automazione",
+    joiner_dot: " \xB7 ",
+  },
+  nl: {
+    when_time_is: (t3) => `Wanneer het tijdstip ${t3} is`,
+    when_time_is_any: (list) => `Wanneer het tijdstip ${list} is`,
+    or: " of ",
+    when_it_is: (ev) => `Wanneer het ${ev} is`,
+    sun_offset: (label, neg, ev) =>
+      `${label} ${neg ? "v\xF3\xF3r" : "na"} ${ev}`,
+    sunset: "zonsondergang",
+    sunrise: "zonsopgang",
+    when_turns_on: (eid, dur) => `Wanneer ${eid} aangaat${dur}`,
+    when_turns_off: (eid, dur) => `Wanneer ${eid} uitgaat${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Wanneer ${eid} verandert van ${from} naar ${to}${dur}`,
+    when_becomes: (eid, st, dur) => `Wanneer ${eid} ${st} wordt${dur}`,
+    when_changes_state: (eid, dur) =>
+      `Wanneer ${eid} van status verandert${dur}`,
+    for_duration: (d3) => ` gedurende ${d3}`,
+    when_between: (eid, a4, b2) => `Wanneer ${eid} tussen ${a4} en ${b2} is`,
+    when_rises_above: (eid, v2) => `Wanneer ${eid} boven ${v2} stijgt`,
+    when_drops_below: (eid, v2) => `Wanneer ${eid} onder ${v2} zakt`,
+    when_value_changes: (eid) => `Wanneer de waarde van ${eid} verandert`,
+    when_ha: (ev) => `Wanneer Home Assistant ${ev}`,
+    ha_starts: "start",
+    ha_shuts_down: "afsluit",
+    ha_changes_state: "van status verandert",
+    every_seconds: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "seconde" : "seconden"}`,
+    every_minutes: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "minuut" : "minuten"}`,
+    every_hours: (n5) => `Elke ${n5} uur`,
+    on_time_pattern: "Op een tijdpatroon",
+    when_template_entity: (e5) => `Wanneer de voorwaarde op ${e5} klopt`,
+    when_template_met: "Wanneer aan een sjabloonvoorwaarde wordt voldaan",
+    when_event: (n5) => `Wanneer ${n5} gebeurt`,
+    when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
+    when_device_triggered: (t3) => `Wanneer een apparaat ${t3}`,
+    when_device_is: (t3) => `Wanneer een apparaat ${t3} is`,
+    triggered: "geactiveerd",
+    zone_enters: "betreedt",
+    zone_leaves: "verlaat",
+    when_mqtt_topic: (t3) =>
+      `Wanneer er een apparaatbericht binnenkomt (${t3})`,
+    when_mqtt: "Wanneer er een apparaatbericht binnenkomt",
+    when_webhook: "Wanneer een externe service een update stuurt",
+    when_tag: (id) => `Wanneer een tag wordt gescand${id ? ` (${id})` : ""}`,
+    when_geo: "Wanneer er een locatie-update binnenkomt",
+    when_calendar: (ev, entity) => `Wanneer een agenda-${ev} begint${entity}`,
+    calendar_event: "gebeurtenis",
+    on_entity: (e5) => ` op ${e5}`,
+    when_trigger_happens: "Wanneer deze trigger optreedt",
+    cond_is: (eid, st) => `${eid} is ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} tussen ${a4} en ${b2}`,
+    cond_above: (eid, v2) => `${eid} boven ${v2}`,
+    cond_below: (eid, v2) => `${eid} onder ${v2}`,
+    cond_numeric: (eid) => `${eid} numerieke controle`,
+    cond_after_time: (t3) => `na ${t3}`,
+    cond_before_time: (t3) => `v\xF3\xF3r ${t3}`,
+    cond_on_weekday: (d3) => `op ${d3}`,
+    cond_time_window: "Tijdvenster",
+    cond_template_true: "Sjabloon evalueert naar waar",
+    cond_after_sun: (s6) => `na ${s6}`,
+    cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
+    cond_sun_position: "Zonpositie",
+    cond_all: (n5) => `Alle ${n5} voorwaarden moeten waar zijn`,
+    cond_any: (n5) => `E\xE9n van de ${n5} voorwaarden is waar`,
+    cond_none: "Geen van de voorwaarden is waar",
+    cond_in_zone: (eid, z2) => `${eid} bevindt zich in ${z2 || "zone"}`,
+    cond_device: "Apparaatvoorwaarde",
+    notify_quoted: (q) => `Melding: \u201E${q}\u201D`,
+    notify_target: (tgt, q) => `${tgt} melden: \u201E${q}\u201D`,
+    notify_via: (tgt) => `Melden via ${tgt}`,
+    send_notification: "Een melding sturen",
+    say_quoted: (q) => `Zeggen: \u201E${q}\u201D`,
+    tts: "Tekst-naar-spraak",
+    action_turn_on: "Aanzetten",
+    action_turn_off: "Uitzetten",
+    action_toggle: "Omschakelen",
+    action_lock: "Vergrendelen",
+    action_unlock: "Ontgrendelen",
+    action_open_cover: "Openen",
+    action_close_cover: "Sluiten",
+    action_set_temperature: "Temperatuur instellen voor",
+    action_set_value: "Waarde instellen voor",
+    action_send_command: "Commando sturen naar",
+    action_reload: "Opnieuw laden",
+    extra_brightness: (v2) => `op ${v2}%`,
+    extra_temp: (v2) => `naar ${v2}\xB0`,
+    extra_color_temp: (v2) => `kleurtemp. ${v2}`,
+    wait_str: (d3) => `Wacht ${d3}`,
+    wait_parts: (p2) => `Wacht ${p2}`,
+    wait_plain: "Wacht",
+    wait_until: "Wacht tot aan de voorwaarde is voldaan",
+    wait_for_trigger: "Wacht op een trigger",
+    activate_scene: (e5) => `Sc\xE8ne activeren: ${e5}`,
+    choose_between: (n5) =>
+      `Kies tussen ${n5} ${n5 !== 1 ? "opties" : "optie"}`,
+    repeat_count: (n5) => `Herhaal ${n5} ${n5 !== 1 ? "keer" : "keer"}`,
+    repeat_while: "Herhaal zolang de voorwaarde geldt",
+    repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
+    repeat: "Herhalen",
+    parallel: (n5) => `Voer ${n5} acties parallel uit`,
+    sequence: (n5) => `Voer een reeks van ${n5} stappen uit`,
+    set_variables: "Variabelen instellen",
+    stop_label: (s6) => `Stop: ${s6}`,
+    fire_event: (e5) => `Gebeurtenis afvuren: ${e5}`,
+    automation_step: "Automatiseringsstap",
+    joiner_dot: " \xB7 ",
+  },
+  hu: {
+    when_time_is: (t3) => `Amikor az id\u0151 ${t3}`,
+    when_time_is_any: (list) => `Amikor az id\u0151 ${list}`,
+    or: " vagy ",
+    when_it_is: (ev) => `Amikor ${ev} van`,
+    sun_offset: (label, neg, ev) =>
+      `${label} ${neg ? "el\u0151tt" : "ut\xE1n"} ${ev}`,
+    sunset: "napnyugta",
+    sunrise: "napkelte",
+    when_turns_on: (eid, dur) => `Amikor ${eid} bekapcsol${dur}`,
+    when_turns_off: (eid, dur) => `Amikor ${eid} kikapcsol${dur}`,
+    when_changes_from_to: (eid, from, to, dur) =>
+      `Amikor ${eid} ${from}-r\xF3l ${to}-ra v\xE1lt${dur}`,
+    when_becomes: (eid, st, dur) => `Amikor ${eid} ${st} lesz${dur}`,
+    when_changes_state: (eid, dur) =>
+      `Amikor ${eid} \xE1llapotot v\xE1lt${dur}`,
+    for_duration: (d3) => ` ${d3}-ig`,
+    when_between: (eid, a4, b2) =>
+      `Amikor ${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt van`,
+    when_rises_above: (eid, v2) => `Amikor ${eid} ${v2} f\xF6l\xE9 emelkedik`,
+    when_drops_below: (eid, v2) => `Amikor ${eid} ${v2} al\xE1 esik`,
+    when_value_changes: (eid) => `Amikor ${eid} \xE9rt\xE9ke v\xE1ltozik`,
+    when_ha: (ev) => `Amikor a Home Assistant ${ev}`,
+    ha_starts: "elindul",
+    ha_shuts_down: "le\xE1ll",
+    ha_changes_state: "\xE1llapotot v\xE1lt",
+    every_seconds: (n5) => `Minden ${n5} m\xE1sodperc`,
+    every_minutes: (n5) => `Minden ${n5} perc`,
+    every_hours: (n5) => `Minden ${n5} \xF3ra`,
+    on_time_pattern: "Id\u0151minta szerint",
+    when_template_entity: (e5) => `Amikor a ${e5} felt\xE9tel teljes\xFCl`,
+    when_template_met: "Amikor egy sablonfelt\xE9tel teljes\xFCl",
+    when_event: (n5) => `Amikor ${n5} t\xF6rt\xE9nik`,
+    when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
+    when_device_triggered: (t3) => `Amikor egy eszk\xF6z ${t3}`,
+    when_device_is: (t3) => `Amikor egy eszk\xF6z ${t3}`,
+    triggered: "kiv\xE1lt\xF3dik",
+    zone_enters: "bel\xE9p ide:",
+    zone_leaves: "elhagyja ezt:",
+    when_mqtt_topic: (t3) => `Amikor eszk\xF6z\xFCzenet \xE9rkezik (${t3})`,
+    when_mqtt: "Amikor eszk\xF6z\xFCzenet \xE9rkezik",
+    when_webhook:
+      "Amikor egy k\xFCls\u0151 szolg\xE1ltat\xE1s friss\xEDt\xE9st k\xFCld",
+    when_tag: (id) =>
+      `Amikor egy c\xEDmk\xE9t beolvasnak${id ? ` (${id})` : ""}`,
+    when_geo: "Amikor helyfriss\xEDt\xE9s \xE9rkezik",
+    when_calendar: (ev, entity) =>
+      `Amikor egy napt\xE1ri ${ev} elkezd\u0151dik${entity}`,
+    calendar_event: "esem\xE9ny",
+    on_entity: (e5) => ` itt: ${e5}`,
+    when_trigger_happens: "Amikor ez a trigger bek\xF6vetkezik",
+    cond_is: (eid, st) => `${eid} \xE9rt\xE9ke ${st}`,
+    cond_between: (eid, a4, b2) => `${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt`,
+    cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
+    cond_below: (eid, v2) => `${eid} ${v2} alatt`,
+    cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
+    cond_after_time: (t3) => `${t3} ut\xE1n`,
+    cond_before_time: (t3) => `${t3} el\u0151tt`,
+    cond_on_weekday: (d3) => `${d3} napokon`,
+    cond_time_window: "Id\u0151ablak",
+    cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
+    cond_after_sun: (s6) => `${s6} ut\xE1n`,
+    cond_before_sun: (s6) => `${s6} el\u0151tt`,
+    cond_sun_position: "Nappoz\xEDci\xF3",
+    cond_all: (n5) => `Mind a ${n5} felt\xE9telnek igaznak kell lennie`,
+    cond_any: (n5) => `A ${n5} felt\xE9tel egyike igaz`,
+    cond_none: "Egyik felt\xE9tel sem igaz",
+    cond_in_zone: (eid, z2) => `${eid} itt: ${z2 || "z\xF3na"}`,
+    cond_device: "Eszk\xF6zfelt\xE9tel",
+    notify_quoted: (q) => `\xC9rtes\xEDt\xE9s: \u201E${q}\u201D`,
+    notify_target: (tgt, q) => `${tgt} \xE9rtes\xEDt\xE9se: \u201E${q}\u201D`,
+    notify_via: (tgt) => `\xC9rtes\xEDt\xE9s ${tgt} \xFAtj\xE1n`,
+    send_notification: "\xC9rtes\xEDt\xE9s k\xFCld\xE9se",
+    say_quoted: (q) => `Mond\xE1s: \u201E${q}\u201D`,
+    tts: "Sz\xF6vegfelolvas\xE1s",
+    action_turn_on: "Bekapcsol\xE1s",
+    action_turn_off: "Kikapcsol\xE1s",
+    action_toggle: "\xC1tkapcsol\xE1s",
+    action_lock: "Z\xE1rol\xE1s",
+    action_unlock: "Felold\xE1s",
+    action_open_cover: "Nyit\xE1s",
+    action_close_cover: "Z\xE1r\xE1s",
+    action_set_temperature: "H\u0151m\xE9rs\xE9klet be\xE1ll\xEDt\xE1sa:",
+    action_set_value: "\xC9rt\xE9k be\xE1ll\xEDt\xE1sa:",
+    action_send_command: "Parancs k\xFCld\xE9se:",
+    action_reload: "\xDAjrat\xF6lt\xE9s",
+    extra_brightness: (v2) => `${v2}%-on`,
+    extra_temp: (v2) => `${v2}\xB0-ra`,
+    extra_color_temp: (v2) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v2}`,
+    wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
+    wait_parts: (p2) => `V\xE1rakoz\xE1s: ${p2}`,
+    wait_plain: "V\xE1rakoz\xE1s",
+    wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
+    wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
+    activate_scene: (e5) => `Jelenet aktiv\xE1l\xE1sa: ${e5}`,
+    choose_between: (n5) => `V\xE1laszt\xE1s ${n5} opci\xF3 k\xF6z\xFCl`,
+    repeat_count: (n5) => `Ism\xE9tl\xE9s ${n5}-szor`,
+    repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
+    repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
+    repeat: "Ism\xE9tl\xE9s",
+    parallel: (n5) => `${n5} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
+    sequence: (n5) => `${n5} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
+    set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
+    stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
+    fire_event: (e5) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e5}`,
+    automation_step: "Automatizmus l\xE9p\xE9se",
+    joiner_dot: " \xB7 ",
+  },
+};
+function _phrases(hass) {
+  const lang = String(hass?.language || "en")
+    .toLowerCase()
+    .split("-")[0];
+  return PHRASES[lang] || PHRASES.en;
+}
+function _val(phrases, key, ...args) {
+  const v2 = phrases[key];
+  if (v2 === void 0) return PHRASES.en[key];
+  return typeof v2 === "function" ? v2(...args) : v2;
+}
 function describeFlowItem(hass, item) {
   if (!item || typeof item !== "object") return String(item ?? "");
+  const T2 = _phrases(hass);
+  const t3 = (k2, ...a4) => _val(T2, k2, ...a4);
+  const lang = hass?.language;
   const p2 = item.platform || item.trigger;
   if (p2 === "time") {
     const raw = item.at;
     if (Array.isArray(raw)) {
-      return `When the time is ${raw.map((t3) => fmtTime(hass, t3)).join(" or ")}`;
+      return t3(
+        "when_time_is_any",
+        raw.map((x2) => fmtTime(hass, x2)).join(t3("or")),
+      );
     }
-    return `When the time is ${fmtTime(hass, raw)}`;
+    return t3("when_time_is", fmtTime(hass, raw));
   }
   if (p2 === "sun") {
     const ev =
       item.event === "sunset"
-        ? "sunset"
+        ? t3("sunset")
         : item.event === "sunrise"
-          ? "sunrise"
+          ? t3("sunrise")
           : humanizeToken(item.event || "sun event").toLowerCase();
     if (item.offset) {
       const neg = item.offset.startsWith("-");
@@ -9687,146 +16582,138 @@ function describeFlowItem(hass, item) {
       if (m2) parts.push(`${m2}min`);
       if (s6) parts.push(`${s6}s`);
       const label = parts.join(" ") || item.offset;
-      return `${label} ${neg ? "before" : "after"} ${ev}`;
+      return t3("sun_offset", label, neg, ev);
     }
-    return `When it is ${ev}`;
+    return t3("when_it_is", ev);
   }
   if (p2 === "state") {
-    const eid = fmtEntities(hass, item.entity_id);
-    const fromState = fmtState(item.from);
-    const toState = fmtState(item.to);
+    const eid = fmtEntities(hass, item.entity_id, lang);
+    const rawTo = item.to == null ? null : String(item.to);
+    const fromState = fmtState(item.from, lang);
+    const toState = fmtState(item.to, lang);
     const duration = fmtDuration(item.for);
-    const dur = duration ? ` for ${duration}` : "";
-    if (toState === "on") return `When ${eid} turns on${dur}`;
-    if (toState === "off") return `When ${eid} turns off${dur}`;
+    const dur = duration ? t3("for_duration", duration) : "";
+    if (rawTo === "on") return t3("when_turns_on", eid, dur);
+    if (rawTo === "off") return t3("when_turns_off", eid, dur);
     if (toState && fromState)
-      return `When ${eid} changes from ${fromState} to ${toState}${dur}`;
-    if (toState) return `When ${eid} becomes ${toState}${dur}`;
-    return `When ${eid} changes state${dur}`;
+      return t3("when_changes_from_to", eid, fromState, toState, dur);
+    if (toState) return t3("when_becomes", eid, toState, dur);
+    return t3("when_changes_state", eid, dur);
   }
   if (p2 === "numeric_state") {
-    const eid = fmtEntities(hass, item.entity_id);
+    const eid = fmtEntities(hass, item.entity_id, lang);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
     if (item.above != null && item.below != null)
-      return `When ${eid} is between ${above} and ${below}`;
-    if (item.above != null) return `When ${eid} rises above ${above}`;
-    if (item.below != null) return `When ${eid} drops below ${below}`;
-    return `When ${eid} value changes`;
+      return t3("when_between", eid, above, below);
+    if (item.above != null) return t3("when_rises_above", eid, above);
+    if (item.below != null) return t3("when_drops_below", eid, below);
+    return t3("when_value_changes", eid);
   }
   if (p2 === "homeassistant") {
     const ev =
       item.event === "start"
-        ? "starts"
+        ? t3("ha_starts")
         : item.event === "shutdown"
-          ? "shuts down"
-          : "changes state";
-    return `When Home Assistant ${ev}`;
+          ? t3("ha_shuts_down")
+          : t3("ha_changes_state");
+    return t3("when_ha", ev);
   }
   if (p2 === "time_pattern") {
-    if (item.seconds != null)
-      return `Every ${item.seconds} second${Number(item.seconds) === 1 ? "" : "s"}`;
-    if (item.minutes != null)
-      return `Every ${item.minutes} minute${Number(item.minutes) === 1 ? "" : "s"}`;
-    if (item.hours != null)
-      return `Every ${item.hours} hour${Number(item.hours) === 1 ? "" : "s"}`;
-    return "On a time pattern";
+    if (item.seconds != null) return t3("every_seconds", item.seconds);
+    if (item.minutes != null) return t3("every_minutes", item.minutes);
+    if (item.hours != null) return t3("every_hours", item.hours);
+    return t3("on_time_pattern");
   }
   if (p2 === "template") {
     const tmpl = item.value_template || "";
     const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
     if (entityMatch)
-      return `When ${fmtEntity(hass, entityMatch[1])} condition is met`;
-    return "When a template condition is met";
+      return t3("when_template_entity", fmtEntity(hass, entityMatch[1]));
+    return t3("when_template_met");
   }
   if (p2 === "event") {
-    const name = item.event_type
-      ? humanizeToken(item.event_type).toLowerCase()
-      : "an event";
-    return `When ${name} happens`;
+    if (item.event_type)
+      return t3("when_event", humanizeToken(item.event_type).toLowerCase());
+    return t3("when_event_generic");
   }
   if (p2 === "device") {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
-      : "triggered";
+      : t3("triggered");
     return item.device_id
-      ? `When a device ${triggerType}`
-      : `When a device is ${triggerType}`;
+      ? t3("when_device_triggered", triggerType)
+      : t3("when_device_is", triggerType);
   }
   if (p2 === "zone") {
-    const eid = fmtEntities(hass, item.entity_id);
+    const eid = fmtEntities(hass, item.entity_id, lang);
     const zone = fmtEntity(hass, item.zone);
-    const eventMap = {
-      enter: "enters",
-      leave: "leaves",
-    };
     const rawEvent = String(item.event || "enter");
-    const ev = eventMap[rawEvent] || humanizeToken(rawEvent).toLowerCase();
+    const ev =
+      rawEvent === "enter"
+        ? t3("zone_enters")
+        : rawEvent === "leave"
+          ? t3("zone_leaves")
+          : humanizeToken(rawEvent).toLowerCase();
     return `${eid} ${ev} ${zone}`.trim();
   }
   if (p2 === "mqtt")
-    return item.topic
-      ? `When a device message arrives (${item.topic})`
-      : "When a device message arrives";
-  if (p2 === "webhook") return "When an outside service sends an update";
-  if (p2 === "tag")
-    return `When a tag is scanned${item.tag_id ? ` (${item.tag_id})` : ""}`;
-  if (p2 === "geo_location") return "When a location update is received";
+    return item.topic ? t3("when_mqtt_topic", item.topic) : t3("when_mqtt");
+  if (p2 === "webhook") return t3("when_webhook");
+  if (p2 === "tag") return t3("when_tag", item.tag_id || "");
+  if (p2 === "geo_location") return t3("when_geo");
   if (p2 === "calendar") {
     const eventName = item.event
       ? humanizeToken(item.event).toLowerCase()
-      : "event";
+      : t3("calendar_event");
     const entity = item.entity_id
-      ? ` on ${fmtEntity(hass, item.entity_id)}`
+      ? t3("on_entity", fmtEntity(hass, item.entity_id))
       : "";
-    return `When a calendar ${eventName} begins${entity}`;
+    return t3("when_calendar", eventName, entity);
   }
-  if (p2) return "When this trigger happens";
+  if (p2) return t3("when_trigger_happens");
   const cond = item.condition;
   if (cond === "state") {
-    const eid = fmtEntities(hass, item.entity_id);
-    const st = fmtState(item.state ?? item.to);
-    return `${eid} is ${st}`;
+    const eid = fmtEntities(hass, item.entity_id, lang);
+    const st = fmtState(item.state ?? item.to, lang);
+    return t3("cond_is", eid, st);
   }
   if (cond === "numeric_state") {
-    const eid = fmtEntities(hass, item.entity_id);
+    const eid = fmtEntities(hass, item.entity_id, lang);
     if (item.above != null && item.below != null)
-      return `${eid} between ${item.above} and ${item.below}`;
-    if (item.above != null) return `${eid} above ${item.above}`;
-    if (item.below != null) return `${eid} below ${item.below}`;
-    return `${eid} numeric check`;
+      return t3("cond_between", eid, item.above, item.below);
+    if (item.above != null) return t3("cond_above", eid, item.above);
+    if (item.below != null) return t3("cond_below", eid, item.below);
+    return t3("cond_numeric", eid);
   }
   if (cond === "time") {
     const parts = [];
-    if (item.after) parts.push(`after ${fmtTime(hass, item.after)}`);
-    if (item.before) parts.push(`before ${fmtTime(hass, item.before)}`);
-    if (item.weekday) {
-      parts.push(`on ${fmtWeekdays(item.weekday)}`);
-    }
-    return parts.length ? parts.join(" \xB7 ") : "Time window";
+    if (item.after)
+      parts.push(t3("cond_after_time", fmtTime(hass, item.after)));
+    if (item.before)
+      parts.push(t3("cond_before_time", fmtTime(hass, item.before)));
+    if (item.weekday)
+      parts.push(t3("cond_on_weekday", fmtWeekdays(item.weekday, lang)));
+    return parts.length ? parts.join(t3("joiner_dot")) : t3("cond_time_window");
   }
-  if (cond === "template") return "Template evaluates to true";
+  if (cond === "template") return t3("cond_template_true");
   if (cond === "sun") {
     const parts = [];
     if (item.after)
-      parts.push(`after ${String(item.after).replace(/_/g, " ")}`);
+      parts.push(t3("cond_after_sun", String(item.after).replace(/_/g, " ")));
     if (item.before)
-      parts.push(`before ${String(item.before).replace(/_/g, " ")}`);
-    return parts.join(", ") || "Sun position";
+      parts.push(t3("cond_before_sun", String(item.before).replace(/_/g, " ")));
+    return parts.join(", ") || t3("cond_sun_position");
   }
-  if (cond === "and")
-    return `All ${(item.conditions || []).length} conditions must be true`;
-  if (cond === "or")
-    return `Any of ${(item.conditions || []).length} conditions is true`;
-  if (cond === "not") return "None of the conditions are true";
+  if (cond === "and") return t3("cond_all", (item.conditions || []).length);
+  if (cond === "or") return t3("cond_any", (item.conditions || []).length);
+  if (cond === "not") return t3("cond_none");
   if (cond === "zone") {
-    const eid = fmtEntities(hass, item.entity_id);
-    return `${eid} is in ${fmtEntity(hass, item.zone) || "zone"}`;
+    const eid = fmtEntities(hass, item.entity_id, lang);
+    return t3("cond_in_zone", eid, fmtEntity(hass, item.zone));
   }
   if (cond === "device")
-    return item.type
-      ? String(item.type).replace(/_/g, " ")
-      : "Device condition";
+    return item.type ? String(item.type).replace(/_/g, " ") : t3("cond_device");
   if (cond) return String(cond).replace(/_/g, " ");
   const svc = item.service || item.action;
   if (svc) {
@@ -9838,13 +16725,12 @@ function describeFlowItem(hass, item) {
     ) {
       const title = item.data?.title;
       const msg = item.data?.message;
-      if (title && msg) return `Notify: "${title}"`;
-      if (title) return `Notify: "${title}"`;
+      if (title) return t3("notify_quoted", title);
       if (msg) {
         const short = msg.length > 60 ? msg.slice(0, 57) + "\u2026" : msg;
-        return `Notify: "${short}"`;
+        return t3("notify_quoted", short);
       }
-      return "Send a notification";
+      return t3("send_notification");
     }
     if (domain === "notify") {
       const target = svcName
@@ -9852,46 +16738,47 @@ function describeFlowItem(hass, item) {
         .replace(/\b\w/g, (c3) => c3.toUpperCase());
       const msg = item.data?.message;
       const title = item.data?.title;
-      if (title) return `Notify ${target}: "${title}"`;
+      if (title) return t3("notify_target", target, title);
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return `Notify ${target}: "${short}"`;
+        return t3("notify_target", target, short);
       }
-      return `Notify via ${target}`;
+      return t3("notify_via", target);
     }
     if (domain === "tts") {
       const msg = item.data?.message;
       if (msg) {
         const short = msg.length > 50 ? msg.slice(0, 47) + "\u2026" : msg;
-        return `Say: "${short}"`;
+        return t3("say_quoted", short);
       }
-      return "Text-to-speech";
+      return t3("tts");
     }
-    const friendlyActions = {
-      turn_on: "Turn on",
-      turn_off: "Turn off",
-      toggle: "Toggle",
-      lock: "Lock",
-      unlock: "Unlock",
-      open_cover: "Open",
-      close_cover: "Close",
-      set_temperature: "Set temperature for",
-      set_value: "Set value for",
-      send_command: "Send command to",
-      reload: "Reload",
+    const ACTION_KEYS = {
+      turn_on: "action_turn_on",
+      turn_off: "action_turn_off",
+      toggle: "action_toggle",
+      lock: "action_lock",
+      unlock: "action_unlock",
+      open_cover: "action_open_cover",
+      close_cover: "action_close_cover",
+      set_temperature: "action_set_temperature",
+      set_value: "action_set_value",
+      send_command: "action_send_command",
+      reload: "action_reload",
     };
-    const name =
-      friendlyActions[svcName] ||
-      svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
+    const actionKey = ACTION_KEYS[svcName];
+    const name = actionKey
+      ? t3(actionKey)
+      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
-    const t3 = fmtEntities(hass, targets);
+    const tgt = fmtEntities(hass, targets, lang);
     const extras = [];
     if (item.data?.brightness_pct != null)
-      extras.push(`at ${item.data.brightness_pct}%`);
+      extras.push(t3("extra_brightness", item.data.brightness_pct));
     if (item.data?.temperature != null)
-      extras.push(`to ${item.data.temperature}\xB0`);
+      extras.push(t3("extra_temp", item.data.temperature));
     if (item.data?.color_temp != null)
-      extras.push(`color temp ${item.data.color_temp}`);
+      extras.push(t3("extra_color_temp", item.data.color_temp));
     if (item.data?.message && !String(item.data.message).includes("{{")) {
       const short =
         item.data.message.length > 50
@@ -9902,37 +16789,34 @@ function describeFlowItem(hass, item) {
     if (item.data?.title && !String(item.data.title).includes("{{"))
       extras.push(item.data.title);
     const detail = extras.length ? ` (${extras.join(", ")})` : "";
-    return t3 ? `${name} ${t3}${detail}` : `${name}${detail}`;
+    return tgt ? `${name} ${tgt}${detail}` : `${name}${detail}`;
   }
   if (item.delay) {
     const d3 = item.delay;
-    if (typeof d3 === "string") return `Wait ${d3}`;
+    if (typeof d3 === "string") return t3("wait_str", d3);
     const parts = [];
     if (d3.hours) parts.push(`${d3.hours}h`);
     if (d3.minutes) parts.push(`${d3.minutes}m`);
     if (d3.seconds) parts.push(`${d3.seconds}s`);
-    return parts.length ? `Wait ${parts.join(" ")}` : "Wait";
+    return parts.length ? t3("wait_parts", parts.join(" ")) : t3("wait_plain");
   }
-  if (item.wait_template) return "Wait until condition is met";
-  if (item.wait_for_trigger) return "Wait for a trigger";
-  if (item.scene) return `Activate scene: ${fmtEntity(hass, item.scene)}`;
-  if (item.choose)
-    return `Choose between ${item.choose.length} option${item.choose.length !== 1 ? "s" : ""}`;
+  if (item.wait_template) return t3("wait_until");
+  if (item.wait_for_trigger) return t3("wait_for_trigger");
+  if (item.scene) return t3("activate_scene", fmtEntity(hass, item.scene));
+  if (item.choose) return t3("choose_between", item.choose.length);
   if (item.repeat) {
     const r4 = item.repeat;
-    if (r4.count != null)
-      return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
-    if (r4.while) return "Repeat while condition holds";
-    if (r4.until) return "Repeat until condition is met";
-    return "Repeat";
+    if (r4.count != null) return t3("repeat_count", r4.count);
+    if (r4.while) return t3("repeat_while");
+    if (r4.until) return t3("repeat_until");
+    return t3("repeat");
   }
-  if (item.parallel)
-    return `Run ${(item.parallel || []).length} actions in parallel`;
-  if (item.sequence)
-    return `Run a sequence of ${(item.sequence || []).length} steps`;
-  if (item.variables) return "Set variables";
-  if (item.stop) return `Stop: ${item.stop}`;
-  if (item.event) return `Fire event: ${String(item.event).replace(/_/g, " ")}`;
+  if (item.parallel) return t3("parallel", (item.parallel || []).length);
+  if (item.sequence) return t3("sequence", (item.sequence || []).length);
+  if (item.variables) return t3("set_variables");
+  if (item.stop) return t3("stop_label", item.stop);
+  if (item.event)
+    return t3("fire_event", String(item.event).replace(/_/g, " "));
   const SKIP = /* @__PURE__ */ new Set([
     "id",
     "enabled",
@@ -9957,7 +16841,9 @@ function describeFlowItem(hass, item) {
     })
     .filter(Boolean)
     .slice(0, 3);
-  return readable.length ? readable.join(" \xB7 ") : "Automation step";
+  return readable.length
+    ? readable.join(t3("joiner_dot"))
+    : t3("automation_step");
 }
 function collectFlowEntityIds(item) {
   if (!item || typeof item !== "object") return [];
@@ -9967,7 +16853,7 @@ function collectFlowEntityIds(item) {
     if (val == null) return;
     const arr = Array.isArray(val) ? val : [val];
     for (const v2 of arr) {
-      if (typeof v2 !== "string") continue;
+      if (typeof v2 !== "string" || !v2) continue;
       if (!/^[a-z0-9_]+\.[a-z0-9_]+$/.test(v2)) continue;
       if (seen.has(v2)) continue;
       seen.add(v2);
@@ -10146,7 +17032,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                   icon="mdi:sitemap-outline"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                Flow
+                ${host._t("suggestions_tab_flow", "Flow")}
               </button>
               <span class="card-tab-sep">|</span>
             `
@@ -10165,7 +17051,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          YAML
+          ${host._t("suggestions_tab_yaml", "YAML")}
         </button>
         <ha-icon
           icon="mdi:chevron-down"
@@ -10219,7 +17105,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
                 )}
         >
           <ha-icon icon="mdi:check" style="--mdc-icon-size:13px;"></ha-icon>
-          ${accepting ? "Creating\u2026" : "Accept"}
+          ${accepting ? host._t("suggestions_btn_creating", "Creating\u2026") : host._t("suggestions_btn_accept", "Accept")}
         </button>
         <button
           class="btn btn-outline"
@@ -10228,7 +17114,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
           @click=${() => (isProactive ? host._dismissProactiveSuggestion(item._suggestionId) : host._discardSuggestion(item._original))}
         >
           <ha-icon icon="mdi:close" style="--mdc-icon-size:13px;"></ha-icon>
-          ${dismissing ? "Dismissing\u2026" : "Dismiss"}
+          ${dismissing ? host._t("suggestions_btn_dismissing", "Dismissing\u2026") : host._t("suggestions_btn_dismiss", "Dismiss")}
         </button>
       </div>
     </div>
@@ -10250,8 +17136,14 @@ function renderSuggestionsSection(host) {
     <div class="section-card suggestions-section">
       <div class="section-card-header">
         <div class="section-card-title-group">
-          <h3>Suggested for you</h3>
-          ${totalCount > 0 ? x`<span class="badge">${totalCount} new</span>` : ""}
+          <h3>${host._t("suggestions_section_title", "Suggested for you")}</h3>
+          ${
+            totalCount > 0
+              ? x`<span class="badge"
+                >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
+              >`
+              : ""
+          }
         </div>
         ${
           isDev
@@ -10260,19 +17152,33 @@ function renderSuggestionsSection(host) {
                 <button
                   class="btn"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
-                  title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "suggestions_llm_setup_required",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
                   @click=${() => host._triggerPatternScan()}
                 >
                   <ha-icon
                     icon="mdi:refresh"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${host._loadingProactive ? "Scanning\u2026" : "Scan Now"}
+                  ${host._loadingProactive ? host._t("suggestions_btn_scanning", "Scanning\u2026") : host._t("suggestions_btn_scan_now", "Scan Now")}
                 </button>
                 <button
                   class="btn btn-primary"
                   ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
-                  title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                  title=${
+                    host._llmNeedsSetup
+                      ? host._t(
+                          "suggestions_llm_setup_required",
+                          "Configure an LLM provider first",
+                        )
+                      : ""
+                  }
                   @click=${() => host._triggerGenerateSuggestions()}
                 >
                   ${
@@ -10286,7 +17192,7 @@ function renderSuggestionsSection(host) {
                         style="--mdc-icon-size:14px;"
                       ></ha-icon>`
                   }
-                  ${host._generatingSuggestions ? "Analyzing\u2026" : "Generate"}
+                  ${host._generatingSuggestions ? host._t("suggestions_btn_analyzing", "Analyzing\u2026") : host._t("suggestions_btn_generate", "Generate")}
                 </button>
               </div>
             `
@@ -10295,14 +17201,20 @@ function renderSuggestionsSection(host) {
       </div>
 
       <div class="section-card-subtitle">
-        Based on observed patterns and AI analysis in your home.
+        ${host._t(
+          "suggestions_section_subtitle",
+          "Based on observed patterns and AI analysis in your home.",
+        )}
       </div>
 
       ${
         totalCount === 0
           ? x`
             <p style="opacity:0.45;margin:0;font-size:13px;">
-              No suggestions yet. Tap "Generate" to analyze your home.
+              ${host._t(
+                "suggestions_empty_state",
+                'No suggestions yet. Tap "Generate" to analyze your home.',
+              )}
             </p>
           `
           : x`
@@ -10313,7 +17225,10 @@ function renderSuggestionsSection(host) {
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
                       type="text"
-                      placeholder="Filter suggestions…"
+                      placeholder=${host._t(
+                        "suggestions_filter_placeholder",
+                        "Filter suggestions\u2026",
+                      )}
                       .value=${host._suggestionFilter}
                       @input=${(e5) => {
                         host._suggestionFilter = e5.target.value;
@@ -10338,9 +17253,15 @@ function renderSuggestionsSection(host) {
                       ? x`
                         <div class="status-pills">
                           ${[
-                            ["all", "All"],
-                            ["pattern", "Patterns"],
-                            ["ai", "AI"],
+                            ["all", host._t("suggestions_filter_all", "All")],
+                            [
+                              "pattern",
+                              host._t(
+                                "suggestions_filter_patterns",
+                                "Patterns",
+                              ),
+                            ],
+                            ["ai", host._t("suggestions_filter_ai", "AI")],
                           ].map(
                             ([val, label]) => x`
                               <button
@@ -10366,8 +17287,12 @@ function renderSuggestionsSection(host) {
                       host._suggestionSortBy = e5.target.value;
                     }}
                   >
-                    <option value="recent">Recent</option>
-                    <option value="alpha">Alphabetical</option>
+                    <option value="recent">
+                      ${host._t("suggestions_sort_recent", "Recent")}
+                    </option>
+                    <option value="alpha">
+                      ${host._t("suggestions_sort_alpha", "Alphabetical")}
+                    </option>
                   </select>
                   <div
                     style="margin-left:auto;display:flex;align-items:center;gap:8px;"
@@ -10376,7 +17301,8 @@ function renderSuggestionsSection(host) {
                       bulkMode
                         ? x`
                           <span style="font-size:12px;opacity:0.7;">
-                            ${selectedCount} selected
+                            ${selectedCount}
+                            ${host._t("suggestions_bulk_selected", "selected")}
                           </span>
                           <button
                             class="btn btn-primary"
@@ -10401,7 +17327,10 @@ function renderSuggestionsSection(host) {
                               host._suggestionBulkMode = false;
                             }}
                           >
-                            Accept selected
+                            ${host._t(
+                              "suggestions_bulk_accept_selected",
+                              "Accept selected",
+                            )}
                           </button>
                           <button
                             class="btn btn-outline"
@@ -10422,7 +17351,10 @@ function renderSuggestionsSection(host) {
                               host._suggestionBulkMode = false;
                             }}
                           >
-                            Dismiss selected
+                            ${host._t(
+                              "suggestions_bulk_dismiss_selected",
+                              "Dismiss selected",
+                            )}
                           </button>
                           <button
                             class="btn btn-outline"
@@ -10431,7 +17363,7 @@ function renderSuggestionsSection(host) {
                               host._selectedSuggestionKeys = {};
                             }}
                           >
-                            Done
+                            ${host._t("suggestions_bulk_done", "Done")}
                           </button>
                         `
                         : x`
@@ -10445,7 +17377,7 @@ function renderSuggestionsSection(host) {
                               icon="mdi:checkbox-multiple-outline"
                               style="--mdc-icon-size:14px;"
                             ></ha-icon>
-                            Bulk edit
+                            ${host._t("suggestions_bulk_edit", "Bulk edit")}
                           </button>
                         `
                     }
@@ -10469,7 +17401,7 @@ function renderSuggestionsSection(host) {
                       host._suggestionsVisibleCount = visibleCount + 10;
                     }}
                   >
-                    Show more suggestions
+                    ${host._t("suggestions_show_more", "Show more suggestions")}
                   </button>
                 `
                 : ""
@@ -10641,7 +17573,9 @@ function renderActionItem(host, action) {
       ${action.choose.map(
         (branch, i5) => x`
           <div class="flow-branch">
-            <div class="flow-branch-label">${i5 === 0 ? "If" : "Else if"}</div>
+            <div class="flow-branch-label">
+              ${i5 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+            </div>
             ${(branch.conditions || []).map(
               (c3) => x`<div class="flow-node condition-node">
                   ${renderFlowDescription(host, c3)}
@@ -10655,7 +17589,9 @@ function renderActionItem(host, action) {
       ${
         Array.isArray(action.default) && action.default.length
           ? x`<div class="flow-branch">
-            <div class="flow-branch-label">Otherwise</div>
+            <div class="flow-branch-label">
+              ${host._t("automations_flow_branch_otherwise", "Otherwise")}
+            </div>
             ${action.default.map((s6) => renderActionItem(host, s6))}
           </div>`
           : ""
@@ -10664,13 +17600,17 @@ function renderActionItem(host, action) {
   }
   if (action && typeof action === "object" && Array.isArray(action.parallel)) {
     return x`<div class="flow-branch">
-      <div class="flow-branch-label">In parallel</div>
+      <div class="flow-branch-label">
+        ${host._t("automations_flow_branch_in_parallel", "In parallel")}
+      </div>
       ${action.parallel.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
     return x`<div class="flow-branch">
-      <div class="flow-branch-label">In sequence</div>
+      <div class="flow-branch-label">
+        ${host._t("automations_flow_branch_in_sequence", "In sequence")}
+      </div>
       ${action.sequence.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
@@ -10680,9 +17620,17 @@ function renderActionItem(host, action) {
       const r4 = action.repeat;
       if (r4.count != null)
         return `Repeat ${r4.count} time${r4.count !== 1 ? "s" : ""}`;
-      if (r4.while) return "Repeat while condition holds";
-      if (r4.until) return "Repeat until condition is met";
-      return "Repeat";
+      if (r4.while)
+        return host._t(
+          "automations_flow_repeat_while",
+          "Repeat while condition holds",
+        );
+      if (r4.until)
+        return host._t(
+          "automations_flow_repeat_until",
+          "Repeat until condition is met",
+        );
+      return host._t("automations_flow_repeat", "Repeat");
     })();
     return x`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
@@ -10759,7 +17707,9 @@ function renderAutomationFlowchart(host, auto) {
   return x`
     <div class="flow-chart">
       <div class="flow-section flow-section--inline">
-        <div class="flow-label">Trigger</div>
+        <div class="flow-label">
+          ${host._t("automations_flow_label_trigger", "Trigger")}
+        </div>
         ${triggers.map((t3) => renderFlowNode(host, t3, "trigger"))}
       </div>
       ${
@@ -10767,7 +17717,9 @@ function renderAutomationFlowchart(host, auto) {
           ? x`
             <div class="flow-arrow">↓</div>
             <div class="flow-section flow-section--inline">
-              <div class="flow-label">Condition</div>
+              <div class="flow-label">
+                ${host._t("automations_flow_label_condition", "Condition")}
+              </div>
               ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
             </div>
           `
@@ -10775,7 +17727,9 @@ function renderAutomationFlowchart(host, auto) {
       }
       <div class="flow-arrow">↓</div>
       <div class="flow-section flow-section--stacked">
-        <div class="flow-label">Actions</div>
+        <div class="flow-label">
+          ${host._t("automations_flow_label_actions", "Actions")}
+        </div>
         ${actions.map((a4) => renderActionItem(host, a4))}
       </div>
     </div>
@@ -10795,7 +17749,9 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
-            badge: isEnabled ? "Enabled" : "Saved",
+            badge: isEnabled
+              ? host._t("automations_badge_enabled", "Enabled")
+              : host._t("automations_badge_saved", "Saved"),
           })}
         </div>
         <div class="automation-subcard-body">
@@ -10812,7 +17768,7 @@ function renderProposalCard(host, msg, msgIndex) {
                     icon="mdi:code-braces"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${yamlOpen2 ? "Hide YAML" : "View YAML"}
+                  ${yamlOpen2 ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_view", "View YAML")}
                 </div>
                 ${
                   yamlOpen2
@@ -10835,12 +17791,18 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-          Automation Declined
+          ${host._t(
+            "automations_proposal_declined_title",
+            "Automation Declined",
+          )}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${automation.alias}</div>
           <div class="proposal-status declined">
-            Dismissed. You can refine it by replying below.
+            ${host._t(
+              "automations_proposal_declined_body",
+              "Dismissed. You can refine it by replying below.",
+            )}
           </div>
         </div>
       </div>
@@ -10853,7 +17815,12 @@ function renderProposalCard(host, msg, msgIndex) {
           ${renderAutomationIdentity(
             automation.alias,
             msg.description || automation.description,
-            { badge: "Being Refined" },
+            {
+              badge: host._t(
+                "automations_badge_being_refined",
+                "Being Refined",
+              ),
+            },
           )}
         </div>
         <div class="automation-subcard-body">
@@ -10870,7 +17837,7 @@ function renderProposalCard(host, msg, msgIndex) {
     <div class="automation-subcard">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
-          badge: "Proposal",
+          badge: host._t("automations_badge_proposal", "Proposal"),
         })}
       </div>
       <div class="automation-subcard-body">
@@ -10883,7 +17850,12 @@ function renderProposalCard(host, msg, msgIndex) {
               >
                 <ha-icon icon="mdi:alert-outline"></ha-icon>
                 <div>
-                  <strong>Elevated risk review recommended.</strong>
+                  <strong
+                    >${host._t(
+                      "automations_proposal_elevated_risk",
+                      "Elevated risk review recommended.",
+                    )}</strong
+                  >
                   <div style="margin-top:4px;">${risk.summary}</div>
                   ${
                     risk.reasons?.length
@@ -10908,7 +17880,7 @@ function renderProposalCard(host, msg, msgIndex) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${yamlOpen ? "Hide YAML" : "Edit YAML"}
+          ${yamlOpen ? host._t("automations_yaml_toggle_hide", "Hide YAML") : host._t("automations_yaml_toggle_edit", "Edit YAML")}
         </div>
         ${
           yamlOpen
@@ -10917,7 +17889,10 @@ function renderProposalCard(host, msg, msgIndex) {
               ${
                 hasEdits
                   ? x`<div class="proposal-verify">
-                    Your YAML edits will be used when you accept.
+                    ${host._t(
+                      "automations_proposal_yaml_edits_note",
+                      "Your YAML edits will be used when you accept.",
+                    )}
                   </div>`
                   : ""
               }
@@ -10957,7 +17932,10 @@ function renderProposalActions(host, msg, msgIndex) {
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
-          title="Trigger the actions now to verify they work"
+          title=${host._t(
+            "automations_action_run_tooltip",
+            "Trigger the actions now to verify they work",
+          )}
           @click=${() => host._runAutomation(created.entity_id, savedAutomationId)}
         >
           <span class="qa-glow-track" aria-hidden="true">
@@ -10965,19 +17943,24 @@ function renderProposalActions(host, msg, msgIndex) {
           </span>
           <ha-icon class="qa-suggestion-lead" icon="mdi:play"></ha-icon>
           <span class="qa-suggestion-label"
-            >${(host._runningAutomation || {})[savedAutomationId] ? "Running\u2026" : "Run now"}</span
+            >${(host._runningAutomation || {})[savedAutomationId] ? host._t("automations_action_running", "Running\u2026") : host._t("automations_action_run_now", "Run now")}</span
           >
         </button>
         <button
           class="qa-suggestion"
-          title="Open this automation in Home Assistant"
+          title=${host._t(
+            "automations_action_open_in_ha_tooltip",
+            "Open this automation in Home Assistant",
+          )}
           @click=${() => host._openAutomationInHA(savedAutomationId)}
         >
           <span class="qa-glow-track" aria-hidden="true">
             <span class="qa-glow-spot"></span>
           </span>
           <ha-icon class="qa-suggestion-lead" icon="mdi:open-in-new"></ha-icon>
-          <span class="qa-suggestion-label">View in HA</span>
+          <span class="qa-suggestion-label"
+            >${host._t("automations_action_view_in_ha", "View in HA")}</span
+          >
         </button>
       </div>`;
     }
@@ -10992,7 +17975,14 @@ function renderProposalActions(host, msg, msgIndex) {
             icon=${toggling ? "mdi:loading" : "mdi:toggle-switch-outline"}
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${toggling ? "Enabling\u2026" : "Enable automation"}
+          ${
+            toggling
+              ? host._t("automations_action_enabling", "Enabling\u2026")
+              : host._t(
+                  "automations_action_enable_automation",
+                  "Enable automation",
+                )
+          }
         </button>
       </div>
       ${
@@ -11002,8 +17992,10 @@ function renderProposalActions(host, msg, msgIndex) {
               icon="mdi:shield-alert-outline"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            Uses elevated-risk actions — review the flow and YAML before
-            enabling.
+            ${host._t(
+              "automations_elevated_risk_note",
+              "Uses elevated-risk actions \u2014 review the flow and YAML before enabling.",
+            )}
           </p>`
           : ""
       }
@@ -11022,7 +18014,7 @@ function renderProposalActions(host, msg, msgIndex) {
       @click=${() => host._acceptAutomationWithEdits(msgIndex, automation, yamlKey)}
     >
       <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-      Accept &amp; Save
+      ${host._t("automations_action_accept_and_save", "Accept & Save")}
     </button>
   </div>`;
 }
@@ -11127,7 +18119,7 @@ function renderAutomations(host) {
       ${renderSuggestionsSection(host)}
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Your Automations</h3>
+          <h3>${host._t("automations_section_title", "Your Automations")}</h3>
         </div>
         ${
           host._automations.length > 0
@@ -11145,7 +18137,10 @@ function renderAutomations(host) {
                           host._automationsPage = 1;
                         }}
                       >
-                        ${s6.charAt(0).toUpperCase() + s6.slice(1)}
+                        ${host._t(
+                          `automations_status_tab_${s6}`,
+                          s6.charAt(0).toUpperCase() + s6.slice(1),
+                        )}
                       </button>
                     `,
                   )}
@@ -11165,7 +18160,10 @@ function renderAutomations(host) {
                           icon="mdi:alert-outline"
                           style="--mdc-icon-size:14px;color:#f59e0b;display:block;"
                         ></ha-icon>
-                        <span>Stale (${staleSet.size})</span>
+                        <span
+                          >${host._t("automations_status_tab_stale", "Stale")}
+                          (${staleSet.size})</span
+                        >
                       </button>`
                       : ""
                   }
@@ -11186,7 +18184,12 @@ function renderAutomations(host) {
                                 e5.target.checked,
                               )}
                           />
-                          <span>Select all</span>
+                          <span
+                            >${host._t(
+                              "automations_bulk_select_all",
+                              "Select all",
+                            )}</span
+                          >
                         </label>
                         <button
                           class="filter-row-secondary"
@@ -11195,7 +18198,7 @@ function renderAutomations(host) {
                             host._clearAutomationSelection();
                           }}
                         >
-                          Done
+                          ${host._t("automations_bulk_done", "Done")}
                         </button>
                       `
                       : x`
@@ -11209,21 +18212,31 @@ function renderAutomations(host) {
                             icon="mdi:checkbox-multiple-outline"
                             style="--mdc-icon-size:14px;"
                           ></ha-icon>
-                          Bulk edit
+                          ${host._t("automations_bulk_edit", "Bulk edit")}
                         </button>
                       `
                   }
                   <button
                     class="filter-row-action"
                     ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                    title=${
+                      host._llmNeedsSetup
+                        ? host._t(
+                            "automations_llm_setup_required_tooltip",
+                            "Configure an LLM provider first",
+                          )
+                        : ""
+                    }
                     @click=${() => host._startNewAutomationChat()}
                   >
                     <ha-icon
                       icon="mdi:plus"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    New Automation
+                    ${host._t(
+                      "automations_new_automation_button",
+                      "New Automation",
+                    )}
                   </button>
                 </div>
               </div>
@@ -11232,7 +18245,10 @@ function renderAutomations(host) {
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
-                    placeholder="Filter automations…"
+                    placeholder=${host._t(
+                      "automations_filter_placeholder",
+                      "Filter automations\u2026",
+                    )}
                     .value=${host._automationFilter}
                     @input=${(e5) => {
                       host._automationFilter = e5.target.value;
@@ -11260,9 +18276,18 @@ function renderAutomations(host) {
                       host._sortBy = e5.target.value;
                     }}
                   >
-                    <option value="recent">Recent activity</option>
-                    <option value="alpha">Alphabetical</option>
-                    <option value="enabled_first">Enabled first</option>
+                    <option value="recent">
+                      ${host._t("automations_sort_recent", "Recent activity")}
+                    </option>
+                    <option value="alpha">
+                      ${host._t("automations_sort_alpha", "Alphabetical")}
+                    </option>
+                    <option value="enabled_first">
+                      ${host._t(
+                        "automations_sort_enabled_first",
+                        "Enabled first",
+                      )}
+                    </option>
                   </select>
                   <button
                     class="sort-dir-toggle"
@@ -11305,28 +18330,58 @@ function renderAutomations(host) {
                           ?disabled=${bulkDisabled}
                           @click=${() => host._bulkToggleSelected(true)}
                         >
-                          ${host._bulkActionInProgress ? "Working\u2026" : "Enable all"}
+                          ${
+                            host._bulkActionInProgress
+                              ? host._t(
+                                  "automations_bulk_working",
+                                  "Working\u2026",
+                                )
+                              : host._t(
+                                  "automations_bulk_enable_all",
+                                  "Enable all",
+                                )
+                          }
                         </button>
                         <button
                           class="btn btn-outline"
                           ?disabled=${bulkDisabled}
                           @click=${() => host._bulkToggleSelected(false)}
                         >
-                          ${host._bulkActionInProgress ? "Working\u2026" : "Disable all"}
+                          ${
+                            host._bulkActionInProgress
+                              ? host._t(
+                                  "automations_bulk_working",
+                                  "Working\u2026",
+                                )
+                              : host._t(
+                                  "automations_bulk_disable_all",
+                                  "Disable all",
+                                )
+                          }
                         </button>
                         <button
                           class="btn btn-outline btn-danger"
                           ?disabled=${bulkDisabled}
                           @click=${() => host._bulkSoftDeleteSelected()}
                         >
-                          ${host._bulkActionInProgress ? "Working\u2026" : "Delete selected"}
+                          ${
+                            host._bulkActionInProgress
+                              ? host._t(
+                                  "automations_bulk_working",
+                                  "Working\u2026",
+                                )
+                              : host._t(
+                                  "automations_bulk_delete_selected",
+                                  "Delete selected",
+                                )
+                          }
                         </button>
                         <button
                           class="btn btn-ghost"
                           ?disabled=${host._bulkActionInProgress}
                           @click=${() => host._clearAutomationSelection()}
                         >
-                          Clear
+                          ${host._t("automations_bulk_clear", "Clear")}
                         </button>
                       </div>
                     </div>
@@ -11347,7 +18402,11 @@ function renderAutomations(host) {
                   const burgerOpen = host._openBurgerMenu === automationId;
                   const cardExpanded = !!host._cardActiveTab[a4.entity_id];
                   const ago = formatTimeAgo(a4.last_triggered);
-                  const lastRun = ago ? ago : !isOn ? "Disabled" : "Never";
+                  const lastRun = ago
+                    ? ago
+                    : !isOn
+                      ? host._t("automations_last_run_disabled", "Disabled")
+                      : host._t("automations_last_run_never", "Never");
                   return x`
                     <div
                       class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
@@ -11416,7 +18475,10 @@ function renderAutomations(host) {
                                     host._unavailableAutoId = automationId;
                                     host._unavailableAutoName = a4.alias;
                                   }}
-                                  >Needs attention</span
+                                  >${host._t(
+                                    "automations_needs_attention_pill",
+                                    "Needs attention",
+                                  )}</span
                                 >`
                                 : ""
                             }
@@ -11457,7 +18519,10 @@ function renderAutomations(host) {
                                   />
                                   <button
                                     class="rename-save-btn"
-                                    title="Save"
+                                    title=${host._t(
+                                      "automations_rename_save_tooltip",
+                                      "Save",
+                                    )}
                                     @click=${() => host._saveRenameAutomation(automationId)}
                                   >
                                     <ha-icon
@@ -11468,7 +18533,13 @@ function renderAutomations(host) {
                                 `
                               : null,
                           tail: x`<span class="auto-row-mobile-meta">
-                            <span>Last run: ${lastRun}</span>
+                            <span
+                              >${host._t(
+                                "automations_last_run_prefix",
+                                "Last run:",
+                              )}
+                              ${lastRun}</span
+                            >
                             <ha-icon
                               icon="mdi:chevron-down"
                               class="card-chevron ${cardExpanded ? "open" : ""}"
@@ -11477,7 +18548,11 @@ function renderAutomations(host) {
                           </span>`,
                         })}
                         <span class="auto-row-last-run"
-                          ><span class="last-run-prefix">Last run: </span
+                          ><span class="last-run-prefix"
+                            >${host._t(
+                              "automations_last_run_prefix_inline",
+                              "Last run:",
+                            )} </span
                           >${lastRun}${
                             a4.last_triggered
                               ? x`<span class="setting-tooltip"
@@ -11491,13 +18566,31 @@ function renderAutomations(host) {
                         </span>
                         <label
                           class="toggle-switch"
-                          title="${canToggle ? (isOn ? "Enabled" : "Disabled") : "Unavailable"}"
+                          title="${
+                            canToggle
+                              ? isOn
+                                ? host._t(
+                                    "automations_toggle_enabled",
+                                    "Enabled",
+                                  )
+                                : host._t(
+                                    "automations_toggle_disabled",
+                                    "Disabled",
+                                  )
+                              : host._t(
+                                  "automations_toggle_unavailable",
+                                  "Unavailable",
+                                )
+                          }"
                           style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
                           @click=${(e5) => {
                             e5.stopPropagation();
                             if (!canToggle) {
                               host._showToast(
-                                "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                host._t(
+                                  "automations_toast_toggle_unresolved",
+                                  "Unable to toggle: automation id was not resolved. Reload and try again.",
+                                ),
                                 "error",
                               );
                             }
@@ -11529,7 +18622,10 @@ function renderAutomations(host) {
                                   class="burger-btn"
                                   @click=${(e5) => host._toggleBurgerMenu(automationId, e5)}
                                   ?disabled=${host._bulkActionInProgress}
-                                  title="More actions"
+                                  title=${host._t(
+                                    "automations_more_actions_tooltip",
+                                    "More actions",
+                                  )}
                                 >
                                   <ha-icon
                                     icon="mdi:dots-vertical"
@@ -11555,7 +18651,17 @@ function renderAutomations(host) {
                                             icon="mdi:chat-processing-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${loadingChat ? "Loading\u2026" : "Refine in chat"}
+                                          ${
+                                            loadingChat
+                                              ? host._t(
+                                                  "automations_burger_loading",
+                                                  "Loading\u2026",
+                                                )
+                                              : host._t(
+                                                  "automations_burger_refine_in_chat",
+                                                  "Refine in chat",
+                                                )
+                                          }
                                         </button>
                                         <button
                                           class="burger-item"
@@ -11571,7 +18677,10 @@ function renderAutomations(host) {
                                             icon="mdi:pencil-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          Rename
+                                          ${host._t(
+                                            "automations_burger_rename",
+                                            "Rename",
+                                          )}
                                         </button>
                                         <button
                                           class="burger-item"
@@ -11592,7 +18701,10 @@ function renderAutomations(host) {
                                             icon="mdi:open-in-new"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          View in HA
+                                          ${host._t(
+                                            "automations_burger_view_in_ha",
+                                            "View in HA",
+                                          )}
                                         </button>
                                         <button
                                           class="burger-item danger"
@@ -11609,7 +18721,17 @@ function renderAutomations(host) {
                                             icon="mdi:trash-can-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${deleting ? "Deleting\u2026" : "Delete"}
+                                          ${
+                                            deleting
+                                              ? host._t(
+                                                  "automations_burger_deleting",
+                                                  "Deleting\u2026",
+                                                )
+                                              : host._t(
+                                                  "automations_burger_delete",
+                                                  "Delete",
+                                                )
+                                          }
                                         </button>
                                       </div>
                                     `
@@ -11647,7 +18769,10 @@ function renderAutomations(host) {
                                           icon="mdi:sitemap-outline"
                                           style="--mdc-icon-size:16px;"
                                         ></ha-icon>
-                                        Flow
+                                        ${host._t(
+                                          "automations_card_tab_flow",
+                                          "Flow",
+                                        )}
                                       </button>
                                       <span class="card-tab-sep">|</span>
                                     `
@@ -11674,7 +18799,10 @@ function renderAutomations(host) {
                                           icon="mdi:code-braces"
                                           style="--mdc-icon-size:16px;"
                                         ></ha-icon>
-                                        YAML
+                                        ${host._t(
+                                          "automations_card_tab_yaml",
+                                          "YAML",
+                                        )}
                                       </button>
                                       <span class="card-tab-sep">|</span>
                                     `
@@ -11710,7 +18838,10 @@ function renderAutomations(host) {
                                           }
                                         }}
                                       >
-                                        History
+                                        ${host._t(
+                                          "automations_card_tab_history",
+                                          "History",
+                                        )}
                                       </button>
                                     `
                                     : ""
@@ -11751,14 +18882,17 @@ function renderAutomations(host) {
                           host._automationsPage = safeAutoPage - 1;
                         }}
                       >
-                        ‹ Prev
+                        ${host._t("automations_pagination_prev", "\u2039 Prev")}
                       </button>
                       <span class="page-info"
                         >Page ${safeAutoPage} of ${totalAutoPages} ·
                         ${filteredAutomations.length} automations</span
                       >
                       <label class="per-page-label"
-                        >Per page:
+                        >${host._t(
+                          "automations_pagination_per_page",
+                          "Per page:",
+                        )}
                         <select
                           class="per-page-select"
                           .value=${String(host._autosPerPage)}
@@ -11779,7 +18913,7 @@ function renderAutomations(host) {
                           host._automationsPage = safeAutoPage + 1;
                         }}
                       >
-                        Next ›
+                        ${host._t("automations_pagination_next", "Next \u203A")}
                       </button>
                     </div>
                   `
@@ -11800,18 +18934,30 @@ function renderAutomations(host) {
                 icon="mdi:robot-vacuum-variant"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
-              <p style="opacity:0.45;margin:0 0 12px;">No automations yet.</p>
+              <p style="opacity:0.45;margin:0 0 12px;">
+                ${host._t("automations_empty_state", "No automations yet.")}
+              </p>
               <button
                 class="btn btn-accent"
                 ?disabled=${host._llmNeedsSetup}
-                title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                title=${
+                  host._llmNeedsSetup
+                    ? host._t(
+                        "automations_llm_setup_required_tooltip",
+                        "Configure an LLM provider first",
+                      )
+                    : ""
+                }
                 @click=${() => host._startNewAutomationChat()}
               >
                 <ha-icon
                   icon="mdi:plus"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                New Automation
+                ${host._t(
+                  "automations_new_automation_button",
+                  "New Automation",
+                )}
               </button>
             </div>`
         }
@@ -11840,28 +18986,54 @@ function renderUnavailableModal(host) {
             icon="mdi:alert-circle-outline"
             style="--mdc-icon-size:22px;color:#ef4444;vertical-align:middle;margin-right:6px;"
           ></ha-icon>
-          Automation Unavailable
+          ${host._t(
+            "automations_unavailable_modal_title",
+            "Automation Unavailable",
+          )}
         </h3>
         <p
           style="font-size:14px;line-height:1.6;margin:0 0 8px;color:var(--primary-text-color);"
         >
-          <strong>${host._unavailableAutoName || "This automation"}</strong>
-          is marked as unavailable by Home Assistant. This usually means:
+          <strong
+            >${
+              host._unavailableAutoName ||
+              host._t("automations_unavailable_default_name", "This automation")
+            }</strong
+          >
+          ${host._t(
+            "automations_unavailable_modal_intro",
+            "is marked as unavailable by Home Assistant. This usually means:",
+          )}
         </p>
         <ul
           style="font-size:13px;line-height:1.8;margin:0 0 16px;padding-left:20px;color:var(--secondary-text-color);"
         >
           <li>
-            A trigger or condition references an entity that no longer exists
+            ${host._t(
+              "automations_unavailable_reason_entity",
+              "A trigger or condition references an entity that no longer exists",
+            )}
           </li>
-          <li>The automation YAML has a configuration error</li>
-          <li>A required integration was removed or is not loaded</li>
+          <li>
+            ${host._t(
+              "automations_unavailable_reason_yaml",
+              "The automation YAML has a configuration error",
+            )}
+          </li>
+          <li>
+            ${host._t(
+              "automations_unavailable_reason_integration",
+              "A required integration was removed or is not loaded",
+            )}
+          </li>
         </ul>
         <p
           style="font-size:13px;margin:0 0 16px;color:var(--secondary-text-color);"
         >
-          Open the automation in Home Assistant Settings to review and fix the
-          configuration.
+          ${host._t(
+            "automations_unavailable_modal_advice",
+            "Open the automation in Home Assistant Settings to review and fix the configuration.",
+          )}
         </p>
         <div class="modal-actions" style="justify-content:center;gap:12px;">
           <button
@@ -11871,7 +19043,7 @@ function renderUnavailableModal(host) {
               host._unavailableAutoName = null;
             }}
           >
-            Close
+            ${host._t("automations_unavailable_modal_close", "Close")}
           </button>
           <a
             class="modal-btn modal-create"
@@ -11886,7 +19058,10 @@ function renderUnavailableModal(host) {
               icon="mdi:code-tags"
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            Edit States
+            ${host._t(
+              "automations_unavailable_modal_edit_states",
+              "Edit States",
+            )}
           </a>
           <a
             class="modal-btn modal-create"
@@ -11898,7 +19073,10 @@ function renderUnavailableModal(host) {
             }}
           >
             <ha-icon icon="mdi:robot" style="--mdc-icon-size:14px;"></ha-icon>
-            Open in Automations
+            ${host._t(
+              "automations_unavailable_modal_open_in_automations",
+              "Open in Automations",
+            )}
           </a>
         </div>
       </div>
@@ -12060,12 +19238,15 @@ function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px;">
         <div class="proposal-header">
           <ha-icon icon="mdi:check-circle"></ha-icon>
-          Scene Created
+          ${host._t("scenes_card_created_title", "Scene Created")}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${scene.name}</div>
           <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> Saved to Home Assistant
+            <ha-icon icon="mdi:check"></ha-icon> ${host._t(
+              "scenes_card_saved_status",
+              "Saved to Home Assistant",
+            )}
           </div>
           <div class="proposal-actions">
             <button
@@ -12078,7 +19259,7 @@ function renderSceneCard(host, msg, msgIndex) {
               }}
             >
               <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-              Activate
+              ${host._t("scenes_card_activate_button", "Activate")}
             </button>
             <button
               class="btn btn-outline"
@@ -12091,7 +19272,7 @@ function renderSceneCard(host, msg, msgIndex) {
                 icon="mdi:open-in-new"
                 style="--mdc-icon-size:14px;"
               ></ha-icon>
-              View in HA
+              ${host._t("scenes_card_view_in_ha_button", "View in HA")}
             </button>
           </div>
         </div>
@@ -12103,12 +19284,15 @@ function renderSceneCard(host, msg, msgIndex) {
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
-          Scene Declined
+          ${host._t("scenes_card_declined_title", "Scene Declined")}
         </div>
         <div class="proposal-body">
           <div class="proposal-name">${scene.name}</div>
           <div class="proposal-status declined">
-            Dismissed. You can refine it by replying below.
+            ${host._t(
+              "scenes_card_declined_message",
+              "Dismissed. You can refine it by replying below.",
+            )}
           </div>
         </div>
       </div>
@@ -12117,7 +19301,10 @@ function renderSceneCard(host, msg, msgIndex) {
   if (status === "refining") {
     return x`
       <div style="margin-top:12px;padding:14px 0 0;">
-        ${_sceneCardHeader(scene.name, "Being Refined")}
+        ${_sceneCardHeader(
+          scene.name,
+          host._t("scenes_card_refining_badge", "Being Refined"),
+        )}
         <div class="proposal-body" style="padding:0;">
           ${_renderEntityList(host, scene.entities || {})}
           ${
@@ -12131,7 +19318,7 @@ function renderSceneCard(host, msg, msgIndex) {
                   icon="mdi:code-braces"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                ${yamlOpen ? "Hide YAML" : "View YAML"}
+                ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
               </div>`
               : ""
           }
@@ -12153,7 +19340,10 @@ function renderSceneCard(host, msg, msgIndex) {
   }
   return x`
     <div style="margin-top:12px;padding:14px 0 0;">
-      ${_sceneCardHeader(scene.name, "Proposal")}
+      ${_sceneCardHeader(
+        scene.name,
+        host._t("scenes_card_proposal_badge", "Proposal"),
+      )}
       <div class="proposal-body" style="padding:0;">
         ${_renderEntityList(host, scene.entities || {})}
 
@@ -12166,7 +19356,7 @@ function renderSceneCard(host, msg, msgIndex) {
             icon="mdi:code-braces"
             style="--mdc-icon-size:14px;"
           ></ha-icon>
-          ${yamlOpen ? "Hide YAML" : "View YAML"}
+          ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
         </div>
         ${
           yamlOpen && msg.scene_yaml
@@ -12186,7 +19376,7 @@ function renderSceneCard(host, msg, msgIndex) {
             @click=${() => host._acceptScene(msgIndex)}
           >
             <ha-icon icon="mdi:check" style="--mdc-icon-size:14px;"></ha-icon>
-            Accept &amp; Save
+            ${host._t("scenes_card_accept_save_button", "Accept & Save")}
           </button>
         </div>
       </div>
@@ -12235,7 +19425,7 @@ function renderScenes(host) {
     <div class="scroll-view">
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Your Scenes</h3>
+          <h3>${host._t("scenes_section_title", "Your Scenes")}</h3>
         </div>
         ${
           (host._scenes || []).length > 0
@@ -12250,7 +19440,7 @@ function renderScenes(host) {
                       host._sceneStatusFilter = "all";
                     }}
                   >
-                    All
+                    ${host._t("scenes_status_tab_all", "All")}
                   </button>
                   ${
                     seloraCount > 0 && manualCount > 0
@@ -12267,7 +19457,10 @@ function renderScenes(host) {
                             icon="mdi:creation"
                             style="--mdc-icon-size:14px;color:var(--selora-accent);display:block;"
                           ></ha-icon>
-                          <span>Selora AI (${seloraCount})</span>
+                          <span
+                            >${host._t("scenes_status_tab_selora", "Selora AI")}
+                            (${seloraCount})</span
+                          >
                         </button>
                         <button
                           role="tab"
@@ -12277,7 +19470,8 @@ function renderScenes(host) {
                             host._sceneStatusFilter = "manual";
                           }}
                         >
-                          Manual (${manualCount})
+                          ${host._t("scenes_status_tab_manual", "Manual")}
+                          (${manualCount})
                         </button>
                       `
                       : ""
@@ -12287,14 +19481,21 @@ function renderScenes(host) {
                   <button
                     class="filter-row-action"
                     ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                    title=${
+                      host._llmNeedsSetup
+                        ? host._t(
+                            "scenes_llm_needs_setup_tooltip",
+                            "Configure an LLM provider first",
+                          )
+                        : ""
+                    }
                     @click=${() => host._newSceneChat()}
                   >
                     <ha-icon
                       icon="mdi:plus"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    New Scene
+                    ${host._t("scenes_new_scene_button", "New Scene")}
                   </button>
                 </div>
               </div>
@@ -12303,7 +19504,10 @@ function renderScenes(host) {
                   <ha-icon icon="mdi:magnify"></ha-icon>
                   <input
                     type="text"
-                    placeholder="Filter scenes…"
+                    placeholder=${host._t(
+                      "scenes_filter_placeholder",
+                      "Filter scenes\u2026",
+                    )}
                     .value=${host._sceneFilter || ""}
                     @input=${(e5) => {
                       host._sceneFilter = e5.target.value;
@@ -12329,9 +19533,15 @@ function renderScenes(host) {
                       host._sceneSortBy = e5.target.value;
                     }}
                   >
-                    <option value="recent">Recently updated</option>
-                    <option value="alpha">Alphabetical</option>
-                    <option value="size">Most entities</option>
+                    <option value="recent">
+                      ${host._t("scenes_sort_recent", "Recently updated")}
+                    </option>
+                    <option value="alpha">
+                      ${host._t("scenes_sort_alpha", "Alphabetical")}
+                    </option>
+                    <option value="size">
+                      ${host._t("scenes_sort_size", "Most entities")}
+                    </option>
                   </select>
                   <button
                     class="sort-dir-toggle"
@@ -12435,13 +19645,16 @@ function renderScenes(host) {
                                 : sceneId;
                               host._activateScene(id, s6.name);
                             }}
-                            title="Activate scene"
+                            title=${host._t(
+                              "scenes_activate_scene_tooltip",
+                              "Activate scene",
+                            )}
                           >
                             <ha-icon
                               icon="mdi:play"
                               style="--mdc-icon-size:14px;"
                             ></ha-icon>
-                            Activate
+                            ${host._t("scenes_activate_button", "Activate")}
                           </button>
                           <div class="burger-menu-wrapper">
                             <button
@@ -12452,7 +19665,10 @@ function renderScenes(host) {
                                   ? null
                                   : sceneId;
                               }}
-                              title="More actions"
+                              title=${host._t(
+                                "scenes_more_actions_tooltip",
+                                "More actions",
+                              )}
                             >
                               <ha-icon
                                 icon="mdi:dots-vertical"
@@ -12476,7 +19692,17 @@ function renderScenes(host) {
                                         icon="mdi:chat-processing-outline"
                                         style="--mdc-icon-size:14px;"
                                       ></ha-icon>
-                                      ${loadingChat ? "Loading\u2026" : "Refine in chat"}
+                                      ${
+                                        loadingChat
+                                          ? host._t(
+                                              "scenes_loading_label",
+                                              "Loading\u2026",
+                                            )
+                                          : host._t(
+                                              "scenes_refine_in_chat_button",
+                                              "Refine in chat",
+                                            )
+                                      }
                                     </button>
                                     <button
                                       class="burger-item"
@@ -12509,7 +19735,10 @@ function renderScenes(host) {
                                         icon="mdi:open-in-new"
                                         style="--mdc-icon-size:14px;"
                                       ></ha-icon>
-                                      Open in HA
+                                      ${host._t(
+                                        "scenes_open_in_ha_button",
+                                        "Open in HA",
+                                      )}
                                     </button>
                                     ${
                                       isSelora
@@ -12529,7 +19758,17 @@ function renderScenes(host) {
                                             icon="mdi:trash-can-outline"
                                             style="--mdc-icon-size:14px;"
                                           ></ha-icon>
-                                          ${deleting ? "Deleting\u2026" : "Delete"}
+                                          ${
+                                            deleting
+                                              ? host._t(
+                                                  "scenes_deleting_label",
+                                                  "Deleting\u2026",
+                                                )
+                                              : host._t(
+                                                  "scenes_delete_button",
+                                                  "Delete",
+                                                )
+                                          }
                                         </button>`
                                         : ""
                                     }
@@ -12554,8 +19793,10 @@ function renderScenes(host) {
                                   : x`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
-                                    No entity details available — open the scene
-                                    in Home Assistant to inspect it.
+                                    ${host._t(
+                                      "scenes_no_entity_details",
+                                      "No entity details available \u2014 open the scene in Home Assistant to inspect it.",
+                                    )}
                                   </div>`
                               }
                               <div
@@ -12572,14 +19813,25 @@ function renderScenes(host) {
                                   icon="mdi:code-braces"
                                   style="--mdc-icon-size:14px;"
                                 ></ha-icon>
-                                ${yamlOpen ? "Hide YAML" : "View YAML"}
+                                ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
                               </div>
                               ${
                                 yamlOpen
                                   ? x`
                                     <ha-code-editor
                                       mode="yaml"
-                                      .value=${isSelora && host._sceneIsDirty(sceneId) ? host._sceneEditYaml(sceneId, s6.name) : s6.yaml || "# YAML not available \u2014 open the scene in Home Assistant to view it."}
+                                      .value=${
+                                        isSelora && host._sceneIsDirty(sceneId)
+                                          ? host._sceneEditYaml(
+                                              sceneId,
+                                              s6.name,
+                                            )
+                                          : s6.yaml ||
+                                            host._t(
+                                              "scenes_yaml_unavailable_comment",
+                                              "# YAML not available \u2014 open the scene in Home Assistant to view it.",
+                                            )
+                                      }
                                       read-only
                                       style="--code-mirror-font-size:12px;"
                                     ></ha-code-editor>
@@ -12610,19 +19862,29 @@ function renderScenes(host) {
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
               ></ha-icon>
               <p style="opacity:0.45;margin:0 0 12px;">
-                No scenes found. Ask Selora to create one.
+                ${host._t(
+                  "scenes_empty_state",
+                  "No scenes found. Ask Selora to create one.",
+                )}
               </p>
               <button
                 class="btn btn-accent"
                 ?disabled=${host._llmNeedsSetup}
-                title=${host._llmNeedsSetup ? "Configure an LLM provider first" : ""}
+                title=${
+                  host._llmNeedsSetup
+                    ? host._t(
+                        "scenes_llm_needs_setup_tooltip",
+                        "Configure an LLM provider first",
+                      )
+                    : ""
+                }
                 @click=${() => host._newSceneChat()}
               >
                 <ha-icon
                   icon="mdi:plus"
                   style="--mdc-icon-size:14px;"
                 ></ha-icon>
-                New Scene
+                ${host._t("scenes_new_scene_button", "New Scene")}
               </button>
             </div>`
         }
@@ -12633,7 +19895,9 @@ function renderScenes(host) {
 }
 function renderDeleteSceneModal(host) {
   if (!host._deleteSceneConfirmId) return "";
-  const name = host._deleteSceneConfirmName || "this scene";
+  const name =
+    host._deleteSceneConfirmName ||
+    host._t("scenes_delete_modal_fallback_name", "this scene");
   return x`
     <div
       class="modal-overlay"
@@ -12646,11 +19910,14 @@ function renderDeleteSceneModal(host) {
     >
       <div class="modal-content" style="max-width:420px;text-align:center;">
         <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-          Delete Scene
+          ${host._t("scenes_delete_modal_title", "Delete Scene")}
         </div>
         <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
-          Delete <strong>${name}</strong>? This removes the scene from Home
-          Assistant and cannot be undone.
+          ${host._t("scenes_delete_modal_prefix", "Delete")}
+          <strong>${name}</strong>${host._t(
+            "scenes_delete_modal_suffix",
+            "? This removes the scene from Home Assistant and cannot be undone.",
+          )}
         </div>
         <div style="display:flex;gap:10px;justify-content:center;">
           <button
@@ -12660,14 +19927,14 @@ function renderDeleteSceneModal(host) {
               host._deleteSceneConfirmName = null;
             }}
           >
-            Cancel
+            ${host._t("scenes_delete_modal_cancel_button", "Cancel")}
           </button>
           <button
             class="btn"
             style="background:#ef4444;color:#fff;border-color:#ef4444;"
             @click=${() => host._confirmDeleteScene()}
           >
-            Delete
+            ${host._t("scenes_delete_modal_confirm_button", "Delete")}
           </button>
         </div>
       </div>
@@ -12954,7 +20221,15 @@ function _renderChipGroup(title, chips) {
     </div>
   `;
 }
-function _renderChip({ icon, label, title, onOpen, onRemove }) {
+function _renderChip({
+  host,
+  icon,
+  label,
+  kindLabel,
+  title,
+  onOpen,
+  onRemove,
+}) {
   return x`
     <span class="composer-selection-chip" title=${title || label}>
       <button
@@ -12964,10 +20239,18 @@ function _renderChip({ icon, label, title, onOpen, onRemove }) {
       >
         <ha-icon icon=${icon}></ha-icon>
         <span style="line-height:1;">${label}</span>
+        ${
+          kindLabel
+            ? x`<span
+              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
+              >${kindLabel}</span
+            >`
+            : ""
+        }
       </button>
       <button
         type="button"
-        title="Remove label"
+        title=${host._t("ignore_list_remove_label", "Remove label")}
         @click=${(e5) => {
           e5.stopPropagation();
           onRemove();
@@ -12986,8 +20269,10 @@ function _renderDropdown(host, items, activeIndex) {
     >
       ${items.map((item, idx) => {
         let kindLabel = "";
-        if (item.kind === KIND_AREA) kindLabel = "Area";
-        else if (item.kind === KIND_HA_DEVICE) kindLabel = "Device";
+        if (item.kind === KIND_AREA)
+          kindLabel = host._t("ignore_list_dropdown_kind_area", "Area");
+        else if (item.kind === KIND_HA_DEVICE)
+          kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
         return x`
           <button
@@ -13027,7 +20312,7 @@ function _renderDropdown(host, items, activeIndex) {
     </div>
   `;
 }
-function _renderInfoCallout(labelName) {
+function _renderInfoCallout(host, labelName) {
   return x`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
@@ -13039,7 +20324,7 @@ function _renderInfoCallout(labelName) {
           icon="mdi:information-outline"
           style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
         ></ha-icon>
-        How does this work?
+        ${host._t("ignore_list_how_it_works", "How does this work?")}
       </summary>
       <div
         style="padding:0 12px 10px 36px;font-size:13px;color:var(--secondary-text-color);line-height:1.45;"
@@ -13103,17 +20388,22 @@ function renderIgnoreList(host) {
   return x`
     <div class="section-card settings-section">
       <div class="section-card-header">
-        <h3>Ignore in suggestions</h3>
+        <h3>
+          ${host._t("ignore_list_section_title", "Ignore in suggestions")}
+        </h3>
       </div>
 
-      ${_renderInfoCallout(labelName)}
+      ${_renderInfoCallout(host, labelName)}
 
       <div style="position:relative;margin-top:12px;">
         <input
           class="form-select"
           type="text"
           .value=${query}
-          placeholder="Search an entity, device, or area…"
+          placeholder=${host._t(
+            "ignore_list_search_placeholder",
+            "Search an entity, device, or area\u2026",
+          )}
           style="width:100%;box-sizing:border-box;"
           @input=${(e5) => {
             host._ignoreInput = e5.target.value;
@@ -13141,7 +20431,7 @@ function renderIgnoreList(host) {
           ? x`<div
             style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
           >
-            Nothing ignored yet.
+            ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
           </div>`
           : x`
             <div
@@ -13153,6 +20443,7 @@ function renderIgnoreList(host) {
                       "Areas",
                       tagged.areas.map((aid) =>
                         _renderChip({
+                          host,
                           icon: "mdi:floor-plan",
                           label: _areaLabel(host, aid),
                           title: `Open area \xB7 ${aid}`,
@@ -13169,6 +20460,7 @@ function renderIgnoreList(host) {
                       "Devices",
                       tagged.devices.map((did) =>
                         _renderChip({
+                          host,
                           icon: "mdi:chip",
                           label: _deviceLabel(host, did),
                           title: `Open device \xB7 ${did}`,
@@ -13187,6 +20479,7 @@ function renderIgnoreList(host) {
                       "Entities",
                       tagged.entities.map((eid) =>
                         _renderChip({
+                          host,
                           icon: _entityIcon(eid),
                           label: _entityLabel(host, eid),
                           title: `Open ${eid}`,
@@ -13256,7 +20549,7 @@ function _renderUsageHeaderLink(host) {
   return x`
     <button
       class="section-card-action"
-      title="View token usage"
+      title=${host._t("settings_view_token_usage_title", "View token usage")}
       @click=${() => {
         host._setActiveTab("usage");
         host._loadUsageStats?.();
@@ -13264,7 +20557,9 @@ function _renderUsageHeaderLink(host) {
       }}
     >
       <ha-icon icon="mdi:chart-line-variant"></ha-icon>
-      <span>${hasData ? "Usage" : "View usage"}</span>
+      <span
+        >${hasData ? host._t("settings_usage_label", "Usage") : host._t("settings_view_usage_label", "View usage")}</span
+      >
       <ha-icon
         icon="mdi:chevron-right"
         class="section-card-action-chevron"
@@ -13297,7 +20592,13 @@ function _renderProviderPicker(host) {
           host.requestUpdate();
         }}
       >
-        <span>${current ? current.label : "Select..."}</span>
+        <span
+          >${
+            current
+              ? current.label
+              : host._t("settings_provider_select_placeholder", "Select...")
+          }</span
+        >
         <ha-icon
           icon="mdi:chevron-down"
           style="--mdc-icon-size:18px;opacity:0.6;"
@@ -13376,10 +20677,17 @@ function renderSettings(host) {
           class="settings-doc-banner"
         >
           <div style="flex:1;">
-            <strong>Configuration guide</strong>
+            <strong
+              >${host._t(
+                "settings_doc_banner_title",
+                "Configuration guide",
+              )}</strong
+            >
             <span
-              >Learn how to set up LLM providers, remote access, and MCP
-              tokens.</span
+              >${host._t(
+                "settings_doc_banner_desc",
+                "Learn how to set up LLM providers, remote access, and MCP tokens.",
+              )}</span
             >
           </div>
           <ha-icon
@@ -13389,11 +20697,11 @@ function renderSettings(host) {
         </a>
         <div class="section-card settings-section">
           <div class="section-card-header section-card-header--with-action">
-            <h3>LLM Provider</h3>
+            <h3>${host._t("settings_llm_provider_heading", "LLM Provider")}</h3>
             ${_renderUsageHeaderLink(host)}
           </div>
           <div class="form-group">
-            <label>Provider</label>
+            <label>${host._t("settings_provider_label", "Provider")}</label>
             ${_renderProviderPicker(host)}
           </div>
 
@@ -13401,7 +20709,12 @@ function renderSettings(host) {
             isSeloraCloud
               ? x`
                 <div class="form-group">
-                  <label>Selora account</label>
+                  <label
+                    >${host._t(
+                      "settings_selora_account_label",
+                      "Selora account",
+                    )}</label
+                  >
                   ${
                     host._config.aigateway_linked
                       ? x`
@@ -13428,7 +20741,10 @@ function renderSettings(host) {
                             <div
                               style="font-size:12px;color:var(--secondary-text-color);"
                             >
-                              Selora Cloud is providing your LLM backend.
+                              ${host._t(
+                                "settings_selora_cloud_backend_desc",
+                                "Selora Cloud is providing your LLM backend.",
+                              )}
                             </div>
                           </div>
                           <button
@@ -13436,7 +20752,7 @@ function renderSettings(host) {
                             style="flex-shrink:0;"
                             @click=${() => host._unlinkAIGateway()}
                           >
-                            Unlink
+                            ${host._t("settings_unlink_button", "Unlink")}
                           </button>
                         </div>
                       `
@@ -13447,14 +20763,19 @@ function renderSettings(host) {
                           <p
                             style="font-size:13px;color:var(--secondary-text-color);margin:0;"
                           >
-                            Sign in with your Selora account to use the hosted
-                            LLM backend. No API key required.
+                            ${host._t(
+                              "settings_signin_selora_desc",
+                              "Sign in with your Selora account to use the hosted LLM backend. No API key required.",
+                            )}
                           </p>
                           ${
                             host._config.developer_mode
                               ? x`
                                 ${_textInput({
-                                  label: "Selora Cloud URL",
+                                  label: host._t(
+                                    "settings_selora_cloud_url_label",
+                                    "Selora Cloud URL",
+                                  ),
                                   value:
                                     host._config.selora_connect_url ||
                                     "https://connect.selorahomes.com",
@@ -13467,8 +20788,10 @@ function renderSettings(host) {
                                 <div
                                   style="font-size:12px;color:var(--secondary-text-color);margin-top:-2px;"
                                 >
-                                  OAuth and chat completions both use this URL.
-                                  Saved automatically when you link.
+                                  ${host._t(
+                                    "settings_selora_cloud_url_hint",
+                                    "OAuth and chat completions both use this URL. Saved automatically when you link.",
+                                  )}
                                 </div>
                               `
                               : ""
@@ -13482,7 +20805,10 @@ function renderSettings(host) {
                                 rel="noopener noreferrer"
                                 style="align-self:flex-start;text-decoration:none;display:inline-flex;align-items:center;gap:6px;"
                               >
-                                Open sign-in page →
+                                ${host._t(
+                                  "settings_open_signin_page",
+                                  "Open sign-in page \u2192",
+                                )}
                               </a>`
                               : x`<button
                                 class="btn btn-primary"
@@ -13496,8 +20822,14 @@ function renderSettings(host) {
                                         class="spinner"
                                         style="width:14px;height:14px;"
                                       ></span>
-                                      Preparing…`
-                                    : "Link Selora account"
+                                      ${host._t(
+                                        "settings_preparing_label",
+                                        "Preparing\u2026",
+                                      )}`
+                                    : host._t(
+                                        "settings_link_selora_account_button",
+                                        "Link Selora account",
+                                      )
                                 }
                               </button>`
                           }
@@ -13506,8 +20838,10 @@ function renderSettings(host) {
                               ? x`<div
                                 style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                               >
-                                Opens in a new tab. After signing in, return to
-                                this page — the panel updates automatically.
+                                ${host._t(
+                                  "settings_signin_new_tab_hint",
+                                  "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
+                                )}
                               </div>`
                               : ""
                           }
@@ -13529,7 +20863,10 @@ function renderSettings(host) {
                     ? x`
                       <div class="form-group">
                         ${_textInput({
-                          label: "Selora Cloud URL",
+                          label: host._t(
+                            "settings_selora_cloud_url_label",
+                            "Selora Cloud URL",
+                          ),
                           value:
                             host._config.selora_connect_url ||
                             "https://connect.selorahomes.com",
@@ -13547,12 +20884,17 @@ function renderSettings(host) {
               : isGemini
                 ? x`
                   <div class="form-group">
-                    <label>API Key</label>
+                    <label
+                      >${host._t("settings_api_key_label", "API Key")}</label
+                    >
                     ${
                       host._config.gemini_api_key_set
                         ? x`<button
                           class="key-hint key-set key-hint-btn"
-                          title="Click to replace key"
+                          title=${host._t(
+                            "settings_click_replace_key_title",
+                            "Click to replace key",
+                          )}
                           @click=${() => {
                             host._showApiKeyInput = !host._showApiKeyInput;
                             if (!host._showApiKeyInput) host._newApiKey = "";
@@ -13575,8 +20917,14 @@ function renderSettings(host) {
                       !host._config.gemini_api_key_set || host._showApiKeyInput
                         ? _textInput({
                             label: host._config.gemini_api_key_set
-                              ? "Enter new key"
-                              : "Enter API key",
+                              ? host._t(
+                                  "settings_enter_new_key_label",
+                                  "Enter new key",
+                                )
+                              : host._t(
+                                  "settings_enter_api_key_label",
+                                  "Enter API key",
+                                ),
                             type: "password",
                             value: host._newApiKey,
                             oninput: (e5) =>
@@ -13589,7 +20937,7 @@ function renderSettings(host) {
                   </div>
                   <div class="form-group">
                     ${_textInput({
-                      label: "Model",
+                      label: host._t("settings_model_label", "Model"),
                       value: host._config.gemini_model,
                       oninput: (e5) =>
                         host._updateConfig("gemini_model", e5.target.value),
@@ -13599,12 +20947,17 @@ function renderSettings(host) {
                 : isAnthropic
                   ? x`
                     <div class="form-group">
-                      <label>API Key</label>
+                      <label
+                        >${host._t("settings_api_key_label", "API Key")}</label
+                      >
                       ${
                         host._config.anthropic_api_key_set
                           ? x`<button
                             class="key-hint key-set key-hint-btn"
-                            title="Click to replace key"
+                            title=${host._t(
+                              "settings_click_replace_key_title",
+                              "Click to replace key",
+                            )}
                             @click=${() => {
                               host._showApiKeyInput = !host._showApiKeyInput;
                               if (!host._showApiKeyInput) host._newApiKey = "";
@@ -13628,8 +20981,14 @@ function renderSettings(host) {
                         host._showApiKeyInput
                           ? _textInput({
                               label: host._config.anthropic_api_key_set
-                                ? "Enter new key"
-                                : "Enter API key",
+                                ? host._t(
+                                    "settings_enter_new_key_label",
+                                    "Enter new key",
+                                  )
+                                : host._t(
+                                    "settings_enter_api_key_label",
+                                    "Enter API key",
+                                  ),
                               type: "password",
                               value: host._newApiKey,
                               oninput: (e5) =>
@@ -13642,7 +21001,7 @@ function renderSettings(host) {
                     </div>
                     <div class="form-group">
                       ${_textInput({
-                        label: "Model",
+                        label: host._t("settings_model_label", "Model"),
                         value: host._config.anthropic_model,
                         oninput: (e5) =>
                           host._updateConfig(
@@ -13655,12 +21014,20 @@ function renderSettings(host) {
                   : isOpenAI
                     ? x`
                       <div class="form-group">
-                        <label>API Key</label>
+                        <label
+                          >${host._t(
+                            "settings_api_key_label",
+                            "API Key",
+                          )}</label
+                        >
                         ${
                           host._config.openai_api_key_set
                             ? x`<button
                               class="key-hint key-set key-hint-btn"
-                              title="Click to replace key"
+                              title=${host._t(
+                                "settings_click_replace_key_title",
+                                "Click to replace key",
+                              )}
                               @click=${() => {
                                 host._showApiKeyInput = !host._showApiKeyInput;
                                 if (!host._showApiKeyInput)
@@ -13685,8 +21052,14 @@ function renderSettings(host) {
                           host._showApiKeyInput
                             ? _textInput({
                                 label: host._config.openai_api_key_set
-                                  ? "Enter new key"
-                                  : "Enter API key",
+                                  ? host._t(
+                                      "settings_enter_new_key_label",
+                                      "Enter new key",
+                                    )
+                                  : host._t(
+                                      "settings_enter_api_key_label",
+                                      "Enter API key",
+                                    ),
                                 type: "password",
                                 value: host._newApiKey,
                                 oninput: (e5) =>
@@ -13699,7 +21072,7 @@ function renderSettings(host) {
                       </div>
                       <div class="form-group">
                         ${_textInput({
-                          label: "Model",
+                          label: host._t("settings_model_label", "Model"),
                           value: host._config.openai_model,
                           oninput: (e5) =>
                             host._updateConfig("openai_model", e5.target.value),
@@ -13709,12 +21082,20 @@ function renderSettings(host) {
                     : isOpenRouter
                       ? x`
                         <div class="form-group">
-                          <label>API Key</label>
+                          <label
+                            >${host._t(
+                              "settings_api_key_label",
+                              "API Key",
+                            )}</label
+                          >
                           ${
                             host._config.openrouter_api_key_set
                               ? x`<button
                                 class="key-hint key-set key-hint-btn"
-                                title="Click to replace key"
+                                title=${host._t(
+                                  "settings_click_replace_key_title",
+                                  "Click to replace key",
+                                )}
                                 @click=${() => {
                                   host._showApiKeyInput =
                                     !host._showApiKeyInput;
@@ -13740,8 +21121,14 @@ function renderSettings(host) {
                             host._showApiKeyInput
                               ? _textInput({
                                   label: host._config.openrouter_api_key_set
-                                    ? "Enter new key"
-                                    : "Enter API key",
+                                    ? host._t(
+                                        "settings_enter_new_key_label",
+                                        "Enter new key",
+                                      )
+                                    : host._t(
+                                        "settings_enter_api_key_label",
+                                        "Enter API key",
+                                      ),
                                   type: "password",
                                   value: host._newApiKey,
                                   oninput: (e5) =>
@@ -13754,7 +21141,7 @@ function renderSettings(host) {
                         </div>
                         <div class="form-group">
                           ${_textInput({
-                            label: "Model",
+                            label: host._t("settings_model_label", "Model"),
                             value: host._config.openrouter_model,
                             oninput: (e5) =>
                               host._updateConfig(
@@ -13776,8 +21163,17 @@ function renderSettings(host) {
                               host.requestUpdate();
                             }}
                           >
-                            ${host._seloraLocalAdvanced ? "Hide" : "Show"}
-                            advanced options
+                            ${
+                              host._seloraLocalAdvanced
+                                ? host._t(
+                                    "settings_selora_local_hide_advanced",
+                                    "Hide advanced options",
+                                  )
+                                : host._t(
+                                    "settings_selora_local_show_advanced",
+                                    "Show advanced options",
+                                  )
+                            }
                           </button>
                           ${
                             host._seloraLocalAdvanced
@@ -13785,13 +21181,17 @@ function renderSettings(host) {
                                 <p
                                   style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                 >
-                                  Selora Hubs come pre-configured. To use a
-                                  self-hosted llama-server running the Selora AI
-                                  model, enter its address below.
+                                  ${host._t(
+                                    "settings_selora_local_advanced_desc",
+                                    "Selora Hubs come pre-configured. To use a self-hosted llama-server running the Selora AI model, enter its address below.",
+                                  )}
                                 </p>
                                 <div class="form-group" style="margin-top:8px;">
                                   ${_textInput({
-                                    label: "Host",
+                                    label: host._t(
+                                      "settings_selora_local_host_label",
+                                      "Host",
+                                    ),
                                     value: host._config.selora_local_host || "",
                                     oninput: (e5) =>
                                       host._updateConfig(
@@ -13803,8 +21203,18 @@ function renderSettings(host) {
                                   <p
                                     style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                                   >
-                                    Auto-detected:
-                                    ${host._config.selora_local_discovered_host || "none"}.
+                                    ${host._t(
+                                      "settings_selora_local_auto_detected_prefix",
+                                      "Auto-detected:",
+                                    )}
+                                    ${
+                                      host._config
+                                        .selora_local_discovered_host ||
+                                      host._t(
+                                        "settings_selora_local_auto_detected_none",
+                                        "none",
+                                      )
+                                    }.
                                   </p>
                                 </div>
                               `
@@ -13814,7 +21224,10 @@ function renderSettings(host) {
                         : x`
                           <div class="form-group">
                             ${_textInput({
-                              label: "Host",
+                              label: host._t(
+                                "settings_ollama_host_label",
+                                "Host",
+                              ),
                               value: host._config.ollama_host,
                               oninput: (e5) =>
                                 host._updateConfig(
@@ -13825,7 +21238,7 @@ function renderSettings(host) {
                           </div>
                           <div class="form-group">
                             ${_textInput({
-                              label: "Model",
+                              label: host._t("settings_model_label", "Model"),
                               value: host._config.ollama_model,
                               oninput: (e5) =>
                                 host._updateConfig(
@@ -13852,8 +21265,8 @@ function renderSettings(host) {
                             class="spinner"
                             style="width:14px;height:14px;"
                           ></span>
-                          Validating…`
-                        : "Save"
+                          ${host._t("settings_validating_label", "Validating\u2026")}`
+                        : host._t("settings_save_button", "Save")
                     }
                   </button>
                 </div>
@@ -13876,11 +21289,13 @@ function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>MCP Server</h3>
+            <h3>${host._t("settings_mcp_server_heading", "MCP Server")}</h3>
           </div>
           <p class="section-card-subtitle">
-            Expose your home to external AI tools like Openclaw, Claude Desktop,
-            Cursor, or Windsurf.
+            ${host._t(
+              "settings_mcp_server_subtitle",
+              "Expose your home to external AI tools like Openclaw, Claude Desktop, Cursor, or Windsurf.",
+            )}
           </p>
 
           <div class="settings-connect-block">
@@ -13889,9 +21304,17 @@ function renderSettings(host) {
               style="border-bottom:none;padding-bottom:0;"
             >
               <div class="service-label-group">
-                <label>Connect via Selora account</label>
+                <label
+                  >${host._t(
+                    "settings_connect_via_selora_label",
+                    "Connect via Selora account",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Makes your MCP server reachable by external tools</span
+                  >${host._t(
+                    "settings_connect_via_selora_desc",
+                    "Makes your MCP server reachable by external tools",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -13927,13 +21350,18 @@ function renderSettings(host) {
                     rel="noopener noreferrer"
                     style="align-self:flex-start;text-decoration:none;"
                   >
-                    Open sign-in page →
+                    ${host._t(
+                      "settings_open_signin_page",
+                      "Open sign-in page \u2192",
+                    )}
                   </a>
                   <div
                     style="font-size:12px;color:var(--secondary-text-color);"
                   >
-                    Opens in a new tab. After signing in, return to this page —
-                    the panel updates automatically.
+                    ${host._t(
+                      "settings_signin_new_tab_hint",
+                      "Opens in a new tab. After signing in, return to this page \u2014 the panel updates automatically.",
+                    )}
                   </div>
                 </div>`
                 : ""
@@ -13955,7 +21383,10 @@ function renderSettings(host) {
                           `${location.origin}${location.pathname.split("/selora-ai")[0]}/api/selora_ai/mcp`;
                         navigator.clipboard.writeText(mcpUrl);
                         host._showToast(
-                          "MCP URL copied to clipboard",
+                          host._t(
+                            "settings_mcp_url_copied_toast",
+                            "MCP URL copied to clipboard",
+                          ),
                           "success",
                         );
                       }}
@@ -13975,7 +21406,10 @@ function renderSettings(host) {
                 ? x`
                   <div style="padding:8px 0 0;">
                     ${_textInput({
-                      label: "Connect Server URL",
+                      label: host._t(
+                        "settings_connect_server_url_label",
+                        "Connect Server URL",
+                      ),
                       value:
                         host._config.selora_connect_url ||
                         "https://connect.selorahomes.com",
@@ -13991,20 +21425,23 @@ function renderSettings(host) {
             }
           </div>
 
-          <div class="settings-section-title">MCP TOKENS</div>
+          <div class="settings-section-title">
+            ${host._t("settings_mcp_tokens_section_title", "MCP TOKENS")}
+          </div>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 8px;"
           >
-            MCP tokens are an alternative to Selora Connect. Use them for tools
-            that don't support OAuth or when you prefer token-based
-            authentication.
+            ${host._t(
+              "settings_mcp_tokens_desc",
+              "MCP tokens are an alternative to Selora Connect. Use them for tools that don't support OAuth or when you prefer token-based authentication.",
+            )}
           </p>
           ${
             host._mcpTokens.length === 0
               ? x`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
               >
-                No tokens yet.
+                ${host._t("settings_no_tokens_yet", "No tokens yet.")}
               </div>`
               : x`
                 <div class="mcp-token-list">
@@ -14074,7 +21511,7 @@ function renderSettings(host) {
             @click=${() => host._openCreateTokenDialog()}
           >
             <ha-icon icon="mdi:plus" style="--mdc-icon-size:16px;"></ha-icon>
-            Add token
+            ${host._t("settings_add_token_button", "Add token")}
           </button>
         </div>
 
@@ -14082,7 +21519,12 @@ function renderSettings(host) {
 
         <div class="section-card settings-section">
           <div class="section-card-header">
-            <h3>Command Approvals</h3>
+            <h3>
+              ${host._t(
+                "settings_command_approvals_heading",
+                "Command Approvals",
+              )}
+            </h3>
           </div>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
@@ -14096,7 +21538,10 @@ function renderSettings(host) {
 
         <details class="section-card settings-section advanced-section" open>
           <summary class="advanced-toggle">
-            Advanced settings
+            ${host._t(
+              "settings_advanced_settings_heading",
+              "Advanced settings",
+            )}
             <ha-icon
               icon="mdi:chevron-right"
               class="advanced-chevron"
@@ -14105,15 +21550,26 @@ function renderSettings(host) {
           </summary>
 
           <div class="settings-section-title" style="margin-top:16px;">
-            BACKGROUND SERVICES
+            ${host._t(
+              "settings_background_services_title",
+              "BACKGROUND SERVICES",
+            )}
           </div>
 
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Data collector (AI analysis)</label>
+                <label
+                  >${host._t(
+                    "settings_data_collector_label",
+                    "Data collector (AI analysis)",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Feeds entity history to Selora AI</span
+                  >${host._t(
+                    "settings_data_collector_desc",
+                    "Feeds entity history to Selora AI",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -14127,7 +21583,7 @@ function renderSettings(host) {
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>Mode</label>
+                        <label>${host._t("settings_mode_label", "Mode")}</label>
                         <select
                           class="form-select"
                           .value=${host._config.collector_mode}
@@ -14137,15 +21593,27 @@ function renderSettings(host) {
                               e5.target.value,
                             )}
                         >
-                          <option value="continuous">Continuous</option>
-                          <option value="scheduled">Scheduled Window</option>
+                          <option value="continuous">
+                            ${host._t("settings_mode_continuous", "Continuous")}
+                          </option>
+                          <option value="scheduled">
+                            ${host._t(
+                              "settings_mode_scheduled_window",
+                              "Scheduled Window",
+                            )}
+                          </option>
                         </select>
                       </div>
                       <div
                         class="form-group"
                         style="width:130px;margin-bottom:0;"
                       >
-                        <label>Interval (s)</label>
+                        <label
+                          >${host._t(
+                            "settings_interval_seconds_label",
+                            "Interval (s)",
+                          )}</label
+                        >
                         <input
                           class="form-select"
                           type="number"
@@ -14165,7 +21633,10 @@ function renderSettings(host) {
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "Start (HH:MM)",
+                                label: host._t(
+                                  "settings_start_hhmm_label",
+                                  "Start (HH:MM)",
+                                ),
                                 value: host._config.collector_start_time,
                                 oninput: (e5) =>
                                   host._updateConfig(
@@ -14176,7 +21647,10 @@ function renderSettings(host) {
                             </div>
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "End (HH:MM)",
+                                label: host._t(
+                                  "settings_end_hhmm_label",
+                                  "End (HH:MM)",
+                                ),
                                 value: host._config.collector_end_time,
                                 oninput: (e5) =>
                                   host._updateConfig(
@@ -14198,9 +21672,17 @@ function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Network discovery</label>
+                <label
+                  >${host._t(
+                    "settings_network_discovery_label",
+                    "Network discovery",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Scans local network for new devices</span
+                  >${host._t(
+                    "settings_network_discovery_desc",
+                    "Scans local network for new devices",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -14214,7 +21696,7 @@ function renderSettings(host) {
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
-                        <label>Mode</label>
+                        <label>${host._t("settings_mode_label", "Mode")}</label>
                         <select
                           class="form-select"
                           .value=${host._config.discovery_mode}
@@ -14224,15 +21706,27 @@ function renderSettings(host) {
                               e5.target.value,
                             )}
                         >
-                          <option value="continuous">Continuous</option>
-                          <option value="scheduled">Scheduled Window</option>
+                          <option value="continuous">
+                            ${host._t("settings_mode_continuous", "Continuous")}
+                          </option>
+                          <option value="scheduled">
+                            ${host._t(
+                              "settings_mode_scheduled_window",
+                              "Scheduled Window",
+                            )}
+                          </option>
                         </select>
                       </div>
                       <div
                         class="form-group"
                         style="width:130px;margin-bottom:0;"
                       >
-                        <label>Interval (s)</label>
+                        <label
+                          >${host._t(
+                            "settings_interval_seconds_label",
+                            "Interval (s)",
+                          )}</label
+                        >
                         <input
                           class="form-select"
                           type="number"
@@ -14252,7 +21746,10 @@ function renderSettings(host) {
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "Start (HH:MM)",
+                                label: host._t(
+                                  "settings_start_hhmm_label",
+                                  "Start (HH:MM)",
+                                ),
                                 value: host._config.discovery_start_time,
                                 oninput: (e5) =>
                                   host._updateConfig(
@@ -14263,7 +21760,10 @@ function renderSettings(host) {
                             </div>
                             <div style="flex:1;">
                               ${_textInput({
-                                label: "End (HH:MM)",
+                                label: host._t(
+                                  "settings_end_hhmm_label",
+                                  "End (HH:MM)",
+                                ),
                                 value: host._config.discovery_end_time,
                                 oninput: (e5) =>
                                   host._updateConfig(
@@ -14285,10 +21785,17 @@ function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Pattern detection</label>
+                <label
+                  >${host._t(
+                    "settings_pattern_detection_label",
+                    "Pattern detection",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Detects recurring usage patterns and proposes
-                  automations</span
+                  >${host._t(
+                    "settings_pattern_detection_desc",
+                    "Detects recurring usage patterns and proposes automations",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -14305,7 +21812,12 @@ function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Auto-remove stale automations</label>
+                <label
+                  >${host._t(
+                    "settings_auto_remove_stale_label",
+                    "Auto-remove stale automations",
+                  )}</label
+                >
                 <span class="service-desc"
                   >Deletes automations inactive for
                   ${host._config.stale_days || 5}+ days</span
@@ -14321,9 +21833,17 @@ function renderSettings(host) {
           <div class="service-group">
             <div class="service-row">
               <div class="service-label-group">
-                <label>Developer mode</label>
+                <label
+                  >${host._t(
+                    "settings_developer_mode_label",
+                    "Developer mode",
+                  )}</label
+                >
                 <span class="service-desc"
-                  >Exposes raw entity payloads and debug logs</span
+                  >${host._t(
+                    "settings_developer_mode_desc",
+                    "Exposes raw entity payloads and debug logs",
+                  )}</span
                 >
               </div>
               <ha-switch
@@ -14337,7 +21857,13 @@ function renderSettings(host) {
                       config: { developer_mode: val },
                     });
                   } catch (err) {
-                    host._showToast("Failed to save developer mode.", "error");
+                    host._showToast(
+                      host._t(
+                        "settings_dev_mode_save_failed_toast",
+                        "Failed to save developer mode.",
+                      ),
+                      "error",
+                    );
                   }
                 }}
               ></ha-switch>
@@ -14350,7 +21876,7 @@ function renderSettings(host) {
               @click=${host._saveAdvancedConfig}
               ?disabled=${host._savingAdvancedConfig}
             >
-              ${host._savingAdvancedConfig ? "Saving\u2026" : "Save"}
+              ${host._savingAdvancedConfig ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
             </button>
           </div>
         </details>
@@ -14359,12 +21885,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.9.1"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.10.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.9.1"}
+            Selora AI v${"0.10.0"}
           </a>
         </div>
       </div>
@@ -14424,8 +21950,12 @@ function renderApprovalGrants(host) {
     return x`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
-      No saved approvals yet. The next time Selora asks before running something
-      risky, click <em>Always</em> to remember it here.
+      ${host._t(
+        "settings_no_approvals_yet_prefix",
+        "No saved approvals yet. The next time Selora asks before running something risky, click",
+      )}
+      <em>${host._t("settings_no_approvals_always_word", "Always")}</em>
+      ${host._t("settings_no_approvals_yet_suffix", "to remember it here.")}
     </div>`;
   }
   const riskColor = {
@@ -14446,7 +21976,17 @@ function renderApprovalGrants(host) {
             <ha-icon
               icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
               style="--mdc-icon-size:20px;color:${riskColor[g2.risk_level] || "var(--selora-accent)"};flex-shrink:0;"
-              title=${entityFriendly ? "Per-entity approval" : "Wildcard \u2014 applies to every entity of this service"}
+              title=${
+                entityFriendly
+                  ? host._t(
+                      "settings_per_entity_approval_title",
+                      "Per-entity approval",
+                    )
+                  : host._t(
+                      "settings_wildcard_approval_title",
+                      "Wildcard \u2014 applies to every entity of this service",
+                    )
+              }
             ></ha-icon>
             <div class="mcp-token-info">
               <div class="mcp-token-name">
@@ -14458,7 +21998,7 @@ function renderApprovalGrants(host) {
                     >`
                     : x` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
-                      >→ all</span
+                      >→ ${host._t("settings_approval_all_label", "all")}</span
                     >`
                 }
                 <span
@@ -14532,11 +22072,16 @@ function renderCreateTokenDialog(host) {
           style="max-width:480px;"
           @click=${(e5) => e5.stopPropagation()}
         >
-          <h3 style="margin:0 0 12px;">Token Created</h3>
+          <h3 style="margin:0 0 12px;">
+            ${host._t("settings_token_created_heading", "Token Created")}
+          </h3>
           <p
             style="font-size:13px;color:var(--secondary-text-color);margin:0 0 12px;"
           >
-            Copy this token now — it won't be shown again.
+            ${host._t(
+              "settings_token_created_desc",
+              "Copy this token now \u2014 it won't be shown again.",
+            )}
           </p>
           <div
             style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:var(--card-background-color);border:1px solid var(--selora-accent);border-radius:8px;font-family:monospace;font-size:13px;word-break:break-all;"
@@ -14546,7 +22091,13 @@ function renderCreateTokenDialog(host) {
               style="background:none;border:none;color:var(--selora-accent);cursor:pointer;padding:8px;border-radius:50%;flex-shrink:0;"
               @click=${() => {
                 navigator.clipboard.writeText(host._createdToken);
-                host._showToast("Token copied to clipboard", "success");
+                host._showToast(
+                  host._t(
+                    "settings_token_copied_toast",
+                    "Token copied to clipboard",
+                  ),
+                  "success",
+                );
               }}
             >
               <ha-icon
@@ -14560,7 +22111,7 @@ function renderCreateTokenDialog(host) {
               class="btn btn-primary"
               @click=${() => host._closeCreateTokenDialog()}
             >
-              Done
+              ${host._t("settings_done_button", "Done")}
             </button>
           </div>
         </div>
@@ -14575,14 +22126,19 @@ function renderCreateTokenDialog(host) {
         style="max-width:480px;"
         @click=${(e5) => e5.stopPropagation()}
       >
-        <h3 style="margin:0 0 16px;">Create MCP Token</h3>
+        <h3 style="margin:0 0 16px;">
+          ${host._t("settings_create_mcp_token_heading", "Create MCP Token")}
+        </h3>
 
         <div class="form-group">
-          <label>Name</label>
+          <label>${host._t("settings_token_name_label", "Name")}</label>
           <input
             class="modal-input"
             type="text"
-            placeholder="e.g. Claude Desktop"
+            placeholder=${host._t(
+              "settings_token_name_placeholder",
+              "e.g. Claude Desktop",
+            )}
             .value=${host._newTokenName}
             @input=${(e5) => {
               host._newTokenName = e5.target.value;
@@ -14592,7 +22148,12 @@ function renderCreateTokenDialog(host) {
         </div>
 
         <div class="form-group">
-          <label>Permission Level</label>
+          <label
+            >${host._t(
+              "settings_permission_level_label",
+              "Permission Level",
+            )}</label
+          >
           <select
             class="form-select"
             .value=${permission}
@@ -14601,9 +22162,15 @@ function renderCreateTokenDialog(host) {
               host.requestUpdate();
             }}
           >
-            <option value="read_only">Read Only</option>
-            <option value="admin">Admin (all tools)</option>
-            <option value="custom">Custom (select tools)</option>
+            <option value="read_only">
+              ${host._t("settings_perm_read_only", "Read Only")}
+            </option>
+            <option value="admin">
+              ${host._t("settings_perm_admin_all", "Admin (all tools)")}
+            </option>
+            <option value="custom">
+              ${host._t("settings_perm_custom", "Custom (select tools)")}
+            </option>
           </select>
         </div>
 
@@ -14611,7 +22178,12 @@ function renderCreateTokenDialog(host) {
           permission === "custom"
             ? x`
               <div class="form-group">
-                <label>Allowed Tools</label>
+                <label
+                  >${host._t(
+                    "settings_allowed_tools_label",
+                    "Allowed Tools",
+                  )}</label
+                >
                 <div class="mcp-tool-checklist">
                   ${MCP_TOOLS.map(
                     (tool) => x`
@@ -14633,7 +22205,7 @@ function renderCreateTokenDialog(host) {
                             ? x`<span
                               class="mcp-token-badge mcp-token-badge--admin"
                               style="font-size:10px;padding:1px 5px;"
-                              >admin</span
+                              >${host._t("settings_admin_badge", "admin")}</span
                             >`
                             : ""
                         }
@@ -14647,7 +22219,12 @@ function renderCreateTokenDialog(host) {
         }
 
         <div class="form-group">
-          <label>Expiration (optional)</label>
+          <label
+            >${host._t(
+              "settings_expiration_label",
+              "Expiration (optional)",
+            )}</label
+          >
           <select
             class="form-select"
             .value=${host._newTokenExpiry}
@@ -14656,11 +22233,21 @@ function renderCreateTokenDialog(host) {
               host.requestUpdate();
             }}
           >
-            <option value="">Never expires</option>
-            <option value="7">7 days</option>
-            <option value="30">30 days</option>
-            <option value="90">90 days</option>
-            <option value="365">1 year</option>
+            <option value="">
+              ${host._t("settings_expiry_never", "Never expires")}
+            </option>
+            <option value="7">
+              ${host._t("settings_expiry_7_days", "7 days")}
+            </option>
+            <option value="30">
+              ${host._t("settings_expiry_30_days", "30 days")}
+            </option>
+            <option value="90">
+              ${host._t("settings_expiry_90_days", "90 days")}
+            </option>
+            <option value="365">
+              ${host._t("settings_expiry_1_year", "1 year")}
+            </option>
           </select>
         </div>
 
@@ -14671,7 +22258,7 @@ function renderCreateTokenDialog(host) {
             class="btn btn-outline"
             @click=${() => host._closeCreateTokenDialog()}
           >
-            Cancel
+            ${host._t("settings_cancel_button", "Cancel")}
           </button>
           <button
             class="btn btn-primary"
@@ -14684,7 +22271,7 @@ function renderCreateTokenDialog(host) {
                   class="spinner"
                   style="width:14px;height:14px;"
                 ></span>`
-                : "Create Token"
+                : host._t("settings_create_token_button", "Create Token")
             }
           </button>
         </div>
@@ -15047,18 +22634,20 @@ function _renderDashboardSnippet(host, sensors) {
           document.execCommand("copy");
           document.body.removeChild(ta);
           const btn = e5.currentTarget;
-          btn.textContent = "Copied!";
+          btn.textContent = host._t("usage_snippet_copied_label", "Copied!");
           setTimeout(() => {
-            btn.textContent = "Copy";
+            btn.textContent = host._t("usage_snippet_copy_button", "Copy");
           }, 1500);
         }}
       >
-        Copy
+        ${host._t("usage_snippet_copy_button", "Copy")}
       </button>
     </div>
     <p class="usage-help" style="margin-top: 8px;">
-      The visual card picker will also find these sensors after the Recorder's
-      first hourly compilation.
+      ${host._t(
+        "usage_snippet_help",
+        "The visual card picker will also find these sensors after the Recorder's first hourly compilation.",
+      )}
     </p>
   `;
 }
@@ -15238,7 +22827,13 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
     !Number.isFinite(outNum) ||
     outNum < 0
   ) {
-    host._showToast?.("Pricing must be non-negative numbers.", "error");
+    host._showToast?.(
+      host._t(
+        "usage_pricing_invalid_error",
+        "Pricing must be non-negative numbers.",
+      ),
+      "error",
+    );
     return;
   }
   perProvider[model] = [inNum, outNum];
@@ -15250,10 +22845,18 @@ async function _savePricingOverride(host, provider, model, inPrice, outPrice) {
     });
     host._config = { ...host._config, llm_pricing_overrides: current };
     host._pricingEdit = null;
-    host._showToast?.("Pricing override saved.", "success");
+    host._showToast?.(
+      host._t("usage_pricing_saved_toast", "Pricing override saved."),
+      "success",
+    );
     host.requestUpdate();
   } catch (err) {
-    host._showToast?.("Failed to save pricing: " + err.message, "error");
+    host._showToast?.(
+      host._t("usage_pricing_save_failed", "Failed to save pricing:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 async function _clearPricingOverride(host, provider, model) {
@@ -15274,10 +22877,18 @@ async function _clearPricingOverride(host, provider, model) {
     });
     host._config = { ...host._config, llm_pricing_overrides: current };
     host._pricingEdit = null;
-    host._showToast?.("Reset to default pricing.", "success");
+    host._showToast?.(
+      host._t("usage_pricing_reset_toast", "Reset to default pricing."),
+      "success",
+    );
     host.requestUpdate();
   } catch (err) {
-    host._showToast?.("Failed to reset pricing: " + err.message, "error");
+    host._showToast?.(
+      host._t("usage_pricing_reset_failed", "Failed to reset pricing:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
@@ -15287,12 +22898,16 @@ function _renderPricingCard(host) {
     return x`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Pricing</h3>
-          <span class="usage-section-sub">Selora Cloud</span>
+          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
+          <span class="usage-section-sub"
+            >${host._t("usage_pricing_selora_cloud_sub", "Selora Cloud")}</span
+          >
         </div>
         <p class="usage-help" style="margin-top:0;">
-          Selora Cloud usage is metered and billed in your Selora Homes account.
-          It is not counted in this integration's sensors or charts.
+          ${host._t(
+            "usage_pricing_selora_cloud_help",
+            "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+          )}
         </p>
         <div class="usage-pricing-actions">
           <a
@@ -15305,7 +22920,10 @@ function _renderPricingCard(host) {
               icon="mdi:open-in-new"
               style="--mdc-icon-size:16px;"
             ></ha-icon>
-            View usage in your Selora Homes account
+            ${host._t(
+              "usage_pricing_view_cloud_link",
+              "View usage in your Selora Homes account",
+            )}
           </a>
         </div>
       </div>
@@ -15315,10 +22933,25 @@ function _renderPricingCard(host) {
     return x`
       <div class="section-card">
         <div class="section-card-header">
-          <h3>Pricing</h3>
+          <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
         </div>
         <p class="usage-help">
-          ${provider === "ollama" ? "Ollama runs locally \u2014 no token costs to track." : provider === "selora_local" ? "Selora AI Local runs on your hardware \u2014 no token costs to track." : "Configure an LLM provider and model in Settings to set custom pricing."}
+          ${
+            provider === "ollama"
+              ? host._t(
+                  "usage_pricing_ollama_help",
+                  "Ollama runs locally \u2014 no token costs to track.",
+                )
+              : provider === "selora_local"
+                ? host._t(
+                    "usage_pricing_selora_local_help",
+                    "Selora AI Local runs on your hardware \u2014 no token costs to track.",
+                  )
+                : host._t(
+                    "usage_pricing_no_model_help",
+                    "Configure an LLM provider and model in Settings to set custom pricing.",
+                  )
+          }
         </p>
       </div>
     `;
@@ -15332,46 +22965,62 @@ function _renderPricingCard(host) {
   return x`
     <div class="section-card">
       <div class="section-card-header">
-        <h3>Pricing</h3>
+        <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
         <span class="usage-section-sub">${provider} · ${model}</span>
       </div>
       <p class="usage-help" style="margin-top:0;">
-        Cost estimates use these per-million-token rates. Anthropic defaults
-        come from the
+        ${host._t(
+          "usage_pricing_intro_prefix",
+          "Cost estimates use these per-million-token rates. Anthropic defaults come from the",
+        )}
         <a
           href="https://platform.claude.com/docs/en/about-claude/pricing"
           target="_blank"
           rel="noopener noreferrer"
-          >official pricing page</a
-        >; override here if you have negotiated rates or are tracking a
-        different model.
+          >${host._t(
+            "usage_pricing_official_page_link",
+            "official pricing page",
+          )}</a
+        >${host._t(
+          "usage_pricing_intro_suffix",
+          "; override here if you have negotiated rates or are tracking a different model.",
+        )}
       </p>
 
       <div class="usage-pricing-row">
         <div class="usage-pricing-cell">
-          <span class="usage-pricing-label">Input</span>
+          <span class="usage-pricing-label"
+            >${host._t("usage_pricing_input_label", "Input")}</span
+          >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[0]) : "\u2014"}
           </span>
           ${
             defaults
               ? x`<span class="usage-pricing-default">
-                default ${_formatPrice(defaults[0])}
+                ${host._t("usage_pricing_default_prefix", "default")}
+                ${_formatPrice(defaults[0])}
               </span>`
               : x`<span class="usage-pricing-default"
-                >no built-in default</span
+                >${host._t(
+                  "usage_pricing_no_default",
+                  "no built-in default",
+                )}</span
               >`
           }
         </div>
         <div class="usage-pricing-cell">
-          <span class="usage-pricing-label">Output</span>
+          <span class="usage-pricing-label"
+            >${host._t("usage_pricing_output_label", "Output")}</span
+          >
           <span class="usage-pricing-value">
             ${effective ? _formatPrice(effective[1]) : "\u2014"}
           </span>
           ${
             defaults
               ? x`<span class="usage-pricing-default">
-                default ${_formatPrice(defaults[1])}
+                ${host._t("usage_pricing_default_prefix", "default")}
+                ${_formatPrice(defaults[1])}
               </span>`
               : ""
           }
@@ -15383,7 +23032,10 @@ function _renderPricingCard(host) {
           ? x`
             <div class="usage-pricing-edit">
               <ha-textfield
-                label="Input ($/MTok)"
+                label=${host._t(
+                  "usage_pricing_input_field_label",
+                  "Input ($/MTok)",
+                )}
                 type="number"
                 step="0.01"
                 min="0"
@@ -15397,7 +23049,10 @@ function _renderPricingCard(host) {
                 style="flex:1;min-width:120px;"
               ></ha-textfield>
               <ha-textfield
-                label="Output ($/MTok)"
+                label=${host._t(
+                  "usage_pricing_output_field_label",
+                  "Output ($/MTok)",
+                )}
                 type="number"
                 step="0.01"
                 min="0"
@@ -15418,7 +23073,7 @@ function _renderPricingCard(host) {
                     host.requestUpdate();
                   }}
                 >
-                  Cancel
+                  ${host._t("usage_pricing_cancel_button", "Cancel")}
                 </button>
                 <button
                   class="btn btn-primary"
@@ -15431,7 +23086,7 @@ function _renderPricingCard(host) {
                       host._pricingEdit.output,
                     )}
                 >
-                  Save
+                  ${host._t("usage_pricing_save_button", "Save")}
                 </button>
               </div>
             </div>
@@ -15454,7 +23109,17 @@ function _renderPricingCard(host) {
                   icon=${override ? "mdi:pencil" : "mdi:cash-edit"}
                   style="--mdc-icon-size:16px;"
                 ></ha-icon>
-                ${override ? "Edit override" : "Set custom pricing"}
+                ${
+                  override
+                    ? host._t(
+                        "usage_pricing_edit_override_button",
+                        "Edit override",
+                      )
+                    : host._t(
+                        "usage_pricing_set_custom_button",
+                        "Set custom pricing",
+                      )
+                }
               </button>
               ${
                 override
@@ -15463,7 +23128,10 @@ function _renderPricingCard(host) {
                       class="btn btn-outline"
                       @click=${() => _clearPricingOverride(host, provider, model)}
                     >
-                      Reset to default
+                      ${host._t(
+                        "usage_pricing_reset_default_button",
+                        "Reset to default",
+                      )}
                     </button>
                   `
                   : ""
@@ -15583,7 +23251,7 @@ function renderUsage(host) {
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
               @click=${() => setFilter(null, null)}
             >
-              All providers
+              ${host._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
               (p2) => x`
@@ -15604,7 +23272,7 @@ function renderUsage(host) {
                     class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
                     @click=${() => setFilter(filter.provider, null)}
                   >
-                    All models
+                    ${host._t("usage_filter_all_models", "All models")}
                   </button>
                   ${modelOptions.map(
                     (m2) => x`
@@ -15612,7 +23280,7 @@ function renderUsage(host) {
                         class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
                         @click=${() => setFilter(filter.provider, m2)}
                       >
-                        ${m2 || "(no model)"}
+                        ${m2 || host._t("usage_filter_no_model", "(no model)")}
                       </button>
                     `,
                   )}
@@ -15634,10 +23302,10 @@ function renderUsage(host) {
           }}
         >
           <ha-icon icon="mdi:chevron-left"></ha-icon>
-          <span>Back to settings</span>
+          <span>${host._t("usage_back_to_settings", "Back to settings")}</span>
         </a>
         <div class="usage-title-row">
-          <h2>Token usage</h2>
+          <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
           ${
             lastProvider
               ? x`
@@ -15659,12 +23327,17 @@ function renderUsage(host) {
                   style="--mdc-icon-size:20px;"
                 ></ha-icon>
                 <div>
-                  <strong>No usage data yet.</strong>
+                  <strong
+                    >${host._t(
+                      "usage_empty_title",
+                      "No usage data yet.",
+                    )}</strong
+                  >
                   <p>
-                    Usage will appear after the first LLM call. Try chatting
-                    with Selora AI or running a suggestion cycle. If you've
-                    already used Selora AI and still see this, restart Home
-                    Assistant so the new sensors get registered.
+                    ${host._t(
+                      "usage_empty_body",
+                      "Usage will appear after the first LLM call. Try chatting with Selora AI or running a suggestion cycle. If you've already used Selora AI and still see this, restart Home Assistant so the new sensors get registered.",
+                    )}
                   </p>
                 </div>
               </div>
@@ -15675,27 +23348,33 @@ function renderUsage(host) {
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Totals</h3>
+                        <h3>${host._t("usage_totals_title", "Totals")}</h3>
                       </div>
                       <div class="usage-tile-grid">
                         ${_renderTile({
-                          label: "Cost",
+                          label: host._t("usage_tile_cost_label", "Cost"),
                           value: _fmtUsd(dispCost),
-                          sub: "USD estimate",
+                          sub: host._t("usage_tile_cost_sub", "USD estimate"),
                           icon: "mdi:cash",
                         })}
                         ${_renderTile({
-                          label: "Calls",
+                          label: host._t("usage_tile_calls_label", "Calls"),
                           value: _fmtInt(dispCalls),
                           icon: "mdi:counter",
                         })}
                         ${_renderTile({
-                          label: "Tokens in",
+                          label: host._t(
+                            "usage_tile_tokens_in_label",
+                            "Tokens in",
+                          ),
                           value: _fmtTokens(dispTokensIn),
                           icon: "mdi:upload",
                         })}
                         ${_renderTile({
-                          label: "Tokens out",
+                          label: host._t(
+                            "usage_tile_tokens_out_label",
+                            "Tokens out",
+                          ),
                           value: _fmtTokens(dispTokensOut),
                           icon: "mdi:download",
                         })}
@@ -15709,13 +23388,34 @@ function renderUsage(host) {
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>By period</h3>
+                        <h3>
+                          ${host._t("usage_by_period_title", "By period")}
+                        </h3>
                       </div>
-                      ${_renderPeriodRow("Today", periodStats?.today)}
-                      ${_renderPeriodRow("Last 7 days", periodStats?.week)}
-                      ${_renderPeriodRow("This month", periodStats?.month)}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_today", "Today"),
+                        periodStats?.today,
+                      )}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_last_7_days", "Last 7 days"),
+                        periodStats?.week,
+                      )}
+                      ${_renderPeriodRow(
+                        host._t("usage_period_this_month", "This month"),
+                        periodStats?.month,
+                      )}
                       <div class="usage-period-note">
-                        ${filterActive ? "Period buckets come from the integration's usage store (kept for 30 days)." : "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here."}
+                        ${
+                          filterActive
+                            ? host._t(
+                                "usage_period_note_filtered",
+                                "Period buckets come from the integration's usage store (kept for 30 days).",
+                              )
+                            : host._t(
+                                "usage_period_note_unfiltered",
+                                "Period buckets come from Home Assistant's long-term statistics, which compile hourly. New activity may take up to an hour to appear here.",
+                              )
+                        }
                       </div>
                     </div>
                   `
@@ -15724,12 +23424,17 @@ function renderUsage(host) {
 
               <div class="section-card">
                 <div class="section-card-header">
-                  <h3>Where tokens go</h3>
+                  <h3>
+                    ${host._t("usage_where_tokens_go_title", "Where tokens go")}
+                  </h3>
                   <span class="usage-section-sub">
-                    Last
+                    ${host._t("usage_where_tokens_last_prefix", "Last")}
                     ${filteredRecent === null ? "\u2026" : filteredRecent.length}
                     call${filteredRecent && filteredRecent.length === 1 ? "" : "s"}
-                    · resets on HA restart
+                    ${host._t(
+                      "usage_where_tokens_resets_suffix",
+                      "\xB7 resets on HA restart",
+                    )}
                   </span>
                 </div>
                 ${
@@ -15746,7 +23451,7 @@ function renderUsage(host) {
                             host.requestUpdate();
                           }}
                         >
-                          By kind
+                          ${host._t("usage_group_by_kind_button", "By kind")}
                         </button>
                         <button
                           class="usage-snippet-pill ${groupingMode === "provider" ? "active" : ""}"
@@ -15755,7 +23460,10 @@ function renderUsage(host) {
                             host.requestUpdate();
                           }}
                         >
-                          By provider
+                          ${host._t(
+                            "usage_group_by_provider_button",
+                            "By provider",
+                          )}
                         </button>
                       </div>
                     `
@@ -15763,10 +23471,15 @@ function renderUsage(host) {
                 }
                 ${
                   filteredRecent === null
-                    ? x`<div class="usage-period-loading">Loading…</div>`
+                    ? x`<div class="usage-period-loading">
+                      ${host._t("usage_loading", "Loading\u2026")}
+                    </div>`
                     : filteredRecent.length === 0
                       ? x`<div class="usage-period-empty">
-                        No calls recorded yet.
+                        ${host._t(
+                          "usage_no_calls_recorded",
+                          "No calls recorded yet.",
+                        )}
                       </div>`
                       : _renderBreakdown(breakdown, totalCost)
                 }
@@ -15777,7 +23490,9 @@ function renderUsage(host) {
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Recent calls</h3>
+                        <h3>
+                          ${host._t("usage_recent_calls_title", "Recent calls")}
+                        </h3>
                       </div>
                       ${_renderRecentList(filteredRecent.slice(-15).reverse())}
                     </div>
@@ -15790,25 +23505,40 @@ function renderUsage(host) {
                   ? x`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Dashboard sensors</h3>
+                        <h3>
+                          ${host._t(
+                            "usage_dashboard_sensors_title",
+                            "Dashboard sensors",
+                          )}
+                        </h3>
                       </div>
                       <p class="usage-help">
-                        Restart Home Assistant to register the usage sensors.
-                        Once registered, you can add them to any dashboard with
-                        a
-                        <code>statistics-graph</code> card.
+                        ${host._t(
+                          "usage_dashboard_sensors_help_prefix",
+                          "Restart Home Assistant to register the usage sensors. Once registered, you can add them to any dashboard with a",
+                        )}
+                        <code>statistics-graph</code> ${host._t(
+                          "usage_dashboard_sensors_help_suffix",
+                          "card.",
+                        )}
                       </p>
                     </div>
                   `
                   : x`
                     <div class="section-card">
                       <div class="section-card-header">
-                        <h3>Add to your dashboard</h3>
+                        <h3>
+                          ${host._t(
+                            "usage_add_to_dashboard_title",
+                            "Add to your dashboard",
+                          )}
+                        </h3>
                       </div>
                       <p class="usage-help">
-                        Each metric has a different scale — create one card per
-                        sensor. Pick a metric, copy the YAML, then paste it in a
-                        dashboard's YAML editor.
+                        ${host._t(
+                          "usage_add_to_dashboard_help",
+                          "Each metric has a different scale \u2014 create one card per sensor. Pick a metric, copy the YAML, then paste it in a dashboard's YAML editor.",
+                        )}
                       </p>
                       ${_renderDashboardSnippet(host, sensors)}
                     </div>
@@ -15830,10 +23560,12 @@ function renderVersionHistoryDrawer(host, a4) {
     <div class="version-history">
       ${
         loading
-          ? x`<div class="version-history-empty">Loading…</div>`
+          ? x`<div class="version-history-empty">
+            ${host._t("version_history_loading", "Loading\u2026")}
+          </div>`
           : versions.length === 0
             ? x`<div class="version-history-empty">
-              No version history yet.
+              ${host._t("version_history_empty", "No version history yet.")}
             </div>`
             : x`
               <ol class="version-list">
@@ -15868,7 +23600,13 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
         <header class="version-entry-head">
           <div class="version-entry-title">
             <span class="version-entry-num">v${versionNumber}</span>
-            ${isCurrent ? x`<span class="version-entry-badge">Current</span>` : ""}
+            ${
+              isCurrent
+                ? x`<span class="version-entry-badge"
+                  >${host._t("version_history_current_badge", "Current")}</span
+                >`
+                : ""
+            }
           </div>
           <time class="version-entry-time" title=${date.toISOString()}
             >${timeAgo}</time
@@ -15884,7 +23622,7 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
               icon=${yamlOpen ? "mdi:eye-off-outline" : "mdi:code-braces"}
               style="--mdc-icon-size:14px;"
             ></ha-icon>
-            ${yamlOpen ? "Hide YAML" : "View YAML"}
+            ${yamlOpen ? host._t("version_history_hide_yaml", "Hide YAML") : host._t("version_history_view_yaml", "View YAML")}
           </button>
           ${
             !isCurrent
@@ -15903,7 +23641,14 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
                     icon="mdi:restore"
                     style="--mdc-icon-size:14px;"
                   ></ha-icon>
-                  ${restoring ? "Restoring\u2026" : "Restore this version"}
+                  ${
+                    restoring
+                      ? host._t("version_history_restoring", "Restoring\u2026")
+                      : host._t(
+                          "version_history_restore_button",
+                          "Restore this version",
+                        )
+                  }
                 </button>
               `
               : ""
@@ -15914,7 +23659,7 @@ function renderVersionEntry(host, automationId, v2, i5, total) {
             ? x`<div class="version-entry-yaml">
               <ha-code-editor
                 mode="yaml"
-                .value=${v2.yaml || v2.yaml_content || "(no YAML stored)"}
+                .value=${v2.yaml || v2.yaml_content || host._t("version_history_no_yaml_stored", "(no YAML stored)")}
                 read-only
                 style="--code-mirror-font-size:13px;"
               ></ha-code-editor>
@@ -15950,7 +23695,7 @@ function renderDiffViewer(host) {
               icon="mdi:compare"
               style="--mdc-icon-size:17px;vertical-align:middle;margin-right:6px;"
             ></ha-icon>
-            Compare Versions
+            ${host._t("version_history_compare_title", "Compare Versions")}
           </span>
           <ha-icon
             icon="mdi:close"
@@ -15965,7 +23710,12 @@ function renderDiffViewer(host) {
           style="padding:12px 20px;border-bottom:1px solid var(--divider-color);display:flex;gap:12px;align-items:center;flex-wrap:wrap;"
         >
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;opacity:0.7;">Version A (newer):</span>
+            <span style="font-size:12px;opacity:0.7;"
+              >${host._t(
+                "version_history_version_a_label",
+                "Version A (newer):",
+              )}</span
+            >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionA || ""}
@@ -15987,7 +23737,12 @@ function renderDiffViewer(host) {
             </select>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;opacity:0.7;">Version B (older):</span>
+            <span style="font-size:12px;opacity:0.7;"
+              >${host._t(
+                "version_history_version_b_label",
+                "Version B (older):",
+              )}</span
+            >
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionB || ""}
@@ -16013,11 +23768,11 @@ function renderDiffViewer(host) {
           ${
             host._loadingDiff
               ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
-                Loading diff…
+                ${host._t("version_history_loading_diff", "Loading diff\u2026")}
               </div>`
               : host._diffResult.length === 0
                 ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
-                  No differences found.
+                  ${host._t("version_history_no_diff", "No differences found.")}
                 </div>`
                 : x`<pre
                   style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
@@ -16210,7 +23965,12 @@ async function _startNewAutomationChat() {
   } catch (err) {
     console.error("Failed to start new automation chat", err);
     this._showToast(
-      "Failed to start a new automation chat: " + (err?.message || err),
+      this._t(
+        "session_toast_new_automation_chat_failed",
+        "Failed to start a new automation chat:",
+      ) +
+        " " +
+        (err?.message || err),
       "error",
     );
   }
@@ -16258,6 +24018,7 @@ async function _suggestAutomationIdea() {
       type: "selora_ai/chat",
       message:
         "Suggest one specific, useful automation for my smart home based on the devices I actually have. Reply with ONE plain-English sentence describing the automation as an instruction I could send back to you \u2014 something like 'Turn off the kitchen lights when nobody is in the kitchen for 10 minutes.' Use the human-friendly device names only. Do not include quotes, lists, explanations, YAML, or any [[entity:\u2026]] / [[entities:\u2026]] markers \u2014 just the instruction.",
+      ...(this.hass?.language ? { language: this.hass.language } : {}),
     });
     const suggestion = stripEntityMarkers(result?.response || "")
       .trim()
@@ -16277,7 +24038,10 @@ async function _suggestAutomationIdea() {
       }
     } else {
       this._showToast(
-        "AI didn't return a suggestion \u2014 try again.",
+        this._t(
+          "session_toast_ai_no_suggestion",
+          "AI didn't return a suggestion \u2014 try again.",
+        ),
         "warning",
       );
     }
@@ -16293,7 +24057,10 @@ async function _suggestAutomationIdea() {
   } catch (err) {
     console.error("Failed to suggest automation", err);
     this._showToast(
-      "Failed to generate a suggestion \u2014 check LLM config.",
+      this._t(
+        "session_toast_suggest_failed",
+        "Failed to generate a suggestion \u2014 check LLM config.",
+      ),
       "error",
     );
   } finally {
@@ -16483,7 +24250,10 @@ async function _triggerGenerateSuggestions() {
       );
     } else {
       this._showToast(
-        "Analysis complete \u2014 no new suggestions at this time",
+        this._t(
+          "suggestions_analysis_no_new",
+          "Analysis complete \u2014 no new suggestions at this time",
+        ),
         "info",
       );
     }
@@ -16555,7 +24325,13 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
         action: "accepted",
       });
     }
-    this._showToast("Suggestion accepted \u2014 automation created", "success");
+    this._showToast(
+      this._t(
+        "suggestions_accepted_toast",
+        "Suggestion accepted \u2014 automation created",
+      ),
+      "success",
+    );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
       [`proactive_${suggestionId}`]: true,
@@ -16572,7 +24348,10 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     this._highlightAndScrollToNew();
   } catch (err) {
     console.error("Failed to accept suggestion", err);
-    this._showToast("Failed to accept suggestion", "error");
+    this._showToast(
+      this._t("suggestions_accept_failed", "Failed to accept suggestion"),
+      "error",
+    );
   }
   this._acceptingProactive = {
     ...this._acceptingProactive,
@@ -16593,7 +24372,10 @@ async function _dismissProactiveSuggestion(suggestionId) {
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
       (s6) => s6.suggestion_id !== suggestionId,
     );
-    this._showToast("Suggestion dismissed", "info");
+    this._showToast(
+      this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to dismiss suggestion", err);
   }
@@ -16612,7 +24394,10 @@ async function _snoozeProactiveSuggestion(suggestionId) {
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
       (s6) => s6.suggestion_id !== suggestionId,
     );
-    this._showToast("Suggestion snoozed for 24h", "info");
+    this._showToast(
+      this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to snooze suggestion", err);
   }
@@ -16630,7 +24415,10 @@ async function _triggerPatternScan() {
     await this._loadProactiveSuggestions();
   } catch (err) {
     console.error("Pattern scan failed", err);
-    this._showToast("Pattern scan failed", "error");
+    this._showToast(
+      this._t("suggestions_pattern_scan_failed", "Pattern scan failed"),
+      "error",
+    );
   }
   this._loadingProactive = false;
 }
@@ -16708,6 +24496,9 @@ async function _resolveApproval(originatingMsg, scope, proposalId) {
       // user never touched it. The server ignores entity_scope for
       // the ``once``/``deny`` scopes.
       entity_scope: originatingMsg?._entityScope || "this",
+      // Pass the panel's active language so the persisted "Done"
+      // message matches the locale the user has been seeing in chat.
+      ...(this.hass?.language ? { language: this.hass.language } : {}),
     });
     if (originatingMsg) {
       originatingMsg.approval_status = result.status;
@@ -16836,6 +24627,9 @@ async function _sendMessage() {
     if (this._activeSessionId) {
       subscribePayload.session_id = this._activeSessionId;
     }
+    if (this.hass?.language) {
+      subscribePayload.language = this.hass.language;
+    }
     this._streaming = true;
     onDisconnect = () => {
       teardown();
@@ -16844,7 +24638,10 @@ async function _sendMessage() {
         this,
         assistantMsg,
         userMsgForSend,
-        "Connection to Home Assistant was lost mid-response.",
+        this._t(
+          "chat_actions_interrupt_disconnect",
+          "Connection to Home Assistant was lost mid-response.",
+        ),
         myTurn,
       );
     };
@@ -16863,8 +24660,14 @@ async function _sendMessage() {
           assistantMsg,
           userMsgForSend,
           firstTokenSeen
-            ? "The server stopped responding."
-            : "The server didn't reply in time.",
+            ? this._t(
+                "chat_actions_interrupt_server_stopped",
+                "The server stopped responding.",
+              )
+            : this._t(
+                "chat_actions_interrupt_server_no_reply",
+                "The server didn't reply in time.",
+              ),
           myTurn,
         );
       }
@@ -16914,7 +24717,10 @@ async function _sendMessage() {
             this,
             assistantMsg,
             userMsgForSend,
-            "Response looks cut short \u2014 try again.",
+            this._t(
+              "chat_actions_interrupt_truncated",
+              "Response looks cut short \u2014 try again.",
+            ),
             myTurn,
           );
           return;
@@ -16976,7 +24782,11 @@ async function _sendMessage() {
           this,
           assistantMsg,
           userMsgForSend,
-          event.message || "Couldn't reach the LLM provider.",
+          event.message ||
+            this._t(
+              "chat_actions_interrupt_llm_unreachable",
+              "Couldn't reach the LLM provider.",
+            ),
           myTurn,
         );
       }
@@ -16989,7 +24799,11 @@ async function _sendMessage() {
       this,
       assistantMsg,
       userMsgForSend,
-      err.message || "Couldn't start the chat session.",
+      err.message ||
+        this._t(
+          "chat_actions_interrupt_session_start_failed",
+          "Couldn't start the chat session.",
+        ),
       myTurn,
     );
   }
@@ -17009,7 +24823,8 @@ function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
-  const note = "\n\n_Cancelled by user_";
+  const note =
+    "\n\n" + this._t("chat_actions_cancelled_by_user", "_Cancelled by user_");
   const lastMsg = this._messages[this._messages.length - 1];
   if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;
@@ -17172,7 +24987,12 @@ async function _acceptAutomation(msgIndex, automation) {
       );
     }
   } catch (err) {
-    this._showToast("Failed to save automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_save_failed", "Failed to save automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 async function _autoEnableAfterAccept(automationId, createResult, msg) {
@@ -17194,7 +25014,10 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
     this._showToast(
-      "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
+      this._t(
+        "automation_crud_entity_not_surfaced",
+        "Automation saved, but Home Assistant hasn't surfaced the entity yet \u2014 toggle it on from the Automations tab once it appears.",
+      ),
       "warning",
     );
     return;
@@ -17217,9 +25040,17 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
     this._showToast(
-      "Automation saved but couldn't be enabled automatically: " +
-        (err?.message || "unknown error") +
-        ". Use the Enable button on the card to try again.",
+      this._t(
+        "automation_crud_auto_enable_failed_prefix",
+        "Automation saved but couldn't be enabled automatically:",
+      ) +
+        " " +
+        (err?.message ||
+          this._t("automation_crud_unknown_error", "unknown error")) +
+        this._t(
+          "automation_crud_auto_enable_failed_suffix",
+          ". Use the Enable button on the card to try again.",
+        ),
       "warning",
     );
   }
@@ -17248,10 +25079,21 @@ async function _dismissDraft(draftId) {
       draft_id: draftId,
     });
     await this._loadAutomations();
-    this._showToast("Draft dismissed.", "info");
+    this._showToast(
+      this._t("automation_crud_draft_dismissed", "Draft dismissed."),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to dismiss draft", err);
-    this._showToast("Failed to dismiss draft: " + err.message, "error");
+    this._showToast(
+      this._t(
+        "automation_crud_dismiss_draft_failed",
+        "Failed to dismiss draft:",
+      ) +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 async function _declineAutomation(msgIndex) {
@@ -17305,7 +25147,12 @@ async function _createAutomationFromSuggestion(automation) {
     const toast = _createdToast(automation.alias, result);
     this._showToast(toast.message, toast.type);
   } catch (err) {
-    this._showToast("Failed to create automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   }
 }
 function _discardSuggestion(suggestion) {
@@ -17367,7 +25214,12 @@ async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
       }
     } catch (err) {
       this._showToast(
-        "Failed to save automation from edited YAML: " + err.message,
+        this._t(
+          "automation_crud_save_edited_yaml_failed",
+          "Failed to save automation from edited YAML:",
+        ) +
+          " " +
+          err.message,
         "error",
       );
     } finally {
@@ -17422,7 +25274,12 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     };
     this._highlightAndScrollToNew();
   } catch (err) {
-    this._showToast("Failed to create automation: " + err.message, "error");
+    this._showToast(
+      this._t("automation_crud_create_failed", "Failed to create automation:") +
+        " " +
+        err.message,
+      "error",
+    );
   } finally {
     this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
     this.requestUpdate();
@@ -17441,9 +25298,20 @@ async function _saveActiveAutomationYaml(automationId, yamlKey) {
     });
     this._editedYaml = { ...this._editedYaml, [yamlKey]: void 0 };
     await this._loadAutomations();
-    this._showToast("Automation YAML saved.", "success");
+    this._showToast(
+      this._t("automation_crud_yaml_saved", "Automation YAML saved."),
+      "success",
+    );
   } catch (err) {
-    this._showToast("Failed to save changes: " + err.message, "error");
+    this._showToast(
+      this._t(
+        "automation_crud_save_changes_failed",
+        "Failed to save changes:",
+      ) +
+        " " +
+        err.message,
+      "error",
+    );
   } finally {
     this._savingYaml = { ...this._savingYaml, [yamlKey]: false };
     this.requestUpdate();
@@ -17687,7 +25555,10 @@ async function _runAutomation(entityId, automationId) {
       { skip_condition: true },
       { entity_id: entityId },
     );
-    this._showToast("Automation triggered.", "success");
+    this._showToast(
+      this._t("automation_management_triggered", "Automation triggered."),
+      "success",
+    );
   } catch (err) {
     const message = err?.message || "unknown error";
     this._showToast(`Failed to run automation: ${message}`, "error");
@@ -17744,7 +25615,10 @@ async function _saveRenameAutomation(automationId) {
       alias: newAlias,
     });
     this._editingAlias = null;
-    this._showToast("Automation renamed", "success");
+    this._showToast(
+      this._t("automation_management_renamed", "Automation renamed"),
+      "success",
+    );
     await this._loadAutomations();
   } catch (err) {
     console.error("Failed to rename automation", err);
@@ -17838,7 +25712,10 @@ async function _restoreVersion(automationId, versionId, yamlText) {
     };
     this._versions = { ...this._versions, [automationId]: null };
     await this._loadAutomations();
-    this._showToast("Version restored.", "success");
+    this._showToast(
+      this._t("automation_management_version_restored", "Version restored."),
+      "success",
+    );
   } catch (err) {
     console.error("Failed to restore version", err);
     this._showToast("Failed to restore version: " + err.message, "error");
@@ -17848,7 +25725,15 @@ async function _restoreVersion(automationId, versionId, yamlText) {
   this.requestUpdate();
 }
 async function _deleteAutomation(automationId) {
-  if (!confirm("Delete this automation permanently?")) return;
+  if (
+    !confirm(
+      this._t(
+        "automation_management_delete_confirm",
+        "Delete this automation permanently?",
+      ),
+    )
+  )
+    return;
   this._deletingAutomation = {
     ...this._deletingAutomation,
     [automationId]: true,
@@ -17859,7 +25744,10 @@ async function _deleteAutomation(automationId) {
       automation_id: automationId,
     });
     await this._loadAutomations();
-    this._showToast("Automation deleted.", "success");
+    this._showToast(
+      this._t("automation_management_deleted", "Automation deleted."),
+      "success",
+    );
   } catch (err) {
     console.error("Failed to delete automation", err);
     this._showToast("Failed to delete automation: " + err.message, "error");
@@ -17874,7 +25762,10 @@ async function _deleteAutomation(automationId) {
 async function _loadAutomationToChat(automationId) {
   if (!automationId) {
     this._showToast(
-      "This automation cannot be refined because it has no automation ID.",
+      this._t(
+        "automation_management_cannot_refine_no_id",
+        "This automation cannot be refined because it has no automation ID.",
+      ),
       "error",
     );
     return;
@@ -17892,7 +25783,13 @@ async function _loadAutomationToChat(automationId) {
       this._showSidebar = false;
       this._input = "";
       await this._openSession(sessionId);
-      this._showToast("Automation loaded into chat.", "success");
+      this._showToast(
+        this._t(
+          "automation_management_loaded_to_chat",
+          "Automation loaded into chat.",
+        ),
+        "success",
+      );
     }
   } catch (err) {
     console.error("Failed to load automation to chat", err);
@@ -17975,7 +25872,9 @@ async function _refineScene(msgIndex) {
   } catch (err) {
     console.error("Failed to mark scene as refining", err);
   }
-  const name = scene ? scene.name : "the scene";
+  const name = scene
+    ? scene.name
+    : this._t("scene_actions_refine_default_name", "the scene");
   this._input = `Refine "${name}": `;
   this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }
@@ -18864,7 +26763,7 @@ var SeloraAIPanel = class extends s4 {
     if (p2 === "openrouter") return "OpenRouter";
     if (p2 === "gemini") return "Gemini";
     if (p2 === "ollama") return "Ollama";
-    return "your LLM provider";
+    return this._t("panel_quota_provider_default", "your LLM provider");
   }
   _renderQuotaBanner() {
     if (!this._quotaAlert) return "";
@@ -18876,12 +26775,20 @@ var SeloraAIPanel = class extends s4 {
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
-          <strong>${this._quotaProviderLabel()} quota reached.</strong>
-          ${remaining > 0 ? x` Try again in ${remaining}s.` : " Retrying now\u2026"}
+          <strong
+            >${this._quotaProviderLabel()}
+            ${this._t("panel_quota_reached", "quota reached.")}</strong
+          >
+          ${
+            remaining > 0
+              ? x` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+              ${remaining}s.`
+              : ` ${this._t("panel_quota_retrying_now", "Retrying now\u2026")}`
+          }
         </div>
         <button
           class="quota-banner-close"
-          aria-label="Dismiss"
+          aria-label=${this._t("panel_quota_dismiss", "Dismiss")}
           @click=${() => this._dismissQuotaAlert()}
         >
           <ha-icon icon="mdi:close"></ha-icon>
@@ -18999,7 +26906,10 @@ var SeloraAIPanel = class extends s4 {
         await this._loadConfig();
         this._llmSaveStatus = {
           type: "success",
-          message: "Switched to Selora Cloud.",
+          message: this._t(
+            "panel_llm_switched_selora_cloud",
+            "Switched to Selora Cloud.",
+          ),
         };
         setTimeout(() => {
           this._llmSaveStatus = null;
@@ -19046,7 +26956,12 @@ var SeloraAIPanel = class extends s4 {
         if (!result.valid) {
           this._llmSaveStatus = {
             type: "error",
-            message: result.error || "Invalid API key or provider unreachable.",
+            message:
+              result.error ||
+              this._t(
+                "panel_llm_invalid_key",
+                "Invalid API key or provider unreachable.",
+              ),
           };
           return;
         }
@@ -19058,7 +26973,10 @@ var SeloraAIPanel = class extends s4 {
       this._newApiKey = "";
       this._showApiKeyInput = false;
       await this._loadConfig();
-      this._llmSaveStatus = { type: "success", message: "LLM settings saved." };
+      this._llmSaveStatus = {
+        type: "success",
+        message: this._t("panel_llm_settings_saved", "LLM settings saved."),
+      };
       setTimeout(() => {
         this._llmSaveStatus = null;
         this.requestUpdate();
@@ -19098,7 +27016,10 @@ var SeloraAIPanel = class extends s4 {
         config: payload,
       });
       await this._loadConfig();
-      this._showToast("Advanced settings saved.", "success");
+      this._showToast(
+        this._t("panel_advanced_settings_saved", "Advanced settings saved."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to save: " + err.message, "error");
     } finally {
@@ -19199,7 +27120,9 @@ var SeloraAIPanel = class extends s4 {
         if (data.ok) {
           onSuccess();
         } else {
-          onError(data.error || "Linking failed.");
+          onError(
+            data.error || this._t("panel_linking_failed", "Linking failed."),
+          );
         }
       }, "selora_ai_oauth_linked");
       const result = await this.hass.callWS({
@@ -19226,12 +27149,18 @@ var SeloraAIPanel = class extends s4 {
       timeout = setTimeout(() => {
         cleanup();
         onError(
-          "Linking timed out. Please try again \u2014 make sure you finish signing in within 10 minutes.",
+          this._t(
+            "panel_linking_timed_out",
+            "Linking timed out. Please try again \u2014 make sure you finish signing in within 10 minutes.",
+          ),
         );
       }, this._OAUTH_LINK_TIMEOUT_MS);
     } catch (err) {
       cleanup();
-      onError(err.message || "Failed to start linking.");
+      onError(
+        err.message ||
+          this._t("panel_linking_start_failed", "Failed to start linking."),
+      );
     }
   }
   async _startOAuthLink() {
@@ -19245,7 +27174,13 @@ var SeloraAIPanel = class extends s4 {
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingConnect = false;
-        this._showToast("Selora Connect linked successfully.", "success");
+        this._showToast(
+          this._t(
+            "panel_connect_linked_success",
+            "Selora Connect linked successfully.",
+          ),
+          "success",
+        );
         this.requestUpdate();
       },
       onError: (msg) => {
@@ -19257,7 +27192,10 @@ var SeloraAIPanel = class extends s4 {
   }
   async _unlinkConnect() {
     const ok = window.confirm(
-      "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+      this._t(
+        "panel_unlink_connect_confirm",
+        "Unlink Selora Connect?\n\nExternal MCP tools (Openclaw, Claude Desktop, Cursor, Windsurf) will lose access until you re-link.",
+      ),
     );
     if (!ok) {
       this.requestUpdate();
@@ -19267,7 +27205,10 @@ var SeloraAIPanel = class extends s4 {
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_connect" });
       await this._loadConfig();
-      this._showToast("Selora Connect unlinked.", "success");
+      this._showToast(
+        this._t("panel_connect_unlinked", "Selora Connect unlinked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -19292,7 +27233,13 @@ var SeloraAIPanel = class extends s4 {
       onSuccess: async () => {
         await this._loadConfig();
         this._linkingAIGateway = false;
-        this._showToast("Selora Cloud linked successfully.", "success");
+        this._showToast(
+          this._t(
+            "panel_cloud_linked_success",
+            "Selora Cloud linked successfully.",
+          ),
+          "success",
+        );
         this.requestUpdate();
       },
       onError: (msg) => {
@@ -19304,13 +27251,19 @@ var SeloraAIPanel = class extends s4 {
   }
   async _unlinkAIGateway() {
     const ok = window.confirm(
-      "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+      this._t(
+        "panel_unlink_cloud_confirm",
+        "Unlink Selora Cloud?\n\nChat and automation suggestions will stop until you re-link your account in Settings.",
+      ),
     );
     if (!ok) return;
     try {
       await this.hass.callWS({ type: "selora_ai/unlink_aigateway" });
       await this._loadConfig();
-      this._showToast("Selora Cloud unlinked.", "success");
+      this._showToast(
+        this._t("panel_cloud_unlinked", "Selora Cloud unlinked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
     }
@@ -19349,7 +27302,10 @@ var SeloraAIPanel = class extends s4 {
       const result = await this.hass.callWS(payload);
       this._createdToken = result.token;
       await this._loadMcpTokens();
-      this._showToast("MCP token created.", "success");
+      this._showToast(
+        this._t("panel_mcp_token_created", "MCP token created."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to create token: " + err.message, "error");
       this._showCreateTokenDialog = false;
@@ -19367,7 +27323,10 @@ var SeloraAIPanel = class extends s4 {
         token_id: tokenId,
       });
       await this._loadMcpTokens();
-      this._showToast("Token revoked.", "success");
+      this._showToast(
+        this._t("panel_mcp_token_revoked", "Token revoked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to revoke token: " + err.message, "error");
     } finally {
@@ -19397,7 +27356,10 @@ var SeloraAIPanel = class extends s4 {
         key: grantKey,
       });
       await this._loadApprovalGrants();
-      this._showToast("Approval revoked.", "success");
+      this._showToast(
+        this._t("panel_approval_revoked", "Approval revoked."),
+        "success",
+      );
     } catch (err) {
       this._showToast("Failed to revoke approval: " + err.message, "error");
     } finally {
@@ -19465,9 +27427,7 @@ var SeloraAIPanel = class extends s4 {
     this.requestUpdate();
   }
   _t(key, fallback) {
-    return (
-      this.hass?.localize?.(`component.selora_ai.common.${key}`) || fallback
-    );
+    return localize(this.hass, key, fallback);
   }
   _openFeedback() {
     this._showFeedbackModal = true;
@@ -19500,7 +27460,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.9.1" : "unknown",
+        integration_version: true ? "0.10.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;
@@ -19805,7 +27765,8 @@ var SeloraAIPanel = class extends s4 {
                 : "mdi:help-circle-outline";
               icon.className = "selora-area-icon";
               const label = document.createElement("span");
-              label.textContent = areaName || "Unassigned";
+              label.textContent =
+                areaName || this._t("area_unassigned", "Unassigned");
               header.append(icon, label);
               grid.appendChild(header);
             }
@@ -20175,7 +28136,9 @@ var SeloraAIPanel = class extends s4 {
   }
   async _openDeviceDetail(deviceId) {
     if (!deviceId || !this.hass) return;
-    this._deviceDetail = { name: "Loading..." };
+    this._deviceDetail = {
+      name: this._t("panel_device_loading", "Loading..."),
+    };
     this._deviceDetailLoading = true;
     try {
       const result = await this.hass.connection.sendMessagePromise({
@@ -20184,7 +28147,10 @@ var SeloraAIPanel = class extends s4 {
       });
       this._deviceDetail = result;
     } catch (err) {
-      this._deviceDetail = { name: "Error loading device", error: err.message };
+      this._deviceDetail = {
+        name: this._t("panel_device_error_loading", "Error loading device"),
+        error: err.message,
+      };
     }
     this._deviceDetailLoading = false;
     await this.updateComplete;
@@ -20437,7 +28403,7 @@ var SeloraAIPanel = class extends s4 {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:chat-outline" class="tab-icon"></ha-icon
-                >Conversations</span
+                >${this._t("panel_tab_conversations", "Conversations")}</span
               >
             </div>
             <div
@@ -20450,7 +28416,7 @@ var SeloraAIPanel = class extends s4 {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:robot-outline" class="tab-icon"></ha-icon
-                >Automations</span
+                >${this._t("panel_tab_automations", "Automations")}</span
               >
             </div>
             <div
@@ -20463,7 +28429,7 @@ var SeloraAIPanel = class extends s4 {
             >
               <span class="tab-inner"
                 ><ha-icon icon="mdi:palette-outline" class="tab-icon"></ha-icon
-                >Scenes</span
+                >${this._t("panel_tab_scenes", "Scenes")}</span
               >
             </div>
           </div>
@@ -20472,8 +28438,8 @@ var SeloraAIPanel = class extends s4 {
             this._activeTab !== "chat" || this._messages.length > 0
               ? x`<button
                 class="header-new-chat"
-                title="New chat"
-                aria-label="New chat"
+                title=${this._t("nav_new_chat", "New chat")}
+                aria-label=${this._t("nav_new_chat", "New chat")}
                 @click=${() => {
                   this._showOverflowMenu = false;
                   if (this._messages.length === 0) {
@@ -20485,14 +28451,16 @@ var SeloraAIPanel = class extends s4 {
                 }}
               >
                 <ha-icon icon="mdi:square-edit-outline"></ha-icon>
-                <span class="header-new-chat-label">New chat</span>
+                <span class="header-new-chat-label"
+                  >${this._t("nav_new_chat", "New chat")}</span
+                >
               </button>`
               : ""
           }
           <div class="overflow-btn-wrap">
             <button
               class="overflow-btn selora-menu-btn"
-              aria-label="Selora menu"
+              aria-label=${this._t("nav_selora_menu", "Selora menu")}
               @click=${(e5) => {
                 e5.stopPropagation();
                 const opening = !this._showOverflowMenu;
@@ -20516,7 +28484,7 @@ var SeloraAIPanel = class extends s4 {
                         }}
                       >
                         <ha-icon icon="mdi:chat-outline"></ha-icon>
-                        Conversations
+                        ${this._t("nav_conversations", "Conversations")}
                       </button>
                       <button
                         class="overflow-item ${this._activeTab === "automations" ? "active" : ""}"
@@ -20528,7 +28496,7 @@ var SeloraAIPanel = class extends s4 {
                         }}
                       >
                         <ha-icon icon="mdi:robot-outline"></ha-icon>
-                        Automations
+                        ${this._t("nav_automations", "Automations")}
                       </button>
                       <button
                         class="overflow-item ${this._activeTab === "scenes" ? "active" : ""}"
@@ -20540,7 +28508,7 @@ var SeloraAIPanel = class extends s4 {
                         }}
                       >
                         <ha-icon icon="mdi:palette-outline"></ha-icon>
-                        Scenes
+                        ${this._t("nav_scenes", "Scenes")}
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -20554,7 +28522,7 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:cog-outline"></ha-icon>
-                      Settings
+                      ${this._t("nav_settings", "Settings")}
                     </button>
                     <div class="overflow-divider"></div>
                     <a
@@ -20567,7 +28535,9 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:book-open-variant"></ha-icon>
-                      <span class="overflow-item-label">Documentation</span>
+                      <span class="overflow-item-label"
+                        >${this._t("nav_documentation", "Documentation")}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -20581,7 +28551,12 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:message-alert-outline"></ha-icon>
-                      <span class="overflow-item-label">Give Feedback</span>
+                      <span class="overflow-item-label"
+                        >${this._t(
+                          "feedback_button_label",
+                          "Give Feedback",
+                        )}</span
+                      >
                     </button>
                     <a
                       class="overflow-item"
@@ -20593,7 +28568,9 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:github"></ha-icon>
-                      <span class="overflow-item-label">GitHub Issues</span>
+                      <span class="overflow-item-label"
+                        >${this._t("nav_github_issues", "GitHub Issues")}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -20609,7 +28586,12 @@ var SeloraAIPanel = class extends s4 {
                       }}
                     >
                       <ha-icon icon="mdi:gitlab"></ha-icon>
-                      <span class="overflow-item-label">GitLab Repository</span>
+                      <span class="overflow-item-label"
+                        >${this._t(
+                          "nav_gitlab_repo",
+                          "GitLab Repository",
+                        )}</span
+                      >
                       <ha-icon
                         icon="mdi:open-in-new"
                         class="overflow-item-external"
@@ -20626,7 +28608,9 @@ var SeloraAIPanel = class extends s4 {
       <div class="body">
         <div class="sidebar ${this._showSidebar ? "open" : ""}" part="sidebar">
           <div class="sidebar-header">
-            <span>Conversations</span>
+            <span
+              >${this._t("panel_sidebar_conversations", "Conversations")}</span
+            >
             <div
               style="display:flex;align-items:center;gap:6px;margin-left:auto;"
             >
@@ -20643,7 +28627,7 @@ var SeloraAIPanel = class extends s4 {
                               this._selectedSessionIds = {};
                             }}
                           >
-                            Done
+                            ${this._t("panel_sidebar_done", "Done")}
                           </button>
                         `
                         : x`
@@ -20653,7 +28637,7 @@ var SeloraAIPanel = class extends s4 {
                               this._selectChatsMode = true;
                             }}
                           >
-                            Select
+                            ${this._t("panel_sidebar_select", "Select")}
                           </button>
                         `
                     }
@@ -20684,7 +28668,12 @@ var SeloraAIPanel = class extends s4 {
                         )
                       }
                     />
-                    <span>Select all</span>
+                    <span
+                      >${this._t(
+                        "panel_sidebar_select_all",
+                        "Select all",
+                      )}</span
+                    >
                   </label>
                   <button
                     class="btn-delete-selected"
@@ -20698,7 +28687,7 @@ var SeloraAIPanel = class extends s4 {
                       icon="mdi:delete-outline"
                       style="--mdc-icon-size:14px;"
                     ></ha-icon>
-                    Delete
+                    ${this._t("panel_sidebar_delete", "Delete")}
                     (${Object.values(this._selectedSessionIds).filter(Boolean).length})
                   </button>
                 </div>
@@ -20713,7 +28702,7 @@ var SeloraAIPanel = class extends s4 {
                     icon="mdi:plus"
                     style="--mdc-icon-size:16px;"
                   ></ha-icon>
-                  New Chat
+                  ${this._t("panel_sidebar_new_chat", "New Chat")}
                 </button>
               `
           }
@@ -20721,7 +28710,10 @@ var SeloraAIPanel = class extends s4 {
             ${
               this._sessions.length === 0
                 ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
-                  No conversations yet.
+                  ${this._t(
+                    "panel_sidebar_no_conversations",
+                    "No conversations yet.",
+                  )}
                 </div>`
                 : this._sessions.map(
                     (s6) => x`
@@ -20739,7 +28731,10 @@ var SeloraAIPanel = class extends s4 {
                           ? x`
                             <div class="session-item session-delete-confirm">
                               <span class="session-delete-confirm-label"
-                                >Delete?</span
+                                >${this._t(
+                                  "panel_session_delete_confirm",
+                                  "Delete?",
+                                )}</span
                               >
                               <div
                                 style="display:flex;gap:6px;margin-left:auto;"
@@ -20752,7 +28747,7 @@ var SeloraAIPanel = class extends s4 {
                                     this._confirmDeleteSession();
                                   }}
                                 >
-                                  Delete
+                                  ${this._t("panel_session_delete", "Delete")}
                                 </button>
                                 <button
                                   class="btn btn-outline btn-sm"
@@ -20762,7 +28757,7 @@ var SeloraAIPanel = class extends s4 {
                                     this._deleteConfirmSessionId = null;
                                   }}
                                 >
-                                  Cancel
+                                  ${this._t("panel_session_cancel", "Cancel")}
                                 </button>
                               </div>
                             </div>
@@ -20811,7 +28806,10 @@ var SeloraAIPanel = class extends s4 {
                                       class="session-delete"
                                       icon="mdi:delete-outline"
                                       @click=${(e5) => this._deleteSession(s6.id, e5)}
-                                      title="Delete"
+                                      title=${this._t(
+                                        "panel_session_delete_title",
+                                        "Delete",
+                                      )}
                                     ></ha-icon>
                                   `
                                   : ""
@@ -20863,7 +28861,7 @@ var SeloraAIPanel = class extends s4 {
                 style="max-width:400px;text-align:center;"
               >
                 <div style="font-size:17px;font-weight:600;margin-bottom:8px;">
-                  Delete Conversations
+                  ${this._t("panel_bulk_delete_title", "Delete Conversations")}
                 </div>
                 <div style="font-size:13px;opacity:0.7;margin-bottom:20px;">
                   Delete
@@ -20877,14 +28875,14 @@ var SeloraAIPanel = class extends s4 {
                       this._deleteConfirmSessionId = null;
                     }}
                   >
-                    Cancel
+                    ${this._t("panel_bulk_delete_cancel", "Cancel")}
                   </button>
                   <button
                     class="btn"
                     style="background:#ef4444;color:#fff;border-color:#ef4444;"
                     @click=${() => this._confirmBulkDeleteSessions()}
                   >
-                    Delete
+                    ${this._t("panel_bulk_delete_confirm", "Delete")}
                   </button>
                 </div>
               </div>

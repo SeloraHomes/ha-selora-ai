@@ -80,7 +80,9 @@ export async function _refineScene(msgIndex) {
     console.error("Failed to mark scene as refining", err);
   }
 
-  const name = scene ? scene.name : "the scene";
+  const name = scene
+    ? scene.name
+    : this._t("scene_actions_refine_default_name", "the scene");
   this._input = `Refine "${name}": `;
   this.shadowRoot.querySelector(".composer-textarea")?.focus();
 }

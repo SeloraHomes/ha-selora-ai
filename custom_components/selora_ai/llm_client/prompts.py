@@ -24,6 +24,58 @@ if TYPE_CHECKING:
 
 _LOGGER = logging.getLogger(__name__)
 
+# BCP47 / ISO-639 code → English name. Used in the system-prompt language
+# directive so the model knows which language to render its conversational
+# text in. Falls through to the raw code for locales we don't list, which
+# major models still handle correctly via the directive shape.
+_LANGUAGE_NAMES: dict[str, str] = {
+    "en": "English",
+    "fr": "French",
+    "de": "German",
+    "es": "Spanish",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "pl": "Polish",
+    "sv": "Swedish",
+    "da": "Danish",
+    "no": "Norwegian",
+    "fi": "Finnish",
+    "cs": "Czech",
+    "ru": "Russian",
+    "uk": "Ukrainian",
+    "tr": "Turkish",
+    "hu": "Hungarian",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "zh": "Chinese",
+}
+
+
+def _language_directive(language: str | None) -> str:
+    """Render a leading system-prompt directive locking the response language.
+
+    Returns the empty string for English (or missing/unknown codes) so we
+    don't bloat every prompt with a no-op. The directive is intentionally
+    blunt — models drift back to English when told politely, so we lead the
+    prompt with a hard requirement and repeat the locale name twice.
+    """
+    if not language:
+        return ""
+    base = str(language).lower().split("-")[0]
+    if base == "en":
+        return ""
+    name = _LANGUAGE_NAMES.get(base, base)
+    return (
+        f"LANGUAGE: Respond in {name}. All conversational text — explanations, "
+        f"confirmations, suggestions, follow-up questions — MUST be in {name}. "
+        "Keep entity_ids, marker tokens (`[[entity:...]]`, `[[entities:...]]`), "
+        "fenced code blocks (```automation, ```command), service names, and "
+        "JSON keys unchanged. Friendly device/area names from AVAILABLE ENTITIES "
+        "stay exactly as listed (they reflect the user's HA setup).\n\n"
+    )
+
+
 # Prompt files live next to the integration root, not inside this
 # package directory, so go up one level from `llm_client/`.
 _PROMPTS_DIR = Path(__file__).parent.parent / "prompts"
@@ -337,9 +389,12 @@ _LOW_CONTEXT_SYSTEM_PROMPTS: dict[str, str] = {
 }
 
 
-def build_minimal_architect_system_prompt(intent_hint: str = "answer") -> str:
+def build_minimal_architect_system_prompt(
+    intent_hint: str = "answer", *, language: str | None = None
+) -> str:
     """Tight per-intent system prompt for low-context providers."""
-    return _LOW_CONTEXT_SYSTEM_PROMPTS.get(intent_hint, _LOW_CONTEXT_SYSTEM_PROMPTS["answer"])
+    base = _LOW_CONTEXT_SYSTEM_PROMPTS.get(intent_hint, _LOW_CONTEXT_SYSTEM_PROMPTS["answer"])
+    return _language_directive(language) + base
 
 
 def build_minimal_chat_messages(
@@ -400,6 +455,7 @@ def build_architect_system_prompt(
     tools_available: bool = False,
     for_assist: bool = False,
     slim: bool = False,
+    language: str | None = None,
 ) -> str:
     """System prompt for the Smart Home Architect role (JSON-mode).
 
@@ -497,7 +553,8 @@ def build_architect_system_prompt(
         )
 
     return (
-        "You are Selora AI, an intelligent home automation architect.\n"
+        _language_directive(language)
+        + "You are Selora AI, an intelligent home automation architect.\n"
         "Do NOT introduce yourself or give a greeting preamble. Jump straight into helping the user.\n"
         "You have access to the current entity states and can see the conversation history for context.\n\n"
         "CLASSIFY the user's intent and respond with one of these JSON formats:\n\n"
@@ -642,7 +699,7 @@ def build_architect_system_prompt(
 
 
 def build_architect_stream_system_prompt(
-    *, tools_available: bool = False, slim: bool = False
+    *, tools_available: bool = False, slim: bool = False, language: str | None = None
 ) -> str:
     """Streaming-optimised system prompt.
 
@@ -663,7 +720,8 @@ def build_architect_stream_system_prompt(
     tool_policy = "" if slim else _load_tool_policy()
     device_knowledge = "" if slim else _load_device_knowledge()
     return (
-        "You are Selora AI, an expert Home Assistant architect and consultant.\n\n"
+        _language_directive(language)
+        + "You are Selora AI, an expert Home Assistant architect and consultant.\n\n"
         "YOUR EXPERTISE:\n"
         "- Creating and refining Home Assistant automations, scripts, and scenes\n"
         "- Device integration: Zigbee (ZHA, Zigbee2MQTT), Z-Wave (Z-Wave JS), Wi-Fi (Shelly, Kasa, Tuya, ESPHome), "

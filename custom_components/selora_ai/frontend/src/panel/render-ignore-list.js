@@ -356,7 +356,15 @@ function _renderChipGroup(title, chips) {
   `;
 }
 
-function _renderChip({ icon, label, title, onOpen, onRemove }) {
+function _renderChip({
+  host,
+  icon,
+  label,
+  kindLabel,
+  title,
+  onOpen,
+  onRemove,
+}) {
   return html`
     <span class="composer-selection-chip" title=${title || label}>
       <button
@@ -366,10 +374,16 @@ function _renderChip({ icon, label, title, onOpen, onRemove }) {
       >
         <ha-icon icon=${icon}></ha-icon>
         <span style="line-height:1;">${label}</span>
+        ${kindLabel
+          ? html`<span
+              style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
+              >${kindLabel}</span
+            >`
+          : ""}
       </button>
       <button
         type="button"
-        title="Remove label"
+        title=${host._t("ignore_list_remove_label", "Remove label")}
         @click=${(e) => {
           e.stopPropagation();
           onRemove();
@@ -389,8 +403,10 @@ function _renderDropdown(host, items, activeIndex) {
     >
       ${items.map((item, idx) => {
         let kindLabel = "";
-        if (item.kind === KIND_AREA) kindLabel = "Area";
-        else if (item.kind === KIND_HA_DEVICE) kindLabel = "Device";
+        if (item.kind === KIND_AREA)
+          kindLabel = host._t("ignore_list_dropdown_kind_area", "Area");
+        else if (item.kind === KIND_HA_DEVICE)
+          kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
         return html`
           <button
@@ -431,7 +447,7 @@ function _renderDropdown(host, items, activeIndex) {
   `;
 }
 
-function _renderInfoCallout(labelName) {
+function _renderInfoCallout(host, labelName) {
   return html`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
@@ -443,7 +459,7 @@ function _renderInfoCallout(labelName) {
           icon="mdi:information-outline"
           style="--mdc-icon-size:16px;color:var(--secondary-text-color);"
         ></ha-icon>
-        How does this work?
+        ${host._t("ignore_list_how_it_works", "How does this work?")}
       </summary>
       <div
         style="padding:0 12px 10px 36px;font-size:13px;color:var(--secondary-text-color);line-height:1.45;"
@@ -523,17 +539,22 @@ export function renderIgnoreList(host) {
   return html`
     <div class="section-card settings-section">
       <div class="section-card-header">
-        <h3>Ignore in suggestions</h3>
+        <h3>
+          ${host._t("ignore_list_section_title", "Ignore in suggestions")}
+        </h3>
       </div>
 
-      ${_renderInfoCallout(labelName)}
+      ${_renderInfoCallout(host, labelName)}
 
       <div style="position:relative;margin-top:12px;">
         <input
           class="form-select"
           type="text"
           .value=${query}
-          placeholder="Search an entity, device, or area…"
+          placeholder=${host._t(
+            "ignore_list_search_placeholder",
+            "Search an entity, device, or area…",
+          )}
           style="width:100%;box-sizing:border-box;"
           @input=${(e) => {
             host._ignoreInput = e.target.value;
@@ -561,7 +582,7 @@ export function renderIgnoreList(host) {
         ? html`<div
             style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
           >
-            Nothing ignored yet.
+            ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
           </div>`
         : html`
             <div
@@ -572,6 +593,7 @@ export function renderIgnoreList(host) {
                     "Areas",
                     tagged.areas.map((aid) =>
                       _renderChip({
+                        host,
                         icon: "mdi:floor-plan",
                         label: _areaLabel(host, aid),
                         title: `Open area · ${aid}`,
@@ -586,6 +608,7 @@ export function renderIgnoreList(host) {
                     "Devices",
                     tagged.devices.map((did) =>
                       _renderChip({
+                        host,
                         icon: "mdi:chip",
                         label: _deviceLabel(host, did),
                         title: `Open device · ${did}`,
@@ -601,6 +624,7 @@ export function renderIgnoreList(host) {
                     "Entities",
                     tagged.entities.map((eid) =>
                       _renderChip({
+                        host,
                         icon: _entityIcon(eid),
                         label: _entityLabel(host, eid),
                         title: `Open ${eid}`,

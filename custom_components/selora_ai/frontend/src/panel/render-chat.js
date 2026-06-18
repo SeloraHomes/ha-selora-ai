@@ -7,12 +7,12 @@ import { renderMarkdown, stripAutomationBlock } from "../shared/markdown.js";
 // staying power. Stepped every AUTOMATION_LABEL_INTERVAL_MS and wraps
 // — the panel re-renders on the watchdog's 5s tick so the visible
 // label keeps up without a dedicated timer.
-const AUTOMATION_LABELS = [
-  "Building automation...",
-  "Drafting triggers...",
-  "Wiring conditions...",
-  "Composing actions...",
-  "Almost ready...",
+const AUTOMATION_LABEL_KEYS = [
+  ["chat_automation_label_building", "Building automation..."],
+  ["chat_automation_label_triggers", "Drafting triggers..."],
+  ["chat_automation_label_conditions", "Wiring conditions..."],
+  ["chat_automation_label_actions", "Composing actions..."],
+  ["chat_automation_label_almost", "Almost ready..."],
 ];
 const AUTOMATION_LABEL_INTERVAL_MS = 5_000;
 import { formatTime } from "../shared/date-utils.js";
@@ -32,11 +32,11 @@ import {
   findGhostSuggestion,
 } from "./chat-autocomplete.js";
 
-const AUTOCOMPLETE_KIND_LABELS = {
-  device: "Devices",
-  area: "Areas",
-  scene: "Scenes",
-  automation: "Automations",
+const AUTOCOMPLETE_KIND_LABEL_KEYS = {
+  device: ["chat_autocomplete_kind_devices", "Devices"],
+  area: ["chat_autocomplete_kind_areas", "Areas"],
+  scene: ["chat_autocomplete_kind_scenes", "Scenes"],
+  automation: ["chat_autocomplete_kind_automations", "Automations"],
 };
 
 function _formatReplyMs(ms) {
@@ -68,7 +68,7 @@ function _formatToolArgs(args) {
   return parts.join(", ");
 }
 
-function renderToolCalls(toolCalls) {
+function renderToolCalls(host, toolCalls) {
   return html`
     <details
       class="dev-tool-calls"
@@ -81,7 +81,10 @@ function renderToolCalls(toolCalls) {
           icon="mdi:wrench-outline"
           style="--mdc-icon-size:14px;"
         ></ha-icon>
-        <span>Tools used (${toolCalls.length})</span>
+        <span
+          >${host._t("chat_tools_used", "Tools used")}
+          (${toolCalls.length})</span
+        >
       </summary>
       <div
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
@@ -106,23 +109,43 @@ function renderToolCalls(toolCalls) {
   `;
 }
 
-const WELCOME_SUGGESTIONS = [
-  {
-    label: "Turn off all lights at midnight",
-    value: "Create an automation that turns off all lights at midnight",
-    icon: "mdi:lightbulb-off-outline",
-  },
-  {
-    label: "What devices do I have?",
-    value: "What devices do I have and which ones are currently on?",
-    icon: "mdi:devices",
-  },
-  {
-    label: "Suggest automations for my home",
-    value: "Suggest useful automations based on my devices and usage patterns",
-    icon: "mdi:auto-fix",
-  },
-];
+function _welcomeSuggestions(host) {
+  return [
+    {
+      label: host._t(
+        "chat_welcome_suggestion_lights_label",
+        "Turn off all lights at midnight",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_lights_value",
+        "Create an automation that turns off all lights at midnight",
+      ),
+      icon: "mdi:lightbulb-off-outline",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_devices_label",
+        "What devices do I have?",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_devices_value",
+        "What devices do I have and which ones are currently on?",
+      ),
+      icon: "mdi:devices",
+    },
+    {
+      label: host._t(
+        "chat_welcome_suggestion_suggest_label",
+        "Suggest automations for my home",
+      ),
+      value: host._t(
+        "chat_welcome_suggestion_suggest_value",
+        "Suggest useful automations based on my devices and usage patterns",
+      ),
+      icon: "mdi:auto-fix",
+    },
+  ];
+}
 
 // "AI suggest" affordance shown under the composer in new-automation
 // mode. Asks the LLM to invent an automation idea tailored to the
@@ -143,7 +166,11 @@ function renderAutomationSuggestButton(host) {
             icon="mdi:auto-fix"
             style="--mdc-icon-size:14px;"
           ></ha-icon>`}
-      <span>${busy ? "Thinking…" : "Suggest one for me"}</span>
+      <span
+        >${busy
+          ? host._t("chat_suggest_thinking", "Thinking…")
+          : host._t("chat_suggest_one_for_me", "Suggest one for me")}</span
+      >
     </button>
   `;
 }
@@ -166,15 +193,25 @@ export function renderChat(host) {
                 />
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
                   ${host._newAutomationMode
-                    ? html`New <span class="gold-text">Automation</span>`
-                    : html`Welcome to <span class="gold-text">Selora AI</span>`}
+                    ? html`${host._t("new_automation_title_prefix", "New")}
+                        <span class="gold-text"
+                          >${host._t("new_automation_gold", "Automation")}</span
+                        >`
+                    : html`${host._t("welcome_title_prefix", "Welcome to")}
+                        <span class="gold-text">Selora AI</span>`}
                 </div>
                 <div
                   style="font-size:15px;color:var(--secondary-text-color);margin-bottom:0;"
                 >
                   ${host._newAutomationMode
-                    ? "Describe what you want to automate — mention the devices, times, or conditions involved."
-                    : "Your intelligent home automation architect"}
+                    ? host._t(
+                        "new_automation_subtitle",
+                        "Describe what you want to automate — mention the devices, times, or conditions involved.",
+                      )
+                    : host._t(
+                        "welcome_subtitle",
+                        "Your intelligent home automation architect",
+                      )}
                 </div>
 
                 ${host._llmNeedsSetup
@@ -190,18 +227,20 @@ export function renderChat(host) {
                         <div
                           style="font-size:16px;font-weight:700;margin-bottom:6px;"
                         >
-                          Get started
+                          ${host._t("get_started", "Get started")}
                         </div>
                         <div
                           style="font-size:13px;opacity:0.6;margin-bottom:16px;"
                         >
-                          Configure your LLM provider in the Settings tab to
-                          start chatting with your home.
+                          ${host._t(
+                            "get_started_body",
+                            "Configure your LLM provider in the Settings tab to start chatting with your home.",
+                          )}
                         </div>
                         <span
                           style="display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;color:#fbbf24;"
                         >
-                          Open Settings
+                          ${host._t("open_settings", "Open Settings")}
                           <ha-icon
                             icon="mdi:arrow-right"
                             style="--mdc-icon-size:16px;"
@@ -228,13 +267,21 @@ export function renderChat(host) {
                         : html`
                             <details class="welcome-quickstart">
                               <summary class="welcome-quickstart-summary">
-                                <span>Quick start</span>
+                                <span
+                                  >${host._t(
+                                    "quick_start",
+                                    "Quick start",
+                                  )}</span
+                                >
                                 <ha-icon
                                   icon="mdi:chevron-down"
                                   class="welcome-quickstart-chevron"
                                 ></ha-icon>
                               </summary>
-                              ${renderQuickActions(host, WELCOME_SUGGESTIONS)}
+                              ${renderQuickActions(
+                                host,
+                                _welcomeSuggestions(host),
+                              )}
                             </details>
                           `}
                     `}
@@ -287,8 +334,11 @@ export function renderChat(host) {
               <button
                 class="chat-jump-bottom"
                 @click=${() => host._scrollChatToBottom()}
-                title="Go to latest message"
-                aria-label="Go to latest message"
+                title=${host._t("chat_jump_to_latest", "Go to latest message")}
+                aria-label=${host._t(
+                  "chat_jump_to_latest",
+                  "Go to latest message",
+                )}
               >
                 <ha-icon icon="mdi:chevron-down"></ha-icon>
               </button>
@@ -403,7 +453,7 @@ function _measureCaretInTextarea(textarea) {
 function _updateAutocomplete(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const trigger = detectTrigger(value, caret);
+  const trigger = detectTrigger(value, caret, host.hass?.language);
   const closeIfOpen = () => {
     if (host._autocomplete?.open) {
       host._autocomplete = {
@@ -497,7 +547,7 @@ function _updateAutocomplete(host, textarea) {
 function _updateGhost(host, textarea) {
   const value = textarea.value;
   const caret = textarea.selectionStart ?? value.length;
-  const hit = findGhostSuggestion(value, caret);
+  const hit = findGhostSuggestion(value, caret, host.hass?.language);
   if (!hit) {
     host._ghost = null;
     return;
@@ -649,7 +699,10 @@ function _renderAutocomplete(host) {
   return html`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
-        const header = AUTOCOMPLETE_KIND_LABELS[kind] || "Suggestions";
+        const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
+        const header = headerKV
+          ? host._t(headerKV[0], headerKV[1])
+          : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
         return html`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
@@ -660,7 +713,10 @@ function _renderAutocomplete(host) {
         `;
       })}
       <div class="composer-autocomplete-hint">
-        ↑↓ navigate · ↵ insert · Esc dismiss
+        ${host._t(
+          "chat_autocomplete_hint",
+          "↑↓ navigate · ↵ insert · Esc dismiss",
+        )}
       </div>
     </div>
   `;
@@ -706,7 +762,7 @@ function _renderSelectionChips(host) {
             ${s.label}
             <button
               type="button"
-              title="Remove"
+              title=${host._t("chat_selection_remove", "Remove")}
               @click=${() => _removeSelection(host, idx)}
             >
               ×
@@ -908,8 +964,14 @@ function _renderComposer(host, opts = {}) {
                 }
               }}
               placeholder=${host._newAutomationMode
-                ? "Describe the automation you'd like to create…"
-                : "Ask Selora AI anything…"}
+                ? host._t(
+                    "composer_placeholder_automation",
+                    "Describe the automation you’d like to create…",
+                  )
+                : host._t(
+                    "composer_placeholder_ask",
+                    "Ask Selora AI anything…",
+                  )}
               ?disabled=${host._loading || host._streaming}
               rows="1"
             ></textarea>
@@ -920,7 +982,7 @@ function _renderComposer(host, opts = {}) {
           ? html`<button
               class="composer-send"
               @click=${() => host._stopStreaming()}
-              title="Stop generating"
+              title=${host._t("chat_stop_generating", "Stop generating")}
             >
               <ha-icon icon="mdi:stop"></ha-icon>
             </button>`
@@ -928,7 +990,7 @@ function _renderComposer(host, opts = {}) {
               class="composer-send"
               @click=${() => host._sendMessage()}
               ?disabled=${host._loading || !host._input.trim()}
-              title="Send"
+              title=${host._t("chat_send", "Send")}
             >
               <ha-icon icon="mdi:arrow-up"></ha-icon>
             </button>`}
@@ -1009,7 +1071,9 @@ export function renderMessage(host, msg, idx) {
                         Math.floor(
                           (Date.now() - startedAt) /
                             AUTOMATION_LABEL_INTERVAL_MS,
-                        ) % AUTOMATION_LABELS.length;
+                        ) % AUTOMATION_LABEL_KEYS.length;
+                      const [labelKey, labelFallback] =
+                        AUTOMATION_LABEL_KEYS[labelIdx];
                       return html`
                         <div
                           style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
@@ -1020,7 +1084,7 @@ export function renderMessage(host, msg, idx) {
                           ></div>
                           <span
                             style="font-size:13px;font-weight:500;color:#fbbf24;"
-                            >${AUTOMATION_LABELS[labelIdx]}</span
+                            >${host._t(labelKey, labelFallback)}</span
                           >
                         </div>
                       `;
@@ -1037,7 +1101,10 @@ export function renderMessage(host, msg, idx) {
                         ></div>
                         <span
                           style="font-size:13px;font-weight:500;color:#fbbf24;"
-                          >Building scene...</span
+                          >${host._t(
+                            "chat_building_scene",
+                            "Building scene...",
+                          )}</span
                         >
                       </div>
                     `
@@ -1046,7 +1113,10 @@ export function renderMessage(host, msg, idx) {
                   ? html`
                       <div style="margin-top: 10px;">
                         <mwc-button dense raised @click=${host._goToSettings}
-                          >Go to Settings</mwc-button
+                          >${host._t(
+                            "chat_go_to_settings",
+                            "Go to Settings",
+                          )}</mwc-button
                         >
                       </div>
                     `
@@ -1070,7 +1140,10 @@ export function renderMessage(host, msg, idx) {
                         ></ha-icon>
                         <span class="stream-interrupt-text"
                           >${msg._interruptReason ||
-                          "Response was cut short."}</span
+                          host._t(
+                            "chat_response_cut_short",
+                            "Response was cut short.",
+                          )}</span
                         >
                       </div>
                     `
@@ -1078,7 +1151,7 @@ export function renderMessage(host, msg, idx) {
                 ${host._config?.developer_mode &&
                 msg.tool_calls &&
                 msg.tool_calls.length
-                  ? renderToolCalls(msg.tool_calls)
+                  ? renderToolCalls(host, msg.tool_calls)
                   : ""}
               </div>
               ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
@@ -1128,13 +1201,13 @@ export function renderMessage(host, msg, idx) {
                             icon="mdi:refresh"
                             style="--mdc-icon-size:12px;"
                           ></ha-icon>
-                          Retry
+                          ${host._t("chat_retry", "Retry")}
                         </button>`
                     : ""}
                 </span>
                 <button
                   class="copy-msg-btn"
-                  title="Copy message"
+                  title=${host._t("chat_copy_message", "Copy message")}
                   @click=${(e) => host._copyMessageText(msg, e.currentTarget)}
                 >
                   <ha-icon
@@ -1147,7 +1220,7 @@ export function renderMessage(host, msg, idx) {
           `}
       ${isUser
         ? html` <div class="bubble-meta">
-            You · ${formatTime(msg.timestamp)}
+            ${host._t("chat_you", "You")} · ${formatTime(msg.timestamp)}
           </div>`
         : ""}
     </div>
@@ -1271,7 +1344,7 @@ export function renderYamlEditor(
                       icon="mdi:circle-edit-outline"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    Unsaved changes
+                    ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
                   </span>
                 `
               : html`<span style="flex:1;"></span>`}
@@ -1286,7 +1359,9 @@ export function renderYamlEditor(
                       icon="mdi:content-save"
                       style="--mdc-icon-size:13px;"
                     ></ha-icon>
-                    ${saving ? "Saving…" : "Save changes"}
+                    ${saving
+                      ? host._t("chat_yaml_saving", "Saving…")
+                      : host._t("chat_yaml_save_changes", "Save changes")}
                   </button>
                 `
               : ""}

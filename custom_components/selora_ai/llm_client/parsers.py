@@ -2269,6 +2269,8 @@ def parse_architect_response(
     hass: HomeAssistant,
     entities: list[EntitySnapshot] | None = None,
     user_message: str | None = None,
+    *,
+    language: str | None = None,
 ) -> ArchitectResponse:
     """Parse the JSON response from the architect LLM. Normalises the result
     to always include 'intent' and 'response'; for 'automation' intent
@@ -2520,6 +2522,7 @@ def parse_streamed_response(
     *,
     session_id: str | None = None,
     user_message: str | None = None,
+    language: str | None = None,
 ) -> ArchitectResponse:
     """Parse completed streamed text.
 
@@ -2636,7 +2639,9 @@ def parse_streamed_response(
                 "calls": data.get("calls", []),
             }
             if entities is not None:
-                result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
+                result = apply_command_policy(
+                    result, entities, hass=hass, session_id=session_id, language=language
+                )
             return _attach_qa(result)
         except (
             json.JSONDecodeError,
@@ -2680,7 +2685,9 @@ def parse_streamed_response(
             if "scheduled_time" in data:
                 result["scheduled_time"] = data["scheduled_time"]
             if entities is not None:
-                result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
+                result = apply_command_policy(
+                    result, entities, hass=hass, session_id=session_id, language=language
+                )
             return _attach_qa(result)
         except (
             json.JSONDecodeError,
@@ -2984,12 +2991,14 @@ def parse_streamed_response(
     # Also runs when the LLM directly emitted ``intent: "command_approval"``
     # (no tool_log needed) so we can mint a proposal_id and attach the
     # four sentinel quick-actions the chat UI needs.
-    result = synthesize_approval_from_tool_log(result, tool_log, hass)
+    result = synthesize_approval_from_tool_log(result, tool_log, hass, language=language)
 
     # Apply command safety policy if entities are available.
     # Always run the policy — even when calls is empty — so that
     # command intents with no calls get downgraded to "answer".
     if entities is not None:
-        result = apply_command_policy(result, entities, hass=hass, session_id=session_id)
+        result = apply_command_policy(
+            result, entities, hass=hass, session_id=session_id, language=language
+        )
 
     return _attach_qa(result)

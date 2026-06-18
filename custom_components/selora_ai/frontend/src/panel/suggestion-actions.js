@@ -43,7 +43,10 @@ export async function _triggerGenerateSuggestions() {
       );
     } else {
       this._showToast(
-        "Analysis complete — no new suggestions at this time",
+        this._t(
+          "suggestions_analysis_no_new",
+          "Analysis complete — no new suggestions at this time",
+        ),
         "info",
       );
     }
@@ -120,7 +123,13 @@ export async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
         action: "accepted",
       });
     }
-    this._showToast("Suggestion accepted — automation created", "success");
+    this._showToast(
+      this._t(
+        "suggestions_accepted_toast",
+        "Suggestion accepted — automation created",
+      ),
+      "success",
+    );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
       [`proactive_${suggestionId}`]: true,
@@ -138,7 +147,10 @@ export async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     this._highlightAndScrollToNew();
   } catch (err) {
     console.error("Failed to accept suggestion", err);
-    this._showToast("Failed to accept suggestion", "error");
+    this._showToast(
+      this._t("suggestions_accept_failed", "Failed to accept suggestion"),
+      "error",
+    );
   }
   this._acceptingProactive = {
     ...this._acceptingProactive,
@@ -160,7 +172,10 @@ export async function _dismissProactiveSuggestion(suggestionId) {
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
       (s) => s.suggestion_id !== suggestionId,
     );
-    this._showToast("Suggestion dismissed", "info");
+    this._showToast(
+      this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to dismiss suggestion", err);
   }
@@ -180,7 +195,10 @@ export async function _snoozeProactiveSuggestion(suggestionId) {
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
       (s) => s.suggestion_id !== suggestionId,
     );
-    this._showToast("Suggestion snoozed for 24h", "info");
+    this._showToast(
+      this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
+      "info",
+    );
   } catch (err) {
     console.error("Failed to snooze suggestion", err);
   }
@@ -199,7 +217,10 @@ export async function _triggerPatternScan() {
     await this._loadProactiveSuggestions();
   } catch (err) {
     console.error("Pattern scan failed", err);
-    this._showToast("Pattern scan failed", "error");
+    this._showToast(
+      this._t("suggestions_pattern_scan_failed", "Pattern scan failed"),
+      "error",
+    );
   }
   this._loadingProactive = false;
 }

@@ -193,7 +193,12 @@ export async function _startNewAutomationChat() {
   } catch (err) {
     console.error("Failed to start new automation chat", err);
     this._showToast(
-      "Failed to start a new automation chat: " + (err?.message || err),
+      this._t(
+        "session_toast_new_automation_chat_failed",
+        "Failed to start a new automation chat:",
+      ) +
+        " " +
+        (err?.message || err),
       "error",
     );
   }
@@ -269,6 +274,7 @@ export async function _suggestAutomationIdea() {
         "something like 'Turn off the kitchen lights when nobody is in the kitchen for 10 minutes.' " +
         "Use the human-friendly device names only. " +
         "Do not include quotes, lists, explanations, YAML, or any [[entity:…]] / [[entities:…]] markers — just the instruction.",
+      ...(this.hass?.language ? { language: this.hass.language } : {}),
     });
     // The LLM sometimes appends `[[entities:…]]` markers (it's been
     // prompted to use them in normal chat). Strip them so the user
@@ -296,7 +302,13 @@ export async function _suggestAutomationIdea() {
         ta.setSelectionRange(suggestion.length, suggestion.length);
       }
     } else {
-      this._showToast("AI didn't return a suggestion — try again.", "warning");
+      this._showToast(
+        this._t(
+          "session_toast_ai_no_suggestion",
+          "AI didn't return a suggestion — try again.",
+        ),
+        "warning",
+      );
     }
     // The /chat WS call spins up a throwaway session for the
     // one-shot prompt; clean it up so the sidebar doesn't fill with
@@ -313,7 +325,10 @@ export async function _suggestAutomationIdea() {
   } catch (err) {
     console.error("Failed to suggest automation", err);
     this._showToast(
-      "Failed to generate a suggestion — check LLM config.",
+      this._t(
+        "session_toast_suggest_failed",
+        "Failed to generate a suggestion — check LLM config.",
+      ),
       "error",
     );
   } finally {
