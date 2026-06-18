@@ -7848,7 +7848,7 @@ var fr_default = {
     nav_github_issues: "Tickets GitHub",
     nav_gitlab_repo: "D\xE9p\xF4t GitLab",
     welcome_title_prefix: "Bienvenue sur",
-    welcome_subtitle: "Votre architecte intelligent de domotique",
+    welcome_subtitle: "Votre architecte intelligent pour Home Assistant",
     new_automation_title_prefix: "Nouvelle",
     new_automation_gold: "Automatisation",
     new_automation_subtitle:
@@ -12141,6 +12141,5110 @@ var hu_default = {
   },
 };
 
+// ../translations/pt.json
+var pt_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Configurar o Selora AI",
+        description:
+          "Escolha qual backend de LLM utilizar para as sugest\xF5es de automa\xE7\xE3o.",
+        data: {
+          llm_provider: "Fornecedor de LLM",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          'O Selora AI Cloud usa a sua conta Selora \u2014 n\xE3o \xE9 necess\xE1ria nenhuma chave de API. Ap\xF3s a configura\xE7\xE3o, abra o painel do Selora AI e clique em "Associar conta Selora" para autenticar.',
+      },
+      anthropic: {
+        title: "Configura\xE7\xE3o do Anthropic (Claude)",
+        description:
+          "Introduza a sua chave de API do Anthropic. Obtenha uma em console.anthropic.com.",
+        data: {
+          anthropic_api_key: "Chave de API",
+          anthropic_model: "Modelo",
+        },
+      },
+      gemini: {
+        title: "Configura\xE7\xE3o do Google Gemini",
+        description:
+          "Introduza a sua chave de API do Google Gemini. Obtenha uma em aistudio.google.com.",
+        data: {
+          gemini_api_key: "Chave de API",
+          gemini_model: "Modelo",
+        },
+      },
+      openai: {
+        title: "Configura\xE7\xE3o do OpenAI",
+        description:
+          "Introduza a sua chave de API do OpenAI. Obtenha uma em platform.openai.com.",
+        data: {
+          openai_api_key: "Chave de API",
+          openai_model: "Modelo",
+        },
+      },
+      openrouter: {
+        title: "Configura\xE7\xE3o do OpenRouter",
+        description:
+          "Introduza a sua chave de API do OpenRouter. Obtenha uma em openrouter.ai/keys. Utilize nomes de modelo com prefixo do fornecedor, como 'anthropic/claude-sonnet-4.5'.",
+        data: {
+          openrouter_api_key: "Chave de API",
+          openrouter_model: "Modelo",
+        },
+      },
+      ollama: {
+        title: "Configura\xE7\xE3o do Ollama (Local)",
+        description:
+          "Introduza os detalhes do seu servidor Ollama local. Certifique-se de que o modelo foi descarregado.",
+        data: {
+          ollama_host: "URL do anfitri\xE3o Ollama",
+          ollama_model: "Nome do modelo",
+        },
+      },
+      selora_local: {
+        title: "Configura\xE7\xE3o do Selora AI Local",
+        description:
+          "Os Selora Hubs v\xEAm pr\xE9-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endere\xE7o abaixo.",
+        data: {
+          selora_local_host: "URL do anfitri\xE3o",
+        },
+      },
+      select_devices: {
+        title: "Selecionar dispositivos a integrar",
+        description:
+          "O Selora AI encontrou {count} dispositivos na sua rede. Atribua uma divis\xE3o para adicionar um dispositivo, ou selecione 'Ignorar' para o ignorar.\n\n{device_list}",
+      },
+      results: {
+        title: "Resultados da configura\xE7\xE3o de dispositivos",
+        description:
+          "Configura\xE7\xE3o conclu\xEDda: {succeeded} com \xEAxito, {failed} falharam, {needs_attention} requerem aten\xE7\xE3o manual.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "N\xE3o foi poss\xEDvel ligar. Verifique a sua chave de API, ou confirme se o Ollama est\xE1 em execu\xE7\xE3o e o modelo foi descarregado.",
+      invalid_auth:
+        "Credenciais do Selora Connect inv\xE1lidas. Verifique o seu email e palavra-passe.",
+      unknown: "Ocorreu um erro inesperado.",
+    },
+    abort: {
+      already_configured: "O Selora AI j\xE1 est\xE1 configurado.",
+      cannot_connect:
+        "N\xE3o foi poss\xEDvel ligar ao servi\xE7o Selora AI cloud. Tente novamente mais tarde.",
+      unknown: "Ocorreu um erro inesperado durante a configura\xE7\xE3o.",
+      llm_not_ready:
+        "O backend de LLM do Selora AI n\xE3o est\xE1 em execu\xE7\xE3o. Configure-o primeiro.",
+      no_devices_found:
+        "N\xE3o foram descobertos novos dispositivos na sua rede. Tente novamente mais tarde.",
+      no_devices_selected: "N\xE3o foram selecionados dispositivos.",
+      select_devices_failed:
+        "A integra\xE7\xE3o de dispositivos encontrou um erro inesperado. O Selora AI foi configurado sem integra\xE7\xE3o de dispositivos \u2014 pode tentar novamente mais tarde em Defini\xE7\xF5es > Dispositivos > Adicionar entrada. Consulte os registos do Home Assistant para mais detalhes.",
+    },
+  },
+  common: {
+    feedback_button_label: "Dar opini\xE3o",
+    feedback_modal_title: "Partilhar opini\xE3o",
+    feedback_privacy_notice:
+      "A opini\xE3o \xE9 an\xF3nima e n\xE3o cont\xE9m dados pessoais.",
+    feedback_textarea_placeholder:
+      "O que tem em mente? (m\xEDnimo de 10 caracteres)",
+    feedback_rating_label: "Avalia\xE7\xE3o:",
+    feedback_rating_thumbsup: "Gosto",
+    feedback_rating_thumbsdown: "N\xE3o gosto",
+    feedback_category_label: "Categoria (opcional):",
+    feedback_category_bug: "Erro",
+    feedback_category_feature: "Pedido de funcionalidade",
+    feedback_category_general: "Geral",
+    feedback_submit: "Enviar opini\xE3o",
+    feedback_submitting: "A enviar\u2026",
+    feedback_email_label: "Email (opcional):",
+    feedback_email_placeholder:
+      "o-seu@email.com \u2014 apenas se quiser uma resposta",
+    feedback_cancel: "Cancelar",
+    feedback_min_length_error: "Introduza pelo menos 10 caracteres.",
+    feedback_success: "Obrigado pela sua opini\xE3o!",
+    feedback_error:
+      "N\xE3o foi poss\xEDvel enviar a opini\xE3o \u2014 tente novamente.",
+    nav_new_chat: "Nova conversa",
+    nav_selora_menu: "Menu Selora",
+    nav_conversations: "Conversas",
+    nav_automations: "Automa\xE7\xF5es",
+    nav_scenes: "Cenas",
+    nav_settings: "Defini\xE7\xF5es",
+    nav_documentation: "Documenta\xE7\xE3o",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "Reposit\xF3rio GitLab",
+    welcome_title_prefix: "Bem-vindo ao",
+    welcome_subtitle:
+      "O seu arquiteto inteligente de automa\xE7\xE3o dom\xE9stica",
+    new_automation_title_prefix: "Nova",
+    new_automation_gold: "Automa\xE7\xE3o",
+    new_automation_subtitle:
+      "Descreva o que pretende automatizar \u2014 mencione os dispositivos, horas ou condi\xE7\xF5es envolvidos.",
+    get_started: "Come\xE7ar",
+    get_started_body:
+      "Configure o seu fornecedor de LLM no separador Defini\xE7\xF5es para come\xE7ar a conversar com a sua casa.",
+    open_settings: "Abrir defini\xE7\xF5es",
+    quick_start: "In\xEDcio r\xE1pido",
+    composer_placeholder_ask: "Pergunte qualquer coisa ao Selora AI\u2026",
+    composer_placeholder_automation:
+      "Descreva a automa\xE7\xE3o que gostaria de criar\u2026",
+    panel_quota_provider_default: "o seu fornecedor de LLM",
+    panel_quota_reached: "quota atingida.",
+    panel_quota_try_again_prefix: "Tente novamente em",
+    panel_quota_retrying_now: "A tentar novamente\u2026",
+    panel_quota_dismiss: "Dispensar",
+    panel_llm_switched_selora_cloud: "Mudou para o Selora Cloud.",
+    panel_llm_invalid_key:
+      "Chave de API inv\xE1lida ou fornecedor inacess\xEDvel.",
+    panel_llm_settings_saved: "Defini\xE7\xF5es de LLM guardadas.",
+    panel_advanced_settings_saved: "Defini\xE7\xF5es avan\xE7adas guardadas.",
+    panel_linking_failed: "A associa\xE7\xE3o falhou.",
+    panel_linking_timed_out:
+      "A associa\xE7\xE3o expirou. Tente novamente \u2014 certifique-se de que conclui o in\xEDcio de sess\xE3o em 10 minutos.",
+    panel_linking_start_failed:
+      "N\xE3o foi poss\xEDvel iniciar a associa\xE7\xE3o.",
+    panel_connect_linked_success: "Selora Connect associado com \xEAxito.",
+    panel_unlink_connect_confirm:
+      "Desassociar o Selora Connect?\n\nAs ferramentas MCP externas (Openclaw, Claude Desktop, Cursor, Windsurf) perder\xE3o o acesso at\xE9 voltar a associar.",
+    panel_connect_unlinked: "Selora Connect desassociado.",
+    panel_cloud_linked_success: "Selora Cloud associado com \xEAxito.",
+    panel_unlink_cloud_confirm:
+      "Desassociar o Selora Cloud?\n\nAs sugest\xF5es de conversa e de automa\xE7\xE3o ir\xE3o parar at\xE9 voltar a associar a sua conta nas Defini\xE7\xF5es.",
+    panel_cloud_unlinked: "Selora Cloud desassociado.",
+    panel_mcp_token_created: "Token MCP criado.",
+    panel_mcp_token_revoked: "Token revogado.",
+    panel_approval_revoked: "Aprova\xE7\xE3o revogada.",
+    panel_device_loading: "A carregar...",
+    panel_device_error_loading: "Erro ao carregar o dispositivo",
+    panel_tab_conversations: "Conversas",
+    panel_tab_automations: "Automa\xE7\xF5es",
+    panel_tab_scenes: "Cenas",
+    panel_sidebar_conversations: "Conversas",
+    panel_sidebar_done: "Conclu\xEDdo",
+    panel_sidebar_select: "Selecionar",
+    panel_sidebar_select_all: "Selecionar tudo",
+    panel_sidebar_delete: "Eliminar",
+    panel_sidebar_new_chat: "Nova conversa",
+    panel_sidebar_no_conversations: "Ainda n\xE3o h\xE1 conversas.",
+    panel_session_delete_confirm: "Eliminar?",
+    panel_session_delete: "Eliminar",
+    panel_session_cancel: "Cancelar",
+    panel_session_delete_title: "Eliminar",
+    panel_bulk_delete_title: "Eliminar conversas",
+    panel_bulk_delete_cancel: "Cancelar",
+    panel_bulk_delete_confirm: "Eliminar",
+    chat_suggest_thinking: "A pensar\u2026",
+    chat_suggest_one_for_me: "Sugerir uma para mim",
+    chat_jump_to_latest: "Ir para a mensagem mais recente",
+    chat_autocomplete_hint:
+      "\u2191\u2193 navegar \xB7 \u21B5 inserir \xB7 Esc dispensar",
+    chat_selection_remove: "Remover",
+    chat_stop_generating: "Parar de gerar",
+    chat_send: "Enviar",
+    chat_building_scene: "A criar cena...",
+    chat_go_to_settings: "Ir para as defini\xE7\xF5es",
+    chat_response_cut_short: "A resposta foi interrompida.",
+    chat_retry: "Repetir",
+    chat_copy_message: "Copiar mensagem",
+    chat_you: "Voc\xEA",
+    chat_yaml_unsaved_changes: "Altera\xE7\xF5es n\xE3o guardadas",
+    chat_yaml_saving: "A guardar\u2026",
+    chat_yaml_save_changes: "Guardar altera\xE7\xF5es",
+    chat_tools_used: "Ferramentas utilizadas",
+    chat_automation_label_building: "A criar automa\xE7\xE3o...",
+    chat_automation_label_triggers: "A elaborar acionadores...",
+    chat_automation_label_conditions: "A ligar condi\xE7\xF5es...",
+    chat_automation_label_actions: "A compor a\xE7\xF5es...",
+    chat_automation_label_almost: "Quase pronto...",
+    chat_autocomplete_kind_devices: "Dispositivos",
+    chat_autocomplete_kind_areas: "\xC1reas",
+    chat_autocomplete_kind_scenes: "Cenas",
+    chat_autocomplete_kind_automations: "Automa\xE7\xF5es",
+    chat_autocomplete_kind_suggestions: "Sugest\xF5es",
+    chat_welcome_suggestion_lights_label:
+      "Desligar todas as luzes \xE0 meia-noite",
+    chat_welcome_suggestion_lights_value:
+      "Criar uma automa\xE7\xE3o que desliga todas as luzes \xE0 meia-noite",
+    chat_welcome_suggestion_devices_label: "Que dispositivos tenho?",
+    chat_welcome_suggestion_devices_value:
+      "Que dispositivos tenho e quais est\xE3o atualmente ligados?",
+    chat_welcome_suggestion_suggest_label:
+      "Sugerir automa\xE7\xF5es para a minha casa",
+    chat_welcome_suggestion_suggest_value:
+      "Sugerir automa\xE7\xF5es \xFAteis com base nos meus dispositivos e padr\xF5es de utiliza\xE7\xE3o",
+    settings_view_token_usage_title: "Ver utiliza\xE7\xE3o de tokens",
+    settings_usage_label: "Utiliza\xE7\xE3o",
+    settings_view_usage_label: "Ver utiliza\xE7\xE3o",
+    settings_provider_select_placeholder: "Selecionar...",
+    settings_doc_banner_title: "Guia de configura\xE7\xE3o",
+    settings_doc_banner_desc:
+      "Saiba como configurar fornecedores de LLM, acesso remoto e tokens MCP.",
+    settings_llm_provider_heading: "Fornecedor de LLM",
+    settings_provider_label: "Fornecedor",
+    settings_selora_account_label: "Conta Selora",
+    settings_selora_cloud_backend_desc:
+      "O Selora Cloud est\xE1 a fornecer o seu backend de LLM.",
+    settings_unlink_button: "Desassociar",
+    settings_signin_selora_desc:
+      "Inicie sess\xE3o com a sua conta Selora para utilizar o backend de LLM alojado. N\xE3o \xE9 necess\xE1ria nenhuma chave de API.",
+    settings_selora_cloud_url_label: "URL do Selora Cloud",
+    settings_selora_cloud_url_hint:
+      "O OAuth e as conclus\xF5es de conversa utilizam ambos este URL. Guardado automaticamente quando associa.",
+    settings_open_signin_page:
+      "Abrir p\xE1gina de in\xEDcio de sess\xE3o \u2192",
+    settings_preparing_label: "A preparar\u2026",
+    settings_link_selora_account_button: "Associar conta Selora",
+    settings_signin_new_tab_hint:
+      "Abre num novo separador. Ap\xF3s iniciar sess\xE3o, regresse a esta p\xE1gina \u2014 o painel atualiza-se automaticamente.",
+    settings_api_key_label: "Chave de API",
+    settings_click_replace_key_title: "Clique para substituir a chave",
+    settings_enter_new_key_label: "Introduzir nova chave",
+    settings_enter_api_key_label: "Introduzir chave de API",
+    settings_model_label: "Modelo",
+    settings_selora_local_desc:
+      "O Selora AI escolhe automaticamente o modelo especialista certo (comandos, automa\xE7\xF5es, respostas, esclarecimentos) por cada pedido.",
+    settings_ollama_host_label: "Anfitri\xE3o",
+    settings_selora_local_show_advanced: "Mostrar op\xE7\xF5es avan\xE7adas",
+    settings_selora_local_hide_advanced: "Ocultar op\xE7\xF5es avan\xE7adas",
+    settings_selora_local_advanced_desc:
+      "Os Selora Hubs v\xEAm pr\xE9-configurados. Para utilizar um llama-server auto-alojado a executar o modelo Selora AI, introduza o seu endere\xE7o abaixo.",
+    settings_selora_local_host_label: "Anfitri\xE3o",
+    settings_selora_local_auto_detected_prefix: "Detetado automaticamente:",
+    settings_selora_local_auto_detected_none: "nenhum",
+    settings_validating_label: "A validar\u2026",
+    settings_save_button: "Guardar",
+    settings_mcp_server_heading: "Servidor MCP",
+    settings_mcp_server_subtitle:
+      "Exponha a sua casa a ferramentas de IA externas como Openclaw, Claude Desktop, Cursor ou Windsurf.",
+    settings_connect_via_selora_label: "Ligar atrav\xE9s da conta Selora",
+    settings_connect_via_selora_desc:
+      "Torna o seu servidor MCP acess\xEDvel a ferramentas externas",
+    settings_mcp_url_copied_toast:
+      "URL MCP copiado para a \xE1rea de transfer\xEAncia",
+    settings_connect_server_url_label: "URL do servidor Connect",
+    settings_mcp_tokens_section_title: "TOKENS MCP",
+    settings_mcp_tokens_desc:
+      "Os tokens MCP s\xE3o uma alternativa ao Selora Connect. Utilize-os para ferramentas que n\xE3o suportam OAuth ou quando prefere autentica\xE7\xE3o baseada em tokens.",
+    settings_no_tokens_yet: "Ainda n\xE3o h\xE1 tokens.",
+    settings_add_token_button: "Adicionar token",
+    settings_command_approvals_heading: "Aprova\xE7\xF5es de comandos",
+    settings_advanced_settings_heading: "Defini\xE7\xF5es avan\xE7adas",
+    settings_background_services_title: "SERVI\xC7OS EM SEGUNDO PLANO",
+    settings_data_collector_label: "Recoletor de dados (an\xE1lise por IA)",
+    settings_data_collector_desc:
+      "Fornece o hist\xF3rico de entidades ao Selora AI",
+    settings_mode_label: "Modo",
+    settings_mode_continuous: "Cont\xEDnuo",
+    settings_mode_scheduled_window: "Janela agendada",
+    settings_interval_seconds_label: "Intervalo (s)",
+    settings_start_hhmm_label: "In\xEDcio (HH:MM)",
+    settings_end_hhmm_label: "Fim (HH:MM)",
+    settings_network_discovery_label: "Descoberta de rede",
+    settings_network_discovery_desc:
+      "Analisa a rede local em busca de novos dispositivos",
+    settings_pattern_detection_label: "Dete\xE7\xE3o de padr\xF5es",
+    settings_pattern_detection_desc:
+      "Deteta padr\xF5es de utiliza\xE7\xE3o recorrentes e prop\xF5e automa\xE7\xF5es",
+    settings_auto_remove_stale_label:
+      "Remover automaticamente automa\xE7\xF5es obsoletas",
+    settings_developer_mode_label: "Modo de programador",
+    settings_developer_mode_desc:
+      "Exp\xF5e os payloads brutos das entidades e registos de depura\xE7\xE3o",
+    settings_dev_mode_save_failed_toast:
+      "N\xE3o foi poss\xEDvel guardar o modo de programador.",
+    settings_saving_label: "A guardar\u2026",
+    settings_no_approvals_yet_prefix:
+      "Ainda n\xE3o h\xE1 aprova\xE7\xF5es guardadas. Da pr\xF3xima vez que o Selora perguntar antes de executar algo arriscado, clique em",
+    settings_no_approvals_always_word: "Sempre",
+    settings_no_approvals_yet_suffix: "para a memorizar aqui.",
+    settings_per_entity_approval_title: "Aprova\xE7\xE3o por entidade",
+    settings_wildcard_approval_title:
+      "Car\xE1cter universal \u2014 aplica-se a todas as entidades deste servi\xE7o",
+    settings_approval_all_label: "todas",
+    settings_token_created_heading: "Token criado",
+    settings_token_created_desc:
+      "Copie este token agora \u2014 n\xE3o ser\xE1 mostrado novamente.",
+    settings_token_copied_toast:
+      "Token copiado para a \xE1rea de transfer\xEAncia",
+    settings_done_button: "Conclu\xEDdo",
+    settings_create_mcp_token_heading: "Criar token MCP",
+    settings_token_name_label: "Nome",
+    settings_token_name_placeholder: "ex. Claude Desktop",
+    settings_permission_level_label: "N\xEDvel de permiss\xE3o",
+    settings_perm_read_only: "Apenas leitura",
+    settings_perm_admin_all: "Administrador (todas as ferramentas)",
+    settings_perm_custom: "Personalizado (selecionar ferramentas)",
+    settings_allowed_tools_label: "Ferramentas permitidas",
+    settings_admin_badge: "administrador",
+    settings_expiration_label: "Expira\xE7\xE3o (opcional)",
+    settings_expiry_never: "Nunca expira",
+    settings_expiry_7_days: "7 dias",
+    settings_expiry_30_days: "30 dias",
+    settings_expiry_90_days: "90 dias",
+    settings_expiry_1_year: "1 ano",
+    settings_cancel_button: "Cancelar",
+    settings_create_token_button: "Criar token",
+    automations_flow_branch_if: "Se",
+    automations_flow_branch_else_if: "Sen\xE3o se",
+    automations_flow_branch_otherwise: "Caso contr\xE1rio",
+    automations_flow_branch_in_parallel: "Em paralelo",
+    automations_flow_branch_in_sequence: "Em sequ\xEAncia",
+    automations_flow_repeat_while:
+      "Repetir enquanto a condi\xE7\xE3o se verificar",
+    automations_flow_repeat_until:
+      "Repetir at\xE9 a condi\xE7\xE3o ser cumprida",
+    automations_flow_repeat: "Repetir",
+    automations_flow_label_trigger: "Acionador",
+    automations_flow_label_condition: "Condi\xE7\xE3o",
+    automations_flow_label_actions: "A\xE7\xF5es",
+    automations_badge_enabled: "Ativada",
+    automations_badge_saved: "Guardada",
+    automations_yaml_toggle_hide: "Ocultar YAML",
+    automations_yaml_toggle_view: "Ver YAML",
+    automations_yaml_toggle_edit: "Editar YAML",
+    automations_proposal_declined_title: "Automa\xE7\xE3o recusada",
+    automations_proposal_declined_body:
+      "Dispensada. Pode aperfei\xE7o\xE1-la respondendo abaixo.",
+    automations_badge_being_refined: "A ser aperfei\xE7oada",
+    automations_badge_proposal: "Proposta",
+    automations_proposal_elevated_risk:
+      "Recomenda-se a revis\xE3o de risco elevado.",
+    automations_proposal_yaml_edits_note:
+      "As suas edi\xE7\xF5es de YAML ser\xE3o utilizadas quando aceitar.",
+    automations_action_run_tooltip:
+      "Acione as a\xE7\xF5es agora para verificar se funcionam",
+    automations_action_running: "A executar\u2026",
+    automations_action_run_now: "Executar agora",
+    automations_action_open_in_ha_tooltip:
+      "Abrir esta automa\xE7\xE3o no Home Assistant",
+    automations_action_view_in_ha: "Ver no HA",
+    automations_action_enabling: "A ativar\u2026",
+    automations_action_enable_automation: "Ativar automa\xE7\xE3o",
+    automations_elevated_risk_note:
+      "Utiliza a\xE7\xF5es de risco elevado \u2014 reveja o fluxo e o YAML antes de ativar.",
+    automations_action_accept_and_save: "Aceitar e guardar",
+    automations_section_title: "As suas automa\xE7\xF5es",
+    automations_filter_placeholder: "Filtrar automa\xE7\xF5es\u2026",
+    automations_sort_recent: "Atividade recente",
+    automations_sort_alpha: "Alfab\xE9tica",
+    automations_sort_enabled_first: "Ativadas primeiro",
+    automations_llm_setup_required_tooltip:
+      "Configure primeiro um fornecedor de LLM",
+    automations_new_automation_button: "Nova automa\xE7\xE3o",
+    automations_status_tab_all: "Todas",
+    automations_status_tab_enabled: "Ativadas",
+    automations_status_tab_disabled: "Desativadas",
+    automations_status_tab_stale: "Obsoletas",
+    automations_bulk_select_all: "Selecionar tudo",
+    automations_bulk_done: "Conclu\xEDdo",
+    automations_bulk_edit: "Edi\xE7\xE3o em massa",
+    automations_bulk_working: "A processar\u2026",
+    automations_bulk_enable_all: "Ativar todas",
+    automations_bulk_disable_all: "Desativar todas",
+    automations_bulk_delete_selected: "Eliminar selecionadas",
+    automations_bulk_clear: "Limpar",
+    automations_last_run_disabled: "Desativada",
+    automations_last_run_never: "Nunca",
+    automations_needs_attention_pill: "Requer aten\xE7\xE3o",
+    automations_rename_save_tooltip: "Guardar",
+    automations_last_run_prefix: "\xDAltima execu\xE7\xE3o:",
+    automations_last_run_prefix_inline: "\xDAltima execu\xE7\xE3o:",
+    automations_toggle_enabled: "Ativada",
+    automations_toggle_disabled: "Desativada",
+    automations_toggle_unavailable: "Indispon\xEDvel",
+    automations_toast_toggle_unresolved:
+      "N\xE3o foi poss\xEDvel alternar: o id da automa\xE7\xE3o n\xE3o foi resolvido. Recarregue e tente novamente.",
+    automations_more_actions_tooltip: "Mais a\xE7\xF5es",
+    automations_burger_loading: "A carregar\u2026",
+    automations_burger_refine_in_chat: "Aperfei\xE7oar na conversa",
+    automations_burger_rename: "Mudar o nome",
+    automations_burger_view_in_ha: "Ver no HA",
+    automations_burger_deleting: "A eliminar\u2026",
+    automations_burger_delete: "Eliminar",
+    automations_card_tab_flow: "Fluxo",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "Hist\xF3rico",
+    automations_pagination_prev: "\u2039 Anterior",
+    automations_pagination_per_page: "Por p\xE1gina:",
+    automations_pagination_next: "Seguinte \u203A",
+    automations_empty_state: "Ainda n\xE3o h\xE1 automa\xE7\xF5es.",
+    automations_unavailable_modal_title: "Automa\xE7\xE3o indispon\xEDvel",
+    automations_unavailable_default_name: "Esta automa\xE7\xE3o",
+    automations_unavailable_modal_intro:
+      "est\xE1 marcada como indispon\xEDvel pelo Home Assistant. Isto geralmente significa:",
+    automations_unavailable_reason_entity:
+      "Um acionador ou condi\xE7\xE3o refere-se a uma entidade que j\xE1 n\xE3o existe",
+    automations_unavailable_reason_yaml:
+      "O YAML da automa\xE7\xE3o tem um erro de configura\xE7\xE3o",
+    automations_unavailable_reason_integration:
+      "Uma integra\xE7\xE3o necess\xE1ria foi removida ou n\xE3o est\xE1 carregada",
+    automations_unavailable_modal_advice:
+      "Abra a automa\xE7\xE3o nas Defini\xE7\xF5es do Home Assistant para rever e corrigir a configura\xE7\xE3o.",
+    automations_unavailable_modal_close: "Fechar",
+    automations_unavailable_modal_edit_states: "Editar estados",
+    automations_unavailable_modal_open_in_automations:
+      "Abrir em Automa\xE7\xF5es",
+    scenes_card_created_title: "Cena criada",
+    scenes_card_saved_status: "Guardada no Home Assistant",
+    scenes_card_activate_button: "Ativar",
+    scenes_card_view_in_ha_button: "Ver no HA",
+    scenes_card_declined_title: "Cena recusada",
+    scenes_card_declined_message:
+      "Dispensada. Pode aperfei\xE7o\xE1-la respondendo abaixo.",
+    scenes_card_refining_badge: "A ser aperfei\xE7oada",
+    scenes_hide_yaml: "Ocultar YAML",
+    scenes_view_yaml: "Ver YAML",
+    scenes_card_proposal_badge: "Proposta",
+    scenes_card_accept_save_button: "Aceitar e guardar",
+    scenes_section_title: "As suas cenas",
+    scenes_filter_placeholder: "Filtrar cenas\u2026",
+    scenes_sort_recent: "Atualizadas recentemente",
+    scenes_sort_alpha: "Alfab\xE9tica",
+    scenes_sort_size: "Mais entidades",
+    scenes_llm_needs_setup_tooltip: "Configure primeiro um fornecedor de LLM",
+    scenes_new_scene_button: "Nova cena",
+    scenes_status_tab_all: "Todas",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "Manual",
+    scenes_activate_scene_tooltip: "Ativar cena",
+    scenes_activate_button: "Ativar",
+    scenes_more_actions_tooltip: "Mais a\xE7\xF5es",
+    scenes_loading_label: "A carregar\u2026",
+    scenes_refine_in_chat_button: "Aperfei\xE7oar na conversa",
+    scenes_open_in_ha_button: "Abrir no HA",
+    scenes_deleting_label: "A eliminar\u2026",
+    scenes_delete_button: "Eliminar",
+    scenes_no_entity_details:
+      "N\xE3o h\xE1 detalhes de entidades dispon\xEDveis \u2014 abra a cena no Home Assistant para a inspecionar.",
+    scenes_yaml_unavailable_comment:
+      "# YAML n\xE3o dispon\xEDvel \u2014 abra a cena no Home Assistant para a visualizar.",
+    scenes_empty_state:
+      "N\xE3o foram encontradas cenas. Pe\xE7a ao Selora para criar uma.",
+    scenes_delete_modal_fallback_name: "esta cena",
+    scenes_delete_modal_title: "Eliminar cena",
+    scenes_delete_modal_prefix: "Eliminar",
+    scenes_delete_modal_suffix:
+      "? Isto remove a cena do Home Assistant e n\xE3o pode ser anulado.",
+    scenes_delete_modal_cancel_button: "Cancelar",
+    scenes_delete_modal_confirm_button: "Eliminar",
+    usage_pricing_invalid_error:
+      "Os pre\xE7os t\xEAm de ser n\xFAmeros n\xE3o negativos.",
+    usage_pricing_saved_toast: "Substitui\xE7\xE3o de pre\xE7os guardada.",
+    usage_pricing_save_failed: "N\xE3o foi poss\xEDvel guardar os pre\xE7os:",
+    usage_pricing_reset_toast: "Reposto para os pre\xE7os predefinidos.",
+    usage_pricing_reset_failed: "N\xE3o foi poss\xEDvel repor os pre\xE7os:",
+    usage_pricing_title: "Pre\xE7os",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "A utiliza\xE7\xE3o do Selora Cloud \xE9 medida e faturada na sua conta Selora Homes. N\xE3o \xE9 contabilizada nos sensores ou gr\xE1ficos desta integra\xE7\xE3o.",
+    usage_pricing_view_cloud_link:
+      "Ver utiliza\xE7\xE3o na sua conta Selora Homes",
+    usage_pricing_ollama_help:
+      "O Ollama \xE9 executado localmente \u2014 sem custos de tokens a controlar.",
+    usage_pricing_selora_local_help:
+      "O Selora AI Local \xE9 executado no seu hardware \u2014 sem custos de tokens a controlar.",
+    usage_pricing_no_model_help:
+      "Configure um fornecedor de LLM e um modelo nas Defini\xE7\xF5es para definir pre\xE7os personalizados.",
+    usage_pricing_intro_prefix:
+      "As estimativas de custo utilizam estas tarifas por milh\xE3o de tokens. As predefini\xE7\xF5es da Anthropic prov\xEAm da",
+    usage_pricing_official_page_link: "p\xE1gina oficial de pre\xE7os",
+    usage_pricing_intro_suffix:
+      "; substitua aqui se tiver tarifas negociadas ou se estiver a acompanhar um modelo diferente.",
+    usage_pricing_input_label: "Entrada",
+    usage_pricing_default_prefix: "predefini\xE7\xE3o",
+    usage_pricing_no_default: "sem predefini\xE7\xE3o incorporada",
+    usage_pricing_output_label: "Sa\xEDda",
+    usage_pricing_input_field_label: "Entrada ($/MTok)",
+    usage_pricing_output_field_label: "Sa\xEDda ($/MTok)",
+    usage_pricing_cancel_button: "Cancelar",
+    usage_pricing_save_button: "Guardar",
+    usage_pricing_edit_override_button: "Editar substitui\xE7\xE3o",
+    usage_pricing_set_custom_button: "Definir pre\xE7os personalizados",
+    usage_pricing_reset_default_button: "Repor predefini\xE7\xE3o",
+    usage_snippet_copied_label: "Copiado!",
+    usage_snippet_copy_button: "Copiar",
+    usage_snippet_help:
+      "O seletor visual de cart\xF5es tamb\xE9m encontrar\xE1 estes sensores ap\xF3s a primeira compila\xE7\xE3o hor\xE1ria do Recorder.",
+    usage_back_to_settings: "Voltar \xE0s defini\xE7\xF5es",
+    usage_token_usage_title: "Utiliza\xE7\xE3o de tokens",
+    usage_empty_title: "Ainda n\xE3o h\xE1 dados de utiliza\xE7\xE3o.",
+    usage_empty_body:
+      "A utiliza\xE7\xE3o aparecer\xE1 ap\xF3s a primeira chamada de LLM. Experimente conversar com o Selora AI ou executar um ciclo de sugest\xF5es. Se j\xE1 utilizou o Selora AI e continua a ver isto, reinicie o Home Assistant para que os novos sensores sejam registados.",
+    usage_totals_title: "Totais",
+    usage_tile_cost_label: "Custo",
+    usage_tile_cost_sub: "estimativa em USD",
+    usage_tile_calls_label: "Chamadas",
+    usage_tile_tokens_in_label: "Tokens de entrada",
+    usage_tile_tokens_out_label: "Tokens de sa\xEDda",
+    usage_by_period_title: "Por per\xEDodo",
+    usage_period_today: "Hoje",
+    usage_period_last_7_days: "\xDAltimos 7 dias",
+    usage_period_this_month: "Este m\xEAs",
+    usage_period_note_filtered:
+      "Os intervalos de per\xEDodo prov\xEAm do armazenamento de utiliza\xE7\xE3o da integra\xE7\xE3o (mantido durante 30 dias).",
+    usage_period_note_unfiltered:
+      "Os intervalos de per\xEDodo prov\xEAm das estat\xEDsticas de longo prazo do Home Assistant, que s\xE3o compiladas de hora a hora. A nova atividade pode demorar at\xE9 uma hora a aparecer aqui.",
+    usage_where_tokens_go_title: "Para onde v\xE3o os tokens",
+    usage_where_tokens_last_prefix: "\xDAltimos",
+    usage_where_tokens_resets_suffix: "\xB7 rep\xF5e-se ao reiniciar o HA",
+    usage_group_by_kind_button: "Por tipo",
+    usage_group_by_provider_button: "Por fornecedor",
+    usage_loading: "A carregar\u2026",
+    usage_no_calls_recorded: "Ainda n\xE3o h\xE1 chamadas registadas.",
+    usage_recent_calls_title: "Chamadas recentes",
+    usage_dashboard_sensors_title: "Sensores do painel",
+    usage_dashboard_sensors_help_prefix:
+      "Reinicie o Home Assistant para registar os sensores de utiliza\xE7\xE3o. Depois de registados, pode adicion\xE1-los a qualquer painel com um cart\xE3o",
+    usage_dashboard_sensors_help_suffix: ".",
+    usage_add_to_dashboard_title: "Adicionar ao seu painel",
+    usage_add_to_dashboard_help:
+      "Cada m\xE9trica tem uma escala diferente \u2014 crie um cart\xE3o por sensor. Escolha uma m\xE9trica, copie o YAML e cole-o no editor de YAML de um painel.",
+    usage_filter_all_providers: "Todos os fornecedores",
+    usage_filter_all_models: "Todos os modelos",
+    usage_filter_no_model: "(sem modelo)",
+    suggestions_tab_flow: "Fluxo",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "A criar\u2026",
+    suggestions_btn_accept: "Aceitar",
+    suggestions_btn_dismissing: "A dispensar\u2026",
+    suggestions_btn_dismiss: "Dispensar",
+    suggestions_section_title: "Sugerido para si",
+    suggestions_badge_new: "novo",
+    suggestions_llm_setup_required: "Configure primeiro um fornecedor de LLM",
+    suggestions_btn_scanning: "A analisar\u2026",
+    suggestions_btn_scan_now: "Analisar agora",
+    suggestions_btn_analyzing: "A analisar\u2026",
+    suggestions_btn_generate: "Gerar",
+    suggestions_section_subtitle:
+      "Com base nos padr\xF5es observados e na an\xE1lise por IA na sua casa.",
+    suggestions_empty_state:
+      'Ainda n\xE3o h\xE1 sugest\xF5es. Toque em "Gerar" para analisar a sua casa.',
+    suggestions_filter_placeholder: "Filtrar sugest\xF5es\u2026",
+    suggestions_filter_all: "Todas",
+    suggestions_filter_patterns: "Padr\xF5es",
+    suggestions_filter_ai: "IA",
+    suggestions_sort_recent: "Recente",
+    suggestions_sort_alpha: "Alfab\xE9tica",
+    suggestions_bulk_selected: "selecionadas",
+    suggestions_bulk_accept_selected: "Aceitar selecionadas",
+    suggestions_bulk_dismiss_selected: "Dispensar selecionadas",
+    suggestions_bulk_done: "Conclu\xEDdo",
+    suggestions_bulk_edit: "Edi\xE7\xE3o em massa",
+    suggestions_show_more: "Mostrar mais sugest\xF5es",
+    version_history_loading: "A carregar\u2026",
+    version_history_empty: "Ainda n\xE3o h\xE1 hist\xF3rico de vers\xF5es.",
+    version_history_current_badge: "Atual",
+    version_history_hide_yaml: "Ocultar YAML",
+    version_history_view_yaml: "Ver YAML",
+    version_history_restoring: "A restaurar\u2026",
+    version_history_restore_button: "Restaurar esta vers\xE3o",
+    version_history_no_yaml_stored: "(nenhum YAML armazenado)",
+    version_history_compare_title: "Comparar vers\xF5es",
+    version_history_version_a_label: "Vers\xE3o A (mais recente):",
+    version_history_version_b_label: "Vers\xE3o B (mais antiga):",
+    version_history_loading_diff: "A carregar diferen\xE7as\u2026",
+    version_history_no_diff: "N\xE3o foram encontradas diferen\xE7as.",
+    device_detail_loading: "A carregar detalhes do dispositivo...",
+    device_detail_close: "Fechar",
+    device_detail_entities_heading: "Entidades",
+    device_detail_state_history_heading: "Hist\xF3rico de estados (24h)",
+    device_detail_linked_automations_heading: "Automa\xE7\xF5es associadas",
+    device_detail_detected_patterns_heading: "Padr\xF5es detetados",
+    device_detail_confidence_label: "confian\xE7a",
+    ignore_list_remove_label: "Remover etiqueta",
+    ignore_list_chip_kind_device: "dispositivo",
+    ignore_list_chip_kind_area: "\xE1rea",
+    ignore_list_dropdown_kind_area: "\xC1rea",
+    ignore_list_dropdown_kind_device: "Dispositivo",
+    ignore_list_how_it_works: "Como funciona isto?",
+    ignore_list_section_title: "Ignorar nas sugest\xF5es",
+    ignore_list_search_placeholder:
+      "Procurar uma entidade, dispositivo ou \xE1rea\u2026",
+    ignore_list_empty_state: "Ainda nada foi ignorado.",
+    approval_risk_explainer_low:
+      "Risco baixo: impacto menor ou totalmente revers\xEDvel (som, notifica\xE7\xF5es, iniciar/parar o aspirador).",
+    approval_risk_explainer_medium:
+      "Risco m\xE9dio: efeitos secund\xE1rios not\xE1veis que poder\xE1 n\xE3o querer anular (armar o alarme, trancar uma porta, executar um script de utilizador).",
+    approval_risk_explainer_high:
+      "Risco elevado: acesso f\xEDsico, seguran\xE7a ou impacto ao n\xEDvel do anfitri\xE3o (destrancar uma porta, desarmar o alarme, executar comandos de shell).",
+    approval_scope_all_matching: "Todas as entidades correspondentes",
+    approval_scope_just_these: "Apenas estas entidades",
+    approval_status_approved: "Aprovado",
+    approval_status_denied: "Recusado",
+    approval_working: "A processar\u2026",
+    approval_required_title: "Aprova\xE7\xE3o necess\xE1ria",
+    approval_scope_label: "Para a sess\xE3o / Sempre:",
+    approval_scope_button_title:
+      "Clique para alternar entre limitar a concess\xE3o apenas a esta entidade, ou a todas as entidades deste servi\xE7o.",
+    quick_actions_approve_once_label: "Permitir uma vez",
+    quick_actions_approve_once_desc: "Apenas este pedido",
+    quick_actions_approve_session_label: "Para esta conversa",
+    quick_actions_approve_session_desc:
+      "Permitir durante o resto desta conversa",
+    quick_actions_approve_always_label: "Sempre",
+    quick_actions_approve_always_desc: "Memorizar esta aprova\xE7\xE3o",
+    quick_actions_deny_label: "Recusar",
+    quick_actions_deny_desc: "N\xE3o executar este pedido",
+    stale_modal_title: "Automa\xE7\xF5es obsoletas",
+    stale_select_all: "Selecionar tudo",
+    stale_last_triggered_label: "\xDAltima ativa\xE7\xE3o:",
+    stale_never: "Nunca",
+    stale_keep_button: "Manter",
+    stale_close_button: "Fechar",
+    stale_state_label: "Estado:",
+    stale_state_unknown: "desconhecido",
+    stale_back_button: "Voltar",
+    stale_remove_confirm: "Remover esta automa\xE7\xE3o permanentemente?",
+    stale_remove_success: "Automa\xE7\xE3o removida.",
+    stale_remove_failed_prefix: "N\xE3o foi poss\xEDvel remover:",
+    stale_remove_button: "Remover",
+    automation_management_triggered: "Automa\xE7\xE3o acionada.",
+    automation_management_renamed: "Automa\xE7\xE3o renomeada",
+    automation_management_version_restored: "Vers\xE3o restaurada.",
+    automation_management_delete_confirm:
+      "Eliminar esta automa\xE7\xE3o permanentemente?",
+    automation_management_deleted: "Automa\xE7\xE3o eliminada.",
+    automation_management_cannot_refine_no_id:
+      "Esta automa\xE7\xE3o n\xE3o pode ser aperfei\xE7oada porque n\xE3o tem ID de automa\xE7\xE3o.",
+    automation_management_loaded_to_chat:
+      "Automa\xE7\xE3o carregada na conversa.",
+    action_format_run_verb: "Executar",
+    action_format_ran_verb: "Executou",
+    chat_actions_interrupt_disconnect:
+      "A liga\xE7\xE3o ao Home Assistant foi perdida a meio da resposta.",
+    chat_actions_interrupt_server_stopped: "O servidor deixou de responder.",
+    chat_actions_interrupt_server_no_reply:
+      "O servidor n\xE3o respondeu a tempo.",
+    chat_actions_interrupt_truncated:
+      "A resposta parece interrompida \u2014 tente novamente.",
+    chat_actions_interrupt_llm_unreachable:
+      "N\xE3o foi poss\xEDvel alcan\xE7ar o fornecedor de LLM.",
+    chat_actions_interrupt_session_start_failed:
+      "N\xE3o foi poss\xEDvel iniciar a sess\xE3o de conversa.",
+    chat_actions_cancelled_by_user: "_Cancelado pelo utilizador_",
+    automation_crud_save_failed:
+      "N\xE3o foi poss\xEDvel guardar a automa\xE7\xE3o:",
+    automation_crud_entity_not_surfaced:
+      "Automa\xE7\xE3o guardada, mas o Home Assistant ainda n\xE3o apresentou a entidade \u2014 ative-a no separador Automa\xE7\xF5es assim que aparecer.",
+    automation_crud_auto_enable_failed_prefix:
+      "Automa\xE7\xE3o guardada, mas n\xE3o p\xF4de ser ativada automaticamente:",
+    automation_crud_unknown_error: "erro desconhecido",
+    automation_crud_auto_enable_failed_suffix:
+      ". Utilize o bot\xE3o Ativar no cart\xE3o para tentar novamente.",
+    automation_crud_draft_dismissed: "Rascunho dispensado.",
+    automation_crud_dismiss_draft_failed:
+      "N\xE3o foi poss\xEDvel dispensar o rascunho:",
+    automation_crud_create_failed:
+      "N\xE3o foi poss\xEDvel criar a automa\xE7\xE3o:",
+    automation_crud_save_edited_yaml_failed:
+      "N\xE3o foi poss\xEDvel guardar a automa\xE7\xE3o a partir do YAML editado:",
+    automation_crud_yaml_saved: "YAML da automa\xE7\xE3o guardado.",
+    automation_crud_save_changes_failed:
+      "N\xE3o foi poss\xEDvel guardar as altera\xE7\xF5es:",
+    scene_actions_refine_default_name: "a cena",
+    session_toast_new_automation_chat_failed:
+      "N\xE3o foi poss\xEDvel iniciar uma nova conversa de automa\xE7\xE3o:",
+    session_toast_ai_no_suggestion:
+      "A IA n\xE3o devolveu nenhuma sugest\xE3o \u2014 tente novamente.",
+    session_toast_suggest_failed:
+      "N\xE3o foi poss\xEDvel gerar uma sugest\xE3o \u2014 verifique a configura\xE7\xE3o do LLM.",
+    suggestions_analysis_no_new:
+      "An\xE1lise conclu\xEDda \u2014 n\xE3o h\xE1 novas sugest\xF5es neste momento",
+    suggestions_accepted_toast:
+      "Sugest\xE3o aceite \u2014 automa\xE7\xE3o criada",
+    suggestions_accept_failed: "N\xE3o foi poss\xEDvel aceitar a sugest\xE3o",
+    suggestions_dismissed_toast: "Sugest\xE3o dispensada",
+    suggestions_snoozed_toast: "Sugest\xE3o adiada por 24h",
+    suggestions_pattern_scan_failed: "A an\xE1lise de padr\xF5es falhou",
+    area_unassigned: "N\xE3o atribu\xEDda",
+  },
+  options: {
+    step: {
+      init: {
+        title: "Defini\xE7\xF5es de servi\xE7os em segundo plano",
+        description: "Configure os servi\xE7os em segundo plano do Selora AI.",
+        data: {
+          collector_enabled: "Recoletor de dados (an\xE1lise por IA) ativado",
+          collector_mode: "Modo de execu\xE7\xE3o",
+          collector_interval: "Intervalo de an\xE1lise (segundos)",
+          collector_start_time: "Hora de in\xEDcio agendada",
+          collector_end_time: "Hora de fim agendada",
+          discovery_enabled: "Descoberta de rede ativada",
+          discovery_mode: "Modo de execu\xE7\xE3o",
+          discovery_interval: "Intervalo de descoberta (segundos)",
+          discovery_start_time: "Hora de in\xEDcio agendada",
+          discovery_end_time: "Hora de fim agendada",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/ru.json
+var ru_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Selora AI",
+        description:
+          "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u0443\u044E \u0447\u0430\u0441\u0442\u044C LLM \u0434\u043B\u044F \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439 \u043F\u043E \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438.",
+        data: {
+          llm_provider:
+            "\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 LLM",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0432\u0430\u0448\u0443 \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C Selora \u2014 API-\u043A\u043B\u044E\u0447 \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F. \u041F\u043E\u0441\u043B\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u043F\u0430\u043D\u0435\u043B\u044C Selora AI \u0438 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u0421\u0432\u044F\u0437\u0430\u0442\u044C \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C Selora\xBB \u0434\u043B\u044F \u0430\u0443\u0442\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u0438.",
+      },
+      anthropic: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Anthropic (Claude)",
+        description:
+          "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0432\u0430\u0448 API-\u043A\u043B\u044E\u0447 Anthropic. \u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u043D\u0430 console.anthropic.com.",
+        data: {
+          anthropic_api_key: "API-\u043A\u043B\u044E\u0447",
+          anthropic_model: "\u041C\u043E\u0434\u0435\u043B\u044C",
+        },
+      },
+      gemini: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Google Gemini",
+        description:
+          "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0432\u0430\u0448 API-\u043A\u043B\u044E\u0447 Google Gemini. \u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u043D\u0430 aistudio.google.com.",
+        data: {
+          gemini_api_key: "API-\u043A\u043B\u044E\u0447",
+          gemini_model: "\u041C\u043E\u0434\u0435\u043B\u044C",
+        },
+      },
+      openai: {
+        title: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 OpenAI",
+        description:
+          "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0432\u0430\u0448 API-\u043A\u043B\u044E\u0447 OpenAI. \u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u043D\u0430 platform.openai.com.",
+        data: {
+          openai_api_key: "API-\u043A\u043B\u044E\u0447",
+          openai_model: "\u041C\u043E\u0434\u0435\u043B\u044C",
+        },
+      },
+      openrouter: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 OpenRouter",
+        description:
+          "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0432\u0430\u0448 API-\u043A\u043B\u044E\u0447 OpenRouter. \u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0435\u0433\u043E \u043C\u043E\u0436\u043D\u043E \u043D\u0430 openrouter.ai/keys. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0438\u043C\u0435\u043D\u0430 \u043C\u043E\u0434\u0435\u043B\u0435\u0439 \u0441 \u043F\u0440\u0435\u0444\u0438\u043A\u0441\u043E\u043C \u043F\u043E\u0441\u0442\u0430\u0432\u0449\u0438\u043A\u0430, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \xABanthropic/claude-sonnet-4.5\xBB.",
+        data: {
+          openrouter_api_key: "API-\u043A\u043B\u044E\u0447",
+          openrouter_model: "\u041C\u043E\u0434\u0435\u043B\u044C",
+        },
+      },
+      ollama: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Ollama (\u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E)",
+        description:
+          "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0432\u0430\u0448\u0435\u0433\u043E \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E\u0433\u043E \u0441\u0435\u0440\u0432\u0435\u0440\u0430 Ollama. \u0423\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044C, \u0447\u0442\u043E \u043C\u043E\u0434\u0435\u043B\u044C \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u0430.",
+        data: {
+          ollama_host:
+            "URL-\u0430\u0434\u0440\u0435\u0441 \u0445\u043E\u0441\u0442\u0430 Ollama",
+          ollama_model:
+            "\u0418\u043C\u044F \u043C\u043E\u0434\u0435\u043B\u0438",
+        },
+      },
+      selora_local: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 Selora AI Local",
+        description:
+          "\u0425\u0430\u0431\u044B Selora \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u043C\u0438. \u0427\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server \u0441 \u043C\u043E\u0434\u0435\u043B\u044C\u044E Selora AI, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435.",
+        data: {
+          selora_local_host:
+            "URL-\u0430\u0434\u0440\u0435\u0441 \u0445\u043E\u0441\u0442\u0430",
+        },
+      },
+      select_devices: {
+        title:
+          "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u0434\u043B\u044F \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F",
+        description:
+          "Selora AI \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0438\u043B\u0430 {count} \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u0432 \u0432\u0430\u0448\u0435\u0439 \u0441\u0435\u0442\u0438. \u041D\u0430\u0437\u043D\u0430\u0447\u044C\u0442\u0435 \u043A\u043E\u043C\u043D\u0430\u0442\u0443, \u0447\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E, \u0438\u043B\u0438 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \xAB\u041F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C\xBB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0435\u0433\u043E.\n\n{device_list}",
+      },
+      results: {
+        title:
+          "\u0420\u0435\u0437\u0443\u043B\u044C\u0442\u0430\u0442\u044B \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432",
+        description:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430: {succeeded} \u0443\u0441\u043F\u0435\u0448\u043D\u043E, {failed} \u0441 \u043E\u0448\u0438\u0431\u043A\u043E\u0439, {needs_attention} \u0442\u0440\u0435\u0431\u0443\u044E\u0442 \u0440\u0443\u0447\u043D\u043E\u0433\u043E \u0432\u043C\u0435\u0448\u0430\u0442\u0435\u043B\u044C\u0441\u0442\u0432\u0430.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u044C\u0441\u044F. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432\u0430\u0448 API-\u043A\u043B\u044E\u0447 \u0438\u043B\u0438 \u0443\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044C, \u0447\u0442\u043E Ollama \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430 \u0438 \u043C\u043E\u0434\u0435\u043B\u044C \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u0430.",
+      invalid_auth:
+        "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0435 \u0443\u0447\u0451\u0442\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 Selora Connect. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0432\u0430\u0448\u0443 \u044D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u0443\u044E \u043F\u043E\u0447\u0442\u0443 \u0438 \u043F\u0430\u0440\u043E\u043B\u044C.",
+      unknown:
+        "\u041F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043D\u0435\u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430.",
+    },
+    abort: {
+      already_configured:
+        "Selora AI \u0443\u0436\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0430.",
+      cannot_connect:
+        "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u044C\u0441\u044F \u043A \u043E\u0431\u043B\u0430\u0447\u043D\u043E\u043C\u0443 \u0441\u0435\u0440\u0432\u0438\u0441\u0443 Selora AI. \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u043F\u043E\u0437\u0436\u0435.",
+      unknown:
+        "\u0412\u043E \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043D\u0435\u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430.",
+      llm_not_ready:
+        "\u0421\u0435\u0440\u0432\u0435\u0440\u043D\u0430\u044F \u0447\u0430\u0441\u0442\u044C LLM Selora AI \u043D\u0435 \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430. \u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u0435\u0451.",
+      no_devices_found:
+        "\u041D\u043E\u0432\u044B\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u0432 \u0432\u0430\u0448\u0435\u0439 \u0441\u0435\u0442\u0438 \u043D\u0435 \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u043E. \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u043F\u043E\u0437\u0436\u0435.",
+      no_devices_selected:
+        "\u041D\u0438 \u043E\u0434\u043D\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043E.",
+      select_devices_failed:
+        "\u041F\u0440\u0438 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u043F\u0440\u043E\u0438\u0437\u043E\u0448\u043B\u0430 \u043D\u0435\u043F\u0440\u0435\u0434\u0432\u0438\u0434\u0435\u043D\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430. Selora AI \u0431\u044B\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0430 \u0431\u0435\u0437 \u043F\u043E\u0434\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u2014 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u043F\u043E\u0437\u0436\u0435 \u0432 \u0440\u0430\u0437\u0434\u0435\u043B\u0435 \xAB\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\xBB > \xAB\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\xBB > \xAB\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0437\u0430\u043F\u0438\u0441\u044C\xBB. \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438 \u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u0432 \u0436\u0443\u0440\u043D\u0430\u043B\u0430\u0445 Home Assistant.",
+    },
+  },
+  common: {
+    feedback_button_label:
+      "\u041E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432",
+    feedback_modal_title:
+      "\u041F\u043E\u0434\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u043E\u0442\u0437\u044B\u0432\u043E\u043C",
+    feedback_privacy_notice:
+      "\u041E\u0442\u0437\u044B\u0432 \u0430\u043D\u043E\u043D\u0438\u043C\u0435\u043D \u0438 \u043D\u0435 \u0441\u043E\u0434\u0435\u0440\u0436\u0438\u0442 \u043F\u0435\u0440\u0441\u043E\u043D\u0430\u043B\u044C\u043D\u044B\u0445 \u0434\u0430\u043D\u043D\u044B\u0445.",
+    feedback_textarea_placeholder:
+      "\u0427\u0442\u043E \u0443 \u0432\u0430\u0441 \u043D\u0430 \u0443\u043C\u0435? (\u043C\u0438\u043D\u0438\u043C\u0443\u043C 10 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432)",
+    feedback_rating_label: "\u041E\u0446\u0435\u043D\u043A\u0430:",
+    feedback_rating_thumbsup:
+      "\u041D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
+    feedback_rating_thumbsdown:
+      "\u041D\u0435 \u043D\u0440\u0430\u0432\u0438\u0442\u0441\u044F",
+    feedback_category_label:
+      "\u041A\u0430\u0442\u0435\u0433\u043E\u0440\u0438\u044F (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E):",
+    feedback_category_bug: "\u041E\u0448\u0438\u0431\u043A\u0430",
+    feedback_category_feature:
+      "\u0417\u0430\u043F\u0440\u043E\u0441 \u0444\u0443\u043D\u043A\u0446\u0438\u0438",
+    feedback_category_general: "\u041E\u0431\u0449\u0435\u0435",
+    feedback_submit:
+      "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432",
+    feedback_submitting:
+      "\u041E\u0442\u043F\u0440\u0430\u0432\u043A\u0430\u2026",
+    feedback_email_label:
+      "\u042D\u043B\u0435\u043A\u0442\u0440\u043E\u043D\u043D\u0430\u044F \u043F\u043E\u0447\u0442\u0430 (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E):",
+    feedback_email_placeholder:
+      "your@email.com \u2014 \u0442\u043E\u043B\u044C\u043A\u043E \u0435\u0441\u043B\u0438 \u0445\u043E\u0442\u0438\u0442\u0435 \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u043E\u0442\u0432\u0435\u0442",
+    feedback_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    feedback_min_length_error:
+      "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u0435 \u043C\u0435\u043D\u0435\u0435 10 \u0441\u0438\u043C\u0432\u043E\u043B\u043E\u0432.",
+    feedback_success:
+      "\u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448 \u043E\u0442\u0437\u044B\u0432!",
+    feedback_error:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432 \u2014 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    nav_new_chat: "\u041D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442",
+    nav_selora_menu: "\u041C\u0435\u043D\u044E Selora",
+    nav_conversations: "\u0411\u0435\u0441\u0435\u0434\u044B",
+    nav_automations:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    nav_scenes: "\u0421\u0446\u0435\u043D\u044B",
+    nav_settings: "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    nav_documentation:
+      "\u0414\u043E\u043A\u0443\u043C\u0435\u043D\u0442\u0430\u0446\u0438\u044F",
+    nav_github_issues: "\u0417\u0430\u0434\u0430\u0447\u0438 GitHub",
+    nav_gitlab_repo:
+      "\u0420\u0435\u043F\u043E\u0437\u0438\u0442\u043E\u0440\u0438\u0439 GitLab",
+    welcome_title_prefix:
+      "\u0414\u043E\u0431\u0440\u043E \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u0442\u044C \u0432",
+    welcome_subtitle:
+      "\u0412\u0430\u0448 \u0438\u043D\u0442\u0435\u043B\u043B\u0435\u043A\u0442\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u0430\u0440\u0445\u0438\u0442\u0435\u043A\u0442\u043E\u0440 \u0434\u043E\u043C\u0430\u0448\u043D\u0435\u0439 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    new_automation_title_prefix: "\u041D\u043E\u0432\u0430\u044F",
+    new_automation_gold:
+      "\u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F",
+    new_automation_subtitle:
+      "\u041E\u043F\u0438\u0448\u0438\u0442\u0435, \u0447\u0442\u043E \u0432\u044B \u0445\u043E\u0442\u0438\u0442\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u2014 \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u0432\u0440\u0435\u043C\u044F \u0438\u043B\u0438 \u0443\u0441\u043B\u043E\u0432\u0438\u044F.",
+    get_started:
+      "\u041D\u0430\u0447\u0430\u043B\u043E \u0440\u0430\u0431\u043E\u0442\u044B",
+    get_started_body:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 LLM \u043D\u0430 \u0432\u043A\u043B\u0430\u0434\u043A\u0435 \xAB\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\xBB, \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C \u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441 \u0432\u0430\u0448\u0438\u043C \u0434\u043E\u043C\u043E\u043C.",
+    open_settings:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    quick_start:
+      "\u0411\u044B\u0441\u0442\u0440\u044B\u0439 \u0441\u0442\u0430\u0440\u0442",
+    composer_placeholder_ask:
+      "\u0421\u043F\u0440\u043E\u0441\u0438\u0442\u0435 Selora AI \u043E \u0447\u0451\u043C \u0443\u0433\u043E\u0434\u043D\u043E\u2026",
+    composer_placeholder_automation:
+      "\u041E\u043F\u0438\u0448\u0438\u0442\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0443\u044E \u0445\u043E\u0442\u0438\u0442\u0435 \u0441\u043E\u0437\u0434\u0430\u0442\u044C\u2026",
+    panel_quota_provider_default:
+      "\u0432\u0430\u0448 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 LLM",
+    panel_quota_reached:
+      "\u043A\u0432\u043E\u0442\u0430 \u0438\u0441\u0447\u0435\u0440\u043F\u0430\u043D\u0430.",
+    panel_quota_try_again_prefix:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u0447\u0435\u0440\u0435\u0437",
+    panel_quota_retrying_now:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u043D\u0430\u044F \u043F\u043E\u043F\u044B\u0442\u043A\u0430\u2026",
+    panel_quota_dismiss: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    panel_llm_switched_selora_cloud:
+      "\u041F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u043E \u043D\u0430 Selora Cloud.",
+    panel_llm_invalid_key:
+      "\u041D\u0435\u0432\u0435\u0440\u043D\u044B\u0439 API-\u043A\u043B\u044E\u0447 \u0438\u043B\u0438 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D.",
+    panel_llm_settings_saved:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 LLM \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u044B.",
+    panel_advanced_settings_saved:
+      "\u0420\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u044B.",
+    panel_linking_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435.",
+    panel_linking_timed_out:
+      "\u0418\u0441\u0442\u0435\u043A\u043B\u043E \u0432\u0440\u0435\u043C\u044F \u043E\u0436\u0438\u0434\u0430\u043D\u0438\u044F \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u044F. \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u2014 \u0443\u0431\u0435\u0434\u0438\u0442\u0435\u0441\u044C, \u0447\u0442\u043E \u0432\u044B \u0437\u0430\u0432\u0435\u0440\u0448\u0438\u043B\u0438 \u0432\u0445\u043E\u0434 \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 10 \u043C\u0438\u043D\u0443\u0442.",
+    panel_linking_start_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435.",
+    panel_connect_linked_success:
+      "Selora Connect \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0441\u0432\u044F\u0437\u0430\u043D.",
+    panel_unlink_connect_confirm:
+      "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C Selora Connect?\n\n\u0412\u043D\u0435\u0448\u043D\u0438\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B MCP (Openclaw, Claude Desktop, Cursor, Windsurf) \u043F\u043E\u0442\u0435\u0440\u044F\u044E\u0442 \u0434\u043E\u0441\u0442\u0443\u043F, \u043F\u043E\u043A\u0430 \u0432\u044B \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u0435 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0435 \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0435.",
+    panel_connect_unlinked:
+      "Selora Connect \u043E\u0442\u0432\u044F\u0437\u0430\u043D.",
+    panel_cloud_linked_success:
+      "Selora Cloud \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0441\u0432\u044F\u0437\u0430\u043D.",
+    panel_unlink_cloud_confirm:
+      "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C Selora Cloud?\n\n\u0427\u0430\u0442 \u0438 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F \u043F\u043E \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u043F\u0440\u0435\u043A\u0440\u0430\u0442\u044F\u0442\u0441\u044F, \u043F\u043E\u043A\u0430 \u0432\u044B \u043D\u0435 \u0441\u0432\u044F\u0436\u0435\u0442\u0435 \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445.",
+    panel_cloud_unlinked:
+      "Selora Cloud \u043E\u0442\u0432\u044F\u0437\u0430\u043D.",
+    panel_mcp_token_created:
+      "\u0422\u043E\u043A\u0435\u043D MCP \u0441\u043E\u0437\u0434\u0430\u043D.",
+    panel_mcp_token_revoked:
+      "\u0422\u043E\u043A\u0435\u043D \u043E\u0442\u043E\u0437\u0432\u0430\u043D.",
+    panel_approval_revoked:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u043E\u0442\u043E\u0437\u0432\u0430\u043D\u043E.",
+    panel_device_loading: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430...",
+    panel_device_error_loading:
+      "\u041E\u0448\u0438\u0431\u043A\u0430 \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    panel_tab_conversations: "\u0411\u0435\u0441\u0435\u0434\u044B",
+    panel_tab_automations:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    panel_tab_scenes: "\u0421\u0446\u0435\u043D\u044B",
+    panel_sidebar_conversations: "\u0411\u0435\u0441\u0435\u0434\u044B",
+    panel_sidebar_done: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    panel_sidebar_select: "\u0412\u044B\u0431\u0440\u0430\u0442\u044C",
+    panel_sidebar_select_all:
+      "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0432\u0441\u0451",
+    panel_sidebar_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    panel_sidebar_new_chat: "\u041D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442",
+    panel_sidebar_no_conversations:
+      "\u0411\u0435\u0441\u0435\u0434 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    panel_session_delete_confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C?",
+    panel_session_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    panel_session_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    panel_session_delete_title: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    panel_bulk_delete_title:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0431\u0435\u0441\u0435\u0434\u044B",
+    panel_bulk_delete_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    panel_bulk_delete_confirm: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    chat_suggest_thinking: "\u0414\u0443\u043C\u0430\u044E\u2026",
+    chat_suggest_one_for_me:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438\u0442\u0435 \u0432\u0430\u0440\u0438\u0430\u043D\u0442",
+    chat_jump_to_latest:
+      "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u043C\u0443 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044E",
+    chat_autocomplete_hint:
+      "\u2191\u2193 \u043D\u0430\u0432\u0438\u0433\u0430\u0446\u0438\u044F \xB7 \u21B5 \u0432\u0441\u0442\u0430\u0432\u0438\u0442\u044C \xB7 Esc \u0437\u0430\u043A\u0440\u044B\u0442\u044C",
+    chat_selection_remove: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    chat_stop_generating:
+      "\u041E\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0433\u0435\u043D\u0435\u0440\u0430\u0446\u0438\u044E",
+    chat_send: "\u041E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C",
+    chat_building_scene:
+      "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u0441\u0446\u0435\u043D\u044B...",
+    chat_go_to_settings:
+      "\u041F\u0435\u0440\u0435\u0439\u0442\u0438 \u043A \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u043C",
+    chat_response_cut_short:
+      "\u041E\u0442\u0432\u0435\u0442 \u0431\u044B\u043B \u043F\u0440\u0435\u0440\u0432\u0430\u043D.",
+    chat_retry: "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C",
+    chat_copy_message:
+      "\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435",
+    chat_you: "\u0412\u044B",
+    chat_yaml_unsaved_changes:
+      "\u041D\u0435\u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    chat_yaml_saving:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u2026",
+    chat_yaml_save_changes:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F",
+    chat_tools_used:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B",
+    chat_automation_label_building:
+      "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438...",
+    chat_automation_label_triggers:
+      "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430 \u0442\u0440\u0438\u0433\u0433\u0435\u0440\u043E\u0432...",
+    chat_automation_label_conditions:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430 \u0443\u0441\u043B\u043E\u0432\u0438\u0439...",
+    chat_automation_label_actions:
+      "\u0421\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439...",
+    chat_automation_label_almost:
+      "\u041F\u043E\u0447\u0442\u0438 \u0433\u043E\u0442\u043E\u0432\u043E...",
+    chat_autocomplete_kind_devices:
+      "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    chat_autocomplete_kind_areas: "\u0417\u043E\u043D\u044B",
+    chat_autocomplete_kind_scenes: "\u0421\u0446\u0435\u043D\u044B",
+    chat_autocomplete_kind_automations:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    chat_autocomplete_kind_suggestions:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F",
+    chat_welcome_suggestion_lights_label:
+      "\u0412\u044B\u043A\u043B\u044E\u0447\u0430\u0442\u044C \u0432\u0435\u0441\u044C \u0441\u0432\u0435\u0442 \u0432 \u043F\u043E\u043B\u043D\u043E\u0447\u044C",
+    chat_welcome_suggestion_lights_value:
+      "\u0421\u043E\u0437\u0434\u0430\u0439 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E, \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0435\u0442 \u0432\u0435\u0441\u044C \u0441\u0432\u0435\u0442 \u0432 \u043F\u043E\u043B\u043D\u043E\u0447\u044C",
+    chat_welcome_suggestion_devices_label:
+      "\u041A\u0430\u043A\u0438\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u0443 \u043C\u0435\u043D\u044F \u0435\u0441\u0442\u044C?",
+    chat_welcome_suggestion_devices_value:
+      "\u041A\u0430\u043A\u0438\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u0443 \u043C\u0435\u043D\u044F \u0435\u0441\u0442\u044C \u0438 \u043A\u0430\u043A\u0438\u0435 \u0438\u0437 \u043D\u0438\u0445 \u0441\u0435\u0439\u0447\u0430\u0441 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u044B?",
+    chat_welcome_suggestion_suggest_label:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u0434\u043B\u044F \u043C\u043E\u0435\u0433\u043E \u0434\u043E\u043C\u0430",
+    chat_welcome_suggestion_suggest_value:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0438 \u043F\u043E\u043B\u0435\u0437\u043D\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u0435 \u043C\u043E\u0438\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432 \u0438 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F",
+    settings_view_token_usage_title:
+      "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0442\u043E\u043A\u0435\u043D\u043E\u0432",
+    settings_usage_label:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435",
+    settings_view_usage_label:
+      "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F",
+    settings_provider_select_placeholder:
+      "\u0412\u044B\u0431\u0440\u0430\u0442\u044C...",
+    settings_doc_banner_title:
+      "\u0420\u0443\u043A\u043E\u0432\u043E\u0434\u0441\u0442\u0432\u043E \u043F\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0435",
+    settings_doc_banner_desc:
+      "\u0423\u0437\u043D\u0430\u0439\u0442\u0435, \u043A\u0430\u043A \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u0432 LLM, \u0443\u0434\u0430\u043B\u0451\u043D\u043D\u044B\u0439 \u0434\u043E\u0441\u0442\u0443\u043F \u0438 \u0442\u043E\u043A\u0435\u043D\u044B MCP.",
+    settings_llm_provider_heading:
+      "\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440 LLM",
+    settings_provider_label:
+      "\u041F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440",
+    settings_selora_account_label:
+      "\u0423\u0447\u0451\u0442\u043D\u0430\u044F \u0437\u0430\u043F\u0438\u0441\u044C Selora",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0435\u0442 \u0432\u0430\u0448\u0443 \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u0443\u044E \u0447\u0430\u0441\u0442\u044C LLM.",
+    settings_unlink_button: "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C",
+    settings_signin_selora_desc:
+      "\u0412\u043E\u0439\u0434\u0438\u0442\u0435 \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora, \u0447\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u0443\u044E \u0441\u0435\u0440\u0432\u0435\u0440\u043D\u0443\u044E \u0447\u0430\u0441\u0442\u044C LLM. API-\u043A\u043B\u044E\u0447 \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F.",
+    settings_selora_cloud_url_label:
+      "URL-\u0430\u0434\u0440\u0435\u0441 Selora Cloud",
+    settings_selora_cloud_url_hint:
+      "OAuth \u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u044F \u0447\u0430\u0442\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442 \u044D\u0442\u043E\u0442 URL-\u0430\u0434\u0440\u0435\u0441. \u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0440\u0438 \u0441\u0432\u044F\u0437\u044B\u0432\u0430\u043D\u0438\u0438.",
+    settings_open_signin_page:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u0432\u0445\u043E\u0434\u0430 \u2192",
+    settings_preparing_label:
+      "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430\u2026",
+    settings_link_selora_account_button:
+      "\u0421\u0432\u044F\u0437\u0430\u0442\u044C \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C Selora",
+    settings_signin_new_tab_hint:
+      "\u041E\u0442\u043A\u0440\u043E\u0435\u0442\u0441\u044F \u0432 \u043D\u043E\u0432\u043E\u0439 \u0432\u043A\u043B\u0430\u0434\u043A\u0435. \u041F\u043E\u0441\u043B\u0435 \u0432\u0445\u043E\u0434\u0430 \u0432\u0435\u0440\u043D\u0438\u0442\u0435\u0441\u044C \u043D\u0430 \u044D\u0442\u0443 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u2014 \u043F\u0430\u043D\u0435\u043B\u044C \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.",
+    settings_api_key_label: "API-\u043A\u043B\u044E\u0447",
+    settings_click_replace_key_title:
+      "\u041D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043C\u0435\u043D\u0438\u0442\u044C \u043A\u043B\u044E\u0447",
+    settings_enter_new_key_label:
+      "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u043D\u043E\u0432\u044B\u0439 \u043A\u043B\u044E\u0447",
+    settings_enter_api_key_label:
+      "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 API-\u043A\u043B\u044E\u0447",
+    settings_model_label: "\u041C\u043E\u0434\u0435\u043B\u044C",
+    settings_selora_local_desc:
+      "Selora AI \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u0432\u044B\u0431\u0438\u0440\u0430\u0435\u0442 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0443\u044E \u0441\u043F\u0435\u0446\u0438\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u0443\u044E \u043C\u043E\u0434\u0435\u043B\u044C (\u043A\u043E\u043C\u0430\u043D\u0434\u044B, \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u043E\u0442\u0432\u0435\u0442\u044B, \u0443\u0442\u043E\u0447\u043D\u0435\u043D\u0438\u044F) \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0437\u0430\u043F\u0440\u043E\u0441\u0430.",
+    settings_ollama_host_label: "\u0425\u043E\u0441\u0442",
+    settings_selora_local_show_advanced:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
+    settings_selora_local_hide_advanced:
+      "\u0421\u043A\u0440\u044B\u0442\u044C \u0440\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043F\u0430\u0440\u0430\u043C\u0435\u0442\u0440\u044B",
+    settings_selora_local_advanced_desc:
+      "\u0425\u0430\u0431\u044B Selora \u043F\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u044E\u0442\u0441\u044F \u043F\u0440\u0435\u0434\u0432\u0430\u0440\u0438\u0442\u0435\u043B\u044C\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u043C\u0438. \u0427\u0442\u043E\u0431\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u044C \u0441\u0430\u043C\u043E\u0441\u0442\u043E\u044F\u0442\u0435\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u043C\u0435\u0449\u0451\u043D\u043D\u044B\u0439 llama-server \u0441 \u043C\u043E\u0434\u0435\u043B\u044C\u044E Selora AI, \u0443\u043A\u0430\u0436\u0438\u0442\u0435 \u0435\u0433\u043E \u0430\u0434\u0440\u0435\u0441 \u043D\u0438\u0436\u0435.",
+    settings_selora_local_host_label: "\u0425\u043E\u0441\u0442",
+    settings_selora_local_auto_detected_prefix:
+      "\u0410\u0432\u0442\u043E\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435:",
+    settings_selora_local_auto_detected_none: "\u043D\u0435\u0442",
+    settings_validating_label:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u2026",
+    settings_save_button:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    settings_mcp_server_heading: "\u0421\u0435\u0440\u0432\u0435\u0440 MCP",
+    settings_mcp_server_subtitle:
+      "\u041E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u0432\u0430\u0448\u0435\u043C\u0443 \u0434\u043E\u043C\u0443 \u0434\u043B\u044F \u0432\u043D\u0435\u0448\u043D\u0438\u0445 \u0418\u0418-\u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432, \u0442\u0430\u043A\u0438\u0445 \u043A\u0430\u043A Openclaw, Claude Desktop, Cursor \u0438\u043B\u0438 Windsurf.",
+    settings_connect_via_selora_label:
+      "\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u044C\u0441\u044F \u0447\u0435\u0440\u0435\u0437 \u0443\u0447\u0451\u0442\u043D\u0443\u044E \u0437\u0430\u043F\u0438\u0441\u044C Selora",
+    settings_connect_via_selora_desc:
+      "\u0414\u0435\u043B\u0430\u0435\u0442 \u0432\u0430\u0448 \u0441\u0435\u0440\u0432\u0435\u0440 MCP \u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B\u043C \u0434\u043B\u044F \u0432\u043D\u0435\u0448\u043D\u0438\u0445 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432",
+    settings_mcp_url_copied_toast:
+      "URL-\u0430\u0434\u0440\u0435\u0441 MCP \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D \u0432 \u0431\u0443\u0444\u0435\u0440 \u043E\u0431\u043C\u0435\u043D\u0430",
+    settings_connect_server_url_label:
+      "URL-\u0430\u0434\u0440\u0435\u0441 \u0441\u0435\u0440\u0432\u0435\u0440\u0430 Connect",
+    settings_mcp_tokens_section_title:
+      "\u0422\u041E\u041A\u0415\u041D\u042B MCP",
+    settings_mcp_tokens_desc:
+      "\u0422\u043E\u043A\u0435\u043D\u044B MCP \u2014 \u044D\u0442\u043E \u0430\u043B\u044C\u0442\u0435\u0440\u043D\u0430\u0442\u0438\u0432\u0430 Selora Connect. \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0438\u0445 \u0434\u043B\u044F \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u043E\u0432, \u043D\u0435 \u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u044E\u0449\u0438\u0445 OAuth, \u0438\u043B\u0438 \u043A\u043E\u0433\u0434\u0430 \u0432\u044B \u043F\u0440\u0435\u0434\u043F\u043E\u0447\u0438\u0442\u0430\u0435\u0442\u0435 \u0430\u0443\u0442\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u044E \u043D\u0430 \u043E\u0441\u043D\u043E\u0432\u0435 \u0442\u043E\u043A\u0435\u043D\u043E\u0432.",
+    settings_no_tokens_yet:
+      "\u0422\u043E\u043A\u0435\u043D\u043E\u0432 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    settings_add_token_button:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0442\u043E\u043A\u0435\u043D",
+    settings_command_approvals_heading:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F \u043A\u043E\u043C\u0430\u043D\u0434",
+    settings_advanced_settings_heading:
+      "\u0420\u0430\u0441\u0448\u0438\u0440\u0435\u043D\u043D\u044B\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    settings_background_services_title:
+      "\u0424\u041E\u041D\u041E\u0412\u042B\u0415 \u0421\u041B\u0423\u0416\u0411\u042B",
+    settings_data_collector_label:
+      "\u0421\u0431\u043E\u0440\u0449\u0438\u043A \u0434\u0430\u043D\u043D\u044B\u0445 (\u0418\u0418-\u0430\u043D\u0430\u043B\u0438\u0437)",
+    settings_data_collector_desc:
+      "\u041F\u0435\u0440\u0435\u0434\u0430\u0451\u0442 \u0438\u0441\u0442\u043E\u0440\u0438\u044E \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u0432 Selora AI",
+    settings_mode_label: "\u0420\u0435\u0436\u0438\u043C",
+    settings_mode_continuous:
+      "\u041D\u0435\u043F\u0440\u0435\u0440\u044B\u0432\u043D\u044B\u0439",
+    settings_mode_scheduled_window:
+      "\u0417\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u043E\u043A\u043D\u043E",
+    settings_interval_seconds_label:
+      "\u0418\u043D\u0442\u0435\u0440\u0432\u0430\u043B (\u0441)",
+    settings_start_hhmm_label:
+      "\u041D\u0430\u0447\u0430\u043B\u043E (\u0427\u0427:\u041C\u041C)",
+    settings_end_hhmm_label:
+      "\u041E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u0435 (\u0427\u0427:\u041C\u041C)",
+    settings_network_discovery_label:
+      "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435 \u0432 \u0441\u0435\u0442\u0438",
+    settings_network_discovery_desc:
+      "\u0421\u043A\u0430\u043D\u0438\u0440\u0443\u0435\u0442 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u0443\u044E \u0441\u0435\u0442\u044C \u043D\u0430 \u043D\u0430\u043B\u0438\u0447\u0438\u0435 \u043D\u043E\u0432\u044B\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432",
+    settings_pattern_detection_label:
+      "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432",
+    settings_pattern_detection_desc:
+      "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0438\u0432\u0430\u0435\u0442 \u043F\u043E\u0432\u0442\u043E\u0440\u044F\u044E\u0449\u0438\u0435\u0441\u044F \u0448\u0430\u0431\u043B\u043E\u043D\u044B \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0438 \u043F\u0440\u0435\u0434\u043B\u0430\u0433\u0430\u0435\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    settings_auto_remove_stale_label:
+      "\u0410\u0432\u0442\u043E\u0443\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u0443\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0445 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439",
+    settings_developer_mode_label:
+      "\u0420\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430",
+    settings_developer_mode_desc:
+      "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u043D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u0438 \u0436\u0443\u0440\u043D\u0430\u043B\u044B \u043E\u0442\u043B\u0430\u0434\u043A\u0438",
+    settings_dev_mode_save_failed_toast:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0440\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430.",
+    settings_saving_label:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u2026",
+    settings_no_approvals_yet_prefix:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0445 \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u0412 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0440\u0430\u0437, \u043A\u043E\u0433\u0434\u0430 Selora \u0441\u043F\u0440\u043E\u0441\u0438\u0442 \u043F\u0435\u0440\u0435\u0434 \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u043C \u0440\u0438\u0441\u043A\u043E\u0432\u0430\u043D\u043D\u043E\u0433\u043E \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F, \u043D\u0430\u0436\u043C\u0438\u0442\u0435",
+    settings_no_approvals_always_word: "\u0412\u0441\u0435\u0433\u0434\u0430",
+    settings_no_approvals_yet_suffix:
+      "\u0447\u0442\u043E\u0431\u044B \u0437\u0430\u043F\u043E\u043C\u043D\u0438\u0442\u044C \u0435\u0433\u043E \u0437\u0434\u0435\u0441\u044C.",
+    settings_per_entity_approval_title:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435 \u0434\u043B\u044F \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0439 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438",
+    settings_wildcard_approval_title:
+      "\u041F\u043E\u0434\u0441\u0442\u0430\u043D\u043E\u0432\u043E\u0447\u043D\u044B\u0439 \u0437\u043D\u0430\u043A \u2014 \u043F\u0440\u0438\u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u043A\u043E \u0432\u0441\u0435\u043C \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044F\u043C \u044D\u0442\u043E\u0439 \u0441\u043B\u0443\u0436\u0431\u044B",
+    settings_approval_all_label: "\u0432\u0441\u0435",
+    settings_token_created_heading:
+      "\u0422\u043E\u043A\u0435\u043D \u0441\u043E\u0437\u0434\u0430\u043D",
+    settings_token_created_desc:
+      "\u0421\u043A\u043E\u043F\u0438\u0440\u0443\u0439\u0442\u0435 \u044D\u0442\u043E\u0442 \u0442\u043E\u043A\u0435\u043D \u0441\u0435\u0439\u0447\u0430\u0441 \u2014 \u043E\u043D \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435 \u0431\u0443\u0434\u0435\u0442 \u043F\u043E\u043A\u0430\u0437\u0430\u043D.",
+    settings_token_copied_toast:
+      "\u0422\u043E\u043A\u0435\u043D \u0441\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D \u0432 \u0431\u0443\u0444\u0435\u0440 \u043E\u0431\u043C\u0435\u043D\u0430",
+    settings_done_button: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    settings_create_mcp_token_heading:
+      "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0442\u043E\u043A\u0435\u043D MCP",
+    settings_token_name_label: "\u0418\u043C\u044F",
+    settings_token_name_placeholder: "\u043D\u0430\u043F\u0440. Claude Desktop",
+    settings_permission_level_label:
+      "\u0423\u0440\u043E\u0432\u0435\u043D\u044C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0439",
+    settings_perm_read_only:
+      "\u0422\u043E\u043B\u044C\u043A\u043E \u0447\u0442\u0435\u043D\u0438\u0435",
+    settings_perm_admin_all:
+      "\u0410\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440 (\u0432\u0441\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B)",
+    settings_perm_custom:
+      "\u041D\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0435\u043C\u044B\u0439 (\u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B)",
+    settings_allowed_tools_label:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0451\u043D\u043D\u044B\u0435 \u0438\u043D\u0441\u0442\u0440\u0443\u043C\u0435\u043D\u0442\u044B",
+    settings_admin_badge:
+      "\u0430\u0434\u043C\u0438\u043D\u0438\u0441\u0442\u0440\u0430\u0442\u043E\u0440",
+    settings_expiration_label:
+      "\u0421\u0440\u043E\u043A \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+    settings_expiry_never:
+      "\u041D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u0438\u0441\u0442\u0435\u043A\u0430\u0435\u0442",
+    settings_expiry_7_days: "7 \u0434\u043D\u0435\u0439",
+    settings_expiry_30_days: "30 \u0434\u043D\u0435\u0439",
+    settings_expiry_90_days: "90 \u0434\u043D\u0435\u0439",
+    settings_expiry_1_year: "1 \u0433\u043E\u0434",
+    settings_cancel_button: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    settings_create_token_button:
+      "\u0421\u043E\u0437\u0434\u0430\u0442\u044C \u0442\u043E\u043A\u0435\u043D",
+    automations_flow_branch_if: "\u0415\u0441\u043B\u0438",
+    automations_flow_branch_else_if:
+      "\u0418\u043D\u0430\u0447\u0435 \u0435\u0441\u043B\u0438",
+    automations_flow_branch_otherwise:
+      "\u0412 \u043F\u0440\u043E\u0442\u0438\u0432\u043D\u043E\u043C \u0441\u043B\u0443\u0447\u0430\u0435",
+    automations_flow_branch_in_parallel:
+      "\u041F\u0430\u0440\u0430\u043B\u043B\u0435\u043B\u044C\u043D\u043E",
+    automations_flow_branch_in_sequence:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u043D\u043E",
+    automations_flow_repeat_while:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u044F\u0442\u044C, \u043F\u043E\u043A\u0430 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0443\u0441\u043B\u043E\u0432\u0438\u0435",
+    automations_flow_repeat_until:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u044F\u0442\u044C, \u043F\u043E\u043A\u0430 \u043D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u0441\u044F \u0443\u0441\u043B\u043E\u0432\u0438\u0435",
+    automations_flow_repeat:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u044F\u0442\u044C",
+    automations_flow_label_trigger:
+      "\u0422\u0440\u0438\u0433\u0433\u0435\u0440",
+    automations_flow_label_condition:
+      "\u0423\u0441\u043B\u043E\u0432\u0438\u0435",
+    automations_flow_label_actions:
+      "\u0414\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    automations_badge_enabled:
+      "\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+    automations_badge_saved:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E",
+    automations_yaml_toggle_hide: "\u0421\u043A\u0440\u044B\u0442\u044C YAML",
+    automations_yaml_toggle_view:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C YAML",
+    automations_yaml_toggle_edit:
+      "\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C YAML",
+    automations_proposal_declined_title:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0430",
+    automations_proposal_declined_body:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u043E. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0435\u0451, \u043E\u0442\u0432\u0435\u0442\u0438\u0432 \u043D\u0438\u0436\u0435.",
+    automations_badge_being_refined:
+      "\u0414\u043E\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F",
+    automations_badge_proposal:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
+    automations_proposal_elevated_risk:
+      "\u0420\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u0443\u0435\u0442\u0441\u044F \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0438\u0437-\u0437\u0430 \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u043D\u043E\u0433\u043E \u0440\u0438\u0441\u043A\u0430.",
+    automations_proposal_yaml_edits_note:
+      "\u0412\u0430\u0448\u0438 \u043F\u0440\u0430\u0432\u043A\u0438 YAML \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u0438\u043C\u0435\u043D\u0435\u043D\u044B \u043F\u0440\u0438 \u043F\u0440\u0438\u043D\u044F\u0442\u0438\u0438.",
+    automations_action_run_tooltip:
+      "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441\u0435\u0439\u0447\u0430\u0441, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0438\u0445 \u0440\u0430\u0431\u043E\u0442\u0443",
+    automations_action_running:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u2026",
+    automations_action_run_now:
+      "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0441\u0435\u0439\u0447\u0430\u0441",
+    automations_action_open_in_ha_tooltip:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u0432 Home Assistant",
+    automations_action_view_in_ha:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
+    automations_action_enabling:
+      "\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435\u2026",
+    automations_action_enable_automation:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E",
+    automations_elevated_risk_note:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F \u0441 \u043F\u043E\u0432\u044B\u0448\u0435\u043D\u043D\u044B\u043C \u0440\u0438\u0441\u043A\u043E\u043C \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043F\u043E\u0442\u043E\u043A \u0438 YAML \u043F\u0435\u0440\u0435\u0434 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435\u043C.",
+    automations_action_accept_and_save:
+      "\u041F\u0440\u0438\u043D\u044F\u0442\u044C \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    automations_section_title:
+      "\u0412\u0430\u0448\u0438 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    automations_filter_placeholder:
+      "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438\u2026",
+    automations_sort_recent:
+      "\u041D\u0435\u0434\u0430\u0432\u043D\u044F\u044F \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C",
+    automations_sort_alpha:
+      "\u041F\u043E \u0430\u043B\u0444\u0430\u0432\u0438\u0442\u0443",
+    automations_sort_enabled_first:
+      "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435",
+    automations_llm_setup_required_tooltip:
+      "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 LLM",
+    automations_new_automation_button:
+      "\u041D\u043E\u0432\u0430\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F",
+    automations_status_tab_all: "\u0412\u0441\u0435",
+    automations_status_tab_enabled:
+      "\u0412\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435",
+    automations_status_tab_disabled:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0451\u043D\u043D\u044B\u0435",
+    automations_status_tab_stale:
+      "\u0423\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0435",
+    automations_bulk_select_all:
+      "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0432\u0441\u0451",
+    automations_bulk_done: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    automations_bulk_edit:
+      "\u041C\u0430\u0441\u0441\u043E\u0432\u043E\u0435 \u0440\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435",
+    automations_bulk_working:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u2026",
+    automations_bulk_enable_all:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0432\u0441\u0435",
+    automations_bulk_disable_all:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0432\u0441\u0435",
+    automations_bulk_delete_selected:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0435",
+    automations_bulk_clear: "\u041E\u0447\u0438\u0441\u0442\u0438\u0442\u044C",
+    automations_last_run_disabled:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+    automations_last_run_never: "\u041D\u0438\u043A\u043E\u0433\u0434\u0430",
+    automations_needs_attention_pill:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u0432\u043D\u0438\u043C\u0430\u043D\u0438\u044F",
+    automations_rename_save_tooltip:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    automations_last_run_prefix:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0437\u0430\u043F\u0443\u0441\u043A:",
+    automations_last_run_prefix_inline:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0437\u0430\u043F\u0443\u0441\u043A:",
+    automations_toggle_enabled:
+      "\u0412\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+    automations_toggle_disabled:
+      "\u041E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+    automations_toggle_unavailable:
+      "\u041D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u043E",
+    automations_toast_toggle_unresolved:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u0442\u044C: \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u043D\u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043D. \u041F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    automations_more_actions_tooltip:
+      "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    automations_burger_loading:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    automations_burger_refine_in_chat:
+      "\u0414\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0432 \u0447\u0430\u0442\u0435",
+    automations_burger_rename:
+      "\u041F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u0442\u044C",
+    automations_burger_view_in_ha:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
+    automations_burger_deleting:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435\u2026",
+    automations_burger_delete: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    automations_card_tab_flow: "\u041F\u043E\u0442\u043E\u043A",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "\u0418\u0441\u0442\u043E\u0440\u0438\u044F",
+    automations_pagination_prev: "\u2039 \u041D\u0430\u0437\u0430\u0434",
+    automations_pagination_per_page:
+      "\u041D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435:",
+    automations_pagination_next: "\u0414\u0430\u043B\u0435\u0435 \u203A",
+    automations_empty_state:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    automations_unavailable_modal_title:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430",
+    automations_unavailable_default_name:
+      "\u042D\u0442\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F",
+    automations_unavailable_modal_intro:
+      "\u043F\u043E\u043C\u0435\u0447\u0435\u043D\u0430 \u043A\u0430\u043A \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u0430\u044F Home Assistant. \u041E\u0431\u044B\u0447\u043D\u043E \u044D\u0442\u043E \u043E\u0437\u043D\u0430\u0447\u0430\u0435\u0442:",
+    automations_unavailable_reason_entity:
+      "\u0422\u0440\u0438\u0433\u0433\u0435\u0440 \u0438\u043B\u0438 \u0443\u0441\u043B\u043E\u0432\u0438\u0435 \u0441\u0441\u044B\u043B\u0430\u0435\u0442\u0441\u044F \u043D\u0430 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C, \u043A\u043E\u0442\u043E\u0440\u043E\u0439 \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435 \u0441\u0443\u0449\u0435\u0441\u0442\u0432\u0443\u0435\u0442",
+    automations_unavailable_reason_yaml:
+      "\u0412 YAML \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u0435\u0441\u0442\u044C \u043E\u0448\u0438\u0431\u043A\u0430 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u0438",
+    automations_unavailable_reason_integration:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u043C\u0430\u044F \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u044F \u0431\u044B\u043B\u0430 \u0443\u0434\u0430\u043B\u0435\u043D\u0430 \u0438\u043B\u0438 \u043D\u0435 \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u0430",
+    automations_unavailable_modal_advice:
+      "\u041E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 Home Assistant, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0438 \u0438\u0441\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044E.",
+    automations_unavailable_modal_close:
+      "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    automations_unavailable_modal_edit_states:
+      "\u0420\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u044F",
+    automations_unavailable_modal_open_in_automations:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F\u0445",
+    scenes_card_created_title:
+      "\u0421\u0446\u0435\u043D\u0430 \u0441\u043E\u0437\u0434\u0430\u043D\u0430",
+    scenes_card_saved_status:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E \u0432 Home Assistant",
+    scenes_card_activate_button:
+      "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    scenes_card_view_in_ha_button:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
+    scenes_card_declined_title:
+      "\u0421\u0446\u0435\u043D\u0430 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0430",
+    scenes_card_declined_message:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u043E. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0435\u0451, \u043E\u0442\u0432\u0435\u0442\u0438\u0432 \u043D\u0438\u0436\u0435.",
+    scenes_card_refining_badge:
+      "\u0414\u043E\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F",
+    scenes_hide_yaml: "\u0421\u043A\u0440\u044B\u0442\u044C YAML",
+    scenes_view_yaml: "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C YAML",
+    scenes_card_proposal_badge:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
+    scenes_card_accept_save_button:
+      "\u041F\u0440\u0438\u043D\u044F\u0442\u044C \u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    scenes_section_title:
+      "\u0412\u0430\u0448\u0438 \u0441\u0446\u0435\u043D\u044B",
+    scenes_filter_placeholder:
+      "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0446\u0435\u043D\u044B\u2026",
+    scenes_sort_recent:
+      "\u041D\u0435\u0434\u0430\u0432\u043D\u043E \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u0435",
+    scenes_sort_alpha:
+      "\u041F\u043E \u0430\u043B\u0444\u0430\u0432\u0438\u0442\u0443",
+    scenes_sort_size:
+      "\u0411\u043E\u043B\u044C\u0448\u0435 \u0432\u0441\u0435\u0433\u043E \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439",
+    scenes_llm_needs_setup_tooltip:
+      "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 LLM",
+    scenes_new_scene_button:
+      "\u041D\u043E\u0432\u0430\u044F \u0441\u0446\u0435\u043D\u0430",
+    scenes_status_tab_all: "\u0412\u0441\u0435",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "\u0412\u0440\u0443\u0447\u043D\u0443\u044E",
+    scenes_activate_scene_tooltip:
+      "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0446\u0435\u043D\u0443",
+    scenes_activate_button:
+      "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    scenes_more_actions_tooltip:
+      "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    scenes_loading_label:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    scenes_refine_in_chat_button:
+      "\u0414\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C \u0432 \u0447\u0430\u0442\u0435",
+    scenes_open_in_ha_button:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
+    scenes_deleting_label:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435\u2026",
+    scenes_delete_button: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    scenes_no_entity_details:
+      "\u0421\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u043E \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044F\u0445 \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B \u2014 \u043E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0441\u0446\u0435\u043D\u0443 \u0432 Home Assistant \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430.",
+    scenes_yaml_unavailable_comment:
+      "# YAML \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u0435\u043D \u2014 \u043E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0441\u0446\u0435\u043D\u0443 \u0432 Home Assistant \u0434\u043B\u044F \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0430.",
+    scenes_empty_state:
+      "\u0421\u0446\u0435\u043D\u044B \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u044B. \u041F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 Selora \u0441\u043E\u0437\u0434\u0430\u0442\u044C \u043E\u0434\u043D\u0443.",
+    scenes_delete_modal_fallback_name:
+      "\u044D\u0442\u0430 \u0441\u0446\u0435\u043D\u0430",
+    scenes_delete_modal_title:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u0441\u0446\u0435\u043D\u0443",
+    scenes_delete_modal_prefix: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    scenes_delete_modal_suffix:
+      "? \u042D\u0442\u043E \u0443\u0434\u0430\u043B\u0438\u0442 \u0441\u0446\u0435\u043D\u0443 \u0438\u0437 Home Assistant \u0431\u0435\u0437 \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438 \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F.",
+    scenes_delete_modal_cancel_button: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    scenes_delete_modal_confirm_button:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    usage_pricing_invalid_error:
+      "\u0426\u0435\u043D\u044B \u0434\u043E\u043B\u0436\u043D\u044B \u0431\u044B\u0442\u044C \u043D\u0435\u043E\u0442\u0440\u0438\u0446\u0430\u0442\u0435\u043B\u044C\u043D\u044B\u043C\u0438 \u0447\u0438\u0441\u043B\u0430\u043C\u0438.",
+    usage_pricing_saved_toast:
+      "\u041F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435 \u0446\u0435\u043D \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E.",
+    usage_pricing_save_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0446\u0435\u043D\u044B:",
+    usage_pricing_reset_toast:
+      "\u0421\u0431\u0440\u043E\u0448\u0435\u043D\u043E \u043A \u0446\u0435\u043D\u0430\u043C \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E.",
+    usage_pricing_reset_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0446\u0435\u043D\u044B:",
+    usage_pricing_title: "\u0426\u0435\u043D\u044B",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 Selora Cloud \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0438 \u043E\u043F\u043B\u0430\u0447\u0438\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u0432\u0430\u0448\u0435\u0439 \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora Homes. \u041E\u043D\u043E \u043D\u0435 \u0443\u0447\u0438\u0442\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u0432 \u0434\u0430\u0442\u0447\u0438\u043A\u0430\u0445 \u0438 \u0433\u0440\u0430\u0444\u0438\u043A\u0430\u0445 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438.",
+    usage_pricing_view_cloud_link:
+      "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0432 \u0432\u0430\u0448\u0435\u0439 \u0443\u0447\u0451\u0442\u043D\u043E\u0439 \u0437\u0430\u043F\u0438\u0441\u0438 Selora Homes",
+    usage_pricing_ollama_help:
+      "Ollama \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043B\u043E\u043A\u0430\u043B\u044C\u043D\u043E \u2014 \u043D\u0435\u0442 \u0437\u0430\u0442\u0440\u0430\u0442 \u043D\u0430 \u0442\u043E\u043A\u0435\u043D\u044B \u0434\u043B\u044F \u043E\u0442\u0441\u043B\u0435\u0436\u0438\u0432\u0430\u043D\u0438\u044F.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u043D\u0430 \u0432\u0430\u0448\u0435\u043C \u043E\u0431\u043E\u0440\u0443\u0434\u043E\u0432\u0430\u043D\u0438\u0438 \u2014 \u043D\u0435\u0442 \u0437\u0430\u0442\u0440\u0430\u0442 \u043D\u0430 \u0442\u043E\u043A\u0435\u043D\u044B \u0434\u043B\u044F \u043E\u0442\u0441\u043B\u0435\u0436\u0438\u0432\u0430\u043D\u0438\u044F.",
+    usage_pricing_no_model_help:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 \u0438 \u043C\u043E\u0434\u0435\u043B\u044C LLM \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0434\u0430\u0442\u044C \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0435 \u0446\u0435\u043D\u044B.",
+    usage_pricing_intro_prefix:
+      "\u041E\u0446\u0435\u043D\u043A\u0438 \u0437\u0430\u0442\u0440\u0430\u0442 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442 \u044D\u0442\u0438 \u0441\u0442\u0430\u0432\u043A\u0438 \u0437\u0430 \u043C\u0438\u043B\u043B\u0438\u043E\u043D \u0442\u043E\u043A\u0435\u043D\u043E\u0432. \u0417\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u0434\u043B\u044F Anthropic \u0431\u0435\u0440\u0443\u0442\u0441\u044F \u0441\u043E",
+    usage_pricing_official_page_link:
+      "\u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u044B\u0445 \u0446\u0435\u043D",
+    usage_pricing_intro_suffix:
+      "; \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0438\u0442\u0435 \u0437\u0434\u0435\u0441\u044C, \u0435\u0441\u043B\u0438 \u0443 \u0432\u0430\u0441 \u0435\u0441\u0442\u044C \u0441\u043E\u0433\u043B\u0430\u0441\u043E\u0432\u0430\u043D\u043D\u044B\u0435 \u0441\u0442\u0430\u0432\u043A\u0438 \u0438\u043B\u0438 \u0432\u044B \u043E\u0442\u0441\u043B\u0435\u0436\u0438\u0432\u0430\u0435\u0442\u0435 \u0434\u0440\u0443\u0433\u0443\u044E \u043C\u043E\u0434\u0435\u043B\u044C.",
+    usage_pricing_input_label: "\u0412\u0432\u043E\u0434",
+    usage_pricing_default_prefix:
+      "\u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    usage_pricing_no_default:
+      "\u043D\u0435\u0442 \u0432\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u043E\u0433\u043E \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    usage_pricing_output_label: "\u0412\u044B\u0432\u043E\u0434",
+    usage_pricing_input_field_label: "\u0412\u0432\u043E\u0434 ($/MTok)",
+    usage_pricing_output_field_label: "\u0412\u044B\u0432\u043E\u0434 ($/MTok)",
+    usage_pricing_cancel_button: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    usage_pricing_save_button:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    usage_pricing_edit_override_button:
+      "\u0418\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435",
+    usage_pricing_set_custom_button:
+      "\u0417\u0430\u0434\u0430\u0442\u044C \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u0441\u043A\u0438\u0435 \u0446\u0435\u043D\u044B",
+    usage_pricing_reset_default_button:
+      "\u0421\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043A \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u044E \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E",
+    usage_snippet_copied_label:
+      "\u0421\u043A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u043D\u043E!",
+    usage_snippet_copy_button:
+      "\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    usage_snippet_help:
+      "\u0412\u0438\u0437\u0443\u0430\u043B\u044C\u043D\u044B\u0439 \u0432\u044B\u0431\u043E\u0440 \u043A\u0430\u0440\u0442\u043E\u0447\u0435\u043A \u0442\u0430\u043A\u0436\u0435 \u043D\u0430\u0439\u0434\u0451\u0442 \u044D\u0442\u0438 \u0434\u0430\u0442\u0447\u0438\u043A\u0438 \u043F\u043E\u0441\u043B\u0435 \u043F\u0435\u0440\u0432\u043E\u0439 \u0435\u0436\u0435\u0447\u0430\u0441\u043D\u043E\u0439 \u043A\u043E\u043C\u043F\u0438\u043B\u044F\u0446\u0438\u0438 Recorder.",
+    usage_back_to_settings:
+      "\u041D\u0430\u0437\u0430\u0434 \u043A \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u043C",
+    usage_token_usage_title:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u0442\u043E\u043A\u0435\u043D\u043E\u0432",
+    usage_empty_title:
+      "\u0414\u0430\u043D\u043D\u044B\u0445 \u043E\u0431 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0438 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    usage_empty_body:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u0435 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u043F\u043E\u0441\u043B\u0435 \u043F\u0435\u0440\u0432\u043E\u0433\u043E \u0432\u044B\u0437\u043E\u0432\u0430 LLM. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u043F\u043E\u043E\u0431\u0449\u0430\u0442\u044C\u0441\u044F \u0441 Selora AI \u0438\u043B\u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0446\u0438\u043A\u043B \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439. \u0415\u0441\u043B\u0438 \u0432\u044B \u0443\u0436\u0435 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043B\u0438 Selora AI, \u043D\u043E \u0432\u0441\u0451 \u0435\u0449\u0451 \u0432\u0438\u0434\u0438\u0442\u0435 \u044D\u0442\u043E, \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 Home Assistant, \u0447\u0442\u043E\u0431\u044B \u043D\u043E\u0432\u044B\u0435 \u0434\u0430\u0442\u0447\u0438\u043A\u0438 \u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u043B\u0438\u0441\u044C.",
+    usage_totals_title: "\u0418\u0442\u043E\u0433\u0438",
+    usage_tile_cost_label:
+      "\u0421\u0442\u043E\u0438\u043C\u043E\u0441\u0442\u044C",
+    usage_tile_cost_sub: "\u043E\u0446\u0435\u043D\u043A\u0430 \u0432 USD",
+    usage_tile_calls_label: "\u0412\u044B\u0437\u043E\u0432\u044B",
+    usage_tile_tokens_in_label:
+      "\u0422\u043E\u043A\u0435\u043D\u044B \u043D\u0430 \u0432\u0445\u043E\u0434\u0435",
+    usage_tile_tokens_out_label:
+      "\u0422\u043E\u043A\u0435\u043D\u044B \u043D\u0430 \u0432\u044B\u0445\u043E\u0434\u0435",
+    usage_by_period_title:
+      "\u041F\u043E \u043F\u0435\u0440\u0438\u043E\u0434\u0430\u043C",
+    usage_period_today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
+    usage_period_last_7_days:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435 7 \u0434\u043D\u0435\u0439",
+    usage_period_this_month:
+      "\u0412 \u044D\u0442\u043E\u043C \u043C\u0435\u0441\u044F\u0446\u0435",
+    usage_period_note_filtered:
+      "\u0421\u0435\u0433\u043C\u0435\u043D\u0442\u044B \u043F\u0435\u0440\u0438\u043E\u0434\u043E\u0432 \u0431\u0435\u0440\u0443\u0442\u0441\u044F \u0438\u0437 \u0445\u0440\u0430\u043D\u0438\u043B\u0438\u0449\u0430 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 (\u0445\u0440\u0430\u043D\u044F\u0442\u0441\u044F 30 \u0434\u043D\u0435\u0439).",
+    usage_period_note_unfiltered:
+      "\u0421\u0435\u0433\u043C\u0435\u043D\u0442\u044B \u043F\u0435\u0440\u0438\u043E\u0434\u043E\u0432 \u0431\u0435\u0440\u0443\u0442\u0441\u044F \u0438\u0437 \u0434\u043E\u043B\u0433\u043E\u0441\u0440\u043E\u0447\u043D\u043E\u0439 \u0441\u0442\u0430\u0442\u0438\u0441\u0442\u0438\u043A\u0438 Home Assistant, \u043A\u043E\u0442\u043E\u0440\u0430\u044F \u043A\u043E\u043C\u043F\u0438\u043B\u0438\u0440\u0443\u0435\u0442\u0441\u044F \u0435\u0436\u0435\u0447\u0430\u0441\u043D\u043E. \u041D\u043E\u0432\u0430\u044F \u0430\u043A\u0442\u0438\u0432\u043D\u043E\u0441\u0442\u044C \u043C\u043E\u0436\u0435\u0442 \u043F\u043E\u044F\u0432\u0438\u0442\u044C\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0432 \u0442\u0435\u0447\u0435\u043D\u0438\u0435 \u0447\u0430\u0441\u0430.",
+    usage_where_tokens_go_title:
+      "\u041A\u0443\u0434\u0430 \u0443\u0445\u043E\u0434\u044F\u0442 \u0442\u043E\u043A\u0435\u043D\u044B",
+    usage_where_tokens_last_prefix:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0435",
+    usage_where_tokens_resets_suffix:
+      "\xB7 \u0441\u0431\u0440\u0430\u0441\u044B\u0432\u0430\u0435\u0442\u0441\u044F \u043F\u0440\u0438 \u043F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u043A\u0435 HA",
+    usage_group_by_kind_button: "\u041F\u043E \u0442\u0438\u043F\u0443",
+    usage_group_by_provider_button:
+      "\u041F\u043E \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0443",
+    usage_loading: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    usage_no_calls_recorded:
+      "\u0412\u044B\u0437\u043E\u0432\u043E\u0432 \u043F\u043E\u043A\u0430 \u043D\u0435 \u0437\u0430\u043F\u0438\u0441\u0430\u043D\u043E.",
+    usage_recent_calls_title:
+      "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435 \u0432\u044B\u0437\u043E\u0432\u044B",
+    usage_dashboard_sensors_title:
+      "\u0414\u0430\u0442\u0447\u0438\u043A\u0438 \u043F\u0430\u043D\u0435\u043B\u0438 \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433\u0430",
+    usage_dashboard_sensors_help_prefix:
+      "\u041F\u0435\u0440\u0435\u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 Home Assistant, \u0447\u0442\u043E\u0431\u044B \u0437\u0430\u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0434\u0430\u0442\u0447\u0438\u043A\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044F. \u041F\u043E\u0441\u043B\u0435 \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u0430\u0446\u0438\u0438 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0438\u0445 \u043D\u0430 \u043B\u044E\u0431\u0443\u044E \u043F\u0430\u043D\u0435\u043B\u044C \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0438",
+    usage_dashboard_sensors_help_suffix: ".",
+    usage_add_to_dashboard_title:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u044C \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433\u0430",
+    usage_add_to_dashboard_help:
+      "\u0423 \u043A\u0430\u0436\u0434\u043E\u0439 \u043C\u0435\u0442\u0440\u0438\u043A\u0438 \u0441\u0432\u043E\u0439 \u043C\u0430\u0441\u0448\u0442\u0430\u0431 \u2014 \u0441\u043E\u0437\u0434\u0430\u0439\u0442\u0435 \u043E\u0442\u0434\u0435\u043B\u044C\u043D\u0443\u044E \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0443 \u0434\u043B\u044F \u043A\u0430\u0436\u0434\u043E\u0433\u043E \u0434\u0430\u0442\u0447\u0438\u043A\u0430. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043C\u0435\u0442\u0440\u0438\u043A\u0443, \u0441\u043A\u043E\u043F\u0438\u0440\u0443\u0439\u0442\u0435 YAML, \u0437\u0430\u0442\u0435\u043C \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0435\u0433\u043E \u0432 YAML-\u0440\u0435\u0434\u0430\u043A\u0442\u043E\u0440 \u043F\u0430\u043D\u0435\u043B\u0438 \u043C\u043E\u043D\u0438\u0442\u043E\u0440\u0438\u043D\u0433\u0430.",
+    usage_filter_all_providers:
+      "\u0412\u0441\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u044B",
+    usage_filter_all_models:
+      "\u0412\u0441\u0435 \u043C\u043E\u0434\u0435\u043B\u0438",
+    usage_filter_no_model:
+      "(\u043D\u0435\u0442 \u043C\u043E\u0434\u0435\u043B\u0438)",
+    suggestions_tab_flow: "\u041F\u043E\u0442\u043E\u043A",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating:
+      "\u0421\u043E\u0437\u0434\u0430\u043D\u0438\u0435\u2026",
+    suggestions_btn_accept: "\u041F\u0440\u0438\u043D\u044F\u0442\u044C",
+    suggestions_btn_dismissing:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u0438\u0435\u2026",
+    suggestions_btn_dismiss:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C",
+    suggestions_section_title:
+      "\u0420\u0435\u043A\u043E\u043C\u0435\u043D\u0434\u043E\u0432\u0430\u043D\u043E \u0434\u043B\u044F \u0432\u0430\u0441",
+    suggestions_badge_new: "\u043D\u043E\u0432\u043E\u0435",
+    suggestions_llm_setup_required:
+      "\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u0430 LLM",
+    suggestions_btn_scanning:
+      "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435\u2026",
+    suggestions_btn_scan_now:
+      "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0441\u0435\u0439\u0447\u0430\u0441",
+    suggestions_btn_analyzing: "\u0410\u043D\u0430\u043B\u0438\u0437\u2026",
+    suggestions_btn_generate:
+      "\u0421\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    suggestions_section_subtitle:
+      "\u041D\u0430 \u043E\u0441\u043D\u043E\u0432\u0435 \u043D\u0430\u0431\u043B\u044E\u0434\u0430\u0435\u043C\u044B\u0445 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432 \u0438 \u0418\u0418-\u0430\u043D\u0430\u043B\u0438\u0437\u0430 \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435.",
+    suggestions_empty_state:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u0421\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C\xBB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0430\u043D\u0430\u043B\u0438\u0437\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432\u0430\u0448 \u0434\u043E\u043C.",
+    suggestions_filter_placeholder:
+      "\u0424\u0438\u043B\u044C\u0442\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F\u2026",
+    suggestions_filter_all: "\u0412\u0441\u0435",
+    suggestions_filter_patterns: "\u0428\u0430\u0431\u043B\u043E\u043D\u044B",
+    suggestions_filter_ai: "\u0418\u0418",
+    suggestions_sort_recent: "\u041D\u0435\u0434\u0430\u0432\u043D\u0438\u0435",
+    suggestions_sort_alpha:
+      "\u041F\u043E \u0430\u043B\u0444\u0430\u0432\u0438\u0442\u0443",
+    suggestions_bulk_selected: "\u0432\u044B\u0431\u0440\u0430\u043D\u043E",
+    suggestions_bulk_accept_selected:
+      "\u041F\u0440\u0438\u043D\u044F\u0442\u044C \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0435",
+    suggestions_bulk_dismiss_selected:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C \u0432\u044B\u0431\u0440\u0430\u043D\u043D\u044B\u0435",
+    suggestions_bulk_done: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    suggestions_bulk_edit:
+      "\u041C\u0430\u0441\u0441\u043E\u0432\u043E\u0435 \u0440\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435",
+    suggestions_show_more:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0431\u043E\u043B\u044C\u0448\u0435 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439",
+    version_history_loading:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    version_history_empty:
+      "\u0418\u0441\u0442\u043E\u0440\u0438\u0438 \u0432\u0435\u0440\u0441\u0438\u0439 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442.",
+    version_history_current_badge: "\u0422\u0435\u043A\u0443\u0449\u0430\u044F",
+    version_history_hide_yaml: "\u0421\u043A\u0440\u044B\u0442\u044C YAML",
+    version_history_view_yaml:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C YAML",
+    version_history_restoring:
+      "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435\u2026",
+    version_history_restore_button:
+      "\u0412\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u044D\u0442\u0443 \u0432\u0435\u0440\u0441\u0438\u044E",
+    version_history_no_yaml_stored:
+      "(YAML \u043D\u0435 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D)",
+    version_history_compare_title:
+      "\u0421\u0440\u0430\u0432\u043D\u0438\u0442\u044C \u0432\u0435\u0440\u0441\u0438\u0438",
+    version_history_version_a_label:
+      "\u0412\u0435\u0440\u0441\u0438\u044F A (\u043D\u043E\u0432\u0435\u0435):",
+    version_history_version_b_label:
+      "\u0412\u0435\u0440\u0441\u0438\u044F B (\u0441\u0442\u0430\u0440\u0448\u0435):",
+    version_history_loading_diff:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0440\u0430\u0437\u043B\u0438\u0447\u0438\u0439\u2026",
+    version_history_no_diff:
+      "\u0420\u0430\u0437\u043B\u0438\u0447\u0438\u0439 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E.",
+    device_detail_loading:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0441\u0432\u0435\u0434\u0435\u043D\u0438\u0439 \u043E\u0431 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0435...",
+    device_detail_close: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    device_detail_entities_heading:
+      "\u0421\u0443\u0449\u043D\u043E\u0441\u0442\u0438",
+    device_detail_state_history_heading:
+      "\u0418\u0441\u0442\u043E\u0440\u0438\u044F \u0441\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0439 (24 \u0447)",
+    device_detail_linked_automations_heading:
+      "\u0421\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    device_detail_detected_patterns_heading:
+      "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u043D\u044B\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u044B",
+    device_detail_confidence_label:
+      "\u0443\u0432\u0435\u0440\u0435\u043D\u043D\u043E\u0441\u0442\u044C",
+    ignore_list_remove_label:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u043C\u0435\u0442\u043A\u0443",
+    ignore_list_chip_kind_device:
+      "\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    ignore_list_chip_kind_area: "\u0437\u043E\u043D\u0430",
+    ignore_list_dropdown_kind_area: "\u0417\u043E\u043D\u0430",
+    ignore_list_dropdown_kind_device:
+      "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    ignore_list_how_it_works:
+      "\u041A\u0430\u043A \u044D\u0442\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442?",
+    ignore_list_section_title:
+      "\u0418\u0433\u043D\u043E\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u0432 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u044F\u0445",
+    ignore_list_search_placeholder:
+      "\u041D\u0430\u0439\u0434\u0438\u0442\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C, \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0438\u043B\u0438 \u0437\u043E\u043D\u0443\u2026",
+    ignore_list_empty_state:
+      "\u041F\u043E\u043A\u0430 \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0438\u0433\u043D\u043E\u0440\u0438\u0440\u0443\u0435\u0442\u0441\u044F.",
+    approval_risk_explainer_low:
+      "\u041D\u0438\u0437\u043A\u0438\u0439 \u0440\u0438\u0441\u043A: \u043D\u0435\u0437\u043D\u0430\u0447\u0438\u0442\u0435\u043B\u044C\u043D\u043E\u0435 \u0438\u043B\u0438 \u043F\u043E\u043B\u043D\u043E\u0441\u0442\u044C\u044E \u043E\u0431\u0440\u0430\u0442\u0438\u043C\u043E\u0435 \u0432\u043E\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 (\u0437\u0432\u0443\u043A, \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F, \u0437\u0430\u043F\u0443\u0441\u043A/\u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043F\u044B\u043B\u0435\u0441\u043E\u0441\u0430).",
+    approval_risk_explainer_medium:
+      "\u0421\u0440\u0435\u0434\u043D\u0438\u0439 \u0440\u0438\u0441\u043A: \u0437\u0430\u043C\u0435\u0442\u043D\u044B\u0435 \u043F\u043E\u0431\u043E\u0447\u043D\u044B\u0435 \u044D\u0444\u0444\u0435\u043A\u0442\u044B, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043D\u0435 \u0437\u0430\u0445\u043E\u0442\u0435\u0442\u044C \u043E\u0442\u043C\u0435\u043D\u044F\u0442\u044C (\u043F\u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043D\u0430 \u043E\u0445\u0440\u0430\u043D\u0443, \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0434\u0432\u0435\u0440\u0438, \u0437\u0430\u043F\u0443\u0441\u043A \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u044C\u0441\u043A\u043E\u0433\u043E \u0441\u043A\u0440\u0438\u043F\u0442\u0430).",
+    approval_risk_explainer_high:
+      "\u0412\u044B\u0441\u043E\u043A\u0438\u0439 \u0440\u0438\u0441\u043A: \u0444\u0438\u0437\u0438\u0447\u0435\u0441\u043A\u0438\u0439 \u0434\u043E\u0441\u0442\u0443\u043F, \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u044C \u0438\u043B\u0438 \u0432\u043E\u0437\u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0435 \u043D\u0430 \u0443\u0440\u043E\u0432\u043D\u0435 \u0445\u043E\u0441\u0442\u0430 (\u0440\u0430\u0437\u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u0434\u0432\u0435\u0440\u0438, \u0441\u043D\u044F\u0442\u0438\u0435 \u0441 \u043E\u0445\u0440\u0430\u043D\u044B, \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435 \u043A\u043E\u043C\u0430\u043D\u0434 \u043E\u0431\u043E\u043B\u043E\u0447\u043A\u0438).",
+    approval_scope_all_matching:
+      "\u0412\u0441\u0435 \u043F\u043E\u0434\u0445\u043E\u0434\u044F\u0449\u0438\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438",
+    approval_scope_just_these:
+      "\u0422\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u0438 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438",
+    approval_status_approved:
+      "\u041E\u0434\u043E\u0431\u0440\u0435\u043D\u043E",
+    approval_status_denied:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u043E",
+    approval_working:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u2026",
+    approval_required_title:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043E\u0434\u043E\u0431\u0440\u0435\u043D\u0438\u0435",
+    approval_scope_label:
+      "\u0414\u043B\u044F \u0441\u0435\u0430\u043D\u0441\u0430 / \u0412\u0441\u0435\u0433\u0434\u0430:",
+    approval_scope_button_title:
+      "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u0434\u043B\u044F \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u044F \u043C\u0435\u0436\u0434\u0443 \u043F\u0440\u0435\u0434\u043E\u0441\u0442\u0430\u0432\u043B\u0435\u043D\u0438\u0435\u043C \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0434\u043B\u044F \u044D\u0442\u043E\u0439 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438 \u0438\u043B\u0438 \u0434\u043B\u044F \u0432\u0441\u0435\u0445 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u044D\u0442\u043E\u0439 \u0441\u043B\u0443\u0436\u0431\u044B.",
+    quick_actions_approve_once_label:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044C \u043E\u0434\u0438\u043D \u0440\u0430\u0437",
+    quick_actions_approve_once_desc:
+      "\u0422\u043E\u043B\u044C\u043A\u043E \u044D\u0442\u043E\u0442 \u043E\u0434\u0438\u043D \u0437\u0430\u043F\u0440\u043E\u0441",
+    quick_actions_approve_session_label:
+      "\u0414\u043B\u044F \u044D\u0442\u043E\u0439 \u0431\u0435\u0441\u0435\u0434\u044B",
+    quick_actions_approve_session_desc:
+      "\u0420\u0430\u0437\u0440\u0435\u0448\u0438\u0442\u044C \u0434\u043E \u043A\u043E\u043D\u0446\u0430 \u044D\u0442\u043E\u0439 \u0431\u0435\u0441\u0435\u0434\u044B",
+    quick_actions_approve_always_label: "\u0412\u0441\u0435\u0433\u0434\u0430",
+    quick_actions_approve_always_desc:
+      "\u0417\u0430\u043F\u043E\u043C\u043D\u0438\u0442\u044C \u044D\u0442\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u0438\u0435",
+    quick_actions_deny_label:
+      "\u041E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C",
+    quick_actions_deny_desc:
+      "\u041D\u0435 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0442\u044C \u044D\u0442\u043E\u0442 \u0437\u0430\u043F\u0440\u043E\u0441",
+    stale_modal_title:
+      "\u0423\u0441\u0442\u0430\u0440\u0435\u0432\u0448\u0438\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438",
+    stale_select_all:
+      "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0432\u0441\u0451",
+    stale_last_triggered_label:
+      "\u041F\u043E\u0441\u043B\u0435\u0434\u043D\u0435\u0435 \u0441\u0440\u0430\u0431\u0430\u0442\u044B\u0432\u0430\u043D\u0438\u0435:",
+    stale_never: "\u041D\u0438\u043A\u043E\u0433\u0434\u0430",
+    stale_keep_button: "\u041E\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
+    stale_close_button: "\u0417\u0430\u043A\u0440\u044B\u0442\u044C",
+    stale_state_label:
+      "\u0421\u043E\u0441\u0442\u043E\u044F\u043D\u0438\u0435:",
+    stale_state_unknown:
+      "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
+    stale_back_button: "\u041D\u0430\u0437\u0430\u0434",
+    stale_remove_confirm:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430?",
+    stale_remove_success:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0430.",
+    stale_remove_failed_prefix:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0443\u0434\u0430\u043B\u0438\u0442\u044C:",
+    stale_remove_button: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    automation_management_triggered:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0437\u0430\u043F\u0443\u0449\u0435\u043D\u0430.",
+    automation_management_renamed:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u043F\u0435\u0440\u0435\u0438\u043C\u0435\u043D\u043E\u0432\u0430\u043D\u0430",
+    automation_management_version_restored:
+      "\u0412\u0435\u0440\u0441\u0438\u044F \u0432\u043E\u0441\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0430.",
+    automation_management_delete_confirm:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C \u044D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0430\u0432\u0441\u0435\u0433\u0434\u0430?",
+    automation_management_deleted:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0443\u0434\u0430\u043B\u0435\u043D\u0430.",
+    automation_management_cannot_refine_no_id:
+      "\u042D\u0442\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u043D\u0435\u043B\u044C\u0437\u044F \u0434\u043E\u0440\u0430\u0431\u043E\u0442\u0430\u0442\u044C, \u0442\u0430\u043A \u043A\u0430\u043A \u0443 \u043D\u0435\u0451 \u043D\u0435\u0442 \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440\u0430 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438.",
+    automation_management_loaded_to_chat:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D\u0430 \u0432 \u0447\u0430\u0442.",
+    action_format_run_verb:
+      "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C",
+    action_format_ran_verb: "\u0417\u0430\u043F\u0443\u0449\u0435\u043D\u043E",
+    chat_actions_interrupt_disconnect:
+      "\u0421\u043E\u0435\u0434\u0438\u043D\u0435\u043D\u0438\u0435 \u0441 Home Assistant \u0431\u044B\u043B\u043E \u043F\u043E\u0442\u0435\u0440\u044F\u043D\u043E \u0432\u043E \u0432\u0440\u0435\u043C\u044F \u043E\u0442\u0432\u0435\u0442\u0430.",
+    chat_actions_interrupt_server_stopped:
+      "\u0421\u0435\u0440\u0432\u0435\u0440 \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043B \u043E\u0442\u0432\u0435\u0447\u0430\u0442\u044C.",
+    chat_actions_interrupt_server_no_reply:
+      "\u0421\u0435\u0440\u0432\u0435\u0440 \u043D\u0435 \u043E\u0442\u0432\u0435\u0442\u0438\u043B \u0432\u043E\u0432\u0440\u0435\u043C\u044F.",
+    chat_actions_interrupt_truncated:
+      "\u041E\u0442\u0432\u0435\u0442 \u0432\u044B\u0433\u043B\u044F\u0434\u0438\u0442 \u043E\u0431\u0440\u0435\u0437\u0430\u043D\u043D\u044B\u043C \u2014 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    chat_actions_interrupt_llm_unreachable:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0432\u044F\u0437\u0430\u0442\u044C\u0441\u044F \u0441 \u043F\u0440\u043E\u0432\u0430\u0439\u0434\u0435\u0440\u043E\u043C LLM.",
+    chat_actions_interrupt_session_start_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u0441\u0435\u0430\u043D\u0441 \u0447\u0430\u0442\u0430.",
+    chat_actions_cancelled_by_user:
+      "_\u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E \u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u0442\u0435\u043B\u0435\u043C_",
+    automation_crud_save_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E:",
+    automation_crud_entity_not_surfaced:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430, \u043D\u043E Home Assistant \u0435\u0449\u0451 \u043D\u0435 \u043E\u0442\u043E\u0431\u0440\u0430\u0437\u0438\u043B \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C \u2014 \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u0435\u0451 \u043D\u0430 \u0432\u043A\u043B\u0430\u0434\u043A\u0435 \xAB\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438\xBB, \u043A\u043E\u0433\u0434\u0430 \u043E\u043D\u0430 \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F.",
+    automation_crud_auto_enable_failed_prefix:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430, \u043D\u043E \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0435\u0451 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438:",
+    automation_crud_unknown_error:
+      "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u0430\u044F \u043E\u0448\u0438\u0431\u043A\u0430",
+    automation_crud_auto_enable_failed_suffix:
+      ". \u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u043A\u043D\u043E\u043F\u043A\u0443 \xAB\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C\xBB \u043D\u0430 \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0435, \u0447\u0442\u043E\u0431\u044B \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    automation_crud_draft_dismissed:
+      "\u0427\u0435\u0440\u043D\u043E\u0432\u0438\u043A \u043E\u0442\u043A\u043B\u043E\u043D\u0451\u043D.",
+    automation_crud_dismiss_draft_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043A\u043B\u043E\u043D\u0438\u0442\u044C \u0447\u0435\u0440\u043D\u043E\u0432\u0438\u043A:",
+    automation_crud_create_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0437\u0434\u0430\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E:",
+    automation_crud_save_edited_yaml_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E \u0438\u0437 \u043E\u0442\u0440\u0435\u0434\u0430\u043A\u0442\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0433\u043E YAML:",
+    automation_crud_yaml_saved:
+      "YAML \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D.",
+    automation_crud_save_changes_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F:",
+    scene_actions_refine_default_name: "\u0441\u0446\u0435\u043D\u0430",
+    session_toast_new_automation_chat_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0447\u0430\u0442\u044C \u043D\u043E\u0432\u044B\u0439 \u0447\u0430\u0442 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438:",
+    session_toast_ai_no_suggestion:
+      "\u0418\u0418 \u043D\u0435 \u0432\u0435\u0440\u043D\u0443\u043B \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    session_toast_suggest_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u044E LLM.",
+    suggestions_analysis_no_new:
+      "\u0410\u043D\u0430\u043B\u0438\u0437 \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u2014 \u043D\u043E\u0432\u044B\u0445 \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0439 \u043D\u0430 \u0434\u0430\u043D\u043D\u044B\u0439 \u043C\u043E\u043C\u0435\u043D\u0442 \u043D\u0435\u0442",
+    suggestions_accepted_toast:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043F\u0440\u0438\u043D\u044F\u0442\u043E \u2014 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F \u0441\u043E\u0437\u0434\u0430\u043D\u0430",
+    suggestions_accept_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0440\u0438\u043D\u044F\u0442\u044C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
+    suggestions_dismissed_toast:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043A\u043B\u043E\u043D\u0435\u043D\u043E",
+    suggestions_snoozed_toast:
+      "\u041F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043E\u0442\u043B\u043E\u0436\u0435\u043D\u043E \u043D\u0430 24 \u0447",
+    suggestions_pattern_scan_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432",
+    area_unassigned:
+      "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E",
+  },
+  options: {
+    step: {
+      init: {
+        title:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0444\u043E\u043D\u043E\u0432\u044B\u0445 \u0441\u043B\u0443\u0436\u0431",
+        description:
+          "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u0442\u0435 \u0444\u043E\u043D\u043E\u0432\u044B\u0435 \u0441\u043B\u0443\u0436\u0431\u044B \u0434\u043B\u044F Selora AI.",
+        data: {
+          collector_enabled:
+            "\u0421\u0431\u043E\u0440\u0449\u0438\u043A \u0434\u0430\u043D\u043D\u044B\u0445 (\u0418\u0418-\u0430\u043D\u0430\u043B\u0438\u0437) \u0432\u043A\u043B\u044E\u0447\u0451\u043D",
+          collector_mode:
+            "\u0420\u0435\u0436\u0438\u043C \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F",
+          collector_interval:
+            "\u0418\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u0430\u043D\u0430\u043B\u0438\u0437\u0430 (\u0441\u0435\u043A\u0443\u043D\u0434\u044B)",
+          collector_start_time:
+            "\u0417\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u0447\u0430\u043B\u0430",
+          collector_end_time:
+            "\u0417\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u043E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u044F",
+          discovery_enabled:
+            "\u041E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u0435 \u0432 \u0441\u0435\u0442\u0438 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u043E",
+          discovery_mode:
+            "\u0420\u0435\u0436\u0438\u043C \u0432\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u044F",
+          discovery_interval:
+            "\u0418\u043D\u0442\u0435\u0440\u0432\u0430\u043B \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0435\u043D\u0438\u044F (\u0441\u0435\u043A\u0443\u043D\u0434\u044B)",
+          discovery_start_time:
+            "\u0417\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u0447\u0430\u043B\u0430",
+          discovery_end_time:
+            "\u0417\u0430\u043F\u043B\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u043E\u043A\u043E\u043D\u0447\u0430\u043D\u0438\u044F",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/ja.json
+var ja_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Selora AI \u3092\u8A2D\u5B9A",
+        description:
+          "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u63D0\u6848\u306B\u4F7F\u7528\u3059\u308B LLM \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+        data: {
+          llm_provider: "LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud \u306F\u304A\u4F7F\u3044\u306E Selora \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u4F7F\u7528\u3059\u308B\u305F\u3081\u3001API \u30AD\u30FC\u306F\u4E0D\u8981\u3067\u3059\u3002\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u5F8C\u3001Selora AI \u30D1\u30CD\u30EB\u3092\u958B\u3044\u3066\u300CSelora \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u9023\u643A\u300D\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u8A8D\u8A3C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      },
+      anthropic: {
+        title: "Anthropic\uFF08Claude\uFF09\u306E\u8A2D\u5B9A",
+        description:
+          "Anthropic API \u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002console.anthropic.com \u3067\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002",
+        data: {
+          anthropic_api_key: "API \u30AD\u30FC",
+          anthropic_model: "\u30E2\u30C7\u30EB",
+        },
+      },
+      gemini: {
+        title: "Google Gemini \u306E\u8A2D\u5B9A",
+        description:
+          "Google Gemini API \u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002aistudio.google.com \u3067\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002",
+        data: {
+          gemini_api_key: "API \u30AD\u30FC",
+          gemini_model: "\u30E2\u30C7\u30EB",
+        },
+      },
+      openai: {
+        title: "OpenAI \u306E\u8A2D\u5B9A",
+        description:
+          "OpenAI API \u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002platform.openai.com \u3067\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002",
+        data: {
+          openai_api_key: "API \u30AD\u30FC",
+          openai_model: "\u30E2\u30C7\u30EB",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter \u306E\u8A2D\u5B9A",
+        description:
+          "OpenRouter API \u30AD\u30FC\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002openrouter.ai/keys \u3067\u53D6\u5F97\u3067\u304D\u307E\u3059\u3002\u300Canthropic/claude-sonnet-4.5\u300D\u306E\u3088\u3046\u306B\u30D9\u30F3\u30C0\u30FC\u540D\u3092\u63A5\u982D\u8F9E\u306B\u4ED8\u3051\u305F\u30E2\u30C7\u30EB\u540D\u3092\u4F7F\u7528\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+        data: {
+          openrouter_api_key: "API \u30AD\u30FC",
+          openrouter_model: "\u30E2\u30C7\u30EB",
+        },
+      },
+      ollama: {
+        title: "Ollama\uFF08\u30ED\u30FC\u30AB\u30EB\uFF09\u306E\u8A2D\u5B9A",
+        description:
+          "\u30ED\u30FC\u30AB\u30EB\u306E Ollama \u30B5\u30FC\u30D0\u30FC\u306E\u8A73\u7D30\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30E2\u30C7\u30EB\u304C\u30D7\u30EB\u3055\u308C\u3066\u3044\u308B\u3053\u3068\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+        data: {
+          ollama_host: "Ollama \u30DB\u30B9\u30C8 URL",
+          ollama_model: "\u30E2\u30C7\u30EB\u540D",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local \u306E\u8A2D\u5B9A",
+        description:
+          "Selora \u30CF\u30D6\u306F\u4E8B\u524D\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059\u3002Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3059\u308B\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server \u3092\u4F7F\u7528\u3059\u308B\u306B\u306F\u3001\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+        data: {
+          selora_local_host: "\u30DB\u30B9\u30C8 URL",
+        },
+      },
+      select_devices: {
+        title:
+          "\u30AA\u30F3\u30DC\u30FC\u30C9\u3059\u308B\u30C7\u30D0\u30A4\u30B9\u3092\u9078\u629E",
+        description:
+          "Selora AI \u304C\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067 {count} \u53F0\u306E\u30C7\u30D0\u30A4\u30B9\u3092\u691C\u51FA\u3057\u307E\u3057\u305F\u3002\u30C7\u30D0\u30A4\u30B9\u3092\u8FFD\u52A0\u3059\u308B\u306B\u306F\u90E8\u5C4B\u3092\u5272\u308A\u5F53\u3066\u308B\u304B\u3001\u300C\u30B9\u30AD\u30C3\u30D7\u300D\u3092\u9078\u629E\u3057\u3066\u30B9\u30AD\u30C3\u30D7\u3057\u3066\u304F\u3060\u3055\u3044\u3002\n\n{device_list}",
+      },
+      results: {
+        title:
+          "\u30C7\u30D0\u30A4\u30B9\u306E\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u7D50\u679C",
+        description:
+          "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F\uFF1A{succeeded} \u4EF6\u6210\u529F\u3001{failed} \u4EF6\u5931\u6557\u3001{needs_attention} \u4EF6\u306F\u624B\u52D5\u3067\u306E\u5BFE\u5FDC\u304C\u5FC5\u8981\u3067\u3059\u3002\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "\u63A5\u7D9A\u3067\u304D\u307E\u305B\u3093\u3002API \u30AD\u30FC\u3092\u78BA\u8A8D\u3059\u308B\u304B\u3001Ollama \u304C\u5B9F\u884C\u4E2D\u3067\u30E2\u30C7\u30EB\u304C\u30D7\u30EB\u3055\u308C\u3066\u3044\u308B\u3053\u3068\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      invalid_auth:
+        "Selora Connect \u306E\u8A8D\u8A3C\u60C5\u5831\u304C\u7121\u52B9\u3067\u3059\u3002\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\u3068\u30D1\u30B9\u30EF\u30FC\u30C9\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      unknown:
+        "\u4E88\u671F\u3057\u306A\u3044\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F\u3002",
+    },
+    abort: {
+      already_configured:
+        "Selora AI \u306F\u3059\u3067\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059\u3002",
+      cannot_connect:
+        "Selora AI \u30AF\u30E9\u30A6\u30C9\u30B5\u30FC\u30D3\u30B9\u306B\u63A5\u7D9A\u3067\u304D\u307E\u305B\u3093\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      unknown:
+        "\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u4E2D\u306B\u4E88\u671F\u3057\u306A\u3044\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F\u3002",
+      llm_not_ready:
+        "Selora AI \u306E LLM \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u304C\u5B9F\u884C\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002\u5148\u306B\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+      no_devices_found:
+        "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u4E0A\u3067\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u306F\u691C\u51FA\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3057\u3070\u3089\u304F\u3057\u3066\u304B\u3089\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+      no_devices_selected:
+        "\u30C7\u30D0\u30A4\u30B9\u304C\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002",
+      select_devices_failed:
+        "\u30C7\u30D0\u30A4\u30B9\u306E\u30AA\u30F3\u30DC\u30FC\u30C7\u30A3\u30F3\u30B0\u4E2D\u306B\u4E88\u671F\u3057\u306A\u3044\u30A8\u30E9\u30FC\u304C\u767A\u751F\u3057\u307E\u3057\u305F\u3002Selora AI \u306F\u30C7\u30D0\u30A4\u30B9\u306E\u30AA\u30F3\u30DC\u30FC\u30C7\u30A3\u30F3\u30B0\u306A\u3057\u3067\u30BB\u30C3\u30C8\u30A2\u30C3\u30D7\u3055\u308C\u307E\u3057\u305F\u3002\u5F8C\u3067\u300C\u8A2D\u5B9A\u300D\uFF1E\u300C\u30C7\u30D0\u30A4\u30B9\u300D\uFF1E\u300C\u30A8\u30F3\u30C8\u30EA\u3092\u8FFD\u52A0\u300D\u304B\u3089\u518D\u8A66\u884C\u3067\u304D\u307E\u3059\u3002\u8A73\u7D30\u306F Home Assistant \u306E\u30ED\u30B0\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    },
+  },
+  common: {
+    feedback_button_label:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u9001\u308B",
+    feedback_modal_title:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u5171\u6709",
+    feedback_privacy_notice:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u306F\u533F\u540D\u3067\u3042\u308A\u3001\u500B\u4EBA\u30C7\u30FC\u30BF\u306F\u542B\u307E\u308C\u307E\u305B\u3093\u3002",
+    feedback_textarea_placeholder:
+      "\u3054\u610F\u898B\u3092\u304A\u805E\u304B\u305B\u304F\u3060\u3055\u3044\uFF0810 \u6587\u5B57\u4EE5\u4E0A\uFF09",
+    feedback_rating_label: "\u8A55\u4FA1\uFF1A",
+    feedback_rating_thumbsup: "\u9AD8\u8A55\u4FA1",
+    feedback_rating_thumbsdown: "\u4F4E\u8A55\u4FA1",
+    feedback_category_label:
+      "\u30AB\u30C6\u30B4\u30EA\uFF08\u4EFB\u610F\uFF09\uFF1A",
+    feedback_category_bug: "\u30D0\u30B0",
+    feedback_category_feature: "\u6A5F\u80FD\u30EA\u30AF\u30A8\u30B9\u30C8",
+    feedback_category_general: "\u4E00\u822C",
+    feedback_submit:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u9001\u4FE1",
+    feedback_submitting: "\u9001\u4FE1\u4E2D\u2026",
+    feedback_email_label:
+      "\u30E1\u30FC\u30EB\u30A2\u30C9\u30EC\u30B9\uFF08\u4EFB\u610F\uFF09\uFF1A",
+    feedback_email_placeholder:
+      "your@email.com \u2014 \u8FD4\u4FE1\u3092\u3054\u5E0C\u671B\u306E\u5834\u5408\u306E\u307F",
+    feedback_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    feedback_min_length_error:
+      "10 \u6587\u5B57\u4EE5\u4E0A\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    feedback_success:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u3042\u308A\u304C\u3068\u3046\u3054\u3056\u3044\u307E\u3059\uFF01",
+    feedback_error:
+      "\u30D5\u30A3\u30FC\u30C9\u30D0\u30C3\u30AF\u3092\u9001\u4FE1\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    nav_new_chat: "\u65B0\u3057\u3044\u30C1\u30E3\u30C3\u30C8",
+    nav_selora_menu: "Selora \u30E1\u30CB\u30E5\u30FC",
+    nav_conversations: "\u4F1A\u8A71",
+    nav_automations: "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    nav_scenes: "\u30B7\u30FC\u30F3",
+    nav_settings: "\u8A2D\u5B9A",
+    nav_documentation: "\u30C9\u30AD\u30E5\u30E1\u30F3\u30C8",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab \u30EA\u30DD\u30B8\u30C8\u30EA",
+    welcome_title_prefix: "\u3088\u3046\u3053\u305D",
+    welcome_subtitle:
+      "\u3042\u306A\u305F\u306E\u30A4\u30F3\u30C6\u30EA\u30B8\u30A7\u30F3\u30C8\u306A\u30DB\u30FC\u30E0\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30A2\u30FC\u30AD\u30C6\u30AF\u30C8",
+    new_automation_title_prefix: "\u65B0\u898F",
+    new_automation_gold: "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    new_automation_subtitle:
+      "\u81EA\u52D5\u5316\u3057\u305F\u3044\u5185\u5BB9\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u95A2\u4FC2\u3059\u308B\u30C7\u30D0\u30A4\u30B9\u3001\u6642\u523B\u3001\u6761\u4EF6\u306A\u3069\u306B\u89E6\u308C\u3066\u304F\u3060\u3055\u3044\u3002",
+    get_started: "\u306F\u3058\u3081\u308B",
+    get_started_body:
+      "\u8A2D\u5B9A\u30BF\u30D6\u3067 LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3059\u308B\u3068\u3001\u3054\u81EA\u5B85\u3068\u306E\u30C1\u30E3\u30C3\u30C8\u3092\u59CB\u3081\u3089\u308C\u307E\u3059\u3002",
+    open_settings: "\u8A2D\u5B9A\u3092\u958B\u304F",
+    quick_start: "\u30AF\u30A4\u30C3\u30AF\u30B9\u30BF\u30FC\u30C8",
+    composer_placeholder_ask:
+      "Selora AI \u306B\u4F55\u3067\u3082\u8CEA\u554F\u2026",
+    composer_placeholder_automation:
+      "\u4F5C\u6210\u3057\u305F\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u8AAC\u660E\u3057\u3066\u304F\u3060\u3055\u3044\u2026",
+    panel_quota_provider_default:
+      "\u304A\u4F7F\u3044\u306E LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
+    panel_quota_reached:
+      "\u306E\u4E0A\u9650\u306B\u9054\u3057\u307E\u3057\u305F\u3002",
+    panel_quota_try_again_prefix: "\u518D\u8A66\u884C\u307E\u3067",
+    panel_quota_retrying_now:
+      "\u4ECA\u3059\u3050\u518D\u8A66\u884C\u4E2D\u2026",
+    panel_quota_dismiss: "\u9589\u3058\u308B",
+    panel_llm_switched_selora_cloud:
+      "Selora Cloud \u306B\u5207\u308A\u66FF\u3048\u307E\u3057\u305F\u3002",
+    panel_llm_invalid_key:
+      "API \u30AD\u30FC\u304C\u7121\u52B9\u304B\u3001\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306B\u5230\u9054\u3067\u304D\u307E\u305B\u3093\u3002",
+    panel_llm_settings_saved:
+      "LLM \u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    panel_advanced_settings_saved:
+      "\u8A73\u7D30\u8A2D\u5B9A\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    panel_linking_failed:
+      "\u9023\u643A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+    panel_linking_timed_out:
+      "\u9023\u643A\u304C\u30BF\u30A4\u30E0\u30A2\u30A6\u30C8\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u300210 \u5206\u4EE5\u5185\u306B\u30B5\u30A4\u30F3\u30A4\u30F3\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    panel_linking_start_failed:
+      "\u9023\u643A\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    panel_connect_linked_success:
+      "Selora Connect \u3092\u6B63\u5E38\u306B\u9023\u643A\u3057\u307E\u3057\u305F\u3002",
+    panel_unlink_connect_confirm:
+      "Selora Connect \u306E\u9023\u643A\u3092\u89E3\u9664\u3057\u307E\u3059\u304B\uFF1F\n\n\u5916\u90E8 MCP \u30C4\u30FC\u30EB\uFF08Openclaw\u3001Claude Desktop\u3001Cursor\u3001Windsurf\uFF09\u306F\u518D\u9023\u643A\u3059\u308B\u307E\u3067\u30A2\u30AF\u30BB\u30B9\u3067\u304D\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
+    panel_connect_unlinked:
+      "Selora Connect \u306E\u9023\u643A\u3092\u89E3\u9664\u3057\u307E\u3057\u305F\u3002",
+    panel_cloud_linked_success:
+      "Selora Cloud \u3092\u6B63\u5E38\u306B\u9023\u643A\u3057\u307E\u3057\u305F\u3002",
+    panel_unlink_cloud_confirm:
+      "Selora Cloud \u306E\u9023\u643A\u3092\u89E3\u9664\u3057\u307E\u3059\u304B\uFF1F\n\n\u8A2D\u5B9A\u3067\u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u518D\u9023\u643A\u3059\u308B\u307E\u3067\u3001\u30C1\u30E3\u30C3\u30C8\u3068\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u63D0\u6848\u304C\u505C\u6B62\u3057\u307E\u3059\u3002",
+    panel_cloud_unlinked:
+      "Selora Cloud \u306E\u9023\u643A\u3092\u89E3\u9664\u3057\u307E\u3057\u305F\u3002",
+    panel_mcp_token_created:
+      "MCP \u30C8\u30FC\u30AF\u30F3\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002",
+    panel_mcp_token_revoked:
+      "\u30C8\u30FC\u30AF\u30F3\u3092\u5931\u52B9\u3055\u305B\u307E\u3057\u305F\u3002",
+    panel_approval_revoked:
+      "\u627F\u8A8D\u3092\u53D6\u308A\u6D88\u3057\u307E\u3057\u305F\u3002",
+    panel_device_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D...",
+    panel_device_error_loading:
+      "\u30C7\u30D0\u30A4\u30B9\u306E\u8AAD\u307F\u8FBC\u307F\u30A8\u30E9\u30FC",
+    panel_tab_conversations: "\u4F1A\u8A71",
+    panel_tab_automations: "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    panel_tab_scenes: "\u30B7\u30FC\u30F3",
+    panel_sidebar_conversations: "\u4F1A\u8A71",
+    panel_sidebar_done: "\u5B8C\u4E86",
+    panel_sidebar_select: "\u9078\u629E",
+    panel_sidebar_select_all: "\u3059\u3079\u3066\u9078\u629E",
+    panel_sidebar_delete: "\u524A\u9664",
+    panel_sidebar_new_chat: "\u65B0\u3057\u3044\u30C1\u30E3\u30C3\u30C8",
+    panel_sidebar_no_conversations:
+      "\u4F1A\u8A71\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    panel_session_delete_confirm: "\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+    panel_session_delete: "\u524A\u9664",
+    panel_session_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    panel_session_delete_title: "\u524A\u9664",
+    panel_bulk_delete_title: "\u4F1A\u8A71\u3092\u524A\u9664",
+    panel_bulk_delete_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    panel_bulk_delete_confirm: "\u524A\u9664",
+    chat_suggest_thinking: "\u601D\u8003\u4E2D\u2026",
+    chat_suggest_one_for_me:
+      "\u304A\u3059\u3059\u3081\u3092\u63D0\u6848\u3057\u3066\u3082\u3089\u3046",
+    chat_jump_to_latest:
+      "\u6700\u65B0\u306E\u30E1\u30C3\u30BB\u30FC\u30B8\u3078\u79FB\u52D5",
+    chat_autocomplete_hint:
+      "\u2191\u2193 \u79FB\u52D5 \xB7 \u21B5 \u633F\u5165 \xB7 Esc \u9589\u3058\u308B",
+    chat_selection_remove: "\u524A\u9664",
+    chat_stop_generating: "\u751F\u6210\u3092\u505C\u6B62",
+    chat_send: "\u9001\u4FE1",
+    chat_building_scene: "\u30B7\u30FC\u30F3\u3092\u4F5C\u6210\u4E2D...",
+    chat_go_to_settings: "\u8A2D\u5B9A\u3078\u79FB\u52D5",
+    chat_response_cut_short:
+      "\u5FDC\u7B54\u304C\u9014\u4E2D\u3067\u5207\u308C\u307E\u3057\u305F\u3002",
+    chat_retry: "\u518D\u8A66\u884C",
+    chat_copy_message: "\u30E1\u30C3\u30BB\u30FC\u30B8\u3092\u30B3\u30D4\u30FC",
+    chat_you: "\u3042\u306A\u305F",
+    chat_yaml_unsaved_changes: "\u672A\u4FDD\u5B58\u306E\u5909\u66F4",
+    chat_yaml_saving: "\u4FDD\u5B58\u4E2D\u2026",
+    chat_yaml_save_changes: "\u5909\u66F4\u3092\u4FDD\u5B58",
+    chat_tools_used: "\u4F7F\u7528\u3057\u305F\u30C4\u30FC\u30EB",
+    chat_automation_label_building:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4F5C\u6210\u4E2D...",
+    chat_automation_label_triggers:
+      "\u30C8\u30EA\u30AC\u30FC\u3092\u4F5C\u6210\u4E2D...",
+    chat_automation_label_conditions: "\u6761\u4EF6\u3092\u69CB\u6210\u4E2D...",
+    chat_automation_label_actions:
+      "\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u7D44\u307F\u7ACB\u3066\u4E2D...",
+    chat_automation_label_almost: "\u3082\u3046\u3059\u3050\u5B8C\u4E86...",
+    chat_autocomplete_kind_devices: "\u30C7\u30D0\u30A4\u30B9",
+    chat_autocomplete_kind_areas: "\u30A8\u30EA\u30A2",
+    chat_autocomplete_kind_scenes: "\u30B7\u30FC\u30F3",
+    chat_autocomplete_kind_automations:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    chat_autocomplete_kind_suggestions: "\u63D0\u6848",
+    chat_welcome_suggestion_lights_label:
+      "\u771F\u591C\u4E2D\u306B\u3059\u3079\u3066\u306E\u7167\u660E\u3092\u6D88\u3059",
+    chat_welcome_suggestion_lights_value:
+      "\u771F\u591C\u4E2D\u306B\u3059\u3079\u3066\u306E\u7167\u660E\u3092\u6D88\u3059\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4F5C\u6210\u3059\u308B",
+    chat_welcome_suggestion_devices_label:
+      "\u3069\u3093\u306A\u30C7\u30D0\u30A4\u30B9\u304C\u3042\u308A\u307E\u3059\u304B\uFF1F",
+    chat_welcome_suggestion_devices_value:
+      "\u3069\u3093\u306A\u30C7\u30D0\u30A4\u30B9\u304C\u3042\u308A\u3001\u73FE\u5728\u3069\u308C\u304C\u30AA\u30F3\u306B\u306A\u3063\u3066\u3044\u307E\u3059\u304B\uFF1F",
+    chat_welcome_suggestion_suggest_label:
+      "\u81EA\u5B85\u5411\u3051\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u63D0\u6848\u3059\u308B",
+    chat_welcome_suggestion_suggest_value:
+      "\u30C7\u30D0\u30A4\u30B9\u3068\u4F7F\u7528\u30D1\u30BF\u30FC\u30F3\u306B\u57FA\u3065\u3044\u3066\u4FBF\u5229\u306A\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u63D0\u6848\u3059\u308B",
+    settings_view_token_usage_title:
+      "\u30C8\u30FC\u30AF\u30F3\u4F7F\u7528\u91CF\u3092\u8868\u793A",
+    settings_usage_label: "\u4F7F\u7528\u91CF",
+    settings_view_usage_label: "\u4F7F\u7528\u91CF\u3092\u8868\u793A",
+    settings_provider_select_placeholder: "\u9078\u629E...",
+    settings_doc_banner_title: "\u8A2D\u5B9A\u30AC\u30A4\u30C9",
+    settings_doc_banner_desc:
+      "LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3001\u30EA\u30E2\u30FC\u30C8\u30A2\u30AF\u30BB\u30B9\u3001MCP \u30C8\u30FC\u30AF\u30F3\u306E\u8A2D\u5B9A\u65B9\u6CD5\u3092\u5B66\u3073\u307E\u3057\u3087\u3046\u3002",
+    settings_llm_provider_heading: "LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
+    settings_provider_label: "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
+    settings_selora_account_label: "Selora \u30A2\u30AB\u30A6\u30F3\u30C8",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud \u304C LLM \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u3092\u63D0\u4F9B\u3057\u3066\u3044\u307E\u3059\u3002",
+    settings_unlink_button: "\u9023\u643A\u89E3\u9664",
+    settings_signin_selora_desc:
+      "Selora \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u30B5\u30A4\u30F3\u30A4\u30F3\u3057\u3066\u3001\u30DB\u30B9\u30C8\u578B LLM \u30D0\u30C3\u30AF\u30A8\u30F3\u30C9\u3092\u4F7F\u7528\u3057\u307E\u3059\u3002API \u30AD\u30FC\u306F\u4E0D\u8981\u3067\u3059\u3002",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth \u3068\u30C1\u30E3\u30C3\u30C8\u88DC\u5B8C\u306E\u4E21\u65B9\u3067\u3053\u306E URL \u3092\u4F7F\u7528\u3057\u307E\u3059\u3002\u9023\u643A\u6642\u306B\u81EA\u52D5\u7684\u306B\u4FDD\u5B58\u3055\u308C\u307E\u3059\u3002",
+    settings_open_signin_page:
+      "\u30B5\u30A4\u30F3\u30A4\u30F3\u30DA\u30FC\u30B8\u3092\u958B\u304F \u2192",
+    settings_preparing_label: "\u6E96\u5099\u4E2D\u2026",
+    settings_link_selora_account_button:
+      "Selora \u30A2\u30AB\u30A6\u30F3\u30C8\u3092\u9023\u643A",
+    settings_signin_new_tab_hint:
+      "\u65B0\u3057\u3044\u30BF\u30D6\u3067\u958B\u304D\u307E\u3059\u3002\u30B5\u30A4\u30F3\u30A4\u30F3\u5F8C\u3001\u3053\u306E\u30DA\u30FC\u30B8\u306B\u623B\u3063\u3066\u304F\u3060\u3055\u3044\u3002\u30D1\u30CD\u30EB\u306F\u81EA\u52D5\u7684\u306B\u66F4\u65B0\u3055\u308C\u307E\u3059\u3002",
+    settings_api_key_label: "API \u30AD\u30FC",
+    settings_click_replace_key_title:
+      "\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u30AD\u30FC\u3092\u7F6E\u304D\u63DB\u3048\u308B",
+    settings_enter_new_key_label:
+      "\u65B0\u3057\u3044\u30AD\u30FC\u3092\u5165\u529B",
+    settings_enter_api_key_label: "API \u30AD\u30FC\u3092\u5165\u529B",
+    settings_model_label: "\u30E2\u30C7\u30EB",
+    settings_selora_local_desc:
+      "Selora AI \u306F\u30EA\u30AF\u30A8\u30B9\u30C8\u3054\u3068\u306B\u9069\u5207\u306A\u5C02\u9580\u30E2\u30C7\u30EB\uFF08\u30B3\u30DE\u30F3\u30C9\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3001\u56DE\u7B54\u3001\u78BA\u8A8D\uFF09\u3092\u81EA\u52D5\u7684\u306B\u9078\u629E\u3057\u307E\u3059\u3002",
+    settings_ollama_host_label: "\u30DB\u30B9\u30C8",
+    settings_selora_local_show_advanced:
+      "\u8A73\u7D30\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u8868\u793A",
+    settings_selora_local_hide_advanced:
+      "\u8A73\u7D30\u30AA\u30D7\u30B7\u30E7\u30F3\u3092\u975E\u8868\u793A",
+    settings_selora_local_advanced_desc:
+      "Selora \u30CF\u30D6\u306F\u4E8B\u524D\u306B\u8A2D\u5B9A\u3055\u308C\u3066\u3044\u307E\u3059\u3002Selora AI \u30E2\u30C7\u30EB\u3092\u5B9F\u884C\u3059\u308B\u81EA\u5DF1\u30DB\u30B9\u30C8\u578B\u306E llama-server \u3092\u4F7F\u7528\u3059\u308B\u306B\u306F\u3001\u4EE5\u4E0B\u306B\u305D\u306E\u30A2\u30C9\u30EC\u30B9\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    settings_selora_local_host_label: "\u30DB\u30B9\u30C8",
+    settings_selora_local_auto_detected_prefix:
+      "\u81EA\u52D5\u691C\u51FA\uFF1A",
+    settings_selora_local_auto_detected_none: "\u306A\u3057",
+    settings_validating_label: "\u691C\u8A3C\u4E2D\u2026",
+    settings_save_button: "\u4FDD\u5B58",
+    settings_mcp_server_heading: "MCP \u30B5\u30FC\u30D0\u30FC",
+    settings_mcp_server_subtitle:
+      "Openclaw\u3001Claude Desktop\u3001Cursor\u3001Windsurf \u306A\u3069\u306E\u5916\u90E8 AI \u30C4\u30FC\u30EB\u306B\u3054\u81EA\u5B85\u3092\u516C\u958B\u3057\u307E\u3059\u3002",
+    settings_connect_via_selora_label:
+      "Selora \u30A2\u30AB\u30A6\u30F3\u30C8\u7D4C\u7531\u3067\u63A5\u7D9A",
+    settings_connect_via_selora_desc:
+      "MCP \u30B5\u30FC\u30D0\u30FC\u3092\u5916\u90E8\u30C4\u30FC\u30EB\u304B\u3089\u5230\u9054\u53EF\u80FD\u306B\u3057\u307E\u3059",
+    settings_mcp_url_copied_toast:
+      "MCP URL \u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+    settings_connect_server_url_label: "Connect \u30B5\u30FC\u30D0\u30FC URL",
+    settings_mcp_tokens_section_title: "MCP \u30C8\u30FC\u30AF\u30F3",
+    settings_mcp_tokens_desc:
+      "MCP \u30C8\u30FC\u30AF\u30F3\u306F Selora Connect \u306E\u4EE3\u66FF\u624B\u6BB5\u3067\u3059\u3002OAuth \u306B\u5BFE\u5FDC\u3057\u3066\u3044\u306A\u3044\u30C4\u30FC\u30EB\u3084\u3001\u30C8\u30FC\u30AF\u30F3\u30D9\u30FC\u30B9\u306E\u8A8D\u8A3C\u3092\u597D\u3080\u5834\u5408\u306B\u4F7F\u7528\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    settings_no_tokens_yet:
+      "\u30C8\u30FC\u30AF\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    settings_add_token_button: "\u30C8\u30FC\u30AF\u30F3\u3092\u8FFD\u52A0",
+    settings_command_approvals_heading:
+      "\u30B3\u30DE\u30F3\u30C9\u306E\u627F\u8A8D",
+    settings_advanced_settings_heading: "\u8A73\u7D30\u8A2D\u5B9A",
+    settings_background_services_title:
+      "\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u30B5\u30FC\u30D3\u30B9",
+    settings_data_collector_label:
+      "\u30C7\u30FC\u30BF\u30B3\u30EC\u30AF\u30BF\u30FC\uFF08AI \u5206\u6790\uFF09",
+    settings_data_collector_desc:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u5C65\u6B74\u3092 Selora AI \u306B\u6E21\u3057\u307E\u3059",
+    settings_mode_label: "\u30E2\u30FC\u30C9",
+    settings_mode_continuous: "\u9023\u7D9A",
+    settings_mode_scheduled_window:
+      "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3055\u308C\u305F\u6642\u9593\u5E2F",
+    settings_interval_seconds_label: "\u9593\u9694\uFF08\u79D2\uFF09",
+    settings_start_hhmm_label: "\u958B\u59CB\uFF08HH:MM\uFF09",
+    settings_end_hhmm_label: "\u7D42\u4E86\uFF08HH:MM\uFF09",
+    settings_network_discovery_label:
+      "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u691C\u51FA",
+    settings_network_discovery_desc:
+      "\u30ED\u30FC\u30AB\u30EB\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u3067\u65B0\u3057\u3044\u30C7\u30D0\u30A4\u30B9\u3092\u30B9\u30AD\u30E3\u30F3\u3057\u307E\u3059",
+    settings_pattern_detection_label: "\u30D1\u30BF\u30FC\u30F3\u691C\u51FA",
+    settings_pattern_detection_desc:
+      "\u7E70\u308A\u8FD4\u3055\u308C\u308B\u4F7F\u7528\u30D1\u30BF\u30FC\u30F3\u3092\u691C\u51FA\u3057\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u63D0\u6848\u3057\u307E\u3059",
+    settings_auto_remove_stale_label:
+      "\u53E4\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u81EA\u52D5\u524A\u9664",
+    settings_developer_mode_label: "\u958B\u767A\u8005\u30E2\u30FC\u30C9",
+    settings_developer_mode_desc:
+      "\u751F\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u30DA\u30A4\u30ED\u30FC\u30C9\u3068\u30C7\u30D0\u30C3\u30B0\u30ED\u30B0\u3092\u516C\u958B\u3057\u307E\u3059",
+    settings_dev_mode_save_failed_toast:
+      "\u958B\u767A\u8005\u30E2\u30FC\u30C9\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
+    settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
+    settings_no_approvals_yet_prefix:
+      "\u4FDD\u5B58\u3055\u308C\u305F\u627F\u8A8D\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6B21\u56DE Selora \u304C\u30EA\u30B9\u30AF\u306E\u3042\u308B\u64CD\u4F5C\u306E\u5B9F\u884C\u524D\u306B\u78BA\u8A8D\u3057\u305F\u3068\u304D\u306B\u3001",
+    settings_no_approvals_always_word: "\u5E38\u306B\u8A31\u53EF",
+    settings_no_approvals_yet_suffix:
+      "\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u61B6\u3055\u308C\u307E\u3059\u3002",
+    settings_per_entity_approval_title:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3054\u3068\u306E\u627F\u8A8D",
+    settings_wildcard_approval_title:
+      "\u30EF\u30A4\u30EB\u30C9\u30AB\u30FC\u30C9 \u2014 \u3053\u306E\u30B5\u30FC\u30D3\u30B9\u306E\u3059\u3079\u3066\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u306B\u9069\u7528\u3055\u308C\u307E\u3059",
+    settings_approval_all_label: "\u3059\u3079\u3066",
+    settings_token_created_heading:
+      "\u30C8\u30FC\u30AF\u30F3\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F",
+    settings_token_created_desc:
+      "\u3053\u306E\u30C8\u30FC\u30AF\u30F3\u306F\u4ECA\u3059\u3050\u30B3\u30D4\u30FC\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u518D\u8868\u793A\u3055\u308C\u307E\u305B\u3093\u3002",
+    settings_token_copied_toast:
+      "\u30C8\u30FC\u30AF\u30F3\u3092\u30AF\u30EA\u30C3\u30D7\u30DC\u30FC\u30C9\u306B\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F",
+    settings_done_button: "\u5B8C\u4E86",
+    settings_create_mcp_token_heading:
+      "MCP \u30C8\u30FC\u30AF\u30F3\u3092\u4F5C\u6210",
+    settings_token_name_label: "\u540D\u524D",
+    settings_token_name_placeholder: "\u4F8B\uFF1AClaude Desktop",
+    settings_permission_level_label: "\u6A29\u9650\u30EC\u30D9\u30EB",
+    settings_perm_read_only: "\u8AAD\u307F\u53D6\u308A\u5C02\u7528",
+    settings_perm_admin_all:
+      "\u7BA1\u7406\u8005\uFF08\u3059\u3079\u3066\u306E\u30C4\u30FC\u30EB\uFF09",
+    settings_perm_custom:
+      "\u30AB\u30B9\u30BF\u30E0\uFF08\u30C4\u30FC\u30EB\u3092\u9078\u629E\uFF09",
+    settings_allowed_tools_label:
+      "\u8A31\u53EF\u3055\u308C\u305F\u30C4\u30FC\u30EB",
+    settings_admin_badge: "\u7BA1\u7406\u8005",
+    settings_expiration_label:
+      "\u6709\u52B9\u671F\u9650\uFF08\u4EFB\u610F\uFF09",
+    settings_expiry_never: "\u7121\u671F\u9650",
+    settings_expiry_7_days: "7 \u65E5\u9593",
+    settings_expiry_30_days: "30 \u65E5\u9593",
+    settings_expiry_90_days: "90 \u65E5\u9593",
+    settings_expiry_1_year: "1 \u5E74\u9593",
+    settings_cancel_button: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    settings_create_token_button: "\u30C8\u30FC\u30AF\u30F3\u3092\u4F5C\u6210",
+    automations_flow_branch_if: "\u3082\u3057",
+    automations_flow_branch_else_if:
+      "\u305D\u3046\u3067\u306A\u3051\u308C\u3070\uFF08\u6761\u4EF6\uFF09",
+    automations_flow_branch_otherwise:
+      "\u305D\u308C\u4EE5\u5916\u306E\u5834\u5408",
+    automations_flow_branch_in_parallel: "\u4E26\u5217\u3067",
+    automations_flow_branch_in_sequence: "\u9806\u756A\u306B",
+    automations_flow_repeat_while:
+      "\u6761\u4EF6\u304C\u6210\u7ACB\u3059\u308B\u9593\u306F\u7E70\u308A\u8FD4\u3059",
+    automations_flow_repeat_until:
+      "\u6761\u4EF6\u304C\u6E80\u305F\u3055\u308C\u308B\u307E\u3067\u7E70\u308A\u8FD4\u3059",
+    automations_flow_repeat: "\u7E70\u308A\u8FD4\u3059",
+    automations_flow_label_trigger: "\u30C8\u30EA\u30AC\u30FC",
+    automations_flow_label_condition: "\u6761\u4EF6",
+    automations_flow_label_actions: "\u30A2\u30AF\u30B7\u30E7\u30F3",
+    automations_badge_enabled: "\u6709\u52B9",
+    automations_badge_saved: "\u4FDD\u5B58\u6E08\u307F",
+    automations_yaml_toggle_hide: "YAML \u3092\u975E\u8868\u793A",
+    automations_yaml_toggle_view: "YAML \u3092\u8868\u793A",
+    automations_yaml_toggle_edit: "YAML \u3092\u7DE8\u96C6",
+    automations_proposal_declined_title:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F",
+    automations_proposal_declined_body:
+      "\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002\u4E0B\u8A18\u306B\u8FD4\u4FE1\u3057\u3066\u8ABF\u6574\u3067\u304D\u307E\u3059\u3002",
+    automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
+    automations_badge_proposal: "\u63D0\u6848",
+    automations_proposal_elevated_risk:
+      "\u30EA\u30B9\u30AF\u304C\u9AD8\u3044\u305F\u3081\u78BA\u8A8D\u3092\u304A\u3059\u3059\u3081\u3057\u307E\u3059\u3002",
+    automations_proposal_yaml_edits_note:
+      "\u627F\u8A8D\u6642\u306B YAML \u306E\u7DE8\u96C6\u5185\u5BB9\u304C\u4F7F\u7528\u3055\u308C\u307E\u3059\u3002",
+    automations_action_run_tooltip:
+      "\u30A2\u30AF\u30B7\u30E7\u30F3\u304C\u52D5\u4F5C\u3059\u308B\u304B\u4ECA\u3059\u3050\u5B9F\u884C\u3057\u3066\u78BA\u8A8D\u3057\u307E\u3059",
+    automations_action_running: "\u5B9F\u884C\u4E2D\u2026",
+    automations_action_run_now: "\u4ECA\u3059\u3050\u5B9F\u884C",
+    automations_action_open_in_ha_tooltip:
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092 Home Assistant \u3067\u958B\u304F",
+    automations_action_view_in_ha: "HA \u3067\u8868\u793A",
+    automations_action_enabling: "\u6709\u52B9\u5316\u4E2D\u2026",
+    automations_action_enable_automation:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u6709\u52B9\u5316",
+    automations_elevated_risk_note:
+      "\u30EA\u30B9\u30AF\u306E\u9AD8\u3044\u30A2\u30AF\u30B7\u30E7\u30F3\u3092\u4F7F\u7528\u3057\u307E\u3059\u3002\u6709\u52B9\u5316\u3059\u308B\u524D\u306B\u30D5\u30ED\u30FC\u3068 YAML \u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    automations_action_accept_and_save: "\u627F\u8A8D\u3057\u3066\u4FDD\u5B58",
+    automations_section_title:
+      "\u3042\u306A\u305F\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    automations_filter_placeholder:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
+    automations_sort_recent:
+      "\u6700\u8FD1\u306E\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3",
+    automations_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
+    automations_sort_enabled_first: "\u6709\u52B9\u3092\u512A\u5148",
+    automations_llm_setup_required_tooltip:
+      "\u5148\u306B LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044",
+    automations_new_automation_button:
+      "\u65B0\u3057\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    automations_status_tab_all: "\u3059\u3079\u3066",
+    automations_status_tab_enabled: "\u6709\u52B9",
+    automations_status_tab_disabled: "\u7121\u52B9",
+    automations_status_tab_stale: "\u53E4\u3044",
+    automations_bulk_select_all: "\u3059\u3079\u3066\u9078\u629E",
+    automations_bulk_done: "\u5B8C\u4E86",
+    automations_bulk_edit: "\u4E00\u62EC\u7DE8\u96C6",
+    automations_bulk_working: "\u51E6\u7406\u4E2D\u2026",
+    automations_bulk_enable_all: "\u3059\u3079\u3066\u6709\u52B9\u5316",
+    automations_bulk_disable_all: "\u3059\u3079\u3066\u7121\u52B9\u5316",
+    automations_bulk_delete_selected:
+      "\u9078\u629E\u9805\u76EE\u3092\u524A\u9664",
+    automations_bulk_clear: "\u30AF\u30EA\u30A2",
+    automations_last_run_disabled: "\u7121\u52B9",
+    automations_last_run_never: "\u306A\u3057",
+    automations_needs_attention_pill: "\u8981\u5BFE\u5FDC",
+    automations_rename_save_tooltip: "\u4FDD\u5B58",
+    automations_last_run_prefix: "\u6700\u7D42\u5B9F\u884C\uFF1A",
+    automations_last_run_prefix_inline: "\u6700\u7D42\u5B9F\u884C\uFF1A",
+    automations_toggle_enabled: "\u6709\u52B9",
+    automations_toggle_disabled: "\u7121\u52B9",
+    automations_toggle_unavailable: "\u5229\u7528\u4E0D\u53EF",
+    automations_toast_toggle_unresolved:
+      "\u5207\u308A\u66FF\u3048\u3067\u304D\u307E\u305B\u3093\uFF1A\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 ID \u3092\u89E3\u6C7A\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    automations_more_actions_tooltip: "\u305D\u306E\u4ED6\u306E\u64CD\u4F5C",
+    automations_burger_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    automations_burger_refine_in_chat:
+      "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
+    automations_burger_rename: "\u540D\u524D\u3092\u5909\u66F4",
+    automations_burger_view_in_ha: "HA \u3067\u8868\u793A",
+    automations_burger_deleting: "\u524A\u9664\u4E2D\u2026",
+    automations_burger_delete: "\u524A\u9664",
+    automations_card_tab_flow: "\u30D5\u30ED\u30FC",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "\u5C65\u6B74",
+    automations_pagination_prev: "\u2039 \u524D\u3078",
+    automations_pagination_per_page:
+      "\u30DA\u30FC\u30B8\u3042\u305F\u308A\uFF1A",
+    automations_pagination_next: "\u6B21\u3078 \u203A",
+    automations_empty_state:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    automations_unavailable_modal_title:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u304C\u5229\u7528\u4E0D\u53EF",
+    automations_unavailable_default_name:
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    automations_unavailable_modal_intro:
+      "\u306F Home Assistant \u306B\u3088\u3063\u3066\u5229\u7528\u4E0D\u53EF\u3068\u30DE\u30FC\u30AF\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u901A\u5E38\u3001\u3053\u308C\u306F\u6B21\u306E\u3053\u3068\u3092\u610F\u5473\u3057\u307E\u3059\uFF1A",
+    automations_unavailable_reason_entity:
+      "\u30C8\u30EA\u30AC\u30FC\u307E\u305F\u306F\u6761\u4EF6\u304C\u3001\u3082\u3046\u5B58\u5728\u3057\u306A\u3044\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3092\u53C2\u7167\u3057\u3066\u3044\u307E\u3059",
+    automations_unavailable_reason_yaml:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E YAML \u306B\u8A2D\u5B9A\u30A8\u30E9\u30FC\u304C\u3042\u308A\u307E\u3059",
+    automations_unavailable_reason_integration:
+      "\u5FC5\u8981\u306A\u7D71\u5408\u304C\u524A\u9664\u3055\u308C\u305F\u304B\u3001\u8AAD\u307F\u8FBC\u307E\u308C\u3066\u3044\u307E\u305B\u3093",
+    automations_unavailable_modal_advice:
+      "Home Assistant \u306E\u8A2D\u5B9A\u3067\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u958B\u3044\u3066\u3001\u69CB\u6210\u3092\u78BA\u8A8D\u30FB\u4FEE\u6B63\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    automations_unavailable_modal_close: "\u9589\u3058\u308B",
+    automations_unavailable_modal_edit_states: "\u72B6\u614B\u3092\u7DE8\u96C6",
+    automations_unavailable_modal_open_in_automations:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3067\u958B\u304F",
+    scenes_card_created_title:
+      "\u30B7\u30FC\u30F3\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F",
+    scenes_card_saved_status:
+      "Home Assistant \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
+    scenes_card_activate_button: "\u8D77\u52D5",
+    scenes_card_view_in_ha_button: "HA \u3067\u8868\u793A",
+    scenes_card_declined_title:
+      "\u30B7\u30FC\u30F3\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F",
+    scenes_card_declined_message:
+      "\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002\u4E0B\u8A18\u306B\u8FD4\u4FE1\u3057\u3066\u8ABF\u6574\u3067\u304D\u307E\u3059\u3002",
+    scenes_card_refining_badge: "\u8ABF\u6574\u4E2D",
+    scenes_hide_yaml: "YAML \u3092\u975E\u8868\u793A",
+    scenes_view_yaml: "YAML \u3092\u8868\u793A",
+    scenes_card_proposal_badge: "\u63D0\u6848",
+    scenes_card_accept_save_button: "\u627F\u8A8D\u3057\u3066\u4FDD\u5B58",
+    scenes_section_title: "\u3042\u306A\u305F\u306E\u30B7\u30FC\u30F3",
+    scenes_filter_placeholder:
+      "\u30B7\u30FC\u30F3\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
+    scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0\u3057\u305F\u9806",
+    scenes_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
+    scenes_sort_size:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u6570\u304C\u591A\u3044\u9806",
+    scenes_llm_needs_setup_tooltip:
+      "\u5148\u306B LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044",
+    scenes_new_scene_button: "\u65B0\u3057\u3044\u30B7\u30FC\u30F3",
+    scenes_status_tab_all: "\u3059\u3079\u3066",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "\u624B\u52D5",
+    scenes_activate_scene_tooltip: "\u30B7\u30FC\u30F3\u3092\u8D77\u52D5",
+    scenes_activate_button: "\u8D77\u52D5",
+    scenes_more_actions_tooltip: "\u305D\u306E\u4ED6\u306E\u64CD\u4F5C",
+    scenes_loading_label: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    scenes_refine_in_chat_button: "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
+    scenes_open_in_ha_button: "HA \u3067\u958B\u304F",
+    scenes_deleting_label: "\u524A\u9664\u4E2D\u2026",
+    scenes_delete_button: "\u524A\u9664",
+    scenes_no_entity_details:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u306E\u8A73\u7D30\u306F\u3042\u308A\u307E\u305B\u3093\u3002Home Assistant \u3067\u30B7\u30FC\u30F3\u3092\u958B\u3044\u3066\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    scenes_yaml_unavailable_comment:
+      "# YAML \u306F\u5229\u7528\u3067\u304D\u307E\u305B\u3093 \u2014 Home Assistant \u3067\u30B7\u30FC\u30F3\u3092\u958B\u3044\u3066\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    scenes_empty_state:
+      "\u30B7\u30FC\u30F3\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002Selora \u306B\u4F5C\u6210\u3092\u4F9D\u983C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    scenes_delete_modal_fallback_name: "\u3053\u306E\u30B7\u30FC\u30F3",
+    scenes_delete_modal_title: "\u30B7\u30FC\u30F3\u3092\u524A\u9664",
+    scenes_delete_modal_prefix: "\u524A\u9664",
+    scenes_delete_modal_suffix:
+      "\uFF1F\u3053\u308C\u306B\u3088\u308A Home Assistant \u304B\u3089\u30B7\u30FC\u30F3\u304C\u524A\u9664\u3055\u308C\u3001\u5143\u306B\u623B\u3059\u3053\u3068\u306F\u3067\u304D\u307E\u305B\u3093\u3002",
+    scenes_delete_modal_cancel_button: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    scenes_delete_modal_confirm_button: "\u524A\u9664",
+    usage_pricing_invalid_error:
+      "\u6599\u91D1\u306F\u8CA0\u3067\u306A\u3044\u6570\u5024\u3067\u3042\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002",
+    usage_pricing_saved_toast:
+      "\u6599\u91D1\u306E\u4E0A\u66F8\u304D\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    usage_pricing_save_failed:
+      "\u6599\u91D1\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    usage_pricing_reset_toast:
+      "\u30C7\u30D5\u30A9\u30EB\u30C8\u306E\u6599\u91D1\u306B\u30EA\u30BB\u30C3\u30C8\u3057\u307E\u3057\u305F\u3002",
+    usage_pricing_reset_failed:
+      "\u6599\u91D1\u306E\u30EA\u30BB\u30C3\u30C8\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    usage_pricing_title: "\u6599\u91D1",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud \u306E\u4F7F\u7528\u91CF\u306F\u8A08\u6E2C\u3055\u308C\u3001Selora Homes \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u8ACB\u6C42\u3055\u308C\u307E\u3059\u3002\u3053\u306E\u7D71\u5408\u306E\u30BB\u30F3\u30B5\u30FC\u3084\u30C1\u30E3\u30FC\u30C8\u306B\u306F\u30AB\u30A6\u30F3\u30C8\u3055\u308C\u307E\u305B\u3093\u3002",
+    usage_pricing_view_cloud_link:
+      "Selora Homes \u30A2\u30AB\u30A6\u30F3\u30C8\u3067\u4F7F\u7528\u91CF\u3092\u8868\u793A",
+    usage_pricing_ollama_help:
+      "Ollama \u306F\u30ED\u30FC\u30AB\u30EB\u3067\u5B9F\u884C\u3055\u308C\u307E\u3059 \u2014 \u8FFD\u8DE1\u3059\u3079\u304D\u30C8\u30FC\u30AF\u30F3\u30B3\u30B9\u30C8\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    usage_pricing_selora_local_help:
+      "Selora AI Local \u306F\u304A\u4F7F\u3044\u306E\u30CF\u30FC\u30C9\u30A6\u30A7\u30A2\u3067\u5B9F\u884C\u3055\u308C\u307E\u3059 \u2014 \u8FFD\u8DE1\u3059\u3079\u304D\u30C8\u30FC\u30AF\u30F3\u30B3\u30B9\u30C8\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    usage_pricing_no_model_help:
+      "\u30AB\u30B9\u30BF\u30E0\u6599\u91D1\u3092\u8A2D\u5B9A\u3059\u308B\u306B\u306F\u3001\u8A2D\u5B9A\u3067 LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3068\u30E2\u30C7\u30EB\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    usage_pricing_intro_prefix:
+      "\u30B3\u30B9\u30C8\u898B\u7A4D\u3082\u308A\u306B\u306F\u3053\u308C\u3089\u306E 100 \u4E07\u30C8\u30FC\u30AF\u30F3\u3042\u305F\u308A\u306E\u30EC\u30FC\u30C8\u3092\u4F7F\u7528\u3057\u307E\u3059\u3002Anthropic \u306E\u30C7\u30D5\u30A9\u30EB\u30C8\u5024\u306F",
+    usage_pricing_official_page_link:
+      "\u516C\u5F0F\u6599\u91D1\u30DA\u30FC\u30B8",
+    usage_pricing_intro_suffix:
+      "\u306B\u57FA\u3065\u3044\u3066\u3044\u307E\u3059\u3002\u4EA4\u6E09\u6E08\u307F\u306E\u30EC\u30FC\u30C8\u304C\u3042\u308B\u5834\u5408\u3084\u5225\u306E\u30E2\u30C7\u30EB\u3092\u8FFD\u8DE1\u3057\u3066\u3044\u308B\u5834\u5408\u306F\u3001\u3053\u3053\u3067\u4E0A\u66F8\u304D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    usage_pricing_input_label: "\u5165\u529B",
+    usage_pricing_default_prefix: "\u30C7\u30D5\u30A9\u30EB\u30C8",
+    usage_pricing_no_default:
+      "\u7D44\u307F\u8FBC\u307F\u306E\u30C7\u30D5\u30A9\u30EB\u30C8\u306A\u3057",
+    usage_pricing_output_label: "\u51FA\u529B",
+    usage_pricing_input_field_label: "\u5165\u529B\uFF08$/MTok\uFF09",
+    usage_pricing_output_field_label: "\u51FA\u529B\uFF08$/MTok\uFF09",
+    usage_pricing_cancel_button: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    usage_pricing_save_button: "\u4FDD\u5B58",
+    usage_pricing_edit_override_button: "\u4E0A\u66F8\u304D\u3092\u7DE8\u96C6",
+    usage_pricing_set_custom_button:
+      "\u30AB\u30B9\u30BF\u30E0\u6599\u91D1\u3092\u8A2D\u5B9A",
+    usage_pricing_reset_default_button:
+      "\u30C7\u30D5\u30A9\u30EB\u30C8\u306B\u30EA\u30BB\u30C3\u30C8",
+    usage_snippet_copied_label:
+      "\u30B3\u30D4\u30FC\u3057\u307E\u3057\u305F\uFF01",
+    usage_snippet_copy_button: "\u30B3\u30D4\u30FC",
+    usage_snippet_help:
+      "\u30D3\u30B8\u30E5\u30A2\u30EB\u30AB\u30FC\u30C9\u30D4\u30C3\u30AB\u30FC\u3082\u3001Recorder \u306E\u6700\u521D\u306E\u6BCE\u6642\u96C6\u8A08\u5F8C\u306B\u3053\u308C\u3089\u306E\u30BB\u30F3\u30B5\u30FC\u3092\u898B\u3064\u3051\u307E\u3059\u3002",
+    usage_back_to_settings: "\u8A2D\u5B9A\u306B\u623B\u308B",
+    usage_token_usage_title: "\u30C8\u30FC\u30AF\u30F3\u4F7F\u7528\u91CF",
+    usage_empty_title:
+      "\u4F7F\u7528\u91CF\u30C7\u30FC\u30BF\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    usage_empty_body:
+      "\u4F7F\u7528\u91CF\u306F\u6700\u521D\u306E LLM \u547C\u3073\u51FA\u3057\u5F8C\u306B\u8868\u793A\u3055\u308C\u307E\u3059\u3002Selora AI \u3068\u30C1\u30E3\u30C3\u30C8\u3059\u308B\u304B\u3001\u63D0\u6848\u30B5\u30A4\u30AF\u30EB\u3092\u5B9F\u884C\u3057\u3066\u307F\u3066\u304F\u3060\u3055\u3044\u3002\u3059\u3067\u306B Selora AI \u3092\u4F7F\u7528\u3057\u3066\u3044\u308B\u306E\u306B\u3053\u308C\u304C\u8868\u793A\u3055\u308C\u308B\u5834\u5408\u306F\u3001Home Assistant \u3092\u518D\u8D77\u52D5\u3057\u3066\u65B0\u3057\u3044\u30BB\u30F3\u30B5\u30FC\u3092\u767B\u9332\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    usage_totals_title: "\u5408\u8A08",
+    usage_tile_cost_label: "\u30B3\u30B9\u30C8",
+    usage_tile_cost_sub: "USD \u898B\u7A4D\u3082\u308A",
+    usage_tile_calls_label: "\u547C\u3073\u51FA\u3057\u56DE\u6570",
+    usage_tile_tokens_in_label: "\u5165\u529B\u30C8\u30FC\u30AF\u30F3",
+    usage_tile_tokens_out_label: "\u51FA\u529B\u30C8\u30FC\u30AF\u30F3",
+    usage_by_period_title: "\u671F\u9593\u5225",
+    usage_period_today: "\u4ECA\u65E5",
+    usage_period_last_7_days: "\u904E\u53BB 7 \u65E5\u9593",
+    usage_period_this_month: "\u4ECA\u6708",
+    usage_period_note_filtered:
+      "\u671F\u9593\u30D0\u30B1\u30C3\u30C8\u306F\u7D71\u5408\u306E\u4F7F\u7528\u91CF\u30B9\u30C8\u30A2\uFF0830 \u65E5\u9593\u4FDD\u6301\uFF09\u306B\u57FA\u3065\u3044\u3066\u3044\u307E\u3059\u3002",
+    usage_period_note_unfiltered:
+      "\u671F\u9593\u30D0\u30B1\u30C3\u30C8\u306F Home Assistant \u306E\u9577\u671F\u7D71\u8A08\u306B\u57FA\u3065\u3044\u3066\u304A\u308A\u3001\u6BCE\u6642\u96C6\u8A08\u3055\u308C\u307E\u3059\u3002\u65B0\u3057\u3044\u30A2\u30AF\u30C6\u30A3\u30D3\u30C6\u30A3\u304C\u3053\u3053\u306B\u8868\u793A\u3055\u308C\u308B\u307E\u3067\u6700\u5927 1 \u6642\u9593\u304B\u304B\u308B\u5834\u5408\u304C\u3042\u308A\u307E\u3059\u3002",
+    usage_where_tokens_go_title: "\u30C8\u30FC\u30AF\u30F3\u306E\u5185\u8A33",
+    usage_where_tokens_last_prefix: "\u76F4\u8FD1",
+    usage_where_tokens_resets_suffix:
+      "\xB7 HA \u518D\u8D77\u52D5\u6642\u306B\u30EA\u30BB\u30C3\u30C8",
+    usage_group_by_kind_button: "\u7A2E\u985E\u5225",
+    usage_group_by_provider_button:
+      "\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u5225",
+    usage_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    usage_no_calls_recorded:
+      "\u8A18\u9332\u3055\u308C\u305F\u547C\u3073\u51FA\u3057\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    usage_recent_calls_title: "\u6700\u8FD1\u306E\u547C\u3073\u51FA\u3057",
+    usage_dashboard_sensors_title:
+      "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u30BB\u30F3\u30B5\u30FC",
+    usage_dashboard_sensors_help_prefix:
+      "Home Assistant \u3092\u518D\u8D77\u52D5\u3057\u3066\u4F7F\u7528\u91CF\u30BB\u30F3\u30B5\u30FC\u3092\u767B\u9332\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u767B\u9332\u5F8C\u306F\u3001\u4EFB\u610F\u306E\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B",
+    usage_dashboard_sensors_help_suffix:
+      "\u30AB\u30FC\u30C9\u3067\u8FFD\u52A0\u3067\u304D\u307E\u3059\u3002",
+    usage_add_to_dashboard_title:
+      "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B\u8FFD\u52A0",
+    usage_add_to_dashboard_help:
+      "\u5404\u6307\u6A19\u306F\u30B9\u30B1\u30FC\u30EB\u304C\u7570\u306A\u308A\u307E\u3059 \u2014 \u30BB\u30F3\u30B5\u30FC\u3054\u3068\u306B 1 \u679A\u306E\u30AB\u30FC\u30C9\u3092\u4F5C\u6210\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u6307\u6A19\u3092\u9078\u3073\u3001YAML \u3092\u30B3\u30D4\u30FC\u3057\u3066\u3001\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306E YAML \u30A8\u30C7\u30A3\u30BF\u30FC\u306B\u8CBC\u308A\u4ED8\u3051\u3066\u304F\u3060\u3055\u3044\u3002",
+    usage_filter_all_providers:
+      "\u3059\u3079\u3066\u306E\u30D7\u30ED\u30D0\u30A4\u30C0\u30FC",
+    usage_filter_all_models: "\u3059\u3079\u3066\u306E\u30E2\u30C7\u30EB",
+    usage_filter_no_model: "\uFF08\u30E2\u30C7\u30EB\u306A\u3057\uFF09",
+    suggestions_tab_flow: "\u30D5\u30ED\u30FC",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "\u4F5C\u6210\u4E2D\u2026",
+    suggestions_btn_accept: "\u627F\u8A8D",
+    suggestions_btn_dismissing: "\u5374\u4E0B\u4E2D\u2026",
+    suggestions_btn_dismiss: "\u5374\u4E0B",
+    suggestions_section_title:
+      "\u3042\u306A\u305F\u3078\u306E\u304A\u3059\u3059\u3081",
+    suggestions_badge_new: "\u65B0\u7740",
+    suggestions_llm_setup_required:
+      "\u5148\u306B LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u3092\u8A2D\u5B9A\u3057\u3066\u304F\u3060\u3055\u3044",
+    suggestions_btn_scanning: "\u30B9\u30AD\u30E3\u30F3\u4E2D\u2026",
+    suggestions_btn_scan_now: "\u4ECA\u3059\u3050\u30B9\u30AD\u30E3\u30F3",
+    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
+    suggestions_btn_generate: "\u751F\u6210",
+    suggestions_section_subtitle:
+      "\u3054\u81EA\u5B85\u3067\u89B3\u6E2C\u3055\u308C\u305F\u30D1\u30BF\u30FC\u30F3\u3068 AI \u5206\u6790\u306B\u57FA\u3065\u3044\u3066\u3044\u307E\u3059\u3002",
+    suggestions_empty_state:
+      "\u63D0\u6848\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u300C\u751F\u6210\u300D\u3092\u30BF\u30C3\u30D7\u3057\u3066\u3054\u81EA\u5B85\u3092\u5206\u6790\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    suggestions_filter_placeholder:
+      "\u63D0\u6848\u3092\u7D5E\u308A\u8FBC\u307F\u2026",
+    suggestions_filter_all: "\u3059\u3079\u3066",
+    suggestions_filter_patterns: "\u30D1\u30BF\u30FC\u30F3",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "\u6700\u8FD1",
+    suggestions_sort_alpha: "\u30A2\u30EB\u30D5\u30A1\u30D9\u30C3\u30C8\u9806",
+    suggestions_bulk_selected: "\u4EF6\u9078\u629E\u4E2D",
+    suggestions_bulk_accept_selected:
+      "\u9078\u629E\u9805\u76EE\u3092\u627F\u8A8D",
+    suggestions_bulk_dismiss_selected:
+      "\u9078\u629E\u9805\u76EE\u3092\u5374\u4E0B",
+    suggestions_bulk_done: "\u5B8C\u4E86",
+    suggestions_bulk_edit: "\u4E00\u62EC\u7DE8\u96C6",
+    suggestions_show_more: "\u3055\u3089\u306B\u63D0\u6848\u3092\u8868\u793A",
+    version_history_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    version_history_empty:
+      "\u30D0\u30FC\u30B8\u30E7\u30F3\u5C65\u6B74\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002",
+    version_history_current_badge: "\u73FE\u5728",
+    version_history_hide_yaml: "YAML \u3092\u975E\u8868\u793A",
+    version_history_view_yaml: "YAML \u3092\u8868\u793A",
+    version_history_restoring: "\u5FA9\u5143\u4E2D\u2026",
+    version_history_restore_button:
+      "\u3053\u306E\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u5FA9\u5143",
+    version_history_no_yaml_stored:
+      "\uFF08YAML \u306F\u4FDD\u5B58\u3055\u308C\u3066\u3044\u307E\u305B\u3093\uFF09",
+    version_history_compare_title:
+      "\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u6BD4\u8F03",
+    version_history_version_a_label:
+      "\u30D0\u30FC\u30B8\u30E7\u30F3 A\uFF08\u65B0\u3057\u3044\uFF09\uFF1A",
+    version_history_version_b_label:
+      "\u30D0\u30FC\u30B8\u30E7\u30F3 B\uFF08\u53E4\u3044\uFF09\uFF1A",
+    version_history_loading_diff:
+      "\u5DEE\u5206\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    version_history_no_diff:
+      "\u5DEE\u5206\u306F\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    device_detail_loading:
+      "\u30C7\u30D0\u30A4\u30B9\u306E\u8A73\u7D30\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D...",
+    device_detail_close: "\u9589\u3058\u308B",
+    device_detail_entities_heading: "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    device_detail_state_history_heading:
+      "\u72B6\u614B\u5C65\u6B74\uFF0824 \u6642\u9593\uFF09",
+    device_detail_linked_automations_heading:
+      "\u95A2\u9023\u4ED8\u3051\u3089\u308C\u305F\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    device_detail_detected_patterns_heading:
+      "\u691C\u51FA\u3055\u308C\u305F\u30D1\u30BF\u30FC\u30F3",
+    device_detail_confidence_label: "\u4FE1\u983C\u5EA6",
+    ignore_list_remove_label: "\u30E9\u30D9\u30EB\u3092\u524A\u9664",
+    ignore_list_chip_kind_device: "\u30C7\u30D0\u30A4\u30B9",
+    ignore_list_chip_kind_area: "\u30A8\u30EA\u30A2",
+    ignore_list_dropdown_kind_area: "\u30A8\u30EA\u30A2",
+    ignore_list_dropdown_kind_device: "\u30C7\u30D0\u30A4\u30B9",
+    ignore_list_how_it_works:
+      "\u3053\u308C\u306F\u3069\u306E\u3088\u3046\u306B\u6A5F\u80FD\u3057\u307E\u3059\u304B\uFF1F",
+    ignore_list_section_title: "\u63D0\u6848\u3067\u7121\u8996\u3059\u308B",
+    ignore_list_search_placeholder:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3001\u30C7\u30D0\u30A4\u30B9\u3001\u307E\u305F\u306F\u30A8\u30EA\u30A2\u3092\u691C\u7D22\u2026",
+    ignore_list_empty_state:
+      "\u307E\u3060\u7121\u8996\u3055\u308C\u3066\u3044\u308B\u3082\u306E\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    approval_risk_explainer_low:
+      "\u4F4E\u30EA\u30B9\u30AF\uFF1A\u8EFD\u5FAE\u307E\u305F\u306F\u5B8C\u5168\u306B\u5143\u306B\u623B\u305B\u308B\u5F71\u97FF\uFF08\u30B5\u30A6\u30F3\u30C9\u3001\u901A\u77E5\u3001\u6383\u9664\u6A5F\u306E\u958B\u59CB\u30FB\u505C\u6B62\uFF09\u3002",
+    approval_risk_explainer_medium:
+      "\u4E2D\u30EA\u30B9\u30AF\uFF1A\u5143\u306B\u623B\u3057\u305F\u304F\u306A\u3044\u53EF\u80FD\u6027\u306E\u3042\u308B\u9855\u8457\u306A\u526F\u4F5C\u7528\uFF08\u30A2\u30E9\u30FC\u30E0\u306E\u4F5C\u52D5\u3001\u30C9\u30A2\u306E\u65BD\u9320\u3001\u30E6\u30FC\u30B6\u30FC\u30B9\u30AF\u30EA\u30D7\u30C8\u306E\u5B9F\u884C\uFF09\u3002",
+    approval_risk_explainer_high:
+      "\u9AD8\u30EA\u30B9\u30AF\uFF1A\u7269\u7406\u7684\u306A\u30A2\u30AF\u30BB\u30B9\u3001\u30BB\u30AD\u30E5\u30EA\u30C6\u30A3\u3001\u307E\u305F\u306F\u30DB\u30B9\u30C8\u30EC\u30D9\u30EB\u306E\u5F71\u97FF\uFF08\u30C9\u30A2\u306E\u89E3\u9320\u3001\u30A2\u30E9\u30FC\u30E0\u306E\u89E3\u9664\u3001\u30B7\u30A7\u30EB\u30B3\u30DE\u30F3\u30C9\u306E\u5B9F\u884C\uFF09\u3002",
+    approval_scope_all_matching:
+      "\u4E00\u81F4\u3059\u308B\u3059\u3079\u3066\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    approval_scope_just_these:
+      "\u3053\u308C\u3089\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u306E\u307F",
+    approval_status_approved: "\u627F\u8A8D\u6E08\u307F",
+    approval_status_denied: "\u62D2\u5426\u6E08\u307F",
+    approval_working: "\u51E6\u7406\u4E2D\u2026",
+    approval_required_title: "\u627F\u8A8D\u304C\u5FC5\u8981\u3067\u3059",
+    approval_scope_label:
+      "\u30BB\u30C3\u30B7\u30E7\u30F3\u4E2D\uFF0F\u5E38\u306B\uFF1A",
+    approval_scope_button_title:
+      "\u3053\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u306E\u307F\u3001\u307E\u305F\u306F\u3053\u306E\u30B5\u30FC\u30D3\u30B9\u306E\u3059\u3079\u3066\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u306B\u4ED8\u4E0E\u7BC4\u56F2\u3092\u5207\u308A\u66FF\u3048\u308B\u306B\u306F\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    quick_actions_approve_once_label: "1 \u56DE\u3060\u3051\u8A31\u53EF",
+    quick_actions_approve_once_desc:
+      "\u4ECA\u56DE\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u306E\u307F",
+    quick_actions_approve_session_label: "\u3053\u306E\u4F1A\u8A71\u306E\u9593",
+    quick_actions_approve_session_desc:
+      "\u3053\u306E\u4F1A\u8A71\u306E\u6B8B\u308A\u306E\u9593\u306F\u8A31\u53EF\u3059\u308B",
+    quick_actions_approve_always_label: "\u5E38\u306B\u8A31\u53EF",
+    quick_actions_approve_always_desc:
+      "\u3053\u306E\u627F\u8A8D\u3092\u8A18\u61B6\u3059\u308B",
+    quick_actions_deny_label: "\u62D2\u5426",
+    quick_actions_deny_desc:
+      "\u3053\u306E\u30EA\u30AF\u30A8\u30B9\u30C8\u3092\u5B9F\u884C\u3057\u306A\u3044",
+    stale_modal_title:
+      "\u53E4\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    stale_select_all: "\u3059\u3079\u3066\u9078\u629E",
+    stale_last_triggered_label: "\u6700\u7D42\u30C8\u30EA\u30AC\u30FC\uFF1A",
+    stale_never: "\u306A\u3057",
+    stale_keep_button: "\u4FDD\u6301",
+    stale_close_button: "\u9589\u3058\u308B",
+    stale_state_label: "\u72B6\u614B\uFF1A",
+    stale_state_unknown: "\u4E0D\u660E",
+    stale_back_button: "\u623B\u308B",
+    stale_remove_confirm:
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u5B8C\u5168\u306B\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+    stale_remove_success:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
+    stale_remove_failed_prefix:
+      "\u524A\u9664\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    stale_remove_button: "\u524A\u9664",
+    automation_management_triggered:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u30C8\u30EA\u30AC\u30FC\u3057\u307E\u3057\u305F\u3002",
+    automation_management_renamed:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u540D\u524D\u3092\u5909\u66F4\u3057\u307E\u3057\u305F",
+    automation_management_version_restored:
+      "\u30D0\u30FC\u30B8\u30E7\u30F3\u3092\u5FA9\u5143\u3057\u307E\u3057\u305F\u3002",
+    automation_management_delete_confirm:
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u5B8C\u5168\u306B\u524A\u9664\u3057\u307E\u3059\u304B\uFF1F",
+    automation_management_deleted:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3057\u307E\u3057\u305F\u3002",
+    automation_management_cannot_refine_no_id:
+      "\u3053\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 ID \u304C\u306A\u3044\u305F\u3081\u8ABF\u6574\u3067\u304D\u307E\u305B\u3093\u3002",
+    automation_management_loaded_to_chat:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u30C1\u30E3\u30C3\u30C8\u306B\u8AAD\u307F\u8FBC\u307F\u307E\u3057\u305F\u3002",
+    action_format_run_verb: "\u5B9F\u884C",
+    action_format_ran_verb: "\u5B9F\u884C\u3057\u307E\u3057\u305F",
+    chat_actions_interrupt_disconnect:
+      "\u5FDC\u7B54\u306E\u9014\u4E2D\u3067 Home Assistant \u3078\u306E\u63A5\u7D9A\u304C\u5931\u308F\u308C\u307E\u3057\u305F\u3002",
+    chat_actions_interrupt_server_stopped:
+      "\u30B5\u30FC\u30D0\u30FC\u304C\u5FDC\u7B54\u3092\u505C\u6B62\u3057\u307E\u3057\u305F\u3002",
+    chat_actions_interrupt_server_no_reply:
+      "\u30B5\u30FC\u30D0\u30FC\u304C\u6642\u9593\u5185\u306B\u5FDC\u7B54\u3057\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    chat_actions_interrupt_truncated:
+      "\u5FDC\u7B54\u304C\u9014\u4E2D\u3067\u5207\u308C\u3066\u3044\u308B\u3088\u3046\u3067\u3059 \u2014 \u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    chat_actions_interrupt_llm_unreachable:
+      "LLM \u30D7\u30ED\u30D0\u30A4\u30C0\u30FC\u306B\u5230\u9054\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    chat_actions_interrupt_session_start_failed:
+      "\u30C1\u30E3\u30C3\u30C8\u30BB\u30C3\u30B7\u30E7\u30F3\u3092\u958B\u59CB\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    chat_actions_cancelled_by_user:
+      "_\u30E6\u30FC\u30B6\u30FC\u306B\u3088\u3063\u3066\u30AD\u30E3\u30F3\u30BB\u30EB\u3055\u308C\u307E\u3057\u305F_",
+    automation_crud_save_failed:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    automation_crud_entity_not_surfaced:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u304C\u3001Home Assistant \u304C\u307E\u3060\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3092\u8868\u793A\u3057\u3066\u3044\u307E\u305B\u3093 \u2014 \u8868\u793A\u3055\u308C\u305F\u3089\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30BF\u30D6\u304B\u3089\u30AA\u30F3\u306B\u5207\u308A\u66FF\u3048\u3066\u304F\u3060\u3055\u3044\u3002",
+    automation_crud_auto_enable_failed_prefix:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u304C\u3001\u81EA\u52D5\u7684\u306B\u6709\u52B9\u5316\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\uFF1A",
+    automation_crud_unknown_error: "\u4E0D\u660E\u306A\u30A8\u30E9\u30FC",
+    automation_crud_auto_enable_failed_suffix:
+      "\u3002\u30AB\u30FC\u30C9\u306E\u6709\u52B9\u5316\u30DC\u30BF\u30F3\u3092\u4F7F\u3063\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    automation_crud_draft_dismissed:
+      "\u4E0B\u66F8\u304D\u3092\u5374\u4E0B\u3057\u307E\u3057\u305F\u3002",
+    automation_crud_dismiss_draft_failed:
+      "\u4E0B\u66F8\u304D\u306E\u5374\u4E0B\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    automation_crud_create_failed:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u4F5C\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    automation_crud_save_edited_yaml_failed:
+      "\u7DE8\u96C6\u3057\u305F YAML \u304B\u3089\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    automation_crud_yaml_saved:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306E YAML \u3092\u4FDD\u5B58\u3057\u307E\u3057\u305F\u3002",
+    automation_crud_save_changes_failed:
+      "\u5909\u66F4\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    scene_actions_refine_default_name: "\u30B7\u30FC\u30F3",
+    session_toast_new_automation_chat_failed:
+      "\u65B0\u3057\u3044\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u30C1\u30E3\u30C3\u30C8\u306E\u958B\u59CB\u306B\u5931\u6557\u3057\u307E\u3057\u305F\uFF1A",
+    session_toast_ai_no_suggestion:
+      "AI \u304C\u63D0\u6848\u3092\u8FD4\u3057\u307E\u305B\u3093\u3067\u3057\u305F \u2014 \u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    session_toast_suggest_failed:
+      "\u63D0\u6848\u306E\u751F\u6210\u306B\u5931\u6557\u3057\u307E\u3057\u305F \u2014 LLM \u8A2D\u5B9A\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    suggestions_analysis_no_new:
+      "\u5206\u6790\u304C\u5B8C\u4E86\u3057\u307E\u3057\u305F \u2014 \u73FE\u6642\u70B9\u3067\u65B0\u3057\u3044\u63D0\u6848\u306F\u3042\u308A\u307E\u305B\u3093",
+    suggestions_accepted_toast:
+      "\u63D0\u6848\u3092\u627F\u8A8D\u3057\u307E\u3057\u305F \u2014 \u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u4F5C\u6210\u3057\u307E\u3057\u305F",
+    suggestions_accept_failed:
+      "\u63D0\u6848\u306E\u627F\u8A8D\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    suggestions_dismissed_toast:
+      "\u63D0\u6848\u3092\u5374\u4E0B\u3057\u307E\u3057\u305F",
+    suggestions_snoozed_toast:
+      "\u63D0\u6848\u3092 24 \u6642\u9593\u30B9\u30CC\u30FC\u30BA\u3057\u307E\u3057\u305F",
+    suggestions_pattern_scan_failed:
+      "\u30D1\u30BF\u30FC\u30F3\u30B9\u30AD\u30E3\u30F3\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    area_unassigned: "\u672A\u5272\u308A\u5F53\u3066",
+  },
+  options: {
+    step: {
+      init: {
+        title:
+          "\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u30B5\u30FC\u30D3\u30B9\u306E\u8A2D\u5B9A",
+        description:
+          "Selora AI \u306E\u30D0\u30C3\u30AF\u30B0\u30E9\u30A6\u30F3\u30C9\u30B5\u30FC\u30D3\u30B9\u3092\u8A2D\u5B9A\u3057\u307E\u3059\u3002",
+        data: {
+          collector_enabled:
+            "\u30C7\u30FC\u30BF\u30B3\u30EC\u30AF\u30BF\u30FC\uFF08AI \u5206\u6790\uFF09\u3092\u6709\u52B9\u5316",
+          collector_mode: "\u5B9F\u884C\u30E2\u30FC\u30C9",
+          collector_interval: "\u5206\u6790\u9593\u9694\uFF08\u79D2\uFF09",
+          collector_start_time:
+            "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3055\u308C\u305F\u958B\u59CB\u6642\u523B",
+          collector_end_time:
+            "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3055\u308C\u305F\u7D42\u4E86\u6642\u523B",
+          discovery_enabled:
+            "\u30CD\u30C3\u30C8\u30EF\u30FC\u30AF\u691C\u51FA\u3092\u6709\u52B9\u5316",
+          discovery_mode: "\u5B9F\u884C\u30E2\u30FC\u30C9",
+          discovery_interval: "\u691C\u51FA\u9593\u9694\uFF08\u79D2\uFF09",
+          discovery_start_time:
+            "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3055\u308C\u305F\u958B\u59CB\u6642\u523B",
+          discovery_end_time:
+            "\u30B9\u30B1\u30B8\u30E5\u30FC\u30EB\u3055\u308C\u305F\u7D42\u4E86\u6642\u523B",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/ko.json
+var ko_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "Selora AI \uAD6C\uC131",
+        description:
+          "\uC790\uB3D9\uD654 \uC81C\uC548\uC5D0 \uC0AC\uC6A9\uD560 LLM \uBC31\uC5D4\uB4DC\uB97C \uC120\uD0DD\uD558\uC138\uC694.",
+        data: {
+          llm_provider: "LLM \uC81C\uACF5\uC790",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          'Selora AI Cloud\uB294 Selora \uACC4\uC815\uC744 \uC0AC\uC6A9\uD558\uBBC0\uB85C API \uD0A4\uAC00 \uD544\uC694\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4. \uC124\uC815 \uD6C4 Selora AI \uD328\uB110\uC744 \uC5F4\uACE0 "Selora \uACC4\uC815 \uC5F0\uACB0"\uC744 \uD074\uB9AD\uD558\uC5EC \uC778\uC99D\uD558\uC138\uC694.',
+      },
+      anthropic: {
+        title: "Anthropic (Claude) \uAD6C\uC131",
+        description:
+          "Anthropic API \uD0A4\uB97C \uC785\uB825\uD558\uC138\uC694. console.anthropic.com\uC5D0\uC11C \uBC1C\uAE09\uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+        data: {
+          anthropic_api_key: "API \uD0A4",
+          anthropic_model: "\uBAA8\uB378",
+        },
+      },
+      gemini: {
+        title: "Google Gemini \uAD6C\uC131",
+        description:
+          "Google Gemini API \uD0A4\uB97C \uC785\uB825\uD558\uC138\uC694. aistudio.google.com\uC5D0\uC11C \uBC1C\uAE09\uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+        data: {
+          gemini_api_key: "API \uD0A4",
+          gemini_model: "\uBAA8\uB378",
+        },
+      },
+      openai: {
+        title: "OpenAI \uAD6C\uC131",
+        description:
+          "OpenAI API \uD0A4\uB97C \uC785\uB825\uD558\uC138\uC694. platform.openai.com\uC5D0\uC11C \uBC1C\uAE09\uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+        data: {
+          openai_api_key: "API \uD0A4",
+          openai_model: "\uBAA8\uB378",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter \uAD6C\uC131",
+        description:
+          "OpenRouter API \uD0A4\uB97C \uC785\uB825\uD558\uC138\uC694. openrouter.ai/keys\uC5D0\uC11C \uBC1C\uAE09\uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4. 'anthropic/claude-sonnet-4.5'\uCC98\uB7FC \uBCA4\uB354 \uC811\uB450\uC0AC\uAC00 \uBD99\uC740 \uBAA8\uB378 \uC774\uB984\uC744 \uC0AC\uC6A9\uD558\uC138\uC694.",
+        data: {
+          openrouter_api_key: "API \uD0A4",
+          openrouter_model: "\uBAA8\uB378",
+        },
+      },
+      ollama: {
+        title: "Ollama (\uB85C\uCEEC) \uAD6C\uC131",
+        description:
+          "\uB85C\uCEEC Ollama \uC11C\uBC84 \uC138\uBD80 \uC815\uBCF4\uB97C \uC785\uB825\uD558\uC138\uC694. \uBAA8\uB378\uC744 \uBBF8\uB9AC \uBC1B\uC544\uB450\uC5C8\uB294\uC9C0 \uD655\uC778\uD558\uC138\uC694.",
+        data: {
+          ollama_host: "Ollama \uD638\uC2A4\uD2B8 URL",
+          ollama_model: "\uBAA8\uB378 \uC774\uB984",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local \uAD6C\uC131",
+        description:
+          "Selora \uD5C8\uBE0C\uB294 \uC0AC\uC804 \uAD6C\uC131\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD558\uB294 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server\uB97C \uC0AC\uC6A9\uD558\uB824\uBA74 \uC544\uB798\uC5D0 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694.",
+        data: {
+          selora_local_host: "\uD638\uC2A4\uD2B8 URL",
+        },
+      },
+      select_devices: {
+        title: "\uC628\uBCF4\uB529\uD560 \uAE30\uAE30 \uC120\uD0DD",
+        description:
+          "Selora AI\uAC00 \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C {count}\uAC1C\uC758 \uAE30\uAE30\uB97C \uCC3E\uC558\uC2B5\uB2C8\uB2E4. \uAE30\uAE30\uB97C \uCD94\uAC00\uD558\uB824\uBA74 \uBC29\uC744 \uC9C0\uC815\uD558\uACE0, \uAC74\uB108\uB6F0\uB824\uBA74 'Skip'\uC744 \uC120\uD0DD\uD558\uC138\uC694.\n\n{device_list}",
+      },
+      results: {
+        title: "\uAE30\uAE30 \uC124\uC815 \uACB0\uACFC",
+        description:
+          "\uC124\uC815 \uC644\uB8CC: {succeeded}\uAC1C \uC131\uACF5, {failed}\uAC1C \uC2E4\uD328, {needs_attention}\uAC1C\uB294 \uC218\uB3D9 \uCC98\uB9AC\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "\uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. API \uD0A4\uB97C \uD655\uC778\uD558\uAC70\uB098, Ollama\uAC00 \uC2E4\uD589 \uC911\uC774\uACE0 \uBAA8\uB378\uC774 \uBC1B\uC544\uC838 \uC788\uB294\uC9C0 \uD655\uC778\uD558\uC138\uC694.",
+      invalid_auth:
+        "\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 Selora Connect \uC790\uACA9 \uC99D\uBA85\uC785\uB2C8\uB2E4. \uC774\uBA54\uC77C\uACFC \uBE44\uBC00\uBC88\uD638\uB97C \uD655\uC778\uD558\uC138\uC694.",
+      unknown:
+        "\uC608\uC0C1\uCE58 \uBABB\uD55C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+    },
+    abort: {
+      already_configured:
+        "Selora AI\uAC00 \uC774\uBBF8 \uAD6C\uC131\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.",
+      cannot_connect:
+        "Selora AI \uD074\uB77C\uC6B0\uB4DC \uC11C\uBE44\uC2A4\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uB098\uC911\uC5D0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      unknown:
+        "\uC124\uC815 \uC911 \uC608\uC0C1\uCE58 \uBABB\uD55C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.",
+      llm_not_ready:
+        "Selora AI LLM \uBC31\uC5D4\uB4DC\uAC00 \uC2E4\uD589 \uC911\uC774 \uC544\uB2D9\uB2C8\uB2E4. \uBA3C\uC800 \uAD6C\uC131\uD558\uC138\uC694.",
+      no_devices_found:
+        "\uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uC0C8 \uAE30\uAE30\uB97C \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uB098\uC911\uC5D0 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+      no_devices_selected:
+        "\uC120\uD0DD\uB41C \uAE30\uAE30\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+      select_devices_failed:
+        "\uAE30\uAE30 \uC628\uBCF4\uB529 \uC911 \uC608\uC0C1\uCE58 \uBABB\uD55C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. Selora AI\uB294 \uAE30\uAE30 \uC628\uBCF4\uB529 \uC5C6\uC774 \uC124\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4 \u2014 \uB098\uC911\uC5D0 \uC124\uC815 > \uAE30\uAE30 > \uD56D\uBAA9 \uCD94\uAC00\uC5D0\uC11C \uB2E4\uC2DC \uC2DC\uB3C4\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC790\uC138\uD55C \uB0B4\uC6A9\uC740 Home Assistant \uB85C\uADF8\uB97C \uD655\uC778\uD558\uC138\uC694.",
+    },
+  },
+  common: {
+    feedback_button_label: "\uD53C\uB4DC\uBC31 \uBCF4\uB0B4\uAE30",
+    feedback_modal_title: "\uD53C\uB4DC\uBC31 \uACF5\uC720",
+    feedback_privacy_notice:
+      "\uD53C\uB4DC\uBC31\uC740 \uC775\uBA85\uC774\uBA70 \uAC1C\uC778 \uC815\uBCF4\uB97C \uD3EC\uD568\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    feedback_textarea_placeholder:
+      "\uC5B4\uB5A4 \uC0DD\uAC01\uC774 \uB4DC\uC2DC\uB098\uC694? (\uCD5C\uC18C 10\uC790)",
+    feedback_rating_label: "\uD3C9\uAC00:",
+    feedback_rating_thumbsup: "\uC88B\uC544\uC694",
+    feedback_rating_thumbsdown: "\uBCC4\uB85C\uC608\uC694",
+    feedback_category_label:
+      "\uCE74\uD14C\uACE0\uB9AC (\uC120\uD0DD \uC0AC\uD56D):",
+    feedback_category_bug: "\uBC84\uADF8",
+    feedback_category_feature: "\uAE30\uB2A5 \uC694\uCCAD",
+    feedback_category_general: "\uC77C\uBC18",
+    feedback_submit: "\uD53C\uB4DC\uBC31 \uC804\uC1A1",
+    feedback_submitting: "\uC804\uC1A1 \uC911\u2026",
+    feedback_email_label: "\uC774\uBA54\uC77C (\uC120\uD0DD \uC0AC\uD56D):",
+    feedback_email_placeholder:
+      "your@email.com \u2014 \uB2F5\uBCC0\uC744 \uC6D0\uD558\uC2DC\uB294 \uACBD\uC6B0\uC5D0\uB9CC \uC785\uB825\uD558\uC138\uC694",
+    feedback_cancel: "\uCDE8\uC18C",
+    feedback_min_length_error:
+      "\uCD5C\uC18C 10\uC790 \uC774\uC0C1 \uC785\uB825\uD558\uC138\uC694.",
+    feedback_success:
+      "\uD53C\uB4DC\uBC31\uC744 \uBCF4\uB0B4\uC8FC\uC154\uC11C \uAC10\uC0AC\uD569\uB2C8\uB2E4!",
+    feedback_error:
+      "\uD53C\uB4DC\uBC31\uC744 \uBCF4\uB0B4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 \u2014 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    nav_new_chat: "\uC0C8 \uCC44\uD305",
+    nav_selora_menu: "Selora \uBA54\uB274",
+    nav_conversations: "\uB300\uD654",
+    nav_automations: "\uC790\uB3D9\uD654",
+    nav_scenes: "\uC7A5\uBA74",
+    nav_settings: "\uC124\uC815",
+    nav_documentation: "\uBB38\uC11C",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab \uC800\uC7A5\uC18C",
+    welcome_title_prefix: "\uD658\uC601\uD569\uB2C8\uB2E4",
+    welcome_subtitle:
+      "\uC9C0\uB2A5\uD615 \uD648 \uC790\uB3D9\uD654 \uC124\uACC4\uC790",
+    new_automation_title_prefix: "\uC0C8",
+    new_automation_gold: "\uC790\uB3D9\uD654",
+    new_automation_subtitle:
+      "\uC790\uB3D9\uD654\uD558\uB824\uB294 \uB0B4\uC6A9\uC744 \uC124\uBA85\uD558\uC138\uC694 \u2014 \uAD00\uB828\uB41C \uAE30\uAE30, \uC2DC\uAC04 \uB610\uB294 \uC870\uAC74\uC744 \uC5B8\uAE09\uD558\uC138\uC694.",
+    get_started: "\uC2DC\uC791\uD558\uAE30",
+    get_started_body:
+      "\uC124\uC815 \uD0ED\uC5D0\uC11C LLM \uC81C\uACF5\uC790\uB97C \uAD6C\uC131\uD558\uC5EC \uC9D1\uACFC \uB300\uD654\uB97C \uC2DC\uC791\uD558\uC138\uC694.",
+    open_settings: "\uC124\uC815 \uC5F4\uAE30",
+    quick_start: "\uBE60\uB978 \uC2DC\uC791",
+    composer_placeholder_ask:
+      "Selora AI\uC5D0\uAC8C \uBB34\uC5C7\uC774\uB4E0 \uBB3C\uC5B4\uBCF4\uC138\uC694\u2026",
+    composer_placeholder_automation:
+      "\uB9CC\uB4E4\uACE0 \uC2F6\uC740 \uC790\uB3D9\uD654\uB97C \uC124\uBA85\uD558\uC138\uC694\u2026",
+    panel_quota_provider_default:
+      "\uC0AC\uC6A9 \uC911\uC778 LLM \uC81C\uACF5\uC790",
+    panel_quota_reached:
+      "\uD560\uB2F9\uB7C9\uC5D0 \uB3C4\uB2EC\uD588\uC2B5\uB2C8\uB2E4.",
+    panel_quota_try_again_prefix: "\uB2E4\uC2DC \uC2DC\uB3C4",
+    panel_quota_retrying_now:
+      "\uC9C0\uAE08 \uB2E4\uC2DC \uC2DC\uB3C4 \uC911\u2026",
+    panel_quota_dismiss: "\uB2EB\uAE30",
+    panel_llm_switched_selora_cloud:
+      "Selora Cloud\uB85C \uC804\uD658\uD588\uC2B5\uB2C8\uB2E4.",
+    panel_llm_invalid_key:
+      "\uC720\uD6A8\uD558\uC9C0 \uC54A\uC740 API \uD0A4\uC774\uAC70\uB098 \uC81C\uACF5\uC790\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    panel_llm_settings_saved:
+      "LLM \uC124\uC815\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_advanced_settings_saved:
+      "\uACE0\uAE09 \uC124\uC815\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_linking_failed:
+      "\uC5F0\uACB0\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.",
+    panel_linking_timed_out:
+      "\uC5F0\uACB0 \uC2DC\uAC04\uC774 \uCD08\uACFC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694 \u2014 10\uBD84 \uC774\uB0B4\uC5D0 \uB85C\uADF8\uC778\uC744 \uC644\uB8CC\uD558\uC138\uC694.",
+    panel_linking_start_failed:
+      "\uC5F0\uACB0\uC744 \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+    panel_connect_linked_success:
+      "Selora Connect\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC5F0\uACB0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_unlink_connect_confirm:
+      "Selora Connect \uC5F0\uACB0\uC744 \uD574\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?\n\n\uC678\uBD80 MCP \uB3C4\uAD6C(Openclaw, Claude Desktop, Cursor, Windsurf)\uB294 \uB2E4\uC2DC \uC5F0\uACB0\uD560 \uB54C\uAE4C\uC9C0 \uC811\uADFC\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    panel_connect_unlinked:
+      "Selora Connect \uC5F0\uACB0\uC774 \uD574\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_cloud_linked_success:
+      "Selora Cloud\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC5F0\uACB0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_unlink_cloud_confirm:
+      "Selora Cloud \uC5F0\uACB0\uC744 \uD574\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?\n\n\uC124\uC815\uC5D0\uC11C \uACC4\uC815\uC744 \uB2E4\uC2DC \uC5F0\uACB0\uD560 \uB54C\uAE4C\uC9C0 \uCC44\uD305 \uBC0F \uC790\uB3D9\uD654 \uC81C\uC548\uC774 \uC911\uB2E8\uB429\uB2C8\uB2E4.",
+    panel_cloud_unlinked:
+      "Selora Cloud \uC5F0\uACB0\uC774 \uD574\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_mcp_token_created:
+      "MCP \uD1A0\uD070\uC774 \uC0DD\uC131\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_mcp_token_revoked:
+      "\uD1A0\uD070\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_approval_revoked:
+      "\uC2B9\uC778\uC774 \uCDE8\uC18C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    panel_device_loading: "\uBD88\uB7EC\uC624\uB294 \uC911...",
+    panel_device_error_loading:
+      "\uAE30\uAE30\uB97C \uBD88\uB7EC\uC624\uB294 \uC911 \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4",
+    panel_tab_conversations: "\uB300\uD654",
+    panel_tab_automations: "\uC790\uB3D9\uD654",
+    panel_tab_scenes: "\uC7A5\uBA74",
+    panel_sidebar_conversations: "\uB300\uD654",
+    panel_sidebar_done: "\uC644\uB8CC",
+    panel_sidebar_select: "\uC120\uD0DD",
+    panel_sidebar_select_all: "\uBAA8\uB450 \uC120\uD0DD",
+    panel_sidebar_delete: "\uC0AD\uC81C",
+    panel_sidebar_new_chat: "\uC0C8 \uCC44\uD305",
+    panel_sidebar_no_conversations:
+      "\uC544\uC9C1 \uB300\uD654\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    panel_session_delete_confirm:
+      "\uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
+    panel_session_delete: "\uC0AD\uC81C",
+    panel_session_cancel: "\uCDE8\uC18C",
+    panel_session_delete_title: "\uC0AD\uC81C",
+    panel_bulk_delete_title: "\uB300\uD654 \uC0AD\uC81C",
+    panel_bulk_delete_cancel: "\uCDE8\uC18C",
+    panel_bulk_delete_confirm: "\uC0AD\uC81C",
+    chat_suggest_thinking: "\uC0DD\uAC01 \uC911\u2026",
+    chat_suggest_one_for_me: "\uCD94\uCC9C\uD574 \uC8FC\uC138\uC694",
+    chat_jump_to_latest: "\uCD5C\uC2E0 \uBA54\uC2DC\uC9C0\uB85C \uC774\uB3D9",
+    chat_autocomplete_hint:
+      "\u2191\u2193 \uC774\uB3D9 \xB7 \u21B5 \uC0BD\uC785 \xB7 Esc \uB2EB\uAE30",
+    chat_selection_remove: "\uC81C\uAC70",
+    chat_stop_generating: "\uC0DD\uC131 \uC911\uC9C0",
+    chat_send: "\uBCF4\uB0B4\uAE30",
+    chat_building_scene: "\uC7A5\uBA74 \uC0DD\uC131 \uC911...",
+    chat_go_to_settings: "\uC124\uC815\uC73C\uB85C \uC774\uB3D9",
+    chat_response_cut_short:
+      "\uC751\uB2F5\uC774 \uC911\uAC04\uC5D0 \uC798\uB838\uC2B5\uB2C8\uB2E4.",
+    chat_retry: "\uB2E4\uC2DC \uC2DC\uB3C4",
+    chat_copy_message: "\uBA54\uC2DC\uC9C0 \uBCF5\uC0AC",
+    chat_you: "\uB098",
+    chat_yaml_unsaved_changes:
+      "\uC800\uC7A5\uB418\uC9C0 \uC54A\uC740 \uBCC0\uACBD \uC0AC\uD56D",
+    chat_yaml_saving: "\uC800\uC7A5 \uC911\u2026",
+    chat_yaml_save_changes: "\uBCC0\uACBD \uC0AC\uD56D \uC800\uC7A5",
+    chat_tools_used: "\uC0AC\uC6A9\uB41C \uB3C4\uAD6C",
+    chat_automation_label_building: "\uC790\uB3D9\uD654 \uC0DD\uC131 \uC911...",
+    chat_automation_label_triggers: "\uD2B8\uB9AC\uAC70 \uC791\uC131 \uC911...",
+    chat_automation_label_conditions: "\uC870\uAC74 \uC5F0\uACB0 \uC911...",
+    chat_automation_label_actions: "\uB3D9\uC791 \uAD6C\uC131 \uC911...",
+    chat_automation_label_almost:
+      "\uAC70\uC758 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4...",
+    chat_autocomplete_kind_devices: "\uAE30\uAE30",
+    chat_autocomplete_kind_areas: "\uAD6C\uC5ED",
+    chat_autocomplete_kind_scenes: "\uC7A5\uBA74",
+    chat_autocomplete_kind_automations: "\uC790\uB3D9\uD654",
+    chat_autocomplete_kind_suggestions: "\uC81C\uC548",
+    chat_welcome_suggestion_lights_label:
+      "\uC790\uC815\uC5D0 \uBAA8\uB4E0 \uC870\uBA85 \uB044\uAE30",
+    chat_welcome_suggestion_lights_value:
+      "\uC790\uC815\uC5D0 \uBAA8\uB4E0 \uC870\uBA85\uC744 \uB044\uB294 \uC790\uB3D9\uD654\uB97C \uB9CC\uB4DC\uC138\uC694",
+    chat_welcome_suggestion_devices_label:
+      "\uC5B4\uB5A4 \uAE30\uAE30\uAC00 \uC788\uB098\uC694?",
+    chat_welcome_suggestion_devices_value:
+      "\uC5B4\uB5A4 \uAE30\uAE30\uAC00 \uC788\uACE0 \uD604\uC7AC \uCF1C\uC838 \uC788\uB294 \uAE30\uAE30\uB294 \uBB34\uC5C7\uC778\uAC00\uC694?",
+    chat_welcome_suggestion_suggest_label:
+      "\uC6B0\uB9AC \uC9D1\uC5D0 \uB9DE\uB294 \uC790\uB3D9\uD654 \uCD94\uCC9C",
+    chat_welcome_suggestion_suggest_value:
+      "\uB0B4 \uAE30\uAE30\uC640 \uC0AC\uC6A9 \uD328\uD134\uC744 \uBC14\uD0D5\uC73C\uB85C \uC720\uC6A9\uD55C \uC790\uB3D9\uD654\uB97C \uCD94\uCC9C\uD558\uC138\uC694",
+    settings_view_token_usage_title:
+      "\uD1A0\uD070 \uC0AC\uC6A9\uB7C9 \uBCF4\uAE30",
+    settings_usage_label: "\uC0AC\uC6A9\uB7C9",
+    settings_view_usage_label: "\uC0AC\uC6A9\uB7C9 \uBCF4\uAE30",
+    settings_provider_select_placeholder: "\uC120\uD0DD...",
+    settings_doc_banner_title: "\uAD6C\uC131 \uAC00\uC774\uB4DC",
+    settings_doc_banner_desc:
+      "LLM \uC81C\uACF5\uC790, \uC6D0\uACA9 \uC811\uC18D \uBC0F MCP \uD1A0\uD070\uC744 \uC124\uC815\uD558\uB294 \uBC29\uBC95\uC744 \uC54C\uC544\uBCF4\uC138\uC694.",
+    settings_llm_provider_heading: "LLM \uC81C\uACF5\uC790",
+    settings_provider_label: "\uC81C\uACF5\uC790",
+    settings_selora_account_label: "Selora \uACC4\uC815",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud\uAC00 LLM \uBC31\uC5D4\uB4DC\uB97C \uC81C\uACF5\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4.",
+    settings_unlink_button: "\uC5F0\uACB0 \uD574\uC81C",
+    settings_signin_selora_desc:
+      "Selora \uACC4\uC815\uC73C\uB85C \uB85C\uADF8\uC778\uD558\uC5EC \uD638\uC2A4\uD305\uB41C LLM \uBC31\uC5D4\uB4DC\uB97C \uC0AC\uC6A9\uD558\uC138\uC694. API \uD0A4\uAC00 \uD544\uC694\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth\uC640 \uCC44\uD305 \uC644\uC131 \uBAA8\uB450 \uC774 URL\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4. \uC5F0\uACB0 \uC2DC \uC790\uB3D9\uC73C\uB85C \uC800\uC7A5\uB429\uB2C8\uB2E4.",
+    settings_open_signin_page:
+      "\uB85C\uADF8\uC778 \uD398\uC774\uC9C0 \uC5F4\uAE30 \u2192",
+    settings_preparing_label: "\uC900\uBE44 \uC911\u2026",
+    settings_link_selora_account_button: "Selora \uACC4\uC815 \uC5F0\uACB0",
+    settings_signin_new_tab_hint:
+      "\uC0C8 \uD0ED\uC5D0\uC11C \uC5F4\uB9BD\uB2C8\uB2E4. \uB85C\uADF8\uC778 \uD6C4 \uC774 \uD398\uC774\uC9C0\uB85C \uB3CC\uC544\uC624\uC138\uC694 \u2014 \uD328\uB110\uC774 \uC790\uB3D9\uC73C\uB85C \uC5C5\uB370\uC774\uD2B8\uB429\uB2C8\uB2E4.",
+    settings_api_key_label: "API \uD0A4",
+    settings_click_replace_key_title:
+      "\uD074\uB9AD\uD558\uC5EC \uD0A4 \uAD50\uCCB4",
+    settings_enter_new_key_label: "\uC0C8 \uD0A4 \uC785\uB825",
+    settings_enter_api_key_label: "API \uD0A4 \uC785\uB825",
+    settings_model_label: "\uBAA8\uB378",
+    settings_selora_local_desc:
+      "Selora AI\uB294 \uC694\uCCAD\uBCC4\uB85C \uC801\uC808\uD55C \uC804\uBB38 \uBAA8\uB378(\uBA85\uB839, \uC790\uB3D9\uD654, \uB2F5\uBCC0, \uBA85\uD655\uD654)\uC744 \uC790\uB3D9\uC73C\uB85C \uC120\uD0DD\uD569\uB2C8\uB2E4.",
+    settings_ollama_host_label: "\uD638\uC2A4\uD2B8",
+    settings_selora_local_show_advanced:
+      "\uACE0\uAE09 \uC635\uC158 \uD45C\uC2DC",
+    settings_selora_local_hide_advanced:
+      "\uACE0\uAE09 \uC635\uC158 \uC228\uAE30\uAE30",
+    settings_selora_local_advanced_desc:
+      "Selora \uD5C8\uBE0C\uB294 \uC0AC\uC804 \uAD6C\uC131\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. Selora AI \uBAA8\uB378\uC744 \uC2E4\uD589\uD558\uB294 \uC790\uCCB4 \uD638\uC2A4\uD305 llama-server\uB97C \uC0AC\uC6A9\uD558\uB824\uBA74 \uC544\uB798\uC5D0 \uC8FC\uC18C\uB97C \uC785\uB825\uD558\uC138\uC694.",
+    settings_selora_local_host_label: "\uD638\uC2A4\uD2B8",
+    settings_selora_local_auto_detected_prefix:
+      "\uC790\uB3D9 \uAC10\uC9C0\uB428:",
+    settings_selora_local_auto_detected_none: "\uC5C6\uC74C",
+    settings_validating_label: "\uD655\uC778 \uC911\u2026",
+    settings_save_button: "\uC800\uC7A5",
+    settings_mcp_server_heading: "MCP \uC11C\uBC84",
+    settings_mcp_server_subtitle:
+      "Openclaw, Claude Desktop, Cursor \uB610\uB294 Windsurf \uAC19\uC740 \uC678\uBD80 AI \uB3C4\uAD6C\uC5D0 \uC9D1\uC744 \uB178\uCD9C\uD569\uB2C8\uB2E4.",
+    settings_connect_via_selora_label:
+      "Selora \uACC4\uC815\uC73C\uB85C \uC5F0\uACB0",
+    settings_connect_via_selora_desc:
+      "\uC678\uBD80 \uB3C4\uAD6C\uAC00 MCP \uC11C\uBC84\uC5D0 \uC811\uADFC\uD560 \uC218 \uC788\uAC8C \uD569\uB2C8\uB2E4",
+    settings_mcp_url_copied_toast:
+      "MCP URL\uC774 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    settings_connect_server_url_label: "Connect \uC11C\uBC84 URL",
+    settings_mcp_tokens_section_title: "MCP \uD1A0\uD070",
+    settings_mcp_tokens_desc:
+      "MCP \uD1A0\uD070\uC740 Selora Connect\uC758 \uB300\uC548\uC785\uB2C8\uB2E4. OAuth\uB97C \uC9C0\uC6D0\uD558\uC9C0 \uC54A\uB294 \uB3C4\uAD6C\uB098 \uD1A0\uD070 \uAE30\uBC18 \uC778\uC99D\uC744 \uC120\uD638\uD560 \uB54C \uC0AC\uC6A9\uD558\uC138\uC694.",
+    settings_no_tokens_yet:
+      "\uC544\uC9C1 \uD1A0\uD070\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    settings_add_token_button: "\uD1A0\uD070 \uCD94\uAC00",
+    settings_command_approvals_heading: "\uBA85\uB839 \uC2B9\uC778",
+    settings_advanced_settings_heading: "\uACE0\uAE09 \uC124\uC815",
+    settings_background_services_title:
+      "\uBC31\uADF8\uB77C\uC6B4\uB4DC \uC11C\uBE44\uC2A4",
+    settings_data_collector_label:
+      "\uB370\uC774\uD130 \uC218\uC9D1\uAE30 (AI \uBD84\uC11D)",
+    settings_data_collector_desc:
+      "\uC5D4\uD130\uD2F0 \uAE30\uB85D\uC744 Selora AI\uC5D0 \uC81C\uACF5\uD569\uB2C8\uB2E4",
+    settings_mode_label: "\uBAA8\uB4DC",
+    settings_mode_continuous: "\uC5F0\uC18D",
+    settings_mode_scheduled_window: "\uC608\uC57D \uC2DC\uAC04\uB300",
+    settings_interval_seconds_label: "\uAC04\uACA9 (\uCD08)",
+    settings_start_hhmm_label: "\uC2DC\uC791 (HH:MM)",
+    settings_end_hhmm_label: "\uC885\uB8CC (HH:MM)",
+    settings_network_discovery_label: "\uB124\uD2B8\uC6CC\uD06C \uAC80\uC0C9",
+    settings_network_discovery_desc:
+      "\uB85C\uCEEC \uB124\uD2B8\uC6CC\uD06C\uC5D0\uC11C \uC0C8 \uAE30\uAE30\uB97C \uAC80\uC0C9\uD569\uB2C8\uB2E4",
+    settings_pattern_detection_label: "\uD328\uD134 \uAC10\uC9C0",
+    settings_pattern_detection_desc:
+      "\uBC18\uBCF5\uB418\uB294 \uC0AC\uC6A9 \uD328\uD134\uC744 \uAC10\uC9C0\uD558\uACE0 \uC790\uB3D9\uD654\uB97C \uC81C\uC548\uD569\uB2C8\uB2E4",
+    settings_auto_remove_stale_label:
+      "\uC624\uB798\uB41C \uC790\uB3D9\uD654 \uC790\uB3D9 \uC81C\uAC70",
+    settings_developer_mode_label: "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC",
+    settings_developer_mode_desc:
+      "\uC6D0\uC2DC \uC5D4\uD130\uD2F0 \uD398\uC774\uB85C\uB4DC\uC640 \uB514\uBC84\uADF8 \uB85C\uADF8\uB97C \uB178\uCD9C\uD569\uB2C8\uB2E4",
+    settings_dev_mode_save_failed_toast:
+      "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
+    settings_saving_label: "\uC800\uC7A5 \uC911\u2026",
+    settings_no_approvals_yet_prefix:
+      "\uC544\uC9C1 \uC800\uC7A5\uB41C \uC2B9\uC778\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uB2E4\uC74C\uC5D0 Selora\uAC00 \uC704\uD5D8\uD55C \uC791\uC5C5\uC744 \uC2E4\uD589\uD558\uAE30 \uC804\uC5D0 \uBB3C\uC5B4\uBCFC \uB54C, \uB2E4\uC74C\uC744 \uD074\uB9AD\uD558\uC138\uC694",
+    settings_no_approvals_always_word: "\uD56D\uC0C1",
+    settings_no_approvals_yet_suffix:
+      "\uC5EC\uAE30\uC5D0 \uAE30\uC5B5\uD558\uB3C4\uB85D \uD558\uC138\uC694.",
+    settings_per_entity_approval_title: "\uC5D4\uD130\uD2F0\uBCC4 \uC2B9\uC778",
+    settings_wildcard_approval_title:
+      "\uC640\uC77C\uB4DC\uCE74\uB4DC \u2014 \uC774 \uC11C\uBE44\uC2A4\uC758 \uBAA8\uB4E0 \uC5D4\uD130\uD2F0\uC5D0 \uC801\uC6A9\uB429\uB2C8\uB2E4",
+    settings_approval_all_label: "\uC804\uCCB4",
+    settings_token_created_heading: "\uD1A0\uD070 \uC0DD\uC131\uB428",
+    settings_token_created_desc:
+      "\uC774 \uD1A0\uD070\uC744 \uC9C0\uAE08 \uBCF5\uC0AC\uD558\uC138\uC694 \u2014 \uB2E4\uC2DC \uD45C\uC2DC\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    settings_token_copied_toast:
+      "\uD1A0\uD070\uC774 \uD074\uB9BD\uBCF4\uB4DC\uC5D0 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    settings_done_button: "\uC644\uB8CC",
+    settings_create_mcp_token_heading: "MCP \uD1A0\uD070 \uC0DD\uC131",
+    settings_token_name_label: "\uC774\uB984",
+    settings_token_name_placeholder: "\uC608: Claude Desktop",
+    settings_permission_level_label: "\uAD8C\uD55C \uC218\uC900",
+    settings_perm_read_only: "\uC77D\uAE30 \uC804\uC6A9",
+    settings_perm_admin_all: "\uAD00\uB9AC\uC790 (\uBAA8\uB4E0 \uB3C4\uAD6C)",
+    settings_perm_custom:
+      "\uC0AC\uC6A9\uC790 \uC9C0\uC815 (\uB3C4\uAD6C \uC120\uD0DD)",
+    settings_allowed_tools_label: "\uD5C8\uC6A9\uB41C \uB3C4\uAD6C",
+    settings_admin_badge: "\uAD00\uB9AC\uC790",
+    settings_expiration_label: "\uB9CC\uB8CC (\uC120\uD0DD \uC0AC\uD56D)",
+    settings_expiry_never: "\uB9CC\uB8CC\uB418\uC9C0 \uC54A\uC74C",
+    settings_expiry_7_days: "7\uC77C",
+    settings_expiry_30_days: "30\uC77C",
+    settings_expiry_90_days: "90\uC77C",
+    settings_expiry_1_year: "1\uB144",
+    settings_cancel_button: "\uCDE8\uC18C",
+    settings_create_token_button: "\uD1A0\uD070 \uC0DD\uC131",
+    automations_flow_branch_if: "\uB9CC\uC57D",
+    automations_flow_branch_else_if:
+      "\uADF8\uB807\uC9C0 \uC54A\uACE0 \uB9CC\uC57D",
+    automations_flow_branch_otherwise: "\uADF8 \uC678\uC758 \uACBD\uC6B0",
+    automations_flow_branch_in_parallel: "\uBCD1\uB82C\uB85C",
+    automations_flow_branch_in_sequence: "\uC21C\uCC28\uC801\uC73C\uB85C",
+    automations_flow_repeat_while:
+      "\uC870\uAC74\uC774 \uC720\uC9C0\uB418\uB294 \uB3D9\uC548 \uBC18\uBCF5",
+    automations_flow_repeat_until:
+      "\uC870\uAC74\uC774 \uCDA9\uC871\uB420 \uB54C\uAE4C\uC9C0 \uBC18\uBCF5",
+    automations_flow_repeat: "\uBC18\uBCF5",
+    automations_flow_label_trigger: "\uD2B8\uB9AC\uAC70",
+    automations_flow_label_condition: "\uC870\uAC74",
+    automations_flow_label_actions: "\uB3D9\uC791",
+    automations_badge_enabled: "\uD65C\uC131\uD654\uB428",
+    automations_badge_saved: "\uC800\uC7A5\uB428",
+    automations_yaml_toggle_hide: "YAML \uC228\uAE30\uAE30",
+    automations_yaml_toggle_view: "YAML \uBCF4\uAE30",
+    automations_yaml_toggle_edit: "YAML \uD3B8\uC9D1",
+    automations_proposal_declined_title:
+      "\uC790\uB3D9\uD654 \uAC70\uBD80\uB428",
+    automations_proposal_declined_body:
+      "\uB2EB\uD614\uC2B5\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uB2F5\uC7A5\uD558\uC5EC \uC218\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    automations_badge_being_refined: "\uC218\uC815 \uC911",
+    automations_badge_proposal: "\uC81C\uC548",
+    automations_proposal_elevated_risk:
+      "\uB192\uC740 \uC704\uD5D8\uC73C\uB85C \uAC80\uD1A0\uAC00 \uAD8C\uC7A5\uB429\uB2C8\uB2E4.",
+    automations_proposal_yaml_edits_note:
+      "\uC218\uB77D \uC2DC \uD3B8\uC9D1\uD55C YAML\uC774 \uC0AC\uC6A9\uB429\uB2C8\uB2E4.",
+    automations_action_run_tooltip:
+      "\uB3D9\uC791\uC774 \uC81C\uB300\uB85C \uC791\uB3D9\uD558\uB294\uC9C0 \uD655\uC778\uD558\uAE30 \uC704\uD574 \uC9C0\uAE08 \uC2E4\uD589\uD569\uB2C8\uB2E4",
+    automations_action_running: "\uC2E4\uD589 \uC911\u2026",
+    automations_action_run_now: "\uC9C0\uAE08 \uC2E4\uD589",
+    automations_action_open_in_ha_tooltip:
+      "Home Assistant\uC5D0\uC11C \uC774 \uC790\uB3D9\uD654 \uC5F4\uAE30",
+    automations_action_view_in_ha: "HA\uC5D0\uC11C \uBCF4\uAE30",
+    automations_action_enabling: "\uD65C\uC131\uD654 \uC911\u2026",
+    automations_action_enable_automation:
+      "\uC790\uB3D9\uD654 \uD65C\uC131\uD654",
+    automations_elevated_risk_note:
+      "\uB192\uC740 \uC704\uD5D8\uC758 \uB3D9\uC791\uC744 \uC0AC\uC6A9\uD569\uB2C8\uB2E4 \u2014 \uD65C\uC131\uD654\uD558\uAE30 \uC804\uC5D0 \uD750\uB984\uACFC YAML\uC744 \uAC80\uD1A0\uD558\uC138\uC694.",
+    automations_action_accept_and_save: "\uC218\uB77D \uBC0F \uC800\uC7A5",
+    automations_section_title: "\uB0B4 \uC790\uB3D9\uD654",
+    automations_filter_placeholder: "\uC790\uB3D9\uD654 \uD544\uD130\u2026",
+    automations_sort_recent: "\uCD5C\uADFC \uD65C\uB3D9",
+    automations_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
+    automations_sort_enabled_first:
+      "\uD65C\uC131\uD654\uB41C \uD56D\uBAA9 \uBA3C\uC800",
+    automations_llm_setup_required_tooltip:
+      "\uBA3C\uC800 LLM \uC81C\uACF5\uC790\uB97C \uAD6C\uC131\uD558\uC138\uC694",
+    automations_new_automation_button: "\uC0C8 \uC790\uB3D9\uD654",
+    automations_status_tab_all: "\uC804\uCCB4",
+    automations_status_tab_enabled: "\uD65C\uC131\uD654\uB428",
+    automations_status_tab_disabled: "\uBE44\uD65C\uC131\uD654\uB428",
+    automations_status_tab_stale: "\uC624\uB798\uB428",
+    automations_bulk_select_all: "\uBAA8\uB450 \uC120\uD0DD",
+    automations_bulk_done: "\uC644\uB8CC",
+    automations_bulk_edit: "\uC77C\uAD04 \uD3B8\uC9D1",
+    automations_bulk_working: "\uCC98\uB9AC \uC911\u2026",
+    automations_bulk_enable_all: "\uBAA8\uB450 \uD65C\uC131\uD654",
+    automations_bulk_disable_all: "\uBAA8\uB450 \uBE44\uD65C\uC131\uD654",
+    automations_bulk_delete_selected: "\uC120\uD0DD \uD56D\uBAA9 \uC0AD\uC81C",
+    automations_bulk_clear: "\uC9C0\uC6B0\uAE30",
+    automations_last_run_disabled: "\uBE44\uD65C\uC131\uD654\uB428",
+    automations_last_run_never: "\uC5C6\uC74C",
+    automations_needs_attention_pill: "\uC8FC\uC758 \uD544\uC694",
+    automations_rename_save_tooltip: "\uC800\uC7A5",
+    automations_last_run_prefix: "\uB9C8\uC9C0\uB9C9 \uC2E4\uD589:",
+    automations_last_run_prefix_inline: "\uB9C8\uC9C0\uB9C9 \uC2E4\uD589:",
+    automations_toggle_enabled: "\uD65C\uC131\uD654\uB428",
+    automations_toggle_disabled: "\uBE44\uD65C\uC131\uD654\uB428",
+    automations_toggle_unavailable: "\uC0AC\uC6A9 \uBD88\uAC00",
+    automations_toast_toggle_unresolved:
+      "\uC804\uD658\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: \uC790\uB3D9\uD654 ID\uAC00 \uD655\uC778\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C \uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    automations_more_actions_tooltip: "\uCD94\uAC00 \uB3D9\uC791",
+    automations_burger_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    automations_burger_refine_in_chat: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
+    automations_burger_rename: "\uC774\uB984 \uBCC0\uACBD",
+    automations_burger_view_in_ha: "HA\uC5D0\uC11C \uBCF4\uAE30",
+    automations_burger_deleting: "\uC0AD\uC81C \uC911\u2026",
+    automations_burger_delete: "\uC0AD\uC81C",
+    automations_card_tab_flow: "\uD750\uB984",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "\uAE30\uB85D",
+    automations_pagination_prev: "\u2039 \uC774\uC804",
+    automations_pagination_per_page: "\uD398\uC774\uC9C0\uB2F9:",
+    automations_pagination_next: "\uB2E4\uC74C \u203A",
+    automations_empty_state:
+      "\uC544\uC9C1 \uC790\uB3D9\uD654\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    automations_unavailable_modal_title:
+      "\uC790\uB3D9\uD654 \uC0AC\uC6A9 \uBD88\uAC00",
+    automations_unavailable_default_name: "\uC774 \uC790\uB3D9\uD654",
+    automations_unavailable_modal_intro:
+      "\uB294 Home Assistant\uC5D0 \uC758\uD574 \uC0AC\uC6A9 \uBD88\uAC00\uB85C \uD45C\uC2DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC77C\uBC18\uC801\uC73C\uB85C \uB2E4\uC74C\uC744 \uC758\uBBF8\uD569\uB2C8\uB2E4:",
+    automations_unavailable_reason_entity:
+      "\uD2B8\uB9AC\uAC70 \uB610\uB294 \uC870\uAC74\uC774 \uB354 \uC774\uC0C1 \uC874\uC7AC\uD558\uC9C0 \uC54A\uB294 \uC5D4\uD130\uD2F0\uB97C \uCC38\uC870\uD569\uB2C8\uB2E4",
+    automations_unavailable_reason_yaml:
+      "\uC790\uB3D9\uD654 YAML\uC5D0 \uAD6C\uC131 \uC624\uB958\uAC00 \uC788\uC2B5\uB2C8\uB2E4",
+    automations_unavailable_reason_integration:
+      "\uD544\uC694\uD55C \uD1B5\uD569\uC774 \uC81C\uAC70\uB418\uC5C8\uAC70\uB098 \uB85C\uB4DC\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4",
+    automations_unavailable_modal_advice:
+      "Home Assistant \uC124\uC815\uC5D0\uC11C \uC790\uB3D9\uD654\uB97C \uC5F4\uC5B4 \uAD6C\uC131\uC744 \uAC80\uD1A0\uD558\uACE0 \uC218\uC815\uD558\uC138\uC694.",
+    automations_unavailable_modal_close: "\uB2EB\uAE30",
+    automations_unavailable_modal_edit_states: "\uC0C1\uD0DC \uD3B8\uC9D1",
+    automations_unavailable_modal_open_in_automations:
+      "\uC790\uB3D9\uD654\uC5D0\uC11C \uC5F4\uAE30",
+    scenes_card_created_title: "\uC7A5\uBA74 \uC0DD\uC131\uB428",
+    scenes_card_saved_status: "Home Assistant\uC5D0 \uC800\uC7A5\uB428",
+    scenes_card_activate_button: "\uD65C\uC131\uD654",
+    scenes_card_view_in_ha_button: "HA\uC5D0\uC11C \uBCF4\uAE30",
+    scenes_card_declined_title: "\uC7A5\uBA74 \uAC70\uBD80\uB428",
+    scenes_card_declined_message:
+      "\uB2EB\uD614\uC2B5\uB2C8\uB2E4. \uC544\uB798\uC5D0 \uB2F5\uC7A5\uD558\uC5EC \uC218\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    scenes_card_refining_badge: "\uC218\uC815 \uC911",
+    scenes_hide_yaml: "YAML \uC228\uAE30\uAE30",
+    scenes_view_yaml: "YAML \uBCF4\uAE30",
+    scenes_card_proposal_badge: "\uC81C\uC548",
+    scenes_card_accept_save_button: "\uC218\uB77D \uBC0F \uC800\uC7A5",
+    scenes_section_title: "\uB0B4 \uC7A5\uBA74",
+    scenes_filter_placeholder: "\uC7A5\uBA74 \uD544\uD130\u2026",
+    scenes_sort_recent: "\uCD5C\uADFC \uC5C5\uB370\uC774\uD2B8",
+    scenes_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
+    scenes_sort_size: "\uC5D4\uD130\uD2F0 \uB9CE\uC740 \uC21C",
+    scenes_llm_needs_setup_tooltip:
+      "\uBA3C\uC800 LLM \uC81C\uACF5\uC790\uB97C \uAD6C\uC131\uD558\uC138\uC694",
+    scenes_new_scene_button: "\uC0C8 \uC7A5\uBA74",
+    scenes_status_tab_all: "\uC804\uCCB4",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "\uC218\uB3D9",
+    scenes_activate_scene_tooltip: "\uC7A5\uBA74 \uD65C\uC131\uD654",
+    scenes_activate_button: "\uD65C\uC131\uD654",
+    scenes_more_actions_tooltip: "\uCD94\uAC00 \uB3D9\uC791",
+    scenes_loading_label: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    scenes_refine_in_chat_button: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
+    scenes_open_in_ha_button: "HA\uC5D0\uC11C \uC5F4\uAE30",
+    scenes_deleting_label: "\uC0AD\uC81C \uC911\u2026",
+    scenes_delete_button: "\uC0AD\uC81C",
+    scenes_no_entity_details:
+      "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC5D4\uD130\uD2F0 \uC138\uBD80 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 Home Assistant\uC5D0\uC11C \uC7A5\uBA74\uC744 \uC5F4\uC5B4 \uD655\uC778\uD558\uC138\uC694.",
+    scenes_yaml_unavailable_comment:
+      "# YAML\uC744 \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 Home Assistant\uC5D0\uC11C \uC7A5\uBA74\uC744 \uC5F4\uC5B4 \uD655\uC778\uD558\uC138\uC694.",
+    scenes_empty_state:
+      "\uC7A5\uBA74\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. Selora\uC5D0\uAC8C \uD558\uB098 \uB9CC\uB4E4\uC5B4 \uB2EC\uB77C\uACE0 \uC694\uCCAD\uD558\uC138\uC694.",
+    scenes_delete_modal_fallback_name: "\uC774 \uC7A5\uBA74",
+    scenes_delete_modal_title: "\uC7A5\uBA74 \uC0AD\uC81C",
+    scenes_delete_modal_prefix: "\uC0AD\uC81C",
+    scenes_delete_modal_suffix:
+      "\uC744(\uB97C) \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C? \uC774 \uC791\uC5C5\uC740 Home Assistant\uC5D0\uC11C \uC7A5\uBA74\uC744 \uC81C\uAC70\uD558\uBA70 \uB418\uB3CC\uB9B4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    scenes_delete_modal_cancel_button: "\uCDE8\uC18C",
+    scenes_delete_modal_confirm_button: "\uC0AD\uC81C",
+    usage_pricing_invalid_error:
+      "\uAC00\uACA9\uC740 \uC74C\uC218\uAC00 \uC544\uB2CC \uC22B\uC790\uC5EC\uC57C \uD569\uB2C8\uB2E4.",
+    usage_pricing_saved_toast:
+      "\uAC00\uACA9 \uC7AC\uC815\uC758\uAC00 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    usage_pricing_save_failed:
+      "\uAC00\uACA9\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    usage_pricing_reset_toast:
+      "\uAE30\uBCF8 \uAC00\uACA9\uC73C\uB85C \uC7AC\uC124\uC815\uD588\uC2B5\uB2C8\uB2E4.",
+    usage_pricing_reset_failed:
+      "\uAC00\uACA9\uC744 \uC7AC\uC124\uC815\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    usage_pricing_title: "\uAC00\uACA9",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud \uC0AC\uC6A9\uB7C9\uC740 Selora Homes \uACC4\uC815\uC5D0\uC11C \uCE21\uC815\uB418\uACE0 \uCCAD\uAD6C\uB429\uB2C8\uB2E4. \uC774 \uD1B5\uD569\uC758 \uC13C\uC11C\uB098 \uCC28\uD2B8\uC5D0\uB294 \uC9D1\uACC4\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    usage_pricing_view_cloud_link:
+      "Selora Homes \uACC4\uC815\uC5D0\uC11C \uC0AC\uC6A9\uB7C9 \uBCF4\uAE30",
+    usage_pricing_ollama_help:
+      "Ollama\uB294 \uB85C\uCEEC\uC5D0\uC11C \uC2E4\uD589\uB429\uB2C8\uB2E4 \u2014 \uCD94\uC801\uD560 \uD1A0\uD070 \uBE44\uC6A9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    usage_pricing_selora_local_help:
+      "Selora AI Local\uC740 \uC0AC\uC6A9\uC790\uC758 \uD558\uB4DC\uC6E8\uC5B4\uC5D0\uC11C \uC2E4\uD589\uB429\uB2C8\uB2E4 \u2014 \uCD94\uC801\uD560 \uD1A0\uD070 \uBE44\uC6A9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    usage_pricing_no_model_help:
+      "\uC0AC\uC6A9\uC790 \uC9C0\uC815 \uAC00\uACA9\uC744 \uC124\uC815\uD558\uB824\uBA74 \uC124\uC815\uC5D0\uC11C LLM \uC81C\uACF5\uC790\uC640 \uBAA8\uB378\uC744 \uAD6C\uC131\uD558\uC138\uC694.",
+    usage_pricing_intro_prefix:
+      "\uBE44\uC6A9 \uCD94\uC815\uC5D0\uB294 \uC774 \uBC31\uB9CC \uD1A0\uD070\uB2F9 \uC694\uC728\uC774 \uC0AC\uC6A9\uB429\uB2C8\uB2E4. Anthropic \uAE30\uBCF8\uAC12\uC740 \uB2E4\uC74C\uC5D0\uC11C \uAC00\uC838\uC635\uB2C8\uB2E4",
+    usage_pricing_official_page_link:
+      "\uACF5\uC2DD \uAC00\uACA9 \uD398\uC774\uC9C0",
+    usage_pricing_intro_suffix:
+      "; \uD611\uC0C1\uB41C \uC694\uC728\uC774 \uC788\uAC70\uB098 \uB2E4\uB978 \uBAA8\uB378\uC744 \uCD94\uC801\uD558\uB294 \uACBD\uC6B0 \uC5EC\uAE30\uC5D0\uC11C \uC7AC\uC815\uC758\uD558\uC138\uC694.",
+    usage_pricing_input_label: "\uC785\uB825",
+    usage_pricing_default_prefix: "\uAE30\uBCF8\uAC12",
+    usage_pricing_no_default: "\uB0B4\uC7A5 \uAE30\uBCF8\uAC12 \uC5C6\uC74C",
+    usage_pricing_output_label: "\uCD9C\uB825",
+    usage_pricing_input_field_label: "\uC785\uB825 ($/MTok)",
+    usage_pricing_output_field_label: "\uCD9C\uB825 ($/MTok)",
+    usage_pricing_cancel_button: "\uCDE8\uC18C",
+    usage_pricing_save_button: "\uC800\uC7A5",
+    usage_pricing_edit_override_button: "\uC7AC\uC815\uC758 \uD3B8\uC9D1",
+    usage_pricing_set_custom_button:
+      "\uC0AC\uC6A9\uC790 \uC9C0\uC815 \uAC00\uACA9 \uC124\uC815",
+    usage_pricing_reset_default_button:
+      "\uAE30\uBCF8\uAC12\uC73C\uB85C \uC7AC\uC124\uC815",
+    usage_snippet_copied_label: "\uBCF5\uC0AC\uB428!",
+    usage_snippet_copy_button: "\uBCF5\uC0AC",
+    usage_snippet_help:
+      "\uC2DC\uAC01\uC801 \uCE74\uB4DC \uC120\uD0DD\uAE30\uB3C4 Recorder\uC758 \uCCAB \uC2DC\uAC04\uBCC4 \uCEF4\uD30C\uC77C \uC774\uD6C4 \uC774 \uC13C\uC11C\uB4E4\uC744 \uCC3E\uC2B5\uB2C8\uB2E4.",
+    usage_back_to_settings: "\uC124\uC815\uC73C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    usage_token_usage_title: "\uD1A0\uD070 \uC0AC\uC6A9\uB7C9",
+    usage_empty_title:
+      "\uC544\uC9C1 \uC0AC\uC6A9\uB7C9 \uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    usage_empty_body:
+      "\uC0AC\uC6A9\uB7C9\uC740 \uCCAB LLM \uD638\uCD9C \uD6C4\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4. Selora AI\uC640 \uCC44\uD305\uD558\uAC70\uB098 \uC81C\uC548 \uC8FC\uAE30\uB97C \uC2E4\uD589\uD574 \uBCF4\uC138\uC694. \uC774\uBBF8 Selora AI\uB97C \uC0AC\uC6A9\uD588\uB294\uB370\uB3C4 \uC5EC\uC804\uD788 \uC774 \uBA54\uC2DC\uC9C0\uAC00 \uBCF4\uC774\uBA74, \uC0C8 \uC13C\uC11C\uAC00 \uB4F1\uB85D\uB418\uB3C4\uB85D Home Assistant\uB97C \uB2E4\uC2DC \uC2DC\uC791\uD558\uC138\uC694.",
+    usage_totals_title: "\uD569\uACC4",
+    usage_tile_cost_label: "\uBE44\uC6A9",
+    usage_tile_cost_sub: "USD \uCD94\uC815\uCE58",
+    usage_tile_calls_label: "\uD638\uCD9C",
+    usage_tile_tokens_in_label: "\uC785\uB825 \uD1A0\uD070",
+    usage_tile_tokens_out_label: "\uCD9C\uB825 \uD1A0\uD070",
+    usage_by_period_title: "\uAE30\uAC04\uBCC4",
+    usage_period_today: "\uC624\uB298",
+    usage_period_last_7_days: "\uCD5C\uADFC 7\uC77C",
+    usage_period_this_month: "\uC774\uBC88 \uB2EC",
+    usage_period_note_filtered:
+      "\uAE30\uAC04 \uBC84\uD0B7\uC740 \uD1B5\uD569\uC758 \uC0AC\uC6A9\uB7C9 \uC800\uC7A5\uC18C\uC5D0\uC11C \uAC00\uC838\uC635\uB2C8\uB2E4 (30\uC77C\uAC04 \uBCF4\uAD00).",
+    usage_period_note_unfiltered:
+      "\uAE30\uAC04 \uBC84\uD0B7\uC740 \uB9E4\uC2DC\uAC04 \uCEF4\uD30C\uC77C\uB418\uB294 Home Assistant\uC758 \uC7A5\uAE30 \uD1B5\uACC4\uC5D0\uC11C \uAC00\uC838\uC635\uB2C8\uB2E4. \uC0C8 \uD65C\uB3D9\uC740 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB418\uAE30\uAE4C\uC9C0 \uCD5C\uB300 \uD55C \uC2DC\uAC04\uC774 \uAC78\uB9B4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    usage_where_tokens_go_title: "\uD1A0\uD070 \uC0AC\uC6A9\uCC98",
+    usage_where_tokens_last_prefix: "\uCD5C\uADFC",
+    usage_where_tokens_resets_suffix:
+      "\xB7 HA \uC7AC\uC2DC\uC791 \uC2DC \uC7AC\uC124\uC815\uB428",
+    usage_group_by_kind_button: "\uC885\uB958\uBCC4",
+    usage_group_by_provider_button: "\uC81C\uACF5\uC790\uBCC4",
+    usage_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    usage_no_calls_recorded:
+      "\uC544\uC9C1 \uAE30\uB85D\uB41C \uD638\uCD9C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    usage_recent_calls_title: "\uCD5C\uADFC \uD638\uCD9C",
+    usage_dashboard_sensors_title: "\uB300\uC2DC\uBCF4\uB4DC \uC13C\uC11C",
+    usage_dashboard_sensors_help_prefix:
+      "\uC0AC\uC6A9\uB7C9 \uC13C\uC11C\uB97C \uB4F1\uB85D\uD558\uB824\uBA74 Home Assistant\uB97C \uB2E4\uC2DC \uC2DC\uC791\uD558\uC138\uC694. \uB4F1\uB85D\uB418\uBA74 \uB2E4\uC74C \uCE74\uB4DC\uB85C \uC5B4\uB5A4 \uB300\uC2DC\uBCF4\uB4DC\uC5D0\uB4E0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4",
+    usage_dashboard_sensors_help_suffix: "\uCE74\uB4DC.",
+    usage_add_to_dashboard_title: "\uB300\uC2DC\uBCF4\uB4DC\uC5D0 \uCD94\uAC00",
+    usage_add_to_dashboard_help:
+      "\uAC01 \uC9C0\uD45C\uB294 \uCC99\uB3C4\uAC00 \uB2E4\uB985\uB2C8\uB2E4 \u2014 \uC13C\uC11C\uB2F9 \uCE74\uB4DC \uD558\uB098\uB97C \uB9CC\uB4DC\uC138\uC694. \uC9C0\uD45C\uB97C \uC120\uD0DD\uD558\uACE0 YAML\uC744 \uBCF5\uC0AC\uD55C \uB2E4\uC74C \uB300\uC2DC\uBCF4\uB4DC\uC758 YAML \uD3B8\uC9D1\uAE30\uC5D0 \uBD99\uC5EC\uB123\uC73C\uC138\uC694.",
+    usage_filter_all_providers: "\uBAA8\uB4E0 \uC81C\uACF5\uC790",
+    usage_filter_all_models: "\uBAA8\uB4E0 \uBAA8\uB378",
+    usage_filter_no_model: "(\uBAA8\uB378 \uC5C6\uC74C)",
+    suggestions_tab_flow: "\uD750\uB984",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "\uC0DD\uC131 \uC911\u2026",
+    suggestions_btn_accept: "\uC218\uB77D",
+    suggestions_btn_dismissing: "\uB2EB\uB294 \uC911\u2026",
+    suggestions_btn_dismiss: "\uB2EB\uAE30",
+    suggestions_section_title: "\uCD94\uCC9C \uD56D\uBAA9",
+    suggestions_badge_new: "\uC2E0\uADDC",
+    suggestions_llm_setup_required:
+      "\uBA3C\uC800 LLM \uC81C\uACF5\uC790\uB97C \uAD6C\uC131\uD558\uC138\uC694",
+    suggestions_btn_scanning: "\uC2A4\uCE94 \uC911\u2026",
+    suggestions_btn_scan_now: "\uC9C0\uAE08 \uC2A4\uCE94",
+    suggestions_btn_analyzing: "\uBD84\uC11D \uC911\u2026",
+    suggestions_btn_generate: "\uC0DD\uC131",
+    suggestions_section_subtitle:
+      "\uC9D1\uC5D0\uC11C \uAD00\uCC30\uB41C \uD328\uD134\uACFC AI \uBD84\uC11D\uC744 \uAE30\uBC18\uC73C\uB85C \uD569\uB2C8\uB2E4.",
+    suggestions_empty_state:
+      '\uC544\uC9C1 \uC81C\uC548\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. "\uC0DD\uC131"\uC744 \uB20C\uB7EC \uC9D1\uC744 \uBD84\uC11D\uD558\uC138\uC694.',
+    suggestions_filter_placeholder: "\uC81C\uC548 \uD544\uD130\u2026",
+    suggestions_filter_all: "\uC804\uCCB4",
+    suggestions_filter_patterns: "\uD328\uD134",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "\uCD5C\uADFC",
+    suggestions_sort_alpha: "\uAC00\uB098\uB2E4\uC21C",
+    suggestions_bulk_selected: "\uC120\uD0DD\uB428",
+    suggestions_bulk_accept_selected: "\uC120\uD0DD \uD56D\uBAA9 \uC218\uB77D",
+    suggestions_bulk_dismiss_selected: "\uC120\uD0DD \uD56D\uBAA9 \uB2EB\uAE30",
+    suggestions_bulk_done: "\uC644\uB8CC",
+    suggestions_bulk_edit: "\uC77C\uAD04 \uD3B8\uC9D1",
+    suggestions_show_more: "\uC81C\uC548 \uB354 \uBCF4\uAE30",
+    version_history_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    version_history_empty:
+      "\uC544\uC9C1 \uBC84\uC804 \uAE30\uB85D\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    version_history_current_badge: "\uD604\uC7AC",
+    version_history_hide_yaml: "YAML \uC228\uAE30\uAE30",
+    version_history_view_yaml: "YAML \uBCF4\uAE30",
+    version_history_restoring: "\uBCF5\uC6D0 \uC911\u2026",
+    version_history_restore_button: "\uC774 \uBC84\uC804 \uBCF5\uC6D0",
+    version_history_no_yaml_stored: "(\uC800\uC7A5\uB41C YAML \uC5C6\uC74C)",
+    version_history_compare_title: "\uBC84\uC804 \uBE44\uAD50",
+    version_history_version_a_label: "\uBC84\uC804 A (\uCD5C\uC2E0):",
+    version_history_version_b_label: "\uBC84\uC804 B (\uC774\uC804):",
+    version_history_loading_diff:
+      "\uCC28\uC774 \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    version_history_no_diff:
+      "\uCC28\uC774\uC810\uC744 \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    device_detail_loading:
+      "\uAE30\uAE30 \uC138\uBD80 \uC815\uBCF4 \uBD88\uB7EC\uC624\uB294 \uC911...",
+    device_detail_close: "\uB2EB\uAE30",
+    device_detail_entities_heading: "\uC5D4\uD130\uD2F0",
+    device_detail_state_history_heading:
+      "\uC0C1\uD0DC \uAE30\uB85D (24\uC2DC\uAC04)",
+    device_detail_linked_automations_heading:
+      "\uC5F0\uACB0\uB41C \uC790\uB3D9\uD654",
+    device_detail_detected_patterns_heading: "\uAC10\uC9C0\uB41C \uD328\uD134",
+    device_detail_confidence_label: "\uC2E0\uB8B0\uB3C4",
+    ignore_list_remove_label: "\uB808\uC774\uBE14 \uC81C\uAC70",
+    ignore_list_chip_kind_device: "\uAE30\uAE30",
+    ignore_list_chip_kind_area: "\uAD6C\uC5ED",
+    ignore_list_dropdown_kind_area: "\uAD6C\uC5ED",
+    ignore_list_dropdown_kind_device: "\uAE30\uAE30",
+    ignore_list_how_it_works:
+      "\uC5B4\uB5BB\uAC8C \uC791\uB3D9\uD558\uB098\uC694?",
+    ignore_list_section_title: "\uC81C\uC548\uC5D0\uC11C \uC81C\uC678",
+    ignore_list_search_placeholder:
+      "\uC5D4\uD130\uD2F0, \uAE30\uAE30 \uB610\uB294 \uAD6C\uC5ED \uAC80\uC0C9\u2026",
+    ignore_list_empty_state:
+      "\uC544\uC9C1 \uC81C\uC678\uB41C \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    approval_risk_explainer_low:
+      "\uB0AE\uC740 \uC704\uD5D8: \uACBD\uBBF8\uD558\uAC70\uB098 \uC644\uC804\uD788 \uB418\uB3CC\uB9B4 \uC218 \uC788\uB294 \uC601\uD5A5 (\uC18C\uB9AC, \uC54C\uB9BC, \uCCAD\uC18C\uAE30 \uC2DC\uC791/\uC815\uC9C0).",
+    approval_risk_explainer_medium:
+      "\uC911\uAC04 \uC704\uD5D8: \uB418\uB3CC\uB9AC\uACE0 \uC2F6\uC9C0 \uC54A\uC744 \uC218 \uC788\uB294 \uB208\uC5D0 \uB744\uB294 \uBD80\uC791\uC6A9 (\uACBD\uBCF4 \uC124\uC815, \uBB38 \uC7A0\uAE08, \uC0AC\uC6A9\uC790 \uC2A4\uD06C\uB9BD\uD2B8 \uC2E4\uD589).",
+    approval_risk_explainer_high:
+      "\uB192\uC740 \uC704\uD5D8: \uBB3C\uB9AC\uC801 \uC811\uADFC, \uBCF4\uC548 \uB610\uB294 \uD638\uC2A4\uD2B8 \uC218\uC900\uC758 \uC601\uD5A5 (\uBB38 \uC7A0\uAE08 \uD574\uC81C, \uACBD\uBCF4 \uD574\uC81C, \uC178 \uBA85\uB839 \uC2E4\uD589).",
+    approval_scope_all_matching:
+      "\uC77C\uCE58\uD558\uB294 \uBAA8\uB4E0 \uC5D4\uD130\uD2F0",
+    approval_scope_just_these: "\uC774 \uC5D4\uD130\uD2F0\uB9CC",
+    approval_status_approved: "\uC2B9\uC778\uB428",
+    approval_status_denied: "\uAC70\uBD80\uB428",
+    approval_working: "\uCC98\uB9AC \uC911\u2026",
+    approval_required_title: "\uC2B9\uC778 \uD544\uC694",
+    approval_scope_label: "\uC138\uC158 / \uD56D\uC0C1:",
+    approval_scope_button_title:
+      "\uC774 \uC5D4\uD130\uD2F0\uC5D0\uB9CC \uAD8C\uD55C\uC744 \uBD80\uC5EC\uD560\uC9C0, \uC774 \uC11C\uBE44\uC2A4\uC758 \uBAA8\uB4E0 \uC5D4\uD130\uD2F0\uC5D0 \uBD80\uC5EC\uD560\uC9C0 \uC804\uD658\uD558\uB824\uBA74 \uD074\uB9AD\uD558\uC138\uC694.",
+    quick_actions_approve_once_label: "\uD55C \uBC88 \uD5C8\uC6A9",
+    quick_actions_approve_once_desc:
+      "\uC774 \uC694\uCCAD\uC5D0\uB9CC \uD574\uB2F9",
+    quick_actions_approve_session_label: "\uC774 \uB300\uD654 \uB3D9\uC548",
+    quick_actions_approve_session_desc:
+      "\uC774 \uB300\uD654\uAC00 \uB05D\uB0A0 \uB54C\uAE4C\uC9C0 \uD5C8\uC6A9",
+    quick_actions_approve_always_label: "\uD56D\uC0C1",
+    quick_actions_approve_always_desc: "\uC774 \uC2B9\uC778\uC744 \uAE30\uC5B5",
+    quick_actions_deny_label: "\uAC70\uBD80",
+    quick_actions_deny_desc:
+      "\uC774 \uC694\uCCAD\uC744 \uC2E4\uD589\uD558\uC9C0 \uC54A\uC74C",
+    stale_modal_title: "\uC624\uB798\uB41C \uC790\uB3D9\uD654",
+    stale_select_all: "\uBAA8\uB450 \uC120\uD0DD",
+    stale_last_triggered_label: "\uB9C8\uC9C0\uB9C9 \uD2B8\uB9AC\uAC70:",
+    stale_never: "\uC5C6\uC74C",
+    stale_keep_button: "\uC720\uC9C0",
+    stale_close_button: "\uB2EB\uAE30",
+    stale_state_label: "\uC0C1\uD0DC:",
+    stale_state_unknown: "\uC54C \uC218 \uC5C6\uC74C",
+    stale_back_button: "\uB4A4\uB85C",
+    stale_remove_confirm:
+      "\uC774 \uC790\uB3D9\uD654\uB97C \uC601\uAD6C\uC801\uC73C\uB85C \uC81C\uAC70\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
+    stale_remove_success:
+      "\uC790\uB3D9\uD654\uAC00 \uC81C\uAC70\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    stale_remove_failed_prefix:
+      "\uC81C\uAC70\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    stale_remove_button: "\uC81C\uAC70",
+    automation_management_triggered:
+      "\uC790\uB3D9\uD654\uAC00 \uD2B8\uB9AC\uAC70\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    automation_management_renamed:
+      "\uC790\uB3D9\uD654 \uC774\uB984\uC774 \uBCC0\uACBD\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    automation_management_version_restored:
+      "\uBC84\uC804\uC774 \uBCF5\uC6D0\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    automation_management_delete_confirm:
+      "\uC774 \uC790\uB3D9\uD654\uB97C \uC601\uAD6C\uC801\uC73C\uB85C \uC0AD\uC81C\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?",
+    automation_management_deleted:
+      "\uC790\uB3D9\uD654\uAC00 \uC0AD\uC81C\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    automation_management_cannot_refine_no_id:
+      "\uC774 \uC790\uB3D9\uD654\uB294 \uC790\uB3D9\uD654 ID\uAC00 \uC5C6\uC5B4 \uC218\uC815\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    automation_management_loaded_to_chat:
+      "\uC790\uB3D9\uD654\uAC00 \uCC44\uD305\uC5D0 \uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    action_format_run_verb: "\uC2E4\uD589",
+    action_format_ran_verb: "\uC2E4\uD589\uD568",
+    chat_actions_interrupt_disconnect:
+      "\uC751\uB2F5 \uC911\uC5D0 Home Assistant \uC5F0\uACB0\uC774 \uB04A\uACBC\uC2B5\uB2C8\uB2E4.",
+    chat_actions_interrupt_server_stopped:
+      "\uC11C\uBC84\uAC00 \uC751\uB2F5\uC744 \uC911\uC9C0\uD588\uC2B5\uB2C8\uB2E4.",
+    chat_actions_interrupt_server_no_reply:
+      "\uC11C\uBC84\uAC00 \uC81C\uB54C \uC751\uB2F5\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.",
+    chat_actions_interrupt_truncated:
+      "\uC751\uB2F5\uC774 \uC798\uB9B0 \uAC83 \uAC19\uC2B5\uB2C8\uB2E4 \u2014 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    chat_actions_interrupt_llm_unreachable:
+      "LLM \uC81C\uACF5\uC790\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    chat_actions_interrupt_session_start_failed:
+      "\uCC44\uD305 \uC138\uC158\uC744 \uC2DC\uC791\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    chat_actions_cancelled_by_user:
+      "_\uC0AC\uC6A9\uC790\uAC00 \uCDE8\uC18C\uD568_",
+    automation_crud_save_failed:
+      "\uC790\uB3D9\uD654\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    automation_crud_entity_not_surfaced:
+      "\uC790\uB3D9\uD654\uAC00 \uC800\uC7A5\uB418\uC5C8\uC9C0\uB9CC Home Assistant\uAC00 \uC544\uC9C1 \uC5D4\uD130\uD2F0\uB97C \uD45C\uC2DC\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4 \u2014 \uB098\uD0C0\uB098\uBA74 \uC790\uB3D9\uD654 \uD0ED\uC5D0\uC11C \uCF1C\uC138\uC694.",
+    automation_crud_auto_enable_failed_prefix:
+      "\uC790\uB3D9\uD654\uAC00 \uC800\uC7A5\uB418\uC5C8\uC9C0\uB9CC \uC790\uB3D9\uC73C\uB85C \uD65C\uC131\uD654\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4:",
+    automation_crud_unknown_error: "\uC54C \uC218 \uC5C6\uB294 \uC624\uB958",
+    automation_crud_auto_enable_failed_suffix:
+      ". \uCE74\uB4DC\uC758 \uD65C\uC131\uD654 \uBC84\uD2BC\uC744 \uC0AC\uC6A9\uD558\uC5EC \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    automation_crud_draft_dismissed:
+      "\uCD08\uC548\uC774 \uB2EB\uD614\uC2B5\uB2C8\uB2E4.",
+    automation_crud_dismiss_draft_failed:
+      "\uCD08\uC548\uC744 \uB2EB\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    automation_crud_create_failed:
+      "\uC790\uB3D9\uD654\uB97C \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    automation_crud_save_edited_yaml_failed:
+      "\uD3B8\uC9D1\uD55C YAML\uC5D0\uC11C \uC790\uB3D9\uD654\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    automation_crud_yaml_saved:
+      "\uC790\uB3D9\uD654 YAML\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    automation_crud_save_changes_failed:
+      "\uBCC0\uACBD \uC0AC\uD56D\uC744 \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    scene_actions_refine_default_name: "\uC7A5\uBA74",
+    session_toast_new_automation_chat_failed:
+      "\uC0C8 \uC790\uB3D9\uD654 \uCC44\uD305\uC744 \uC2DC\uC791\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4:",
+    session_toast_ai_no_suggestion:
+      "AI\uAC00 \uC81C\uC548\uC744 \uBC18\uD658\uD558\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4 \u2014 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    session_toast_suggest_failed:
+      "\uC81C\uC548\uC744 \uC0DD\uC131\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 \u2014 LLM \uAD6C\uC131\uC744 \uD655\uC778\uD558\uC138\uC694.",
+    suggestions_analysis_no_new:
+      "\uBD84\uC11D \uC644\uB8CC \u2014 \uD604\uC7AC \uC0C8\uB85C\uC6B4 \uC81C\uC548\uC774 \uC5C6\uC2B5\uB2C8\uB2E4",
+    suggestions_accepted_toast:
+      "\uC81C\uC548 \uC218\uB77D\uB428 \u2014 \uC790\uB3D9\uD654\uAC00 \uC0DD\uC131\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    suggestions_accept_failed:
+      "\uC81C\uC548\uC744 \uC218\uB77D\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4",
+    suggestions_dismissed_toast:
+      "\uC81C\uC548\uC774 \uB2EB\uD614\uC2B5\uB2C8\uB2E4",
+    suggestions_snoozed_toast:
+      "\uC81C\uC548\uC774 24\uC2DC\uAC04 \uB3D9\uC548 \uBBF8\uB904\uC84C\uC2B5\uB2C8\uB2E4",
+    suggestions_pattern_scan_failed:
+      "\uD328\uD134 \uC2A4\uCE94\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4",
+    area_unassigned: "\uBBF8\uC9C0\uC815",
+  },
+  options: {
+    step: {
+      init: {
+        title: "\uBC31\uADF8\uB77C\uC6B4\uB4DC \uC11C\uBE44\uC2A4 \uC124\uC815",
+        description:
+          "Selora AI\uC758 \uBC31\uADF8\uB77C\uC6B4\uB4DC \uC11C\uBE44\uC2A4\uB97C \uAD6C\uC131\uD569\uB2C8\uB2E4.",
+        data: {
+          collector_enabled:
+            "\uB370\uC774\uD130 \uC218\uC9D1\uAE30 (AI \uBD84\uC11D) \uD65C\uC131\uD654",
+          collector_mode: "\uC2E4\uD589 \uBAA8\uB4DC",
+          collector_interval: "\uBD84\uC11D \uAC04\uACA9 (\uCD08)",
+          collector_start_time: "\uC608\uC57D\uB41C \uC2DC\uC791 \uC2DC\uAC04",
+          collector_end_time: "\uC608\uC57D\uB41C \uC885\uB8CC \uC2DC\uAC04",
+          discovery_enabled:
+            "\uB124\uD2B8\uC6CC\uD06C \uAC80\uC0C9 \uD65C\uC131\uD654",
+          discovery_mode: "\uC2E4\uD589 \uBAA8\uB4DC",
+          discovery_interval: "\uAC80\uC0C9 \uAC04\uACA9 (\uCD08)",
+          discovery_start_time: "\uC608\uC57D\uB41C \uC2DC\uC791 \uC2DC\uAC04",
+          discovery_end_time: "\uC608\uC57D\uB41C \uC885\uB8CC \uC2DC\uAC04",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/zh-Hans.json
+var zh_Hans_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "\u914D\u7F6E Selora AI",
+        description:
+          "\u9009\u62E9\u7528\u4E8E\u81EA\u52A8\u5316\u5EFA\u8BAE\u7684 LLM \u540E\u7AEF\u3002",
+        data: {
+          llm_provider: "LLM \u63D0\u4F9B\u5546",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud \u4F7F\u7528\u60A8\u7684 Selora \u8D26\u6237\uFF0C\u65E0\u9700 API \u5BC6\u94A5\u3002\u8BBE\u7F6E\u5B8C\u6210\u540E\uFF0C\u6253\u5F00 Selora AI \u9762\u677F\u5E76\u70B9\u51FB\u201C\u5173\u8054 Selora \u8D26\u6237\u201D\u8FDB\u884C\u8EAB\u4EFD\u9A8C\u8BC1\u3002",
+      },
+      anthropic: {
+        title: "Anthropic (Claude) \u914D\u7F6E",
+        description:
+          "\u8BF7\u8F93\u5165\u60A8\u7684 Anthropic API \u5BC6\u94A5\u3002\u53EF\u5728 console.anthropic.com \u83B7\u53D6\u3002",
+        data: {
+          anthropic_api_key: "API \u5BC6\u94A5",
+          anthropic_model: "\u6A21\u578B",
+        },
+      },
+      gemini: {
+        title: "Google Gemini \u914D\u7F6E",
+        description:
+          "\u8BF7\u8F93\u5165\u60A8\u7684 Google Gemini API \u5BC6\u94A5\u3002\u53EF\u5728 aistudio.google.com \u83B7\u53D6\u3002",
+        data: {
+          gemini_api_key: "API \u5BC6\u94A5",
+          gemini_model: "\u6A21\u578B",
+        },
+      },
+      openai: {
+        title: "OpenAI \u914D\u7F6E",
+        description:
+          "\u8BF7\u8F93\u5165\u60A8\u7684 OpenAI API \u5BC6\u94A5\u3002\u53EF\u5728 platform.openai.com \u83B7\u53D6\u3002",
+        data: {
+          openai_api_key: "API \u5BC6\u94A5",
+          openai_model: "\u6A21\u578B",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter \u914D\u7F6E",
+        description:
+          "\u8BF7\u8F93\u5165\u60A8\u7684 OpenRouter API \u5BC6\u94A5\u3002\u53EF\u5728 openrouter.ai/keys \u83B7\u53D6\u3002\u8BF7\u4F7F\u7528\u5E26\u4F9B\u5E94\u5546\u524D\u7F00\u7684\u6A21\u578B\u540D\u79F0\uFF0C\u4F8B\u5982 'anthropic/claude-sonnet-4.5'\u3002",
+        data: {
+          openrouter_api_key: "API \u5BC6\u94A5",
+          openrouter_model: "\u6A21\u578B",
+        },
+      },
+      ollama: {
+        title: "Ollama\uFF08\u672C\u5730\uFF09\u914D\u7F6E",
+        description:
+          "\u8BF7\u8F93\u5165\u60A8\u7684\u672C\u5730 Ollama \u670D\u52A1\u5668\u8BE6\u60C5\u3002\u8BF7\u786E\u4FDD\u5DF2\u62C9\u53D6\u8BE5\u6A21\u578B\u3002",
+        data: {
+          ollama_host: "Ollama \u4E3B\u673A URL",
+          ollama_model: "\u6A21\u578B\u540D\u79F0",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local \u914D\u7F6E",
+        description:
+          "Selora Hub \u5DF2\u9884\u5148\u914D\u7F6E\u3002\u5982\u9700\u4F7F\u7528\u8FD0\u884C Selora AI \u6A21\u578B\u7684\u81EA\u6258\u7BA1 llama-server\uFF0C\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u3002",
+        data: {
+          selora_local_host: "\u4E3B\u673A URL",
+        },
+      },
+      select_devices: {
+        title: "\u9009\u62E9\u8981\u63A5\u5165\u7684\u8BBE\u5907",
+        description:
+          "Selora AI \u5728\u60A8\u7684\u7F51\u7EDC\u4E0A\u53D1\u73B0\u4E86 {count} \u53F0\u8BBE\u5907\u3002\u5206\u914D\u623F\u95F4\u4EE5\u6DFB\u52A0\u8BBE\u5907\uFF0C\u6216\u9009\u62E9\u201C\u8DF3\u8FC7\u201D\u4EE5\u5FFD\u7565\u8BE5\u8BBE\u5907\u3002\n\n{device_list}",
+      },
+      results: {
+        title: "\u8BBE\u5907\u8BBE\u7F6E\u7ED3\u679C",
+        description:
+          "\u8BBE\u7F6E\u5B8C\u6210\uFF1A{succeeded} \u53F0\u6210\u529F\uFF0C{failed} \u53F0\u5931\u8D25\uFF0C{needs_attention} \u53F0\u9700\u8981\u624B\u52A8\u5904\u7406\u3002\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "\u65E0\u6CD5\u8FDE\u63A5\u3002\u8BF7\u68C0\u67E5\u60A8\u7684 API \u5BC6\u94A5\uFF0C\u6216\u786E\u8BA4 Ollama \u6B63\u5728\u8FD0\u884C\u4E14\u5DF2\u62C9\u53D6\u6A21\u578B\u3002",
+      invalid_auth:
+        "Selora Connect \u51ED\u636E\u65E0\u6548\u3002\u8BF7\u68C0\u67E5\u60A8\u7684\u7535\u5B50\u90AE\u4EF6\u548C\u5BC6\u7801\u3002",
+      unknown: "\u53D1\u751F\u4E86\u610F\u5916\u9519\u8BEF\u3002",
+    },
+    abort: {
+      already_configured: "Selora AI \u5DF2\u914D\u7F6E\u3002",
+      cannot_connect:
+        "\u65E0\u6CD5\u8FDE\u63A5\u5230 Selora AI \u4E91\u670D\u52A1\u3002\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002",
+      unknown:
+        "\u8BBE\u7F6E\u8FC7\u7A0B\u4E2D\u53D1\u751F\u4E86\u610F\u5916\u9519\u8BEF\u3002",
+      llm_not_ready:
+        "Selora AI \u7684 LLM \u540E\u7AEF\u672A\u8FD0\u884C\u3002\u8BF7\u5148\u8FDB\u884C\u914D\u7F6E\u3002",
+      no_devices_found:
+        "\u672A\u5728\u60A8\u7684\u7F51\u7EDC\u4E0A\u53D1\u73B0\u65B0\u8BBE\u5907\u3002\u8BF7\u7A0D\u540E\u518D\u8BD5\u3002",
+      no_devices_selected: "\u672A\u9009\u62E9\u4EFB\u4F55\u8BBE\u5907\u3002",
+      select_devices_failed:
+        "\u8BBE\u5907\u63A5\u5165\u65F6\u9047\u5230\u610F\u5916\u9519\u8BEF\u3002Selora AI \u5DF2\u5728\u672A\u63A5\u5165\u8BBE\u5907\u7684\u60C5\u51B5\u4E0B\u5B8C\u6210\u8BBE\u7F6E\u2014\u2014\u60A8\u53EF\u7A0D\u540E\u5728\u201C\u8BBE\u7F6E > \u8BBE\u5907 > \u6DFB\u52A0\u6761\u76EE\u201D\u4E2D\u91CD\u8BD5\u3002\u8BF7\u67E5\u770B Home Assistant \u65E5\u5FD7\u4E86\u89E3\u8BE6\u60C5\u3002",
+    },
+  },
+  common: {
+    feedback_button_label: "\u63D0\u4F9B\u53CD\u9988",
+    feedback_modal_title: "\u5206\u4EAB\u53CD\u9988",
+    feedback_privacy_notice:
+      "\u53CD\u9988\u662F\u533F\u540D\u7684\uFF0C\u4E0D\u5305\u542B\u4EFB\u4F55\u4E2A\u4EBA\u6570\u636E\u3002",
+    feedback_textarea_placeholder:
+      "\u60A8\u6709\u4EC0\u4E48\u60F3\u6CD5\uFF1F\uFF08\u81F3\u5C11 10 \u4E2A\u5B57\u7B26\uFF09",
+    feedback_rating_label: "\u8BC4\u5206\uFF1A",
+    feedback_rating_thumbsup: "\u70B9\u8D5E",
+    feedback_rating_thumbsdown: "\u70B9\u8E29",
+    feedback_category_label: "\u7C7B\u522B\uFF08\u53EF\u9009\uFF09\uFF1A",
+    feedback_category_bug: "\u7F3A\u9677",
+    feedback_category_feature: "\u529F\u80FD\u8BF7\u6C42",
+    feedback_category_general: "\u5E38\u89C4",
+    feedback_submit: "\u53D1\u9001\u53CD\u9988",
+    feedback_submitting: "\u53D1\u9001\u4E2D\u2026",
+    feedback_email_label:
+      "\u7535\u5B50\u90AE\u4EF6\uFF08\u53EF\u9009\uFF09\uFF1A",
+    feedback_email_placeholder:
+      "your@email.com\u2014\u2014\u4EC5\u5728\u60A8\u5E0C\u671B\u6536\u5230\u56DE\u590D\u65F6\u586B\u5199",
+    feedback_cancel: "\u53D6\u6D88",
+    feedback_min_length_error:
+      "\u8BF7\u81F3\u5C11\u8F93\u5165 10 \u4E2A\u5B57\u7B26\u3002",
+    feedback_success: "\u611F\u8C22\u60A8\u7684\u53CD\u9988\uFF01",
+    feedback_error:
+      "\u65E0\u6CD5\u53D1\u9001\u53CD\u9988\u2014\u2014\u8BF7\u91CD\u8BD5\u3002",
+    nav_new_chat: "\u65B0\u5BF9\u8BDD",
+    nav_selora_menu: "Selora \u83DC\u5355",
+    nav_conversations: "\u5BF9\u8BDD",
+    nav_automations: "\u81EA\u52A8\u5316",
+    nav_scenes: "\u573A\u666F",
+    nav_settings: "\u8BBE\u7F6E",
+    nav_documentation: "\u6587\u6863",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab \u4ED3\u5E93",
+    welcome_title_prefix: "\u6B22\u8FCE\u4F7F\u7528",
+    welcome_subtitle:
+      "\u60A8\u7684\u667A\u80FD\u5BB6\u5C45\u81EA\u52A8\u5316\u67B6\u6784\u5E08",
+    new_automation_title_prefix: "\u65B0\u5EFA",
+    new_automation_gold: "\u81EA\u52A8\u5316",
+    new_automation_subtitle:
+      "\u63CF\u8FF0\u60A8\u60F3\u8981\u81EA\u52A8\u5316\u7684\u5185\u5BB9\u2014\u2014\u63D0\u53CA\u6D89\u53CA\u7684\u8BBE\u5907\u3001\u65F6\u95F4\u6216\u6761\u4EF6\u3002",
+    get_started: "\u5F00\u59CB\u4F7F\u7528",
+    get_started_body:
+      "\u5728\u201C\u8BBE\u7F6E\u201D\u9009\u9879\u5361\u4E2D\u914D\u7F6E\u60A8\u7684 LLM \u63D0\u4F9B\u5546\uFF0C\u5373\u53EF\u5F00\u59CB\u4E0E\u60A8\u7684\u5BB6\u5C45\u5BF9\u8BDD\u3002",
+    open_settings: "\u6253\u5F00\u8BBE\u7F6E",
+    quick_start: "\u5FEB\u901F\u5F00\u59CB",
+    composer_placeholder_ask:
+      "\u5411 Selora AI \u63D0\u51FA\u4EFB\u4F55\u95EE\u9898\u2026",
+    composer_placeholder_automation:
+      "\u63CF\u8FF0\u60A8\u60F3\u521B\u5EFA\u7684\u81EA\u52A8\u5316\u2026",
+    panel_quota_provider_default: "\u60A8\u7684 LLM \u63D0\u4F9B\u5546",
+    panel_quota_reached: "\u5DF2\u8FBE\u5230\u914D\u989D\u3002",
+    panel_quota_try_again_prefix:
+      "\u8BF7\u5728\u4EE5\u4E0B\u65F6\u95F4\u540E\u91CD\u8BD5",
+    panel_quota_retrying_now: "\u6B63\u5728\u91CD\u8BD5\u2026",
+    panel_quota_dismiss: "\u5173\u95ED",
+    panel_llm_switched_selora_cloud:
+      "\u5DF2\u5207\u6362\u5230 Selora Cloud\u3002",
+    panel_llm_invalid_key:
+      "API \u5BC6\u94A5\u65E0\u6548\u6216\u65E0\u6CD5\u8FDE\u63A5\u5230\u63D0\u4F9B\u5546\u3002",
+    panel_llm_settings_saved: "LLM \u8BBE\u7F6E\u5DF2\u4FDD\u5B58\u3002",
+    panel_advanced_settings_saved:
+      "\u9AD8\u7EA7\u8BBE\u7F6E\u5DF2\u4FDD\u5B58\u3002",
+    panel_linking_failed: "\u5173\u8054\u5931\u8D25\u3002",
+    panel_linking_timed_out:
+      "\u5173\u8054\u8D85\u65F6\u3002\u8BF7\u91CD\u8BD5\u2014\u2014\u8BF7\u786E\u4FDD\u5728 10 \u5206\u949F\u5185\u5B8C\u6210\u767B\u5F55\u3002",
+    panel_linking_start_failed: "\u542F\u52A8\u5173\u8054\u5931\u8D25\u3002",
+    panel_connect_linked_success:
+      "Selora Connect \u5173\u8054\u6210\u529F\u3002",
+    panel_unlink_connect_confirm:
+      "\u8981\u89E3\u9664 Selora Connect \u5173\u8054\u5417\uFF1F\n\n\u5728\u60A8\u91CD\u65B0\u5173\u8054\u4E4B\u524D\uFF0C\u5916\u90E8 MCP \u5DE5\u5177\uFF08Openclaw\u3001Claude Desktop\u3001Cursor\u3001Windsurf\uFF09\u5C06\u65E0\u6CD5\u8BBF\u95EE\u3002",
+    panel_connect_unlinked:
+      "\u5DF2\u89E3\u9664 Selora Connect \u5173\u8054\u3002",
+    panel_cloud_linked_success: "Selora Cloud \u5173\u8054\u6210\u529F\u3002",
+    panel_unlink_cloud_confirm:
+      "\u8981\u89E3\u9664 Selora Cloud \u5173\u8054\u5417\uFF1F\n\n\u5728\u60A8\u4E8E\u201C\u8BBE\u7F6E\u201D\u4E2D\u91CD\u65B0\u5173\u8054\u8D26\u6237\u4E4B\u524D\uFF0C\u5BF9\u8BDD\u548C\u81EA\u52A8\u5316\u5EFA\u8BAE\u5C06\u505C\u6B62\u5DE5\u4F5C\u3002",
+    panel_cloud_unlinked: "\u5DF2\u89E3\u9664 Selora Cloud \u5173\u8054\u3002",
+    panel_mcp_token_created: "MCP \u4EE4\u724C\u5DF2\u521B\u5EFA\u3002",
+    panel_mcp_token_revoked: "\u4EE4\u724C\u5DF2\u540A\u9500\u3002",
+    panel_approval_revoked: "\u6388\u6743\u5DF2\u64A4\u9500\u3002",
+    panel_device_loading: "\u52A0\u8F7D\u4E2D\u2026",
+    panel_device_error_loading: "\u52A0\u8F7D\u8BBE\u5907\u65F6\u51FA\u9519",
+    panel_tab_conversations: "\u5BF9\u8BDD",
+    panel_tab_automations: "\u81EA\u52A8\u5316",
+    panel_tab_scenes: "\u573A\u666F",
+    panel_sidebar_conversations: "\u5BF9\u8BDD",
+    panel_sidebar_done: "\u5B8C\u6210",
+    panel_sidebar_select: "\u9009\u62E9",
+    panel_sidebar_select_all: "\u5168\u9009",
+    panel_sidebar_delete: "\u5220\u9664",
+    panel_sidebar_new_chat: "\u65B0\u5BF9\u8BDD",
+    panel_sidebar_no_conversations: "\u6682\u65E0\u5BF9\u8BDD\u3002",
+    panel_session_delete_confirm: "\u5220\u9664\uFF1F",
+    panel_session_delete: "\u5220\u9664",
+    panel_session_cancel: "\u53D6\u6D88",
+    panel_session_delete_title: "\u5220\u9664",
+    panel_bulk_delete_title: "\u5220\u9664\u5BF9\u8BDD",
+    panel_bulk_delete_cancel: "\u53D6\u6D88",
+    panel_bulk_delete_confirm: "\u5220\u9664",
+    chat_suggest_thinking: "\u601D\u8003\u4E2D\u2026",
+    chat_suggest_one_for_me: "\u4E3A\u6211\u63A8\u8350\u4E00\u4E2A",
+    chat_jump_to_latest: "\u524D\u5F80\u6700\u65B0\u6D88\u606F",
+    chat_autocomplete_hint:
+      "\u2191\u2193 \u5BFC\u822A \xB7 \u21B5 \u63D2\u5165 \xB7 Esc \u5173\u95ED",
+    chat_selection_remove: "\u79FB\u9664",
+    chat_stop_generating: "\u505C\u6B62\u751F\u6210",
+    chat_send: "\u53D1\u9001",
+    chat_building_scene: "\u6B63\u5728\u6784\u5EFA\u573A\u666F\u2026",
+    chat_go_to_settings: "\u524D\u5F80\u8BBE\u7F6E",
+    chat_response_cut_short: "\u56DE\u590D\u88AB\u622A\u65AD\u3002",
+    chat_retry: "\u91CD\u8BD5",
+    chat_copy_message: "\u590D\u5236\u6D88\u606F",
+    chat_you: "\u60A8",
+    chat_yaml_unsaved_changes: "\u672A\u4FDD\u5B58\u7684\u66F4\u6539",
+    chat_yaml_saving: "\u4FDD\u5B58\u4E2D\u2026",
+    chat_yaml_save_changes: "\u4FDD\u5B58\u66F4\u6539",
+    chat_tools_used: "\u5DF2\u4F7F\u7528\u7684\u5DE5\u5177",
+    chat_automation_label_building:
+      "\u6B63\u5728\u6784\u5EFA\u81EA\u52A8\u5316\u2026",
+    chat_automation_label_triggers:
+      "\u6B63\u5728\u8D77\u8349\u89E6\u53D1\u5668\u2026",
+    chat_automation_label_conditions:
+      "\u6B63\u5728\u8FDE\u63A5\u6761\u4EF6\u2026",
+    chat_automation_label_actions: "\u6B63\u5728\u7F16\u5199\u52A8\u4F5C\u2026",
+    chat_automation_label_almost: "\u5373\u5C06\u5C31\u7EEA\u2026",
+    chat_autocomplete_kind_devices: "\u8BBE\u5907",
+    chat_autocomplete_kind_areas: "\u533A\u57DF",
+    chat_autocomplete_kind_scenes: "\u573A\u666F",
+    chat_autocomplete_kind_automations: "\u81EA\u52A8\u5316",
+    chat_autocomplete_kind_suggestions: "\u5EFA\u8BAE",
+    chat_welcome_suggestion_lights_label:
+      "\u5348\u591C\u5173\u95ED\u6240\u6709\u706F",
+    chat_welcome_suggestion_lights_value:
+      "\u521B\u5EFA\u4E00\u4E2A\u5728\u5348\u591C\u5173\u95ED\u6240\u6709\u706F\u7684\u81EA\u52A8\u5316",
+    chat_welcome_suggestion_devices_label:
+      "\u6211\u6709\u54EA\u4E9B\u8BBE\u5907\uFF1F",
+    chat_welcome_suggestion_devices_value:
+      "\u6211\u6709\u54EA\u4E9B\u8BBE\u5907\uFF0C\u5176\u4E2D\u54EA\u4E9B\u5F53\u524D\u5DF2\u5F00\u542F\uFF1F",
+    chat_welcome_suggestion_suggest_label:
+      "\u4E3A\u6211\u7684\u5BB6\u5C45\u63A8\u8350\u81EA\u52A8\u5316",
+    chat_welcome_suggestion_suggest_value:
+      "\u6839\u636E\u6211\u7684\u8BBE\u5907\u548C\u4F7F\u7528\u6A21\u5F0F\u63A8\u8350\u6709\u7528\u7684\u81EA\u52A8\u5316",
+    settings_view_token_usage_title: "\u67E5\u770B\u4EE4\u724C\u7528\u91CF",
+    settings_usage_label: "\u7528\u91CF",
+    settings_view_usage_label: "\u67E5\u770B\u7528\u91CF",
+    settings_provider_select_placeholder: "\u9009\u62E9\u2026",
+    settings_doc_banner_title: "\u914D\u7F6E\u6307\u5357",
+    settings_doc_banner_desc:
+      "\u4E86\u89E3\u5982\u4F55\u8BBE\u7F6E LLM \u63D0\u4F9B\u5546\u3001\u8FDC\u7A0B\u8BBF\u95EE\u548C MCP \u4EE4\u724C\u3002",
+    settings_llm_provider_heading: "LLM \u63D0\u4F9B\u5546",
+    settings_provider_label: "\u63D0\u4F9B\u5546",
+    settings_selora_account_label: "Selora \u8D26\u6237",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud \u6B63\u5728\u63D0\u4F9B\u60A8\u7684 LLM \u540E\u7AEF\u3002",
+    settings_unlink_button: "\u89E3\u9664\u5173\u8054",
+    settings_signin_selora_desc:
+      "\u4F7F\u7528\u60A8\u7684 Selora \u8D26\u6237\u767B\u5F55\u4EE5\u4F7F\u7528\u6258\u7BA1\u7684 LLM \u540E\u7AEF\u3002\u65E0\u9700 API \u5BC6\u94A5\u3002",
+    settings_selora_cloud_url_label: "Selora Cloud URL",
+    settings_selora_cloud_url_hint:
+      "OAuth \u548C\u804A\u5929\u8865\u5168\u5747\u4F7F\u7528\u6B64 URL\u3002\u5173\u8054\u65F6\u4F1A\u81EA\u52A8\u4FDD\u5B58\u3002",
+    settings_open_signin_page: "\u6253\u5F00\u767B\u5F55\u9875\u9762 \u2192",
+    settings_preparing_label: "\u51C6\u5907\u4E2D\u2026",
+    settings_link_selora_account_button: "\u5173\u8054 Selora \u8D26\u6237",
+    settings_signin_new_tab_hint:
+      "\u5728\u65B0\u6807\u7B7E\u9875\u4E2D\u6253\u5F00\u3002\u767B\u5F55\u540E\u8BF7\u8FD4\u56DE\u6B64\u9875\u9762\u2014\u2014\u9762\u677F\u4F1A\u81EA\u52A8\u66F4\u65B0\u3002",
+    settings_api_key_label: "API \u5BC6\u94A5",
+    settings_click_replace_key_title:
+      "\u70B9\u51FB\u4EE5\u66FF\u6362\u5BC6\u94A5",
+    settings_enter_new_key_label: "\u8F93\u5165\u65B0\u5BC6\u94A5",
+    settings_enter_api_key_label: "\u8F93\u5165 API \u5BC6\u94A5",
+    settings_model_label: "\u6A21\u578B",
+    settings_selora_local_desc:
+      "Selora AI \u4F1A\u9488\u5BF9\u6BCF\u4E2A\u8BF7\u6C42\u81EA\u52A8\u9009\u62E9\u5408\u9002\u7684\u4E13\u7528\u6A21\u578B\uFF08\u547D\u4EE4\u3001\u81EA\u52A8\u5316\u3001\u56DE\u7B54\u3001\u6F84\u6E05\uFF09\u3002",
+    settings_ollama_host_label: "\u4E3B\u673A",
+    settings_selora_local_show_advanced: "\u663E\u793A\u9AD8\u7EA7\u9009\u9879",
+    settings_selora_local_hide_advanced: "\u9690\u85CF\u9AD8\u7EA7\u9009\u9879",
+    settings_selora_local_advanced_desc:
+      "Selora Hub \u5DF2\u9884\u5148\u914D\u7F6E\u3002\u5982\u9700\u4F7F\u7528\u8FD0\u884C Selora AI \u6A21\u578B\u7684\u81EA\u6258\u7BA1 llama-server\uFF0C\u8BF7\u5728\u4E0B\u65B9\u8F93\u5165\u5176\u5730\u5740\u3002",
+    settings_selora_local_host_label: "\u4E3B\u673A",
+    settings_selora_local_auto_detected_prefix:
+      "\u81EA\u52A8\u68C0\u6D4B\uFF1A",
+    settings_selora_local_auto_detected_none: "\u65E0",
+    settings_validating_label: "\u9A8C\u8BC1\u4E2D\u2026",
+    settings_save_button: "\u4FDD\u5B58",
+    settings_mcp_server_heading: "MCP \u670D\u52A1\u5668",
+    settings_mcp_server_subtitle:
+      "\u5C06\u60A8\u7684\u5BB6\u5C45\u5F00\u653E\u7ED9\u5916\u90E8 AI \u5DE5\u5177\uFF0C\u4F8B\u5982 Openclaw\u3001Claude Desktop\u3001Cursor \u6216 Windsurf\u3002",
+    settings_connect_via_selora_label:
+      "\u901A\u8FC7 Selora \u8D26\u6237\u8FDE\u63A5",
+    settings_connect_via_selora_desc:
+      "\u4F7F\u60A8\u7684 MCP \u670D\u52A1\u5668\u53EF\u88AB\u5916\u90E8\u5DE5\u5177\u8BBF\u95EE",
+    settings_mcp_url_copied_toast:
+      "MCP URL \u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F",
+    settings_connect_server_url_label: "Connect \u670D\u52A1\u5668 URL",
+    settings_mcp_tokens_section_title: "MCP \u4EE4\u724C",
+    settings_mcp_tokens_desc:
+      "MCP \u4EE4\u724C\u662F Selora Connect \u7684\u66FF\u4EE3\u65B9\u6848\u3002\u53EF\u7528\u4E8E\u4E0D\u652F\u6301 OAuth \u7684\u5DE5\u5177\uFF0C\u6216\u5F53\u60A8\u503E\u5411\u4E8E\u57FA\u4E8E\u4EE4\u724C\u7684\u8EAB\u4EFD\u9A8C\u8BC1\u65F6\u4F7F\u7528\u3002",
+    settings_no_tokens_yet: "\u6682\u65E0\u4EE4\u724C\u3002",
+    settings_add_token_button: "\u6DFB\u52A0\u4EE4\u724C",
+    settings_command_approvals_heading: "\u547D\u4EE4\u6388\u6743",
+    settings_advanced_settings_heading: "\u9AD8\u7EA7\u8BBE\u7F6E",
+    settings_background_services_title: "\u540E\u53F0\u670D\u52A1",
+    settings_data_collector_label:
+      "\u6570\u636E\u91C7\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
+    settings_data_collector_desc:
+      "\u5411 Selora AI \u63D0\u4F9B\u5B9E\u4F53\u5386\u53F2\u6570\u636E",
+    settings_mode_label: "\u6A21\u5F0F",
+    settings_mode_continuous: "\u6301\u7EED",
+    settings_mode_scheduled_window: "\u8BA1\u5212\u65F6\u6BB5",
+    settings_interval_seconds_label: "\u95F4\u9694\uFF08\u79D2\uFF09",
+    settings_start_hhmm_label: "\u5F00\u59CB\uFF08\u65F6:\u5206\uFF09",
+    settings_end_hhmm_label: "\u7ED3\u675F\uFF08\u65F6:\u5206\uFF09",
+    settings_network_discovery_label: "\u7F51\u7EDC\u53D1\u73B0",
+    settings_network_discovery_desc:
+      "\u626B\u63CF\u672C\u5730\u7F51\u7EDC\u4EE5\u67E5\u627E\u65B0\u8BBE\u5907",
+    settings_pattern_detection_label: "\u6A21\u5F0F\u68C0\u6D4B",
+    settings_pattern_detection_desc:
+      "\u68C0\u6D4B\u91CD\u590D\u7684\u4F7F\u7528\u6A21\u5F0F\u5E76\u63D0\u51FA\u81EA\u52A8\u5316\u5EFA\u8BAE",
+    settings_auto_remove_stale_label:
+      "\u81EA\u52A8\u79FB\u9664\u5931\u6548\u7684\u81EA\u52A8\u5316",
+    settings_developer_mode_label: "\u5F00\u53D1\u8005\u6A21\u5F0F",
+    settings_developer_mode_desc:
+      "\u516C\u5F00\u539F\u59CB\u5B9E\u4F53\u8F7D\u8377\u548C\u8C03\u8BD5\u65E5\u5FD7",
+    settings_dev_mode_save_failed_toast:
+      "\u4FDD\u5B58\u5F00\u53D1\u8005\u6A21\u5F0F\u5931\u8D25\u3002",
+    settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
+    settings_no_approvals_yet_prefix:
+      "\u6682\u65E0\u5DF2\u4FDD\u5B58\u7684\u6388\u6743\u3002\u4E0B\u6B21 Selora \u5728\u6267\u884C\u6709\u98CE\u9669\u7684\u64CD\u4F5C\u524D\u8BE2\u95EE\u60A8\u65F6\uFF0C\u8BF7\u70B9\u51FB",
+    settings_no_approvals_always_word: "\u59CB\u7EC8",
+    settings_no_approvals_yet_suffix:
+      "\u4EE5\u5C06\u5176\u8BB0\u5F55\u5728\u6B64\u5904\u3002",
+    settings_per_entity_approval_title: "\u6309\u5B9E\u4F53\u6388\u6743",
+    settings_wildcard_approval_title:
+      "\u901A\u914D\u7B26\u2014\u2014\u9002\u7528\u4E8E\u8BE5\u670D\u52A1\u7684\u6BCF\u4E2A\u5B9E\u4F53",
+    settings_approval_all_label: "\u5168\u90E8",
+    settings_token_created_heading: "\u4EE4\u724C\u5DF2\u521B\u5EFA",
+    settings_token_created_desc:
+      "\u8BF7\u7ACB\u5373\u590D\u5236\u6B64\u4EE4\u724C\u2014\u2014\u5B83\u5C06\u4E0D\u4F1A\u518D\u6B21\u663E\u793A\u3002",
+    settings_token_copied_toast:
+      "\u4EE4\u724C\u5DF2\u590D\u5236\u5230\u526A\u8D34\u677F",
+    settings_done_button: "\u5B8C\u6210",
+    settings_create_mcp_token_heading: "\u521B\u5EFA MCP \u4EE4\u724C",
+    settings_token_name_label: "\u540D\u79F0",
+    settings_token_name_placeholder: "\u4F8B\u5982 Claude Desktop",
+    settings_permission_level_label: "\u6743\u9650\u7EA7\u522B",
+    settings_perm_read_only: "\u53EA\u8BFB",
+    settings_perm_admin_all:
+      "\u7BA1\u7406\u5458\uFF08\u6240\u6709\u5DE5\u5177\uFF09",
+    settings_perm_custom:
+      "\u81EA\u5B9A\u4E49\uFF08\u9009\u62E9\u5DE5\u5177\uFF09",
+    settings_allowed_tools_label: "\u5141\u8BB8\u7684\u5DE5\u5177",
+    settings_admin_badge: "\u7BA1\u7406\u5458",
+    settings_expiration_label: "\u6709\u6548\u671F\uFF08\u53EF\u9009\uFF09",
+    settings_expiry_never: "\u6C38\u4E0D\u8FC7\u671F",
+    settings_expiry_7_days: "7 \u5929",
+    settings_expiry_30_days: "30 \u5929",
+    settings_expiry_90_days: "90 \u5929",
+    settings_expiry_1_year: "1 \u5E74",
+    settings_cancel_button: "\u53D6\u6D88",
+    settings_create_token_button: "\u521B\u5EFA\u4EE4\u724C",
+    automations_flow_branch_if: "\u5982\u679C",
+    automations_flow_branch_else_if: "\u5426\u5219\u5982\u679C",
+    automations_flow_branch_otherwise: "\u5426\u5219",
+    automations_flow_branch_in_parallel: "\u5E76\u884C",
+    automations_flow_branch_in_sequence: "\u987A\u5E8F\u6267\u884C",
+    automations_flow_repeat_while:
+      "\u5F53\u6761\u4EF6\u6210\u7ACB\u65F6\u91CD\u590D",
+    automations_flow_repeat_until:
+      "\u91CD\u590D\u76F4\u5230\u6761\u4EF6\u6EE1\u8DB3",
+    automations_flow_repeat: "\u91CD\u590D",
+    automations_flow_label_trigger: "\u89E6\u53D1\u5668",
+    automations_flow_label_condition: "\u6761\u4EF6",
+    automations_flow_label_actions: "\u52A8\u4F5C",
+    automations_badge_enabled: "\u5DF2\u542F\u7528",
+    automations_badge_saved: "\u5DF2\u4FDD\u5B58",
+    automations_yaml_toggle_hide: "\u9690\u85CF YAML",
+    automations_yaml_toggle_view: "\u67E5\u770B YAML",
+    automations_yaml_toggle_edit: "\u7F16\u8F91 YAML",
+    automations_proposal_declined_title: "\u81EA\u52A8\u5316\u5DF2\u62D2\u7EDD",
+    automations_proposal_declined_body:
+      "\u5DF2\u5FFD\u7565\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u590D\u4EE5\u8FDB\u4E00\u6B65\u5B8C\u5584\u5B83\u3002",
+    automations_badge_being_refined: "\u5B8C\u5584\u4E2D",
+    automations_badge_proposal: "\u63D0\u8BAE",
+    automations_proposal_elevated_risk:
+      "\u5EFA\u8BAE\u8FDB\u884C\u9AD8\u98CE\u9669\u5BA1\u67E5\u3002",
+    automations_proposal_yaml_edits_note:
+      "\u63A5\u53D7\u65F6\u5C06\u4F7F\u7528\u60A8\u7684 YAML \u7F16\u8F91\u5185\u5BB9\u3002",
+    automations_action_run_tooltip:
+      "\u7ACB\u5373\u89E6\u53D1\u8FD9\u4E9B\u52A8\u4F5C\u4EE5\u9A8C\u8BC1\u5176\u662F\u5426\u6709\u6548",
+    automations_action_running: "\u8FD0\u884C\u4E2D\u2026",
+    automations_action_run_now: "\u7ACB\u5373\u8FD0\u884C",
+    automations_action_open_in_ha_tooltip:
+      "\u5728 Home Assistant \u4E2D\u6253\u5F00\u6B64\u81EA\u52A8\u5316",
+    automations_action_view_in_ha: "\u5728 HA \u4E2D\u67E5\u770B",
+    automations_action_enabling: "\u542F\u7528\u4E2D\u2026",
+    automations_action_enable_automation: "\u542F\u7528\u81EA\u52A8\u5316",
+    automations_elevated_risk_note:
+      "\u4F7F\u7528\u4E86\u9AD8\u98CE\u9669\u52A8\u4F5C\u2014\u2014\u542F\u7528\u524D\u8BF7\u5BA1\u67E5\u6D41\u7A0B\u548C YAML\u3002",
+    automations_action_accept_and_save: "\u63A5\u53D7\u5E76\u4FDD\u5B58",
+    automations_section_title: "\u60A8\u7684\u81EA\u52A8\u5316",
+    automations_filter_placeholder: "\u7B5B\u9009\u81EA\u52A8\u5316\u2026",
+    automations_sort_recent: "\u6700\u8FD1\u6D3B\u52A8",
+    automations_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
+    automations_sort_enabled_first: "\u5DF2\u542F\u7528\u4F18\u5148",
+    automations_llm_setup_required_tooltip:
+      "\u8BF7\u5148\u914D\u7F6E LLM \u63D0\u4F9B\u5546",
+    automations_new_automation_button: "\u65B0\u5EFA\u81EA\u52A8\u5316",
+    automations_status_tab_all: "\u5168\u90E8",
+    automations_status_tab_enabled: "\u5DF2\u542F\u7528",
+    automations_status_tab_disabled: "\u5DF2\u7981\u7528",
+    automations_status_tab_stale: "\u5DF2\u5931\u6548",
+    automations_bulk_select_all: "\u5168\u9009",
+    automations_bulk_done: "\u5B8C\u6210",
+    automations_bulk_edit: "\u6279\u91CF\u7F16\u8F91",
+    automations_bulk_working: "\u5904\u7406\u4E2D\u2026",
+    automations_bulk_enable_all: "\u5168\u90E8\u542F\u7528",
+    automations_bulk_disable_all: "\u5168\u90E8\u7981\u7528",
+    automations_bulk_delete_selected: "\u5220\u9664\u6240\u9009",
+    automations_bulk_clear: "\u6E05\u9664",
+    automations_last_run_disabled: "\u5DF2\u7981\u7528",
+    automations_last_run_never: "\u4ECE\u672A",
+    automations_needs_attention_pill: "\u9700\u8981\u5904\u7406",
+    automations_rename_save_tooltip: "\u4FDD\u5B58",
+    automations_last_run_prefix: "\u4E0A\u6B21\u8FD0\u884C\uFF1A",
+    automations_last_run_prefix_inline: "\u4E0A\u6B21\u8FD0\u884C\uFF1A",
+    automations_toggle_enabled: "\u5DF2\u542F\u7528",
+    automations_toggle_disabled: "\u5DF2\u7981\u7528",
+    automations_toggle_unavailable: "\u4E0D\u53EF\u7528",
+    automations_toast_toggle_unresolved:
+      "\u65E0\u6CD5\u5207\u6362\uFF1A\u672A\u80FD\u89E3\u6790\u81EA\u52A8\u5316 ID\u3002\u8BF7\u91CD\u65B0\u52A0\u8F7D\u540E\u518D\u8BD5\u3002",
+    automations_more_actions_tooltip: "\u66F4\u591A\u64CD\u4F5C",
+    automations_burger_loading: "\u52A0\u8F7D\u4E2D\u2026",
+    automations_burger_refine_in_chat: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
+    automations_burger_rename: "\u91CD\u547D\u540D",
+    automations_burger_view_in_ha: "\u5728 HA \u4E2D\u67E5\u770B",
+    automations_burger_deleting: "\u5220\u9664\u4E2D\u2026",
+    automations_burger_delete: "\u5220\u9664",
+    automations_card_tab_flow: "\u6D41\u7A0B",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "\u5386\u53F2",
+    automations_pagination_prev: "\u2039 \u4E0A\u4E00\u9875",
+    automations_pagination_per_page: "\u6BCF\u9875\uFF1A",
+    automations_pagination_next: "\u4E0B\u4E00\u9875 \u203A",
+    automations_empty_state: "\u6682\u65E0\u81EA\u52A8\u5316\u3002",
+    automations_unavailable_modal_title: "\u81EA\u52A8\u5316\u4E0D\u53EF\u7528",
+    automations_unavailable_default_name: "\u6B64\u81EA\u52A8\u5316",
+    automations_unavailable_modal_intro:
+      "\u88AB Home Assistant \u6807\u8BB0\u4E3A\u4E0D\u53EF\u7528\u3002\u8FD9\u901A\u5E38\u610F\u5473\u7740\uFF1A",
+    automations_unavailable_reason_entity:
+      "\u67D0\u4E2A\u89E6\u53D1\u5668\u6216\u6761\u4EF6\u5F15\u7528\u4E86\u5DF2\u4E0D\u5B58\u5728\u7684\u5B9E\u4F53",
+    automations_unavailable_reason_yaml:
+      "\u81EA\u52A8\u5316 YAML \u5B58\u5728\u914D\u7F6E\u9519\u8BEF",
+    automations_unavailable_reason_integration:
+      "\u6240\u9700\u7684\u96C6\u6210\u5DF2\u88AB\u79FB\u9664\u6216\u672A\u52A0\u8F7D",
+    automations_unavailable_modal_advice:
+      "\u5728 Home Assistant \u8BBE\u7F6E\u4E2D\u6253\u5F00\u8BE5\u81EA\u52A8\u5316\u4EE5\u5BA1\u67E5\u5E76\u4FEE\u590D\u914D\u7F6E\u3002",
+    automations_unavailable_modal_close: "\u5173\u95ED",
+    automations_unavailable_modal_edit_states: "\u7F16\u8F91\u72B6\u6001",
+    automations_unavailable_modal_open_in_automations:
+      "\u5728\u81EA\u52A8\u5316\u4E2D\u6253\u5F00",
+    scenes_card_created_title: "\u573A\u666F\u5DF2\u521B\u5EFA",
+    scenes_card_saved_status: "\u5DF2\u4FDD\u5B58\u5230 Home Assistant",
+    scenes_card_activate_button: "\u6FC0\u6D3B",
+    scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u67E5\u770B",
+    scenes_card_declined_title: "\u573A\u666F\u5DF2\u62D2\u7EDD",
+    scenes_card_declined_message:
+      "\u5DF2\u5FFD\u7565\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u590D\u4EE5\u8FDB\u4E00\u6B65\u5B8C\u5584\u5B83\u3002",
+    scenes_card_refining_badge: "\u5B8C\u5584\u4E2D",
+    scenes_hide_yaml: "\u9690\u85CF YAML",
+    scenes_view_yaml: "\u67E5\u770B YAML",
+    scenes_card_proposal_badge: "\u63D0\u8BAE",
+    scenes_card_accept_save_button: "\u63A5\u53D7\u5E76\u4FDD\u5B58",
+    scenes_section_title: "\u60A8\u7684\u573A\u666F",
+    scenes_filter_placeholder: "\u7B5B\u9009\u573A\u666F\u2026",
+    scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0",
+    scenes_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
+    scenes_sort_size: "\u5B9E\u4F53\u6700\u591A",
+    scenes_llm_needs_setup_tooltip:
+      "\u8BF7\u5148\u914D\u7F6E LLM \u63D0\u4F9B\u5546",
+    scenes_new_scene_button: "\u65B0\u5EFA\u573A\u666F",
+    scenes_status_tab_all: "\u5168\u90E8",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "\u624B\u52A8",
+    scenes_activate_scene_tooltip: "\u6FC0\u6D3B\u573A\u666F",
+    scenes_activate_button: "\u6FC0\u6D3B",
+    scenes_more_actions_tooltip: "\u66F4\u591A\u64CD\u4F5C",
+    scenes_loading_label: "\u52A0\u8F7D\u4E2D\u2026",
+    scenes_refine_in_chat_button: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
+    scenes_open_in_ha_button: "\u5728 HA \u4E2D\u6253\u5F00",
+    scenes_deleting_label: "\u5220\u9664\u4E2D\u2026",
+    scenes_delete_button: "\u5220\u9664",
+    scenes_no_entity_details:
+      "\u6682\u65E0\u5B9E\u4F53\u8BE6\u60C5\u2014\u2014\u8BF7\u5728 Home Assistant \u4E2D\u6253\u5F00\u8BE5\u573A\u666F\u8FDB\u884C\u67E5\u770B\u3002",
+    scenes_yaml_unavailable_comment:
+      "# YAML \u4E0D\u53EF\u7528\u2014\u2014\u8BF7\u5728 Home Assistant \u4E2D\u6253\u5F00\u8BE5\u573A\u666F\u8FDB\u884C\u67E5\u770B\u3002",
+    scenes_empty_state:
+      "\u672A\u627E\u5230\u573A\u666F\u3002\u8BF7\u8BA9 Selora \u521B\u5EFA\u4E00\u4E2A\u3002",
+    scenes_delete_modal_fallback_name: "\u6B64\u573A\u666F",
+    scenes_delete_modal_title: "\u5220\u9664\u573A\u666F",
+    scenes_delete_modal_prefix: "\u5220\u9664",
+    scenes_delete_modal_suffix:
+      "\uFF1F\u6B64\u64CD\u4F5C\u4F1A\u5C06\u8BE5\u573A\u666F\u4ECE Home Assistant \u4E2D\u79FB\u9664\u4E14\u65E0\u6CD5\u64A4\u9500\u3002",
+    scenes_delete_modal_cancel_button: "\u53D6\u6D88",
+    scenes_delete_modal_confirm_button: "\u5220\u9664",
+    usage_pricing_invalid_error:
+      "\u4EF7\u683C\u5FC5\u987B\u4E3A\u975E\u8D1F\u6570\u3002",
+    usage_pricing_saved_toast:
+      "\u4EF7\u683C\u8986\u76D6\u5DF2\u4FDD\u5B58\u3002",
+    usage_pricing_save_failed: "\u4FDD\u5B58\u4EF7\u683C\u5931\u8D25\uFF1A",
+    usage_pricing_reset_toast:
+      "\u5DF2\u91CD\u7F6E\u4E3A\u9ED8\u8BA4\u4EF7\u683C\u3002",
+    usage_pricing_reset_failed: "\u91CD\u7F6E\u4EF7\u683C\u5931\u8D25\uFF1A",
+    usage_pricing_title: "\u4EF7\u683C",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud \u7528\u91CF\u6309\u4F7F\u7528\u8BA1\u91CF\u5E76\u5728\u60A8\u7684 Selora Homes \u8D26\u6237\u4E2D\u8BA1\u8D39\u3002\u5B83\u4E0D\u4F1A\u8BA1\u5165\u672C\u96C6\u6210\u7684\u4F20\u611F\u5668\u6216\u56FE\u8868\u4E2D\u3002",
+    usage_pricing_view_cloud_link:
+      "\u5728\u60A8\u7684 Selora Homes \u8D26\u6237\u4E2D\u67E5\u770B\u7528\u91CF",
+    usage_pricing_ollama_help:
+      "Ollama \u5728\u672C\u5730\u8FD0\u884C\u2014\u2014\u65E0\u9700\u8DDF\u8E2A\u4EE4\u724C\u6210\u672C\u3002",
+    usage_pricing_selora_local_help:
+      "Selora AI Local \u5728\u60A8\u7684\u786C\u4EF6\u4E0A\u8FD0\u884C\u2014\u2014\u65E0\u9700\u8DDF\u8E2A\u4EE4\u724C\u6210\u672C\u3002",
+    usage_pricing_no_model_help:
+      "\u8BF7\u5728\u201C\u8BBE\u7F6E\u201D\u4E2D\u914D\u7F6E LLM \u63D0\u4F9B\u5546\u548C\u6A21\u578B\uFF0C\u4EE5\u8BBE\u7F6E\u81EA\u5B9A\u4E49\u4EF7\u683C\u3002",
+    usage_pricing_intro_prefix:
+      "\u6210\u672C\u4F30\u7B97\u4F7F\u7528\u4EE5\u4E0B\u6BCF\u767E\u4E07\u4EE4\u724C\u7684\u8D39\u7387\u3002Anthropic \u7684\u9ED8\u8BA4\u503C\u6765\u81EA",
+    usage_pricing_official_page_link: "\u5B98\u65B9\u4EF7\u683C\u9875\u9762",
+    usage_pricing_intro_suffix:
+      "\uFF1B\u5982\u679C\u60A8\u6709\u534F\u5546\u4EF7\u683C\u6216\u6B63\u5728\u8DDF\u8E2A\u5176\u4ED6\u6A21\u578B\uFF0C\u53EF\u5728\u6B64\u5904\u8986\u76D6\u3002",
+    usage_pricing_input_label: "\u8F93\u5165",
+    usage_pricing_default_prefix: "\u9ED8\u8BA4",
+    usage_pricing_no_default: "\u65E0\u5185\u7F6E\u9ED8\u8BA4\u503C",
+    usage_pricing_output_label: "\u8F93\u51FA",
+    usage_pricing_input_field_label: "\u8F93\u5165\uFF08$/MTok\uFF09",
+    usage_pricing_output_field_label: "\u8F93\u51FA\uFF08$/MTok\uFF09",
+    usage_pricing_cancel_button: "\u53D6\u6D88",
+    usage_pricing_save_button: "\u4FDD\u5B58",
+    usage_pricing_edit_override_button: "\u7F16\u8F91\u8986\u76D6",
+    usage_pricing_set_custom_button:
+      "\u8BBE\u7F6E\u81EA\u5B9A\u4E49\u4EF7\u683C",
+    usage_pricing_reset_default_button: "\u91CD\u7F6E\u4E3A\u9ED8\u8BA4",
+    usage_snippet_copied_label: "\u5DF2\u590D\u5236\uFF01",
+    usage_snippet_copy_button: "\u590D\u5236",
+    usage_snippet_help:
+      "\u5728 Recorder \u5B8C\u6210\u9996\u6B21\u6BCF\u5C0F\u65F6\u7F16\u8BD1\u540E\uFF0C\u53EF\u89C6\u5316\u5361\u7247\u9009\u62E9\u5668\u4E5F\u4F1A\u627E\u5230\u8FD9\u4E9B\u4F20\u611F\u5668\u3002",
+    usage_back_to_settings: "\u8FD4\u56DE\u8BBE\u7F6E",
+    usage_token_usage_title: "\u4EE4\u724C\u7528\u91CF",
+    usage_empty_title: "\u6682\u65E0\u7528\u91CF\u6570\u636E\u3002",
+    usage_empty_body:
+      "\u7528\u91CF\u5C06\u5728\u9996\u6B21 LLM \u8C03\u7528\u540E\u663E\u793A\u3002\u8BF7\u5C1D\u8BD5\u4E0E Selora AI \u5BF9\u8BDD\u6216\u8FD0\u884C\u4E00\u6B21\u5EFA\u8BAE\u5468\u671F\u3002\u5982\u679C\u60A8\u5DF2\u4F7F\u7528\u8FC7 Selora AI \u4F46\u4ECD\u770B\u5230\u6B64\u63D0\u793A\uFF0C\u8BF7\u91CD\u542F Home Assistant \u4EE5\u6CE8\u518C\u65B0\u4F20\u611F\u5668\u3002",
+    usage_totals_title: "\u603B\u8BA1",
+    usage_tile_cost_label: "\u6210\u672C",
+    usage_tile_cost_sub: "\u7F8E\u5143\u4F30\u7B97",
+    usage_tile_calls_label: "\u8C03\u7528\u6B21\u6570",
+    usage_tile_tokens_in_label: "\u8F93\u5165\u4EE4\u724C",
+    usage_tile_tokens_out_label: "\u8F93\u51FA\u4EE4\u724C",
+    usage_by_period_title: "\u6309\u65F6\u95F4\u6BB5",
+    usage_period_today: "\u4ECA\u5929",
+    usage_period_last_7_days: "\u8FC7\u53BB 7 \u5929",
+    usage_period_this_month: "\u672C\u6708",
+    usage_period_note_filtered:
+      "\u65F6\u95F4\u6BB5\u5206\u7EC4\u6765\u81EA\u672C\u96C6\u6210\u7684\u7528\u91CF\u5B58\u50A8\uFF08\u4FDD\u7559 30 \u5929\uFF09\u3002",
+    usage_period_note_unfiltered:
+      "\u65F6\u95F4\u6BB5\u5206\u7EC4\u6765\u81EA Home Assistant \u7684\u957F\u671F\u7EDF\u8BA1\u6570\u636E\uFF0C\u6BCF\u5C0F\u65F6\u7F16\u8BD1\u4E00\u6B21\u3002\u65B0\u6D3B\u52A8\u53EF\u80FD\u9700\u8981\u6700\u591A\u4E00\u5C0F\u65F6\u624D\u4F1A\u5728\u6B64\u5904\u663E\u793A\u3002",
+    usage_where_tokens_go_title: "\u4EE4\u724C\u53BB\u5411",
+    usage_where_tokens_last_prefix: "\u6700\u8FD1",
+    usage_where_tokens_resets_suffix:
+      "\xB7 \u5728 HA \u91CD\u542F\u65F6\u91CD\u7F6E",
+    usage_group_by_kind_button: "\u6309\u7C7B\u578B",
+    usage_group_by_provider_button: "\u6309\u63D0\u4F9B\u5546",
+    usage_loading: "\u52A0\u8F7D\u4E2D\u2026",
+    usage_no_calls_recorded:
+      "\u5C1A\u672A\u8BB0\u5F55\u4EFB\u4F55\u8C03\u7528\u3002",
+    usage_recent_calls_title: "\u6700\u8FD1\u7684\u8C03\u7528",
+    usage_dashboard_sensors_title: "\u4EEA\u8868\u677F\u4F20\u611F\u5668",
+    usage_dashboard_sensors_help_prefix:
+      "\u91CD\u542F Home Assistant \u4EE5\u6CE8\u518C\u7528\u91CF\u4F20\u611F\u5668\u3002\u6CE8\u518C\u540E\uFF0C\u60A8\u53EF\u4EE5\u4F7F\u7528",
+    usage_dashboard_sensors_help_suffix:
+      "\u5361\u7247\u5C06\u5B83\u4EEC\u6DFB\u52A0\u5230\u4EFB\u4F55\u4EEA\u8868\u677F\u3002",
+    usage_add_to_dashboard_title:
+      "\u6DFB\u52A0\u5230\u60A8\u7684\u4EEA\u8868\u677F",
+    usage_add_to_dashboard_help:
+      "\u6BCF\u4E2A\u6307\u6807\u7684\u91CF\u7EA7\u4E0D\u540C\u2014\u2014\u8BF7\u4E3A\u6BCF\u4E2A\u4F20\u611F\u5668\u521B\u5EFA\u4E00\u5F20\u5361\u7247\u3002\u9009\u62E9\u4E00\u4E2A\u6307\u6807\uFF0C\u590D\u5236 YAML\uFF0C\u7136\u540E\u5C06\u5176\u7C98\u8D34\u5230\u4EEA\u8868\u677F\u7684 YAML \u7F16\u8F91\u5668\u4E2D\u3002",
+    usage_filter_all_providers: "\u6240\u6709\u63D0\u4F9B\u5546",
+    usage_filter_all_models: "\u6240\u6709\u6A21\u578B",
+    usage_filter_no_model: "\uFF08\u65E0\u6A21\u578B\uFF09",
+    suggestions_tab_flow: "\u6D41\u7A0B",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "\u521B\u5EFA\u4E2D\u2026",
+    suggestions_btn_accept: "\u63A5\u53D7",
+    suggestions_btn_dismissing: "\u5FFD\u7565\u4E2D\u2026",
+    suggestions_btn_dismiss: "\u5FFD\u7565",
+    suggestions_section_title: "\u4E3A\u60A8\u63A8\u8350",
+    suggestions_badge_new: "\u65B0",
+    suggestions_llm_setup_required:
+      "\u8BF7\u5148\u914D\u7F6E LLM \u63D0\u4F9B\u5546",
+    suggestions_btn_scanning: "\u626B\u63CF\u4E2D\u2026",
+    suggestions_btn_scan_now: "\u7ACB\u5373\u626B\u63CF",
+    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
+    suggestions_btn_generate: "\u751F\u6210",
+    suggestions_section_subtitle:
+      "\u57FA\u4E8E\u5728\u60A8\u5BB6\u4E2D\u89C2\u5BDF\u5230\u7684\u6A21\u5F0F\u548C AI \u5206\u6790\u3002",
+    suggestions_empty_state:
+      "\u6682\u65E0\u5EFA\u8BAE\u3002\u70B9\u51FB\u201C\u751F\u6210\u201D\u4EE5\u5206\u6790\u60A8\u7684\u5BB6\u5C45\u3002",
+    suggestions_filter_placeholder: "\u7B5B\u9009\u5EFA\u8BAE\u2026",
+    suggestions_filter_all: "\u5168\u90E8",
+    suggestions_filter_patterns: "\u6A21\u5F0F",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "\u6700\u8FD1",
+    suggestions_sort_alpha: "\u6309\u5B57\u6BCD\u987A\u5E8F",
+    suggestions_bulk_selected: "\u5DF2\u9009\u62E9",
+    suggestions_bulk_accept_selected: "\u63A5\u53D7\u6240\u9009",
+    suggestions_bulk_dismiss_selected: "\u5FFD\u7565\u6240\u9009",
+    suggestions_bulk_done: "\u5B8C\u6210",
+    suggestions_bulk_edit: "\u6279\u91CF\u7F16\u8F91",
+    suggestions_show_more: "\u663E\u793A\u66F4\u591A\u5EFA\u8BAE",
+    version_history_loading: "\u52A0\u8F7D\u4E2D\u2026",
+    version_history_empty: "\u6682\u65E0\u7248\u672C\u5386\u53F2\u3002",
+    version_history_current_badge: "\u5F53\u524D",
+    version_history_hide_yaml: "\u9690\u85CF YAML",
+    version_history_view_yaml: "\u67E5\u770B YAML",
+    version_history_restoring: "\u6062\u590D\u4E2D\u2026",
+    version_history_restore_button: "\u6062\u590D\u6B64\u7248\u672C",
+    version_history_no_yaml_stored: "\uFF08\u672A\u5B58\u50A8 YAML\uFF09",
+    version_history_compare_title: "\u6BD4\u8F83\u7248\u672C",
+    version_history_version_a_label:
+      "\u7248\u672C A\uFF08\u8F83\u65B0\uFF09\uFF1A",
+    version_history_version_b_label:
+      "\u7248\u672C B\uFF08\u8F83\u65E7\uFF09\uFF1A",
+    version_history_loading_diff: "\u52A0\u8F7D\u5DEE\u5F02\u4E2D\u2026",
+    version_history_no_diff: "\u672A\u53D1\u73B0\u5DEE\u5F02\u3002",
+    device_detail_loading:
+      "\u6B63\u5728\u52A0\u8F7D\u8BBE\u5907\u8BE6\u60C5\u2026",
+    device_detail_close: "\u5173\u95ED",
+    device_detail_entities_heading: "\u5B9E\u4F53",
+    device_detail_state_history_heading:
+      "\u72B6\u6001\u5386\u53F2\uFF0824 \u5C0F\u65F6\uFF09",
+    device_detail_linked_automations_heading:
+      "\u5173\u8054\u7684\u81EA\u52A8\u5316",
+    device_detail_detected_patterns_heading:
+      "\u68C0\u6D4B\u5230\u7684\u6A21\u5F0F",
+    device_detail_confidence_label: "\u7F6E\u4FE1\u5EA6",
+    ignore_list_remove_label: "\u79FB\u9664\u6807\u7B7E",
+    ignore_list_chip_kind_device: "\u8BBE\u5907",
+    ignore_list_chip_kind_area: "\u533A\u57DF",
+    ignore_list_dropdown_kind_area: "\u533A\u57DF",
+    ignore_list_dropdown_kind_device: "\u8BBE\u5907",
+    ignore_list_how_it_works:
+      "\u8FD9\u662F\u5982\u4F55\u5DE5\u4F5C\u7684\uFF1F",
+    ignore_list_section_title: "\u5728\u5EFA\u8BAE\u4E2D\u5FFD\u7565",
+    ignore_list_search_placeholder:
+      "\u641C\u7D22\u5B9E\u4F53\u3001\u8BBE\u5907\u6216\u533A\u57DF\u2026",
+    ignore_list_empty_state:
+      "\u5C1A\u672A\u5FFD\u7565\u4EFB\u4F55\u5185\u5BB9\u3002",
+    approval_risk_explainer_low:
+      "\u4F4E\u98CE\u9669\uFF1A\u5F71\u54CD\u8F7B\u5FAE\u6216\u5B8C\u5168\u53EF\u9006\uFF08\u58F0\u97F3\u3001\u901A\u77E5\u3001\u626B\u5730\u673A\u542F\u52A8/\u505C\u6B62\uFF09\u3002",
+    approval_risk_explainer_medium:
+      "\u4E2D\u98CE\u9669\uFF1A\u53EF\u80FD\u4E0D\u5E0C\u671B\u64A4\u9500\u7684\u660E\u663E\u526F\u4F5C\u7528\uFF08\u542F\u52A8\u8B66\u62A5\u3001\u9501\u95E8\u3001\u8FD0\u884C\u7528\u6237\u811A\u672C\uFF09\u3002",
+    approval_risk_explainer_high:
+      "\u9AD8\u98CE\u9669\uFF1A\u7269\u7406\u8BBF\u95EE\u3001\u5B89\u5168\u6216\u4E3B\u673A\u7EA7\u522B\u7684\u5F71\u54CD\uFF08\u89E3\u9501\u95E8\u3001\u89E3\u9664\u8B66\u62A5\u3001\u8FD0\u884C shell \u547D\u4EE4\uFF09\u3002",
+    approval_scope_all_matching: "\u6240\u6709\u5339\u914D\u7684\u5B9E\u4F53",
+    approval_scope_just_these: "\u4EC5\u8FD9\u4E9B\u5B9E\u4F53",
+    approval_status_approved: "\u5DF2\u6279\u51C6",
+    approval_status_denied: "\u5DF2\u62D2\u7EDD",
+    approval_working: "\u5904\u7406\u4E2D\u2026",
+    approval_required_title: "\u9700\u8981\u6388\u6743",
+    approval_scope_label: "\u672C\u6B21\u4F1A\u8BDD / \u59CB\u7EC8\uFF1A",
+    approval_scope_button_title:
+      "\u70B9\u51FB\u4EE5\u5728\u5C06\u6388\u6743\u8303\u56F4\u9650\u5B9A\u4E3A\u4EC5\u6B64\u5B9E\u4F53\uFF0C\u6216\u8BE5\u670D\u52A1\u7684\u6240\u6709\u5B9E\u4F53\u4E4B\u95F4\u5207\u6362\u3002",
+    quick_actions_approve_once_label: "\u5141\u8BB8\u4E00\u6B21",
+    quick_actions_approve_once_desc: "\u4EC5\u6B64\u4E00\u6B21\u8BF7\u6C42",
+    quick_actions_approve_session_label: "\u672C\u6B21\u5BF9\u8BDD",
+    quick_actions_approve_session_desc:
+      "\u5728\u672C\u6B21\u5BF9\u8BDD\u7684\u5269\u4F59\u65F6\u95F4\u5185\u5141\u8BB8",
+    quick_actions_approve_always_label: "\u59CB\u7EC8",
+    quick_actions_approve_always_desc: "\u8BB0\u4F4F\u6B64\u6388\u6743",
+    quick_actions_deny_label: "\u62D2\u7EDD",
+    quick_actions_deny_desc: "\u4E0D\u8981\u8FD0\u884C\u6B64\u8BF7\u6C42",
+    stale_modal_title: "\u5931\u6548\u7684\u81EA\u52A8\u5316",
+    stale_select_all: "\u5168\u9009",
+    stale_last_triggered_label: "\u4E0A\u6B21\u89E6\u53D1\uFF1A",
+    stale_never: "\u4ECE\u672A",
+    stale_keep_button: "\u4FDD\u7559",
+    stale_close_button: "\u5173\u95ED",
+    stale_state_label: "\u72B6\u6001\uFF1A",
+    stale_state_unknown: "\u672A\u77E5",
+    stale_back_button: "\u8FD4\u56DE",
+    stale_remove_confirm:
+      "\u6C38\u4E45\u79FB\u9664\u6B64\u81EA\u52A8\u5316\uFF1F",
+    stale_remove_success: "\u81EA\u52A8\u5316\u5DF2\u79FB\u9664\u3002",
+    stale_remove_failed_prefix: "\u79FB\u9664\u5931\u8D25\uFF1A",
+    stale_remove_button: "\u79FB\u9664",
+    automation_management_triggered:
+      "\u81EA\u52A8\u5316\u5DF2\u89E6\u53D1\u3002",
+    automation_management_renamed: "\u81EA\u52A8\u5316\u5DF2\u91CD\u547D\u540D",
+    automation_management_version_restored:
+      "\u7248\u672C\u5DF2\u6062\u590D\u3002",
+    automation_management_delete_confirm:
+      "\u6C38\u4E45\u5220\u9664\u6B64\u81EA\u52A8\u5316\uFF1F",
+    automation_management_deleted: "\u81EA\u52A8\u5316\u5DF2\u5220\u9664\u3002",
+    automation_management_cannot_refine_no_id:
+      "\u65E0\u6CD5\u5B8C\u5584\u6B64\u81EA\u52A8\u5316\uFF0C\u56E0\u4E3A\u5B83\u6CA1\u6709\u81EA\u52A8\u5316 ID\u3002",
+    automation_management_loaded_to_chat:
+      "\u81EA\u52A8\u5316\u5DF2\u52A0\u8F7D\u5230\u5BF9\u8BDD\u4E2D\u3002",
+    action_format_run_verb: "\u8FD0\u884C",
+    action_format_ran_verb: "\u5DF2\u8FD0\u884C",
+    chat_actions_interrupt_disconnect:
+      "\u56DE\u590D\u8FC7\u7A0B\u4E2D\u4E0E Home Assistant \u7684\u8FDE\u63A5\u5DF2\u65AD\u5F00\u3002",
+    chat_actions_interrupt_server_stopped:
+      "\u670D\u52A1\u5668\u505C\u6B62\u54CD\u5E94\u3002",
+    chat_actions_interrupt_server_no_reply:
+      "\u670D\u52A1\u5668\u672A\u53CA\u65F6\u56DE\u590D\u3002",
+    chat_actions_interrupt_truncated:
+      "\u56DE\u590D\u4F3C\u4E4E\u88AB\u622A\u65AD\u2014\u2014\u8BF7\u91CD\u8BD5\u3002",
+    chat_actions_interrupt_llm_unreachable:
+      "\u65E0\u6CD5\u8FDE\u63A5\u5230 LLM \u63D0\u4F9B\u5546\u3002",
+    chat_actions_interrupt_session_start_failed:
+      "\u65E0\u6CD5\u542F\u52A8\u5BF9\u8BDD\u4F1A\u8BDD\u3002",
+    chat_actions_cancelled_by_user: "_\u5DF2\u88AB\u7528\u6237\u53D6\u6D88_",
+    automation_crud_save_failed:
+      "\u4FDD\u5B58\u81EA\u52A8\u5316\u5931\u8D25\uFF1A",
+    automation_crud_entity_not_surfaced:
+      "\u81EA\u52A8\u5316\u5DF2\u4FDD\u5B58\uFF0C\u4F46 Home Assistant \u5C1A\u672A\u663E\u793A\u8BE5\u5B9E\u4F53\u2014\u2014\u5F85\u5176\u51FA\u73B0\u540E\uFF0C\u5728\u201C\u81EA\u52A8\u5316\u201D\u9009\u9879\u5361\u4E2D\u5C06\u5176\u6253\u5F00\u3002",
+    automation_crud_auto_enable_failed_prefix:
+      "\u81EA\u52A8\u5316\u5DF2\u4FDD\u5B58\uFF0C\u4F46\u65E0\u6CD5\u81EA\u52A8\u542F\u7528\uFF1A",
+    automation_crud_unknown_error: "\u672A\u77E5\u9519\u8BEF",
+    automation_crud_auto_enable_failed_suffix:
+      "\u3002\u8BF7\u4F7F\u7528\u5361\u7247\u4E0A\u7684\u201C\u542F\u7528\u201D\u6309\u94AE\u91CD\u8BD5\u3002",
+    automation_crud_draft_dismissed: "\u8349\u7A3F\u5DF2\u5FFD\u7565\u3002",
+    automation_crud_dismiss_draft_failed:
+      "\u5FFD\u7565\u8349\u7A3F\u5931\u8D25\uFF1A",
+    automation_crud_create_failed:
+      "\u521B\u5EFA\u81EA\u52A8\u5316\u5931\u8D25\uFF1A",
+    automation_crud_save_edited_yaml_failed:
+      "\u4ECE\u7F16\u8F91\u540E\u7684 YAML \u4FDD\u5B58\u81EA\u52A8\u5316\u5931\u8D25\uFF1A",
+    automation_crud_yaml_saved:
+      "\u81EA\u52A8\u5316 YAML \u5DF2\u4FDD\u5B58\u3002",
+    automation_crud_save_changes_failed:
+      "\u4FDD\u5B58\u66F4\u6539\u5931\u8D25\uFF1A",
+    scene_actions_refine_default_name: "\u8BE5\u573A\u666F",
+    session_toast_new_automation_chat_failed:
+      "\u542F\u52A8\u65B0\u7684\u81EA\u52A8\u5316\u5BF9\u8BDD\u5931\u8D25\uFF1A",
+    session_toast_ai_no_suggestion:
+      "AI \u672A\u8FD4\u56DE\u5EFA\u8BAE\u2014\u2014\u8BF7\u91CD\u8BD5\u3002",
+    session_toast_suggest_failed:
+      "\u751F\u6210\u5EFA\u8BAE\u5931\u8D25\u2014\u2014\u8BF7\u68C0\u67E5 LLM \u914D\u7F6E\u3002",
+    suggestions_analysis_no_new:
+      "\u5206\u6790\u5B8C\u6210\u2014\u2014\u6B64\u65F6\u6CA1\u6709\u65B0\u7684\u5EFA\u8BAE",
+    suggestions_accepted_toast:
+      "\u5EFA\u8BAE\u5DF2\u63A5\u53D7\u2014\u2014\u81EA\u52A8\u5316\u5DF2\u521B\u5EFA",
+    suggestions_accept_failed: "\u63A5\u53D7\u5EFA\u8BAE\u5931\u8D25",
+    suggestions_dismissed_toast: "\u5EFA\u8BAE\u5DF2\u5FFD\u7565",
+    suggestions_snoozed_toast: "\u5EFA\u8BAE\u5DF2\u6682\u505C 24 \u5C0F\u65F6",
+    suggestions_pattern_scan_failed: "\u6A21\u5F0F\u626B\u63CF\u5931\u8D25",
+    area_unassigned: "\u672A\u5206\u914D",
+  },
+  options: {
+    step: {
+      init: {
+        title: "\u540E\u53F0\u670D\u52A1\u8BBE\u7F6E",
+        description:
+          "\u914D\u7F6E Selora AI \u7684\u540E\u53F0\u670D\u52A1\u3002",
+        data: {
+          collector_enabled:
+            "\u5DF2\u542F\u7528\u6570\u636E\u91C7\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
+          collector_mode: "\u6267\u884C\u6A21\u5F0F",
+          collector_interval: "\u5206\u6790\u95F4\u9694\uFF08\u79D2\uFF09",
+          collector_start_time: "\u8BA1\u5212\u5F00\u59CB\u65F6\u95F4",
+          collector_end_time: "\u8BA1\u5212\u7ED3\u675F\u65F6\u95F4",
+          discovery_enabled: "\u5DF2\u542F\u7528\u7F51\u7EDC\u53D1\u73B0",
+          discovery_mode: "\u6267\u884C\u6A21\u5F0F",
+          discovery_interval: "\u53D1\u73B0\u95F4\u9694\uFF08\u79D2\uFF09",
+          discovery_start_time: "\u8BA1\u5212\u5F00\u59CB\u65F6\u95F4",
+          discovery_end_time: "\u8BA1\u5212\u7ED3\u675F\u65F6\u95F4",
+        },
+      },
+    },
+  },
+};
+
+// ../translations/zh-Hant.json
+var zh_Hant_default = {
+  title: "Selora AI",
+  config: {
+    step: {
+      user: {
+        title: "\u8A2D\u5B9A Selora AI",
+        description:
+          "\u9078\u64C7\u8981\u7528\u65BC\u81EA\u52D5\u5316\u5EFA\u8B70\u7684 LLM \u5F8C\u7AEF\u3002",
+        data: {
+          llm_provider: "LLM \u4F9B\u61C9\u5546",
+        },
+      },
+      selora_cloud: {
+        title: "Selora AI Cloud",
+        description:
+          "Selora AI Cloud \u4F7F\u7528\u60A8\u7684 Selora \u5E33\u865F\uFF0C\u7121\u9700 API \u91D1\u9470\u3002\u8A2D\u5B9A\u5B8C\u6210\u5F8C\uFF0C\u958B\u555F Selora AI \u9762\u677F\u4E26\u9EDE\u9078\u300C\u9023\u7D50 Selora \u5E33\u865F\u300D\u5373\u53EF\u9032\u884C\u9A57\u8B49\u3002",
+      },
+      anthropic: {
+        title: "Anthropic\uFF08Claude\uFF09\u8A2D\u5B9A",
+        description:
+          "\u8ACB\u8F38\u5165\u60A8\u7684 Anthropic API \u91D1\u9470\u3002\u53EF\u65BC console.anthropic.com \u53D6\u5F97\u3002",
+        data: {
+          anthropic_api_key: "API \u91D1\u9470",
+          anthropic_model: "\u6A21\u578B",
+        },
+      },
+      gemini: {
+        title: "Google Gemini \u8A2D\u5B9A",
+        description:
+          "\u8ACB\u8F38\u5165\u60A8\u7684 Google Gemini API \u91D1\u9470\u3002\u53EF\u65BC aistudio.google.com \u53D6\u5F97\u3002",
+        data: {
+          gemini_api_key: "API \u91D1\u9470",
+          gemini_model: "\u6A21\u578B",
+        },
+      },
+      openai: {
+        title: "OpenAI \u8A2D\u5B9A",
+        description:
+          "\u8ACB\u8F38\u5165\u60A8\u7684 OpenAI API \u91D1\u9470\u3002\u53EF\u65BC platform.openai.com \u53D6\u5F97\u3002",
+        data: {
+          openai_api_key: "API \u91D1\u9470",
+          openai_model: "\u6A21\u578B",
+        },
+      },
+      openrouter: {
+        title: "OpenRouter \u8A2D\u5B9A",
+        description:
+          "\u8ACB\u8F38\u5165\u60A8\u7684 OpenRouter API \u91D1\u9470\u3002\u53EF\u65BC openrouter.ai/keys \u53D6\u5F97\u3002\u8ACB\u4F7F\u7528\u5E36\u6709\u4F9B\u61C9\u5546\u524D\u7DB4\u7684\u6A21\u578B\u540D\u7A31\uFF0C\u4F8B\u5982\u300Canthropic/claude-sonnet-4.5\u300D\u3002",
+        data: {
+          openrouter_api_key: "API \u91D1\u9470",
+          openrouter_model: "\u6A21\u578B",
+        },
+      },
+      ollama: {
+        title: "Ollama\uFF08\u672C\u6A5F\uFF09\u8A2D\u5B9A",
+        description:
+          "\u8ACB\u8F38\u5165\u60A8\u672C\u6A5F Ollama \u4F3A\u670D\u5668\u7684\u8A73\u7D30\u8CC7\u8A0A\u3002\u8ACB\u78BA\u8A8D\u5DF2\u4E0B\u8F09\u8A72\u6A21\u578B\u3002",
+        data: {
+          ollama_host: "Ollama \u4E3B\u6A5F\u7DB2\u5740",
+          ollama_model: "\u6A21\u578B\u540D\u7A31",
+        },
+      },
+      selora_local: {
+        title: "Selora AI Local \u8A2D\u5B9A",
+        description:
+          "Selora Hub \u51FA\u5EE0\u5373\u5DF2\u9810\u5148\u8A2D\u5B9A\u3002\u82E5\u8981\u4F7F\u7528\u81EA\u884C\u67B6\u8A2D\u3001\u57F7\u884C Selora AI \u6A21\u578B\u7684 llama-server\uFF0C\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u3002",
+        data: {
+          selora_local_host: "\u4E3B\u6A5F\u7DB2\u5740",
+        },
+      },
+      select_devices: {
+        title: "\u9078\u64C7\u8981\u65B0\u589E\u7684\u88DD\u7F6E",
+        description:
+          "Selora AI \u5728\u60A8\u7684\u7DB2\u8DEF\u4E0A\u627E\u5230 {count} \u500B\u88DD\u7F6E\u3002\u6307\u6D3E\u623F\u9593\u4EE5\u65B0\u589E\u88DD\u7F6E\uFF0C\u6216\u9078\u64C7\u300C\u7565\u904E\u300D\u4EE5\u8DF3\u904E\u8A72\u88DD\u7F6E\u3002\n\n{device_list}",
+      },
+      results: {
+        title: "\u88DD\u7F6E\u8A2D\u5B9A\u7D50\u679C",
+        description:
+          "\u8A2D\u5B9A\u5B8C\u6210\uFF1A{succeeded} \u500B\u6210\u529F\uFF0C{failed} \u500B\u5931\u6557\uFF0C{needs_attention} \u500B\u9700\u8981\u624B\u52D5\u8655\u7406\u3002\n\n{details}",
+      },
+    },
+    error: {
+      cannot_connect:
+        "\u7121\u6CD5\u9023\u7DDA\u3002\u8ACB\u6AA2\u67E5\u60A8\u7684 API \u91D1\u9470\uFF0C\u6216\u78BA\u8A8D Ollama \u6B63\u5728\u57F7\u884C\u4E14\u6A21\u578B\u5DF2\u4E0B\u8F09\u3002",
+      invalid_auth:
+        "Selora Connect \u6191\u8B49\u7121\u6548\u3002\u8ACB\u6AA2\u67E5\u60A8\u7684\u96FB\u5B50\u90F5\u4EF6\u8207\u5BC6\u78BC\u3002",
+      unknown: "\u767C\u751F\u672A\u9810\u671F\u7684\u932F\u8AA4\u3002",
+    },
+    abort: {
+      already_configured: "Selora AI \u5DF2\u8A2D\u5B9A\u5B8C\u6210\u3002",
+      cannot_connect:
+        "\u7121\u6CD5\u9023\u7DDA\u81F3 Selora AI \u96F2\u7AEF\u670D\u52D9\u3002\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002",
+      unknown:
+        "\u8A2D\u5B9A\u904E\u7A0B\u4E2D\u767C\u751F\u672A\u9810\u671F\u7684\u932F\u8AA4\u3002",
+      llm_not_ready:
+        "Selora AI \u7684 LLM \u5F8C\u7AEF\u5C1A\u672A\u57F7\u884C\u3002\u8ACB\u5148\u5B8C\u6210\u8A2D\u5B9A\u3002",
+      no_devices_found:
+        "\u5728\u60A8\u7684\u7DB2\u8DEF\u4E0A\u672A\u767C\u73FE\u65B0\u88DD\u7F6E\u3002\u8ACB\u7A0D\u5F8C\u518D\u8A66\u3002",
+      no_devices_selected: "\u672A\u9078\u64C7\u4EFB\u4F55\u88DD\u7F6E\u3002",
+      select_devices_failed:
+        "\u88DD\u7F6E\u65B0\u589E\u6642\u767C\u751F\u672A\u9810\u671F\u7684\u932F\u8AA4\u3002Selora AI \u5DF2\u5728\u672A\u65B0\u589E\u88DD\u7F6E\u7684\u60C5\u6CC1\u4E0B\u5B8C\u6210\u8A2D\u5B9A\uFF0C\u60A8\u53EF\u7A0D\u5F8C\u5F9E\u300C\u8A2D\u5B9A > \u88DD\u7F6E > \u65B0\u589E\u9805\u76EE\u300D\u518D\u6B21\u5617\u8A66\u3002\u8A73\u60C5\u8ACB\u67E5\u770B Home Assistant \u7D00\u9304\u3002",
+    },
+  },
+  common: {
+    feedback_button_label: "\u63D0\u4F9B\u610F\u898B\u56DE\u994B",
+    feedback_modal_title: "\u5206\u4EAB\u610F\u898B\u56DE\u994B",
+    feedback_privacy_notice:
+      "\u610F\u898B\u56DE\u994B\u70BA\u533F\u540D\uFF0C\u4E14\u4E0D\u542B\u4EFB\u4F55\u500B\u4EBA\u8CC7\u6599\u3002",
+    feedback_textarea_placeholder:
+      "\u60A8\u6709\u4EC0\u9EBC\u60F3\u6CD5\uFF1F\uFF08\u81F3\u5C11 10 \u500B\u5B57\u5143\uFF09",
+    feedback_rating_label: "\u8A55\u5206\uFF1A",
+    feedback_rating_thumbsup: "\u8B9A",
+    feedback_rating_thumbsdown: "\u5012\u8B9A",
+    feedback_category_label: "\u985E\u5225\uFF08\u9078\u586B\uFF09\uFF1A",
+    feedback_category_bug: "\u932F\u8AA4",
+    feedback_category_feature: "\u529F\u80FD\u9700\u6C42",
+    feedback_category_general: "\u4E00\u822C",
+    feedback_submit: "\u50B3\u9001\u610F\u898B\u56DE\u994B",
+    feedback_submitting: "\u50B3\u9001\u4E2D\u2026",
+    feedback_email_label:
+      "\u96FB\u5B50\u90F5\u4EF6\uFF08\u9078\u586B\uFF09\uFF1A",
+    feedback_email_placeholder:
+      "your@email.com \u2014 \u50C5\u5728\u60A8\u5E0C\u671B\u6536\u5230\u56DE\u8986\u6642\u586B\u5BEB",
+    feedback_cancel: "\u53D6\u6D88",
+    feedback_min_length_error:
+      "\u8ACB\u81F3\u5C11\u8F38\u5165 10 \u500B\u5B57\u5143\u3002",
+    feedback_success: "\u611F\u8B1D\u60A8\u7684\u610F\u898B\u56DE\u994B\uFF01",
+    feedback_error:
+      "\u7121\u6CD5\u50B3\u9001\u610F\u898B\u56DE\u994B\uFF0C\u8ACB\u518D\u8A66\u4E00\u6B21\u3002",
+    nav_new_chat: "\u65B0\u5C0D\u8A71",
+    nav_selora_menu: "Selora \u9078\u55AE",
+    nav_conversations: "\u5C0D\u8A71",
+    nav_automations: "\u81EA\u52D5\u5316",
+    nav_scenes: "\u60C5\u5883",
+    nav_settings: "\u8A2D\u5B9A",
+    nav_documentation: "\u8AAA\u660E\u6587\u4EF6",
+    nav_github_issues: "GitHub Issues",
+    nav_gitlab_repo: "GitLab \u5132\u5B58\u5EAB",
+    welcome_title_prefix: "\u6B61\u8FCE\u4F7F\u7528",
+    welcome_subtitle:
+      "\u60A8\u7684\u667A\u6167\u5BB6\u5EAD\u81EA\u52D5\u5316\u67B6\u69CB\u5E2B",
+    new_automation_title_prefix: "\u65B0\u589E",
+    new_automation_gold: "\u81EA\u52D5\u5316",
+    new_automation_subtitle:
+      "\u63CF\u8FF0\u60A8\u60F3\u81EA\u52D5\u5316\u7684\u5167\u5BB9\uFF0C\u5305\u542B\u6D89\u53CA\u7684\u88DD\u7F6E\u3001\u6642\u9593\u6216\u689D\u4EF6\u3002",
+    get_started: "\u958B\u59CB\u4F7F\u7528",
+    get_started_body:
+      "\u5728\u300C\u8A2D\u5B9A\u300D\u5206\u9801\u4E2D\u8A2D\u5B9A\u60A8\u7684 LLM \u4F9B\u61C9\u5546\uFF0C\u5373\u53EF\u958B\u59CB\u8207\u60A8\u7684\u5BB6\u5C0D\u8A71\u3002",
+    open_settings: "\u958B\u555F\u8A2D\u5B9A",
+    quick_start: "\u5FEB\u901F\u958B\u59CB",
+    composer_placeholder_ask:
+      "\u5411 Selora AI \u8A62\u554F\u4EFB\u4F55\u554F\u984C\u2026",
+    composer_placeholder_automation:
+      "\u63CF\u8FF0\u60A8\u60F3\u5EFA\u7ACB\u7684\u81EA\u52D5\u5316\u2026",
+    panel_quota_provider_default: "\u60A8\u7684 LLM \u4F9B\u61C9\u5546",
+    panel_quota_reached: "\u5DF2\u9054\u7528\u91CF\u4E0A\u9650\u3002",
+    panel_quota_try_again_prefix:
+      "\u8ACB\u65BC\u4EE5\u4E0B\u6642\u9593\u5F8C\u518D\u8A66",
+    panel_quota_retrying_now: "\u6B63\u5728\u91CD\u8A66\u2026",
+    panel_quota_dismiss: "\u95DC\u9589",
+    panel_llm_switched_selora_cloud:
+      "\u5DF2\u5207\u63DB\u81F3 Selora Cloud\u3002",
+    panel_llm_invalid_key:
+      "API \u91D1\u9470\u7121\u6548\u6216\u4F9B\u61C9\u5546\u7121\u6CD5\u9023\u7DDA\u3002",
+    panel_llm_settings_saved: "LLM \u8A2D\u5B9A\u5DF2\u5132\u5B58\u3002",
+    panel_advanced_settings_saved:
+      "\u9032\u968E\u8A2D\u5B9A\u5DF2\u5132\u5B58\u3002",
+    panel_linking_failed: "\u9023\u7D50\u5931\u6557\u3002",
+    panel_linking_timed_out:
+      "\u9023\u7D50\u903E\u6642\u3002\u8ACB\u518D\u8A66\u4E00\u6B21\uFF0C\u4E26\u52D9\u5FC5\u65BC 10 \u5206\u9418\u5167\u5B8C\u6210\u767B\u5165\u3002",
+    panel_linking_start_failed: "\u7121\u6CD5\u958B\u59CB\u9023\u7D50\u3002",
+    panel_connect_linked_success:
+      "Selora Connect \u5DF2\u6210\u529F\u9023\u7D50\u3002",
+    panel_unlink_connect_confirm:
+      "\u8981\u53D6\u6D88\u9023\u7D50 Selora Connect \u55CE\uFF1F\n\n\u5916\u90E8 MCP \u5DE5\u5177\uFF08Openclaw\u3001Claude Desktop\u3001Cursor\u3001Windsurf\uFF09\u5C07\u5931\u53BB\u5B58\u53D6\u6B0A\u9650\uFF0C\u76F4\u5230\u60A8\u91CD\u65B0\u9023\u7D50\u3002",
+    panel_connect_unlinked:
+      "Selora Connect \u5DF2\u53D6\u6D88\u9023\u7D50\u3002",
+    panel_cloud_linked_success:
+      "Selora Cloud \u5DF2\u6210\u529F\u9023\u7D50\u3002",
+    panel_unlink_cloud_confirm:
+      "\u8981\u53D6\u6D88\u9023\u7D50 Selora Cloud \u55CE\uFF1F\n\n\u5728\u60A8\u65BC\u300C\u8A2D\u5B9A\u300D\u4E2D\u91CD\u65B0\u9023\u7D50\u5E33\u865F\u4E4B\u524D\uFF0C\u5C0D\u8A71\u8207\u81EA\u52D5\u5316\u5EFA\u8B70\u5C07\u6703\u505C\u6B62\u3002",
+    panel_cloud_unlinked: "Selora Cloud \u5DF2\u53D6\u6D88\u9023\u7D50\u3002",
+    panel_mcp_token_created: "MCP \u6B0A\u6756\u5DF2\u5EFA\u7ACB\u3002",
+    panel_mcp_token_revoked: "\u6B0A\u6756\u5DF2\u64A4\u92B7\u3002",
+    panel_approval_revoked: "\u6388\u6B0A\u5DF2\u64A4\u92B7\u3002",
+    panel_device_loading: "\u8F09\u5165\u4E2D...",
+    panel_device_error_loading:
+      "\u8F09\u5165\u88DD\u7F6E\u6642\u767C\u751F\u932F\u8AA4",
+    panel_tab_conversations: "\u5C0D\u8A71",
+    panel_tab_automations: "\u81EA\u52D5\u5316",
+    panel_tab_scenes: "\u60C5\u5883",
+    panel_sidebar_conversations: "\u5C0D\u8A71",
+    panel_sidebar_done: "\u5B8C\u6210",
+    panel_sidebar_select: "\u9078\u53D6",
+    panel_sidebar_select_all: "\u5168\u9078",
+    panel_sidebar_delete: "\u522A\u9664",
+    panel_sidebar_new_chat: "\u65B0\u5C0D\u8A71",
+    panel_sidebar_no_conversations: "\u5C1A\u7121\u5C0D\u8A71\u3002",
+    panel_session_delete_confirm: "\u8981\u522A\u9664\u55CE\uFF1F",
+    panel_session_delete: "\u522A\u9664",
+    panel_session_cancel: "\u53D6\u6D88",
+    panel_session_delete_title: "\u522A\u9664",
+    panel_bulk_delete_title: "\u522A\u9664\u5C0D\u8A71",
+    panel_bulk_delete_cancel: "\u53D6\u6D88",
+    panel_bulk_delete_confirm: "\u522A\u9664",
+    chat_suggest_thinking: "\u601D\u8003\u4E2D\u2026",
+    chat_suggest_one_for_me: "\u5E6B\u6211\u5EFA\u8B70\u4E00\u500B",
+    chat_jump_to_latest: "\u8DF3\u81F3\u6700\u65B0\u8A0A\u606F",
+    chat_autocomplete_hint:
+      "\u2191\u2193 \u79FB\u52D5 \xB7 \u21B5 \u63D2\u5165 \xB7 Esc \u95DC\u9589",
+    chat_selection_remove: "\u79FB\u9664",
+    chat_stop_generating: "\u505C\u6B62\u7522\u751F",
+    chat_send: "\u50B3\u9001",
+    chat_building_scene: "\u6B63\u5728\u5EFA\u7ACB\u60C5\u5883...",
+    chat_go_to_settings: "\u524D\u5F80\u8A2D\u5B9A",
+    chat_response_cut_short: "\u56DE\u8986\u88AB\u622A\u65B7\u3002",
+    chat_retry: "\u91CD\u8A66",
+    chat_copy_message: "\u8907\u88FD\u8A0A\u606F",
+    chat_you: "\u60A8",
+    chat_yaml_unsaved_changes: "\u5C1A\u672A\u5132\u5B58\u7684\u8B8A\u66F4",
+    chat_yaml_saving: "\u5132\u5B58\u4E2D\u2026",
+    chat_yaml_save_changes: "\u5132\u5B58\u8B8A\u66F4",
+    chat_tools_used: "\u5DF2\u4F7F\u7528\u7684\u5DE5\u5177",
+    chat_automation_label_building:
+      "\u6B63\u5728\u5EFA\u7ACB\u81EA\u52D5\u5316...",
+    chat_automation_label_triggers:
+      "\u6B63\u5728\u8349\u64EC\u89F8\u767C\u689D\u4EF6...",
+    chat_automation_label_conditions: "\u6B63\u5728\u8A2D\u5B9A\u689D\u4EF6...",
+    chat_automation_label_actions: "\u6B63\u5728\u7DE8\u6392\u52D5\u4F5C...",
+    chat_automation_label_almost: "\u5373\u5C07\u5B8C\u6210...",
+    chat_autocomplete_kind_devices: "\u88DD\u7F6E",
+    chat_autocomplete_kind_areas: "\u5340\u57DF",
+    chat_autocomplete_kind_scenes: "\u60C5\u5883",
+    chat_autocomplete_kind_automations: "\u81EA\u52D5\u5316",
+    chat_autocomplete_kind_suggestions: "\u5EFA\u8B70",
+    chat_welcome_suggestion_lights_label:
+      "\u5728\u5348\u591C\u95DC\u9589\u6240\u6709\u71C8\u5149",
+    chat_welcome_suggestion_lights_value:
+      "\u5EFA\u7ACB\u4E00\u500B\u5728\u5348\u591C\u95DC\u9589\u6240\u6709\u71C8\u5149\u7684\u81EA\u52D5\u5316",
+    chat_welcome_suggestion_devices_label:
+      "\u6211\u6709\u54EA\u4E9B\u88DD\u7F6E\uFF1F",
+    chat_welcome_suggestion_devices_value:
+      "\u6211\u6709\u54EA\u4E9B\u88DD\u7F6E\uFF0C\u76EE\u524D\u6709\u54EA\u4E9B\u662F\u958B\u555F\u7684\uFF1F",
+    chat_welcome_suggestion_suggest_label:
+      "\u70BA\u6211\u7684\u5BB6\u5EFA\u8B70\u81EA\u52D5\u5316",
+    chat_welcome_suggestion_suggest_value:
+      "\u6839\u64DA\u6211\u7684\u88DD\u7F6E\u8207\u4F7F\u7528\u6A21\u5F0F\u5EFA\u8B70\u5BE6\u7528\u7684\u81EA\u52D5\u5316",
+    settings_view_token_usage_title: "\u6AA2\u8996\u6B0A\u6756\u7528\u91CF",
+    settings_usage_label: "\u7528\u91CF",
+    settings_view_usage_label: "\u6AA2\u8996\u7528\u91CF",
+    settings_provider_select_placeholder: "\u8ACB\u9078\u64C7...",
+    settings_doc_banner_title: "\u8A2D\u5B9A\u6307\u5357",
+    settings_doc_banner_desc:
+      "\u77AD\u89E3\u5982\u4F55\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546\u3001\u9060\u7AEF\u5B58\u53D6\u8207 MCP \u6B0A\u6756\u3002",
+    settings_llm_provider_heading: "LLM \u4F9B\u61C9\u5546",
+    settings_provider_label: "\u4F9B\u61C9\u5546",
+    settings_selora_account_label: "Selora \u5E33\u865F",
+    settings_selora_cloud_backend_desc:
+      "Selora Cloud \u6B63\u5728\u63D0\u4F9B\u60A8\u7684 LLM \u5F8C\u7AEF\u3002",
+    settings_unlink_button: "\u53D6\u6D88\u9023\u7D50",
+    settings_signin_selora_desc:
+      "\u4F7F\u7528\u60A8\u7684 Selora \u5E33\u865F\u767B\u5165\u5373\u53EF\u4F7F\u7528\u4EE3\u7BA1\u7684 LLM \u5F8C\u7AEF\uFF0C\u7121\u9700 API \u91D1\u9470\u3002",
+    settings_selora_cloud_url_label: "Selora Cloud \u7DB2\u5740",
+    settings_selora_cloud_url_hint:
+      "OAuth \u8207\u5C0D\u8A71\u5B8C\u6210\u529F\u80FD\u7686\u4F7F\u7528\u6B64\u7DB2\u5740\u3002\u9023\u7D50\u6642\u6703\u81EA\u52D5\u5132\u5B58\u3002",
+    settings_open_signin_page: "\u958B\u555F\u767B\u5165\u9801\u9762 \u2192",
+    settings_preparing_label: "\u6E96\u5099\u4E2D\u2026",
+    settings_link_selora_account_button: "\u9023\u7D50 Selora \u5E33\u865F",
+    settings_signin_new_tab_hint:
+      "\u5C07\u5728\u65B0\u5206\u9801\u4E2D\u958B\u555F\u3002\u767B\u5165\u5F8C\u8ACB\u8FD4\u56DE\u6B64\u9801\u9762\uFF0C\u9762\u677F\u6703\u81EA\u52D5\u66F4\u65B0\u3002",
+    settings_api_key_label: "API \u91D1\u9470",
+    settings_click_replace_key_title:
+      "\u9EDE\u9078\u4EE5\u66F4\u63DB\u91D1\u9470",
+    settings_enter_new_key_label: "\u8F38\u5165\u65B0\u91D1\u9470",
+    settings_enter_api_key_label: "\u8F38\u5165 API \u91D1\u9470",
+    settings_model_label: "\u6A21\u578B",
+    settings_selora_local_desc:
+      "Selora AI \u6703\u81EA\u52D5\u70BA\u6BCF\u500B\u8ACB\u6C42\u6311\u9078\u5408\u9069\u7684\u5C08\u7528\u6A21\u578B\uFF08\u6307\u4EE4\u3001\u81EA\u52D5\u5316\u3001\u56DE\u7B54\u3001\u91D0\u6E05\uFF09\u3002",
+    settings_ollama_host_label: "\u4E3B\u6A5F",
+    settings_selora_local_show_advanced: "\u986F\u793A\u9032\u968E\u9078\u9805",
+    settings_selora_local_hide_advanced: "\u96B1\u85CF\u9032\u968E\u9078\u9805",
+    settings_selora_local_advanced_desc:
+      "Selora Hub \u51FA\u5EE0\u5373\u5DF2\u9810\u5148\u8A2D\u5B9A\u3002\u82E5\u8981\u4F7F\u7528\u81EA\u884C\u67B6\u8A2D\u3001\u57F7\u884C Selora AI \u6A21\u578B\u7684 llama-server\uFF0C\u8ACB\u5728\u4E0B\u65B9\u8F38\u5165\u5176\u4F4D\u5740\u3002",
+    settings_selora_local_host_label: "\u4E3B\u6A5F",
+    settings_selora_local_auto_detected_prefix:
+      "\u81EA\u52D5\u5075\u6E2C\uFF1A",
+    settings_selora_local_auto_detected_none: "\u7121",
+    settings_validating_label: "\u9A57\u8B49\u4E2D\u2026",
+    settings_save_button: "\u5132\u5B58",
+    settings_mcp_server_heading: "MCP \u4F3A\u670D\u5668",
+    settings_mcp_server_subtitle:
+      "\u5C07\u60A8\u7684\u5BB6\u66B4\u9732\u7D66\u5916\u90E8 AI \u5DE5\u5177\uFF0C\u4F8B\u5982 Openclaw\u3001Claude Desktop\u3001Cursor \u6216 Windsurf\u3002",
+    settings_connect_via_selora_label:
+      "\u900F\u904E Selora \u5E33\u865F\u9023\u7DDA",
+    settings_connect_via_selora_desc:
+      "\u8B93\u60A8\u7684 MCP \u4F3A\u670D\u5668\u53EF\u4F9B\u5916\u90E8\u5DE5\u5177\u9023\u7DDA",
+    settings_mcp_url_copied_toast:
+      "MCP \u7DB2\u5740\u5DF2\u8907\u88FD\u5230\u526A\u8CBC\u7C3F",
+    settings_connect_server_url_label: "Connect \u4F3A\u670D\u5668\u7DB2\u5740",
+    settings_mcp_tokens_section_title: "MCP \u6B0A\u6756",
+    settings_mcp_tokens_desc:
+      "MCP \u6B0A\u6756\u662F Selora Connect \u7684\u66FF\u4EE3\u65B9\u6848\u3002\u9069\u7528\u65BC\u4E0D\u652F\u63F4 OAuth \u7684\u5DE5\u5177\uFF0C\u6216\u7576\u60A8\u504F\u597D\u4EE5\u6B0A\u6756\u9032\u884C\u9A57\u8B49\u6642\u3002",
+    settings_no_tokens_yet: "\u5C1A\u7121\u6B0A\u6756\u3002",
+    settings_add_token_button: "\u65B0\u589E\u6B0A\u6756",
+    settings_command_approvals_heading: "\u6307\u4EE4\u6388\u6B0A",
+    settings_advanced_settings_heading: "\u9032\u968E\u8A2D\u5B9A",
+    settings_background_services_title: "\u80CC\u666F\u670D\u52D9",
+    settings_data_collector_label:
+      "\u8CC7\u6599\u6536\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
+    settings_data_collector_desc:
+      "\u5C07\u5BE6\u9AD4\u6B77\u53F2\u8A18\u9304\u63D0\u4F9B\u7D66 Selora AI",
+    settings_mode_label: "\u6A21\u5F0F",
+    settings_mode_continuous: "\u6301\u7E8C",
+    settings_mode_scheduled_window: "\u6392\u7A0B\u6642\u6BB5",
+    settings_interval_seconds_label: "\u9593\u9694\uFF08\u79D2\uFF09",
+    settings_start_hhmm_label: "\u958B\u59CB\uFF08HH:MM\uFF09",
+    settings_end_hhmm_label: "\u7D50\u675F\uFF08HH:MM\uFF09",
+    settings_network_discovery_label: "\u7DB2\u8DEF\u63A2\u7D22",
+    settings_network_discovery_desc:
+      "\u6383\u63CF\u672C\u6A5F\u7DB2\u8DEF\u4E0A\u7684\u65B0\u88DD\u7F6E",
+    settings_pattern_detection_label: "\u6A21\u5F0F\u5075\u6E2C",
+    settings_pattern_detection_desc:
+      "\u5075\u6E2C\u91CD\u8907\u51FA\u73FE\u7684\u4F7F\u7528\u6A21\u5F0F\u4E26\u63D0\u51FA\u81EA\u52D5\u5316\u5EFA\u8B70",
+    settings_auto_remove_stale_label:
+      "\u81EA\u52D5\u79FB\u9664\u904E\u6642\u7684\u81EA\u52D5\u5316",
+    settings_developer_mode_label: "\u958B\u767C\u8005\u6A21\u5F0F",
+    settings_developer_mode_desc:
+      "\u516C\u958B\u539F\u59CB\u5BE6\u9AD4\u916C\u8F09\u8207\u9664\u932F\u7D00\u9304",
+    settings_dev_mode_save_failed_toast:
+      "\u7121\u6CD5\u5132\u5B58\u958B\u767C\u8005\u6A21\u5F0F\u3002",
+    settings_saving_label: "\u5132\u5B58\u4E2D\u2026",
+    settings_no_approvals_yet_prefix:
+      "\u5C1A\u7121\u5DF2\u5132\u5B58\u7684\u6388\u6B0A\u3002\u4E0B\u6B21 Selora \u5728\u57F7\u884C\u6709\u98A8\u96AA\u7684\u64CD\u4F5C\u524D\u8A62\u554F\u6642\uFF0C\u8ACB\u9EDE\u9078",
+    settings_no_approvals_always_word: "\u7E3D\u662F\u5141\u8A31",
+    settings_no_approvals_yet_suffix:
+      "\u5373\u53EF\u5728\u6B64\u8A18\u4F4F\u8A72\u6388\u6B0A\u3002",
+    settings_per_entity_approval_title: "\u500B\u5225\u5BE6\u9AD4\u6388\u6B0A",
+    settings_wildcard_approval_title:
+      "\u842C\u7528\u5B57\u5143 \u2014 \u5957\u7528\u81F3\u6B64\u670D\u52D9\u7684\u6BCF\u500B\u5BE6\u9AD4",
+    settings_approval_all_label: "\u5168\u90E8",
+    settings_token_created_heading: "\u6B0A\u6756\u5DF2\u5EFA\u7ACB",
+    settings_token_created_desc:
+      "\u8ACB\u7ACB\u5373\u8907\u88FD\u6B64\u6B0A\u6756\uFF0C\u4E4B\u5F8C\u5C07\u4E0D\u6703\u518D\u6B21\u986F\u793A\u3002",
+    settings_token_copied_toast:
+      "\u6B0A\u6756\u5DF2\u8907\u88FD\u5230\u526A\u8CBC\u7C3F",
+    settings_done_button: "\u5B8C\u6210",
+    settings_create_mcp_token_heading: "\u5EFA\u7ACB MCP \u6B0A\u6756",
+    settings_token_name_label: "\u540D\u7A31",
+    settings_token_name_placeholder: "\u4F8B\u5982 Claude Desktop",
+    settings_permission_level_label: "\u6B0A\u9650\u7B49\u7D1A",
+    settings_perm_read_only: "\u552F\u8B80",
+    settings_perm_admin_all:
+      "\u7BA1\u7406\u54E1\uFF08\u6240\u6709\u5DE5\u5177\uFF09",
+    settings_perm_custom: "\u81EA\u8A02\uFF08\u9078\u64C7\u5DE5\u5177\uFF09",
+    settings_allowed_tools_label: "\u5141\u8A31\u7684\u5DE5\u5177",
+    settings_admin_badge: "\u7BA1\u7406\u54E1",
+    settings_expiration_label:
+      "\u5230\u671F\u6642\u9593\uFF08\u9078\u586B\uFF09",
+    settings_expiry_never: "\u6C38\u4E0D\u5230\u671F",
+    settings_expiry_7_days: "7 \u5929",
+    settings_expiry_30_days: "30 \u5929",
+    settings_expiry_90_days: "90 \u5929",
+    settings_expiry_1_year: "1 \u5E74",
+    settings_cancel_button: "\u53D6\u6D88",
+    settings_create_token_button: "\u5EFA\u7ACB\u6B0A\u6756",
+    automations_flow_branch_if: "\u5982\u679C",
+    automations_flow_branch_else_if: "\u5426\u5247\u5982\u679C",
+    automations_flow_branch_otherwise: "\u5426\u5247",
+    automations_flow_branch_in_parallel: "\u5E73\u884C\u57F7\u884C",
+    automations_flow_branch_in_sequence: "\u4F9D\u5E8F\u57F7\u884C",
+    automations_flow_repeat_while:
+      "\u7576\u689D\u4EF6\u6210\u7ACB\u6642\u91CD\u8907",
+    automations_flow_repeat_until:
+      "\u91CD\u8907\u76F4\u5230\u689D\u4EF6\u6210\u7ACB",
+    automations_flow_repeat: "\u91CD\u8907",
+    automations_flow_label_trigger: "\u89F8\u767C\u689D\u4EF6",
+    automations_flow_label_condition: "\u689D\u4EF6",
+    automations_flow_label_actions: "\u52D5\u4F5C",
+    automations_badge_enabled: "\u5DF2\u555F\u7528",
+    automations_badge_saved: "\u5DF2\u5132\u5B58",
+    automations_yaml_toggle_hide: "\u96B1\u85CF YAML",
+    automations_yaml_toggle_view: "\u6AA2\u8996 YAML",
+    automations_yaml_toggle_edit: "\u7DE8\u8F2F YAML",
+    automations_proposal_declined_title: "\u81EA\u52D5\u5316\u5DF2\u62D2\u7D55",
+    automations_proposal_declined_body:
+      "\u5DF2\u95DC\u9589\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u8986\u4EE5\u9032\u4E00\u6B65\u8ABF\u6574\u3002",
+    automations_badge_being_refined: "\u8ABF\u6574\u4E2D",
+    automations_badge_proposal: "\u63D0\u6848",
+    automations_proposal_elevated_risk:
+      "\u5EFA\u8B70\u9032\u884C\u9AD8\u98A8\u96AA\u5BE9\u67E5\u3002",
+    automations_proposal_yaml_edits_note:
+      "\u60A8\u7684 YAML \u7DE8\u8F2F\u5167\u5BB9\u5C07\u5728\u63A5\u53D7\u6642\u5957\u7528\u3002",
+    automations_action_run_tooltip:
+      "\u7ACB\u5373\u89F8\u767C\u52D5\u4F5C\u4EE5\u9A57\u8B49\u662F\u5426\u6B63\u5E38\u904B\u4F5C",
+    automations_action_running: "\u57F7\u884C\u4E2D\u2026",
+    automations_action_run_now: "\u7ACB\u5373\u57F7\u884C",
+    automations_action_open_in_ha_tooltip:
+      "\u5728 Home Assistant \u4E2D\u958B\u555F\u6B64\u81EA\u52D5\u5316",
+    automations_action_view_in_ha: "\u5728 HA \u4E2D\u6AA2\u8996",
+    automations_action_enabling: "\u555F\u7528\u4E2D\u2026",
+    automations_action_enable_automation: "\u555F\u7528\u81EA\u52D5\u5316",
+    automations_elevated_risk_note:
+      "\u4F7F\u7528\u9AD8\u98A8\u96AA\u52D5\u4F5C \u2014 \u555F\u7528\u524D\u8ACB\u5148\u6AA2\u8996\u6D41\u7A0B\u8207 YAML\u3002",
+    automations_action_accept_and_save: "\u63A5\u53D7\u4E26\u5132\u5B58",
+    automations_section_title: "\u60A8\u7684\u81EA\u52D5\u5316",
+    automations_filter_placeholder: "\u7BE9\u9078\u81EA\u52D5\u5316\u2026",
+    automations_sort_recent: "\u6700\u8FD1\u6D3B\u52D5",
+    automations_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
+    automations_sort_enabled_first: "\u5DF2\u555F\u7528\u512A\u5148",
+    automations_llm_setup_required_tooltip:
+      "\u8ACB\u5148\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546",
+    automations_new_automation_button: "\u65B0\u589E\u81EA\u52D5\u5316",
+    automations_status_tab_all: "\u5168\u90E8",
+    automations_status_tab_enabled: "\u5DF2\u555F\u7528",
+    automations_status_tab_disabled: "\u5DF2\u505C\u7528",
+    automations_status_tab_stale: "\u904E\u6642",
+    automations_bulk_select_all: "\u5168\u9078",
+    automations_bulk_done: "\u5B8C\u6210",
+    automations_bulk_edit: "\u6279\u6B21\u7DE8\u8F2F",
+    automations_bulk_working: "\u8655\u7406\u4E2D\u2026",
+    automations_bulk_enable_all: "\u5168\u90E8\u555F\u7528",
+    automations_bulk_disable_all: "\u5168\u90E8\u505C\u7528",
+    automations_bulk_delete_selected: "\u522A\u9664\u6240\u9078",
+    automations_bulk_clear: "\u6E05\u9664",
+    automations_last_run_disabled: "\u5DF2\u505C\u7528",
+    automations_last_run_never: "\u5F9E\u672A",
+    automations_needs_attention_pill: "\u9700\u8981\u95DC\u6CE8",
+    automations_rename_save_tooltip: "\u5132\u5B58",
+    automations_last_run_prefix: "\u4E0A\u6B21\u57F7\u884C\uFF1A",
+    automations_last_run_prefix_inline: "\u4E0A\u6B21\u57F7\u884C\uFF1A",
+    automations_toggle_enabled: "\u5DF2\u555F\u7528",
+    automations_toggle_disabled: "\u5DF2\u505C\u7528",
+    automations_toggle_unavailable: "\u7121\u6CD5\u4F7F\u7528",
+    automations_toast_toggle_unresolved:
+      "\u7121\u6CD5\u5207\u63DB\uFF1A\u672A\u80FD\u89E3\u6790\u81EA\u52D5\u5316 ID\u3002\u8ACB\u91CD\u65B0\u8F09\u5165\u5F8C\u518D\u8A66\u3002",
+    automations_more_actions_tooltip: "\u66F4\u591A\u52D5\u4F5C",
+    automations_burger_loading: "\u8F09\u5165\u4E2D\u2026",
+    automations_burger_refine_in_chat: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
+    automations_burger_rename: "\u91CD\u65B0\u547D\u540D",
+    automations_burger_view_in_ha: "\u5728 HA \u4E2D\u6AA2\u8996",
+    automations_burger_deleting: "\u522A\u9664\u4E2D\u2026",
+    automations_burger_delete: "\u522A\u9664",
+    automations_card_tab_flow: "\u6D41\u7A0B",
+    automations_card_tab_yaml: "YAML",
+    automations_card_tab_history: "\u6B77\u7A0B",
+    automations_pagination_prev: "\u2039 \u4E0A\u4E00\u9801",
+    automations_pagination_per_page: "\u6BCF\u9801\u7B46\u6578\uFF1A",
+    automations_pagination_next: "\u4E0B\u4E00\u9801 \u203A",
+    automations_empty_state: "\u5C1A\u7121\u81EA\u52D5\u5316\u3002",
+    automations_unavailable_modal_title:
+      "\u81EA\u52D5\u5316\u7121\u6CD5\u4F7F\u7528",
+    automations_unavailable_default_name: "\u6B64\u81EA\u52D5\u5316",
+    automations_unavailable_modal_intro:
+      "\u5DF2\u88AB Home Assistant \u6A19\u8A18\u70BA\u7121\u6CD5\u4F7F\u7528\u3002\u9019\u901A\u5E38\u8868\u793A\uFF1A",
+    automations_unavailable_reason_entity:
+      "\u89F8\u767C\u689D\u4EF6\u6216\u689D\u4EF6\u5F15\u7528\u4E86\u5DF2\u4E0D\u5B58\u5728\u7684\u5BE6\u9AD4",
+    automations_unavailable_reason_yaml:
+      "\u81EA\u52D5\u5316 YAML \u6709\u8A2D\u5B9A\u932F\u8AA4",
+    automations_unavailable_reason_integration:
+      "\u5FC5\u8981\u7684\u6574\u5408\u5DF2\u88AB\u79FB\u9664\u6216\u672A\u8F09\u5165",
+    automations_unavailable_modal_advice:
+      "\u8ACB\u5728 Home Assistant \u8A2D\u5B9A\u4E2D\u958B\u555F\u6B64\u81EA\u52D5\u5316\u4EE5\u6AA2\u8996\u4E26\u4FEE\u6B63\u8A2D\u5B9A\u3002",
+    automations_unavailable_modal_close: "\u95DC\u9589",
+    automations_unavailable_modal_edit_states: "\u7DE8\u8F2F\u72C0\u614B",
+    automations_unavailable_modal_open_in_automations:
+      "\u5728\u81EA\u52D5\u5316\u4E2D\u958B\u555F",
+    scenes_card_created_title: "\u60C5\u5883\u5DF2\u5EFA\u7ACB",
+    scenes_card_saved_status: "\u5DF2\u5132\u5B58\u81F3 Home Assistant",
+    scenes_card_activate_button: "\u555F\u52D5",
+    scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u6AA2\u8996",
+    scenes_card_declined_title: "\u60C5\u5883\u5DF2\u62D2\u7D55",
+    scenes_card_declined_message:
+      "\u5DF2\u95DC\u9589\u3002\u60A8\u53EF\u4EE5\u5728\u4E0B\u65B9\u56DE\u8986\u4EE5\u9032\u4E00\u6B65\u8ABF\u6574\u3002",
+    scenes_card_refining_badge: "\u8ABF\u6574\u4E2D",
+    scenes_hide_yaml: "\u96B1\u85CF YAML",
+    scenes_view_yaml: "\u6AA2\u8996 YAML",
+    scenes_card_proposal_badge: "\u63D0\u6848",
+    scenes_card_accept_save_button: "\u63A5\u53D7\u4E26\u5132\u5B58",
+    scenes_section_title: "\u60A8\u7684\u60C5\u5883",
+    scenes_filter_placeholder: "\u7BE9\u9078\u60C5\u5883\u2026",
+    scenes_sort_recent: "\u6700\u8FD1\u66F4\u65B0",
+    scenes_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
+    scenes_sort_size: "\u5BE6\u9AD4\u6700\u591A",
+    scenes_llm_needs_setup_tooltip:
+      "\u8ACB\u5148\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546",
+    scenes_new_scene_button: "\u65B0\u589E\u60C5\u5883",
+    scenes_status_tab_all: "\u5168\u90E8",
+    scenes_status_tab_selora: "Selora AI",
+    scenes_status_tab_manual: "\u624B\u52D5",
+    scenes_activate_scene_tooltip: "\u555F\u52D5\u60C5\u5883",
+    scenes_activate_button: "\u555F\u52D5",
+    scenes_more_actions_tooltip: "\u66F4\u591A\u52D5\u4F5C",
+    scenes_loading_label: "\u8F09\u5165\u4E2D\u2026",
+    scenes_refine_in_chat_button: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
+    scenes_open_in_ha_button: "\u5728 HA \u4E2D\u958B\u555F",
+    scenes_deleting_label: "\u522A\u9664\u4E2D\u2026",
+    scenes_delete_button: "\u522A\u9664",
+    scenes_no_entity_details:
+      "\u7121\u53EF\u7528\u7684\u5BE6\u9AD4\u8A73\u7D30\u8CC7\u8A0A \u2014 \u8ACB\u5728 Home Assistant \u4E2D\u958B\u555F\u6B64\u60C5\u5883\u4EE5\u6AA2\u8996\u3002",
+    scenes_yaml_unavailable_comment:
+      "# YAML \u7121\u6CD5\u4F7F\u7528 \u2014 \u8ACB\u5728 Home Assistant \u4E2D\u958B\u555F\u6B64\u60C5\u5883\u4EE5\u6AA2\u8996\u3002",
+    scenes_empty_state:
+      "\u627E\u4E0D\u5230\u60C5\u5883\u3002\u8ACB\u8981\u6C42 Selora \u5EFA\u7ACB\u4E00\u500B\u3002",
+    scenes_delete_modal_fallback_name: "\u6B64\u60C5\u5883",
+    scenes_delete_modal_title: "\u522A\u9664\u60C5\u5883",
+    scenes_delete_modal_prefix: "\u522A\u9664",
+    scenes_delete_modal_suffix:
+      "\u55CE\uFF1F\u9019\u6703\u5C07\u8A72\u60C5\u5883\u5F9E Home Assistant \u4E2D\u79FB\u9664\uFF0C\u4E14\u7121\u6CD5\u5FA9\u539F\u3002",
+    scenes_delete_modal_cancel_button: "\u53D6\u6D88",
+    scenes_delete_modal_confirm_button: "\u522A\u9664",
+    usage_pricing_invalid_error:
+      "\u50F9\u683C\u5FC5\u9808\u70BA\u975E\u8CA0\u6578\u3002",
+    usage_pricing_saved_toast:
+      "\u50F9\u683C\u8986\u5BEB\u5DF2\u5132\u5B58\u3002",
+    usage_pricing_save_failed: "\u7121\u6CD5\u5132\u5B58\u50F9\u683C\uFF1A",
+    usage_pricing_reset_toast:
+      "\u5DF2\u91CD\u8A2D\u70BA\u9810\u8A2D\u50F9\u683C\u3002",
+    usage_pricing_reset_failed: "\u7121\u6CD5\u91CD\u8A2D\u50F9\u683C\uFF1A",
+    usage_pricing_title: "\u50F9\u683C",
+    usage_pricing_selora_cloud_sub: "Selora Cloud",
+    usage_pricing_selora_cloud_help:
+      "Selora Cloud \u7684\u7528\u91CF\u6703\u8A08\u91CF\u4E26\u8A08\u5165\u60A8\u7684 Selora Homes \u5E33\u865F\u5E33\u55AE\u3002\u9019\u4E0D\u6703\u8A08\u5165\u672C\u6574\u5408\u7684\u611F\u6E2C\u5668\u6216\u5716\u8868\u4E2D\u3002",
+    usage_pricing_view_cloud_link:
+      "\u5728\u60A8\u7684 Selora Homes \u5E33\u865F\u4E2D\u6AA2\u8996\u7528\u91CF",
+    usage_pricing_ollama_help:
+      "Ollama \u5728\u672C\u6A5F\u57F7\u884C \u2014 \u7121\u9700\u8FFD\u8E64\u6B0A\u6756\u6210\u672C\u3002",
+    usage_pricing_selora_local_help:
+      "Selora AI Local \u5728\u60A8\u7684\u786C\u9AD4\u4E0A\u57F7\u884C \u2014 \u7121\u9700\u8FFD\u8E64\u6B0A\u6756\u6210\u672C\u3002",
+    usage_pricing_no_model_help:
+      "\u8ACB\u5728\u300C\u8A2D\u5B9A\u300D\u4E2D\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546\u8207\u6A21\u578B\u4EE5\u8A2D\u5B9A\u81EA\u8A02\u50F9\u683C\u3002",
+    usage_pricing_intro_prefix:
+      "\u6210\u672C\u4F30\u7B97\u4F7F\u7528\u4EE5\u4E0B\u6BCF\u767E\u842C\u6B0A\u6756\u8CBB\u7387\u3002Anthropic \u7684\u9810\u8A2D\u503C\u4F86\u81EA",
+    usage_pricing_official_page_link: "\u5B98\u65B9\u50F9\u683C\u9801\u9762",
+    usage_pricing_intro_suffix:
+      "\uFF1B\u82E5\u60A8\u6709\u8B70\u5B9A\u8CBB\u7387\u6216\u6B63\u5728\u8FFD\u8E64\u5176\u4ED6\u6A21\u578B\uFF0C\u8ACB\u5728\u6B64\u8986\u5BEB\u3002",
+    usage_pricing_input_label: "\u8F38\u5165",
+    usage_pricing_default_prefix: "\u9810\u8A2D\u503C",
+    usage_pricing_no_default: "\u7121\u5167\u5EFA\u9810\u8A2D\u503C",
+    usage_pricing_output_label: "\u8F38\u51FA",
+    usage_pricing_input_field_label: "\u8F38\u5165\uFF08$/MTok\uFF09",
+    usage_pricing_output_field_label: "\u8F38\u51FA\uFF08$/MTok\uFF09",
+    usage_pricing_cancel_button: "\u53D6\u6D88",
+    usage_pricing_save_button: "\u5132\u5B58",
+    usage_pricing_edit_override_button: "\u7DE8\u8F2F\u8986\u5BEB",
+    usage_pricing_set_custom_button: "\u8A2D\u5B9A\u81EA\u8A02\u50F9\u683C",
+    usage_pricing_reset_default_button: "\u91CD\u8A2D\u70BA\u9810\u8A2D\u503C",
+    usage_snippet_copied_label: "\u5DF2\u8907\u88FD\uFF01",
+    usage_snippet_copy_button: "\u8907\u88FD",
+    usage_snippet_help:
+      "\u5728 Recorder \u9996\u6B21\u6BCF\u5C0F\u6642\u5F59\u6574\u5F8C\uFF0C\u8996\u89BA\u5316\u5361\u7247\u9078\u64C7\u5668\u4E5F\u6703\u627E\u5230\u9019\u4E9B\u611F\u6E2C\u5668\u3002",
+    usage_back_to_settings: "\u8FD4\u56DE\u8A2D\u5B9A",
+    usage_token_usage_title: "\u6B0A\u6756\u7528\u91CF",
+    usage_empty_title: "\u5C1A\u7121\u7528\u91CF\u8CC7\u6599\u3002",
+    usage_empty_body:
+      "\u7528\u91CF\u6703\u5728\u9996\u6B21 LLM \u547C\u53EB\u5F8C\u986F\u793A\u3002\u8ACB\u8A66\u8457\u8207 Selora AI \u5C0D\u8A71\u6216\u57F7\u884C\u5EFA\u8B70\u9031\u671F\u3002\u82E5\u60A8\u5DF2\u4F7F\u7528\u904E Selora AI \u4ECD\u770B\u5230\u6B64\u8A0A\u606F\uFF0C\u8ACB\u91CD\u65B0\u555F\u52D5 Home Assistant \u4EE5\u8A3B\u518A\u65B0\u7684\u611F\u6E2C\u5668\u3002",
+    usage_totals_title: "\u7E3D\u8A08",
+    usage_tile_cost_label: "\u6210\u672C",
+    usage_tile_cost_sub: "\u7F8E\u5143\u4F30\u7B97",
+    usage_tile_calls_label: "\u547C\u53EB\u6B21\u6578",
+    usage_tile_tokens_in_label: "\u8F38\u5165\u6B0A\u6756",
+    usage_tile_tokens_out_label: "\u8F38\u51FA\u6B0A\u6756",
+    usage_by_period_title: "\u4F9D\u671F\u9593",
+    usage_period_today: "\u4ECA\u5929",
+    usage_period_last_7_days: "\u904E\u53BB 7 \u5929",
+    usage_period_this_month: "\u672C\u6708",
+    usage_period_note_filtered:
+      "\u671F\u9593\u5340\u9593\u4F86\u81EA\u672C\u6574\u5408\u7684\u7528\u91CF\u5132\u5B58\u5340\uFF08\u4FDD\u7559 30 \u5929\uFF09\u3002",
+    usage_period_note_unfiltered:
+      "\u671F\u9593\u5340\u9593\u4F86\u81EA Home Assistant \u7684\u9577\u671F\u7D71\u8A08\u8CC7\u6599\uFF0C\u6BCF\u5C0F\u6642\u5F59\u6574\u4E00\u6B21\u3002\u65B0\u6D3B\u52D5\u53EF\u80FD\u9700\u8981\u6700\u591A\u4E00\u5C0F\u6642\u624D\u6703\u5728\u6B64\u986F\u793A\u3002",
+    usage_where_tokens_go_title: "\u6B0A\u6756\u7684\u53BB\u5411",
+    usage_where_tokens_last_prefix: "\u6700\u8FD1",
+    usage_where_tokens_resets_suffix:
+      "\xB7 \u5728 HA \u91CD\u65B0\u555F\u52D5\u6642\u91CD\u8A2D",
+    usage_group_by_kind_button: "\u4F9D\u985E\u578B",
+    usage_group_by_provider_button: "\u4F9D\u4F9B\u61C9\u5546",
+    usage_loading: "\u8F09\u5165\u4E2D\u2026",
+    usage_no_calls_recorded:
+      "\u5C1A\u672A\u8A18\u9304\u4EFB\u4F55\u547C\u53EB\u3002",
+    usage_recent_calls_title: "\u6700\u8FD1\u547C\u53EB",
+    usage_dashboard_sensors_title: "\u5100\u8868\u677F\u611F\u6E2C\u5668",
+    usage_dashboard_sensors_help_prefix:
+      "\u91CD\u65B0\u555F\u52D5 Home Assistant \u4EE5\u8A3B\u518A\u7528\u91CF\u611F\u6E2C\u5668\u3002\u8A3B\u518A\u5F8C\uFF0C\u60A8\u53EF\u4EE5\u4F7F\u7528",
+    usage_dashboard_sensors_help_suffix:
+      "\u5361\u7247\u5C07\u5B83\u5011\u52A0\u5165\u4EFB\u4F55\u5100\u8868\u677F\u3002",
+    usage_add_to_dashboard_title: "\u52A0\u5165\u60A8\u7684\u5100\u8868\u677F",
+    usage_add_to_dashboard_help:
+      "\u6BCF\u9805\u6307\u6A19\u7684\u523B\u5EA6\u4E0D\u540C \u2014 \u8ACB\u70BA\u6BCF\u500B\u611F\u6E2C\u5668\u5404\u5EFA\u7ACB\u4E00\u5F35\u5361\u7247\u3002\u6311\u9078\u4E00\u9805\u6307\u6A19\uFF0C\u8907\u88FD YAML\uFF0C\u7136\u5F8C\u5C07\u5176\u8CBC\u81F3\u5100\u8868\u677F\u7684 YAML \u7DE8\u8F2F\u5668\u4E2D\u3002",
+    usage_filter_all_providers: "\u6240\u6709\u4F9B\u61C9\u5546",
+    usage_filter_all_models: "\u6240\u6709\u6A21\u578B",
+    usage_filter_no_model: "\uFF08\u7121\u6A21\u578B\uFF09",
+    suggestions_tab_flow: "\u6D41\u7A0B",
+    suggestions_tab_yaml: "YAML",
+    suggestions_btn_creating: "\u5EFA\u7ACB\u4E2D\u2026",
+    suggestions_btn_accept: "\u63A5\u53D7",
+    suggestions_btn_dismissing: "\u95DC\u9589\u4E2D\u2026",
+    suggestions_btn_dismiss: "\u95DC\u9589",
+    suggestions_section_title: "\u70BA\u60A8\u63A8\u85A6",
+    suggestions_badge_new: "\u65B0",
+    suggestions_llm_setup_required:
+      "\u8ACB\u5148\u8A2D\u5B9A LLM \u4F9B\u61C9\u5546",
+    suggestions_btn_scanning: "\u6383\u63CF\u4E2D\u2026",
+    suggestions_btn_scan_now: "\u7ACB\u5373\u6383\u63CF",
+    suggestions_btn_analyzing: "\u5206\u6790\u4E2D\u2026",
+    suggestions_btn_generate: "\u7522\u751F",
+    suggestions_section_subtitle:
+      "\u6839\u64DA\u5728\u60A8\u5BB6\u4E2D\u89C0\u5BDF\u5230\u7684\u6A21\u5F0F\u8207 AI \u5206\u6790\u3002",
+    suggestions_empty_state:
+      "\u5C1A\u7121\u5EFA\u8B70\u3002\u9EDE\u9078\u300C\u7522\u751F\u300D\u4EE5\u5206\u6790\u60A8\u7684\u5BB6\u3002",
+    suggestions_filter_placeholder: "\u7BE9\u9078\u5EFA\u8B70\u2026",
+    suggestions_filter_all: "\u5168\u90E8",
+    suggestions_filter_patterns: "\u6A21\u5F0F",
+    suggestions_filter_ai: "AI",
+    suggestions_sort_recent: "\u6700\u8FD1",
+    suggestions_sort_alpha: "\u4F9D\u5B57\u6BCD\u6392\u5E8F",
+    suggestions_bulk_selected: "\u5DF2\u9078\u53D6",
+    suggestions_bulk_accept_selected: "\u63A5\u53D7\u6240\u9078",
+    suggestions_bulk_dismiss_selected: "\u95DC\u9589\u6240\u9078",
+    suggestions_bulk_done: "\u5B8C\u6210",
+    suggestions_bulk_edit: "\u6279\u6B21\u7DE8\u8F2F",
+    suggestions_show_more: "\u986F\u793A\u66F4\u591A\u5EFA\u8B70",
+    version_history_loading: "\u8F09\u5165\u4E2D\u2026",
+    version_history_empty: "\u5C1A\u7121\u7248\u672C\u6B77\u7A0B\u3002",
+    version_history_current_badge: "\u76EE\u524D",
+    version_history_hide_yaml: "\u96B1\u85CF YAML",
+    version_history_view_yaml: "\u6AA2\u8996 YAML",
+    version_history_restoring: "\u9084\u539F\u4E2D\u2026",
+    version_history_restore_button: "\u9084\u539F\u6B64\u7248\u672C",
+    version_history_no_yaml_stored: "\uFF08\u672A\u5132\u5B58 YAML\uFF09",
+    version_history_compare_title: "\u6BD4\u8F03\u7248\u672C",
+    version_history_version_a_label:
+      "\u7248\u672C A\uFF08\u8F03\u65B0\uFF09\uFF1A",
+    version_history_version_b_label:
+      "\u7248\u672C B\uFF08\u8F03\u820A\uFF09\uFF1A",
+    version_history_loading_diff: "\u8F09\u5165\u5DEE\u7570\u4E2D\u2026",
+    version_history_no_diff: "\u672A\u767C\u73FE\u5DEE\u7570\u3002",
+    device_detail_loading:
+      "\u6B63\u5728\u8F09\u5165\u88DD\u7F6E\u8A73\u7D30\u8CC7\u8A0A...",
+    device_detail_close: "\u95DC\u9589",
+    device_detail_entities_heading: "\u5BE6\u9AD4",
+    device_detail_state_history_heading:
+      "\u72C0\u614B\u6B77\u7A0B\uFF0824 \u5C0F\u6642\uFF09",
+    device_detail_linked_automations_heading:
+      "\u5DF2\u9023\u7D50\u7684\u81EA\u52D5\u5316",
+    device_detail_detected_patterns_heading:
+      "\u5075\u6E2C\u5230\u7684\u6A21\u5F0F",
+    device_detail_confidence_label: "\u4FE1\u8CF4\u5EA6",
+    ignore_list_remove_label: "\u79FB\u9664\u6A19\u7C64",
+    ignore_list_chip_kind_device: "\u88DD\u7F6E",
+    ignore_list_chip_kind_area: "\u5340\u57DF",
+    ignore_list_dropdown_kind_area: "\u5340\u57DF",
+    ignore_list_dropdown_kind_device: "\u88DD\u7F6E",
+    ignore_list_how_it_works:
+      "\u9019\u662F\u5982\u4F55\u904B\u4F5C\u7684\uFF1F",
+    ignore_list_section_title: "\u5728\u5EFA\u8B70\u4E2D\u5FFD\u7565",
+    ignore_list_search_placeholder:
+      "\u641C\u5C0B\u5BE6\u9AD4\u3001\u88DD\u7F6E\u6216\u5340\u57DF\u2026",
+    ignore_list_empty_state:
+      "\u5C1A\u672A\u5FFD\u7565\u4EFB\u4F55\u9805\u76EE\u3002",
+    approval_risk_explainer_low:
+      "\u4F4E\u98A8\u96AA\uFF1A\u5F71\u97FF\u8F15\u5FAE\u6216\u53EF\u5B8C\u5168\u5FA9\u539F\uFF08\u8072\u97F3\u3001\u901A\u77E5\u3001\u6383\u5730\u6A5F\u958B\u59CB\uFF0F\u505C\u6B62\uFF09\u3002",
+    approval_risk_explainer_medium:
+      "\u4E2D\u98A8\u96AA\uFF1A\u6709\u660E\u986F\u4E14\u60A8\u53EF\u80FD\u4E0D\u60F3\u5FA9\u539F\u7684\u526F\u4F5C\u7528\uFF08\u555F\u52D5\u8B66\u5831\u3001\u4E0A\u9396\u9580\u3001\u57F7\u884C\u4F7F\u7528\u8005\u8173\u672C\uFF09\u3002",
+    approval_risk_explainer_high:
+      "\u9AD8\u98A8\u96AA\uFF1A\u6D89\u53CA\u5BE6\u9AD4\u5B58\u53D6\u3001\u5B89\u5168\u6027\u6216\u4E3B\u6A5F\u5C64\u7D1A\u7684\u5F71\u97FF\uFF08\u89E3\u9396\u9580\u3001\u89E3\u9664\u8B66\u5831\u3001\u57F7\u884C shell \u6307\u4EE4\uFF09\u3002",
+    approval_scope_all_matching: "\u6240\u6709\u7B26\u5408\u7684\u5BE6\u9AD4",
+    approval_scope_just_these: "\u50C5\u9019\u4E9B\u5BE6\u9AD4",
+    approval_status_approved: "\u5DF2\u6838\u51C6",
+    approval_status_denied: "\u5DF2\u62D2\u7D55",
+    approval_working: "\u8655\u7406\u4E2D\u2026",
+    approval_required_title: "\u9700\u8981\u6388\u6B0A",
+    approval_scope_label:
+      "\u672C\u6B21\u5DE5\u4F5C\u968E\u6BB5\uFF0F\u7E3D\u662F\uFF1A",
+    approval_scope_button_title:
+      "\u9EDE\u9078\u4EE5\u5728\u50C5\u6388\u6B0A\u6B64\u5BE6\u9AD4\uFF0C\u6216\u6388\u6B0A\u6B64\u670D\u52D9\u7684\u6240\u6709\u5BE6\u9AD4\u4E4B\u9593\u5207\u63DB\u3002",
+    quick_actions_approve_once_label: "\u5141\u8A31\u4E00\u6B21",
+    quick_actions_approve_once_desc:
+      "\u50C5\u9650\u9019\u4E00\u500B\u8ACB\u6C42",
+    quick_actions_approve_session_label: "\u672C\u6B21\u5C0D\u8A71",
+    quick_actions_approve_session_desc:
+      "\u5728\u672C\u6B21\u5C0D\u8A71\u7684\u5176\u9918\u671F\u9593\u5141\u8A31",
+    quick_actions_approve_always_label: "\u7E3D\u662F\u5141\u8A31",
+    quick_actions_approve_always_desc: "\u8A18\u4F4F\u6B64\u6388\u6B0A",
+    quick_actions_deny_label: "\u62D2\u7D55",
+    quick_actions_deny_desc: "\u4E0D\u8981\u57F7\u884C\u6B64\u8ACB\u6C42",
+    stale_modal_title: "\u904E\u6642\u7684\u81EA\u52D5\u5316",
+    stale_select_all: "\u5168\u9078",
+    stale_last_triggered_label: "\u4E0A\u6B21\u89F8\u767C\uFF1A",
+    stale_never: "\u5F9E\u672A",
+    stale_keep_button: "\u4FDD\u7559",
+    stale_close_button: "\u95DC\u9589",
+    stale_state_label: "\u72C0\u614B\uFF1A",
+    stale_state_unknown: "\u672A\u77E5",
+    stale_back_button: "\u8FD4\u56DE",
+    stale_remove_confirm:
+      "\u8981\u6C38\u4E45\u79FB\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F",
+    stale_remove_success: "\u81EA\u52D5\u5316\u5DF2\u79FB\u9664\u3002",
+    stale_remove_failed_prefix: "\u7121\u6CD5\u79FB\u9664\uFF1A",
+    stale_remove_button: "\u79FB\u9664",
+    automation_management_triggered:
+      "\u81EA\u52D5\u5316\u5DF2\u89F8\u767C\u3002",
+    automation_management_renamed:
+      "\u81EA\u52D5\u5316\u5DF2\u91CD\u65B0\u547D\u540D",
+    automation_management_version_restored:
+      "\u7248\u672C\u5DF2\u9084\u539F\u3002",
+    automation_management_delete_confirm:
+      "\u8981\u6C38\u4E45\u522A\u9664\u6B64\u81EA\u52D5\u5316\u55CE\uFF1F",
+    automation_management_deleted: "\u81EA\u52D5\u5316\u5DF2\u522A\u9664\u3002",
+    automation_management_cannot_refine_no_id:
+      "\u6B64\u81EA\u52D5\u5316\u56E0\u70BA\u6C92\u6709\u81EA\u52D5\u5316 ID \u800C\u7121\u6CD5\u8ABF\u6574\u3002",
+    automation_management_loaded_to_chat:
+      "\u81EA\u52D5\u5316\u5DF2\u8F09\u5165\u5C0D\u8A71\u4E2D\u3002",
+    action_format_run_verb: "\u57F7\u884C",
+    action_format_ran_verb: "\u5DF2\u57F7\u884C",
+    chat_actions_interrupt_disconnect:
+      "\u5728\u56DE\u61C9\u904E\u7A0B\u4E2D\u8207 Home Assistant \u7684\u9023\u7DDA\u4E2D\u65B7\u3002",
+    chat_actions_interrupt_server_stopped:
+      "\u4F3A\u670D\u5668\u505C\u6B62\u56DE\u61C9\u3002",
+    chat_actions_interrupt_server_no_reply:
+      "\u4F3A\u670D\u5668\u672A\u53CA\u6642\u56DE\u8986\u3002",
+    chat_actions_interrupt_truncated:
+      "\u56DE\u61C9\u770B\u8D77\u4F86\u88AB\u622A\u65B7 \u2014 \u8ACB\u518D\u8A66\u4E00\u6B21\u3002",
+    chat_actions_interrupt_llm_unreachable:
+      "\u7121\u6CD5\u9023\u7DDA\u81F3 LLM \u4F9B\u61C9\u5546\u3002",
+    chat_actions_interrupt_session_start_failed:
+      "\u7121\u6CD5\u958B\u59CB\u5C0D\u8A71\u5DE5\u4F5C\u968E\u6BB5\u3002",
+    chat_actions_cancelled_by_user:
+      "_\u5DF2\u7531\u4F7F\u7528\u8005\u53D6\u6D88_",
+    automation_crud_save_failed:
+      "\u7121\u6CD5\u5132\u5B58\u81EA\u52D5\u5316\uFF1A",
+    automation_crud_entity_not_surfaced:
+      "\u81EA\u52D5\u5316\u5DF2\u5132\u5B58\uFF0C\u4F46 Home Assistant \u5C1A\u672A\u986F\u793A\u8A72\u5BE6\u9AD4 \u2014 \u5F85\u5176\u51FA\u73FE\u5F8C\uFF0C\u8ACB\u5728\u300C\u81EA\u52D5\u5316\u300D\u5206\u9801\u4E2D\u5C07\u5176\u958B\u555F\u3002",
+    automation_crud_auto_enable_failed_prefix:
+      "\u81EA\u52D5\u5316\u5DF2\u5132\u5B58\uFF0C\u4F46\u7121\u6CD5\u81EA\u52D5\u555F\u7528\uFF1A",
+    automation_crud_unknown_error: "\u672A\u77E5\u932F\u8AA4",
+    automation_crud_auto_enable_failed_suffix:
+      "\u3002\u8ACB\u4F7F\u7528\u5361\u7247\u4E0A\u7684\u300C\u555F\u7528\u300D\u6309\u9215\u518D\u8A66\u4E00\u6B21\u3002",
+    automation_crud_draft_dismissed: "\u8349\u7A3F\u5DF2\u95DC\u9589\u3002",
+    automation_crud_dismiss_draft_failed:
+      "\u7121\u6CD5\u95DC\u9589\u8349\u7A3F\uFF1A",
+    automation_crud_create_failed:
+      "\u7121\u6CD5\u5EFA\u7ACB\u81EA\u52D5\u5316\uFF1A",
+    automation_crud_save_edited_yaml_failed:
+      "\u7121\u6CD5\u5F9E\u7DE8\u8F2F\u5F8C\u7684 YAML \u5132\u5B58\u81EA\u52D5\u5316\uFF1A",
+    automation_crud_yaml_saved:
+      "\u81EA\u52D5\u5316 YAML \u5DF2\u5132\u5B58\u3002",
+    automation_crud_save_changes_failed:
+      "\u7121\u6CD5\u5132\u5B58\u8B8A\u66F4\uFF1A",
+    scene_actions_refine_default_name: "\u6B64\u60C5\u5883",
+    session_toast_new_automation_chat_failed:
+      "\u7121\u6CD5\u958B\u59CB\u65B0\u7684\u81EA\u52D5\u5316\u5C0D\u8A71\uFF1A",
+    session_toast_ai_no_suggestion:
+      "AI \u672A\u50B3\u56DE\u5EFA\u8B70 \u2014 \u8ACB\u518D\u8A66\u4E00\u6B21\u3002",
+    session_toast_suggest_failed:
+      "\u7121\u6CD5\u7522\u751F\u5EFA\u8B70 \u2014 \u8ACB\u6AA2\u67E5 LLM \u8A2D\u5B9A\u3002",
+    suggestions_analysis_no_new:
+      "\u5206\u6790\u5B8C\u6210 \u2014 \u6B64\u6642\u6C92\u6709\u65B0\u7684\u5EFA\u8B70",
+    suggestions_accepted_toast:
+      "\u5EFA\u8B70\u5DF2\u63A5\u53D7 \u2014 \u81EA\u52D5\u5316\u5DF2\u5EFA\u7ACB",
+    suggestions_accept_failed: "\u7121\u6CD5\u63A5\u53D7\u5EFA\u8B70",
+    suggestions_dismissed_toast: "\u5EFA\u8B70\u5DF2\u95DC\u9589",
+    suggestions_snoozed_toast: "\u5EFA\u8B70\u5DF2\u5EF6\u5F8C 24 \u5C0F\u6642",
+    suggestions_pattern_scan_failed: "\u6A21\u5F0F\u6383\u63CF\u5931\u6557",
+    area_unassigned: "\u672A\u6307\u6D3E",
+  },
+  options: {
+    step: {
+      init: {
+        title: "\u80CC\u666F\u670D\u52D9\u8A2D\u5B9A",
+        description:
+          "\u8A2D\u5B9A Selora AI \u7684\u80CC\u666F\u670D\u52D9\u3002",
+        data: {
+          collector_enabled:
+            "\u555F\u7528\u8CC7\u6599\u6536\u96C6\u5668\uFF08AI \u5206\u6790\uFF09",
+          collector_mode: "\u57F7\u884C\u6A21\u5F0F",
+          collector_interval: "\u5206\u6790\u9593\u9694\uFF08\u79D2\uFF09",
+          collector_start_time: "\u6392\u7A0B\u958B\u59CB\u6642\u9593",
+          collector_end_time: "\u6392\u7A0B\u7D50\u675F\u6642\u9593",
+          discovery_enabled: "\u555F\u7528\u7DB2\u8DEF\u63A2\u7D22",
+          discovery_mode: "\u57F7\u884C\u6A21\u5F0F",
+          discovery_interval: "\u63A2\u7D22\u9593\u9694\uFF08\u79D2\uFF09",
+          discovery_start_time: "\u6392\u7A0B\u958B\u59CB\u6642\u9593",
+          discovery_end_time: "\u6392\u7A0B\u7D50\u675F\u6642\u9593",
+        },
+      },
+    },
+  },
+};
+
 // src/shared/i18n.js
 var CATALOG = {
   en: en_default,
@@ -12150,10 +17254,18 @@ var CATALOG = {
   it: it_default,
   nl: nl_default,
   hu: hu_default,
+  pt: pt_default,
+  ru: ru_default,
+  ja: ja_default,
+  ko: ko_default,
+  "zh-hans": zh_Hans_default,
+  "zh-hant": zh_Hant_default,
 };
 function pickLocale(hass) {
   const raw = hass?.language || hass?.locale?.language || "en";
-  const base = String(raw).toLowerCase().split("-")[0];
+  const lower = String(raw).toLowerCase();
+  if (CATALOG[lower]) return lower;
+  const base = lower.split("-")[0];
   return CATALOG[base] ? base : "en";
 }
 function localize(hass, key, fallback) {

@@ -114,7 +114,7 @@
     "nav_github_issues": "Tickets GitHub",
     "nav_gitlab_repo": "Dépôt GitLab",
     "welcome_title_prefix": "Bienvenue sur",
-    "welcome_subtitle": "Votre architecte intelligent de domotique",
+    "welcome_subtitle": "Votre architecte intelligent pour Home Assistant",
     "new_automation_title_prefix": "Nouvelle",
     "new_automation_gold": "Automatisation",
     "new_automation_subtitle": "Décrivez ce que vous souhaitez automatiser — mentionnez les appareils, horaires ou conditions concernés.",
@@ -618,3 +618,4 @@
     }
   }
 }
+

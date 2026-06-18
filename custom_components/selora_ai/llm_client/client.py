@@ -172,6 +172,7 @@ def _pre_provider_short_circuit(
     history: list[dict[str, str]] | None = None,
     *,
     refining: bool = False,
+    language: str | None = None,
 ) -> dict[str, Any] | None:
     """Return a slim response envelope when a deterministic intent helper
     can answer the turn without going to the provider.
@@ -200,7 +201,7 @@ def _pre_provider_short_circuit(
     """
     # Safety refusal (injection / non-English) ALWAYS runs — even during
     # refinement, those inputs must never reach the provider.
-    envelope = _build_safety_short_circuit(user_message)
+    envelope = _build_safety_short_circuit(user_message, language)
     if envelope is not None:
         return envelope
     # During proposal refinement ("turn off all lights" while editing an
@@ -253,6 +254,11 @@ _CANNED_NOT_CONFIGURED: dict[str, str] = {
     "it": "Configura le credenziali del tuo provider LLM nella scheda Impostazioni per iniziare a chattare.",
     "nl": "Configureer de inloggegevens van uw LLM-provider in het tabblad Instellingen om te beginnen met chatten.",
     "hu": "Kérjük, állítsa be az LLM-szolgáltató hitelesítő adatait a Beállítások lapon a csevegés elindításához.",
+    "zh": "请在“设置”标签页中配置您的 LLM 服务商凭据，以开始聊天。",
+    "pt": "Configure as credenciais do seu fornecedor de LLM no separador Definições para começar a conversar.",
+    "ja": "チャットを開始するには、「設定」タブで LLM プロバイダーの認証情報を設定してください。",
+    "ko": "채팅을 시작하려면 설정 탭에서 LLM 제공업체 자격 증명을 구성하세요.",
+    "ru": "Чтобы начать чат, настройте учётные данные вашего LLM-провайдера на вкладке «Настройки».",
 }
 
 _CANNED_GREETING: dict[str, str] = {
@@ -263,6 +269,11 @@ _CANNED_GREETING: dict[str, str] = {
     "it": "Ciao! Come posso aiutarti?",
     "nl": "Hallo! Waarmee kan ik helpen?",
     "hu": "Üdvözlöm! Miben segíthetek?",
+    "zh": "您好！有什么可以帮您？",
+    "pt": "Olá! Em que posso ajudar?",
+    "ja": "こんにちは！何かお手伝いできることはありますか？",
+    "ko": "안녕하세요! 무엇을 도와드릴까요?",
+    "ru": "Здравствуйте! Чем могу помочь?",
 }
 
 
@@ -562,7 +573,7 @@ class LLMClient:
         # a live device).
         refining = bool(refining_context or refining_scene_context or scene_context)
         short_circuit = _pre_provider_short_circuit(
-            user_message, entities, history, refining=refining
+            user_message, entities, history, refining=refining, language=effective_language
         )
         if short_circuit is not None:
             if short_circuit.get("intent") == "command":
@@ -834,7 +845,7 @@ class LLMClient:
         # of executing against live devices.
         refining = bool(refining_context or refining_scene_context or scene_context)
         short_circuit = _pre_provider_short_circuit(
-            user_message, entities, history, refining=refining
+            user_message, entities, history, refining=refining, language=effective_language
         )
         if short_circuit is not None:
             yield json.dumps(short_circuit)

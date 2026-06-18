@@ -42,7 +42,7 @@ custom_components/selora_ai/
 ├── const.py             # Constants, config keys, known integrations database
 ├── manifest.json        # HA integration manifest
 ├── strings.json         # UI strings for config flow
-├── translations/         # HA-side translations (en, fr, de, es, it) — all keys must match strings.json
+├── translations/         # HA-side translations (en, fr, de, es, it, nl, hu, pt, ru, ja, ko, zh-Hans, zh-Hant) — all keys must match strings.json
 ├── brand/               # Logo and icon assets
 └── frontend/
     └── src/
@@ -91,8 +91,10 @@ custom_components/selora_ai/
 
 ### i18n / Translations
 - Backend (config flow, entity names, errors): HA standard. `strings.json` is the source of truth (English). `translations/<lang>.json` mirrors its structure for each supported locale.
-- Supported locales: `en`, `fr`, `de`, `es`, `it`. When adding a string to `strings.json`, add the same key to ALL `translations/*.json` files in the same commit. Hassfest fails CI if any locale is missing a key.
+- Supported locales: `en`, `fr`, `de`, `es`, `it`, `nl`, `hu`, `pt`, `ru`, `ja`, `ko`, `zh-Hans`, `zh-Hant`. When adding a string to `strings.json`, add the same key to ALL `translations/*.json` files in the same commit. Hassfest fails CI if any locale is missing a key.
 - Preserve placeholders (`{count}`, `{device_list}`, `{succeeded}`, `{failed}`, `{needs_attention}`, `{details}`) verbatim across all locales.
+- Conversational LLM replies (chat/Assist) follow `hass.config.language`, not the UI locale set above. `_language_directive()` in `llm_client/prompts.py` injects a "respond in <language>" instruction. `_LANGUAGE_NAMES` is the allowlist of recognized codes — unknown/untrusted codes are dropped (no directive), never echoed into the system prompt. To add a conversational language, add its base code → English name to `_LANGUAGE_NAMES`.
+- Runtime confirmation/approval strings (chat command results) are NOT in `translations/*.json` — they live in per-language dicts keyed by base code: `_PAST_VERBS_*` / `_GENERIC_RAN_BY_LANG` / `_DONE_BY_LANG` / `_SENTENCE_FORMAT_BY_LANG` in `llm_client/command_policy.py`, `_CANNED_*` in `llm_client/client.py`, and `_APPROVAL_*_BY_LANG` in `__init__.py`. All fall back to English when a key is missing. `_normalize_lang()` strips the region subtag (`zh-Hant` → `zh`), so script variants share one runtime entry — `zh-Hant` UI users get Simplified runtime confirmation verbs until region-aware normalization is added.
 - Frontend (panel) i18n is partially wired: a `_t()` helper exists in `frontend/src/panel.js` and resolves keys under the `component.selora_ai.common.*` namespace via `hass.localize()`. Today only the feedback modal uses it (~19 calls out of ~5,000 user-facing literals — see `frontend/src/panel/*.js`, `frontend/src/shared/*.js`).
 - When touching frontend UI text: prefer `_t('key')` over hardcoded strings. Add the key to `common` in `strings.json` AND every `translations/*.json` locale. Use ICU-style placeholders for interpolation.
 - Bulk frontend extraction is a separate ongoing effort — do not block small PRs on it, but do not introduce new hardcoded literals when an existing key fits.
