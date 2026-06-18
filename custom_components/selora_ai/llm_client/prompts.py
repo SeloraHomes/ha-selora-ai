@@ -26,8 +26,8 @@ _LOGGER = logging.getLogger(__name__)
 
 # BCP47 / ISO-639 code → English name. Used in the system-prompt language
 # directive so the model knows which language to render its conversational
-# text in. Falls through to the raw code for locales we don't list, which
-# major models still handle correctly via the directive shape.
+# text in. Acts as the allowlist: codes not listed here get no directive,
+# so an untrusted language value can't inject text into the system prompt.
 _LANGUAGE_NAMES: dict[str, str] = {
     "en": "English",
     "fr": "French",
@@ -65,7 +65,13 @@ def _language_directive(language: str | None) -> str:
     base = str(language).lower().split("-")[0]
     if base == "en":
         return ""
-    name = _LANGUAGE_NAMES.get(base, base)
+    # Only emit the directive for locales we explicitly know. An unknown code
+    # is dropped rather than echoed back: the language value can originate from
+    # an untrusted websocket client, and interpolating a raw string here would
+    # let it inject arbitrary text into the system prompt.
+    name = _LANGUAGE_NAMES.get(base)
+    if name is None:
+        return ""
     return (
         f"LANGUAGE: Respond in {name}. All conversational text — explanations, "
         f"confirmations, suggestions, follow-up questions — MUST be in {name}. "

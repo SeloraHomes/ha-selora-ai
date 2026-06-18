@@ -114,6 +114,28 @@ class TestArchitectChatSafetyShortCircuit:
         assert "English" in result["response"]
 
     @pytest.mark.parametrize(
+        ("message", "language"),
+        [
+            ("enciende la luz de la cocina", "es"),  # Spanish
+            ("allume la lumière du salon", "fr"),  # French
+            ("燈を点けて", "ja"),  # Japanese
+        ],
+    )
+    async def test_supported_locale_passes_through(
+        self, hass, message: str, language: str
+    ) -> None:
+        """P2 — when the request locale is one Selora supports, the
+        non-English guard must NOT refuse: the command reaches the LLM,
+        which replies in that language. Otherwise the localized command
+        autocomplete would lead users into rejected requests."""
+        client = _make_client(hass)
+        client._provider.send_request = AsyncMock(
+            return_value=('{"intent": "answer", "response": "ok"}', None)
+        )
+        await client.architect_chat(message, entities=[], language=language)
+        client._provider.send_request.assert_called_once()
+
+    @pytest.mark.parametrize(
         "message",
         [
             "turn on Liga",  # Portuguese verb but used as entity name

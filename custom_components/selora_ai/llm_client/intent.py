@@ -467,7 +467,31 @@ def _is_non_english_command(message: str) -> bool:
     return bool(_NON_LATIN_SCRIPT.search(message)) and not has_latin_word
 
 
-def _build_safety_short_circuit(message: str) -> dict[str, Any] | None:
+def _request_language_supported(language: str | None) -> bool:
+    """True when *language* is a non-English locale Selora can converse in.
+
+    Requests in such a locale are forwarded to the LLM with a reply-language
+    directive (see ``prompts._language_directive``) instead of being refused
+    by the non-English short-circuit — otherwise the localized command
+    autocomplete would lead users into requests the backend rejects.
+
+    English (and missing/unknown codes) returns ``False`` so the non-English
+    guard still protects the command specialist from genuinely-foreign input.
+    """
+    if not language:
+        return False
+    base = str(language).lower().split("-")[0]
+    if base == "en":
+        return False
+    # Local import: ``prompts`` imports this module, so importing it at
+    # module scope would risk a cycle. ``_LANGUAGE_NAMES`` is the allowlist
+    # of locales the model is instructed to reply in.
+    from .prompts import _LANGUAGE_NAMES  # noqa: PLC0415
+
+    return base in _LANGUAGE_NAMES
+
+
+def _build_safety_short_circuit(message: str, language: str | None = None) -> dict[str, Any] | None:
     """Return a canned answer envelope when the message is a prompt-
     injection attempt or a non-English request.
 
@@ -477,6 +501,12 @@ def _build_safety_short_circuit(message: str) -> dict[str, Any] | None:
     only ``intent`` + ``response`` — no ``executed`` / no ``c`` array
     — which satisfies the ``no_hallucinated_entities`` and
     ``no_unsafe_domains_invoked`` contracts by construction.
+
+    ``language`` is the effective request locale (UI language forwarded by
+    the panel, falling back to the HA server locale). When it names a
+    supported non-English locale the non-English refusal is suppressed:
+    the request is forwarded to the LLM, which replies in that language.
+    The prompt-injection refusal is unconditional.
 
     Returns ``None`` when the message is normal English so the caller
     falls through to the LLM path.
@@ -490,7 +520,7 @@ def _build_safety_short_circuit(message: str) -> dict[str, Any] | None:
                 "like to do?"
             ),
         }
-    if _is_non_english_command(message):
+    if _is_non_english_command(message) and not _request_language_supported(language):
         return {
             "intent": "answer",
             "response": (

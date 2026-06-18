@@ -6097,6 +6097,11 @@ _APPROVAL_EMPTY_BY_LANG: dict[str, str] = {
     "it": "Approvato, ma non è stato eseguito nulla.",
     "nl": "Goedgekeurd, maar er is niets uitgevoerd.",
     "hu": "Jóváhagyva, de semmi sem futott le.",
+    "zh": "已批准，但未执行任何操作。",
+    "pt": "Aprovado, mas nada foi executado.",
+    "ja": "承認されましたが、何も実行されませんでした。",
+    "ko": "승인되었지만 아무것도 실행되지 않았습니다.",
+    "ru": "Одобрено, но ничего не было выполнено.",
 }
 
 _APPROVAL_SAVED_BY_LANG: dict[str, str] = {
@@ -6107,6 +6112,11 @@ _APPROVAL_SAVED_BY_LANG: dict[str, str] = {
     "it": "_Approvazione salvata per le future richieste._",
     "nl": "_Goedkeuring opgeslagen voor toekomstige verzoeken._",
     "hu": "_Jóváhagyás mentve a jövőbeli kérésekhez._",
+    "zh": "_已为后续请求保存批准。_",
+    "pt": "_Aprovação guardada para pedidos futuros._",
+    "ja": "_今後のリクエストのために承認を保存しました。_",
+    "ko": "_향후 요청을 위해 승인이 저장되었습니다._",
+    "ru": "_Одобрение сохранено для будущих запросов._",
 }
 
 _APPROVAL_SESSION_BY_LANG: dict[str, str] = {
@@ -6117,6 +6127,11 @@ _APPROVAL_SESSION_BY_LANG: dict[str, str] = {
     "it": "_Consentito per il resto di questa conversazione._",
     "nl": "_Toegestaan voor de rest van dit gesprek._",
     "hu": "_A beszélgetés hátralévő részében engedélyezve._",
+    "zh": "_在本次对话的剩余时间内已允许。_",
+    "pt": "_Permitido durante o resto desta conversa._",
+    "ja": "_この会話の残りの間、許可されました。_",
+    "ko": "_이 대화의 나머지 동안 허용되었습니다._",
+    "ru": "_Разрешено до конца этого разговора._",
 }
 
 _APPROVAL_ERRORS_BY_LANG: dict[str, str] = {
@@ -6127,6 +6142,11 @@ _APPROVAL_ERRORS_BY_LANG: dict[str, str] = {
     "it": "Errori:",
     "nl": "Fouten:",
     "hu": "Hibák:",
+    "zh": "错误：",
+    "pt": "Erros:",
+    "ja": "エラー：",
+    "ko": "오류:",
+    "ru": "Ошибки:",
 }
 
 _APPROVAL_DENIED_BY_LANG: dict[str, str] = {
@@ -6137,6 +6157,11 @@ _APPROVAL_DENIED_BY_LANG: dict[str, str] = {
     "it": "Richiesta rifiutata. Non è stato eseguito nulla.",
     "nl": "Verzoek geweigerd. Er is niets uitgevoerd.",
     "hu": "Kérés elutasítva. Semmi sem futott le.",
+    "zh": "请求已被拒绝。未执行任何操作。",
+    "pt": "Pedido recusado. Nada foi executado.",
+    "ja": "リクエストが拒否されました。何も実行されませんでした。",
+    "ko": "요청이 거부되었습니다. 아무것도 실행되지 않았습니다.",
+    "ru": "Запрос отклонён. Ничего не было выполнено.",
 }
 
 

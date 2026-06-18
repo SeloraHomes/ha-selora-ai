@@ -119,6 +119,19 @@ Point the integration at `http://<host>:8080` via **Settings → LLM Provider �
 
 ---
 
+## Languages
+
+Selora AI is localized on two levels:
+
+- **Interface** — the config flow, entity names, and error messages ship translations for **English, French, German, Spanish, Italian, Dutch, Hungarian, Portuguese, Russian, Japanese, Korean, Simplified Chinese, and Traditional Chinese**. Home Assistant picks the one matching your configured language and falls back to English otherwise.
+- **Conversational replies** — chat and Assist responses follow your Home Assistant language. Selora AI instructs the model to answer in that language; the following are recognized explicitly:
+
+  English, French, German, Spanish, Italian, Portuguese, Dutch, Polish, Swedish, Danish, Norwegian, Finnish, Czech, Russian, Ukrainian, Turkish, Hungarian, Japanese, Korean, Chinese.
+
+  Any other language code falls back to English replies. Entity IDs, service names, and code blocks are always left untouched regardless of language.
+
+---
+
 ## Learn More
 
 | Topic | Link |
