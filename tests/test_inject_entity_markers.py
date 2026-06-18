@@ -502,3 +502,80 @@ def test_parenthesized_area_annotation_does_not_match_sibling_domain():
     marker_segment = out.split("[[entities:")[1].split("]]")[0]
     assert "light.ceiling_lights" in marker_segment
     assert "light.kitchen_lights" in marker_segment
+
+
+def test_fenced_code_block_entity_ids_preserved_verbatim():
+    # YAML / config snippets inside ``` fences must stay literal — the
+    # bullet-entity scan would otherwise rewrite the `- light.kitchen`
+    # lines into a tile-grid marker and corrupt the snippet the user is
+    # meant to copy.
+    text = (
+        "Add this to configuration.yaml:\n"
+        "\n"
+        "```yaml\n"
+        "group:\n"
+        "  all_lights:\n"
+        "    entities:\n"
+        "      - light.kitchen\n"
+        "      - light.office\n"
+        "```\n"
+    )
+    entities = [
+        _ent("light.kitchen", "Kitchen Light"),
+        _ent("light.office", "Office Light"),
+    ]
+    out = _inject_entity_markers(text, entities)
+    # Fenced block survives unchanged — no marker injected, no bullets stripped.
+    assert "```yaml" in out
+    assert "- light.kitchen" in out
+    assert "- light.office" in out
+    assert "[[entities:" not in out
+
+
+def test_bullet_line_with_raw_entity_id_wins_over_friendly_name_collision():
+    # The model wrote a list like:
+    #   - **Kitchen** — `binary_sensor.klippbok_water_leak_sensor_water_leak_3`
+    # "Kitchen" is the AREA label. There's also a real entity
+    # ``media_player.kitchen`` named "Kitchen" — without the raw-id-wins
+    # rule, the bullet capture would rewrite the line into a
+    # kitchen-speaker tile in the middle of leak sensors. Prefer the
+    # entity_id explicitly named on the line.
+    text = (
+        "Sensors:\n"
+        "\n"
+        "- **Master bathroom** — `binary_sensor.klippbok_water_leak_sensor_water_leak`\n"
+        "- **Kitchen** — `binary_sensor.klippbok_water_leak_sensor_water_leak_3`\n"
+    )
+    entities = [
+        _ent(
+            "binary_sensor.klippbok_water_leak_sensor_water_leak",
+            "Master bathroom leak",
+        ),
+        _ent(
+            "binary_sensor.klippbok_water_leak_sensor_water_leak_3",
+            "Kitchen leak",
+        ),
+        _ent("media_player.kitchen", "Kitchen"),
+    ]
+    out = _inject_entity_markers(text, entities)
+    # The speaker MUST NOT be injected just because "Kitchen" appears in
+    # the prose — the line names the binary_sensor explicitly.
+    assert "media_player.kitchen" not in out
+
+
+def test_prose_around_fenced_block_still_gets_marker():
+    # Friendly-name salvage MUST still fire on the prose surrounding a
+    # fenced block — only the block contents are off-limits.
+    text = (
+        "Yes, you have a garage door.\n"
+        "\n"
+        "```yaml\n"
+        "# unrelated yaml\n"
+        "foo: bar\n"
+        "```\n"
+    )
+    entities = [_ent("cover.garage_door", "Garage Door")]
+    out = _inject_entity_markers(text, entities)
+    assert "[[entities:cover.garage_door]]" in out
+    assert "```yaml" in out
+    assert "foo: bar" in out
