@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "Failed to reset pricing:",
     "usage_pricing_title": "Pricing",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud usage is metered and billed in your Selora Homes account. It is not counted in this integration's sensors or charts.",
+    "usage_pricing_selora_cloud_help": "Token and call counts are tracked locally in this integration's sensors and charts. Selora Cloud is billed in prepaid credits in your Selora Homes account, so no per-token cost estimate is shown here.",
     "usage_pricing_view_cloud_link": "View usage in your Selora Homes account",
     "usage_pricing_ollama_help": "Ollama runs locally — no token costs to track.",
     "usage_pricing_selora_local_help": "Selora AI Local runs on your hardware — no token costs to track.",

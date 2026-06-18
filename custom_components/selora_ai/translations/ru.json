@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "Не удалось сбросить цены:",
     "usage_pricing_title": "Цены",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Использование Selora Cloud учитывается и оплачивается в вашей учётной записи Selora Homes. Оно не учитывается в датчиках и графиках этой интеграции.",
+    "usage_pricing_selora_cloud_help": "Количество токенов и вызовов учитывается локально в датчиках и графиках этой интеграции. Selora Cloud оплачивается предоплаченными кредитами в вашей учётной записи Selora Homes, поэтому оценка стоимости за токен здесь не отображается.",
     "usage_pricing_view_cloud_link": "Просмотреть использование в вашей учётной записи Selora Homes",
     "usage_pricing_ollama_help": "Ollama работает локально — нет затрат на токены для отслеживания.",
     "usage_pricing_selora_local_help": "Selora AI Local работает на вашем оборудовании — нет затрат на токены для отслеживания.",

@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "Échec de la réinitialisation de la tarification :",
     "usage_pricing_title": "Tarification",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "L'utilisation de Selora Cloud est mesurée et facturée sur votre compte Selora Homes. Elle n'est pas comptabilisée dans les capteurs ou graphiques de cette intégration.",
+    "usage_pricing_selora_cloud_help": "Le nombre de jetons et d'appels est suivi localement dans les capteurs et graphiques de cette intégration. Selora Cloud est facturé en crédits prépayés sur votre compte Selora Homes ; aucune estimation de coût par jeton n'est donc affichée ici.",
     "usage_pricing_view_cloud_link": "Voir l'utilisation dans votre compte Selora Homes",
     "usage_pricing_ollama_help": "Ollama s'exécute localement — pas de coûts en jetons à suivre.",
     "usage_pricing_selora_local_help": "Selora AI Local s'exécute sur votre matériel — pas de coûts en jetons à suivre.",

@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "料金のリセットに失敗しました：",
     "usage_pricing_title": "料金",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud の使用量は計測され、Selora Homes アカウントで請求されます。この統合のセンサーやチャートにはカウントされません。",
+    "usage_pricing_selora_cloud_help": "トークン数と呼び出し回数は、この統合のセンサーやチャートにローカルで記録されます。Selora Cloud は Selora Homes アカウントのプリペイドクレジットで請求されるため、ここではトークンあたりのコスト見積もりは表示されません。",
     "usage_pricing_view_cloud_link": "Selora Homes アカウントで使用量を表示",
     "usage_pricing_ollama_help": "Ollama はローカルで実行されます — 追跡すべきトークンコストはありません。",
     "usage_pricing_selora_local_help": "Selora AI Local はお使いのハードウェアで実行されます — 追跡すべきトークンコストはありません。",

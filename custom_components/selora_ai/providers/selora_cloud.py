@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+import json
 import logging
 import re
 import time
@@ -46,7 +47,7 @@ from ..const import (
 from .openai_compat import OpenAICompatibleProvider
 
 if TYPE_CHECKING:
-    from ..types import OpenAIChatPayload
+    from ..types import LLMUsageInfo, OpenAIChatPayload
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -192,6 +193,31 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # forwards this hint to whichever model it routes to.
         payload["reasoning"] = {"enabled": False}
         return payload
+
+    # -- Usage -------------------------------------------------------------
+
+    def extract_usage(self, response_data: dict[str, Any]) -> LLMUsageInfo | None:
+        # The gateway routes to a model server-side, so this provider has no
+        # fixed model of its own. Capture the backing model the response
+        # reports so usage events carry it (enables cost estimation).
+        info = super().extract_usage(response_data)
+        if info is not None:
+            model = response_data.get("model")
+            if isinstance(model, str) and model:
+                info["model"] = model
+        return info
+
+    def parse_stream_usage(self, line: str) -> LLMUsageInfo | None:
+        info = super().parse_stream_usage(line)
+        if info is not None and line.startswith("data: "):
+            try:
+                obj = json.loads(line[6:])
+            except json.JSONDecodeError:
+                obj = None
+            model = obj.get("model") if isinstance(obj, dict) else None
+            if isinstance(model, str) and model:
+                info["model"] = model
+        return info
 
     # -- Token refresh -----------------------------------------------------
 

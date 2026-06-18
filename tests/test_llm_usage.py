@@ -17,6 +17,7 @@ from custom_components.selora_ai.const import estimate_llm_cost_usd
 from custom_components.selora_ai.providers.anthropic import AnthropicProvider
 from custom_components.selora_ai.providers.gemini import GeminiProvider
 from custom_components.selora_ai.providers.openai import OpenAIProvider
+from custom_components.selora_ai.providers.selora_cloud import SeloraCloudProvider
 
 
 # ── Pricing helper ────────────────────────────────────────────────────
@@ -88,6 +89,16 @@ class TestEstimateCost:
             "anthropic", "claude-sonnet-4-6", 1_000_000, 1_000_000, overrides=None
         )
         assert cost == pytest.approx(18.0)
+
+    def test_selora_cloud_has_no_usd_cost(self) -> None:
+        # Selora Cloud bills in prepaid credits, not per-token USD, even when
+        # the backing model id is otherwise known. No USD estimate is produced.
+        assert (
+            estimate_llm_cost_usd(
+                "selora_cloud", "claude-sonnet-4-6", 1_000_000, 1_000_000
+            )
+            == 0.0
+        )
 
 
 # ── Provider extract_usage ────────────────────────────────────────────
@@ -220,6 +231,70 @@ class TestGeminiUsage:
             "input_tokens": 12,
             "output_tokens": 3,
         }
+
+
+class TestSeloraCloudUsage:
+    @pytest.fixture
+    def provider(self, hass):
+        return SeloraCloudProvider(
+            hass,
+            access_token="ey.access",
+            refresh_token="aigw_refresh",
+            expires_at=9_999_999_999.0,
+            connect_url="https://example.test",
+            client_id="cid",
+            entry_id="entry-id",
+        )
+
+    def test_extract_usage_captures_backing_model(self, provider) -> None:
+        response = {
+            "model": "claude-sonnet-4-6",
+            "choices": [{"message": {"content": "ok"}}],
+            "usage": {"prompt_tokens": 220, "completion_tokens": 80},
+        }
+        assert provider.extract_usage(response) == {
+            "input_tokens": 220,
+            "output_tokens": 80,
+            "model": "claude-sonnet-4-6",
+        }
+
+    def test_extract_usage_no_model_field(self, provider) -> None:
+        response = {"usage": {"prompt_tokens": 5, "completion_tokens": 2}}
+        assert provider.extract_usage(response) == {
+            "input_tokens": 5,
+            "output_tokens": 2,
+        }
+
+    def test_extract_usage_missing_returns_none(self, provider) -> None:
+        assert provider.extract_usage({"model": "claude-sonnet-4-6"}) is None
+
+    def test_parse_stream_usage_captures_backing_model(self, provider) -> None:
+        line = "data: " + json.dumps(
+            {
+                "model": "claude-sonnet-4-6",
+                "choices": [],
+                "usage": {"prompt_tokens": 50, "completion_tokens": 25},
+            }
+        )
+        assert provider.parse_stream_usage(line) == {
+            "input_tokens": 50,
+            "output_tokens": 25,
+            "model": "claude-sonnet-4-6",
+        }
+
+    def test_report_usage_forwards_backing_model(self, provider) -> None:
+        seen: list[tuple[str, str, dict]] = []
+        provider.set_usage_callback(lambda p, m, u: seen.append((p, m, dict(u))))
+        provider._report_usage(
+            {"input_tokens": 10, "output_tokens": 5, "model": "claude-sonnet-4-6"}
+        )
+        assert seen == [
+            (
+                "selora_cloud",
+                "claude-sonnet-4-6",
+                {"input_tokens": 10, "output_tokens": 5, "model": "claude-sonnet-4-6"},
+            ),
+        ]
 
 
 # ── Callback wiring ───────────────────────────────────────────────────
@@ -423,8 +498,12 @@ class TestLLMClientFlushUsage:
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
         assert evt["cost_usd"] == pytest.approx(0.0)
 
-    def test_selora_cloud_events_are_not_recorded(self, hass, monkeypatch) -> None:
-        """Selora Cloud is metered by Connect — local sensors/store skip it."""
+    async def test_selora_cloud_events_are_recorded_without_cost(
+        self, hass, monkeypatch
+    ) -> None:
+        """Selora Cloud token/call usage is recorded locally so sensors and
+        charts reflect activity. Cost stays 0 — billing is credit-based and
+        metered in the user's Selora Homes account, not derivable per token."""
         from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
         from custom_components.selora_ai.const import DOMAIN, SIGNAL_LLM_USAGE
@@ -446,11 +525,23 @@ class TestLLMClientFlushUsage:
         )
 
         with client._usage.scope():
-            client._provider._report_usage({"input_tokens": 100, "output_tokens": 50})
+            # Gateway reports the backing model in the usage info.
+            client._provider._report_usage(
+                {"input_tokens": 100, "output_tokens": 50, "model": "claude-sonnet-4-6"}
+            )
             client._usage.flush("chat")
+        await hass.async_block_till_done()
 
-        assert len(hass.data[DOMAIN]["llm_usage_events"]) == 0
-        assert seen == []
+        events = list(hass.data[DOMAIN]["llm_usage_events"])
+        assert len(events) == 1
+        evt = events[0]
+        assert evt["provider"] == "selora_cloud"
+        assert evt["model"] == "claude-sonnet-4-6"
+        assert evt["input_tokens"] == 100
+        assert evt["output_tokens"] == 50
+        # Credit-based billing → no per-token USD estimate.
+        assert evt["cost_usd"] == 0.0
+        assert len(seen) == 1
 
     def test_ring_buffer_caps_size(self, hass, llm_client) -> None:
         from custom_components.selora_ai.const import DOMAIN

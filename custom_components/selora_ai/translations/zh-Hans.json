@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "重置价格失败：",
     "usage_pricing_title": "价格",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud 用量按使用计量并在您的 Selora Homes 账户中计费。它不会计入本集成的传感器或图表中。",
+    "usage_pricing_selora_cloud_help": "令牌数和调用次数会在本集成的传感器和图表中本地记录。Selora Cloud 通过您 Selora Homes 账户中的预付额度计费，因此此处不显示按令牌的费用估算。",
     "usage_pricing_view_cloud_link": "在您的 Selora Homes 账户中查看用量",
     "usage_pricing_ollama_help": "Ollama 在本地运行——无需跟踪令牌成本。",
     "usage_pricing_selora_local_help": "Selora AI Local 在您的硬件上运行——无需跟踪令牌成本。",

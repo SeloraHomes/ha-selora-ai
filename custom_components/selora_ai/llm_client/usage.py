@@ -26,7 +26,6 @@ from homeassistant.helpers.dispatcher import async_dispatcher_send
 from ..const import (
     DOMAIN,
     EVENT_LLM_USAGE,
-    LLM_PROVIDER_SELORA_CLOUD,
     SIGNAL_LLM_USAGE,
     estimate_llm_cost_usd,
 )
@@ -102,13 +101,6 @@ class UsageTracker:
         buf.clear()
         buffer: deque[LLMUsageEvent] = self._hass.data[DOMAIN]["llm_usage_events"]
         for provider_type, model, usage in pending:
-            # Selora AI Cloud usage is metered by Selora Connect (the SaaS
-            # backend bills the user directly). Skip recording locally so we
-            # don't double-count it in sensors, the ring buffer, or the
-            # persistent usage store.
-            if provider_type == LLM_PROVIDER_SELORA_CLOUD:
-                _LOGGER.debug("Skipping local usage record for Selora Cloud (tracked in Connect)")
-                continue
             input_tokens = int(usage.get("input_tokens", 0))
             output_tokens = int(usage.get("output_tokens", 0))
             cost_usd = estimate_llm_cost_usd(

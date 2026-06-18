@@ -436,7 +436,7 @@
     "usage_pricing_reset_failed": "Az árazás visszaállítása nem sikerült:",
     "usage_pricing_title": "Árazás",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "A Selora Cloud használata mérve és számlázva van az Ön Selora Homes-fiókjában. Nem számít bele az integráció szenzoraiba vagy diagramjaiba.",
+    "usage_pricing_selora_cloud_help": "A token- és hívásszámok helyben követhetők az integráció szenzoraiban és diagramjaiban. A Selora Cloud előre fizetett kreditekkel kerül számlázásra az Ön Selora Homes-fiókjában, ezért itt nem jelenik meg tokenenkénti költségbecslés.",
     "usage_pricing_view_cloud_link": "Használat megtekintése a Selora Homes-fiókjában",
     "usage_pricing_ollama_help": "Az Ollama helyileg fut — nincsenek nyomon követendő tokenköltségek.",
     "usage_pricing_selora_local_help": "A Selora AI Local az Ön hardverén fut — nincsenek nyomon követendő tokenköltségek.",

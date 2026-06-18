@@ -416,7 +416,7 @@
     "usage_pricing_reset_failed": "無法重設價格：",
     "usage_pricing_title": "價格",
     "usage_pricing_selora_cloud_sub": "Selora Cloud",
-    "usage_pricing_selora_cloud_help": "Selora Cloud 的用量會計量並計入您的 Selora Homes 帳號帳單。這不會計入本整合的感測器或圖表中。",
+    "usage_pricing_selora_cloud_help": "權杖數與呼叫次數會在本整合的感測器和圖表中於本機記錄。Selora Cloud 透過您 Selora Homes 帳號中的預付額度計費，因此此處不會顯示按權杖的費用估算。",
     "usage_pricing_view_cloud_link": "在您的 Selora Homes 帳號中檢視用量",
     "usage_pricing_ollama_help": "Ollama 在本機執行 — 無需追蹤權杖成本。",
     "usage_pricing_selora_local_help": "Selora AI Local 在您的硬體上執行 — 無需追蹤權杖成本。",

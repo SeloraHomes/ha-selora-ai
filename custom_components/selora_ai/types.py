@@ -265,6 +265,10 @@ class LLMUsageInfo(TypedDict, total=False):
     output_tokens: int
     cache_creation_input_tokens: int
     cache_read_input_tokens: int
+    # Backing model reported by the response, used when the provider itself
+    # has no fixed model (e.g. a gateway that routes server-side). Falls back
+    # to the provider's configured model when absent.
+    model: str
 
 
 class LLMUsageEvent(TypedDict, total=False):
