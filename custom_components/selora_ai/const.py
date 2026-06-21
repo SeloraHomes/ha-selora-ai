@@ -1041,6 +1041,13 @@ STREAM_IDLE_TIMEOUT_S = 30.0
 # Pre-classified automation turns get this looser watchdog so the
 # default chat timeout still catches the genuinely-hung cases.
 STREAM_AUTOMATION_IDLE_TIMEOUT_S = 90.0
+# Plain chat on a cloud provider still has a first-token latency the
+# local backends don't (no keepalive until tool work starts, and the
+# request is proxied through Selora Connect / OpenRouter). 30 s is tight
+# enough that a momentarily-busy instance trips it before the first
+# token lands — give cloud chat turns a slightly looser floor while
+# keeping the strict default for local providers, which keepalive.
+STREAM_CLOUD_IDLE_TIMEOUT_S = 45.0
 STREAM_MAX_BYTES = 256 * 1024
 STREAM_TOOL_KEEPALIVE_S = 15.0
 STREAM_TOOL_CANCEL_GRACE_S = 2.0

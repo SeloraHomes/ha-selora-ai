@@ -48,6 +48,10 @@ class OllamaProvider(OpenAICompatibleProvider):
     def requires_api_key(self) -> bool:
         return False
 
+    @property
+    def is_local(self) -> bool:
+        return True
+
     async def health_check(self) -> bool:
         """Check Ollama is reachable and the model is pulled."""
         try:

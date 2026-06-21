@@ -244,6 +244,18 @@ class LLMProvider(ABC):
         """
         return False
 
+    @property
+    def is_local(self) -> bool:
+        """Whether the model runs on the local network (no internet round-trip).
+
+        Distinct from ``is_low_context``: that describes context-window
+        capacity, this describes provider locality. Local backends have
+        negligible first-token latency and emit stream keepalives, so the
+        chat watchdog keeps a strict idle timeout for them; cloud
+        providers get a looser floor to absorb proxy/first-token latency.
+        """
+        return False
+
     # -- HTTP plumbing (abstract) ------------------------------------------
 
     @abstractmethod
