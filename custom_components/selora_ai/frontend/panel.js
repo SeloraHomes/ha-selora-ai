@@ -1828,10 +1828,51 @@ var layoutStyles = i`
       opacity: 1;
     }
   }
+  .telemetry-consent {
+    position: relative;
+    z-index: 5;
+    margin: 12px 28px 0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--secondary-background-color, rgba(127, 127, 127, 0.1));
+    border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    animation: quota-banner-in 240ms ease-out;
+  }
+  .telemetry-consent ha-icon {
+    --mdc-icon-size: 22px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+  }
+  .telemetry-consent-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .telemetry-consent-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
   @media (max-width: 600px) {
     .quota-banner {
       margin: 8px 10px 0;
       padding: 8px 10px;
+    }
+    .telemetry-consent {
+      flex-wrap: wrap;
+      margin: 8px 10px 0;
+    }
+    .telemetry-consent-actions {
+      width: 100%;
+      justify-content: flex-end;
     }
   }
 `;
@@ -7301,6 +7342,14 @@ var en_default = {
     settings_auto_remove_stale_label: "Auto-remove stale automations",
     settings_developer_mode_label: "Developer mode",
     settings_developer_mode_desc: "Exposes raw entity payloads and debug logs",
+    settings_telemetry_label: "Anonymous telemetry",
+    settings_telemetry_desc:
+      "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
+    telemetry_consent_title: "Help improve Selora AI",
+    telemetry_consent_body:
+      "Share anonymous counts about your setup (devices, integrations, automations\u2026) and how often Selora repairs model output. Never your entity names, prompts, or responses.",
+    telemetry_consent_enable: "Enable",
+    telemetry_consent_decline: "No thanks",
     settings_dev_mode_save_failed_toast: "Failed to save developer mode.",
     settings_saving_label: "Saving\u2026",
     settings_no_approvals_yet_prefix:
@@ -8020,6 +8069,14 @@ var fr_default = {
     settings_developer_mode_label: "Mode d\xE9veloppeur",
     settings_developer_mode_desc:
       "Expose les charges utiles brutes des entit\xE9s et les journaux de d\xE9bogage",
+    settings_telemetry_label: "T\xE9l\xE9m\xE9trie anonyme",
+    settings_telemetry_desc:
+      "D\xE9sactiv\xE9e par d\xE9faut. Si activ\xE9e, envoie des d\xE9comptes anonymes sur votre installation (appareils, int\xE9grations, automatisations, sc\xE8nes, scripts, blueprints, zones) et la fr\xE9quence \xE0 laquelle Selora corrige les sorties du mod\xE8le, afin d'am\xE9liorer le produit. N'envoie jamais de noms d'entit\xE9s, d'invites ni de r\xE9ponses.",
+    telemetry_consent_title: "Aider \xE0 am\xE9liorer Selora AI",
+    telemetry_consent_body:
+      "Partagez des d\xE9comptes anonymes sur votre installation (appareils, int\xE9grations, automatisations\u2026) et la fr\xE9quence \xE0 laquelle Selora corrige les sorties du mod\xE8le. Jamais vos noms d'entit\xE9s, invites ou r\xE9ponses.",
+    telemetry_consent_enable: "Activer",
+    telemetry_consent_decline: "Non merci",
     settings_dev_mode_save_failed_toast:
       "Impossible d'enregistrer le mode d\xE9veloppeur.",
     settings_saving_label: "Enregistrement\u2026",
@@ -8766,6 +8823,14 @@ var de_default = {
     settings_developer_mode_label: "Entwicklermodus",
     settings_developer_mode_desc:
       "Stellt rohe Entit\xE4ts-Payloads und Debug-Logs bereit",
+    settings_telemetry_label: "Anonyme Telemetrie",
+    settings_telemetry_desc:
+      "Standardm\xE4\xDFig deaktiviert. Wenn aktiviert, werden anonyme Z\xE4hlwerte zu Ihrer Installation (Ger\xE4te, Integrationen, Automationen, Szenen, Skripte, Blueprints, Bereiche) und dazu gesendet, wie oft Selora die Modellausgabe korrigiert, damit wir das Produkt verbessern k\xF6nnen. Es werden niemals Entit\xE4tsnamen, Prompts oder Antworten gesendet.",
+    telemetry_consent_title: "Selora AI verbessern helfen",
+    telemetry_consent_body:
+      "Teilen Sie anonyme Z\xE4hlwerte zu Ihrer Installation (Ger\xE4te, Integrationen, Automationen\u2026) und dazu, wie oft Selora die Modellausgabe korrigiert. Niemals Ihre Entit\xE4tsnamen, Prompts oder Antworten.",
+    telemetry_consent_enable: "Aktivieren",
+    telemetry_consent_decline: "Nein danke",
     settings_dev_mode_save_failed_toast:
       "Entwicklermodus konnte nicht gespeichert werden.",
     settings_saving_label: "Speichere\u2026",
@@ -9504,6 +9569,14 @@ var es_default = {
     settings_developer_mode_label: "Modo desarrollador",
     settings_developer_mode_desc:
       "Expone cargas \xFAtiles de entidades sin procesar y registros de depuraci\xF3n",
+    settings_telemetry_label: "Telemetr\xEDa an\xF3nima",
+    settings_telemetry_desc:
+      "Desactivada de forma predeterminada. Cuando est\xE1 activada, env\xEDa recuentos an\xF3nimos sobre tu configuraci\xF3n (dispositivos, integraciones, automatizaciones, escenas, scripts, blueprints, \xE1reas) y la frecuencia con la que Selora corrige la salida del modelo, para mejorar el producto. Nunca env\xEDa nombres de entidades, indicaciones ni respuestas.",
+    telemetry_consent_title: "Ayuda a mejorar Selora AI",
+    telemetry_consent_body:
+      "Comparte recuentos an\xF3nimos sobre tu configuraci\xF3n (dispositivos, integraciones, automatizaciones\u2026) y la frecuencia con la que Selora corrige la salida del modelo. Nunca tus nombres de entidades, indicaciones ni respuestas.",
+    telemetry_consent_enable: "Activar",
+    telemetry_consent_decline: "No, gracias",
     settings_dev_mode_save_failed_toast:
       "No se pudo guardar el modo desarrollador.",
     settings_saving_label: "Guardando\u2026",
@@ -10235,6 +10308,14 @@ var it_default = {
     settings_developer_mode_label: "Modalit\xE0 sviluppatore",
     settings_developer_mode_desc:
       "Espone i payload grezzi delle entit\xE0 e i log di debug",
+    settings_telemetry_label: "Telemetria anonima",
+    settings_telemetry_desc:
+      "Disattivata per impostazione predefinita. Se attiva, invia conteggi anonimi sulla tua configurazione (dispositivi, integrazioni, automazioni, scene, script, blueprint, aree) e sulla frequenza con cui Selora corregge l'output del modello, per migliorare il prodotto. Non invia mai nomi di entit\xE0, prompt o risposte.",
+    telemetry_consent_title: "Aiuta a migliorare Selora AI",
+    telemetry_consent_body:
+      "Condividi conteggi anonimi sulla tua configurazione (dispositivi, integrazioni, automazioni\u2026) e sulla frequenza con cui Selora corregge l'output del modello. Mai i tuoi nomi di entit\xE0, prompt o risposte.",
+    telemetry_consent_enable: "Attiva",
+    telemetry_consent_decline: "No, grazie",
     settings_dev_mode_save_failed_toast:
       "Impossibile salvare la modalit\xE0 sviluppatore.",
     settings_saving_label: "Salvataggio\u2026",
@@ -10978,6 +11059,14 @@ var nl_default = {
       "Verouderde automatiseringen automatisch verwijderen",
     settings_developer_mode_label: "Ontwikkelaarsmodus",
     settings_developer_mode_desc: "Toont ruwe entiteitsgegevens en debuglogs",
+    settings_telemetry_label: "Anonieme telemetrie",
+    settings_telemetry_desc:
+      "Standaard uitgeschakeld. Indien ingeschakeld worden anonieme aantallen over je installatie (apparaten, integraties, automatiseringen, sc\xE8nes, scripts, blueprints, gebieden) verzonden en hoe vaak Selora modeluitvoer corrigeert, zodat we het product kunnen verbeteren. Verzendt nooit entiteitsnamen, prompts of antwoorden.",
+    telemetry_consent_title: "Help Selora AI verbeteren",
+    telemetry_consent_body:
+      "Deel anonieme aantallen over je installatie (apparaten, integraties, automatiseringen\u2026) en hoe vaak Selora modeluitvoer corrigeert. Nooit je entiteitsnamen, prompts of antwoorden.",
+    telemetry_consent_enable: "Inschakelen",
+    telemetry_consent_decline: "Nee, bedankt",
     settings_dev_mode_save_failed_toast:
       "Opslaan van ontwikkelaarsmodus mislukt.",
     settings_saving_label: "Opslaan\u2026",
@@ -11719,6 +11808,14 @@ var hu_default = {
     settings_developer_mode_label: "Fejleszt\u0151i m\xF3d",
     settings_developer_mode_desc:
       "Megjelen\xEDti a nyers entit\xE1sadatokat \xE9s a hibakeres\xE9si napl\xF3kat",
+    settings_telemetry_label: "N\xE9vtelen telemetria",
+    settings_telemetry_desc:
+      "Alap\xE9rtelmezetten kikapcsolva. Bekapcsolva n\xE9vtelen darabsz\xE1mokat k\xFCld a be\xE1ll\xEDt\xE1sodr\xF3l (eszk\xF6z\xF6k, integr\xE1ci\xF3k, automatiz\xE1l\xE1sok, jelenetek, szkriptek, blueprintek, ter\xFCletek) \xE9s arr\xF3l, hogy a Selora milyen gyakran jav\xEDtja a modell kimenet\xE9t, hogy fejleszthess\xFCk a term\xE9ket. Soha nem k\xFCld entit\xE1sneveket, k\xE9r\xE9seket vagy v\xE1laszokat.",
+    telemetry_consent_title: "Seg\xEDts a Selora AI fejleszt\xE9s\xE9ben",
+    telemetry_consent_body:
+      "Ossz meg n\xE9vtelen darabsz\xE1mokat a be\xE1ll\xEDt\xE1sodr\xF3l (eszk\xF6z\xF6k, integr\xE1ci\xF3k, automatiz\xE1l\xE1sok\u2026) \xE9s arr\xF3l, hogy a Selora milyen gyakran jav\xEDtja a modell kimenet\xE9t. Soha az entit\xE1sneveidet, k\xE9r\xE9seidet vagy v\xE1laszaidat.",
+    telemetry_consent_enable: "Enged\xE9lyez\xE9s",
+    telemetry_consent_decline: "Nem, k\xF6sz\xF6n\xF6m",
     settings_dev_mode_save_failed_toast:
       "A fejleszt\u0151i m\xF3d ment\xE9se nem siker\xFClt.",
     settings_saving_label: "Ment\xE9s\u2026",
@@ -12454,6 +12551,14 @@ var pt_default = {
     settings_developer_mode_label: "Modo de programador",
     settings_developer_mode_desc:
       "Exp\xF5e os payloads brutos das entidades e registos de depura\xE7\xE3o",
+    settings_telemetry_label: "Telemetria an\xF3nima",
+    settings_telemetry_desc:
+      "Desativada por predefini\xE7\xE3o. Quando ativada, envia contagens an\xF3nimas sobre a sua configura\xE7\xE3o (dispositivos, integra\xE7\xF5es, automa\xE7\xF5es, cenas, scripts, blueprints, \xE1reas) e a frequ\xEAncia com que o Selora corrige a sa\xEDda do modelo, para melhorarmos o produto. Nunca envia nomes de entidades, comandos ou respostas.",
+    telemetry_consent_title: "Ajude a melhorar o Selora AI",
+    telemetry_consent_body:
+      "Partilhe contagens an\xF3nimas sobre a sua configura\xE7\xE3o (dispositivos, integra\xE7\xF5es, automa\xE7\xF5es\u2026) e a frequ\xEAncia com que o Selora corrige a sa\xEDda do modelo. Nunca os seus nomes de entidades, comandos ou respostas.",
+    telemetry_consent_enable: "Ativar",
+    telemetry_consent_decline: "N\xE3o, obrigado",
     settings_dev_mode_save_failed_toast:
       "N\xE3o foi poss\xEDvel guardar o modo de programador.",
     settings_saving_label: "A guardar\u2026",
@@ -13309,6 +13414,18 @@ var ru_default = {
       "\u0420\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430",
     settings_developer_mode_desc:
       "\u041E\u0442\u043E\u0431\u0440\u0430\u0436\u0430\u0435\u0442 \u043D\u0435\u043E\u0431\u0440\u0430\u0431\u043E\u0442\u0430\u043D\u043D\u044B\u0435 \u0434\u0430\u043D\u043D\u044B\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439 \u0438 \u0436\u0443\u0440\u043D\u0430\u043B\u044B \u043E\u0442\u043B\u0430\u0434\u043A\u0438",
+    settings_telemetry_label:
+      "\u0410\u043D\u043E\u043D\u0438\u043C\u043D\u0430\u044F \u0442\u0435\u043B\u0435\u043C\u0435\u0442\u0440\u0438\u044F",
+    settings_telemetry_desc:
+      "\u041F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u0430. \u041A\u043E\u0433\u0434\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0430\u043D\u043E\u043D\u0438\u043C\u043D\u044B\u0435 \u0441\u0447\u0451\u0442\u0447\u0438\u043A\u0438 \u043E \u0432\u0430\u0448\u0435\u0439 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0435 (\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438, \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u0441\u0446\u0435\u043D\u044B, \u0441\u043A\u0440\u0438\u043F\u0442\u044B, \u0431\u043B\u0443\u043F\u0440\u0438\u043D\u0442\u044B, \u0437\u043E\u043D\u044B) \u0438 \u043E \u0442\u043E\u043C, \u043A\u0430\u043A \u0447\u0430\u0441\u0442\u043E Selora \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0432\u044B\u0432\u043E\u0434 \u043C\u043E\u0434\u0435\u043B\u0438, \u0447\u0442\u043E\u0431\u044B \u043C\u044B \u043C\u043E\u0433\u043B\u0438 \u0443\u043B\u0443\u0447\u0448\u0430\u0442\u044C \u043F\u0440\u043E\u0434\u0443\u043A\u0442. \u041D\u0438\u043A\u043E\u0433\u0434\u0430 \u043D\u0435 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0438\u043C\u0435\u043D\u0430 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439, \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0438\u043B\u0438 \u043E\u0442\u0432\u0435\u0442\u044B.",
+    telemetry_consent_title:
+      "\u041F\u043E\u043C\u043E\u0433\u0438\u0442\u0435 \u0443\u043B\u0443\u0447\u0448\u0438\u0442\u044C Selora AI",
+    telemetry_consent_body:
+      "\u0414\u0435\u043B\u0438\u0442\u0435\u0441\u044C \u0430\u043D\u043E\u043D\u0438\u043C\u043D\u044B\u043C\u0438 \u0441\u0447\u0451\u0442\u0447\u0438\u043A\u0430\u043C\u0438 \u043E \u0432\u0430\u0448\u0435\u0439 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0435 (\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438, \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438\u2026) \u0438 \u043E \u0442\u043E\u043C, \u043A\u0430\u043A \u0447\u0430\u0441\u0442\u043E Selora \u0438\u0441\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442 \u0432\u044B\u0432\u043E\u0434 \u043C\u043E\u0434\u0435\u043B\u0438. \u041D\u0438\u043A\u043E\u0433\u0434\u0430 \u0438\u043C\u0435\u043D\u0430 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439, \u0437\u0430\u043F\u0440\u043E\u0441\u044B \u0438\u043B\u0438 \u043E\u0442\u0432\u0435\u0442\u044B.",
+    telemetry_consent_enable:
+      "\u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
+    telemetry_consent_decline:
+      "\u041D\u0435\u0442, \u0441\u043F\u0430\u0441\u0438\u0431\u043E",
     settings_dev_mode_save_failed_toast:
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C \u0440\u0435\u0436\u0438\u043C \u0440\u0430\u0437\u0440\u0430\u0431\u043E\u0442\u0447\u0438\u043A\u0430.",
     settings_saving_label:
@@ -14317,6 +14434,15 @@ var ja_default = {
     settings_developer_mode_label: "\u958B\u767A\u8005\u30E2\u30FC\u30C9",
     settings_developer_mode_desc:
       "\u751F\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u30DA\u30A4\u30ED\u30FC\u30C9\u3068\u30C7\u30D0\u30C3\u30B0\u30ED\u30B0\u3092\u516C\u958B\u3057\u307E\u3059",
+    settings_telemetry_label: "\u533F\u540D\u30C6\u30EC\u30E1\u30C8\u30EA",
+    settings_telemetry_desc:
+      "\u30C7\u30D5\u30A9\u30EB\u30C8\u306F\u7121\u52B9\u3067\u3059\u3002\u6709\u52B9\u306B\u3059\u308B\u3068\u3001\u69CB\u6210\u306B\u95A2\u3059\u308B\u533F\u540D\u306E\u30AB\u30A6\u30F3\u30C8\uFF08\u30C7\u30D0\u30A4\u30B9\u3001\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3001\u30B7\u30FC\u30F3\u3001\u30B9\u30AF\u30EA\u30D7\u30C8\u3001\u30D6\u30EB\u30FC\u30D7\u30EA\u30F3\u30C8\u3001\u30A8\u30EA\u30A2\uFF09\u3068\u3001Selora \u304C\u30E2\u30C7\u30EB\u51FA\u529B\u3092\u4FEE\u6B63\u3059\u308B\u983B\u5EA6\u3092\u9001\u4FE1\u3057\u3001\u88FD\u54C1\u306E\u6539\u5584\u306B\u5F79\u7ACB\u3066\u307E\u3059\u3002\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u540D\u3001\u30D7\u30ED\u30F3\u30D7\u30C8\u3001\u5FDC\u7B54\u306F\u4E00\u5207\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
+    telemetry_consent_title:
+      "Selora AI \u306E\u6539\u5584\u306B\u3054\u5354\u529B\u304F\u3060\u3055\u3044",
+    telemetry_consent_body:
+      "\u69CB\u6210\u306B\u95A2\u3059\u308B\u533F\u540D\u306E\u30AB\u30A6\u30F3\u30C8\uFF08\u30C7\u30D0\u30A4\u30B9\u3001\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3001\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306A\u3069\uFF09\u3068\u3001Selora \u304C\u30E2\u30C7\u30EB\u51FA\u529B\u3092\u4FEE\u6B63\u3059\u308B\u983B\u5EA6\u3092\u5171\u6709\u3057\u307E\u3059\u3002\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u540D\u3001\u30D7\u30ED\u30F3\u30D7\u30C8\u3001\u5FDC\u7B54\u306F\u9001\u4FE1\u3057\u307E\u305B\u3093\u3002",
+    telemetry_consent_enable: "\u6709\u52B9\u306B\u3059\u308B",
+    telemetry_consent_decline: "\u7D50\u69CB\u3067\u3059",
     settings_dev_mode_save_failed_toast:
       "\u958B\u767A\u8005\u30E2\u30FC\u30C9\u306E\u4FDD\u5B58\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
@@ -15192,6 +15318,15 @@ var ko_default = {
     settings_developer_mode_label: "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC",
     settings_developer_mode_desc:
       "\uC6D0\uC2DC \uC5D4\uD130\uD2F0 \uD398\uC774\uB85C\uB4DC\uC640 \uB514\uBC84\uADF8 \uB85C\uADF8\uB97C \uB178\uCD9C\uD569\uB2C8\uB2E4",
+    settings_telemetry_label: "\uC775\uBA85 \uD154\uB808\uBA54\uD2B8\uB9AC",
+    settings_telemetry_desc:
+      "\uAE30\uBCF8\uC801\uC73C\uB85C \uAEBC\uC838 \uC788\uC2B5\uB2C8\uB2E4. \uCF1C\uBA74 \uC124\uC815\uC5D0 \uB300\uD55C \uC775\uBA85 \uAC1C\uC218(\uAE30\uAE30, \uD1B5\uD569, \uC790\uB3D9\uD654, \uC52C, \uC2A4\uD06C\uB9BD\uD2B8, \uBE14\uB8E8\uD504\uB9B0\uD2B8, \uC601\uC5ED)\uC640 Selora\uAC00 \uBAA8\uB378 \uCD9C\uB825\uC744 \uBCF4\uC815\uD558\uB294 \uBE48\uB3C4\uB97C \uC804\uC1A1\uD558\uC5EC \uC81C\uD488\uC744 \uAC1C\uC120\uD569\uB2C8\uB2E4. \uC5D4\uD130\uD2F0 \uC774\uB984, \uD504\uB86C\uD504\uD2B8, \uC751\uB2F5\uC740 \uC808\uB300 \uC804\uC1A1\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    telemetry_consent_title:
+      "Selora AI \uAC1C\uC120\uC5D0 \uCC38\uC5EC\uD558\uC138\uC694",
+    telemetry_consent_body:
+      "\uC124\uC815\uC5D0 \uB300\uD55C \uC775\uBA85 \uAC1C\uC218(\uAE30\uAE30, \uD1B5\uD569, \uC790\uB3D9\uD654 \uB4F1)\uC640 Selora\uAC00 \uBAA8\uB378 \uCD9C\uB825\uC744 \uBCF4\uC815\uD558\uB294 \uBE48\uB3C4\uB97C \uACF5\uC720\uD569\uB2C8\uB2E4. \uC5D4\uD130\uD2F0 \uC774\uB984, \uD504\uB86C\uD504\uD2B8, \uC751\uB2F5\uC740 \uBCF4\uB0B4\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    telemetry_consent_enable: "\uC0AC\uC6A9",
+    telemetry_consent_decline: "\uAD1C\uCC2E\uC2B5\uB2C8\uB2E4",
     settings_dev_mode_save_failed_toast:
       "\uAC1C\uBC1C\uC790 \uBAA8\uB4DC\uB97C \uC800\uC7A5\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.",
     settings_saving_label: "\uC800\uC7A5 \uC911\u2026",
@@ -15999,6 +16134,14 @@ var zh_Hans_default = {
     settings_developer_mode_label: "\u5F00\u53D1\u8005\u6A21\u5F0F",
     settings_developer_mode_desc:
       "\u516C\u5F00\u539F\u59CB\u5B9E\u4F53\u8F7D\u8377\u548C\u8C03\u8BD5\u65E5\u5FD7",
+    settings_telemetry_label: "\u533F\u540D\u9065\u6D4B",
+    settings_telemetry_desc:
+      "\u9ED8\u8BA4\u5173\u95ED\u3002\u5F00\u542F\u540E\u4F1A\u53D1\u9001\u6709\u5173\u4F60\u7684\u914D\u7F6E\u7684\u533F\u540D\u8BA1\u6570\uFF08\u8BBE\u5907\u3001\u96C6\u6210\u3001\u81EA\u52A8\u5316\u3001\u573A\u666F\u3001\u811A\u672C\u3001\u84DD\u56FE\u3001\u533A\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F93\u51FA\u7684\u9891\u7387\uFF0C\u4EE5\u4FBF\u6211\u4EEC\u6539\u8FDB\u4EA7\u54C1\u3002\u7EDD\u4E0D\u53D1\u9001\u5B9E\u4F53\u540D\u79F0\u3001\u63D0\u793A\u8BCD\u6216\u54CD\u5E94\u5185\u5BB9\u3002",
+    telemetry_consent_title: "\u5E2E\u52A9\u6539\u8FDB Selora AI",
+    telemetry_consent_body:
+      "\u5206\u4EAB\u6709\u5173\u4F60\u7684\u914D\u7F6E\u7684\u533F\u540D\u8BA1\u6570\uFF08\u8BBE\u5907\u3001\u96C6\u6210\u3001\u81EA\u52A8\u5316\u7B49\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F93\u51FA\u7684\u9891\u7387\u3002\u7EDD\u4E0D\u5305\u542B\u4F60\u7684\u5B9E\u4F53\u540D\u79F0\u3001\u63D0\u793A\u8BCD\u6216\u54CD\u5E94\u5185\u5BB9\u3002",
+    telemetry_consent_enable: "\u542F\u7528",
+    telemetry_consent_decline: "\u4E0D\u7528\u4E86",
     settings_dev_mode_save_failed_toast:
       "\u4FDD\u5B58\u5F00\u53D1\u8005\u6A21\u5F0F\u5931\u8D25\u3002",
     settings_saving_label: "\u4FDD\u5B58\u4E2D\u2026",
@@ -16785,6 +16928,14 @@ var zh_Hant_default = {
     settings_developer_mode_label: "\u958B\u767C\u8005\u6A21\u5F0F",
     settings_developer_mode_desc:
       "\u516C\u958B\u539F\u59CB\u5BE6\u9AD4\u916C\u8F09\u8207\u9664\u932F\u7D00\u9304",
+    settings_telemetry_label: "\u533F\u540D\u9059\u6E2C",
+    settings_telemetry_desc:
+      "\u9810\u8A2D\u95DC\u9589\u3002\u958B\u555F\u5F8C\u6703\u50B3\u9001\u6709\u95DC\u4F60\u7684\u8A2D\u5B9A\u7684\u533F\u540D\u8A08\u6578\uFF08\u88DD\u7F6E\u3001\u6574\u5408\u3001\u81EA\u52D5\u5316\u3001\u5834\u666F\u3001\u8173\u672C\u3001\u85CD\u5716\u3001\u5340\u57DF\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F38\u51FA\u7684\u983B\u7387\uFF0C\u4EE5\u4FBF\u6211\u5011\u6539\u9032\u7522\u54C1\u3002\u7D55\u4E0D\u50B3\u9001\u5BE6\u9AD4\u540D\u7A31\u3001\u63D0\u793A\u8A5E\u6216\u56DE\u61C9\u5167\u5BB9\u3002",
+    telemetry_consent_title: "\u5354\u52A9\u6539\u9032 Selora AI",
+    telemetry_consent_body:
+      "\u5206\u4EAB\u6709\u95DC\u4F60\u7684\u8A2D\u5B9A\u7684\u533F\u540D\u8A08\u6578\uFF08\u88DD\u7F6E\u3001\u6574\u5408\u3001\u81EA\u52D5\u5316\u7B49\uFF09\u4EE5\u53CA Selora \u4FEE\u6B63\u6A21\u578B\u8F38\u51FA\u7684\u983B\u7387\u3002\u7D55\u4E0D\u5305\u542B\u4F60\u7684\u5BE6\u9AD4\u540D\u7A31\u3001\u63D0\u793A\u8A5E\u6216\u56DE\u61C9\u5167\u5BB9\u3002",
+    telemetry_consent_enable: "\u555F\u7528",
+    telemetry_consent_decline: "\u4E0D\u7528\u4E86",
     settings_dev_mode_save_failed_toast:
       "\u7121\u6CD5\u5132\u5B58\u958B\u767C\u8005\u6A21\u5F0F\u3002",
     settings_saving_label: "\u5132\u5B58\u4E2D\u2026",
@@ -26947,6 +27098,29 @@ function renderSettings(host) {
               <div class="service-label-group">
                 <label
                   >${host._t(
+                    "settings_telemetry_label",
+                    "Anonymous telemetry",
+                  )}</label
+                >
+                <span class="service-desc"
+                  >${host._t(
+                    "settings_telemetry_desc",
+                    "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
+                  )}</span
+                >
+              </div>
+              <ha-switch
+                .checked=${host._config.telemetry_enabled === true}
+                @change=${(e5) => host._updateConfig("telemetry_enabled", e5.target.checked)}
+              ></ha-switch>
+            </div>
+          </div>
+
+          <div class="service-group">
+            <div class="service-row">
+              <div class="service-label-group">
+                <label
+                  >${host._t(
                     "settings_developer_mode_label",
                     "Developer mode",
                   )}</label
@@ -27387,6 +27561,46 @@ function renderCreateTokenDialog(host) {
             }
           </button>
         </div>
+      </div>
+    </div>
+  `;
+}
+
+// src/panel/render-telemetry-consent.js
+function renderTelemetryConsent(host) {
+  const cfg = host._config;
+  if (!cfg || cfg.telemetry_prompt_seen || cfg.telemetry_enabled) return "";
+  return x`
+    <div
+      class="telemetry-consent"
+      role="region"
+      aria-label=${host._t("telemetry_consent_title", "Help improve Selora AI")}
+    >
+      <ha-icon icon="mdi:chart-box-outline"></ha-icon>
+      <div class="telemetry-consent-text">
+        <strong
+          >${host._t(
+            "telemetry_consent_title",
+            "Help improve Selora AI",
+          )}</strong
+        >
+        <span
+          >${host._t(
+            "telemetry_consent_body",
+            "Share anonymous counts about your setup (devices, integrations, automations\u2026) and how often Selora repairs model output. Never your entity names, prompts, or responses.",
+          )}</span
+        >
+      </div>
+      <div class="telemetry-consent-actions">
+        <button
+          class="btn btn-primary"
+          @click=${() => host._setTelemetryConsent(true)}
+        >
+          ${host._t("telemetry_consent_enable", "Enable")}
+        </button>
+        <button class="btn" @click=${() => host._setTelemetryConsent(false)}>
+          ${host._t("telemetry_consent_decline", "No thanks")}
+        </button>
       </div>
     </div>
   `;
@@ -32098,6 +32312,21 @@ var SeloraAIPanel = class extends s4 {
       this._savingLlmConfig = false;
     }
   }
+  async _setTelemetryConsent(enabled) {
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_config",
+        config: {
+          telemetry_enabled: enabled === true,
+          telemetry_prompt_seen: true,
+        },
+      });
+      this._updateConfig("telemetry_enabled", enabled === true);
+      this._updateConfig("telemetry_prompt_seen", true);
+    } catch (err) {
+      this._showToast("Failed to save: " + err.message, "error");
+    }
+  }
   async _saveAdvancedConfig() {
     if (!this._config || this._savingAdvancedConfig) return;
     this._savingAdvancedConfig = true;
@@ -32116,6 +32345,10 @@ var SeloraAIPanel = class extends s4 {
         pattern_detection_enabled:
           this._config.pattern_detection_enabled !== false,
         auto_purge_stale: this._config.auto_purge_stale || false,
+        telemetry_enabled: this._config.telemetry_enabled === true,
+        // Deciding the toggle here counts as seeing the prompt — mark it
+        // so the one-time consent banner never reappears afterwards.
+        telemetry_prompt_seen: true,
         // Developer-only: Connect Server URL (editable when Connect is unlinked)
         selora_connect_url: this._config.selora_connect_url,
       };
@@ -33944,7 +34177,7 @@ var SeloraAIPanel = class extends s4 {
             .maxOpacity=${this._quotaAlert ? 1 : this._isDark ? 1 : 0.5}
             .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
-          ${this._renderQuotaBanner()}
+          ${this._renderQuotaBanner()} ${renderTelemetryConsent(this)}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}

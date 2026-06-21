@@ -1308,6 +1308,30 @@ export function renderSettings(host) {
               <div class="service-label-group">
                 <label
                   >${host._t(
+                    "settings_telemetry_label",
+                    "Anonymous telemetry",
+                  )}</label
+                >
+                <span class="service-desc"
+                  >${host._t(
+                    "settings_telemetry_desc",
+                    "Off by default. When on, sends anonymous counts about your setup (devices, integrations, automations, scenes, scripts, blueprints, areas) and how often Selora repairs model output, so we can improve the product. Never sends entity names, prompts, or responses.",
+                  )}</span
+                >
+              </div>
+              <ha-switch
+                .checked=${host._config.telemetry_enabled === true}
+                @change=${(e) =>
+                  host._updateConfig("telemetry_enabled", e.target.checked)}
+              ></ha-switch>
+            </div>
+          </div>
+
+          <div class="service-group">
+            <div class="service-row">
+              <div class="service-label-group">
+                <label
+                  >${host._t(
                     "settings_developer_mode_label",
                     "Developer mode",
                   )}</label

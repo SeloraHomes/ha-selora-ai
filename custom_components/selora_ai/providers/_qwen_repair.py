@@ -19,6 +19,8 @@ import json
 import re
 from typing import Any
 
+from ..telemetry import record_repair
+
 ALLOWED_INTENTS: frozenset[str] = frozenset({"command", "automation", "answer", "clarification"})
 
 # JSON literals that must NOT be quoted as keys when the unquoted-key
@@ -394,10 +396,22 @@ def normalize_response_content(content: str) -> str:
     ``choices[0].message.content``. The repair is idempotent — clean
     JSON-envelope responses pass through with at most a re-serialization.
     """
-    raw = content.strip()
-    raw = raw.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    # Tracks whether any non-trivial drift correction fired, so we only
+    # emit telemetry when the model actually misbehaved (a clean envelope
+    # passes through with at most an idempotent re-serialization).
+    repaired = False
+
+    stripped = content.strip()
+    raw = stripped.removeprefix("```json").removeprefix("```").removesuffix("```").strip()
+    if raw != stripped:
+        repaired = True
 
     balanced = extract_first_balanced_json_object(raw) or raw
+    if balanced != raw:
+        # Qwen wrapped the JSON object in prose ("Here you go: {…}"); we
+        # stripped the surrounding text. That's a normalization too, even
+        # when the extracted object parses cleanly.
+        repaired = True
 
     body: dict[str, Any] | None
     try:
@@ -407,6 +421,7 @@ def normalize_response_content(content: str) -> str:
         # Qwen 1.5B drift: control chars in string values, trailing
         # commas, unquoted object keys. Repair the balanced extract,
         # then fall back to repairing the original raw.
+        repaired = True
         try:
             parsed = json.loads(repair_json_string_controls(balanced))
             body = parsed if isinstance(parsed, dict) else None
@@ -419,18 +434,34 @@ def normalize_response_content(content: str) -> str:
 
     if body is None:
         body = coerce_to_answer(raw)
+        repaired = True
     else:
         raw_intent = body.get("intent")
         if isinstance(raw_intent, str):
-            body["intent"] = raw_intent.strip().lower()
+            normalized_intent = raw_intent.strip().lower()
+            # An uppercase/whitespace-padded but otherwise valid intent
+            # (e.g. "Automation") is still a drift we corrected.
+            if normalized_intent != raw_intent:
+                repaired = True
+            body["intent"] = normalized_intent
 
         if body.get("intent") not in ALLOWED_INTENTS:
             response = body.get("response")
             if not isinstance(response, str) or not response.strip():
                 response = coerce_to_answer(raw)["response"]
             body = {"intent": "answer", "response": response.strip()}
+            repaired = True
 
     if body.get("intent") == "automation":
+        # normalize_automation_block mutates in place (singular→plural keys,
+        # alias synthesis, legacy trigger migration, …). Snapshot before/after
+        # so a successful normalization is counted as a repair too.
+        before = json.dumps(body, sort_keys=True)
         normalize_automation_block(body)
+        if json.dumps(body, sort_keys=True) != before:
+            repaired = True
+
+    if repaired:
+        record_repair("qwen_normalize")
 
     return json.dumps(body, separators=(",", ":"))

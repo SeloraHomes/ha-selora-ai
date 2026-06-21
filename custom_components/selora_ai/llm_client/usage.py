@@ -155,6 +155,32 @@ class UsageTracker:
         self._hass.async_create_task(_record())
 
     @contextmanager
+    def repair_scope(self) -> Any:
+        """Open a repair-capture buffer and emit its repairs on exit.
+
+        Standalone from usage flushing so it can wrap post-call parsing
+        stages that run *after* the usage scope has closed — notably
+        streamed-response parsing, where ``architect_chat_stream`` exits
+        its ``scope`` before the caller invokes ``parse_streamed_response``.
+        Provider/model are read at exit, when they're known.
+        """
+        from ..telemetry import get_telemetry, repair_capture  # noqa: PLC0415
+
+        with repair_capture() as repairs:
+            try:
+                yield
+            finally:
+                if repairs:
+                    try:
+                        get_telemetry(self._hass).record_repairs(
+                            list(repairs),
+                            provider=self._provider.provider_type,
+                            model=getattr(self._provider, "model", "") or "",
+                        )
+                    except Exception:  # noqa: BLE001 — telemetry never breaks the call path
+                        _LOGGER.debug("Failed to record repair telemetry", exc_info=True)
+
+    @contextmanager
     def scope(self, kind: str | None = None) -> Any:
         """Create an isolated usage buffer for the current call.
 
@@ -162,11 +188,16 @@ class UsageTracker:
         forwarded to the provider via ``set_call_kind`` so backends that
         route to specialist models (e.g. SeloraLocal LoRAs) can pick the
         right one for this call's purpose.
+
+        Also opens a repair-capture buffer so the output-repair helpers
+        invoked during this call can record which corrections fired; the
+        accumulated repairs are emitted as anonymous telemetry on exit.
         """
         token: Token[list[tuple[str, str, LLMUsageInfo]]] = self.pending.set([])
         self._provider.set_call_kind(kind)
         try:
-            yield
+            with self.repair_scope():
+                yield
         finally:
             self.pending.reset(token)
             self._provider.set_call_kind(None)

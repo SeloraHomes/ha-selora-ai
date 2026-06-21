@@ -20,6 +20,7 @@ from ..const import (
     APPROVAL_RISK_MEDIUM,
     DOMAIN,
 )
+from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot, ToolWriteResult
 
 if TYPE_CHECKING:
@@ -768,6 +769,7 @@ def _repair_service_name(
         return None
     for pattern, verb in hints:
         if pattern.search(response_text):
+            record_repair("service_name_inference")
             return f"{domain}.{verb}"
     return None
 

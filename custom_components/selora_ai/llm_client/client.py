@@ -971,6 +971,9 @@ class LLMClient:
             entity_lines
         )
 
+        # Keep parsing + command policy inside the scope: their repairs
+        # (service_name_inference, friendly_name_strip, …) only capture
+        # while the scope's repair buffer is open.
         with self._usage.scope("command"):
             try:
                 result, error = await self._provider.send_request(
@@ -980,16 +983,16 @@ class LLMClient:
             finally:
                 self._usage.flush("command", intent="command")
 
-        if not result:
-            _LOGGER.warning("%s command failed: %s", self.provider_name, error)
-            return {"calls": [], "response": f"LLM error: {error or 'unknown'}"}
+            if not result:
+                _LOGGER.warning("%s command failed: %s", self.provider_name, error)
+                return {"calls": [], "response": f"LLM error: {error or 'unknown'}"}
 
-        return apply_command_policy(
-            parse_command_response_text(result),
-            entities,
-            hass=self._hass,
-            language=self._hass.config.language,
-        )
+            return apply_command_policy(
+                parse_command_response_text(result),
+                entities,
+                hass=self._hass,
+                language=self._hass.config.language,
+            )
 
     async def generate_session_title(self, user_msg: str, assistant_response: str) -> str:
         """Ask the LLM for a concise 3-5 word conversation title."""
@@ -1071,20 +1074,25 @@ class LLMClient:
         presence_duration buckets fall through to the unhumanised
         validator error.
         """
-        # Provider hook: Selora AI Local converts v0.4.2 slim output
-        # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
-        # calls/automation} envelope before the parser sees them. Cloud
-        # providers pass through unchanged.
-        text = self._provider.convert_response_text(text)
-        return parse_streamed_response(
-            text,
-            self._hass,
-            entities,
-            tool_log,
-            session_id=session_id,
-            user_message=user_message,
-            language=language,
-        )
+        # Repairs (friendly_name_strip, state_info_strip,
+        # trailing_marker_reposition, streamed Qwen normalize) fire here,
+        # after architect_chat_stream's usage scope has already closed.
+        # Open a standalone repair scope so these still emit telemetry.
+        with self._usage.repair_scope():
+            # Provider hook: Selora AI Local converts v0.4.2 slim output
+            # shapes ({r,q} / {c,r} / {q,o}) into the {intent, response,
+            # calls/automation} envelope before the parser sees them. Cloud
+            # providers pass through unchanged.
+            text = self._provider.convert_response_text(text)
+            return parse_streamed_response(
+                text,
+                self._hass,
+                entities,
+                tool_log,
+                session_id=session_id,
+                user_message=user_message,
+                language=language,
+            )
 
     # ------------------------------------------------------------------
     # Tool-calling orchestration

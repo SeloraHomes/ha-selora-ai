@@ -27,6 +27,7 @@ from ..automation_utils import (
     assess_automation_risk,
     validate_automation_payload,
 )
+from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot
 from .command_policy import (
     _call_signature,
@@ -102,6 +103,8 @@ def _strip_entity_markers(text: str) -> str:
     if not isinstance(text, str) or not text:
         return text
     cleaned = _ENTITY_MARKER_RE.sub("", text)
+    if cleaned != text:
+        record_repair("friendly_name_strip")
     # Collapse runs of trailing blank lines the marker removal left
     # behind so the response doesn't end with a stretch of empty
     # whitespace on the rendered card.
@@ -148,6 +151,8 @@ def _strip_trigger_action_recap(text: str) -> str:
     if not isinstance(text, str) or not text:
         return text
     cleaned = _RECAP_LINE_RE.sub("", text)
+    if cleaned != text:
+        record_repair("state_info_strip")
     # Collapse the blank stretch the line removal leaves behind.
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
     return cleaned.rstrip()
@@ -2805,6 +2810,10 @@ def parse_streamed_response(
         # the bubble (mirrors the scene path).
         prose_before = text[:auto_start].rstrip()
         prose_after = text[auto_end:].lstrip()
+        if prose_after:
+            # The model appended a trailing summary after the proposal;
+            # we repositioned it back into the bubble.
+            record_repair("trailing_marker_reposition")
         response_text = "\n\n".join(p for p in (prose_before, prose_after) if p).strip()
         json_text = auto_json
         try:

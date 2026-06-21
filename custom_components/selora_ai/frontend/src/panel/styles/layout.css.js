@@ -288,10 +288,51 @@ export const layoutStyles = css`
       opacity: 1;
     }
   }
+  .telemetry-consent {
+    position: relative;
+    z-index: 5;
+    margin: 12px 28px 0;
+    padding: 12px 16px;
+    border-radius: 10px;
+    background: var(--secondary-background-color, rgba(127, 127, 127, 0.1));
+    border: 1px solid var(--divider-color, rgba(127, 127, 127, 0.3));
+    color: var(--primary-text-color);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    animation: quota-banner-in 240ms ease-out;
+  }
+  .telemetry-consent ha-icon {
+    --mdc-icon-size: 22px;
+    color: var(--primary-color);
+    flex-shrink: 0;
+  }
+  .telemetry-consent-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .telemetry-consent-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
   @media (max-width: 600px) {
     .quota-banner {
       margin: 8px 10px 0;
       padding: 8px 10px;
+    }
+    .telemetry-consent {
+      flex-wrap: wrap;
+      margin: 8px 10px 0;
+    }
+    .telemetry-consent-actions {
+      width: 100%;
+      justify-content: flex-end;
     }
   }
 `;
