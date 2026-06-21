@@ -140,6 +140,13 @@ class SmartButlerStatusSensor(SensorEntity):
     _attr_unique_id = "selora_ai_hub_status"
     _attr_name = "Status"
     _attr_icon = "mdi:robot"
+    # The full per-device category map is for the panel/dashboard only and
+    # routinely exceeds the recorder's 16 KB attribute cap on larger
+    # installs. Keep it out of the recorder so it isn't re-serialised and
+    # warned about on every 60s poll + device-update signal — that churn is
+    # what slows the whole instance down. The attribute is still available
+    # live via the state machine.
+    _unrecorded_attributes = frozenset({"devices"})
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
@@ -288,6 +295,10 @@ class DeviceListSensor(SensorEntity):
     _attr_unique_id = "selora_ai_hub_device_list"
     _attr_name = "Devices"
     _attr_icon = "mdi:devices"
+    # Full inventory map is dashboard-only and blows past the recorder's
+    # 16 KB attribute cap on larger installs — keep it unrecorded. See
+    # SmartButlerStatusSensor for the rationale.
+    _unrecorded_attributes = frozenset({"inventory"})
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass
@@ -342,6 +353,9 @@ class LastActivitySensor(SensorEntity):
     _attr_name = "Last Activity"
     _attr_icon = "mdi:history"
     _attr_entity_category = EntityCategory.DIAGNOSTIC
+    # The rolling log is for the panel; no need to re-record the whole
+    # 20-entry buffer on every activity event.
+    _unrecorded_attributes = frozenset({"recent_log"})
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
         self.hass = hass

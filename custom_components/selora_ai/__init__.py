@@ -153,6 +153,7 @@ from .const import (
     SIGNAL_PROACTIVE_SUGGESTIONS,
     SIGNAL_SCENE_DELETED,
     STREAM_AUTOMATION_IDLE_TIMEOUT_S,
+    STREAM_CLOUD_IDLE_TIMEOUT_S,
     STREAM_IDLE_TIMEOUT_S,
     STREAM_KEEPALIVE,
     STREAM_MAX_BYTES,
@@ -2017,6 +2018,28 @@ async def _handle_websocket_chat(
     )
 
 
+def _safe_send_message(
+    connection: websocket_api.ActiveConnection,
+    message: dict[str, Any],
+) -> bool:
+    """Send a websocket event, swallowing a closed-transport reset.
+
+    When the panel disconnects mid-stream (tab closed, reload, network
+    drop) the underlying transport is already closing, and a queued
+    write can surface ``ClientConnectionResetError`` ("Cannot write to
+    closing transport"). There is no client left to receive the event,
+    so the failure is benign — but if it propagates it shows up as an
+    unhandled "Error doing job" in the user's logs. Swallow it and
+    report whether the send landed so the caller can stop streaming.
+    """
+    try:
+        connection.send_message(message)
+    except ConnectionResetError:
+        _LOGGER.debug("Dropping chat-stream event; client transport closing")
+        return False
+    return True
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -2057,10 +2080,11 @@ async def _handle_websocket_chat_stream(
 
     llm = _find_llm(hass)
     if llm is None:
-        connection.send_message(
+        _safe_send_message(
+            connection,
             websocket_api.event_message(
                 msg["id"], {"type": "error", "message": "Selora AI LLM not initialized"}
-            )
+            ),
         )
         return
 
@@ -2162,7 +2186,8 @@ async def _handle_websocket_chat_stream(
             # server-side budget too — provider pauses between real
             # chunks routinely exceed the default 45s on heavy
             # reasoning automation prompts.
-            connection.send_message(
+            if not _safe_send_message(
+                connection,
                 websocket_api.event_message(
                     msg["id"],
                     {
@@ -2171,8 +2196,10 @@ async def _handle_websocket_chat_stream(
                         "synthetic": True,
                         "idle_timeout_ms": int(STREAM_AUTOMATION_IDLE_TIMEOUT_S * 1000),
                     },
-                )
-            )
+                ),
+            ):
+                # Client already gone — don't start the expensive provider stream.
+                return
             spinner_sentinel_sent = True
 
         # Per-intent watchdog: automation turns get a longer idle
@@ -2180,9 +2207,17 @@ async def _handle_websocket_chat_stream(
         # reasoning prompt routinely exceeds the default 30s, and a
         # premature timeout there forces the user to retry a request
         # that was actually progressing.
-        effective_idle_timeout = (
-            STREAM_AUTOMATION_IDLE_TIMEOUT_S if is_cloud_automation else STREAM_IDLE_TIMEOUT_S
-        )
+        # Local providers keepalive during slow work, so the strict 30 s
+        # default only ever fires on a genuine hang. Cloud providers have
+        # real first-token latency before any keepalive, so give them a
+        # looser non-automation floor.
+        is_cloud_provider = not getattr(llm.provider, "is_local", False)
+        if is_cloud_automation:
+            effective_idle_timeout = STREAM_AUTOMATION_IDLE_TIMEOUT_S
+        elif is_cloud_provider:
+            effective_idle_timeout = STREAM_CLOUD_IDLE_TIMEOUT_S
+        else:
+            effective_idle_timeout = STREAM_IDLE_TIMEOUT_S
 
         async for chunk in _consume_stream_with_guards(
             llm.architect_chat_stream(
@@ -2202,9 +2237,12 @@ async def _handle_websocket_chat_stream(
             max_bytes=STREAM_MAX_BYTES,
         ):
             if chunk == STREAM_KEEPALIVE:
-                connection.send_message(
-                    websocket_api.event_message(msg["id"], {"type": "heartbeat"})
-                )
+                if not _safe_send_message(
+                    connection,
+                    websocket_api.event_message(msg["id"], {"type": "heartbeat"}),
+                ):
+                    # Client gone — stop pumping the LLM into a dead socket.
+                    return
                 continue
             full_text += chunk
             chunk_count += 1
@@ -2261,9 +2299,14 @@ async def _handle_websocket_chat_stream(
                     # back on a prior chunk is included.
                     prose = full_text[sent_chars:opener_idx]
                     if prose:
-                        connection.send_message(
-                            websocket_api.event_message(msg["id"], {"type": "token", "text": prose})
-                        )
+                        if not _safe_send_message(
+                            connection,
+                            websocket_api.event_message(
+                                msg["id"], {"type": "token", "text": prose}
+                            ),
+                        ):
+                            # Client gone — stop pumping the LLM into a dead socket.
+                            return
                         sent_chars += len(prose)
                     # Surface the building spinner for automation / scene
                     # blocks that weren't pre-flagged as a definite
@@ -2279,7 +2322,8 @@ async def _handle_websocket_chat_stream(
                         elif opener.startswith(("```automation", "automation")):
                             sentinel = "```automation\n"
                         if sentinel is not None:
-                            connection.send_message(
+                            if not _safe_send_message(
+                                connection,
                                 websocket_api.event_message(
                                     msg["id"],
                                     {
@@ -2290,8 +2334,9 @@ async def _handle_websocket_chat_stream(
                                             STREAM_AUTOMATION_IDLE_TIMEOUT_S * 1000
                                         ),
                                     },
-                                )
-                            )
+                                ),
+                            ):
+                                return
                             spinner_sentinel_sent = True
                 else:
                     # No confirmed opener. Withhold a trailing fragment
@@ -2303,9 +2348,14 @@ async def _handle_websocket_chat_stream(
                     send_to = hold if hold >= 0 else len(full_text)
                     prose = full_text[sent_chars:send_to]
                     if prose:
-                        connection.send_message(
-                            websocket_api.event_message(msg["id"], {"type": "token", "text": prose})
-                        )
+                        if not _safe_send_message(
+                            connection,
+                            websocket_api.event_message(
+                                msg["id"], {"type": "token", "text": prose}
+                            ),
+                        ):
+                            # Client gone — stop pumping the LLM into a dead socket.
+                            return
                         sent_chars += len(prose)
 
         # Visibility for "stream ended cleanly but the bubble looks
@@ -2447,7 +2497,8 @@ async def _handle_websocket_chat_stream(
             if m.get("automation_status") == "refining" and m.get("automation_id"):
                 refining_automation_id = m["automation_id"]
 
-        connection.send_message(
+        _safe_send_message(
+            connection,
             websocket_api.event_message(
                 msg["id"],
                 {
@@ -2481,11 +2532,10 @@ async def _handle_websocket_chat_stream(
                     if command_approval_payload
                     else None,
                 },
-            )
+            ),
         )
     except asyncio.CancelledError:
         _LOGGER.debug("Streaming chat cancelled by client")
-        await _discard_empty_session_if_needed()
     except (TimeoutError, _StreamTooLarge, ConnectionError) as exc:
         provider_type = getattr(getattr(llm, "provider", None), "provider_type", "unknown")
 
@@ -2556,7 +2606,8 @@ async def _handle_websocket_chat_stream(
                 tool_calls=tool_executor.call_log,
             )
             persisted_any = True
-            connection.send_message(
+            _safe_send_message(
+                connection,
                 websocket_api.event_message(
                     msg["id"],
                     {
@@ -2567,21 +2618,27 @@ async def _handle_websocket_chat_stream(
                         "tool_calls": tool_executor.call_log,
                         "executed": [c["service"] for c in executed_calls],
                     },
-                )
+                ),
             )
             return
-        connection.send_message(
+        _safe_send_message(
+            connection,
             websocket_api.event_message(
                 msg["id"],
                 {"type": "error", "message": error_msg},
-            )
+            ),
         )
-        await _discard_empty_session_if_needed()
     except Exception as exc:
         _LOGGER.exception("Streaming chat failed")
-        connection.send_message(
-            websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)})
+        _safe_send_message(
+            connection,
+            websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)}),
         )
+    finally:
+        # Covers every exit — normal completion, error branches, and the
+        # dead-client `return`s above. No-op once the turn persisted; only
+        # drops a brand-new session that disconnected before any message
+        # was written, so the sidebar doesn't accumulate empty entries.
         await _discard_empty_session_if_needed()
 
 

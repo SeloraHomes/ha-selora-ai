@@ -884,6 +884,10 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
         return True
 
     @property
+    def is_local(self) -> bool:
+        return True
+
+    @property
     def supports_streaming(self) -> bool:
         # Prose intents (answer/clarification) skip JSON-envelope repair
         # and stream natively; JSON intents (command/automation) still
