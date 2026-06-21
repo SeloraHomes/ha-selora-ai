@@ -38,6 +38,7 @@ custom_components/selora_ai/
 ├── sensor.py            # Hub sensors (Status, Devices, Discovery, Last Activity)
 ├── selora_auth.py       # Multi-auth orchestration (HA token, MCP token, Selora JWT)
 ├── mcp_token_store.py   # Local MCP API token store (CRUD, hash-only storage)
+├── telemetry.py         # Anonymous, opt-in repair-counter telemetry (PostHog)
 ├── types.py             # Shared TypedDict definitions (automations, patterns, suggestions, etc.)
 ├── const.py             # Constants, config keys, known integrations database
 ├── manifest.json        # HA integration manifest
@@ -51,6 +52,7 @@ custom_components/selora_ai/
             ├── render-automations.js # Automation list, cards, flowchart, unavailable modal
             ├── render-chat.js        # Chat messages, YAML editor, new-automation dialog
             ├── render-settings.js    # Settings tab
+            ├── render-telemetry-consent.js # One-time telemetry opt-in banner
             ├── render-suggestions.js # Suggestion cards
             ├── render-version-history.js # Version history drawer + diff viewer
             ├── stale-automations.js  # Stale detection helpers + stale modal/detail
@@ -153,6 +155,7 @@ Tests live in `tests/` and cover:
 - `test_conversation.py` — HA Assist entity fallbacks
 - `test_selora_auth.py` — JWT validation, dual/multi-auth, MCP token auth path
 - `test_mcp_token_store.py` — token CRUD, hash validation, expiry, revocation
+- `test_telemetry.py` — opt-in gating, payload allowlist (no PII), dedup, install-id, error-swallowing
 
 ### JavaScript (Vitest)
 
@@ -209,6 +212,24 @@ hass -c .
 ```
 
 Open http://localhost:8123, add the Selora AI integration under Settings > Devices & Services.
+
+## Telemetry
+
+`telemetry.py` emits **anonymous, opt-in** product telemetry — two event types, both counter/enum/version-only:
+
+- `home_snapshot` — inventory counts of the install (devices, integrations, automations, scenes, scripts, blueprints, areas, entities), device-count-per-integration, Selora-generated automation count, accepted/dismissed suggestion counts, LLM provider, HA + integration versions. Sent once ~2 min after startup (so registries are populated), then every 24h. Scheduled in `async_setup_entry`; timer unsub stored as `unsub_telemetry` and cleaned up in `async_unload_entry`.
+- `llm_output_repaired` — counts how often each safety-net repair on raw LLM output fires (see `REPAIR_TYPES`), broken down by provider/model, to measure repair effectiveness across model versions.
+
+Shared rules:
+
+- **Opt-in, off by default.** Gated on the `telemetry_enabled` toggle (Settings → Advanced). Read live on every emit (`CONF_TELEMETRY_ENABLED` is in `hot_option_keys`, so flipping it needs no reload). Distinct from the *local-only* cost tracking in `usage.py` / `usage_store.py`, which never leaves the network.
+- **Consent:** a one-time dismissible banner (`render-telemetry-consent.js`) shows atop the panel until the user picks Enable / No thanks. The choice sets `telemetry_prompt_seen` (a `frontend_only_keys` option, no reload) so it never re-nags; the Settings toggle remains the way to change it later.
+- **Local model names are never sent.** `_safe_model` replaces the model id with `"local"` for `ollama` / `selora_local` (user-named, potentially identifying); cloud providers send their public catalog model id.
+- **Payloads are counters/enums/versions only.** Per-event allowlists `_REPAIR_PROPERTY_KEYS` / `_SNAPSHOT_PROPERTY_KEYS` are enforced in `_capture` before every POST. **Never** entity ids, friendly names, prompt text, or response text. (`devices_by_integration` keys are HA integration domain names like `zha`/`hue` — public identifiers, just counts.)
+- **Identity:** `distinct_id` is a random per-install UUID stored locally (`{DOMAIN}.telemetry`) with no link to household/network/account. Every POST also sets `$ip: "0.0.0.0"` + `$geoip_disable: true` so PostHog never stores/geolocates the host's real IP (anonymity holds regardless of project settings).
+- **Transport:** direct POST to PostHog via `async_get_clientsession` (no SDK dependency). The PostHog project key in `const.py` is a publishable write-only ingest token — public by design, not a secret. Endpoint overridable via `CONF_TELEMETRY_ENDPOINT`.
+- **How repairs are recorded:** pure helpers call `record_repair("<type>")` (a no-op outside an LLM call). `UsageTracker.scope` opens a per-call ContextVar buffer and drains it at the call boundary, where provider/model are known, then POSTs fire-and-forget (never raises). To add a repair counter: add the type to `REPAIR_TYPES`, call `record_repair(...)` at the repair site, cover it in `tests/test_telemetry.py`. The five instrumented paths: `service_name_inference`, `state_info_strip`, `trailing_marker_reposition`, `friendly_name_strip` (`llm_client/parsers.py`, `command_policy.py`), `qwen_normalize` (`providers/_qwen_repair.py`).
+- To add a snapshot count: add the key to `_SNAPSHOT_PROPERTY_KEYS` and populate it in `TelemetryClient._gather_snapshot`.
 
 ## LLM Providers
 

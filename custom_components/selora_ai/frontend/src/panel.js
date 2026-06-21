@@ -26,6 +26,7 @@ import {
 import { renderSceneCard, renderScenes } from "./panel/render-scenes.js";
 import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
+import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
 import {
   renderVersionHistoryDrawer,
@@ -1081,6 +1082,27 @@ class SeloraAIPanel extends LitElement {
     }
   }
 
+  async _setTelemetryConsent(enabled) {
+    // One-time consent banner choice. Either way the prompt is marked seen
+    // so it never shows again; "Enable" additionally turns telemetry on.
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/update_config",
+        config: {
+          telemetry_enabled: enabled === true,
+          telemetry_prompt_seen: true,
+        },
+      });
+      // Reflect locally only after the backend persisted the choice, so a
+      // failed save never hides the banner or shows telemetry as enabled
+      // when it isn't.
+      this._updateConfig("telemetry_enabled", enabled === true);
+      this._updateConfig("telemetry_prompt_seen", true);
+    } catch (err) {
+      this._showToast("Failed to save: " + err.message, "error");
+    }
+  }
+
   async _saveAdvancedConfig() {
     if (!this._config || this._savingAdvancedConfig) return;
     this._savingAdvancedConfig = true;
@@ -1099,6 +1121,10 @@ class SeloraAIPanel extends LitElement {
         pattern_detection_enabled:
           this._config.pattern_detection_enabled !== false,
         auto_purge_stale: this._config.auto_purge_stale || false,
+        telemetry_enabled: this._config.telemetry_enabled === true,
+        // Deciding the toggle here counts as seeing the prompt — mark it
+        // so the one-time consent banner never reappears afterwards.
+        telemetry_prompt_seen: true,
         // Developer-only: Connect Server URL (editable when Connect is unlinked)
         selora_connect_url: this._config.selora_connect_url,
       };
@@ -3195,7 +3221,7 @@ class SeloraAIPanel extends LitElement {
             .maxOpacity=${this._quotaAlert ? 1.0 : this._isDark ? 1.0 : 0.5}
             .speed=${this._streaming || this._loading ? 2.2 : 1}
           ></selora-particles>
-          ${this._renderQuotaBanner()}
+          ${this._renderQuotaBanner()} ${renderTelemetryConsent(this)}
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}

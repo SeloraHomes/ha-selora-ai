@@ -103,6 +103,8 @@ from .const import (
     CONF_SELORA_JWT_KEY,
     CONF_SELORA_LOCAL_HOST,
     CONF_SELORA_MCP_URL,
+    CONF_TELEMETRY_ENABLED,
+    CONF_TELEMETRY_PROMPT_SEEN,
     DEFAULT_ANTHROPIC_MODEL,
     DEFAULT_AUTO_PURGE_STALE,
     DEFAULT_COLLECTOR_ENABLED,
@@ -126,6 +128,8 @@ from .const import (
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     DEFAULT_SELORA_CONNECT_URL,
     DEFAULT_SELORA_LOCAL_HOST,
+    DEFAULT_TELEMETRY_ENABLED,
+    DEFAULT_TELEMETRY_PROMPT_SEEN,
     DOMAIN,
     ENTITY_SNAPSHOT_ATTRS,
     ENTRY_TYPE_DEVICE,
@@ -152,6 +156,8 @@ from .const import (
     STREAM_IDLE_TIMEOUT_S,
     STREAM_KEEPALIVE,
     STREAM_MAX_BYTES,
+    TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
+    TELEMETRY_SNAPSHOT_STARTUP_DELAY,
 )
 from .scene_discovery import get_area_names
 
@@ -3941,6 +3947,11 @@ async def _handle_websocket_get_config(
             "exclude_label_id": SELORA_EXCLUDE_LABEL_ID,
             "exclude_label_name": SELORA_EXCLUDE_LABEL_NAME,
             "label_tagged": resolve_label_tagged_items(hass),
+            # Anonymous telemetry (opt-in, off by default)
+            "telemetry_enabled": config_data.get(CONF_TELEMETRY_ENABLED, DEFAULT_TELEMETRY_ENABLED),
+            "telemetry_prompt_seen": config_data.get(
+                CONF_TELEMETRY_PROMPT_SEEN, DEFAULT_TELEMETRY_PROMPT_SEEN
+            ),
             # Developer settings
             "developer_mode": config_data.get("developer_mode", False),
             # Selora Connect
@@ -4022,12 +4033,16 @@ async def _handle_websocket_update_config(
         if key in new_data and not new_data[key]:
             new_data.pop(key, None)
 
-    # Keys that only affect the frontend — no reload needed
-    frontend_only_keys = {"developer_mode"}
+    # Keys that only affect the frontend — no reload needed. The telemetry
+    # consent flag only gates the one-time banner; it changes no backend
+    # behaviour, so persisting it must never trigger a reload.
+    frontend_only_keys = {"developer_mode", CONF_TELEMETRY_PROMPT_SEEN}
     # Keys whose change can be applied live to the running LLMClient
     # without rebuilding it. Pricing overrides only impact cost reporting
-    # for subsequent calls, so a hot update is enough.
-    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES}
+    # for subsequent calls, so a hot update is enough. The telemetry
+    # toggle is read live by ``TelemetryClient`` on every emit, so flipping
+    # it needs no reload either.
+    hot_option_keys = {CONF_LLM_PRICING_OVERRIDES, CONF_TELEMETRY_ENABLED}
 
     # Check if any backend-relevant keys actually changed
     old_data = {**entry.data}
@@ -7502,11 +7517,36 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Pattern detection disabled")
 
+    # Anonymous home-inventory telemetry (opt-in, off by default). One
+    # snapshot shortly after startup once registries are populated, then
+    # refreshed daily. The emit is gated on the toggle (read live), so we
+    # schedule unconditionally and it no-ops when the user hasn't opted in.
+    from .telemetry import get_telemetry
+
+    telemetry = get_telemetry(hass)
+
+    async def _telemetry_snapshot(_now: Any = None) -> None:
+        await telemetry.async_send_snapshot(provider=provider)
+
+    async def _delayed_telemetry_snapshot() -> None:
+        await asyncio.sleep(TELEMETRY_SNAPSHOT_STARTUP_DELAY)
+        await _telemetry_snapshot()
+
+    _bg.append(hass.async_create_task(_delayed_telemetry_snapshot()))
+    unsub_telemetry = async_track_time_interval(
+        hass, _telemetry_snapshot, timedelta(hours=TELEMETRY_SNAPSHOT_INTERVAL_HOURS)
+    )
+    hass.data[DOMAIN][entry.entry_id]["unsub_telemetry"] = unsub_telemetry
+
     # Register update listener for options
     snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
         "_entry_data_snapshots", {}
     )
     snapshots[entry.entry_id] = dict(entry.data)
+    opt_snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "_entry_options_snapshots", {}
+    )
+    opt_snapshots[entry.entry_id] = dict(entry.options)
     entry.async_on_unload(entry.add_update_listener(async_reload_entry))
 
     return True
@@ -7517,6 +7557,21 @@ _AIGW_TOKEN_FIELDS = frozenset(
         CONF_AIGATEWAY_ACCESS_TOKEN,
         CONF_AIGATEWAY_REFRESH_TOKEN,
         CONF_AIGATEWAY_EXPIRES_AT,
+    }
+)
+
+# Option keys that are applied live (no entry reload needed). Must mirror
+# the ``hot_option_keys`` + ``frontend_only_keys`` classification in
+# ``_handle_websocket_update_config``: pricing overrides are pushed to the
+# running client, telemetry flags are read live on each use, and
+# developer_mode only affects the frontend. An options-only change confined
+# to these must NOT trigger ``async_reload_entry``'s reload.
+_NO_RELOAD_OPTION_KEYS = frozenset(
+    {
+        CONF_LLM_PRICING_OVERRIDES,
+        CONF_TELEMETRY_ENABLED,
+        CONF_TELEMETRY_PROMPT_SEEN,
+        "developer_mode",
     }
 )
 
@@ -7534,15 +7589,32 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
     snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
         "_entry_data_snapshots", {}
     )
+    opt_snapshots: dict[str, dict[str, Any]] = hass.data.setdefault(DOMAIN, {}).setdefault(
+        "_entry_options_snapshots", {}
+    )
     previous = snapshots.get(entry.entry_id, {})
     current = dict(entry.data)
     snapshots[entry.entry_id] = current
+    prev_options = opt_snapshots.get(entry.entry_id, {})
+    current_options = dict(entry.options)
+    opt_snapshots[entry.entry_id] = current_options
 
     if previous:
         changed = {
             key for key in previous.keys() | current.keys() if previous.get(key) != current.get(key)
         }
         if changed and changed.issubset(_AIGW_TOKEN_FIELDS):
+            return
+        options_changed = {
+            key
+            for key in prev_options.keys() | current_options.keys()
+            if prev_options.get(key) != current_options.get(key)
+        }
+        # No entry.data change and only live-applied options touched (pricing
+        # overrides applied directly; telemetry flags read live on each use) —
+        # reloading would needlessly interrupt active LLM calls and restart
+        # background services.
+        if not changed and options_changed and options_changed.issubset(_NO_RELOAD_OPTION_KEYS):
             return
 
     await hass.config_entries.async_reload(entry.entry_id)
@@ -7558,12 +7630,24 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     collector = data.get("collector")
     unsub_discovery = data.get("unsub_discovery")
+    unsub_telemetry = data.get("unsub_telemetry")
 
     if collector:
         await collector.async_stop()
 
     if unsub_discovery:
         unsub_discovery()
+
+    if unsub_telemetry:
+        unsub_telemetry()
+
+    # Drop this entry's reload snapshots so they don't accumulate across
+    # remove/re-add cycles (each re-add gets a fresh entry_id, leaving the
+    # old key behind otherwise).
+    for _snap_key in ("_entry_data_snapshots", "_entry_options_snapshots"):
+        snap = hass.data[DOMAIN].get(_snap_key)
+        if snap is not None:
+            snap.pop(entry.entry_id, None)
 
     # Cancel tracked background tasks and drain their cancellations so we
     # don't leak coroutine frames / traceback objects across reloads.

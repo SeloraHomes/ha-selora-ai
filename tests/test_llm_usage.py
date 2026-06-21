@@ -560,3 +560,97 @@ class TestLLMClientFlushUsage:
         # The oldest (output_tokens=1..25) should have been dropped.
         assert events[0]["output_tokens"] == 26
         assert events[-1]["output_tokens"] == LLM_USAGE_BUFFER_SIZE + 25
+
+
+class TestRepairTelemetryAcrossParsing:
+    """Repairs that fire during post-call parsing must still emit telemetry.
+
+    Streamed chat splits one logical call into two method invocations:
+    ``architect_chat_stream`` (LLM round-trip) and, later,
+    ``parse_streamed_response`` (parsing). ``execute_command`` likewise
+    parses + applies command policy. Both run repairs after the usage
+    scope opened its repair buffer; the buffer must stay open through them.
+    """
+
+    @pytest.fixture
+    def llm_client(self, hass):
+        from custom_components.selora_ai.llm_client import LLMClient
+
+        provider = AnthropicProvider(hass, api_key="test-key", model="claude-sonnet-4-6")
+        return LLMClient(hass, provider)
+
+    @pytest.fixture
+    def captured_repairs(self, hass, monkeypatch):
+        """Replace the telemetry recorder with a spy; return the capture list."""
+        from custom_components.selora_ai.telemetry import get_telemetry
+
+        recorded: list[dict] = []
+        telemetry = get_telemetry(hass)
+        monkeypatch.setattr(
+            telemetry,
+            "record_repairs",
+            lambda repairs, *, provider, model: recorded.append(
+                {"repairs": list(repairs), "provider": provider, "model": model}
+            ),
+        )
+        return recorded
+
+    def test_parse_streamed_response_emits_repairs(
+        self, hass, llm_client, captured_repairs, monkeypatch
+    ) -> None:
+        from custom_components.selora_ai.telemetry import record_repair
+
+        def fake_parse(text, hass_, *args, **kwargs):
+            # Stand in for friendly_name_strip / state_info_strip firing
+            # inside the parser, which runs after the stream scope closed.
+            record_repair("friendly_name_strip")
+            return {"intent": "answer", "response": text}
+
+        monkeypatch.setattr(
+            "custom_components.selora_ai.llm_client.client.parse_streamed_response",
+            fake_parse,
+        )
+
+        result = llm_client.parse_streamed_response("hello world")
+        assert result["intent"] == "answer"
+
+        assert len(captured_repairs) == 1
+        assert captured_repairs[0]["repairs"] == ["friendly_name_strip"]
+        assert captured_repairs[0]["provider"] == "anthropic"
+        assert captured_repairs[0]["model"] == "claude-sonnet-4-6"
+
+    async def test_execute_command_emits_repairs_from_parsing(
+        self, hass, llm_client, captured_repairs, monkeypatch
+    ) -> None:
+        from unittest.mock import AsyncMock
+
+        from custom_components.selora_ai.telemetry import record_repair
+
+        monkeypatch.setattr(
+            llm_client._provider,
+            "send_request",
+            AsyncMock(return_value=('{"calls": [], "response": "ok"}', None)),
+        )
+
+        def fake_parse_command(text):
+            # service_name_inference fires during command parsing, which
+            # runs after send_request but must stay inside the scope.
+            record_repair("service_name_inference")
+            return {"calls": [], "response": "ok"}
+
+        monkeypatch.setattr(
+            "custom_components.selora_ai.llm_client.client.parse_command_response_text",
+            fake_parse_command,
+        )
+        monkeypatch.setattr(
+            "custom_components.selora_ai.llm_client.client.apply_command_policy",
+            lambda parsed, entities, *, hass, language: parsed,
+        )
+
+        result = await llm_client.execute_command("turn on the light", [])
+        assert result["response"] == "ok"
+
+        assert len(captured_repairs) == 1
+        assert captured_repairs[0]["repairs"] == ["service_name_inference"]
+        assert captured_repairs[0]["provider"] == "anthropic"
+        assert captured_repairs[0]["model"] == "claude-sonnet-4-6"

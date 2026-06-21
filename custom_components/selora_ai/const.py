@@ -727,6 +727,35 @@ DEFAULT_COLLECTOR_END_TIME = "17:00"
 DEFAULT_DISCOVERY_ENABLED = True
 DEFAULT_DISCOVERY_MODE = MODE_CONTINUOUS
 DEFAULT_DISCOVERY_INTERVAL = 14400  # 4 hours in seconds
+
+# ── Telemetry (anonymous, opt-in) ───────────────────────────────────
+# Counters for how often the integration repairs LLM output. OFF by
+# default — only emitted after the user enables the toggle in settings.
+# Payloads carry counters/enums only (repair type, provider, model,
+# version); never entity ids, friendly names, prompt, or response text.
+CONF_TELEMETRY_ENABLED = "telemetry_enabled"
+DEFAULT_TELEMETRY_ENABLED = False
+# Whether the user has been shown the one-time consent banner. Set once
+# the user accepts or declines so the banner never re-nags.
+CONF_TELEMETRY_PROMPT_SEEN = "telemetry_prompt_seen"
+DEFAULT_TELEMETRY_PROMPT_SEEN = False
+# Optional endpoint override (epic #56 wants configurable endpoints).
+CONF_TELEMETRY_ENDPOINT = "telemetry_endpoint"
+TELEMETRY_STORE_VERSION = 1
+# PostHog single-event capture endpoint + project key. The key is a
+# PUBLISHABLE (write-only) ingest token — PostHog ships it in client
+# apps by design; it can submit events but never read them. Not a
+# secret, so embedding it client-side is expected.
+DEFAULT_TELEMETRY_ENDPOINT = "https://us.i.posthog.com/i/v0/e/"
+TELEMETRY_PROJECT_KEY = (
+    "phc_9iP1kTUxX09C8uz2DM9IEux55IRW1nTqdvspaWIrTjG"  # gitleaks:allow pragma: allowlist secret
+)
+TELEMETRY_EVENT_REPAIR = "llm_output_repaired"
+TELEMETRY_EVENT_SNAPSHOT = "home_snapshot"
+# How often the home-inventory snapshot is re-sent after the startup one.
+TELEMETRY_SNAPSHOT_INTERVAL_HOURS = 24
+# Delay before the startup snapshot so registries/recorder are populated.
+TELEMETRY_SNAPSHOT_STARTUP_DELAY = 120
 DEFAULT_DISCOVERY_START_TIME = "00:00"
 DEFAULT_DISCOVERY_END_TIME = "23:59"
 

@@ -264,7 +264,7 @@ def test_build_executed_confirmation_keeps_unshown_marker_ids() -> None:
 
 
 async def test_architect_chat_approval_short_circuit_yields_card(hass, monkeypatch) -> None:
-    """Regression (P2): the non-stream tool loop returns a non-empty sentinel
+    """Regression: the non-stream tool loop returns a non-empty sentinel
     on an approval short-circuit. ``architect_chat`` treats a falsy
     ``result_text`` as an LLM failure, so returning "" turned "unlock the
     front door" into the generic LLM error instead of the approval card."""
@@ -868,7 +868,7 @@ def test_executed_service_calls_includes_activate_scene() -> None:
 
 
 def test_streaming_block_strip_with_mismatched_prose_rejected(hass) -> None:
-    """Regression (P2): the duplicate block is stripped because the
+    """Regression: the duplicate block is stripped because the
     model echoed light.kitchen — which matches the executed tool call —
     but the prose talks about light.bedroom. The block-strip path used
     to set the trust flag unconditionally, letting the false bedroom
