@@ -1055,6 +1055,14 @@ STREAM_TOOL_CANCEL_GRACE_S = 2.0
 # during slow tool work. Picked so a provider that emits raw user text
 # (including arbitrary Unicode and isolated NULs) cannot collide.
 STREAM_KEEPALIVE = "\x00\x01selora-keepalive\x01\x00"
+# Shown when the stream completes cleanly but the answer-path reply is
+# blank (provider returned an empty / whitespace-only completion) and
+# there is no structural payload to render. Without this, the "done"
+# event carries an empty response and the panel paints a blank assistant
+# bubble — indistinguishable from a silent hang.
+STREAM_EMPTY_RESPONSE_MESSAGE = (
+    "I didn't get a response that time. Please try again, or rephrase if it keeps happening."
+)
 
 # ── Data Collection ──────────────────────────────────────────────────
 DEFAULT_PUSH_INTERVAL = 3600  # 1 hour — how often we collect + analyze
