@@ -18,7 +18,13 @@ from ..types import EntitySnapshot
 # trimmed entity list inside ~700 tokens.
 _LOW_CONTEXT_MAX_ENTITIES = 15
 
-_CLOUD_MAX_ENTITIES = 200
+# The cloud prompt's entity budget. This is the long-standing cap the cloud
+# path has always shipped — relevance ranking + need pinning only change WHICH
+# entities survive once an install exceeds it, never the budget itself. Do not
+# lower it to "tighten" the prompt: aggregate queries with no keyword/need hit
+# (e.g. "what's the status of everything?") fall back to rank order and would
+# silently lose entities that were previously in scope.
+_CLOUD_MAX_ENTITIES = 500
 _LOW_CONTEXT_STOPWORDS = frozenset(
     {
         "the",
@@ -1097,6 +1103,240 @@ _CATEGORY_KEYWORD_TO_DOMAIN: dict[str, str] = {
     "scenes": "scene",
 }
 
+# ── Cloud relevance pinning ──────────────────────────────────────────
+# The keyword ranker (_score_entity_against_keywords) scores on
+# friendly_name / entity_id / area tokens. That is enough when the
+# intended entity is named after what the user typed ("porch light"),
+# but a large real install names its sensors after the hardware
+# ("BME280 3", "AirCycler G2") or carries no request token at all
+# (a weather entity, an indoor-temperature sensor). For those, a CPU /
+# diagnostic temperature sensor whose name literally contains the word
+# "temperature" outscores the room thermometer the automation actually
+# needs, and the relevant entity falls past the cap.
+#
+# Pinning closes that gap: when the request implies a need for a given
+# device_class, unit, or domain, a bounded number of the best-matching
+# entities of that kind are GUARANTEED a slot in the cloud entity block,
+# independent of their keyword score. The cap is still respected — pinned
+# entities count against it — so the prompt size is unchanged.
+
+# Request token → measurement device_classes that token implies a need
+# for. Matched against the request keyword set (already lowercased,
+# stopwords removed). A pinned device_class survives the cap even with a
+# zero keyword score.
+_DEVICE_CLASS_NEED_TOKENS: dict[str, tuple[str, ...]] = {
+    "temperature": ("temperature",),
+    "temp": ("temperature",),
+    "inside": ("temperature",),
+    "indoor": ("temperature",),
+    "outside": ("temperature",),
+    "outdoor": ("temperature",),
+    "warmer": ("temperature",),
+    "cooler": ("temperature",),
+    "hotter": ("temperature",),
+    "colder": ("temperature",),
+    "humidity": ("humidity",),
+    "humid": ("humidity",),
+    "pressure": ("pressure", "atmospheric_pressure"),
+    "barometric": ("pressure", "atmospheric_pressure"),
+    "window": ("window", "opening", "door"),
+    "windows": ("window", "opening", "door"),
+    "door": ("door", "opening", "window"),
+    "doors": ("door", "opening", "window"),
+    "open": ("window", "opening", "door"),
+    "opened": ("window", "opening", "door"),
+    "co2": ("carbon_dioxide",),
+    "illuminance": ("illuminance",),
+    "brightness": ("illuminance",),
+    "lux": ("illuminance",),
+    "power": ("power",),
+    "energy": ("energy", "power"),
+}
+
+# Request token → domains that token implies a need for. The user names
+# a "fan" / "weather" / "thermostat"; the matching domain's entities are
+# pinned even when their friendly_name shares no token with the request.
+_DOMAIN_NEED_TOKENS: dict[str, tuple[str, ...]] = {
+    "fan": ("fan",),
+    "fans": ("fan",),
+    "weather": ("weather",),
+    "forecast": ("weather",),
+    "thermostat": ("climate",),
+    "thermostats": ("climate",),
+    "climate": ("climate",),
+    "heater": ("climate", "water_heater"),
+    "heaters": ("climate", "water_heater"),
+    "cooling": ("climate",),
+    "heating": ("climate",),
+    "lock": ("lock",),
+    "locks": ("lock",),
+    "vacuum": ("vacuum",),
+    "cover": ("cover",),
+    "covers": ("cover",),
+    "blind": ("cover",),
+    "blinds": ("cover",),
+    "shade": ("cover",),
+    "shades": ("cover",),
+    "garage": ("cover",),
+}
+
+# AC / air-conditioner phrasing the keyword tokenizer can't surface as a need
+# token: "ac" and "a/c" are ≤2-char tokens that _low_context_keywords drops,
+# and "air conditioner" tokenizes to "air"/"conditioner" (neither is a need
+# token). Matched against the RAW message in _cloud_pinned_needs so a bare
+# "turn on the AC" still pins the climate domain.
+# Trailing boundary is ``(?!\w)`` not ``\b``: the dotted "A.C." ends in a
+# literal period, so a ``\b`` (which needs a word/non-word transition) never
+# matches before the following space/end. ``(?!\w)`` accepts that position.
+_AC_NEED_RE = re.compile(
+    r"\b(?:a/?c|a\.c\.?|air[\s-]?con(?:ditioner|ditioning|ditioned|s)?)(?!\w)",
+    re.IGNORECASE,
+)
+
+# How many entities of a single pinned need to keep. Bounded so a home
+# with hundreds of temperature sensors can't crowd the whole block; the
+# few most need-relevant per kind (see _need_relevance) are pinned and the
+# rest compete normally for the remaining cap.
+_PER_NEED_KEEP = 6
+
+# Substrings that mark a sensor as a diagnostic / system reading rather
+# than the room/environment measurement a home-automation request means.
+# A "CPU Temperature" sensor literally carries device_class=temperature,
+# so on a request that needs a thermometer it would otherwise pin ahead
+# of the actual indoor/outdoor sensors. Demoting these in the per-need
+# ranking lets the real sensors win their pin slots. Matched against the
+# entity_id local part and friendly_name tokens.
+_DIAGNOSTIC_SENSOR_TOKENS = frozenset(
+    {
+        "cpu",
+        "gpu",
+        "memory",
+        "ram",
+        "disk",
+        "load",
+        "uptime",
+        "battery",
+        "signal",
+        "rssi",
+        "linkquality",
+        "voltage",
+        "throughput",
+        "latency",
+        "processor",
+        "cache",
+        "swap",
+        "core",
+        "thermal",
+        "die",
+        "package",
+        "system",
+        "server",
+        "host",
+        "router",
+        "modem",
+        "nas",
+        "printer",
+        "ups",
+    }
+)
+
+# Per-need relevance weights. A request qualifier matching the entity's
+# area or a non-class name token is the strongest signal; a diagnostic
+# token is a strong demotion so system sensors sort below real ones.
+_NEED_AREA_MATCH = 6
+_NEED_NAME_TOKEN_MATCH = 4
+_NEED_DIAGNOSTIC_PENALTY = 20
+
+
+def _is_diagnostic_sensor(entity: EntitySnapshot) -> bool:
+    """True when the entity's id / name marks it as a system/diagnostic
+    reading (CPU temperature, battery level, signal strength, …) rather
+    than a room or environment measurement."""
+    eid = entity.get("entity_id", "").lower()
+    local = eid.split(".", 1)[-1] if "." in eid else eid
+    tokens = set(re.split(r"[^a-z0-9]+", local)) - {""}
+    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    tokens |= set(re.split(r"[^a-z0-9]+", fname)) - {""}
+    return bool(tokens & _DIAGNOSTIC_SENSOR_TOKENS)
+
+
+def _need_relevance(entity: EntitySnapshot, keywords: set[str]) -> int:
+    """Rank candidates that satisfy the SAME device_class / domain need.
+
+    The class membership is the gate, not the signal — every temperature
+    sensor matches the temperature need equally. What separates the room
+    thermometer the request means from a CPU diagnostic sensor is the
+    request's qualifier words (outside / inside / outdoor / a room name)
+    landing on the entity's area or non-class name tokens, and the absence
+    of diagnostic markers. Higher = more likely the intended entity.
+    """
+    eid = entity.get("entity_id", "").lower()
+    local = eid.split(".", 1)[-1] if "." in eid else eid
+    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    name_tokens = set(re.split(r"[^a-z0-9]+", local)) | set(re.split(r"[^a-z0-9]+", fname))
+    name_tokens -= {""}
+    area = (entity.get("area_name") or "").lower()
+    score = 0
+    for kw in keywords:
+        if area and kw in area:
+            score += _NEED_AREA_MATCH
+        if kw in name_tokens:
+            score += _NEED_NAME_TOKEN_MATCH
+    if _is_diagnostic_sensor(entity):
+        score -= _NEED_DIAGNOSTIC_PENALTY
+    return score
+
+
+def _cloud_pinned_needs(
+    keywords: set[str], message: str = ""
+) -> tuple[frozenset[str], frozenset[str]]:
+    """Resolve a request into the device_classes and domains whose entities
+    must be pinned into the cloud entity block.
+
+    ``keywords`` drives the table lookups; ``message`` is the raw request,
+    scanned for phrasings the tokenizer can't surface (AC). Returns
+    ``(device_classes, domains)`` — empty when the request implies no
+    measurement / domain need, in which case pinning is a no-op and the plain
+    keyword ranking decides the cap.
+    """
+    device_classes: set[str] = set()
+    domains: set[str] = set()
+    for kw in keywords:
+        device_classes.update(_DEVICE_CLASS_NEED_TOKENS.get(kw, ()))
+        domains.update(_DOMAIN_NEED_TOKENS.get(kw, ()))
+    # A temperature condition that compares against a setpoint implies a
+    # climate device even when the user wrote "set temperature" (stopwords)
+    # rather than "thermostat". climate is a small domain on any install, so
+    # pinning it alongside a temperature need is cheap and keeps the setpoint
+    # entity in scope for "below the set temperature"-style requests.
+    if "temperature" in device_classes:
+        domains.add("climate")
+    # "AC" / "A/C" / "air conditioner" — dropped by the tokenizer, so matched
+    # on the raw message. A bare "turn on the AC" carries no temperature word
+    # and would otherwise pin nothing, omitting an AC entity past the cap.
+    if message and _AC_NEED_RE.search(message):
+        domains.add("climate")
+    return frozenset(device_classes), frozenset(domains)
+
+
+def _entity_matches_need(
+    entity: EntitySnapshot,
+    device_classes: frozenset[str],
+    domains: frozenset[str],
+) -> bool:
+    """True when the entity satisfies a pinned device_class OR domain need."""
+    eid = entity.get("entity_id", "")
+    if "." not in eid:
+        return False
+    domain = eid.split(".", 1)[0]
+    if domain in domains:
+        return True
+    if device_classes:
+        dc = str(entity.get("attributes", {}).get("device_class", "")).lower()
+        if dc and dc in device_classes:
+            return True
+    return False
+
 
 def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -> int:
     """Relevance score: higher when the entity matches more keywords
@@ -1987,3 +2227,130 @@ def _filter_entities_by_keywords(
             scored.sort(key=lambda t: (-t[0], t[1]))
             return [e for _, _, e in scored[:cap]]
     return _fallback_low_context_entities(entities, cap=cap)
+
+
+def _entity_need_keys(
+    entity: EntitySnapshot,
+    device_classes: frozenset[str],
+    domains: frozenset[str],
+) -> list[str]:
+    """The pinned-need keys an entity satisfies: ``domain:<d>`` and/or
+    ``class:<dc>``. Empty when the entity matches no need."""
+    keys: list[str] = []
+    eid = entity.get("entity_id", "")
+    if "." not in eid:
+        return keys
+    domain = eid.split(".", 1)[0]
+    if domain in domains:
+        keys.append(f"domain:{domain}")
+    if device_classes:
+        dc = str(entity.get("attributes", {}).get("device_class", "")).lower()
+        if dc and dc in device_classes:
+            keys.append(f"class:{dc}")
+    return keys
+
+
+def _filter_cloud_entities(
+    entities: list[EntitySnapshot],
+    keywords: set[str],
+    *,
+    cap: int = _CLOUD_MAX_ENTITIES,
+    message: str = "",
+) -> list[EntitySnapshot]:
+    """Select the cap-many most relevant entities for the CLOUD prompt.
+
+    Keyword ranking alone (``_filter_entities_by_keywords``) buries the
+    entities a multi-condition request needs but does not name after the
+    request words: an indoor-temperature sensor, a weather entity, a
+    pressure sensor named after its chip, a climate setpoint. Worse, a
+    diagnostic "CPU Temperature" sensor carries device_class=temperature
+    AND scores higher on the literal word "temperature" than the room
+    thermometer the automation needs. On a large install those required
+    entities sort past the cap and the model reports it cannot see them.
+
+    This layers required-need PINNING over the keyword ranking:
+
+    1. Resolve the request into device_class / domain NEEDS
+       (``_cloud_pinned_needs``): "pressure" → a pressure sensor,
+       "windows"/"open" → opening/door/window binary_sensors, "fan" → the
+       fan domain, "weather" → the weather domain, "inside"/"outside"/
+       "temperature" → temperature sensors, "thermostat"/"ac" → climate.
+    2. For each need, PIN up to ``_PER_NEED_KEEP`` entities, ranked by
+       ``_need_relevance`` (request qualifier/area match, with diagnostic
+       sensors demoted) — NOT by the keyword score, so the room sensor wins
+       its slot over hundreds of CPU/system sensors of the same class.
+    3. Fill the rest of the cap with the keyword-ranked remainder.
+
+    The cap is always honoured — pinned entities count against it, so the
+    prompt does not grow. When the request implies no need, this is the
+    plain keyword ranking. ``cap <= 0`` yields an empty list. The output
+    order is the keyword ranking (pinned-but-unranked entities sort to the
+    end), deterministic for a given input.
+    """
+    if cap <= 0:
+        return []
+
+    # Deterministic full keyword ranking (score desc, original index asc).
+    # Keep zero-score entities too so pinning can still reach a required-
+    # but-unnamed entity (a weather entity, an indoor thermometer) that the
+    # bare keyword match scored 0.
+    base_order: dict[int, int] = {}
+    ranked = sorted(
+        enumerate(entities),
+        key=lambda t: (-_score_entity_against_keywords(t[1], keywords), t[0]),
+    )
+    ranked_entities: list[EntitySnapshot] = []
+    for rank_idx, (orig_idx, e) in enumerate(ranked):
+        ranked_entities.append(e)
+        base_order[orig_idx] = rank_idx
+
+    device_classes, domains = _cloud_pinned_needs(keywords, message)
+    if not device_classes and not domains:
+        # No semantic need to pin — keyword ranking decides the cap.
+        return ranked_entities[:cap]
+
+    # Bucket every need-matching entity by its need key, then keep the most
+    # need-relevant few per bucket. Ranking inside a bucket is by
+    # _need_relevance (demotes diagnostic sensors, rewards qualifier/area
+    # match); original index breaks ties so selection is stable.
+    buckets: dict[str, list[tuple[int, int, EntitySnapshot]]] = {}
+    for orig_idx, e in enumerate(entities):
+        for key in _entity_need_keys(e, device_classes, domains):
+            buckets.setdefault(key, []).append((_need_relevance(e, keywords), orig_idx, e))
+
+    pinned_idx: set[int] = set()
+    for cand in buckets.values():
+        cand.sort(key=lambda t: (-t[0], t[1]))
+        for _, orig_idx, _e in cand[:_PER_NEED_KEEP]:
+            pinned_idx.add(orig_idx)
+
+    if not pinned_idx:
+        return ranked_entities[:cap]
+
+    # Compose: pinned entities first (so they always make the cut), then
+    # the keyword-ranked remainder until the cap is full. Finally re-sort
+    # the whole selection back into keyword-rank order for a stable,
+    # readable prompt block.
+    pinned = [(base_order[i], entities[i]) for i in pinned_idx]
+    pinned.sort(key=lambda t: t[0])
+    selected_idx = set(pinned_idx)
+    result_pairs: list[tuple[int, EntitySnapshot]] = list(pinned)
+
+    if len(result_pairs) >= cap:
+        result_pairs.sort(key=lambda t: t[0])
+        return [e for _, e in result_pairs[:cap]]
+
+    # Fill from the keyword ranking (score desc, original index asc), NOT
+    # the raw input order — otherwise early unrelated entities displace
+    # later high-scoring matches whenever a pinned need also fires, which
+    # is exactly the large-install case this selector exists to fix.
+    for orig_idx, e in ranked:
+        if len(result_pairs) >= cap:
+            break
+        if orig_idx in selected_idx:
+            continue
+        result_pairs.append((base_order[orig_idx], e))
+        selected_idx.add(orig_idx)
+
+    result_pairs.sort(key=lambda t: t[0])
+    return [e for _, e in result_pairs[:cap]]

@@ -154,6 +154,7 @@ from .const import (
     SIGNAL_SCENE_DELETED,
     STREAM_AUTOMATION_IDLE_TIMEOUT_S,
     STREAM_CLOUD_IDLE_TIMEOUT_S,
+    STREAM_EMPTY_RESPONSE_MESSAGE,
     STREAM_IDLE_TIMEOUT_S,
     STREAM_KEEPALIVE,
     STREAM_MAX_BYTES,
@@ -261,6 +262,72 @@ def _pending_opener_start(text: str) -> int:
             prev_indent = len(prev_raw) - len(prev_raw.lstrip(" \t"))
             return prev_start + prev_indent
     return -1
+
+
+# Parsed-response keys that carry a renderable structural payload. When any
+# is present the chat bubble has something to show (an automation card, a scene
+# proposal, or quick-action chips), so a blank ``response`` string is legitimate
+# and must NOT be overwritten with the no-response fallback.
+#
+# Only keys the WS ``done`` event forwards AND the panel actually RENDERS belong
+# here. Deliberately excluded:
+#   * ``automation_yaml`` / ``scene_yaml`` — forwarded, but the panel renders a
+#     card only on the object (``msg.automation`` / ``msg.scene``). A malformed
+#     response carrying YAML-only with blank prose would otherwise suppress the
+#     fallback while rendering nothing → blank bubble. YAML counts as structural
+#     only alongside its object, which the object key already covers.
+#   * ``calls`` — ``done`` never forwards it; it is only persisted to the store,
+#     and only when intent is ``command``. A downgraded ``delayed_command`` that
+#     lands on ``answer`` with empty prose + ``calls`` would otherwise suppress
+#     the fallback while sending nothing renderable → blank bubble.
+#   * ``command_approval`` — ``done`` forwards it only when ``intent`` is
+#     ``command_approval`` (handled separately below), so it is not unconditional.
+#   * ``q`` (slim-answer entity list, Selora Local) — ``done`` neither forwards
+#     nor renders it.
+_STRUCTURAL_RESPONSE_KEYS = (
+    "automation",
+    "scene",
+    "quick_actions",
+)
+
+
+def _empty_response_fallback(
+    intent_type: str,
+    response_text: str,
+    parsed: dict[str, Any],
+    language: str | None = None,
+) -> str:
+    """Substitute a bounded message when a clean stream produced no reply.
+
+    The stream guard (``_consume_stream_with_guards``) bounds a stalled or
+    runaway provider — those surface as ``TimeoutError`` / ``_StreamTooLarge``
+    and the handler turns them into an ``error`` event. But a provider that
+    terminates cleanly having emitted no content (empty cloud completion, an
+    immediate stop) raises nothing: ``parse_streamed_response("")`` yields
+    ``{"intent": "answer", "response": ""}`` and the handler would emit a
+    ``done`` event whose ``response`` is blank — the panel paints an empty
+    assistant bubble, which is the silent "no response" mode users report.
+
+    Rewrite that blank reply to ``STREAM_EMPTY_RESPONSE_MESSAGE`` so the turn
+    is always non-silent. ``response_text.strip()`` catches whitespace-only
+    completions too (e.g. "\\n  \\n"), which are blank to the eye but non-empty
+    by ``len()``. Only the textual reply with no structural payload is touched:
+    an automation / scene / quick-action turn legitimately carries empty prose
+    because the bubble renders the structured payload, so those are left as-is.
+    An approval turn (``intent == "command_approval"`` with a ``command_approval``
+    payload) renders an approval card and is likewise left alone.
+    """
+    if response_text and response_text.strip():
+        return response_text
+    if any(parsed.get(key) for key in _STRUCTURAL_RESPONSE_KEYS):
+        return response_text
+    if intent_type == "command_approval" and parsed.get("command_approval"):
+        return response_text
+    _LOGGER.warning(
+        "Chat stream produced an empty %s reply with no payload; substituting no-response fallback",
+        intent_type,
+    )
+    return _approval_phrase(_EMPTY_RESPONSE_BY_LANG, language)
 
 
 class _StreamTooLarge(Exception):
@@ -2418,6 +2485,16 @@ async def _handle_websocket_chat_stream(
             intent_type, response_text, schedule_id = await _handle_scheduled_intent(
                 hass, intent_type, parsed, session_id
             )
+
+        # No-response guard: a provider that ended the stream cleanly with no
+        # content (or whitespace only) and no structural payload would reach
+        # the "done" event with a blank reply and paint an empty bubble — the
+        # silent "no response" failure. Substitute a bounded fallback so the
+        # turn is never silent. Stall/runaway are already bounded upstream by
+        # the stream guard and surface as "error" events.
+        response_text = _empty_response_fallback(
+            intent_type, response_text, parsed, msg.get("language") or hass.config.language
+        )
 
         # Scenes are NOT created immediately — they are stored as proposals
         # with scene_status="pending" so the user can review before applying.
@@ -6234,6 +6311,26 @@ _APPROVAL_DENIED_BY_LANG: dict[str, str] = {
     "ja": "リクエストが拒否されました。何も実行されませんでした。",
     "ko": "요청이 거부되었습니다. 아무것도 실행되지 않았습니다.",
     "ru": "Запрос отклонён. Ничего не было выполнено.",
+}
+
+
+# No-response fallback, localized like the runtime approval/exhaustion
+# strings. Chat replies follow ``hass.config.language``, so the silent-empty
+# substitute must too — an English bubble for a French user is non-silent but
+# wrong-language. ``en`` mirrors ``STREAM_EMPTY_RESPONSE_MESSAGE``.
+_EMPTY_RESPONSE_BY_LANG: dict[str, str] = {
+    "en": STREAM_EMPTY_RESPONSE_MESSAGE,
+    "fr": "Je n'ai pas reçu de réponse cette fois-ci. Veuillez réessayer, ou reformuler si cela persiste.",
+    "de": "Diesmal habe ich keine Antwort erhalten. Bitte versuchen Sie es erneut oder formulieren Sie es um, falls es weiterhin auftritt.",
+    "es": "Esta vez no obtuve respuesta. Vuelva a intentarlo o reformúlelo si sigue ocurriendo.",
+    "it": "Questa volta non ho ricevuto una risposta. Riprova o riformula se continua a succedere.",
+    "nl": "Ik heb deze keer geen antwoord gekregen. Probeer het opnieuw of herformuleer als het blijft gebeuren.",
+    "hu": "Ezúttal nem kaptam választ. Kérjük, próbálja újra, vagy fogalmazza át, ha továbbra is előfordul.",
+    "zh": "这次我没有得到回应。请重试，如果持续出现请换一种说法。",
+    "pt": "Desta vez não obtive resposta. Tente novamente ou reformule se continuar a acontecer.",
+    "ja": "今回は応答がありませんでした。もう一度お試しいただくか、繰り返し発生する場合は言い換えてください。",
+    "ko": "이번에는 응답을 받지 못했습니다. 다시 시도하시거나 계속되면 다르게 표현해 주세요.",
+    "ru": "На этот раз я не получил ответа. Пожалуйста, попробуйте снова или переформулируйте, если это повторяется.",
 }
 
 

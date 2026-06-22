@@ -52,11 +52,13 @@ from .command_policy import (
 )
 from .intent import (
     _AMBIG_PRONOUN_TARGET,
+    _CLOUD_MAX_ENTITIES,
     _MULTI_TARGET_CATEGORY_SCOPE_RE,
     _build_multi_target_command_envelope,
     _build_safety_short_circuit,
     _build_unspecified_target_clarification,
     _classify_chat_intent,
+    _filter_cloud_entities,
     _filter_entities_by_keywords,
     _is_pure_greeting,
     _low_context_keywords,
@@ -112,6 +114,34 @@ _CURRENT_VERB_RE = re.compile(
     r"enable|disable)\b",
     re.IGNORECASE,
 )
+
+
+def _join_stream_boundary(streamed: str, synthesized: str) -> str:
+    """Return the synthesized tool-loop chunk prefixed so it does not fuse
+    with the streamed pre-tool prose under the WS handler's ``full_text +=``
+    accumulation.
+
+    The streaming tool loop (``_stream_request_with_tools``) yields the
+    model's narration chunk-by-chunk and then yields a *synthesized* chunk
+    (the executed-command confirmation or the tool-exhaustion note). The WS
+    handler concatenates every chunk raw, so without a boundary the prose
+    tail and the synthesized sentence collide: ``"...off nowTurned off
+    Kitchen Light."`` or ``"Done.Turned off Kitchen Light."``.
+
+    Inserts exactly one inter-sentence space when the prose tail does not
+    already end in whitespace, and never more than one. The streamed prose
+    is returned untouched — any terminal punctuation it already carries is
+    preserved, and no punctuation is fabricated. Returns the synthesized
+    chunk unchanged when there is no prose yet or it is empty.
+    """
+    if not synthesized:
+        return synthesized
+    # No prose streamed yet, or the prose already committed a trailing
+    # space — the boundary is implicit; emitting the chunk raw keeps a
+    # single separator either way.
+    if not streamed or streamed[-1].isspace():
+        return synthesized
+    return " " + synthesized
 
 
 def _command_compatible_domains(user_message: str) -> frozenset[str] | None:
@@ -1350,12 +1380,19 @@ class LLMClient:
                 friendly = _friendly_name_resolver(self._hass)
                 # Entities the model already narrated with a tile marker in
                 # its pre-tool prose must not render a second card here.
-                shown_ids = set(_marker_entity_ids("".join(streamed_text_parts)))
-                yield build_executed_confirmation(
-                    executed_results,
-                    friendly,
-                    exclude_marker_ids=shown_ids,
-                    language=language or self._hass.config.language,
+                streamed_so_far = "".join(streamed_text_parts)
+                shown_ids = set(_marker_entity_ids(streamed_so_far))
+                # Separate the synthesized confirmation from any narrated
+                # prose so the WS handler's `full_text += chunk` does not glue
+                # them ("...nowTurned off Kitchen Light.").
+                yield _join_stream_boundary(
+                    streamed_so_far,
+                    build_executed_confirmation(
+                        executed_results,
+                        friendly,
+                        exclude_marker_ids=shown_ids,
+                        language=language or self._hass.config.language,
+                    ),
                 )
                 _LOGGER.debug(
                     "Stream short-circuit: synthesized confirmation for %d "
@@ -1366,9 +1403,17 @@ class LLMClient:
 
         # Exhausted rounds — acknowledge anything execute_command already
         # fired so the user doesn't retry and double-execute the same service.
-        yield _tool_failure_response(
-            tool_executor.call_log,
-            language=language or self._hass.config.language,
+        # Boundary-join so the failure note does not fuse with narrated prose
+        # ("...check the sensorsI used several tools..."). No explicit suffix:
+        # _tool_failure_response already branches on whether a service call ran
+        # and emits the locale-aware exhaustion text, so passing an English
+        # suffix here would override that and break non-English replies.
+        yield _join_stream_boundary(
+            "".join(streamed_text_parts),
+            _tool_failure_response(
+                tool_executor.call_log,
+                language=language or self._hass.config.language,
+            ),
         )
 
     # ------------------------------------------------------------------
@@ -1406,9 +1451,14 @@ class LLMClient:
             "input_select",
             "device_tracker",
             "person",
+            # Outdoor conditions / forecast: multi-condition automations
+            # ("turn on the fan when it's cooler outside", "...check the
+            # weather") need the weather entity in scope. Without it the
+            # domain gate drops it before relevance ranking even runs.
+            "weather",
         }
 
-        entity_lines: list[str] = []
+        eligible: list[EntitySnapshot] = []
         for e in entities:
             eid = e.get("entity_id", "")
             domain = eid.split(".")[0]
@@ -1416,11 +1466,28 @@ class LLMClient:
                 continue
             if not is_actionable_entity(eid):
                 continue
-            entity_lines.append(_format_entity_line(e))
+            eligible.append(e)
 
-        if len(entity_lines) > 500:
-            entity_lines = entity_lines[:500]
-            entity_lines.append("  - ... (truncated to 500 entities)")
+        # Rank by relevance to the request and pin the device_class /
+        # domain needs the request implies, then cap. A positional cut of
+        # the eligible list buries the entities a multi-condition request
+        # needs but does not name after the request words (an indoor-temp
+        # sensor, a weather entity, a pressure sensor named after its chip,
+        # a climate setpoint) behind hundreds of unrelated lights/switches
+        # and diagnostic sensors. _filter_cloud_entities ranks + pins them
+        # so they survive at any device count, within the same cap.
+        selected = _filter_cloud_entities(
+            eligible,
+            _low_context_keywords(user_message),
+            cap=_CLOUD_MAX_ENTITIES,
+            message=user_message,
+        )
+        entity_lines = [_format_entity_line(e) for e in selected]
+        if len(selected) < len(eligible):
+            entity_lines.append(
+                f"  - ... ({len(eligible) - len(selected)} less-relevant "
+                f"entities omitted; {len(selected)} most-relevant shown)"
+            )
 
         auto_lines: list[str] = []
         if existing_automations:
