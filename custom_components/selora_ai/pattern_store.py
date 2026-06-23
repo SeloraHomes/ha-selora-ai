@@ -91,6 +91,7 @@ from .const import (
     PATTERN_MAX_SUGGESTIONS,
     PATTERN_STORE_KEY,
 )
+from .telemetry import record_activity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -619,6 +620,12 @@ class PatternStore:
 
         self._evict_oldest(data["patterns"], PATTERN_MAX_PATTERNS)
         await self._save()
+
+        # Count newly-detected patterns only (re-observations update an
+        # existing record and bump its occurrence_count instead).
+        if existing is None:
+            record_activity(self._hass, "patterns_detected")
+
         return pattern_id
 
     async def get_patterns(
@@ -710,6 +717,7 @@ class PatternStore:
 
         self._evict_oldest(data["suggestions"], PATTERN_MAX_SUGGESTIONS, time_key="created_at")
         await self._save()
+        record_activity(self._hass, "suggestions_generated")
         return suggestion_id
 
     async def get_suggestions(self, status: str | None = None) -> list[SuggestionDict]:
@@ -753,6 +761,14 @@ class PatternStore:
         if dismissal_reason is not None:
             suggestion["dismissal_reason"] = dismissal_reason
         await self._save()
+
+        _activity_for_status = {
+            "accepted": "suggestions_accepted",
+            "dismissed": "suggestions_dismissed",
+            "snoozed": "suggestions_snoozed",
+        }.get(status)
+        if _activity_for_status:
+            record_activity(self._hass, _activity_for_status)
         return True
 
     async def update_suggestion_fields(

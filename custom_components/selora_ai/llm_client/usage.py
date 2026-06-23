@@ -29,6 +29,7 @@ from ..const import (
     SIGNAL_LLM_USAGE,
     estimate_llm_cost_usd,
 )
+from ..telemetry import record_activity
 from ..types import LLMUsageEvent, LLMUsageInfo
 
 if TYPE_CHECKING:
@@ -129,6 +130,12 @@ class UsageTracker:
             async_dispatcher_send(self._hass, SIGNAL_LLM_USAGE, event)
             self._hass.bus.async_fire(EVENT_LLM_USAGE, event)
             self._record_in_store(event)
+
+            # Anonymous activity rollup (opt-in, no-op otherwise): call
+            # count + aggregate token totals for the period.
+            record_activity(self._hass, "llm_calls")
+            record_activity(self._hass, "llm_input_tokens", input_tokens)
+            record_activity(self._hass, "llm_output_tokens", output_tokens)
 
     def drop(self) -> None:
         """Discard pending usage (e.g. when a call errored before completion)."""

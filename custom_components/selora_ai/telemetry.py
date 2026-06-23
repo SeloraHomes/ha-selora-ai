@@ -1,6 +1,6 @@
 """Anonymous, opt-in product telemetry.
 
-Two event types, both opt-in and counter/enum-only:
+Three event types, all opt-in and counter/enum-only:
 
 1. ``home_snapshot`` — a periodic inventory of the install: how many
    devices, integrations, automations, scenes, scripts, blueprints,
@@ -11,6 +11,15 @@ Two event types, both opt-in and counter/enum-only:
    on raw model output fires (see ``REPAIR_TYPES``), broken down by
    provider/model, so we can measure repair effectiveness across model
    versions and retire corrections that are no longer needed.
+3. ``usage_activity`` — a period rollup of how the install is *used*:
+   automations created/refined/deleted/toggled, scenes created,
+   patterns detected, suggestions generated/accepted/dismissed/snoozed,
+   chat messages and sessions, Assist queries, commands executed,
+   devices discovered/paired, and LLM call + token totals. Counters are
+   accumulated in memory via ``record_activity`` and flushed (then
+   reset) once per snapshot interval. Restart loses the partial window —
+   acceptable for anonymous trend data; counters are never persisted to
+   avoid write amplification on the hot chat path.
 
 Privacy contract (epic selorahomes/products#56, sub-issue #106):
 - OFF by default. Nothing leaves the network unless the user flips the
@@ -60,9 +69,11 @@ from .const import (
     LLM_PRICING_USD_PER_MTOK,
     LLM_PROVIDER_OLLAMA,
     LLM_PROVIDER_SELORA_LOCAL,
+    TELEMETRY_EVENT_ACTIVITY,
     TELEMETRY_EVENT_REPAIR,
     TELEMETRY_EVENT_SNAPSHOT,
     TELEMETRY_PROJECT_KEY,
+    TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
     TELEMETRY_STORE_VERSION,
 )
 
@@ -120,6 +131,47 @@ _SNAPSHOT_PROPERTY_KEYS: frozenset[str] = frozenset(
     }
 )
 
+# The activity counters we accumulate per period. A name outside this set
+# is dropped by ``record_activity`` — instrumentation can never introduce
+# a new (potentially identifying) label by accident. Every counter is a
+# plain integer count of an in-product action; none carries any entity
+# id, name, or content.
+_ACTIVITY_COUNTER_KEYS: frozenset[str] = frozenset(
+    {
+        "automations_created",
+        "automations_refined",
+        "automations_deleted",
+        "automations_enabled",
+        "automations_disabled",
+        "scenes_created",
+        "patterns_detected",
+        "suggestions_generated",
+        "suggestions_accepted",
+        "suggestions_dismissed",
+        "suggestions_snoozed",
+        "chat_messages",
+        "chat_sessions",
+        "assist_queries",
+        "commands_executed",
+        "devices_paired",
+        "discoveries_run",
+        "llm_calls",
+        "llm_input_tokens",
+        "llm_output_tokens",
+        "llm_quota_exceeded",
+    }
+)
+
+# The ONLY property keys allowed on a ``usage_activity`` event: the
+# counters above plus the enum/meta fields. Enforced in ``_capture``.
+_ACTIVITY_PROPERTY_KEYS: frozenset[str] = _ACTIVITY_COUNTER_KEYS | frozenset(
+    {
+        "llm_provider",
+        "period_hours",
+        "app_version",
+    }
+)
+
 # Per-call buffer of repair_type strings recorded by pure helpers.
 # ``None`` outside an LLM call, so ``record_repair`` is a safe no-op
 # anywhere else.
@@ -163,6 +215,9 @@ class TelemetryClient:
         self._install_id: str | None = None
         self._app_version: str | None = None
         self._lock = asyncio.Lock()
+        # In-memory activity counters, accumulated since the last flush.
+        # Never persisted; flushed and reset by ``async_send_activity``.
+        self._activity: dict[str, int] = {}
 
     def _llm_entry(self) -> ConfigEntry | None:
         """Return the LLM config entry, whose options hold the toggle."""
@@ -221,6 +276,19 @@ class TelemetryClient:
         distinct = sorted(set(repair_types))
         self._hass.async_create_task(self._async_emit(distinct, provider, model))
 
+    def record_activity(self, name: str, n: int = 1) -> None:
+        """Increment an in-memory activity counter.
+
+        Cheap and synchronous — safe to call from any in-product action
+        site. Accumulates regardless of the opt-in toggle (the counters
+        never leave the process until ``async_send_activity`` runs, which
+        *is* gated). A name outside ``_ACTIVITY_COUNTER_KEYS`` is ignored,
+        so a typo'd or new label can never widen the payload.
+        """
+        if name not in _ACTIVITY_COUNTER_KEYS or n <= 0:
+            return
+        self._activity[name] = self._activity.get(name, 0) + n
+
     async def _async_emit(self, repair_types: list[str], provider: str, model: str) -> None:
         if not self.is_enabled():
             return
@@ -252,6 +320,41 @@ class TelemetryClient:
             _LOGGER.debug("Telemetry snapshot gather failed", exc_info=True)
             return
         await self._capture(TELEMETRY_EVENT_SNAPSHOT, properties, allowed=_SNAPSHOT_PROPERTY_KEYS)
+
+    async def async_send_activity(self, *, provider: str) -> None:
+        """Flush the accumulated activity counters as one period event.
+
+        Snapshots the counters by *copy* — they are cleared only after
+        ``_capture`` confirms the POST landed. If consent is withdrawn
+        during the awaited version/id lookup, or the POST fails, nothing
+        is cleared and the full window is retried on the next tick (no
+        silent 24h loss). Increments that arrive during the await are
+        preserved by subtracting only the snapshotted counts on success,
+        rather than clearing the whole dict. No-op when opted out
+        (counters preserved until opt-in) or when nothing accumulated.
+        """
+        if not self.is_enabled() or not self._activity:
+            return
+        counters = dict(self._activity)
+        properties: dict[str, Any] = {
+            **{key: int(value) for key, value in counters.items()},
+            "llm_provider": provider,
+            "period_hours": TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
+            "app_version": await self._async_app_version(),
+        }
+        sent = await self._capture(
+            TELEMETRY_EVENT_ACTIVITY, properties, allowed=_ACTIVITY_PROPERTY_KEYS
+        )
+        if not sent:
+            return
+        # Confirmed delivered — subtract exactly what was sent, leaving any
+        # increments that landed during the await to seed the next window.
+        for key, value in counters.items():
+            remaining = self._activity.get(key, 0) - value
+            if remaining > 0:
+                self._activity[key] = remaining
+            else:
+                self._activity.pop(key, None)
 
     async def _gather_snapshot(self, provider: str) -> dict[str, Any]:
         """Build the snapshot payload from HA registries and Selora stores."""
@@ -331,15 +434,22 @@ class TelemetryClient:
 
     async def _capture(
         self, event: str, properties: dict[str, Any], *, allowed: frozenset[str]
-    ) -> None:
+    ) -> bool:
         """POST one event to PostHog. Never raises — telemetry must not
-        break the user-facing call path."""
+        break the user-facing call path.
+
+        Returns ``True`` only when the request completed with a non-error
+        status, so callers that need at-least-once delivery (the activity
+        rollup) can preserve their state until a confirmed send. Every
+        early-out — opted out, disallowed payload, consent withdrawn
+        mid-prep, network failure, or HTTP >= 400 — returns ``False``.
+        """
         # Final consent gate. Gathering, manifest load, and install-id
         # storage all await before reaching here; the user may have
         # disabled telemetry meanwhile. Recheck so a withdrawn consent
         # stops any not-yet-started request.
         if not self.is_enabled():
-            return
+            return False
         disallowed = set(properties) - allowed
         if disallowed:
             # A coding error tried to send something outside the allowlist.
@@ -348,7 +458,7 @@ class TelemetryClient:
                 "Telemetry payload rejected: disallowed properties %s",
                 sorted(disallowed),
             )
-            return
+            return False
         try:
             distinct_id = await self._async_install_id()
             # On the first event, the install-id load/save above awaits
@@ -356,7 +466,7 @@ class TelemetryClient:
             # opening the request so a consent withdrawal during that await
             # still cancels the POST.
             if not self.is_enabled():
-                return
+                return False
             session = async_get_clientsession(self._hass)
             # Control properties (PostHog reserved `$` keys, not telemetry
             # data) that make IP anonymity hold regardless of the project's
@@ -381,8 +491,11 @@ class TelemetryClient:
             async with session.post(self._endpoint(), json=payload, timeout=_POST_TIMEOUT) as resp:
                 if resp.status >= 400:
                     _LOGGER.debug("Telemetry POST returned HTTP %s", resp.status)
+                    return False
+            return True
         except Exception:  # noqa: BLE001 — telemetry must never raise
             _LOGGER.debug("Telemetry POST failed", exc_info=True)
+            return False
 
 
 def _read_manifest_version() -> str:
@@ -455,3 +568,16 @@ def get_telemetry(hass: HomeAssistant) -> TelemetryClient:
         client = TelemetryClient(hass)
         bucket["_telemetry"] = client
     return client
+
+
+def record_activity(hass: HomeAssistant, name: str, n: int = 1) -> None:
+    """Increment a shared activity counter — convenience for call sites.
+
+    Forwards to ``TelemetryClient.record_activity``. Never raises, so an
+    instrumentation point can call it inline without guarding the
+    user-facing path.
+    """
+    try:
+        get_telemetry(hass).record_activity(name, n)
+    except Exception:  # noqa: BLE001 — telemetry must never break the call path
+        _LOGGER.debug("record_activity(%s) failed", name, exc_info=True)

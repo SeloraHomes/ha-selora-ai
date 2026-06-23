@@ -19,6 +19,7 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN, SIGNAL_SCENE_DELETED, SIGNAL_SCENE_REFRESHED, SIGNAL_SCENE_RESTORED
+from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .llm_client import LLMClient
@@ -342,6 +343,8 @@ class SeloraConversationEntity(conversation.ConversationEntity):
                 response=response,
                 conversation_id=user_input.conversation_id,
             )
+
+        record_activity(self.hass, "assist_queries")
 
         # Reconcile scene store so context reflects external edits
         from .helpers import get_scene_store  # noqa: PLC0415

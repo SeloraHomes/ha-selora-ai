@@ -33,6 +33,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import SCENE_STORE_KEY
+from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .types import SceneRecord, SceneStoreData
@@ -334,6 +335,12 @@ class SceneStore:
                 record["_content_hash"] = existing["_content_hash"]  # type: ignore[typeddict-unknown-key]
             self._data["scenes"][scene_id] = record
             await self._save()
+
+            # Count first-time creations only; reconcile/refresh re-adds an
+            # existing scene_id and must not inflate the counter.
+            if existing is None:
+                record_activity(self._hass, "scenes_created")
+
             return record
 
     async def async_update_scene(

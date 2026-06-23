@@ -26,6 +26,7 @@ from ..const import (
     DEFAULT_QUOTA_BACKOFF_SECONDS,
     EVENT_LLM_QUOTA_EXCEEDED,
 )
+from ..telemetry import record_activity
 from ..types import LLMUsageInfo
 
 if TYPE_CHECKING:
@@ -375,6 +376,7 @@ class LLMProvider(ABC):
                     "message": body[:200],
                 },
             )
+            record_activity(self._hass, "llm_quota_exceeded")
         except Exception:  # noqa: BLE001 — telemetry must never break a request
             _LOGGER.exception("Failed to fire quota-exceeded event")
 

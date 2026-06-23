@@ -162,6 +162,7 @@ from .const import (
     TELEMETRY_SNAPSHOT_STARTUP_DELAY,
 )
 from .scene_discovery import get_area_names
+from .telemetry import record_activity
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -1288,6 +1289,8 @@ async def _execute_command_calls(
         except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
             _LOGGER.error("Failed to execute %s: %s", service, exc)
             error_suffix += f" (Failed: {service}: {exc})"
+    if executed:
+        record_activity(hass, "commands_executed", len(executed))
     return executed, error_suffix
 
 
@@ -1935,11 +1938,15 @@ async def _handle_websocket_chat(
         return
 
     store: ConversationStore = hass.data[DOMAIN].setdefault("_conv_store", ConversationStore(hass))
-    session, session_id, _session_created = await _resolve_or_create_session(
+    session, session_id, session_created = await _resolve_or_create_session(
         store, msg.get("session_id") or ""
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+
+    record_activity(hass, "chat_messages")
+    if session_created:
+        record_activity(hass, "chat_sessions")
 
     # Reconcile scene store so session context reflects external edits
     scene_store = _get_scene_store(hass)
@@ -2161,6 +2168,10 @@ async def _handle_websocket_chat_stream(
     )
     stored_messages = (session or {}).get("messages", [])
     user_message = msg["message"]
+
+    record_activity(hass, "chat_messages")
+    if session_created:
+        record_activity(hass, "chat_sessions")
     # Tracks whether we successfully wrote any messages this turn. Used
     # below: if the LLM fails before any append AND we created the
     # session in this call, we delete it so the sidebar doesn't fill
@@ -7682,13 +7693,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     async def _telemetry_snapshot(_now: Any = None) -> None:
         await telemetry.async_send_snapshot(provider=provider)
 
+    async def _telemetry_periodic(_now: Any = None) -> None:
+        # The recurring tick sends the inventory snapshot AND flushes the
+        # activity-counter rollup, whose window matches the interval.
+        await telemetry.async_send_snapshot(provider=provider)
+        await telemetry.async_send_activity(provider=provider)
+
     async def _delayed_telemetry_snapshot() -> None:
         await asyncio.sleep(TELEMETRY_SNAPSHOT_STARTUP_DELAY)
+        # Snapshot only on startup — activity is flushed on the recurring
+        # interval so its period_hours label stays accurate (a startup
+        # flush would emit a ~2-minute window mislabelled as 24h).
         await _telemetry_snapshot()
 
     _bg.append(hass.async_create_task(_delayed_telemetry_snapshot()))
     unsub_telemetry = async_track_time_interval(
-        hass, _telemetry_snapshot, timedelta(hours=TELEMETRY_SNAPSHOT_INTERVAL_HOURS)
+        hass, _telemetry_periodic, timedelta(hours=TELEMETRY_SNAPSHOT_INTERVAL_HOURS)
     )
     hass.data[DOMAIN][entry.entry_id]["unsub_telemetry"] = unsub_telemetry
 
