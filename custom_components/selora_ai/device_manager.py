@@ -20,6 +20,8 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 
+from .telemetry import record_activity
+
 if TYPE_CHECKING:
     from .types import (
         AreaAssignmentResult,
@@ -60,10 +62,22 @@ class DeviceManager:
             )
         return results
 
+    def _count_if_paired(self, result: FlowResult) -> FlowResult:
+        """Record a pairing when a flow step completed with a created entry.
+
+        Every onboarding path (single-step accept, PIN, generic step,
+        manual init) funnels its normalised result through here, so a
+        device is counted exactly once regardless of how many steps it
+        took. Returns the result unchanged for call-site convenience.
+        """
+        if result.get("type") == "create_entry":
+            record_activity(self.hass, "devices_paired")
+        return result
+
     async def accept_flow(self, flow_id: str) -> FlowResult:
         """Confirm a discovered flow with empty user input (single-step)."""
         result = await self.hass.config_entries.flow.async_configure(flow_id, user_input={})
-        return self._normalise_result(result)
+        return self._count_if_paired(self._normalise_result(result))
 
     async def start_device_flow(self, domain: str, host: str) -> FlowResult:
         """Manually kick off a config flow by domain + host IP."""
@@ -72,19 +86,19 @@ class DeviceManager:
             context={"source": "user"},
             data={"host": host},
         )
-        return self._normalise_result(result)
+        return self._count_if_paired(self._normalise_result(result))
 
     async def submit_pin(self, flow_id: str, pin: str) -> FlowResult:
         """Submit a PIN for a pairing step (e.g. Android TV)."""
         result = await self.hass.config_entries.flow.async_configure(
             flow_id, user_input={"pin": pin}
         )
-        return self._normalise_result(result)
+        return self._count_if_paired(self._normalise_result(result))
 
     async def configure_step(self, flow_id: str, user_input: dict[str, Any]) -> FlowResult:
         """Generic escape-hatch: progress any flow step with arbitrary input."""
         result = await self.hass.config_entries.flow.async_configure(flow_id, user_input=user_input)
-        return self._normalise_result(result)
+        return self._count_if_paired(self._normalise_result(result))
 
     # ── Network discovery & auto-setup ────────────────────────────
 
@@ -110,6 +124,8 @@ class DeviceManager:
             summary: counts
         """
         from .const import KNOWN_INTEGRATIONS, PROTECTED_DOMAINS
+
+        record_activity(self.hass, "discoveries_run")
 
         # Active discovery — start flows for devices we know about but aren't fully configured
         active_initiated = await self._trigger_active_discovery()

@@ -26,6 +26,7 @@ from .const import (
     SELORA_AI_LABEL_ID,
     SELORA_AI_LABEL_NAME,
 )
+from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .automation_store import AutomationStore
@@ -1503,6 +1504,7 @@ async def async_toggle_automation(
                 automation_id,
                 "enabled" if enable else "disabled",
             )
+            record_activity(hass, "automations_enabled" if enable else "automations_disabled")
             return True
         except Exception as exc:
             _LOGGER.exception("Failed to toggle automation %s: %s", automation_id, exc)

@@ -42,6 +42,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.storage import Store
 
 from .const import AUTOMATION_STORE_KEY, MAX_VERSIONS_PER_AUTOMATION
+from .telemetry import record_activity
 
 if TYPE_CHECKING:
     from .types import (
@@ -62,6 +63,7 @@ class AutomationStore:
     """Version and lifecycle store for Selora-managed automations."""
 
     def __init__(self, hass: HomeAssistant) -> None:
+        self._hass = hass
         self._store: Store[AutomationStoreData] = Store(
             hass, version=_STORE_VERSION, key=AUTOMATION_STORE_KEY
         )
@@ -168,6 +170,15 @@ class AutomationStore:
                 touched.append(automation_id)
 
         await self._store.async_save(data_store)
+
+        # Anonymous activity telemetry (opt-in, no-op otherwise). The
+        # resolved action distinguishes a brand-new automation from a
+        # refinement of an existing one.
+        if resolved_action == "created":
+            record_activity(self._hass, "automations_created")
+        elif resolved_action in ("refined", "updated"):
+            record_activity(self._hass, "automations_refined")
+
         return version_id
 
     async def get_record(self, automation_id: str) -> AutomationRecord | None:
@@ -211,6 +222,7 @@ class AutomationStore:
             return False
         del records[automation_id]
         await self._store.async_save(data_store)
+        record_activity(self._hass, "automations_deleted")
         return True
 
     # ── Metadata helpers ─────────────────────────────────────────────────

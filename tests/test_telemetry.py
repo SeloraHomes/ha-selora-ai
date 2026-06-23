@@ -19,15 +19,21 @@ from custom_components.selora_ai.const import (
     CONF_TELEMETRY_ENABLED,
     DOMAIN,
     ENTRY_TYPE_LLM,
+    TELEMETRY_EVENT_ACTIVITY,
     TELEMETRY_EVENT_REPAIR,
     TELEMETRY_EVENT_SNAPSHOT,
     TELEMETRY_PROJECT_KEY,
+    TELEMETRY_SNAPSHOT_INTERVAL_HOURS,
 )
 from custom_components.selora_ai.telemetry import (
+    _ACTIVITY_COUNTER_KEYS,
+    _ACTIVITY_PROPERTY_KEYS,
     _REPAIR_PROPERTY_KEYS,
     _SNAPSHOT_PROPERTY_KEYS,
     REPAIR_TYPES,
     TelemetryClient,
+    get_telemetry,
+    record_activity,
     record_repair,
     repair_capture,
 )
@@ -327,6 +333,7 @@ async def test_allowlist_excludes_content_keys() -> None:
     for banned in ("entity_id", "friendly_name", "prompt", "response", "message"):
         assert banned not in _REPAIR_PROPERTY_KEYS
         assert banned not in _SNAPSHOT_PROPERTY_KEYS
+        assert banned not in _ACTIVITY_PROPERTY_KEYS
 
 
 # ── record_repair buffer ─────────────────────────────────────────────
@@ -532,3 +539,153 @@ async def test_data_change_still_triggers_reload(hass) -> None:
     with patch.object(hass.config_entries, "async_reload", new=_AsyncMock()) as reload:
         await async_reload_entry(hass, entry)
     reload.assert_called_once()
+
+
+# ── usage-activity rollup ────────────────────────────────────────────
+
+
+async def _send_activity(hass, client: TelemetryClient, session: _FakeSession, **kw: Any) -> None:
+    with patch(
+        "custom_components.selora_ai.telemetry.async_get_clientsession",
+        return_value=session,
+    ):
+        await client.async_send_activity(provider=kw.get("provider", "anthropic"))
+        await hass.async_block_till_done()
+
+
+def test_record_activity_accumulates(client) -> None:
+    client.record_activity("chat_messages")
+    client.record_activity("chat_messages", 4)
+    client.record_activity("automations_created")
+    assert client._activity == {"chat_messages": 5, "automations_created": 1}
+
+
+def test_record_activity_drops_unknown_and_nonpositive(client) -> None:
+    client.record_activity("totally_made_up")
+    client.record_activity("chat_messages", 0)
+    client.record_activity("chat_messages", -3)
+    assert client._activity == {}
+
+
+async def test_activity_no_post_when_disabled_and_counters_preserved(hass, client) -> None:
+    """Opted out: nothing is sent and the in-memory counters survive."""
+    _add_llm_entry(hass, telemetry_enabled=False)
+    client.record_activity("chat_messages", 7)
+    session = _FakeSession()
+    await _send_activity(hass, client, session)
+    assert session.calls == []
+    # Preserved so the first window after opt-in isn't lost.
+    assert client._activity == {"chat_messages": 7}
+
+
+async def test_activity_no_post_when_empty(hass, client) -> None:
+    _add_llm_entry(hass, telemetry_enabled=True)
+    session = _FakeSession()
+    await _send_activity(hass, client, session)
+    assert session.calls == []
+
+
+async def test_activity_posts_and_resets_when_enabled(hass, client) -> None:
+    _add_llm_entry(hass, telemetry_enabled=True)
+    client.record_activity("automations_created", 2)
+    client.record_activity("chat_messages", 9)
+    client.record_activity("llm_input_tokens", 1234)
+    session = _FakeSession()
+    await _send_activity(hass, client, session, provider="openai")
+
+    assert len(session.calls) == 1
+    body = session.calls[0]["json"]
+    assert body["event"] == TELEMETRY_EVENT_ACTIVITY
+    props = body["properties"]
+    assert props["automations_created"] == 2
+    assert props["chat_messages"] == 9
+    assert props["llm_input_tokens"] == 1234
+    assert props["llm_provider"] == "openai"
+    assert props["period_hours"] == TELEMETRY_SNAPSHOT_INTERVAL_HOURS
+    assert props["app_version"]
+    # Counters reset after a successful flush — the next window starts at 0.
+    assert client._activity == {}
+
+
+async def test_activity_payload_only_has_allowlisted_keys(hass, client) -> None:
+    """Every counter we can emit stays inside the activity allowlist."""
+    _add_llm_entry(hass, telemetry_enabled=True)
+    for name in _ACTIVITY_COUNTER_KEYS:
+        client.record_activity(name)
+    session = _FakeSession()
+    await _send_activity(hass, client, session)
+
+    props = session.calls[0]["json"]["properties"]
+    data_keys = {k for k in props if not k.startswith("$") and k != "distinct_id"}
+    assert data_keys <= _ACTIVITY_PROPERTY_KEYS
+    # Counters are plain ints; provider is the only free-form-ish field and
+    # is a fixed enum supplied by the caller, never household content.
+    for banned in ("entity_id", "friendly_name", "prompt", "response", "light.", "@"):
+        assert banned not in str(props).lower()
+
+
+async def test_module_record_activity_targets_shared_client(hass) -> None:
+    """The module helper increments the same client get_telemetry returns."""
+    record_activity(hass, "scenes_created", 3)
+    assert get_telemetry(hass)._activity == {"scenes_created": 3}
+
+
+async def test_activity_post_exception_is_swallowed(hass, client) -> None:
+    _add_llm_entry(hass, telemetry_enabled=True)
+    client.record_activity("chat_messages")
+    session = _FakeSession(raise_exc=RuntimeError("network down"))
+    # Must not raise even though the POST blows up.
+    await _send_activity(hass, client, session)
+    # And the window must survive a failed POST — retried next tick.
+    assert client._activity == {"chat_messages": 1}
+
+
+async def test_activity_preserved_on_http_error(hass, client) -> None:
+    """An HTTP 4xx/5xx means the event wasn't ingested — keep the window."""
+    _add_llm_entry(hass, telemetry_enabled=True)
+    client.record_activity("automations_created", 3)
+    session = _FakeSession(status=500)
+    await _send_activity(hass, client, session)
+    assert len(session.calls) == 1  # attempted
+    assert client._activity == {"automations_created": 3}  # not cleared
+
+
+async def test_activity_preserved_when_consent_withdrawn_mid_prep(hass, client) -> None:
+    """Disabling telemetry during the awaited app-version lookup must not
+    drop the window — it's blocked at _capture, never sent."""
+    entry = _add_llm_entry(hass, telemetry_enabled=True)
+    client.record_activity("chat_messages", 5)
+    session = _FakeSession()
+
+    real_app_version = client._async_app_version
+
+    async def _disable_then_version() -> str:
+        hass.config_entries.async_update_entry(entry, options={CONF_TELEMETRY_ENABLED: False})
+        return await real_app_version()
+
+    with patch.object(client, "_async_app_version", side_effect=_disable_then_version):
+        await _send_activity(hass, client, session)
+
+    assert session.calls == []
+    assert client._activity == {"chat_messages": 5}
+
+
+async def test_activity_concurrent_increments_survive_flush(hass, client) -> None:
+    """Increments that land during the POST seed the next window: a
+    successful flush subtracts only what was sent, not the whole dict."""
+    _add_llm_entry(hass, telemetry_enabled=True)
+    client.record_activity("chat_messages", 4)
+
+    real_capture = client._capture
+
+    async def _capture_then_increment(*args: Any, **kwargs: Any) -> bool:
+        # Simulate a chat message arriving while the POST is in flight.
+        client.record_activity("chat_messages", 2)
+        return await real_capture(*args, **kwargs)
+
+    session = _FakeSession()
+    with patch.object(client, "_capture", side_effect=_capture_then_increment):
+        await _send_activity(hass, client, session)
+
+    # 4 were sent; the 2 that arrived mid-flush remain for the next tick.
+    assert client._activity == {"chat_messages": 2}

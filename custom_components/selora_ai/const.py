@@ -752,6 +752,10 @@ TELEMETRY_PROJECT_KEY = (
 )
 TELEMETRY_EVENT_REPAIR = "llm_output_repaired"
 TELEMETRY_EVENT_SNAPSHOT = "home_snapshot"
+# Period rollup of user activity counters (automations created/refined,
+# chat messages, suggestions accepted, LLM token totals, …). Accumulated
+# locally and flushed on the same cadence as the snapshot.
+TELEMETRY_EVENT_ACTIVITY = "usage_activity"
 # How often the home-inventory snapshot is re-sent after the startup one.
 TELEMETRY_SNAPSHOT_INTERVAL_HOURS = 24
 # Delay before the startup snapshot so registries/recorder are populated.
