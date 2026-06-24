@@ -84,6 +84,7 @@ class ToolExecutor:
             "accept_device_flow": self._accept_device_flow,
             "list_devices": self._list_devices,
             "get_device": self._get_device,
+            "get_device_triggers": self._get_device_triggers,
             "get_entity_state": self._get_entity_state,
             "find_entities_by_area": self._find_entities_by_area,
             "validate_action": self._validate_action,
@@ -120,6 +121,11 @@ class ToolExecutor:
         from .mcp_server import _tool_get_device
 
         return await _tool_get_device(self._hass, arguments)
+
+    async def _get_device_triggers(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .mcp_server import _tool_get_device_triggers
+
+        return await _tool_get_device_triggers(self._hass, arguments)
 
     async def _get_entity_state(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_get_entity_state

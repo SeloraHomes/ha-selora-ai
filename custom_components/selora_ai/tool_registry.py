@@ -174,9 +174,35 @@ TOOL_GET_DEVICE = ToolDef(
     name="get_device",
     description=(
         "Return full detail for a single Home Assistant device: metadata, "
-        "all associated entities, and their current states and key attributes. "
-        "Use this when the user asks about a specific device's state, configuration, "
-        "or health. Requires a device_id from list_devices."
+        "hardware connection identifiers, all associated entities, and their "
+        "current states and key attributes. Use this when the user asks about a "
+        "specific device's state, configuration, or health. Also use it to get "
+        "the Zigbee IEEE address (returned as `zha_ieee`) needed to build a "
+        "`zha_event` button-press trigger. Requires a device_id from list_devices."
+    ),
+    params=(
+        ToolParam(
+            name="device_id",
+            type="string",
+            description="The HA device registry ID from list_devices",
+            required=True,
+        ),
+    ),
+)
+
+TOOL_GET_DEVICE_TRIGGERS = ToolDef(
+    name="get_device_triggers",
+    description=(
+        "Return the ready-to-use `platform: device` trigger blocks that Home "
+        "Assistant offers for a device — button presses, scene-controller "
+        "events, etc. ALWAYS call this when building an automation triggered by "
+        "a button, remote, or scene controller (ZHA, Z-Wave JS, deCONZ, Shelly, "
+        "…): the returned blocks already carry the correct domain, device_id, "
+        "type, and subtype, so drop one straight into the automation's triggers "
+        "list instead of hand-assembling an event trigger or guessing a raw "
+        "node/IEEE id. An empty list means the device exposes no device "
+        "triggers — fall back to an event or state trigger. Requires a "
+        "device_id from list_devices."
     ),
     params=(
         ToolParam(
@@ -459,6 +485,7 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_ACCEPT_FLOW,
     TOOL_LIST_DEVICES,
     TOOL_GET_DEVICE,
+    TOOL_GET_DEVICE_TRIGGERS,
     TOOL_GET_ENTITY_STATE,
     TOOL_FIND_ENTITIES_BY_AREA,
     TOOL_VALIDATE_ACTION,

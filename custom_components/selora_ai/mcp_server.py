@@ -316,6 +316,7 @@ TOOL_DISMISS_SUGGESTION = "selora_dismiss_suggestion"
 TOOL_TRIGGER_SCAN = "selora_trigger_scan"
 TOOL_LIST_DEVICES = "selora_list_devices"
 TOOL_GET_DEVICE = "selora_get_device"
+TOOL_GET_DEVICE_TRIGGERS = "selora_get_device_triggers"
 TOOL_GET_ENTITY_STATE = "selora_get_entity_state"
 TOOL_FIND_ENTITIES_BY_AREA = "selora_find_entities_by_area"
 TOOL_VALIDATE_ACTION = "selora_validate_action"
@@ -812,6 +813,7 @@ def _get_tool_handlers() -> dict[str, Any]:
         TOOL_TRIGGER_SCAN: _tool_trigger_scan,
         TOOL_LIST_DEVICES: _tool_list_devices,
         TOOL_GET_DEVICE: _tool_get_device,
+        TOOL_GET_DEVICE_TRIGGERS: _tool_get_device_triggers,
         TOOL_GET_ENTITY_STATE: _tool_get_entity_state,
         TOOL_FIND_ENTITIES_BY_AREA: _tool_find_entities_by_area,
         TOOL_VALIDATE_ACTION: _tool_validate_action,
@@ -1787,7 +1789,25 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
 
         entities.append(entity_entry)
 
-    return {
+    # Hardware connection identifiers. ZHA button/sensor automations trigger on
+    # `zha_event` with an `event_data.device_ieee`, which is NOT an entity or the
+    # registry device_id — it lives in `device.connections` as
+    # ("zigbee", "<ieee>"). Surface it explicitly (plus raw connections/
+    # identifiers) so the LLM can build a working zha_event trigger instead of
+    # asking the user to paste the IEEE by hand.
+    # Sanitize the values like every other string field below: a malicious
+    # integration could stash prompt-injection payloads in a connection or
+    # identifier. A legitimate IEEE/MAC has no whitespace and is well under the
+    # truncation limit, so it survives _sanitize unchanged and still feeds a
+    # working zha_event trigger.
+    connections = [[_sanitize(ctype), _sanitize(cval)] for ctype, cval in device.connections]
+    identifiers = [[_sanitize(domain), _sanitize(ident)] for domain, ident in device.identifiers]
+    zha_ieee = next(
+        (_sanitize(cval) for ctype, cval in device.connections if ctype == dr.CONNECTION_ZIGBEE),
+        None,
+    )
+
+    result: dict[str, Any] = {
         "device_id": device.id,
         "name": _sanitize(device.name or device.name_by_user or "Unknown"),
         "area": _sanitize(area_name) if area_name else None,
@@ -1797,8 +1817,58 @@ async def _tool_get_device(hass: HomeAssistant, arguments: dict[str, Any]) -> di
         "hw_version": _sanitize(device.hw_version or ""),
         "integration": _sanitize(integration),
         "via_device_id": device.via_device_id,
+        "connections": connections,
+        "identifiers": identifiers,
         "entities": entities,
     }
+    if zha_ieee is not None:
+        result["zha_ieee"] = zha_ieee
+    return result
+
+
+# ── Tool: selora_get_device_triggers ───────────────────────────────────────────
+
+
+async def _tool_get_device_triggers(
+    hass: HomeAssistant, arguments: dict[str, Any]
+) -> dict[str, Any]:
+    """Return the device triggers HA itself offers for a device.
+
+    These are ready-to-use ``platform: device`` trigger blocks (correct domain,
+    device_id, type, subtype) for button presses, scene-controller events, etc.
+    They work across ZHA, Z-Wave JS, deCONZ, Shelly — any integration that
+    registers device triggers — so the LLM never has to hand-assemble a
+    protocol-specific event trigger or guess a raw node/IEEE id. The returned
+    blocks can be dropped straight into an automation's ``triggers`` list.
+    """
+    from homeassistant.components.device_automation import (
+        DeviceAutomationType,
+        InvalidDeviceAutomationConfig,
+        async_get_device_automations,
+    )
+    from homeassistant.exceptions import HomeAssistantError
+    from homeassistant.helpers import device_registry as dr
+
+    device_id = str(arguments.get("device_id", "")).strip()
+    if not device_id:
+        return {"error": "device_id is required"}
+
+    dev_reg = dr.async_get(hass)
+    if dev_reg.async_get(device_id) is None:
+        return {"error": f"Device {_sanitize(device_id)} not found"}
+
+    try:
+        automations = await async_get_device_automations(
+            hass, DeviceAutomationType.TRIGGER, [device_id]
+        )
+    except (InvalidDeviceAutomationConfig, HomeAssistantError) as exc:
+        # A device with no valid triggers is not an error — report an empty list
+        # so the LLM falls back to an event/state trigger instead of stalling.
+        _LOGGER.debug("Device trigger lookup failed for %s: %s", device_id, exc)
+        return {"device_id": device_id, "triggers": [], "count": 0}
+
+    triggers = [dict(trigger) for trigger in automations.get(device_id, [])]
+    return {"device_id": device_id, "triggers": triggers, "count": len(triggers)}
 
 
 # ── Tool: selora_get_entity_state ──────────────────────────────────────────────
