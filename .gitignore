@@ -57,3 +57,6 @@ custom_components/selora_ai/frontend/card.js
 /scripts/
 .hassfest_tmp/
 .commitlint_msg
+
+# uv test-env lockfile (deps come from manifest.json, not tracked)
+uv.lock

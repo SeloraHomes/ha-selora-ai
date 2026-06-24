@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from ..lexical import normalize
 from ..types import EntitySnapshot
 
 # Aggressive caps used when the provider has a tight context window
@@ -119,9 +120,18 @@ _LOW_CONTEXT_STOPWORDS = frozenset(
 
 
 def _low_context_keywords(user_message: str) -> set[str]:
-    """Extract content tokens from a user message for entity filtering."""
+    """Extract content tokens from a user message for entity filtering.
+
+    Tokenizes via :func:`normalize` (NFKC + casefold, Unicode-aware) so
+    accented words survive whole. An ASCII-only ``[^a-z0-9]+`` split
+    shredded every accented token at the accent ("lumières" → "lumi",
+    "res"; "allumées" → "allum", "es"), so non-English category queries
+    produced garbage fragments that matched no entity and never reached
+    the category→domain map — the cause of French light queries falling
+    back to an arbitrary entity subset.
+    """
     out: set[str] = set()
-    for raw in re.split(r"[^a-z0-9]+", user_message.lower()):
+    for raw in normalize(user_message).split():
         if len(raw) > 2 and raw not in _LOW_CONTEXT_STOPWORDS:
             out.add(raw)
     return out
@@ -1102,6 +1112,161 @@ _CATEGORY_KEYWORD_TO_DOMAIN: dict[str, str] = {
     "scene": "scene",
     "scenes": "scene",
 }
+
+# Multilingual category words for the shipped conversational locales
+# (fr/de/es/it). Conversational queries follow ``hass.config.language``,
+# so "quelles lumières sont allumées" must boost the ``light`` domain the
+# same way "what lights are on" does. Keys are in :func:`normalize` form
+# (casefolded, accents preserved); accent-free variants are listed too
+# since users often type without accents. Merged into the English map.
+_CATEGORY_KEYWORD_TO_DOMAIN.update(
+    {
+        # ── light ──
+        "lumière": "light",
+        "lumières": "light",
+        "lumiere": "light",
+        "lumieres": "light",
+        "lampe": "light",
+        "lampes": "light",
+        "ampoule": "light",
+        "ampoules": "light",
+        "éclairage": "light",
+        "eclairage": "light",
+        "plafonnier": "light",
+        "licht": "light",
+        "lichter": "light",
+        "lampen": "light",
+        "beleuchtung": "light",
+        "leuchte": "light",
+        "leuchten": "light",
+        "luz": "light",
+        "luces": "light",
+        "lámpara": "light",
+        "lámparas": "light",
+        "lampara": "light",
+        "lamparas": "light",
+        "bombilla": "light",
+        "bombillas": "light",
+        "iluminación": "light",
+        "iluminacion": "light",
+        "luce": "light",
+        "luci": "light",
+        "lampada": "light",
+        "lampade": "light",
+        "lampadina": "light",
+        "lampadine": "light",
+        "illuminazione": "light",
+        # ── switch ──
+        "interrupteur": "switch",
+        "interrupteurs": "switch",
+        "prise": "switch",
+        "prises": "switch",
+        "schalter": "switch",
+        "steckdose": "switch",
+        "steckdosen": "switch",
+        "interruptor": "switch",
+        "interruptores": "switch",
+        "enchufe": "switch",
+        "enchufes": "switch",
+        "interruttore": "switch",
+        "interruttori": "switch",
+        "presa": "switch",
+        "prese": "switch",
+        # ── cover ──
+        "volet": "cover",
+        "volets": "cover",
+        "store": "cover",
+        "stores": "cover",
+        "rideau": "cover",
+        "rideaux": "cover",
+        "rollo": "cover",
+        "rollos": "cover",
+        "jalousie": "cover",
+        "jalousien": "cover",
+        "rolladen": "cover",
+        "rollladen": "cover",
+        "persiana": "cover",
+        "persianas": "cover",
+        "persiane": "cover",
+        "cortina": "cover",
+        "cortinas": "cover",
+        "tapparella": "cover",
+        "tapparelle": "cover",
+        "tenda": "cover",
+        "tende": "cover",
+        # ── lock ──
+        "serrure": "lock",
+        "serrures": "lock",
+        "verrou": "lock",
+        "verrous": "lock",
+        "schloss": "lock",
+        "cerradura": "lock",
+        "cerraduras": "lock",
+        "cerrojo": "lock",
+        "serratura": "lock",
+        "serrature": "lock",
+        # ── climate ──
+        "thermostat": "climate",
+        "chauffage": "climate",
+        "radiateur": "climate",
+        "radiateurs": "climate",
+        "climatisation": "climate",
+        "heizung": "climate",
+        "klima": "climate",
+        "klimaanlage": "climate",
+        "termostato": "climate",
+        "calefacción": "climate",
+        "calefaccion": "climate",
+        "radiador": "climate",
+        "radiadores": "climate",
+        "climatización": "climate",
+        "climatizacion": "climate",
+        "riscaldamento": "climate",
+        "radiatore": "climate",
+        "radiatori": "climate",
+        "climatizzatore": "climate",
+        # ── fan ──
+        "ventilateur": "fan",
+        "ventilateurs": "fan",
+        "ventilator": "fan",
+        "ventilatoren": "fan",
+        "lüfter": "fan",
+        "luefter": "fan",
+        "ventilador": "fan",
+        "ventiladores": "fan",
+        "ventilatore": "fan",
+        "ventilatori": "fan",
+        # ── media_player ──
+        "enceinte": "media_player",
+        "enceintes": "media_player",
+        "télévision": "media_player",
+        "television": "media_player",
+        "lautsprecher": "media_player",
+        "fernseher": "media_player",
+        "altavoz": "media_player",
+        "altavoces": "media_player",
+        "televisor": "media_player",
+        "televisión": "media_player",
+        "altoparlante": "media_player",
+        "altoparlanti": "media_player",
+        "televisore": "media_player",
+        # ── vacuum ──
+        "aspirateur": "vacuum",
+        "aspirateurs": "vacuum",
+        "staubsauger": "vacuum",
+        "aspiradora": "vacuum",
+        "aspiradoras": "vacuum",
+        "aspirapolvere": "vacuum",
+        # ── scene ──
+        "scène": "scene",
+        "scènes": "scene",
+        "szene": "scene",
+        "szenen": "scene",
+        "escena": "scene",
+        "escenas": "scene",
+        "scena": "scene",
+    }
+)
 
 # ── Cloud relevance pinning ──────────────────────────────────────────
 # The keyword ranker (_score_entity_against_keywords) scores on

@@ -72,6 +72,13 @@ from .const import (
     SELORA_JWT_WRITE_SCOPE,
 )
 from .entity_capabilities import is_actionable_entity
+from .lexical import (
+    SEARCH_FUZZY_FLOOR,
+    SEARCH_W_FUZZY,
+    SEARCH_W_TERM_RATIO,
+    fuzzy_ratio,
+    normalize,
+)
 from .selora_auth import AuthenticationError, SeloraAuthContext, authenticate_request
 
 if TYPE_CHECKING:
@@ -2137,8 +2144,12 @@ async def _tool_execute_command(
 # ── Tool: selora_search_entities ───────────────────────────────────────────────
 
 
-def _entity_search_score(query_terms: list[str], haystack: str) -> int:
-    """Naive ranking: count how many query terms appear in the haystack."""
+def _entity_term_count(query_terms: list[str], haystack: str) -> int:
+    """Count how many query terms appear literally in the haystack.
+
+    One signal of the search ranking ensemble; the fuzzy component is
+    blended at the call site (see :func:`_tool_search_entities`).
+    """
     return sum(1 for term in query_terms if term in haystack)
 
 
@@ -2148,7 +2159,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
-    query = str(arguments.get("query", "")).strip().lower()
+    query = normalize(str(arguments.get("query", "")))
     domain_filter = str(arguments.get("domain", "")).strip().lower()
     try:
         limit = int(arguments.get("limit", 10))
@@ -2171,7 +2182,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
     dev_reg = dr.async_get(hass)
     area_names: dict[str, str] = {a.id: a.name for a in area_reg.async_list_areas()}
 
-    scored: list[tuple[int, dict[str, Any]]] = []
+    scored: list[tuple[float, dict[str, Any]]] = []
     for state in hass.states.async_all():
         if not is_actionable_entity(state.entity_id):
             continue
@@ -2200,15 +2211,21 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
                 if device:
                     ent_area_id = device.area_id
 
-        area_name = area_names.get(ent_area_id or "", "").lower()
-        haystack = " ".join([state.entity_id.lower(), friendly, aliases, area_name])
-        score = _entity_search_score(query_terms, haystack)
-        if score == 0:
+        area_name = area_names.get(ent_area_id or "", "")
+        haystack = normalize(" ".join([state.entity_id, friendly, aliases, area_name]))
+        # Ensemble rank: literal term coverage + order-insensitive fuzzy
+        # similarity. ``score`` stays a plain term-hit count for the LLM;
+        # ``rank`` (fuzzy-blended) drives ordering and admits typo-only
+        # matches that have zero literal hits.
+        term_hits = _entity_term_count(query_terms, haystack)
+        fuzzy = fuzzy_ratio(query, haystack)
+        if term_hits == 0 and fuzzy < SEARCH_FUZZY_FLOOR:
             continue
+        rank = SEARCH_W_TERM_RATIO * (term_hits / len(query_terms)) + SEARCH_W_FUZZY * fuzzy
 
         scored.append(
             (
-                score,
+                rank,
                 {
                     "entity_id": state.entity_id,
                     "domain": domain,
@@ -2217,7 +2234,7 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
                         state.attributes.get("friendly_name", state.entity_id)
                     ),
                     "area": _sanitize(area_names.get(ent_area_id or "", "")) or None,
-                    "score": score,
+                    "score": term_hits,
                 },
             )
         )

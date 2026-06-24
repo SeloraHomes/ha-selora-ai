@@ -68,6 +68,29 @@ class TestArchitectPromptVerbosity:
         prompt = build_architect_system_prompt()
         assert "name the targeted entities" in prompt
 
+    def test_count_word_must_match_marker(self, hass) -> None:
+        """Guards the count-mismatch fix: the prose number must equal the
+        marker length and never be copied from the example. Without this,
+        weaker non-English generation parrots the example's count ("Three"
+        → "Trois") while emitting all real ids — count text disagrees with
+        the rendered cards."""
+        for prompt in (
+            build_architect_system_prompt(),
+            build_architect_stream_system_prompt(),
+        ):
+            assert "COUNT RULE" in prompt or "MUST equal" in prompt
+            assert "non-English" in prompt or "other than English" in prompt
+
+    def test_scope_discipline_guardrail(self, hass) -> None:
+        """Command prompts must forbid acting on entities the user did not
+        name — regression for the model adding an unrelated turn_off on a
+        leftover test entity during a single bedroom-light request."""
+        for prompt in (
+            build_architect_system_prompt(tools_available=True),
+            build_architect_stream_system_prompt(tools_available=True),
+        ):
+            assert "SCOPE DISCIPLINE" in prompt
+
     def test_automation_response_includes_entities(self, hass) -> None:
         """Automation response must mention targeted entities for MCP callers."""
         prompt = build_architect_system_prompt()

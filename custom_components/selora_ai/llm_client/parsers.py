@@ -27,6 +27,16 @@ from ..automation_utils import (
     assess_automation_risk,
     validate_automation_payload,
 )
+from ..lexical import (
+    KW_FUZZY_FLOOR,
+    KW_HELPER_PENALTY,
+    KW_MIN_MARGIN,
+    KW_W_FUZZY,
+    KW_W_HINT,
+    KW_W_OVERLAP,
+    fuzzy_ratio,
+    normalize,
+)
 from ..telemetry import record_repair
 from ..types import ArchitectResponse, EntitySnapshot
 from .command_policy import (
@@ -250,39 +260,47 @@ def _entities_named_in_prompt(
     user_message: str,
     entities: list[EntitySnapshot] | None,
 ) -> list[str]:
-    """Return entity_ids whose friendly_name OR slug_words appear in
-    ``user_message``, longest-first.
+    """Return entity_ids whose friendly_name OR slug_words are all named
+    in ``user_message``, longest-first.
 
-    Originally this only matched a full ``friendly_name`` substring. That
-    miss-fires on prompts like "Turn off the Living Room RGBWW Lights …"
-    where the user's entity has ``friendly_name="Living Room Light"``
-    (no exact substring in the prompt because of the inserted "RGBWW")
-    but the slug-derived ``"living room"`` is right there in the prompt
-    twice. Without the slug_words fallback the resolver dead-ends and
-    the chat bounces to a clarification listing the user's devices —
-    the very flow Philippe reported as broken for presence + duration
-    prompts.
+    A candidate matches when every content token of its friendly_name (or
+    of its slug) is present in the prompt token set. This is order- and
+    particle-independent, so it survives function words inserted between
+    name words — "allume la lumière du salon" matches the entity "Lumière
+    Salon" even though "lumière salon" is not a contiguous substring. A
+    plain substring check (the previous approach) broke on exactly that:
+    it works for English ("the living room light") only because English
+    rarely interleaves particles, but fails for fr/de/es/it ("la lumière
+    DU salon", "das Licht IM Wohnzimmer", "la luz DEL salón").
+
+    Requiring the FULL token set keeps precision: "Living Room Fan" does
+    not match "turn off the living room light" (no "fan" in the prompt),
+    so the single-hit caller never silently retargets the wrong device.
     """
     if not entities or not user_message:
         return []
-    pl = user_message.lower()
+    prompt_tokens = set(normalize(user_message).split())
     hits: list[tuple[int, str]] = []
     for e in entities:
         eid = e.get("entity_id", "")
         if "." not in eid:
             continue
-        fname = str((e.get("attributes") or {}).get("friendly_name") or "").lower().strip()
-        slug = eid.split(".", 1)[1].lower()
-        slug_words = slug.replace("_", " ")
-        # Prefer the longest match — a fname match is usually more
-        # specific than slug_words, but slug_words catches the
-        # "Living Room RGBWW Lights" vs entity-fname "Living Room
-        # Light" mismatch where the room-stem still appears verbatim.
+        fname = normalize(str((e.get("attributes") or {}).get("friendly_name") or ""))
+        # normalize() casefolds and turns slug underscores into spaces, so
+        # accented friendly names match across the fr/de/es/it locales.
+        slug_words = normalize(eid.split(".", 1)[1])
+        # Prefer the longest matching name — a fname match is usually more
+        # specific than slug_words; the slug fallback catches the
+        # "Living Room RGBWW Lights" vs entity-fname "Living Room Light"
+        # mismatch where the room-stem tokens still appear in the prompt.
         matched_len = 0
-        if len(fname) >= _PROMPT_FNAME_MIN_LEN and fname in pl:
-            matched_len = len(fname)
-        if len(slug_words) >= _PROMPT_FNAME_MIN_LEN and slug_words in pl:
-            matched_len = max(matched_len, len(slug_words))
+        for name in (fname, slug_words):
+            name_tokens = name.split()
+            if not name_tokens or set(name_tokens) - prompt_tokens:
+                continue
+            joined = " ".join(name_tokens)
+            if len(joined) >= _PROMPT_FNAME_MIN_LEN:
+                matched_len = max(matched_len, len(joined))
         if matched_len == 0:
             continue
         hits.append((matched_len, eid))
@@ -384,6 +402,149 @@ _PROMPT_KEYWORD_STOPWORDS = frozenset(
     }
 )
 
+# Multilingual function words (3+ chars; shorter articles like "le"/"el"/
+# "il" are already dropped by the len>=3 filter). Conversational queries
+# follow hass.config.language, so French/German/Spanish/Italian fillers
+# must not create spurious entity-name token overlap in the keyword
+# picker the way English fillers are stripped above.
+_PROMPT_KEYWORD_STOPWORDS = _PROMPT_KEYWORD_STOPWORDS | frozenset(
+    {
+        # French
+        "dans",
+        "avec",
+        "pour",
+        "cette",
+        "ces",
+        "leur",
+        "leurs",
+        "notre",
+        "votre",
+        "mais",
+        "donc",
+        "sans",
+        "chez",
+        "sur",
+        "sous",
+        "entre",
+        "tous",
+        "tout",
+        "toute",
+        "toutes",
+        "quel",
+        "quelle",
+        "quels",
+        "quelles",
+        "est",
+        "sont",
+        "très",
+        "plus",
+        "aussi",
+        "allumé",
+        "allumée",
+        "allumés",
+        "allumées",
+        "éteint",
+        "éteinte",
+        "éteints",
+        "éteintes",
+        "allume",
+        "éteins",
+        "ferme",
+        "ouvre",
+        # German
+        "der",
+        "die",
+        "das",
+        "den",
+        "dem",
+        "ein",
+        "eine",
+        "einen",
+        "und",
+        "oder",
+        "aber",
+        "mit",
+        "von",
+        "für",
+        "auf",
+        "aus",
+        "bei",
+        "nach",
+        "über",
+        "unter",
+        "ist",
+        "sind",
+        "welche",
+        "welcher",
+        "welches",
+        "alle",
+        "jede",
+        "jeden",
+        "bitte",
+        # Spanish
+        "las",
+        "los",
+        "una",
+        "unas",
+        "unos",
+        "con",
+        "por",
+        "para",
+        "pero",
+        "sin",
+        "sobre",
+        "bajo",
+        "todos",
+        "todas",
+        "cual",
+        "cuales",
+        "que",
+        "qué",
+        "está",
+        "están",
+        "este",
+        "esta",
+        "estos",
+        "estas",
+        "más",
+        "encendido",
+        "encendida",
+        "encendidos",
+        "encendidas",
+        "apagado",
+        "apagada",
+        # Italian
+        "della",
+        "dello",
+        "delle",
+        "degli",
+        "per",
+        "uno",
+        "gli",
+        "sopra",
+        "sotto",
+        "tra",
+        "fra",
+        "tutti",
+        "tutte",
+        "quale",
+        "quali",
+        "che",
+        "sono",
+        "questa",
+        "questo",
+        "questi",
+        "queste",
+        "molto",
+        "acceso",
+        "accesa",
+        "accese",
+        "accesi",
+        "spento",
+        "spenta",
+    }
+)
+
 
 def _prompt_keyword_best_entity(
     user_message: str,
@@ -396,51 +557,57 @@ def _prompt_keyword_best_entity(
     hallucinated an entity (typically ``lock.front_door``) the existing
     by-slug / by-friendly_name / one-shot prompt-name lookups all miss.
 
-    Scoring: # of shared content tokens, with tie-breakers favouring
-    "real device" domains (light/switch/cover/lock/climate/…) over
-    helpers (input_boolean/input_number/…). When ``domain_hint`` is
-    provided, entities in that domain get a fixed bonus so a verb-and-
-    category prompt ("lock the front door for 3 minutes") prefers a
-    same-domain target when the slug overlap ties.
+    Scoring is a weighted ensemble: shared content-token overlap plus an
+    order-insensitive fuzzy ratio (so "lite"→"light" typos and reordered
+    words still land), with a ``domain_hint`` bonus and a helper-domain
+    penalty so a verb-and-category prompt ("lock the front door for 3
+    minutes") prefers a same-domain real device.
 
-    Returns ``None`` when no entity has any overlap OR when two or more
-    entities tie on the full ranking (score, hint bonus, domain rank) —
-    an ambiguous best match ("Front Porch Light" vs "Back Porch Light"
-    for "the porch light") must fall through to clarification rather than
-    pick whichever entity_id sorts first.
+    Returns ``None`` when no candidate clears the overlap/fuzzy floor, OR
+    when the top candidate does not beat the next distinct candidate by at
+    least :data:`KW_MIN_MARGIN` — an ambiguous best match ("Front Porch
+    Light" vs "Back Porch Light" for "the porch light") must fall through
+    to clarification rather than pick whichever entity_id sorts first.
     """
     if not user_message or not entities:
         return None
-    raw_tokens = {t for t in re.split(r"[^a-z0-9]+", user_message.lower()) if t}
+    prompt_norm = normalize(user_message)
+    raw_tokens = {t for t in prompt_norm.split() if t}
     prompt_tokens = {t for t in raw_tokens if len(t) >= 3 and t not in _PROMPT_KEYWORD_STOPWORDS}
     if not prompt_tokens:
         return None
-    # (-score, -hint_bonus, domain_rank); eid intentionally NOT a
-    # tie-breaker so a genuine tie is detectable and refused.
-    ranked: list[tuple[tuple[int, int, int], str]] = []
+    ranked: list[tuple[float, str]] = []
     for e in entities:
         eid = e.get("entity_id", "")
         if "." not in eid:
             continue
         domain, slug = eid.split(".", 1)
-        slug_tokens = {t for t in re.split(r"[^a-z0-9]+", slug.lower()) if t}
-        fname = str((e.get("attributes") or {}).get("friendly_name") or "").lower()
-        fname_tokens = {t for t in re.split(r"[^a-z0-9]+", fname) if t}
-        overlap = (slug_tokens | fname_tokens) & prompt_tokens
-        if not overlap:
+        slug_norm = normalize(slug)
+        fname_norm = normalize(str((e.get("attributes") or {}).get("friendly_name") or ""))
+        cand_tokens = set(slug_norm.split()) | set(fname_norm.split())
+        overlap = cand_tokens & prompt_tokens
+        fuzzy = max(
+            fuzzy_ratio(prompt_norm, fname_norm),
+            fuzzy_ratio(prompt_norm, slug_norm),
+        )
+        if not overlap and fuzzy < KW_FUZZY_FLOOR:
             continue
-        score = len(overlap)
-        hint_bonus = 1 if domain_hint and domain == domain_hint else 0
-        domain_rank = 0 if domain in _REAL_DEVICE_DOMAINS else 1
-        ranked.append(((-score, -hint_bonus, domain_rank), eid))
+        score = KW_W_OVERLAP * (len(overlap) / len(prompt_tokens)) + KW_W_FUZZY * fuzzy
+        if domain_hint and domain == domain_hint:
+            score += KW_W_HINT
+        if domain not in _REAL_DEVICE_DOMAINS:
+            score -= KW_HELPER_PENALTY
+        ranked.append((score, eid))
     if not ranked:
         return None
-    ranked.sort(key=lambda r: r[0])
-    top = ranked[0][0]
-    if sum(1 for r in ranked if r[0] == top) > 1:
-        # Ambiguous tie — refuse rather than pick by entity_id order.
+    # eid intentionally NOT a sort tie-breaker so a near-tie is detectable
+    # via the margin gate and refused rather than picked by id order.
+    ranked.sort(key=lambda r: -r[0])
+    top_score, top_eid = ranked[0]
+    if len(ranked) > 1 and (top_score - ranked[1][0]) < KW_MIN_MARGIN:
+        # Ambiguous — top does not clearly beat the runner-up.
         return None
-    return ranked[0][1]
+    return top_eid
 
 
 def _resolve_unknown_entity_ids(

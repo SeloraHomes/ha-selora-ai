@@ -20,7 +20,6 @@ mistakes into useful behaviour:
 from __future__ import annotations
 
 # ruff: noqa: ANN001, ANN202
-
 from typing import Any
 
 import pytest
@@ -30,6 +29,7 @@ from custom_components.selora_ai.llm_client.parsers import (
     _coerce_numeric_state_triggers,
     _coerce_presence_for_duration_trigger,
     _coerce_sun_triggers,
+    _entities_named_in_prompt,
     _extract_numeric_threshold,
     _find_presence_entity,
     _has_presence_for_duration,
@@ -2331,3 +2331,50 @@ class TestPromptKeywordBestEntity:
     def test_no_overlap_returns_none(self) -> None:
         ents = [self._ent("light.bedroom", "Bedroom Lamp")]
         assert _prompt_keyword_best_entity("turn off the porch sconce", ents) is None
+
+
+class TestEntitiesNamedInPrompt:
+    """Token-subset name matching — particle-independent across locales."""
+
+    def _ent(self, eid: str, fname: str) -> dict[str, Any]:
+        return {"entity_id": eid, "attributes": {"friendly_name": fname}}
+
+    def test_english_contiguous(self) -> None:
+        ents = [self._ent("light.lr", "Living Room Light")]
+        assert _entities_named_in_prompt("turn off the living room light", ents) == [
+            "light.lr"
+        ]
+
+    def test_interleaved_particles_match_in_all_locales(self) -> None:
+        # The substring approach failed on the particle between name words;
+        # token-subset survives it. One representative prompt per locale.
+        cases = [
+            ("light.salon", "Lumière Salon", "allume la lumière du salon"),  # fr
+            ("light.wz", "Licht Wohnzimmer", "schalte das licht im wohnzimmer ein"),  # de
+            ("light.sala", "Luz Salón", "enciende la luz del salón"),  # es
+            ("light.salotto", "Luce Salotto", "accendi la luce del salotto"),  # it
+        ]
+        for eid, fname, prompt in cases:
+            ents = [self._ent(eid, fname)]
+            assert _entities_named_in_prompt(prompt, ents) == [eid], prompt
+
+    def test_partial_name_does_not_match(self) -> None:
+        # "Fan" not in the prompt → must not be returned (precision: the
+        # single-hit caller would otherwise retarget the wrong device).
+        ents = [
+            self._ent("light.lr", "Living Room Light"),
+            self._ent("fan.lr", "Living Room Fan"),
+        ]
+        assert _entities_named_in_prompt("turn off the living room light", ents) == [
+            "light.lr"
+        ]
+
+    def test_longest_name_first(self) -> None:
+        ents = [
+            self._ent("light.room", "Room"),
+            self._ent("light.living_room", "Living Room"),
+        ]
+        # Both are token-subsets of the prompt; the longer name ranks first.
+        assert _entities_named_in_prompt("the living room please", ents)[0] == (
+            "light.living_room"
+        )
