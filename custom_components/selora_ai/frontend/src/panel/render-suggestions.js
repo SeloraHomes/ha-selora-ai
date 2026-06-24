@@ -1,5 +1,26 @@
 import { html } from "lit";
+import { directive, Directive } from "lit/directive.js";
 import { renderAutomationFlowchart } from "./render-automations.js";
+
+// Sets cursor:pointer only when the element's text is actually clamped
+// (scrollHeight exceeds clientHeight), so non-truncated cards keep the
+// default cursor. `force` keeps the pointer while expanded (collapse hint).
+class ClampCursorDirective extends Directive {
+  update(part, [force]) {
+    const el = part.element;
+    if (force) {
+      el.style.cursor = "pointer";
+    } else {
+      requestAnimationFrame(() => {
+        el.style.cursor =
+          el.scrollHeight > el.clientHeight + 1 ? "pointer" : "";
+      });
+    }
+    return this.render(force);
+  }
+  render() {}
+}
+const clampCursor = directive(ClampCursorDirective);
 
 const MIN_CONF = 0.8;
 const COLLAPSED_COUNT = 3;
@@ -110,6 +131,14 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     : false;
 
   const fadingOut = !!(host._fadingOutSuggestions || {})[cardKey];
+  const expandedText = !!(host._expandedSuggestions || {})[cardKey];
+  const toggleText = () => {
+    host._expandedSuggestions = {
+      ...(host._expandedSuggestions || {}),
+      [cardKey]: !expandedText,
+    };
+  };
+  const expandedClass = expandedText ? "expanded" : "";
 
   return html`
     <div
@@ -133,7 +162,13 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
               </label>
             `
           : ""}
-        <h3 style="flex:1;font-size:14px;margin:0;" title=${item.title}>
+        <h3
+          class=${expandedClass}
+          style="flex:1;font-size:14px;margin:0;"
+          title=${expandedText ? "" : item.title}
+          @click=${toggleText}
+          ${clampCursor(expandedText)}
+        >
           ${item.title}
         </h3>
       </div>
@@ -141,7 +176,11 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       ${item.subtitle
         ? html`
             <div
-              style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;"
+              class="clamp-2 ${expandedClass}"
+              style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
+              title=${expandedText ? "" : item.subtitle}
+              @click=${toggleText}
+              ${clampCursor(expandedText)}
             >
               ${item.subtitle}
             </div>

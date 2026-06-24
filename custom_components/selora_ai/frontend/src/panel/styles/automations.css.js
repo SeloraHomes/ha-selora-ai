@@ -794,6 +794,23 @@ export const automationsStyles = css`
       overflow: visible;
     }
   }
+  /* Suggestion click-to-expand: subtitle shares the 2-line clamp, and the
+     .expanded modifier unclamps both the subtitle and the h3 rule above. */
+  .automations-grid .card .clamp-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    word-break: break-word;
+  }
+  .automations-grid .card h3.expanded,
+  .automations-grid .card .clamp-2.expanded {
+    display: block;
+    -webkit-line-clamp: unset;
+    line-clamp: unset;
+    overflow: visible;
+  }
   .automations-grid .card-meta {
     font-size: 11px;
     color: var(--secondary-text-color);
