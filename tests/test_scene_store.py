@@ -231,7 +231,11 @@ class TestSceneStoreBackfill:
     async def test_backfill_imports_selora_scenes(self, hass) -> None:
         """Pre-existing Selora scenes in YAML are imported on first backfill."""
         yaml_scenes = [
-            {"id": "selora_ai_scene_abc", "name": "[Selora AI] Movie Time", "entities": {"light.a": {}, "light.b": {}}},
+            {
+                "id": "selora_ai_scene_abc",
+                "name": "[Selora AI] Movie Time",
+                "entities": {"light.a": {}, "light.b": {}},
+            },
             {"id": "user_scene_xyz", "name": "My Scene", "entities": {"light.c": {}}},
         ]
         store, _ = _make_scene_store(hass)
@@ -251,7 +255,11 @@ class TestSceneStoreBackfill:
     async def test_refreshes_metadata_for_active_scene(self, hass) -> None:
         """External YAML edits to an active scene are picked up."""
         yaml_scenes = [
-            {"id": "selora_ai_scene_abc", "name": "[Selora AI] New Name", "entities": {"light.a": {}}},
+            {
+                "id": "selora_ai_scene_abc",
+                "name": "[Selora AI] New Name",
+                "entities": {"light.a": {}},
+            },
         ]
         store, _ = _make_scene_store(hass)
         original = await store.async_add_scene(
@@ -344,14 +352,16 @@ class TestSceneStoreBackfill:
     async def test_backfill_restores_deleted_scene_from_yaml(self, hass) -> None:
         """A soft-deleted scene that reappears in YAML is restored."""
         store, _ = _make_scene_store(hass)
-        await store.async_add_scene(
-            "selora_ai_scene_abc", "Original", 2, session_id="sess1"
-        )
+        await store.async_add_scene("selora_ai_scene_abc", "Original", 2, session_id="sess1")
         await store.async_soft_delete("selora_ai_scene_abc")
 
         # Scene reappears in YAML (e.g. backup restore)
         yaml_scenes = [
-            {"id": "selora_ai_scene_abc", "name": "[Selora AI] Restored", "entities": {"light.a": {}, "light.b": {}, "light.c": {}}},
+            {
+                "id": "selora_ai_scene_abc",
+                "name": "[Selora AI] Restored",
+                "entities": {"light.a": {}, "light.b": {}, "light.c": {}},
+            },
         ]
         p1, p2, p3 = self._patch_yaml_read(yaml_scenes)
         with p1, p2, p3:

@@ -5,13 +5,17 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     entity_registry as er,
 )
+import pytest
 
 from custom_components.selora_ai.mcp_server import (
     _tool_eval_template,
@@ -88,9 +92,7 @@ async def setup_world(hass: HomeAssistant):
 
 
 @pytest.mark.asyncio
-async def test_execute_command_runs_service(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_runs_service(hass: HomeAssistant, setup_world) -> None:
     """execute_command invokes hass.services and returns post-state."""
     calls: list[dict] = []
 
@@ -129,9 +131,7 @@ async def test_execute_command_runs_service(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_rejects_invalid_call(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_rejects_invalid_call(hass: HomeAssistant, setup_world) -> None:
     """Unknown verb is rejected before any service is called."""
     result = await _tool_execute_command(
         hass,
@@ -142,9 +142,7 @@ async def test_execute_command_rejects_invalid_call(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_rejects_unknown_entity(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_rejects_unknown_entity(hass: HomeAssistant, setup_world) -> None:
     """Unknown entity_id is rejected (caught by validate_command_action)."""
     result = await _tool_execute_command(
         hass,
@@ -155,9 +153,7 @@ async def test_execute_command_rejects_unknown_entity(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_rejects_blocked_service(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_rejects_blocked_service(hass: HomeAssistant, setup_world) -> None:
     """BLOCKED-bucket services (``python_script.exec``, ``homeassistant.restart``)
     can never be invoked through the chat-driven execute_command path."""
     result = await _tool_execute_command(
@@ -309,9 +305,7 @@ async def test_resolve_delayed_approval_reports_dropped_calls(
     # Pre-seed the scheduler so the handler doesn't build a real
     # automation — we only care that dropped calls are reported.
     tracker = _mock.MagicMock()
-    tracker.schedule_at_time = _mock.AsyncMock(
-        return_value=_mock.MagicMock(schedule_id="sched-1")
-    )
+    tracker.schedule_at_time = _mock.AsyncMock(return_value=_mock.MagicMock(schedule_id="sched-1"))
     hass.data[DOMAIN]["_scheduled_tasks"] = tracker
 
     proposal_id = str(_uuid.uuid4())
@@ -393,9 +387,7 @@ async def test_resolve_delayed_approval_bypasses_gate_for_review_call(
     await approval_store.async_load()
     hass.data.setdefault(DOMAIN, {})["_approval_store"] = approval_store
     tracker = _mock.MagicMock()
-    tracker.schedule_at_time = _mock.AsyncMock(
-        return_value=_mock.MagicMock(schedule_id="sched-2")
-    )
+    tracker.schedule_at_time = _mock.AsyncMock(return_value=_mock.MagicMock(schedule_id="sched-2"))
     hass.data[DOMAIN]["_scheduled_tasks"] = tracker
 
     proposal_id = str(_uuid.uuid4())
@@ -510,9 +502,7 @@ def test_normalize_explicit_approval_derives_risk_when_missing() -> None:
         "intent": "command_approval",
         "response": "needs approval",
         "command_approval": {
-            "calls": [
-                {"service": "lock.unlock", "target": {"entity_id": ["lock.front"]}}
-            ],
+            "calls": [{"service": "lock.unlock", "target": {"entity_id": ["lock.front"]}}],
         },
     }
     result = synthesize_approval_from_tool_log(llm_result, tool_log=None)
@@ -718,9 +708,7 @@ async def test_normalize_explicit_approval_escalates_entity_aware_cover(
         synthesize_approval_from_tool_log,
     )
 
-    hass.states.async_set(
-        "cover.garage", "closed", {"device_class": "garage"}
-    )
+    hass.states.async_set("cover.garage", "closed", {"device_class": "garage"})
     llm_result = {
         "intent": "command_approval",
         "response": "needs approval",
@@ -1062,9 +1050,7 @@ def test_validate_review_call_requires_target_for_entity_services() -> None:
 
     # Entity-scoped: must reject missing target.
     entry = _REVIEW_SERVICE_POLICIES["lock"]["unlock"]
-    bad, err = _validate_review_call(
-        {"service": "lock.unlock", "target": {}, "data": {}}, entry
-    )
+    bad, err = _validate_review_call({"service": "lock.unlock", "target": {}, "data": {}}, entry)
     assert bad is None
     assert "requires an explicit entity_id" in err
 
@@ -1284,9 +1270,7 @@ async def test_execute_command_garage_cover_requires_approval(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_blind_cover_stays_safe(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_blind_cover_stays_safe(hass: HomeAssistant, setup_world) -> None:
     """A blind / shade / awning is not a physical-access risk —
     ``cover.open_cover`` on those must continue to execute directly
     without an approval card. Otherwise every "open the bedroom blinds"
@@ -1314,9 +1298,7 @@ async def test_execute_command_blind_cover_stays_safe(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_honors_session_grant(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_honors_session_grant(hass: HomeAssistant, setup_world) -> None:
     """After the user grants Session-scope approval on lock.unlock, a
     subsequent ``execute_command`` for the same service must execute
     immediately instead of returning requires_approval. Without ``hass``
@@ -1378,9 +1360,7 @@ async def test_execute_command_service_failure_returns_error(
 
 
 @pytest.mark.asyncio
-async def test_search_entities_matches_friendly_name(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_search_entities_matches_friendly_name(hass: HomeAssistant, setup_world) -> None:
     result = await _tool_search_entities(hass, {"query": "kitchen island"})
     assert result["count"] >= 1
     top = result["matches"][0]
@@ -1389,9 +1369,7 @@ async def test_search_entities_matches_friendly_name(
 
 
 @pytest.mark.asyncio
-async def test_search_entities_matches_alias(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_search_entities_matches_alias(hass: HomeAssistant, setup_world) -> None:
     """The aliases set should be searchable ('reading lamp' → bedroom_lamp)."""
     result = await _tool_search_entities(hass, {"query": "reading lamp"})
     ids = [m["entity_id"] for m in result["matches"]]
@@ -1399,20 +1377,14 @@ async def test_search_entities_matches_alias(
 
 
 @pytest.mark.asyncio
-async def test_search_entities_domain_filter(
-    hass: HomeAssistant, setup_world
-) -> None:
-    result = await _tool_search_entities(
-        hass, {"query": "kitchen", "domain": "switch"}
-    )
+async def test_search_entities_domain_filter(hass: HomeAssistant, setup_world) -> None:
+    result = await _tool_search_entities(hass, {"query": "kitchen", "domain": "switch"})
     # Coffee maker is in switch domain but doesn't mention "kitchen" — should miss.
     assert result["count"] == 0
 
 
 @pytest.mark.asyncio
-async def test_search_entities_limit(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_search_entities_limit(hass: HomeAssistant, setup_world) -> None:
     result = await _tool_search_entities(hass, {"query": "light", "limit": 1})
     assert len(result["matches"]) <= 1
 
@@ -1427,9 +1399,7 @@ async def test_search_entities_missing_query(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_entity_history_returns_deduped_changes(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_get_entity_history_returns_deduped_changes(hass: HomeAssistant, setup_world) -> None:
     """The handler deduplicates consecutive identical states."""
     from datetime import UTC, datetime, timedelta
 
@@ -1478,9 +1448,7 @@ async def test_get_entity_history_unknown_entity(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_entity_history_clamps_hours(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_get_entity_history_clamps_hours(hass: HomeAssistant, setup_world) -> None:
     """hours is clamped to [0.25, 24]."""
     fake_instance = AsyncMock()
     fake_instance.async_add_executor_job = AsyncMock(return_value={})
@@ -1501,9 +1469,7 @@ async def test_get_entity_history_clamps_hours(
 
 @pytest.mark.asyncio
 async def test_eval_template_renders(hass: HomeAssistant, setup_world) -> None:
-    result = await _tool_eval_template(
-        hass, {"template": "{{ states('light.kitchen_island') }}"}
-    )
+    result = await _tool_eval_template(hass, {"template": "{{ states('light.kitchen_island') }}"})
     assert result["result"] == "off"
 
 
@@ -1601,9 +1567,7 @@ def test_execute_command_openai_schema_has_data() -> None:
 
 
 @pytest.mark.asyncio
-async def test_execute_command_data_param_reaches_service(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_data_param_reaches_service(hass: HomeAssistant, setup_world) -> None:
     """End-to-end: brightness_pct in 'data' is forwarded to hass.services.async_call."""
     calls: list[dict] = []
 
@@ -1625,9 +1589,7 @@ async def test_execute_command_data_param_reaches_service(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_accepts_scene_entity(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_accepts_scene_entity(hass: HomeAssistant, setup_world) -> None:
     """Regression: scene.turn_on is in the safe-command allowlist, but
     scenes aren't in COLLECTOR_DOMAINS so _collect_entity_states omits
     them. execute_command must augment its allowlist with scene-domain
@@ -1651,9 +1613,7 @@ async def test_execute_command_accepts_scene_entity(
 
 
 @pytest.mark.asyncio
-async def test_execute_command_rejects_unavailable_scene(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_execute_command_rejects_unavailable_scene(hass: HomeAssistant, setup_world) -> None:
     """Unavailable scenes must still be rejected — mirrors the snapshot
     filter that skips unavailable/unknown states.
     """

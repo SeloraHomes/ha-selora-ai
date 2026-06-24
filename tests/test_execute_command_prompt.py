@@ -241,9 +241,7 @@ def test_build_executed_confirmation_excludes_already_shown_marker() -> None:
     full = build_executed_confirmation(calls)
     assert "[[entities:lock.front_door]]" in full
     # Entity already shown upstream → marker dropped, sentence kept.
-    deduped = build_executed_confirmation(
-        calls, exclude_marker_ids={"lock.front_door"}
-    )
+    deduped = build_executed_confirmation(calls, exclude_marker_ids={"lock.front_door"})
     assert "[[entities:" not in deduped
     assert "lock.front_door" in full and "Locked" in deduped
 
@@ -255,9 +253,7 @@ def test_build_executed_confirmation_keeps_unshown_marker_ids() -> None:
         build_executed_confirmation,
     )
 
-    calls = [
-        {"service": "lock.lock", "entity_ids": ["lock.front_door", "lock.back_door"]}
-    ]
+    calls = [{"service": "lock.lock", "entity_ids": ["lock.front_door", "lock.back_door"]}]
     out = build_executed_confirmation(calls, exclude_marker_ids={"lock.front_door"})
     assert "[[entities:lock.back_door]]" in out
     assert "lock.front_door" not in out.split("[[entities:")[1]
@@ -369,7 +365,7 @@ def _scene_failed(entity_id: str) -> dict:
     return {
         "tool": "activate_scene",
         "arguments": {"entity_id": entity_id},
-        "result": {"error": f"Activation failed: device offline"},
+        "result": {"error": "Activation failed: device offline"},
     }
 
 
@@ -540,9 +536,7 @@ def test_streamed_command_approval_keeps_policy_quick_actions(hass) -> None:
         '[{"label": "Sure", "value": "noop:yes"}, {"label": "Nope", "value": "noop:no"}]\n'
         "```"
     )
-    parsed = client.parse_streamed_response(
-        text, entities=[_ent("lock.front_door")], tool_log=None
-    )
+    parsed = client.parse_streamed_response(text, entities=[_ent("lock.front_door")], tool_log=None)
     assert parsed["intent"] == "command_approval"
     pid = parsed["command_approval"]["proposal_id"]
     values = [qa["value"] for qa in parsed["quick_actions"]]
@@ -889,10 +883,7 @@ def test_streaming_block_strip_with_mismatched_prose_rejected(hass) -> None:
         tool_log=tool_log,
     )
     assert parsed.get("suppressed_duplicate_command") is not True
-    assert (
-        "didn't run" in parsed["response"].lower()
-        or "rephrase" in parsed["response"].lower()
-    )
+    assert "didn't run" in parsed["response"].lower() or "rephrase" in parsed["response"].lower()
 
 
 def test_streaming_block_strip_with_matching_prose_trusted(hass) -> None:
@@ -953,10 +944,7 @@ def test_streaming_unbacked_extra_entity_rejected(hass) -> None:
     assert parsed.get("suppressed_duplicate_command") is not True
     # Policy stomps because the flag isn't set and "Turning off…" matches
     # the unbacked-action regex.
-    assert (
-        "didn't run" in parsed["response"].lower()
-        or "rephrase" in parsed["response"].lower()
-    )
+    assert "didn't run" in parsed["response"].lower() or "rephrase" in parsed["response"].lower()
 
 
 def test_streaming_mixed_inverse_executed_entity_rejected(hass) -> None:
@@ -1045,7 +1033,8 @@ def test_response_describes_executed_call_helper() -> None:
     # Per-mention proximity: opposite verb directly adjacent to a single
     # entity still wins even if the right verb appears farther away.
     assert not _response_describes_executed_call(
-        "Turned on the kitchen.", executed_off  # turn_off executed
+        "Turned on the kitchen.",
+        executed_off,  # turn_off executed
     )
 
     # Unbacked-entity veto needs entities snapshot.
@@ -1054,9 +1043,7 @@ def test_response_describes_executed_call_helper() -> None:
         {"entity_id": "light.bedroom", "state": "off", "attributes": {}},
     ]
     # Without entities snapshot — old behavior, just entity-token match.
-    assert _response_describes_executed_call(
-        "Turned off the kitchen and bedroom.", executed_off
-    )
+    assert _response_describes_executed_call("Turned off the kitchen and bedroom.", executed_off)
     # With entities snapshot — bedroom is known but not executed → veto.
     assert not _response_describes_executed_call(
         "Turned off the kitchen and bedroom.", executed_off, entities
@@ -1209,9 +1196,7 @@ def test_unbacked_action_with_known_entity_marker_recovers_command(hass) -> None
     assert final["intent"] == "command_approval"
     assert final["command_approval"]["calls"][0]["service"] == "lock.lock"
     target_ids = final["command_approval"]["calls"][0]["target"]["entity_id"]
-    assert "lock.front_door" in (
-        target_ids if isinstance(target_ids, list) else [target_ids]
-    )
+    assert "lock.front_door" in (target_ids if isinstance(target_ids, list) else [target_ids])
 
 
 def test_unbacked_action_recovers_unlock_verb(hass) -> None:
@@ -1705,3 +1690,386 @@ async def test_tool_executor_does_not_log_unknown_tool(hass) -> None:
     result = await executor.execute("nope_does_not_exist", {})
     assert "error" in result
     assert executor.call_log == []
+
+
+# ── Parametric-call repairs (command_policy._normalize_parametric_calls) ──────
+
+
+def _climate_ent(entity_id: str, state: str = "heat") -> dict:
+    return {"entity_id": entity_id, "state": state, "attributes": {}}
+
+
+def _light_ent(entity_id: str, state: str = "off") -> dict:
+    return {"entity_id": entity_id, "state": state, "attributes": {}}
+
+
+def test_unknown_climate_is_not_retargeted_to_sole_entity() -> None:
+    """An unknown climate id (even a generic-looking 'climate.main') is NOT
+    silently retargeted to the home's sole climate entity. Without the user's
+    message the helper can't tell a placeholder from an explicit reference to
+    a device that doesn't exist, so it must stay blocked → clarification."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting the thermostat to 21 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.main"},
+                "data": {"temperature": 21},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.living_room")])
+    assert final["intent"] != "command"
+    assert not final.get("calls")
+
+
+def test_repair_does_not_swap_explicit_unknown_climate() -> None:
+    """An explicit named thermostat the home doesn't have (climate.basement)
+    must NOT be silently retargeted to the sole climate entity — it is
+    rejected so the user gets a clarification."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting the basement thermostat to 21 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.basement"},
+                "data": {"temperature": 21},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.living_room")])
+    assert final["intent"] != "command"
+    assert not final.get("calls")
+
+
+def test_repair_dim_without_level_does_not_go_full_bright() -> None:
+    """light.dim with no numeric level and no number in prose must NOT default
+    to 100% (the opposite action). The bogus verb is left unrepaired and
+    rejected rather than firing full brightness."""
+    parsed = {
+        "intent": "command",
+        "response": "Dimming the kitchen light.",
+        "calls": [{"service": "light.dim", "target": {"entity_id": "light.kitchen"}, "data": {}}],
+    }
+    final = apply_command_policy(parsed, [_light_ent("light.kitchen")])
+    # Not turned into a full-brightness turn_on.
+    for call in final.get("calls", []):
+        assert not (
+            call.get("service") == "light.turn_on"
+            and call.get("data", {}).get("brightness_pct") == 100
+        )
+    assert final["intent"] != "command"
+
+
+def test_repair_set_brightness_with_explicit_level() -> None:
+    """light.set_brightness with an explicit brightness_pct is repaired to
+    light.turn_on carrying that level."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting kitchen light to 40 percent.",
+        "calls": [
+            {
+                "service": "light.set_brightness",
+                "target": {"entity_id": "light.kitchen"},
+                "data": {"brightness_pct": 40},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_light_ent("light.kitchen")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["service"] == "light.turn_on"
+    assert final["calls"][0]["data"]["brightness_pct"] == 40
+
+
+def test_repair_temperature_requires_context_not_first_number() -> None:
+    """climate.set_temperature missing the temperature key pulls the setpoint
+    from temperature context in the prose, not the first stray integer.
+    'Zone 2 thermostat to 21 degrees' → 21, never 2."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting Zone 2 thermostat to 21 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.zone_2"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.zone_2")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["data"]["temperature"] == 21
+
+
+def test_wildcard_not_expanded_on_immediate_command_path() -> None:
+    """A wildcard (light.*) is NOT expanded into a bulk action on the
+    immediate command path — nothing here verifies the user asked for "all"
+    devices, so a hallucinated wildcard must be rejected, not fanned out."""
+    parsed = {
+        "intent": "command",
+        "response": "Turning off all the lights.",
+        "calls": [{"service": "light.turn_off", "target": {"entity_id": "light.*"}, "data": {}}],
+    }
+    final = apply_command_policy(
+        parsed,
+        [_light_ent("light.kitchen", "on"), _light_ent("light.hall", "on")],
+    )
+    assert final["intent"] != "command"
+    assert not final.get("calls")
+
+
+# ── _execute_command_calls: failed calls kept out of the success list ─────────
+
+
+async def test_execute_command_calls_separates_failed_from_executed(hass) -> None:
+    """A service that raises is recorded in the separate ``failed`` list, never
+    in ``executed`` — so an all-failed command does not read as a success."""
+    from custom_components.selora_ai import _execute_command_calls
+
+    async def _boom(call) -> None:
+        raise ValueError("value out of range")
+
+    hass.services.async_register("climate", "set_temperature", _boom)
+
+    executed, failed, error_suffix = await _execute_command_calls(
+        hass,
+        [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.living_room"},
+                "data": {"temperature": 999},
+            }
+        ],
+    )
+    assert executed == []
+    assert len(failed) == 1
+    assert failed[0]["error"]
+    assert failed[0]["data"] == {"temperature": 999}
+    assert "Failed" in error_suffix
+
+
+def test_turn_off_with_stray_brightness_is_not_flipped_to_on() -> None:
+    """light.turn_off carrying a residual brightness payload must NOT be
+    rewritten to light.turn_on — that performs the opposite of the explicit
+    'turn off' intent. The unsupported payload is rejected instead."""
+    parsed = {
+        "intent": "command",
+        "response": "Turning off the kitchen light.",
+        "calls": [
+            {
+                "service": "light.turn_off",
+                "target": {"entity_id": "light.kitchen"},
+                "data": {"brightness": 50},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_light_ent("light.kitchen", "on")])
+    # Never flipped to turn_on.
+    for call in final.get("calls", []):
+        assert call.get("service") != "light.turn_on"
+    assert final["intent"] != "command"
+
+
+def test_repair_brightness_from_percent_sign_prose() -> None:
+    """light.set_brightness with the level only in prose as '50%' (no data
+    field) is repaired — the percent-sign form must be recognised, not just
+    'percent' / 'to 50'."""
+    parsed = {
+        "intent": "command",
+        "response": "Brightness 50%.",
+        "calls": [
+            {
+                "service": "light.set_brightness",
+                "target": {"entity_id": "light.kitchen"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_light_ent("light.kitchen")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["service"] == "light.turn_on"
+    assert final["calls"][0]["data"]["brightness_pct"] == 50
+
+
+def test_repair_temperature_ignores_schedule_time() -> None:
+    """A schedule time in the prose must not be parsed as the setpoint.
+    'Set the thermostat at 7 PM to 21 degrees' → 21, never 7."""
+    parsed = {
+        "intent": "command",
+        "response": "Set the thermostat at 7 PM to 21 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.living_room"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.living_room")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["data"]["temperature"] == 21
+
+
+def test_repair_temperature_preserves_decimal() -> None:
+    """A decimal setpoint in prose ('21.5 degrees') is parsed in full, not
+    truncated to the trailing digits ('5')."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting the thermostat to 21.5 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.lr"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.lr")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["data"]["temperature"] == 21.5
+
+
+def test_repair_temperature_preserves_negative() -> None:
+    """A negative setpoint ('-5 degrees') is parsed in full as -5, never
+    truncated to '5' nor dropped — climate entities can support it."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting the thermostat to -5 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.lr"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.lr")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["data"]["temperature"] == -5
+
+
+def test_repair_temperature_preserves_zero() -> None:
+    """An explicit '0 degrees' setpoint is preserved, not discarded by a
+    lower-bound range check."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting the thermostat to 0 degrees.",
+        "calls": [
+            {
+                "service": "climate.set_temperature",
+                "target": {"entity_id": "climate.lr"},
+                "data": {},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_climate_ent("climate.lr")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["data"]["temperature"] == 0
+
+
+def test_repair_zero_brightness_becomes_turn_off() -> None:
+    """light.set_brightness with an explicit 0 is honoured as light.turn_off,
+    not floored to a 1% turn_on."""
+    parsed = {
+        "intent": "command",
+        "response": "Setting kitchen light to 0%.",
+        "calls": [
+            {
+                "service": "light.set_brightness",
+                "target": {"entity_id": "light.kitchen"},
+                "data": {"brightness_pct": 0},
+            }
+        ],
+    }
+    final = apply_command_policy(parsed, [_light_ent("light.kitchen", "on")])
+    assert final["intent"] == "command"
+    assert final["calls"][0]["service"] == "light.turn_off"
+    assert "brightness_pct" not in final["calls"][0].get("data", {})
+
+
+def test_executed_service_calls_from_log_preserves_data() -> None:
+    """The failure-path synthesis keeps each action's data (brightness,
+    temperature) instead of emitting an empty {}."""
+    from custom_components.selora_ai import _executed_record_from_call
+    from custom_components.selora_ai.llm_client.command_policy import (
+        _executed_service_calls_from_log,
+    )
+
+    tool_log = [
+        {
+            "tool": "execute_command",
+            "arguments": {
+                "service": "light.turn_on",
+                "entity_id": "light.kitchen",
+                "data": {"brightness_pct": 60},
+            },
+            "result": {
+                "executed": True,
+                "service": "light.turn_on",
+                "entity_ids": ["light.kitchen"],
+            },
+        }
+    ]
+    calls = _executed_service_calls_from_log(tool_log)
+    assert calls[0]["data"] == {"brightness_pct": 60}
+    record = _executed_record_from_call(calls[0])
+    assert record["data"] == {"brightness_pct": 60}
+
+
+def test_fallback_execution_records_redact_generic_targets(hass) -> None:
+    """The post-tool failure path must redact generic-target entity_ids from
+    its wire records, exactly like the normal success path. A 'set the
+    thermostat to 21' command whose resolved climate entity is not named in
+    the prompt must not leak the entity_id."""
+    from custom_components.selora_ai import (
+        _executed_record_from_call,
+        _redact_executed_entity_ids_for_generic_references,
+    )
+
+    hass.states.async_set(
+        "climate.living_room", "heat", {"friendly_name": "Living Room Thermostat"}
+    )
+    executed_calls = [
+        {
+            "service": "climate.set_temperature",
+            "target": {"entity_id": ["climate.living_room"]},
+            "data": {"temperature": 21},
+        }
+    ]
+    records = [_executed_record_from_call(c) for c in executed_calls]
+    _redact_executed_entity_ids_for_generic_references(hass, records, "set the thermostat to 21")
+    # Entity_id redacted (friendly_name absent from prompt); data preserved.
+    assert records[0]["entity_ids"] == []
+    assert records[0]["data"] == {"temperature": 21}
+
+
+def test_redaction_preserves_explicit_entity_id_target(hass) -> None:
+    """An explicit entity_id named in the prompt ('turn on light.kitchen') is
+    preserved in the execution record, not redacted as generic."""
+    from custom_components.selora_ai import (
+        _redact_executed_entity_ids_for_generic_references,
+    )
+
+    hass.states.async_set("light.kitchen", "off", {"friendly_name": "Kitchen Light"})
+    records = [
+        {"domain": "light", "action": "turn_on", "entity_ids": ["light.kitchen"], "data": {}}
+    ]
+    _redact_executed_entity_ids_for_generic_references(hass, records, "turn on light.kitchen")
+    assert records[0]["entity_ids"] == ["light.kitchen"]
+
+
+def test_redaction_preserves_object_id_phrase_target(hass) -> None:
+    """A reference by area/object name ('turn on the kitchen') is preserved
+    even when the full friendly_name ('Kitchen Light') isn't in the prompt."""
+    from custom_components.selora_ai import (
+        _redact_executed_entity_ids_for_generic_references,
+    )
+
+    hass.states.async_set("light.kitchen", "off", {"friendly_name": "Kitchen Light"})
+    records = [
+        {"domain": "light", "action": "turn_on", "entity_ids": ["light.kitchen"], "data": {}}
+    ]
+    _redact_executed_entity_ids_for_generic_references(hass, records, "turn on the kitchen")
+    assert records[0]["entity_ids"] == ["light.kitchen"]

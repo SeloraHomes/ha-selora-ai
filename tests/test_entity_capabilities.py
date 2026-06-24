@@ -10,23 +10,34 @@ from custom_components.selora_ai.entity_capabilities import (
     is_scene_capable,
 )
 
-
 # ── Derived sets ────────────────────────────────────────────────────
 
 
 class TestDerivedSets:
     def test_collector_domains_includes_expected(self) -> None:
         expected = {
-            "light", "switch", "media_player", "climate", "fan", "cover",
-            "lock", "vacuum", "sensor", "binary_sensor", "water_heater",
-            "humidifier", "input_boolean", "input_select", "device_tracker",
+            "light",
+            "switch",
+            "media_player",
+            "climate",
+            "fan",
+            "cover",
+            "lock",
+            "vacuum",
+            "sensor",
+            "binary_sensor",
+            "water_heater",
+            "humidifier",
+            "input_boolean",
+            "input_select",
+            "device_tracker",
             "person",
         }
-        assert COLLECTOR_DOMAINS == expected
+        assert expected == COLLECTOR_DOMAINS
 
     def test_scene_capable_domains(self) -> None:
         expected = {"light", "switch", "media_player", "climate", "fan", "cover"}
-        assert SCENE_CAPABLE_DOMAINS == expected
+        assert expected == SCENE_CAPABLE_DOMAINS
 
     def test_scene_capable_is_subset_of_collector(self) -> None:
         assert SCENE_CAPABLE_DOMAINS <= COLLECTOR_DOMAINS

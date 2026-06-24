@@ -9,8 +9,8 @@ from unittest.mock import MagicMock
 
 import jwt
 import pytest
+
 from custom_components.selora_ai.const import (
-    SELORA_JWT_ALGORITHM,
     SELORA_JWT_ISSUER,
     SELORA_JWT_MAX_SIZE,
 )
@@ -28,9 +28,7 @@ INSTALLATION_ID = "test-installation-001"
 JWT_SECRET = b"test-jwt-secret-key-for-unit-tests"
 
 # Derive key the same way Connect does
-DERIVED_KEY = hmac.new(
-    JWT_SECRET, f"mcp-auth:{INSTALLATION_ID}".encode(), "sha256"
-).digest()
+DERIVED_KEY = hmac.new(JWT_SECRET, f"mcp-auth:{INSTALLATION_ID}".encode(), "sha256").digest()
 DERIVED_KEY_B64 = base64.b64encode(DERIVED_KEY).decode()
 
 
@@ -133,8 +131,8 @@ class TestSeloraJWTValidator:
 
     def test_algorithm_confusion_rs256(self) -> None:
         """RS256 token should be rejected (algorithm confusion attack)."""
-        from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.backends import default_backend
+        from cryptography.hazmat.primitives.asymmetric import rsa
 
         private_key = rsa.generate_private_key(
             public_exponent=65537,

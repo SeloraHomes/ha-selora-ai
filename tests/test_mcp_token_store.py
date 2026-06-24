@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+
 from custom_components.selora_ai.const import (
     MCP_TOKEN_MAX_COUNT,
     MCP_TOKEN_PERMISSION_ADMIN,
@@ -14,7 +15,6 @@ from custom_components.selora_ai.const import (
     MCP_TOKEN_PREFIX,
 )
 from custom_components.selora_ai.mcp_token_store import MCPTokenStore, _hash_token
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -11,7 +11,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from custom_components.selora_ai.scene_validation import (
-    _MAX_ENTITIES_PER_SCENE,
     _MAX_SCENE_NAME_LEN,
     sanitize_scene_name,
     validate_entities_exist,
@@ -105,9 +104,7 @@ class TestValidateEntitiesExist:
         assert missing == ["light.nonexistent"]
 
     async def test_all_entities_missing(self, hass) -> None:
-        existing, missing = await validate_entities_exist(
-            hass, ["light.fake1", "light.fake2"]
-        )
+        existing, missing = await validate_entities_exist(hass, ["light.fake1", "light.fake2"])
         assert existing == []
         assert missing == ["light.fake1", "light.fake2"]
 
@@ -171,9 +168,7 @@ class TestValidateEntitiesInArea:
         mock_area_reg = MagicMock()
         mock_area_reg.async_list_areas.return_value = []
 
-        with patch(
-            "homeassistant.helpers.area_registry.async_get", return_value=mock_area_reg
-        ):
+        with patch("homeassistant.helpers.area_registry.async_get", return_value=mock_area_reg):
             in_area, out_of_area = await validate_entities_in_area(
                 hass, ["light.x"], "Nonexistent Room"
             )
@@ -285,9 +280,7 @@ class TestValidateEntitiesInArea:
             patch("homeassistant.helpers.area_registry.async_get", return_value=mock_area_reg),
             patch("homeassistant.helpers.entity_registry.async_get", return_value=mock_entity_reg),
         ):
-            in_area, _ = await validate_entities_in_area(
-                hass, ["light.x"], "living room"
-            )
+            in_area, _ = await validate_entities_in_area(hass, ["light.x"], "living room")
 
         assert in_area == ["light.x"]
 
@@ -520,9 +513,7 @@ class TestFullPipelineValidation:
         assert is_valid
 
         # Step 4: entity existence check
-        existing, missing = await validate_entities_exist(
-            hass, list(normalized["entities"].keys())
-        )
+        existing, missing = await validate_entities_exist(hass, list(normalized["entities"].keys()))
         assert missing == []
 
     async def test_nonexistent_entity_caught(self, hass) -> None:
@@ -540,9 +531,7 @@ class TestFullPipelineValidation:
         assert is_valid  # format is valid
 
         # But entity doesn't exist in HA
-        _, missing = await validate_entities_exist(
-            hass, list(normalized["entities"].keys())
-        )
+        _, missing = await validate_entities_exist(hass, list(normalized["entities"].keys()))
         assert "light.does_not_exist" in missing
 
     async def test_invalid_brightness_caught_by_state_mapper(self, hass) -> None:

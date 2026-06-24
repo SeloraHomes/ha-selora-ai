@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import timedelta
+from datetime import UTC, timedelta
 from typing import Any
 from unittest.mock import AsyncMock, patch
 
@@ -137,9 +137,7 @@ class TestTotalsAndFiltering:
         await store.record(_event(provider="selora_local", model="", input_tokens=5))
         await store.record(_event(provider="selora_local", model="phi-3", input_tokens=99))
 
-        only_blank = await store.get_totals(
-            "today", provider="selora_local", model=""
-        )
+        only_blank = await store.get_totals("today", provider="selora_local", model="")
         assert only_blank["input"] == 5
         assert only_blank["calls"] == 1
 
@@ -270,7 +268,7 @@ class TestConcurrency:
 class TestEventTimestampBucketing:
     async def test_event_timestamp_determines_day_key(self, store) -> None:
         """A late-night UTC event must land on its own local day, not the next."""
-        from datetime import datetime, timedelta
+        from datetime import timedelta
         from zoneinfo import ZoneInfo
 
         from homeassistant.util import dt as dt_util
@@ -278,12 +276,9 @@ class TestEventTimestampBucketing:
         # Pick a local datetime two days in the past so it's well clear of
         # any "today" the persistence task might use.
         local_tz = dt_util.DEFAULT_TIME_ZONE
-        anchor = (
-            dt_util.now()
-            .astimezone(local_tz)
-            .replace(hour=23, minute=55, second=0, microsecond=0)
-            - timedelta(days=2)
-        )
+        anchor = dt_util.now().astimezone(local_tz).replace(
+            hour=23, minute=55, second=0, microsecond=0
+        ) - timedelta(days=2)
         # Convert to UTC ISO — this is what _flush_usage records.
         ts = anchor.astimezone(ZoneInfo("UTC")).isoformat()
         expected_day = anchor.date().isoformat()
@@ -356,12 +351,12 @@ class TestMonthBounds:
 
     async def test_prune_keeps_current_month_days(self, store) -> None:
         """Pruning must not drop early-month days even past the 30-day window."""
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         # Freeze "now" to a date deep enough into the month that day-1
         # falls outside the rolling 30-day window. Day 31 of a 31-day
         # month puts day-1 exactly past the retention cutoff.
-        frozen_now = datetime(2026, 1, 31, 12, 0, tzinfo=timezone.utc)
+        frozen_now = datetime(2026, 1, 31, 12, 0, tzinfo=UTC)
         first_of_month = "2026-01-01"
 
         store._data = {

@@ -19,7 +19,6 @@ from custom_components.selora_ai.providers.gemini import GeminiProvider
 from custom_components.selora_ai.providers.openai import OpenAIProvider
 from custom_components.selora_ai.providers.selora_cloud import SeloraCloudProvider
 
-
 # ── Pricing helper ────────────────────────────────────────────────────
 
 
@@ -354,9 +353,7 @@ class TestLLMClientFlushUsage:
     def llm_client(self, hass):
         from custom_components.selora_ai.llm_client import LLMClient
 
-        provider = AnthropicProvider(
-            hass, api_key="test-key", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(hass, api_key="test-key", model="claude-sonnet-4-6")
         return LLMClient(hass, provider)
 
     def test_provider_callback_buffers_instead_of_emitting(self, hass, llm_client) -> None:
@@ -364,25 +361,19 @@ class TestLLMClientFlushUsage:
 
         with llm_client._usage.scope():
             # Simulate the provider reporting usage mid-call.
-            llm_client._provider._report_usage(
-                {"input_tokens": 10, "output_tokens": 5}
-            )
+            llm_client._provider._report_usage({"input_tokens": 10, "output_tokens": 5})
 
             # Buffered, not yet flushed → ring buffer empty.
             assert hass.data[DOMAIN]["llm_usage_events"] == deque(maxlen=500)
             assert len(llm_client._usage.pending.get()) == 1
 
-    async def test_flush_emits_to_ring_buffer_and_signal(
-        self, hass, llm_client
-    ) -> None:
+    async def test_flush_emits_to_ring_buffer_and_signal(self, hass, llm_client) -> None:
         from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
         from custom_components.selora_ai.const import DOMAIN, SIGNAL_LLM_USAGE
 
         seen: list[dict] = []
-        async_dispatcher_connect(
-            hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload)
-        )
+        async_dispatcher_connect(hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload))
 
         with llm_client._usage.scope():
             llm_client._provider._report_usage({"input_tokens": 100, "output_tokens": 50})
@@ -457,9 +448,7 @@ class TestLLMClientFlushUsage:
         from custom_components.selora_ai.const import DOMAIN
         from custom_components.selora_ai.llm_client import LLMClient
 
-        provider = AnthropicProvider(
-            hass, api_key="test-key", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(hass, api_key="test-key", model="claude-sonnet-4-6")
         # Half off the default rate.
         client = LLMClient(
             hass,
@@ -468,9 +457,7 @@ class TestLLMClientFlushUsage:
         )
 
         with client._usage.scope():
-            client._provider._report_usage(
-                {"input_tokens": 1_000_000, "output_tokens": 1_000_000}
-            )
+            client._provider._report_usage({"input_tokens": 1_000_000, "output_tokens": 1_000_000})
             client._usage.flush("chat")
 
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
@@ -481,18 +468,12 @@ class TestLLMClientFlushUsage:
         from custom_components.selora_ai.const import DOMAIN
         from custom_components.selora_ai.llm_client import LLMClient
 
-        provider = AnthropicProvider(
-            hass, api_key="test-key", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(hass, api_key="test-key", model="claude-sonnet-4-6")
         client = LLMClient(hass, provider)
-        client.set_pricing_overrides(
-            {"anthropic": {"claude-sonnet-4-6": [0.0, 0.0]}}
-        )
+        client.set_pricing_overrides({"anthropic": {"claude-sonnet-4-6": [0.0, 0.0]}})
 
         with client._usage.scope():
-            client._provider._report_usage(
-                {"input_tokens": 1_000_000, "output_tokens": 1_000_000}
-            )
+            client._provider._report_usage({"input_tokens": 1_000_000, "output_tokens": 1_000_000})
             client._usage.flush("chat")
 
         evt = list(hass.data[DOMAIN]["llm_usage_events"])[0]
@@ -509,20 +490,14 @@ class TestLLMClientFlushUsage:
         from custom_components.selora_ai.const import DOMAIN, SIGNAL_LLM_USAGE
         from custom_components.selora_ai.llm_client import LLMClient
 
-        provider = AnthropicProvider(
-            hass, api_key="test-key", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(hass, api_key="test-key", model="claude-sonnet-4-6")
         # Pretend this provider is the Selora Cloud one — same buffering
         # path, just a different provider_type string.
-        monkeypatch.setattr(
-            type(provider), "provider_type", property(lambda self: "selora_cloud")
-        )
+        monkeypatch.setattr(type(provider), "provider_type", property(lambda self: "selora_cloud"))
         client = LLMClient(hass, provider)
 
         seen: list[dict] = []
-        async_dispatcher_connect(
-            hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload)
-        )
+        async_dispatcher_connect(hass, SIGNAL_LLM_USAGE, lambda payload: seen.append(payload))
 
         with client._usage.scope():
             # Gateway reports the backing model in the usage info.
@@ -550,9 +525,7 @@ class TestLLMClientFlushUsage:
         # Fill past the cap; oldest entries should be dropped.
         with llm_client._usage.scope():
             for i in range(LLM_USAGE_BUFFER_SIZE + 25):
-                llm_client._provider._report_usage(
-                    {"input_tokens": 1, "output_tokens": i + 1}
-                )
+                llm_client._provider._report_usage({"input_tokens": 1, "output_tokens": i + 1})
                 llm_client._usage.flush("chat")
 
         events = list(hass.data[DOMAIN]["llm_usage_events"])

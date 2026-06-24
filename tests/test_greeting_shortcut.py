@@ -7,6 +7,8 @@ returns a canned reply without calling the provider — these tests pin
 that behaviour: greetings must short-circuit, real requests must not.
 """
 
+
+# ruff: noqa: ANN001, ANN202  # pre-existing test fixture type-annotation debt
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -23,7 +25,7 @@ from custom_components.selora_ai.providers import create_provider
 
 
 @pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
+def _enable_custom_component(enable_custom_integrations) -> None:
     """Auto-enable custom integrations so our domain is discoverable."""
 
 
@@ -256,6 +258,9 @@ class TestClassifyChatIntent:
             ("should we lock the front door?", "answer"),
             ("hey can you turn off the bedroom light", "command"),
             ("turn off the kitchen light", "command"),
+            # Sun-event phrases route to automation now (the automation
+            # specialist trains on `{"trigger": "sun"}`; command path only
+            # emits one-shot service calls that ignore the schedule).
             ("turn on the porch light at sunset", "automation"),
             ("what lights can I turn on", "answer"),
             ("what lights are on?", "answer"),

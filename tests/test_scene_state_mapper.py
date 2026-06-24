@@ -45,10 +45,18 @@ class TestValidateAcceptsValid:
         [
             # basic domains
             ({"light.x": {"state": "on", "brightness": 128}}, "light.x", {"brightness": 128}),
-            ({"climate.x": {"state": "heat", "temperature": 22.5, "hvac_mode": "heat"}}, "climate.x", {"temperature": 22.5}),
+            (
+                {"climate.x": {"state": "heat", "temperature": 22.5, "hvac_mode": "heat"}},
+                "climate.x",
+                {"temperature": 22.5},
+            ),
             ({"fan.x": {"state": "on", "percentage": 50}}, "fan.x", {"percentage": 50}),
             # preset_mode
-            ({"climate.x": {"state": "heat", "preset_mode": "comfort"}}, "climate.x", {"preset_mode": "comfort"}),
+            (
+                {"climate.x": {"state": "heat", "preset_mode": "comfort"}},
+                "climate.x",
+                {"preset_mode": "comfort"},
+            ),
             ({"fan.x": {"state": "on", "preset_mode": "auto"}}, "fan.x", {"preset_mode": "auto"}),
             # light off + brightness (HA resume value)
             ({"light.x": {"state": "off", "brightness": 128}}, "light.x", {"brightness": 128}),
@@ -95,7 +103,12 @@ class TestValidateCoercion:
             # string → int
             ({"light.x": {"state": "on", "brightness": "128"}}, "light.x", "brightness", 128),
             # string → float
-            ({"media_player.x": {"state": "on", "volume_level": "0.7"}}, "media_player.x", "volume_level", 0.7),
+            (
+                {"media_player.x": {"state": "on", "volume_level": "0.7"}},
+                "media_player.x",
+                "volume_level",
+                0.7,
+            ),
             # bool state → on/off (or open/closed for covers)
             ({"light.x": {"state": True, "brightness": 128}}, "light.x", "state", "on"),
             ({"switch.x": {"state": False}}, "switch.x", "state", "off"),
@@ -105,17 +118,39 @@ class TestValidateCoercion:
             ({"light.x": {"state": "ON", "brightness": 128}}, "light.x", "state", "on"),
             ({"cover.x": {"state": "Closed"}}, "cover.x", "state", "closed"),
             # mixed-case hvac_mode → lowercase
-            ({"climate.x": {"state": "heat", "hvac_mode": "HEAT"}}, "climate.x", "hvac_mode", "heat"),
+            (
+                {"climate.x": {"state": "heat", "hvac_mode": "HEAT"}},
+                "climate.x",
+                "hvac_mode",
+                "heat",
+            ),
             # tuple → list for rgb_color
-            ({"light.x": {"state": "on", "rgb_color": (255, 0, 0)}}, "light.x", "rgb_color", [255, 0, 0]),
+            (
+                {"light.x": {"state": "on", "rgb_color": (255, 0, 0)}},
+                "light.x",
+                "rgb_color",
+                [255, 0, 0],
+            ),
             # string elements in rgb_color → coerced to int
-            ({"light.x": {"state": "on", "rgb_color": ["255", "0", "0"]}}, "light.x", "rgb_color", [255, 0, 0]),
+            (
+                {"light.x": {"state": "on", "rgb_color": ["255", "0", "0"]}},
+                "light.x",
+                "rgb_color",
+                [255, 0, 0],
+            ),
         ],
         ids=[
-            "str-to-int", "str-to-float", "bool-true-on", "bool-false-off",
-            "cover-bool-true-open", "cover-bool-false-closed",
-            "uppercase-state", "mixed-case-cover", "uppercase-hvac",
-            "tuple-rgb", "str-rgb-elements",
+            "str-to-int",
+            "str-to-float",
+            "bool-true-on",
+            "bool-false-off",
+            "cover-bool-true-open",
+            "cover-bool-false-closed",
+            "uppercase-state",
+            "mixed-case-cover",
+            "uppercase-hvac",
+            "tuple-rgb",
+            "str-rgb-elements",
         ],
     )
     def test_coerces_value(self, entities: dict, key: str, attr: str, expected) -> None:
@@ -137,23 +172,55 @@ class TestValidateClamping:
             ({"light.x": {"state": "on", "brightness": 300}}, "light.x", "brightness", 255),
             ({"light.x": {"state": "on", "brightness": -10}}, "light.x", "brightness", 0),
             # volume
-            ({"media_player.x": {"state": "on", "volume_level": 1.5}}, "media_player.x", "volume_level", 1.0),
+            (
+                {"media_player.x": {"state": "on", "volume_level": 1.5}},
+                "media_player.x",
+                "volume_level",
+                1.0,
+            ),
             # cover position (via alias)
             ({"cover.x": {"state": "open", "position": 150}}, "cover.x", "current_position", 100),
-            ({"cover.x": {"state": "open", "current_position": 150}}, "cover.x", "current_position", 100),
+            (
+                {"cover.x": {"state": "open", "current_position": 150}},
+                "cover.x",
+                "current_position",
+                100,
+            ),
             # color_temp (only enforces minimum)
             ({"light.x": {"state": "on", "color_temp": 0}}, "light.x", "color_temp", 1),
             # high color_temp preserved (per-entity max varies)
             ({"light.x": {"state": "on", "color_temp": 588}}, "light.x", "color_temp", 588),
             # color arrays
-            ({"light.x": {"state": "on", "rgb_color": [999, -1, 0]}}, "light.x", "rgb_color", [255, 0, 0]),
-            ({"light.x": {"state": "on", "hs_color": [720.0, 200.0]}}, "light.x", "hs_color", [360.0, 100.0]),
-            ({"light.x": {"state": "on", "xy_color": [1.5, -0.2]}}, "light.x", "xy_color", [1.0, 0.0]),
+            (
+                {"light.x": {"state": "on", "rgb_color": [999, -1, 0]}},
+                "light.x",
+                "rgb_color",
+                [255, 0, 0],
+            ),
+            (
+                {"light.x": {"state": "on", "hs_color": [720.0, 200.0]}},
+                "light.x",
+                "hs_color",
+                [360.0, 100.0],
+            ),
+            (
+                {"light.x": {"state": "on", "xy_color": [1.5, -0.2]}},
+                "light.x",
+                "xy_color",
+                [1.0, 0.0],
+            ),
         ],
         ids=[
-            "brightness-high", "brightness-low", "volume-high",
-            "position-alias", "position-canonical", "color-temp-min",
-            "color-temp-high-preserved", "rgb-clamp", "hs-clamp", "xy-clamp",
+            "brightness-high",
+            "brightness-low",
+            "volume-high",
+            "position-alias",
+            "position-canonical",
+            "color-temp-min",
+            "color-temp-high-preserved",
+            "rgb-clamp",
+            "hs-clamp",
+            "xy-clamp",
         ],
     )
     def test_clamps_to_range(self, entities: dict, key: str, attr: str, expected) -> None:
@@ -177,7 +244,9 @@ class TestValidateAliases:
         assert norm["cover.x"]["current_position"] == 75
 
     def test_target_temperature_normalized(self) -> None:
-        ok, _, norm = validate_entity_states({"climate.x": {"state": "heat", "target_temperature": 22.5}})
+        ok, _, norm = validate_entity_states(
+            {"climate.x": {"state": "heat", "target_temperature": 22.5}}
+        )
         assert ok
         assert norm["climate.x"]["temperature"] == 22.5
         assert "target_temperature" not in norm["climate.x"]
@@ -262,13 +331,24 @@ class TestValidateRejections:
             ({"cover.x": {"state": "open", "current_position": 0}}, "contradictory"),
         ],
         ids=[
-            "null-entities", "list-entities",
-            "int-entity-id", "invalid-entity-id",
-            "null-state-data", "str-state-data", "list-state-data",
-            "too-many-entities", "missing-state", "bad-coercion", "str-for-list",
-            "light-state-open", "cover-state-on", "cover-state-stopped",
-            "invalid-hvac-mode", "duplicate-casefold",
-            "cover-closed-pos100", "cover-open-pos0",
+            "null-entities",
+            "list-entities",
+            "int-entity-id",
+            "invalid-entity-id",
+            "null-state-data",
+            "str-state-data",
+            "list-state-data",
+            "too-many-entities",
+            "missing-state",
+            "bad-coercion",
+            "str-for-list",
+            "light-state-open",
+            "cover-state-on",
+            "cover-state-stopped",
+            "invalid-hvac-mode",
+            "duplicate-casefold",
+            "cover-closed-pos100",
+            "cover-open-pos0",
         ],
     )
     def test_rejects_malformed(self, entities, reason_fragment: str) -> None:
@@ -293,9 +373,15 @@ class TestValidateRejections:
             {"switch.x": {"state": {"value": "on"}}},
         ],
         ids=[
-            "bool-brightness", "bool-percentage", "bool-volume",
-            "bool-source", "bool-hvac", "bool-preset",
-            "list-state", "list-source", "dict-state",
+            "bool-brightness",
+            "bool-percentage",
+            "bool-volume",
+            "bool-source",
+            "bool-hvac",
+            "bool-preset",
+            "list-state",
+            "list-source",
+            "dict-state",
         ],
     )
     def test_rejects_bad_type_coercion(self, entities: dict) -> None:
@@ -395,12 +481,16 @@ class TestValidateEntityIdFormats:
         assert entity_id.lower() in norm
 
     def test_ignores_unsupported_attributes(self) -> None:
-        ok, _, norm = validate_entity_states({"light.x": {"state": "on", "brightness": 100, "unknown_attr": "foo"}})
+        ok, _, norm = validate_entity_states(
+            {"light.x": {"state": "on", "brightness": 100, "unknown_attr": "foo"}}
+        )
         assert ok
         assert "unknown_attr" not in norm["light.x"]
 
     def test_caps_long_known_domain_string(self) -> None:
-        ok, _, norm = validate_entity_states({"media_player.x": {"state": "on", "source": "a" * 300}})
+        ok, _, norm = validate_entity_states(
+            {"media_player.x": {"state": "on", "source": "a" * 300}}
+        )
         assert ok
         assert len(norm["media_player.x"]["source"]) == 200
 
@@ -422,13 +512,20 @@ class TestApplyPresetDefaults:
     @pytest.mark.parametrize(
         "intent, entity_id, input_state, expected",
         [
-            ("cozy evening", "light.x", {"state": "on"}, {"brightness": 51, "color_temp": 400, "state": "on"}),
+            (
+                "cozy evening",
+                "light.x",
+                {"state": "on"},
+                {"brightness": 51, "color_temp": 400, "state": "on"},
+            ),
             ("make it bright", "light.x", {"state": "on"}, {"brightness": 255, "color_temp": 250}),
             ("work mode", "light.x", {"state": "on"}, {"brightness": 255}),
         ],
         ids=["cozy", "bright", "work"],
     )
-    def test_fills_light_defaults(self, intent: str, entity_id: str, input_state: dict, expected: dict) -> None:
+    def test_fills_light_defaults(
+        self, intent: str, entity_id: str, input_state: dict, expected: dict
+    ) -> None:
         result = apply_default_states({entity_id: input_state}, intent)
         for attr, val in expected.items():
             assert result[entity_id][attr] == val
@@ -439,7 +536,9 @@ class TestApplyPresetDefaults:
         assert result["light.x"]["brightness"] == 51
 
     def test_does_not_override_existing_attributes(self) -> None:
-        result = apply_default_states({"light.x": {"state": "on", "brightness": 200}}, "cozy evening")
+        result = apply_default_states(
+            {"light.x": {"state": "on", "brightness": 200}}, "cozy evening"
+        )
         assert result["light.x"]["brightness"] == 200
 
     def test_no_matching_preset_passes_through(self) -> None:
@@ -507,9 +606,15 @@ class TestApplyCoverStateInference:
             ({"cover.x": {"position": -10}}, "some intent", "closed"),
         ],
         ids=[
-            "sleep-preset", "movie-preset", "morning-preset",
-            "llm-pos-75", "llm-pos-0", "llm-alias-50",
-            "str-pos-0", "str-pos-75", "negative-pos",
+            "sleep-preset",
+            "movie-preset",
+            "morning-preset",
+            "llm-pos-75",
+            "llm-pos-0",
+            "llm-alias-50",
+            "str-pos-0",
+            "str-pos-75",
+            "negative-pos",
         ],
     )
     def test_infers_state(self, entities: dict, intent: str, expected_state: str) -> None:
@@ -526,7 +631,9 @@ class TestApplyCoverStateInference:
         ],
         ids=["sleep-overrides-open", "movie-overrides-open"],
     )
-    def test_reconciles_contradictory_state(self, entities: dict, intent: str, expected_state: str) -> None:
+    def test_reconciles_contradictory_state(
+        self, entities: dict, intent: str, expected_state: str
+    ) -> None:
         result = apply_default_states(entities, intent)
         assert result["cover.x"]["state"] == expected_state
 
@@ -537,7 +644,9 @@ class TestApplyCoverStateInference:
         assert result["cover.x"]["current_position"] == 0
 
     def test_llm_position_prevents_preset_injection(self) -> None:
-        result = apply_default_states({"cover.x": {"state": "open", "current_position": 0}}, "cozy evening")
+        result = apply_default_states(
+            {"cover.x": {"state": "open", "current_position": 0}}, "cozy evening"
+        )
         assert result["cover.x"]["state"] == "open"
 
     def test_llm_position_alias_prevents_preset_injection(self) -> None:
@@ -557,12 +666,16 @@ class TestApplyMalformedInputs:
     """Malformed entries passed through without crashing."""
 
     def test_null_state_data(self) -> None:
-        result = apply_default_states({"light.kitchen": None, "light.x": {"state": "on"}}, "cozy evening")
+        result = apply_default_states(
+            {"light.kitchen": None, "light.x": {"state": "on"}}, "cozy evening"
+        )
         assert result["light.kitchen"] is None
         assert result["light.x"]["brightness"] == 51
 
     def test_non_string_entity_id(self) -> None:
-        result = apply_default_states({123: {"state": "on"}, "light.x": {"state": "on"}}, "cozy evening")
+        result = apply_default_states(
+            {123: {"state": "on"}, "light.x": {"state": "on"}}, "cozy evening"
+        )
         assert result[123] == {"state": "on"}
 
 

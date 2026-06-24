@@ -306,7 +306,6 @@ class TestWriteScenesYamlBooleans:
 
     def test_preserves_real_boolean_attributes(self, tmp_path) -> None:
         """Real bool values (e.g. climate flags) stay as booleans."""
-        from pathlib import Path
 
         from custom_components.selora_ai.scene_utils import _read_scenes_yaml, _write_scenes_yaml
 
@@ -419,7 +418,8 @@ class TestAsyncCreateScene:
             # Simulate HA loading the scene entity after reload.
             # HA derives entity_id from slugify(name); id is only unique_id.
             hass.states.async_set(
-                "scene.selora_ai_movie_time", "scening",
+                "scene.selora_ai_movie_time",
+                "scening",
                 {"friendly_name": "[Selora AI] Movie Time"},
             )
 

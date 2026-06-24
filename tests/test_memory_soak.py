@@ -197,7 +197,11 @@ def test_cap_history_records_does_not_retain_dropped_records() -> None:
 
     # Warmup — settle first-call allocations + steady-state caches.
     sample = [
-        {"entity_id": f"sensor.s{i}", "state": "on", "last_changed": f"2026-06-04T00:00:{i % 60:02d}+00:00"}
+        {
+            "entity_id": f"sensor.s{i}",
+            "state": "on",
+            "last_changed": f"2026-06-04T00:00:{i % 60:02d}+00:00",
+        }
         for i in range(overflow)
     ]
 

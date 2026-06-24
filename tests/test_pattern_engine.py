@@ -365,12 +365,8 @@ class TestDetectCorrelations:
         """
         from unittest.mock import patch
 
-        mock_entry_switch = MagicMock(
-            device_id="device_123", disabled=False, entity_category=None
-        )
-        mock_entry_light = MagicMock(
-            device_id="device_123", disabled=False, entity_category=None
-        )
+        mock_entry_switch = MagicMock(device_id="device_123", disabled=False, entity_category=None)
+        mock_entry_light = MagicMock(device_id="device_123", disabled=False, entity_category=None)
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "switch.closet": mock_entry_switch,
@@ -488,12 +484,8 @@ class TestDetectSequences:
         """Entities sharing a device_id must not produce sequences (#93)."""
         from unittest.mock import patch
 
-        mock_entry_switch = MagicMock(
-            device_id="device_123", disabled=False, entity_category=None
-        )
-        mock_entry_light = MagicMock(
-            device_id="device_123", disabled=False, entity_category=None
-        )
+        mock_entry_switch = MagicMock(device_id="device_123", disabled=False, entity_category=None)
+        mock_entry_light = MagicMock(device_id="device_123", disabled=False, entity_category=None)
         mock_reg = MagicMock()
         mock_reg.async_get.side_effect = lambda eid: {
             "switch.closet": mock_entry_switch,

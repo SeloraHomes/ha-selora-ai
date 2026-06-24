@@ -202,11 +202,14 @@ class TestStepAnthropic:
 
     async def test_valid_key_chains_forward(self, hass) -> None:
         result = await self._reach_anthropic_step(hass)
-        with patch(
-            "custom_components.selora_ai.config_flow._validate_anthropic",
-            new_callable=AsyncMock,
-            return_value={"title": "Selora AI (Claude — claude-sonnet-4-6)"},
-        ), _no_runtime_setup():
+        with (
+            patch(
+                "custom_components.selora_ai.config_flow._validate_anthropic",
+                new_callable=AsyncMock,
+                return_value={"title": "Selora AI (Claude — claude-sonnet-4-6)"},
+            ),
+            _no_runtime_setup(),
+        ):
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -294,11 +297,14 @@ class TestStepGemini:
 
     async def test_valid_key_chains_forward(self, hass) -> None:
         result = await self._reach_gemini_step(hass)
-        with patch(
-            "custom_components.selora_ai.config_flow._validate_gemini",
-            new_callable=AsyncMock,
-            return_value={"title": f"Selora AI (Gemini — {DEFAULT_GEMINI_MODEL})"},
-        ), _no_runtime_setup():
+        with (
+            patch(
+                "custom_components.selora_ai.config_flow._validate_gemini",
+                new_callable=AsyncMock,
+                return_value={"title": f"Selora AI (Gemini — {DEFAULT_GEMINI_MODEL})"},
+            ),
+            _no_runtime_setup(),
+        ):
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -322,11 +328,14 @@ class TestStepOpenai:
         )
         assert result["step_id"] == "openai"
 
-        with patch(
-            "custom_components.selora_ai.config_flow._validate_openai",
-            new_callable=AsyncMock,
-            return_value={"title": f"Selora AI (OpenAI — {DEFAULT_OPENAI_MODEL})"},
-        ), _no_runtime_setup():
+        with (
+            patch(
+                "custom_components.selora_ai.config_flow._validate_openai",
+                new_callable=AsyncMock,
+                return_value={"title": f"Selora AI (OpenAI — {DEFAULT_OPENAI_MODEL})"},
+            ),
+            _no_runtime_setup(),
+        ):
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={
@@ -373,11 +382,14 @@ class TestStepOpenRouter:
 
     async def test_valid_key_chains_forward(self, hass) -> None:
         result = await self._reach_openrouter_step(hass)
-        with patch(
-            "custom_components.selora_ai.config_flow._validate_openrouter",
-            new_callable=AsyncMock,
-            return_value={"title": f"Selora AI (OpenRouter — {DEFAULT_OPENROUTER_MODEL})"},
-        ), _no_runtime_setup():
+        with (
+            patch(
+                "custom_components.selora_ai.config_flow._validate_openrouter",
+                new_callable=AsyncMock,
+                return_value={"title": f"Selora AI (OpenRouter — {DEFAULT_OPENROUTER_MODEL})"},
+            ),
+            _no_runtime_setup(),
+        ):
             result = await hass.config_entries.flow.async_configure(
                 result["flow_id"],
                 user_input={

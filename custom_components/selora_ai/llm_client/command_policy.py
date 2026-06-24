@@ -763,7 +763,16 @@ def _repair_service_name(
     """
     if "." not in service:
         return None
-    domain = service.split(".", 1)[0]
+    domain, service_name = service.split(".", 1)
+    # A bogus light brightness verb (set_brightness / dim / brighten / …)
+    # is owned by _normalize_parametric_calls, which deliberately leaves it
+    # untouched when no level can be extracted so the user is asked to
+    # clarify. Rescuing it here to a plain light.turn_on (e.g. because the
+    # prose says "Turning on the light") would perform the OPPOSITE action —
+    # full brightness instead of the requested dim level — so refuse and let
+    # validation reject it for clarification.
+    if domain == "light" and service_name in _BOGUS_LIGHT_BRIGHTNESS_VERBS:
+        return None
     hints = _SERVICE_REPAIR_HINTS.get(domain)
     if not hints or not response_text:
         return None
@@ -772,6 +781,248 @@ def _repair_service_name(
             record_repair("service_name_inference")
             return f"{domain}.{verb}"
     return None
+
+
+# Bogus light-parametric service names the LoRA emits instead of the
+# canonical ``light.turn_on`` + ``brightness_pct`` payload. Each gets
+# rewritten into ``light.turn_on`` and any brightness-shaped data key
+# is folded into ``brightness_pct`` so the SAFE policy accepts the call
+# and the bench's ``has_data_param`` check passes.
+_BOGUS_LIGHT_BRIGHTNESS_VERBS: frozenset[str] = frozenset(
+    {
+        "set_brightness",
+        "set_brightness_pct",
+        "set_percentage",
+        "brightness_set",
+        "brightness",
+        "dim",
+        "brighten",
+    }
+)
+
+# Brightness number expressed as "50%" or "50 percent" — the highest-
+# confidence forms. Tried before the "brightness/level to N" fallback
+# below: re.search returns the leftmost match, so an explicit "60%" late
+# in the prose must still win over a "comfort level to 80" phrase that
+# happens to appear earlier in a multi-action turn's shared response text.
+_BRIGHTNESS_PCT_RE = re.compile(
+    # No "\b" after "%": both "%" and end-of-string/punctuation are
+    # non-word positions, so a trailing boundary there never matches and
+    # "Brightness 50%" would be missed. "percent" keeps its boundary.
+    r"\b(\d{1,3})\s*%|\b(\d{1,3})\s*percent\b",
+    re.IGNORECASE,
+)
+# Fallback: a brightness-anchored "to 50" ("brightness to 50" / "level to
+# 50"). Anchored on "brightness"/"level" so a bare "to 50" in unrelated
+# prose ("going to 50 stores") can't be misread as a level. Only consulted
+# when no explicit %/percent value is present. The dim/brighten/set verbs
+# in the prompt typically pair with a number — falling back to
+# "full"/"max" → 100 handles "to full" style phrasing.
+_BRIGHTNESS_TO_RE = re.compile(
+    r"\b(?:brightness|level)\s+to\s+(\d{1,3})\b",
+    re.IGNORECASE,
+)
+_BRIGHTNESS_FULL_RE = re.compile(
+    r"\b(?:full|max(?:imum)?|all\s+the\s+way)\b",
+    re.IGNORECASE,
+)
+# Setpoint number in the response prose, gated on temperature context so
+# we never grab an unrelated integer. Tried in confidence order:
+#   1. unit-qualified ("21 degrees" / "21°") — unambiguous.
+#   2. setpoint cue ("to 21", "setpoint 21") — but NOT a clock time, so
+#      "to 7 PM" / "to 7:30" is excluded by the trailing time-marker guard.
+# "at <n>" is intentionally NOT a cue: in "Set the thermostat at 7 PM to
+# 21 degrees" it would grab the schedule hour (7) instead of the setpoint
+# (21). Used as the fallback for climate.set_temperature when the model
+# omitted the data field.
+# ``(?<![\w.])`` before the number stops a decimal's fractional part from
+# being read as a standalone value ("21.5" must not yield "5") and lets an
+# optional leading sign attach ("-5"). The number itself is signed-decimal.
+_TEMP_NUM = r"(?<![\w.])(-?\d{1,3}(?:\.\d+)?)"
+_TEMPERATURE_UNIT_RE = re.compile(
+    _TEMP_NUM + r"\s*(?:°|℉|℃|degrees?\b|deg\b)",
+    re.IGNORECASE,
+)
+_TEMPERATURE_CUE_RE = re.compile(
+    r"(?:\bto\b|\bsetpoint(?:\s+(?:of|to))?\b)\s+"
+    + _TEMP_NUM
+    + r"(?!\s*(?::\d|[ap]\.?m\.?\b|o'?clock\b|hours?\b|hrs?\b))",
+    re.IGNORECASE,
+)
+# Accepted band for a setpoint parsed from prose. Wide enough for real
+# Celsius (frost protection / negative outdoor values) and Fahrenheit
+# (up to ~99) setpoints; tight enough to drop a stray out-of-range integer
+# that slipped past the context gate.
+_TEMP_SETPOINT_MIN = -50.0
+_TEMP_SETPOINT_MAX = 99.0
+
+
+def _extract_brightness_pct(
+    data: dict[str, Any],
+    response_text: str,
+) -> int | None:
+    """Pull a 0-100 brightness percentage from the call's data or prose.
+
+    Priority: ``brightness_pct`` (already pct) → ``percentage`` (alias)
+    → ``brightness`` (0-255 scale, converted) → number in response text
+    → "full"/"max" sentinel → None. Clamps to [0, 100]. An explicit 0 is
+    preserved (the caller translates it to ``light.turn_off``) rather than
+    being floored to 1, so a "0%" request isn't silently turned into a 1%
+    on-state.
+    """
+    for key in ("brightness_pct", "percentage", "brightness_percent"):
+        v = data.get(key)
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            return max(0, min(100, int(v)))
+    b = data.get("brightness")
+    if isinstance(b, (int, float)) and not isinstance(b, bool):
+        return max(0, min(100, int(round(float(b) * 100 / 255))))
+    if response_text:
+        # Explicit %/percent wins over a "brightness/level to N" phrase
+        # regardless of position in the shared response text.
+        m = _BRIGHTNESS_PCT_RE.search(response_text) or _BRIGHTNESS_TO_RE.search(response_text)
+        if m:
+            num = next((g for g in m.groups() if g is not None), None)
+            if num is not None:
+                return max(0, min(100, int(num)))
+        if _BRIGHTNESS_FULL_RE.search(response_text):
+            return 100
+    return None
+
+
+def _normalize_parametric_calls(
+    calls: list[Any],
+    response_text: str,
+) -> None:
+    """In-place rewrite of common LLM mistakes for parametric services.
+
+    Two repairs:
+
+    1. ``light.set_brightness`` / ``light.set_percentage`` /
+       ``light.brightness_set`` / ``light.dim`` / ``light.brighten``
+       → ``light.turn_on`` with ``brightness_pct`` extracted from data
+       or response prose. The LoRA frequently invents these verb names
+       even though the SAFE policy only accepts ``light.turn_on``; the
+       parameter intent is unambiguous, so rewriting is safer than
+       refusing the request and surfacing a validation error. When no
+       level can be extracted the bogus verb is left untouched (→ the
+       validation loop rejects it) rather than guessing full brightness.
+    2. ``climate.set_temperature`` with no ``temperature`` key → pull
+       a number out of the response prose ("Thermostat set to 21°F"
+       → ``temperature=21``). The trained LoRA sometimes emits the
+       slim call without the ``d`` field even when the response
+       clearly names a setpoint.
+
+    Mutates each call dict in ``calls`` so the validation loop in
+    ``apply_command_policy`` sees the repaired shape.
+    """
+    if not isinstance(calls, list):
+        return
+
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        service = str(call.get("service", "")).strip()
+        if "." not in service:
+            continue
+        domain, action = service.split(".", 1)
+        data = call.get("data")
+        if not isinstance(data, dict):
+            data = {}
+
+        # Repair 1 — bogus light parametric service.
+        if domain == "light" and action in _BOGUS_LIGHT_BRIGHTNESS_VERBS:
+            pct = _extract_brightness_pct(data, response_text)
+            if pct is None:
+                # No explicit or inferable level. Do NOT default to 100 —
+                # for "dim the light" that would be the opposite action.
+                # Leave the bogus verb in place so the validation loop
+                # rejects it and the user gets a clarification instead of
+                # a silent full-brightness flip.
+                continue
+            new_data = {
+                k: v
+                for k, v in data.items()
+                if k
+                not in (
+                    "brightness",
+                    "brightness_pct",
+                    "percentage",
+                    "brightness_percent",
+                )
+            }
+            if pct == 0:
+                # An explicit 0% is an off request — honour it as
+                # light.turn_off rather than light.turn_on at 1%.
+                call["service"] = "light.turn_off"
+                call["data"] = new_data
+                _LOGGER.info(
+                    "Auto-repaired light parametric %s -> light.turn_off (0%%)",
+                    service,
+                )
+            else:
+                new_data["brightness_pct"] = pct
+                call["service"] = "light.turn_on"
+                call["data"] = new_data
+                _LOGGER.info(
+                    "Auto-repaired light parametric %s -> light.turn_on brightness_pct=%d",
+                    service,
+                    pct,
+                )
+
+        # NOTE: a light.turn_off / light.toggle carrying a stray brightness
+        # payload is deliberately NOT rewritten to light.turn_on. The verb
+        # is the user's explicit intent — flipping "turn off the light" into
+        # "turn on at 50%" performs the opposite action. The unsupported
+        # brightness key is left in place so the validation loop rejects it
+        # ("unsupported parameters: brightness") and the user is asked to
+        # clarify, rather than silently powering the light on.
+
+        # Repair 2 — climate.set_temperature missing the temperature key.
+        elif service == "climate.set_temperature" and "temperature" not in data:
+            temp: float | None = None
+            if response_text:
+                # Skip the entity_id digits inside any [[entities:...]]
+                # marker so "living_room_thermostat" doesn't shadow the
+                # real setpoint number. Strip markers up front; the rest
+                # of the prose still carries the temperature.
+                stripped_prose = re.sub(
+                    r"\[\[(?:entity|entities|areas):[^\]]*\]\]",
+                    " ",
+                    response_text,
+                )
+                # Prefer a unit-qualified value ("21 degrees") over a bare
+                # setpoint cue ("to 21") so a schedule time in the same
+                # sentence ("at 7 PM to 21 degrees") can't win. The number is
+                # already temperature-context-gated, so accept the full range
+                # real setpoints span — Celsius frost-protection / outdoor
+                # values can be 0 or negative, Fahrenheit reaches ~99. Signed
+                # decimals ("21.5", "-5") are parsed in full, never truncated.
+                for rx in (_TEMPERATURE_UNIT_RE, _TEMPERATURE_CUE_RE):
+                    for m in rx.finditer(stripped_prose):
+                        candidate = float(m.group(1))
+                        if _TEMP_SETPOINT_MIN <= candidate <= _TEMP_SETPOINT_MAX:
+                            temp = int(candidate) if candidate.is_integer() else candidate
+                            break
+                    if temp is not None:
+                        break
+            if temp is not None:
+                new_data = dict(data)
+                new_data["temperature"] = temp
+                call["data"] = new_data
+                _LOGGER.info(
+                    "Auto-added missing temperature=%s to climate.set_temperature",
+                    temp,
+                )
+
+        # NOTE: unknown climate entity_ids are deliberately NOT auto-swapped
+        # to a sole climate entity. This helper has no access to the user's
+        # message, so it cannot tell a generic model placeholder
+        # ("climate.main" standing in for "the thermostat") from an explicit
+        # reference to a device the home doesn't have ("the bedroom
+        # thermostat" → climate.bedroom). Retargeting either to the one
+        # thermostat that exists risks acting on the wrong device, so unknown
+        # ids are left for the validation loop to reject (→ clarification).
 
 
 # Matches prose the LLM uses when narrating a device action. Detects the
@@ -2142,9 +2393,18 @@ def _executed_service_calls_from_log(
     one or more services already fired — the user must not be told
     nothing happened. Mirrors the set of tools tracked by the duplicate
     guard so both paths agree on what counts as executed.
+
+    ``data`` is carried through (the iterator preserves it) so the
+    failure-path execution records keep the parameters the call actually
+    ran with — brightness, temperature, etc. — instead of emitting an
+    empty ``{}`` for parameterized actions.
     """
     return [
-        {"service": a["service"], "target": {"entity_id": list(a["entity_ids"])}}
+        {
+            "service": a["service"],
+            "target": {"entity_id": list(a["entity_ids"])},
+            "data": dict(a.get("data") or {}),
+        }
         for a in _iter_executed_write_actions(tool_log)
     ]
 
@@ -2870,6 +3130,27 @@ def _validate_safe_call(
 
     if not target_ids:
         return None, f"{service} did not include any target entities"
+
+    # Expand wildcard entity_ids — when the model emits ``light.*`` for
+    # "turn off all the lights", honor the intent by fanning out to
+    # every known entity in that domain. Without this expansion the
+    # validator rejects the wildcard as "unknown entity_id" and the
+    # whole command falls through to a safety-error answer, leaving
+    # the user with "I can't do that" instead of the action they
+    # asked for. Bounded by ``_MAX_TARGET_ENTITIES`` so a wildcard
+    # against a huge domain can't smuggle past the count cap.
+    expanded: list[str] = []
+    for eid in target_ids:
+        if eid == "*" or eid.endswith(".*"):
+            prefix = eid.rsplit(".*", 1)[0] if eid != "*" else domain
+            matches = sorted(k for k in known_entity_ids if k.split(".", 1)[0] == prefix)
+            if not matches:
+                return None, f"{service} wildcard {eid} matched no entities"
+            expanded.extend(matches)
+        else:
+            expanded.append(eid)
+    target_ids = expanded
+
     if len(target_ids) > _MAX_TARGET_ENTITIES:
         return None, f"{service} targeted too many entities at once (max {_MAX_TARGET_ENTITIES})"
     for entity_id in target_ids:
@@ -3046,6 +3327,19 @@ def apply_command_policy(
                 result["validation_error"] = verr
             return result
 
+    # Auto-repair common LLM parametric mistakes BEFORE shape validation.
+    # The LoRA frequently invents non-existent service names for brightness
+    # ("light.set_brightness") and omits the data field for
+    # climate.set_temperature even when the response prose names the
+    # setpoint. Without this, the validation loop below would block these
+    # as "not a valid <domain> service" and downgrade intent to "answer",
+    # surfacing a confusing error for what the user clearly asked for.
+    if isinstance(calls, list):
+        _normalize_parametric_calls(
+            calls,
+            str(result.get("response", "") or ""),
+        )
+
     allowed_entities = {e.get("entity_id", "") for e in entities if e.get("entity_id")}
     if not isinstance(calls, list):
         return _blocked_command_result(
@@ -3106,6 +3400,27 @@ def apply_command_policy(
             # the fallback so a v1 wildcard grant still covers each
             # individual entity here.
             _ids = _entity_ids_from_call(call)
+            # Entity-existence guard for entity-targeted REVIEW services
+            # (lock.*, alarm_*, vacuum.*, water_heater.*, and the
+            # entity-required tts.* path). The model regularly fabricates
+            # plausible-sounding entity_ids when the user names a domain
+            # they don't actually have ("lock the back door" with no
+            # lock.* entities — emits lock.back_door anyway). _validate_review_call
+            # only shape-checks; without this guard the unknown id is
+            # bundled into a command_approval card the user could click
+            # "Allow" on, which then tries to call hass.services on a
+            # non-existent entity. Targetless REVIEW services
+            # (notify.*, script.*, shell_command.*) keep requires_target=False
+            # and are not subject to this check — they identify themselves
+            # by service name, not entity_id.
+            if review_entry.get("requires_target", True) and _ids:
+                unknown = [eid for eid in _ids if eid not in allowed_entities]
+                if unknown:
+                    return _blocked_command_result(
+                        f"{service} targeted {', '.join(unknown)}, which "
+                        f"isn't a device you have set up",
+                        result,
+                    )
             approved = _all_targets_approved(approval_store, service, _ids, session_id)
             if approved:
                 validated, err = _validate_review_call(call, review_entry)
@@ -3180,6 +3495,16 @@ def apply_command_policy(
                 f"{service} did not include any target entities",
                 result,
             )
+
+        # Wildcard entity_ids ("*" / "light.*") are NOT expanded on this
+        # immediate command path. Nothing here establishes that the user
+        # actually asked for "all" devices, so an untrusted model that
+        # hallucinates a wildcard for a singular/ambiguous request would
+        # otherwise fan out a bulk action across the whole domain. They
+        # fall through to the unknown-entity rejection below. The approval
+        # flow's _validate_safe_call does expand wildcards, but only after
+        # the user explicitly approves the proposed bulk action.
+
         if len(target_ids) > _MAX_TARGET_ENTITIES:
             return _blocked_command_result(
                 f"{service} targeted too many entities at once (max {_MAX_TARGET_ENTITIES})",

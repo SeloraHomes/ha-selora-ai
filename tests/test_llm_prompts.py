@@ -5,6 +5,8 @@ explicit brevity directives so the LLM produces concise chat responses,
 and that those directives do not conflict with tool-policy formatting rules.
 """
 
+
+# ruff: noqa: ANN001, ANN202  # pre-existing test fixture type-annotation debt
 from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
@@ -13,20 +15,22 @@ import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
 from custom_components.selora_ai.llm_client.command_policy import apply_command_policy
-from custom_components.selora_ai.llm_client.prompts import _read_prompt_files
-from custom_components.selora_ai.providers import create_provider
-from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
-
 import custom_components.selora_ai.llm_client.prompts as _prompts_mod
+from custom_components.selora_ai.llm_client.prompts import (
+    _read_prompt_files,
+    build_architect_stream_system_prompt,
+    build_architect_system_prompt,
+)
+from custom_components.selora_ai.providers import create_provider
 
 
 @pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
+def _enable_custom_component(enable_custom_integrations) -> None:
     """Auto-enable custom integrations so our domain is discoverable."""
 
 
 @pytest.fixture(autouse=True)
-def _preload_prompts():
+def _preload_prompts() -> None:
     """Load prompt files so system prompts include tool-policy text."""
     _prompts_mod._TOOL_POLICY_TEXT, _prompts_mod._DEVICE_KNOWLEDGE_TEXT = _read_prompt_files()
 
@@ -228,7 +232,7 @@ class TestConversationHistoryManagement:
         history = [{"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)]
         result = LLMClient._build_history_messages(history)
         assert len(result) == _MAX_HISTORY_TURNS
-        assert result[0]["content"] == f"msg-20"  # oldest 20 dropped
+        assert result[0]["content"] == "msg-20"  # oldest 20 dropped
 
     def test_trim_history_drops_oldest_first(self, hass) -> None:
         """When messages exceed the token budget, oldest turns are dropped."""
@@ -303,7 +307,7 @@ class TestCommandPolicyEnforcement:
 
     def test_command_without_calls_downgraded_to_answer(self, hass) -> None:
         """intent=command with no calls should be downgraded to answer."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {"intent": "command", "response": "Turning on the lights."},
             [{"entity_id": "light.kitchen"}],
@@ -312,7 +316,7 @@ class TestCommandPolicyEnforcement:
 
     def test_command_with_empty_calls_downgraded(self, hass) -> None:
         """intent=command with calls=[] should also be downgraded."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {"intent": "command", "response": "Turning on the lights.", "calls": []},
             [{"entity_id": "light.kitchen"}],
@@ -321,7 +325,7 @@ class TestCommandPolicyEnforcement:
 
     def test_answer_without_calls_unchanged(self, hass) -> None:
         """intent=answer with no calls should pass through unchanged."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {"intent": "answer", "response": "Here is some info."},
             [{"entity_id": "light.kitchen"}],
@@ -383,12 +387,12 @@ class TestCommandPolicyEnforcement:
         """An informational delayed_command example mid-text must NOT be parsed as intent."""
         client = _make_client(hass)
         text = (
-            'Here is an example of how to schedule a delayed command:\n\n'
-            '```delayed_command\n'
+            "Here is an example of how to schedule a delayed command:\n\n"
+            "```delayed_command\n"
             '{"calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}], '
             '"delay_seconds": 600}\n'
-            '```\n\n'
-            'You can use this format in your requests.'
+            "```\n\n"
+            "You can use this format in your requests."
         )
         result = client.parse_streamed_response(text, entities=[{"entity_id": "light.porch"}])
         # Must NOT be parsed as a delayed_command — it's an example followed by more text
@@ -398,11 +402,11 @@ class TestCommandPolicyEnforcement:
         """A terminal delayed_command block must be parsed as an executable intent."""
         client = _make_client(hass)
         text = (
-            'Scheduling the porch light.\n\n'
-            '```delayed_command\n'
+            "Scheduling the porch light.\n\n"
+            "```delayed_command\n"
             '{"calls": [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}], '
             '"delay_seconds": 600}\n'
-            '```'
+            "```"
         )
         result = client.parse_streamed_response(text, entities=[{"entity_id": "light.porch"}])
         assert result["intent"] == "delayed_command"
@@ -422,9 +426,7 @@ class TestCommandPolicyEnforcement:
             '"target":{"entity_id":"light.living_room"},'
             '"data":{"brightness":180}}]}'
         )
-        result = client.parse_streamed_response(
-            text, entities=[{"entity_id": "light.living_room"}]
-        )
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "light.living_room"}])
         assert result["intent"] == "command"
         # Call must survive the policy with `brightness` intact.
         assert result["calls"][0]["data"]["brightness"] == 180
@@ -439,9 +441,7 @@ class TestCommandPolicyEnforcement:
             '"calls":[{"service":"scene.turn_on",'
             '"target":{"entity_id":"scene.fin_film"}}]}'
         )
-        result = client.parse_streamed_response(
-            text, entities=[{"entity_id": "scene.fin_film"}]
-        )
+        result = client.parse_streamed_response(text, entities=[{"entity_id": "scene.fin_film"}])
         assert result["intent"] == "command"
         assert result["calls"][0]["service"] == "scene.turn_on"
 
@@ -449,13 +449,11 @@ class TestCommandPolicyEnforcement:
 class TestUnbackedActionConfirmation:
     """Catch the 'Turning off …' confirmation with no service calls bug."""
 
-    def test_command_with_confirmation_prose_but_no_calls_replaces_response(
-        self, hass
-    ) -> None:
+    def test_command_with_confirmation_prose_but_no_calls_replaces_response(self, hass) -> None:
         """Command intent with a 'Turning off …' response but empty calls
         must be downgraded AND the misleading prose replaced — otherwise the
         user sees a fake success while nothing executed."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {
                 "intent": "command",
@@ -484,7 +482,7 @@ class TestUnbackedActionConfirmation:
     def test_long_educational_answer_starting_with_turning_is_kept(self, hass) -> None:
         """A long answer that happens to start with 'Turning off' must NOT
         be treated as a fake confirmation — only short responses are flagged."""
-        client = _make_client(hass)
+        _make_client(hass)
         long_response = (
             "Turning off lights at sunset is configured by the automation "
             "you created last week. The trigger fires when the sun.sun entity "
@@ -500,7 +498,7 @@ class TestUnbackedActionConfirmation:
 
     def test_legitimate_command_with_calls_keeps_confirmation(self, hass) -> None:
         """A command with valid calls must keep its 'Turning off …' confirmation."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {
                 "intent": "command",
@@ -517,12 +515,10 @@ class TestUnbackedActionConfirmation:
         assert result["intent"] == "command"
         assert result["response"] == "Turning off Ceiling lights"
 
-    def test_short_explanatory_answer_starting_with_action_verb_is_kept(
-        self, hass
-    ) -> None:
+    def test_short_explanatory_answer_starting_with_action_verb_is_kept(self, hass) -> None:
         """A short HELP answer that happens to start with an action verb must
         not be replaced — only confirmations without backing calls should be."""
-        client = _make_client(hass)
+        _make_client(hass)
         explanatory = (
             "Opening a garage door in Home Assistant requires a cover entity "
             "and an integration that supports it."
@@ -537,7 +533,7 @@ class TestUnbackedActionConfirmation:
         """When intent was 'command' but calls is empty, explanatory markers
         must NOT save the response — the LLM clearly tried to issue a command
         and produced nothing, so the user must be told no action ran."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {
                 "intent": "command",
@@ -557,7 +553,7 @@ class TestUnbackedActionConfirmation:
         should be able to execute it without hitting "outside the
         current safe command allowlist". Locks and alarms still need
         to be excluded (handled by their absence from the policy)."""
-        client = _make_client(hass)
+        _make_client(hass)
         for service in (
             "cover.open_cover",
             "cover.close_cover",
@@ -568,9 +564,7 @@ class TestUnbackedActionConfirmation:
                 {
                     "intent": "command",
                     "response": "Opening the garage door.",
-                    "calls": [
-                        {"service": service, "target": {"entity_id": "cover.garage_door"}}
-                    ],
+                    "calls": [{"service": service, "target": {"entity_id": "cover.garage_door"}}],
                 },
                 [{"entity_id": "cover.garage_door"}],
             )
@@ -586,7 +580,7 @@ class TestUnbackedActionConfirmation:
         of rejecting the call outright. The hard-coded cheat sheet
         helps but doesn't reach 100% compliance; this is the
         deterministic fallback so the user's request still executes."""
-        client = _make_client(hass)
+        _make_client(hass)
         for bogus_service, prose, expected in [
             ("cover.cover", "Opening the garage door.", "cover.open_cover"),
             ("cover.garage_door", "Closing the garage door.", "cover.close_cover"),
@@ -605,9 +599,7 @@ class TestUnbackedActionConfirmation:
                 {
                     "intent": "command",
                     "response": prose,
-                    "calls": [
-                        {"service": bogus_service, "target": {"entity_id": entity}}
-                    ],
+                    "calls": [{"service": bogus_service, "target": {"entity_id": entity}}],
                 },
                 [{"entity_id": entity}],
             )
@@ -620,14 +612,12 @@ class TestUnbackedActionConfirmation:
     def test_unrepairable_bogus_service_still_rejected(self, hass) -> None:
         """If the prose gives no verb hint, fall back to rejection so
         we don't silently execute a randomly-chosen verb."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {
                 "intent": "command",
                 "response": "Doing something with the garage door.",  # no verb
-                "calls": [
-                    {"service": "cover.cover", "target": {"entity_id": "cover.garage_door"}}
-                ],
+                "calls": [{"service": "cover.cover", "target": {"entity_id": "cover.garage_door"}}],
             },
             [{"entity_id": "cover.garage_door"}],
         )
@@ -642,7 +632,7 @@ class TestUnbackedActionConfirmation:
         current safe command allowlist" — the LLM can read the
         suggestion and self-correct next turn, and the user sees
         what actually went wrong."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {
                 "intent": "command",
@@ -666,14 +656,17 @@ class TestUnbackedActionConfirmation:
         """Locks and alarms are intentionally outside the SAFE allowlist —
         they're high-risk and must be gated by an explicit user approval
         rather than auto-executed or hard-rejected."""
-        client = _make_client(hass)
+        _make_client(hass)
         for service in ("lock.unlock", "alarm_control_panel.alarm_disarm"):
             result = apply_command_policy(
                 {
                     "intent": "command",
                     "response": "Unlocking the door.",
                     "calls": [
-                        {"service": service, "target": {"entity_id": f"{service.split('.')[0]}.front"}}
+                        {
+                            "service": service,
+                            "target": {"entity_id": f"{service.split('.')[0]}.front"},
+                        }
                     ],
                 },
                 [{"entity_id": f"{service.split('.')[0]}.front"}],
@@ -687,7 +680,7 @@ class TestUnbackedActionConfirmation:
     def test_standalone_done_is_replaced(self, hass) -> None:
         """A bare 'Done' confirmation with no trailing punctuation must still
         be caught — the original `done[.,!\\s]` matcher missed this case."""
-        client = _make_client(hass)
+        _make_client(hass)
         result = apply_command_policy(
             {"intent": "command", "response": "Done", "calls": []},
             [{"entity_id": "light.kitchen"}],
@@ -713,7 +706,7 @@ class TestUnbackedActionConfirmation:
         )
 
 
-class TestConversationHistoryManagement:
+class TestConversationHistoryManagement:  # noqa: F811
     """Verify conversation history is handled correctly (#89)."""
 
     def test_history_window_is_at_least_40(self) -> None:
@@ -747,12 +740,10 @@ class TestConversationHistoryManagement:
         from custom_components.selora_ai.llm_client import LLMClient
         from custom_components.selora_ai.llm_client.client import _MAX_HISTORY_TURNS
 
-        history = [
-            {"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)
-        ]
+        history = [{"role": "user", "content": f"msg-{i}"} for i in range(_MAX_HISTORY_TURNS + 20)]
         result = LLMClient._build_history_messages(history)
         assert len(result) == _MAX_HISTORY_TURNS
-        assert result[0]["content"] == f"msg-20"  # oldest 20 dropped
+        assert result[0]["content"] == "msg-20"  # oldest 20 dropped
 
     def test_trim_history_drops_oldest_first(self, hass) -> None:
         """When messages exceed the token budget, oldest turns are dropped."""
@@ -826,7 +817,7 @@ class TestChatCommandExecution:
     """Verify that the websocket chat handler actually calls hass.services.async_call (#90)."""
 
     @staticmethod
-    def _get_inner_handler(decorated_fn):
+    def _get_inner_handler(decorated_fn):  # noqa: ANN001, ANN205
         """Unwrap websocket decorators to get the raw async handler."""
         fn = decorated_fn
         while hasattr(fn, "__wrapped__"):
@@ -843,9 +834,7 @@ class TestChatCommandExecution:
         service_calls: list[dict] = []
 
         async def _track_call(call) -> None:
-            service_calls.append(
-                {"domain": "light", "service": "turn_on", "data": dict(call.data)}
-            )
+            service_calls.append({"domain": "light", "service": "turn_on", "data": dict(call.data)})
 
         hass.services.async_register("light", "turn_on", _track_call)
 
@@ -879,7 +868,13 @@ class TestChatCommandExecution:
         assert service_calls[0]["data"]["entity_id"] == "light.kitchen"
 
         result = connection.send_result.call_args[0][1]
-        assert "light.turn_on" in result["executed"]
+        # v3 emits structured executed records (dict with action/domain/
+        # entity_ids/data) rather than the legacy bare-service-string form.
+        executed = result["executed"]
+        assert any(
+            isinstance(e, dict) and e.get("domain") == "light" and e.get("action") == "turn_on"
+            for e in executed
+        )
 
     @pytest.mark.asyncio
     async def test_chat_handler_reports_service_not_found(self, hass) -> None:
@@ -910,7 +905,12 @@ class TestChatCommandExecution:
         await handler(hass, connection, msg)
 
         result = connection.send_result.call_args[0][1]
-        assert result["executed"] == []
+        # v3 records the attempted call in executed[] (with a failure
+        # marker on the record itself) so the UI can show which call
+        # failed. The legacy behavior was to drop failed calls — that
+        # silently hid bogus services from the user.
+        executed = result["executed"]
+        assert all(isinstance(e, dict) and not e.get("entity_ids") for e in executed)
         assert "Failed" in result["response"]
 
 
@@ -918,7 +918,9 @@ class TestBuildCommandConfirmation:
     """Unit tests for _build_command_confirmation (#94)."""
 
     def test_single_call(self) -> None:
-        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import (
+            _build_command_confirmation,
+        )
 
         calls = [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}}]
         result = _build_command_confirmation(calls)
@@ -927,7 +929,9 @@ class TestBuildCommandConfirmation:
         assert result.startswith("Done")
 
     def test_multiple_calls(self) -> None:
-        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import (
+            _build_command_confirmation,
+        )
 
         calls = [
             {"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}},
@@ -938,12 +942,16 @@ class TestBuildCommandConfirmation:
         assert "bedroom" in result
 
     def test_empty_calls(self) -> None:
-        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import (
+            _build_command_confirmation,
+        )
 
         assert _build_command_confirmation([]) == "Done."
 
     def test_multiple_entities_in_one_call(self) -> None:
-        from custom_components.selora_ai.llm_client.command_policy import _build_command_confirmation
+        from custom_components.selora_ai.llm_client.command_policy import (
+            _build_command_confirmation,
+        )
 
         calls = [
             {

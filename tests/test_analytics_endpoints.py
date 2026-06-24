@@ -103,9 +103,7 @@ class TestWebsocketGetAnalytics:
             await _analytics_handler(hass, mock_connection, msg)
 
         mock_pattern_store.get_usage_windows.assert_awaited_once_with("light.kitchen")
-        mock_pattern_store.get_state_transition_counts.assert_awaited_once_with(
-            "light.kitchen"
-        )
+        mock_pattern_store.get_state_transition_counts.assert_awaited_once_with("light.kitchen")
         result = mock_connection.send_result.call_args[0][1]
         assert result["entity_id"] == "light.kitchen"
         assert len(result["usage_windows"]) == 2
@@ -147,9 +145,7 @@ class TestToolHomeAnalytics:
     """Tests for _tool_home_analytics MCP tool."""
 
     @pytest.mark.asyncio
-    async def test_summary_without_entity_id(
-        self, hass: HomeAssistant, mock_pattern_store
-    ):
+    async def test_summary_without_entity_id(self, hass: HomeAssistant, mock_pattern_store):
         """Without entity_id, returns the home-wide summary."""
         with patch(
             "custom_components.selora_ai.pattern_store.get_pattern_store",
@@ -161,22 +157,16 @@ class TestToolHomeAnalytics:
         assert result["total_entities_tracked"] == 5
 
     @pytest.mark.asyncio
-    async def test_per_entity_analytics(
-        self, hass: HomeAssistant, mock_pattern_store
-    ):
+    async def test_per_entity_analytics(self, hass: HomeAssistant, mock_pattern_store):
         """With entity_id, returns usage windows and state transitions."""
         with patch(
             "custom_components.selora_ai.pattern_store.get_pattern_store",
             return_value=mock_pattern_store,
         ):
-            result = await _tool_home_analytics(
-                hass, {"entity_id": "light.kitchen"}
-            )
+            result = await _tool_home_analytics(hass, {"entity_id": "light.kitchen"})
 
         mock_pattern_store.get_usage_windows.assert_awaited_once_with("light.kitchen")
-        mock_pattern_store.get_state_transition_counts.assert_awaited_once_with(
-            "light.kitchen"
-        )
+        mock_pattern_store.get_state_transition_counts.assert_awaited_once_with("light.kitchen")
         assert result["entity_id"] == "light.kitchen"
 
     @pytest.mark.asyncio
@@ -220,9 +210,7 @@ class TestToolHomeAnalytics:
             "custom_components.selora_ai.pattern_store.get_pattern_store",
             return_value=store,
         ):
-            result = await _tool_home_analytics(
-                hass, {"entity_id": "sensor.test"}
-            )
+            result = await _tool_home_analytics(hass, {"entity_id": "sensor.test"})
 
         # primary_state should be truncated (limit=64)
         assert len(result["usage_windows"][0]["primary_state"]) <= 64

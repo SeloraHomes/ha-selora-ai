@@ -30,7 +30,6 @@ from custom_components.selora_ai.const import (
     AUTOMATION_CAP_CEILING,
     AUTOMATION_CAP_FLOOR,
     AUTOMATION_ID_PREFIX,
-    AUTOMATIONS_PER_DEVICE,
 )
 
 # ---------------------------------------------------------------------------
@@ -2538,7 +2537,8 @@ def _make_automation_state(
     last_updated: datetime | None = None,
 ) -> MagicMock:
     """Create a mock HA automation state object."""
-    from datetime import UTC, datetime as _dt, timedelta
+    from datetime import UTC, timedelta
+    from datetime import datetime as _dt
 
     state = MagicMock()
     state.entity_id = entity_id
