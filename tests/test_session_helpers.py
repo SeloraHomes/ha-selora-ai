@@ -1,4 +1,5 @@
 """Test the _resolve_or_create_session helper's `created` flag contract."""
+
 from __future__ import annotations
 
 from unittest.mock import AsyncMock
@@ -28,9 +29,7 @@ class TestResolveOrCreateSession:
     async def test_resolves_existing_session(self) -> None:
         store = AsyncMock()
         store.get_session.return_value = {"id": "existing-7", "messages": [{"role": "user"}]}
-        session, session_id, created = await _resolve_or_create_session(
-            store, "existing-7"
-        )
+        session, session_id, created = await _resolve_or_create_session(store, "existing-7")
         assert created is False
         assert session_id == "existing-7"
         store.get_session.assert_awaited_once_with("existing-7")
@@ -42,8 +41,6 @@ class TestResolveOrCreateSession:
         store = AsyncMock()
         store.get_session.return_value = None
         store.create_session.return_value = {"id": "new-2", "messages": []}
-        _session, session_id, created = await _resolve_or_create_session(
-            store, "stale-id"
-        )
+        _session, session_id, created = await _resolve_or_create_session(store, "stale-id")
         assert created is True
         assert session_id == "new-2"

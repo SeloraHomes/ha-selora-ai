@@ -71,6 +71,7 @@ async def test_size_cap_raises_and_closes() -> None:
 @pytest.mark.asyncio
 async def test_idle_timeout_raises_and_closes() -> None:
     """No chunk within idle_timeout → TimeoutError; underlying gen is closed."""
+
     async def hang_after_first() -> AsyncIterator[str]:
         yield "ok"
         await asyncio.sleep(10.0)
@@ -92,7 +93,6 @@ async def test_empty_stream_closes_cleanly() -> None:
     assert src.closed is True
 
 
-
 @pytest.mark.asyncio
 async def test_keepalive_resets_timer_without_counting_bytes() -> None:
     """STREAM_KEEPALIVE resets the idle timer, passes through, and doesn't
@@ -106,9 +106,7 @@ async def test_keepalive_resets_timer_without_counting_bytes() -> None:
         yield " world"
 
     src = _CloseTracker(slow_with_keepalives())
-    out = await _collect(
-        _consume_stream_with_guards(src, idle_timeout=0.3, max_bytes=11)
-    )
+    out = await _collect(_consume_stream_with_guards(src, idle_timeout=0.3, max_bytes=11))
     assert STREAM_KEEPALIVE in out
     text_chunks = [c for c in out if c != STREAM_KEEPALIVE]
     assert "".join(text_chunks) == "hello world"
@@ -126,9 +124,7 @@ async def test_keepalive_does_not_count_toward_byte_cap() -> None:
         yield "ok"
 
     src = _CloseTracker(many_keepalives())
-    out = await _collect(
-        _consume_stream_with_guards(src, idle_timeout=1.0, max_bytes=16)
-    )
+    out = await _collect(_consume_stream_with_guards(src, idle_timeout=1.0, max_bytes=16))
     text = "".join(c for c in out if c != STREAM_KEEPALIVE)
     assert text == "ok"
     assert src.closed is True
@@ -162,9 +158,7 @@ async def test_keepalive_prevents_idle_timeout() -> None:
         yield " end"
 
     src = _CloseTracker(keepalive_bridge())
-    out = await _collect(
-        _consume_stream_with_guards(src, idle_timeout=0.25, max_bytes=1024)
-    )
+    out = await _collect(_consume_stream_with_guards(src, idle_timeout=0.25, max_bytes=1024))
     text_chunks = [c for c in out if c != STREAM_KEEPALIVE]
     assert "".join(text_chunks) == "start end"
     assert src.closed is True

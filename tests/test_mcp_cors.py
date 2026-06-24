@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
-import pytest
 from aiohttp import web
+import pytest
+
 from custom_components.selora_ai.mcp_server import (
-    _MCP_CORS_HEADERS,
+    _add_cors,
     _cors_headers,
     _cors_preflight,
-    _add_cors,
     _validate_cors_origin,
 )
 

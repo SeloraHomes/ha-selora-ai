@@ -1,11 +1,10 @@
 """Tests for dynamic suggestion cap logic."""
+
 from __future__ import annotations
 
 import json
 from math import ceil
 from unittest.mock import AsyncMock, MagicMock, patch
-
-import pytest
 
 from custom_components.selora_ai.const import (
     DEFAULT_DEVICES_PER_SUGGESTION,
@@ -209,10 +208,22 @@ class TestParseSuggestionsPassthrough:
         client._provider = MagicMock(provider_name="Anthropic (test)")
 
         suggestions = [
-            {"alias": "Good 1", "trigger": {"platform": "state"}, "action": {"service": "light.turn_on"}},
+            {
+                "alias": "Good 1",
+                "trigger": {"platform": "state"},
+                "action": {"service": "light.turn_on"},
+            },
             {"bad": "no alias or trigger"},
-            {"alias": "Good 2", "trigger": {"platform": "time"}, "action": {"service": "light.turn_off"}},
-            {"alias": "Good 3", "trigger": {"platform": "state"}, "action": {"service": "switch.turn_on"}},
+            {
+                "alias": "Good 2",
+                "trigger": {"platform": "time"},
+                "action": {"service": "light.turn_off"},
+            },
+            {
+                "alias": "Good 3",
+                "trigger": {"platform": "state"},
+                "action": {"service": "switch.turn_on"},
+            },
         ]
         raw_response = json.dumps(suggestions)
 

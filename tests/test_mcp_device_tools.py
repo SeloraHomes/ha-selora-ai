@@ -2,21 +2,22 @@
 
 from __future__ import annotations
 
-from typing import Any
-
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     entity_registry as er,
 )
+import pytest
 
 from custom_components.selora_ai.mcp_server import (
     _tool_get_device,
     _tool_list_devices,
 )
-
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -143,9 +144,7 @@ async def test_list_devices_returns_all(hass: HomeAssistant, setup_home) -> None
 
 
 @pytest.mark.asyncio
-async def test_list_devices_excludes_non_collector_domains(
-    hass: HomeAssistant, setup_home
-) -> None:
+async def test_list_devices_excludes_non_collector_domains(hass: HomeAssistant, setup_home) -> None:
     """Devices with only non-collector-domain entities are excluded."""
     result = await _tool_list_devices(hass, {})
     names = {d["name"] for d in result["devices"]}
@@ -178,9 +177,7 @@ async def test_list_devices_filter_by_domain(hass: HomeAssistant, setup_home) ->
 
 
 @pytest.mark.asyncio
-async def test_list_devices_filter_area_and_domain(
-    hass: HomeAssistant, setup_home
-) -> None:
+async def test_list_devices_filter_area_and_domain(hass: HomeAssistant, setup_home) -> None:
     """Combined area + domain filter."""
     result = await _tool_list_devices(hass, {"area": "Living Room", "domain": "light"})
     assert result["count"] == 1
@@ -208,9 +205,7 @@ async def test_list_devices_includes_metadata(hass: HomeAssistant, setup_home) -
 
 
 @pytest.mark.asyncio
-async def test_list_devices_includes_entity_states(
-    hass: HomeAssistant, setup_home
-) -> None:
+async def test_list_devices_includes_entity_states(hass: HomeAssistant, setup_home) -> None:
     """list_devices returns entity states for frontend card rendering."""
     result = await _tool_list_devices(hass, {"area": "Kitchen"})
     device = result["devices"][0]
@@ -255,9 +250,7 @@ async def test_get_device_not_found(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_device_includes_state_attributes(
-    hass: HomeAssistant, setup_home
-) -> None:
+async def test_get_device_includes_state_attributes(hass: HomeAssistant, setup_home) -> None:
     """Climate device includes domain-specific attributes."""
     # Set climate state with attributes
     hass.states.async_set(

@@ -7,13 +7,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
-from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
+import custom_components.selora_ai.llm_client.prompts as _llm_mod
 from custom_components.selora_ai.llm_client.prompts import (
     _read_prompt_files,
     _suggestions_prompt,
+    build_architect_stream_system_prompt,
+    build_architect_system_prompt,
 )
 from custom_components.selora_ai.providers import create_provider
-from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import (
     CHAT_TOOLS,
@@ -22,8 +23,6 @@ from custom_components.selora_ai.tool_registry import (
     TOOL_MAP,
 )
 from custom_components.selora_ai.types import SuggestionDict
-
-import custom_components.selora_ai.llm_client.prompts as _llm_mod
 
 
 @pytest.fixture(autouse=True)
@@ -73,9 +72,7 @@ def _make_suggestion(
                     "to": "on",
                 }
             ],
-            "actions": [
-                {"service": "light.turn_on", "target": {"entity_id": "light.hallway"}}
-            ],
+            "actions": [{"service": "light.turn_on", "target": {"entity_id": "light.hallway"}}],
         },
     )
 
@@ -287,9 +284,7 @@ class TestDismissSuggestionHandler:
 
         executor = _make_executor(hass, is_admin=True)
         with patch("custom_components.selora_ai._get_pattern_store", return_value=mock_store):
-            result = await executor.execute(
-                "dismiss_suggestion", {"suggestion_id": "nonexistent"}
-            )
+            result = await executor.execute("dismiss_suggestion", {"suggestion_id": "nonexistent"})
 
         assert "error" in result
         assert "not found" in result["error"]

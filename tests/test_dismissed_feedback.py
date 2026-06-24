@@ -1,9 +1,8 @@
 """Tests for dismissed suggestion filtering and service/entity validation."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
-
-import pytest
 
 from custom_components.selora_ai.automation_utils import suggestion_content_fingerprint
 from custom_components.selora_ai.collector import DataCollector
@@ -136,7 +135,9 @@ class TestDismissalFiltering:
 
     def test_alias_variant_caught_by_normalization(self):
         """Slightly different alias naming still matches after normalization."""
-        assert DataCollector._normalize_alias("[Selora AI] Turn on hallway light") == \
-               DataCollector._normalize_alias("turn on hallway light")
-        assert DataCollector._normalize_alias("[Selora AI]  Turn  On  Hallway  Light") == \
-               DataCollector._normalize_alias("Turn on hallway light")
+        assert DataCollector._normalize_alias(
+            "[Selora AI] Turn on hallway light"
+        ) == DataCollector._normalize_alias("turn on hallway light")
+        assert DataCollector._normalize_alias(
+            "[Selora AI]  Turn  On  Hallway  Light"
+        ) == DataCollector._normalize_alias("Turn on hallway light")

@@ -25,7 +25,9 @@ from .conftest import MockStore
 # Use a recent date so history passes the recency filter in hardening checks (#67).
 # Round down to the most recent Monday for deterministic weekday-based tests.
 _now = datetime.now(tz=UTC)
-BASE_DATE = (_now - timedelta(days=_now.weekday())).replace(hour=0, minute=0, second=0, microsecond=0)
+BASE_DATE = (_now - timedelta(days=_now.weekday())).replace(
+    hour=0, minute=0, second=0, microsecond=0
+)
 
 
 def _ts(day_offset: int = 0, hour: int = 18, minute: int = 0, second: int = 0) -> str:

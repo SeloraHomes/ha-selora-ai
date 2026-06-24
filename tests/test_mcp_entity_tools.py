@@ -2,13 +2,17 @@
 
 from __future__ import annotations
 
-import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import (
     area_registry as ar,
+)
+from homeassistant.helpers import (
     device_registry as dr,
+)
+from homeassistant.helpers import (
     entity_registry as er,
 )
+import pytest
 
 from custom_components.selora_ai.mcp_server import (
     _tool_find_entities_by_area,
@@ -188,20 +192,14 @@ async def test_find_entities_by_area_resolves_via_device(
 
 
 @pytest.mark.asyncio
-async def test_find_entities_by_area_case_insensitive(
-    hass: HomeAssistant, setup_entities
-) -> None:
+async def test_find_entities_by_area_case_insensitive(hass: HomeAssistant, setup_entities) -> None:
     result = await _tool_find_entities_by_area(hass, {"area": "kitchen"})
     assert result["count"] == 1
 
 
 @pytest.mark.asyncio
-async def test_find_entities_by_area_domain_filter(
-    hass: HomeAssistant, setup_entities
-) -> None:
-    result = await _tool_find_entities_by_area(
-        hass, {"area": "Living Room", "domain": "light"}
-    )
+async def test_find_entities_by_area_domain_filter(hass: HomeAssistant, setup_entities) -> None:
+    result = await _tool_find_entities_by_area(hass, {"area": "Living Room", "domain": "light"})
     entity_ids = {e["entity_id"] for e in result["entities"]}
     assert entity_ids == {"light.living_lamp"}
 
@@ -224,9 +222,7 @@ async def test_find_entities_by_area_missing_area(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_validate_action_valid_light_turn_on(
-    hass: HomeAssistant, setup_entities
-) -> None:
+async def test_validate_action_valid_light_turn_on(hass: HomeAssistant, setup_entities) -> None:
     result = await _tool_validate_action(
         hass,
         {
@@ -278,9 +274,7 @@ async def test_validate_action_rejects_unknown_verb(hass: HomeAssistant) -> None
 
 
 @pytest.mark.asyncio
-async def test_validate_action_rejects_unknown_entity(
-    hass: HomeAssistant, setup_entities
-) -> None:
+async def test_validate_action_rejects_unknown_entity(hass: HomeAssistant, setup_entities) -> None:
     result = await _tool_validate_action(
         hass,
         {"service": "light.turn_on", "entity_id": "light.ghost"},
@@ -290,9 +284,7 @@ async def test_validate_action_rejects_unknown_entity(
 
 
 @pytest.mark.asyncio
-async def test_validate_action_rejects_domain_mismatch(
-    hass: HomeAssistant, setup_entities
-) -> None:
+async def test_validate_action_rejects_domain_mismatch(hass: HomeAssistant, setup_entities) -> None:
     result = await _tool_validate_action(
         hass,
         {"service": "light.turn_on", "entity_id": "switch.unassigned"},
@@ -319,9 +311,7 @@ async def test_validate_action_rejects_unsupported_param(
 
 @pytest.mark.asyncio
 async def test_validate_action_malformed_service(hass: HomeAssistant) -> None:
-    result = await _tool_validate_action(
-        hass, {"service": "no_dot", "entity_id": "light.x"}
-    )
+    result = await _tool_validate_action(hass, {"service": "no_dot", "entity_id": "light.x"})
     assert result["valid"] is False
     assert any("<domain>.<verb>" in e for e in result["errors"])
 

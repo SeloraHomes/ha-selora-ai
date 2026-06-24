@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import pytest
 from homeassistant.core import HomeAssistant
+import pytest
 
 from custom_components.selora_ai import (
     _automation_references_device,
@@ -26,18 +25,14 @@ class TestAutomationReferencesEntities:
     def test_exact_match_in_action_target(self):
         auto = {
             "trigger": [{"platform": "time", "at": "08:00"}],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         }
         assert _automation_references_device(auto, {"light.kitchen"})
 
     def test_no_match(self):
         auto = {
             "trigger": [{"platform": "time", "at": "08:00"}],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.bedroom"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.bedroom"}}],
         }
         assert not _automation_references_device(auto, {"light.kitchen"})
 
@@ -55,9 +50,7 @@ class TestAutomationReferencesEntities:
 
     def test_match_in_trigger_entity_id(self):
         auto = {
-            "trigger": [
-                {"platform": "state", "entity_id": "binary_sensor.motion"}
-            ],
+            "trigger": [{"platform": "state", "entity_id": "binary_sensor.motion"}],
             "action": [],
         }
         assert _automation_references_device(auto, {"binary_sensor.motion"})
@@ -65,9 +58,7 @@ class TestAutomationReferencesEntities:
     def test_match_in_condition(self):
         auto = {
             "trigger": [],
-            "condition": [
-                {"condition": "state", "entity_id": "sensor.temp", "state": "on"}
-            ],
+            "condition": [{"condition": "state", "entity_id": "sensor.temp", "state": "on"}],
             "action": [],
         }
         assert _automation_references_device(auto, {"sensor.temp"})
@@ -77,9 +68,7 @@ class TestAutomationReferencesEntities:
             "action": [
                 {
                     "action": "light.turn_on",
-                    "target": {
-                        "entity_id": ["light.a", "light.b", "light.c"]
-                    },
+                    "target": {"entity_id": ["light.a", "light.b", "light.c"]},
                 }
             ],
         }
@@ -96,9 +85,7 @@ class TestAutomationReferencesEntities:
     def test_device_id_match(self):
         """Device triggers store device_id, not entity_id."""
         auto = {
-            "trigger": [
-                {"platform": "device", "device_id": "abc123", "type": "turned_on"}
-            ],
+            "trigger": [{"platform": "device", "device_id": "abc123", "type": "turned_on"}],
             "action": [],
         }
         assert _automation_references_device(auto, {"abc123"})
@@ -153,7 +140,12 @@ def device_data():
         "manufacturer": "Philips",
         "model": "Hue",
         "entities": [
-            {"entity_id": "light.kitchen", "domain": "light", "state": "on", "name": "Kitchen Light"},
+            {
+                "entity_id": "light.kitchen",
+                "domain": "light",
+                "state": "on",
+                "name": "Kitchen Light",
+            },
         ],
     }
 
@@ -204,9 +196,7 @@ async def test_device_detail_not_found(hass: HomeAssistant, mock_connection):
 
 
 @pytest.mark.asyncio
-async def test_device_detail_linked_automations(
-    hass: HomeAssistant, mock_connection, device_data
-):
+async def test_device_detail_linked_automations(hass: HomeAssistant, mock_connection, device_data):
     """Test that automations referencing device entities are found."""
     automations = [
         {
@@ -214,18 +204,14 @@ async def test_device_detail_linked_automations(
             "alias": "Kitchen on at sunset",
             "description": "Turns on kitchen light",
             "trigger": [{"platform": "sun", "event": "sunset"}],
-            "action": [
-                {"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}
-            ],
+            "action": [{"action": "light.turn_on", "target": {"entity_id": "light.kitchen"}}],
         },
         {
             "id": "auto2",
             "alias": "Bedroom routine",
             "description": "Unrelated",
             "trigger": [{"platform": "time", "at": "22:00"}],
-            "action": [
-                {"action": "light.turn_off", "target": {"entity_id": "light.bedroom"}}
-            ],
+            "action": [{"action": "light.turn_off", "target": {"entity_id": "light.bedroom"}}],
         },
     ]
     msg = {"id": 1, "type": "selora_ai/get_device_detail", "device_id": "abc123"}
@@ -253,9 +239,7 @@ async def test_device_detail_linked_automations(
 
 
 @pytest.mark.asyncio
-async def test_device_detail_related_patterns(
-    hass: HomeAssistant, mock_connection, device_data
-):
+async def test_device_detail_related_patterns(hass: HomeAssistant, mock_connection, device_data):
     """Test that patterns referencing device entities are found."""
     mock_store = AsyncMock()
     mock_store.get_patterns = AsyncMock(

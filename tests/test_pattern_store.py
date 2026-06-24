@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import zoneinfo
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
+import zoneinfo
 
 from homeassistant.util import dt as dt_util
 import pytest
@@ -508,9 +508,7 @@ class TestAnalyticsQueries:
                 await ps.record_state_change(
                     "light.kitchen", "off", "on", f"2026-03-0{i + 1}T20:30:00+00:00"
                 )
-            await ps.record_state_change(
-                "light.kitchen", "on", "off", "2026-03-01T12:00:00+00:00"
-            )
+            await ps.record_state_change("light.kitchen", "on", "off", "2026-03-01T12:00:00+00:00")
 
             result = await ps.get_usage_windows("light.kitchen")
 
@@ -606,9 +604,7 @@ class TestAnalyticsQueries:
         ps, _ = pattern_store
 
         # Record a change at 02:00 UTC
-        await ps.record_state_change(
-            "light.porch", "on", "off", "2026-03-15T02:00:00+00:00"
-        )
+        await ps.record_state_change("light.porch", "on", "off", "2026-03-15T02:00:00+00:00")
 
         # With US/Pacific (-7 in March / PDT), 02:00 UTC = 19:00 previous day
         pacific = zoneinfo.ZoneInfo("US/Pacific")

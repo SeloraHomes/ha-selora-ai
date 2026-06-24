@@ -100,23 +100,27 @@ class TestGeminiPayload:
 class TestGeminiResponseParsing:
     def test_extract_text_response(self, provider) -> None:
         data = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": "Hello there!"}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "Hello there!"}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         assert provider.extract_text_response(data) == "Hello there!"
 
     def test_extract_text_multi_part(self, provider) -> None:
         data = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": "Part 1"}, {"text": " Part 2"}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "Part 1"}, {"text": " Part 2"}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         assert provider.extract_text_response(data) == "Part 1 Part 2"
 
@@ -126,17 +130,21 @@ class TestGeminiResponseParsing:
 
     def test_extract_tool_calls(self, provider) -> None:
         data = {
-            "candidates": [{
-                "content": {
-                    "parts": [{
-                        "functionCall": {
-                            "name": "get_time",
-                            "args": {"timezone": "UTC"},
-                        }
-                    }],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [
+                            {
+                                "functionCall": {
+                                    "name": "get_time",
+                                    "args": {"timezone": "UTC"},
+                                }
+                            }
+                        ],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         calls = provider.extract_tool_calls(data)
         assert len(calls) == 1
@@ -146,12 +154,14 @@ class TestGeminiResponseParsing:
 
     def test_extract_tool_calls_empty(self, provider) -> None:
         data = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": "No tools needed."}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "No tools needed."}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         assert provider.extract_tool_calls(data) == []
 
@@ -159,12 +169,14 @@ class TestGeminiResponseParsing:
 class TestGeminiStreamParsing:
     def test_parse_stream_line_text(self, provider) -> None:
         event = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"text": "streaming text"}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"text": "streaming text"}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         line = f"data: {json.dumps(event)}"
         assert provider.parse_stream_line(line) == "streaming text"
@@ -174,12 +186,14 @@ class TestGeminiStreamParsing:
 
     def test_parse_stream_line_no_text(self, provider) -> None:
         event = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"functionCall": {"name": "test", "args": {}}}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"functionCall": {"name": "test", "args": {}}}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         line = f"data: {json.dumps(event)}"
         assert provider.parse_stream_line(line) is None
@@ -195,9 +209,7 @@ class TestGeminiToolFormatting:
         tool = ToolDef(
             name="test_tool",
             description="A test tool",
-            params=(
-                ToolParam(name="arg1", type="string", description="First arg", required=True),
-            ),
+            params=(ToolParam(name="arg1", type="string", description="First arg", required=True),),
         )
         formatted = provider.format_tool(tool)
         assert formatted["name"] == "test_tool"
@@ -216,10 +228,7 @@ class TestGeminiMessageConversion:
         ]
         _sys, contents = GeminiProvider._to_gemini_messages("", messages)
         # Second message should have a functionResponse part
-        assert any(
-            "functionResponse" in p
-            for p in contents[1]["parts"]
-        )
+        assert any("functionResponse" in p for p in contents[1]["parts"])
 
     def test_tool_calls_in_messages(self, provider) -> None:
         messages = [
@@ -230,20 +239,19 @@ class TestGeminiMessageConversion:
         ]
         _sys, contents = GeminiProvider._to_gemini_messages("", messages)
         assert contents[0]["role"] == "model"
-        assert any(
-            "functionCall" in p
-            for p in contents[0]["parts"]
-        )
+        assert any("functionCall" in p for p in contents[0]["parts"])
 
     def test_append_tool_result(self, provider) -> None:
         messages = []
         response_data = {
-            "candidates": [{
-                "content": {
-                    "parts": [{"functionCall": {"name": "get_time", "args": {}}}],
-                    "role": "model",
+            "candidates": [
+                {
+                    "content": {
+                        "parts": [{"functionCall": {"name": "get_time", "args": {}}}],
+                        "role": "model",
+                    }
                 }
-            }]
+            ]
         }
         tool_call = {"id": "call_0", "name": "get_time", "arguments": {}}
         result = {"time": "12:00"}

@@ -122,9 +122,7 @@ If you need to control any of these lights, just let me know!"""
         "light.living_room_rgbww,light.entrance]]"
     )
     assert marker in out
-    assert out.index(marker) < out.index(
-        "If you need to control any of these lights"
-    )
+    assert out.index(marker) < out.index("If you need to control any of these lights")
 
 
 def test_bullet_without_state_hint_stripped():
@@ -390,9 +388,7 @@ def test_raw_entity_id_bullet_with_underscore_captured():
     out = _inject_entity_markers(text, entities)
     assert "- light.kitchen_lights" not in out
     assert "- light.office_rgbw" not in out
-    assert (
-        "[[entities:light.kitchen_lights,light.office_rgbw]]" in out
-    )
+    assert "[[entities:light.kitchen_lights,light.office_rgbw]]" in out
 
 
 def test_state_info_bullets_stripped_near_marker():

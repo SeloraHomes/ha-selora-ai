@@ -1,4 +1,5 @@
 """Tests for suggestion relevance scoring."""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock
@@ -18,6 +19,7 @@ class TestRelevanceScoring:
 
     def _make_collector(self):
         from custom_components.selora_ai.collector import DataCollector
+
         collector = DataCollector.__new__(DataCollector)
         collector._hass = MagicMock()
         collector._hass.states.async_all.return_value = []
@@ -50,7 +52,9 @@ class TestRelevanceScoring:
             }
         }
         snapshot = self._make_snapshot()
-        score = collector._score_suggestion(suggestion, snapshot, existing_entity_ids={"light.lamp"})
+        score = collector._score_suggestion(
+            suggestion, snapshot, existing_entity_ids={"light.lamp"}
+        )
         # Same entity + no history + already covered = very low
         assert score < MIN_RELEVANCE_SCORE
 
@@ -177,9 +181,7 @@ class TestRelevanceScoring:
         scores = []
         for count in [5, 25, 50, 100]:
             history = [{"entity_id": "sensor.motion"} for _ in range(count)]
-            s = collector._score_suggestion(
-                suggestion, {"recorder_history": history}, set()
-            )
+            s = collector._score_suggestion(suggestion, {"recorder_history": history}, set())
             scores.append(s)
         # Each level should be >= previous (with cap at 50)
         assert scores[0] < scores[1] < scores[2]
@@ -200,9 +202,7 @@ class TestRelevanceScoring:
         }
         # motion has 50 changes (score 1.0), door has 0 (score 0.0) → avg 0.5
         history = [{"entity_id": "sensor.motion"} for _ in range(50)]
-        score_mixed = collector._score_suggestion(
-            suggestion, {"recorder_history": history}, set()
-        )
+        score_mixed = collector._score_suggestion(suggestion, {"recorder_history": history}, set())
         # Both have 50 changes → avg 1.0
         history_both = history + [{"entity_id": "sensor.door"} for _ in range(50)]
         score_both = collector._score_suggestion(
@@ -221,9 +221,7 @@ class TestRelevanceScoring:
         }
         # Only 1 state change — very low activity
         low_history = [{"entity_id": "sensor.temp"}]
-        score = collector._score_suggestion(
-            suggestion, {"recorder_history": low_history}, set()
-        )
+        score = collector._score_suggestion(suggestion, {"recorder_history": low_history}, set())
         # Should still be positive (low activity, not zero)
         assert score > 0
 
@@ -233,16 +231,19 @@ class TestExtractEntityIds:
 
     def test_simple_string(self):
         from custom_components.selora_ai.collector import DataCollector
+
         result = DataCollector._extract_entity_ids({"entity_id": "light.lamp"})
         assert result == {"light.lamp"}
 
     def test_list_of_entities(self):
         from custom_components.selora_ai.collector import DataCollector
+
         result = DataCollector._extract_entity_ids({"entity_id": ["light.a", "light.b"]})
         assert result == {"light.a", "light.b"}
 
     def test_nested_actions(self):
         from custom_components.selora_ai.collector import DataCollector
+
         config = [
             {"service": "light.turn_on", "entity_id": "light.a"},
             {"service": "switch.turn_off", "target": {"entity_id": "switch.b"}},
@@ -252,12 +253,14 @@ class TestExtractEntityIds:
 
     def test_none_input(self):
         from custom_components.selora_ai.collector import DataCollector
+
         result = DataCollector._extract_entity_ids(None)
         assert result == set()
 
     def test_choose_blocks(self):
         """Entity IDs inside choose/conditions/default are extracted."""
         from custom_components.selora_ai.collector import DataCollector
+
         config = {
             "action": [
                 {
@@ -281,7 +284,9 @@ class TestExtractEntityIds:
         # Simulate config with both keys — empty "trigger" should take precedence
         config = {"trigger": [], "triggers": [{"entity_id": "sensor.temp"}]}
         # _extract_entity_ids on the trigger key should yield empty set
-        result = DataCollector._extract_entity_ids(config.get("trigger") if "trigger" in config else config.get("triggers"))
+        result = DataCollector._extract_entity_ids(
+            config.get("trigger") if "trigger" in config else config.get("triggers")
+        )
         assert result == set()
 
 
@@ -495,9 +500,7 @@ class TestFeedbackSummary:
 
         collector = self._make_collector()
         mock_store = MagicMock()
-        mock_store.get_feedback_summary = AsyncMock(
-            return_value={"accepted": [], "declined": []}
-        )
+        mock_store.get_feedback_summary = AsyncMock(return_value={"accepted": [], "declined": []})
         collector._get_pattern_store = MagicMock(return_value=mock_store)
         result = await collector._build_feedback_summary()
         assert result == ""
@@ -562,7 +565,9 @@ class TestFeedbackInPrompt:
         snapshot = self._make_snapshot(
             _feedback_summary="USER FEEDBACK (learn from past decisions):\n  Accepted automations (1 total)"
         )
-        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
+        prompt = build_analysis_prompt(
+            snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days
+        )
         assert "USER FEEDBACK (learn from past decisions)" in prompt
         assert "Accepted automations (1 total)" in prompt
 
@@ -570,7 +575,9 @@ class TestFeedbackInPrompt:
         """When _feedback_summary is absent, the prompt has no USER FEEDBACK section."""
         client = self._make_llm_client()
         snapshot = self._make_snapshot()
-        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
+        prompt = build_analysis_prompt(
+            snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days
+        )
         assert "USER FEEDBACK" not in prompt
 
     def test_feedback_block_before_critical_reminder(self):
@@ -579,7 +586,9 @@ class TestFeedbackInPrompt:
         snapshot = self._make_snapshot(
             _feedback_summary="USER FEEDBACK (learn from past decisions):\n  test"
         )
-        prompt = build_analysis_prompt(snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days)
+        prompt = build_analysis_prompt(
+            snapshot, max_suggestions=client._max_suggestions, lookback_days=client._lookback_days
+        )
         fb_pos = prompt.index("USER FEEDBACK")
         critical_pos = prompt.index("CRITICAL: Only use entity_ids")
         assert fb_pos < critical_pos

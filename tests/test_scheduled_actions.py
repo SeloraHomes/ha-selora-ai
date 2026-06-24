@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 from zoneinfo import ZoneInfo
@@ -184,30 +184,35 @@ class TestScheduledTaskTracker:
     @pytest.mark.asyncio
     async def test_pending_cap_rejects_when_full(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
-        with patch(
-            "custom_components.selora_ai.scheduled_actions.async_call_later",
-            return_value=MagicMock(),
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions._MAX_PENDING_TASKS", 2,
+        with (
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_call_later",
+                return_value=MagicMock(),
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions._MAX_PENDING_TASKS",
+                2,
+            ),
         ):
             await tracker.schedule_delayed("s1", [{"service": "light.turn_on"}], 60, "First")
             await tracker.schedule_delayed("s1", [{"service": "light.turn_on"}], 60, "Second")
             with pytest.raises(RuntimeError, match="Too many pending"):
-                await tracker.schedule_delayed(
-                    "s1", [{"service": "light.turn_on"}], 60, "Third"
-                )
+                await tracker.schedule_delayed("s1", [{"service": "light.turn_on"}], 60, "Third")
 
     @pytest.mark.asyncio
     async def test_schedule_at_time_creates_automation(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
         calls = [{"service": "light.turn_on", "target": {"entity_id": "light.porch"}}]
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={"success": True, "automation_id": "selora_ai_abc123"},
-        ) as mock_create, patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={"success": True, "automation_id": "selora_ai_abc123"},
+            ) as mock_create,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             task = await tracker.schedule_at_time(
                 "session_1", calls, "23:00:00", "Porch light at 11 PM"
@@ -257,9 +262,7 @@ class TestScheduledTaskTracker:
             ) as mock_delete,
             pytest.raises(RuntimeError, match="elevated-risk"),
         ):
-            await tracker.schedule_at_time(
-                "session_1", calls, "23:00:00", "Evening routine"
-            )
+            await tracker.schedule_at_time("session_1", calls, "23:00:00", "Evening routine")
 
         mock_create.assert_called_once()
         # Zombie automation must be cleaned up so we don't leave a disabled
@@ -269,9 +272,7 @@ class TestScheduledTaskTracker:
         assert tracker._tasks == {}
 
     @pytest.mark.asyncio
-    async def test_schedule_at_time_approved_bypasses_risk_gate(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_schedule_at_time_approved_bypasses_risk_gate(self, hass: MagicMock) -> None:
         """A user-approved scheduled action forwards bypass_risk_gate=True so an
         elevated-risk service the user authorised isn't written disabled (which
         would make the one-shot silently never fire). Without approved=True the
@@ -279,17 +280,20 @@ class TestScheduledTaskTracker:
         tracker = ScheduledTaskTracker(hass)
         calls = [{"service": "shell_command.backup"}]
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={
-                "success": True,
-                "automation_id": "selora_ai_appr01",
-                "risk_level": "elevated",
-                "forced_disabled": False,
-            },
-        ) as mock_create, patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={
+                    "success": True,
+                    "automation_id": "selora_ai_appr01",
+                    "risk_level": "elevated",
+                    "forced_disabled": False,
+                },
+            ) as mock_create,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             task = await tracker.schedule_at_time(
                 "session_1", calls, "23:00:00", "Backup at 11 PM", approved=True
@@ -311,23 +315,26 @@ class TestScheduledTaskTracker:
         fake_now_local = datetime(2026, 4, 25, 20, 0, 0, tzinfo=eastern)
 
         tracker = ScheduledTaskTracker(hass)
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={"success": True, "automation_id": "selora_ai_tz"},
-        ) as mock_create, patch(
-            "custom_components.selora_ai.scheduled_actions.dt_util.get_default_time_zone",
-            return_value=eastern,
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions.datetime",
-        ) as mock_dt, patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={"success": True, "automation_id": "selora_ai_tz"},
+            ) as mock_create,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.dt_util.get_default_time_zone",
+                return_value=eastern,
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions.datetime",
+            ) as mock_dt,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             mock_dt.now.return_value = fake_now_local
             mock_dt.side_effect = lambda *a, **kw: datetime(*a, **kw)
-            await tracker.schedule_at_time(
-                "s1", [{"service": "light.turn_on"}], "23:00:00", "Test"
-            )
+            await tracker.schedule_at_time("s1", [{"service": "light.turn_on"}], "23:00:00", "Test")
 
         created = mock_create.call_args[0][1]
         cond = created["conditions"][0]["value_template"]
@@ -335,9 +342,7 @@ class TestScheduledTaskTracker:
         assert "2026-04-25" in cond
 
     @pytest.mark.asyncio
-    async def test_schedule_at_time_marks_executed_after_fire(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_schedule_at_time_marks_executed_after_fire(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
         track_callbacks: list[Any] = []
 
@@ -345,12 +350,15 @@ class TestScheduledTaskTracker:
             track_callbacks.append(cb)
             return MagicMock()
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={"success": True, "automation_id": "selora_ai_mark"},
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            side_effect=capture_track,
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={"success": True, "automation_id": "selora_ai_mark"},
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                side_effect=capture_track,
+            ),
         ):
             task = await tracker.schedule_at_time(
                 "s1", [{"service": "light.turn_on"}], "23:00:00", "Task"
@@ -407,16 +415,17 @@ class TestScheduledTaskTracker:
         mock_delete.assert_called_once_with(hass, "selora_ai_xyz")
 
     @pytest.mark.asyncio
-    async def test_async_cancel_task_stays_pending_on_delete_failure(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_async_cancel_task_stays_pending_on_delete_failure(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={"success": True, "automation_id": "selora_ai_fail"},
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={"success": True, "automation_id": "selora_ai_fail"},
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             task = await tracker.schedule_at_time(
                 "s1", [{"service": "light.turn_on"}], "23:00:00", "Task"
@@ -436,12 +445,15 @@ class TestScheduledTaskTracker:
         self, hass: MagicMock
     ) -> None:
         tracker = ScheduledTaskTracker(hass)
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_create_automation",
-            return_value={"success": True, "automation_id": "selora_ai_exc"},
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_create_automation",
+                return_value={"success": True, "automation_id": "selora_ai_exc"},
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             task = await tracker.schedule_at_time(
                 "s1", [{"service": "light.turn_on"}], "23:00:00", "Task"
@@ -457,9 +469,7 @@ class TestScheduledTaskTracker:
         assert task.status == "pending"
 
     @pytest.mark.asyncio
-    async def test_cleanup_stale_automations_removes_past_date(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_cleanup_stale_automations_removes_past_date(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
         automations = [
             {
@@ -500,11 +510,14 @@ class TestScheduledTaskTracker:
 
         hass.async_add_executor_job = fake_executor_job
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_delete_automation",
-        ) as mock_delete, patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_delete_automation",
+            ) as mock_delete,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             removed = await tracker.async_cleanup_stale_automations()
 
@@ -512,9 +525,7 @@ class TestScheduledTaskTracker:
         mock_delete.assert_called_once_with(hass, "selora_ai_stale1")
 
     @pytest.mark.asyncio
-    async def test_cleanup_restores_pending_automations(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_cleanup_restores_pending_automations(self, hass: MagicMock) -> None:
         tracker = ScheduledTaskTracker(hass)
         automations = [
             {
@@ -537,11 +548,14 @@ class TestScheduledTaskTracker:
 
         hass.async_add_executor_job = fake_executor_job
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_delete_automation",
-        ), patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_delete_automation",
+            ),
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             await tracker.async_cleanup_stale_automations()
 
@@ -638,13 +652,17 @@ class TestScheduledTaskTracker:
 
         hass.async_add_executor_job = fake_executor_job
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_delete_automation",
-        ) as mock_delete, patch(
-            "custom_components.selora_ai.scheduled_actions.datetime",
-        ) as mock_dt, patch(
-            "custom_components.selora_ai.scheduled_actions.dt_util.get_default_time_zone",
-            return_value=eastern,
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_delete_automation",
+            ) as mock_delete,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.datetime",
+            ) as mock_dt,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.dt_util.get_default_time_zone",
+                return_value=eastern,
+            ),
         ):
             mock_dt.now.return_value = fake_now
             mock_dt.strptime = datetime.strptime

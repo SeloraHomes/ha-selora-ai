@@ -65,9 +65,7 @@ class TestAigatewayView:
 
     def test_legacy_ai_gateway_alias_still_read(self) -> None:
         """Older provisioner output used ``ai_gateway``; keep reading it."""
-        view = _aigateway_view(
-            {"ai_gateway": {"refresh_token": "aigw_x", "expires_at": 42.0}}
-        )
+        view = _aigateway_view({"ai_gateway": {"refresh_token": "aigw_x", "expires_at": 42.0}})
         assert view["refresh_token"] == "aigw_x"
         assert view["expires_at"] == 42.0
 
@@ -107,7 +105,9 @@ class TestSendRequestRetryAndLogging:
             with caplog.at_level(
                 logging.ERROR, logger="custom_components.selora_ai.providers.selora_cloud"
             ):
-                result, err = await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+                result, err = await provider.send_request(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
         finally:
             openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
 
@@ -167,7 +167,9 @@ class TestSendRequestRetryAndLogging:
             with caplog.at_level(
                 logging.DEBUG, logger="custom_components.selora_ai.providers.selora_cloud"
             ):
-                result, err = await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+                result, err = await provider.send_request(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
         finally:
             openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
 
@@ -204,7 +206,9 @@ class TestSendRequestRetryAndLogging:
             with caplog.at_level(
                 logging.DEBUG, logger="custom_components.selora_ai.providers.selora_cloud"
             ):
-                result, err = await provider.send_request("sys", [{"role": "user", "content": "hi"}])
+                result, err = await provider.send_request(
+                    "sys", [{"role": "user", "content": "hi"}]
+                )
         finally:
             openai_compat.OpenAICompatibleProvider.send_request = original  # type: ignore[assignment]
 
@@ -347,9 +351,7 @@ class TestTransientErrorDetector:
             _is_transient_upstream_error,
         )
 
-        assert _is_transient_upstream_error(
-            "HTTP 500: proxy handler: unable to reach app"
-        )
+        assert _is_transient_upstream_error("HTTP 500: proxy handler: unable to reach app")
 
     def test_matches_stream_format_without_status_prefix(self) -> None:
         """Streaming path raises 'Selora Cloud: <body>' without the HTTP code."""
@@ -375,9 +377,7 @@ class TestTransientErrorDetector:
             _is_transient_upstream_error,
         )
 
-        assert not _is_transient_upstream_error(
-            "HTTP 500: internal server error"
-        )
+        assert not _is_transient_upstream_error("HTTP 500: internal server error")
 
     def test_does_not_match_401(self) -> None:
         from custom_components.selora_ai.providers.selora_cloud import (
@@ -419,9 +419,7 @@ class TestHealthCheckDoesNotCreateChatSession:
         send_self = AsyncMock(return_value=("should-not-be-called", None))
         refresh = AsyncMock(return_value=True)
 
-        monkeypatch.setattr(
-            openai_compat.OpenAICompatibleProvider, "send_request", send_super
-        )
+        monkeypatch.setattr(openai_compat.OpenAICompatibleProvider, "send_request", send_super)
         monkeypatch.setattr(provider, "send_request", send_self)
         monkeypatch.setattr(provider, "_refresh_access_token", refresh)
 
@@ -439,9 +437,7 @@ class TestHealthCheckDoesNotCreateChatSession:
 
         send_super = AsyncMock(return_value=("nope", None))
         send_self = AsyncMock(return_value=("nope", None))
-        monkeypatch.setattr(
-            openai_compat.OpenAICompatibleProvider, "send_request", send_super
-        )
+        monkeypatch.setattr(openai_compat.OpenAICompatibleProvider, "send_request", send_super)
         monkeypatch.setattr(provider, "send_request", send_self)
 
         assert await provider.health_check() is False
@@ -463,9 +459,7 @@ class TestHealthCheckDoesNotCreateChatSession:
         send_self = AsyncMock(return_value=("nope", None))
         refresh = AsyncMock(return_value=True)
 
-        monkeypatch.setattr(
-            openai_compat.OpenAICompatibleProvider, "send_request", send_super
-        )
+        monkeypatch.setattr(openai_compat.OpenAICompatibleProvider, "send_request", send_super)
         monkeypatch.setattr(provider, "send_request", send_self)
         monkeypatch.setattr(provider, "_refresh_access_token", refresh)
 
@@ -479,11 +473,10 @@ class TestHealthCheckDoesNotCreateChatSession:
         self, hass, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         provider = self._make_provider(hass, expires_at=1.0)
-        monkeypatch.setattr(
-            provider, "_refresh_access_token", AsyncMock(return_value=False)
-        )
+        monkeypatch.setattr(provider, "_refresh_access_token", AsyncMock(return_value=False))
 
         assert await provider.health_check() is False
+
 
 class TestMaskTokens:
     """_mask_tokens must redact every credential shape we may log."""

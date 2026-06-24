@@ -80,9 +80,7 @@ class TestOpenAIHealthCheck:
         assert await provider.health_check() is False
 
     @pytest.mark.asyncio
-    async def test_returns_false_on_transport_error(
-        self, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_returns_false_on_transport_error(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from custom_components.selora_ai.providers.openai import OpenAIProvider
 
         session = MagicMock()
@@ -141,9 +139,7 @@ class TestAnthropicHealthCheck:
         from custom_components.selora_ai.providers.anthropic import AnthropicProvider
 
         session, captured = _mock_session(200, '{"data": []}')
-        provider = AnthropicProvider(
-            MagicMock(), api_key="sk-ant-test", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(MagicMock(), api_key="sk-ant-test", model="claude-sonnet-4-6")
         monkeypatch.setattr(provider, "_get_session", lambda: session)
 
         assert await provider.health_check() is True
@@ -161,9 +157,7 @@ class TestAnthropicHealthCheck:
         from custom_components.selora_ai.providers.anthropic import AnthropicProvider
 
         session, _ = _mock_session(401, '{"error":{"type":"authentication_error"}}')
-        provider = AnthropicProvider(
-            MagicMock(), api_key="sk-ant-bad", model="claude-sonnet-4-6"
-        )
+        provider = AnthropicProvider(MagicMock(), api_key="sk-ant-bad", model="claude-sonnet-4-6")
         monkeypatch.setattr(provider, "_get_session", lambda: session)
 
         assert await provider.health_check() is False

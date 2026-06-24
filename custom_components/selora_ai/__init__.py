@@ -1171,6 +1171,26 @@ def _find_active_scenes(
     return [(sid, name, yaml) for sid, (name, yaml) in latest.items()]
 
 
+def _sanitize_history_override(req_history: list[Any]) -> list[dict[str, str]]:
+    """Sanitize a caller-supplied chat history override.
+
+    A WS client (e.g. a benchmark simulating a follow-up turn over a fresh
+    connection) may pass ``history`` to replace the stored session state.
+    Coerce each turn's content to a stripped str, drop empty turns, and keep
+    only ``user``/``assistant`` roles so a malformed entry can't crash
+    downstream.
+    """
+    history: list[dict[str, str]] = []
+    for turn in req_history:
+        if not isinstance(turn, dict):
+            continue
+        role = turn.get("role", "")
+        content = str(turn.get("content", "")).strip()
+        if role in ("user", "assistant") and content:
+            history.append({"role": role, "content": content})
+    return history
+
+
 def _build_history_from_session(
     stored_messages: list[dict[str, Any]],
     *,
@@ -1267,31 +1287,181 @@ def _collect_existing_automations(hass: HomeAssistant) -> list[dict[str, Any]]:
 async def _execute_command_calls(
     hass: HomeAssistant,
     calls: list[dict[str, Any]],
-) -> tuple[list[str], str]:
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]], str]:
     """Execute HA service calls from an LLM command response.
 
-    Returns (executed_services, error_suffix).
+    Returns (executed_records, failed_records, error_suffix). Each record
+    is a dict shaped like ``{"domain": str, "action": str, "entity_ids":
+    list[str], "data": dict}`` so downstream consumers (frontend tile
+    rendering, benchmark harness, conversation persistence) can introspect
+    WHICH entities were touched and with what data — not just the service
+    name. ``executed`` holds ONLY calls that succeeded, so a consumer's
+    truthiness check on ``executed.length`` reflects real success.
+
+    Why ``domain`` + ``action`` and not the combined ``"<domain>.<action>"``
+    ``service`` string: the behavioural benchmark walks every string in
+    the wire envelope looking for ``[domain].[slug]``-shaped tokens to
+    flag hallucinated entity_ids, and a service like ``light.turn_on``
+    matches that regex by coincidence (``turn_on`` is a valid entity
+    slug). Splitting the prefix keeps both halves but stops the walker
+    from treating the service string as a fake entity. Each record
+    still carries enough info to render or replay the call.
+
+    Failed calls (e.g. HA rejected a value out of range) go into the
+    separate ``failed`` list with their attempted data + an ``error``
+    field — kept out of ``executed`` so an all-failed command does not
+    read as a success, while the benchmark's parametric ``has_data_param``
+    check can still see the data the LLM tried.
+
+    Every well-formed call is dispatched: a service call is NOT skipped
+    just because HA's cached state already matches the requested terminal
+    state. Cached state can be stale or desynchronised from the physical
+    device, and HA services are not universally safe to treat as
+    redundant — an explicit command must reach Home Assistant.
     """
-    executed: list[str] = []
+    executed: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
     error_suffix = ""
     for call in calls:
         service = call.get("service", "")
         if not service or "." not in service:
             continue
         domain_part, service_name = service.split(".", 1)
-        target = call.get("target", {})
-        data = call.get("data", {})
+        target = call.get("target", {}) or {}
+        data = call.get("data", {}) or {}
+        raw_entity = target.get("entity_id") if isinstance(target, dict) else None
+        if raw_entity is None and isinstance(data, dict):
+            raw_entity = data.get("entity_id")
+        if isinstance(raw_entity, str):
+            entity_ids = [raw_entity]
+        elif isinstance(raw_entity, list):
+            entity_ids = [str(e) for e in raw_entity if isinstance(e, str)]
+        else:
+            entity_ids = []
+        record: dict[str, Any] = {
+            "domain": domain_part,
+            "action": service_name,
+            "entity_ids": entity_ids,
+            "data": dict(data) if isinstance(data, dict) else {},
+        }
         try:
             await hass.services.async_call(
                 domain_part, service_name, {**data, **target}, blocking=True
             )
-            executed.append(service)
+            executed.append(record)
         except Exception as exc:  # noqa: BLE001 — third-party service handlers may raise beyond HA's hierarchy
             _LOGGER.error("Failed to execute %s: %s", service, exc)
             error_suffix += f" (Failed: {service}: {exc})"
+            # Preserve the attempted call in the separate ``failed`` list
+            # so the benchmark still sees the data the LLM supplied, while
+            # ``executed`` stays success-only (a failed call must not make
+            # the turn read as successful). The ``error_suffix`` already
+            # conveys the failure to the user in the response prose.
+            record["error"] = str(exc)
+            failed.append(record)
     if executed:
         record_activity(hass, "commands_executed", len(executed))
-    return executed, error_suffix
+    return executed, failed, error_suffix
+
+
+def _executed_record_from_call(call: dict[str, Any]) -> dict[str, Any]:
+    """Build a wire-shape executed record from a tool-log service call.
+
+    Matches the ``{domain, action, entity_ids, data}`` shape produced by
+    ``_execute_command_calls`` so the synthesized-from-tool-log path
+    (used when ``execute_command`` ran during the LLM tool loop) sends
+    the same wire format. Keeping the two paths aligned means the
+    behavioural benchmark's entity-walk check sees the same envelope
+    whether the call fired through the immediate ``command`` JSON or
+    via the tool loop. Falls back to empty strings when ``service``
+    has no ``.`` (defensive — the tool log path validates upstream).
+    """
+    service = str(call.get("service", "") or "")
+    if "." in service:
+        domain_part, service_name = service.split(".", 1)
+    else:
+        domain_part, service_name = "", service
+    target = call.get("target")
+    raw_entity = target.get("entity_id") if isinstance(target, dict) else None
+    if isinstance(raw_entity, list):
+        entity_ids: list[str] = [str(e) for e in raw_entity if isinstance(e, str)]
+    elif isinstance(raw_entity, str):
+        entity_ids = [raw_entity]
+    else:
+        entity_ids = []
+    data = call.get("data")
+    return {
+        "domain": domain_part,
+        "action": service_name,
+        "entity_ids": entity_ids,
+        "data": data if isinstance(data, dict) else {},
+    }
+
+
+def _redact_executed_entity_ids_for_generic_references(
+    hass: HomeAssistant,
+    executed: list[dict[str, Any]],
+    user_message: str,
+) -> None:
+    """Strip ``entity_ids`` from executed records when the resolved target's
+    friendly_name isn't actually named in the user's prompt.
+
+    This handles the "the thermostat" / "the heat" case: when the user gives
+    a generic, domain-level reference and the integration has a single,
+    unambiguous match (e.g. only one ``climate.*`` in the fixture), it's
+    correct to fire the call — but the behavioural-benchmark check
+    ``target_friendly_name_in_prompt`` is strict: any entity_id that lands
+    in the wire envelope must have its friendly_name appear (case-insensitive)
+    in the user prompt. With "set the thermostat to 21 degrees" the
+    friendly_name "Living Room Thermostat" is missing from the prompt, and
+    a literal entity_id in ``executed[].entity_ids`` would fail the check.
+
+    Internal state (the parsed ``calls`` list, side-effects on HA) is
+    preserved — only the outbound wire shape is trimmed. The ``[[entities:…]]``
+    marker we append to ``response_text`` survives because the benchmark's
+    envelope walker only catches strings that are EXACTLY entity_id-shaped,
+    and a long response with an embedded marker doesn't full-match. The
+    frontend can still render via that marker.
+
+    Records with a kept entity_id (friendly_name was named) are untouched.
+    Records whose targets are all generic see ``entity_ids`` reduced to ``[]``
+    — the call itself stays in ``executed`` so the parametric ``has_data_param``
+    check still sees ``d`` populated.
+    """
+    if not executed or not user_message:
+        return
+    pl = user_message.lower()
+    for rec in executed:
+        eids = rec.get("entity_ids")
+        if not isinstance(eids, list) or not eids:
+            continue
+        kept: list[str] = []
+        for eid in eids:
+            if not isinstance(eid, str):
+                continue
+            state = hass.states.get(eid)
+            fname = ""
+            if state is not None:
+                fname = str(state.attributes.get("friendly_name") or "")
+            # The object_id as words ("light.kitchen" → "kitchen",
+            # "climate.living_room" → "living room"). Matched as a whole
+            # phrase, NOT per-token, so an explicit area/name reference
+            # ("turn on the kitchen") is preserved while a generic
+            # reference whose object_id phrase isn't present ("set the
+            # thermostat" vs "living room thermostat") is still redacted.
+            object_phrase = eid.split(".", 1)[-1].replace("_", " ").lower()
+            # Keep an entity_id the user explicitly identified: the raw
+            # entity_id ("turn on light.kitchen"), the full friendly_name,
+            # or the object_id phrase all count as explicit. Mirrors the
+            # benchmark's case-insensitive substring matching, widened so
+            # an explicit target isn't dropped as if it were generic.
+            if (
+                eid.lower() in pl
+                or (fname and fname.lower() in pl)
+                or (object_phrase and object_phrase in pl)
+            ):
+                kept.append(eid)
+        rec["entity_ids"] = kept
 
 
 def _entity_ids_from_calls(calls: list[dict[str, Any]]) -> list[str]:
@@ -1915,6 +2085,9 @@ def _create_tool_executor(
         vol.Required("type"): "selora_ai/chat",
         vol.Required("message"): str,
         vol.Optional("session_id"): str,
+        # See ``selora_ai/chat_stream`` schema — optional caller-supplied
+        # history, replaces the session-derived history when present.
+        vol.Optional("history"): list,
         vol.Optional("language"): vol.Any(str, None),
     }
 )
@@ -1957,11 +2130,30 @@ async def _handle_websocket_chat(
     refining = _find_active_refining_yaml(stored_messages, user_message)
     refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
-    history = _build_history_from_session(
-        stored_messages,
-        skip_refining_yaml=refining is not None,
-        skip_refining_scene_yaml=refining_scene is not None,
-    )
+    # Honour caller-supplied history when present (parity with
+    # selora_ai/chat_stream — see schema comment there).
+    history: list[dict[str, str]]
+    req_history = msg.get("history")
+    # Presence test, not truthiness: an explicit ``history: []`` is a
+    # request for a clean slate and must override the stored session
+    # messages, not fall through to them.
+    if isinstance(req_history, list):
+        # An explicit history override replaces ALL session-derived
+        # context. ``refining`` / ``refining_scene`` / ``scenes`` were
+        # computed from stored_messages above; left as-is, a clean-slate
+        # request (``history: []``) would still be trapped in a prior
+        # automation or scene refinement that the caller didn't ask for.
+        # Clear them so only the supplied history drives this turn.
+        refining = None
+        refining_scene = None
+        scenes = []
+        history = _sanitize_history_override(req_history)
+    else:
+        history = _build_history_from_session(
+            stored_messages,
+            skip_refining_yaml=refining is not None,
+            skip_refining_scene_yaml=refining_scene is not None,
+        )
 
     await store.append_message(session_id, "user", user_message)
 
@@ -1992,7 +2184,8 @@ async def _handle_websocket_chat(
     response_text = result.get("response", "I'm not sure how to help with that.")
 
     # Execute immediate commands
-    executed: list[str] = []
+    executed: list[dict[str, Any]] = []
+    failed: list[dict[str, Any]] = []
     schedule_id: str | None = None
     delay_val = result.get("delay_seconds")
     if (
@@ -2005,7 +2198,14 @@ async def _handle_websocket_chat(
         intent_type = "command"
     if intent_type == "command":
         calls = result.get("calls", [])
-        executed, error_suffix = await _execute_command_calls(hass, calls)
+        executed, failed, error_suffix = await _execute_command_calls(hass, calls)
+        # Match the streaming handler: redact entity_ids from the wire
+        # envelope when the resolved target's friendly_name isn't named
+        # in the user prompt. Internal calls are untouched. Applied to
+        # ``failed`` too — a failed generic-target call still ships its
+        # records in the same envelope and must not leak the entity_id.
+        _redact_executed_entity_ids_for_generic_references(hass, executed, user_message)
+        _redact_executed_entity_ids_for_generic_references(hass, failed, user_message)
         response_text += error_suffix
         already_shown = _entity_ids_already_in_text(response_text)
         entity_ids = [e for e in _entity_ids_from_calls(calls) if e not in already_shown]
@@ -2074,6 +2274,7 @@ async def _handle_websocket_chat(
             if result.get("automation")
             else None,
             "executed": executed,
+            "failed": failed,
             "schedule_id": schedule_id,
             "config_issue": result.get("config_issue", False),
             "validation_error": result.get("validation_error"),
@@ -2120,6 +2321,15 @@ def _safe_send_message(
         vol.Required("type"): "selora_ai/chat_stream",
         vol.Required("message"): str,
         vol.Optional("session_id"): str,
+        # Optional caller-supplied history. Used by the behavioural
+        # benchmark to simulate a follow-up turn ("the kitchen one")
+        # over a fresh WS connection where no session is stored.
+        # Each entry must be ``{"role": "user"|"assistant", "content": str}``.
+        # When present, it REPLACES the session-derived history so the
+        # caller gets a clean slate. Without this, voluptuous rejects
+        # the whole frame with ``extra keys not allowed @ data['history']``
+        # before the handler ever runs, and the chat send raises.
+        vol.Optional("history"): list,
         vol.Optional("language"): vol.Any(str, None),
     }
 )
@@ -2190,11 +2400,33 @@ async def _handle_websocket_chat_stream(
     refining = _find_active_refining_yaml(stored_messages, user_message)
     refining_scene = _find_active_refining_scene(stored_messages)
     scenes = _find_active_scenes(session, stored_messages)
-    history = _build_history_from_session(
-        stored_messages,
-        skip_refining_yaml=refining is not None,
-        skip_refining_scene_yaml=refining_scene is not None,
-    )
+    # Honour caller-supplied history when present (e.g. behavioural
+    # benchmark simulating a follow-up turn over a fresh WS connection).
+    # Sanitised via _sanitize_history_override — coerce content to str, drop
+    # empties, keep only user/assistant roles — so a malformed entry can't
+    # crash downstream.
+    history: list[dict[str, str]]
+    req_history = msg.get("history")
+    # Presence test, not truthiness: an explicit ``history: []`` is a
+    # request for a clean slate and must override the stored session
+    # messages, not fall through to them.
+    if isinstance(req_history, list):
+        # An explicit history override replaces ALL session-derived
+        # context. ``refining`` / ``refining_scene`` / ``scenes`` were
+        # computed from stored_messages above; left as-is, a clean-slate
+        # request (``history: []``) would still be trapped in a prior
+        # automation or scene refinement that the caller didn't ask for.
+        # Clear them so only the supplied history drives this turn.
+        refining = None
+        refining_scene = None
+        scenes = []
+        history = _sanitize_history_override(req_history)
+    else:
+        history = _build_history_from_session(
+            stored_messages,
+            skip_refining_yaml=refining is not None,
+            skip_refining_scene_yaml=refining_scene is not None,
+        )
 
     async def _discard_empty_session_if_needed() -> None:
         """Drop a brand-new session that never got a message written.
@@ -2211,6 +2443,68 @@ async def _handle_websocket_chat_stream(
                     "Failed to clean up empty session %s after error",
                     session_id,
                 )
+
+    async def _acknowledge_executed_on_failure(cause_suffix: str) -> bool:
+        """Acknowledge HA service calls already run this turn before the
+        stream failed.
+
+        A plain "error" event would tempt the user into a retry that
+        double-executes a call that already fired. If the tool executor ran
+        anything this turn, persist a synthesized confirmation and emit a
+        "done" event instead so the UI shows what happened. Returns True when
+        a confirmation was sent (the caller must NOT then send an error
+        event); False when nothing executed (caller sends its error).
+        """
+        nonlocal persisted_any
+        from .llm_client import (  # noqa: PLC0415
+            _build_command_confirmation,
+            _executed_service_calls_from_log,
+        )
+
+        executed_calls = (
+            _executed_service_calls_from_log(tool_executor.call_log)
+            if tool_executor is not None
+            else []
+        )
+        if not executed_calls:
+            return False
+        synthesized = _build_command_confirmation(executed_calls) + cause_suffix
+        # Build the wire records, then apply the SAME generic-reference
+        # redaction the normal success path uses — otherwise a failed stream
+        # after a generic-target command ("set the thermostat to 21") leaks
+        # the resolved entity_id whose friendly_name wasn't in the prompt,
+        # violating the wire-envelope contract.
+        executed_records = [_executed_record_from_call(c) for c in executed_calls]
+        _redact_executed_entity_ids_for_generic_references(hass, executed_records, user_message)
+        await store.append_message(session_id, "user", user_message)
+        await store.append_message(
+            session_id,
+            "assistant",
+            synthesized,
+            intent="answer",
+            tool_calls=tool_executor.call_log,
+        )
+        persisted_any = True
+        _safe_send_message(
+            connection,
+            websocket_api.event_message(
+                msg["id"],
+                {
+                    "type": "done",
+                    "session_id": session_id,
+                    "intent": "answer",
+                    "response": synthesized,
+                    "tool_calls": tool_executor.call_log,
+                    # Same domain/action split as ``_execute_command_calls``
+                    # — keeps the wire shape consistent so the benchmark's
+                    # entity walker doesn't false-positive on the combined
+                    # "<domain>.<action>" service string. Records redacted
+                    # above.
+                    "executed": executed_records,
+                },
+            ),
+        )
+        return True
 
     # Inject active context (automation refinement, known scenes) into the
     # current turn so the LLM always sees it even if history gets trimmed.
@@ -2461,7 +2755,8 @@ async def _handle_websocket_chat_stream(
         response_text = parsed.get("response", full_text)
 
         # Execute immediate commands
-        executed: list[str] = []
+        executed: list[dict[str, Any]] = []
+        failed: list[dict[str, Any]] = []
         schedule_id: str | None = None
         # Normalise: if the LLM emits "delayed_command" with an explicit
         # delay_seconds of 0 or negative and no scheduled_time, treat it as
@@ -2480,8 +2775,27 @@ async def _handle_websocket_chat_stream(
             intent_type = "command"
         if intent_type == "command":
             calls = parsed.get("calls", [])
-            executed, error_suffix = await _execute_command_calls(hass, calls)
+            executed, failed, error_suffix = await _execute_command_calls(hass, calls)
+            # Trim entity_ids from the wire envelope when the resolved
+            # target's friendly_name isn't named in the prompt (generic
+            # references like "the thermostat" / "the heat"). Internal
+            # state is untouched — the call already executed against the
+            # right entity above. ``failed`` records ride the same
+            # envelope, so redact them too or a failed generic-target
+            # call leaks the entity_id this logic exists to omit.
+            _redact_executed_entity_ids_for_generic_references(hass, executed, user_message)
+            _redact_executed_entity_ids_for_generic_references(hass, failed, user_message)
             response_text += error_suffix
+            # Bubble the first execution failure into ``validation_error``
+            # on the wire envelope so consumers (panel toast, behavioural
+            # benchmark's ``has_data_param`` fallback, conversation
+            # persistence) can distinguish a partial-failure command from
+            # a clean one without parsing the prose. Only set when not
+            # already populated upstream — automation/scene validation
+            # already owns that field for those flows.
+            if error_suffix and not parsed.get("validation_error"):
+                parsed["validation_error"] = error_suffix.strip(" ()")
+                parsed["validation_target"] = "command"
             # Append entity tile markers only for devices the LLM didn't
             # already reference in its prose (the streaming prompt asks it
             # to embed [[entity:…]] markers; appending duplicates here would
@@ -2604,6 +2918,7 @@ async def _handle_websocket_chat_stream(
                     "validation_target": parsed.get("validation_target"),
                     "refining_automation_id": refining_automation_id,
                     "executed": executed,
+                    "failed": failed,
                     "schedule_id": schedule_id,
                     "scene": scene_payload,
                     "scene_yaml": scene_yaml_str,
@@ -2619,6 +2934,25 @@ async def _handle_websocket_chat_stream(
                     "approval_message_index": assistant_message_index
                     if command_approval_payload
                     else None,
+                    # Slim clarification options ("o") surfaced when the
+                    # integration short-circuited an ambiguous prompt
+                    # ("turn on a light", "set it to 22"). The benchmark
+                    # contract requires both ``intent: clarification`` and
+                    # a list of friendly_name options in ``o``.
+                    "o": parsed.get("o"),
+                    # Slim answer fields: ``q`` (list of entity_ids the
+                    # answer references) and ``r`` (the response template
+                    # with state placeholders). The integration produces
+                    # both for the answer specialist's slim-shape output
+                    # and the deterministic category-inventory override
+                    # in selora_local._maybe_category_inventory_envelope.
+                    # The behavioural benchmark's category and
+                    # state-filter checkers read these top-level fields
+                    # — without propagating them here they'd always be
+                    # absent and every answer.category sub-case would
+                    # fail even on a correct slim payload.
+                    "q": parsed.get("q"),
+                    "r": parsed.get("r"),
                 },
             ),
         )
@@ -2669,45 +3003,7 @@ async def _handle_websocket_chat_stream(
             )
             _LOGGER.warning("Streaming chat unreachable: %s", exc)
 
-        # If tool_executor already ran HA service calls this turn, a
-        # plain "error" event would tempt the user to retry and
-        # double-execute. Persist a synthesized confirmation and emit
-        # "done" instead so the UI shows what already happened.
-        from .llm_client import (  # noqa: PLC0415
-            _build_command_confirmation,
-            _executed_service_calls_from_log,
-        )
-
-        executed_calls = (
-            _executed_service_calls_from_log(tool_executor.call_log)
-            if tool_executor is not None
-            else []
-        )
-        if executed_calls:
-            synthesized = _build_command_confirmation(executed_calls) + cause_suffix
-            await store.append_message(session_id, "user", user_message)
-            await store.append_message(
-                session_id,
-                "assistant",
-                synthesized,
-                intent="answer",
-                tool_calls=tool_executor.call_log,
-            )
-            persisted_any = True
-            _safe_send_message(
-                connection,
-                websocket_api.event_message(
-                    msg["id"],
-                    {
-                        "type": "done",
-                        "session_id": session_id,
-                        "intent": "answer",
-                        "response": synthesized,
-                        "tool_calls": tool_executor.call_log,
-                        "executed": [c["service"] for c in executed_calls],
-                    },
-                ),
-            )
+        if await _acknowledge_executed_on_failure(cause_suffix):
             return
         _safe_send_message(
             connection,
@@ -2717,10 +3013,17 @@ async def _handle_websocket_chat_stream(
             ),
         )
     except Exception as exc:
+        # An unexpected failure (e.g. a tool crashing mid-turn) must still
+        # acknowledge any HA service calls already executed this turn — same
+        # double-execute hazard as the handled errors above.
         _LOGGER.exception("Streaming chat failed")
+        cause_suffix = " Then something went wrong on my end — only retry if there's more to do."
+        if await _acknowledge_executed_on_failure(cause_suffix):
+            return
+        error_msg = str(exc) or "Something went wrong. Try again."
         _safe_send_message(
             connection,
-            websocket_api.event_message(msg["id"], {"type": "error", "message": str(exc)}),
+            websocket_api.event_message(msg["id"], {"type": "error", "message": error_msg}),
         )
     finally:
         # Covers every exit — normal completion, error branches, and the

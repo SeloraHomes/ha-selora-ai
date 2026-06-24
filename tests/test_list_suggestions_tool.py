@@ -7,18 +7,17 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
-from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
+import custom_components.selora_ai.llm_client.prompts as _llm_mod
 from custom_components.selora_ai.llm_client.prompts import (
     _read_prompt_files,
     _suggestions_prompt,
+    build_architect_stream_system_prompt,
+    build_architect_system_prompt,
 )
 from custom_components.selora_ai.providers import create_provider
-from custom_components.selora_ai.llm_client.prompts import build_architect_stream_system_prompt, build_architect_system_prompt
 from custom_components.selora_ai.tool_executor import ToolExecutor
 from custom_components.selora_ai.tool_registry import CHAT_TOOLS, TOOL_LIST_SUGGESTIONS, TOOL_MAP
 from custom_components.selora_ai.types import SuggestionDict
-
-import custom_components.selora_ai.llm_client.prompts as _llm_mod
 
 
 @pytest.fixture(autouse=True)
@@ -90,7 +89,10 @@ class TestListSuggestionsHandler:
     @pytest.mark.asyncio
     async def test_happy_path(self, hass) -> None:
         """Returns filtered suggestion fields."""
-        suggestions = [_make_suggestion(), _make_suggestion(suggestion_id="sug-2", confidence=0.723)]
+        suggestions = [
+            _make_suggestion(),
+            _make_suggestion(suggestion_id="sug-2", confidence=0.723),
+        ]
         mock_store = MagicMock()
         mock_store.get_suggestions = AsyncMock(return_value=suggestions)
 
@@ -189,7 +191,12 @@ class TestListSuggestionsHandler:
             result = await executor.execute("list_suggestions", {})
 
         item = result["suggestions"][0]
-        assert set(item.keys()) == {"suggestion_id", "description", "confidence", "evidence_summary"}
+        assert set(item.keys()) == {
+            "suggestion_id",
+            "description",
+            "confidence",
+            "evidence_summary",
+        }
 
 
 # ── Prompt wiring ───────────────────────────────────────────────────

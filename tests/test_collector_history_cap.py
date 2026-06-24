@@ -175,8 +175,7 @@ async def test_recorder_query_trims_between_batches_without_skipping_entities(
             if idx < DEFAULT_RECORDER_QUERY_BATCH_SIZE:
                 # Old, chatty entity — many changes at base time.
                 result[eid] = [
-                    _fake_state(eid, base + timedelta(seconds=i))
-                    for i in range(overflow_changes)
+                    _fake_state(eid, base + timedelta(seconds=i)) for i in range(overflow_changes)
                 ]
             else:
                 # Newer, quiet entity — one recent change.
