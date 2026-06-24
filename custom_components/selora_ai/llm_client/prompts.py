@@ -189,8 +189,15 @@ _SHARED_AUTOMATION_RULES = (
     "`platform: zigbee2mqtt` / `platform: button`.\n"
     "- A trigger object NEVER contains BOTH `platform` and `trigger` keys — pick one. "
     "HA rejects `{platform: zha, trigger: zha_event}` with \"Cannot specify both 'platform' and 'trigger'\".\n"
-    "- For ZHA button presses, use the EVENT trigger:\n"
+    "- BUTTONS / REMOTES / SCENE CONTROLLERS (ZHA, Z-Wave JS, deCONZ, Shelly, …): FIRST call "
+    "`get_device_triggers` with the device's device_id. It returns ready-to-use "
+    "`platform: device` blocks (correct domain, device_id, type, subtype) — drop the matching "
+    "one straight into `triggers`. This is the preferred path: it works across every protocol "
+    "and needs no raw node/IEEE id. NEVER ask the user to paste a hardware id by hand; look it up.\n"
+    "- Only if `get_device_triggers` returns an empty list, fall back to an event trigger. "
+    "For ZHA button presses, use the EVENT trigger:\n"
     '    {"platform": "event", "event_type": "zha_event", "event_data": {"device_ieee": "<ieee>", "command": "single"}}\n'
+    "  Get the `<ieee>` from `get_device` on the button's device_id — it returns it as `zha_ieee`.\n"
     "  For Zigbee2MQTT button presses, use an MQTT trigger on the device's action topic, "
     "or a state trigger on its exposed `sensor.<device>_action` entity:\n"
     '    {"platform": "mqtt", "topic": "zigbee2mqtt/<friendly_name>/action", "payload": "single"}\n'

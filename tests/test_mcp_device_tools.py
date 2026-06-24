@@ -16,6 +16,7 @@ import pytest
 
 from custom_components.selora_ai.mcp_server import (
     _tool_get_device,
+    _tool_get_device_triggers,
     _tool_list_devices,
 )
 
@@ -272,3 +273,145 @@ async def test_get_device_includes_state_attributes(hass: HomeAssistant, setup_h
     assert entity["attributes"]["temperature"] == 72
     assert entity["attributes"]["current_temperature"] == 68
     assert entity["attributes"]["hvac_action"] == "heating"
+
+
+@pytest.mark.asyncio
+async def test_get_device_exposes_zha_ieee(hass: HomeAssistant) -> None:
+    """A ZHA device surfaces its IEEE address as `zha_ieee` plus raw connections.
+
+    This is what lets the LLM build a `zha_event` button-press trigger without
+    asking the user to paste the IEEE by hand.
+    """
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+    entry = MockConfigEntry(domain="zha", entry_id="zha_entry")
+    entry.add_to_hass(hass)
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    ieee = "00:15:8d:00:02:aa:bb:cc"
+    device = dev_reg.async_get_or_create(
+        config_entry_id="zha_entry",
+        identifiers={("zha", ieee)},
+        connections={(dr.CONNECTION_ZIGBEE, ieee)},
+        name="Aqara Smart Button",
+        manufacturer="Aqara",
+        model="WXKG11LM",
+    )
+    # Needs at least one collector-domain entity to be returned.
+    ent_reg.async_get_or_create(
+        "sensor",
+        "zha",
+        "aqara_button_battery",
+        device_id=device.id,
+        suggested_object_id="aqara_button_battery",
+    )
+    hass.states.async_set("sensor.aqara_button_battery", "100")
+
+    result = await _tool_get_device(hass, {"device_id": device.id})
+    assert result["zha_ieee"] == ieee
+    assert [dr.CONNECTION_ZIGBEE, ieee] in result["connections"]
+    assert ["zha", ieee] in result["identifiers"]
+
+
+@pytest.mark.asyncio
+async def test_get_device_no_zha_ieee_for_non_zigbee(
+    hass: HomeAssistant, setup_home
+) -> None:
+    """Non-Zigbee devices omit `zha_ieee` (no spurious key)."""
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    device_id = devices[0]["device_id"]
+
+    result = await _tool_get_device(hass, {"device_id": device_id})
+    assert "zha_ieee" not in result
+    assert "connections" in result
+    assert "identifiers" in result
+
+
+# ── selora_get_device_triggers tests ─────────────────────────────────────────
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_missing_id(hass: HomeAssistant) -> None:
+    """Error when device_id is not provided."""
+    result = await _tool_get_device_triggers(hass, {})
+    assert "error" in result
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_not_found(hass: HomeAssistant) -> None:
+    """Error when device_id doesn't exist."""
+    result = await _tool_get_device_triggers(hass, {"device_id": "nonexistent_id"})
+    assert "error" in result
+    assert "not found" in result["error"]
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_returns_list(hass: HomeAssistant, setup_home) -> None:
+    """The result is always a device_id + list of trigger blocks + count.
+
+    A light device registers HA's built-in toggle device triggers, so this also
+    confirms real triggers come back as ready-to-use `platform: device` blocks.
+    """
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    device_id = devices[0]["device_id"]
+
+    result = await _tool_get_device_triggers(hass, {"device_id": device_id})
+    assert result["device_id"] == device_id
+    assert isinstance(result["triggers"], list)
+    assert result["count"] == len(result["triggers"])
+    for trigger in result["triggers"]:
+        assert trigger["device_id"] == device_id
+        assert trigger.get("platform") == "device" or trigger.get("trigger") == "device"
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_passthrough(
+    hass: HomeAssistant, setup_home, monkeypatch
+) -> None:
+    """Device-trigger blocks from HA are returned verbatim for the LLM to use."""
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    device_id = devices[0]["device_id"]
+
+    block = {
+        "platform": "device",
+        "domain": "zha",
+        "device_id": device_id,
+        "type": "remote_button_short_press",
+        "subtype": "turn_on",
+    }
+
+    async def _fake_get_automations(_hass, _atype, device_ids):
+        return {device_ids[0]: [block]}
+
+    monkeypatch.setattr(
+        "homeassistant.components.device_automation.async_get_device_automations",
+        _fake_get_automations,
+    )
+
+    result = await _tool_get_device_triggers(hass, {"device_id": device_id})
+    assert result["count"] == 1
+    assert result["triggers"][0] == block
+
+
+@pytest.mark.asyncio
+async def test_get_device_triggers_invalid_config_is_empty(
+    hass: HomeAssistant, setup_home, monkeypatch
+) -> None:
+    """An InvalidDeviceAutomationConfig degrades to an empty list, not a raised error."""
+    from homeassistant.components.device_automation import InvalidDeviceAutomationConfig
+
+    devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
+    device_id = devices[0]["device_id"]
+
+    async def _raise(_hass, _atype, _device_ids):
+        raise InvalidDeviceAutomationConfig("bad config")
+
+    monkeypatch.setattr(
+        "homeassistant.components.device_automation.async_get_device_automations",
+        _raise,
+    )
+
+    result = await _tool_get_device_triggers(hass, {"device_id": device_id})
+    assert result["triggers"] == []
+    assert result["count"] == 0
