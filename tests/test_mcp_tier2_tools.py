@@ -1369,7 +1369,20 @@ async def test_search_entities_matches_friendly_name(hass: HomeAssistant, setup_
 
 
 @pytest.mark.asyncio
-async def test_search_entities_matches_alias(hass: HomeAssistant, setup_world) -> None:
+async def test_search_entities_normalizes_punctuation_and_case(
+    hass: HomeAssistant, setup_world
+) -> None:
+    """Query is normalized (NFKC/casefold/punct-strip) before ranking, so
+    mixed case and punctuation still resolve to the same entity."""
+    result = await _tool_search_entities(hass, {"query": "KITCHEN, ISLAND!!"})
+    assert result["count"] >= 1
+    assert result["matches"][0]["entity_id"] == "light.kitchen_island"
+
+
+@pytest.mark.asyncio
+async def test_search_entities_matches_alias(
+    hass: HomeAssistant, setup_world
+) -> None:
     """The aliases set should be searchable ('reading lamp' → bedroom_lamp)."""
     result = await _tool_search_entities(hass, {"query": "reading lamp"})
     ids = [m["entity_id"] for m in result["matches"]]

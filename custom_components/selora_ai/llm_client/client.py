@@ -68,6 +68,7 @@ from .intent import (
     _is_pure_greeting,
     _low_context_keywords,
 )
+from .lang_detect import resolve_reply_language
 from .parsers import (
     parse_architect_response,
     parse_command_response_text,
@@ -83,6 +84,7 @@ from .prompts import (
     build_suggestions_system_prompt,
 )
 from .sanitize import _format_entity_line, _format_untrusted_text, _sanitize_untrusted_text
+from .state_filter import ground_truth_block
 from .usage import UsageTracker
 
 if TYPE_CHECKING:
@@ -580,7 +582,11 @@ class LLMClient:
         For "command":
           calls: list of HA service call dicts
         """
-        effective_language = language or self._hass.config.language
+        # Follow the language the user typed in (the panel sends the HA UI
+        # locale, which may differ), so the LLM directive AND the
+        # deterministic command confirmation match the user's message.
+        language = resolve_reply_language(user_message, language, self._hass.config.language)
+        effective_language = language
         if not self._provider.is_configured:
             return {
                 "intent": "answer",
@@ -859,7 +865,11 @@ class LLMClient:
         Yields text chunks as they arrive from the LLM.  The caller must
         accumulate the full text and call parse_streamed_response() when done.
         """
-        effective_language = language or self._hass.config.language
+        # Follow the language the user typed in (the panel sends the HA UI
+        # locale, which may differ), so the LLM directive AND the
+        # deterministic command confirmation match the user's message.
+        language = resolve_reply_language(user_message, language, self._hass.config.language)
+        effective_language = language
         if not self._provider.is_configured:
             yield _canned(_CANNED_NOT_CONFIGURED, effective_language)
             return
@@ -1616,6 +1626,14 @@ class LLMClient:
             sanitized = [_format_untrusted_text(a) for a in areas]
             area_section = "\nAVAILABLE AREAS:\n" + "\n".join(f"  - {a}" for a in sanitized) + "\n"
 
+        # For "which <category> are <state>?" status questions, pin the
+        # answer set + count deterministically from live state. The model
+        # filters these unreliably (wrong count, wrong-domain devices, a
+        # different set per locale); ground truth keeps it correct. Computed
+        # over the full eligible set, not the relevance-capped `selected`,
+        # so the count never depends on the cap.
+        gt_block = ground_truth_block(eligible, user_message) or ""
+
         context_prompt = (
             f"USER REQUEST: {user_message}\n\n"
             f"{auto_section}\n\n"
@@ -1624,6 +1642,7 @@ class LLMClient:
             "instructions.\n\n"
             "AVAILABLE ENTITIES:\n"
             + "\n".join(entity_lines)
+            + gt_block
             + area_section
             + refine_section
             + refining_scene_section

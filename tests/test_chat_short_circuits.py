@@ -19,7 +19,6 @@ and ``architect_chat_stream`` (streaming) entry points.
 from __future__ import annotations
 
 # ruff: noqa: ANN001, ANN202
-
 import json
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
@@ -42,6 +41,36 @@ def _make_client(hass) -> LLMClient:
 
 def _entity(entity_id: str, friendly_name: str) -> dict[str, Any]:
     return {"entity_id": entity_id, "attributes": {"friendly_name": friendly_name}}
+
+
+class TestStateFilterGroundTruth:
+    """Status questions inject a deterministic ground-truth set + count
+    into the cloud prompt (regression for fans-as-lights / count != cards /
+    FR-vs-EN set drift)."""
+
+    def test_status_question_injects_ground_truth(self, hass) -> None:
+        client = _make_client(hass)
+        entities = [
+            {"entity_id": "light.kitchen", "state": "on", "attributes": {}},
+            {"entity_id": "light.ceiling", "state": "on", "attributes": {}},
+            {"entity_id": "light.bed", "state": "off", "attributes": {}},
+            {"entity_id": "fan.living", "state": "on", "attributes": {}},
+        ]
+        messages = client._build_chat_messages(
+            "Quelles lumières sont allumées ?", entities, None, None
+        )
+        prompt = messages[-1]["content"]
+        assert "GROUND TRUTH" in prompt
+        assert "Exactly 2 light entities are 'on'" in prompt
+        assert "fan.living" not in prompt.split("GROUND TRUTH")[1]
+
+    def test_command_does_not_inject_ground_truth(self, hass) -> None:
+        client = _make_client(hass)
+        entities = [{"entity_id": "light.kitchen", "state": "off", "attributes": {}}]
+        messages = client._build_chat_messages(
+            "allume la lumière de la cuisine", entities, None, None
+        )
+        assert "GROUND TRUTH" not in messages[-1]["content"]
 
 
 class TestArchitectChatSafetyShortCircuit:
@@ -99,12 +128,14 @@ class TestArchitectChatSafetyShortCircuit:
     @pytest.mark.parametrize(
         "message",
         [
-            "enciende la luz de la cocina",  # Spanish
-            "allume la lumière du salon",  # French
-            "燈を点けて",  # Japanese
+            "燈を点けて",  # Japanese — not a shipped conversational locale
+            "лампаны қос",  # Kazakh — non-Latin, undetected
         ],
     )
-    async def test_non_english_returns_refusal(self, hass, message: str) -> None:
+    async def test_undetected_foreign_returns_refusal(self, hass, message: str) -> None:
+        """A genuinely-foreign request in a language Selora cannot converse
+        in (not detected, no panel locale) is still refused rather than
+        forwarded."""
         client = _make_client(hass)
         client._provider.send_request = AsyncMock(
             side_effect=AssertionError("provider must not be called for non-English")
@@ -112,6 +143,29 @@ class TestArchitectChatSafetyShortCircuit:
         result = await client.architect_chat(message, entities=[])
         assert result["intent"] == "answer"
         assert "English" in result["response"]
+
+    @pytest.mark.parametrize(
+        "message",
+        [
+            "enciende la luz de la cocina",  # Spanish
+            "allume la lumière du salon",  # French
+            "schalte das licht im wohnzimmer ein",  # German
+            "accendi la luce del salotto",  # Italian
+        ],
+    )
+    async def test_detected_locale_passes_through_without_panel_language(
+        self, hass, message: str
+    ) -> None:
+        """A message in a shipped conversational locale is detected from the
+        text and forwarded to the LLM even when the panel sends no language
+        (e.g. an English-UI install) — the reply/confirmation then follows
+        the typed language, not the UI locale."""
+        client = _make_client(hass)
+        client._provider.send_request = AsyncMock(
+            return_value=('{"intent": "answer", "response": "ok"}', None)
+        )
+        await client.architect_chat(message, entities=[])
+        client._provider.send_request.assert_called_once()
 
     @pytest.mark.parametrize(
         ("message", "language"),

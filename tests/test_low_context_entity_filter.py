@@ -163,3 +163,32 @@ def test_low_context_keywords_drops_action_verbs() -> None:
     """Action verbs ('turn', 'set', 'make') would otherwise boost unrelated entities like
     `media_player.turntable` via entity_id substring hits."""
     assert _low_context_keywords("set make get turn show tell give let put") == set()
+
+
+def test_low_context_keywords_keeps_accented_words_whole() -> None:
+    """Accented words must survive tokenization. An ASCII-only split shredded
+    them at the accent ('lumières' → 'lumi'/'res'), starving non-English
+    queries of their category keyword."""
+    assert "lumières" in _low_context_keywords("quelles lumières sont allumées")
+    assert "allumées" in _low_context_keywords("quelles lumières sont allumées")
+    assert "lumi" not in _low_context_keywords("quelles lumières sont allumées")
+
+
+def test_french_light_query_boosts_light_domain() -> None:
+    """'quelles lumières sont allumées' must rank lights to the top the same
+    way the English 'what lights are on' does — regression for the French
+    incomplete-result report."""
+    light = _entity("light.kitchen_lights", "Kitchen Lights")
+    sensor = _entity("sensor.cpu_temp", "CPU Temperature")
+    kw = _low_context_keywords("quelles lumières sont allumées")
+    assert _score_entity_against_keywords(light, kw) > 0
+    kept = _filter_entities_by_keywords([sensor, light], kw, cap=10)
+    assert kept[0]["entity_id"] == "light.kitchen_lights"
+
+
+def test_multilingual_category_keywords_map_to_light() -> None:
+    """German/Spanish/Italian light category words boost the light domain."""
+    light = _entity("light.x", "Deckenlampe")
+    for query in ("welche lichter sind an", "qué luces están encendidas", "quali luci sono accese"):
+        kw = _low_context_keywords(query)
+        assert _score_entity_against_keywords(light, kw) > 0, query
