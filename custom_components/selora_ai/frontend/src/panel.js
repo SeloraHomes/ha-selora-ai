@@ -344,6 +344,9 @@ class SeloraAIPanel extends LitElement {
       // Inline card tabs (flow / yaml / history)
       _cardActiveTab: { type: Object },
 
+      // Per-card expand toggle for clamped suggestion title/subtitle
+      _expandedSuggestions: { type: Object },
+
       // Bulk edit mode
       _bulkEditMode: { type: Boolean },
 
@@ -517,6 +520,7 @@ class SeloraAIPanel extends LitElement {
     this._generatingSuggestions = false;
     // Inline card tabs
     this._cardActiveTab = {};
+    this._expandedSuggestions = {};
     this._bulkEditMode = false;
     this._editingAlias = null;
     this._editingAliasValue = "";
