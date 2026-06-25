@@ -151,6 +151,16 @@ _ACTIVITY_COUNTER_KEYS: frozenset[str] = frozenset(
         "suggestions_snoozed",
         "chat_messages",
         "chat_sessions",
+        "chat_feedback_positive",
+        "chat_feedback_negative",
+        # Subject breakdown of the same thumbs (the aggregate above is the
+        # sum across subjects): which kind of reply was rated.
+        "chat_feedback_automation_positive",
+        "chat_feedback_automation_negative",
+        "chat_feedback_scene_positive",
+        "chat_feedback_scene_negative",
+        "chat_feedback_prose_positive",
+        "chat_feedback_prose_negative",
         "assist_queries",
         "commands_executed",
         "devices_paired",

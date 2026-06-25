@@ -378,11 +378,23 @@ export function renderMarkdown(text) {
   // and `[[entity:…]]` markers inside YAML or other snippets stay literal.
   const escapeCode = (s) =>
     s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // Stash the raw code on a data attribute so the delegated copy handler
+  // recovers the exact text — quotes/newlines encoded so the snippet
+  // can't break out of the attribute or inject markup.
+  const escapeAttr = (s) =>
+    s
+      .replace(/&/g, "&amp;")
+      .replace(/"/g, "&quot;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/\n/g, "&#10;");
+  const copyIcon =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>';
   const stashRe = new RegExp(STASH_OPEN + "(CB|IC)(\\d+)" + STASH_CLOSE, "g");
   escaped = escaped.replace(stashRe, (_m, kind, idx) => {
     const body = (kind === "CB" ? codeBlocks : inlineCode)[Number(idx)] ?? "";
     if (kind === "CB") {
-      return `<pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">${escapeCode(body)}</pre>`;
+      return `<div class="selora-code-block"><button type="button" class="selora-code-copy" data-code="${escapeAttr(body)}" title="Copy" aria-label="Copy code">${copyIcon}</button><pre style="background:var(--primary-background-color,#18181b);color:var(--primary-text-color,#e4e4e7);padding:10px;border-radius:8px;border:1px solid var(--divider-color,#27272a);font-size:12px;overflow-x:auto;margin:8px 0;">${escapeCode(body)}</pre></div>`;
     }
     return `<code style="background:var(--secondary-background-color,rgba(255,255,255,0.08));padding:2px 5px;border-radius:4px;font-size:13px;border:1px solid var(--divider-color,rgba(255,255,255,0.06));">${escapeCode(body)}</code>`;
   });

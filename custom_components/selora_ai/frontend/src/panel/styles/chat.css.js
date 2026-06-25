@@ -510,10 +510,33 @@ export const chatStyles = css`
   .bubble-meta {
     font-size: 10px;
     opacity: 0.5;
-    margin-top: 2px;
+    margin-top: 0;
     display: flex;
     align-items: center;
     gap: 6px;
+  }
+  /* The meta row only adds space above itself when it actually shows
+     something: the streaming label (a bare span), a REAL action group
+     (proposal/quick chips actually rendered — not an empty .msg-quick
+     wrapper), a hovered feedback cluster, or a chosen/just-copied state.
+     Keyed on the rendered group classes, not .msg-quick, because that
+     wrapper is present even when renderProposalActions yields nothing —
+     which would otherwise pad empty space above the next message. */
+  .bubble-meta:has(> span),
+  .bubble-meta:has(.qa-group),
+  .bubble-meta:has(.automation-card-actions),
+  .bubble-meta:has(.automation-workflow),
+  .message-row:hover .bubble-meta:has(.msg-actions),
+  .bubble-meta:has(.msg-action-btn.active),
+  .bubble-meta:has(.msg-action-btn.copied) {
+    margin-top: 8px;
+  }
+  /* The action group inside msg-quick brings its own top margin meant
+     for when it sat on the bubble; the meta row now owns that spacing. */
+  .msg-quick .automation-card-actions,
+  .msg-quick .automation-workflow,
+  .msg-quick .qa-group {
+    margin-top: 0;
   }
   .bubble.user + .bubble-meta {
     align-self: flex-end;
@@ -526,27 +549,145 @@ export const chatStyles = css`
     justify-content: flex-end;
     margin-top: 4px;
   }
-  .copy-msg-btn {
+  /* The feedback cluster reserves NO vertical space until revealed, so
+     an idle reply's hidden buttons don't pad the gap above the next
+     message. Collapsed via max-height (not display:none) so the opacity
+     fade still animates. The sibling .msg-quick keeps its own height, so
+     a row with visible Run/View actions stays the right size. */
+  .msg-actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    opacity: 0;
+    max-height: 0;
+    overflow: hidden;
+    transition: opacity 0.15s ease;
+    /* Linger on mouse-leave so the cursor can travel down to a button
+       without the row losing :hover snatching it away mid-click. */
+    transition-delay: 0.6s;
+  }
+  .message-row:hover .msg-actions,
+  .msg-actions:has(.active),
+  .msg-actions:has(.copied) {
+    opacity: 1;
+    max-height: 40px;
+    overflow: visible;
+    transition-delay: 0s;
+  }
+  /* Touch devices have no real hover — a tap fires sticky :hover, which
+     would expand the collapsed toolbar and shove the message down. Reveal
+     the buttons permanently there so every prose reply reserves the same
+     space and nothing shifts on tap. */
+  @media (hover: none) {
+    .msg-actions {
+      opacity: 1;
+      max-height: 40px;
+      overflow: visible;
+      transition-delay: 0s;
+    }
+    .bubble-meta:has(.msg-actions) {
+      margin-top: 8px;
+    }
+  }
+  /* Quick-action chips share the row with the feedback buttons, pinned
+     right. Drop the chip group's standalone top margin so it lines up
+     with the buttons; on a narrow screen the meta row wraps and this
+     block keeps its own gap consistent. */
+  .msg-quick {
+    margin-left: auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .msg-quick .qa-group {
+    margin-top: 0;
+    justify-content: flex-end;
+  }
+  .msg-action-btn {
     background: none;
     border: none;
-    padding: 2px 4px;
+    padding: 4px;
+    cursor: pointer;
+    opacity: 0.6;
+    transition:
+      opacity 0.15s,
+      color 0.15s,
+      background 0.15s;
+    color: inherit;
+    line-height: 1;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .msg-action-btn:hover {
+    opacity: 1;
+    background: var(--secondary-background-color, rgba(0, 0, 0, 0.06));
+  }
+  .msg-action-btn:active {
+    transform: scale(0.85);
+  }
+  .msg-action-btn.active {
+    opacity: 1;
+    color: var(--selora-accent, #fbbf24);
+  }
+  .msg-action-btn.copied {
+    opacity: 1;
+    color: var(--success-color, #4caf50);
+  }
+  /* Click feedback: a quick pop on the icon. Applied via a transient
+     .pulse class (re-added on every click) so repeated clicks re-fire. */
+  .msg-action-btn.pulse ha-icon,
+  .selora-code-copy.pulse svg {
+    animation: msg-action-pop 0.3s ease;
+  }
+  @keyframes msg-action-pop {
+    0% {
+      transform: scale(1);
+    }
+    40% {
+      transform: scale(1.35);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  /* Per-fence copy button overlaid top-right of a code block. The
+     button lives inside an innerHTML blob so it has no lit listener —
+     clicks bubble to the message span (see _onCodeCopyClick). */
+  .selora-code-block {
+    position: relative;
+  }
+  .selora-code-block .selora-code-copy {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px;
+    border: none;
+    border-radius: 6px;
+    background: var(--secondary-background-color, rgba(255, 255, 255, 0.1));
+    color: var(--primary-text-color, #e4e4e7);
     cursor: pointer;
     opacity: 0;
+    line-height: 0;
     transition:
       opacity 0.15s,
       color 0.15s;
-    color: inherit;
-    line-height: 1;
-    border-radius: 4px;
   }
-  .message-row:hover .copy-msg-btn {
+  .selora-code-block:hover .selora-code-copy {
     opacity: 0.7;
   }
-  .copy-msg-btn:hover {
-    opacity: 1 !important;
+  .selora-code-block .selora-code-copy:hover {
+    opacity: 1;
   }
-  .copy-msg-btn.copied {
-    opacity: 1 !important;
+  .selora-code-block .selora-code-copy:active {
+    transform: scale(0.85);
+  }
+  .selora-code-block .selora-code-copy.copied {
+    opacity: 1;
     color: var(--success-color, #4caf50);
   }
   .bubble.assistant strong {

@@ -1979,6 +1979,39 @@ class TestAsyncCreateAutomation:
         _patch_store.add_version.assert_awaited_once()
 
     @pytest.mark.asyncio
+    async def test_stored_version_yaml_is_plain(
+        self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
+    ) -> None:
+        # The file writer wraps duration/time strings ("00:05:00") in a
+        # ruamel DoubleQuotedScalarString and mutates the automation dict in
+        # place. The version YAML recorded in the store must be captured
+        # BEFORE that mutation, otherwise PyYAML serializes the ruamel object
+        # with `!!python/object/new` tags — garbage that then becomes the
+        # refine context fed to the LLM.
+        import yaml as _yaml
+
+        hass.states.async_set("cover.garage_door", "closed")
+        suggestion = {
+            "alias": "Garage open alert",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "cover.garage_door",
+                    "to": "open",
+                    "for": "00:05:00",
+                }
+            ],
+            "action": [
+                {"action": "notify.persistent_notification", "data": {"message": "x"}}
+            ],
+        }
+        await async_create_automation(hass, suggestion)
+        _patch_store.add_version.assert_awaited_once()
+        stored_yaml = _patch_store.add_version.call_args.args[1]
+        assert "!!python" not in stored_yaml
+        assert _yaml.safe_load(stored_yaml) is not None
+
+    @pytest.mark.asyncio
     async def test_rejects_empty_alias(
         self, hass: MagicMock, tmp_automations_yaml: Path, _patch_store: MagicMock
     ) -> None:

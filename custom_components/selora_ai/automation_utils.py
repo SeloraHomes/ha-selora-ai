@@ -1328,13 +1328,20 @@ async def async_update_automation(
             _LOGGER.error("Automation id %s not found in automations.yaml", automation_id)
             return False
 
+        # Capture the version YAML from the clean dict BEFORE writing. The
+        # writer's _quote_yaml_booleans mutates `updated` in place (it lives
+        # in `existing`), wrapping time/bool strings in ruamel scalar types;
+        # PyYAML's dumper would then serialize those as `!!python/object/new`
+        # tags into the stored version (and the refine context fed to the
+        # LLM). Dumping first keeps the version YAML plain.
+        yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
+
         try:
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
             _LOGGER.info("Updated automation: %s", automation_id)
             await hass.services.async_call("automation", "reload", blocking=True)
 
             # Record version
-            yaml_text = yaml.dump(updated, allow_unicode=True, default_flow_style=False)
             store = _get_automation_store(hass)
             await store.add_version(automation_id, yaml_text, updated, version_message, session_id)
 
@@ -1438,6 +1445,12 @@ async def async_create_automation(
         existing = await hass.async_add_executor_job(_read_automations_yaml, automations_path)
         existing.append(automation)
 
+        # Capture the version YAML before writing — _write_automations_yaml's
+        # _quote_yaml_booleans mutates `automation` in place (wrapping
+        # time/bool strings in ruamel scalar types), which PyYAML would then
+        # serialize as `!!python/object/new` tags. Dump first to keep it plain.
+        yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
+
         try:
             await hass.async_add_executor_job(_write_automations_yaml, automations_path, existing)
             _LOGGER.info("Created new automation: %s", alias)
@@ -1451,7 +1464,6 @@ async def async_create_automation(
             await _attach_selora_label_to_entity(hass, automation_id)
 
             # Record first version
-            yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
             store = _get_automation_store(hass)
             await store.add_version(
                 automation_id, yaml_text, automation, version_message, session_id

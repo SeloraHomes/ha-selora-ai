@@ -560,6 +560,32 @@ def test_record_activity_accumulates(client) -> None:
     assert client._activity == {"chat_messages": 5, "automations_created": 1}
 
 
+def test_record_activity_tracks_chat_feedback(client) -> None:
+    client.record_activity("chat_feedback_positive")
+    client.record_activity("chat_feedback_negative", 2)
+    assert client._activity == {
+        "chat_feedback_positive": 1,
+        "chat_feedback_negative": 2,
+    }
+    assert "chat_feedback_positive" in _ACTIVITY_COUNTER_KEYS
+    assert "chat_feedback_negative" in _ACTIVITY_COUNTER_KEYS
+
+
+def test_record_activity_tracks_chat_feedback_by_subject(client) -> None:
+    for subject in ("automation", "scene", "prose"):
+        for rating in ("positive", "negative"):
+            client.record_activity(f"chat_feedback_{subject}_{rating}")
+            assert f"chat_feedback_{subject}_{rating}" in _ACTIVITY_COUNTER_KEYS
+    assert client._activity == {
+        "chat_feedback_automation_positive": 1,
+        "chat_feedback_automation_negative": 1,
+        "chat_feedback_scene_positive": 1,
+        "chat_feedback_scene_negative": 1,
+        "chat_feedback_prose_positive": 1,
+        "chat_feedback_prose_negative": 1,
+    }
+
+
 def test_record_activity_drops_unknown_and_nonpositive(client) -> None:
     client.record_activity("totally_made_up")
     client.record_activity("chat_messages", 0)
