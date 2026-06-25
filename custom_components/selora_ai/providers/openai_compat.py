@@ -52,6 +52,12 @@ class OpenAICompatibleProvider(LLMProvider):
         payload: OpenAIChatPayload = {
             "model": self._model,
             "messages": [{"role": "system", "content": system}, *messages],
+            # Serialize the output cap into the body. Without this the
+            # OpenAI-compatible cloud providers (OpenAI, OpenRouter, Selora
+            # Cloud) fall back to the server's default completion cap and
+            # the caller-chosen budget — e.g. the scaled analysis budget —
+            # is silently ignored, truncating large responses.
+            "max_tokens": max_tokens,
         }
         if tools:
             payload["tools"] = tools

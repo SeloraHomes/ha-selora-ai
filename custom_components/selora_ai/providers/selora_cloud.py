@@ -39,6 +39,7 @@ from ..const import (
     AIGATEWAY_CHAT_COMPLETIONS_PATH,
     AIGATEWAY_REFRESH_LEEWAY_SECONDS,
     AIGATEWAY_TOKEN_PATH,
+    CLOUD_LLM_TEMPERATURE,
     CONF_AIGATEWAY_ACCESS_TOKEN,
     CONF_AIGATEWAY_EXPIRES_AT,
     CONF_AIGATEWAY_REFRESH_TOKEN,
@@ -192,6 +193,11 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
         # that the safety policy then stomps. Connect's gateway
         # forwards this hint to whichever model it routes to.
         payload["reasoning"] = {"enabled": False}
+        # Pin a low sampling temperature. The gateway may route to a cheap,
+        # weak model that drifts on structured output at the default ~1.0;
+        # 0.2 keeps tool-call/suggestion JSON near-deterministic without
+        # making prose replies robotic.
+        payload["temperature"] = CLOUD_LLM_TEMPERATURE
         return payload
 
     # -- Usage -------------------------------------------------------------

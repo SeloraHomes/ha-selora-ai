@@ -39,6 +39,8 @@ from custom_components.selora_ai.llm_client.parsers import (
     _resolve_unknown_entity_ids,
     _service_verb_for_domain,
     _synthesize_action_from_prompt,
+    parse_command_response_text,
+    parse_suggestions,
 )
 
 
@@ -2378,3 +2380,59 @@ class TestEntitiesNamedInPrompt:
         assert _entities_named_in_prompt("the living room please", ents)[0] == (
             "light.living_room"
         )
+
+
+class TestCloudJsonSalvage:
+    """Weak gateway-routed models emit trailing commas,
+    single quotes, and unquoted keys that kill a plain ``json.loads`` and
+    drop the whole response. The salvage fallback recovers them; clean JSON
+    is untouched and genuinely-broken JSON still fails closed."""
+
+    def test_suggestions_salvages_trailing_comma_and_single_quotes(self) -> None:
+        raw = (
+            "[{'alias': 'Sunset Alert', 'description': 'x', "
+            "'triggers': [{'platform': 'sun', 'event': 'sunset'},],},]"
+        )
+        result = parse_suggestions(raw, "selora_cloud")
+        assert len(result) == 1
+        assert result[0]["alias"] == "Sunset Alert"
+
+    def test_suggestions_salvages_unquoted_keys(self) -> None:
+        raw = '[{alias: "A", actions: [{action: "light.turn_on"}]}]'
+        result = parse_suggestions(raw, "selora_cloud")
+        assert len(result) == 1
+        assert result[0]["alias"] == "A"
+
+    def test_command_salvages_trailing_comma(self) -> None:
+        raw = "{'calls': [], 'response': 'Done.',}"
+        result = parse_command_response_text(raw)
+        assert result["response"] == "Done."
+        assert result["calls"] == []
+
+    def test_clean_json_unaffected(self) -> None:
+        raw = '[{"alias": "A", "actions": []}]'
+        assert len(parse_suggestions(raw, "x")) == 1
+
+    def test_unrepairable_suggestions_fail_closed(self) -> None:
+        # Not salvageable as JSON — must return [] rather than raise.
+        assert parse_suggestions("[this is not json at all <<<]", "x") == []
+
+    def test_salvage_records_repair_in_scope(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        calls: list[str] = []
+        monkeypatch.setattr(
+            "custom_components.selora_ai.llm_client.parsers.record_repair",
+            lambda kind: calls.append(kind),
+        )
+        parse_suggestions("[{'alias': 'A', 'actions': [],},]", "selora_cloud")
+        assert "cloud_json_salvage" in calls
+
+    def test_no_repair_recorded_for_clean_json(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        calls: list[str] = []
+        monkeypatch.setattr(
+            "custom_components.selora_ai.llm_client.parsers.record_repair",
+            lambda kind: calls.append(kind),
+        )
+        parse_suggestions('[{"alias": "A", "actions": []}]', "x")
+        assert "cloud_json_salvage" not in calls

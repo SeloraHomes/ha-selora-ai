@@ -1163,14 +1163,12 @@ class SeloraLocalProvider(OpenAICompatibleProvider):
             stream=stream,
             max_tokens=max_tokens,
         )
-        # Per-intent token cap (replaces the old flat min(...,256) since
-        # answer/clarification need ~50 tokens but automation needs ~400).
-        # Documented in const.py's SELORA_LOCAL_MAX_TOKENS_BY_KIND. Also
-        # subsumes main's _MAX_TOKENS_PER_KIND clamp from 71edfcc:
-        # OpenAICompatibleProvider.build_payload accepts max_tokens but
-        # never writes it to the body, so the explicit assignment here is
-        # what actually enforces the cap (otherwise llama-server falls
-        # back to its own default ceiling, typically n_ctx/2).
+        # Clamp the base-serialized max_tokens down to this call's
+        # per-intent ceiling (answer/clarification need ~50 tokens but
+        # automation needs ~400). Documented in const.py's
+        # SELORA_LOCAL_MAX_TOKENS_BY_KIND. Without the clamp the hub's
+        # llama-server would honor the larger base value and overrun the
+        # tight per-intent budget the specialists were trained for.
         payload["max_tokens"] = self._resolve_max_tokens(payload.get("max_tokens", max_tokens))
         # The hub's OpenAI-compat surface accepts the basic chat fields
         # only. Strip extensions some servers reject:

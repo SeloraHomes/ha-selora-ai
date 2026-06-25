@@ -96,6 +96,7 @@ REPAIR_TYPES: frozenset[str] = frozenset(
         "trailing_marker_reposition",
         "friendly_name_strip",
         "qwen_normalize",
+        "cloud_json_salvage",
     }
 )
 

@@ -25,7 +25,9 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
+from custom_components.selora_ai.const import STREAM_KEEPALIVE
 from custom_components.selora_ai.llm_client import LLMClient
+from custom_components.selora_ai.llm_client.client import _join_stream_boundary
 from custom_components.selora_ai.providers import create_provider
 
 
@@ -867,6 +869,27 @@ class TestArchitectChatUnspecifiedClarification:
         await client.architect_chat("turn it off", entities=entities, history=history)
         client._provider.send_request.assert_called_once()
 
+    async def test_automation_creation_reaches_provider_not_clarification(self, hass) -> None:
+        """An automation CREATION request that names a bare target ("turn on
+        the hallway light") must reach the LLM, not get hijacked by the
+        single-target "Which light?" clarification — the LLM reasons about
+        the trigger + target as a whole."""
+        client = _make_client(hass)
+        client._provider.send_request = AsyncMock(
+            return_value=('{"intent": "answer", "response": "ok"}', None)
+        )
+        entities = [
+            _entity("light.kitchen", "Kitchen Light"),
+            _entity("light.bedroom", "Bedroom Light"),
+        ]
+        result = await client.architect_chat(
+            "Create an automation: when motion is detected in the hallway after "
+            "10pm, turn on the hallway light at 30% for 2 minutes, then turn it off.",
+            entities=entities,
+        )
+        client._provider.send_request.assert_called_once()
+        assert result.get("intent") != "clarification"
+
     async def test_pronoun_with_unrelated_history_still_clarifies(self, hass) -> None:
         """P1 — history that names NO device ("hello" → "turn it off")
         must NOT skip the clarification. An ungrounded pronoun command
@@ -1218,3 +1241,68 @@ class TestArchitectChatStreamShortCircuits:
         envelope = json.loads(full)
         assert envelope["intent"] == "answer"
         assert "calls" not in envelope
+
+
+class TestJoinStreamBoundary:
+    """The boundary helper inserts exactly one separator and never doubles."""
+
+    def test_inserts_space_when_prose_tail_has_none(self) -> None:
+        assert _join_stream_boundary("…for them.", "I don't see") == " I don't see"
+
+    def test_no_space_when_prose_already_ends_in_whitespace(self) -> None:
+        assert _join_stream_boundary("…for them. ", "I don't see") == "I don't see"
+
+    def test_no_double_space_when_chunk_starts_with_whitespace(self) -> None:
+        assert _join_stream_boundary("…for them.", " I don't see") == " I don't see"
+
+    def test_no_prose_yet_returns_chunk_unchanged(self) -> None:
+        assert _join_stream_boundary("", "I don't see") == "I don't see"
+
+    def test_empty_synthesized_returns_empty(self) -> None:
+        assert _join_stream_boundary("…for them.", "") == ""
+
+
+class TestStreamRoundNarrationBoundary:
+    """Post-tool-result narration must not fuse with pre-tool prose under the
+    WS handler's `full_text += chunk` accumulation."""
+
+    async def _drive_two_rounds(self, hass) -> str:
+        client = _make_client(hass)
+        rounds = {"n": 0}
+
+        async def _fake_raw_stream(system, messages, *, tools=None):  # type: ignore[no-untyped-def]
+            yield object()  # dummy resp; the fake stream_with_tools ignores it
+
+        def _fake_stream_with_tools(resp, tool_calls, content_blocks):  # type: ignore[no-untyped-def]
+            async def _gen():  # type: ignore[no-untyped-def]
+                rounds["n"] += 1
+                if rounds["n"] == 1:
+                    yield "Let me search for them."
+                    tool_calls.append({"name": "search_entities", "arguments": {}})
+                else:
+                    yield "I don't see a hallway motion sensor."
+
+            return _gen()
+
+        client._provider.raw_request_stream = _fake_raw_stream
+        client._provider.stream_with_tools = _fake_stream_with_tools
+        client._provider.append_streaming_tool_results = lambda *a, **k: None
+
+        tool_executor = MagicMock()
+        tool_executor.execute = AsyncMock(return_value={"status": "ok"})
+        tool_executor.call_log = []
+
+        chunks: list[str] = []
+        async for chunk in client._stream_request_with_tools(
+            "sys",
+            [{"role": "user", "content": "hi"}],
+            tool_executor,
+            tools=[{"name": "search_entities"}],
+        ):
+            chunks.append(chunk)
+        return "".join(c for c in chunks if c != STREAM_KEEPALIVE)
+
+    async def test_rounds_are_separated(self, hass) -> None:
+        full = await self._drive_two_rounds(hass)
+        assert "them.I don't" not in full
+        assert "them. I don't" in full

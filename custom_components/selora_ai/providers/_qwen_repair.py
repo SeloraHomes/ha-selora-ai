@@ -19,13 +19,18 @@ import json
 import re
 from typing import Any
 
+from ..json_repair import (
+    extract_first_balanced_json_object,
+    repair_json_string_controls,
+)
 from ..telemetry import record_repair
 
-ALLOWED_INTENTS: frozenset[str] = frozenset({"command", "automation", "answer", "clarification"})
+# Re-exported from the shared module so existing callers/tests that import
+# these from this module keep working; the implementations now live in
+# ``json_repair`` so the cloud parsing path can salvage the same drift.
+__all__ = ["extract_first_balanced_json_object", "repair_json_string_controls"]
 
-# JSON literals that must NOT be quoted as keys when the unquoted-key
-# repair pass runs.
-_RESERVED_LITERALS: frozenset[str] = frozenset({"true", "false", "null"})
+ALLOWED_INTENTS: frozenset[str] = frozenset({"command", "automation", "answer", "clarification"})
 
 # Pull a `"response":"..."` substring out of malformed model output as a
 # fallback. Handles backslash-escaped quotes inside the value.
@@ -56,144 +61,6 @@ def coerce_to_answer(text: str) -> dict[str, Any]:
             cleaned[:500] if cleaned else "I'm not sure how to help with that — could you rephrase?"
         )
     return {"intent": "answer", "response": str(response).strip()}
-
-
-def extract_first_balanced_json_object(text: str) -> str | None:
-    """Return the substring containing the first balanced ``{...}`` object,
-    string-aware so braces inside JSON strings don't count.
-
-    Defends against Qwen 1.5B emitting trailing junk (extra ``}``s, prose
-    after the JSON, second JSON object). A naive ``find('{')`` to
-    ``rfind('}')`` includes any trailing extras and breaks ``json.loads``.
-    """
-    start = text.find("{")
-    if start < 0:
-        return None
-    depth = 0
-    in_string = False
-    escape_next = False
-    for i in range(start, len(text)):
-        ch = text[i]
-        if escape_next:
-            escape_next = False
-            continue
-        if in_string:
-            if ch == "\\":
-                escape_next = True
-            elif ch == '"':
-                in_string = False
-            continue
-        if ch == '"':
-            in_string = True
-            continue
-        if ch == "{":
-            depth += 1
-        elif ch == "}":
-            depth -= 1
-            if depth == 0:
-                return text[start : i + 1]
-    return None
-
-
-def repair_json_string_controls(text: str) -> str:
-    """Single-pass repair of common Qwen 1.5B JSON drift modes:
-
-    1. Escape literal newline/CR/tab chars inside string values
-       (multi-line ``target`` strings on vague requests).
-    2. Strip trailing commas before ``}`` or ``]``
-       (Python/JS-style emission).
-    3. Quote unquoted object keys
-       (``alias:`` → ``"alias":``).
-    4. Convert single-quoted string values to double-quoted
-       (``'time'`` → ``"time"``).
-
-    Single state-machine pass — tracks whether we're inside a ``"..."``
-    or ``'...'`` string so structure is never confused for content.
-    Cloud providers emit clean JSON and pass through untouched.
-    """
-    out: list[str] = []
-    in_double = False
-    in_single = False
-    escape_next = False
-    i = 0
-    n = len(text)
-    while i < n:
-        ch = text[i]
-        if escape_next:
-            out.append(ch)
-            escape_next = False
-            i += 1
-            continue
-        if in_double:
-            if ch == "\\":
-                out.append(ch)
-                escape_next = True
-            elif ch == '"':
-                out.append(ch)
-                in_double = False
-            elif ch in "\n\r\t":
-                out.append({"\n": "\\n", "\r": "\\r", "\t": "\\t"}[ch])
-            else:
-                out.append(ch)
-            i += 1
-            continue
-        if in_single:
-            if ch == "\\":
-                out.append(ch)
-                escape_next = True
-            elif ch == "'":
-                out.append('"')
-                in_single = False
-            elif ch == '"':
-                out.append('\\"')
-            elif ch in "\n\r\t":
-                out.append({"\n": "\\n", "\r": "\\r", "\t": "\\t"}[ch])
-            else:
-                out.append(ch)
-            i += 1
-            continue
-
-        # Outside any string.
-        if ch == '"':
-            in_double = True
-            out.append(ch)
-            i += 1
-            continue
-        if ch == "'":
-            in_single = True
-            out.append('"')
-            i += 1
-            continue
-
-        # Trailing comma elision: drop `,` if next non-whitespace is } or ].
-        if ch == ",":
-            j = i + 1
-            while j < n and text[j] in " \t\r\n":
-                j += 1
-            if j < n and text[j] in "}]":
-                i += 1
-                continue
-
-        # Unquoted-key quoting: identifier followed by optional whitespace
-        # and ':' is treated as an object key.
-        if ch.isalpha() or ch == "_":
-            j = i
-            while j < n and (text[j].isalnum() or text[j] == "_"):
-                j += 1
-            k = j
-            while k < n and text[k] in " \t":
-                k += 1
-            if k < n and text[k] == ":":
-                identifier = text[i:j]
-                if identifier not in _RESERVED_LITERALS:
-                    out.append('"')
-                    out.append(identifier)
-                    out.append('"')
-                    i = j
-                    continue
-        out.append(ch)
-        i += 1
-    return "".join(out)
 
 
 _TIME_FROM_PROSE_RE = re.compile(r"\b(\d{1,2}):(\d{2})\s*([AaPp][Mm])?\b")
