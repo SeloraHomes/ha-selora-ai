@@ -27,6 +27,7 @@ from ..automation_utils import (
     assess_automation_risk,
     validate_automation_payload,
 )
+from ..json_repair import repair_json_string_controls
 from ..lexical import (
     KW_FUZZY_FLOOR,
     KW_HELPER_PENALTY,
@@ -2611,6 +2612,31 @@ def parse_architect_response(
         return {"intent": "answer", "response": text}
 
 
+def _loads_with_salvage(text: str) -> Any:
+    """``json.loads`` with a one-shot structural-repair fallback.
+
+    Weak/cheap gateway-routed models on the cloud path emit trailing
+    commas, single quotes, or unquoted keys that kill a plain parse —
+    dropping the whole response. Retry once through
+    ``repair_json_string_controls`` and count the salvage if it lands.
+    Re-raises the original ``JSONDecodeError`` when repair can't fix it,
+    so callers keep their existing error handling unchanged.
+    """
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError as exc:
+        repaired = repair_json_string_controls(text)
+        if repaired == text:
+            raise
+        try:
+            parsed = json.loads(repaired)
+        except json.JSONDecodeError:
+            raise exc from None
+        record_repair("cloud_json_salvage")
+        _LOGGER.info("Recovered malformed LLM JSON via structural salvage")
+        return parsed
+
+
 def parse_suggestions(text: str, provider_name: str) -> list[dict[str, Any]]:
     """Parse the LLM response into automation configs."""
     try:
@@ -2632,7 +2658,7 @@ def parse_suggestions(text: str, provider_name: str) -> list[dict[str, Any]]:
             return []
         text = text[start : end + 1]
 
-        suggestions = json.loads(text)
+        suggestions = _loads_with_salvage(text)
         if not isinstance(suggestions, list):
             return []
 
@@ -2672,7 +2698,7 @@ def parse_command_response_text(text: str) -> ArchitectResponse:
         if start == -1 or end == -1:
             return {"calls": [], "response": "Could not parse LLM response"}
 
-        result = json.loads(text[start : end + 1])
+        result = _loads_with_salvage(text[start : end + 1])
         if not isinstance(result, dict):
             return {"calls": [], "response": "Invalid response format"}
 

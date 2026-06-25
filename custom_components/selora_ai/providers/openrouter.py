@@ -13,6 +13,7 @@ import aiohttp
 from homeassistant.core import HomeAssistant
 
 from ..const import (
+    CLOUD_LLM_TEMPERATURE,
     DEFAULT_OPENROUTER_HOST,
     DEFAULT_OPENROUTER_MODEL,
     HEALTH_CHECK_TIMEOUT,
@@ -92,6 +93,9 @@ class OpenRouterProvider(OpenAICompatibleProvider):
         # same prompt). Sorting by latency trades a possible price uptick for
         # consistent responsiveness.
         payload["provider"] = {"sort": "latency"}
+        # Pin a low sampling temperature so weak OpenRouter-routed models
+        # stay near-deterministic on structured (tool-call/suggestion) turns.
+        payload["temperature"] = CLOUD_LLM_TEMPERATURE
         return payload
 
     async def health_check(self) -> bool:

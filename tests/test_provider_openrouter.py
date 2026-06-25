@@ -71,6 +71,25 @@ class TestOpenRouterHeaders:
         assert "X-Title" not in headers
 
 
+class TestOpenRouterPayload:
+    def test_build_payload_serializes_max_tokens(self, provider) -> None:
+        """The caller-chosen output budget must reach the request body —
+        OpenAI-compatible providers previously dropped it, so the scaled
+        analysis budget was silently ignored and large responses truncated."""
+        payload = provider.build_payload(
+            "sys", [{"role": "user", "content": "hi"}], max_tokens=5376
+        )
+        assert payload["max_tokens"] == 5376
+
+    def test_build_payload_pins_temperature(self, provider) -> None:
+        payload = provider.build_payload("sys", [{"role": "user", "content": "hi"}])
+        assert payload["temperature"] == 0.2
+
+    def test_build_payload_disables_reasoning(self, provider) -> None:
+        payload = provider.build_payload("sys", [{"role": "user", "content": "hi"}])
+        assert payload["reasoning"] == {"enabled": False}
+
+
 class TestOpenRouterRegistry:
     def test_create_via_factory(self, hass) -> None:
         prov = create_provider(

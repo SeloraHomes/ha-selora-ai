@@ -1020,6 +1020,16 @@ ANALYSIS_LLM_TIMEOUT = 300
 # and short enough that a misconfigured key/network surfaces quickly.
 HEALTH_CHECK_TIMEOUT = 15
 
+# ── Cloud Gateway Sampling ──────────────────────────────────────────
+# Sampling temperature for the gateway providers (Selora Cloud, OpenRouter)
+# that route to arbitrary backing models. Those gateways can land on cheap,
+# weak models that, left at the API default (~1.0),
+# drift hard on structured turns — malformed tool-call/suggestion JSON,
+# hallucinated entity_ids. A low temperature is the single biggest reliability
+# lever; 0.2 keeps prose replies natural while making JSON near-deterministic.
+# The local provider pins its own 0.0 and is unaffected.
+CLOUD_LLM_TEMPERATURE = 0.2
+
 # ── Tool Calling ────────────────────────────────────────────────────
 MAX_TOOL_CALL_ROUNDS = 5  # Maximum LLM-tool round trips per chat turn
 MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
@@ -1164,6 +1174,16 @@ DEFAULT_MAX_SUGGESTIONS = 3  # Max automation suggestions per analysis cycle
 DEFAULT_MIN_SUGGESTIONS = 3  # Floor: always allow at least this many
 DEFAULT_MAX_SUGGESTIONS_CEILING = 10  # Ceiling: never exceed this many
 DEFAULT_DEVICES_PER_SUGGESTION = 5  # Scaling factor: 1 extra suggestion per N uncovered devices
+
+# Output-token budget for the analysis call, scaled to the number of
+# suggestions requested. The send_request default (1024) truncates the JSON
+# array mid-object once several suggestions are emitted, and parse_suggestions
+# silently drops the malformed tail — so a higher max_suggestions could yield
+# FEWER parsed results. Each suggestion's JSON automation runs ~150-250 tokens;
+# 512 leaves headroom for multi-trigger/condition/action objects, plus a base
+# for the array envelope. At the ceiling (10): 256 + 5120 = 5376 tokens.
+ANALYSIS_OUTPUT_BASE_TOKENS = 256
+ANALYSIS_OUTPUT_TOKENS_PER_SUGGESTION = 512
 
 # ── Automation Cap ──────────────────────────────────────────────────
 # Dynamic cap on background-suggested automations: 1.5 × number of devices.

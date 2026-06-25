@@ -20,6 +20,8 @@ from typing import TYPE_CHECKING, Any
 
 from ..const import (
     ANALYSIS_LLM_TIMEOUT,
+    ANALYSIS_OUTPUT_BASE_TOKENS,
+    ANALYSIS_OUTPUT_TOKENS_PER_SUGGESTION,
     DEFAULT_MAX_SUGGESTIONS,
     DEFAULT_RECORDER_LOOKBACK_DAYS,
     LLM_PROVIDER_ANTHROPIC,
@@ -65,6 +67,7 @@ from .intent import (
     _classify_chat_intent,
     _filter_cloud_entities,
     _filter_entities_by_keywords,
+    _is_definite_automation,
     _is_pure_greeting,
     _low_context_keywords,
 )
@@ -143,10 +146,10 @@ def _join_stream_boundary(streamed: str, synthesized: str) -> str:
     """
     if not synthesized:
         return synthesized
-    # No prose streamed yet, or the prose already committed a trailing
-    # space — the boundary is implicit; emitting the chunk raw keeps a
-    # single separator either way.
-    if not streamed or streamed[-1].isspace():
+    # No prose streamed yet, or either side already carries the separator
+    # (prose ends in whitespace / the chunk starts with it) — the boundary
+    # is implicit; emitting the chunk raw keeps a single separator either way.
+    if not streamed or streamed[-1].isspace() or synthesized[0].isspace():
         return synthesized
     return " " + synthesized
 
@@ -248,6 +251,13 @@ def _pre_provider_short_circuit(
     # devices. Skip them so the refinement reaches the LLM, which has
     # the proposal context.
     if refining:
+        return None
+    # Automation/scene CREATION requests must reach the LLM — it reasons
+    # about triggers AND targets holistically. The single-target command
+    # clarification ("Which light?") would hijack "create an automation
+    # that turns on the hallway light…", strip the trigger context, and
+    # reduce a multi-part automation to a one-entity command picker.
+    if _is_definite_automation(user_message):
         return None
     envelope = _build_multi_target_command_envelope(user_message, entities)
     if envelope is not None:
@@ -534,20 +544,25 @@ class LLMClient:
             lookback_days=self._lookback_days,
         )
 
+        # Parse inside the scope so the JSON-salvage repair counter
+        # (cloud_json_salvage) is captured — the repair buffer is emitted on
+        # scope exit, mirroring the command path's in-scope parsing.
         with self._usage.scope("suggestions"):
             try:
                 result, error = await self._provider.send_request(
                     system=system_prompt,
                     messages=[{"role": "user", "content": user_prompt}],
                     timeout=ANALYSIS_LLM_TIMEOUT,
+                    max_tokens=ANALYSIS_OUTPUT_BASE_TOKENS
+                    + ANALYSIS_OUTPUT_TOKENS_PER_SUGGESTION * self._max_suggestions,
                 )
             finally:
                 self._usage.flush("suggestions")
 
-        if not result:
-            return []
+            if not result:
+                return []
 
-        return parse_suggestions(result, self.provider_name)
+            return parse_suggestions(result, self.provider_name)
 
     async def architect_chat(
         self,
@@ -1320,12 +1335,21 @@ class LLMClient:
         for _round in range(MAX_TOOL_CALL_ROUNDS):
             tool_calls: list[dict[str, Any]] = []
             content_blocks: list[dict[str, Any]] = []
+            # The first model narration of a *subsequent* round (post-tool-
+            # result prose) must not fuse with the prior round's prose tail
+            # under the WS handler's `full_text += chunk` — insert one boundary
+            # space so "...search for them." + "I don't see..." doesn't render
+            # as "...search for them.I don't see...".
+            first_text_in_round = True
 
             try:
                 async for resp in self._provider.raw_request_stream(system, messages, tools=tools):
                     async for text in self._provider.stream_with_tools(
                         resp, tool_calls, content_blocks
                     ):
+                        if _round > 0 and first_text_in_round and text:
+                            text = _join_stream_boundary("".join(streamed_text_parts), text)
+                            first_text_in_round = False
                         streamed_text_parts.append(text)
                         yield text
 
