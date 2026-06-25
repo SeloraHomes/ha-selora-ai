@@ -1031,6 +1031,63 @@ export function renderMessage(host, msg, idx) {
     }
   }
 
+  // The refine-source card is the EXISTING automation/scene loaded for
+  // context (the "Describe the changes" message), or a superseded original
+  // once a refinement supersedes it. It isn't an LLM-authored artifact, so
+  // there's nothing to copy or rate there.
+  const isRefineSource =
+    msg.automation_status === "refining" || msg.scene_status === "refining";
+  // What the copy button yields. On a genuine proposal the artifact worth
+  // copying is the resulting YAML, not the prose preamble ("Adjusting the
+  // delay to 10 minutes…") — so automation/scene proposals copy their YAML.
+  // Every other prose reply copies its text. Action cards that aren't
+  // copyable proposals (approvals, refine sources) have nothing to copy.
+  const isProposal =
+    !isUser && !isRefineSource && !!(msg.automation || msg.scene);
+  const isActionCard = !!(msg.automation || msg.scene || msg.command_approval);
+  const copyText = isProposal
+    ? (msg.automation ? msg.automation_yaml : msg.scene_yaml || "").trim()
+    : isActionCard
+      ? ""
+      : (displayContent || "").trim();
+  const canCopy = !isUser && !msg._streaming && !!copyText;
+  // Thumbs rate model-authored prose. They render on plain replies and on
+  // automation/scene proposals — the preamble ("Adjusting the delay to 10
+  // minutes…") is model output worth rating, and the generated automation is
+  // exactly what we want feedback on. Suppressed only on command-approval
+  // cards (a confirmation to act on, no prose to rate) and refine-source
+  // cards (an existing artifact loaded for context, not LLM output).
+  const canFeedback =
+    !isUser &&
+    !msg._streaming &&
+    !msg.command_approval &&
+    !isRefineSource &&
+    !!displayContent?.trim();
+  // A stream that fails before the first token leaves an interrupted reply
+  // with no prose — the retry affordance must still render so the failed
+  // turn is recoverable.
+  const canRetry = !isUser && !!(msg._interrupted && msg._retryWith);
+  const hasProposalActions = !isUser && !!msg.automation;
+  const showQuickActions =
+    !isUser &&
+    !!(msg.quick_actions && msg.quick_actions.length) &&
+    // Standard quick_actions only render on the latest message — once the
+    // conversation has moved on, an old suggestion chip is just clutter.
+    // Approval cards are the exception: a pending proposal must stay
+    // actionable even if the user typed something else before clicking,
+    // otherwise the only way to resolve it is to reload the session.
+    (idx === host._messages.length - 1 ||
+      (msg.command_approval &&
+        msg.approval_status !== "approved" &&
+        msg.approval_status !== "denied" &&
+        msg.approval_status !== "resolving")) &&
+    // Hide approval action cards once the proposal has been resolved (or
+    // is mid-resolve). Re-clicking after the status flipped would 404
+    // server-side, and the approved/denied chip already says what happened.
+    msg.approval_status !== "approved" &&
+    msg.approval_status !== "denied" &&
+    msg.approval_status !== "resolving";
+
   return html`
     <div class="message-row">
       ${isUser
@@ -1062,6 +1119,7 @@ export function renderMessage(host, msg, idx) {
                       class="msg-content ${msg._streaming
                         ? "streaming-cursor"
                         : ""}"
+                      @click=${host._onCodeCopyClick}
                       .innerHTML=${renderMarkdown(displayContent)}
                     ></span>`}
                 ${showAutomationSpinner
@@ -1154,75 +1212,142 @@ export function renderMessage(host, msg, idx) {
                   ? renderToolCalls(host, msg.tool_calls)
                   : ""}
               </div>
-              ${msg.automation ? host._renderProposalActions(msg, idx) : ""}
-              ${msg.quick_actions &&
-              msg.quick_actions.length &&
-              // Standard quick_actions only render on the latest
-              // message — once the conversation has moved on, an old
-              // suggestion chip is just clutter. Approval cards are
-              // the exception: a pending proposal must stay actionable
-              // even if the user typed something else before clicking,
-              // otherwise the only way to resolve it is to reload the
-              // session.
-              (idx === host._messages.length - 1 ||
-                (msg.command_approval &&
-                  msg.approval_status !== "approved" &&
-                  msg.approval_status !== "denied" &&
-                  msg.approval_status !== "resolving")) &&
-              // Hide approval action cards once the proposal has been
-              // resolved (or is mid-resolve). Re-clicking after the
-              // status flipped would 404 server-side, and the approved
-              // / denied chip already tells the user what happened.
-              msg.approval_status !== "approved" &&
-              msg.approval_status !== "denied" &&
-              msg.approval_status !== "resolving"
-                ? renderQuickActions(host, msg.quick_actions, {
-                    used: !!msg._qa_used,
-                  })
+              ${msg._streaming ||
+              canCopy ||
+              canFeedback ||
+              canRetry ||
+              showQuickActions ||
+              hasProposalActions
+                ? html`<div
+                    class="bubble-meta"
+                    style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
+                  >
+                    ${msg._streaming
+                      ? html`<span style="opacity:0.5;">
+                          Selora AI ·
+                          ${host._config?.developer_mode &&
+                          typeof msg._replyMs === "number"
+                            ? _formatReplyMs(msg._replyMs)
+                            : formatTime(msg.timestamp)}
+                        </span>`
+                      : canCopy || canFeedback || canRetry
+                        ? html`<div class="msg-actions">
+                            ${canCopy
+                              ? html`<button
+                                  class="msg-action-btn"
+                                  title=${host._t(
+                                    isProposal
+                                      ? "chat_copy_yaml"
+                                      : "chat_copy_message",
+                                    isProposal ? "Copy YAML" : "Copy message",
+                                  )}
+                                  aria-label=${host._t(
+                                    isProposal
+                                      ? "chat_copy_yaml"
+                                      : "chat_copy_message",
+                                    isProposal ? "Copy YAML" : "Copy message",
+                                  )}
+                                  @click=${(e) =>
+                                    host._copyMessageText(
+                                      msg,
+                                      e.currentTarget,
+                                      copyText,
+                                    )}
+                                >
+                                  <ha-icon
+                                    icon="mdi:content-copy"
+                                    style="--mdc-icon-size:14px;"
+                                  ></ha-icon>
+                                </button>`
+                              : ""}
+                            ${canFeedback && host._config?.telemetry_enabled
+                              ? html`<button
+                                    class="msg-action-btn${msg._feedback ===
+                                    "positive"
+                                      ? " active"
+                                      : ""}"
+                                    title=${host._t(
+                                      "chat_feedback_helpful",
+                                      "Good response",
+                                    )}
+                                    aria-label=${host._t(
+                                      "chat_feedback_helpful",
+                                      "Good response",
+                                    )}
+                                    @click=${(e) =>
+                                      host._recordChatFeedback(
+                                        msg,
+                                        "positive",
+                                        e.currentTarget,
+                                      )}
+                                  >
+                                    <ha-icon
+                                      icon=${msg._feedback === "positive"
+                                        ? "mdi:thumb-up"
+                                        : "mdi:thumb-up-outline"}
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                  </button>
+                                  <button
+                                    class="msg-action-btn${msg._feedback ===
+                                    "negative"
+                                      ? " active"
+                                      : ""}"
+                                    title=${host._t(
+                                      "chat_feedback_not_helpful",
+                                      "Bad response",
+                                    )}
+                                    aria-label=${host._t(
+                                      "chat_feedback_not_helpful",
+                                      "Bad response",
+                                    )}
+                                    @click=${(e) =>
+                                      host._recordChatFeedback(
+                                        msg,
+                                        "negative",
+                                        e.currentTarget,
+                                      )}
+                                  >
+                                    <ha-icon
+                                      icon=${msg._feedback === "negative"
+                                        ? "mdi:thumb-down"
+                                        : "mdi:thumb-down-outline"}
+                                      style="--mdc-icon-size:14px;"
+                                    ></ha-icon>
+                                  </button>`
+                              : ""}
+                            ${msg._interrupted && msg._retryWith
+                              ? html`<button
+                                  class="msg-action-btn"
+                                  title=${host._t("chat_retry", "Retry")}
+                                  aria-label=${host._t("chat_retry", "Retry")}
+                                  @click=${() =>
+                                    host._retryMessage(msg._retryWith)}
+                                >
+                                  <ha-icon
+                                    icon="mdi:refresh"
+                                    style="--mdc-icon-size:14px;"
+                                  ></ha-icon>
+                                </button>`
+                              : ""}
+                          </div>`
+                        : ""}
+                    ${hasProposalActions || showQuickActions
+                      ? html`<div class="msg-quick">
+                          ${hasProposalActions
+                            ? host._renderProposalActions(msg, idx)
+                            : ""}
+                          ${showQuickActions
+                            ? renderQuickActions(host, msg.quick_actions, {
+                                used: !!msg._qa_used,
+                              })
+                            : ""}
+                        </div>`
+                      : ""}
+                  </div>`
                 : ""}
-              <div
-                class="bubble-meta"
-                style="display:flex;justify-content:space-between;align-items:center;width:100%;"
-              >
-                <span>
-                  Selora AI ·
-                  ${host._config?.developer_mode &&
-                  typeof msg._replyMs === "number"
-                    ? _formatReplyMs(msg._replyMs)
-                    : formatTime(msg.timestamp)}
-                  ${msg._interrupted && msg._retryWith
-                    ? html` ·
-                        <button
-                          class="stream-interrupt-retry"
-                          @click=${() =>
-                            host._retryMessage(msg._retryWith, msg)}
-                        >
-                          <ha-icon
-                            icon="mdi:refresh"
-                            style="--mdc-icon-size:12px;"
-                          ></ha-icon>
-                          ${host._t("chat_retry", "Retry")}
-                        </button>`
-                    : ""}
-                </span>
-                <button
-                  class="copy-msg-btn"
-                  title=${host._t("chat_copy_message", "Copy message")}
-                  @click=${(e) => host._copyMessageText(msg, e.currentTarget)}
-                >
-                  <ha-icon
-                    icon="mdi:content-copy"
-                    style="--mdc-icon-size:12px;"
-                  ></ha-icon>
-                </button>
-              </div>
             </div>
           `}
-      ${isUser
-        ? html` <div class="bubble-meta">
-            ${host._t("chat_you", "You")} · ${formatTime(msg.timestamp)}
-          </div>`
-        : ""}
     </div>
   `;
 }

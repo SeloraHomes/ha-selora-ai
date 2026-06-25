@@ -635,18 +635,106 @@ export function _onChatScroll(e) {
   this._chatScrolledAway = distance > 80;
 }
 
-export async function _copyMessageText(msg, btn) {
+// Record an anonymous thumbs up/down on an assistant reply. Only wired
+// up in the UI when telemetry is enabled (the toolbar hides the thumbs
+// otherwise). Clicking the active rating again clears it. The backend
+// only ever sees the direction, never the message text.
+export async function _recordChatFeedback(msg, rating, btn) {
+  if (!this._config?.telemetry_enabled) return;
+  _pulse(btn);
+  const next = msg._feedback === rating ? null : rating;
+  msg._feedback = next;
+  this._messages = [...this._messages];
+  if (!next) return;
+  // Tell telemetry which kind of reply was rated so automation/scene
+  // feedback can be tracked apart from plain prose answers.
+  const subject = msg.automation ? "automation" : msg.scene ? "scene" : "prose";
   try {
-    const text = msg.content || "";
-    await navigator.clipboard.writeText(text);
-    btn.classList.add("copied");
-    const icon = btn.querySelector("ha-icon");
-    if (icon) icon.setAttribute("icon", "mdi:check");
-    setTimeout(() => {
-      btn.classList.remove("copied");
-      if (icon) icon.setAttribute("icon", "mdi:content-copy");
-    }, 1500);
+    await this.hass.callWS({
+      type: "selora_ai/record_chat_feedback",
+      rating: next,
+      subject,
+    });
   } catch (_) {
-    /* clipboard not available */
+    // Telemetry is best-effort — a failed counter never surfaces an
+    // error. Leave the thumb selected so the click still feels handled.
   }
+}
+
+// Copy text to the clipboard with a fallback for insecure contexts.
+// HA is often served over plain http on the LAN, where
+// `navigator.clipboard` is undefined — without the execCommand path the
+// copy buttons would silently do nothing.
+async function _writeClipboard(text) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (_) {
+    /* fall through to the legacy path */
+  }
+  try {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.setAttribute("readonly", "");
+    ta.style.position = "fixed";
+    ta.style.top = "-9999px";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    return ok;
+  } catch (_) {
+    return false;
+  }
+}
+
+// Brief press animation shared by the icon action buttons.
+function _pulse(btn) {
+  if (!btn) return;
+  btn.classList.remove("pulse");
+  // Force reflow so re-adding the class restarts the animation.
+  void btn.offsetWidth;
+  btn.classList.add("pulse");
+  setTimeout(() => btn.classList.remove("pulse"), 300);
+}
+
+// Delegated handler for the per-fence copy buttons injected into rendered
+// markdown (see renderMarkdown). The buttons live inside a `.innerHTML`
+// blob so they can't carry lit listeners — clicks bubble up to the
+// message span, where this picks them off by class and copies the raw
+// code stashed on `data-code`.
+export async function _onCodeCopyClick(e) {
+  const btn = e.target.closest?.(".selora-code-copy");
+  if (!btn) return;
+  const code = btn.dataset.code || "";
+  _pulse(btn);
+  const ok = await _writeClipboard(code);
+  if (!ok || btn.classList.contains("copied")) return;
+  const original = btn.innerHTML;
+  btn.classList.add("copied");
+  btn.innerHTML =
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  setTimeout(() => {
+    btn.classList.remove("copied");
+    btn.innerHTML = original;
+  }, 1500);
+}
+
+export async function _copyMessageText(msg, btn, text) {
+  _pulse(btn);
+  // Prefer the display text (automation/scene JSON stripped) when the
+  // caller has it; fall back to the raw content.
+  const toCopy = (text ?? msg.content) || "";
+  const ok = await _writeClipboard(toCopy);
+  if (!ok) return;
+  btn.classList.add("copied");
+  const icon = btn.querySelector("ha-icon");
+  if (icon) icon.setAttribute("icon", "mdi:check");
+  setTimeout(() => {
+    btn.classList.remove("copied");
+    if (icon) icon.setAttribute("icon", "mdi:content-copy");
+  }, 1500);
 }

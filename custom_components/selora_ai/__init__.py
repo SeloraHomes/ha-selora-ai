@@ -3149,6 +3149,39 @@ async def _handle_websocket_delete_session(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
+        vol.Required("type"): "selora_ai/record_chat_feedback",
+        vol.Required("rating"): vol.In(("positive", "negative")),
+        vol.Optional("subject", default="prose"): vol.In(("automation", "scene", "prose")),
+    }
+)
+async def _handle_websocket_record_chat_feedback(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Record an anonymous thumbs up/down on a chat reply.
+
+    Counter-only: the message text is never sent here, just which
+    direction the user rated and which kind of reply it was (an
+    automation proposal, a scene proposal, or plain prose). Both the
+    aggregate counter and the subject-specific one are bumped so the
+    aggregate stays the sum across subjects. ``record_activity``
+    accumulates regardless of opt-in; the periodic flush is what the
+    telemetry toggle gates.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    rating = msg["rating"]
+    subject = msg["subject"]
+    record_activity(hass, f"chat_feedback_{rating}")
+    record_activity(hass, f"chat_feedback_{subject}_{rating}")
+    connection.send_result(msg["id"], {"status": "ok"})
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
         vol.Required("type"): "selora_ai/set_automation_status",
         vol.Required("session_id"): str,
         vol.Required("message_index"): int,
@@ -7388,6 +7421,7 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     websocket_api.async_register_command(hass, _handle_websocket_get_drafts)
     websocket_api.async_register_command(hass, _handle_websocket_remove_draft)
     websocket_api.async_register_command(hass, _handle_websocket_delete_session)
+    websocket_api.async_register_command(hass, _handle_websocket_record_chat_feedback)
     websocket_api.async_register_command(hass, _handle_websocket_set_automation_status)
     websocket_api.async_register_command(hass, _handle_websocket_set_scene_status)
     websocket_api.async_register_command(hass, _handle_websocket_accept_scene)
