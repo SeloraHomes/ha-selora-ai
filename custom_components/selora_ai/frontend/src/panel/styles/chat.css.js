@@ -526,9 +526,7 @@ export const chatStyles = css`
   .bubble-meta:has(.qa-group),
   .bubble-meta:has(.automation-card-actions),
   .bubble-meta:has(.automation-workflow),
-  .message-row:hover .bubble-meta:has(.msg-actions),
-  .bubble-meta:has(.msg-action-btn.active),
-  .bubble-meta:has(.msg-action-btn.copied) {
+  .bubble-meta:has(.msg-actions) {
     margin-top: 8px;
   }
   /* The action group inside msg-quick brings its own top margin meant
@@ -549,18 +547,16 @@ export const chatStyles = css`
     justify-content: flex-end;
     margin-top: 4px;
   }
-  /* The feedback cluster reserves NO vertical space until revealed, so
-     an idle reply's hidden buttons don't pad the gap above the next
-     message. Collapsed via max-height (not display:none) so the opacity
-     fade still animates. The sibling .msg-quick keeps its own height, so
-     a row with visible Run/View actions stays the right size. */
+  /* The feedback cluster always reserves its vertical space (the row keeps
+     its natural height whether or not the buttons are visible), so hovering
+     only fades the buttons in — it never grows the layout and shifts the
+     messages below. Hidden via opacity alone, not max-height/display, so
+     the space stays claimed and the fade still animates. */
   .msg-actions {
     display: flex;
     align-items: center;
     gap: 2px;
     opacity: 0;
-    max-height: 0;
-    overflow: hidden;
     transition: opacity 0.15s ease;
     /* Linger on mouse-leave so the cursor can travel down to a button
        without the row losing :hover snatching it away mid-click. */
@@ -570,23 +566,14 @@ export const chatStyles = css`
   .msg-actions:has(.active),
   .msg-actions:has(.copied) {
     opacity: 1;
-    max-height: 40px;
-    overflow: visible;
     transition-delay: 0s;
   }
-  /* Touch devices have no real hover — a tap fires sticky :hover, which
-     would expand the collapsed toolbar and shove the message down. Reveal
-     the buttons permanently there so every prose reply reserves the same
-     space and nothing shifts on tap. */
+  /* Touch devices have no real hover — reveal the buttons permanently so
+     they're reachable without a hover state to trigger them. */
   @media (hover: none) {
     .msg-actions {
       opacity: 1;
-      max-height: 40px;
-      overflow: visible;
       transition-delay: 0s;
-    }
-    .bubble-meta:has(.msg-actions) {
-      margin-top: 8px;
     }
   }
   /* Quick-action chips share the row with the feedback buttons, pinned
