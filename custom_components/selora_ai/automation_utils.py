@@ -765,6 +765,12 @@ def _collect_referenced_entity_ids(
         data = action.get("data")
         if isinstance(data, dict):
             _add(data.get("entity_id"))
+            # tts.speak / tts.cloud_say address their target speaker via
+            # data.media_player_entity_id — a genuine entity reference (always
+            # media_player.*). Walk it so it gets the unknown-entity check,
+            # notably the speaker an announcement rewrite moves here from the
+            # original target.entity_id.
+            _add(data.get("media_player_entity_id"))
 
         # wait_for_trigger embeds trigger dicts (each with its own
         # platform/entity_id) inside an action. Without this the entity
@@ -879,6 +885,11 @@ def _collect_referenced_resources(
         data = action.get("data")
         if isinstance(data, dict):
             _add(entities, data.get("entity_id"))
+            # tts.speak / tts.cloud_say address the speaker via
+            # data.media_player_entity_id (a media_player.* entity ref). Collect
+            # it so ignored-media-player filtering still applies after an
+            # announcement rewrite moves the speaker here from target.entity_id.
+            _add(entities, data.get("media_player_entity_id"))
 
         for trigger in _as_list(action.get("wait_for_trigger")):
             _walk_trigger(trigger)
@@ -987,6 +998,205 @@ def validate_action_services(
     return True
 
 
+# Substrings / suffixes that mark a ``media_content_id`` as a real, playable
+# audio reference rather than a sentence the user wants spoken aloud. Used to
+# tell a genuine ``media_player.play_media`` call apart from the common model
+# mistake of handing it announcement text (which plays nothing).
+_PLAYABLE_MEDIA_MARKERS: tuple[str, ...] = (
+    "://",  # any URI scheme (http, https, rtsp, …)
+    "media-source:",
+    "spotify:",
+    "/local/",
+    "/media/",
+)
+_AUDIO_EXTENSIONS: tuple[str, ...] = (".mp3", ".wav", ".flac", ".m4a", ".ogg", ".aac")
+
+
+def _looks_like_spoken_text(value: str) -> bool:
+    """Return ``True`` when *value* reads as an announcement sentence rather
+    than a playable media reference (URL, media-source id, file path, stream).
+
+    Known false-positive: a genuine multi-word friendly-name ``media_content_id``
+    with no URI marker (e.g. a radio/playlist name) is classed as prose and
+    rewritten to ``tts.speak``. Accepted on purpose — the silent-announcement
+    failure is far more common than friendly-name content ids, and the rewrite
+    still falls back to leaving the action untouched when no TTS engine exists.
+    """
+    text = value.strip()
+    if not text:
+        return False
+    # A Jinja template renders to a dynamic media reference (URL / media-source
+    # id) at run time — it is not a sentence to speak, even though it reads like
+    # prose. Leave templated play_media calls alone.
+    if "{{" in text or "{%" in text:
+        return False
+    low = text.lower()
+    if any(marker in low for marker in _PLAYABLE_MEDIA_MARKERS):
+        return False
+    if low.endswith(_AUDIO_EXTENSIONS):
+        return False
+    # Non-ASCII letters (CJK, Cyrillic, Greek, accented Latin, …) effectively
+    # never appear in an opaque media token, so their presence marks the
+    # payload as a sentence to speak. CJK scripts have no word spaces, so we
+    # cannot require whitespace here — this is what lets ja/ko/zh/ru
+    # announcements get repaired, not just Latin-script ones.
+    if any(ch.isalpha() and ord(ch) > 127 for ch in text):
+        return True
+    # ASCII-only: an opaque media token is a single word; prose is several.
+    if " " not in text:
+        return False
+    return len(re.findall(r"[a-zA-Z]{2,}", text)) >= 2
+
+
+def _play_media_speaker(action: dict[str, Any]) -> str | list[str] | None:
+    """Return the media_player entity_id(s) a ``play_media`` action targets,
+    checking ``target.entity_id``, a bare ``entity_id``, then ``data.entity_id``."""
+    target = action.get("target")
+    if isinstance(target, dict) and target.get("entity_id"):
+        return target["entity_id"]
+    if action.get("entity_id"):
+        return action["entity_id"]
+    data = action.get("data")
+    if isinstance(data, dict) and data.get("entity_id"):
+        return data["entity_id"]
+    return None
+
+
+def _resolve_tts_engine(hass: HomeAssistant) -> str | None:
+    """Pick a TTS engine entity for ``tts.speak``: prefer HA Cloud, then Piper,
+    then Google, else the first available ``tts.*`` entity. ``None`` when none."""
+    tts_entities = sorted(hass.states.async_entity_ids("tts"))
+    if not tts_entities:
+        return None
+    for preferred in ("cloud", "piper", "google"):
+        for eid in tts_entities:
+            if preferred in eid:
+                return eid
+    return tts_entities[0]
+
+
+def _rewrite_spoken_play_media(
+    action: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any] | None:
+    """Rewrite a ``media_player.play_media`` action handed announcement text
+    into a working ``tts.speak`` call.
+
+    ``media_player.play_media`` only plays audio files or streams, so a plain
+    text payload produces a valid-but-silent automation — the exact failure
+    mode behind doorbell-announcement automations. When the payload reads as
+    spoken text and a TTS engine is available, retarget it to ``tts.speak``
+    with the engine as the target and the original speaker passed as
+    ``media_player_entity_id``.
+
+    Returns the rewritten action, or ``None`` when the action is a genuine
+    media call or is not rewritable (no TTS engine).
+    """
+    service = str(action.get("action", action.get("service", "")))
+    if service != "media_player.play_media":
+        return None
+
+    data = action.get("data")
+    data = data if isinstance(data, dict) else {}
+    raw_text = data.get("media_content_id") or data.get("message") or ""
+    if not isinstance(raw_text, str) or not _looks_like_spoken_text(raw_text):
+        return None
+
+    if not hass.services.has_service("tts", "speak"):
+        _LOGGER.warning(
+            "Announcement automation uses media_player.play_media with text but "
+            "tts.speak is unavailable; leaving as-is (it will be silent)."
+        )
+        return None
+    engine = _resolve_tts_engine(hass)
+    if engine is None:
+        _LOGGER.warning(
+            "Announcement automation uses media_player.play_media with text but "
+            "no TTS engine entity is configured; leaving as-is (it will be silent)."
+        )
+        return None
+
+    speaker = _play_media_speaker(action)
+    speaker_ids: list[str] = []
+    for part in speaker if isinstance(speaker, list) else [speaker]:
+        if isinstance(part, str):
+            speaker_ids.extend(p.strip() for p in part.split(",") if p.strip())
+    # tts.speak addresses the speaker through ``data.media_player_entity_id``,
+    # which accepts only media_player entity_ids — not ``area_id`` / ``device_id``
+    # targets, and not other domains. If we can't identify a concrete
+    # media_player speaker, leave the play_media action untouched: it stays
+    # silent, but we never emit a tts.speak that can't run, and the original
+    # action still goes through the normal service/entity/read-only gates.
+    if not speaker_ids or any(s.split(".")[0] != "media_player" for s in speaker_ids):
+        _LOGGER.warning(
+            "Announcement automation uses media_player.play_media with text but its "
+            "target is not a concrete media_player entity (area/device target or "
+            "another domain); leaving as-is (it will be silent)."
+        )
+        return None
+
+    # Preserve any per-action keys the original carried (alias, enabled,
+    # continue_on_error, variables, …); only the service-call shape is
+    # replaced — drop the old media-call keys so no stale target/data leaks.
+    rewritten: dict[str, Any] = {
+        key: val
+        for key, val in action.items()
+        if key not in ("action", "service", "target", "entity_id", "data")
+    }
+    rewritten["action"] = "tts.speak"
+    rewritten["target"] = {"entity_id": engine}
+    rewritten["data"] = {
+        "media_player_entity_id": speaker_ids[0] if len(speaker_ids) == 1 else speaker_ids,
+        "message": raw_text,
+    }
+    _LOGGER.info(
+        "Rewrote silent media_player.play_media announcement to tts.speak (engine=%s, speaker=%s).",
+        engine,
+        ", ".join(speaker_ids),
+    )
+    return rewritten
+
+
+def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
+    """Apply :func:`_rewrite_spoken_play_media` to *action* and to any actions
+    nested in its control-flow branches (``choose`` / ``if`` / ``sequence`` /
+    ``repeat`` / ``parallel`` …).
+
+    Mirrors the recursion the entity walker and condition validator already do,
+    so a ``media_player.play_media`` announcement buried inside a conditional
+    branch is repaired just like a top-level one. Returns the resulting action
+    (the rewritten ``tts.speak`` form, or the original with nested branches
+    rewritten in place).
+    """
+    rewritten = _rewrite_spoken_play_media(action, hass)
+    if rewritten is not None:
+        return rewritten
+
+    def _rewrite_seq(value: Any) -> Any:
+        # HA accepts the singular dict form, a flat list, and nested sequence
+        # lists (e.g. ``parallel: [[{...}], [{...}]]``) for action sequences;
+        # recurse through whichever shape is present so a play_media buried in a
+        # nested list still gets rewritten rather than returned as-is.
+        if isinstance(value, dict):
+            return _rewrite_announcements(value, hass)
+        if isinstance(value, list):
+            return [_rewrite_seq(item) for item in value]
+        return value
+
+    for key in ("sequence", "then", "else", "default", "parallel"):
+        if key in action:
+            action[key] = _rewrite_seq(action[key])
+    choose = action.get("choose")
+    if isinstance(choose, list):
+        for branch in choose:
+            if isinstance(branch, dict) and "sequence" in branch:
+                branch["sequence"] = _rewrite_seq(branch["sequence"])
+    repeat = action.get("repeat")
+    if isinstance(repeat, dict) and "sequence" in repeat:
+        repeat["sequence"] = _rewrite_seq(repeat["sequence"])
+    return action
+
+
 def validate_automation_payload(
     automation: dict[str, Any] | None,
     hass: HomeAssistant | None = None,
@@ -1068,6 +1278,11 @@ def validate_automation_payload(
     for act in actions:
         norm_act = _normalize_item(act)
         if hass is not None:
+            # Repair the silent-announcement defect: media_player.play_media
+            # handed spoken text never produces audio. Retarget to tts.speak
+            # (recursively, incl. control-flow branches) before the
+            # service/entity gates below validate the result.
+            norm_act = _rewrite_announcements(norm_act, hass)
             action_service = str(norm_act.get("action", norm_act.get("service", "")))
             if "." in action_service and "{{" not in action_service:
                 svc_domain, svc_name = action_service.split(".", 1)
