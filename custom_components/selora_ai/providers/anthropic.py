@@ -115,6 +115,10 @@ class AnthropicProvider(LLMProvider):
         calls = []
         for block in response_data.get("content", []):
             if block.get("type") == "tool_use":
+                # Skip a malformed tool_use block missing its id/name rather
+                # than KeyError-ing the whole turn on a flaky response.
+                if not block.get("id") or not block.get("name"):
+                    continue
                 calls.append(
                     {
                         "id": block["id"],
@@ -154,7 +158,9 @@ class AnthropicProvider(LLMProvider):
         results: list[dict[str, Any]],
     ) -> None:
         messages.append({"role": "assistant", "content": content_blocks})
-        for tc, res in zip(tool_calls, results, strict=True):
+        # strict=False: on the cancel/watchdog early-break path results
+        # can be shorter than tool_calls; pair what we have.
+        for tc, res in zip(tool_calls, results, strict=False):
             messages.append(
                 {
                     "role": "user",

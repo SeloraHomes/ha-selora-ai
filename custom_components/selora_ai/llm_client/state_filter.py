@@ -91,17 +91,26 @@ _STATE_WORDS: dict[str, str] = {
     "ouvertes": "open",
     "abierto": "open",
     "abierta": "open",
+    "abiertos": "open",
+    "abiertas": "open",
     "aperto": "open",
     "aperta": "open",
+    "aperti": "open",
+    "aperte": "open",
     "offen": "open",
     "closed": "closed",
     "fermé": "closed",
     "fermée": "closed",
     "fermés": "closed",
     "fermées": "closed",
+    "cerrado": "closed",
     "cerrada": "closed",
+    "cerrados": "closed",
+    "cerradas": "closed",
     "chiuso": "closed",
     "chiusa": "closed",
+    "chiusi": "closed",
+    "chiuse": "closed",
     "geschlossen": "closed",
     # locked / unlocked (locks)
     "locked": "locked",
@@ -141,8 +150,12 @@ def detect_state_filter(message: str) -> tuple[str, str] | None:
     """
     if not message:
         return None
-    tokens = set(normalize(message).split())
-    if not tokens or tokens.isdisjoint(_INTERROGATIVES):
+    # Iterate the ordered token *list*, not a set: when a question names
+    # two categories ("which lights and covers are open?") we must pick the
+    # first one the user mentioned, deterministically — set iteration order
+    # would pin an arbitrary domain.
+    tokens = normalize(message).split()
+    if not tokens or set(tokens).isdisjoint(_INTERROGATIVES):
         return None
     domain: str | None = None
     for tok in tokens:

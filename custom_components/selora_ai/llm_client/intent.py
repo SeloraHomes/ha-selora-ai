@@ -1427,7 +1427,7 @@ def _is_diagnostic_sensor(entity: EntitySnapshot) -> bool:
     eid = entity.get("entity_id", "").lower()
     local = eid.split(".", 1)[-1] if "." in eid else eid
     tokens = set(re.split(r"[^a-z0-9]+", local)) - {""}
-    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    fname = str((entity.get("attributes") or {}).get("friendly_name", "")).lower()
     tokens |= set(re.split(r"[^a-z0-9]+", fname)) - {""}
     return bool(tokens & _DIAGNOSTIC_SENSOR_TOKENS)
 
@@ -1444,7 +1444,7 @@ def _need_relevance(entity: EntitySnapshot, keywords: set[str]) -> int:
     """
     eid = entity.get("entity_id", "").lower()
     local = eid.split(".", 1)[-1] if "." in eid else eid
-    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    fname = str((entity.get("attributes") or {}).get("friendly_name", "")).lower()
     name_tokens = set(re.split(r"[^a-z0-9]+", local)) | set(re.split(r"[^a-z0-9]+", fname))
     name_tokens -= {""}
     area = (entity.get("area_name") or "").lower()
@@ -1504,7 +1504,7 @@ def _entity_matches_need(
     if domain in domains:
         return True
     if device_classes:
-        dc = str(entity.get("attributes", {}).get("device_class", "")).lower()
+        dc = str((entity.get("attributes") or {}).get("device_class", "")).lower()
         if dc and dc in device_classes:
             return True
     return False
@@ -1530,7 +1530,7 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
     # light", they mean a specific one.
     domain = eid.split(".", 1)[0] if "." in eid else ""
     eid_local = eid.split(".", 1)[-1] if "." in eid else eid
-    fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
+    fname = str((entity.get("attributes") or {}).get("friendly_name", "")).lower()
     fname_tokens = set(re.split(r"[^a-z0-9]+", fname)) - {""}
     area = (entity.get("area_name") or "").lower()
     # Device brand (populated for media_player in the snapshot). Lets a
@@ -2423,7 +2423,7 @@ def _entity_need_keys(
     if domain in domains:
         keys.append(f"domain:{domain}")
     if device_classes:
-        dc = str(entity.get("attributes", {}).get("device_class", "")).lower()
+        dc = str((entity.get("attributes") or {}).get("device_class", "")).lower()
         if dc and dc in device_classes:
             keys.append(f"class:{dc}")
     return keys

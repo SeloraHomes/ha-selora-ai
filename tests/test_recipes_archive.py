@@ -18,6 +18,7 @@ import pytest
 from custom_components.selora_ai.recipes.archive import (
     ArchiveError,
     _safe_extract,
+    _validate_url,
     async_install_from_url,
     async_stage_archive_file,
 )
@@ -154,6 +155,29 @@ async def test_install_from_url_validates_suffix(
         await async_install_from_url(hass, "https://example.com/recipe.txt")
 
 
+def test_validate_url_requires_https_for_public_hosts() -> None:
+    """Plain http to a routable public host is a MITM vector (a swapped
+    bundle is rendered + written to disk) — it must be refused."""
+    with pytest.raises(ArchiveError, match="https"):
+        _validate_url("http://example.com/recipe.tar.gz")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        "https://example.com/recipe.tar.gz",  # public over TLS
+        "http://localhost/recipe.tgz",  # loopback name
+        "http://127.0.0.1/recipe.zip",  # loopback IP
+        "http://192.168.1.5/recipe.zip",  # RFC-1918
+        "http://10.0.0.1/recipe.tar.gz",  # RFC-1918
+        "http://homeassistant.local/recipe.zip",  # mDNS
+    ],
+)
+def test_validate_url_allows_tls_and_local_http(url: str) -> None:
+    """https anywhere, and plain http only for loopback/private/.local."""
+    _validate_url(url)
+
+
 async def test_install_from_url_happy_path(hass, tmp_path: Path) -> None:
     """Full path: mock the HTTP response to a real tarball; assert the
     bundle is staged under selora_ai_recipes/.
@@ -190,6 +214,70 @@ async def test_install_from_url_happy_path(hass, tmp_path: Path) -> None:
     )
     if download_dir.exists():
         assert not any(download_dir.iterdir())
+
+
+async def test_install_from_url_rejects_redirect_to_public_http(
+    hass, tmp_path: Path
+) -> None:
+    """An https URL that redirects to plaintext http on a public host must
+    be refused: aiohttp follows redirects by default, so without per-hop
+    validation the archive would be fetched in the clear, defeating the
+    MITM protection. We reject the hop before ever requesting it.
+    """
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMocker,
+    )
+
+    hass.config.config_dir = str(tmp_path)
+    url = "https://recipes.example.com/leak-lockdown.tar.gz"
+    mocker = AiohttpClientMocker()
+    mocker.get(
+        url,
+        status=302,
+        headers={"Location": "http://evil.example.com/leak-lockdown.tar.gz"},
+    )
+
+    session = mocker.create_session(hass.loop)
+    try:
+        with patch(
+            "custom_components.selora_ai.recipes.archive.async_get_clientsession",
+            return_value=session,
+        ):
+            with pytest.raises(ArchiveError, match="https"):
+                await async_install_from_url(hass, url)
+    finally:
+        await session.close()
+
+
+async def test_install_from_url_follows_https_redirect(
+    hass, tmp_path: Path
+) -> None:
+    """A legitimate https -> https redirect (e.g. a CDN hand-off) is
+    followed and staged normally."""
+    from pytest_homeassistant_custom_component.test_util.aiohttp import (
+        AiohttpClientMocker,
+    )
+
+    hass.config.config_dir = str(tmp_path)
+    url = "https://recipes.example.com/leak-lockdown.tar.gz"
+    final = "https://cdn.example.com/d/leak-lockdown.tar.gz"
+    payload = _build_demo_bundle_bytes()
+
+    mocker = AiohttpClientMocker()
+    mocker.get(url, status=302, headers={"Location": final})
+    mocker.get(final, content=payload)
+
+    session = mocker.create_session(hass.loop)
+    try:
+        with patch(
+            "custom_components.selora_ai.recipes.archive.async_get_clientsession",
+            return_value=session,
+        ):
+            staged = await async_install_from_url(hass, url)
+    finally:
+        await session.close()
+
+    assert staged.slug == "leak-lockdown"
 
 
 async def test_install_from_url_refuses_oversized_content_length(

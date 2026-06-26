@@ -25,11 +25,11 @@ from typing import TYPE_CHECKING, Any
 
 from jinja2 import (
     DictLoader,
-    Environment,
     StrictUndefined,
     TemplateError,
     select_autoescape,
 )
+from jinja2.sandbox import SandboxedEnvironment
 import yaml
 
 from .const import (
@@ -66,8 +66,16 @@ class RenderedPackage:
 # ── Jinja environment ──────────────────────────────────────────────
 
 
-def _build_environment(templates: dict[str, str]) -> Environment:
-    """Construct a fresh Jinja environment for this render.
+def _build_environment(templates: dict[str, str]) -> SandboxedEnvironment:
+    """Construct a fresh sandboxed Jinja environment for this render.
+
+    Recipe ``*.yaml.j2`` templates are attacker-controllable content
+    (they arrive from the public catalog / a pasted URL / an upload), so
+    this MUST be a :class:`SandboxedEnvironment` — a plain ``Environment``
+    evaluates arbitrary Python via gadget chains like
+    ``{{ cycler.__init__.__globals__ }}``, which is remote code execution
+    at render time (and render runs during *preview*, before the admin
+    confirms install).
 
     ``StrictUndefined`` so a missing variable (typo'd input/role) fails
     loud at render time instead of silently emitting a YAML hole. We
@@ -75,7 +83,7 @@ def _build_environment(templates: dict[str, str]) -> Environment:
     autoescape is for HTML; running it on YAML would mangle ``&``,
     ``<``, ``>`` inside values.
     """
-    env = Environment(
+    env = SandboxedEnvironment(
         loader=DictLoader(templates),
         autoescape=select_autoescape([], default=False),
         undefined=StrictUndefined,
@@ -152,7 +160,7 @@ def _build_context(
 # ── Rendering + merging ─────────────────────────────────────────────
 
 
-def _render_one(env: Environment, name: str, context: dict[str, Any]) -> dict[str, Any]:
+def _render_one(env: SandboxedEnvironment, name: str, context: dict[str, Any]) -> dict[str, Any]:
     """Render one Jinja template + parse the resulting YAML into a dict."""
     try:
         template = env.get_template(name)

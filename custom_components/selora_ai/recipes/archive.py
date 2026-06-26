@@ -22,12 +22,13 @@ Security posture:
 from __future__ import annotations
 
 from dataclasses import dataclass
+from ipaddress import ip_address
 import logging
 from pathlib import Path
 import shutil
 import tarfile
 from typing import TYPE_CHECKING
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 import zipfile
 
 import aiohttp
@@ -79,19 +80,60 @@ class StagedBundle:
 
 _ALLOWED_SUFFIXES = (".tar.gz", ".tgz", ".zip")
 
+# HTTP redirect statuses we follow manually (re-validating each hop).
+_REDIRECT_STATUSES = frozenset({301, 302, 303, 307, 308})
+# Cap the redirect chain so a redirect loop can't spin forever.
+_MAX_FETCH_REDIRECTS = 5
 
-def _validate_url(url: str) -> None:
-    """Refuse URLs we can't safely fetch.
 
-    Only enforces scheme + suffix. The user is the one pasting the URL;
-    LAN-only http registries are a legitimate dev case so we don't gate
-    on TLS. Host validation is delegated to aiohttp.
+def _is_local_host(hostname: str) -> bool:
+    """True for loopback / RFC-1918 / link-local / ``.local`` hosts.
+
+    These are the legitimate plain-``http`` recipe registries (a LAN dev
+    box, a Supervisor add-on). Anything routable on the public internet
+    must use TLS so a network attacker can't swap in a malicious bundle.
+    """
+    host = hostname.lower().rstrip(".")
+    if host in ("localhost",) or host.endswith(".local") or host.endswith(".localhost"):
+        return True
+    try:
+        ip = ip_address(host)
+    except ValueError:
+        # Not a literal IP (a public DNS name) — treat as non-local.
+        return False
+    return ip.is_loopback or ip.is_private or ip.is_link_local
+
+
+def _validate_transport(url: str) -> None:
+    """Enforce the scheme + TLS-for-public-host policy on a single URL.
+
+    Shared by the user-supplied URL and every redirect hop: a recipe
+    bundle is rendered through Jinja and written to disk, so a MITM on a
+    plain-``http`` fetch of a public host could deliver a malicious
+    bundle. Plain ``http`` stays allowed for loopback / private /
+    ``.local`` registries (the LAN dev case). Host resolution is
+    delegated to aiohttp.
     """
     parsed = urlparse(url)
     if parsed.scheme not in ("http", "https"):
         raise ArchiveError(f"Unsupported URL scheme: {parsed.scheme or '(none)'}")
     if not parsed.hostname:
         raise ArchiveError("Recipe URL is missing a host")
+    if parsed.scheme == "http" and not _is_local_host(parsed.hostname):
+        raise ArchiveError(
+            "Recipe URL must use https for public hosts "
+            "(plain http is only allowed for LAN/localhost registries)"
+        )
+
+
+def _validate_url(url: str) -> None:
+    """Refuse URLs we can't safely fetch.
+
+    Enforces the transport policy (see :func:`_validate_transport`) plus
+    the archive suffix on the user-supplied URL.
+    """
+    _validate_transport(url)
+    parsed = urlparse(url)
     if not parsed.path or not parsed.path.lower().endswith(_ALLOWED_SUFFIXES):
         raise ArchiveError("Recipe URL must point to a .tar.gz, .tgz, or .zip archive")
 
@@ -117,31 +159,56 @@ async def async_fetch_archive(hass: HomeAssistant, url: str, *, dest_dir: Path) 
     target = dest_dir / basename
 
     session = async_get_clientsession(hass)
+    # Follow redirects manually so the TLS/host policy is re-applied to
+    # every hop. aiohttp follows redirects by default, which would let an
+    # https URL bounce to plaintext http on a public host and fetch the
+    # archive in the clear — silently defeating the MITM protection that
+    # _validate_url gives the original URL.
+    current = url
     try:
-        async with session.get(url, timeout=RECIPE_FETCH_TIMEOUT_SECONDS) as response:
-            if response.status != 200:
-                raise ArchiveError(f"Recipe URL returned HTTP {response.status}: {url}")
-            declared = response.headers.get("Content-Length")
-            if (
-                declared is not None
-                and declared.isdigit()
-                and int(declared) > RECIPE_ARCHIVE_MAX_BYTES
-            ):
-                raise ArchiveError(
-                    f"Recipe archive too large: {declared} bytes (max {RECIPE_ARCHIVE_MAX_BYTES})"
-                )
-            # Stream and enforce the cap as we go: a missing/understated
-            # Content-Length must not let an oversized body materialize.
-            # Memory stays bounded at the cap plus one chunk.
-            body = bytearray()
-            async for chunk in response.content.iter_chunked(64 * 1024):
-                body += chunk
-                if len(body) > RECIPE_ARCHIVE_MAX_BYTES:
+        for _hop in range(_MAX_FETCH_REDIRECTS + 1):
+            async with session.get(
+                current,
+                timeout=RECIPE_FETCH_TIMEOUT_SECONDS,
+                allow_redirects=False,
+            ) as response:
+                if response.status in _REDIRECT_STATUSES:
+                    location = response.headers.get("Location")
+                    if not location:
+                        raise ArchiveError(
+                            f"Recipe URL returned HTTP {response.status} with no Location header"
+                        )
+                    # Resolve relative redirects against the current URL,
+                    # then re-validate transport before we touch the next
+                    # host — reject a plaintext public hop pre-request.
+                    current = urljoin(current, location)
+                    _validate_transport(current)
+                    continue
+                if response.status != 200:
+                    raise ArchiveError(f"Recipe URL returned HTTP {response.status}: {current}")
+                declared = response.headers.get("Content-Length")
+                if (
+                    declared is not None
+                    and declared.isdigit()
+                    and int(declared) > RECIPE_ARCHIVE_MAX_BYTES
+                ):
                     raise ArchiveError(
-                        f"Recipe archive exceeded {RECIPE_ARCHIVE_MAX_BYTES} bytes; "
-                        "download aborted"
+                        f"Recipe archive too large: {declared} bytes (max {RECIPE_ARCHIVE_MAX_BYTES})"
                     )
-            await hass.async_add_executor_job(target.write_bytes, bytes(body))
+                # Stream and enforce the cap as we go: a missing/understated
+                # Content-Length must not let an oversized body materialize.
+                # Memory stays bounded at the cap plus one chunk.
+                body = bytearray()
+                async for chunk in response.content.iter_chunked(64 * 1024):
+                    body += chunk
+                    if len(body) > RECIPE_ARCHIVE_MAX_BYTES:
+                        raise ArchiveError(
+                            f"Recipe archive exceeded {RECIPE_ARCHIVE_MAX_BYTES} bytes; "
+                            "download aborted"
+                        )
+                await hass.async_add_executor_job(target.write_bytes, bytes(body))
+                return target
+        raise ArchiveError(f"Recipe URL exceeded {_MAX_FETCH_REDIRECTS} redirects: {url}")
     except aiohttp.ClientConnectorError as exc:
         raise ArchiveError(
             f"Could not reach {url}. If Home Assistant is running in a "
@@ -154,7 +221,6 @@ async def async_fetch_archive(hass: HomeAssistant, url: str, *, dest_dir: Path) 
         raise ArchiveError(
             f"Timed out fetching recipe from {url} after {RECIPE_FETCH_TIMEOUT_SECONDS}s"
         ) from exc
-    return target
 
 
 # ── Safe extraction ─────────────────────────────────────────────────
