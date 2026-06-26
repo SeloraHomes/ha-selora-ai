@@ -770,6 +770,12 @@ class DataCollector:
                 analysis_timeout,
             )
             return
+        except ConnectionError as exc:
+            # Transient/self-healing: cloud session expired and could not
+            # refresh, provider unreachable, rate-limited, etc. Not a bug —
+            # log a clean warning (no traceback) and try again next cycle.
+            _LOGGER.warning("LLM analysis skipped this cycle — provider unavailable: %s", exc)
+            return
 
         # Record successful analysis for change detection
         self._last_snapshot_fingerprint = self._snapshot_fingerprint(snapshot)
