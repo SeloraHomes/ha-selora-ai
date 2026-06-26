@@ -1,0 +1,115 @@
+# Bedtime Routine — time-triggered "wind down + secure" recipe.
+#
+# Different shape from leak-lockdown: time-triggered instead of state-
+# triggered, multi-domain (lights + locks + climate), and demonstrates
+# every input type the schema supports (number, boolean, select).
+slug: bedtime-routine
+version: 1.0.0
+title: Bedtime Routine
+tagline: Dim the lights, lock the doors, set the thermostat — every night, on time.
+description: >-
+  At your configured bedtime, Bedtime Routine walks every wind-down
+  action in order: fades the chosen lights to off, locks the doors
+  you've selected, drops the thermostat to a night setpoint, and
+  finishes with an optional goodnight notification. One automation,
+  one trigger, every step in one place.
+author: Selora AI
+released: "2026-05-21"
+tags: [routine, night, comfort]
+roles:
+  # All three roles use ``selection: required`` because the user must
+  # pick which devices matter for their bedtime routine — taking every
+  # light in the home would dim the whole house, taking every lock
+  # would lock garages and gates the homeowner may want left open.
+  - id: bedroom_lights
+    title: Bedroom lights
+    kind: light
+    min_count: 1
+    selection: required
+    description: >-
+      Lights to dim slowly to off at bedtime (typically the bedroom +
+      hallway). Pick which lights you want included.
+  - id: door_locks
+    title: Door locks
+    kind: lock
+    min_count: 0
+    selection: required
+    description: >-
+      Door locks to engage at bedtime. Optional — leave all unchecked
+      if you don't want any locks driven by this routine.
+  - id: thermostat
+    title: Thermostat
+    kind: climate
+    min_count: 0
+    max_count: 1
+    selection: required
+    description: >-
+      Thermostat to set to the night temperature. Optional — leave
+      unchecked if the homeowner already has scheduled climate
+      control.
+inputs:
+  - id: bedtime
+    type: string
+    label: Bedtime
+    description: 24-hour time the routine fires (e.g. 22:30).
+    default: "22:30"
+  - id: dim_seconds
+    type: number
+    label: Dim duration
+    description: Seconds to fade lights from current level to off.
+    default: 30
+    min: 0
+    max: 600
+  - id: night_temperature
+    type: number
+    label: Night temperature
+    description: Target temperature for the thermostat at bedtime.
+    default: 18
+    min: 10
+    max: 26
+  - id: announce_on_finish
+    type: boolean
+    label: Announce when done
+    description: Send a "goodnight" notification once the routine completes.
+    default: true
+  - id: greeting_style
+    type: select
+    label: Greeting style
+    description: Tone of the goodnight notification (if announce is on).
+    default: "warm"
+    choices:
+      - "warm"
+      - "brief"
+      - "playful"
+integrations: []
+# Connect-authored installation manifests fill this block ahead of
+# D-Day so the field tech doesn't have to pick on site. Each entry
+# pins one specific entity_id to a role; if the entity isn't present
+# in HA yet, the wizard surfaces a "pair this device" card with the
+# identity hints below. Empty bindings = freely selectable wizard
+# (the self-install case).
+#
+# The two example pins below demonstrate both states:
+#   - light.bed_light: usually already paired in HA's demo setup, so
+#     it resolves to a locked-bound chip the user can't toggle off.
+#   - light.bedroom_lamp: deliberately a name that doesn't exist in
+#     HA's demo, so the wizard renders a waiting-on card with the
+#     identity readout and gates the Install button until the device
+#     is paired and Re-check fires.
+bindings:
+  bedroom_lights:
+    # ``note`` is shown to the homeowner verbatim in the wizard's
+    # "Pair this device" card — keep it customer-facing (where the
+    # device goes, what the customer would recognise it as). DO NOT
+    # write internal install-day commentary here; that belongs in
+    # the recipe README or commit message.
+    - entity_id: light.bed_light
+      note: "Primary overhead light"
+    - entity_id: light.bedroom_lamp
+      identity:
+        manufacturer: Signify
+        model: Hue Color A19
+        integration: hue
+      note: "Bedside table lamp"
+package_files:
+  - package/automations/bedtime.yaml.j2

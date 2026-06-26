@@ -409,6 +409,19 @@ export const proposalStyles = css`
     align-self: center;
     transform: translateY(-2px);
   }
+  /* Light mode: gold text on the light flow-node reads poorly (and we avoid
+     gold text in light mode). Switch the link + icon to the readable primary
+     text color; the underline keeps the clickable affordance. */
+  :host(:not([dark])) .flow-entity-link,
+  :host(:not([dark])) .flow-entity-link ha-icon {
+    color: var(--primary-text-color);
+  }
+  :host(:not([dark])) .flow-entity-link > span {
+    text-decoration-color: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.4);
+  }
+  :host(:not([dark])) .flow-entity-link:hover > span {
+    text-decoration-color: var(--primary-text-color);
+  }
   .flow-duration {
     white-space: nowrap;
     color: var(--primary-text-color);

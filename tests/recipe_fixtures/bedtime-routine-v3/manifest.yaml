@@ -1,0 +1,73 @@
+# Bedtime Routine v3 — recipe-engine v3 prototype.
+#
+# Same behaviour as the regular bedtime-routine recipe, but emitted
+# via the v3 binding indirection layer: bindings live in HA group:
+# entries (one per role) instead of being baked into the automation
+# YAML as literal entity_ids. Updating role membership is a single
+# service call to update group members — no package re-render needed.
+# Uninstall stays atomic because groups + automations share one file.
+#
+# This bundle exists ONLY to test the v3 path side-by-side with the
+# literal-mode bedtime-routine. Once v3 is confirmed as the right
+# direction, the literal-mode recipe will be migrated and this one
+# retired.
+slug: bedtime-routine-v3
+version: 0.1.0
+title: Bedtime Routine (v3 prototype)
+tagline: Same bedtime routine — engine v3 binding indirection so you can swap devices without re-running the wizard.
+description: >-
+  At your configured bedtime, walks the same wind-down actions as the
+  classic bedtime routine: dims chosen lights, locks selected doors,
+  drops the thermostat. The difference lives under the hood — bindings
+  point at HA groups (group.selora_bedtime_routine_v3_*) so swapping
+  out a device is a one-click rebind instead of a full re-install.
+author: Selora AI (v3 prototype)
+released: "2026-05-26"
+tags: [routine, night, comfort, v3]
+binding_mode: group
+roles:
+  - id: bedroom_lights
+    title: Bedroom lights
+    kind: light
+    min_count: 1
+    selection: required
+    description: >-
+      Lights to dim at bedtime. With v3, swapping these later doesn't
+      require re-running the wizard — just hit "Manage devices" on the
+      installed-recipe card.
+  - id: door_locks
+    title: Door locks
+    kind: lock
+    min_count: 0
+    selection: required
+    description: Door locks to engage at bedtime. Optional.
+  - id: thermostat
+    title: Thermostat
+    kind: climate
+    min_count: 0
+    max_count: 1
+    selection: required
+    description: Thermostat to set to the night temperature. Optional.
+inputs:
+  - id: bedtime
+    type: string
+    label: Bedtime
+    description: 24-hour time the routine fires (e.g. 22:30).
+    default: "22:30"
+  - id: dim_seconds
+    type: number
+    label: Dim duration
+    description: Seconds to fade lights from current level to off.
+    default: 30
+    min: 0
+    max: 600
+  - id: night_temperature
+    type: number
+    label: Night temperature
+    description: Target temperature for the thermostat at bedtime.
+    default: 18
+    min: 10
+    max: 26
+integrations: []
+package_files:
+  - package/automations/bedtime.yaml.j2

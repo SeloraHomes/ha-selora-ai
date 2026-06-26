@@ -1,0 +1,80 @@
+# Leak Lockdown — multi-sensor leak response recipe.
+#
+# When ANY paired moisture sensor goes wet, close every cover the
+# homeowner wants buttoned up (typically the master shutoff valve plus
+# windows / awnings the rain could blow open), flash a configured set
+# of lights red, and push a notification. When EVERY sensor dries up
+# again, turn the alarm lights off and notify "all clear" — covers
+# stay closed so the homeowner can inspect before re-opening.
+#
+# Manifest v2 — purely declarative; the pipeline does the rest.
+slug: leak-lockdown
+version: 2.0.0
+title: Leak Lockdown
+tagline: When a leak sensor goes wet, close the house and shout for attention.
+description: >-
+  When any leak sensor goes wet, Leak Lockdown drops the house into
+  damage-control mode: closes every cover (windows, garage doors,
+  pergola/skylight roofs) so a flooded floor doesn't get hit by rain
+  on top, flashes a chosen set of indoor lights red as a visible
+  alarm, and sends a critical notification. When all sensors dry out
+  again, the alarm lights turn off and a "leak cleared" notification
+  fires; covers stay closed so the homeowner can inspect before
+  re-opening.
+author: Selora AI
+released: "2026-05-19"
+tags: [safety, water, alerts]
+roles:
+  # ``leak_sensors`` is genuinely an "all of them" role — every leak
+  # sensor in the home should fire this lockdown — so auto-selection
+  # is the right default.
+  - id: leak_sensors
+    title: Leak sensors
+    kind: binary_sensor
+    device_class: moisture
+    min_count: 1
+    selection: auto
+    description: Moisture / leak sensors that trigger the lockdown.
+  # Covers + lights are the user's choice — "close every cover in the
+  # home" would lock the front door's smart cover, etc., which is too
+  # broad; "flash every colour light" would do the whole house. Both
+  # need a wizard pick.
+  - id: lockdown_covers
+    title: Lockdown covers
+    kind: cover
+    min_count: 0
+    selection: required
+    description: >-
+      Covers to close on a leak (the main water shutoff valve,
+      vulnerable windows). Pick which covers you want closed.
+  - id: alarm_lights
+    title: Alarm lights
+    kind: light
+    features: [color]
+    min_count: 1
+    max_count: 3
+    selection: required
+    description: >-
+      Up to three colour-capable lights to flash red. Pick which lights
+      you want used as the alarm.
+inputs:
+  - id: alarm_brightness
+    type: number
+    label: Alarm brightness
+    description: How bright the alarm lights flash (1–100%).
+    default: 100
+    min: 1
+    max: 100
+  - id: all_clear_delay_minutes
+    type: number
+    label: All-clear delay
+    description: >-
+      Minutes every sensor must stay dry before the all-clear fires.
+      Higher = fewer false all-clears for trickling leaks.
+    default: 5
+    min: 1
+    max: 60
+integrations: []
+package_files:
+  - package/automations/engage.yaml.j2
+  - package/automations/all-clear.yaml.j2

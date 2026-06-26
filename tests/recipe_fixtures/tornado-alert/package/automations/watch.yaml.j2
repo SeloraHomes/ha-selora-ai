@@ -1,0 +1,34 @@
+{# Tornado WATCH automation — calmer heads-up. A watch means
+   conditions are favourable for tornadoes; a warning means one's
+   been sighted. The watch automation gives the homeowner a moment
+   to glance at the sky and pre-stage.
+
+   ``value_template`` is single-quoted so YAML doesn't read the
+   leading ``{{`` as a flow mapping. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_watch
+    alias: "Tornado Alert — watch heads-up"
+    description: >-
+      When the NWS feed signals a tornado watch, send a calm TTS
+      announcement to every configured speaker. No siren.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: weather.{{ inputs.station_code | lower }}
+    condition:
+      - condition: template
+        value_template: "{% raw %}{{ 'tornado watch' in trigger.to_state.state | lower }}{% endraw %}"
+    action:
+{% if roles.announce_media_players %}
+      - service: tts.cloud_say
+        data:
+          entity_id:
+{% for player in roles.announce_media_players %}
+            - {{ player }}
+{% endfor %}
+          message: "Tornado watch active for your area. Selora is monitoring. If you hear the siren, move to {{ inputs.shelter_zone }}."
+{% endif %}
+      - service: notify.notify
+        data:
+          title: "Tornado watch"
+          message: "Tornado watch active. Conditions favour tornadoes — stay alert."

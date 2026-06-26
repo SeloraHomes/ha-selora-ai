@@ -350,6 +350,70 @@ TOOL_ACTIVATE_SCENE = ToolDef(
     requires_admin=True,
 )
 
+TOOL_LIST_DASHBOARDS = ToolDef(
+    name="list_dashboards",
+    description=(
+        "List the user's writable (storage-mode) Lovelace dashboards. "
+        "Returns a list of {url_path, title}; url_path is null for the "
+        "default dashboard. Call this before insert_dashboard_card so you "
+        "place the card on a dashboard that actually exists and can be "
+        "edited (YAML-mode dashboards are read-only and not listed)."
+    ),
+    params=(),
+    requires_admin=True,
+)
+
+TOOL_INSERT_DASHBOARD_CARD = ToolDef(
+    name="insert_dashboard_card",
+    description=(
+        "Add a Lovelace card to a dashboard view. Use when the user wants a "
+        "tap target / card for an entity (e.g. a helper a recipe created). "
+        "Compose a standard card config in 'card' (type + entity + any "
+        "options). Call list_dashboards first to choose 'dashboard_target'. "
+        "Idempotent: re-calling with the same 'tag' replaces the prior card "
+        "rather than duplicating it."
+    ),
+    params=(
+        ToolParam(
+            name="card",
+            type="object",
+            description=(
+                "Complete Lovelace card config. Must include 'type' "
+                "(e.g. 'button', 'entity', 'entities') and the relevant "
+                "entity/entities. Example: "
+                "{'type': 'button', 'entity': 'input_boolean.baby_sleeping', "
+                "'name': 'Baby sleeping', 'icon': 'mdi:sleep'}."
+            ),
+            required=True,
+        ),
+        ToolParam(
+            name="dashboard_target",
+            type="string",
+            description=(
+                "url_path of the target dashboard from list_dashboards. "
+                "Omit for the default dashboard."
+            ),
+        ),
+        ToolParam(
+            name="view",
+            type="string",
+            description=(
+                "View to append to — a view title/path, or a numeric index "
+                "as a string ('0' = first view). Omit for the first view."
+            ),
+        ),
+        ToolParam(
+            name="tag",
+            type="string",
+            description=(
+                "Ownership tag so the card can be replaced/removed later. "
+                "Use the recipe slug when placing a recipe's card."
+            ),
+        ),
+    ),
+    requires_admin=True,
+)
+
 TOOL_SEARCH_ENTITIES = ToolDef(
     name="search_entities",
     description=(
@@ -491,6 +555,8 @@ CHAT_TOOLS: tuple[ToolDef, ...] = (
     TOOL_VALIDATE_ACTION,
     TOOL_EXECUTE_COMMAND,
     TOOL_ACTIVATE_SCENE,
+    TOOL_LIST_DASHBOARDS,
+    TOOL_INSERT_DASHBOARD_CARD,
     TOOL_SEARCH_ENTITIES,
     TOOL_GET_ENTITY_HISTORY,
     TOOL_EVAL_TEMPLATE,

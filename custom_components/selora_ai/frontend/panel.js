@@ -5,31 +5,31 @@ var __export = (target, all) => {
 };
 
 // node_modules/@lit/reactive-element/css-tag.js
-var t = globalThis;
+var t = window;
 var e =
   t.ShadowRoot &&
   (void 0 === t.ShadyCSS || t.ShadyCSS.nativeShadow) &&
   "adoptedStyleSheets" in Document.prototype &&
   "replace" in CSSStyleSheet.prototype;
 var s = /* @__PURE__ */ Symbol();
-var o = /* @__PURE__ */ new WeakMap();
-var n = class {
-  constructor(t4, e5, o5) {
-    if (((this._$cssResult$ = true), o5 !== s))
+var n = /* @__PURE__ */ new WeakMap();
+var o = class {
+  constructor(t4, e6, n5) {
+    if (((this._$cssResult$ = true), n5 !== s))
       throw Error(
         "CSSResult is not constructable. Use `unsafeCSS` or `css` instead.",
       );
-    ((this.cssText = t4), (this.t = e5));
+    ((this.cssText = t4), (this.t = e6));
   }
   get styleSheet() {
     let t4 = this.o;
-    const s4 = this.t;
+    const s6 = this.t;
     if (e && void 0 === t4) {
-      const e5 = void 0 !== s4 && 1 === s4.length;
-      (e5 && (t4 = o.get(s4)),
+      const e6 = void 0 !== s6 && 1 === s6.length;
+      (e6 && (t4 = n.get(s6)),
         void 0 === t4 &&
           ((this.o = t4 = new CSSStyleSheet()).replaceSync(this.cssText),
-          e5 && o.set(s4, t4)));
+          e6 && n.set(s6, t4)));
     }
     return t4;
   }
@@ -37,14 +37,14 @@ var n = class {
     return this.cssText;
   }
 };
-var r = (t4) => new n("string" == typeof t4 ? t4 : t4 + "", void 0, s);
-var i = (t4, ...e5) => {
-  const o5 =
+var r = (t4) => new o("string" == typeof t4 ? t4 : t4 + "", void 0, s);
+var i = (t4, ...e6) => {
+  const n5 =
     1 === t4.length
       ? t4[0]
-      : e5.reduce(
-          (e6, s4, o6) =>
-            e6 +
+      : e6.reduce(
+          (e7, s6, n6) =>
+            e7 +
             ((t5) => {
               if (true === t5._$cssResult$) return t5.cssText;
               if ("number" == typeof t5) return t5;
@@ -53,56 +53,47 @@ var i = (t4, ...e5) => {
                   t5 +
                   ". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.",
               );
-            })(s4) +
-            t4[o6 + 1],
+            })(s6) +
+            t4[n6 + 1],
           t4[0],
         );
-  return new n(o5, t4, s);
+  return new o(n5, t4, s);
 };
-var S = (s4, o5) => {
-  if (e)
-    s4.adoptedStyleSheets = o5.map((t4) =>
-      t4 instanceof CSSStyleSheet ? t4 : t4.styleSheet,
-    );
-  else
-    for (const e5 of o5) {
-      const o6 = document.createElement("style"),
-        n4 = t.litNonce;
-      (void 0 !== n4 && o6.setAttribute("nonce", n4),
-        (o6.textContent = e5.cssText),
-        s4.appendChild(o6));
-    }
+var S = (s6, n5) => {
+  e
+    ? (s6.adoptedStyleSheets = n5.map((t4) =>
+        t4 instanceof CSSStyleSheet ? t4 : t4.styleSheet,
+      ))
+    : n5.forEach((e6) => {
+        const n6 = document.createElement("style"),
+          o6 = t.litNonce;
+        (void 0 !== o6 && n6.setAttribute("nonce", o6),
+          (n6.textContent = e6.cssText),
+          s6.appendChild(n6));
+      });
 };
 var c = e
   ? (t4) => t4
   : (t4) =>
       t4 instanceof CSSStyleSheet
         ? ((t5) => {
-            let e5 = "";
-            for (const s4 of t5.cssRules) e5 += s4.cssText;
-            return r(e5);
+            let e6 = "";
+            for (const s6 of t5.cssRules) e6 += s6.cssText;
+            return r(e6);
           })(t4)
         : t4;
 
 // node_modules/@lit/reactive-element/reactive-element.js
-var {
-  is: i2,
-  defineProperty: e2,
-  getOwnPropertyDescriptor: h,
-  getOwnPropertyNames: r2,
-  getOwnPropertySymbols: o2,
-  getPrototypeOf: n2,
-} = Object;
-var a = globalThis;
-var c2 = a.trustedTypes;
-var l = c2 ? c2.emptyScript : "";
-var p = a.reactiveElementPolyfillSupport;
-var d = (t4, s4) => t4;
-var u = {
-  toAttribute(t4, s4) {
-    switch (s4) {
+var s2;
+var e2 = window;
+var r2 = e2.trustedTypes;
+var h = r2 ? r2.emptyScript : "";
+var o2 = e2.reactiveElementPolyfillSupport;
+var n2 = {
+  toAttribute(t4, i5) {
+    switch (i5) {
       case Boolean:
-        t4 = t4 ? l : null;
+        t4 = t4 ? h : null;
         break;
       case Object:
       case Array:
@@ -110,237 +101,248 @@ var u = {
     }
     return t4;
   },
-  fromAttribute(t4, s4) {
-    let i7 = t4;
-    switch (s4) {
+  fromAttribute(t4, i5) {
+    let s6 = t4;
+    switch (i5) {
       case Boolean:
-        i7 = null !== t4;
+        s6 = null !== t4;
         break;
       case Number:
-        i7 = null === t4 ? null : Number(t4);
+        s6 = null === t4 ? null : Number(t4);
         break;
       case Object:
       case Array:
         try {
-          i7 = JSON.parse(t4);
+          s6 = JSON.parse(t4);
         } catch (t5) {
-          i7 = null;
+          s6 = null;
         }
     }
-    return i7;
+    return s6;
   },
 };
-var f = (t4, s4) => !i2(t4, s4);
-var b = {
+var a = (t4, i5) => i5 !== t4 && (i5 == i5 || t4 == t4);
+var l = {
   attribute: true,
   type: String,
-  converter: u,
+  converter: n2,
   reflect: false,
-  useDefault: false,
-  hasChanged: f,
+  hasChanged: a,
 };
-((Symbol.metadata ??= /* @__PURE__ */ Symbol("metadata")),
-  (a.litPropertyMetadata ??= /* @__PURE__ */ new WeakMap()));
-var y = class extends HTMLElement {
+var d = "finalized";
+var u = class extends HTMLElement {
+  constructor() {
+    (super(),
+      (this._$Ei = /* @__PURE__ */ new Map()),
+      (this.isUpdatePending = false),
+      (this.hasUpdated = false),
+      (this._$El = null),
+      this._$Eu());
+  }
   static addInitializer(t4) {
-    (this._$Ei(), (this.l ??= []).push(t4));
+    var i5;
+    (this.finalize(),
+      (null !== (i5 = this.h) && void 0 !== i5 ? i5 : (this.h = [])).push(t4));
   }
   static get observedAttributes() {
-    return (this.finalize(), this._$Eh && [...this._$Eh.keys()]);
+    this.finalize();
+    const t4 = [];
+    return (
+      this.elementProperties.forEach((i5, s6) => {
+        const e6 = this._$Ep(s6, i5);
+        void 0 !== e6 && (this._$Ev.set(e6, s6), t4.push(e6));
+      }),
+      t4
+    );
   }
-  static createProperty(t4, s4 = b) {
+  static createProperty(t4, i5 = l) {
     if (
-      (s4.state && (s4.attribute = false),
-      this._$Ei(),
-      this.prototype.hasOwnProperty(t4) &&
-        ((s4 = Object.create(s4)).wrapped = true),
-      this.elementProperties.set(t4, s4),
-      !s4.noAccessor)
+      (i5.state && (i5.attribute = false),
+      this.finalize(),
+      this.elementProperties.set(t4, i5),
+      !i5.noAccessor && !this.prototype.hasOwnProperty(t4))
     ) {
-      const i7 = /* @__PURE__ */ Symbol(),
-        h3 = this.getPropertyDescriptor(t4, i7, s4);
-      void 0 !== h3 && e2(this.prototype, t4, h3);
+      const s6 = "symbol" == typeof t4 ? /* @__PURE__ */ Symbol() : "__" + t4,
+        e6 = this.getPropertyDescriptor(t4, s6, i5);
+      void 0 !== e6 && Object.defineProperty(this.prototype, t4, e6);
     }
   }
-  static getPropertyDescriptor(t4, s4, i7) {
-    const { get: e5, set: r4 } = h(this.prototype, t4) ?? {
-      get() {
-        return this[s4];
-      },
-      set(t5) {
-        this[s4] = t5;
-      },
-    };
+  static getPropertyDescriptor(t4, i5, s6) {
     return {
-      get: e5,
-      set(s5) {
-        const h3 = e5?.call(this);
-        (r4?.call(this, s5), this.requestUpdate(t4, h3, i7));
+      get() {
+        return this[i5];
+      },
+      set(e6) {
+        const r4 = this[t4];
+        ((this[i5] = e6), this.requestUpdate(t4, r4, s6));
       },
       configurable: true,
       enumerable: true,
     };
   }
   static getPropertyOptions(t4) {
-    return this.elementProperties.get(t4) ?? b;
-  }
-  static _$Ei() {
-    if (this.hasOwnProperty(d("elementProperties"))) return;
-    const t4 = n2(this);
-    (t4.finalize(),
-      void 0 !== t4.l && (this.l = [...t4.l]),
-      (this.elementProperties = new Map(t4.elementProperties)));
+    return this.elementProperties.get(t4) || l;
   }
   static finalize() {
-    if (this.hasOwnProperty(d("finalized"))) return;
+    if (this.hasOwnProperty(d)) return false;
+    this[d] = true;
+    const t4 = Object.getPrototypeOf(this);
     if (
-      ((this.finalized = true),
-      this._$Ei(),
-      this.hasOwnProperty(d("properties")))
+      (t4.finalize(),
+      void 0 !== t4.h && (this.h = [...t4.h]),
+      (this.elementProperties = new Map(t4.elementProperties)),
+      (this._$Ev = /* @__PURE__ */ new Map()),
+      this.hasOwnProperty("properties"))
     ) {
       const t5 = this.properties,
-        s4 = [...r2(t5), ...o2(t5)];
-      for (const i7 of s4) this.createProperty(i7, t5[i7]);
+        i5 = [
+          ...Object.getOwnPropertyNames(t5),
+          ...Object.getOwnPropertySymbols(t5),
+        ];
+      for (const s6 of i5) this.createProperty(s6, t5[s6]);
     }
-    const t4 = this[Symbol.metadata];
-    if (null !== t4) {
-      const s4 = litPropertyMetadata.get(t4);
-      if (void 0 !== s4)
-        for (const [t5, i7] of s4) this.elementProperties.set(t5, i7);
-    }
-    this._$Eh = /* @__PURE__ */ new Map();
-    for (const [t5, s4] of this.elementProperties) {
-      const i7 = this._$Eu(t5, s4);
-      void 0 !== i7 && this._$Eh.set(i7, t5);
-    }
-    this.elementStyles = this.finalizeStyles(this.styles);
+    return ((this.elementStyles = this.finalizeStyles(this.styles)), true);
   }
-  static finalizeStyles(s4) {
-    const i7 = [];
-    if (Array.isArray(s4)) {
-      const e5 = new Set(s4.flat(1 / 0).reverse());
-      for (const s5 of e5) i7.unshift(c(s5));
-    } else void 0 !== s4 && i7.push(c(s4));
-    return i7;
+  static finalizeStyles(i5) {
+    const s6 = [];
+    if (Array.isArray(i5)) {
+      const e6 = new Set(i5.flat(1 / 0).reverse());
+      for (const i6 of e6) s6.unshift(c(i6));
+    } else void 0 !== i5 && s6.push(c(i5));
+    return s6;
   }
-  static _$Eu(t4, s4) {
-    const i7 = s4.attribute;
-    return false === i7
+  static _$Ep(t4, i5) {
+    const s6 = i5.attribute;
+    return false === s6
       ? void 0
-      : "string" == typeof i7
-        ? i7
+      : "string" == typeof s6
+        ? s6
         : "string" == typeof t4
           ? t4.toLowerCase()
           : void 0;
   }
-  constructor() {
-    (super(),
-      (this._$Ep = void 0),
-      (this.isUpdatePending = false),
-      (this.hasUpdated = false),
-      (this._$Em = null),
-      this._$Ev());
-  }
-  _$Ev() {
-    ((this._$ES = new Promise((t4) => (this.enableUpdating = t4))),
+  _$Eu() {
+    var t4;
+    ((this._$E_ = new Promise((t5) => (this.enableUpdating = t5))),
       (this._$AL = /* @__PURE__ */ new Map()),
-      this._$E_(),
+      this._$Eg(),
       this.requestUpdate(),
-      this.constructor.l?.forEach((t4) => t4(this)));
+      null === (t4 = this.constructor.h) ||
+        void 0 === t4 ||
+        t4.forEach((t5) => t5(this)));
   }
   addController(t4) {
-    ((this._$EO ??= /* @__PURE__ */ new Set()).add(t4),
-      void 0 !== this.renderRoot && this.isConnected && t4.hostConnected?.());
+    var i5, s6;
+    ((null !== (i5 = this._$ES) && void 0 !== i5 ? i5 : (this._$ES = [])).push(
+      t4,
+    ),
+      void 0 !== this.renderRoot &&
+        this.isConnected &&
+        (null === (s6 = t4.hostConnected) || void 0 === s6 || s6.call(t4)));
   }
   removeController(t4) {
-    this._$EO?.delete(t4);
+    var i5;
+    null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.splice(this._$ES.indexOf(t4) >>> 0, 1);
   }
-  _$E_() {
-    const t4 = /* @__PURE__ */ new Map(),
-      s4 = this.constructor.elementProperties;
-    for (const i7 of s4.keys())
-      this.hasOwnProperty(i7) && (t4.set(i7, this[i7]), delete this[i7]);
-    t4.size > 0 && (this._$Ep = t4);
+  _$Eg() {
+    this.constructor.elementProperties.forEach((t4, i5) => {
+      this.hasOwnProperty(i5) && (this._$Ei.set(i5, this[i5]), delete this[i5]);
+    });
   }
   createRenderRoot() {
-    const t4 =
-      this.shadowRoot ?? this.attachShadow(this.constructor.shadowRootOptions);
-    return (S(t4, this.constructor.elementStyles), t4);
+    var t4;
+    const s6 =
+      null !== (t4 = this.shadowRoot) && void 0 !== t4
+        ? t4
+        : this.attachShadow(this.constructor.shadowRootOptions);
+    return (S(s6, this.constructor.elementStyles), s6);
   }
   connectedCallback() {
-    ((this.renderRoot ??= this.createRenderRoot()),
+    var t4;
+    (void 0 === this.renderRoot && (this.renderRoot = this.createRenderRoot()),
       this.enableUpdating(true),
-      this._$EO?.forEach((t4) => t4.hostConnected?.()));
+      null === (t4 = this._$ES) ||
+        void 0 === t4 ||
+        t4.forEach((t5) => {
+          var i5;
+          return null === (i5 = t5.hostConnected) || void 0 === i5
+            ? void 0
+            : i5.call(t5);
+        }));
   }
   enableUpdating(t4) {}
   disconnectedCallback() {
-    this._$EO?.forEach((t4) => t4.hostDisconnected?.());
+    var t4;
+    null === (t4 = this._$ES) ||
+      void 0 === t4 ||
+      t4.forEach((t5) => {
+        var i5;
+        return null === (i5 = t5.hostDisconnected) || void 0 === i5
+          ? void 0
+          : i5.call(t5);
+      });
   }
-  attributeChangedCallback(t4, s4, i7) {
-    this._$AK(t4, i7);
+  attributeChangedCallback(t4, i5, s6) {
+    this._$AK(t4, s6);
   }
-  _$ET(t4, s4) {
-    const i7 = this.constructor.elementProperties.get(t4),
-      e5 = this.constructor._$Eu(t4, i7);
-    if (void 0 !== e5 && true === i7.reflect) {
+  _$EO(t4, i5, s6 = l) {
+    var e6;
+    const r4 = this.constructor._$Ep(t4, s6);
+    if (void 0 !== r4 && true === s6.reflect) {
       const h3 = (
-        void 0 !== i7.converter?.toAttribute ? i7.converter : u
-      ).toAttribute(s4, i7.type);
-      ((this._$Em = t4),
-        null == h3 ? this.removeAttribute(e5) : this.setAttribute(e5, h3),
-        (this._$Em = null));
+        void 0 !==
+        (null === (e6 = s6.converter) || void 0 === e6
+          ? void 0
+          : e6.toAttribute)
+          ? s6.converter
+          : n2
+      ).toAttribute(i5, s6.type);
+      ((this._$El = t4),
+        null == h3 ? this.removeAttribute(r4) : this.setAttribute(r4, h3),
+        (this._$El = null));
     }
   }
-  _$AK(t4, s4) {
-    const i7 = this.constructor,
-      e5 = i7._$Eh.get(t4);
-    if (void 0 !== e5 && this._$Em !== e5) {
-      const t5 = i7.getPropertyOptions(e5),
+  _$AK(t4, i5) {
+    var s6;
+    const e6 = this.constructor,
+      r4 = e6._$Ev.get(t4);
+    if (void 0 !== r4 && this._$El !== r4) {
+      const t5 = e6.getPropertyOptions(r4),
         h3 =
           "function" == typeof t5.converter
             ? { fromAttribute: t5.converter }
-            : void 0 !== t5.converter?.fromAttribute
+            : void 0 !==
+                (null === (s6 = t5.converter) || void 0 === s6
+                  ? void 0
+                  : s6.fromAttribute)
               ? t5.converter
-              : u;
-      this._$Em = e5;
-      const r4 = h3.fromAttribute(s4, t5.type);
-      ((this[e5] = r4 ?? this._$Ej?.get(e5) ?? r4), (this._$Em = null));
+              : n2;
+      ((this._$El = r4),
+        (this[r4] = h3.fromAttribute(i5, t5.type)),
+        (this._$El = null));
     }
   }
-  requestUpdate(t4, s4, i7, e5 = false, h3) {
-    if (void 0 !== t4) {
-      const r4 = this.constructor;
-      if (
-        (false === e5 && (h3 = this[t4]),
-        (i7 ??= r4.getPropertyOptions(t4)),
-        !(
-          (i7.hasChanged ?? f)(h3, s4) ||
-          (i7.useDefault &&
-            i7.reflect &&
-            h3 === this._$Ej?.get(t4) &&
-            !this.hasAttribute(r4._$Eu(t4, i7)))
-        ))
+  requestUpdate(t4, i5, s6) {
+    let e6 = true;
+    (void 0 !== t4 &&
+      (((s6 = s6 || this.constructor.getPropertyOptions(t4)).hasChanged || a)(
+        this[t4],
+        i5,
       )
-        return;
-      this.C(t4, s4, i7);
-    }
-    false === this.isUpdatePending && (this._$ES = this._$EP());
+        ? (this._$AL.has(t4) || this._$AL.set(t4, i5),
+          true === s6.reflect &&
+            this._$El !== t4 &&
+            (void 0 === this._$EC && (this._$EC = /* @__PURE__ */ new Map()),
+            this._$EC.set(t4, s6)))
+        : (e6 = false)),
+      !this.isUpdatePending && e6 && (this._$E_ = this._$Ej()));
   }
-  C(t4, s4, { useDefault: i7, reflect: e5, wrapped: h3 }, r4) {
-    (i7 &&
-      !(this._$Ej ??= /* @__PURE__ */ new Map()).has(t4) &&
-      (this._$Ej.set(t4, r4 ?? s4 ?? this[t4]),
-      true !== h3 || void 0 !== r4)) ||
-      (this._$AL.has(t4) ||
-        (this.hasUpdated || i7 || (s4 = void 0), this._$AL.set(t4, s4)),
-      true === e5 &&
-        this._$Em !== t4 &&
-        (this._$Eq ??= /* @__PURE__ */ new Set()).add(t4));
-  }
-  async _$EP() {
+  async _$Ej() {
     this.isUpdatePending = true;
     try {
-      await this._$ES;
+      await this._$E_;
     } catch (t5) {
       Promise.reject(t5);
     }
@@ -351,251 +353,271 @@ var y = class extends HTMLElement {
     return this.performUpdate();
   }
   performUpdate() {
+    var t4;
     if (!this.isUpdatePending) return;
-    if (!this.hasUpdated) {
-      if (((this.renderRoot ??= this.createRenderRoot()), this._$Ep)) {
-        for (const [t6, s5] of this._$Ep) this[t6] = s5;
-        this._$Ep = void 0;
-      }
-      const t5 = this.constructor.elementProperties;
-      if (t5.size > 0)
-        for (const [s5, i7] of t5) {
-          const { wrapped: t6 } = i7,
-            e5 = this[s5];
-          true !== t6 ||
-            this._$AL.has(s5) ||
-            void 0 === e5 ||
-            this.C(s5, void 0, i7, e5);
-        }
-    }
-    let t4 = false;
-    const s4 = this._$AL;
+    (this.hasUpdated,
+      this._$Ei &&
+        (this._$Ei.forEach((t5, i6) => (this[i6] = t5)), (this._$Ei = void 0)));
+    let i5 = false;
+    const s6 = this._$AL;
     try {
-      ((t4 = this.shouldUpdate(s4)),
-        t4
-          ? (this.willUpdate(s4),
-            this._$EO?.forEach((t5) => t5.hostUpdate?.()),
-            this.update(s4))
-          : this._$EM());
-    } catch (s5) {
-      throw ((t4 = false), this._$EM(), s5);
+      ((i5 = this.shouldUpdate(s6)),
+        i5
+          ? (this.willUpdate(s6),
+            null === (t4 = this._$ES) ||
+              void 0 === t4 ||
+              t4.forEach((t5) => {
+                var i6;
+                return null === (i6 = t5.hostUpdate) || void 0 === i6
+                  ? void 0
+                  : i6.call(t5);
+              }),
+            this.update(s6))
+          : this._$Ek());
+    } catch (t5) {
+      throw ((i5 = false), this._$Ek(), t5);
     }
-    t4 && this._$AE(s4);
+    i5 && this._$AE(s6);
   }
   willUpdate(t4) {}
   _$AE(t4) {
-    (this._$EO?.forEach((t5) => t5.hostUpdated?.()),
+    var i5;
+    (null === (i5 = this._$ES) ||
+      void 0 === i5 ||
+      i5.forEach((t5) => {
+        var i6;
+        return null === (i6 = t5.hostUpdated) || void 0 === i6
+          ? void 0
+          : i6.call(t5);
+      }),
       this.hasUpdated || ((this.hasUpdated = true), this.firstUpdated(t4)),
       this.updated(t4));
   }
-  _$EM() {
+  _$Ek() {
     ((this._$AL = /* @__PURE__ */ new Map()), (this.isUpdatePending = false));
   }
   get updateComplete() {
     return this.getUpdateComplete();
   }
   getUpdateComplete() {
-    return this._$ES;
+    return this._$E_;
   }
   shouldUpdate(t4) {
     return true;
   }
   update(t4) {
-    ((this._$Eq &&= this._$Eq.forEach((t5) => this._$ET(t5, this[t5]))),
-      this._$EM());
+    (void 0 !== this._$EC &&
+      (this._$EC.forEach((t5, i5) => this._$EO(i5, this[i5], t5)),
+      (this._$EC = void 0)),
+      this._$Ek());
   }
   updated(t4) {}
   firstUpdated(t4) {}
 };
-((y.elementStyles = []),
-  (y.shadowRootOptions = { mode: "open" }),
-  (y[d("elementProperties")] = /* @__PURE__ */ new Map()),
-  (y[d("finalized")] = /* @__PURE__ */ new Map()),
-  p?.({ ReactiveElement: y }),
-  (a.reactiveElementVersions ??= []).push("2.1.2"));
+((u[d] = true),
+  (u.elementProperties = /* @__PURE__ */ new Map()),
+  (u.elementStyles = []),
+  (u.shadowRootOptions = { mode: "open" }),
+  null == o2 || o2({ ReactiveElement: u }),
+  (null !== (s2 = e2.reactiveElementVersions) && void 0 !== s2
+    ? s2
+    : (e2.reactiveElementVersions = [])
+  ).push("1.6.3"));
 
 // node_modules/lit-html/lit-html.js
-var t2 = globalThis;
-var i3 = (t4) => t4;
-var s2 = t2.trustedTypes;
-var e3 = s2 ? s2.createPolicy("lit-html", { createHTML: (t4) => t4 }) : void 0;
-var h2 = "$lit$";
-var o3 = `lit$${Math.random().toFixed(9).slice(2)}$`;
-var n3 = "?" + o3;
-var r3 = `<${n3}>`;
-var l2 = document;
-var c3 = () => l2.createComment("");
-var a2 = (t4) =>
+var t2;
+var i2 = window;
+var s3 = i2.trustedTypes;
+var e3 = s3 ? s3.createPolicy("lit-html", { createHTML: (t4) => t4 }) : void 0;
+var o3 = "$lit$";
+var n3 = `lit$${crypto.getRandomValues(new Uint32Array(1))[0].toString(36)}$`;
+var l2 = "?" + n3;
+var h2 = `<${l2}>`;
+var r3 = document;
+var u2 = () => r3.createComment("");
+var d2 = (t4) =>
   null === t4 || ("object" != typeof t4 && "function" != typeof t4);
-var u2 = Array.isArray;
-var d2 = (t4) => u2(t4) || "function" == typeof t4?.[Symbol.iterator];
-var f2 = "[ 	\n\f\r]";
-var v = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
+var c2 = Array.isArray;
+var v = (t4) =>
+  c2(t4) || "function" == typeof (null == t4 ? void 0 : t4[Symbol.iterator]);
+var a2 = "[ 	\n\f\r]";
+var f = /<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g;
 var _ = /-->/g;
 var m = />/g;
-var p2 = RegExp(
-  `>|${f2}(?:([^\\s"'>=/]+)(${f2}*=${f2}*(?:[^ 	 // nosemgrep
+var p = RegExp(
+  `>|${a2}(?:([^\\s"'>=/]+)(${a2}*=${a2}*(?:[^ 	 // nosemgrep
 \f\r"'\`<>=]|("|')|))|$)`,
   "g",
 );
 var g = /'/g;
 var $ = /"/g;
-var y2 = /^(?:script|style|textarea|title)$/i;
-var x =
+var y = /^(?:script|style|textarea|title)$/i;
+var w =
   (t4) =>
-  (i7, ...s4) => ({ _$litType$: t4, strings: i7, values: s4 });
-var b2 = x(1);
-var w = x(2);
-var T = x(3);
-var E = /* @__PURE__ */ Symbol.for("lit-noChange");
+  (i5, ...s6) => ({ _$litType$: t4, strings: i5, values: s6 });
+var x = w(1);
+var b = w(2);
+var T = /* @__PURE__ */ Symbol.for("lit-noChange");
 var A = /* @__PURE__ */ Symbol.for("lit-nothing");
-var C = /* @__PURE__ */ new WeakMap();
-var P = l2.createTreeWalker(l2, 129);
-function V(t4, i7) {
-  if (!u2(t4) || !t4.hasOwnProperty("raw"))
+var E = /* @__PURE__ */ new WeakMap();
+var C = r3.createTreeWalker(r3, 129, null, false);
+function P(t4, i5) {
+  if (!Array.isArray(t4) || !t4.hasOwnProperty("raw"))
     throw Error("invalid template strings array");
-  return void 0 !== e3 ? e3.createHTML(i7) : i7;
+  return void 0 !== e3 ? e3.createHTML(i5) : i5;
 }
-var N = (t4, i7) => {
-  const s4 = t4.length - 1,
-    e5 = [];
-  let n4,
-    l3 = 2 === i7 ? "<svg>" : 3 === i7 ? "<math>" : "",
-    c4 = v;
-  for (let i8 = 0; i8 < s4; i8++) {
-    const s5 = t4[i8];
-    let a3,
-      u3,
-      d3 = -1,
-      f3 = 0;
+var V = (t4, i5) => {
+  const s6 = t4.length - 1,
+    e6 = [];
+  let l5,
+    r4 = 2 === i5 ? "<svg>" : "",
+    u3 = f;
+  for (let i6 = 0; i6 < s6; i6++) {
+    const s7 = t4[i6];
+    let d3,
+      c3,
+      v2 = -1,
+      a4 = 0;
     for (
       ;
-      f3 < s5.length && ((c4.lastIndex = f3), (u3 = c4.exec(s5)), null !== u3);
+      a4 < s7.length && ((u3.lastIndex = a4), (c3 = u3.exec(s7)), null !== c3);
     )
-      ((f3 = c4.lastIndex),
-        c4 === v
-          ? "!--" === u3[1]
-            ? (c4 = _)
-            : void 0 !== u3[1]
-              ? (c4 = m)
-              : void 0 !== u3[2]
-                ? (y2.test(u3[2]) && (n4 = RegExp("</" + u3[2], "g")),
-                  (c4 = p2))
-                : void 0 !== u3[3] && (c4 = p2)
-          : c4 === p2
-            ? ">" === u3[0]
-              ? ((c4 = n4 ?? v), (d3 = -1))
-              : void 0 === u3[1]
-                ? (d3 = -2)
-                : ((d3 = c4.lastIndex - u3[2].length),
-                  (a3 = u3[1]),
-                  (c4 = void 0 === u3[3] ? p2 : '"' === u3[3] ? $ : g))
-            : c4 === $ || c4 === g
-              ? (c4 = p2)
-              : c4 === _ || c4 === m
-                ? (c4 = v)
-                : ((c4 = p2), (n4 = void 0))); // nosemgrep
-    const x2 = c4 === p2 && t4[i8 + 1].startsWith("/>") ? " " : "";
-    l3 +=
-      c4 === v
-        ? s5 + r3
-        : d3 >= 0
-          ? (e5.push(a3), s5.slice(0, d3) + h2 + s5.slice(d3) + o3 + x2)
-          : s5 + o3 + (-2 === d3 ? i8 : x2);
+      ((a4 = u3.lastIndex),
+        u3 === f
+          ? "!--" === c3[1]
+            ? (u3 = _)
+            : void 0 !== c3[1]
+              ? (u3 = m)
+              : void 0 !== c3[2]
+                ? (y.test(c3[2]) && (l5 = RegExp("</" + c3[2], "g")), (u3 = p))
+                : void 0 !== c3[3] && (u3 = p)
+          : u3 === p
+            ? ">" === c3[0]
+              ? ((u3 = null != l5 ? l5 : f), (v2 = -1))
+              : void 0 === c3[1]
+                ? (v2 = -2)
+                : ((v2 = u3.lastIndex - c3[2].length),
+                  (d3 = c3[1]),
+                  (u3 = void 0 === c3[3] ? p : '"' === c3[3] ? $ : g))
+            : u3 === $ || u3 === g
+              ? (u3 = p)
+              : u3 === _ || u3 === m
+                ? (u3 = f)
+                : ((u3 = p), (l5 = void 0))); // nosemgrep
+    const w2 = u3 === p && t4[i6 + 1].startsWith("/>") ? " " : "";
+    r4 +=
+      u3 === f
+        ? s7 + h2
+        : v2 >= 0
+          ? (e6.push(d3), s7.slice(0, v2) + o3 + s7.slice(v2) + n3 + w2)
+          : s7 + n3 + (-2 === v2 ? (e6.push(void 0), i6) : w2);
   }
-  return [
-    V(
-      t4,
-      l3 +
-        (t4[s4] || "<?>") +
-        (2 === i7 ? "</svg>" : 3 === i7 ? "</math>" : ""),
-    ),
-    e5,
-  ];
+  return [P(t4, r4 + (t4[s6] || "<?>") + (2 === i5 ? "</svg>" : "")), e6];
 };
-var S2 = class _S {
-  constructor({ strings: t4, _$litType$: i7 }, e5) {
-    let r4;
+var N = class _N {
+  constructor({ strings: t4, _$litType$: i5 }, e6) {
+    let h3;
     this.parts = [];
-    let l3 = 0,
-      a3 = 0;
-    const u3 = t4.length - 1,
-      d3 = this.parts,
-      [f3, v2] = N(t4, i7);
+    let r4 = 0,
+      d3 = 0;
+    const c3 = t4.length - 1,
+      v2 = this.parts,
+      [a4, f2] = V(t4, i5);
     if (
-      ((this.el = _S.createElement(f3, e5)),
-      (P.currentNode = this.el.content),
-      2 === i7 || 3 === i7)
+      ((this.el = _N.createElement(a4, e6)),
+      (C.currentNode = this.el.content),
+      2 === i5)
     ) {
-      const t5 = this.el.content.firstChild;
-      t5.replaceWith(...t5.childNodes);
+      const t5 = this.el.content,
+        i6 = t5.firstChild;
+      (i6.remove(), t5.append(...i6.childNodes));
     }
-    for (; null !== (r4 = P.nextNode()) && d3.length < u3; ) {
-      if (1 === r4.nodeType) {
-        if (r4.hasAttributes())
-          for (const t5 of r4.getAttributeNames())
-            if (t5.endsWith(h2)) {
-              const i8 = v2[a3++],
-                s4 = r4.getAttribute(t5).split(o3),
-                e6 = /([.?@])?(.*)/.exec(i8);
-              (d3.push({
-                type: 1,
-                index: l3,
-                name: e6[2],
-                strings: s4,
-                ctor:
-                  "." === e6[1] ? I : "?" === e6[1] ? L : "@" === e6[1] ? z : H,
-              }),
-                r4.removeAttribute(t5));
-            } else
-              t5.startsWith(o3) &&
-                (d3.push({ type: 6, index: l3 }), r4.removeAttribute(t5));
-        if (y2.test(r4.tagName)) {
-          const t5 = r4.textContent.split(o3),
-            i8 = t5.length - 1;
-          if (i8 > 0) {
-            r4.textContent = s2 ? s2.emptyScript : "";
-            for (let s4 = 0; s4 < i8; s4++)
-              (r4.append(t5[s4], c3()),
-                P.nextNode(),
-                d3.push({ type: 2, index: ++l3 }));
-            r4.append(t5[i8], c3());
+    for (; null !== (h3 = C.nextNode()) && v2.length < c3; ) {
+      if (1 === h3.nodeType) {
+        if (h3.hasAttributes()) {
+          const t5 = [];
+          for (const i6 of h3.getAttributeNames())
+            if (i6.endsWith(o3) || i6.startsWith(n3)) {
+              const s6 = f2[d3++];
+              if ((t5.push(i6), void 0 !== s6)) {
+                const t6 = h3.getAttribute(s6.toLowerCase() + o3).split(n3),
+                  i7 = /([.?@])?(.*)/.exec(s6);
+                v2.push({
+                  type: 1,
+                  index: r4,
+                  name: i7[2],
+                  strings: t6,
+                  ctor:
+                    "." === i7[1]
+                      ? H
+                      : "?" === i7[1]
+                        ? L
+                        : "@" === i7[1]
+                          ? z
+                          : k,
+                });
+              } else v2.push({ type: 6, index: r4 });
+            }
+          for (const i6 of t5) h3.removeAttribute(i6);
+        }
+        if (y.test(h3.tagName)) {
+          const t5 = h3.textContent.split(n3),
+            i6 = t5.length - 1;
+          if (i6 > 0) {
+            h3.textContent = s3 ? s3.emptyScript : "";
+            for (let s6 = 0; s6 < i6; s6++)
+              (h3.append(t5[s6], u2()),
+                C.nextNode(),
+                v2.push({ type: 2, index: ++r4 }));
+            h3.append(t5[i6], u2());
           }
         }
-      } else if (8 === r4.nodeType)
-        if (r4.data === n3) d3.push({ type: 2, index: l3 });
+      } else if (8 === h3.nodeType)
+        if (h3.data === l2) v2.push({ type: 2, index: r4 });
         else {
           let t5 = -1;
-          for (; -1 !== (t5 = r4.data.indexOf(o3, t5 + 1)); )
-            (d3.push({ type: 7, index: l3 }), (t5 += o3.length - 1));
+          for (; -1 !== (t5 = h3.data.indexOf(n3, t5 + 1)); )
+            (v2.push({ type: 7, index: r4 }), (t5 += n3.length - 1));
         }
-      l3++;
+      r4++;
     }
   }
-  static createElement(t4, i7) {
-    const s4 = l2.createElement("template");
-    return ((s4.innerHTML = t4), s4);
+  static createElement(t4, i5) {
+    const s6 = r3.createElement("template");
+    return ((s6.innerHTML = t4), s6);
   }
 };
-function M(t4, i7, s4 = t4, e5) {
-  if (i7 === E) return i7;
-  let h3 = void 0 !== e5 ? s4._$Co?.[e5] : s4._$Cl;
-  const o5 = a2(i7) ? void 0 : i7._$litDirective$;
+function S2(t4, i5, s6 = t4, e6) {
+  var o6, n5, l5, h3;
+  if (i5 === T) return i5;
+  let r4 =
+    void 0 !== e6
+      ? null === (o6 = s6._$Co) || void 0 === o6
+        ? void 0
+        : o6[e6]
+      : s6._$Cl;
+  const u3 = d2(i5) ? void 0 : i5._$litDirective$;
   return (
-    h3?.constructor !== o5 &&
-      (h3?._$AO?.(false),
-      void 0 === o5 ? (h3 = void 0) : ((h3 = new o5(t4)), h3._$AT(t4, s4, e5)),
-      void 0 !== e5 ? ((s4._$Co ??= [])[e5] = h3) : (s4._$Cl = h3)),
-    void 0 !== h3 && (i7 = M(t4, h3._$AS(t4, i7.values), h3, e5)),
-    i7
+    (null == r4 ? void 0 : r4.constructor) !== u3 &&
+      (null === (n5 = null == r4 ? void 0 : r4._$AO) ||
+        void 0 === n5 ||
+        n5.call(r4, false),
+      void 0 === u3 ? (r4 = void 0) : ((r4 = new u3(t4)), r4._$AT(t4, s6, e6)),
+      void 0 !== e6
+        ? ((null !== (l5 = (h3 = s6)._$Co) && void 0 !== l5
+            ? l5
+            : (h3._$Co = []))[e6] = r4)
+        : (s6._$Cl = r4)),
+    void 0 !== r4 && (i5 = S2(t4, r4._$AS(t4, i5.values), r4, e6)),
+    i5
   );
 }
-var R = class {
-  constructor(t4, i7) {
+var M = class {
+  constructor(t4, i5) {
     ((this._$AV = []),
       (this._$AN = void 0),
       (this._$AD = t4),
-      (this._$AM = i7));
+      (this._$AM = i5));
   }
   get parentNode() {
     return this._$AM.parentNode;
@@ -604,59 +626,78 @@ var R = class {
     return this._$AM._$AU;
   }
   u(t4) {
+    var i5;
     const {
-        el: { content: i7 },
-        parts: s4,
+        el: { content: s6 },
+        parts: e6,
       } = this._$AD,
-      e5 = (t4?.creationScope ?? l2).importNode(i7, true);
-    P.currentNode = e5;
-    let h3 = P.nextNode(),
-      o5 = 0,
-      n4 = 0,
-      r4 = s4[0];
-    for (; void 0 !== r4; ) {
-      if (o5 === r4.index) {
-        let i8;
-        (2 === r4.type
-          ? (i8 = new k(h3, h3.nextSibling, this, t4))
-          : 1 === r4.type
-            ? (i8 = new r4.ctor(h3, r4.name, r4.strings, this, t4))
-            : 6 === r4.type && (i8 = new Z(h3, this, t4)),
-          this._$AV.push(i8),
-          (r4 = s4[++n4]));
+      o6 = (
+        null !== (i5 = null == t4 ? void 0 : t4.creationScope) && void 0 !== i5
+          ? i5
+          : r3
+      ).importNode(s6, true);
+    C.currentNode = o6;
+    let n5 = C.nextNode(),
+      l5 = 0,
+      h3 = 0,
+      u3 = e6[0];
+    for (; void 0 !== u3; ) {
+      if (l5 === u3.index) {
+        let i6;
+        (2 === u3.type
+          ? (i6 = new R(n5, n5.nextSibling, this, t4))
+          : 1 === u3.type
+            ? (i6 = new u3.ctor(n5, u3.name, u3.strings, this, t4))
+            : 6 === u3.type && (i6 = new Z(n5, this, t4)),
+          this._$AV.push(i6),
+          (u3 = e6[++h3]));
       }
-      o5 !== r4?.index && ((h3 = P.nextNode()), o5++);
+      l5 !== (null == u3 ? void 0 : u3.index) && ((n5 = C.nextNode()), l5++);
     }
-    return ((P.currentNode = l2), e5);
+    return ((C.currentNode = r3), o6);
   }
-  p(t4) {
-    let i7 = 0;
-    for (const s4 of this._$AV)
-      (void 0 !== s4 &&
-        (void 0 !== s4.strings
-          ? (s4._$AI(t4, s4, i7), (i7 += s4.strings.length - 2))
-          : s4._$AI(t4[i7])),
-        i7++);
+  v(t4) {
+    let i5 = 0;
+    for (const s6 of this._$AV)
+      (void 0 !== s6 &&
+        (void 0 !== s6.strings
+          ? (s6._$AI(t4, s6, i5), (i5 += s6.strings.length - 2))
+          : s6._$AI(t4[i5])),
+        i5++);
   }
 };
-var k = class _k {
-  get _$AU() {
-    return this._$AM?._$AU ?? this._$Cv;
-  }
-  constructor(t4, i7, s4, e5) {
+var R = class _R {
+  constructor(t4, i5, s6, e6) {
+    var o6;
     ((this.type = 2),
       (this._$AH = A),
       (this._$AN = void 0),
       (this._$AA = t4),
-      (this._$AB = i7),
-      (this._$AM = s4),
-      (this.options = e5),
-      (this._$Cv = e5?.isConnected ?? true));
+      (this._$AB = i5),
+      (this._$AM = s6),
+      (this.options = e6),
+      (this._$Cp =
+        null === (o6 = null == e6 ? void 0 : e6.isConnected) ||
+        void 0 === o6 ||
+        o6));
+  }
+  get _$AU() {
+    var t4, i5;
+    return null !==
+      (i5 = null === (t4 = this._$AM) || void 0 === t4 ? void 0 : t4._$AU) &&
+      void 0 !== i5
+      ? i5
+      : this._$Cp;
   }
   get parentNode() {
     let t4 = this._$AA.parentNode;
-    const i7 = this._$AM;
-    return (void 0 !== i7 && 11 === t4?.nodeType && (t4 = i7.parentNode), t4);
+    const i5 = this._$AM;
+    return (
+      void 0 !== i5 &&
+        11 === (null == t4 ? void 0 : t4.nodeType) &&
+        (t4 = i5.parentNode),
+      t4
+    );
   }
   get startNode() {
     return this._$AA;
@@ -664,121 +705,134 @@ var k = class _k {
   get endNode() {
     return this._$AB;
   }
-  _$AI(t4, i7 = this) {
-    ((t4 = M(this, t4, i7)),
-      a2(t4)
+  _$AI(t4, i5 = this) {
+    ((t4 = S2(this, t4, i5)),
+      d2(t4)
         ? t4 === A || null == t4 || "" === t4
           ? (this._$AH !== A && this._$AR(), (this._$AH = A))
-          : t4 !== this._$AH && t4 !== E && this._(t4)
+          : t4 !== this._$AH && t4 !== T && this._(t4)
         : void 0 !== t4._$litType$
-          ? this.$(t4)
+          ? this.g(t4)
           : void 0 !== t4.nodeType
-            ? this.T(t4)
-            : d2(t4)
-              ? this.k(t4)
+            ? this.$(t4)
+            : v(t4)
+              ? this.T(t4)
               : this._(t4));
   }
-  O(t4) {
+  k(t4) {
     return this._$AA.parentNode.insertBefore(t4, this._$AB);
   }
-  T(t4) {
-    this._$AH !== t4 && (this._$AR(), (this._$AH = this.O(t4)));
+  $(t4) {
+    this._$AH !== t4 && (this._$AR(), (this._$AH = this.k(t4)));
   }
   _(t4) {
-    (this._$AH !== A && a2(this._$AH)
+    (this._$AH !== A && d2(this._$AH)
       ? (this._$AA.nextSibling.data = t4)
-      : this.T(l2.createTextNode(t4)),
+      : this.$(r3.createTextNode(t4)),
       (this._$AH = t4));
   }
-  $(t4) {
-    const { values: i7, _$litType$: s4 } = t4,
-      e5 =
-        "number" == typeof s4
+  g(t4) {
+    var i5;
+    const { values: s6, _$litType$: e6 } = t4,
+      o6 =
+        "number" == typeof e6
           ? this._$AC(t4)
-          : (void 0 === s4.el &&
-              (s4.el = S2.createElement(V(s4.h, s4.h[0]), this.options)),
-            s4);
-    if (this._$AH?._$AD === e5) this._$AH.p(i7);
+          : (void 0 === e6.el &&
+              (e6.el = N.createElement(P(e6.h, e6.h[0]), this.options)),
+            e6);
+    if ((null === (i5 = this._$AH) || void 0 === i5 ? void 0 : i5._$AD) === o6)
+      this._$AH.v(s6);
     else {
-      const t5 = new R(e5, this),
-        s5 = t5.u(this.options);
-      (t5.p(i7), this.T(s5), (this._$AH = t5));
+      const t5 = new M(o6, this),
+        i6 = t5.u(this.options);
+      (t5.v(s6), this.$(i6), (this._$AH = t5));
     }
   }
   _$AC(t4) {
-    let i7 = C.get(t4.strings);
-    return (void 0 === i7 && C.set(t4.strings, (i7 = new S2(t4))), i7);
+    let i5 = E.get(t4.strings);
+    return (void 0 === i5 && E.set(t4.strings, (i5 = new N(t4))), i5);
   }
-  k(t4) {
-    u2(this._$AH) || ((this._$AH = []), this._$AR());
-    const i7 = this._$AH;
-    let s4,
-      e5 = 0;
-    for (const h3 of t4)
-      (e5 === i7.length
-        ? i7.push((s4 = new _k(this.O(c3()), this.O(c3()), this, this.options)))
-        : (s4 = i7[e5]),
-        s4._$AI(h3),
-        e5++);
-    e5 < i7.length &&
-      (this._$AR(s4 && s4._$AB.nextSibling, e5), (i7.length = e5));
+  T(t4) {
+    c2(this._$AH) || ((this._$AH = []), this._$AR());
+    const i5 = this._$AH;
+    let s6,
+      e6 = 0;
+    for (const o6 of t4)
+      (e6 === i5.length
+        ? i5.push((s6 = new _R(this.k(u2()), this.k(u2()), this, this.options)))
+        : (s6 = i5[e6]),
+        s6._$AI(o6),
+        e6++);
+    e6 < i5.length &&
+      (this._$AR(s6 && s6._$AB.nextSibling, e6), (i5.length = e6));
   }
-  _$AR(t4 = this._$AA.nextSibling, s4) {
-    for (this._$AP?.(false, true, s4); t4 !== this._$AB; ) {
-      const s5 = i3(t4).nextSibling;
-      (i3(t4).remove(), (t4 = s5));
+  _$AR(t4 = this._$AA.nextSibling, i5) {
+    var s6;
+    for (
+      null === (s6 = this._$AP) ||
+      void 0 === s6 ||
+      s6.call(this, false, true, i5);
+      t4 && t4 !== this._$AB;
+    ) {
+      const i6 = t4.nextSibling;
+      (t4.remove(), (t4 = i6));
     }
   }
   setConnected(t4) {
-    void 0 === this._$AM && ((this._$Cv = t4), this._$AP?.(t4));
+    var i5;
+    void 0 === this._$AM &&
+      ((this._$Cp = t4),
+      null === (i5 = this._$AP) || void 0 === i5 || i5.call(this, t4));
   }
 };
-var H = class {
+var k = class {
+  constructor(t4, i5, s6, e6, o6) {
+    ((this.type = 1),
+      (this._$AH = A),
+      (this._$AN = void 0),
+      (this.element = t4),
+      (this.name = i5),
+      (this._$AM = e6),
+      (this.options = o6),
+      s6.length > 2 || "" !== s6[0] || "" !== s6[1]
+        ? ((this._$AH = Array(s6.length - 1).fill(new String())),
+          (this.strings = s6))
+        : (this._$AH = A));
+  }
   get tagName() {
     return this.element.tagName;
   }
   get _$AU() {
     return this._$AM._$AU;
   }
-  constructor(t4, i7, s4, e5, h3) {
-    ((this.type = 1),
-      (this._$AH = A),
-      (this._$AN = void 0),
-      (this.element = t4),
-      (this.name = i7),
-      (this._$AM = e5),
-      (this.options = h3),
-      s4.length > 2 || "" !== s4[0] || "" !== s4[1]
-        ? ((this._$AH = Array(s4.length - 1).fill(new String())),
-          (this.strings = s4))
-        : (this._$AH = A));
-  }
-  _$AI(t4, i7 = this, s4, e5) {
-    const h3 = this.strings;
-    let o5 = false;
-    if (void 0 === h3)
-      ((t4 = M(this, t4, i7, 0)),
-        (o5 = !a2(t4) || (t4 !== this._$AH && t4 !== E)),
-        o5 && (this._$AH = t4));
+  _$AI(t4, i5 = this, s6, e6) {
+    const o6 = this.strings;
+    let n5 = false;
+    if (void 0 === o6)
+      ((t4 = S2(this, t4, i5, 0)),
+        (n5 = !d2(t4) || (t4 !== this._$AH && t4 !== T)),
+        n5 && (this._$AH = t4));
     else {
-      const e6 = t4;
-      let n4, r4;
-      for (t4 = h3[0], n4 = 0; n4 < h3.length - 1; n4++)
-        ((r4 = M(this, e6[s4 + n4], i7, n4)),
-          r4 === E && (r4 = this._$AH[n4]),
-          (o5 ||= !a2(r4) || r4 !== this._$AH[n4]),
-          r4 === A ? (t4 = A) : t4 !== A && (t4 += (r4 ?? "") + h3[n4 + 1]),
-          (this._$AH[n4] = r4));
+      const e7 = t4;
+      let l5, h3;
+      for (t4 = o6[0], l5 = 0; l5 < o6.length - 1; l5++)
+        ((h3 = S2(this, e7[s6 + l5], i5, l5)),
+          h3 === T && (h3 = this._$AH[l5]),
+          n5 || (n5 = !d2(h3) || h3 !== this._$AH[l5]),
+          h3 === A
+            ? (t4 = A)
+            : t4 !== A && (t4 += (null != h3 ? h3 : "") + o6[l5 + 1]),
+          (this._$AH[l5] = h3));
     }
-    o5 && !e5 && this.j(t4);
+    n5 && !e6 && this.j(t4);
   }
   j(t4) {
     t4 === A
       ? this.element.removeAttribute(this.name)
-      : this.element.setAttribute(this.name, t4 ?? "");
+      : this.element.setAttribute(this.name, null != t4 ? t4 : "");
   }
 };
-var I = class extends H {
+var H = class extends k {
   constructor() {
     (super(...arguments), (this.type = 3));
   }
@@ -786,114 +840,163 @@ var I = class extends H {
     this.element[this.name] = t4 === A ? void 0 : t4;
   }
 };
-var L = class extends H {
+var I = s3 ? s3.emptyScript : "";
+var L = class extends k {
   constructor() {
     (super(...arguments), (this.type = 4));
   }
   j(t4) {
-    this.element.toggleAttribute(this.name, !!t4 && t4 !== A);
+    t4 && t4 !== A
+      ? this.element.setAttribute(this.name, I)
+      : this.element.removeAttribute(this.name);
   }
 };
-var z = class extends H {
-  constructor(t4, i7, s4, e5, h3) {
-    (super(t4, i7, s4, e5, h3), (this.type = 5));
+var z = class extends k {
+  constructor(t4, i5, s6, e6, o6) {
+    (super(t4, i5, s6, e6, o6), (this.type = 5));
   }
-  _$AI(t4, i7 = this) {
-    if ((t4 = M(this, t4, i7, 0) ?? A) === E) return;
-    const s4 = this._$AH,
-      e5 =
-        (t4 === A && s4 !== A) ||
-        t4.capture !== s4.capture ||
-        t4.once !== s4.once ||
-        t4.passive !== s4.passive,
-      h3 = t4 !== A && (s4 === A || e5);
-    (e5 && this.element.removeEventListener(this.name, this, s4),
-      h3 && this.element.addEventListener(this.name, this, t4),
+  _$AI(t4, i5 = this) {
+    var s6;
+    if (
+      (t4 = null !== (s6 = S2(this, t4, i5, 0)) && void 0 !== s6 ? s6 : A) === T
+    )
+      return;
+    const e6 = this._$AH,
+      o6 =
+        (t4 === A && e6 !== A) ||
+        t4.capture !== e6.capture ||
+        t4.once !== e6.once ||
+        t4.passive !== e6.passive,
+      n5 = t4 !== A && (e6 === A || o6);
+    (o6 && this.element.removeEventListener(this.name, this, e6),
+      n5 && this.element.addEventListener(this.name, this, t4),
       (this._$AH = t4));
   }
   handleEvent(t4) {
+    var i5, s6;
     "function" == typeof this._$AH
-      ? this._$AH.call(this.options?.host ?? this.element, t4)
+      ? this._$AH.call(
+          null !==
+            (s6 =
+              null === (i5 = this.options) || void 0 === i5
+                ? void 0
+                : i5.host) && void 0 !== s6
+            ? s6
+            : this.element,
+          t4,
+        )
       : this._$AH.handleEvent(t4);
   }
 };
 var Z = class {
-  constructor(t4, i7, s4) {
+  constructor(t4, i5, s6) {
     ((this.element = t4),
       (this.type = 6),
       (this._$AN = void 0),
-      (this._$AM = i7),
-      (this.options = s4));
+      (this._$AM = i5),
+      (this.options = s6));
   }
   get _$AU() {
     return this._$AM._$AU;
   }
   _$AI(t4) {
-    M(this, t4);
+    S2(this, t4);
   }
 };
 var j = {
-  M: h2,
-  P: o3,
-  A: n3,
+  O: o3,
+  P: n3,
+  A: l2,
   C: 1,
-  L: N,
-  R,
-  D: d2,
-  V: M,
-  I: k,
-  H,
-  N: L,
-  U: z,
-  B: I,
+  M: V,
+  L: M,
+  R: v,
+  D: S2,
+  I: R,
+  V: k,
+  H: L,
+  N: z,
+  U: H,
   F: Z,
 };
-var B = t2.litHtmlPolyfillSupport;
-(B?.(S2, k), (t2.litHtmlVersions ??= []).push("3.3.3"));
-var D = (t4, i7, s4) => {
-  const e5 = s4?.renderBefore ?? i7;
-  let h3 = e5._$litPart$;
-  if (void 0 === h3) {
-    const t5 = s4?.renderBefore ?? null;
-    e5._$litPart$ = h3 = new k(i7.insertBefore(c3(), t5), t5, void 0, s4 ?? {});
+var B = i2.litHtmlPolyfillSupport;
+(null == B || B(N, R),
+  (null !== (t2 = i2.litHtmlVersions) && void 0 !== t2
+    ? t2
+    : (i2.litHtmlVersions = [])
+  ).push("2.8.0"));
+var D = (t4, i5, s6) => {
+  var e6, o6;
+  const n5 =
+    null !== (e6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== e6
+      ? e6
+      : i5;
+  let l5 = n5._$litPart$;
+  if (void 0 === l5) {
+    const t5 =
+      null !== (o6 = null == s6 ? void 0 : s6.renderBefore) && void 0 !== o6
+        ? o6
+        : null;
+    n5._$litPart$ = l5 = new R(
+      i5.insertBefore(u2(), t5),
+      t5,
+      void 0,
+      null != s6 ? s6 : {},
+    );
   }
-  return (h3._$AI(t4), h3);
+  return (l5._$AI(t4), l5);
 };
 
 // node_modules/lit-element/lit-element.js
-var s3 = globalThis;
-var i4 = class extends y {
+var l3;
+var o4;
+var s4 = class extends u {
   constructor() {
     (super(...arguments),
       (this.renderOptions = { host: this }),
       (this._$Do = void 0));
   }
   createRenderRoot() {
-    const t4 = super.createRenderRoot();
-    return ((this.renderOptions.renderBefore ??= t4.firstChild), t4);
+    var t4, e6;
+    const i5 = super.createRenderRoot();
+    return (
+      (null !== (t4 = (e6 = this.renderOptions).renderBefore) &&
+        void 0 !== t4) ||
+        (e6.renderBefore = i5.firstChild),
+      i5
+    );
   }
   update(t4) {
-    const r4 = this.render();
+    const i5 = this.render();
     (this.hasUpdated || (this.renderOptions.isConnected = this.isConnected),
       super.update(t4),
-      (this._$Do = D(r4, this.renderRoot, this.renderOptions)));
+      (this._$Do = D(i5, this.renderRoot, this.renderOptions)));
   }
   connectedCallback() {
-    (super.connectedCallback(), this._$Do?.setConnected(true));
+    var t4;
+    (super.connectedCallback(),
+      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(true));
   }
   disconnectedCallback() {
-    (super.disconnectedCallback(), this._$Do?.setConnected(false));
+    var t4;
+    (super.disconnectedCallback(),
+      null === (t4 = this._$Do) || void 0 === t4 || t4.setConnected(false));
   }
   render() {
-    return E;
+    return T;
   }
 };
-((i4._$litElement$ = true),
-  (i4["finalized"] = true),
-  s3.litElementHydrateSupport?.({ LitElement: i4 }));
-var o4 = s3.litElementPolyfillSupport;
-o4?.({ LitElement: i4 });
-(s3.litElementVersions ??= []).push("4.2.2");
+((s4.finalized = true),
+  (s4._$litElement$ = true),
+  null === (l3 = globalThis.litElementHydrateSupport) ||
+    void 0 === l3 ||
+    l3.call(globalThis, { LitElement: s4 }));
+var n4 = globalThis.litElementPolyfillSupport;
+null == n4 || n4({ LitElement: s4 });
+(null !== (o4 = globalThis.litElementVersions) && void 0 !== o4
+  ? o4
+  : (globalThis.litElementVersions = [])
+).push("3.3.3");
 
 // src/shared/design-tokens.css.js
 var seloraTokens = i`
@@ -1503,6 +1606,75 @@ var layoutStyles = i`
     z-index: 1;
     width: 100%;
     box-sizing: border-box;
+  }
+
+  /* ---- Flat page layout ----
+     The "flat" pattern (used by Recipes, rolling out to Scenes/Automations):
+     a page-level title + lightweight uppercase section subheads, with content
+     and cards floating directly on the page background — no outer .section-card
+     panel. These are generic so any page can adopt them. */
+  .page-root {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 920px;
+  }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .page-h1 {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    margin: 0;
+  }
+  .page-intro {
+    margin: -6px 0 4px;
+    font-size: 14px;
+    color: var(--secondary-text-color);
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+  .page-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+  }
+  /* On a flat page the row-list no longer sits inside a .section-card, so it
+     needs its own surface or it vanishes into the dark page background. Scoped
+     to .page-root so paneled pages (e.g. Automations until it's flattened)
+     keep the transparent list that relies on their panel. */
+  .page-root .automations-list {
+    background: var(--card-background-color);
+    overflow: hidden;
+  }
+  /* Same reasoning for suggestion cards (they were styled via .section-card
+     .card) — restore their inner-card surface on a flat page. */
+  .page-root .suggestions-section .card {
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+    border-radius: 14px;
+  }
+  /* A section header row: the .page-section-title on the left, action buttons
+     on the right (e.g. Suggested for you → Scan Now / Generate). */
+  .page-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  /* Flat-page tab bar: drop the full-width baseline — it would run under any
+     toolbar action on the row (the "line under the button" issue). The active
+     tab's accent underline is the indicator. */
+  .page-root .filter-tabs-row {
+    border-bottom: none;
   }
 
   /* ---- Section cards ---- */
@@ -4073,6 +4245,19 @@ var proposalStyles = i`
     align-self: center;
     transform: translateY(-2px);
   }
+  /* Light mode: gold text on the light flow-node reads poorly (and we avoid
+     gold text in light mode). Switch the link + icon to the readable primary
+     text color; the underline keeps the clickable affordance. */
+  :host(:not([dark])) .flow-entity-link,
+  :host(:not([dark])) .flow-entity-link ha-icon {
+    color: var(--primary-text-color);
+  }
+  :host(:not([dark])) .flow-entity-link > span {
+    text-decoration-color: rgba(var(--rgb-primary-text-color, 0, 0, 0), 0.4);
+  }
+  :host(:not([dark])) .flow-entity-link:hover > span {
+    text-decoration-color: var(--primary-text-color);
+  }
   .flow-duration {
     white-space: nowrap;
     color: var(--primary-text-color);
@@ -4688,7 +4873,16 @@ var automationsStyles = i`
     transition: background 0.15s;
   }
   .auto-row-main:hover {
-    background: var(--secondary-background-color);
+    /* Subtle tint over the row's surface — a flat % of the text color reads
+       gently in both themes, unlike --secondary-background-color which is a
+       heavy medium-gray on the light card surface. */
+    background: color-mix(in srgb, var(--primary-text-color) 5%, transparent);
+  }
+  /* An expanded row is already "open" — its header shouldn't keep flashing the
+     hover highlight (it only collapses on click). Drop the hover background so
+     the expanded card reads as a calm, settled surface. */
+  .auto-row.expanded .auto-row-main:hover {
+    background: transparent;
   }
   .auto-row-name {
     flex: 1;
@@ -4803,7 +4997,7 @@ var automationsStyles = i`
     display: block;
   }
   .auto-row-expand {
-    padding: 0 16px 16px;
+    padding: 14px 16px 16px;
   }
   /* Scene desired-state list: each row = the entity's real HA tile
      (left, rendered with the scene's target state) + the final desired
@@ -6831,8 +7025,8 @@ function rand(min, max) {
   return Math.random() * (max - min) + min;
 }
 function parseHexColor(hex) {
-  const n4 = parseInt(hex.slice(1), 16);
-  return [(n4 >> 16) & 255, (n4 >> 8) & 255, n4 & 255];
+  const n5 = parseInt(hex.slice(1), 16);
+  return [(n5 >> 16) & 255, (n5 >> 8) & 255, n5 & 255];
 }
 var SparkleEngine = class {
   constructor(canvas, opts) {
@@ -6861,7 +7055,7 @@ var SparkleEngine = class {
   }
   init() {
     this.particles = [];
-    for (let i7 = 0; i7 < this.count; i7++) {
+    for (let i5 = 0; i5 < this.count; i5++) {
       const yBias = Math.random();
       this.particles.push({
         x: rand(0, this.w),
@@ -6895,39 +7089,39 @@ var SparkleEngine = class {
     const { w: w2, h: h3, maxOpacity, particles } = this;
     this._currentSpeed +=
       (this._targetSpeed - this._currentSpeed) * this._speedEase;
-    const s4 = this._currentSpeed;
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      p4.x += p4.vx * s4;
-      p4.y += p4.vy * s4;
-      if (p4.x < 0) p4.x = w2;
-      else if (p4.x > w2) p4.x = 0;
-      if (p4.y < 0) {
-        p4.y = h3;
-      } else if (p4.y > h3) {
+    const s6 = this._currentSpeed;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      p2.x += p2.vx * s6;
+      p2.y += p2.vy * s6;
+      if (p2.x < 0) p2.x = w2;
+      else if (p2.x > w2) p2.x = 0;
+      if (p2.y < 0) {
+        p2.y = h3;
+      } else if (p2.y > h3) {
         const r4 = Math.random();
-        p4.y = r4 * r4 * h3 * 0.5;
+        p2.y = r4 * r4 * h3 * 0.5;
       }
-      p4.opacity += p4.opacitySpeed * p4.opacityDir * s4;
-      if (p4.opacity >= maxOpacity) {
-        p4.opacity = maxOpacity;
-        p4.opacityDir = -1;
-      } else if (p4.opacity <= 0.1) {
-        p4.opacity = 0.1;
-        p4.opacityDir = 1;
+      p2.opacity += p2.opacitySpeed * p2.opacityDir * s6;
+      if (p2.opacity >= maxOpacity) {
+        p2.opacity = maxOpacity;
+        p2.opacityDir = -1;
+      } else if (p2.opacity <= 0.1) {
+        p2.opacity = 0.1;
+        p2.opacityDir = 1;
       }
     }
   }
   _draw() {
     const { ctx, w: w2, h: h3, particles, _rgb } = this;
-    const [r4, g2, b3] = _rgb;
+    const [r4, g2, b2] = _rgb;
     ctx.clearRect(0, 0, w2, h3);
-    for (let i7 = 0, len = particles.length; i7 < len; i7++) {
-      const p4 = particles[i7];
-      ctx.globalAlpha = p4.opacity;
-      ctx.fillStyle = `rgb(${r4},${g2},${b3})`;
+    for (let i5 = 0, len = particles.length; i5 < len; i5++) {
+      const p2 = particles[i5];
+      ctx.globalAlpha = p2.opacity;
+      ctx.fillStyle = `rgb(${r4},${g2},${b2})`;
       ctx.beginPath();
-      ctx.arc(p4.x, p4.y, p4.size, 0, TAU);
+      ctx.arc(p2.x, p2.y, p2.size, 0, TAU);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
@@ -7782,6 +7976,315 @@ var en_default = {
     suggestions_snoozed_toast: "Suggestion snoozed for 24h",
     suggestions_pattern_scan_failed: "Pattern scan failed",
     area_unassigned: "Unassigned",
+    recipes_back_to_overview: "Back to overview",
+    recipes_back_to_recipes: "Back to recipes",
+    recipes_bucket_completed: "Completed",
+    recipes_bucket_failed: "Failed",
+    recipes_bucket_in_progress: "In progress",
+    recipes_bucket_install_failed: "Install failed",
+    recipes_bucket_no_details:
+      "No details available. Check the Home Assistant log for the underlying error.",
+    recipes_bucket_up_next: "Up next",
+    recipes_bucket_waiting_for_you: "Waiting for you",
+    recipes_card_configure_button: "Configure",
+    recipes_card_in_progress_step: "In progress \xB7 Step",
+    recipes_card_install_button: "Install",
+    recipes_card_installed_badge: "Installed",
+    recipes_card_manage_devices_button: "Manage devices",
+    recipes_card_manage_devices_title:
+      "Swap or update the devices this recipe uses without re-running the wizard",
+    recipes_card_resume_button: "Resume",
+    recipes_card_start_over_button: "Start over",
+    recipes_card_start_over_title:
+      "Throw away saved progress and start the wizard from scratch",
+    recipes_card_uninstall_button: "Uninstall",
+    recipes_catalog_fetching: "Fetching catalog\u2026",
+    recipes_catalog_no_matches_prefix: "No matches for",
+    recipes_catalog_search_placeholder: "Search recipes\u2026",
+    recipes_catalog_set_url_title: "Set a catalog URL (dev / staging)",
+    recipes_catalog_source_overridden: "Catalog source overridden:",
+    recipes_catalog_unreachable: "Couldn't reach the recipes catalog:",
+    recipes_catalog_url_prompt:
+      "Catalog URL (leave blank to reset to selorahomes.com):",
+    recipes_catalog_using_override: "Using override:",
+    recipes_catalog_will_load: "Catalog will load here.",
+    recipes_continue_button: "Continue",
+    recipes_details_copy_path_title: "Copy path",
+    recipes_details_devices_key: "Devices",
+    recipes_details_installed_on: "installed",
+    recipes_details_integrations_key: "Integrations",
+    recipes_details_no_bound_devices: "No bound devices",
+    recipes_details_none_selected_optional: "None selected (optional)",
+    recipes_details_settings_key: "Settings",
+    recipes_details_summary: "Details",
+    recipes_details_version_key: "Version",
+    recipes_details_where_key: "Where",
+    recipes_eyebrow_recipe: "RECIPE",
+    recipes_eyebrow_released: "Released",
+    recipes_field_optional: "(optional)",
+    recipes_finish_button: "Finish",
+    recipes_flow_cancel: "Cancel",
+    recipes_flow_continue: "Continue",
+    recipes_footer_back: "Back",
+    recipes_footer_cancel: "Cancel",
+    recipes_inputs_panel_title: "Recipe settings",
+    recipes_install_accepts: "accepts",
+    recipes_install_bom_note:
+      "The bill of materials is checked against your home before anything is installed.",
+    recipes_install_click_to_choose: "click to choose a file",
+    recipes_install_drop_here: "Drop a recipe archive here",
+    recipes_install_drop_to_upload: "Drop to upload",
+    recipes_install_failed_button: "Install failed",
+    recipes_install_fetch_button: "Fetch",
+    recipes_install_fetching: "Fetching\u2026",
+    recipes_install_from_url_label: "Install from URL",
+    recipes_install_or: "OR",
+    recipes_install_or_lower: "or",
+    recipes_install_source_hint: "Have a recipe from elsewhere? Add it here.",
+    recipes_install_source_summary: "Install from a URL or file",
+    recipes_install_unsupported_file_prefix: "Unsupported file:",
+    recipes_install_unsupported_file_suffix:
+      "Use a .tar.gz, .tgz, or .zip archive.",
+    recipes_install_upload_label: "Upload from this device",
+    recipes_install_uploading: "Uploading\u2026",
+    recipes_integration_autosetup_prose:
+      "can be set up automatically using your Home Assistant location. No questions for you to answer.",
+    recipes_integration_entry_label: "Entry:",
+    recipes_integration_manage_anytime:
+      "Manage this integration anytime from Settings \u2192 Devices & Services.",
+    recipes_integration_needs_setup_prose:
+      "needs to be set up before this recipe can install. You can start it without leaving this page.",
+    recipes_integration_open_in_ha: "Open in HA",
+    recipes_integration_open_in_ha_settings: "Open in HA settings",
+    recipes_integration_ready: "is set up and ready to use.",
+    recipes_integration_setup_auto_button: "Set up automatically",
+    recipes_integration_setup_failed:
+      "Setup failed. Try again or use HA's settings page.",
+    recipes_integration_setup_prefix: "Set up",
+    recipes_integration_try_again: "Try again",
+    recipes_integration_was_set_up:
+      "was set up. Selora will re-check the recipe automatically.",
+    recipes_list_check_updates_button: "Check for updates",
+    recipes_list_check_updates_title:
+      "Check selorahomes.com for new and updated recipes",
+    recipes_list_checking: "Checking\u2026",
+    recipes_list_installed_missing_bundle:
+      "Installed (bundle missing from disk)",
+    recipes_list_intro:
+      "Recipes are ready-made automations you install in one step \u2014 a leak lockdown, a bedtime routine, a tornado alert. Selora checks each recipe against the devices in your home, then wires it up for you. Pick one below to get started.",
+    recipes_list_on_this_device: "Installed",
+    recipes_list_package_label: "package:",
+    recipes_list_title: "Recipes",
+    recipes_loading: "Loading\u2026",
+    recipes_loading_recipe: "Loading recipe\u2026",
+    recipes_manage_intro:
+      "Update which entities back each role. Saves immediately \u2014 automations are not re-rendered, only the group memberships change.",
+    recipes_manage_no_detail: "No detail available.",
+    recipes_manage_no_entities_prefix: "No",
+    recipes_manage_no_entities_suffix: "entities found in this home.",
+    recipes_manage_save: "Save",
+    recipes_manage_saving: "Saving\u2026",
+    recipes_match_col_item: "Item",
+    recipes_match_col_selected: "Selected",
+    recipes_match_col_status: "Status",
+    recipes_match_nothing:
+      "Nothing to match \u2014 this recipe runs without device setup.",
+    recipes_match_scanning: "Scanning your home\u2026",
+    recipes_match_status_error: "Error",
+    recipes_match_status_needs_setup: "Needs setup",
+    recipes_match_status_optional: "Optional",
+    recipes_match_status_ready: "Ready",
+    recipes_match_status_waiting: "Waiting",
+    recipes_match_status_working: "Working",
+    recipes_optional_eyebrow: "Optional",
+    recipes_pair_hue_action:
+      "Pair this bulb to your Hue Bridge using the Hue app or its setup page.",
+    recipes_pair_hue_cta: "Open Hue setup",
+    recipes_pair_matter_action:
+      "Commission this Matter device with its pairing code from the Matter setup page.",
+    recipes_pair_matter_cta: "Open Matter setup",
+    recipes_pair_mqtt_action:
+      "Bring this MQTT device online so it publishes to the configured topic.",
+    recipes_pair_mqtt_cta: "Open MQTT setup",
+    recipes_pair_zha_action:
+      "Open ZHA's setup page and put the coordinator in pairing mode to add this device.",
+    recipes_pair_zha_cta: "Open ZHA setup",
+    recipes_pair_zwave_action:
+      "Start Z-Wave inclusion from its setup page to add this device.",
+    recipes_pair_zwave_cta: "Open Z-Wave setup",
+    recipes_pin_check_now: "Check now",
+    recipes_pin_default_action:
+      "Add this device to Home Assistant. Selora will detect it automatically.",
+    recipes_pin_expected_entity: "Expected entity id:",
+    recipes_pin_open_ha_integrations: "Open HA integrations",
+    recipes_pin_open_setup_prefix: "Open",
+    recipes_pin_open_setup_suffix: "setup",
+    recipes_pin_tip:
+      "Tip: leave this tab open. When the device pairs, this step ticks itself off \u2014 no need to click anything here.",
+    recipes_progress_title: "Progress",
+    recipes_punch_list_title: "Punch list",
+    recipes_required_eyebrow: "Required",
+    recipes_result_advanced: "advanced",
+    recipes_result_fix_retry:
+      "Fix the items below, then re-open the recipe to retry.",
+    recipes_result_halted_at_stage: "Installation halted at stage:",
+    recipes_result_install_complete: "Installation complete",
+    recipes_result_installed_reloaded:
+      "was installed and Home Assistant has been reloaded. Package file:",
+    recipes_result_view_yaml: "View generated package YAML",
+    recipes_role_check_again: "Check again",
+    recipes_role_empty_add_device: "Add device in HA",
+    recipes_role_empty_at_least: "at least",
+    recipes_role_empty_none_prefix: "No",
+    recipes_role_empty_none_suffix: "in your home yet",
+    recipes_role_empty_one_prose:
+      "one and it'll appear here automatically \u2014 you can leave this page to add a device and the wizard keeps your progress on Back.",
+    recipes_role_empty_pair: "Pair",
+    recipes_role_filter_device_noun: "device",
+    recipes_role_filter_sensor_noun: "sensor",
+    recipes_role_pick_one_or_more: "Pick one or more",
+    recipes_role_pick_prefix: "Pick:",
+    recipes_role_pinned_count_suffix: "pinned by the recipe (always included).",
+    recipes_role_run_against:
+      "Selora will run the recipe against the ones you tick.",
+    recipes_role_up_to: "up to",
+    recipes_safety_automations_generated: "Automations generated",
+    recipes_safety_install_incomplete: "Install incomplete",
+    recipes_safety_installed_ok: "Recipe installed successfully",
+    recipes_safety_issues_to_address: "issue(s) to address",
+    recipes_safety_no_artifacts: "No artifacts created",
+    recipes_safety_no_issues: "No outstanding issues",
+    recipes_section_automation_plural: "automations",
+    recipes_section_automation_singular: "automation",
+    recipes_section_binary_sensor_plural: "binary sensors",
+    recipes_section_binary_sensor_singular: "binary sensor",
+    recipes_section_climate_plural: "climate entities",
+    recipes_section_climate_singular: "climate entity",
+    recipes_section_counter_plural: "counters",
+    recipes_section_counter_singular: "counter",
+    recipes_section_cover_plural: "covers",
+    recipes_section_cover_singular: "cover",
+    recipes_section_customisation_plural: "customisations",
+    recipes_section_customisation_singular: "customisation",
+    recipes_section_group_plural: "groups",
+    recipes_section_group_singular: "group",
+    recipes_section_helper_plural: "helpers",
+    recipes_section_helper_singular: "helper",
+    recipes_section_light_plural: "lights",
+    recipes_section_light_singular: "light",
+    recipes_section_media_player_plural: "media players",
+    recipes_section_media_player_singular: "media player",
+    recipes_section_notify_plural: "notifiers",
+    recipes_section_notify_singular: "notifier",
+    recipes_section_rest_command_plural: "REST commands",
+    recipes_section_rest_command_singular: "REST command",
+    recipes_section_scene_plural: "scenes",
+    recipes_section_scene_singular: "scene",
+    recipes_section_script_plural: "scripts",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "sensors",
+    recipes_section_sensor_singular: "sensor",
+    recipes_section_shell_command_plural: "shell commands",
+    recipes_section_shell_command_singular: "shell command",
+    recipes_section_switch_plural: "switches",
+    recipes_section_switch_singular: "switch",
+    recipes_section_template_plural: "template entities",
+    recipes_section_template_singular: "template entity",
+    recipes_section_timer_plural: "timers",
+    recipes_section_timer_singular: "timer",
+    recipes_selected_awaiting_pair: "Awaiting pair",
+    recipes_selected_entities_suffix: "entities",
+    recipes_selected_none: "None",
+    recipes_selected_setting_plural: "settings",
+    recipes_selected_setting_singular: "setting",
+    recipes_setting_up_button: "Setting up\u2026",
+    recipes_stage_apply: "Apply",
+    recipes_stage_configure: "Configure",
+    recipes_stage_prepare: "Prepare",
+    recipes_stage_unknown: "unknown",
+    recipes_start_setup_button: "Start setup",
+    recipes_status_done: "Done",
+    recipes_status_failed: "Failed",
+    recipes_status_needs_you: "Needs you",
+    recipes_status_pending: "Pending",
+    recipes_status_running: "Running",
+    recipes_status_skipped: "Skipped",
+    recipes_step2_sub:
+      "Recipe-wide preferences. Defaults are pre-filled; adjust only if you want to change something, then Continue.",
+    recipes_step2_sub_empty:
+      "This recipe has no settings to configure \u2014 just click Continue.",
+    recipes_step2_title: "Recipe settings",
+    recipes_step3_hint_finish:
+      "Finish the rows that say \u201CNeeds setup\u201D to continue.",
+    recipes_step3_hint_ready: "Looks good \u2014 ready to set up.",
+    recipes_step3_sub:
+      "Pair each item below with an entity from your home. Click any row to set it up.",
+    recipes_step3_title: "Match devices",
+    recipes_step4_hint_failed:
+      "Hit Back to revise your selections, then try again.",
+    recipes_step4_hint_something_failed:
+      "Something failed \u2014 go back and try again.",
+    recipes_step4_sub_busy:
+      "Selora is installing your recipe. Sit tight \u2014 this only takes a few seconds.",
+    recipes_step4_sub_done:
+      "All done. Click Continue to review what was installed.",
+    recipes_step4_sub_halted_prefix: "Install halted at the",
+    recipes_step4_sub_halted_suffix: "stage. Go back to fix the issues below.",
+    recipes_step4_sub_starting: "Starting setup\u2026",
+    recipes_step4_title: "Setting up",
+    recipes_step5_created_title: "This recipe created",
+    recipes_step5_devices_linked: "Devices linked",
+    recipes_step5_hint:
+      "Home Assistant has been reloaded \u2014 your recipe is live.",
+    recipes_step5_more_suffix: "more",
+    recipes_step5_no_devices: "No devices are tied to this recipe.",
+    recipes_step5_no_entries: "No entries were generated.",
+    recipes_step5_safety_checks: "Safety checks",
+    recipes_step5_sub:
+      "Your recipe is installed and Home Assistant has been reloaded. Review what was created below, then click Finish.",
+    recipes_step5_title: "Review & finish",
+    recipes_step_activate: "Activate",
+    recipes_step_label: "Step",
+    recipes_step_match: "Match",
+    recipes_step_of_5: "of 5",
+    recipes_step_overview: "Overview",
+    recipes_step_set_up: "Set up",
+    recipes_step_settings: "Settings",
+    recipes_system_panel_auto:
+      "This step runs automatically. No action needed from you.",
+    recipes_this_recipe_creates: "This recipe creates",
+    recipes_uninstall_body:
+      "The package file will be deleted and Home Assistant will reload. The automations this recipe created will be removed.",
+    recipes_uninstall_confirm_prefix: "Uninstall",
+    recipes_uninstall_integrations_sub:
+      "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
+    recipes_uninstall_integrations_title: "Integrations this recipe installed",
+    recipes_uninstall_still_used_by: "Still used by",
+    recipes_uninstall_warn_title:
+      "Removing this integration will break those recipes.",
+    recipes_what_you_need_title: "What you need",
+    recipes_working: "Working\u2026",
+    recipes_role_filter_placeholder: "Filter by name\u2026",
+    recipes_role_filter_no_matches: "No entities match your filter.",
+    recipes_role_show_all: "Show all",
+    recipes_role_show_less: "Show less",
+    recipes_dashboard_picker_title: "Add a card to a dashboard",
+    recipes_dashboard_picker_sub:
+      "This recipe can drop a card on a dashboard so you can tap it. Pick where \u2014 or skip and add it yourself later.",
+    recipes_dashboard_picker_skip: "Don't add a card",
+    recipes_dashboard_picker_refine: "Need a custom card? Refine in chat",
+    recipes_step5_dashboard_title: "Dashboard card",
+    recipes_step5_dashboard_added: "A card was added to your dashboard.",
+    recipes_step5_dashboard_skipped:
+      "No card was added. You can add one yourself, or let Selora help.",
+    recipes_step5_dashboard_manual:
+      "Couldn't add the card automatically \u2014 add it yourself, or let Selora help.",
+    recipes_step5_dashboard_customize: "Customize in chat",
+    recipes_step5_dashboard_help: "Add it in chat",
+    recipes_refine_chat_failed: "Couldn't open a chat for this recipe.",
+    recipes_step3_hint_blocked:
+      "This recipe can't be prepared yet \u2014 check the recipe for errors, then try again.",
+    recipes_catalog_empty: "No recipes in this catalog yet.",
   },
   options: {
     step: {
@@ -8536,6 +9039,329 @@ var fr_default = {
     suggestions_snoozed_toast: "Suggestion report\xE9e pendant 24 h",
     suggestions_pattern_scan_failed: "\xC9chec de l'analyse des motifs",
     area_unassigned: "Non assign\xE9",
+    recipes_back_to_overview: "Retour \xE0 l'aper\xE7u",
+    recipes_back_to_recipes: "Retour aux recettes",
+    recipes_bucket_completed: "Termin\xE9",
+    recipes_bucket_failed: "\xC9chou\xE9",
+    recipes_bucket_in_progress: "En cours",
+    recipes_bucket_install_failed: "\xC9chec de l'installation",
+    recipes_bucket_no_details:
+      "Aucun d\xE9tail disponible. Consultez le journal Home Assistant pour l'erreur sous-jacente.",
+    recipes_bucket_up_next: "\xC0 suivre",
+    recipes_bucket_waiting_for_you: "En attente de votre action",
+    recipes_card_configure_button: "Configurer",
+    recipes_card_in_progress_step: "En cours \xB7 \xC9tape",
+    recipes_card_install_button: "Installer",
+    recipes_card_installed_badge: "Install\xE9e",
+    recipes_card_manage_devices_button: "G\xE9rer les appareils",
+    recipes_card_manage_devices_title:
+      "Remplacez ou mettez \xE0 jour les appareils utilis\xE9s par cette recette sans relancer l'assistant",
+    recipes_card_resume_button: "Reprendre",
+    recipes_card_start_over_button: "Recommencer",
+    recipes_card_start_over_title:
+      "Abandonner la progression enregistr\xE9e et red\xE9marrer l'assistant \xE0 z\xE9ro",
+    recipes_card_uninstall_button: "D\xE9sinstaller",
+    recipes_catalog_fetching: "R\xE9cup\xE9ration du catalogue\u2026",
+    recipes_catalog_no_matches_prefix: "Aucun r\xE9sultat pour",
+    recipes_catalog_search_placeholder: "Rechercher des recettes\u2026",
+    recipes_catalog_set_url_title:
+      "D\xE9finir une URL de catalogue (dev / staging)",
+    recipes_catalog_source_overridden: "Source du catalogue remplac\xE9e :",
+    recipes_catalog_unreachable:
+      "Impossible de joindre le catalogue de recettes :",
+    recipes_catalog_url_prompt:
+      "URL du catalogue (laissez vide pour r\xE9tablir selorahomes.com) :",
+    recipes_catalog_using_override: "Remplacement utilis\xE9 :",
+    recipes_catalog_will_load: "Le catalogue se chargera ici.",
+    recipes_continue_button: "Continuer",
+    recipes_details_copy_path_title: "Copier le chemin",
+    recipes_details_devices_key: "Appareils",
+    recipes_details_installed_on: "install\xE9e",
+    recipes_details_integrations_key: "Int\xE9grations",
+    recipes_details_no_bound_devices: "Aucun appareil li\xE9",
+    recipes_details_none_selected_optional:
+      "Aucun s\xE9lectionn\xE9 (facultatif)",
+    recipes_details_settings_key: "Param\xE8tres",
+    recipes_details_summary: "D\xE9tails",
+    recipes_details_version_key: "Version",
+    recipes_details_where_key: "Emplacement",
+    recipes_eyebrow_recipe: "RECETTE",
+    recipes_eyebrow_released: "Publi\xE9e",
+    recipes_field_optional: "(facultatif)",
+    recipes_finish_button: "Terminer",
+    recipes_flow_cancel: "Annuler",
+    recipes_flow_continue: "Continuer",
+    recipes_footer_back: "Retour",
+    recipes_footer_cancel: "Annuler",
+    recipes_inputs_panel_title: "Param\xE8tres de la recette",
+    recipes_install_accepts: "accepte",
+    recipes_install_bom_note:
+      "La nomenclature est v\xE9rifi\xE9e par rapport \xE0 votre domicile avant toute installation.",
+    recipes_install_click_to_choose: "cliquez pour choisir un fichier",
+    recipes_install_drop_here: "D\xE9posez une archive de recette ici",
+    recipes_install_drop_to_upload: "D\xE9posez pour t\xE9l\xE9verser",
+    recipes_install_failed_button: "\xC9chec de l'installation",
+    recipes_install_fetch_button: "R\xE9cup\xE9rer",
+    recipes_install_fetching: "R\xE9cup\xE9ration\u2026",
+    recipes_install_from_url_label: "Installer depuis une URL",
+    recipes_install_or: "OU",
+    recipes_install_or_lower: "ou",
+    recipes_install_source_hint:
+      "Vous avez une recette d'ailleurs ? Ajoutez-la ici.",
+    recipes_install_source_summary: "Installer depuis une URL ou un fichier",
+    recipes_install_unsupported_file_prefix: "Fichier non pris en charge :",
+    recipes_install_unsupported_file_suffix:
+      "Utilisez une archive .tar.gz, .tgz ou .zip.",
+    recipes_install_upload_label: "T\xE9l\xE9verser depuis cet appareil",
+    recipes_install_uploading: "T\xE9l\xE9versement\u2026",
+    recipes_integration_autosetup_prose:
+      "peut \xEAtre configur\xE9e automatiquement \xE0 partir de l'emplacement de votre Home Assistant. Aucune question \xE0 laquelle r\xE9pondre.",
+    recipes_integration_entry_label: "Entr\xE9e :",
+    recipes_integration_manage_anytime:
+      "G\xE9rez cette int\xE9gration \xE0 tout moment depuis Param\xE8tres \u2192 Appareils et services.",
+    recipes_integration_needs_setup_prose:
+      "doit \xEAtre configur\xE9e avant que cette recette puisse s'installer. Vous pouvez la d\xE9marrer sans quitter cette page.",
+    recipes_integration_open_in_ha: "Ouvrir dans HA",
+    recipes_integration_open_in_ha_settings: "Ouvrir dans les param\xE8tres HA",
+    recipes_integration_ready: "est configur\xE9e et pr\xEAte \xE0 l'emploi.",
+    recipes_integration_setup_auto_button: "Configurer automatiquement",
+    recipes_integration_setup_failed:
+      "\xC9chec de la configuration. R\xE9essayez ou utilisez la page des param\xE8tres HA.",
+    recipes_integration_setup_prefix: "Configurer",
+    recipes_integration_try_again: "R\xE9essayer",
+    recipes_integration_was_set_up:
+      "a \xE9t\xE9 configur\xE9e. Selora rev\xE9rifiera la recette automatiquement.",
+    recipes_list_check_updates_button: "V\xE9rifier les mises \xE0 jour",
+    recipes_list_check_updates_title:
+      "V\xE9rifier sur selorahomes.com les recettes nouvelles et mises \xE0 jour",
+    recipes_list_checking: "V\xE9rification\u2026",
+    recipes_list_installed_missing_bundle:
+      "Install\xE9e (bundle manquant sur le disque)",
+    recipes_list_intro:
+      "Les recettes sont des automatisations pr\xEAtes \xE0 l'emploi que vous installez en une \xE9tape \u2014 une coupure en cas de fuite, une routine du coucher, une alerte tornade. Selora v\xE9rifie chaque recette par rapport aux appareils de votre domicile, puis la met en place pour vous. Choisissez-en une ci-dessous pour commencer.",
+    recipes_list_on_this_device: "Install\xE9es",
+    recipes_list_package_label: "package :",
+    recipes_list_title: "Recettes",
+    recipes_loading: "Chargement\u2026",
+    recipes_loading_recipe: "Chargement de la recette\u2026",
+    recipes_manage_intro:
+      "Mettez \xE0 jour les entit\xE9s associ\xE9es \xE0 chaque r\xF4le. Enregistrement imm\xE9diat \u2014 les automatisations ne sont pas r\xE9g\xE9n\xE9r\xE9es, seules les appartenances aux groupes changent.",
+    recipes_manage_no_detail: "Aucun d\xE9tail disponible.",
+    recipes_manage_no_entities_prefix: "Aucune",
+    recipes_manage_no_entities_suffix: "entit\xE9 trouv\xE9e dans ce domicile.",
+    recipes_manage_save: "Enregistrer",
+    recipes_manage_saving: "Enregistrement\u2026",
+    recipes_match_col_item: "\xC9l\xE9ment",
+    recipes_match_col_selected: "S\xE9lectionn\xE9",
+    recipes_match_col_status: "Statut",
+    recipes_match_nothing:
+      "Rien \xE0 associer \u2014 cette recette s'ex\xE9cute sans configuration d'appareil.",
+    recipes_match_scanning: "Analyse de votre domicile\u2026",
+    recipes_match_status_error: "Erreur",
+    recipes_match_status_needs_setup: "Configuration requise",
+    recipes_match_status_optional: "Facultatif",
+    recipes_match_status_ready: "Pr\xEAt",
+    recipes_match_status_waiting: "En attente",
+    recipes_match_status_working: "En cours",
+    recipes_optional_eyebrow: "Facultatif",
+    recipes_pair_hue_action:
+      "Associez cette ampoule \xE0 votre Hue Bridge \xE0 l'aide de l'application Hue ou de sa page de configuration.",
+    recipes_pair_hue_cta: "Ouvrir la configuration Hue",
+    recipes_pair_matter_action:
+      "Mettez en service cet appareil Matter avec son code d'appairage depuis la page de configuration Matter.",
+    recipes_pair_matter_cta: "Ouvrir la configuration Matter",
+    recipes_pair_mqtt_action:
+      "Mettez cet appareil MQTT en ligne afin qu'il publie sur le sujet configur\xE9.",
+    recipes_pair_mqtt_cta: "Ouvrir la configuration MQTT",
+    recipes_pair_zha_action:
+      "Ouvrez la page de configuration ZHA et mettez le coordinateur en mode appairage pour ajouter cet appareil.",
+    recipes_pair_zha_cta: "Ouvrir la configuration ZHA",
+    recipes_pair_zwave_action:
+      "D\xE9marrez l'inclusion Z-Wave depuis sa page de configuration pour ajouter cet appareil.",
+    recipes_pair_zwave_cta: "Ouvrir la configuration Z-Wave",
+    recipes_pin_check_now: "V\xE9rifier maintenant",
+    recipes_pin_default_action:
+      "Ajoutez cet appareil \xE0 Home Assistant. Selora le d\xE9tectera automatiquement.",
+    recipes_pin_expected_entity: "ID d'entit\xE9 attendu :",
+    recipes_pin_open_ha_integrations: "Ouvrir les int\xE9grations HA",
+    recipes_pin_open_setup_prefix: "Ouvrir la configuration",
+    recipes_pin_open_setup_suffix: "",
+    recipes_pin_tip:
+      "Astuce : laissez cet onglet ouvert. Lorsque l'appareil s'associe, cette \xE9tape se coche d'elle-m\xEAme \u2014 inutile de cliquer sur quoi que ce soit ici.",
+    recipes_progress_title: "Progression",
+    recipes_punch_list_title: "Liste des t\xE2ches",
+    recipes_required_eyebrow: "Requis",
+    recipes_result_advanced: "avanc\xE9",
+    recipes_result_fix_retry:
+      "Corrigez les \xE9l\xE9ments ci-dessous, puis rouvrez la recette pour r\xE9essayer.",
+    recipes_result_halted_at_stage:
+      "Installation arr\xEAt\xE9e \xE0 l'\xE9tape :",
+    recipes_result_install_complete: "Installation termin\xE9e",
+    recipes_result_installed_reloaded:
+      "a \xE9t\xE9 install\xE9e et Home Assistant a \xE9t\xE9 recharg\xE9. Fichier package :",
+    recipes_result_view_yaml: "Voir le YAML du package g\xE9n\xE9r\xE9",
+    recipes_role_check_again: "V\xE9rifier \xE0 nouveau",
+    recipes_role_empty_add_device: "Ajouter un appareil dans HA",
+    recipes_role_empty_at_least: "au moins",
+    recipes_role_empty_none_prefix: "Aucun",
+    recipes_role_empty_none_suffix: "dans votre domicile pour l'instant",
+    recipes_role_empty_one_prose:
+      "un seul et il appara\xEEtra ici automatiquement \u2014 vous pouvez quitter cette page pour ajouter un appareil, l'assistant conserve votre progression via Retour.",
+    recipes_role_empty_pair: "Associer",
+    recipes_role_filter_device_noun: "appareil",
+    recipes_role_filter_sensor_noun: "capteur",
+    recipes_role_pick_one_or_more: "Choisissez-en un ou plusieurs",
+    recipes_role_pick_prefix: "Choisir :",
+    recipes_role_pinned_count_suffix:
+      "\xE9pingl\xE9(s) par la recette (toujours inclus).",
+    recipes_role_run_against:
+      "Selora ex\xE9cutera la recette sur ceux que vous cochez.",
+    recipes_role_up_to: "jusqu'\xE0",
+    recipes_safety_automations_generated: "Automatisations g\xE9n\xE9r\xE9es",
+    recipes_safety_install_incomplete: "Installation incompl\xE8te",
+    recipes_safety_installed_ok: "Recette install\xE9e avec succ\xE8s",
+    recipes_safety_issues_to_address: "probl\xE8me(s) \xE0 r\xE9gler",
+    recipes_safety_no_artifacts: "Aucun artefact cr\xE9\xE9",
+    recipes_safety_no_issues: "Aucun probl\xE8me en suspens",
+    recipes_section_automation_plural: "automatisations",
+    recipes_section_automation_singular: "automatisation",
+    recipes_section_binary_sensor_plural: "capteurs binaires",
+    recipes_section_binary_sensor_singular: "capteur binaire",
+    recipes_section_climate_plural: "entit\xE9s climatiques",
+    recipes_section_climate_singular: "entit\xE9 climatique",
+    recipes_section_counter_plural: "compteurs",
+    recipes_section_counter_singular: "compteur",
+    recipes_section_cover_plural: "volets",
+    recipes_section_cover_singular: "volet",
+    recipes_section_customisation_plural: "personnalisations",
+    recipes_section_customisation_singular: "personnalisation",
+    recipes_section_group_plural: "groupes",
+    recipes_section_group_singular: "groupe",
+    recipes_section_helper_plural: "assistants",
+    recipes_section_helper_singular: "assistant",
+    recipes_section_light_plural: "lumi\xE8res",
+    recipes_section_light_singular: "lumi\xE8re",
+    recipes_section_media_player_plural: "lecteurs multim\xE9dias",
+    recipes_section_media_player_singular: "lecteur multim\xE9dia",
+    recipes_section_notify_plural: "notificateurs",
+    recipes_section_notify_singular: "notificateur",
+    recipes_section_rest_command_plural: "commandes REST",
+    recipes_section_rest_command_singular: "commande REST",
+    recipes_section_scene_plural: "sc\xE8nes",
+    recipes_section_scene_singular: "sc\xE8ne",
+    recipes_section_script_plural: "scripts",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "capteurs",
+    recipes_section_sensor_singular: "capteur",
+    recipes_section_shell_command_plural: "commandes shell",
+    recipes_section_shell_command_singular: "commande shell",
+    recipes_section_switch_plural: "interrupteurs",
+    recipes_section_switch_singular: "interrupteur",
+    recipes_section_template_plural: "entit\xE9s template",
+    recipes_section_template_singular: "entit\xE9 template",
+    recipes_section_timer_plural: "minuteurs",
+    recipes_section_timer_singular: "minuteur",
+    recipes_selected_awaiting_pair: "En attente d'appairage",
+    recipes_selected_entities_suffix: "entit\xE9s",
+    recipes_selected_none: "Aucun",
+    recipes_selected_setting_plural: "param\xE8tres",
+    recipes_selected_setting_singular: "param\xE8tre",
+    recipes_setting_up_button: "Configuration\u2026",
+    recipes_stage_apply: "Appliquer",
+    recipes_stage_configure: "Configurer",
+    recipes_stage_prepare: "Pr\xE9parer",
+    recipes_stage_unknown: "inconnue",
+    recipes_start_setup_button: "D\xE9marrer la configuration",
+    recipes_status_done: "Termin\xE9",
+    recipes_status_failed: "\xC9chou\xE9",
+    recipes_status_needs_you: "Action requise",
+    recipes_status_pending: "En attente",
+    recipes_status_running: "En cours",
+    recipes_status_skipped: "Ignor\xE9",
+    recipes_step2_sub:
+      "Pr\xE9f\xE9rences \xE0 l'\xE9chelle de la recette. Les valeurs par d\xE9faut sont pr\xE9-remplies ; ajustez-les uniquement si vous souhaitez changer quelque chose, puis cliquez sur Continuer.",
+    recipes_step2_sub_empty:
+      "Cette recette n'a aucun param\xE8tre \xE0 configurer \u2014 cliquez simplement sur Continuer.",
+    recipes_step2_title: "Param\xE8tres de la recette",
+    recipes_step3_hint_finish:
+      "Compl\xE9tez les lignes indiquant \xAB Configuration requise \xBB pour continuer.",
+    recipes_step3_hint_ready: "Tout est bon \u2014 pr\xEAt \xE0 configurer.",
+    recipes_step3_sub:
+      "Associez chaque \xE9l\xE9ment ci-dessous \xE0 une entit\xE9 de votre domicile. Cliquez sur une ligne pour la configurer.",
+    recipes_step3_title: "Associer les appareils",
+    recipes_step4_hint_failed:
+      "Cliquez sur Retour pour revoir vos s\xE9lections, puis r\xE9essayez.",
+    recipes_step4_hint_something_failed:
+      "Quelque chose a \xE9chou\xE9 \u2014 revenez en arri\xE8re et r\xE9essayez.",
+    recipes_step4_sub_busy:
+      "Selora installe votre recette. Patientez \u2014 cela ne prend que quelques secondes.",
+    recipes_step4_sub_done:
+      "Termin\xE9. Cliquez sur Continuer pour passer en revue ce qui a \xE9t\xE9 install\xE9.",
+    recipes_step4_sub_halted_prefix:
+      "Installation arr\xEAt\xE9e \xE0 l'\xE9tape",
+    recipes_step4_sub_halted_suffix:
+      ". Revenez en arri\xE8re pour corriger les probl\xE8mes ci-dessous.",
+    recipes_step4_sub_starting: "D\xE9marrage de la configuration\u2026",
+    recipes_step4_title: "Configuration en cours",
+    recipes_step5_created_title: "Cette recette a cr\xE9\xE9",
+    recipes_step5_devices_linked: "Appareils li\xE9s",
+    recipes_step5_hint:
+      "Home Assistant a \xE9t\xE9 recharg\xE9 \u2014 votre recette est active.",
+    recipes_step5_more_suffix: "de plus",
+    recipes_step5_no_devices: "Aucun appareil n'est li\xE9 \xE0 cette recette.",
+    recipes_step5_no_entries:
+      "Aucune entr\xE9e n'a \xE9t\xE9 g\xE9n\xE9r\xE9e.",
+    recipes_step5_safety_checks: "V\xE9rifications de s\xE9curit\xE9",
+    recipes_step5_sub:
+      "Votre recette est install\xE9e et Home Assistant a \xE9t\xE9 recharg\xE9. Passez en revue ce qui a \xE9t\xE9 cr\xE9\xE9 ci-dessous, puis cliquez sur Terminer.",
+    recipes_step5_title: "V\xE9rifier et terminer",
+    recipes_step_activate: "Activer",
+    recipes_step_label: "\xC9tape",
+    recipes_step_match: "Associer",
+    recipes_step_of_5: "sur 5",
+    recipes_step_overview: "Aper\xE7u",
+    recipes_step_set_up: "Configurer",
+    recipes_step_settings: "Param\xE8tres",
+    recipes_system_panel_auto:
+      "Cette \xE9tape s'ex\xE9cute automatiquement. Aucune action requise de votre part.",
+    recipes_this_recipe_creates: "Cette recette cr\xE9e",
+    recipes_uninstall_body:
+      "Le fichier package sera supprim\xE9 et Home Assistant se rechargera. Les automatisations cr\xE9\xE9es par cette recette seront retir\xE9es.",
+    recipes_uninstall_confirm_prefix: "D\xE9sinstaller",
+    recipes_uninstall_integrations_sub:
+      "Cochez celles qui doivent \xEAtre retir\xE9es avec la recette. Tout ce que vous laissez d\xE9coch\xE9 reste dans Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "Int\xE9grations install\xE9es par cette recette",
+    recipes_uninstall_still_used_by: "Encore utilis\xE9e par",
+    recipes_uninstall_warn_title:
+      "Supprimer cette int\xE9gration cassera ces recettes.",
+    recipes_what_you_need_title: "Ce dont vous avez besoin",
+    recipes_working: "Traitement\u2026",
+    recipes_role_filter_placeholder: "Filtrer par nom\u2026",
+    recipes_role_filter_no_matches:
+      "Aucune entit\xE9 ne correspond \xE0 votre filtre.",
+    recipes_role_show_all: "Tout afficher",
+    recipes_role_show_less: "Afficher moins",
+    recipes_dashboard_picker_title: "Ajouter une carte \xE0 un tableau de bord",
+    recipes_dashboard_picker_sub:
+      "Cette recette peut ajouter une carte sur un tableau de bord pour que vous puissiez l'activer. Choisissez o\xF9 \u2014 ou ignorez et ajoutez-la vous-m\xEAme plus tard.",
+    recipes_dashboard_picker_skip: "Ne pas ajouter de carte",
+    recipes_dashboard_picker_refine:
+      "Besoin d'une carte personnalis\xE9e ? Affiner dans le chat",
+    recipes_step5_dashboard_title: "Carte du tableau de bord",
+    recipes_step5_dashboard_added:
+      "Une carte a \xE9t\xE9 ajout\xE9e \xE0 votre tableau de bord.",
+    recipes_step5_dashboard_skipped:
+      "Aucune carte ajout\xE9e. Vous pouvez en ajouter une vous-m\xEAme, ou laisser Selora vous aider.",
+    recipes_step5_dashboard_manual:
+      "Impossible d'ajouter la carte automatiquement \u2014 ajoutez-la vous-m\xEAme, ou laissez Selora vous aider.",
+    recipes_step5_dashboard_customize: "Personnaliser dans le chat",
+    recipes_step5_dashboard_help: "L'ajouter dans le chat",
+    recipes_refine_chat_failed:
+      "Impossible d'ouvrir un chat pour cette recette.",
+    recipes_step3_hint_blocked:
+      "Cette recette ne peut pas encore \xEAtre pr\xE9par\xE9e \u2014 v\xE9rifiez les erreurs de la recette, puis r\xE9essayez.",
+    recipes_catalog_empty: "Aucune recette dans ce catalogue pour le moment.",
   },
   options: {
     step: {
@@ -9289,6 +10115,326 @@ var de_default = {
     suggestions_snoozed_toast: "Vorschlag f\xFCr 24h zur\xFCckgestellt",
     suggestions_pattern_scan_failed: "Musterscan fehlgeschlagen",
     area_unassigned: "Nicht zugewiesen",
+    recipes_back_to_overview: "Zur\xFCck zur \xDCbersicht",
+    recipes_back_to_recipes: "Zur\xFCck zu den Rezepten",
+    recipes_bucket_completed: "Abgeschlossen",
+    recipes_bucket_failed: "Fehlgeschlagen",
+    recipes_bucket_in_progress: "In Bearbeitung",
+    recipes_bucket_install_failed: "Installation fehlgeschlagen",
+    recipes_bucket_no_details:
+      "Keine Details verf\xFCgbar. Pr\xFCfen Sie das Home Assistant-Protokoll auf den zugrunde liegenden Fehler.",
+    recipes_bucket_up_next: "Als N\xE4chstes",
+    recipes_bucket_waiting_for_you: "Wartet auf Sie",
+    recipes_card_configure_button: "Konfigurieren",
+    recipes_card_in_progress_step: "In Bearbeitung \xB7 Schritt",
+    recipes_card_install_button: "Installieren",
+    recipes_card_installed_badge: "Installiert",
+    recipes_card_manage_devices_button: "Ger\xE4te verwalten",
+    recipes_card_manage_devices_title:
+      "Tauschen oder aktualisieren Sie die von diesem Rezept verwendeten Ger\xE4te, ohne den Assistenten erneut zu durchlaufen",
+    recipes_card_resume_button: "Fortsetzen",
+    recipes_card_start_over_button: "Von vorne beginnen",
+    recipes_card_start_over_title:
+      "Gespeicherten Fortschritt verwerfen und den Assistenten von Grund auf neu starten",
+    recipes_card_uninstall_button: "Deinstallieren",
+    recipes_catalog_fetching: "Katalog wird abgerufen\u2026",
+    recipes_catalog_no_matches_prefix: "Keine Treffer f\xFCr",
+    recipes_catalog_search_placeholder: "Rezepte suchen\u2026",
+    recipes_catalog_set_url_title: "Eine Katalog-URL festlegen (Dev / Staging)",
+    recipes_catalog_source_overridden: "Katalogquelle \xFCberschrieben:",
+    recipes_catalog_unreachable:
+      "Der Rezeptkatalog konnte nicht erreicht werden:",
+    recipes_catalog_url_prompt:
+      "Katalog-URL (leer lassen, um auf selorahomes.com zur\xFCckzusetzen):",
+    recipes_catalog_using_override: "\xDCberschreibung wird verwendet:",
+    recipes_catalog_will_load: "Der Katalog wird hier geladen.",
+    recipes_continue_button: "Weiter",
+    recipes_details_copy_path_title: "Pfad kopieren",
+    recipes_details_devices_key: "Ger\xE4te",
+    recipes_details_installed_on: "installiert",
+    recipes_details_integrations_key: "Integrationen",
+    recipes_details_no_bound_devices: "Keine verkn\xFCpften Ger\xE4te",
+    recipes_details_none_selected_optional: "Keine ausgew\xE4hlt (optional)",
+    recipes_details_settings_key: "Einstellungen",
+    recipes_details_summary: "Details",
+    recipes_details_version_key: "Version",
+    recipes_details_where_key: "Wo",
+    recipes_eyebrow_recipe: "REZEPT",
+    recipes_eyebrow_released: "Ver\xF6ffentlicht",
+    recipes_field_optional: "(optional)",
+    recipes_finish_button: "Fertigstellen",
+    recipes_flow_cancel: "Abbrechen",
+    recipes_flow_continue: "Weiter",
+    recipes_footer_back: "Zur\xFCck",
+    recipes_footer_cancel: "Abbrechen",
+    recipes_inputs_panel_title: "Rezepteinstellungen",
+    recipes_install_accepts: "akzeptiert",
+    recipes_install_bom_note:
+      "Die St\xFCckliste wird mit Ihrem Zuhause abgeglichen, bevor irgendetwas installiert wird.",
+    recipes_install_click_to_choose: "klicken, um eine Datei auszuw\xE4hlen",
+    recipes_install_drop_here: "Ein Rezept-Archiv hierher ziehen",
+    recipes_install_drop_to_upload: "Zum Hochladen ablegen",
+    recipes_install_failed_button: "Installation fehlgeschlagen",
+    recipes_install_fetch_button: "Abrufen",
+    recipes_install_fetching: "Wird abgerufen\u2026",
+    recipes_install_from_url_label: "Von URL installieren",
+    recipes_install_or: "ODER",
+    recipes_install_or_lower: "oder",
+    recipes_install_source_hint:
+      "Haben Sie ein Rezept von anderswo? F\xFCgen Sie es hier hinzu.",
+    recipes_install_source_summary: "Von einer URL oder Datei installieren",
+    recipes_install_unsupported_file_prefix: "Nicht unterst\xFCtzte Datei:",
+    recipes_install_unsupported_file_suffix:
+      "Verwenden Sie ein .tar.gz-, .tgz- oder .zip-Archiv.",
+    recipes_install_upload_label: "Von diesem Ger\xE4t hochladen",
+    recipes_install_uploading: "Wird hochgeladen\u2026",
+    recipes_integration_autosetup_prose:
+      "kann automatisch anhand Ihres Home Assistant-Standorts eingerichtet werden. Keine Fragen, die Sie beantworten m\xFCssen.",
+    recipes_integration_entry_label: "Eintrag:",
+    recipes_integration_manage_anytime:
+      "Verwalten Sie diese Integration jederzeit unter Einstellungen \u2192 Ger\xE4te & Dienste.",
+    recipes_integration_needs_setup_prose:
+      "muss eingerichtet werden, bevor dieses Rezept installiert werden kann. Sie k\xF6nnen damit beginnen, ohne diese Seite zu verlassen.",
+    recipes_integration_open_in_ha: "In HA \xF6ffnen",
+    recipes_integration_open_in_ha_settings: "In HA-Einstellungen \xF6ffnen",
+    recipes_integration_ready: "ist eingerichtet und einsatzbereit.",
+    recipes_integration_setup_auto_button: "Automatisch einrichten",
+    recipes_integration_setup_failed:
+      "Einrichtung fehlgeschlagen. Versuchen Sie es erneut oder verwenden Sie die HA-Einstellungsseite.",
+    recipes_integration_setup_prefix: "Einrichten",
+    recipes_integration_try_again: "Erneut versuchen",
+    recipes_integration_was_set_up:
+      "wurde eingerichtet. Selora pr\xFCft das Rezept automatisch erneut.",
+    recipes_list_check_updates_button: "Nach Updates suchen",
+    recipes_list_check_updates_title:
+      "selorahomes.com auf neue und aktualisierte Rezepte pr\xFCfen",
+    recipes_list_checking: "Wird gepr\xFCft\u2026",
+    recipes_list_installed_missing_bundle:
+      "Installiert (Bundle fehlt auf dem Datentr\xE4ger)",
+    recipes_list_intro:
+      "Rezepte sind fertige Automatisierungen, die Sie in einem Schritt installieren \u2014 eine Lecksperre, eine Schlafenszeit-Routine, eine Tornado-Warnung. Selora pr\xFCft jedes Rezept anhand der Ger\xE4te in Ihrem Zuhause und richtet es dann f\xFCr Sie ein. W\xE4hlen Sie unten eines aus, um zu beginnen.",
+    recipes_list_on_this_device: "Installiert",
+    recipes_list_package_label: "Paket:",
+    recipes_list_title: "Rezepte",
+    recipes_loading: "Wird geladen\u2026",
+    recipes_loading_recipe: "Rezept wird geladen\u2026",
+    recipes_manage_intro:
+      "Aktualisieren Sie, welche Entit\xE4ten jede Rolle abdecken. Wird sofort gespeichert \u2014 Automatisierungen werden nicht neu gerendert, nur die Gruppenmitgliedschaften \xE4ndern sich.",
+    recipes_manage_no_detail: "Kein Detail verf\xFCgbar.",
+    recipes_manage_no_entities_prefix: "Keine",
+    recipes_manage_no_entities_suffix:
+      "Entit\xE4ten in diesem Zuhause gefunden.",
+    recipes_manage_save: "Speichern",
+    recipes_manage_saving: "Wird gespeichert\u2026",
+    recipes_match_col_item: "Element",
+    recipes_match_col_selected: "Ausgew\xE4hlt",
+    recipes_match_col_status: "Status",
+    recipes_match_nothing:
+      "Nichts abzugleichen \u2014 dieses Rezept l\xE4uft ohne Ger\xE4teeinrichtung.",
+    recipes_match_scanning: "Ihr Zuhause wird durchsucht\u2026",
+    recipes_match_status_error: "Fehler",
+    recipes_match_status_needs_setup: "Einrichtung erforderlich",
+    recipes_match_status_optional: "Optional",
+    recipes_match_status_ready: "Bereit",
+    recipes_match_status_waiting: "Wartet",
+    recipes_match_status_working: "Arbeitet",
+    recipes_optional_eyebrow: "Optional",
+    recipes_pair_hue_action:
+      "Koppeln Sie diese Lampe \xFCber die Hue-App oder deren Einrichtungsseite mit Ihrer Hue Bridge.",
+    recipes_pair_hue_cta: "Hue-Einrichtung \xF6ffnen",
+    recipes_pair_matter_action:
+      "Nehmen Sie dieses Matter-Ger\xE4t mit seinem Kopplungscode \xFCber die Matter-Einrichtungsseite in Betrieb.",
+    recipes_pair_matter_cta: "Matter-Einrichtung \xF6ffnen",
+    recipes_pair_mqtt_action:
+      "Bringen Sie dieses MQTT-Ger\xE4t online, damit es im konfigurierten Topic ver\xF6ffentlicht.",
+    recipes_pair_mqtt_cta: "MQTT-Einrichtung \xF6ffnen",
+    recipes_pair_zha_action:
+      "\xD6ffnen Sie die ZHA-Einrichtungsseite und versetzen Sie den Koordinator in den Kopplungsmodus, um dieses Ger\xE4t hinzuzuf\xFCgen.",
+    recipes_pair_zha_cta: "ZHA-Einrichtung \xF6ffnen",
+    recipes_pair_zwave_action:
+      "Starten Sie die Z-Wave-Inklusion \xFCber die Einrichtungsseite, um dieses Ger\xE4t hinzuzuf\xFCgen.",
+    recipes_pair_zwave_cta: "Z-Wave-Einrichtung \xF6ffnen",
+    recipes_pin_check_now: "Jetzt pr\xFCfen",
+    recipes_pin_default_action:
+      "F\xFCgen Sie dieses Ger\xE4t zu Home Assistant hinzu. Selora erkennt es automatisch.",
+    recipes_pin_expected_entity: "Erwartete Entit\xE4ts-ID:",
+    recipes_pin_open_ha_integrations: "HA-Integrationen \xF6ffnen",
+    recipes_pin_open_setup_prefix: "\xD6ffnen",
+    recipes_pin_open_setup_suffix: "Einrichtung",
+    recipes_pin_tip:
+      "Tipp: Lassen Sie diesen Tab ge\xF6ffnet. Sobald das Ger\xE4t koppelt, hakt sich dieser Schritt selbst ab \u2014 Sie m\xFCssen hier nichts anklicken.",
+    recipes_progress_title: "Fortschritt",
+    recipes_punch_list_title: "Aufgabenliste",
+    recipes_required_eyebrow: "Erforderlich",
+    recipes_result_advanced: "erweitert",
+    recipes_result_fix_retry:
+      "Beheben Sie die Punkte unten und \xF6ffnen Sie das Rezept erneut, um es zu wiederholen.",
+    recipes_result_halted_at_stage: "Installation gestoppt bei Phase:",
+    recipes_result_install_complete: "Installation abgeschlossen",
+    recipes_result_installed_reloaded:
+      "wurde installiert und Home Assistant wurde neu geladen. Paketdatei:",
+    recipes_result_view_yaml: "Generiertes Paket-YAML anzeigen",
+    recipes_role_check_again: "Erneut pr\xFCfen",
+    recipes_role_empty_add_device: "Ger\xE4t in HA hinzuf\xFCgen",
+    recipes_role_empty_at_least: "mindestens",
+    recipes_role_empty_none_prefix: "Noch keine",
+    recipes_role_empty_none_suffix: "in Ihrem Zuhause",
+    recipes_role_empty_one_prose:
+      "eines und es erscheint hier automatisch \u2014 Sie k\xF6nnen diese Seite verlassen, um ein Ger\xE4t hinzuzuf\xFCgen, und der Assistent beh\xE4lt Ihren Fortschritt bei \u201EZur\xFCck\u201C.",
+    recipes_role_empty_pair: "Koppeln",
+    recipes_role_filter_device_noun: "Ger\xE4t",
+    recipes_role_filter_sensor_noun: "Sensor",
+    recipes_role_pick_one_or_more: "W\xE4hlen Sie eines oder mehrere",
+    recipes_role_pick_prefix: "W\xE4hlen:",
+    recipes_role_pinned_count_suffix:
+      "vom Rezept fest vorgegeben (immer enthalten).",
+    recipes_role_run_against:
+      "Selora f\xFChrt das Rezept gegen die von Ihnen angekreuzten aus.",
+    recipes_role_up_to: "bis zu",
+    recipes_safety_automations_generated: "Automatisierungen generiert",
+    recipes_safety_install_incomplete: "Installation unvollst\xE4ndig",
+    recipes_safety_installed_ok: "Rezept erfolgreich installiert",
+    recipes_safety_issues_to_address: "zu behebende(s) Problem(e)",
+    recipes_safety_no_artifacts: "Keine Artefakte erstellt",
+    recipes_safety_no_issues: "Keine offenen Probleme",
+    recipes_section_automation_plural: "Automatisierungen",
+    recipes_section_automation_singular: "Automatisierung",
+    recipes_section_binary_sensor_plural: "bin\xE4re Sensoren",
+    recipes_section_binary_sensor_singular: "bin\xE4rer Sensor",
+    recipes_section_climate_plural: "Klima-Entit\xE4ten",
+    recipes_section_climate_singular: "Klima-Entit\xE4t",
+    recipes_section_counter_plural: "Z\xE4hler",
+    recipes_section_counter_singular: "Z\xE4hler",
+    recipes_section_cover_plural: "Abdeckungen",
+    recipes_section_cover_singular: "Abdeckung",
+    recipes_section_customisation_plural: "Anpassungen",
+    recipes_section_customisation_singular: "Anpassung",
+    recipes_section_group_plural: "Gruppen",
+    recipes_section_group_singular: "Gruppe",
+    recipes_section_helper_plural: "Helfer",
+    recipes_section_helper_singular: "Helfer",
+    recipes_section_light_plural: "Lichter",
+    recipes_section_light_singular: "Licht",
+    recipes_section_media_player_plural: "Medienplayer",
+    recipes_section_media_player_singular: "Medienplayer",
+    recipes_section_notify_plural: "Benachrichtiger",
+    recipes_section_notify_singular: "Benachrichtiger",
+    recipes_section_rest_command_plural: "REST-Befehle",
+    recipes_section_rest_command_singular: "REST-Befehl",
+    recipes_section_scene_plural: "Szenen",
+    recipes_section_scene_singular: "Szene",
+    recipes_section_script_plural: "Skripte",
+    recipes_section_script_singular: "Skript",
+    recipes_section_sensor_plural: "Sensoren",
+    recipes_section_sensor_singular: "Sensor",
+    recipes_section_shell_command_plural: "Shell-Befehle",
+    recipes_section_shell_command_singular: "Shell-Befehl",
+    recipes_section_switch_plural: "Schalter",
+    recipes_section_switch_singular: "Schalter",
+    recipes_section_template_plural: "Template-Entit\xE4ten",
+    recipes_section_template_singular: "Template-Entit\xE4t",
+    recipes_section_timer_plural: "Timer",
+    recipes_section_timer_singular: "Timer",
+    recipes_selected_awaiting_pair: "Wartet auf Kopplung",
+    recipes_selected_entities_suffix: "Entit\xE4ten",
+    recipes_selected_none: "Keine",
+    recipes_selected_setting_plural: "Einstellungen",
+    recipes_selected_setting_singular: "Einstellung",
+    recipes_setting_up_button: "Wird eingerichtet\u2026",
+    recipes_stage_apply: "Anwenden",
+    recipes_stage_configure: "Konfigurieren",
+    recipes_stage_prepare: "Vorbereiten",
+    recipes_stage_unknown: "unbekannt",
+    recipes_start_setup_button: "Einrichtung starten",
+    recipes_status_done: "Fertig",
+    recipes_status_failed: "Fehlgeschlagen",
+    recipes_status_needs_you: "Ben\xF6tigt Sie",
+    recipes_status_pending: "Ausstehend",
+    recipes_status_running: "L\xE4uft",
+    recipes_status_skipped: "\xDCbersprungen",
+    recipes_step2_sub:
+      "Rezeptweite Einstellungen. Standardwerte sind vorausgef\xFCllt; passen Sie nur etwas an, wenn Sie es \xE4ndern m\xF6chten, und klicken Sie dann auf Weiter.",
+    recipes_step2_sub_empty:
+      "Dieses Rezept hat keine Einstellungen zu konfigurieren \u2014 klicken Sie einfach auf Weiter.",
+    recipes_step2_title: "Rezepteinstellungen",
+    recipes_step3_hint_finish:
+      "Schlie\xDFen Sie die Zeilen mit \u201EEinrichtung erforderlich\u201C ab, um fortzufahren.",
+    recipes_step3_hint_ready: "Sieht gut aus \u2014 bereit zur Einrichtung.",
+    recipes_step3_sub:
+      "Ordnen Sie jedem Element unten eine Entit\xE4t aus Ihrem Zuhause zu. Klicken Sie auf eine beliebige Zeile, um sie einzurichten.",
+    recipes_step3_title: "Ger\xE4te zuordnen",
+    recipes_step4_hint_failed:
+      "Klicken Sie auf Zur\xFCck, um Ihre Auswahl zu \xFCberarbeiten, und versuchen Sie es dann erneut.",
+    recipes_step4_hint_something_failed:
+      "Etwas ist fehlgeschlagen \u2014 gehen Sie zur\xFCck und versuchen Sie es erneut.",
+    recipes_step4_sub_busy:
+      "Selora installiert Ihr Rezept. Bitte warten \u2014 das dauert nur wenige Sekunden.",
+    recipes_step4_sub_done:
+      "Alles erledigt. Klicken Sie auf Weiter, um zu \xFCberpr\xFCfen, was installiert wurde.",
+    recipes_step4_sub_halted_prefix: "Installation gestoppt in der Phase",
+    recipes_step4_sub_halted_suffix:
+      ". Gehen Sie zur\xFCck, um die Probleme unten zu beheben.",
+    recipes_step4_sub_starting: "Einrichtung wird gestartet\u2026",
+    recipes_step4_title: "Wird eingerichtet",
+    recipes_step5_created_title: "Dieses Rezept hat erstellt",
+    recipes_step5_devices_linked: "Verkn\xFCpfte Ger\xE4te",
+    recipes_step5_hint:
+      "Home Assistant wurde neu geladen \u2014 Ihr Rezept ist aktiv.",
+    recipes_step5_more_suffix: "weitere",
+    recipes_step5_no_devices:
+      "Mit diesem Rezept sind keine Ger\xE4te verkn\xFCpft.",
+    recipes_step5_no_entries: "Es wurden keine Eintr\xE4ge generiert.",
+    recipes_step5_safety_checks: "Sicherheitspr\xFCfungen",
+    recipes_step5_sub:
+      "Ihr Rezept ist installiert und Home Assistant wurde neu geladen. \xDCberpr\xFCfen Sie unten, was erstellt wurde, und klicken Sie dann auf Fertigstellen.",
+    recipes_step5_title: "\xDCberpr\xFCfen & abschlie\xDFen",
+    recipes_step_activate: "Aktivieren",
+    recipes_step_label: "Schritt",
+    recipes_step_match: "Zuordnen",
+    recipes_step_of_5: "von 5",
+    recipes_step_overview: "\xDCbersicht",
+    recipes_step_set_up: "Einrichten",
+    recipes_step_settings: "Einstellungen",
+    recipes_system_panel_auto:
+      "Dieser Schritt l\xE4uft automatisch ab. Keine Aktion von Ihnen erforderlich.",
+    recipes_this_recipe_creates: "Dieses Rezept erstellt",
+    recipes_uninstall_body:
+      "Die Paketdatei wird gel\xF6scht und Home Assistant wird neu geladen. Die von diesem Rezept erstellten Automatisierungen werden entfernt.",
+    recipes_uninstall_confirm_prefix: "Deinstallieren",
+    recipes_uninstall_integrations_sub:
+      "Kreuzen Sie alle an, die zusammen mit dem Rezept entfernt werden sollen. Alles, was Sie nicht ankreuzen, bleibt in Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "Von diesem Rezept installierte Integrationen",
+    recipes_uninstall_still_used_by: "Noch verwendet von",
+    recipes_uninstall_warn_title:
+      "Das Entfernen dieser Integration besch\xE4digt diese Rezepte.",
+    recipes_what_you_need_title: "Was Sie ben\xF6tigen",
+    recipes_working: "Arbeite\u2026",
+    recipes_role_filter_placeholder: "Nach Name filtern\u2026",
+    recipes_role_filter_no_matches: "Keine Entit\xE4t entspricht Ihrem Filter.",
+    recipes_role_show_all: "Alle anzeigen",
+    recipes_role_show_less: "Weniger anzeigen",
+    recipes_dashboard_picker_title:
+      "Eine Karte zu einem Dashboard hinzuf\xFCgen",
+    recipes_dashboard_picker_sub:
+      "Dieses Rezept kann eine Karte auf einem Dashboard ablegen, die Sie antippen k\xF6nnen. W\xE4hlen Sie wo \u2014 oder \xFCberspringen und sp\xE4ter selbst hinzuf\xFCgen.",
+    recipes_dashboard_picker_skip: "Keine Karte hinzuf\xFCgen",
+    recipes_dashboard_picker_refine:
+      "Eine eigene Karte n\xF6tig? Im Chat verfeinern",
+    recipes_step5_dashboard_title: "Dashboard-Karte",
+    recipes_step5_dashboard_added:
+      "Eine Karte wurde zu Ihrem Dashboard hinzugef\xFCgt.",
+    recipes_step5_dashboard_skipped:
+      "Keine Karte hinzugef\xFCgt. Sie k\xF6nnen selbst eine hinzuf\xFCgen oder Selora helfen lassen.",
+    recipes_step5_dashboard_manual:
+      "Karte konnte nicht automatisch hinzugef\xFCgt werden \u2014 f\xFCgen Sie sie selbst hinzu oder lassen Sie Selora helfen.",
+    recipes_step5_dashboard_customize: "Im Chat anpassen",
+    recipes_step5_dashboard_help: "Im Chat hinzuf\xFCgen",
+    recipes_refine_chat_failed:
+      "Chat f\xFCr dieses Rezept konnte nicht ge\xF6ffnet werden.",
+    recipes_step3_hint_blocked:
+      "Dieses Rezept kann noch nicht vorbereitet werden \u2014 pr\xFCfen Sie das Rezept auf Fehler und versuchen Sie es erneut.",
+    recipes_catalog_empty: "Noch keine Rezepte in diesem Katalog.",
   },
   options: {
     step: {
@@ -10032,6 +11178,322 @@ var es_default = {
     suggestions_snoozed_toast: "Sugerencia pospuesta 24h",
     suggestions_pattern_scan_failed: "Fall\xF3 el escaneo de patrones",
     area_unassigned: "Sin asignar",
+    recipes_back_to_overview: "Volver al resumen",
+    recipes_back_to_recipes: "Volver a las recetas",
+    recipes_bucket_completed: "Completado",
+    recipes_bucket_failed: "Fallido",
+    recipes_bucket_in_progress: "En curso",
+    recipes_bucket_install_failed: "Instalaci\xF3n fallida",
+    recipes_bucket_no_details:
+      "No hay detalles disponibles. Consulte el registro de Home Assistant para ver el error subyacente.",
+    recipes_bucket_up_next: "A continuaci\xF3n",
+    recipes_bucket_waiting_for_you: "Esper\xE1ndole",
+    recipes_card_configure_button: "Configurar",
+    recipes_card_in_progress_step: "En curso \xB7 Paso",
+    recipes_card_install_button: "Instalar",
+    recipes_card_installed_badge: "Instalada",
+    recipes_card_manage_devices_button: "Gestionar dispositivos",
+    recipes_card_manage_devices_title:
+      "Cambie o actualice los dispositivos que usa esta receta sin volver a ejecutar el asistente",
+    recipes_card_resume_button: "Reanudar",
+    recipes_card_start_over_button: "Empezar de nuevo",
+    recipes_card_start_over_title:
+      "Descarte el progreso guardado y comience el asistente desde cero",
+    recipes_card_uninstall_button: "Desinstalar",
+    recipes_catalog_fetching: "Obteniendo cat\xE1logo\u2026",
+    recipes_catalog_no_matches_prefix: "No hay coincidencias para",
+    recipes_catalog_search_placeholder: "Buscar recetas\u2026",
+    recipes_catalog_set_url_title:
+      "Establecer una URL de cat\xE1logo (dev / staging)",
+    recipes_catalog_source_overridden: "Fuente del cat\xE1logo anulada:",
+    recipes_catalog_unreachable:
+      "No se pudo acceder al cat\xE1logo de recetas:",
+    recipes_catalog_url_prompt:
+      "URL del cat\xE1logo (deje en blanco para restablecer a selorahomes.com):",
+    recipes_catalog_using_override: "Usando anulaci\xF3n:",
+    recipes_catalog_will_load: "El cat\xE1logo se cargar\xE1 aqu\xED.",
+    recipes_continue_button: "Continuar",
+    recipes_details_copy_path_title: "Copiar ruta",
+    recipes_details_devices_key: "Dispositivos",
+    recipes_details_installed_on: "instalada",
+    recipes_details_integrations_key: "Integraciones",
+    recipes_details_no_bound_devices: "No hay dispositivos vinculados",
+    recipes_details_none_selected_optional: "Ninguno seleccionado (opcional)",
+    recipes_details_settings_key: "Ajustes",
+    recipes_details_summary: "Detalles",
+    recipes_details_version_key: "Versi\xF3n",
+    recipes_details_where_key: "D\xF3nde",
+    recipes_eyebrow_recipe: "RECETA",
+    recipes_eyebrow_released: "Publicada",
+    recipes_field_optional: "(opcional)",
+    recipes_finish_button: "Finalizar",
+    recipes_flow_cancel: "Cancelar",
+    recipes_flow_continue: "Continuar",
+    recipes_footer_back: "Atr\xE1s",
+    recipes_footer_cancel: "Cancelar",
+    recipes_inputs_panel_title: "Ajustes de la receta",
+    recipes_install_accepts: "acepta",
+    recipes_install_bom_note:
+      "La lista de materiales se compara con su hogar antes de instalar nada.",
+    recipes_install_click_to_choose: "haga clic para elegir un archivo",
+    recipes_install_drop_here: "Suelte aqu\xED un archivo de receta",
+    recipes_install_drop_to_upload: "Suelte para subir",
+    recipes_install_failed_button: "Instalaci\xF3n fallida",
+    recipes_install_fetch_button: "Obtener",
+    recipes_install_fetching: "Obteniendo\u2026",
+    recipes_install_from_url_label: "Instalar desde URL",
+    recipes_install_or: "O",
+    recipes_install_or_lower: "o",
+    recipes_install_source_hint:
+      "\xBFTiene una receta de otro sitio? A\xF1\xE1dala aqu\xED.",
+    recipes_install_source_summary: "Instalar desde una URL o archivo",
+    recipes_install_unsupported_file_prefix: "Archivo no compatible:",
+    recipes_install_unsupported_file_suffix:
+      "Use un archivo .tar.gz, .tgz o .zip.",
+    recipes_install_upload_label: "Subir desde este dispositivo",
+    recipes_install_uploading: "Subiendo\u2026",
+    recipes_integration_autosetup_prose:
+      "puede configurarse autom\xE1ticamente usando la ubicaci\xF3n de su Home Assistant. No hay preguntas que deba responder.",
+    recipes_integration_entry_label: "Entrada:",
+    recipes_integration_manage_anytime:
+      "Gestione esta integraci\xF3n en cualquier momento desde Ajustes \u2192 Dispositivos y servicios.",
+    recipes_integration_needs_setup_prose:
+      "debe configurarse antes de que esta receta pueda instalarse. Puede iniciarla sin salir de esta p\xE1gina.",
+    recipes_integration_open_in_ha: "Abrir en HA",
+    recipes_integration_open_in_ha_settings: "Abrir en los ajustes de HA",
+    recipes_integration_ready: "est\xE1 configurada y lista para usar.",
+    recipes_integration_setup_auto_button: "Configurar autom\xE1ticamente",
+    recipes_integration_setup_failed:
+      "La configuraci\xF3n fall\xF3. Int\xE9ntelo de nuevo o use la p\xE1gina de ajustes de HA.",
+    recipes_integration_setup_prefix: "Configurar",
+    recipes_integration_try_again: "Int\xE9ntelo de nuevo",
+    recipes_integration_was_set_up:
+      "se configur\xF3. Selora volver\xE1 a comprobar la receta autom\xE1ticamente.",
+    recipes_list_check_updates_button: "Buscar actualizaciones",
+    recipes_list_check_updates_title:
+      "Buscar recetas nuevas y actualizadas en selorahomes.com",
+    recipes_list_checking: "Comprobando\u2026",
+    recipes_list_installed_missing_bundle:
+      "Instalada (falta el paquete en el disco)",
+    recipes_list_intro:
+      "Las recetas son automatizaciones listas para usar que instala en un solo paso \u2014 un bloqueo por fugas, una rutina para dormir, una alerta de tornado. Selora comprueba cada receta con los dispositivos de su hogar y luego la configura por usted. Elija una a continuaci\xF3n para empezar.",
+    recipes_list_on_this_device: "Instaladas",
+    recipes_list_package_label: "paquete:",
+    recipes_list_title: "Recetas",
+    recipes_loading: "Cargando\u2026",
+    recipes_loading_recipe: "Cargando receta\u2026",
+    recipes_manage_intro:
+      "Actualice qu\xE9 entidades respaldan cada rol. Se guarda al instante \u2014 las automatizaciones no se vuelven a generar, solo cambian las pertenencias a los grupos.",
+    recipes_manage_no_detail: "No hay detalles disponibles.",
+    recipes_manage_no_entities_prefix: "No se encontraron",
+    recipes_manage_no_entities_suffix: "entidades en este hogar.",
+    recipes_manage_save: "Guardar",
+    recipes_manage_saving: "Guardando\u2026",
+    recipes_match_col_item: "Elemento",
+    recipes_match_col_selected: "Seleccionado",
+    recipes_match_col_status: "Estado",
+    recipes_match_nothing:
+      "Nada que emparejar \u2014 esta receta se ejecuta sin configuraci\xF3n de dispositivos.",
+    recipes_match_scanning: "Analizando su hogar\u2026",
+    recipes_match_status_error: "Error",
+    recipes_match_status_needs_setup: "Requiere configuraci\xF3n",
+    recipes_match_status_optional: "Opcional",
+    recipes_match_status_ready: "Lista",
+    recipes_match_status_waiting: "Esperando",
+    recipes_match_status_working: "Trabajando",
+    recipes_optional_eyebrow: "Opcional",
+    recipes_pair_hue_action:
+      "Empareje esta bombilla con su Hue Bridge usando la app Hue o su p\xE1gina de configuraci\xF3n.",
+    recipes_pair_hue_cta: "Abrir configuraci\xF3n de Hue",
+    recipes_pair_matter_action:
+      "Vincule este dispositivo Matter con su c\xF3digo de emparejamiento desde la p\xE1gina de configuraci\xF3n de Matter.",
+    recipes_pair_matter_cta: "Abrir configuraci\xF3n de Matter",
+    recipes_pair_mqtt_action:
+      "Ponga en l\xEDnea este dispositivo MQTT para que publique en el tema configurado.",
+    recipes_pair_mqtt_cta: "Abrir configuraci\xF3n de MQTT",
+    recipes_pair_zha_action:
+      "Abra la p\xE1gina de configuraci\xF3n de ZHA y ponga el coordinador en modo de emparejamiento para a\xF1adir este dispositivo.",
+    recipes_pair_zha_cta: "Abrir configuraci\xF3n de ZHA",
+    recipes_pair_zwave_action:
+      "Inicie la inclusi\xF3n Z-Wave desde su p\xE1gina de configuraci\xF3n para a\xF1adir este dispositivo.",
+    recipes_pair_zwave_cta: "Abrir configuraci\xF3n de Z-Wave",
+    recipes_pin_check_now: "Comprobar ahora",
+    recipes_pin_default_action:
+      "A\xF1ada este dispositivo a Home Assistant. Selora lo detectar\xE1 autom\xE1ticamente.",
+    recipes_pin_expected_entity: "ID de entidad esperado:",
+    recipes_pin_open_ha_integrations: "Abrir integraciones de HA",
+    recipes_pin_open_setup_prefix: "Abrir configuraci\xF3n de",
+    recipes_pin_open_setup_suffix: "",
+    recipes_pin_tip:
+      "Consejo: deje esta pesta\xF1a abierta. Cuando el dispositivo se empareje, este paso se marcar\xE1 solo \u2014 no es necesario hacer clic en nada aqu\xED.",
+    recipes_progress_title: "Progreso",
+    recipes_punch_list_title: "Lista de tareas pendientes",
+    recipes_required_eyebrow: "Obligatorio",
+    recipes_result_advanced: "avanzado",
+    recipes_result_fix_retry:
+      "Corrija los elementos de abajo y luego vuelva a abrir la receta para reintentar.",
+    recipes_result_halted_at_stage: "La instalaci\xF3n se detuvo en la etapa:",
+    recipes_result_install_complete: "Instalaci\xF3n completada",
+    recipes_result_installed_reloaded:
+      "se instal\xF3 y Home Assistant se ha recargado. Archivo del paquete:",
+    recipes_result_view_yaml: "Ver el YAML del paquete generado",
+    recipes_role_check_again: "Comprobar de nuevo",
+    recipes_role_empty_add_device: "A\xF1adir dispositivo en HA",
+    recipes_role_empty_at_least: "al menos",
+    recipes_role_empty_none_prefix: "A\xFAn no hay",
+    recipes_role_empty_none_suffix: "en su hogar",
+    recipes_role_empty_one_prose:
+      "uno y aparecer\xE1 aqu\xED autom\xE1ticamente \u2014 puede salir de esta p\xE1gina para a\xF1adir un dispositivo y el asistente conserva su progreso al pulsar Atr\xE1s.",
+    recipes_role_empty_pair: "Emparejar",
+    recipes_role_filter_device_noun: "dispositivo",
+    recipes_role_filter_sensor_noun: "sensor",
+    recipes_role_pick_one_or_more: "Elija uno o m\xE1s",
+    recipes_role_pick_prefix: "Elija:",
+    recipes_role_pinned_count_suffix:
+      "fijado(s) por la receta (siempre incluido).",
+    recipes_role_run_against:
+      "Selora ejecutar\xE1 la receta con los que marque.",
+    recipes_role_up_to: "hasta",
+    recipes_safety_automations_generated: "Automatizaciones generadas",
+    recipes_safety_install_incomplete: "Instalaci\xF3n incompleta",
+    recipes_safety_installed_ok: "Receta instalada correctamente",
+    recipes_safety_issues_to_address: "problema(s) por resolver",
+    recipes_safety_no_artifacts: "No se crearon artefactos",
+    recipes_safety_no_issues: "No hay problemas pendientes",
+    recipes_section_automation_plural: "automatizaciones",
+    recipes_section_automation_singular: "automatizaci\xF3n",
+    recipes_section_binary_sensor_plural: "sensores binarios",
+    recipes_section_binary_sensor_singular: "sensor binario",
+    recipes_section_climate_plural: "entidades de climatizaci\xF3n",
+    recipes_section_climate_singular: "entidad de climatizaci\xF3n",
+    recipes_section_counter_plural: "contadores",
+    recipes_section_counter_singular: "contador",
+    recipes_section_cover_plural: "persianas",
+    recipes_section_cover_singular: "persiana",
+    recipes_section_customisation_plural: "personalizaciones",
+    recipes_section_customisation_singular: "personalizaci\xF3n",
+    recipes_section_group_plural: "grupos",
+    recipes_section_group_singular: "grupo",
+    recipes_section_helper_plural: "ayudantes",
+    recipes_section_helper_singular: "ayudante",
+    recipes_section_light_plural: "luces",
+    recipes_section_light_singular: "luz",
+    recipes_section_media_player_plural: "reproductores multimedia",
+    recipes_section_media_player_singular: "reproductor multimedia",
+    recipes_section_notify_plural: "notificadores",
+    recipes_section_notify_singular: "notificador",
+    recipes_section_rest_command_plural: "comandos REST",
+    recipes_section_rest_command_singular: "comando REST",
+    recipes_section_scene_plural: "escenas",
+    recipes_section_scene_singular: "escena",
+    recipes_section_script_plural: "scripts",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "sensores",
+    recipes_section_sensor_singular: "sensor",
+    recipes_section_shell_command_plural: "comandos de shell",
+    recipes_section_shell_command_singular: "comando de shell",
+    recipes_section_switch_plural: "interruptores",
+    recipes_section_switch_singular: "interruptor",
+    recipes_section_template_plural: "entidades de plantilla",
+    recipes_section_template_singular: "entidad de plantilla",
+    recipes_section_timer_plural: "temporizadores",
+    recipes_section_timer_singular: "temporizador",
+    recipes_selected_awaiting_pair: "Esperando emparejamiento",
+    recipes_selected_entities_suffix: "entidades",
+    recipes_selected_none: "Ninguno",
+    recipes_selected_setting_plural: "ajustes",
+    recipes_selected_setting_singular: "ajuste",
+    recipes_setting_up_button: "Configurando\u2026",
+    recipes_stage_apply: "Aplicar",
+    recipes_stage_configure: "Configurar",
+    recipes_stage_prepare: "Preparar",
+    recipes_stage_unknown: "desconocida",
+    recipes_start_setup_button: "Iniciar configuraci\xF3n",
+    recipes_status_done: "Hecho",
+    recipes_status_failed: "Fallido",
+    recipes_status_needs_you: "Le necesita",
+    recipes_status_pending: "Pendiente",
+    recipes_status_running: "En ejecuci\xF3n",
+    recipes_status_skipped: "Omitido",
+    recipes_step2_sub:
+      "Preferencias para toda la receta. Los valores predeterminados ya est\xE1n rellenados; aj\xFAstelos solo si desea cambiar algo, luego pulse Continuar.",
+    recipes_step2_sub_empty:
+      "Esta receta no tiene ajustes que configurar \u2014 simplemente haga clic en Continuar.",
+    recipes_step2_title: "Ajustes de la receta",
+    recipes_step3_hint_finish:
+      "Complete las filas que dicen \xABRequiere configuraci\xF3n\xBB para continuar.",
+    recipes_step3_hint_ready: "Tiene buena pinta \u2014 listo para configurar.",
+    recipes_step3_sub:
+      "Empareje cada elemento de abajo con una entidad de su hogar. Haga clic en cualquier fila para configurarla.",
+    recipes_step3_title: "Emparejar dispositivos",
+    recipes_step4_hint_failed:
+      "Pulse Atr\xE1s para revisar sus selecciones y vuelva a intentarlo.",
+    recipes_step4_hint_something_failed:
+      "Algo fall\xF3 \u2014 vuelva atr\xE1s e int\xE9ntelo de nuevo.",
+    recipes_step4_sub_busy:
+      "Selora est\xE1 instalando su receta. Espere un momento \u2014 esto solo tarda unos segundos.",
+    recipes_step4_sub_done:
+      "Todo listo. Haga clic en Continuar para revisar lo que se instal\xF3.",
+    recipes_step4_sub_halted_prefix: "La instalaci\xF3n se detuvo en la etapa",
+    recipes_step4_sub_halted_suffix:
+      ". Vuelva atr\xE1s para corregir los problemas de abajo.",
+    recipes_step4_sub_starting: "Iniciando configuraci\xF3n\u2026",
+    recipes_step4_title: "Configurando",
+    recipes_step5_created_title: "Esta receta cre\xF3",
+    recipes_step5_devices_linked: "Dispositivos vinculados",
+    recipes_step5_hint:
+      "Home Assistant se ha recargado \u2014 su receta est\xE1 activa.",
+    recipes_step5_more_suffix: "m\xE1s",
+    recipes_step5_no_devices: "No hay dispositivos vinculados a esta receta.",
+    recipes_step5_no_entries: "No se generaron entradas.",
+    recipes_step5_safety_checks: "Comprobaciones de seguridad",
+    recipes_step5_sub:
+      "Su receta est\xE1 instalada y Home Assistant se ha recargado. Revise lo que se cre\xF3 a continuaci\xF3n, luego haga clic en Finalizar.",
+    recipes_step5_title: "Revisar y finalizar",
+    recipes_step_activate: "Activar",
+    recipes_step_label: "Paso",
+    recipes_step_match: "Emparejar",
+    recipes_step_of_5: "de 5",
+    recipes_step_overview: "Resumen",
+    recipes_step_set_up: "Configurar",
+    recipes_step_settings: "Ajustes",
+    recipes_system_panel_auto:
+      "Este paso se ejecuta autom\xE1ticamente. No necesita hacer nada.",
+    recipes_this_recipe_creates: "Esta receta crea",
+    recipes_uninstall_body:
+      "El archivo del paquete se eliminar\xE1 y Home Assistant se recargar\xE1. Las automatizaciones que cre\xF3 esta receta se eliminar\xE1n.",
+    recipes_uninstall_confirm_prefix: "Desinstalar",
+    recipes_uninstall_integrations_sub:
+      "Marque las que deban eliminarse junto con la receta. Todo lo que deje sin marcar permanece en Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "Integraciones que instal\xF3 esta receta",
+    recipes_uninstall_still_used_by: "Todav\xEDa la usan",
+    recipes_uninstall_warn_title:
+      "Eliminar esta integraci\xF3n romper\xE1 esas recetas.",
+    recipes_what_you_need_title: "Lo que necesita",
+    recipes_working: "Trabajando\u2026",
+    recipes_role_filter_placeholder: "Filtrar por nombre\u2026",
+    recipes_role_filter_no_matches: "Ninguna entidad coincide con el filtro.",
+    recipes_role_show_all: "Mostrar todo",
+    recipes_role_show_less: "Mostrar menos",
+    recipes_dashboard_picker_title: "A\xF1adir una tarjeta a un panel",
+    recipes_dashboard_picker_sub:
+      "Esta receta puede colocar una tarjeta en un panel para que puedas pulsarla. Elige d\xF3nde, u omite y a\xF1\xE1dela t\xFA mismo m\xE1s tarde.",
+    recipes_dashboard_picker_skip: "No a\xF1adir una tarjeta",
+    recipes_dashboard_picker_refine:
+      "\xBFNecesitas una tarjeta personalizada? Refinar en el chat",
+    recipes_step5_dashboard_title: "Tarjeta del panel",
+    recipes_step5_dashboard_added: "Se a\xF1adi\xF3 una tarjeta a tu panel.",
+    recipes_step5_dashboard_skipped:
+      "No se a\xF1adi\xF3 ninguna tarjeta. Puedes a\xF1adir una t\xFA mismo o dejar que Selora te ayude.",
+    recipes_step5_dashboard_manual:
+      "No se pudo a\xF1adir la tarjeta autom\xE1ticamente \u2014 a\xF1\xE1dela t\xFA mismo o deja que Selora te ayude.",
+    recipes_step5_dashboard_customize: "Personalizar en el chat",
+    recipes_step5_dashboard_help: "A\xF1adirla en el chat",
+    recipes_refine_chat_failed: "No se pudo abrir un chat para esta receta.",
+    recipes_step3_hint_blocked:
+      "Esta receta a\xFAn no se puede preparar: revisa la receta en busca de errores e int\xE9ntalo de nuevo.",
+    recipes_catalog_empty: "A\xFAn no hay recetas en este cat\xE1logo.",
   },
   options: {
     step: {
@@ -10770,6 +12232,325 @@ var it_default = {
     suggestions_snoozed_toast: "Suggerimento rinviato di 24h",
     suggestions_pattern_scan_failed: "Scansione pattern non riuscita",
     area_unassigned: "Non assegnato",
+    recipes_back_to_overview: "Torna alla panoramica",
+    recipes_back_to_recipes: "Torna alle ricette",
+    recipes_bucket_completed: "Completate",
+    recipes_bucket_failed: "Non riuscite",
+    recipes_bucket_in_progress: "In corso",
+    recipes_bucket_install_failed: "Installazione non riuscita",
+    recipes_bucket_no_details:
+      "Nessun dettaglio disponibile. Controlli il log di Home Assistant per l'errore sottostante.",
+    recipes_bucket_up_next: "Prossime",
+    recipes_bucket_waiting_for_you: "In attesa di Lei",
+    recipes_card_configure_button: "Configura",
+    recipes_card_in_progress_step: "In corso \xB7 Passaggio",
+    recipes_card_install_button: "Installa",
+    recipes_card_installed_badge: "Installata",
+    recipes_card_manage_devices_button: "Gestisci dispositivi",
+    recipes_card_manage_devices_title:
+      "Sostituisci o aggiorna i dispositivi usati da questa ricetta senza rieseguire la procedura guidata",
+    recipes_card_resume_button: "Riprendi",
+    recipes_card_start_over_button: "Ricomincia",
+    recipes_card_start_over_title:
+      "Scarta i progressi salvati e riavvia la procedura guidata da zero",
+    recipes_card_uninstall_button: "Disinstalla",
+    recipes_catalog_fetching: "Recupero del catalogo\u2026",
+    recipes_catalog_no_matches_prefix: "Nessun risultato per",
+    recipes_catalog_search_placeholder: "Cerca ricette\u2026",
+    recipes_catalog_set_url_title:
+      "Imposta un URL del catalogo (dev / staging)",
+    recipes_catalog_source_overridden: "Origine del catalogo sovrascritta:",
+    recipes_catalog_unreachable:
+      "Impossibile raggiungere il catalogo delle ricette:",
+    recipes_catalog_url_prompt:
+      "URL del catalogo (lasci vuoto per ripristinare selorahomes.com):",
+    recipes_catalog_using_override: "Override in uso:",
+    recipes_catalog_will_load: "Il catalogo verr\xE0 caricato qui.",
+    recipes_continue_button: "Continua",
+    recipes_details_copy_path_title: "Copia percorso",
+    recipes_details_devices_key: "Dispositivi",
+    recipes_details_installed_on: "installata",
+    recipes_details_integrations_key: "Integrazioni",
+    recipes_details_no_bound_devices: "Nessun dispositivo collegato",
+    recipes_details_none_selected_optional: "Nessuno selezionato (opzionale)",
+    recipes_details_settings_key: "Impostazioni",
+    recipes_details_summary: "Dettagli",
+    recipes_details_version_key: "Versione",
+    recipes_details_where_key: "Dove",
+    recipes_eyebrow_recipe: "RICETTA",
+    recipes_eyebrow_released: "Pubblicata",
+    recipes_field_optional: "(opzionale)",
+    recipes_finish_button: "Fine",
+    recipes_flow_cancel: "Annulla",
+    recipes_flow_continue: "Continua",
+    recipes_footer_back: "Indietro",
+    recipes_footer_cancel: "Annulla",
+    recipes_inputs_panel_title: "Impostazioni della ricetta",
+    recipes_install_accepts: "accetta",
+    recipes_install_bom_note:
+      "La distinta dei materiali viene confrontata con la Sua casa prima di installare qualsiasi cosa.",
+    recipes_install_click_to_choose: "clicchi per scegliere un file",
+    recipes_install_drop_here: "Trascini qui un archivio di ricetta",
+    recipes_install_drop_to_upload: "Rilasci per caricare",
+    recipes_install_failed_button: "Installazione non riuscita",
+    recipes_install_fetch_button: "Recupera",
+    recipes_install_fetching: "Recupero\u2026",
+    recipes_install_from_url_label: "Installa da URL",
+    recipes_install_or: "OPPURE",
+    recipes_install_or_lower: "oppure",
+    recipes_install_source_hint:
+      "Ha una ricetta da un'altra fonte? La aggiunga qui.",
+    recipes_install_source_summary: "Installa da un URL o da un file",
+    recipes_install_unsupported_file_prefix: "File non supportato:",
+    recipes_install_unsupported_file_suffix:
+      "Usi un archivio .tar.gz, .tgz o .zip.",
+    recipes_install_upload_label: "Carica da questo dispositivo",
+    recipes_install_uploading: "Caricamento\u2026",
+    recipes_integration_autosetup_prose:
+      "pu\xF2 essere configurata automaticamente usando la posizione del Suo Home Assistant. Nessuna domanda a cui rispondere.",
+    recipes_integration_entry_label: "Voce:",
+    recipes_integration_manage_anytime:
+      "Gestisca questa integrazione in qualsiasi momento da Impostazioni \u2192 Dispositivi e servizi.",
+    recipes_integration_needs_setup_prose:
+      "deve essere configurata prima che questa ricetta possa essere installata. Pu\xF2 avviarla senza lasciare questa pagina.",
+    recipes_integration_open_in_ha: "Apri in HA",
+    recipes_integration_open_in_ha_settings: "Apri nelle impostazioni di HA",
+    recipes_integration_ready: "\xE8 configurata e pronta all'uso.",
+    recipes_integration_setup_auto_button: "Configura automaticamente",
+    recipes_integration_setup_failed:
+      "Configurazione non riuscita. Riprovi o usi la pagina delle impostazioni di HA.",
+    recipes_integration_setup_prefix: "Configura",
+    recipes_integration_try_again: "Riprova",
+    recipes_integration_was_set_up:
+      "\xE8 stata configurata. Selora ricontroller\xE0 la ricetta automaticamente.",
+    recipes_list_check_updates_button: "Controlla aggiornamenti",
+    recipes_list_check_updates_title:
+      "Controlla su selorahomes.com nuove ricette e aggiornamenti",
+    recipes_list_checking: "Controllo\u2026",
+    recipes_list_installed_missing_bundle:
+      "Installata (bundle mancante dal disco)",
+    recipes_list_intro:
+      "Le ricette sono automazioni preconfezionate che installi in un solo passaggio \u2014 un blocco antiallagamento, una routine per la notte, un avviso tornado. Selora confronta ogni ricetta con i dispositivi nella Sua casa, poi la configura per Lei. Ne scelga una qui sotto per iniziare.",
+    recipes_list_on_this_device: "Installate",
+    recipes_list_package_label: "pacchetto:",
+    recipes_list_title: "Ricette",
+    recipes_loading: "Caricamento\u2026",
+    recipes_loading_recipe: "Caricamento ricetta\u2026",
+    recipes_manage_intro:
+      "Aggiorni quali entit\xE0 ricoprono ciascun ruolo. Salva immediatamente \u2014 le automazioni non vengono rigenerate, cambia solo l'appartenenza ai gruppi.",
+    recipes_manage_no_detail: "Nessun dettaglio disponibile.",
+    recipes_manage_no_entities_prefix: "Nessun",
+    recipes_manage_no_entities_suffix: "trovato in questa casa.",
+    recipes_manage_save: "Salva",
+    recipes_manage_saving: "Salvataggio\u2026",
+    recipes_match_col_item: "Elemento",
+    recipes_match_col_selected: "Selezionato",
+    recipes_match_col_status: "Stato",
+    recipes_match_nothing:
+      "Niente da abbinare \u2014 questa ricetta funziona senza configurazione dei dispositivi.",
+    recipes_match_scanning: "Scansione della Sua casa\u2026",
+    recipes_match_status_error: "Errore",
+    recipes_match_status_needs_setup: "Da configurare",
+    recipes_match_status_optional: "Opzionale",
+    recipes_match_status_ready: "Pronto",
+    recipes_match_status_waiting: "In attesa",
+    recipes_match_status_working: "In corso",
+    recipes_optional_eyebrow: "Opzionale",
+    recipes_pair_hue_action:
+      "Associ questa lampadina al Suo Hue Bridge usando l'app Hue o la sua pagina di configurazione.",
+    recipes_pair_hue_cta: "Apri configurazione Hue",
+    recipes_pair_matter_action:
+      "Configuri questo dispositivo Matter con il suo codice di abbinamento dalla pagina di configurazione Matter.",
+    recipes_pair_matter_cta: "Apri configurazione Matter",
+    recipes_pair_mqtt_action:
+      "Porti online questo dispositivo MQTT in modo che pubblichi sul topic configurato.",
+    recipes_pair_mqtt_cta: "Apri configurazione MQTT",
+    recipes_pair_zha_action:
+      "Apra la pagina di configurazione di ZHA e metta il coordinatore in modalit\xE0 abbinamento per aggiungere questo dispositivo.",
+    recipes_pair_zha_cta: "Apri configurazione ZHA",
+    recipes_pair_zwave_action:
+      "Avvii l'inclusione Z-Wave dalla sua pagina di configurazione per aggiungere questo dispositivo.",
+    recipes_pair_zwave_cta: "Apri configurazione Z-Wave",
+    recipes_pin_check_now: "Controlla ora",
+    recipes_pin_default_action:
+      "Aggiunga questo dispositivo a Home Assistant. Selora lo rilever\xE0 automaticamente.",
+    recipes_pin_expected_entity: "ID entit\xE0 previsto:",
+    recipes_pin_open_ha_integrations: "Apri integrazioni HA",
+    recipes_pin_open_setup_prefix: "Apri",
+    recipes_pin_open_setup_suffix: "configurazione",
+    recipes_pin_tip:
+      "Suggerimento: lasci questa scheda aperta. Quando il dispositivo si associa, questo passaggio si spunta da solo \u2014 non serve cliccare nulla qui.",
+    recipes_progress_title: "Avanzamento",
+    recipes_punch_list_title: "Elenco delle attivit\xE0",
+    recipes_required_eyebrow: "Obbligatorio",
+    recipes_result_advanced: "avanzato",
+    recipes_result_fix_retry:
+      "Corregga gli elementi qui sotto, poi riapra la ricetta per riprovare.",
+    recipes_result_halted_at_stage: "Installazione interrotta alla fase:",
+    recipes_result_install_complete: "Installazione completata",
+    recipes_result_installed_reloaded:
+      "\xE8 stata installata e Home Assistant \xE8 stato ricaricato. File del pacchetto:",
+    recipes_result_view_yaml: "Visualizza il pacchetto YAML generato",
+    recipes_role_check_again: "Controlla di nuovo",
+    recipes_role_empty_add_device: "Aggiungi dispositivo in HA",
+    recipes_role_empty_at_least: "almeno",
+    recipes_role_empty_none_prefix: "Nessun",
+    recipes_role_empty_none_suffix: "ancora nella Sua casa",
+    recipes_role_empty_one_prose:
+      "uno e apparir\xE0 qui automaticamente \u2014 pu\xF2 lasciare questa pagina per aggiungere un dispositivo e la procedura guidata mantiene i Suoi progressi tornando Indietro.",
+    recipes_role_empty_pair: "Associa",
+    recipes_role_filter_device_noun: "dispositivo",
+    recipes_role_filter_sensor_noun: "sensore",
+    recipes_role_pick_one_or_more: "Ne scelga uno o pi\xF9",
+    recipes_role_pick_prefix: "Scelga:",
+    recipes_role_pinned_count_suffix: "fissati dalla ricetta (sempre inclusi).",
+    recipes_role_run_against:
+      "Selora eseguir\xE0 la ricetta su quelli che spunta.",
+    recipes_role_up_to: "fino a",
+    recipes_safety_automations_generated: "Automazioni generate",
+    recipes_safety_install_incomplete: "Installazione incompleta",
+    recipes_safety_installed_ok: "Ricetta installata con successo",
+    recipes_safety_issues_to_address: "problema(i) da risolvere",
+    recipes_safety_no_artifacts: "Nessun artefatto creato",
+    recipes_safety_no_issues: "Nessun problema in sospeso",
+    recipes_section_automation_plural: "automazioni",
+    recipes_section_automation_singular: "automazione",
+    recipes_section_binary_sensor_plural: "sensori binari",
+    recipes_section_binary_sensor_singular: "sensore binario",
+    recipes_section_climate_plural: "entit\xE0 climate",
+    recipes_section_climate_singular: "entit\xE0 climate",
+    recipes_section_counter_plural: "contatori",
+    recipes_section_counter_singular: "contatore",
+    recipes_section_cover_plural: "tapparelle",
+    recipes_section_cover_singular: "tapparella",
+    recipes_section_customisation_plural: "personalizzazioni",
+    recipes_section_customisation_singular: "personalizzazione",
+    recipes_section_group_plural: "gruppi",
+    recipes_section_group_singular: "gruppo",
+    recipes_section_helper_plural: "helper",
+    recipes_section_helper_singular: "helper",
+    recipes_section_light_plural: "luci",
+    recipes_section_light_singular: "luce",
+    recipes_section_media_player_plural: "lettori multimediali",
+    recipes_section_media_player_singular: "lettore multimediale",
+    recipes_section_notify_plural: "notificatori",
+    recipes_section_notify_singular: "notificatore",
+    recipes_section_rest_command_plural: "comandi REST",
+    recipes_section_rest_command_singular: "comando REST",
+    recipes_section_scene_plural: "scene",
+    recipes_section_scene_singular: "scena",
+    recipes_section_script_plural: "script",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "sensori",
+    recipes_section_sensor_singular: "sensore",
+    recipes_section_shell_command_plural: "comandi shell",
+    recipes_section_shell_command_singular: "comando shell",
+    recipes_section_switch_plural: "interruttori",
+    recipes_section_switch_singular: "interruttore",
+    recipes_section_template_plural: "entit\xE0 template",
+    recipes_section_template_singular: "entit\xE0 template",
+    recipes_section_timer_plural: "timer",
+    recipes_section_timer_singular: "timer",
+    recipes_selected_awaiting_pair: "In attesa di abbinamento",
+    recipes_selected_entities_suffix: "entit\xE0",
+    recipes_selected_none: "Nessuno",
+    recipes_selected_setting_plural: "impostazioni",
+    recipes_selected_setting_singular: "impostazione",
+    recipes_setting_up_button: "Configurazione\u2026",
+    recipes_stage_apply: "Applica",
+    recipes_stage_configure: "Configura",
+    recipes_stage_prepare: "Prepara",
+    recipes_stage_unknown: "sconosciuta",
+    recipes_start_setup_button: "Avvia configurazione",
+    recipes_status_done: "Fatto",
+    recipes_status_failed: "Non riuscito",
+    recipes_status_needs_you: "Richiede la Sua azione",
+    recipes_status_pending: "In attesa",
+    recipes_status_running: "In esecuzione",
+    recipes_status_skipped: "Saltato",
+    recipes_step2_sub:
+      "Preferenze per l'intera ricetta. I valori predefiniti sono precompilati; li modifichi solo se desidera cambiare qualcosa, poi prema Continua.",
+    recipes_step2_sub_empty:
+      "Questa ricetta non ha impostazioni da configurare \u2014 clicchi semplicemente Continua.",
+    recipes_step2_title: "Impostazioni della ricetta",
+    recipes_step3_hint_finish:
+      "Completi le righe che indicano \xABDa configurare\xBB per continuare.",
+    recipes_step3_hint_ready:
+      "Tutto a posto \u2014 pronto per la configurazione.",
+    recipes_step3_sub:
+      "Abbini ogni elemento qui sotto con un'entit\xE0 della Sua casa. Clicchi su una riga qualsiasi per configurarla.",
+    recipes_step3_title: "Abbina dispositivi",
+    recipes_step4_hint_failed:
+      "Prema Indietro per rivedere le Sue selezioni, poi riprovi.",
+    recipes_step4_hint_something_failed:
+      "Qualcosa \xE8 andato storto \u2014 torni indietro e riprovi.",
+    recipes_step4_sub_busy:
+      "Selora sta installando la Sua ricetta. Attenda \u2014 bastano pochi secondi.",
+    recipes_step4_sub_done:
+      "Fatto. Clicchi Continua per rivedere ci\xF2 che \xE8 stato installato.",
+    recipes_step4_sub_halted_prefix: "Installazione interrotta alla fase",
+    recipes_step4_sub_halted_suffix:
+      ". Torni indietro per risolvere i problemi qui sotto.",
+    recipes_step4_sub_starting: "Avvio configurazione\u2026",
+    recipes_step4_title: "Configurazione in corso",
+    recipes_step5_created_title: "Questa ricetta ha creato",
+    recipes_step5_devices_linked: "Dispositivi collegati",
+    recipes_step5_hint:
+      "Home Assistant \xE8 stato ricaricato \u2014 la Sua ricetta \xE8 attiva.",
+    recipes_step5_more_suffix: "altri",
+    recipes_step5_no_devices:
+      "Nessun dispositivo \xE8 associato a questa ricetta.",
+    recipes_step5_no_entries: "Nessuna voce \xE8 stata generata.",
+    recipes_step5_safety_checks: "Controlli di sicurezza",
+    recipes_step5_sub:
+      "La Sua ricetta \xE8 installata e Home Assistant \xE8 stato ricaricato. Riveda qui sotto ci\xF2 che \xE8 stato creato, poi clicchi Fine.",
+    recipes_step5_title: "Rivedi e termina",
+    recipes_step_activate: "Attiva",
+    recipes_step_label: "Passaggio",
+    recipes_step_match: "Abbina",
+    recipes_step_of_5: "di 5",
+    recipes_step_overview: "Panoramica",
+    recipes_step_set_up: "Configura",
+    recipes_step_settings: "Impostazioni",
+    recipes_system_panel_auto:
+      "Questo passaggio viene eseguito automaticamente. Nessuna azione richiesta da parte Sua.",
+    recipes_this_recipe_creates: "Questa ricetta crea",
+    recipes_uninstall_body:
+      "Il file del pacchetto verr\xE0 eliminato e Home Assistant si ricaricher\xE0. Le automazioni create da questa ricetta verranno rimosse.",
+    recipes_uninstall_confirm_prefix: "Disinstalla",
+    recipes_uninstall_integrations_sub:
+      "Spunti quelle che dovrebbero essere rimosse insieme alla ricetta. Tutto ci\xF2 che lascia deselezionato rimane in Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "Integrazioni installate da questa ricetta",
+    recipes_uninstall_still_used_by: "Ancora usata da",
+    recipes_uninstall_warn_title:
+      "La rimozione di questa integrazione render\xE0 inutilizzabili quelle ricette.",
+    recipes_what_you_need_title: "Di cosa ha bisogno",
+    recipes_working: "In corso\u2026",
+    recipes_role_filter_placeholder: "Filtra per nome\u2026",
+    recipes_role_filter_no_matches: "Nessuna entit\xE0 corrisponde al filtro.",
+    recipes_role_show_all: "Mostra tutto",
+    recipes_role_show_less: "Mostra meno",
+    recipes_dashboard_picker_title: "Aggiungi una scheda a una dashboard",
+    recipes_dashboard_picker_sub:
+      "Questa ricetta pu\xF2 aggiungere una scheda a una dashboard da toccare. Scegli dove \u2014 oppure salta e aggiungila tu pi\xF9 tardi.",
+    recipes_dashboard_picker_skip: "Non aggiungere una scheda",
+    recipes_dashboard_picker_refine:
+      "Ti serve una scheda personalizzata? Perfeziona nella chat",
+    recipes_step5_dashboard_title: "Scheda della dashboard",
+    recipes_step5_dashboard_added:
+      "Una scheda \xE8 stata aggiunta alla tua dashboard.",
+    recipes_step5_dashboard_skipped:
+      "Nessuna scheda aggiunta. Puoi aggiungerne una tu o farti aiutare da Selora.",
+    recipes_step5_dashboard_manual:
+      "Impossibile aggiungere la scheda automaticamente \u2014 aggiungila tu o fatti aiutare da Selora.",
+    recipes_step5_dashboard_customize: "Personalizza nella chat",
+    recipes_step5_dashboard_help: "Aggiungila nella chat",
+    recipes_refine_chat_failed:
+      "Impossibile aprire una chat per questa ricetta.",
+    recipes_step3_hint_blocked:
+      "Questa ricetta non pu\xF2 ancora essere preparata \u2014 controlla la ricetta per errori e riprova.",
+    recipes_catalog_empty: "Nessuna ricetta in questo catalogo per ora.",
   },
   options: {
     step: {
@@ -11524,6 +13305,324 @@ var nl_default = {
     suggestions_snoozed_toast: "Suggestie 24u uitgesteld",
     suggestions_pattern_scan_failed: "Patroonscan mislukt",
     area_unassigned: "Niet toegewezen",
+    recipes_back_to_overview: "Terug naar overzicht",
+    recipes_back_to_recipes: "Terug naar recepten",
+    recipes_bucket_completed: "Voltooid",
+    recipes_bucket_failed: "Mislukt",
+    recipes_bucket_in_progress: "Bezig",
+    recipes_bucket_install_failed: "Installatie mislukt",
+    recipes_bucket_no_details:
+      "Geen details beschikbaar. Controleer de Home Assistant-log voor de onderliggende fout.",
+    recipes_bucket_up_next: "Hierna",
+    recipes_bucket_waiting_for_you: "Wacht op u",
+    recipes_card_configure_button: "Configureren",
+    recipes_card_in_progress_step: "Bezig \xB7 Stap",
+    recipes_card_install_button: "Installeren",
+    recipes_card_installed_badge: "Ge\xEFnstalleerd",
+    recipes_card_manage_devices_button: "Apparaten beheren",
+    recipes_card_manage_devices_title:
+      "Wissel of werk de apparaten bij die dit recept gebruikt zonder de wizard opnieuw uit te voeren",
+    recipes_card_resume_button: "Hervatten",
+    recipes_card_start_over_button: "Opnieuw beginnen",
+    recipes_card_start_over_title:
+      "Opgeslagen voortgang weggooien en de wizard helemaal opnieuw starten",
+    recipes_card_uninstall_button: "Verwijderen",
+    recipes_catalog_fetching: "Catalogus ophalen\u2026",
+    recipes_catalog_no_matches_prefix: "Geen resultaten voor",
+    recipes_catalog_search_placeholder: "Recepten zoeken\u2026",
+    recipes_catalog_set_url_title:
+      "Een catalogus-URL instellen (dev / staging)",
+    recipes_catalog_source_overridden: "Catalogusbron overschreven:",
+    recipes_catalog_unreachable: "Kon de receptencatalogus niet bereiken:",
+    recipes_catalog_url_prompt:
+      "Catalogus-URL (leeg laten om terug te zetten naar selorahomes.com):",
+    recipes_catalog_using_override: "Overschrijving gebruiken:",
+    recipes_catalog_will_load: "De catalogus wordt hier geladen.",
+    recipes_continue_button: "Doorgaan",
+    recipes_details_copy_path_title: "Pad kopi\xEBren",
+    recipes_details_devices_key: "Apparaten",
+    recipes_details_installed_on: "ge\xEFnstalleerd",
+    recipes_details_integrations_key: "Integraties",
+    recipes_details_no_bound_devices: "Geen gekoppelde apparaten",
+    recipes_details_none_selected_optional: "Niets geselecteerd (optioneel)",
+    recipes_details_settings_key: "Instellingen",
+    recipes_details_summary: "Details",
+    recipes_details_version_key: "Versie",
+    recipes_details_where_key: "Waar",
+    recipes_eyebrow_recipe: "RECEPT",
+    recipes_eyebrow_released: "Uitgebracht",
+    recipes_field_optional: "(optioneel)",
+    recipes_finish_button: "Voltooien",
+    recipes_flow_cancel: "Annuleren",
+    recipes_flow_continue: "Doorgaan",
+    recipes_footer_back: "Terug",
+    recipes_footer_cancel: "Annuleren",
+    recipes_inputs_panel_title: "Receptinstellingen",
+    recipes_install_accepts: "accepteert",
+    recipes_install_bom_note:
+      "De materiaallijst wordt gecontroleerd tegen uw woning voordat er iets wordt ge\xEFnstalleerd.",
+    recipes_install_click_to_choose: "klik om een bestand te kiezen",
+    recipes_install_drop_here: "Sleep hier een receptarchief naartoe",
+    recipes_install_drop_to_upload: "Sleep om te uploaden",
+    recipes_install_failed_button: "Installatie mislukt",
+    recipes_install_fetch_button: "Ophalen",
+    recipes_install_fetching: "Ophalen\u2026",
+    recipes_install_from_url_label: "Installeren vanaf URL",
+    recipes_install_or: "OF",
+    recipes_install_or_lower: "of",
+    recipes_install_source_hint:
+      "Hebt u een recept van elders? Voeg het hier toe.",
+    recipes_install_source_summary: "Installeren vanaf een URL of bestand",
+    recipes_install_unsupported_file_prefix: "Niet-ondersteund bestand:",
+    recipes_install_unsupported_file_suffix:
+      "Gebruik een .tar.gz-, .tgz- of .zip-archief.",
+    recipes_install_upload_label: "Uploaden vanaf dit apparaat",
+    recipes_install_uploading: "Uploaden\u2026",
+    recipes_integration_autosetup_prose:
+      "kan automatisch worden ingesteld op basis van uw Home Assistant-locatie. U hoeft niets te beantwoorden.",
+    recipes_integration_entry_label: "Vermelding:",
+    recipes_integration_manage_anytime:
+      "Beheer deze integratie op elk moment via Instellingen \u2192 Apparaten & Diensten.",
+    recipes_integration_needs_setup_prose:
+      "moet worden ingesteld voordat dit recept kan worden ge\xEFnstalleerd. U kunt ermee beginnen zonder deze pagina te verlaten.",
+    recipes_integration_open_in_ha: "Openen in HA",
+    recipes_integration_open_in_ha_settings: "Openen in HA-instellingen",
+    recipes_integration_ready: "is ingesteld en klaar voor gebruik.",
+    recipes_integration_setup_auto_button: "Automatisch instellen",
+    recipes_integration_setup_failed:
+      "Instellen mislukt. Probeer het opnieuw of gebruik de instellingenpagina van HA.",
+    recipes_integration_setup_prefix: "Instellen",
+    recipes_integration_try_again: "Opnieuw proberen",
+    recipes_integration_was_set_up:
+      "is ingesteld. Selora controleert het recept automatisch opnieuw.",
+    recipes_list_check_updates_button: "Controleren op updates",
+    recipes_list_check_updates_title:
+      "Controleer selorahomes.com op nieuwe en bijgewerkte recepten",
+    recipes_list_checking: "Controleren\u2026",
+    recipes_list_installed_missing_bundle:
+      "Ge\xEFnstalleerd (bundel ontbreekt op schijf)",
+    recipes_list_intro:
+      "Recepten zijn kant-en-klare automatiseringen die u in \xE9\xE9n stap installeert \u2014 een lekvergrendeling, een bedtijdroutine, een tornadowaarschuwing. Selora controleert elk recept tegen de apparaten in uw woning en stelt het vervolgens voor u in. Kies er hieronder een om te beginnen.",
+    recipes_list_on_this_device: "Ge\xEFnstalleerd",
+    recipes_list_package_label: "pakket:",
+    recipes_list_title: "Recepten",
+    recipes_loading: "Laden\u2026",
+    recipes_loading_recipe: "Recept laden\u2026",
+    recipes_manage_intro:
+      "Werk bij welke entiteiten elke rol invullen. Wordt direct opgeslagen \u2014 automatiseringen worden niet opnieuw gegenereerd, alleen de groepslidmaatschappen veranderen.",
+    recipes_manage_no_detail: "Geen detail beschikbaar.",
+    recipes_manage_no_entities_prefix: "Geen",
+    recipes_manage_no_entities_suffix: "entiteiten gevonden in deze woning.",
+    recipes_manage_save: "Opslaan",
+    recipes_manage_saving: "Opslaan\u2026",
+    recipes_match_col_item: "Item",
+    recipes_match_col_selected: "Geselecteerd",
+    recipes_match_col_status: "Status",
+    recipes_match_nothing:
+      "Niets om te koppelen \u2014 dit recept draait zonder apparaatinstelling.",
+    recipes_match_scanning: "Uw woning scannen\u2026",
+    recipes_match_status_error: "Fout",
+    recipes_match_status_needs_setup: "Moet worden ingesteld",
+    recipes_match_status_optional: "Optioneel",
+    recipes_match_status_ready: "Klaar",
+    recipes_match_status_waiting: "Wachten",
+    recipes_match_status_working: "Bezig",
+    recipes_optional_eyebrow: "Optioneel",
+    recipes_pair_hue_action:
+      "Koppel deze lamp aan uw Hue Bridge via de Hue-app of de installatiepagina ervan.",
+    recipes_pair_hue_cta: "Hue-installatie openen",
+    recipes_pair_matter_action:
+      "Voeg dit Matter-apparaat toe met de koppelcode op de Matter-installatiepagina.",
+    recipes_pair_matter_cta: "Matter-installatie openen",
+    recipes_pair_mqtt_action:
+      "Breng dit MQTT-apparaat online zodat het publiceert naar het geconfigureerde topic.",
+    recipes_pair_mqtt_cta: "MQTT-installatie openen",
+    recipes_pair_zha_action:
+      "Open de ZHA-installatiepagina en zet de co\xF6rdinator in de koppelmodus om dit apparaat toe te voegen.",
+    recipes_pair_zha_cta: "ZHA-installatie openen",
+    recipes_pair_zwave_action:
+      "Start Z-Wave-inclusie vanaf de installatiepagina om dit apparaat toe te voegen.",
+    recipes_pair_zwave_cta: "Z-Wave-installatie openen",
+    recipes_pin_check_now: "Nu controleren",
+    recipes_pin_default_action:
+      "Voeg dit apparaat toe aan Home Assistant. Selora detecteert het automatisch.",
+    recipes_pin_expected_entity: "Verwachte entiteits-id:",
+    recipes_pin_open_ha_integrations: "HA-integraties openen",
+    recipes_pin_open_setup_prefix: "Open",
+    recipes_pin_open_setup_suffix: "instellen",
+    recipes_pin_tip:
+      "Tip: laat dit tabblad open. Wanneer het apparaat koppelt, vinkt deze stap zichzelf af \u2014 u hoeft hier niets te klikken.",
+    recipes_progress_title: "Voortgang",
+    recipes_punch_list_title: "Takenlijst",
+    recipes_required_eyebrow: "Vereist",
+    recipes_result_advanced: "geavanceerd",
+    recipes_result_fix_retry:
+      "Repareer de onderstaande items en open vervolgens het recept opnieuw om het nogmaals te proberen.",
+    recipes_result_halted_at_stage: "Installatie gestopt bij fase:",
+    recipes_result_install_complete: "Installatie voltooid",
+    recipes_result_installed_reloaded:
+      "is ge\xEFnstalleerd en Home Assistant is herladen. Pakketbestand:",
+    recipes_result_view_yaml: "Gegenereerde pakket-YAML bekijken",
+    recipes_role_check_again: "Opnieuw controleren",
+    recipes_role_empty_add_device: "Apparaat toevoegen in HA",
+    recipes_role_empty_at_least: "ten minste",
+    recipes_role_empty_none_prefix: "Geen",
+    recipes_role_empty_none_suffix: "in uw woning nog",
+    recipes_role_empty_one_prose:
+      "een en het verschijnt hier automatisch \u2014 u kunt deze pagina verlaten om een apparaat toe te voegen en de wizard behoudt uw voortgang met Terug.",
+    recipes_role_empty_pair: "Koppelen",
+    recipes_role_filter_device_noun: "apparaat",
+    recipes_role_filter_sensor_noun: "sensor",
+    recipes_role_pick_one_or_more: "Kies een of meer",
+    recipes_role_pick_prefix: "Kies:",
+    recipes_role_pinned_count_suffix:
+      "vastgezet door het recept (altijd inbegrepen).",
+    recipes_role_run_against:
+      "Selora draait het recept tegen de aangevinkte items.",
+    recipes_role_up_to: "tot",
+    recipes_safety_automations_generated: "Automatiseringen gegenereerd",
+    recipes_safety_install_incomplete: "Installatie onvolledig",
+    recipes_safety_installed_ok: "Recept succesvol ge\xEFnstalleerd",
+    recipes_safety_issues_to_address: "kwestie(s) om aan te pakken",
+    recipes_safety_no_artifacts: "Geen artefacten aangemaakt",
+    recipes_safety_no_issues: "Geen openstaande kwesties",
+    recipes_section_automation_plural: "automatiseringen",
+    recipes_section_automation_singular: "automatisering",
+    recipes_section_binary_sensor_plural: "binaire sensoren",
+    recipes_section_binary_sensor_singular: "binaire sensor",
+    recipes_section_climate_plural: "klimaatentiteiten",
+    recipes_section_climate_singular: "klimaatentiteit",
+    recipes_section_counter_plural: "tellers",
+    recipes_section_counter_singular: "teller",
+    recipes_section_cover_plural: "rolluiken",
+    recipes_section_cover_singular: "rolluik",
+    recipes_section_customisation_plural: "aanpassingen",
+    recipes_section_customisation_singular: "aanpassing",
+    recipes_section_group_plural: "groepen",
+    recipes_section_group_singular: "groep",
+    recipes_section_helper_plural: "helpers",
+    recipes_section_helper_singular: "helper",
+    recipes_section_light_plural: "lampen",
+    recipes_section_light_singular: "lamp",
+    recipes_section_media_player_plural: "mediaspelers",
+    recipes_section_media_player_singular: "mediaspeler",
+    recipes_section_notify_plural: "meldingsdiensten",
+    recipes_section_notify_singular: "meldingsdienst",
+    recipes_section_rest_command_plural: "REST-commando's",
+    recipes_section_rest_command_singular: "REST-commando",
+    recipes_section_scene_plural: "sc\xE8nes",
+    recipes_section_scene_singular: "sc\xE8ne",
+    recipes_section_script_plural: "scripts",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "sensoren",
+    recipes_section_sensor_singular: "sensor",
+    recipes_section_shell_command_plural: "shell-commando's",
+    recipes_section_shell_command_singular: "shell-commando",
+    recipes_section_switch_plural: "schakelaars",
+    recipes_section_switch_singular: "schakelaar",
+    recipes_section_template_plural: "sjabloonentiteiten",
+    recipes_section_template_singular: "sjabloonentiteit",
+    recipes_section_timer_plural: "timers",
+    recipes_section_timer_singular: "timer",
+    recipes_selected_awaiting_pair: "Wacht op koppeling",
+    recipes_selected_entities_suffix: "entiteiten",
+    recipes_selected_none: "Geen",
+    recipes_selected_setting_plural: "instellingen",
+    recipes_selected_setting_singular: "instelling",
+    recipes_setting_up_button: "Instellen\u2026",
+    recipes_stage_apply: "Toepassen",
+    recipes_stage_configure: "Configureren",
+    recipes_stage_prepare: "Voorbereiden",
+    recipes_stage_unknown: "onbekend",
+    recipes_start_setup_button: "Instellen starten",
+    recipes_status_done: "Gereed",
+    recipes_status_failed: "Mislukt",
+    recipes_status_needs_you: "Vereist u",
+    recipes_status_pending: "In afwachting",
+    recipes_status_running: "Bezig",
+    recipes_status_skipped: "Overgeslagen",
+    recipes_step2_sub:
+      "Receptbrede voorkeuren. Standaardwaarden zijn vooraf ingevuld; pas alleen aan als u iets wilt wijzigen en klik dan op Doorgaan.",
+    recipes_step2_sub_empty:
+      "Dit recept heeft geen instellingen om te configureren \u2014 klik gewoon op Doorgaan.",
+    recipes_step2_title: "Receptinstellingen",
+    recipes_step3_hint_finish:
+      "Voltooi de rijen met \u201EMoet worden ingesteld\u201D om door te gaan.",
+    recipes_step3_hint_ready: "Ziet er goed uit \u2014 klaar om in te stellen.",
+    recipes_step3_sub:
+      "Koppel elk onderstaand item aan een entiteit uit uw woning. Klik op een rij om het in te stellen.",
+    recipes_step3_title: "Apparaten koppelen",
+    recipes_step4_hint_failed:
+      "Klik op Terug om uw selecties te herzien en probeer het opnieuw.",
+    recipes_step4_hint_something_failed:
+      "Er is iets misgegaan \u2014 ga terug en probeer het opnieuw.",
+    recipes_step4_sub_busy:
+      "Selora installeert uw recept. Even geduld \u2014 dit duurt slechts een paar seconden.",
+    recipes_step4_sub_done:
+      "Helemaal klaar. Klik op Doorgaan om te bekijken wat er is ge\xEFnstalleerd.",
+    recipes_step4_sub_halted_prefix: "Installatie gestopt bij de",
+    recipes_step4_sub_halted_suffix:
+      "fase. Ga terug om de onderstaande problemen op te lossen.",
+    recipes_step4_sub_starting: "Instellen starten\u2026",
+    recipes_step4_title: "Instellen",
+    recipes_step5_created_title: "Dit recept heeft aangemaakt",
+    recipes_step5_devices_linked: "Gekoppelde apparaten",
+    recipes_step5_hint:
+      "Home Assistant is herladen \u2014 uw recept is actief.",
+    recipes_step5_more_suffix: "meer",
+    recipes_step5_no_devices:
+      "Er zijn geen apparaten aan dit recept gekoppeld.",
+    recipes_step5_no_entries: "Er zijn geen vermeldingen gegenereerd.",
+    recipes_step5_safety_checks: "Veiligheidscontroles",
+    recipes_step5_sub:
+      "Uw recept is ge\xEFnstalleerd en Home Assistant is herladen. Bekijk hieronder wat er is aangemaakt en klik dan op Voltooien.",
+    recipes_step5_title: "Bekijken & voltooien",
+    recipes_step_activate: "Activeren",
+    recipes_step_label: "Stap",
+    recipes_step_match: "Koppelen",
+    recipes_step_of_5: "van 5",
+    recipes_step_overview: "Overzicht",
+    recipes_step_set_up: "Instellen",
+    recipes_step_settings: "Instellingen",
+    recipes_system_panel_auto:
+      "Deze stap draait automatisch. Er is geen actie van u nodig.",
+    recipes_this_recipe_creates: "Dit recept maakt aan",
+    recipes_uninstall_body:
+      "Het pakketbestand wordt verwijderd en Home Assistant wordt herladen. De automatiseringen die dit recept heeft aangemaakt, worden verwijderd.",
+    recipes_uninstall_confirm_prefix: "Verwijderen",
+    recipes_uninstall_integrations_sub:
+      "Vink aan welke samen met het recept moeten worden verwijderd. Alles wat u niet aanvinkt, blijft in Home Assistant staan.",
+    recipes_uninstall_integrations_title:
+      "Integraties die dit recept heeft ge\xEFnstalleerd",
+    recipes_uninstall_still_used_by: "Nog gebruikt door",
+    recipes_uninstall_warn_title:
+      "Het verwijderen van deze integratie maakt die recepten onbruikbaar.",
+    recipes_what_you_need_title: "Wat u nodig hebt",
+    recipes_working: "Bezig\u2026",
+    recipes_role_filter_placeholder: "Filteren op naam\u2026",
+    recipes_role_filter_no_matches:
+      "Geen entiteiten komen overeen met je filter.",
+    recipes_role_show_all: "Alles tonen",
+    recipes_role_show_less: "Minder tonen",
+    recipes_dashboard_picker_title: "Een kaart aan een dashboard toevoegen",
+    recipes_dashboard_picker_sub:
+      "Dit recept kan een kaart op een dashboard plaatsen zodat je erop kunt tikken. Kies waar \u2014 of sla over en voeg het later zelf toe.",
+    recipes_dashboard_picker_skip: "Geen kaart toevoegen",
+    recipes_dashboard_picker_refine:
+      "Een aangepaste kaart nodig? Verfijnen in chat",
+    recipes_step5_dashboard_title: "Dashboardkaart",
+    recipes_step5_dashboard_added:
+      "Er is een kaart aan je dashboard toegevoegd.",
+    recipes_step5_dashboard_skipped:
+      "Geen kaart toegevoegd. Je kunt er zelf een toevoegen of Selora laten helpen.",
+    recipes_step5_dashboard_manual:
+      "Kon de kaart niet automatisch toevoegen \u2014 voeg hem zelf toe of laat Selora helpen.",
+    recipes_step5_dashboard_customize: "Aanpassen in chat",
+    recipes_step5_dashboard_help: "Toevoegen in chat",
+    recipes_refine_chat_failed: "Kon geen chat openen voor dit recept.",
+    recipes_step3_hint_blocked:
+      "Dit recept kan nog niet worden voorbereid \u2014 controleer het recept op fouten en probeer het opnieuw.",
+    recipes_catalog_empty: "Nog geen recepten in deze catalogus.",
   },
 };
 
@@ -12298,6 +14397,340 @@ var hu_default = {
     suggestions_snoozed_toast: "Javaslat 24 \xF3r\xE1ra szundira \xE1ll\xEDtva",
     suggestions_pattern_scan_failed: "A mintavizsg\xE1lat sikertelen",
     area_unassigned: "Hozz\xE1 nem rendelt",
+    recipes_back_to_overview: "Vissza az \xE1ttekint\xE9shez",
+    recipes_back_to_recipes: "Vissza a receptekhez",
+    recipes_bucket_completed: "Befejezve",
+    recipes_bucket_failed: "Sikertelen",
+    recipes_bucket_in_progress: "Folyamatban",
+    recipes_bucket_install_failed: "A telep\xEDt\xE9s sikertelen",
+    recipes_bucket_no_details:
+      "Nincsenek el\xE9rhet\u0151 r\xE9szletek. Az alapul szolg\xE1l\xF3 hib\xE1\xE9rt tekintse meg a Home Assistant napl\xF3t.",
+    recipes_bucket_up_next: "K\xF6vetkezik",
+    recipes_bucket_waiting_for_you: "\xD6nre v\xE1r",
+    recipes_card_configure_button: "Konfigur\xE1l\xE1s",
+    recipes_card_in_progress_step: "Folyamatban \xB7 L\xE9p\xE9s",
+    recipes_card_install_button: "Telep\xEDt\xE9s",
+    recipes_card_installed_badge: "Telep\xEDtve",
+    recipes_card_manage_devices_button: "Eszk\xF6z\xF6k kezel\xE9se",
+    recipes_card_manage_devices_title:
+      "Cser\xE9lje ki vagy friss\xEDtse a recept \xE1ltal haszn\xE1lt eszk\xF6z\xF6ket a var\xE1zsl\xF3 \xFAjrafuttat\xE1sa n\xE9lk\xFCl",
+    recipes_card_resume_button: "Folytat\xE1s",
+    recipes_card_start_over_button: "\xDAjrakezd\xE9s",
+    recipes_card_start_over_title:
+      "Dobja el a mentett el\u0151rehalad\xE1st, \xE9s ind\xEDtsa \xFAjra a var\xE1zsl\xF3t az elej\xE9t\u0151l",
+    recipes_card_uninstall_button: "Elt\xE1vol\xEDt\xE1s",
+    recipes_catalog_fetching: "Katal\xF3gus lek\xE9r\xE9se\u2026",
+    recipes_catalog_no_matches_prefix:
+      "Nincs tal\xE1lat a k\xF6vetkez\u0151re:",
+    recipes_catalog_search_placeholder: "Receptek keres\xE9se\u2026",
+    recipes_catalog_set_url_title:
+      "Katal\xF3gus URL be\xE1ll\xEDt\xE1sa (dev / staging)",
+    recipes_catalog_source_overridden:
+      "Katal\xF3gusforr\xE1s fel\xFClb\xEDr\xE1lva:",
+    recipes_catalog_unreachable:
+      "Nem siker\xFClt el\xE9rni a receptkatal\xF3gust:",
+    recipes_catalog_url_prompt:
+      "Katal\xF3gus URL (hagyja \xFCresen a selorahomes.com vissza\xE1ll\xEDt\xE1s\xE1hoz):",
+    recipes_catalog_using_override: "Fel\xFClb\xEDr\xE1l\xE1s haszn\xE1lata:",
+    recipes_catalog_will_load: "A katal\xF3gus itt fog bet\xF6lt\u0151dni.",
+    recipes_continue_button: "Folytat\xE1s",
+    recipes_details_copy_path_title: "\xDAtvonal m\xE1sol\xE1sa",
+    recipes_details_devices_key: "Eszk\xF6z\xF6k",
+    recipes_details_installed_on: "telep\xEDtve",
+    recipes_details_integrations_key: "Integr\xE1ci\xF3k",
+    recipes_details_no_bound_devices:
+      "Nincsenek hozz\xE1rendelt eszk\xF6z\xF6k",
+    recipes_details_none_selected_optional:
+      "Nincs kiv\xE1lasztva (nem k\xF6telez\u0151)",
+    recipes_details_settings_key: "Be\xE1ll\xEDt\xE1sok",
+    recipes_details_summary: "R\xE9szletek",
+    recipes_details_version_key: "Verzi\xF3",
+    recipes_details_where_key: "Hol",
+    recipes_eyebrow_recipe: "RECEPT",
+    recipes_eyebrow_released: "Kiadva",
+    recipes_field_optional: "(nem k\xF6telez\u0151)",
+    recipes_finish_button: "Befejez\xE9s",
+    recipes_flow_cancel: "M\xE9gse",
+    recipes_flow_continue: "Folytat\xE1s",
+    recipes_footer_back: "Vissza",
+    recipes_footer_cancel: "M\xE9gse",
+    recipes_inputs_panel_title: "Recept be\xE1ll\xEDt\xE1sai",
+    recipes_install_accepts: "elfogad",
+    recipes_install_bom_note:
+      "Az anyagjegyz\xE9ket a telep\xEDt\xE9s el\u0151tt \xF6sszevetj\xFCk az otthon\xE1val.",
+    recipes_install_click_to_choose:
+      "kattintson egy f\xE1jl kiv\xE1laszt\xE1s\xE1hoz",
+    recipes_install_drop_here: "H\xFAzzon ide egy recept-arch\xEDvumot",
+    recipes_install_drop_to_upload: "Engedje el a felt\xF6lt\xE9shez",
+    recipes_install_failed_button: "A telep\xEDt\xE9s sikertelen",
+    recipes_install_fetch_button: "Lek\xE9r\xE9s",
+    recipes_install_fetching: "Lek\xE9r\xE9s\u2026",
+    recipes_install_from_url_label: "Telep\xEDt\xE9s URL-b\u0151l",
+    recipes_install_or: "VAGY",
+    recipes_install_or_lower: "vagy",
+    recipes_install_source_hint:
+      "Van egy receptje m\xE1shonnan? Adja hozz\xE1 itt.",
+    recipes_install_source_summary:
+      "Telep\xEDt\xE9s URL-b\u0151l vagy f\xE1jlb\xF3l",
+    recipes_install_unsupported_file_prefix: "Nem t\xE1mogatott f\xE1jl:",
+    recipes_install_unsupported_file_suffix:
+      "Haszn\xE1ljon .tar.gz, .tgz vagy .zip arch\xEDvumot.",
+    recipes_install_upload_label:
+      "Felt\xF6lt\xE9s err\u0151l az eszk\xF6zr\u0151l",
+    recipes_install_uploading: "Felt\xF6lt\xE9s\u2026",
+    recipes_integration_autosetup_prose:
+      "automatikusan be\xE1ll\xEDthat\xF3 a Home Assistant helyadatainak felhaszn\xE1l\xE1s\xE1val. Nincs megv\xE1laszoland\xF3 k\xE9rd\xE9s.",
+    recipes_integration_entry_label: "Bejegyz\xE9s:",
+    recipes_integration_manage_anytime:
+      "Ezt az integr\xE1ci\xF3t b\xE1rmikor kezelheti a Be\xE1ll\xEDt\xE1sok \u2192 Eszk\xF6z\xF6k \xE9s szolg\xE1ltat\xE1sok men\xFCb\u0151l.",
+    recipes_integration_needs_setup_prose:
+      "be kell \xE1ll\xEDtani, miel\u0151tt ez a recept telep\xEDthet\u0151 lenne. Az oldal elhagy\xE1sa n\xE9lk\xFCl elind\xEDthatja.",
+    recipes_integration_open_in_ha: "Megnyit\xE1s a HA-ban",
+    recipes_integration_open_in_ha_settings:
+      "Megnyit\xE1s a HA be\xE1ll\xEDt\xE1saiban",
+    recipes_integration_ready:
+      "be van \xE1ll\xEDtva \xE9s haszn\xE1latra k\xE9sz.",
+    recipes_integration_setup_auto_button: "Be\xE1ll\xEDt\xE1s automatikusan",
+    recipes_integration_setup_failed:
+      "A be\xE1ll\xEDt\xE1s sikertelen. Pr\xF3b\xE1lja \xFAjra, vagy haszn\xE1lja a HA be\xE1ll\xEDt\xE1sok oldal\xE1t.",
+    recipes_integration_setup_prefix: "Be\xE1ll\xEDt\xE1s:",
+    recipes_integration_try_again: "Pr\xF3b\xE1lja \xFAjra",
+    recipes_integration_was_set_up:
+      "be lett \xE1ll\xEDtva. A Selora automatikusan \xFAjra ellen\u0151rzi a receptet.",
+    recipes_list_check_updates_button: "Friss\xEDt\xE9sek keres\xE9se",
+    recipes_list_check_updates_title:
+      "\xDAj \xE9s friss\xEDtett receptek keres\xE9se a selorahomes.com oldalon",
+    recipes_list_checking: "Ellen\u0151rz\xE9s\u2026",
+    recipes_list_installed_missing_bundle:
+      "Telep\xEDtve (a csomag hi\xE1nyzik a lemezr\u0151l)",
+    recipes_list_intro:
+      "A receptek k\xE9sz automatizmusok, amelyeket egyetlen l\xE9p\xE9sben telep\xEDthet \u2014 egy sziv\xE1rg\xE1sv\xE9delem, egy lefekv\xE9si rutin, egy torn\xE1d\xF3riaszt\xE1s. A Selora minden receptet \xF6sszevet az otthon\xE1ban l\xE9v\u0151 eszk\xF6z\xF6kkel, majd bek\xF6tik \xD6nnek. V\xE1lasszon egyet al\xE1bb a kezd\xE9shez.",
+    recipes_list_on_this_device: "Telep\xEDtve",
+    recipes_list_package_label: "csomag:",
+    recipes_list_title: "Receptek",
+    recipes_loading: "Bet\xF6lt\xE9s\u2026",
+    recipes_loading_recipe: "Recept bet\xF6lt\xE9se\u2026",
+    recipes_manage_intro:
+      "Friss\xEDtse, mely entit\xE1sok t\xF6ltik be az egyes szerepeket. Azonnal ment \u2014 az automatizmusok nem rendereldnek \xFAjra, csak a csoporttags\xE1gok v\xE1ltoznak.",
+    recipes_manage_no_detail: "Nincs el\xE9rhet\u0151 r\xE9szlet.",
+    recipes_manage_no_entities_prefix: "Nincs",
+    recipes_manage_no_entities_suffix:
+      "entit\xE1s tal\xE1lhat\xF3 ebben az otthonban.",
+    recipes_manage_save: "Ment\xE9s",
+    recipes_manage_saving: "Ment\xE9s\u2026",
+    recipes_match_col_item: "Elem",
+    recipes_match_col_selected: "Kiv\xE1lasztva",
+    recipes_match_col_status: "\xC1llapot",
+    recipes_match_nothing:
+      "Nincs mit p\xE1ros\xEDtani \u2014 ez a recept eszk\xF6zbe\xE1ll\xEDt\xE1s n\xE9lk\xFCl fut.",
+    recipes_match_scanning: "Az otthon vizsg\xE1lata\u2026",
+    recipes_match_status_error: "Hiba",
+    recipes_match_status_needs_setup: "Be\xE1ll\xEDt\xE1s sz\xFCks\xE9ges",
+    recipes_match_status_optional: "Nem k\xF6telez\u0151",
+    recipes_match_status_ready: "K\xE9sz",
+    recipes_match_status_waiting: "V\xE1rakoz\xE1s",
+    recipes_match_status_working: "Folyamatban",
+    recipes_optional_eyebrow: "Nem k\xF6telez\u0151",
+    recipes_pair_hue_action:
+      "P\xE1ros\xEDtsa ezt az izz\xF3t a Hue Bridge-hez a Hue alkalmaz\xE1s vagy a be\xE1ll\xEDt\xE1si oldala seg\xEDts\xE9g\xE9vel.",
+    recipes_pair_hue_cta: "Hue be\xE1ll\xEDt\xE1s megnyit\xE1sa",
+    recipes_pair_matter_action:
+      "\xDCzemelje be ezt a Matter eszk\xF6zt a p\xE1ros\xEDt\xE1si k\xF3dj\xE1val a Matter be\xE1ll\xEDt\xE1si oldal\xE1r\xF3l.",
+    recipes_pair_matter_cta: "Matter be\xE1ll\xEDt\xE1s megnyit\xE1sa",
+    recipes_pair_mqtt_action:
+      "Kapcsolja online ezt az MQTT eszk\xF6zt, hogy k\xF6zz\xE9tegyen a be\xE1ll\xEDtott t\xE9mak\xF6rbe.",
+    recipes_pair_mqtt_cta: "MQTT be\xE1ll\xEDt\xE1s megnyit\xE1sa",
+    recipes_pair_zha_action:
+      "Nyissa meg a ZHA be\xE1ll\xEDt\xE1si oldal\xE1t, \xE9s \xE1ll\xEDtsa a koordin\xE1tort p\xE1ros\xEDt\xE1si m\xF3dba az eszk\xF6z hozz\xE1ad\xE1s\xE1hoz.",
+    recipes_pair_zha_cta: "ZHA be\xE1ll\xEDt\xE1s megnyit\xE1sa",
+    recipes_pair_zwave_action:
+      "Ind\xEDtsa el a Z-Wave hozz\xE1ad\xE1st a be\xE1ll\xEDt\xE1si oldal\xE1r\xF3l az eszk\xF6z hozz\xE1ad\xE1s\xE1hoz.",
+    recipes_pair_zwave_cta: "Z-Wave be\xE1ll\xEDt\xE1s megnyit\xE1sa",
+    recipes_pin_check_now: "Ellen\u0151rz\xE9s most",
+    recipes_pin_default_action:
+      "Adja hozz\xE1 ezt az eszk\xF6zt a Home Assistanthoz. A Selora automatikusan \xE9szleli.",
+    recipes_pin_expected_entity: "V\xE1rt entit\xE1sazonos\xEDt\xF3:",
+    recipes_pin_open_ha_integrations: "HA integr\xE1ci\xF3k megnyit\xE1sa",
+    recipes_pin_open_setup_prefix: "Megnyit\xE1s:",
+    recipes_pin_open_setup_suffix: "be\xE1ll\xEDt\xE1s",
+    recipes_pin_tip:
+      "Tipp: hagyja nyitva ezt a lapot. Amikor az eszk\xF6z p\xE1rosodik, ez a l\xE9p\xE9s mag\xE1t\xF3l kipip\xE1l\xF3dik \u2014 itt nem kell semmire kattintania.",
+    recipes_progress_title: "El\u0151rehalad\xE1s",
+    recipes_punch_list_title: "Teend\u0151k list\xE1ja",
+    recipes_required_eyebrow: "K\xF6telez\u0151",
+    recipes_result_advanced: "speci\xE1lis",
+    recipes_result_fix_retry:
+      "Jav\xEDtsa az al\xE1bbi elemeket, majd nyissa meg \xFAjra a receptet az \xFAjrapr\xF3b\xE1lkoz\xE1shoz.",
+    recipes_result_halted_at_stage:
+      "A telep\xEDt\xE9s meg\xE1llt a k\xF6vetkez\u0151 szakaszban:",
+    recipes_result_install_complete: "A telep\xEDt\xE9s befejez\u0151d\xF6tt",
+    recipes_result_installed_reloaded:
+      "telep\xEDtve lett, \xE9s a Home Assistant \xFAjrat\xF6lt\xF6tt. Csomagf\xE1jl:",
+    recipes_result_view_yaml: "Gener\xE1lt csomag YAML megtekint\xE9se",
+    recipes_role_check_again: "Ellen\u0151rz\xE9s \xFAjra",
+    recipes_role_empty_add_device: "Eszk\xF6z hozz\xE1ad\xE1sa a HA-ban",
+    recipes_role_empty_at_least: "legal\xE1bb",
+    recipes_role_empty_none_prefix: "Nincs",
+    recipes_role_empty_none_suffix: "az otthon\xE1ban m\xE9g",
+    recipes_role_empty_one_prose:
+      "egyet, \xE9s automatikusan megjelenik itt \u2014 elhagyhatja ezt az oldalt eszk\xF6z hozz\xE1ad\xE1s\xE1hoz, \xE9s a var\xE1zsl\xF3 meg\u0151rzi az el\u0151rehalad\xE1s\xE1t a Vissza gombn\xE1l.",
+    recipes_role_empty_pair: "P\xE1ros\xEDt\xE1s",
+    recipes_role_filter_device_noun: "eszk\xF6z",
+    recipes_role_filter_sensor_noun: "szenzor",
+    recipes_role_pick_one_or_more: "V\xE1lasszon egyet vagy t\xF6bbet",
+    recipes_role_pick_prefix: "V\xE1lasszon:",
+    recipes_role_pinned_count_suffix:
+      "a recept \xE1ltal r\xF6gz\xEDtve (mindig benne van).",
+    recipes_role_run_against:
+      "A Selora azokon futtatja a receptet, amelyeket bejel\xF6l.",
+    recipes_role_up_to: "legfeljebb",
+    recipes_safety_automations_generated: "Gener\xE1lt automatizmusok",
+    recipes_safety_install_incomplete: "A telep\xEDt\xE9s hi\xE1nyos",
+    recipes_safety_installed_ok: "A recept sikeresen telep\xEDtve",
+    recipes_safety_issues_to_address: "megoldand\xF3 probl\xE9ma",
+    recipes_safety_no_artifacts: "Nem j\xF6tt l\xE9tre m\u0171term\xE9k",
+    recipes_safety_no_issues: "Nincsenek nyitott probl\xE9m\xE1k",
+    recipes_section_automation_plural: "automatizmusok",
+    recipes_section_automation_singular: "automatizmus",
+    recipes_section_binary_sensor_plural: "bin\xE1ris szenzorok",
+    recipes_section_binary_sensor_singular: "bin\xE1ris szenzor",
+    recipes_section_climate_plural: "kl\xEDmaentit\xE1sok",
+    recipes_section_climate_singular: "kl\xEDmaentit\xE1s",
+    recipes_section_counter_plural: "sz\xE1ml\xE1l\xF3k",
+    recipes_section_counter_singular: "sz\xE1ml\xE1l\xF3",
+    recipes_section_cover_plural: "red\u0151ny\xF6k",
+    recipes_section_cover_singular: "red\u0151ny",
+    recipes_section_customisation_plural: "testreszab\xE1sok",
+    recipes_section_customisation_singular: "testreszab\xE1s",
+    recipes_section_group_plural: "csoportok",
+    recipes_section_group_singular: "csoport",
+    recipes_section_helper_plural: "seg\xE9dek",
+    recipes_section_helper_singular: "seg\xE9d",
+    recipes_section_light_plural: "l\xE1mp\xE1k",
+    recipes_section_light_singular: "l\xE1mpa",
+    recipes_section_media_player_plural: "m\xE9dialej\xE1tsz\xF3k",
+    recipes_section_media_player_singular: "m\xE9dialej\xE1tsz\xF3",
+    recipes_section_notify_plural: "\xE9rtes\xEDt\u0151k",
+    recipes_section_notify_singular: "\xE9rtes\xEDt\u0151",
+    recipes_section_rest_command_plural: "REST parancsok",
+    recipes_section_rest_command_singular: "REST parancs",
+    recipes_section_scene_plural: "jelenetek",
+    recipes_section_scene_singular: "jelenet",
+    recipes_section_script_plural: "szkriptek",
+    recipes_section_script_singular: "szkript",
+    recipes_section_sensor_plural: "szenzorok",
+    recipes_section_sensor_singular: "szenzor",
+    recipes_section_shell_command_plural: "h\xE9jparancsok",
+    recipes_section_shell_command_singular: "h\xE9jparancs",
+    recipes_section_switch_plural: "kapcsol\xF3k",
+    recipes_section_switch_singular: "kapcsol\xF3",
+    recipes_section_template_plural: "sablonentit\xE1sok",
+    recipes_section_template_singular: "sablonentit\xE1s",
+    recipes_section_timer_plural: "id\u0151z\xEDt\u0151k",
+    recipes_section_timer_singular: "id\u0151z\xEDt\u0151",
+    recipes_selected_awaiting_pair: "P\xE1ros\xEDt\xE1sra v\xE1r",
+    recipes_selected_entities_suffix: "entit\xE1s",
+    recipes_selected_none: "Nincs",
+    recipes_selected_setting_plural: "be\xE1ll\xEDt\xE1s",
+    recipes_selected_setting_singular: "be\xE1ll\xEDt\xE1s",
+    recipes_setting_up_button: "Be\xE1ll\xEDt\xE1s\u2026",
+    recipes_stage_apply: "Alkalmaz\xE1s",
+    recipes_stage_configure: "Konfigur\xE1l\xE1s",
+    recipes_stage_prepare: "El\u0151k\xE9sz\xEDt\xE9s",
+    recipes_stage_unknown: "ismeretlen",
+    recipes_start_setup_button: "Be\xE1ll\xEDt\xE1s ind\xEDt\xE1sa",
+    recipes_status_done: "K\xE9sz",
+    recipes_status_failed: "Sikertelen",
+    recipes_status_needs_you: "\xD6nre v\xE1r",
+    recipes_status_pending: "F\xFCgg\u0151ben",
+    recipes_status_running: "Fut",
+    recipes_status_skipped: "Kihagyva",
+    recipes_step2_sub:
+      "Recept-szint\u0171 be\xE1ll\xEDt\xE1sok. Az alap\xE9rtelmez\xE9sek el\u0151re ki vannak t\xF6ltve; csak akkor m\xF3dos\xEDtsa, ha v\xE1ltoztatni szeretne valamin, majd kattintson a Folytat\xE1s gombra.",
+    recipes_step2_sub_empty:
+      "Ennek a receptnek nincsenek be\xE1ll\xEDtand\xF3 be\xE1ll\xEDt\xE1sai \u2014 csak kattintson a Folytat\xE1s gombra.",
+    recipes_step2_title: "Recept be\xE1ll\xEDt\xE1sai",
+    recipes_step3_hint_finish:
+      "Fejezze be a \u201EBe\xE1ll\xEDt\xE1s sz\xFCks\xE9ges\u201D felirat\xFA sorokat a folytat\xE1shoz.",
+    recipes_step3_hint_ready:
+      "J\xF3l n\xE9z ki \u2014 k\xE9szen \xE1ll a be\xE1ll\xEDt\xE1sra.",
+    recipes_step3_sub:
+      "P\xE1ros\xEDtsa az al\xE1bbi elemeket egy-egy entit\xE1ssal az otthon\xE1b\xF3l. Kattintson b\xE1rmelyik sorra a be\xE1ll\xEDt\xE1s\xE1hoz.",
+    recipes_step3_title: "Eszk\xF6z\xF6k p\xE1ros\xEDt\xE1sa",
+    recipes_step4_hint_failed:
+      "Kattintson a Vissza gombra a kiv\xE1laszt\xE1sok m\xF3dos\xEDt\xE1s\xE1hoz, majd pr\xF3b\xE1lja \xFAjra.",
+    recipes_step4_hint_something_failed:
+      "Valami nem siker\xFClt \u2014 l\xE9pjen vissza, \xE9s pr\xF3b\xE1lja \xFAjra.",
+    recipes_step4_sub_busy:
+      "A Selora telep\xEDti a receptj\xE9t. Egy kis t\xFCrelmet \u2014 ez csak n\xE9h\xE1ny m\xE1sodpercet vesz ig\xE9nybe.",
+    recipes_step4_sub_done:
+      "Minden k\xE9sz. Kattintson a Folytat\xE1s gombra a telep\xEDtettek \xE1ttekint\xE9s\xE9hez.",
+    recipes_step4_sub_halted_prefix:
+      "A telep\xEDt\xE9s meg\xE1llt a k\xF6vetkez\u0151 szakaszban:",
+    recipes_step4_sub_halted_suffix:
+      "szakasz. L\xE9pjen vissza az al\xE1bbi probl\xE9m\xE1k jav\xEDt\xE1s\xE1hoz.",
+    recipes_step4_sub_starting: "Be\xE1ll\xEDt\xE1s ind\xEDt\xE1sa\u2026",
+    recipes_step4_title: "Be\xE1ll\xEDt\xE1s",
+    recipes_step5_created_title: "Ez a recept l\xE9trehozta",
+    recipes_step5_devices_linked: "Kapcsolt eszk\xF6z\xF6k",
+    recipes_step5_hint:
+      "A Home Assistant \xFAjrat\xF6lt\xF6tt \u2014 a receptje \xE9l.",
+    recipes_step5_more_suffix: "tov\xE1bbi",
+    recipes_step5_no_devices:
+      "Egyetlen eszk\xF6z sincs ehhez a recepthez k\xF6tve.",
+    recipes_step5_no_entries: "Nem j\xF6tt l\xE9tre bejegyz\xE9s.",
+    recipes_step5_safety_checks: "Biztons\xE1gi ellen\u0151rz\xE9sek",
+    recipes_step5_sub:
+      "A receptje telep\xEDtve van, \xE9s a Home Assistant \xFAjrat\xF6lt\xF6tt. Tekintse \xE1t az al\xE1bb l\xE9trehozottakat, majd kattintson a Befejez\xE9s gombra.",
+    recipes_step5_title: "\xC1ttekint\xE9s \xE9s befejez\xE9s",
+    recipes_step_activate: "Aktiv\xE1l\xE1s",
+    recipes_step_label: "L\xE9p\xE9s",
+    recipes_step_match: "P\xE1ros\xEDt\xE1s",
+    recipes_step_of_5: "/ 5",
+    recipes_step_overview: "\xC1ttekint\xE9s",
+    recipes_step_set_up: "Be\xE1ll\xEDt\xE1s",
+    recipes_step_settings: "Be\xE1ll\xEDt\xE1sok",
+    recipes_system_panel_auto:
+      "Ez a l\xE9p\xE9s automatikusan fut. Nincs sz\xFCks\xE9g az \xD6n beavatkoz\xE1s\xE1ra.",
+    recipes_this_recipe_creates: "Ez a recept l\xE9trehoz",
+    recipes_uninstall_body:
+      "A csomagf\xE1jl t\xF6rl\u0151dik, \xE9s a Home Assistant \xFAjrat\xF6lt. Az e recept \xE1ltal l\xE9trehozott automatizmusok elt\xE1vol\xEDt\xE1sra ker\xFClnek.",
+    recipes_uninstall_confirm_prefix: "Elt\xE1vol\xEDt\xE1s:",
+    recipes_uninstall_integrations_sub:
+      "Jel\xF6lj\xF6n be b\xE1rmit, amit el szeretne t\xE1vol\xEDtani a recepttel egy\xFCtt. Amit bejel\xF6letlen\xFCl hagy, megmarad a Home Assistantban.",
+    recipes_uninstall_integrations_title:
+      "E recept \xE1ltal telep\xEDtett integr\xE1ci\xF3k",
+    recipes_uninstall_still_used_by: "M\xE9g haszn\xE1lja",
+    recipes_uninstall_warn_title:
+      "Ennek az integr\xE1ci\xF3nak az elt\xE1vol\xEDt\xE1sa megt\xF6ri azokat a recepteket.",
+    recipes_what_you_need_title: "Mire van sz\xFCks\xE9ge",
+    recipes_working: "Folyamatban\u2026",
+    recipes_role_filter_placeholder: "Sz\u0171r\xE9s n\xE9v szerint\u2026",
+    recipes_role_filter_no_matches:
+      "Egyetlen entit\xE1s sem felel meg a sz\u0171r\u0151nek.",
+    recipes_role_show_all: "\xD6sszes megjelen\xEDt\xE9se",
+    recipes_role_show_less: "Kevesebb megjelen\xEDt\xE9se",
+    recipes_dashboard_picker_title:
+      "K\xE1rtya hozz\xE1ad\xE1sa egy ir\xE1ny\xEDt\xF3pulthoz",
+    recipes_dashboard_picker_sub:
+      "Ez a recept egy k\xE1rty\xE1t helyezhet el egy ir\xE1ny\xEDt\xF3pulton, hogy meg\xE9rinthesd. V\xE1laszd ki, hova \u2014 vagy hagyd ki, \xE9s add hozz\xE1 magad k\xE9s\u0151bb.",
+    recipes_dashboard_picker_skip: "Ne adj hozz\xE1 k\xE1rty\xE1t",
+    recipes_dashboard_picker_refine:
+      "Egyedi k\xE1rtya kell? Finom\xEDt\xE1s cseveg\xE9sben",
+    recipes_step5_dashboard_title: "Ir\xE1ny\xEDt\xF3pult-k\xE1rtya",
+    recipes_step5_dashboard_added:
+      "Egy k\xE1rtya hozz\xE1adva az ir\xE1ny\xEDt\xF3pultodhoz.",
+    recipes_step5_dashboard_skipped:
+      "Nem lett k\xE1rtya hozz\xE1adva. Hozz\xE1adhatod magad, vagy hagyd, hogy a Selora seg\xEDtsen.",
+    recipes_step5_dashboard_manual:
+      "A k\xE1rty\xE1t nem siker\xFClt automatikusan hozz\xE1adni \u2014 add hozz\xE1 magad, vagy hagyd, hogy a Selora seg\xEDtsen.",
+    recipes_step5_dashboard_customize: "Testreszab\xE1s cseveg\xE9sben",
+    recipes_step5_dashboard_help: "Hozz\xE1ad\xE1s cseveg\xE9sben",
+    recipes_refine_chat_failed:
+      "Nem siker\xFClt cseveg\xE9st nyitni ehhez a recepthez.",
+    recipes_step3_hint_blocked:
+      "Ez a recept m\xE9g nem k\xE9sz\xEDthet\u0151 el\u0151 \u2014 ellen\u0151rizd a receptet hib\xE1k\xE9rt, majd pr\xF3b\xE1ld \xFAjra.",
+    recipes_catalog_empty: "Ebben a katal\xF3gusban m\xE9g nincsenek receptek.",
   },
 };
 
@@ -13032,6 +15465,324 @@ var pt_default = {
     suggestions_snoozed_toast: "Sugest\xE3o adiada por 24h",
     suggestions_pattern_scan_failed: "A an\xE1lise de padr\xF5es falhou",
     area_unassigned: "N\xE3o atribu\xEDda",
+    recipes_back_to_overview: "Voltar \xE0 vis\xE3o geral",
+    recipes_back_to_recipes: "Voltar \xE0s receitas",
+    recipes_bucket_completed: "Conclu\xEDdo",
+    recipes_bucket_failed: "Falhou",
+    recipes_bucket_in_progress: "Em curso",
+    recipes_bucket_install_failed: "Falha na instala\xE7\xE3o",
+    recipes_bucket_no_details:
+      "N\xE3o h\xE1 detalhes dispon\xEDveis. Consulte o registo do Home Assistant para ver o erro subjacente.",
+    recipes_bucket_up_next: "A seguir",
+    recipes_bucket_waiting_for_you: "\xC0 sua espera",
+    recipes_card_configure_button: "Configurar",
+    recipes_card_in_progress_step: "Em curso \xB7 Passo",
+    recipes_card_install_button: "Instalar",
+    recipes_card_installed_badge: "Instalada",
+    recipes_card_manage_devices_button: "Gerir dispositivos",
+    recipes_card_manage_devices_title:
+      "Troque ou atualize os dispositivos que esta receita utiliza sem voltar a executar o assistente",
+    recipes_card_resume_button: "Retomar",
+    recipes_card_start_over_button: "Recome\xE7ar",
+    recipes_card_start_over_title:
+      "Descartar o progresso guardado e iniciar o assistente do zero",
+    recipes_card_uninstall_button: "Desinstalar",
+    recipes_catalog_fetching: "A obter o cat\xE1logo\u2026",
+    recipes_catalog_no_matches_prefix: "Sem correspond\xEAncias para",
+    recipes_catalog_search_placeholder: "Procurar receitas\u2026",
+    recipes_catalog_set_url_title:
+      "Definir um URL de cat\xE1logo (dev / staging)",
+    recipes_catalog_source_overridden: "Origem do cat\xE1logo substitu\xEDda:",
+    recipes_catalog_unreachable:
+      "N\xE3o foi poss\xEDvel alcan\xE7ar o cat\xE1logo de receitas:",
+    recipes_catalog_url_prompt:
+      "URL do cat\xE1logo (deixe em branco para repor para selorahomes.com):",
+    recipes_catalog_using_override: "A utilizar substitui\xE7\xE3o:",
+    recipes_catalog_will_load: "O cat\xE1logo ser\xE1 carregado aqui.",
+    recipes_continue_button: "Continuar",
+    recipes_details_copy_path_title: "Copiar caminho",
+    recipes_details_devices_key: "Dispositivos",
+    recipes_details_installed_on: "instalada",
+    recipes_details_integrations_key: "Integra\xE7\xF5es",
+    recipes_details_no_bound_devices: "Sem dispositivos associados",
+    recipes_details_none_selected_optional: "Nenhum selecionado (opcional)",
+    recipes_details_settings_key: "Defini\xE7\xF5es",
+    recipes_details_summary: "Detalhes",
+    recipes_details_version_key: "Vers\xE3o",
+    recipes_details_where_key: "Onde",
+    recipes_eyebrow_recipe: "RECEITA",
+    recipes_eyebrow_released: "Lan\xE7ada",
+    recipes_field_optional: "(opcional)",
+    recipes_finish_button: "Concluir",
+    recipes_flow_cancel: "Cancelar",
+    recipes_flow_continue: "Continuar",
+    recipes_footer_back: "Voltar",
+    recipes_footer_cancel: "Cancelar",
+    recipes_inputs_panel_title: "Defini\xE7\xF5es da receita",
+    recipes_install_accepts: "aceita",
+    recipes_install_bom_note:
+      "A lista de materiais \xE9 verificada em rela\xE7\xE3o \xE0 sua casa antes de qualquer instala\xE7\xE3o.",
+    recipes_install_click_to_choose: "clique para escolher um ficheiro",
+    recipes_install_drop_here: "Largue aqui um arquivo de receita",
+    recipes_install_drop_to_upload: "Largue para carregar",
+    recipes_install_failed_button: "Falha na instala\xE7\xE3o",
+    recipes_install_fetch_button: "Obter",
+    recipes_install_fetching: "A obter\u2026",
+    recipes_install_from_url_label: "Instalar a partir de URL",
+    recipes_install_or: "OU",
+    recipes_install_or_lower: "ou",
+    recipes_install_source_hint:
+      "Tem uma receita de outro local? Adicione-a aqui.",
+    recipes_install_source_summary: "Instalar a partir de um URL ou ficheiro",
+    recipes_install_unsupported_file_prefix: "Ficheiro n\xE3o suportado:",
+    recipes_install_unsupported_file_suffix:
+      "Utilize um arquivo .tar.gz, .tgz ou .zip.",
+    recipes_install_upload_label: "Carregar a partir deste dispositivo",
+    recipes_install_uploading: "A carregar\u2026",
+    recipes_integration_autosetup_prose:
+      "pode ser configurada automaticamente utilizando a localiza\xE7\xE3o do seu Home Assistant. N\xE3o h\xE1 perguntas para responder.",
+    recipes_integration_entry_label: "Entrada:",
+    recipes_integration_manage_anytime:
+      "Gira esta integra\xE7\xE3o a qualquer momento em Defini\xE7\xF5es \u2192 Dispositivos e Servi\xE7os.",
+    recipes_integration_needs_setup_prose:
+      "precisa de ser configurada antes que esta receita possa ser instalada. Pode inici\xE1-la sem sair desta p\xE1gina.",
+    recipes_integration_open_in_ha: "Abrir no HA",
+    recipes_integration_open_in_ha_settings: "Abrir nas defini\xE7\xF5es do HA",
+    recipes_integration_ready: "est\xE1 configurada e pronta a utilizar.",
+    recipes_integration_setup_auto_button: "Configurar automaticamente",
+    recipes_integration_setup_failed:
+      "A configura\xE7\xE3o falhou. Tente novamente ou utilize a p\xE1gina de defini\xE7\xF5es do HA.",
+    recipes_integration_setup_prefix: "Configurar",
+    recipes_integration_try_again: "Tentar novamente",
+    recipes_integration_was_set_up:
+      "foi configurada. O Selora ir\xE1 voltar a verificar a receita automaticamente.",
+    recipes_list_check_updates_button: "Verificar atualiza\xE7\xF5es",
+    recipes_list_check_updates_title:
+      "Verificar em selorahomes.com receitas novas e atualizadas",
+    recipes_list_checking: "A verificar\u2026",
+    recipes_list_installed_missing_bundle:
+      "Instalada (pacote em falta no disco)",
+    recipes_list_intro:
+      "As receitas s\xE3o automa\xE7\xF5es prontas a usar que instala num \xFAnico passo \u2014 um bloqueio contra fugas, uma rotina de hora de dormir, um alerta de tornado. O Selora verifica cada receita em rela\xE7\xE3o aos dispositivos da sua casa e configura-a por si. Escolha uma abaixo para come\xE7ar.",
+    recipes_list_on_this_device: "Instaladas",
+    recipes_list_package_label: "pacote:",
+    recipes_list_title: "Receitas",
+    recipes_loading: "A carregar\u2026",
+    recipes_loading_recipe: "A carregar receita\u2026",
+    recipes_manage_intro:
+      "Atualize que entidades sustentam cada fun\xE7\xE3o. Guarda imediatamente \u2014 as automa\xE7\xF5es n\xE3o s\xE3o reprocessadas, apenas as participa\xE7\xF5es nos grupos mudam.",
+    recipes_manage_no_detail: "N\xE3o h\xE1 detalhes dispon\xEDveis.",
+    recipes_manage_no_entities_prefix: "N\xE3o foram encontradas",
+    recipes_manage_no_entities_suffix: "entidades nesta casa.",
+    recipes_manage_save: "Guardar",
+    recipes_manage_saving: "A guardar\u2026",
+    recipes_match_col_item: "Item",
+    recipes_match_col_selected: "Selecionado",
+    recipes_match_col_status: "Estado",
+    recipes_match_nothing:
+      "Nada para corresponder \u2014 esta receita \xE9 executada sem configura\xE7\xE3o de dispositivos.",
+    recipes_match_scanning: "A analisar a sua casa\u2026",
+    recipes_match_status_error: "Erro",
+    recipes_match_status_needs_setup: "Requer configura\xE7\xE3o",
+    recipes_match_status_optional: "Opcional",
+    recipes_match_status_ready: "Pronto",
+    recipes_match_status_waiting: "Em espera",
+    recipes_match_status_working: "A processar",
+    recipes_optional_eyebrow: "Opcional",
+    recipes_pair_hue_action:
+      "Emparelhe esta l\xE2mpada com a sua Hue Bridge utilizando a aplica\xE7\xE3o Hue ou a respetiva p\xE1gina de configura\xE7\xE3o.",
+    recipes_pair_hue_cta: "Abrir configura\xE7\xE3o Hue",
+    recipes_pair_matter_action:
+      "Comissione este dispositivo Matter com o respetivo c\xF3digo de emparelhamento a partir da p\xE1gina de configura\xE7\xE3o Matter.",
+    recipes_pair_matter_cta: "Abrir configura\xE7\xE3o Matter",
+    recipes_pair_mqtt_action:
+      "Coloque este dispositivo MQTT online para que publique no t\xF3pico configurado.",
+    recipes_pair_mqtt_cta: "Abrir configura\xE7\xE3o MQTT",
+    recipes_pair_zha_action:
+      "Abra a p\xE1gina de configura\xE7\xE3o do ZHA e coloque o coordenador em modo de emparelhamento para adicionar este dispositivo.",
+    recipes_pair_zha_cta: "Abrir configura\xE7\xE3o ZHA",
+    recipes_pair_zwave_action:
+      "Inicie a inclus\xE3o Z-Wave a partir da respetiva p\xE1gina de configura\xE7\xE3o para adicionar este dispositivo.",
+    recipes_pair_zwave_cta: "Abrir configura\xE7\xE3o Z-Wave",
+    recipes_pin_check_now: "Verificar agora",
+    recipes_pin_default_action:
+      "Adicione este dispositivo ao Home Assistant. O Selora ir\xE1 detet\xE1-lo automaticamente.",
+    recipes_pin_expected_entity: "ID de entidade esperado:",
+    recipes_pin_open_ha_integrations: "Abrir integra\xE7\xF5es do HA",
+    recipes_pin_open_setup_prefix: "Abrir",
+    recipes_pin_open_setup_suffix: "configura\xE7\xE3o",
+    recipes_pin_tip:
+      "Dica: deixe este separador aberto. Quando o dispositivo emparelhar, este passo fica automaticamente assinalado \u2014 n\xE3o precisa de clicar em nada aqui.",
+    recipes_progress_title: "Progresso",
+    recipes_punch_list_title: "Lista de tarefas",
+    recipes_required_eyebrow: "Obrigat\xF3rio",
+    recipes_result_advanced: "avan\xE7ado",
+    recipes_result_fix_retry:
+      "Corrija os itens abaixo e, em seguida, reabra a receita para tentar novamente.",
+    recipes_result_halted_at_stage: "Instala\xE7\xE3o interrompida na fase:",
+    recipes_result_install_complete: "Instala\xE7\xE3o conclu\xEDda",
+    recipes_result_installed_reloaded:
+      "foi instalada e o Home Assistant foi recarregado. Ficheiro de pacote:",
+    recipes_result_view_yaml: "Ver o YAML de pacote gerado",
+    recipes_role_check_again: "Verificar novamente",
+    recipes_role_empty_add_device: "Adicionar dispositivo no HA",
+    recipes_role_empty_at_least: "pelo menos",
+    recipes_role_empty_none_prefix: "Ainda n\xE3o h\xE1",
+    recipes_role_empty_none_suffix: "na sua casa",
+    recipes_role_empty_one_prose:
+      "um e ele aparecer\xE1 aqui automaticamente \u2014 pode sair desta p\xE1gina para adicionar um dispositivo e o assistente mant\xE9m o seu progresso ao clicar em Voltar.",
+    recipes_role_empty_pair: "Emparelhar",
+    recipes_role_filter_device_noun: "dispositivo",
+    recipes_role_filter_sensor_noun: "sensor",
+    recipes_role_pick_one_or_more: "Escolha um ou mais",
+    recipes_role_pick_prefix: "Escolha:",
+    recipes_role_pinned_count_suffix:
+      "fixados pela receita (sempre inclu\xEDdos).",
+    recipes_role_run_against:
+      "O Selora ir\xE1 executar a receita em rela\xE7\xE3o aos que assinalar.",
+    recipes_role_up_to: "at\xE9",
+    recipes_safety_automations_generated: "Automa\xE7\xF5es geradas",
+    recipes_safety_install_incomplete: "Instala\xE7\xE3o incompleta",
+    recipes_safety_installed_ok: "Receita instalada com \xEAxito",
+    recipes_safety_issues_to_address: "problema(s) a resolver",
+    recipes_safety_no_artifacts: "N\xE3o foram criados artefactos",
+    recipes_safety_no_issues: "Sem problemas pendentes",
+    recipes_section_automation_plural: "automa\xE7\xF5es",
+    recipes_section_automation_singular: "automa\xE7\xE3o",
+    recipes_section_binary_sensor_plural: "sensores bin\xE1rios",
+    recipes_section_binary_sensor_singular: "sensor bin\xE1rio",
+    recipes_section_climate_plural: "entidades de climatiza\xE7\xE3o",
+    recipes_section_climate_singular: "entidade de climatiza\xE7\xE3o",
+    recipes_section_counter_plural: "contadores",
+    recipes_section_counter_singular: "contador",
+    recipes_section_cover_plural: "estores",
+    recipes_section_cover_singular: "estore",
+    recipes_section_customisation_plural: "personaliza\xE7\xF5es",
+    recipes_section_customisation_singular: "personaliza\xE7\xE3o",
+    recipes_section_group_plural: "grupos",
+    recipes_section_group_singular: "grupo",
+    recipes_section_helper_plural: "auxiliares",
+    recipes_section_helper_singular: "auxiliar",
+    recipes_section_light_plural: "luzes",
+    recipes_section_light_singular: "luz",
+    recipes_section_media_player_plural: "leitores multim\xE9dia",
+    recipes_section_media_player_singular: "leitor multim\xE9dia",
+    recipes_section_notify_plural: "notificadores",
+    recipes_section_notify_singular: "notificador",
+    recipes_section_rest_command_plural: "comandos REST",
+    recipes_section_rest_command_singular: "comando REST",
+    recipes_section_scene_plural: "cenas",
+    recipes_section_scene_singular: "cena",
+    recipes_section_script_plural: "scripts",
+    recipes_section_script_singular: "script",
+    recipes_section_sensor_plural: "sensores",
+    recipes_section_sensor_singular: "sensor",
+    recipes_section_shell_command_plural: "comandos de shell",
+    recipes_section_shell_command_singular: "comando de shell",
+    recipes_section_switch_plural: "interruptores",
+    recipes_section_switch_singular: "interruptor",
+    recipes_section_template_plural: "entidades de modelo",
+    recipes_section_template_singular: "entidade de modelo",
+    recipes_section_timer_plural: "temporizadores",
+    recipes_section_timer_singular: "temporizador",
+    recipes_selected_awaiting_pair: "A aguardar emparelhamento",
+    recipes_selected_entities_suffix: "entidades",
+    recipes_selected_none: "Nenhum",
+    recipes_selected_setting_plural: "defini\xE7\xF5es",
+    recipes_selected_setting_singular: "defini\xE7\xE3o",
+    recipes_setting_up_button: "A configurar\u2026",
+    recipes_stage_apply: "Aplicar",
+    recipes_stage_configure: "Configurar",
+    recipes_stage_prepare: "Preparar",
+    recipes_stage_unknown: "desconhecida",
+    recipes_start_setup_button: "Iniciar configura\xE7\xE3o",
+    recipes_status_done: "Conclu\xEDdo",
+    recipes_status_failed: "Falhou",
+    recipes_status_needs_you: "Requer a sua a\xE7\xE3o",
+    recipes_status_pending: "Pendente",
+    recipes_status_running: "Em execu\xE7\xE3o",
+    recipes_status_skipped: "Ignorado",
+    recipes_step2_sub:
+      "Prefer\xEAncias da receita. As predefini\xE7\xF5es est\xE3o preenchidas; ajuste apenas se quiser alterar algo e, em seguida, Continuar.",
+    recipes_step2_sub_empty:
+      "Esta receita n\xE3o tem defini\xE7\xF5es para configurar \u2014 basta clicar em Continuar.",
+    recipes_step2_title: "Defini\xE7\xF5es da receita",
+    recipes_step3_hint_finish:
+      "Conclua as linhas que indicam \u201CRequer configura\xE7\xE3o\u201D para continuar.",
+    recipes_step3_hint_ready: "Tudo certo \u2014 pronto para configurar.",
+    recipes_step3_sub:
+      "Associe cada item abaixo a uma entidade da sua casa. Clique em qualquer linha para a configurar.",
+    recipes_step3_title: "Associar dispositivos",
+    recipes_step4_hint_failed:
+      "Clique em Voltar para rever as suas sele\xE7\xF5es e, em seguida, tente novamente.",
+    recipes_step4_hint_something_failed:
+      "Algo falhou \u2014 volte atr\xE1s e tente novamente.",
+    recipes_step4_sub_busy:
+      "O Selora est\xE1 a instalar a sua receita. Aguarde \u2014 isto demora apenas alguns segundos.",
+    recipes_step4_sub_done:
+      "Tudo conclu\xEDdo. Clique em Continuar para rever o que foi instalado.",
+    recipes_step4_sub_halted_prefix: "Instala\xE7\xE3o interrompida na fase",
+    recipes_step4_sub_halted_suffix:
+      ". Volte atr\xE1s para corrigir os problemas abaixo.",
+    recipes_step4_sub_starting: "A iniciar configura\xE7\xE3o\u2026",
+    recipes_step4_title: "A configurar",
+    recipes_step5_created_title: "Esta receita criou",
+    recipes_step5_devices_linked: "Dispositivos associados",
+    recipes_step5_hint:
+      "O Home Assistant foi recarregado \u2014 a sua receita est\xE1 ativa.",
+    recipes_step5_more_suffix: "mais",
+    recipes_step5_no_devices:
+      "N\xE3o h\xE1 dispositivos associados a esta receita.",
+    recipes_step5_no_entries: "N\xE3o foram geradas entradas.",
+    recipes_step5_safety_checks: "Verifica\xE7\xF5es de seguran\xE7a",
+    recipes_step5_sub:
+      "A sua receita est\xE1 instalada e o Home Assistant foi recarregado. Reveja abaixo o que foi criado e, em seguida, clique em Concluir.",
+    recipes_step5_title: "Rever e concluir",
+    recipes_step_activate: "Ativar",
+    recipes_step_label: "Passo",
+    recipes_step_match: "Associar",
+    recipes_step_of_5: "de 5",
+    recipes_step_overview: "Vis\xE3o geral",
+    recipes_step_set_up: "Configurar",
+    recipes_step_settings: "Defini\xE7\xF5es",
+    recipes_system_panel_auto:
+      "Este passo \xE9 executado automaticamente. N\xE3o \xE9 necess\xE1ria nenhuma a\xE7\xE3o da sua parte.",
+    recipes_this_recipe_creates: "Esta receita cria",
+    recipes_uninstall_body:
+      "O ficheiro de pacote ser\xE1 eliminado e o Home Assistant ser\xE1 recarregado. As automa\xE7\xF5es que esta receita criou ser\xE3o removidas.",
+    recipes_uninstall_confirm_prefix: "Desinstalar",
+    recipes_uninstall_integrations_sub:
+      "Assinale as que devem ser removidas juntamente com a receita. Tudo o que deixar desmarcado permanece no Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "Integra\xE7\xF5es que esta receita instalou",
+    recipes_uninstall_still_used_by: "Ainda utilizada por",
+    recipes_uninstall_warn_title:
+      "Remover esta integra\xE7\xE3o ir\xE1 quebrar essas receitas.",
+    recipes_what_you_need_title: "O que precisa",
+    recipes_working: "A processar\u2026",
+    recipes_role_filter_placeholder: "Filtrar por nome\u2026",
+    recipes_role_filter_no_matches: "Nenhuma entidade corresponde ao filtro.",
+    recipes_role_show_all: "Mostrar tudo",
+    recipes_role_show_less: "Mostrar menos",
+    recipes_dashboard_picker_title: "Adicionar um cart\xE3o a um painel",
+    recipes_dashboard_picker_sub:
+      "Esta receita pode colocar um cart\xE3o num painel para voc\xEA tocar. Escolha onde \u2014 ou ignore e adicione voc\xEA mesmo depois.",
+    recipes_dashboard_picker_skip: "N\xE3o adicionar um cart\xE3o",
+    recipes_dashboard_picker_refine:
+      "Precisa de um cart\xE3o personalizado? Refinar no chat",
+    recipes_step5_dashboard_title: "Cart\xE3o do painel",
+    recipes_step5_dashboard_added: "Um cart\xE3o foi adicionado ao seu painel.",
+    recipes_step5_dashboard_skipped:
+      "Nenhum cart\xE3o adicionado. Voc\xEA pode adicionar um voc\xEA mesmo ou deixar a Selora ajudar.",
+    recipes_step5_dashboard_manual:
+      "N\xE3o foi poss\xEDvel adicionar o cart\xE3o automaticamente \u2014 adicione voc\xEA mesmo ou deixe a Selora ajudar.",
+    recipes_step5_dashboard_customize: "Personalizar no chat",
+    recipes_step5_dashboard_help: "Adicionar no chat",
+    recipes_refine_chat_failed:
+      "N\xE3o foi poss\xEDvel abrir um chat para esta receita.",
+    recipes_step3_hint_blocked:
+      "Esta receita ainda n\xE3o pode ser preparada \u2014 verifique se h\xE1 erros na receita e tente novamente.",
+    recipes_catalog_empty: "Ainda n\xE3o h\xE1 receitas neste cat\xE1logo.",
   },
   options: {
     step: {
@@ -14106,6 +16857,491 @@ var ru_default = {
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0432\u044B\u043F\u043E\u043B\u043D\u0438\u0442\u044C \u0441\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0448\u0430\u0431\u043B\u043E\u043D\u043E\u0432",
     area_unassigned:
       "\u041D\u0435 \u043D\u0430\u0437\u043D\u0430\u0447\u0435\u043D\u043E",
+    recipes_back_to_overview:
+      "\u041D\u0430\u0437\u0430\u0434 \u043A \u043E\u0431\u0437\u043E\u0440\u0443",
+    recipes_back_to_recipes:
+      "\u041D\u0430\u0437\u0430\u0434 \u043A \u0440\u0435\u0446\u0435\u043F\u0442\u0430\u043C",
+    recipes_bucket_completed:
+      "\u0417\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u043E",
+    recipes_bucket_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C",
+    recipes_bucket_in_progress:
+      "\u0412 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0435",
+    recipes_bucket_install_failed:
+      "\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
+    recipes_bucket_no_details:
+      "\u0421\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0436\u0443\u0440\u043D\u0430\u043B Home Assistant \u043D\u0430 \u043D\u0430\u043B\u0438\u0447\u0438\u0435 \u0438\u0441\u0445\u043E\u0434\u043D\u043E\u0439 \u043E\u0448\u0438\u0431\u043A\u0438.",
+    recipes_bucket_up_next: "\u0414\u0430\u043B\u0435\u0435",
+    recipes_bucket_waiting_for_you:
+      "\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u0432\u0430\u0441",
+    recipes_card_configure_button:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
+    recipes_card_in_progress_step:
+      "\u0412 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0435 \xB7 \u0428\u0430\u0433",
+    recipes_card_install_button:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C",
+    recipes_card_installed_badge:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
+    recipes_card_manage_devices_button:
+      "\u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C\u0438",
+    recipes_card_manage_devices_title:
+      "\u0417\u0430\u043C\u0435\u043D\u044F\u0439\u0442\u0435 \u0438\u043B\u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u0439\u0442\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u043C\u044B\u0435 \u044D\u0442\u0438\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C, \u0431\u0435\u0437 \u043F\u043E\u0432\u0442\u043E\u0440\u043D\u043E\u0433\u043E \u0437\u0430\u043F\u0443\u0441\u043A\u0430 \u043C\u0430\u0441\u0442\u0435\u0440\u0430",
+    recipes_card_resume_button:
+      "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C",
+    recipes_card_start_over_button:
+      "\u041D\u0430\u0447\u0430\u0442\u044C \u0437\u0430\u043D\u043E\u0432\u043E",
+    recipes_card_start_over_title:
+      "\u041E\u0442\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u0441\u043E\u0445\u0440\u0430\u043D\u0451\u043D\u043D\u044B\u0439 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u0438 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043C\u0430\u0441\u0442\u0435\u0440 \u0441 \u0441\u0430\u043C\u043E\u0433\u043E \u043D\u0430\u0447\u0430\u043B\u0430",
+    recipes_card_uninstall_button: "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    recipes_catalog_fetching:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430\u2026",
+    recipes_catalog_no_matches_prefix:
+      "\u041D\u0435\u0442 \u0441\u043E\u0432\u043F\u0430\u0434\u0435\u043D\u0438\u0439 \u0434\u043B\u044F",
+    recipes_catalog_search_placeholder:
+      "\u041F\u043E\u0438\u0441\u043A \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432\u2026",
+    recipes_catalog_set_url_title:
+      "\u0417\u0430\u0434\u0430\u0442\u044C URL-\u0430\u0434\u0440\u0435\u0441 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (dev / staging)",
+    recipes_catalog_source_overridden:
+      "\u0418\u0441\u0442\u043E\u0447\u043D\u0438\u043A \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0451\u043D:",
+    recipes_catalog_unreachable:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u043E\u043B\u0443\u0447\u0438\u0442\u044C \u0434\u043E\u0441\u0442\u0443\u043F \u043A \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0443 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432:",
+    recipes_catalog_url_prompt:
+      "URL-\u0430\u0434\u0440\u0435\u0441 \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0430 (\u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043F\u0443\u0441\u0442\u044B\u043C, \u0447\u0442\u043E\u0431\u044B \u0441\u0431\u0440\u043E\u0441\u0438\u0442\u044C \u043D\u0430 selorahomes.com):",
+    recipes_catalog_using_override:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F \u043F\u0435\u0440\u0435\u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0435:",
+    recipes_catalog_will_load:
+      "\u041A\u0430\u0442\u0430\u043B\u043E\u0433 \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C.",
+    recipes_continue_button:
+      "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C",
+    recipes_details_copy_path_title:
+      "\u041A\u043E\u043F\u0438\u0440\u043E\u0432\u0430\u0442\u044C \u043F\u0443\u0442\u044C",
+    recipes_details_devices_key:
+      "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    recipes_details_installed_on:
+      "\u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E",
+    recipes_details_integrations_key:
+      "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438",
+    recipes_details_no_bound_devices:
+      "\u041D\u0435\u0442 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u043D\u044B\u0445 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432",
+    recipes_details_none_selected_optional:
+      "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u043E (\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+    recipes_details_settings_key:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    recipes_details_summary:
+      "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438",
+    recipes_details_version_key: "\u0412\u0435\u0440\u0441\u0438\u044F",
+    recipes_details_where_key: "\u0413\u0434\u0435",
+    recipes_eyebrow_recipe: "\u0420\u0415\u0426\u0415\u041F\u0422",
+    recipes_eyebrow_released:
+      "\u0412\u044B\u043F\u0443\u0449\u0435\u043D\u043E",
+    recipes_field_optional:
+      "(\u043D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E)",
+    recipes_finish_button:
+      "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C",
+    recipes_flow_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    recipes_flow_continue:
+      "\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C",
+    recipes_footer_back: "\u041D\u0430\u0437\u0430\u0434",
+    recipes_footer_cancel: "\u041E\u0442\u043C\u0435\u043D\u0430",
+    recipes_inputs_panel_title:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0440\u0435\u0446\u0435\u043F\u0442\u0430",
+    recipes_install_accepts:
+      "\u043F\u0440\u0438\u043D\u0438\u043C\u0430\u0435\u0442",
+    recipes_install_bom_note:
+      "\u0421\u043F\u0435\u0446\u0438\u0444\u0438\u043A\u0430\u0446\u0438\u044F \u043C\u0430\u0442\u0435\u0440\u0438\u0430\u043B\u043E\u0432 \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442\u0441\u044F \u043F\u043E \u0432\u0430\u0448\u0435\u043C\u0443 \u0434\u043E\u043C\u0443 \u043F\u0435\u0440\u0435\u0434 \u043D\u0430\u0447\u0430\u043B\u043E\u043C \u043B\u044E\u0431\u043E\u0439 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438.",
+    recipes_install_click_to_choose:
+      "\u043D\u0430\u0436\u043C\u0438\u0442\u0435, \u0447\u0442\u043E\u0431\u044B \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0444\u0430\u0439\u043B",
+    recipes_install_drop_here:
+      "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0441\u044E\u0434\u0430 \u0430\u0440\u0445\u0438\u0432 \u0440\u0435\u0446\u0435\u043F\u0442\u0430",
+    recipes_install_drop_to_upload:
+      "\u041F\u0435\u0440\u0435\u0442\u0430\u0449\u0438\u0442\u0435 \u0434\u043B\u044F \u0437\u0430\u0433\u0440\u0443\u0437\u043A\u0438",
+    recipes_install_failed_button:
+      "\u041E\u0448\u0438\u0431\u043A\u0430 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
+    recipes_install_fetch_button:
+      "\u041F\u043E\u043B\u0443\u0447\u0438\u0442\u044C",
+    recipes_install_fetching:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    recipes_install_from_url_label:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 URL",
+    recipes_install_or: "\u0418\u041B\u0418",
+    recipes_install_or_lower: "\u0438\u043B\u0438",
+    recipes_install_source_hint:
+      "\u0415\u0441\u0442\u044C \u0440\u0435\u0446\u0435\u043F\u0442 \u0438\u0437 \u0434\u0440\u0443\u0433\u043E\u0433\u043E \u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u0430? \u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0435\u0433\u043E \u0437\u0434\u0435\u0441\u044C.",
+    recipes_install_source_summary:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C \u0438\u0437 URL \u0438\u043B\u0438 \u0444\u0430\u0439\u043B\u0430",
+    recipes_install_unsupported_file_prefix:
+      "\u041D\u0435\u043F\u043E\u0434\u0434\u0435\u0440\u0436\u0438\u0432\u0430\u0435\u043C\u044B\u0439 \u0444\u0430\u0439\u043B:",
+    recipes_install_unsupported_file_suffix:
+      "\u0418\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0430\u0440\u0445\u0438\u0432 .tar.gz, .tgz \u0438\u043B\u0438 .zip.",
+    recipes_install_upload_label:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0441 \u044D\u0442\u043E\u0433\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    recipes_install_uploading:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    recipes_integration_autosetup_prose:
+      "\u043C\u043E\u0436\u043D\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438, \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u044F \u0432\u0430\u0448\u0435 \u043C\u0435\u0441\u0442\u043E\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 Home Assistant. \u0412\u0430\u043C \u043D\u0435 \u043D\u0443\u0436\u043D\u043E \u043E\u0442\u0432\u0435\u0447\u0430\u0442\u044C \u043D\u0438 \u043D\u0430 \u043A\u0430\u043A\u0438\u0435 \u0432\u043E\u043F\u0440\u043E\u0441\u044B.",
+    recipes_integration_entry_label: "\u0417\u0430\u043F\u0438\u0441\u044C:",
+    recipes_integration_manage_anytime:
+      "\u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0435\u0439 \u0432 \u043B\u044E\u0431\u043E\u0435 \u0432\u0440\u0435\u043C\u044F \u0447\u0435\u0440\u0435\u0437 \xAB\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\xBB \u2192 \xAB\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u0438 \u0441\u043B\u0443\u0436\u0431\u044B\xBB.",
+    recipes_integration_needs_setup_prose:
+      "\u043D\u0435\u043E\u0431\u0445\u043E\u0434\u0438\u043C\u043E \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C, \u043F\u0440\u0435\u0436\u0434\u0435 \u0447\u0435\u043C \u044D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u043C\u043E\u0436\u043D\u043E \u0431\u0443\u0434\u0435\u0442 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u044C. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443, \u043D\u0435 \u043F\u043E\u043A\u0438\u0434\u0430\u044F \u044D\u0442\u0443 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443.",
+    recipes_integration_open_in_ha:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
+    recipes_integration_open_in_ha_settings:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u0445 HA",
+    recipes_integration_ready:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0430 \u0438 \u0433\u043E\u0442\u043E\u0432\u0430 \u043A \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u043E\u0432\u0430\u043D\u0438\u044E.",
+    recipes_integration_setup_auto_button:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438",
+    recipes_integration_setup_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C. \u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443 \u0438\u043B\u0438 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0439\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A HA.",
+    recipes_integration_setup_prefix:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
+    recipes_integration_try_again:
+      "\u041F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443",
+    recipes_integration_was_set_up:
+      "\u0431\u044B\u043B\u0430 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0430. Selora \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u043F\u0435\u0440\u0435\u043F\u0440\u043E\u0432\u0435\u0440\u0438\u0442 \u0440\u0435\u0446\u0435\u043F\u0442.",
+    recipes_list_check_updates_button:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u044F",
+    recipes_list_check_updates_title:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u043D\u0430 selorahomes.com \u043D\u0430\u043B\u0438\u0447\u0438\u0435 \u043D\u043E\u0432\u044B\u0445 \u0438 \u043E\u0431\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u0445 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432",
+    recipes_list_checking:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u2026",
+    recipes_list_installed_missing_bundle:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E (\u043F\u0430\u043A\u0435\u0442 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043D\u0430 \u0434\u0438\u0441\u043A\u0435)",
+    recipes_list_intro:
+      "\u0420\u0435\u0446\u0435\u043F\u0442\u044B \u2014 \u044D\u0442\u043E \u0433\u043E\u0442\u043E\u0432\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0435 \u0432 \u043E\u0434\u0438\u043D \u0448\u0430\u0433: \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u0438 \u043F\u0440\u043E\u0442\u0435\u0447\u043A\u0435, \u0440\u0435\u0436\u0438\u043C \u043F\u0435\u0440\u0435\u0434 \u0441\u043D\u043E\u043C, \u043E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u043E \u0442\u043E\u0440\u043D\u0430\u0434\u043E. Selora \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442 \u043A\u0430\u0436\u0434\u044B\u0439 \u0440\u0435\u0446\u0435\u043F\u0442 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435, \u0430 \u0437\u0430\u0442\u0435\u043C \u043D\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0435\u0442 \u0435\u0433\u043E \u0437\u0430 \u0432\u0430\u0441. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043E\u0434\u0438\u043D \u0438\u0437 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u043E\u0432 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C.",
+    recipes_list_on_this_device:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435",
+    recipes_list_package_label: "\u043F\u0430\u043A\u0435\u0442:",
+    recipes_list_title: "\u0420\u0435\u0446\u0435\u043F\u0442\u044B",
+    recipes_loading: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
+    recipes_loading_recipe:
+      "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430 \u0440\u0435\u0446\u0435\u043F\u0442\u0430\u2026",
+    recipes_manage_intro:
+      "\u041E\u0431\u043D\u043E\u0432\u0438\u0442\u0435, \u043A\u0430\u043A\u0438\u0435 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438 \u043E\u0442\u0432\u0435\u0447\u0430\u044E\u0442 \u0437\u0430 \u043A\u0430\u0436\u0434\u0443\u044E \u0440\u043E\u043B\u044C. \u0421\u043E\u0445\u0440\u0430\u043D\u044F\u0435\u0442\u0441\u044F \u043D\u0435\u043C\u0435\u0434\u043B\u0435\u043D\u043D\u043E \u2014 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u043D\u0435 \u043F\u0435\u0440\u0435\u0440\u0438\u0441\u043E\u0432\u044B\u0432\u0430\u044E\u0442\u0441\u044F, \u043C\u0435\u043D\u044F\u0435\u0442\u0441\u044F \u0442\u043E\u043B\u044C\u043A\u043E \u0441\u043E\u0441\u0442\u0430\u0432 \u0433\u0440\u0443\u043F\u043F.",
+    recipes_manage_no_detail:
+      "\u0421\u0432\u0435\u0434\u0435\u043D\u0438\u044F \u043D\u0435\u0434\u043E\u0441\u0442\u0443\u043F\u043D\u044B.",
+    recipes_manage_no_entities_prefix: "\u041D\u0435\u0442",
+    recipes_manage_no_entities_suffix:
+      "\u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439, \u043D\u0430\u0439\u0434\u0435\u043D\u043D\u044B\u0445 \u0432 \u044D\u0442\u043E\u043C \u0434\u043E\u043C\u0435.",
+    recipes_manage_save:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0438\u0442\u044C",
+    recipes_manage_saving:
+      "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0438\u0435\u2026",
+    recipes_match_col_item: "\u042D\u043B\u0435\u043C\u0435\u043D\u0442",
+    recipes_match_col_selected: "\u0412\u044B\u0431\u0440\u0430\u043D\u043E",
+    recipes_match_col_status: "\u0421\u0442\u0430\u0442\u0443\u0441",
+    recipes_match_nothing:
+      "\u041D\u0435\u0447\u0435\u0433\u043E \u0441\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u043B\u044F\u0442\u044C \u2014 \u044D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u0440\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0431\u0435\u0437 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432.",
+    recipes_match_scanning:
+      "\u0421\u043A\u0430\u043D\u0438\u0440\u043E\u0432\u0430\u043D\u0438\u0435 \u0432\u0430\u0448\u0435\u0433\u043E \u0434\u043E\u043C\u0430\u2026",
+    recipes_match_status_error: "\u041E\u0448\u0438\u0431\u043A\u0430",
+    recipes_match_status_needs_setup:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430",
+    recipes_match_status_optional:
+      "\u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E",
+    recipes_match_status_ready: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    recipes_match_status_waiting:
+      "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435",
+    recipes_match_status_working:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435",
+    recipes_optional_eyebrow:
+      "\u041D\u0435\u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E",
+    recipes_pair_hue_action:
+      "\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u044D\u0442\u0443 \u043B\u0430\u043C\u043F\u0443 \u043A \u0432\u0430\u0448\u0435\u043C\u0443 Hue Bridge \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u044F Hue \u0438\u043B\u0438 \u0435\u0433\u043E \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u044B \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438.",
+    recipes_pair_hue_cta:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 Hue",
+    recipes_pair_matter_action:
+      "\u0412\u0432\u0435\u0434\u0438\u0442\u0435 \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E Matter \u0432 \u044D\u043A\u0441\u043F\u043B\u0443\u0430\u0442\u0430\u0446\u0438\u044E \u0441 \u043F\u043E\u043C\u043E\u0449\u044C\u044E \u0435\u0433\u043E \u043A\u043E\u0434\u0430 \u0441\u043E\u043F\u0440\u044F\u0436\u0435\u043D\u0438\u044F \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 Matter.",
+    recipes_pair_matter_cta:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 Matter",
+    recipes_pair_mqtt_action:
+      "\u041F\u043E\u0434\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E MQTT \u043A \u0441\u0435\u0442\u0438, \u0447\u0442\u043E\u0431\u044B \u043E\u043D\u043E \u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043B\u043E \u0434\u0430\u043D\u043D\u044B\u0435 \u0432 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u043D\u044B\u0439 \u0442\u043E\u043F\u0438\u043A.",
+    recipes_pair_mqtt_cta:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 MQTT",
+    recipes_pair_zha_action:
+      "\u041E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 ZHA \u0438 \u043F\u0435\u0440\u0435\u0432\u0435\u0434\u0438\u0442\u0435 \u043A\u043E\u043E\u0440\u0434\u0438\u043D\u0430\u0442\u043E\u0440 \u0432 \u0440\u0435\u0436\u0438\u043C \u0441\u043E\u043F\u0440\u044F\u0436\u0435\u043D\u0438\u044F, \u0447\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E.",
+    recipes_pair_zha_cta:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 ZHA",
+    recipes_pair_zwave_action:
+      "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u0438\u0435 Z-Wave \u043D\u0430 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438, \u0447\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E.",
+    recipes_pair_zwave_cta:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443 Z-Wave",
+    recipes_pin_check_now:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0441\u0435\u0439\u0447\u0430\u0441",
+    recipes_pin_default_action:
+      "\u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u044D\u0442\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0432 Home Assistant. Selora \u043E\u0431\u043D\u0430\u0440\u0443\u0436\u0438\u0442 \u0435\u0433\u043E \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.",
+    recipes_pin_expected_entity:
+      "\u041E\u0436\u0438\u0434\u0430\u0435\u043C\u044B\u0439 \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0438:",
+    recipes_pin_open_ha_integrations:
+      "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 HA",
+    recipes_pin_open_setup_prefix: "\u041E\u0442\u043A\u0440\u044B\u0442\u044C",
+    recipes_pin_open_setup_suffix:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443",
+    recipes_pin_tip:
+      "\u0421\u043E\u0432\u0435\u0442: \u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u044D\u0442\u0443 \u0432\u043A\u043B\u0430\u0434\u043A\u0443 \u043E\u0442\u043A\u0440\u044B\u0442\u043E\u0439. \u041A\u043E\u0433\u0434\u0430 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0431\u0443\u0434\u0435\u0442 \u0441\u043E\u043F\u0440\u044F\u0436\u0435\u043D\u043E, \u044D\u0442\u043E\u0442 \u0448\u0430\u0433 \u043E\u0442\u043C\u0435\u0442\u0438\u0442\u0441\u044F \u0441\u0430\u043C \u2014 \u0437\u0434\u0435\u0441\u044C \u043D\u0438\u0447\u0435\u0433\u043E \u043D\u0430\u0436\u0438\u043C\u0430\u0442\u044C \u043D\u0435 \u043D\u0443\u0436\u043D\u043E.",
+    recipes_progress_title: "\u041F\u0440\u043E\u0433\u0440\u0435\u0441\u0441",
+    recipes_punch_list_title:
+      "\u0421\u043F\u0438\u0441\u043E\u043A \u0437\u0430\u0434\u0430\u0447",
+    recipes_required_eyebrow:
+      "\u041E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E",
+    recipes_result_advanced:
+      "\u0434\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u043E",
+    recipes_result_fix_retry:
+      "\u0418\u0441\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u044D\u043B\u0435\u043C\u0435\u043D\u0442\u044B \u043D\u0438\u0436\u0435, \u0437\u0430\u0442\u0435\u043C \u0441\u043D\u043E\u0432\u0430 \u043E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0440\u0435\u0446\u0435\u043F\u0442, \u0447\u0442\u043E\u0431\u044B \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u044C \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    recipes_result_halted_at_stage:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0430 \u043D\u0430 \u044D\u0442\u0430\u043F\u0435:",
+    recipes_result_install_complete:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430",
+    recipes_result_installed_reloaded:
+      "\u0431\u044B\u043B \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D, \u0438 Home Assistant \u0431\u044B\u043B \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D. \u0424\u0430\u0439\u043B \u043F\u0430\u043A\u0435\u0442\u0430:",
+    recipes_result_view_yaml:
+      "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C \u0441\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u043D\u044B\u0439 YAML \u043F\u0430\u043A\u0435\u0442\u0430",
+    recipes_role_check_again:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430",
+    recipes_role_empty_add_device:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E \u0432 HA",
+    recipes_role_empty_at_least: "\u043D\u0435 \u043C\u0435\u043D\u0435\u0435",
+    recipes_role_empty_none_prefix: "\u041D\u0435\u0442",
+    recipes_role_empty_none_suffix:
+      "\u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435",
+    recipes_role_empty_one_prose:
+      "\u043E\u0434\u043D\u043E, \u0438 \u043E\u043D\u043E \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u2014 \u0432\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u043F\u043E\u043A\u0438\u043D\u0443\u0442\u044C \u044D\u0442\u0443 \u0441\u0442\u0440\u0430\u043D\u0438\u0446\u0443, \u0447\u0442\u043E\u0431\u044B \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E, \u0430 \u043C\u0430\u0441\u0442\u0435\u0440 \u0441\u043E\u0445\u0440\u0430\u043D\u0438\u0442 \u0432\u0430\u0448 \u043F\u0440\u043E\u0433\u0440\u0435\u0441\u0441 \u043F\u0440\u0438 \u043D\u0430\u0436\u0430\u0442\u0438\u0438 \xAB\u041D\u0430\u0437\u0430\u0434\xBB.",
+    recipes_role_empty_pair: "\u0421\u043E\u043F\u0440\u044F\u0447\u044C",
+    recipes_role_filter_device_noun:
+      "\u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u043E",
+    recipes_role_filter_sensor_noun: "\u0434\u0430\u0442\u0447\u0438\u043A",
+    recipes_role_pick_one_or_more:
+      "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043E\u0434\u043D\u043E \u0438\u043B\u0438 \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E",
+    recipes_role_pick_prefix:
+      "\u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435:",
+    recipes_role_pinned_count_suffix:
+      "\u0437\u0430\u043A\u0440\u0435\u043F\u043B\u0435\u043D\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C (\u0432\u0441\u0435\u0433\u0434\u0430 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u043E).",
+    recipes_role_run_against:
+      "Selora \u0437\u0430\u043F\u0443\u0441\u0442\u0438\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u0434\u043B\u044F \u0442\u0435\u0445, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u043E\u0442\u043C\u0435\u0442\u0438\u0442\u0435.",
+    recipes_role_up_to: "\u0434\u043E",
+    recipes_safety_automations_generated:
+      "\u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u0441\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u044B",
+    recipes_safety_install_incomplete:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043D\u0435 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0430",
+    recipes_safety_installed_ok:
+      "\u0420\u0435\u0446\u0435\u043F\u0442 \u0443\u0441\u043F\u0435\u0448\u043D\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D",
+    recipes_safety_issues_to_address:
+      "\u043F\u0440\u043E\u0431\u043B\u0435\u043C(\u044B) \u0434\u043B\u044F \u0443\u0441\u0442\u0440\u0430\u043D\u0435\u043D\u0438\u044F",
+    recipes_safety_no_artifacts:
+      "\u0410\u0440\u0442\u0435\u0444\u0430\u043A\u0442\u044B \u043D\u0435 \u0441\u043E\u0437\u0434\u0430\u043D\u044B",
+    recipes_safety_no_issues:
+      "\u041D\u0435\u0442 \u043D\u0435\u0440\u0435\u0448\u0451\u043D\u043D\u044B\u0445 \u043F\u0440\u043E\u0431\u043B\u0435\u043C",
+    recipes_section_automation_plural:
+      "\u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0439",
+    recipes_section_automation_singular:
+      "\u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044F",
+    recipes_section_binary_sensor_plural:
+      "\u0431\u0438\u043D\u0430\u0440\u043D\u044B\u0445 \u0434\u0430\u0442\u0447\u0438\u043A\u043E\u0432",
+    recipes_section_binary_sensor_singular:
+      "\u0431\u0438\u043D\u0430\u0440\u043D\u044B\u0439 \u0434\u0430\u0442\u0447\u0438\u043A",
+    recipes_section_climate_plural:
+      "\u043A\u043B\u0438\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438\u0445 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439",
+    recipes_section_climate_singular:
+      "\u043A\u043B\u0438\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0430\u044F \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C",
+    recipes_section_counter_plural:
+      "\u0441\u0447\u0451\u0442\u0447\u0438\u043A\u043E\u0432",
+    recipes_section_counter_singular:
+      "\u0441\u0447\u0451\u0442\u0447\u0438\u043A",
+    recipes_section_cover_plural: "\u0448\u0442\u043E\u0440",
+    recipes_section_cover_singular: "\u0448\u0442\u043E\u0440\u0430",
+    recipes_section_customisation_plural:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A",
+    recipes_section_customisation_singular:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430",
+    recipes_section_group_plural: "\u0433\u0440\u0443\u043F\u043F",
+    recipes_section_group_singular: "\u0433\u0440\u0443\u043F\u043F\u0430",
+    recipes_section_helper_plural:
+      "\u043F\u043E\u043C\u043E\u0449\u043D\u0438\u043A\u043E\u0432",
+    recipes_section_helper_singular:
+      "\u043F\u043E\u043C\u043E\u0449\u043D\u0438\u043A",
+    recipes_section_light_plural:
+      "\u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A\u043E\u0432 \u0441\u0432\u0435\u0442\u0430",
+    recipes_section_light_singular:
+      "\u0438\u0441\u0442\u043E\u0447\u043D\u0438\u043A \u0441\u0432\u0435\u0442\u0430",
+    recipes_section_media_player_plural:
+      "\u043C\u0435\u0434\u0438\u0430\u043F\u043B\u0435\u0435\u0440\u043E\u0432",
+    recipes_section_media_player_singular:
+      "\u043C\u0435\u0434\u0438\u0430\u043F\u043B\u0435\u0435\u0440",
+    recipes_section_notify_plural:
+      "\u0443\u0432\u0435\u0434\u043E\u043C\u0438\u0442\u0435\u043B\u0435\u0439",
+    recipes_section_notify_singular:
+      "\u0443\u0432\u0435\u0434\u043E\u043C\u0438\u0442\u0435\u043B\u044C",
+    recipes_section_rest_command_plural:
+      "REST-\u043A\u043E\u043C\u0430\u043D\u0434",
+    recipes_section_rest_command_singular:
+      "REST-\u043A\u043E\u043C\u0430\u043D\u0434\u0430",
+    recipes_section_scene_plural: "\u0441\u0446\u0435\u043D",
+    recipes_section_scene_singular: "\u0441\u0446\u0435\u043D\u0430",
+    recipes_section_script_plural:
+      "\u0441\u043A\u0440\u0438\u043F\u0442\u043E\u0432",
+    recipes_section_script_singular: "\u0441\u043A\u0440\u0438\u043F\u0442",
+    recipes_section_sensor_plural:
+      "\u0434\u0430\u0442\u0447\u0438\u043A\u043E\u0432",
+    recipes_section_sensor_singular: "\u0434\u0430\u0442\u0447\u0438\u043A",
+    recipes_section_shell_command_plural:
+      "\u043A\u043E\u043C\u0430\u043D\u0434 \u043E\u0431\u043E\u043B\u043E\u0447\u043A\u0438",
+    recipes_section_shell_command_singular:
+      "\u043A\u043E\u043C\u0430\u043D\u0434\u0430 \u043E\u0431\u043E\u043B\u043E\u0447\u043A\u0438",
+    recipes_section_switch_plural:
+      "\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u0435\u0439",
+    recipes_section_switch_singular:
+      "\u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0430\u0442\u0435\u043B\u044C",
+    recipes_section_template_plural:
+      "\u0448\u0430\u0431\u043B\u043E\u043D\u043D\u044B\u0445 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439",
+    recipes_section_template_singular:
+      "\u0448\u0430\u0431\u043B\u043E\u043D\u043D\u0430\u044F \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C",
+    recipes_section_timer_plural:
+      "\u0442\u0430\u0439\u043C\u0435\u0440\u043E\u0432",
+    recipes_section_timer_singular: "\u0442\u0430\u0439\u043C\u0435\u0440",
+    recipes_selected_awaiting_pair:
+      "\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u0441\u043E\u043F\u0440\u044F\u0436\u0435\u043D\u0438\u044F",
+    recipes_selected_entities_suffix:
+      "\u0441\u0443\u0449\u043D\u043E\u0441\u0442\u0435\u0439",
+    recipes_selected_none: "\u041D\u0435\u0442",
+    recipes_selected_setting_plural:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    recipes_selected_setting_singular:
+      "\u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430",
+    recipes_setting_up_button:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\u2026",
+    recipes_stage_apply:
+      "\u041F\u0440\u0438\u043C\u0435\u043D\u0435\u043D\u0438\u0435",
+    recipes_stage_configure:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430",
+    recipes_stage_prepare:
+      "\u041F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u043A\u0430",
+    recipes_stage_unknown:
+      "\u043D\u0435\u0438\u0437\u0432\u0435\u0441\u0442\u043D\u043E",
+    recipes_start_setup_button:
+      "\u041D\u0430\u0447\u0430\u0442\u044C \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0443",
+    recipes_status_done: "\u0413\u043E\u0442\u043E\u0432\u043E",
+    recipes_status_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C",
+    recipes_status_needs_you:
+      "\u0422\u0440\u0435\u0431\u0443\u0435\u0442 \u0432\u0430\u0441",
+    recipes_status_pending: "\u041E\u0436\u0438\u0434\u0430\u043D\u0438\u0435",
+    recipes_status_running:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F",
+    recipes_status_skipped:
+      "\u041F\u0440\u043E\u043F\u0443\u0449\u0435\u043D\u043E",
+    recipes_step2_sub:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0432\u0441\u0435\u0433\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0430. \u0417\u043D\u0430\u0447\u0435\u043D\u0438\u044F \u043F\u043E \u0443\u043C\u043E\u043B\u0447\u0430\u043D\u0438\u044E \u0437\u0430\u043F\u043E\u043B\u043D\u0435\u043D\u044B \u0437\u0430\u0440\u0430\u043D\u0435\u0435; \u0438\u0437\u043C\u0435\u043D\u044F\u0439\u0442\u0435 \u0442\u043E\u043B\u044C\u043A\u043E \u0435\u0441\u043B\u0438 \u0445\u043E\u0442\u0438\u0442\u0435 \u0447\u0442\u043E-\u0442\u043E \u043F\u043E\u043C\u0435\u043D\u044F\u0442\u044C, \u0437\u0430\u0442\u0435\u043C \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C\xBB.",
+    recipes_step2_sub_empty:
+      "\u0423 \u044D\u0442\u043E\u0433\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0430 \u043D\u0435\u0442 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043A \u0434\u043B\u044F \u043A\u043E\u043D\u0444\u0438\u0433\u0443\u0440\u0430\u0446\u0438\u0438 \u2014 \u043F\u0440\u043E\u0441\u0442\u043E \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C\xBB.",
+    recipes_step2_title:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u0440\u0435\u0446\u0435\u043F\u0442\u0430",
+    recipes_step3_hint_finish:
+      "\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u0435 \u0441\u0442\u0440\u043E\u043A\u0438 \u0441 \u043F\u043E\u043C\u0435\u0442\u043A\u043E\u0439 \xAB\u0422\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430\xBB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C.",
+    recipes_step3_hint_ready:
+      "\u0412\u044B\u0433\u043B\u044F\u0434\u0438\u0442 \u0445\u043E\u0440\u043E\u0448\u043E \u2014 \u0433\u043E\u0442\u043E\u0432\u043E \u043A \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0435.",
+    recipes_step3_sub:
+      "\u0421\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u043A\u0430\u0436\u0434\u044B\u0439 \u044D\u043B\u0435\u043C\u0435\u043D\u0442 \u043D\u0438\u0436\u0435 \u0441 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C\u044E \u0438\u0437 \u0432\u0430\u0448\u0435\u0433\u043E \u0434\u043E\u043C\u0430. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043D\u0430 \u043B\u044E\u0431\u0443\u044E \u0441\u0442\u0440\u043E\u043A\u0443, \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0435\u0451.",
+    recipes_step3_title:
+      "\u0421\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430",
+    recipes_step4_hint_failed:
+      "\u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041D\u0430\u0437\u0430\u0434\xBB, \u0447\u0442\u043E\u0431\u044B \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u044C \u0432\u0430\u0448 \u0432\u044B\u0431\u043E\u0440, \u0437\u0430\u0442\u0435\u043C \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    recipes_step4_hint_something_failed:
+      "\u0427\u0442\u043E-\u0442\u043E \u043D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u2014 \u0432\u0435\u0440\u043D\u0438\u0442\u0435\u0441\u044C \u043D\u0430\u0437\u0430\u0434 \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    recipes_step4_sub_busy:
+      "Selora \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442 \u0432\u0430\u0448 \u0440\u0435\u0446\u0435\u043F\u0442. \u041F\u043E\u0434\u043E\u0436\u0434\u0438\u0442\u0435 \u2014 \u044D\u0442\u043E \u0437\u0430\u0439\u043C\u0451\u0442 \u0432\u0441\u0435\u0433\u043E \u043D\u0435\u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0441\u0435\u043A\u0443\u043D\u0434.",
+    recipes_step4_sub_done:
+      "\u0412\u0441\u0451 \u0433\u043E\u0442\u043E\u0432\u043E. \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442\u044C\xBB, \u0447\u0442\u043E\u0431\u044B \u043F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0435\u0442\u044C, \u0447\u0442\u043E \u0431\u044B\u043B\u043E \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E.",
+    recipes_step4_sub_halted_prefix:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0430 \u043E\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u0430 \u043D\u0430 \u044D\u0442\u0430\u043F\u0435",
+    recipes_step4_sub_halted_suffix:
+      ". \u0412\u0435\u0440\u043D\u0438\u0442\u0435\u0441\u044C \u043D\u0430\u0437\u0430\u0434, \u0447\u0442\u043E\u0431\u044B \u0443\u0441\u0442\u0440\u0430\u043D\u0438\u0442\u044C \u043F\u0440\u043E\u0431\u043B\u0435\u043C\u044B \u043D\u0438\u0436\u0435.",
+    recipes_step4_sub_starting:
+      "\u0417\u0430\u043F\u0443\u0441\u043A \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\u2026",
+    recipes_step4_title:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0430",
+    recipes_step5_created_title:
+      "\u042D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u0441\u043E\u0437\u0434\u0430\u043B",
+    recipes_step5_devices_linked:
+      "\u0423\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D\u044B",
+    recipes_step5_hint:
+      "Home Assistant \u0431\u044B\u043B \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D \u2014 \u0432\u0430\u0448 \u0440\u0435\u0446\u0435\u043F\u0442 \u0430\u043A\u0442\u0438\u0432\u0435\u043D.",
+    recipes_step5_more_suffix: "\u0435\u0449\u0451",
+    recipes_step5_no_devices:
+      "\u0421 \u044D\u0442\u0438\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C \u043D\u0435 \u0441\u0432\u044F\u0437\u0430\u043D\u044B \u043D\u0438\u043A\u0430\u043A\u0438\u0435 \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430.",
+    recipes_step5_no_entries:
+      "\u0417\u0430\u043F\u0438\u0441\u0438 \u043D\u0435 \u0431\u044B\u043B\u0438 \u0441\u0433\u0435\u043D\u0435\u0440\u0438\u0440\u043E\u0432\u0430\u043D\u044B.",
+    recipes_step5_safety_checks:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0438 \u0431\u0435\u0437\u043E\u043F\u0430\u0441\u043D\u043E\u0441\u0442\u0438",
+    recipes_step5_sub:
+      "\u0412\u0430\u0448 \u0440\u0435\u0446\u0435\u043F\u0442 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D, \u0438 Home Assistant \u0431\u044B\u043B \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0436\u0435\u043D. \u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E \u0431\u044B\u043B\u043E \u0441\u043E\u0437\u0434\u0430\u043D\u043E, \u0437\u0430\u0442\u0435\u043C \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u0417\u0430\u0432\u0435\u0440\u0448\u0438\u0442\u044C\xBB.",
+    recipes_step5_title:
+      "\u041F\u0440\u043E\u0441\u043C\u043E\u0442\u0440 \u0438 \u0437\u0430\u0432\u0435\u0440\u0448\u0435\u043D\u0438\u0435",
+    recipes_step_activate:
+      "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    recipes_step_label: "\u0428\u0430\u0433",
+    recipes_step_match:
+      "\u0421\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
+    recipes_step_of_5: "\u0438\u0437 5",
+    recipes_step_overview: "\u041E\u0431\u0437\u043E\u0440",
+    recipes_step_set_up:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
+    recipes_step_settings:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    recipes_system_panel_auto:
+      "\u042D\u0442\u043E\u0442 \u0448\u0430\u0433 \u0432\u044B\u043F\u043E\u043B\u043D\u044F\u0435\u0442\u0441\u044F \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438. \u041E\u0442 \u0432\u0430\u0441 \u043D\u0435 \u0442\u0440\u0435\u0431\u0443\u0435\u0442\u0441\u044F \u043D\u0438\u043A\u0430\u043A\u0438\u0445 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u0439.",
+    recipes_this_recipe_creates:
+      "\u042D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u0441\u043E\u0437\u0434\u0430\u0451\u0442",
+    recipes_uninstall_body:
+      "\u0424\u0430\u0439\u043B \u043F\u0430\u043A\u0435\u0442\u0430 \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u0430\u043B\u0451\u043D, \u0438 Home Assistant \u043F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0441\u044F. \u0410\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u0441\u043E\u0437\u0434\u0430\u043D\u043D\u044B\u0435 \u044D\u0442\u0438\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C, \u0431\u0443\u0434\u0443\u0442 \u0443\u0434\u0430\u043B\u0435\u043D\u044B.",
+    recipes_uninstall_confirm_prefix:
+      "\u0423\u0434\u0430\u043B\u0438\u0442\u044C",
+    recipes_uninstall_integrations_sub:
+      "\u041E\u0442\u043C\u0435\u0442\u044C\u0442\u0435 \u0442\u0435, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0441\u043B\u0435\u0434\u0443\u0435\u0442 \u0443\u0434\u0430\u043B\u0438\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435 \u0441 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C. \u0412\u0441\u0451, \u0447\u0442\u043E \u0432\u044B \u043E\u0441\u0442\u0430\u0432\u0438\u0442\u0435 \u0431\u0435\u0437 \u043E\u0442\u043C\u0435\u0442\u043A\u0438, \u043E\u0441\u0442\u0430\u043D\u0435\u0442\u0441\u044F \u0432 Home Assistant.",
+    recipes_uninstall_integrations_title:
+      "\u0418\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438, \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u044D\u0442\u0438\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C",
+    recipes_uninstall_still_used_by:
+      "\u0412\u0441\u0451 \u0435\u0449\u0451 \u0438\u0441\u043F\u043E\u043B\u044C\u0437\u0443\u0435\u0442\u0441\u044F",
+    recipes_uninstall_warn_title:
+      "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 \u043D\u0430\u0440\u0443\u0448\u0438\u0442 \u0440\u0430\u0431\u043E\u0442\u0443 \u044D\u0442\u0438\u0445 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432.",
+    recipes_what_you_need_title:
+      "\u0427\u0442\u043E \u0432\u0430\u043C \u043D\u0443\u0436\u043D\u043E",
+    recipes_working:
+      "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u2026",
+    recipes_role_filter_placeholder:
+      "\u0424\u0438\u043B\u044C\u0442\u0440 \u043F\u043E \u0438\u043C\u0435\u043D\u0438\u2026",
+    recipes_role_filter_no_matches:
+      "\u041D\u0438 \u043E\u0434\u043D\u0430 \u0441\u0443\u0449\u043D\u043E\u0441\u0442\u044C \u043D\u0435 \u0441\u043E\u043E\u0442\u0432\u0435\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u0444\u0438\u043B\u044C\u0442\u0440\u0443.",
+    recipes_role_show_all:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u0432\u0441\u0435",
+    recipes_role_show_less:
+      "\u041F\u043E\u043A\u0430\u0437\u0430\u0442\u044C \u043C\u0435\u043D\u044C\u0448\u0435",
+    recipes_dashboard_picker_title:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0443 \u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u044C",
+    recipes_dashboard_picker_sub:
+      "\u042D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u043C\u043E\u0436\u0435\u0442 \u0440\u0430\u0437\u043C\u0435\u0441\u0442\u0438\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0443 \u043D\u0430 \u043F\u0430\u043D\u0435\u043B\u0438, \u0447\u0442\u043E\u0431\u044B \u0432\u044B \u043C\u043E\u0433\u043B\u0438 \u043F\u043E \u043D\u0435\u0439 \u043D\u0430\u0436\u0430\u0442\u044C. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0434\u0435 \u2014 \u0438\u043B\u0438 \u043F\u0440\u043E\u043F\u0443\u0441\u0442\u0438\u0442\u0435 \u0438 \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u043F\u043E\u0437\u0436\u0435 \u0441\u0430\u043C\u0438.",
+    recipes_dashboard_picker_skip:
+      "\u041D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0443",
+    recipes_dashboard_picker_refine:
+      "\u041D\u0443\u0436\u043D\u0430 \u0441\u0432\u043E\u044F \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0430? \u0423\u0442\u043E\u0447\u043D\u0438\u0442\u044C \u0432 \u0447\u0430\u0442\u0435",
+    recipes_step5_dashboard_title:
+      "\u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0430 \u043F\u0430\u043D\u0435\u043B\u0438",
+    recipes_step5_dashboard_added:
+      "\u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0430 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430 \u043D\u0430 \u0432\u0430\u0448\u0443 \u043F\u0430\u043D\u0435\u043B\u044C.",
+    recipes_step5_dashboard_skipped:
+      "\u041A\u0430\u0440\u0442\u043E\u0447\u043A\u0430 \u043D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u0435\u043D\u0430. \u0412\u044B \u043C\u043E\u0436\u0435\u0442\u0435 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0435\u0451 \u0441\u0430\u043C\u0438 \u0438\u043B\u0438 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u044C \u043F\u043E\u043C\u043E\u0449\u044C \u0443 Selora.",
+    recipes_step5_dashboard_manual:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043A\u0430\u0440\u0442\u043E\u0447\u043A\u0443 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438 \u2014 \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0435\u0451 \u0441\u0430\u043C\u0438 \u0438\u043B\u0438 \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442\u0435 \u043F\u043E\u043C\u043E\u0449\u044C \u0443 Selora.",
+    recipes_step5_dashboard_customize:
+      "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C \u0432 \u0447\u0430\u0442\u0435",
+    recipes_step5_dashboard_help:
+      "\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432 \u0447\u0430\u0442\u0435",
+    recipes_refine_chat_failed:
+      "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u0447\u0430\u0442 \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u0430.",
+    recipes_step3_hint_blocked:
+      "\u042D\u0442\u043E\u0442 \u0440\u0435\u0446\u0435\u043F\u0442 \u043F\u043E\u043A\u0430 \u043D\u0435\u043B\u044C\u0437\u044F \u043F\u043E\u0434\u0433\u043E\u0442\u043E\u0432\u0438\u0442\u044C \u2014 \u043F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0440\u0435\u0446\u0435\u043F\u0442 \u043D\u0430 \u043E\u0448\u0438\u0431\u043A\u0438 \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
+    recipes_catalog_empty:
+      "\u0412 \u044D\u0442\u043E\u043C \u043A\u0430\u0442\u0430\u043B\u043E\u0433\u0435 \u043F\u043E\u043A\u0430 \u043D\u0435\u0442 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432.",
   },
   options: {
     step: {
@@ -15011,6 +18247,402 @@ var ja_default = {
     suggestions_pattern_scan_failed:
       "\u30D1\u30BF\u30FC\u30F3\u30B9\u30AD\u30E3\u30F3\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
     area_unassigned: "\u672A\u5272\u308A\u5F53\u3066",
+    recipes_back_to_overview: "\u6982\u8981\u306B\u623B\u308B",
+    recipes_back_to_recipes: "\u30EC\u30B7\u30D4\u306B\u623B\u308B",
+    recipes_bucket_completed: "\u5B8C\u4E86",
+    recipes_bucket_failed: "\u5931\u6557",
+    recipes_bucket_in_progress: "\u9032\u884C\u4E2D",
+    recipes_bucket_install_failed:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    recipes_bucket_no_details:
+      "\u8A73\u7D30\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u6839\u672C\u7684\u306A\u30A8\u30E9\u30FC\u306B\u3064\u3044\u3066\u306F Home Assistant \u306E\u30ED\u30B0\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_bucket_up_next: "\u6B21\u306B",
+    recipes_bucket_waiting_for_you:
+      "\u3042\u306A\u305F\u306E\u5BFE\u5FDC\u5F85\u3061",
+    recipes_card_configure_button: "\u8A2D\u5B9A",
+    recipes_card_in_progress_step:
+      "\u9032\u884C\u4E2D \xB7 \u30B9\u30C6\u30C3\u30D7",
+    recipes_card_install_button: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    recipes_card_installed_badge:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F",
+    recipes_card_manage_devices_button:
+      "\u30C7\u30D0\u30A4\u30B9\u3092\u7BA1\u7406",
+    recipes_card_manage_devices_title:
+      "\u30A6\u30A3\u30B6\u30FC\u30C9\u3092\u518D\u5B9F\u884C\u305B\u305A\u306B\u3001\u3053\u306E\u30EC\u30B7\u30D4\u304C\u4F7F\u7528\u3059\u308B\u30C7\u30D0\u30A4\u30B9\u3092\u4EA4\u63DB\u30FB\u66F4\u65B0\u3057\u307E\u3059",
+    recipes_card_resume_button: "\u518D\u958B",
+    recipes_card_start_over_button:
+      "\u6700\u521D\u304B\u3089\u3084\u308A\u76F4\u3059",
+    recipes_card_start_over_title:
+      "\u4FDD\u5B58\u3055\u308C\u305F\u9032\u884C\u72B6\u6CC1\u3092\u7834\u68C4\u3057\u3001\u30A6\u30A3\u30B6\u30FC\u30C9\u3092\u6700\u521D\u304B\u3089\u3084\u308A\u76F4\u3057\u307E\u3059",
+    recipes_card_uninstall_button:
+      "\u30A2\u30F3\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    recipes_catalog_fetching:
+      "\u30AB\u30BF\u30ED\u30B0\u3092\u53D6\u5F97\u4E2D\u2026",
+    recipes_catalog_no_matches_prefix: "\u4E00\u81F4\u306A\u3057\uFF1A",
+    recipes_catalog_search_placeholder:
+      "\u30EC\u30B7\u30D4\u3092\u691C\u7D22\u2026",
+    recipes_catalog_set_url_title:
+      "\u30AB\u30BF\u30ED\u30B0 URL \u3092\u8A2D\u5B9A\uFF08\u958B\u767A\uFF0F\u30B9\u30C6\u30FC\u30B8\u30F3\u30B0\uFF09",
+    recipes_catalog_source_overridden:
+      "\u30AB\u30BF\u30ED\u30B0\u30BD\u30FC\u30B9\u3092\u4E0A\u66F8\u304D\u3057\u307E\u3057\u305F\uFF1A",
+    recipes_catalog_unreachable:
+      "\u30EC\u30B7\u30D4\u30AB\u30BF\u30ED\u30B0\u306B\u5230\u9054\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\uFF1A",
+    recipes_catalog_url_prompt:
+      "\u30AB\u30BF\u30ED\u30B0 URL\uFF08selorahomes.com \u306B\u30EA\u30BB\u30C3\u30C8\u3059\u308B\u306B\u306F\u7A7A\u6B04\u306E\u307E\u307E\uFF09\uFF1A",
+    recipes_catalog_using_override:
+      "\u4E0A\u66F8\u304D\u3092\u4F7F\u7528\u4E2D\uFF1A",
+    recipes_catalog_will_load:
+      "\u30AB\u30BF\u30ED\u30B0\u306F\u3053\u3053\u306B\u8AAD\u307F\u8FBC\u307E\u308C\u307E\u3059\u3002",
+    recipes_continue_button: "\u7D9A\u884C",
+    recipes_details_copy_path_title: "\u30D1\u30B9\u3092\u30B3\u30D4\u30FC",
+    recipes_details_devices_key: "\u30C7\u30D0\u30A4\u30B9",
+    recipes_details_installed_on: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u65E5",
+    recipes_details_integrations_key:
+      "\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3",
+    recipes_details_no_bound_devices:
+      "\u30D0\u30A4\u30F3\u30C9\u3055\u308C\u305F\u30C7\u30D0\u30A4\u30B9\u306F\u3042\u308A\u307E\u305B\u3093",
+    recipes_details_none_selected_optional:
+      "\u672A\u9078\u629E\uFF08\u4EFB\u610F\uFF09",
+    recipes_details_settings_key: "\u8A2D\u5B9A",
+    recipes_details_summary: "\u8A73\u7D30",
+    recipes_details_version_key: "\u30D0\u30FC\u30B8\u30E7\u30F3",
+    recipes_details_where_key: "\u5834\u6240",
+    recipes_eyebrow_recipe: "\u30EC\u30B7\u30D4",
+    recipes_eyebrow_released: "\u30EA\u30EA\u30FC\u30B9\u65E5",
+    recipes_field_optional: "\uFF08\u4EFB\u610F\uFF09",
+    recipes_finish_button: "\u5B8C\u4E86",
+    recipes_flow_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    recipes_flow_continue: "\u7D9A\u884C",
+    recipes_footer_back: "\u623B\u308B",
+    recipes_footer_cancel: "\u30AD\u30E3\u30F3\u30BB\u30EB",
+    recipes_inputs_panel_title: "\u30EC\u30B7\u30D4\u8A2D\u5B9A",
+    recipes_install_accepts: "\u5BFE\u5FDC\u5F62\u5F0F\uFF1A",
+    recipes_install_bom_note:
+      "\u6750\u6599\u8868\u306F\u3001\u4F55\u304B\u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3059\u308B\u524D\u306B\u3054\u81EA\u5B85\u3068\u7167\u5408\u3055\u308C\u307E\u3059\u3002",
+    recipes_install_click_to_choose:
+      "\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u30D5\u30A1\u30A4\u30EB\u3092\u9078\u629E",
+    recipes_install_drop_here:
+      "\u30EC\u30B7\u30D4\u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u3053\u3053\u306B\u30C9\u30ED\u30C3\u30D7",
+    recipes_install_drop_to_upload:
+      "\u30C9\u30ED\u30C3\u30D7\u3057\u3066\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9",
+    recipes_install_failed_button:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306B\u5931\u6557\u3057\u307E\u3057\u305F",
+    recipes_install_fetch_button: "\u53D6\u5F97",
+    recipes_install_fetching: "\u53D6\u5F97\u4E2D\u2026",
+    recipes_install_from_url_label:
+      "URL \u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    recipes_install_or: "\u307E\u305F\u306F",
+    recipes_install_or_lower: "\u307E\u305F\u306F",
+    recipes_install_source_hint:
+      "\u4ED6\u306E\u5834\u6240\u306E\u30EC\u30B7\u30D4\u3092\u304A\u6301\u3061\u3067\u3059\u304B\uFF1F\u3053\u3053\u306B\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_install_source_summary:
+      "URL \u307E\u305F\u306F\u30D5\u30A1\u30A4\u30EB\u304B\u3089\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    recipes_install_unsupported_file_prefix:
+      "\u30B5\u30DD\u30FC\u30C8\u3055\u308C\u3066\u3044\u306A\u3044\u30D5\u30A1\u30A4\u30EB\uFF1A",
+    recipes_install_unsupported_file_suffix:
+      ".tar.gz\u3001.tgz\u3001\u307E\u305F\u306F .zip \u30A2\u30FC\u30AB\u30A4\u30D6\u3092\u4F7F\u7528\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_install_upload_label:
+      "\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u304B\u3089\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9",
+    recipes_install_uploading:
+      "\u30A2\u30C3\u30D7\u30ED\u30FC\u30C9\u4E2D\u2026",
+    recipes_integration_autosetup_prose:
+      "\u306F\u3001\u304A\u4F7F\u3044\u306E Home Assistant \u306E\u4F4D\u7F6E\u60C5\u5831\u3092\u4F7F\u3063\u3066\u81EA\u52D5\u7684\u306B\u8A2D\u5B9A\u3067\u304D\u307E\u3059\u3002\u56DE\u7B54\u3057\u3066\u3044\u305F\u3060\u304F\u8CEA\u554F\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_integration_entry_label: "\u30A8\u30F3\u30C8\u30EA\uFF1A",
+    recipes_integration_manage_anytime:
+      "\u3053\u306E\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u306F\u3001\u8A2D\u5B9A \u2192 \u30C7\u30D0\u30A4\u30B9\u3068\u30B5\u30FC\u30D3\u30B9 \u304B\u3089\u3044\u3064\u3067\u3082\u7BA1\u7406\u3067\u304D\u307E\u3059\u3002",
+    recipes_integration_needs_setup_prose:
+      "\u306F\u3001\u3053\u306E\u30EC\u30B7\u30D4\u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3059\u308B\u524D\u306B\u8A2D\u5B9A\u3059\u308B\u5FC5\u8981\u304C\u3042\u308A\u307E\u3059\u3002\u3053\u306E\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u305A\u306B\u958B\u59CB\u3067\u304D\u307E\u3059\u3002",
+    recipes_integration_open_in_ha: "HA \u3067\u958B\u304F",
+    recipes_integration_open_in_ha_settings:
+      "HA \u8A2D\u5B9A\u3067\u958B\u304F",
+    recipes_integration_ready:
+      "\u306F\u8A2D\u5B9A\u6E08\u307F\u3067\u4F7F\u7528\u53EF\u80FD\u3067\u3059\u3002",
+    recipes_integration_setup_auto_button:
+      "\u81EA\u52D5\u7684\u306B\u8A2D\u5B9A",
+    recipes_integration_setup_failed:
+      "\u8A2D\u5B9A\u306B\u5931\u6557\u3057\u307E\u3057\u305F\u3002\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u3044\u305F\u3060\u304F\u304B\u3001HA \u306E\u8A2D\u5B9A\u30DA\u30FC\u30B8\u3092\u4F7F\u7528\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_integration_setup_prefix: "\u8A2D\u5B9A",
+    recipes_integration_try_again: "\u3082\u3046\u4E00\u5EA6\u8A66\u3059",
+    recipes_integration_was_set_up:
+      "\u3092\u8A2D\u5B9A\u3057\u307E\u3057\u305F\u3002Selora \u304C\u81EA\u52D5\u7684\u306B\u30EC\u30B7\u30D4\u3092\u518D\u30C1\u30A7\u30C3\u30AF\u3057\u307E\u3059\u3002",
+    recipes_list_check_updates_button: "\u66F4\u65B0\u3092\u78BA\u8A8D",
+    recipes_list_check_updates_title:
+      "selorahomes.com \u3067\u65B0\u3057\u3044\u30EC\u30B7\u30D4\u3068\u66F4\u65B0\u3055\u308C\u305F\u30EC\u30B7\u30D4\u3092\u78BA\u8A8D\u3057\u307E\u3059",
+    recipes_list_checking: "\u78BA\u8A8D\u4E2D\u2026",
+    recipes_list_installed_missing_bundle:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\uFF08\u30D0\u30F3\u30C9\u30EB\u304C\u30C7\u30A3\u30B9\u30AF\u4E0A\u306B\u898B\u3064\u304B\u308A\u307E\u305B\u3093\uFF09",
+    recipes_list_intro:
+      "\u30EC\u30B7\u30D4\u306F\u3001\u30EF\u30F3\u30B9\u30C6\u30C3\u30D7\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u308B\u65E2\u88FD\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3067\u3059 \u2014 \u6F0F\u6C34\u5BFE\u7B56\u3001\u5C31\u5BDD\u30EB\u30FC\u30C6\u30A3\u30F3\u3001\u7ADC\u5DFB\u30A2\u30E9\u30FC\u30C8\u306A\u3069\u3002Selora \u306F\u5404\u30EC\u30B7\u30D4\u3092\u3054\u81EA\u5B85\u306E\u30C7\u30D0\u30A4\u30B9\u3068\u7167\u5408\u3057\u3001\u914D\u7DDA\u307E\u3067\u884C\u3044\u307E\u3059\u3002\u4E0B\u304B\u30891\u3064\u9078\u3093\u3067\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
+    recipes_list_on_this_device:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F",
+    recipes_list_package_label: "\u30D1\u30C3\u30B1\u30FC\u30B8\uFF1A",
+    recipes_list_title: "\u30EC\u30B7\u30D4",
+    recipes_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    recipes_loading_recipe:
+      "\u30EC\u30B7\u30D4\u3092\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
+    recipes_manage_intro:
+      "\u5404\u30ED\u30FC\u30EB\u3092\u652F\u3048\u308B\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3092\u66F4\u65B0\u3057\u307E\u3059\u3002\u5373\u5EA7\u306B\u4FDD\u5B58\u3055\u308C\u307E\u3059 \u2014 \u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u518D\u751F\u6210\u3055\u308C\u305A\u3001\u30B0\u30EB\u30FC\u30D7\u306E\u30E1\u30F3\u30D0\u30FC\u30B7\u30C3\u30D7\u306E\u307F\u304C\u5909\u66F4\u3055\u308C\u307E\u3059\u3002",
+    recipes_manage_no_detail:
+      "\u8A73\u7D30\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_manage_no_entities_prefix:
+      "\u3053\u306E\u30DB\u30FC\u30E0\u306B\u306F",
+    recipes_manage_no_entities_suffix:
+      "\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u304C\u898B\u3064\u304B\u308A\u307E\u305B\u3093\u3002",
+    recipes_manage_save: "\u4FDD\u5B58",
+    recipes_manage_saving: "\u4FDD\u5B58\u4E2D\u2026",
+    recipes_match_col_item: "\u9805\u76EE",
+    recipes_match_col_selected: "\u9078\u629E\u6E08\u307F",
+    recipes_match_col_status: "\u30B9\u30C6\u30FC\u30BF\u30B9",
+    recipes_match_nothing:
+      "\u7167\u5408\u3059\u308B\u9805\u76EE\u306F\u3042\u308A\u307E\u305B\u3093 \u2014 \u3053\u306E\u30EC\u30B7\u30D4\u306F\u30C7\u30D0\u30A4\u30B9\u8A2D\u5B9A\u306A\u3057\u3067\u5B9F\u884C\u3055\u308C\u307E\u3059\u3002",
+    recipes_match_scanning:
+      "\u3054\u81EA\u5B85\u3092\u30B9\u30AD\u30E3\u30F3\u4E2D\u2026",
+    recipes_match_status_error: "\u30A8\u30E9\u30FC",
+    recipes_match_status_needs_setup: "\u8A2D\u5B9A\u304C\u5FC5\u8981",
+    recipes_match_status_optional: "\u4EFB\u610F",
+    recipes_match_status_ready: "\u6E96\u5099\u5B8C\u4E86",
+    recipes_match_status_waiting: "\u5F85\u6A5F\u4E2D",
+    recipes_match_status_working: "\u51E6\u7406\u4E2D",
+    recipes_optional_eyebrow: "\u4EFB\u610F",
+    recipes_pair_hue_action:
+      "Hue \u30A2\u30D7\u30EA\u307E\u305F\u306F\u305D\u306E\u8A2D\u5B9A\u30DA\u30FC\u30B8\u3092\u4F7F\u3063\u3066\u3001\u3053\u306E\u96FB\u7403\u3092 Hue Bridge \u306B\u30DA\u30A2\u30EA\u30F3\u30B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_pair_hue_cta: "Hue \u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pair_matter_action:
+      "Matter \u8A2D\u5B9A\u30DA\u30FC\u30B8\u304B\u3089\u30DA\u30A2\u30EA\u30F3\u30B0\u30B3\u30FC\u30C9\u3092\u4F7F\u3063\u3066\u3001\u3053\u306E Matter \u30C7\u30D0\u30A4\u30B9\u3092\u30B3\u30DF\u30C3\u30B7\u30E7\u30CB\u30F3\u30B0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_pair_matter_cta: "Matter \u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pair_mqtt_action:
+      "\u3053\u306E MQTT \u30C7\u30D0\u30A4\u30B9\u3092\u30AA\u30F3\u30E9\u30A4\u30F3\u306B\u3057\u3066\u3001\u8A2D\u5B9A\u6E08\u307F\u306E\u30C8\u30D4\u30C3\u30AF\u306B\u30D1\u30D6\u30EA\u30C3\u30B7\u30E5\u3055\u305B\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_pair_mqtt_cta: "MQTT \u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pair_zha_action:
+      "ZHA \u306E\u8A2D\u5B9A\u30DA\u30FC\u30B8\u3092\u958B\u304D\u3001\u30B3\u30FC\u30C7\u30A3\u30CD\u30FC\u30BF\u30FC\u3092\u30DA\u30A2\u30EA\u30F3\u30B0\u30E2\u30FC\u30C9\u306B\u3057\u3066\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_pair_zha_cta: "ZHA \u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pair_zwave_action:
+      "\u8A2D\u5B9A\u30DA\u30FC\u30B8\u304B\u3089 Z-Wave \u306E\u30A4\u30F3\u30AF\u30EB\u30FC\u30B8\u30E7\u30F3\u3092\u958B\u59CB\u3057\u3066\u3001\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3092\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_pair_zwave_cta: "Z-Wave \u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pin_check_now: "\u4ECA\u3059\u3050\u78BA\u8A8D",
+    recipes_pin_default_action:
+      "\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u3092 Home Assistant \u306B\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002Selora \u304C\u81EA\u52D5\u7684\u306B\u691C\u51FA\u3057\u307E\u3059\u3002",
+    recipes_pin_expected_entity:
+      "\u60F3\u5B9A\u3055\u308C\u308B\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3 ID\uFF1A",
+    recipes_pin_open_ha_integrations:
+      "HA \u306E\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3092\u958B\u304F",
+    recipes_pin_open_setup_prefix: "",
+    recipes_pin_open_setup_suffix: "\u306E\u8A2D\u5B9A\u3092\u958B\u304F",
+    recipes_pin_tip:
+      "\u30D2\u30F3\u30C8\uFF1A\u3053\u306E\u30BF\u30D6\u3092\u958B\u3044\u305F\u307E\u307E\u306B\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u30C7\u30D0\u30A4\u30B9\u304C\u30DA\u30A2\u30EA\u30F3\u30B0\u3055\u308C\u308B\u3068\u3001\u3053\u306E\u30B9\u30C6\u30C3\u30D7\u306F\u81EA\u52D5\u7684\u306B\u5B8C\u4E86\u3057\u307E\u3059 \u2014 \u3053\u3053\u3067\u4F55\u304B\u3092\u30AF\u30EA\u30C3\u30AF\u3059\u308B\u5FC5\u8981\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_progress_title: "\u9032\u884C\u72B6\u6CC1",
+    recipes_punch_list_title: "\u6B8B\u4F5C\u696D\u30EA\u30B9\u30C8",
+    recipes_required_eyebrow: "\u5FC5\u9808",
+    recipes_result_advanced: "\u8A73\u7D30",
+    recipes_result_fix_retry:
+      "\u4E0B\u8A18\u306E\u9805\u76EE\u3092\u4FEE\u6B63\u3057\u3066\u304B\u3089\u3001\u30EC\u30B7\u30D4\u3092\u518D\u5EA6\u958B\u3044\u3066\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_result_halted_at_stage:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u6B21\u306E\u30B9\u30C6\u30FC\u30B8\u3067\u505C\u6B62\u3057\u307E\u3057\u305F\uFF1A",
+    recipes_result_install_complete:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u5B8C\u4E86",
+    recipes_result_installed_reloaded:
+      "\u304C\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u3001Home Assistant \u304C\u518D\u8AAD\u307F\u8FBC\u307F\u3055\u308C\u307E\u3057\u305F\u3002\u30D1\u30C3\u30B1\u30FC\u30B8\u30D5\u30A1\u30A4\u30EB\uFF1A",
+    recipes_result_view_yaml:
+      "\u751F\u6210\u3055\u308C\u305F\u30D1\u30C3\u30B1\u30FC\u30B8 YAML \u3092\u8868\u793A",
+    recipes_role_check_again: "\u518D\u5EA6\u78BA\u8A8D",
+    recipes_role_empty_add_device:
+      "HA \u3067\u30C7\u30D0\u30A4\u30B9\u3092\u8FFD\u52A0",
+    recipes_role_empty_at_least: "\u5C11\u306A\u304F\u3068\u3082",
+    recipes_role_empty_none_prefix:
+      "\u3054\u81EA\u5B85\u306B\u306F\u307E\u3060",
+    recipes_role_empty_none_suffix: "\u304C\u3042\u308A\u307E\u305B\u3093",
+    recipes_role_empty_one_prose:
+      "\u30921\u3064\u8FFD\u52A0\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u81EA\u52D5\u7684\u306B\u8868\u793A\u3055\u308C\u307E\u3059 \u2014 \u3053\u306E\u30DA\u30FC\u30B8\u3092\u96E2\u308C\u3066\u30C7\u30D0\u30A4\u30B9\u3092\u8FFD\u52A0\u3067\u304D\u3001\u30A6\u30A3\u30B6\u30FC\u30C9\u306F\u300C\u623B\u308B\u300D\u3067\u9032\u884C\u72B6\u6CC1\u3092\u4FDD\u6301\u3057\u307E\u3059\u3002",
+    recipes_role_empty_pair: "\u30DA\u30A2\u30EA\u30F3\u30B0",
+    recipes_role_filter_device_noun: "\u30C7\u30D0\u30A4\u30B9",
+    recipes_role_filter_sensor_noun: "\u30BB\u30F3\u30B5\u30FC",
+    recipes_role_pick_one_or_more:
+      "1\u3064\u4EE5\u4E0A\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044",
+    recipes_role_pick_prefix: "\u9078\u629E\uFF1A",
+    recipes_role_pinned_count_suffix:
+      "\u4EF6\u304C\u30EC\u30B7\u30D4\u306B\u3088\u3063\u3066\u30D4\u30F3\u7559\u3081\u3055\u308C\u3066\u3044\u307E\u3059\uFF08\u5E38\u306B\u542B\u307E\u308C\u307E\u3059\uFF09\u3002",
+    recipes_role_run_against:
+      "Selora \u306F\u3001\u30C1\u30A7\u30C3\u30AF\u3092\u5165\u308C\u305F\u9805\u76EE\u306B\u5BFE\u3057\u3066\u30EC\u30B7\u30D4\u3092\u5B9F\u884C\u3057\u307E\u3059\u3002",
+    recipes_role_up_to: "\u6700\u5927",
+    recipes_safety_automations_generated:
+      "\u751F\u6210\u3055\u308C\u305F\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    recipes_safety_install_incomplete:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C\u672A\u5B8C\u4E86\u3067\u3059",
+    recipes_safety_installed_ok:
+      "\u30EC\u30B7\u30D4\u304C\u6B63\u5E38\u306B\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u307E\u3057\u305F",
+    recipes_safety_issues_to_address:
+      "\u4EF6\u306E\u5BFE\u5FDC\u3059\u3079\u304D\u554F\u984C",
+    recipes_safety_no_artifacts:
+      "\u4F5C\u6210\u3055\u308C\u305F\u30A2\u30FC\u30C6\u30A3\u30D5\u30A1\u30AF\u30C8\u306F\u3042\u308A\u307E\u305B\u3093",
+    recipes_safety_no_issues:
+      "\u672A\u89E3\u6C7A\u306E\u554F\u984C\u306F\u3042\u308A\u307E\u305B\u3093",
+    recipes_section_automation_plural:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    recipes_section_automation_singular:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3",
+    recipes_section_binary_sensor_plural:
+      "\u30D0\u30A4\u30CA\u30EA\u30BB\u30F3\u30B5\u30FC",
+    recipes_section_binary_sensor_singular:
+      "\u30D0\u30A4\u30CA\u30EA\u30BB\u30F3\u30B5\u30FC",
+    recipes_section_climate_plural:
+      "\u7A7A\u8ABF\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    recipes_section_climate_singular:
+      "\u7A7A\u8ABF\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    recipes_section_counter_plural: "\u30AB\u30A6\u30F3\u30BF\u30FC",
+    recipes_section_counter_singular: "\u30AB\u30A6\u30F3\u30BF\u30FC",
+    recipes_section_cover_plural: "\u30AB\u30D0\u30FC",
+    recipes_section_cover_singular: "\u30AB\u30D0\u30FC",
+    recipes_section_customisation_plural:
+      "\u30AB\u30B9\u30BF\u30DE\u30A4\u30BA",
+    recipes_section_customisation_singular:
+      "\u30AB\u30B9\u30BF\u30DE\u30A4\u30BA",
+    recipes_section_group_plural: "\u30B0\u30EB\u30FC\u30D7",
+    recipes_section_group_singular: "\u30B0\u30EB\u30FC\u30D7",
+    recipes_section_helper_plural: "\u30D8\u30EB\u30D1\u30FC",
+    recipes_section_helper_singular: "\u30D8\u30EB\u30D1\u30FC",
+    recipes_section_light_plural: "\u7167\u660E",
+    recipes_section_light_singular: "\u7167\u660E",
+    recipes_section_media_player_plural:
+      "\u30E1\u30C7\u30A3\u30A2\u30D7\u30EC\u30FC\u30E4\u30FC",
+    recipes_section_media_player_singular:
+      "\u30E1\u30C7\u30A3\u30A2\u30D7\u30EC\u30FC\u30E4\u30FC",
+    recipes_section_notify_plural: "\u901A\u77E5",
+    recipes_section_notify_singular: "\u901A\u77E5",
+    recipes_section_rest_command_plural: "REST \u30B3\u30DE\u30F3\u30C9",
+    recipes_section_rest_command_singular: "REST \u30B3\u30DE\u30F3\u30C9",
+    recipes_section_scene_plural: "\u30B7\u30FC\u30F3",
+    recipes_section_scene_singular: "\u30B7\u30FC\u30F3",
+    recipes_section_script_plural: "\u30B9\u30AF\u30EA\u30D7\u30C8",
+    recipes_section_script_singular: "\u30B9\u30AF\u30EA\u30D7\u30C8",
+    recipes_section_sensor_plural: "\u30BB\u30F3\u30B5\u30FC",
+    recipes_section_sensor_singular: "\u30BB\u30F3\u30B5\u30FC",
+    recipes_section_shell_command_plural:
+      "\u30B7\u30A7\u30EB\u30B3\u30DE\u30F3\u30C9",
+    recipes_section_shell_command_singular:
+      "\u30B7\u30A7\u30EB\u30B3\u30DE\u30F3\u30C9",
+    recipes_section_switch_plural: "\u30B9\u30A4\u30C3\u30C1",
+    recipes_section_switch_singular: "\u30B9\u30A4\u30C3\u30C1",
+    recipes_section_template_plural:
+      "\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    recipes_section_template_singular:
+      "\u30C6\u30F3\u30D7\u30EC\u30FC\u30C8\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    recipes_section_timer_plural: "\u30BF\u30A4\u30DE\u30FC",
+    recipes_section_timer_singular: "\u30BF\u30A4\u30DE\u30FC",
+    recipes_selected_awaiting_pair:
+      "\u30DA\u30A2\u30EA\u30F3\u30B0\u5F85\u3061",
+    recipes_selected_entities_suffix:
+      "\u500B\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3",
+    recipes_selected_none: "\u306A\u3057",
+    recipes_selected_setting_plural: "\u8A2D\u5B9A",
+    recipes_selected_setting_singular: "\u8A2D\u5B9A",
+    recipes_setting_up_button: "\u8A2D\u5B9A\u4E2D\u2026",
+    recipes_stage_apply: "\u9069\u7528",
+    recipes_stage_configure: "\u8A2D\u5B9A",
+    recipes_stage_prepare: "\u6E96\u5099",
+    recipes_stage_unknown: "\u4E0D\u660E",
+    recipes_start_setup_button: "\u8A2D\u5B9A\u3092\u958B\u59CB",
+    recipes_status_done: "\u5B8C\u4E86",
+    recipes_status_failed: "\u5931\u6557",
+    recipes_status_needs_you: "\u5BFE\u5FDC\u304C\u5FC5\u8981",
+    recipes_status_pending: "\u4FDD\u7559\u4E2D",
+    recipes_status_running: "\u5B9F\u884C\u4E2D",
+    recipes_status_skipped: "\u30B9\u30AD\u30C3\u30D7",
+    recipes_step2_sub:
+      "\u30EC\u30B7\u30D4\u5168\u4F53\u306E\u8A2D\u5B9A\u3067\u3059\u3002\u30C7\u30D5\u30A9\u30EB\u30C8\u5024\u304C\u4E8B\u524D\u5165\u529B\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u5909\u66F4\u3057\u305F\u3044\u5834\u5408\u306E\u307F\u8ABF\u6574\u3057\u3066\u3001\u300C\u7D9A\u884C\u300D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step2_sub_empty:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u306B\u306F\u8A2D\u5B9A\u3059\u308B\u9805\u76EE\u304C\u3042\u308A\u307E\u305B\u3093 \u2014 \u300C\u7D9A\u884C\u300D\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step2_title: "\u30EC\u30B7\u30D4\u8A2D\u5B9A",
+    recipes_step3_hint_finish:
+      "\u7D9A\u884C\u3059\u308B\u306B\u306F\u3001\u300C\u8A2D\u5B9A\u304C\u5FC5\u8981\u300D\u3068\u8868\u793A\u3055\u308C\u3066\u3044\u308B\u884C\u3092\u5B8C\u4E86\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step3_hint_ready:
+      "\u554F\u984C\u3042\u308A\u307E\u305B\u3093 \u2014 \u8A2D\u5B9A\u3059\u308B\u6E96\u5099\u304C\u3067\u304D\u307E\u3057\u305F\u3002",
+    recipes_step3_sub:
+      "\u4E0B\u306E\u5404\u9805\u76EE\u3092\u3001\u3054\u81EA\u5B85\u306E\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u3068\u5BFE\u5FDC\u4ED8\u3051\u3066\u304F\u3060\u3055\u3044\u3002\u8A2D\u5B9A\u3059\u308B\u306B\u306F\u4EFB\u610F\u306E\u884C\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step3_title: "\u30C7\u30D0\u30A4\u30B9\u3092\u7167\u5408",
+    recipes_step4_hint_failed:
+      "\u300C\u623B\u308B\u300D\u3092\u62BC\u3057\u3066\u9078\u629E\u5185\u5BB9\u3092\u898B\u76F4\u3057\u3066\u304B\u3089\u3001\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    recipes_step4_hint_something_failed:
+      "\u4F55\u3089\u304B\u306E\u554F\u984C\u304C\u767A\u751F\u3057\u307E\u3057\u305F \u2014 \u623B\u3063\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
+    recipes_step4_sub_busy:
+      "Selora \u304C\u30EC\u30B7\u30D4\u3092\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u3066\u3044\u307E\u3059\u3002\u5C11\u3005\u304A\u5F85\u3061\u304F\u3060\u3055\u3044 \u2014 \u6570\u79D2\u3067\u5B8C\u4E86\u3057\u307E\u3059\u3002",
+    recipes_step4_sub_done:
+      "\u3059\u3079\u3066\u5B8C\u4E86\u3057\u307E\u3057\u305F\u3002\u300C\u7D9A\u884C\u300D\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u3001\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u305F\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step4_sub_halted_prefix:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u304C",
+    recipes_step4_sub_halted_suffix:
+      "\u30B9\u30C6\u30FC\u30B8\u3067\u505C\u6B62\u3057\u307E\u3057\u305F\u3002\u623B\u3063\u3066\u4E0B\u8A18\u306E\u554F\u984C\u3092\u4FEE\u6B63\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step4_sub_starting: "\u8A2D\u5B9A\u3092\u958B\u59CB\u4E2D\u2026",
+    recipes_step4_title: "\u8A2D\u5B9A\u4E2D",
+    recipes_step5_created_title:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u304C\u4F5C\u6210\u3057\u305F\u3082\u306E",
+    recipes_step5_devices_linked:
+      "\u30EA\u30F3\u30AF\u3055\u308C\u305F\u30C7\u30D0\u30A4\u30B9",
+    recipes_step5_hint:
+      "Home Assistant \u304C\u518D\u8AAD\u307F\u8FBC\u307F\u3055\u308C\u307E\u3057\u305F \u2014 \u30EC\u30B7\u30D4\u304C\u6709\u52B9\u306B\u306A\u308A\u307E\u3057\u305F\u3002",
+    recipes_step5_more_suffix: "\u4EF6",
+    recipes_step5_no_devices:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u306B\u7D10\u3065\u304F\u30C7\u30D0\u30A4\u30B9\u306F\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_step5_no_entries:
+      "\u30A8\u30F3\u30C8\u30EA\u306F\u751F\u6210\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    recipes_step5_safety_checks: "\u5B89\u5168\u6027\u30C1\u30A7\u30C3\u30AF",
+    recipes_step5_sub:
+      "\u30EC\u30B7\u30D4\u304C\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u3001Home Assistant \u304C\u518D\u8AAD\u307F\u8FBC\u307F\u3055\u308C\u307E\u3057\u305F\u3002\u4E0B\u8A18\u3067\u4F5C\u6210\u3055\u308C\u305F\u5185\u5BB9\u3092\u78BA\u8A8D\u3057\u3066\u304B\u3089\u3001\u300C\u5B8C\u4E86\u300D\u3092\u30AF\u30EA\u30C3\u30AF\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step5_title: "\u78BA\u8A8D\u3057\u3066\u5B8C\u4E86",
+    recipes_step_activate: "\u6709\u52B9\u5316",
+    recipes_step_label: "\u30B9\u30C6\u30C3\u30D7",
+    recipes_step_match: "\u7167\u5408",
+    recipes_step_of_5: "\uFF0F5",
+    recipes_step_overview: "\u6982\u8981",
+    recipes_step_set_up: "\u8A2D\u5B9A",
+    recipes_step_settings: "\u8A2D\u5B9A",
+    recipes_system_panel_auto:
+      "\u3053\u306E\u30B9\u30C6\u30C3\u30D7\u306F\u81EA\u52D5\u7684\u306B\u5B9F\u884C\u3055\u308C\u307E\u3059\u3002\u3042\u306A\u305F\u306E\u64CD\u4F5C\u306F\u5FC5\u8981\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_this_recipe_creates:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u304C\u4F5C\u6210\u3059\u308B\u3082\u306E",
+    recipes_uninstall_body:
+      "\u30D1\u30C3\u30B1\u30FC\u30B8\u30D5\u30A1\u30A4\u30EB\u304C\u524A\u9664\u3055\u308C\u3001Home Assistant \u304C\u518D\u8AAD\u307F\u8FBC\u307F\u3055\u308C\u307E\u3059\u3002\u3053\u306E\u30EC\u30B7\u30D4\u304C\u4F5C\u6210\u3057\u305F\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u306F\u524A\u9664\u3055\u308C\u307E\u3059\u3002",
+    recipes_uninstall_confirm_prefix:
+      "\u30A2\u30F3\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
+    recipes_uninstall_integrations_sub:
+      "\u30EC\u30B7\u30D4\u3068\u4E00\u7DD2\u306B\u524A\u9664\u3059\u3079\u304D\u3082\u306E\u306B\u30C1\u30A7\u30C3\u30AF\u3092\u5165\u308C\u3066\u304F\u3060\u3055\u3044\u3002\u30C1\u30A7\u30C3\u30AF\u3092\u5916\u3057\u305F\u3082\u306E\u306F Home Assistant \u306B\u6B8B\u308A\u307E\u3059\u3002",
+    recipes_uninstall_integrations_title:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u304C\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3057\u305F\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3",
+    recipes_uninstall_still_used_by: "\u307E\u3060\u4F7F\u7528\u4E2D\uFF1A",
+    recipes_uninstall_warn_title:
+      "\u3053\u306E\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3059\u308B\u3068\u3001\u305D\u308C\u3089\u306E\u30EC\u30B7\u30D4\u304C\u52D5\u4F5C\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
+    recipes_what_you_need_title: "\u5FC5\u8981\u306A\u3082\u306E",
+    recipes_working: "\u51E6\u7406\u4E2D\u2026",
+    recipes_role_filter_placeholder:
+      "\u540D\u524D\u3067\u7D5E\u308A\u8FBC\u307F\u2026",
+    recipes_role_filter_no_matches:
+      "\u30D5\u30A3\u30EB\u30BF\u30FC\u306B\u4E00\u81F4\u3059\u308B\u30A8\u30F3\u30C6\u30A3\u30C6\u30A3\u304C\u3042\u308A\u307E\u305B\u3093\u3002",
+    recipes_role_show_all: "\u3059\u3079\u3066\u8868\u793A",
+    recipes_role_show_less: "\u8868\u793A\u3092\u6E1B\u3089\u3059",
+    recipes_dashboard_picker_title:
+      "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B\u30AB\u30FC\u30C9\u3092\u8FFD\u52A0",
+    recipes_dashboard_picker_sub:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u306F\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B\u30BF\u30C3\u30D7\u3067\u304D\u308B\u30AB\u30FC\u30C9\u3092\u914D\u7F6E\u3067\u304D\u307E\u3059\u3002\u5834\u6240\u3092\u9078\u3076\u304B\u3001\u30B9\u30AD\u30C3\u30D7\u3057\u3066\u5F8C\u3067\u81EA\u5206\u3067\u8FFD\u52A0\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_dashboard_picker_skip:
+      "\u30AB\u30FC\u30C9\u3092\u8FFD\u52A0\u3057\u306A\u3044",
+    recipes_dashboard_picker_refine:
+      "\u30AB\u30B9\u30BF\u30E0\u30AB\u30FC\u30C9\u304C\u5FC5\u8981\u3067\u3059\u304B\uFF1F\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
+    recipes_step5_dashboard_title:
+      "\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u30AB\u30FC\u30C9",
+    recipes_step5_dashboard_added:
+      "\u30AB\u30FC\u30C9\u304C\u30C0\u30C3\u30B7\u30E5\u30DC\u30FC\u30C9\u306B\u8FFD\u52A0\u3055\u308C\u307E\u3057\u305F\u3002",
+    recipes_step5_dashboard_skipped:
+      "\u30AB\u30FC\u30C9\u306F\u8FFD\u52A0\u3055\u308C\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u81EA\u5206\u3067\u8FFD\u52A0\u3059\u308B\u304B\u3001Selora \u306B\u624B\u4F1D\u3063\u3066\u3082\u3089\u3048\u307E\u3059\u3002",
+    recipes_step5_dashboard_manual:
+      "\u30AB\u30FC\u30C9\u3092\u81EA\u52D5\u3067\u8FFD\u52A0\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u81EA\u5206\u3067\u8FFD\u52A0\u3059\u308B\u304B\u3001Selora \u306B\u624B\u4F1D\u3063\u3066\u3082\u3089\u3063\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_step5_dashboard_customize:
+      "\u30C1\u30E3\u30C3\u30C8\u3067\u30AB\u30B9\u30BF\u30DE\u30A4\u30BA",
+    recipes_step5_dashboard_help: "\u30C1\u30E3\u30C3\u30C8\u3067\u8FFD\u52A0",
+    recipes_refine_chat_failed:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u306E\u30C1\u30E3\u30C3\u30C8\u3092\u958B\u3051\u307E\u305B\u3093\u3067\u3057\u305F\u3002",
+    recipes_step3_hint_blocked:
+      "\u3053\u306E\u30EC\u30B7\u30D4\u306F\u307E\u3060\u6E96\u5099\u3067\u304D\u307E\u305B\u3093\u3002\u30EC\u30B7\u30D4\u306E\u30A8\u30E9\u30FC\u3092\u78BA\u8A8D\u3057\u3066\u304B\u3089\u518D\u8A66\u884C\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    recipes_catalog_empty:
+      "\u3053\u306E\u30AB\u30BF\u30ED\u30B0\u306B\u306F\u307E\u3060\u30EC\u30B7\u30D4\u304C\u3042\u308A\u307E\u305B\u3093\u3002",
   },
   options: {
     step: {
@@ -15858,6 +19490,364 @@ var ko_default = {
     suggestions_pattern_scan_failed:
       "\uD328\uD134 \uC2A4\uCE94\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4",
     area_unassigned: "\uBBF8\uC9C0\uC815",
+    recipes_back_to_overview: "\uAC1C\uC694\uB85C \uB3CC\uC544\uAC00\uAE30",
+    recipes_back_to_recipes:
+      "\uB808\uC2DC\uD53C\uB85C \uB3CC\uC544\uAC00\uAE30",
+    recipes_bucket_completed: "\uC644\uB8CC\uB428",
+    recipes_bucket_failed: "\uC2E4\uD328",
+    recipes_bucket_in_progress: "\uC9C4\uD589 \uC911",
+    recipes_bucket_install_failed: "\uC124\uCE58 \uC2E4\uD328",
+    recipes_bucket_no_details:
+      "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC138\uBD80 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uADFC\uBCF8 \uC624\uB958\uB294 Home Assistant \uB85C\uADF8\uB97C \uD655\uC778\uD558\uC138\uC694.",
+    recipes_bucket_up_next: "\uB2E4\uC74C \uCC28\uB840",
+    recipes_bucket_waiting_for_you: "\uC0AC\uC6A9\uC790 \uB300\uAE30 \uC911",
+    recipes_card_configure_button: "\uAD6C\uC131",
+    recipes_card_in_progress_step: "\uC9C4\uD589 \uC911 \xB7 \uB2E8\uACC4",
+    recipes_card_install_button: "\uC124\uCE58",
+    recipes_card_installed_badge: "\uC124\uCE58\uB428",
+    recipes_card_manage_devices_button: "\uAE30\uAE30 \uAD00\uB9AC",
+    recipes_card_manage_devices_title:
+      "\uB9C8\uBC95\uC0AC\uB97C \uB2E4\uC2DC \uC2E4\uD589\uD558\uC9C0 \uC54A\uACE0 \uC774 \uB808\uC2DC\uD53C\uAC00 \uC0AC\uC6A9\uD558\uB294 \uAE30\uAE30\uB97C \uAD50\uCCB4\uD558\uAC70\uB098 \uC5C5\uB370\uC774\uD2B8\uD569\uB2C8\uB2E4",
+    recipes_card_resume_button: "\uC7AC\uAC1C",
+    recipes_card_start_over_button: "\uCC98\uC74C\uBD80\uD130 \uB2E4\uC2DC",
+    recipes_card_start_over_title:
+      "\uC800\uC7A5\uB41C \uC9C4\uD589 \uC0C1\uD669\uC744 \uBC84\uB9AC\uACE0 \uB9C8\uBC95\uC0AC\uB97C \uCC98\uC74C\uBD80\uD130 \uC2DC\uC791\uD569\uB2C8\uB2E4",
+    recipes_card_uninstall_button: "\uC81C\uAC70",
+    recipes_catalog_fetching:
+      "\uCE74\uD0C8\uB85C\uADF8\uB97C \uAC00\uC838\uC624\uB294 \uC911\u2026",
+    recipes_catalog_no_matches_prefix:
+      "\uC77C\uCE58\uD558\uB294 \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4:",
+    recipes_catalog_search_placeholder: "\uB808\uC2DC\uD53C \uAC80\uC0C9\u2026",
+    recipes_catalog_set_url_title:
+      "\uCE74\uD0C8\uB85C\uADF8 URL \uC124\uC815 (\uAC1C\uBC1C / \uC2A4\uD14C\uC774\uC9D5)",
+    recipes_catalog_source_overridden:
+      "\uCE74\uD0C8\uB85C\uADF8 \uC18C\uC2A4\uAC00 \uC7AC\uC815\uC758\uB418\uC5C8\uC2B5\uB2C8\uB2E4:",
+    recipes_catalog_unreachable:
+      "\uB808\uC2DC\uD53C \uCE74\uD0C8\uB85C\uADF8\uC5D0 \uC5F0\uACB0\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4:",
+    recipes_catalog_url_prompt:
+      "\uCE74\uD0C8\uB85C\uADF8 URL (selorahomes.com\uC73C\uB85C \uC7AC\uC124\uC815\uD558\uB824\uBA74 \uBE44\uC6CC \uB450\uC138\uC694):",
+    recipes_catalog_using_override: "\uC7AC\uC815\uC758 \uC0AC\uC6A9 \uC911:",
+    recipes_catalog_will_load:
+      "\uC5EC\uAE30\uC5D0 \uCE74\uD0C8\uB85C\uADF8\uAC00 \uB85C\uB4DC\uB429\uB2C8\uB2E4.",
+    recipes_continue_button: "\uACC4\uC18D",
+    recipes_details_copy_path_title: "\uACBD\uB85C \uBCF5\uC0AC",
+    recipes_details_devices_key: "\uAE30\uAE30",
+    recipes_details_installed_on: "\uC124\uCE58\uB428",
+    recipes_details_integrations_key: "\uD1B5\uD569",
+    recipes_details_no_bound_devices:
+      "\uC5F0\uACB0\uB41C \uAE30\uAE30 \uC5C6\uC74C",
+    recipes_details_none_selected_optional:
+      "\uC120\uD0DD \uC548 \uD568 (\uC120\uD0DD \uC0AC\uD56D)",
+    recipes_details_settings_key: "\uC124\uC815",
+    recipes_details_summary: "\uC138\uBD80 \uC815\uBCF4",
+    recipes_details_version_key: "\uBC84\uC804",
+    recipes_details_where_key: "\uC704\uCE58",
+    recipes_eyebrow_recipe: "\uB808\uC2DC\uD53C",
+    recipes_eyebrow_released: "\uCD9C\uC2DC\uC77C",
+    recipes_field_optional: "(\uC120\uD0DD \uC0AC\uD56D)",
+    recipes_finish_button: "\uC644\uB8CC",
+    recipes_flow_cancel: "\uCDE8\uC18C",
+    recipes_flow_continue: "\uACC4\uC18D",
+    recipes_footer_back: "\uB4A4\uB85C",
+    recipes_footer_cancel: "\uCDE8\uC18C",
+    recipes_inputs_panel_title: "\uB808\uC2DC\uD53C \uC124\uC815",
+    recipes_install_accepts: "\uD5C8\uC6A9 \uD615\uC2DD",
+    recipes_install_bom_note:
+      "\uC5B4\uB5A4 \uAC83\uB3C4 \uC124\uCE58\uB418\uAE30 \uC804\uC5D0 \uC790\uC7AC \uBA85\uC138\uC11C\uAC00 \uC9D1\uACFC \uB300\uC870 \uD655\uC778\uB429\uB2C8\uB2E4.",
+    recipes_install_click_to_choose:
+      "\uD074\uB9AD\uD558\uC5EC \uD30C\uC77C \uC120\uD0DD",
+    recipes_install_drop_here:
+      "\uB808\uC2DC\uD53C \uC544\uCE74\uC774\uBE0C\uB97C \uC5EC\uAE30\uC5D0 \uB4DC\uB86D\uD558\uC138\uC694",
+    recipes_install_drop_to_upload:
+      "\uB4DC\uB86D\uD558\uC5EC \uC5C5\uB85C\uB4DC",
+    recipes_install_failed_button: "\uC124\uCE58 \uC2E4\uD328",
+    recipes_install_fetch_button: "\uAC00\uC838\uC624\uAE30",
+    recipes_install_fetching: "\uAC00\uC838\uC624\uB294 \uC911\u2026",
+    recipes_install_from_url_label: "URL\uC5D0\uC11C \uC124\uCE58",
+    recipes_install_or: "\uB610\uB294",
+    recipes_install_or_lower: "\uB610\uB294",
+    recipes_install_source_hint:
+      "\uB2E4\uB978 \uACF3\uC5D0\uC11C \uAC00\uC838\uC628 \uB808\uC2DC\uD53C\uAC00 \uC788\uB098\uC694? \uC5EC\uAE30\uC5D0 \uCD94\uAC00\uD558\uC138\uC694.",
+    recipes_install_source_summary:
+      "URL \uB610\uB294 \uD30C\uC77C\uC5D0\uC11C \uC124\uCE58",
+    recipes_install_unsupported_file_prefix:
+      "\uC9C0\uC6D0\uB418\uC9C0 \uC54A\uB294 \uD30C\uC77C:",
+    recipes_install_unsupported_file_suffix:
+      ".tar.gz, .tgz \uB610\uB294 .zip \uC544\uCE74\uC774\uBE0C\uB97C \uC0AC\uC6A9\uD558\uC138\uC694.",
+    recipes_install_upload_label:
+      "\uC774 \uAE30\uAE30\uC5D0\uC11C \uC5C5\uB85C\uB4DC",
+    recipes_install_uploading: "\uC5C5\uB85C\uB4DC \uC911\u2026",
+    recipes_integration_autosetup_prose:
+      "\uC740(\uB294) Home Assistant \uC704\uCE58\uB97C \uC0AC\uC6A9\uD558\uC5EC \uC790\uB3D9\uC73C\uB85C \uC124\uC815\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uB2F5\uBCC0\uD560 \uC9C8\uBB38\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_integration_entry_label: "\uD56D\uBAA9:",
+    recipes_integration_manage_anytime:
+      "\uC774 \uD1B5\uD569\uC740 \uC124\uC815 \u2192 \uAE30\uAE30 \uBC0F \uC11C\uBE44\uC2A4\uC5D0\uC11C \uC5B8\uC81C\uB4E0\uC9C0 \uAD00\uB9AC\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    recipes_integration_needs_setup_prose:
+      "\uC740(\uB294) \uC774 \uB808\uC2DC\uD53C\uB97C \uC124\uCE58\uD558\uAE30 \uC804\uC5D0 \uC124\uC815\uD574\uC57C \uD569\uB2C8\uB2E4. \uC774 \uD398\uC774\uC9C0\uB97C \uB5A0\uB098\uC9C0 \uC54A\uACE0 \uC2DC\uC791\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    recipes_integration_open_in_ha: "HA\uC5D0\uC11C \uC5F4\uAE30",
+    recipes_integration_open_in_ha_settings:
+      "HA \uC124\uC815\uC5D0\uC11C \uC5F4\uAE30",
+    recipes_integration_ready:
+      "\uC740(\uB294) \uC124\uC815\uB418\uC5B4 \uC0AC\uC6A9\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    recipes_integration_setup_auto_button:
+      "\uC790\uB3D9\uC73C\uB85C \uC124\uC815",
+    recipes_integration_setup_failed:
+      "\uC124\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uAC70\uB098 HA \uC124\uC815 \uD398\uC774\uC9C0\uB97C \uC0AC\uC6A9\uD558\uC138\uC694.",
+    recipes_integration_setup_prefix: "\uC124\uC815",
+    recipes_integration_try_again: "\uB2E4\uC2DC \uC2DC\uB3C4",
+    recipes_integration_was_set_up:
+      "\uC774(\uAC00) \uC124\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4. Selora\uAC00 \uC790\uB3D9\uC73C\uB85C \uB808\uC2DC\uD53C\uB97C \uB2E4\uC2DC \uD655\uC778\uD569\uB2C8\uB2E4.",
+    recipes_list_check_updates_button: "\uC5C5\uB370\uC774\uD2B8 \uD655\uC778",
+    recipes_list_check_updates_title:
+      "selorahomes.com\uC5D0\uC11C \uC0C8\uB85C\uC6B4 \uB808\uC2DC\uD53C\uC640 \uC5C5\uB370\uC774\uD2B8\uB41C \uB808\uC2DC\uD53C\uB97C \uD655\uC778\uD569\uB2C8\uB2E4",
+    recipes_list_checking: "\uD655\uC778 \uC911\u2026",
+    recipes_list_installed_missing_bundle:
+      "\uC124\uCE58\uB428 (\uB514\uC2A4\uD06C\uC5D0 \uBC88\uB4E4 \uC5C6\uC74C)",
+    recipes_list_intro:
+      "\uB808\uC2DC\uD53C\uB294 \uD55C \uB2E8\uACC4\uB85C \uC124\uCE58\uD558\uB294 \uBBF8\uB9AC \uB9CC\uB4E4\uC5B4\uC9C4 \uC790\uB3D9\uD654\uC785\uB2C8\uB2E4 \u2014 \uB204\uC218 \uCC28\uB2E8, \uCDE8\uCE68 \uB8E8\uD2F4, \uD1A0\uB124\uC774\uB3C4 \uACBD\uBCF4 \uB4F1. Selora\uAC00 \uAC01 \uB808\uC2DC\uD53C\uB97C \uC9D1\uC758 \uAE30\uAE30\uC640 \uB300\uC870\uD558\uC5EC \uD655\uC778\uD55C \uB2E4\uC74C \uC0AC\uC6A9\uC790\uB97C \uC704\uD574 \uC5F0\uACB0\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C \uD558\uB098\uB97C \uC120\uD0DD\uD558\uC5EC \uC2DC\uC791\uD558\uC138\uC694.",
+    recipes_list_on_this_device: "\uC124\uCE58\uB428",
+    recipes_list_package_label: "\uD328\uD0A4\uC9C0:",
+    recipes_list_title: "\uB808\uC2DC\uD53C",
+    recipes_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    recipes_loading_recipe:
+      "\uB808\uC2DC\uD53C \uBD88\uB7EC\uC624\uB294 \uC911\u2026",
+    recipes_manage_intro:
+      "\uAC01 \uC5ED\uD560\uC744 \uB4B7\uBC1B\uCE68\uD558\uB294 \uC5D4\uD130\uD2F0\uB97C \uC5C5\uB370\uC774\uD2B8\uD558\uC138\uC694. \uC989\uC2DC \uC800\uC7A5\uB429\uB2C8\uB2E4 \u2014 \uC790\uB3D9\uD654\uB294 \uB2E4\uC2DC \uB80C\uB354\uB9C1\uB418\uC9C0 \uC54A\uC73C\uBA70 \uADF8\uB8F9 \uAD6C\uC131\uC6D0\uB9CC \uBCC0\uACBD\uB429\uB2C8\uB2E4.",
+    recipes_manage_no_detail:
+      "\uC0AC\uC6A9 \uAC00\uB2A5\uD55C \uC138\uBD80 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_manage_no_entities_prefix: "\uC774 \uC9D1\uC5D0\uC11C",
+    recipes_manage_no_entities_suffix:
+      "\uC5D4\uD130\uD2F0\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_manage_save: "\uC800\uC7A5",
+    recipes_manage_saving: "\uC800\uC7A5 \uC911\u2026",
+    recipes_match_col_item: "\uD56D\uBAA9",
+    recipes_match_col_selected: "\uC120\uD0DD\uB428",
+    recipes_match_col_status: "\uC0C1\uD0DC",
+    recipes_match_nothing:
+      "\uC77C\uCE58\uC2DC\uD0AC \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uC774 \uB808\uC2DC\uD53C\uB294 \uAE30\uAE30 \uC124\uC815 \uC5C6\uC774 \uC2E4\uD589\uB429\uB2C8\uB2E4.",
+    recipes_match_scanning:
+      "\uC9D1\uC744 \uC2A4\uCE94\uD558\uB294 \uC911\u2026",
+    recipes_match_status_error: "\uC624\uB958",
+    recipes_match_status_needs_setup: "\uC124\uC815 \uD544\uC694",
+    recipes_match_status_optional: "\uC120\uD0DD \uC0AC\uD56D",
+    recipes_match_status_ready: "\uC900\uBE44\uB428",
+    recipes_match_status_waiting: "\uB300\uAE30 \uC911",
+    recipes_match_status_working: "\uCC98\uB9AC \uC911",
+    recipes_optional_eyebrow: "\uC120\uD0DD \uC0AC\uD56D",
+    recipes_pair_hue_action:
+      "Hue \uC571 \uB610\uB294 \uC124\uC815 \uD398\uC774\uC9C0\uB97C \uC0AC\uC6A9\uD558\uC5EC \uC774 \uC804\uAD6C\uB97C Hue Bridge\uC5D0 \uD398\uC5B4\uB9C1\uD558\uC138\uC694.",
+    recipes_pair_hue_cta: "Hue \uC124\uC815 \uC5F4\uAE30",
+    recipes_pair_matter_action:
+      "Matter \uC124\uC815 \uD398\uC774\uC9C0\uC5D0\uC11C \uD398\uC5B4\uB9C1 \uCF54\uB4DC\uB85C \uC774 Matter \uAE30\uAE30\uB97C \uB4F1\uB85D\uD558\uC138\uC694.",
+    recipes_pair_matter_cta: "Matter \uC124\uC815 \uC5F4\uAE30",
+    recipes_pair_mqtt_action:
+      "\uC774 MQTT \uAE30\uAE30\uB97C \uC628\uB77C\uC778 \uC0C1\uD0DC\uB85C \uB9CC\uB4E4\uC5B4 \uAD6C\uC131\uB41C \uD1A0\uD53D\uC5D0 \uAC8C\uC2DC\uD558\uB3C4\uB85D \uD558\uC138\uC694.",
+    recipes_pair_mqtt_cta: "MQTT \uC124\uC815 \uC5F4\uAE30",
+    recipes_pair_zha_action:
+      "ZHA \uC124\uC815 \uD398\uC774\uC9C0\uB97C \uC5F4\uACE0 \uCF54\uB514\uB124\uC774\uD130\uB97C \uD398\uC5B4\uB9C1 \uBAA8\uB4DC\uB85C \uC804\uD658\uD558\uC5EC \uC774 \uAE30\uAE30\uB97C \uCD94\uAC00\uD558\uC138\uC694.",
+    recipes_pair_zha_cta: "ZHA \uC124\uC815 \uC5F4\uAE30",
+    recipes_pair_zwave_action:
+      "\uC124\uC815 \uD398\uC774\uC9C0\uC5D0\uC11C Z-Wave \uD3EC\uD568\uC744 \uC2DC\uC791\uD558\uC5EC \uC774 \uAE30\uAE30\uB97C \uCD94\uAC00\uD558\uC138\uC694.",
+    recipes_pair_zwave_cta: "Z-Wave \uC124\uC815 \uC5F4\uAE30",
+    recipes_pin_check_now: "\uC9C0\uAE08 \uD655\uC778",
+    recipes_pin_default_action:
+      "\uC774 \uAE30\uAE30\uB97C Home Assistant\uC5D0 \uCD94\uAC00\uD558\uC138\uC694. Selora\uAC00 \uC790\uB3D9\uC73C\uB85C \uAC10\uC9C0\uD569\uB2C8\uB2E4.",
+    recipes_pin_expected_entity: "\uC608\uC0C1 \uC5D4\uD130\uD2F0 ID:",
+    recipes_pin_open_ha_integrations: "HA \uD1B5\uD569 \uC5F4\uAE30",
+    recipes_pin_open_setup_prefix: "\uC5F4\uAE30",
+    recipes_pin_open_setup_suffix: "\uC124\uC815",
+    recipes_pin_tip:
+      "\uD301: \uC774 \uD0ED\uC744 \uC5F4\uC5B4 \uB450\uC138\uC694. \uAE30\uAE30\uAC00 \uD398\uC5B4\uB9C1\uB418\uBA74 \uC774 \uB2E8\uACC4\uAC00 \uC790\uB3D9\uC73C\uB85C \uC644\uB8CC\uB429\uB2C8\uB2E4 \u2014 \uC5EC\uAE30\uC11C \uC544\uBB34\uAC83\uB3C4 \uD074\uB9AD\uD560 \uD544\uC694\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_progress_title: "\uC9C4\uD589 \uC0C1\uD669",
+    recipes_punch_list_title: "\uD560 \uC77C \uBAA9\uB85D",
+    recipes_required_eyebrow: "\uD544\uC218",
+    recipes_result_advanced: "\uACE0\uAE09",
+    recipes_result_fix_retry:
+      "\uC544\uB798 \uD56D\uBAA9\uC744 \uC218\uC815\uD55C \uB2E4\uC74C \uB808\uC2DC\uD53C\uB97C \uB2E4\uC2DC \uC5F4\uC5B4 \uC7AC\uC2DC\uB3C4\uD558\uC138\uC694.",
+    recipes_result_halted_at_stage:
+      "\uB2E4\uC74C \uB2E8\uACC4\uC5D0\uC11C \uC124\uCE58\uAC00 \uC911\uB2E8\uB418\uC5C8\uC2B5\uB2C8\uB2E4:",
+    recipes_result_install_complete: "\uC124\uCE58 \uC644\uB8CC",
+    recipes_result_installed_reloaded:
+      "\uC774(\uAC00) \uC124\uCE58\uB418\uC5C8\uACE0 Home Assistant\uAC00 \uB2E4\uC2DC \uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uD328\uD0A4\uC9C0 \uD30C\uC77C:",
+    recipes_result_view_yaml:
+      "\uC0DD\uC131\uB41C \uD328\uD0A4\uC9C0 YAML \uBCF4\uAE30",
+    recipes_role_check_again: "\uB2E4\uC2DC \uD655\uC778",
+    recipes_role_empty_add_device: "HA\uC5D0\uC11C \uAE30\uAE30 \uCD94\uAC00",
+    recipes_role_empty_at_least: "\uCD5C\uC18C",
+    recipes_role_empty_none_prefix: "\uC544\uC9C1 \uC9D1\uC5D0",
+    recipes_role_empty_none_suffix: "\uC774(\uAC00) \uC5C6\uC2B5\uB2C8\uB2E4",
+    recipes_role_empty_one_prose:
+      "\uD558\uB098\uB97C \uCD94\uAC00\uD558\uBA74 \uC5EC\uAE30\uC5D0 \uC790\uB3D9\uC73C\uB85C \uB098\uD0C0\uB0A9\uB2C8\uB2E4 \u2014 \uC774 \uD398\uC774\uC9C0\uB97C \uB5A0\uB098 \uAE30\uAE30\uB97C \uCD94\uAC00\uD560 \uC218 \uC788\uC73C\uBA70 \uB9C8\uBC95\uC0AC\uB294 \uB4A4\uB85C \uAC00\uAE30\uC5D0\uC11C \uC9C4\uD589 \uC0C1\uD669\uC744 \uC720\uC9C0\uD569\uB2C8\uB2E4.",
+    recipes_role_empty_pair: "\uD398\uC5B4\uB9C1",
+    recipes_role_filter_device_noun: "\uAE30\uAE30",
+    recipes_role_filter_sensor_noun: "\uC13C\uC11C",
+    recipes_role_pick_one_or_more: "\uD558\uB098 \uC774\uC0C1 \uC120\uD0DD",
+    recipes_role_pick_prefix: "\uC120\uD0DD:",
+    recipes_role_pinned_count_suffix:
+      "\uC740(\uB294) \uB808\uC2DC\uD53C\uC5D0 \uACE0\uC815\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4 (\uD56D\uC0C1 \uD3EC\uD568\uB428).",
+    recipes_role_run_against:
+      "Selora\uB294 \uC120\uD0DD\uD55C \uD56D\uBAA9\uC5D0 \uB300\uD574 \uB808\uC2DC\uD53C\uB97C \uC2E4\uD589\uD569\uB2C8\uB2E4.",
+    recipes_role_up_to: "\uCD5C\uB300",
+    recipes_safety_automations_generated:
+      "\uC0DD\uC131\uB41C \uC790\uB3D9\uD654",
+    recipes_safety_install_incomplete: "\uC124\uCE58 \uBBF8\uC644\uB8CC",
+    recipes_safety_installed_ok:
+      "\uB808\uC2DC\uD53C\uAC00 \uC131\uACF5\uC801\uC73C\uB85C \uC124\uCE58\uB418\uC5C8\uC2B5\uB2C8\uB2E4",
+    recipes_safety_issues_to_address:
+      "\uAC1C\uC758 \uCC98\uB9AC\uD560 \uBB38\uC81C",
+    recipes_safety_no_artifacts:
+      "\uC0DD\uC131\uB41C \uC544\uD2F0\uD329\uD2B8 \uC5C6\uC74C",
+    recipes_safety_no_issues: "\uBBF8\uD574\uACB0 \uBB38\uC81C \uC5C6\uC74C",
+    recipes_section_automation_plural: "\uC790\uB3D9\uD654",
+    recipes_section_automation_singular: "\uC790\uB3D9\uD654",
+    recipes_section_binary_sensor_plural:
+      "\uBC14\uC774\uB108\uB9AC \uC13C\uC11C",
+    recipes_section_binary_sensor_singular:
+      "\uBC14\uC774\uB108\uB9AC \uC13C\uC11C",
+    recipes_section_climate_plural: "\uB0C9\uB09C\uBC29 \uC5D4\uD130\uD2F0",
+    recipes_section_climate_singular: "\uB0C9\uB09C\uBC29 \uC5D4\uD130\uD2F0",
+    recipes_section_counter_plural: "\uCE74\uC6B4\uD130",
+    recipes_section_counter_singular: "\uCE74\uC6B4\uD130",
+    recipes_section_cover_plural: "\uCEE4\uBC84",
+    recipes_section_cover_singular: "\uCEE4\uBC84",
+    recipes_section_customisation_plural: "\uC0AC\uC6A9\uC790 \uC9C0\uC815",
+    recipes_section_customisation_singular: "\uC0AC\uC6A9\uC790 \uC9C0\uC815",
+    recipes_section_group_plural: "\uADF8\uB8F9",
+    recipes_section_group_singular: "\uADF8\uB8F9",
+    recipes_section_helper_plural: "\uD5EC\uD37C",
+    recipes_section_helper_singular: "\uD5EC\uD37C",
+    recipes_section_light_plural: "\uC870\uBA85",
+    recipes_section_light_singular: "\uC870\uBA85",
+    recipes_section_media_player_plural:
+      "\uBBF8\uB514\uC5B4 \uD50C\uB808\uC774\uC5B4",
+    recipes_section_media_player_singular:
+      "\uBBF8\uB514\uC5B4 \uD50C\uB808\uC774\uC5B4",
+    recipes_section_notify_plural: "\uC54C\uB9AC\uBBF8",
+    recipes_section_notify_singular: "\uC54C\uB9AC\uBBF8",
+    recipes_section_rest_command_plural: "REST \uBA85\uB839",
+    recipes_section_rest_command_singular: "REST \uBA85\uB839",
+    recipes_section_scene_plural: "\uC7A5\uBA74",
+    recipes_section_scene_singular: "\uC7A5\uBA74",
+    recipes_section_script_plural: "\uC2A4\uD06C\uB9BD\uD2B8",
+    recipes_section_script_singular: "\uC2A4\uD06C\uB9BD\uD2B8",
+    recipes_section_sensor_plural: "\uC13C\uC11C",
+    recipes_section_sensor_singular: "\uC13C\uC11C",
+    recipes_section_shell_command_plural: "\uC178 \uBA85\uB839",
+    recipes_section_shell_command_singular: "\uC178 \uBA85\uB839",
+    recipes_section_switch_plural: "\uC2A4\uC704\uCE58",
+    recipes_section_switch_singular: "\uC2A4\uC704\uCE58",
+    recipes_section_template_plural: "\uD15C\uD50C\uB9BF \uC5D4\uD130\uD2F0",
+    recipes_section_template_singular: "\uD15C\uD50C\uB9BF \uC5D4\uD130\uD2F0",
+    recipes_section_timer_plural: "\uD0C0\uC774\uBA38",
+    recipes_section_timer_singular: "\uD0C0\uC774\uBA38",
+    recipes_selected_awaiting_pair: "\uD398\uC5B4\uB9C1 \uB300\uAE30 \uC911",
+    recipes_selected_entities_suffix: "\uC5D4\uD130\uD2F0",
+    recipes_selected_none: "\uC5C6\uC74C",
+    recipes_selected_setting_plural: "\uC124\uC815",
+    recipes_selected_setting_singular: "\uC124\uC815",
+    recipes_setting_up_button: "\uC124\uC815 \uC911\u2026",
+    recipes_stage_apply: "\uC801\uC6A9",
+    recipes_stage_configure: "\uAD6C\uC131",
+    recipes_stage_prepare: "\uC900\uBE44",
+    recipes_stage_unknown: "\uC54C \uC218 \uC5C6\uC74C",
+    recipes_start_setup_button: "\uC124\uC815 \uC2DC\uC791",
+    recipes_status_done: "\uC644\uB8CC",
+    recipes_status_failed: "\uC2E4\uD328",
+    recipes_status_needs_you: "\uC0AC\uC6A9\uC790 \uD544\uC694",
+    recipes_status_pending: "\uBCF4\uB958 \uC911",
+    recipes_status_running: "\uC2E4\uD589 \uC911",
+    recipes_status_skipped: "\uAC74\uB108\uB700",
+    recipes_step2_sub:
+      "\uB808\uC2DC\uD53C \uC804\uCCB4 \uD658\uACBD\uC124\uC815\uC785\uB2C8\uB2E4. \uAE30\uBCF8\uAC12\uC774 \uBBF8\uB9AC \uCC44\uC6CC\uC838 \uC788\uC2B5\uB2C8\uB2E4. \uBCC0\uACBD\uD558\uACE0 \uC2F6\uC740 \uD56D\uBAA9\uB9CC \uC870\uC815\uD55C \uB2E4\uC74C \uACC4\uC18D\uC744 \uB204\uB974\uC138\uC694.",
+    recipes_step2_sub_empty:
+      "\uC774 \uB808\uC2DC\uD53C\uC5D0\uB294 \uAD6C\uC131\uD560 \uC124\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uACC4\uC18D\uC744 \uD074\uB9AD\uD558\uC138\uC694.",
+    recipes_step2_title: "\uB808\uC2DC\uD53C \uC124\uC815",
+    recipes_step3_hint_finish:
+      "\u201C\uC124\uC815 \uD544\uC694\u201D\uB77C\uACE0 \uD45C\uC2DC\uB41C \uD589\uC744 \uC644\uB8CC\uD558\uC5EC \uACC4\uC18D\uD558\uC138\uC694.",
+    recipes_step3_hint_ready:
+      "\uC88B\uC2B5\uB2C8\uB2E4 \u2014 \uC124\uC815\uD560 \uC900\uBE44\uAC00 \uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    recipes_step3_sub:
+      "\uC544\uB798 \uAC01 \uD56D\uBAA9\uC744 \uC9D1\uC758 \uC5D4\uD130\uD2F0\uC640 \uD398\uC5B4\uB9C1\uD558\uC138\uC694. \uD589\uC744 \uD074\uB9AD\uD558\uC5EC \uC124\uC815\uD558\uC138\uC694.",
+    recipes_step3_title: "\uAE30\uAE30 \uB9E4\uCE6D",
+    recipes_step4_hint_failed:
+      "\uB4A4\uB85C\uB97C \uB20C\uB7EC \uC120\uD0DD\uC744 \uC218\uC815\uD55C \uB2E4\uC74C \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    recipes_step4_hint_something_failed:
+      "\uBB38\uC81C\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4 \u2014 \uB3CC\uC544\uAC00\uC11C \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    recipes_step4_sub_busy:
+      "Selora\uAC00 \uB808\uC2DC\uD53C\uB97C \uC124\uCE58\uD558\uACE0 \uC788\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC\uB9CC \uAE30\uB2E4\uB9AC\uC138\uC694 \u2014 \uBA87 \uCD08\uBC16\uC5D0 \uAC78\uB9AC\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    recipes_step4_sub_done:
+      "\uBAA8\uB450 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uACC4\uC18D\uC744 \uD074\uB9AD\uD558\uC5EC \uC124\uCE58\uB41C \uD56D\uBAA9\uC744 \uAC80\uD1A0\uD558\uC138\uC694.",
+    recipes_step4_sub_halted_prefix: "\uC124\uCE58\uAC00",
+    recipes_step4_sub_halted_suffix:
+      "\uB2E8\uACC4\uC5D0\uC11C \uC911\uB2E8\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uB3CC\uC544\uAC00\uC11C \uC544\uB798 \uBB38\uC81C\uB97C \uC218\uC815\uD558\uC138\uC694.",
+    recipes_step4_sub_starting: "\uC124\uC815 \uC2DC\uC791 \uC911\u2026",
+    recipes_step4_title: "\uC124\uC815 \uC911",
+    recipes_step5_created_title:
+      "\uC774 \uB808\uC2DC\uD53C\uAC00 \uC0DD\uC131\uD55C \uD56D\uBAA9",
+    recipes_step5_devices_linked: "\uC5F0\uACB0\uB41C \uAE30\uAE30",
+    recipes_step5_hint:
+      "Home Assistant\uAC00 \uB2E4\uC2DC \uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4 \u2014 \uB808\uC2DC\uD53C\uAC00 \uD65C\uC131\uD654\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    recipes_step5_more_suffix: "\uAC1C \uB354",
+    recipes_step5_no_devices:
+      "\uC774 \uB808\uC2DC\uD53C\uC5D0 \uC5F0\uACB0\uB41C \uAE30\uAE30\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_step5_no_entries:
+      "\uC0DD\uC131\uB41C \uD56D\uBAA9\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_step5_safety_checks: "\uC548\uC804 \uC810\uAC80",
+    recipes_step5_sub:
+      "\uB808\uC2DC\uD53C\uAC00 \uC124\uCE58\uB418\uC5C8\uACE0 Home Assistant\uAC00 \uB2E4\uC2DC \uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C \uC0DD\uC131\uB41C \uD56D\uBAA9\uC744 \uAC80\uD1A0\uD55C \uB2E4\uC74C \uC644\uB8CC\uB97C \uD074\uB9AD\uD558\uC138\uC694.",
+    recipes_step5_title: "\uAC80\uD1A0 \uBC0F \uC644\uB8CC",
+    recipes_step_activate: "\uD65C\uC131\uD654",
+    recipes_step_label: "\uB2E8\uACC4",
+    recipes_step_match: "\uB9E4\uCE6D",
+    recipes_step_of_5: "/ 5",
+    recipes_step_overview: "\uAC1C\uC694",
+    recipes_step_set_up: "\uC124\uC815",
+    recipes_step_settings: "\uC124\uC815",
+    recipes_system_panel_auto:
+      "\uC774 \uB2E8\uACC4\uB294 \uC790\uB3D9\uC73C\uB85C \uC2E4\uD589\uB429\uB2C8\uB2E4. \uC0AC\uC6A9\uC790\uC758 \uC870\uCE58\uAC00 \uD544\uC694\uD558\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.",
+    recipes_this_recipe_creates:
+      "\uC774 \uB808\uC2DC\uD53C\uAC00 \uC0DD\uC131\uD569\uB2C8\uB2E4",
+    recipes_uninstall_body:
+      "\uD328\uD0A4\uC9C0 \uD30C\uC77C\uC774 \uC0AD\uC81C\uB418\uACE0 Home Assistant\uAC00 \uB2E4\uC2DC \uB85C\uB4DC\uB429\uB2C8\uB2E4. \uC774 \uB808\uC2DC\uD53C\uAC00 \uC0DD\uC131\uD55C \uC790\uB3D9\uD654\uB294 \uC81C\uAC70\uB429\uB2C8\uB2E4.",
+    recipes_uninstall_confirm_prefix: "\uC81C\uAC70",
+    recipes_uninstall_integrations_sub:
+      "\uB808\uC2DC\uD53C\uC640 \uD568\uAED8 \uC81C\uAC70\uD560 \uD56D\uBAA9\uC5D0 \uCCB4\uD06C\uD558\uC138\uC694. \uCCB4\uD06C\uD558\uC9C0 \uC54A\uC740 \uD56D\uBAA9\uC740 Home Assistant\uC5D0 \uADF8\uB300\uB85C \uC720\uC9C0\uB429\uB2C8\uB2E4.",
+    recipes_uninstall_integrations_title:
+      "\uC774 \uB808\uC2DC\uD53C\uAC00 \uC124\uCE58\uD55C \uD1B5\uD569",
+    recipes_uninstall_still_used_by: "\uC5EC\uC804\uD788 \uC0AC\uC6A9 \uC911:",
+    recipes_uninstall_warn_title:
+      "\uC774 \uD1B5\uD569\uC744 \uC81C\uAC70\uD558\uBA74 \uD574\uB2F9 \uB808\uC2DC\uD53C\uAC00 \uC791\uB3D9\uD558\uC9C0 \uC54A\uAC8C \uB429\uB2C8\uB2E4.",
+    recipes_what_you_need_title: "\uD544\uC694\uD55C \uAC83",
+    recipes_working: "\uCC98\uB9AC \uC911\u2026",
+    recipes_role_filter_placeholder:
+      "\uC774\uB984\uC73C\uB85C \uD544\uD130\u2026",
+    recipes_role_filter_no_matches:
+      "\uD544\uD130\uC640 \uC77C\uCE58\uD558\uB294 \uC5D4\uD130\uD2F0\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_role_show_all: "\uBAA8\uB450 \uD45C\uC2DC",
+    recipes_role_show_less: "\uAC04\uB7B5\uD788 \uD45C\uC2DC",
+    recipes_dashboard_picker_title:
+      "\uB300\uC2DC\uBCF4\uB4DC\uC5D0 \uCE74\uB4DC \uCD94\uAC00",
+    recipes_dashboard_picker_sub:
+      "\uC774 \uB808\uC2DC\uD53C\uB294 \uD0ED\uD560 \uC218 \uC788\uB294 \uCE74\uB4DC\uB97C \uB300\uC2DC\uBCF4\uB4DC\uC5D0 \uCD94\uAC00\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4. \uC704\uCE58\uB97C \uC120\uD0DD\uD558\uAC70\uB098 \uAC74\uB108\uB6F0\uACE0 \uB098\uC911\uC5D0 \uC9C1\uC811 \uCD94\uAC00\uD558\uC138\uC694.",
+    recipes_dashboard_picker_skip: "\uCE74\uB4DC \uCD94\uAC00 \uC548 \uD568",
+    recipes_dashboard_picker_refine:
+      "\uB9DE\uCDA4 \uCE74\uB4DC\uAC00 \uD544\uC694\uD558\uC138\uC694? \uCC44\uD305\uC5D0\uC11C \uB2E4\uB4EC\uAE30",
+    recipes_step5_dashboard_title: "\uB300\uC2DC\uBCF4\uB4DC \uCE74\uB4DC",
+    recipes_step5_dashboard_added:
+      "\uB300\uC2DC\uBCF4\uB4DC\uC5D0 \uCE74\uB4DC\uAC00 \uCD94\uAC00\uB418\uC5C8\uC2B5\uB2C8\uB2E4.",
+    recipes_step5_dashboard_skipped:
+      "\uCE74\uB4DC\uAC00 \uCD94\uAC00\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC9C1\uC811 \uCD94\uAC00\uD558\uAC70\uB098 Selora\uC758 \uB3C4\uC6C0\uC744 \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.",
+    recipes_step5_dashboard_manual:
+      "\uCE74\uB4DC\uB97C \uC790\uB3D9\uC73C\uB85C \uCD94\uAC00\uD558\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4 \u2014 \uC9C1\uC811 \uCD94\uAC00\uD558\uAC70\uB098 Selora\uC758 \uB3C4\uC6C0\uC744 \uBC1B\uC73C\uC138\uC694.",
+    recipes_step5_dashboard_customize:
+      "\uCC44\uD305\uC5D0\uC11C \uB9DE\uCDA4\uC124\uC815",
+    recipes_step5_dashboard_help: "\uCC44\uD305\uC5D0\uC11C \uCD94\uAC00",
+    recipes_refine_chat_failed:
+      "\uC774 \uB808\uC2DC\uD53C\uC758 \uCC44\uD305\uC744 \uC5F4 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.",
+    recipes_step3_hint_blocked:
+      "\uC774 \uB808\uC2DC\uD53C\uB294 \uC544\uC9C1 \uC900\uBE44\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4 \u2014 \uB808\uC2DC\uD53C\uC758 \uC624\uB958\uB97C \uD655\uC778\uD55C \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
+    recipes_catalog_empty:
+      "\uC774 \uCE74\uD0C8\uB85C\uADF8\uC5D0 \uC544\uC9C1 \uB808\uC2DC\uD53C\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.",
   },
   options: {
     step: {
@@ -16655,6 +20645,349 @@ var zh_Hans_default = {
     suggestions_snoozed_toast: "\u5EFA\u8BAE\u5DF2\u6682\u505C 24 \u5C0F\u65F6",
     suggestions_pattern_scan_failed: "\u6A21\u5F0F\u626B\u63CF\u5931\u8D25",
     area_unassigned: "\u672A\u5206\u914D",
+    recipes_back_to_overview: "\u8FD4\u56DE\u6982\u89C8",
+    recipes_back_to_recipes: "\u8FD4\u56DE\u914D\u65B9",
+    recipes_bucket_completed: "\u5DF2\u5B8C\u6210",
+    recipes_bucket_failed: "\u5931\u8D25",
+    recipes_bucket_in_progress: "\u8FDB\u884C\u4E2D",
+    recipes_bucket_install_failed: "\u5B89\u88C5\u5931\u8D25",
+    recipes_bucket_no_details:
+      "\u6682\u65E0\u8BE6\u60C5\u3002\u8BF7\u67E5\u770B Home Assistant \u65E5\u5FD7\u4E86\u89E3\u5E95\u5C42\u9519\u8BEF\u3002",
+    recipes_bucket_up_next: "\u63A5\u4E0B\u6765",
+    recipes_bucket_waiting_for_you: "\u7B49\u5F85\u60A8\u64CD\u4F5C",
+    recipes_card_configure_button: "\u914D\u7F6E",
+    recipes_card_in_progress_step: "\u8FDB\u884C\u4E2D \xB7 \u6B65\u9AA4",
+    recipes_card_install_button: "\u5B89\u88C5",
+    recipes_card_installed_badge: "\u5DF2\u5B89\u88C5",
+    recipes_card_manage_devices_button: "\u7BA1\u7406\u8BBE\u5907",
+    recipes_card_manage_devices_title:
+      "\u65E0\u9700\u91CD\u65B0\u8FD0\u884C\u5411\u5BFC\u5373\u53EF\u66F4\u6362\u6216\u66F4\u65B0\u6B64\u914D\u65B9\u4F7F\u7528\u7684\u8BBE\u5907",
+    recipes_card_resume_button: "\u7EE7\u7EED",
+    recipes_card_start_over_button: "\u91CD\u65B0\u5F00\u59CB",
+    recipes_card_start_over_title:
+      "\u4E22\u5F03\u5DF2\u4FDD\u5B58\u7684\u8FDB\u5EA6\u5E76\u4ECE\u5934\u5F00\u59CB\u8FD0\u884C\u5411\u5BFC",
+    recipes_card_uninstall_button: "\u5378\u8F7D",
+    recipes_catalog_fetching: "\u6B63\u5728\u83B7\u53D6\u76EE\u5F55\u2026",
+    recipes_catalog_no_matches_prefix:
+      "\u672A\u627E\u5230\u5339\u914D\u9879\uFF1A",
+    recipes_catalog_search_placeholder: "\u641C\u7D22\u914D\u65B9\u2026",
+    recipes_catalog_set_url_title:
+      "\u8BBE\u7F6E\u76EE\u5F55 URL\uFF08\u5F00\u53D1 / \u9884\u53D1\u5E03\uFF09",
+    recipes_catalog_source_overridden:
+      "\u76EE\u5F55\u6765\u6E90\u5DF2\u8986\u76D6\uFF1A",
+    recipes_catalog_unreachable:
+      "\u65E0\u6CD5\u8BBF\u95EE\u914D\u65B9\u76EE\u5F55\uFF1A",
+    recipes_catalog_url_prompt:
+      "\u76EE\u5F55 URL\uFF08\u7559\u7A7A\u4EE5\u91CD\u7F6E\u4E3A selorahomes.com\uFF09\uFF1A",
+    recipes_catalog_using_override:
+      "\u6B63\u5728\u4F7F\u7528\u8986\u76D6\uFF1A",
+    recipes_catalog_will_load:
+      "\u76EE\u5F55\u5C06\u5728\u6B64\u5904\u52A0\u8F7D\u3002",
+    recipes_continue_button: "\u7EE7\u7EED",
+    recipes_details_copy_path_title: "\u590D\u5236\u8DEF\u5F84",
+    recipes_details_devices_key: "\u8BBE\u5907",
+    recipes_details_installed_on: "\u5DF2\u5B89\u88C5",
+    recipes_details_integrations_key: "\u96C6\u6210",
+    recipes_details_no_bound_devices: "\u65E0\u7ED1\u5B9A\u8BBE\u5907",
+    recipes_details_none_selected_optional:
+      "\u672A\u9009\u62E9\uFF08\u53EF\u9009\uFF09",
+    recipes_details_settings_key: "\u8BBE\u7F6E",
+    recipes_details_summary: "\u8BE6\u60C5",
+    recipes_details_version_key: "\u7248\u672C",
+    recipes_details_where_key: "\u4F4D\u7F6E",
+    recipes_eyebrow_recipe: "\u914D\u65B9",
+    recipes_eyebrow_released: "\u53D1\u5E03\u4E8E",
+    recipes_field_optional: "\uFF08\u53EF\u9009\uFF09",
+    recipes_finish_button: "\u5B8C\u6210",
+    recipes_flow_cancel: "\u53D6\u6D88",
+    recipes_flow_continue: "\u7EE7\u7EED",
+    recipes_footer_back: "\u8FD4\u56DE",
+    recipes_footer_cancel: "\u53D6\u6D88",
+    recipes_inputs_panel_title: "\u914D\u65B9\u8BBE\u7F6E",
+    recipes_install_accepts: "\u63A5\u53D7",
+    recipes_install_bom_note:
+      "\u5728\u5B89\u88C5\u4EFB\u4F55\u5185\u5BB9\u4E4B\u524D\uFF0C\u4F1A\u5148\u5BF9\u7167\u60A8\u7684\u5BB6\u5C45\u6838\u5BF9\u7269\u6599\u6E05\u5355\u3002",
+    recipes_install_click_to_choose: "\u70B9\u51FB\u9009\u62E9\u6587\u4EF6",
+    recipes_install_drop_here:
+      "\u5C06\u914D\u65B9\u5F52\u6863\u6587\u4EF6\u62D6\u653E\u5230\u6B64\u5904",
+    recipes_install_drop_to_upload: "\u62D6\u653E\u4EE5\u4E0A\u4F20",
+    recipes_install_failed_button: "\u5B89\u88C5\u5931\u8D25",
+    recipes_install_fetch_button: "\u83B7\u53D6",
+    recipes_install_fetching: "\u83B7\u53D6\u4E2D\u2026",
+    recipes_install_from_url_label: "\u4ECE URL \u5B89\u88C5",
+    recipes_install_or: "\u6216",
+    recipes_install_or_lower: "\u6216",
+    recipes_install_source_hint:
+      "\u6709\u6765\u81EA\u5176\u4ED6\u6765\u6E90\u7684\u914D\u65B9\uFF1F\u5728\u6B64\u6DFB\u52A0\u3002",
+    recipes_install_source_summary: "\u4ECE URL \u6216\u6587\u4EF6\u5B89\u88C5",
+    recipes_install_unsupported_file_prefix:
+      "\u4E0D\u652F\u6301\u7684\u6587\u4EF6\uFF1A",
+    recipes_install_unsupported_file_suffix:
+      "\u8BF7\u4F7F\u7528 .tar.gz\u3001.tgz \u6216 .zip \u5F52\u6863\u6587\u4EF6\u3002",
+    recipes_install_upload_label: "\u4ECE\u6B64\u8BBE\u5907\u4E0A\u4F20",
+    recipes_install_uploading: "\u4E0A\u4F20\u4E2D\u2026",
+    recipes_integration_autosetup_prose:
+      "\u53EF\u4F7F\u7528\u60A8\u7684 Home Assistant \u4F4D\u7F6E\u81EA\u52A8\u5B8C\u6210\u8BBE\u7F6E\u3002\u65E0\u9700\u60A8\u56DE\u7B54\u4EFB\u4F55\u95EE\u9898\u3002",
+    recipes_integration_entry_label: "\u6761\u76EE\uFF1A",
+    recipes_integration_manage_anytime:
+      "\u968F\u65F6\u53EF\u5728\u201C\u8BBE\u7F6E \u2192 \u8BBE\u5907\u4E0E\u670D\u52A1\u201D\u4E2D\u7BA1\u7406\u6B64\u96C6\u6210\u3002",
+    recipes_integration_needs_setup_prose:
+      "\u9700\u8981\u5148\u5B8C\u6210\u8BBE\u7F6E\uFF0C\u6B64\u914D\u65B9\u624D\u80FD\u5B89\u88C5\u3002\u60A8\u65E0\u9700\u79BB\u5F00\u6B64\u9875\u9762\u5373\u53EF\u5F00\u59CB\u8BBE\u7F6E\u3002",
+    recipes_integration_open_in_ha: "\u5728 HA \u4E2D\u6253\u5F00",
+    recipes_integration_open_in_ha_settings:
+      "\u5728 HA \u8BBE\u7F6E\u4E2D\u6253\u5F00",
+    recipes_integration_ready:
+      "\u5DF2\u8BBE\u7F6E\u5B8C\u6BD5\uFF0C\u53EF\u4EE5\u4F7F\u7528\u3002",
+    recipes_integration_setup_auto_button: "\u81EA\u52A8\u8BBE\u7F6E",
+    recipes_integration_setup_failed:
+      "\u8BBE\u7F6E\u5931\u8D25\u3002\u8BF7\u91CD\u8BD5\u6216\u4F7F\u7528 HA \u7684\u8BBE\u7F6E\u9875\u9762\u3002",
+    recipes_integration_setup_prefix: "\u8BBE\u7F6E",
+    recipes_integration_try_again: "\u91CD\u8BD5",
+    recipes_integration_was_set_up:
+      "\u5DF2\u5B8C\u6210\u8BBE\u7F6E\u3002Selora \u5C06\u81EA\u52A8\u91CD\u65B0\u68C0\u67E5\u8BE5\u914D\u65B9\u3002",
+    recipes_list_check_updates_button: "\u68C0\u67E5\u66F4\u65B0",
+    recipes_list_check_updates_title:
+      "\u5728 selorahomes.com \u4E0A\u68C0\u67E5\u65B0\u589E\u548C\u66F4\u65B0\u7684\u914D\u65B9",
+    recipes_list_checking: "\u68C0\u67E5\u4E2D\u2026",
+    recipes_list_installed_missing_bundle:
+      "\u5DF2\u5B89\u88C5\uFF08\u78C1\u76D8\u4E0A\u7F3A\u5C11\u6346\u7ED1\u5305\uFF09",
+    recipes_list_intro:
+      "\u914D\u65B9\u662F\u60A8\u4E00\u6B65\u5373\u53EF\u5B89\u88C5\u7684\u73B0\u6210\u81EA\u52A8\u5316\u2014\u2014\u6F0F\u6C34\u5C01\u9501\u3001\u5C31\u5BDD\u4F8B\u7A0B\u3001\u9F99\u5377\u98CE\u8B66\u62A5\u3002Selora \u4F1A\u5BF9\u7167\u60A8\u5BB6\u4E2D\u7684\u8BBE\u5907\u6838\u5BF9\u6BCF\u4E2A\u914D\u65B9\uFF0C\u7136\u540E\u4E3A\u60A8\u63A5\u597D\u7EBF\u8DEF\u3002\u5728\u4E0B\u65B9\u9009\u62E9\u4E00\u4E2A\u5373\u53EF\u5F00\u59CB\u3002",
+    recipes_list_on_this_device: "\u5DF2\u5B89\u88C5",
+    recipes_list_package_label: "\u5305\uFF1A",
+    recipes_list_title: "\u914D\u65B9",
+    recipes_loading: "\u52A0\u8F7D\u4E2D\u2026",
+    recipes_loading_recipe: "\u6B63\u5728\u52A0\u8F7D\u914D\u65B9\u2026",
+    recipes_manage_intro:
+      "\u66F4\u65B0\u652F\u6491\u5404\u89D2\u8272\u7684\u5B9E\u4F53\u3002\u4F1A\u7ACB\u5373\u4FDD\u5B58\u2014\u2014\u4E0D\u4F1A\u91CD\u65B0\u751F\u6210\u81EA\u52A8\u5316\uFF0C\u53EA\u66F4\u6539\u5206\u7EC4\u6210\u5458\u3002",
+    recipes_manage_no_detail: "\u6682\u65E0\u8BE6\u60C5\u3002",
+    recipes_manage_no_entities_prefix:
+      "\u6B64\u5BB6\u5C45\u4E2D\u672A\u627E\u5230",
+    recipes_manage_no_entities_suffix: "\u5B9E\u4F53\u3002",
+    recipes_manage_save: "\u4FDD\u5B58",
+    recipes_manage_saving: "\u4FDD\u5B58\u4E2D\u2026",
+    recipes_match_col_item: "\u9879\u76EE",
+    recipes_match_col_selected: "\u5DF2\u9009\u62E9",
+    recipes_match_col_status: "\u72B6\u6001",
+    recipes_match_nothing:
+      "\u65E0\u9700\u5339\u914D\u2014\u2014\u6B64\u914D\u65B9\u65E0\u9700\u8BBE\u7F6E\u8BBE\u5907\u5373\u53EF\u8FD0\u884C\u3002",
+    recipes_match_scanning:
+      "\u6B63\u5728\u626B\u63CF\u60A8\u7684\u5BB6\u5C45\u2026",
+    recipes_match_status_error: "\u9519\u8BEF",
+    recipes_match_status_needs_setup: "\u9700\u8981\u8BBE\u7F6E",
+    recipes_match_status_optional: "\u53EF\u9009",
+    recipes_match_status_ready: "\u5C31\u7EEA",
+    recipes_match_status_waiting: "\u7B49\u5F85\u4E2D",
+    recipes_match_status_working: "\u5904\u7406\u4E2D",
+    recipes_optional_eyebrow: "\u53EF\u9009",
+    recipes_pair_hue_action:
+      "\u4F7F\u7528 Hue \u5E94\u7528\u6216\u5176\u8BBE\u7F6E\u9875\u9762\u5C06\u6B64\u706F\u6CE1\u914D\u5BF9\u5230\u60A8\u7684 Hue Bridge\u3002",
+    recipes_pair_hue_cta: "\u6253\u5F00 Hue \u8BBE\u7F6E",
+    recipes_pair_matter_action:
+      "\u5728 Matter \u8BBE\u7F6E\u9875\u9762\u4F7F\u7528\u914D\u5BF9\u7801\u8C03\u8BD5\u6B64 Matter \u8BBE\u5907\u3002",
+    recipes_pair_matter_cta: "\u6253\u5F00 Matter \u8BBE\u7F6E",
+    recipes_pair_mqtt_action:
+      "\u8BA9\u6B64 MQTT \u8BBE\u5907\u4E0A\u7EBF\uFF0C\u4F7F\u5176\u53D1\u5E03\u5230\u5DF2\u914D\u7F6E\u7684\u4E3B\u9898\u3002",
+    recipes_pair_mqtt_cta: "\u6253\u5F00 MQTT \u8BBE\u7F6E",
+    recipes_pair_zha_action:
+      "\u6253\u5F00 ZHA \u7684\u8BBE\u7F6E\u9875\u9762\u5E76\u5C06\u534F\u8C03\u5668\u7F6E\u4E8E\u914D\u5BF9\u6A21\u5F0F\u4EE5\u6DFB\u52A0\u6B64\u8BBE\u5907\u3002",
+    recipes_pair_zha_cta: "\u6253\u5F00 ZHA \u8BBE\u7F6E",
+    recipes_pair_zwave_action:
+      "\u5728\u5176\u8BBE\u7F6E\u9875\u9762\u542F\u52A8 Z-Wave \u52A0\u5165\u6D41\u7A0B\u4EE5\u6DFB\u52A0\u6B64\u8BBE\u5907\u3002",
+    recipes_pair_zwave_cta: "\u6253\u5F00 Z-Wave \u8BBE\u7F6E",
+    recipes_pin_check_now: "\u7ACB\u5373\u68C0\u67E5",
+    recipes_pin_default_action:
+      "\u5C06\u6B64\u8BBE\u5907\u6DFB\u52A0\u5230 Home Assistant\u3002Selora \u5C06\u81EA\u52A8\u68C0\u6D4B\u5B83\u3002",
+    recipes_pin_expected_entity: "\u9884\u671F\u5B9E\u4F53 id\uFF1A",
+    recipes_pin_open_ha_integrations: "\u6253\u5F00 HA \u96C6\u6210",
+    recipes_pin_open_setup_prefix: "\u6253\u5F00",
+    recipes_pin_open_setup_suffix: "\u8BBE\u7F6E",
+    recipes_pin_tip:
+      "\u63D0\u793A\uFF1A\u4FDD\u6301\u6B64\u6807\u7B7E\u9875\u6253\u5F00\u3002\u5F53\u8BBE\u5907\u914D\u5BF9\u6210\u529F\u65F6\uFF0C\u6B64\u6B65\u9AA4\u4F1A\u81EA\u52A8\u52FE\u9009\u2014\u2014\u65E0\u9700\u5728\u6B64\u70B9\u51FB\u4EFB\u4F55\u5185\u5BB9\u3002",
+    recipes_progress_title: "\u8FDB\u5EA6",
+    recipes_punch_list_title: "\u5F85\u529E\u6E05\u5355",
+    recipes_required_eyebrow: "\u5FC5\u9700",
+    recipes_result_advanced: "\u9AD8\u7EA7",
+    recipes_result_fix_retry:
+      "\u4FEE\u590D\u4EE5\u4E0B\u9879\u76EE\uFF0C\u7136\u540E\u91CD\u65B0\u6253\u5F00\u914D\u65B9\u4EE5\u91CD\u8BD5\u3002",
+    recipes_result_halted_at_stage:
+      "\u5B89\u88C5\u5728\u4EE5\u4E0B\u9636\u6BB5\u4E2D\u6B62\uFF1A",
+    recipes_result_install_complete: "\u5B89\u88C5\u5B8C\u6210",
+    recipes_result_installed_reloaded:
+      "\u5DF2\u5B89\u88C5\uFF0C\u4E14 Home Assistant \u5DF2\u91CD\u65B0\u52A0\u8F7D\u3002\u5305\u6587\u4EF6\uFF1A",
+    recipes_result_view_yaml: "\u67E5\u770B\u751F\u6210\u7684\u5305 YAML",
+    recipes_role_check_again: "\u518D\u6B21\u68C0\u67E5",
+    recipes_role_empty_add_device: "\u5728 HA \u4E2D\u6DFB\u52A0\u8BBE\u5907",
+    recipes_role_empty_at_least: "\u81F3\u5C11",
+    recipes_role_empty_none_prefix: "\u60A8\u5BB6\u4E2D\u5C1A\u65E0",
+    recipes_role_empty_none_suffix: "",
+    recipes_role_empty_one_prose:
+      "\u6DFB\u52A0\u4E00\u4E2A\u540E\u5B83\u4F1A\u81EA\u52A8\u663E\u793A\u5728\u6B64\u5904\u2014\u2014\u60A8\u53EF\u4EE5\u79BB\u5F00\u6B64\u9875\u9762\u53BB\u6DFB\u52A0\u8BBE\u5907\uFF0C\u5411\u5BFC\u4F1A\u5728\u8FD4\u56DE\u65F6\u4FDD\u7559\u60A8\u7684\u8FDB\u5EA6\u3002",
+    recipes_role_empty_pair: "\u914D\u5BF9",
+    recipes_role_filter_device_noun: "\u8BBE\u5907",
+    recipes_role_filter_sensor_noun: "\u4F20\u611F\u5668",
+    recipes_role_pick_one_or_more: "\u9009\u62E9\u4E00\u4E2A\u6216\u591A\u4E2A",
+    recipes_role_pick_prefix: "\u9009\u62E9\uFF1A",
+    recipes_role_pinned_count_suffix:
+      "\u7531\u914D\u65B9\u56FA\u5B9A\uFF08\u59CB\u7EC8\u5305\u542B\uFF09\u3002",
+    recipes_role_run_against:
+      "Selora \u5C06\u9488\u5BF9\u60A8\u52FE\u9009\u7684\u9879\u76EE\u8FD0\u884C\u6B64\u914D\u65B9\u3002",
+    recipes_role_up_to: "\u6700\u591A",
+    recipes_safety_automations_generated:
+      "\u5DF2\u751F\u6210\u81EA\u52A8\u5316",
+    recipes_safety_install_incomplete: "\u5B89\u88C5\u672A\u5B8C\u6210",
+    recipes_safety_installed_ok: "\u914D\u65B9\u5B89\u88C5\u6210\u529F",
+    recipes_safety_issues_to_address:
+      "\u4E2A\u5F85\u89E3\u51B3\u7684\u95EE\u9898",
+    recipes_safety_no_artifacts: "\u672A\u521B\u5EFA\u4EFB\u4F55\u4EA7\u7269",
+    recipes_safety_no_issues: "\u65E0\u672A\u89E3\u51B3\u7684\u95EE\u9898",
+    recipes_section_automation_plural: "\u4E2A\u81EA\u52A8\u5316",
+    recipes_section_automation_singular: "\u4E2A\u81EA\u52A8\u5316",
+    recipes_section_binary_sensor_plural:
+      "\u4E2A\u4E8C\u5143\u4F20\u611F\u5668",
+    recipes_section_binary_sensor_singular:
+      "\u4E2A\u4E8C\u5143\u4F20\u611F\u5668",
+    recipes_section_climate_plural: "\u4E2A\u6C14\u5019\u5B9E\u4F53",
+    recipes_section_climate_singular: "\u4E2A\u6C14\u5019\u5B9E\u4F53",
+    recipes_section_counter_plural: "\u4E2A\u8BA1\u6570\u5668",
+    recipes_section_counter_singular: "\u4E2A\u8BA1\u6570\u5668",
+    recipes_section_cover_plural: "\u4E2A\u5377\u5E18",
+    recipes_section_cover_singular: "\u4E2A\u5377\u5E18",
+    recipes_section_customisation_plural: "\u9879\u81EA\u5B9A\u4E49",
+    recipes_section_customisation_singular: "\u9879\u81EA\u5B9A\u4E49",
+    recipes_section_group_plural: "\u4E2A\u5206\u7EC4",
+    recipes_section_group_singular: "\u4E2A\u5206\u7EC4",
+    recipes_section_helper_plural: "\u4E2A\u52A9\u624B",
+    recipes_section_helper_singular: "\u4E2A\u52A9\u624B",
+    recipes_section_light_plural: "\u76CF\u706F",
+    recipes_section_light_singular: "\u76CF\u706F",
+    recipes_section_media_player_plural: "\u4E2A\u5A92\u4F53\u64AD\u653E\u5668",
+    recipes_section_media_player_singular:
+      "\u4E2A\u5A92\u4F53\u64AD\u653E\u5668",
+    recipes_section_notify_plural: "\u4E2A\u901A\u77E5\u5668",
+    recipes_section_notify_singular: "\u4E2A\u901A\u77E5\u5668",
+    recipes_section_rest_command_plural: "\u4E2A REST \u547D\u4EE4",
+    recipes_section_rest_command_singular: "\u4E2A REST \u547D\u4EE4",
+    recipes_section_scene_plural: "\u4E2A\u573A\u666F",
+    recipes_section_scene_singular: "\u4E2A\u573A\u666F",
+    recipes_section_script_plural: "\u4E2A\u811A\u672C",
+    recipes_section_script_singular: "\u4E2A\u811A\u672C",
+    recipes_section_sensor_plural: "\u4E2A\u4F20\u611F\u5668",
+    recipes_section_sensor_singular: "\u4E2A\u4F20\u611F\u5668",
+    recipes_section_shell_command_plural: "\u4E2A shell \u547D\u4EE4",
+    recipes_section_shell_command_singular: "\u4E2A shell \u547D\u4EE4",
+    recipes_section_switch_plural: "\u4E2A\u5F00\u5173",
+    recipes_section_switch_singular: "\u4E2A\u5F00\u5173",
+    recipes_section_template_plural: "\u4E2A\u6A21\u677F\u5B9E\u4F53",
+    recipes_section_template_singular: "\u4E2A\u6A21\u677F\u5B9E\u4F53",
+    recipes_section_timer_plural: "\u4E2A\u8BA1\u65F6\u5668",
+    recipes_section_timer_singular: "\u4E2A\u8BA1\u65F6\u5668",
+    recipes_selected_awaiting_pair: "\u7B49\u5F85\u914D\u5BF9",
+    recipes_selected_entities_suffix: "\u4E2A\u5B9E\u4F53",
+    recipes_selected_none: "\u65E0",
+    recipes_selected_setting_plural: "\u9879\u8BBE\u7F6E",
+    recipes_selected_setting_singular: "\u9879\u8BBE\u7F6E",
+    recipes_setting_up_button: "\u8BBE\u7F6E\u4E2D\u2026",
+    recipes_stage_apply: "\u5E94\u7528",
+    recipes_stage_configure: "\u914D\u7F6E",
+    recipes_stage_prepare: "\u51C6\u5907",
+    recipes_stage_unknown: "\u672A\u77E5",
+    recipes_start_setup_button: "\u5F00\u59CB\u8BBE\u7F6E",
+    recipes_status_done: "\u5B8C\u6210",
+    recipes_status_failed: "\u5931\u8D25",
+    recipes_status_needs_you: "\u9700\u8981\u60A8\u64CD\u4F5C",
+    recipes_status_pending: "\u5F85\u5904\u7406",
+    recipes_status_running: "\u8FD0\u884C\u4E2D",
+    recipes_status_skipped: "\u5DF2\u8DF3\u8FC7",
+    recipes_step2_sub:
+      "\u914D\u65B9\u7EA7\u504F\u597D\u8BBE\u7F6E\u3002\u9ED8\u8BA4\u503C\u5DF2\u9884\u5148\u586B\u5199\uFF1B\u4EC5\u5728\u9700\u8981\u66F4\u6539\u65F6\u8C03\u6574\uFF0C\u7136\u540E\u70B9\u51FB\u201C\u7EE7\u7EED\u201D\u3002",
+    recipes_step2_sub_empty:
+      "\u6B64\u914D\u65B9\u6CA1\u6709\u9700\u8981\u914D\u7F6E\u7684\u8BBE\u7F6E\u2014\u2014\u76F4\u63A5\u70B9\u51FB\u201C\u7EE7\u7EED\u201D\u5373\u53EF\u3002",
+    recipes_step2_title: "\u914D\u65B9\u8BBE\u7F6E",
+    recipes_step3_hint_finish:
+      "\u5B8C\u6210\u6807\u8BB0\u4E3A\u201C\u9700\u8981\u8BBE\u7F6E\u201D\u7684\u884C\u4EE5\u7EE7\u7EED\u3002",
+    recipes_step3_hint_ready:
+      "\u770B\u8D77\u6765\u4E0D\u9519\u2014\u2014\u53EF\u4EE5\u5F00\u59CB\u8BBE\u7F6E\u4E86\u3002",
+    recipes_step3_sub:
+      "\u5C06\u4E0B\u65B9\u6BCF\u4E2A\u9879\u76EE\u4E0E\u60A8\u5BB6\u4E2D\u7684\u5B9E\u4F53\u914D\u5BF9\u3002\u70B9\u51FB\u4EFB\u610F\u884C\u8FDB\u884C\u8BBE\u7F6E\u3002",
+    recipes_step3_title: "\u5339\u914D\u8BBE\u5907",
+    recipes_step4_hint_failed:
+      "\u70B9\u51FB\u201C\u8FD4\u56DE\u201D\u4FEE\u6539\u60A8\u7684\u9009\u62E9\uFF0C\u7136\u540E\u91CD\u8BD5\u3002",
+    recipes_step4_hint_something_failed:
+      "\u51FA\u4E86\u70B9\u95EE\u9898\u2014\u2014\u8BF7\u8FD4\u56DE\u5E76\u91CD\u8BD5\u3002",
+    recipes_step4_sub_busy:
+      "Selora \u6B63\u5728\u5B89\u88C5\u60A8\u7684\u914D\u65B9\u3002\u8BF7\u7A0D\u5019\u2014\u2014\u53EA\u9700\u51E0\u79D2\u949F\u3002",
+    recipes_step4_sub_done:
+      "\u5168\u90E8\u5B8C\u6210\u3002\u70B9\u51FB\u201C\u7EE7\u7EED\u201D\u67E5\u770B\u5DF2\u5B89\u88C5\u7684\u5185\u5BB9\u3002",
+    recipes_step4_sub_halted_prefix: "\u5B89\u88C5\u5728",
+    recipes_step4_sub_halted_suffix:
+      "\u9636\u6BB5\u4E2D\u6B62\u3002\u8BF7\u8FD4\u56DE\u4EE5\u4FEE\u590D\u4EE5\u4E0B\u95EE\u9898\u3002",
+    recipes_step4_sub_starting: "\u6B63\u5728\u5F00\u59CB\u8BBE\u7F6E\u2026",
+    recipes_step4_title: "\u6B63\u5728\u8BBE\u7F6E",
+    recipes_step5_created_title: "\u6B64\u914D\u65B9\u521B\u5EFA\u4E86",
+    recipes_step5_devices_linked: "\u5DF2\u5173\u8054\u7684\u8BBE\u5907",
+    recipes_step5_hint:
+      "Home Assistant \u5DF2\u91CD\u65B0\u52A0\u8F7D\u2014\u2014\u60A8\u7684\u914D\u65B9\u5DF2\u751F\u6548\u3002",
+    recipes_step5_more_suffix: "\u66F4\u591A",
+    recipes_step5_no_devices:
+      "\u6CA1\u6709\u8BBE\u5907\u4E0E\u6B64\u914D\u65B9\u5173\u8054\u3002",
+    recipes_step5_no_entries:
+      "\u672A\u751F\u6210\u4EFB\u4F55\u6761\u76EE\u3002",
+    recipes_step5_safety_checks: "\u5B89\u5168\u68C0\u67E5",
+    recipes_step5_sub:
+      "\u60A8\u7684\u914D\u65B9\u5DF2\u5B89\u88C5\uFF0C\u4E14 Home Assistant \u5DF2\u91CD\u65B0\u52A0\u8F7D\u3002\u8BF7\u5728\u4E0B\u65B9\u67E5\u770B\u5DF2\u521B\u5EFA\u7684\u5185\u5BB9\uFF0C\u7136\u540E\u70B9\u51FB\u201C\u5B8C\u6210\u201D\u3002",
+    recipes_step5_title: "\u67E5\u770B\u5E76\u5B8C\u6210",
+    recipes_step_activate: "\u6FC0\u6D3B",
+    recipes_step_label: "\u6B65\u9AA4",
+    recipes_step_match: "\u5339\u914D",
+    recipes_step_of_5: "/ 5",
+    recipes_step_overview: "\u6982\u89C8",
+    recipes_step_set_up: "\u8BBE\u7F6E",
+    recipes_step_settings: "\u8BBE\u7F6E",
+    recipes_system_panel_auto:
+      "\u6B64\u6B65\u9AA4\u4F1A\u81EA\u52A8\u8FD0\u884C\u3002\u65E0\u9700\u60A8\u6267\u884C\u4EFB\u4F55\u64CD\u4F5C\u3002",
+    recipes_this_recipe_creates: "\u6B64\u914D\u65B9\u521B\u5EFA",
+    recipes_uninstall_body:
+      "\u5305\u6587\u4EF6\u5C06\u88AB\u5220\u9664\uFF0C\u4E14 Home Assistant \u5C06\u91CD\u65B0\u52A0\u8F7D\u3002\u6B64\u914D\u65B9\u521B\u5EFA\u7684\u81EA\u52A8\u5316\u5C06\u88AB\u79FB\u9664\u3002",
+    recipes_uninstall_confirm_prefix: "\u5378\u8F7D",
+    recipes_uninstall_integrations_sub:
+      "\u52FE\u9009\u5E94\u968F\u914D\u65B9\u4E00\u8D77\u79FB\u9664\u7684\u9879\u76EE\u3002\u4EFB\u4F55\u672A\u52FE\u9009\u7684\u9879\u76EE\u90FD\u4F1A\u4FDD\u7559\u5728 Home Assistant \u4E2D\u3002",
+    recipes_uninstall_integrations_title:
+      "\u6B64\u914D\u65B9\u5B89\u88C5\u7684\u96C6\u6210",
+    recipes_uninstall_still_used_by: "\u4ECD\u88AB\u4F7F\u7528\uFF1A",
+    recipes_uninstall_warn_title:
+      "\u79FB\u9664\u6B64\u96C6\u6210\u5C06\u4F7F\u90A3\u4E9B\u914D\u65B9\u65E0\u6CD5\u6B63\u5E38\u5DE5\u4F5C\u3002",
+    recipes_what_you_need_title:
+      "\u60A8\u9700\u8981\u51C6\u5907\u7684\u5185\u5BB9",
+    recipes_working: "\u5904\u7406\u4E2D\u2026",
+    recipes_role_filter_placeholder: "\u6309\u540D\u79F0\u7B5B\u9009\u2026",
+    recipes_role_filter_no_matches:
+      "\u6CA1\u6709\u5B9E\u4F53\u4E0E\u7B5B\u9009\u6761\u4EF6\u5339\u914D\u3002",
+    recipes_role_show_all: "\u663E\u793A\u5168\u90E8",
+    recipes_role_show_less: "\u6536\u8D77",
+    recipes_dashboard_picker_title:
+      "\u5411\u4EEA\u8868\u677F\u6DFB\u52A0\u5361\u7247",
+    recipes_dashboard_picker_sub:
+      "\u6B64\u914D\u65B9\u53EF\u4EE5\u5728\u4EEA\u8868\u677F\u4E0A\u653E\u7F6E\u4E00\u5F20\u5361\u7247\u4F9B\u4F60\u70B9\u6309\u3002\u9009\u62E9\u4F4D\u7F6E\uFF0C\u6216\u8DF3\u8FC7\u5E76\u7A0D\u540E\u81EA\u884C\u6DFB\u52A0\u3002",
+    recipes_dashboard_picker_skip: "\u4E0D\u6DFB\u52A0\u5361\u7247",
+    recipes_dashboard_picker_refine:
+      "\u9700\u8981\u81EA\u5B9A\u4E49\u5361\u7247\uFF1F\u5728\u5BF9\u8BDD\u4E2D\u4F18\u5316",
+    recipes_step5_dashboard_title: "\u4EEA\u8868\u677F\u5361\u7247",
+    recipes_step5_dashboard_added:
+      "\u5DF2\u5411\u4F60\u7684\u4EEA\u8868\u677F\u6DFB\u52A0\u4E00\u5F20\u5361\u7247\u3002",
+    recipes_step5_dashboard_skipped:
+      "\u672A\u6DFB\u52A0\u5361\u7247\u3002\u4F60\u53EF\u4EE5\u81EA\u884C\u6DFB\u52A0\uFF0C\u6216\u8BA9 Selora \u5E2E\u5FD9\u3002",
+    recipes_step5_dashboard_manual:
+      "\u65E0\u6CD5\u81EA\u52A8\u6DFB\u52A0\u5361\u7247\u2014\u2014\u8BF7\u81EA\u884C\u6DFB\u52A0\uFF0C\u6216\u8BA9 Selora \u5E2E\u5FD9\u3002",
+    recipes_step5_dashboard_customize:
+      "\u5728\u5BF9\u8BDD\u4E2D\u81EA\u5B9A\u4E49",
+    recipes_step5_dashboard_help: "\u5728\u5BF9\u8BDD\u4E2D\u6DFB\u52A0",
+    recipes_refine_chat_failed:
+      "\u65E0\u6CD5\u4E3A\u6B64\u914D\u65B9\u6253\u5F00\u5BF9\u8BDD\u3002",
+    recipes_step3_hint_blocked:
+      "\u6B64\u914D\u65B9\u5C1A\u65E0\u6CD5\u51C6\u5907\u2014\u2014\u8BF7\u68C0\u67E5\u914D\u65B9\u662F\u5426\u6709\u9519\u8BEF\u540E\u91CD\u8BD5\u3002",
+    recipes_catalog_empty:
+      "\u6B64\u76EE\u5F55\u4E2D\u6682\u65E0\u914D\u65B9\u3002",
   },
   options: {
     step: {
@@ -17455,6 +21788,351 @@ var zh_Hant_default = {
     suggestions_snoozed_toast: "\u5EFA\u8B70\u5DF2\u5EF6\u5F8C 24 \u5C0F\u6642",
     suggestions_pattern_scan_failed: "\u6A21\u5F0F\u6383\u63CF\u5931\u6557",
     area_unassigned: "\u672A\u6307\u6D3E",
+    recipes_back_to_overview: "\u8FD4\u56DE\u7E3D\u89BD",
+    recipes_back_to_recipes: "\u8FD4\u56DE\u98DF\u8B5C",
+    recipes_bucket_completed: "\u5DF2\u5B8C\u6210",
+    recipes_bucket_failed: "\u5931\u6557",
+    recipes_bucket_in_progress: "\u9032\u884C\u4E2D",
+    recipes_bucket_install_failed: "\u5B89\u88DD\u5931\u6557",
+    recipes_bucket_no_details:
+      "\u6C92\u6709\u53EF\u7528\u7684\u8A73\u7D30\u8CC7\u8A0A\u3002\u8ACB\u67E5\u770B Home Assistant \u7D00\u9304\u4EE5\u77AD\u89E3\u5E95\u5C64\u932F\u8AA4\u3002",
+    recipes_bucket_up_next: "\u63A5\u4E0B\u4F86",
+    recipes_bucket_waiting_for_you: "\u7B49\u5F85\u60A8\u8655\u7406",
+    recipes_card_configure_button: "\u8A2D\u5B9A",
+    recipes_card_in_progress_step: "\u9032\u884C\u4E2D \xB7 \u6B65\u9A5F",
+    recipes_card_install_button: "\u5B89\u88DD",
+    recipes_card_installed_badge: "\u5DF2\u5B89\u88DD",
+    recipes_card_manage_devices_button: "\u7BA1\u7406\u88DD\u7F6E",
+    recipes_card_manage_devices_title:
+      "\u7121\u9700\u91CD\u65B0\u57F7\u884C\u7CBE\u9748\u5373\u53EF\u66F4\u63DB\u6216\u66F4\u65B0\u6B64\u98DF\u8B5C\u4F7F\u7528\u7684\u88DD\u7F6E",
+    recipes_card_resume_button: "\u7E7C\u7E8C",
+    recipes_card_start_over_button: "\u91CD\u65B0\u958B\u59CB",
+    recipes_card_start_over_title:
+      "\u6368\u68C4\u5DF2\u5132\u5B58\u7684\u9032\u5EA6\uFF0C\u5F9E\u982D\u958B\u59CB\u57F7\u884C\u7CBE\u9748",
+    recipes_card_uninstall_button: "\u89E3\u9664\u5B89\u88DD",
+    recipes_catalog_fetching: "\u6B63\u5728\u64F7\u53D6\u76EE\u9304\u2026",
+    recipes_catalog_no_matches_prefix:
+      "\u627E\u4E0D\u5230\u7B26\u5408\u9805\u76EE\uFF1A",
+    recipes_catalog_search_placeholder: "\u641C\u5C0B\u98DF\u8B5C\u2026",
+    recipes_catalog_set_url_title:
+      "\u8A2D\u5B9A\u76EE\u9304\u7DB2\u5740\uFF08\u958B\u767C / \u9810\u5099\u74B0\u5883\uFF09",
+    recipes_catalog_source_overridden:
+      "\u76EE\u9304\u4F86\u6E90\u5DF2\u8986\u5BEB\uFF1A",
+    recipes_catalog_unreachable:
+      "\u7121\u6CD5\u9023\u7DDA\u81F3\u98DF\u8B5C\u76EE\u9304\uFF1A",
+    recipes_catalog_url_prompt:
+      "\u76EE\u9304\u7DB2\u5740\uFF08\u7559\u7A7A\u4EE5\u91CD\u8A2D\u70BA selorahomes.com\uFF09\uFF1A",
+    recipes_catalog_using_override: "\u4F7F\u7528\u8986\u5BEB\uFF1A",
+    recipes_catalog_will_load:
+      "\u76EE\u9304\u5C07\u5728\u6B64\u8F09\u5165\u3002",
+    recipes_continue_button: "\u7E7C\u7E8C",
+    recipes_details_copy_path_title: "\u8907\u88FD\u8DEF\u5F91",
+    recipes_details_devices_key: "\u88DD\u7F6E",
+    recipes_details_installed_on: "\u5DF2\u5B89\u88DD",
+    recipes_details_integrations_key: "\u6574\u5408",
+    recipes_details_no_bound_devices:
+      "\u7121\u5DF2\u7D81\u5B9A\u7684\u88DD\u7F6E",
+    recipes_details_none_selected_optional:
+      "\u672A\u9078\u64C7\uFF08\u9078\u586B\uFF09",
+    recipes_details_settings_key: "\u8A2D\u5B9A",
+    recipes_details_summary: "\u8A73\u7D30\u8CC7\u8A0A",
+    recipes_details_version_key: "\u7248\u672C",
+    recipes_details_where_key: "\u4F4D\u7F6E",
+    recipes_eyebrow_recipe: "\u98DF\u8B5C",
+    recipes_eyebrow_released: "\u767C\u884C\u65BC",
+    recipes_field_optional: "\uFF08\u9078\u586B\uFF09",
+    recipes_finish_button: "\u5B8C\u6210",
+    recipes_flow_cancel: "\u53D6\u6D88",
+    recipes_flow_continue: "\u7E7C\u7E8C",
+    recipes_footer_back: "\u8FD4\u56DE",
+    recipes_footer_cancel: "\u53D6\u6D88",
+    recipes_inputs_panel_title: "\u98DF\u8B5C\u8A2D\u5B9A",
+    recipes_install_accepts: "\u53EF\u63A5\u53D7",
+    recipes_install_bom_note:
+      "\u5728\u5B89\u88DD\u4EFB\u4F55\u9805\u76EE\u4E4B\u524D\uFF0C\u6750\u6599\u6E05\u55AE\u6703\u5148\u8207\u60A8\u7684\u4F4F\u5BB6\u9032\u884C\u6BD4\u5C0D\u6AA2\u67E5\u3002",
+    recipes_install_click_to_choose:
+      "\u9EDE\u9078\u4EE5\u9078\u64C7\u6A94\u6848",
+    recipes_install_drop_here:
+      "\u5C07\u98DF\u8B5C\u5C01\u5B58\u6A94\u62D6\u653E\u81F3\u6B64",
+    recipes_install_drop_to_upload: "\u653E\u958B\u4EE5\u4E0A\u50B3",
+    recipes_install_failed_button: "\u5B89\u88DD\u5931\u6557",
+    recipes_install_fetch_button: "\u64F7\u53D6",
+    recipes_install_fetching: "\u64F7\u53D6\u4E2D\u2026",
+    recipes_install_from_url_label: "\u5F9E\u7DB2\u5740\u5B89\u88DD",
+    recipes_install_or: "\u6216",
+    recipes_install_or_lower: "\u6216",
+    recipes_install_source_hint:
+      "\u6709\u4F86\u81EA\u5176\u4ED6\u4F86\u6E90\u7684\u98DF\u8B5C\u55CE\uFF1F\u8ACB\u5728\u6B64\u65B0\u589E\u3002",
+    recipes_install_source_summary:
+      "\u5F9E\u7DB2\u5740\u6216\u6A94\u6848\u5B89\u88DD",
+    recipes_install_unsupported_file_prefix:
+      "\u4E0D\u652F\u63F4\u7684\u6A94\u6848\uFF1A",
+    recipes_install_unsupported_file_suffix:
+      "\u8ACB\u4F7F\u7528 .tar.gz\u3001.tgz \u6216 .zip \u5C01\u5B58\u6A94\u3002",
+    recipes_install_upload_label: "\u5F9E\u6B64\u88DD\u7F6E\u4E0A\u50B3",
+    recipes_install_uploading: "\u4E0A\u50B3\u4E2D\u2026",
+    recipes_integration_autosetup_prose:
+      "\u53EF\u4F7F\u7528\u60A8\u7684 Home Assistant \u4F4D\u7F6E\u81EA\u52D5\u8A2D\u5B9A\u3002\u60A8\u7121\u9700\u56DE\u7B54\u4EFB\u4F55\u554F\u984C\u3002",
+    recipes_integration_entry_label: "\u9805\u76EE\uFF1A",
+    recipes_integration_manage_anytime:
+      "\u60A8\u96A8\u6642\u53EF\u4EE5\u5F9E\u300C\u8A2D\u5B9A \u2192 \u88DD\u7F6E\u8207\u670D\u52D9\u300D\u7BA1\u7406\u6B64\u6574\u5408\u3002",
+    recipes_integration_needs_setup_prose:
+      "\u9700\u8981\u5148\u5B8C\u6210\u8A2D\u5B9A\uFF0C\u6B64\u98DF\u8B5C\u624D\u80FD\u5B89\u88DD\u3002\u60A8\u7121\u9700\u96E2\u958B\u6B64\u9801\u9762\u5373\u53EF\u958B\u59CB\u8A2D\u5B9A\u3002",
+    recipes_integration_open_in_ha: "\u5728 HA \u4E2D\u958B\u555F",
+    recipes_integration_open_in_ha_settings:
+      "\u5728 HA \u8A2D\u5B9A\u4E2D\u958B\u555F",
+    recipes_integration_ready:
+      "\u5DF2\u5B8C\u6210\u8A2D\u5B9A\u4E26\u53EF\u4F7F\u7528\u3002",
+    recipes_integration_setup_auto_button: "\u81EA\u52D5\u8A2D\u5B9A",
+    recipes_integration_setup_failed:
+      "\u8A2D\u5B9A\u5931\u6557\u3002\u8ACB\u518D\u8A66\u4E00\u6B21\uFF0C\u6216\u4F7F\u7528 HA \u7684\u8A2D\u5B9A\u9801\u9762\u3002",
+    recipes_integration_setup_prefix: "\u8A2D\u5B9A",
+    recipes_integration_try_again: "\u518D\u8A66\u4E00\u6B21",
+    recipes_integration_was_set_up:
+      "\u5DF2\u5B8C\u6210\u8A2D\u5B9A\u3002Selora \u5C07\u81EA\u52D5\u91CD\u65B0\u6AA2\u67E5\u6B64\u98DF\u8B5C\u3002",
+    recipes_list_check_updates_button: "\u6AA2\u67E5\u66F4\u65B0",
+    recipes_list_check_updates_title:
+      "\u6AA2\u67E5 selorahomes.com \u4E0A\u7684\u65B0\u98DF\u8B5C\u8207\u66F4\u65B0",
+    recipes_list_checking: "\u6AA2\u67E5\u4E2D\u2026",
+    recipes_list_installed_missing_bundle:
+      "\u5DF2\u5B89\u88DD\uFF08\u78C1\u789F\u4E0A\u7F3A\u5C11\u5957\u4EF6\uFF09",
+    recipes_list_intro:
+      "\u98DF\u8B5C\u662F\u60A8\u53EA\u9700\u4E00\u6B65\u5373\u53EF\u5B89\u88DD\u7684\u73FE\u6210\u81EA\u52D5\u5316\u2014\u2014\u6F0F\u6C34\u9396\u5B9A\u3001\u5C31\u5BE2\u4F8B\u884C\u7A0B\u5E8F\u3001\u9F8D\u6372\u98A8\u8B66\u5831\u3002Selora \u6703\u5C07\u6BCF\u500B\u98DF\u8B5C\u8207\u60A8\u5BB6\u4E2D\u7684\u88DD\u7F6E\u9032\u884C\u6BD4\u5C0D\u6AA2\u67E5\uFF0C\u7136\u5F8C\u70BA\u60A8\u5B8C\u6210\u63A5\u7DDA\u8A2D\u5B9A\u3002\u8ACB\u5728\u4E0B\u65B9\u9078\u64C7\u4E00\u500B\u958B\u59CB\u4F7F\u7528\u3002",
+    recipes_list_on_this_device: "\u5DF2\u5B89\u88DD",
+    recipes_list_package_label: "\u5957\u4EF6\uFF1A",
+    recipes_list_title: "\u98DF\u8B5C",
+    recipes_loading: "\u8F09\u5165\u4E2D\u2026",
+    recipes_loading_recipe: "\u6B63\u5728\u8F09\u5165\u98DF\u8B5C\u2026",
+    recipes_manage_intro:
+      "\u66F4\u65B0\u652F\u63F4\u5404\u89D2\u8272\u7684\u5BE6\u9AD4\u3002\u6703\u7ACB\u5373\u5132\u5B58\u2014\u2014\u4E0D\u6703\u91CD\u65B0\u7522\u751F\u81EA\u52D5\u5316\uFF0C\u53EA\u6703\u8B8A\u66F4\u7FA4\u7D44\u6210\u54E1\u3002",
+    recipes_manage_no_detail:
+      "\u7121\u53EF\u7528\u7684\u8A73\u7D30\u8CC7\u8A0A\u3002",
+    recipes_manage_no_entities_prefix:
+      "\u5728\u6B64\u4F4F\u5BB6\u4E2D\u627E\u4E0D\u5230\u4EFB\u4F55",
+    recipes_manage_no_entities_suffix: "\u5BE6\u9AD4\u3002",
+    recipes_manage_save: "\u5132\u5B58",
+    recipes_manage_saving: "\u5132\u5B58\u4E2D\u2026",
+    recipes_match_col_item: "\u9805\u76EE",
+    recipes_match_col_selected: "\u5DF2\u9078\u64C7",
+    recipes_match_col_status: "\u72C0\u614B",
+    recipes_match_nothing:
+      "\u6C92\u6709\u9700\u8981\u6BD4\u5C0D\u7684\u9805\u76EE\u2014\u2014\u6B64\u98DF\u8B5C\u7121\u9700\u88DD\u7F6E\u8A2D\u5B9A\u5373\u53EF\u57F7\u884C\u3002",
+    recipes_match_scanning:
+      "\u6B63\u5728\u6383\u63CF\u60A8\u7684\u4F4F\u5BB6\u2026",
+    recipes_match_status_error: "\u932F\u8AA4",
+    recipes_match_status_needs_setup: "\u9700\u8981\u8A2D\u5B9A",
+    recipes_match_status_optional: "\u9078\u586B",
+    recipes_match_status_ready: "\u5C31\u7DD2",
+    recipes_match_status_waiting: "\u7B49\u5F85\u4E2D",
+    recipes_match_status_working: "\u8655\u7406\u4E2D",
+    recipes_optional_eyebrow: "\u9078\u586B",
+    recipes_pair_hue_action:
+      "\u4F7F\u7528 Hue \u61C9\u7528\u7A0B\u5F0F\u6216\u5176\u8A2D\u5B9A\u9801\u9762\uFF0C\u5C07\u6B64\u71C8\u6CE1\u914D\u5C0D\u81F3\u60A8\u7684 Hue Bridge\u3002",
+    recipes_pair_hue_cta: "\u958B\u555F Hue \u8A2D\u5B9A",
+    recipes_pair_matter_action:
+      "\u5728 Matter \u8A2D\u5B9A\u9801\u9762\u4E2D\uFF0C\u4F7F\u7528\u6B64 Matter \u88DD\u7F6E\u7684\u914D\u5C0D\u78BC\u9032\u884C\u914D\u7F6E\u3002",
+    recipes_pair_matter_cta: "\u958B\u555F Matter \u8A2D\u5B9A",
+    recipes_pair_mqtt_action:
+      "\u8B93\u6B64 MQTT \u88DD\u7F6E\u4E0A\u7DDA\uFF0C\u4F7F\u5176\u767C\u4F48\u81F3\u5DF2\u8A2D\u5B9A\u7684\u4E3B\u984C\u3002",
+    recipes_pair_mqtt_cta: "\u958B\u555F MQTT \u8A2D\u5B9A",
+    recipes_pair_zha_action:
+      "\u958B\u555F ZHA \u7684\u8A2D\u5B9A\u9801\u9762\uFF0C\u4E26\u5C07\u5354\u8ABF\u5668\u8A2D\u70BA\u914D\u5C0D\u6A21\u5F0F\u4EE5\u65B0\u589E\u6B64\u88DD\u7F6E\u3002",
+    recipes_pair_zha_cta: "\u958B\u555F ZHA \u8A2D\u5B9A",
+    recipes_pair_zwave_action:
+      "\u5F9E\u5176\u8A2D\u5B9A\u9801\u9762\u555F\u52D5 Z-Wave \u7D0D\u5165\u7A0B\u5E8F\u4EE5\u65B0\u589E\u6B64\u88DD\u7F6E\u3002",
+    recipes_pair_zwave_cta: "\u958B\u555F Z-Wave \u8A2D\u5B9A",
+    recipes_pin_check_now: "\u7ACB\u5373\u6AA2\u67E5",
+    recipes_pin_default_action:
+      "\u5C07\u6B64\u88DD\u7F6E\u65B0\u589E\u81F3 Home Assistant\u3002Selora \u6703\u81EA\u52D5\u5075\u6E2C\u5B83\u3002",
+    recipes_pin_expected_entity: "\u9810\u671F\u7684\u5BE6\u9AD4 ID\uFF1A",
+    recipes_pin_open_ha_integrations: "\u958B\u555F HA \u6574\u5408",
+    recipes_pin_open_setup_prefix: "\u958B\u555F",
+    recipes_pin_open_setup_suffix: "\u8A2D\u5B9A",
+    recipes_pin_tip:
+      "\u63D0\u793A\uFF1A\u8ACB\u4FDD\u6301\u6B64\u5206\u9801\u958B\u555F\u3002\u7576\u88DD\u7F6E\u5B8C\u6210\u914D\u5C0D\u6642\uFF0C\u6B64\u6B65\u9A5F\u6703\u81EA\u52D5\u52FE\u9078\u2014\u2014\u60A8\u7121\u9700\u5728\u6B64\u9EDE\u9078\u4EFB\u4F55\u9805\u76EE\u3002",
+    recipes_progress_title: "\u9032\u5EA6",
+    recipes_punch_list_title: "\u5F85\u8FA6\u6E05\u55AE",
+    recipes_required_eyebrow: "\u5FC5\u586B",
+    recipes_result_advanced: "\u9032\u968E",
+    recipes_result_fix_retry:
+      "\u4FEE\u6B63\u4E0B\u65B9\u9805\u76EE\u5F8C\uFF0C\u91CD\u65B0\u958B\u555F\u98DF\u8B5C\u4EE5\u91CD\u8A66\u3002",
+    recipes_result_halted_at_stage:
+      "\u5B89\u88DD\u5DF2\u65BC\u6B64\u968E\u6BB5\u4E2D\u6B62\uFF1A",
+    recipes_result_install_complete: "\u5B89\u88DD\u5B8C\u6210",
+    recipes_result_installed_reloaded:
+      "\u5DF2\u5B89\u88DD\uFF0C\u4E14 Home Assistant \u5DF2\u91CD\u65B0\u8F09\u5165\u3002\u5957\u4EF6\u6A94\u6848\uFF1A",
+    recipes_result_view_yaml: "\u6AA2\u8996\u7522\u751F\u7684\u5957\u4EF6 YAML",
+    recipes_role_check_again: "\u518D\u6B21\u6AA2\u67E5",
+    recipes_role_empty_add_device: "\u5728 HA \u4E2D\u65B0\u589E\u88DD\u7F6E",
+    recipes_role_empty_at_least: "\u81F3\u5C11",
+    recipes_role_empty_none_prefix:
+      "\u60A8\u5BB6\u4E2D\u5C1A\u7121\u4EFB\u4F55",
+    recipes_role_empty_none_suffix: "",
+    recipes_role_empty_one_prose:
+      "\u65B0\u589E\u4E00\u500B\uFF0C\u5B83\u5C31\u6703\u81EA\u52D5\u986F\u793A\u65BC\u6B64\u2014\u2014\u60A8\u53EF\u4EE5\u96E2\u958B\u6B64\u9801\u9762\u53BB\u65B0\u589E\u88DD\u7F6E\uFF0C\u7576\u60A8\u6309\u300C\u8FD4\u56DE\u300D\u6642\u7CBE\u9748\u6703\u4FDD\u7559\u60A8\u7684\u9032\u5EA6\u3002",
+    recipes_role_empty_pair: "\u914D\u5C0D",
+    recipes_role_filter_device_noun: "\u88DD\u7F6E",
+    recipes_role_filter_sensor_noun: "\u611F\u6E2C\u5668",
+    recipes_role_pick_one_or_more: "\u9078\u64C7\u4E00\u500B\u6216\u591A\u500B",
+    recipes_role_pick_prefix: "\u9078\u64C7\uFF1A",
+    recipes_role_pinned_count_suffix:
+      "\u5DF2\u7531\u98DF\u8B5C\u56FA\u5B9A\uFF08\u4E00\u5F8B\u7D0D\u5165\uFF09\u3002",
+    recipes_role_run_against:
+      "Selora \u6703\u91DD\u5C0D\u60A8\u52FE\u9078\u7684\u9805\u76EE\u57F7\u884C\u6B64\u98DF\u8B5C\u3002",
+    recipes_role_up_to: "\u6700\u591A",
+    recipes_safety_automations_generated:
+      "\u5DF2\u7522\u751F\u81EA\u52D5\u5316",
+    recipes_safety_install_incomplete: "\u5B89\u88DD\u672A\u5B8C\u6210",
+    recipes_safety_installed_ok: "\u98DF\u8B5C\u5B89\u88DD\u6210\u529F",
+    recipes_safety_issues_to_address: "\u500B\u5F85\u8655\u7406\u554F\u984C",
+    recipes_safety_no_artifacts:
+      "\u672A\u5EFA\u7ACB\u4EFB\u4F55\u7522\u51FA\u7269",
+    recipes_safety_no_issues: "\u7121\u672A\u89E3\u6C7A\u7684\u554F\u984C",
+    recipes_section_automation_plural: "\u500B\u81EA\u52D5\u5316",
+    recipes_section_automation_singular: "\u500B\u81EA\u52D5\u5316",
+    recipes_section_binary_sensor_plural:
+      "\u500B\u4E8C\u9032\u4F4D\u611F\u6E2C\u5668",
+    recipes_section_binary_sensor_singular:
+      "\u500B\u4E8C\u9032\u4F4D\u611F\u6E2C\u5668",
+    recipes_section_climate_plural: "\u500B\u7A7A\u8ABF\u5BE6\u9AD4",
+    recipes_section_climate_singular: "\u500B\u7A7A\u8ABF\u5BE6\u9AD4",
+    recipes_section_counter_plural: "\u500B\u8A08\u6578\u5668",
+    recipes_section_counter_singular: "\u500B\u8A08\u6578\u5668",
+    recipes_section_cover_plural: "\u500B\u7A97\u7C3E",
+    recipes_section_cover_singular: "\u500B\u7A97\u7C3E",
+    recipes_section_customisation_plural: "\u500B\u81EA\u8A02\u9805\u76EE",
+    recipes_section_customisation_singular: "\u500B\u81EA\u8A02\u9805\u76EE",
+    recipes_section_group_plural: "\u500B\u7FA4\u7D44",
+    recipes_section_group_singular: "\u500B\u7FA4\u7D44",
+    recipes_section_helper_plural: "\u500B\u8F14\u52A9\u9805\u76EE",
+    recipes_section_helper_singular: "\u500B\u8F14\u52A9\u9805\u76EE",
+    recipes_section_light_plural: "\u500B\u71C8\u5149",
+    recipes_section_light_singular: "\u500B\u71C8\u5149",
+    recipes_section_media_player_plural: "\u500B\u5A92\u9AD4\u64AD\u653E\u5668",
+    recipes_section_media_player_singular:
+      "\u500B\u5A92\u9AD4\u64AD\u653E\u5668",
+    recipes_section_notify_plural: "\u500B\u901A\u77E5\u5668",
+    recipes_section_notify_singular: "\u500B\u901A\u77E5\u5668",
+    recipes_section_rest_command_plural: "\u500B REST \u6307\u4EE4",
+    recipes_section_rest_command_singular: "\u500B REST \u6307\u4EE4",
+    recipes_section_scene_plural: "\u500B\u60C5\u5883",
+    recipes_section_scene_singular: "\u500B\u60C5\u5883",
+    recipes_section_script_plural: "\u500B\u8173\u672C",
+    recipes_section_script_singular: "\u500B\u8173\u672C",
+    recipes_section_sensor_plural: "\u500B\u611F\u6E2C\u5668",
+    recipes_section_sensor_singular: "\u500B\u611F\u6E2C\u5668",
+    recipes_section_shell_command_plural: "\u500B shell \u6307\u4EE4",
+    recipes_section_shell_command_singular: "\u500B shell \u6307\u4EE4",
+    recipes_section_switch_plural: "\u500B\u958B\u95DC",
+    recipes_section_switch_singular: "\u500B\u958B\u95DC",
+    recipes_section_template_plural: "\u500B\u7BC4\u672C\u5BE6\u9AD4",
+    recipes_section_template_singular: "\u500B\u7BC4\u672C\u5BE6\u9AD4",
+    recipes_section_timer_plural: "\u500B\u8A08\u6642\u5668",
+    recipes_section_timer_singular: "\u500B\u8A08\u6642\u5668",
+    recipes_selected_awaiting_pair: "\u7B49\u5F85\u914D\u5C0D",
+    recipes_selected_entities_suffix: "\u500B\u5BE6\u9AD4",
+    recipes_selected_none: "\u7121",
+    recipes_selected_setting_plural: "\u9805\u8A2D\u5B9A",
+    recipes_selected_setting_singular: "\u9805\u8A2D\u5B9A",
+    recipes_setting_up_button: "\u8A2D\u5B9A\u4E2D\u2026",
+    recipes_stage_apply: "\u5957\u7528",
+    recipes_stage_configure: "\u8A2D\u5B9A",
+    recipes_stage_prepare: "\u6E96\u5099",
+    recipes_stage_unknown: "\u672A\u77E5",
+    recipes_start_setup_button: "\u958B\u59CB\u8A2D\u5B9A",
+    recipes_status_done: "\u5B8C\u6210",
+    recipes_status_failed: "\u5931\u6557",
+    recipes_status_needs_you: "\u9700\u8981\u60A8\u8655\u7406",
+    recipes_status_pending: "\u5F85\u8655\u7406",
+    recipes_status_running: "\u57F7\u884C\u4E2D",
+    recipes_status_skipped: "\u5DF2\u7565\u904E",
+    recipes_step2_sub:
+      "\u5168\u98DF\u8B5C\u504F\u597D\u8A2D\u5B9A\u3002\u9810\u8A2D\u503C\u5DF2\u9810\u5148\u586B\u5165\uFF1B\u53EA\u6709\u5728\u60A8\u60F3\u8B8A\u66F4\u6642\u624D\u9700\u8ABF\u6574\uFF0C\u7136\u5F8C\u6309\u300C\u7E7C\u7E8C\u300D\u3002",
+    recipes_step2_sub_empty:
+      "\u6B64\u98DF\u8B5C\u6C92\u6709\u9700\u8981\u8A2D\u5B9A\u7684\u9078\u9805\u2014\u2014\u53EA\u9700\u6309\u300C\u7E7C\u7E8C\u300D\u5373\u53EF\u3002",
+    recipes_step2_title: "\u98DF\u8B5C\u8A2D\u5B9A",
+    recipes_step3_hint_finish:
+      "\u5B8C\u6210\u6A19\u793A\u300C\u9700\u8981\u8A2D\u5B9A\u300D\u7684\u5217\u5373\u53EF\u7E7C\u7E8C\u3002",
+    recipes_step3_hint_ready:
+      "\u770B\u8D77\u4F86\u4E0D\u932F\u2014\u2014\u53EF\u4EE5\u9032\u884C\u8A2D\u5B9A\u4E86\u3002",
+    recipes_step3_sub:
+      "\u5C07\u4E0B\u65B9\u6BCF\u500B\u9805\u76EE\u8207\u60A8\u5BB6\u4E2D\u7684\u5BE6\u9AD4\u914D\u5C0D\u3002\u9EDE\u9078\u4EFB\u4E00\u5217\u5373\u53EF\u9032\u884C\u8A2D\u5B9A\u3002",
+    recipes_step3_title: "\u6BD4\u5C0D\u88DD\u7F6E",
+    recipes_step4_hint_failed:
+      "\u6309\u300C\u8FD4\u56DE\u300D\u4EE5\u4FEE\u6539\u60A8\u7684\u9078\u64C7\uFF0C\u7136\u5F8C\u518D\u8A66\u4E00\u6B21\u3002",
+    recipes_step4_hint_something_failed:
+      "\u767C\u751F\u932F\u8AA4\u2014\u2014\u8ACB\u8FD4\u56DE\u5F8C\u518D\u8A66\u4E00\u6B21\u3002",
+    recipes_step4_sub_busy:
+      "Selora \u6B63\u5728\u5B89\u88DD\u60A8\u7684\u98DF\u8B5C\u3002\u8ACB\u7A0D\u5019\u2014\u2014\u53EA\u9700\u5E7E\u79D2\u9418\u3002",
+    recipes_step4_sub_done:
+      "\u5168\u90E8\u5B8C\u6210\u3002\u6309\u300C\u7E7C\u7E8C\u300D\u4EE5\u6AA2\u8996\u5DF2\u5B89\u88DD\u7684\u5167\u5BB9\u3002",
+    recipes_step4_sub_halted_prefix: "\u5B89\u88DD\u5DF2\u65BC",
+    recipes_step4_sub_halted_suffix:
+      "\u968E\u6BB5\u4E2D\u6B62\u3002\u8ACB\u8FD4\u56DE\u4EE5\u4FEE\u6B63\u4E0B\u65B9\u7684\u554F\u984C\u3002",
+    recipes_step4_sub_starting: "\u6B63\u5728\u958B\u59CB\u8A2D\u5B9A\u2026",
+    recipes_step4_title: "\u8A2D\u5B9A\u4E2D",
+    recipes_step5_created_title: "\u6B64\u98DF\u8B5C\u5EFA\u7ACB\u4E86",
+    recipes_step5_devices_linked: "\u5DF2\u9023\u7D50\u7684\u88DD\u7F6E",
+    recipes_step5_hint:
+      "Home Assistant \u5DF2\u91CD\u65B0\u8F09\u5165\u2014\u2014\u60A8\u7684\u98DF\u8B5C\u5DF2\u4E0A\u7DDA\u3002",
+    recipes_step5_more_suffix: "\u500B\u4EE5\u4E0A",
+    recipes_step5_no_devices:
+      "\u6C92\u6709\u88DD\u7F6E\u8207\u6B64\u98DF\u8B5C\u95DC\u806F\u3002",
+    recipes_step5_no_entries:
+      "\u672A\u7522\u751F\u4EFB\u4F55\u9805\u76EE\u3002",
+    recipes_step5_safety_checks: "\u5B89\u5168\u6AA2\u67E5",
+    recipes_step5_sub:
+      "\u60A8\u7684\u98DF\u8B5C\u5DF2\u5B89\u88DD\uFF0C\u4E14 Home Assistant \u5DF2\u91CD\u65B0\u8F09\u5165\u3002\u8ACB\u5728\u4E0B\u65B9\u6AA2\u8996\u5DF2\u5EFA\u7ACB\u7684\u5167\u5BB9\uFF0C\u7136\u5F8C\u6309\u300C\u5B8C\u6210\u300D\u3002",
+    recipes_step5_title: "\u6AA2\u8996\u4E26\u5B8C\u6210",
+    recipes_step_activate: "\u555F\u7528",
+    recipes_step_label: "\u6B65\u9A5F",
+    recipes_step_match: "\u6BD4\u5C0D",
+    recipes_step_of_5: "\uFF0F\u5171 5 \u6B65",
+    recipes_step_overview: "\u7E3D\u89BD",
+    recipes_step_set_up: "\u8A2D\u5B9A",
+    recipes_step_settings: "\u8A2D\u5B9A",
+    recipes_system_panel_auto:
+      "\u6B64\u6B65\u9A5F\u6703\u81EA\u52D5\u57F7\u884C\u3002\u60A8\u7121\u9700\u63A1\u53D6\u4EFB\u4F55\u52D5\u4F5C\u3002",
+    recipes_this_recipe_creates: "\u6B64\u98DF\u8B5C\u5EFA\u7ACB\u4E86",
+    recipes_uninstall_body:
+      "\u5957\u4EF6\u6A94\u6848\u5C07\u6703\u88AB\u522A\u9664\uFF0C\u4E14 Home Assistant \u5C07\u91CD\u65B0\u8F09\u5165\u3002\u6B64\u98DF\u8B5C\u5EFA\u7ACB\u7684\u81EA\u52D5\u5316\u5C07\u6703\u88AB\u79FB\u9664\u3002",
+    recipes_uninstall_confirm_prefix: "\u89E3\u9664\u5B89\u88DD",
+    recipes_uninstall_integrations_sub:
+      "\u52FE\u9078\u4EFB\u4F55\u61C9\u96A8\u98DF\u8B5C\u4E00\u4F75\u79FB\u9664\u7684\u9805\u76EE\u3002\u672A\u52FE\u9078\u7684\u9805\u76EE\u6703\u4FDD\u7559\u5728 Home Assistant \u4E2D\u3002",
+    recipes_uninstall_integrations_title:
+      "\u6B64\u98DF\u8B5C\u5B89\u88DD\u7684\u6574\u5408",
+    recipes_uninstall_still_used_by: "\u4ECD\u88AB\u4F7F\u7528\u65BC",
+    recipes_uninstall_warn_title:
+      "\u79FB\u9664\u6B64\u6574\u5408\u5C07\u6703\u7834\u58DE\u90A3\u4E9B\u98DF\u8B5C\u3002",
+    recipes_what_you_need_title: "\u60A8\u9700\u8981\u7684\u9805\u76EE",
+    recipes_working: "\u8655\u7406\u4E2D\u2026",
+    recipes_role_filter_placeholder: "\u4F9D\u540D\u7A31\u7BE9\u9078\u2026",
+    recipes_role_filter_no_matches:
+      "\u6C92\u6709\u5BE6\u9AD4\u7B26\u5408\u7BE9\u9078\u689D\u4EF6\u3002",
+    recipes_role_show_all: "\u986F\u793A\u5168\u90E8",
+    recipes_role_show_less: "\u6536\u5408",
+    recipes_dashboard_picker_title:
+      "\u5411\u5100\u8868\u677F\u65B0\u589E\u5361\u7247",
+    recipes_dashboard_picker_sub:
+      "\u6B64\u98DF\u8B5C\u53EF\u5728\u5100\u8868\u677F\u4E0A\u653E\u7F6E\u4E00\u5F35\u5361\u7247\u4F9B\u4F60\u9EDE\u6309\u3002\u9078\u64C7\u4F4D\u7F6E\uFF0C\u6216\u7565\u904E\u4E26\u7A0D\u5F8C\u81EA\u884C\u65B0\u589E\u3002",
+    recipes_dashboard_picker_skip: "\u4E0D\u8981\u65B0\u589E\u5361\u7247",
+    recipes_dashboard_picker_refine:
+      "\u9700\u8981\u81EA\u8A02\u5361\u7247\uFF1F\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
+    recipes_step5_dashboard_title: "\u5100\u8868\u677F\u5361\u7247",
+    recipes_step5_dashboard_added:
+      "\u5DF2\u5411\u4F60\u7684\u5100\u8868\u677F\u65B0\u589E\u4E00\u5F35\u5361\u7247\u3002",
+    recipes_step5_dashboard_skipped:
+      "\u672A\u65B0\u589E\u5361\u7247\u3002\u4F60\u53EF\u4EE5\u81EA\u884C\u65B0\u589E\uFF0C\u6216\u8B93 Selora \u5354\u52A9\u3002",
+    recipes_step5_dashboard_manual:
+      "\u7121\u6CD5\u81EA\u52D5\u65B0\u589E\u5361\u7247\u2014\u2014\u8ACB\u81EA\u884C\u65B0\u589E\uFF0C\u6216\u8B93 Selora \u5354\u52A9\u3002",
+    recipes_step5_dashboard_customize: "\u5728\u5C0D\u8A71\u4E2D\u81EA\u8A02",
+    recipes_step5_dashboard_help: "\u5728\u5C0D\u8A71\u4E2D\u65B0\u589E",
+    recipes_refine_chat_failed:
+      "\u7121\u6CD5\u70BA\u6B64\u98DF\u8B5C\u958B\u555F\u5C0D\u8A71\u3002",
+    recipes_step3_hint_blocked:
+      "\u6B64\u98DF\u8B5C\u5C1A\u7121\u6CD5\u6E96\u5099\u2014\u2014\u8ACB\u6AA2\u67E5\u98DF\u8B5C\u662F\u5426\u6709\u932F\u8AA4\u5F8C\u91CD\u8A66\u3002",
+    recipes_catalog_empty:
+      "\u6B64\u76EE\u9304\u4E2D\u5C1A\u7121\u98DF\u8B5C\u3002",
   },
   options: {
     step: {
@@ -17509,41 +22187,49 @@ function localize(hass, key, fallback) {
 }
 
 // node_modules/lit-html/directive.js
+var t3 = {
+  ATTRIBUTE: 1,
+  CHILD: 2,
+  PROPERTY: 3,
+  BOOLEAN_ATTRIBUTE: 4,
+  EVENT: 5,
+  ELEMENT: 6,
+};
 var e4 =
   (t4) =>
-  (...e5) => ({ _$litDirective$: t4, values: e5 });
-var i5 = class {
+  (...e6) => ({ _$litDirective$: t4, values: e6 });
+var i3 = class {
   constructor(t4) {}
   get _$AU() {
     return this._$AM._$AU;
   }
-  _$AT(t4, e5, i7) {
-    ((this._$Ct = t4), (this._$AM = e5), (this._$Ci = i7));
+  _$AT(t4, e6, i5) {
+    ((this._$Ct = t4), (this._$AM = e6), (this._$Ci = i5));
   }
-  _$AS(t4, e5) {
-    return this.update(t4, e5);
+  _$AS(t4, e6) {
+    return this.update(t4, e6);
   }
-  update(t4, e5) {
-    return this.render(...e5);
+  update(t4, e6) {
+    return this.render(...e6);
   }
 };
 
 // node_modules/lit-html/directive-helpers.js
-var { I: t3 } = j;
-var m2 = {};
-var p3 = (o5, t4 = m2) => (o5._$AH = t4);
+var { I: l4 } = j;
+var s5 = {};
+var a3 = (o6, l5 = s5) => (o6._$AH = l5);
 
 // node_modules/lit-html/directives/keyed.js
-var i6 = e4(
-  class extends i5 {
+var i4 = e4(
+  class extends i3 {
     constructor() {
       (super(...arguments), (this.key = A));
     }
     render(r4, t4) {
       return ((this.key = r4), t4);
     }
-    update(r4, [t4, e5]) {
-      return (t4 !== this.key && (p3(r4), (this.key = t4)), e5);
+    update(r4, [t4, e6]) {
+      return (t4 !== this.key && (a3(r4), (this.key = t4)), e6);
     }
   },
 );
@@ -17611,7 +22297,7 @@ function _coalesceEntityListings(text) {
   const BLANK = /^\s*$/;
   const lines = text.split("\n");
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   const skipBlanks = (j2) => {
     while (j2 < lines.length && BLANK.test(lines[j2])) j2++;
     return j2;
@@ -17631,58 +22317,58 @@ function _coalesceEntityListings(text) {
     if (multi) {
       return multi[1]
         .split(",")
-        .map((s4) => s4.trim())
-        .filter((s4) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s4));
+        .map((s6) => s6.trim())
+        .filter((s6) => /^[a-z_]+\.[a-z0-9_\-]+$/.test(s6));
     }
     return [];
   };
   const BARE_MARKER =
     /^\s*(\[\[entit(?:y|ies):[^\]\n]+\]\])\s*(?:[—–][^\n]*)?$/;
-  while (i7 < lines.length) {
+  while (i5 < lines.length) {
     const tryCoalesce = (firstLineRe) => {
-      if (!firstLineRe.test(lines[i7])) return false;
+      if (!firstLineRe.test(lines[i5])) return false;
       const runIds = [];
-      let j3 = i7;
+      let j3 = i5;
       while (j3 < lines.length) {
-        const m3 = lines[j3].match(firstLineRe);
-        if (!m3) break;
-        for (const id of idsFromMarker(m3[1])) runIds.push(id);
+        const m2 = lines[j3].match(firstLineRe);
+        if (!m2) break;
+        for (const id of idsFromMarker(m2[1])) runIds.push(id);
         j3++;
         j3 = skipStateLines(j3);
         j3 = skipBlanks(j3);
       }
       if (runIds.length === 0) return false;
       out.push(`[[entities:${runIds.join(",")}]]`);
-      i7 = j3;
+      i5 = j3;
       return true;
     };
     if (tryCoalesce(MARKER_BULLET)) continue;
     if (tryCoalesce(BARE_MARKER)) continue;
-    const tailMatch = lines[i7].match(MARKER_TAIL_STATE);
+    const tailMatch = lines[i5].match(MARKER_TAIL_STATE);
     if (tailMatch) {
       out.push(tailMatch[1]);
-      let j3 = i7 + 1;
+      let j3 = i5 + 1;
       j3 = skipStateLines(j3);
-      i7 = j3;
+      i5 = j3;
       continue;
     }
     const ids = [];
-    let j2 = i7;
+    let j2 = i5;
     while (j2 < lines.length) {
-      const m3 = lines[j2].match(ID_LINE);
-      if (!m3) break;
-      ids.push(m3[1]);
+      const m2 = lines[j2].match(ID_LINE);
+      if (!m2) break;
+      ids.push(m2[1]);
       j2++;
       j2 = skipStateLines(j2);
       j2 = skipBlanks(j2);
     }
     if (ids.length >= 1) {
       out.push(`[[entities:${ids.join(",")}]]`);
-      i7 = j2;
+      i5 = j2;
       continue;
     }
-    out.push(lines[i7]);
-    i7++;
+    out.push(lines[i5]);
+    i5++;
   }
   return out.join("\n");
 }
@@ -17762,10 +22448,10 @@ function renderMarkdown(text) {
     /(<div class="selora-entity-grid"[^>]*><\/div>)(<br>)+/g,
     "$1",
   );
-  const escapeCode = (s4) =>
-    s4.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const escapeAttr = (s4) =>
-    s4
+  const escapeCode = (s6) =>
+    s6.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escapeAttr = (s6) =>
+    s6
       .replace(/&/g, "&amp;")
       .replace(/"/g, "&quot;")
       .replace(/</g, "&lt;")
@@ -17792,12 +22478,12 @@ function _formatTimestamp(iso) {
 }
 function _stateColor(state) {
   if (!state) return "var(--selora-zinc-400)";
-  const s4 = String(state).toLowerCase();
-  if (["on", "open", "home", "playing", "active"].includes(s4))
+  const s6 = String(state).toLowerCase();
+  if (["on", "open", "home", "playing", "active"].includes(s6))
     return "var(--selora-accent, #fbbf24)";
-  if (["off", "closed", "not_home", "idle", "standby"].includes(s4))
+  if (["off", "closed", "not_home", "idle", "standby"].includes(s6))
     return "var(--selora-zinc-400)";
-  if (["unavailable", "unknown"].includes(s4)) return "#ef4444";
+  if (["unavailable", "unknown"].includes(s6)) return "#ef4444";
   return "var(--selora-zinc-200)";
 }
 function _deviceIcon(domains) {
@@ -17821,7 +22507,7 @@ function renderDeviceDetail(host) {
   const detail = host._deviceDetail;
   if (!detail) return "";
   const loading = host._deviceDetailLoading;
-  return b2`
+  return x`
     <div
       class="device-detail-drawer"
       style="
@@ -17833,20 +22519,20 @@ function renderDeviceDetail(host) {
     >
       ${
         loading
-          ? b2`<span style="font-size:13px;color:var(--selora-zinc-400);"
+          ? x`<span style="font-size:13px;color:var(--selora-zinc-400);"
             >${host._t(
               "device_detail_loading",
               "Loading device detail...",
             )}</span
           >`
-          : b2`
+          : x`
             <!-- Header -->
             <div
               style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;"
             >
               <div style="display:flex;align-items:center;gap:8px;">
                 <ha-icon
-                  icon=${_deviceIcon(detail.entities?.map((e5) => e5.domain))}
+                  icon=${_deviceIcon(detail.entities?.map((e6) => e6.domain))}
                   style="--mdc-icon-size:22px;color:var(--selora-accent);"
                 ></ha-icon>
                 <div>
@@ -17859,7 +22545,7 @@ function renderDeviceDetail(host) {
                     ${[detail.area, detail.manufacturer, detail.model].filter(Boolean).join(" \xB7 ")}
                     ${
                       detail.integration
-                        ? b2` ·
+                        ? x` ·
                           <span style="opacity:0.7"
                             >${detail.integration}</span
                           >`
@@ -17885,7 +22571,7 @@ function renderDeviceDetail(host) {
             <!-- Entities -->
             ${
               detail.entities?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -17893,19 +22579,19 @@ function renderDeviceDetail(host) {
                       ${host._t("device_detail_entities_heading", "Entities")}
                     </div>
                     ${detail.entities.map(
-                      (e5) => b2`
+                      (e6) => x`
                         <div
                           style="display:flex;justify-content:space-between;align-items:center;padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <span
                             style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${e5.name || e5.entity_id}</span
+                            >${e6.name || e6.entity_id}</span
                           >
                           <span
                             style="font-size:12px;font-weight:600;color:${_stateColor(
-                              e5.state,
+                              e6.state,
                             )};"
-                            >${e5.state}</span
+                            >${e6.state}</span
                           >
                         </div>
                       `,
@@ -17918,7 +22604,7 @@ function renderDeviceDetail(host) {
             <!-- State History -->
             ${
               detail.state_history?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -17930,7 +22616,7 @@ function renderDeviceDetail(host) {
                     </div>
                     <div style="max-height:150px;overflow-y:auto;">
                       ${detail.state_history.slice(0, 30).map(
-                        (h3) => b2`
+                        (h3) => x`
                           <div
                             style="display:flex;justify-content:space-between;padding:3px 0;font-size:11px;"
                           >
@@ -17955,7 +22641,7 @@ function renderDeviceDetail(host) {
             <!-- Linked Automations -->
             ${
               detail.linked_automations?.length
-                ? b2`
+                ? x`
                   <div style="margin-bottom:12px;">
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -17966,13 +22652,13 @@ function renderDeviceDetail(host) {
                       )}
                     </div>
                     ${detail.linked_automations.map(
-                      (a3) => b2`
+                      (a4) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <span
                             style="font-size:12px;color:var(--selora-zinc-200);"
-                            >${a3.alias || a3.id}</span
+                            >${a4.alias || a4.id}</span
                           >
                         </div>
                       `,
@@ -17985,7 +22671,7 @@ function renderDeviceDetail(host) {
             <!-- Related Patterns -->
             ${
               detail.related_patterns?.length
-                ? b2`
+                ? x`
                   <div>
                     <div
                       style="font-size:11px;font-weight:600;text-transform:uppercase;color:var(--selora-zinc-400);margin-bottom:6px;"
@@ -17996,19 +22682,19 @@ function renderDeviceDetail(host) {
                       )}
                     </div>
                     ${detail.related_patterns.map(
-                      (p4) => b2`
+                      (p2) => x`
                         <div
                           style="padding:4px 0;border-bottom:1px solid var(--selora-inner-card-border, var(--divider-color, #3f3f46));"
                         >
                           <div
                             style="font-size:12px;color:var(--selora-zinc-200);"
                           >
-                            ${p4.description}
+                            ${p2.description}
                           </div>
                           <div
                             style="font-size:10px;color:var(--selora-zinc-400);margin-top:2px;"
                           >
-                            ${p4.type} · ${Math.round(p4.confidence * 100)}%
+                            ${p2.type} · ${Math.round(p2.confidence * 100)}%
                             ${host._t(
                               "device_detail_confidence_label",
                               "confidence",
@@ -18078,28 +22764,28 @@ function _approvalScope(value) {
 function _normalizeApprovalActions(host, actions) {
   let touched = false;
   const presentation = _approvalPresentation(host);
-  const out = actions.map((a3) => {
-    const scope = _approvalScope(a3?.value);
-    if (!scope) return a3;
+  const out = actions.map((a4) => {
+    const scope = _approvalScope(a4?.value);
+    if (!scope) return a4;
     const preset = presentation[scope];
-    if (!preset) return a3;
+    if (!preset) return a4;
     touched = true;
     return {
-      ...a3,
+      ...a4,
       // Override label too — older persisted messages may have shipped
       // "Session" / "Allow once" wording, but we want the new copy
       // ("For this conversation") to appear consistently.
       label: preset.label,
       mode: "choice",
-      icon: a3.icon || preset.icon,
-      tone: a3.tone || preset.tone,
-      description: a3.description || preset.description,
+      icon: a4.icon || preset.icon,
+      tone: a4.tone || preset.tone,
+      description: a4.description || preset.description,
     };
   });
   return touched ? out : actions;
 }
 function _isApprovalGroup(actions) {
-  return actions.some((a3) => _approvalScope(a3?.value));
+  return actions.some((a4) => _approvalScope(a4?.value));
 }
 function renderQuickActions(host, actions, opts = {}) {
   if (!actions || !actions.length) return "";
@@ -18110,30 +22796,30 @@ function renderQuickActions(host, actions, opts = {}) {
     const approvalClass = _isApprovalGroup(actions)
       ? " qa-group--approval"
       : "";
-    return b2`
+    return x`
       <div class="qa-group qa-group--choices${approvalClass}${usedClass}">
-        ${actions.map((a3) => _renderChoice(host, a3))}
+        ${actions.map((a4) => _renderChoice(host, a4))}
       </div>
     `;
   }
   if (mode === "confirmation") {
-    return b2`
+    return x`
       <div class="qa-group qa-group--confirmations${usedClass}">
-        ${actions.map((a3) => _renderConfirmation(host, a3))}
+        ${actions.map((a4) => _renderConfirmation(host, a4))}
       </div>
     `;
   }
-  return b2`
+  return x`
     <div class="qa-group${usedClass}">
-      ${actions.map((a3) => _renderSuggestion(host, a3))}
+      ${actions.map((a4) => _renderSuggestion(host, a4))}
     </div>
   `;
 }
 function _detectMode(actions) {
   const first = actions[0];
   if (first.mode) return first.mode;
-  if (actions.some((a3) => a3.primary !== void 0)) return "confirmation";
-  if (actions.some((a3) => a3.description)) return "choice";
+  if (actions.some((a4) => a4.primary !== void 0)) return "confirmation";
+  if (actions.some((a4) => a4.description)) return "choice";
   return "suggestion";
 }
 function _onSelect(host, action) {
@@ -18141,7 +22827,7 @@ function _onSelect(host, action) {
 }
 function _renderSuggestion(host, action) {
   const leadingIcon = action.icon || "mdi:auto-fix";
-  return b2`
+  return x`
     <button class="qa-suggestion" @click=${() => _onSelect(host, action)}>
       <span class="qa-glow-track" aria-hidden="true">
         <span class="qa-glow-spot"></span>
@@ -18186,7 +22872,7 @@ function _renderChoice(host, action) {
   const cardTitle = tooltipDescription
     ? `${action.label} \u2014 ${action.description}`
     : action.label;
-  return b2`
+  return x`
     <div
       class="qa-choice"
       style=${toneStyle}
@@ -18202,7 +22888,7 @@ function _renderChoice(host, action) {
           <span class="qa-choice-label" title=${action.label}
             >${action.label}</span
           >
-          ${inlineDescription ? b2`<span class="qa-choice-desc">${action.description}</span>` : ""}
+          ${inlineDescription ? x`<span class="qa-choice-desc">${action.description}</span>` : ""}
         </div>
         <ha-icon class="qa-choice-trail" icon=${trailingIcon}></ha-icon>
       </div>
@@ -18219,11 +22905,11 @@ function _renderConfirmation(host, action) {
       : tone === "deny"
         ? "color:#ef4444;"
         : "";
-  return b2`
+  return x`
     <button class=${cls} @click=${() => _onSelect(host, action)}>
       ${
         action.icon
-          ? b2`<ha-icon
+          ? x`<ha-icon
             icon=${action.icon}
             style="--mdc-icon-size:16px;${iconStyle}"
           ></ha-icon>`
@@ -18231,7 +22917,7 @@ function _renderConfirmation(host, action) {
       }
       <span style="display:flex;flex-direction:column;align-items:flex-start;">
         <span class="qa-confirm-label">${action.label}</span>
-        ${action.description ? b2`<span class="qa-confirm-desc">${action.description}</span>` : ""}
+        ${action.description ? x`<span class="qa-confirm-desc">${action.description}</span>` : ""}
       </span>
     </button>
   `;
@@ -18324,11 +23010,11 @@ var DOMAIN_FORMS = {
     past: "Ran shell command",
   },
 };
-function _domainOf(s4) {
-  return (s4 || "").split(".", 1)[0];
+function _domainOf(s6) {
+  return (s6 || "").split(".", 1)[0];
 }
-function _serviceSuffix(s4) {
-  const parts = (s4 || "").split(".");
+function _serviceSuffix(s6) {
+  const parts = (s6 || "").split(".");
   return parts.length > 1 ? parts.slice(1).join(".") : "";
 }
 function _friendlyName(host, entityId) {
@@ -18395,7 +23081,7 @@ function _renderActionTile(call) {
   const service = call?.service || "";
   const icon = actionIcon(service);
   const { verb } = describeCall({ hass: { states: {} } }, call);
-  return b2`
+  return x`
     <div
       style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:12px 10px;min-width:88px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);"
       title=${service}
@@ -18416,7 +23102,7 @@ function _renderCallRow(host, call, reason) {
   const ids = Array.isArray(target) ? target : target ? [target] : [];
   const { targetText } = describeCall(host, call);
   const rightSide = ids.length
-    ? b2`
+    ? x`
         <div
           class="selora-entity-grid"
           data-entity-ids=${ids.join(",")}
@@ -18424,14 +23110,14 @@ function _renderCallRow(host, call, reason) {
           style="flex:1;min-width:0;margin:0;"
         ></div>
       `
-    : b2`
+    : x`
         <div
           style="flex:1;min-width:0;padding:12px;border-radius:8px;background:var(--card-background-color, rgba(255,255,255,0.04));border:1px solid var(--divider-color);font-size:13px;color:var(--primary-text-color);"
         >
           ${targetText}
         </div>
       `;
-  return b2`
+  return x`
     <div
       style="padding:10px 0;border-top:1px solid var(--divider-color);display:flex;flex-direction:column;gap:8px;"
     >
@@ -18445,7 +23131,7 @@ function _renderCallRow(host, call, reason) {
       </div>
       ${
         reason
-          ? b2`<div
+          ? x`<div
             style="font-size:12px;color:var(--secondary-text-color);line-height:1.4;"
           >
             ${reason}
@@ -18508,7 +23194,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       approvalStatus === "approved"
         ? "mdi:check-circle-outline"
         : "mdi:close-circle-outline";
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:${resolvedColor};"
       >
@@ -18523,7 +23209,7 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
     `;
   }
   if (approvalStatus === "resolving") {
-    return b2`
+    return x`
       <div
         style="margin-top:10px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
       >
@@ -18532,8 +23218,8 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
       </div>
     `;
   }
-  const reasonFor = (i7) => reasons[i7] || "";
-  return b2`
+  const reasonFor = (i5) => reasons[i5] || "";
+  return x`
     <div
       style="margin-top:12px;border:1px solid var(--divider-color);border-left:3px solid ${accent};border-radius:8px;padding:12px 14px;background:var(--card-background-color, rgba(255,255,255,0.02));"
     >
@@ -18552,11 +23238,11 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
         >
       </div>
       <div style="display:flex;flex-direction:column;">
-        ${calls.map((c4, i7) => _renderCallRow(host, c4, reasonFor(i7)))}
+        ${calls.map((c3, i5) => _renderCallRow(host, c3, reasonFor(i5)))}
       </div>
       ${
         entityIds.length
-          ? b2`
+          ? x`
             <div
               style="margin-top:10px;padding-top:10px;border-top:1px solid var(--divider-color);display:flex;align-items:center;gap:8px;font-size:12px;color:var(--secondary-text-color);"
             >
@@ -19383,7 +24069,7 @@ function _ghostVocabFor(lang) {
   const key = GHOST_VOCABULARY_BY_LANG[_langKey(lang)] ? _langKey(lang) : "en";
   if (!_ghostSorted[key]) {
     _ghostSorted[key] = [...GHOST_VOCABULARY_BY_LANG[key]].sort(
-      (a3, b3) => a3.length - b3.length,
+      (a4, b2) => a4.length - b2.length,
     );
   }
   return _ghostSorted[key];
@@ -19392,11 +24078,11 @@ var GHOST_MIN_PREFIX = 3;
 var _WORD_CHAR_RE = /[\p{L}\p{N}_]/u;
 function _partialWordAt(text, caret) {
   if (caret <= 0) return null;
-  let i7 = caret;
-  while (i7 > 0 && _WORD_CHAR_RE.test(text[i7 - 1])) i7--;
-  const word = text.slice(i7, caret);
+  let i5 = caret;
+  while (i5 > 0 && _WORD_CHAR_RE.test(text[i5 - 1])) i5--;
+  const word = text.slice(i5, caret);
   if (!word) return null;
-  return { word, start: i7 };
+  return { word, start: i5 };
 }
 function findGhostSuggestion(text, caret, lang) {
   if (typeof text !== "string") return null;
@@ -19497,8 +24183,8 @@ function buildSuggestionIndex(hass, areas, devices = null) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areas && typeof areas === "object") {
-    for (const [id, a3] of Object.entries(areas)) {
-      areaById[id] = a3?.name || a3?.area_id || id;
+    for (const [id, a4] of Object.entries(areas)) {
+      areaById[id] = a4?.name || a4?.area_id || id;
     }
   }
   const entReg = hass.entities || {};
@@ -19584,8 +24270,8 @@ function _scoreItem(item, lowerQuery) {
   }
   if (label.includes(lowerQuery)) return 100;
   let qi = 0;
-  for (let i7 = 0; i7 < label.length && qi < lowerQuery.length; i7++) {
-    if (label[i7] === lowerQuery[qi]) qi += 1;
+  for (let i5 = 0; i5 < label.length && qi < lowerQuery.length; i5++) {
+    if (label[i5] === lowerQuery[qi]) qi += 1;
   }
   if (qi === lowerQuery.length) return 10;
   return 0;
@@ -19599,7 +24285,7 @@ function listByDomain(items, kind, domains, max = AUTOCOMPLETE_MAX_RESULTS) {
     if (!domainSet.has(it.domain)) continue;
     out.push(it);
   }
-  out.sort((a3, b3) => a3.label.localeCompare(b3.label));
+  out.sort((a4, b2) => a4.label.localeCompare(b2.label));
   return out.slice(0, max);
 }
 function findExactMatches(items, kind, query, domains = null) {
@@ -19633,14 +24319,14 @@ function rankSuggestions(
     const score = _scoreItem(it, lowerQuery);
     if (score > 0) scored.push({ item: it, score });
   }
-  scored.sort((a3, b3) => {
-    if (b3.score !== a3.score) return b3.score - a3.score;
-    if (a3.item.label.length !== b3.item.label.length) {
-      return a3.item.label.length - b3.item.label.length;
+  scored.sort((a4, b2) => {
+    if (b2.score !== a4.score) return b2.score - a4.score;
+    if (a4.item.label.length !== b2.item.label.length) {
+      return a4.item.label.length - b2.item.label.length;
     }
-    return a3.item.label.localeCompare(b3.item.label);
+    return a4.item.label.localeCompare(b2.item.label);
   });
-  return scored.slice(0, max).map((s4) => s4.item);
+  return scored.slice(0, max).map((s6) => s6.item);
 }
 function applySelection(text, trigger, item) {
   const before = text.slice(0, trigger.start);
@@ -19686,16 +24372,16 @@ function stripEntityMarkers(text) {
     .replace(/\s*\[\[(?:entity|entities|areas):[^\]]+\]\]/g, "")
     .trimEnd();
 }
-function _escapeRegex(s4) {
-  return s4.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function _escapeRegex(s6) {
+  return s6.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 function pruneStaleSelections(text, selections) {
   if (!selections?.length) return selections;
-  return selections.filter((s4) => {
-    if (!s4.label) return false;
-    const escaped = _escapeRegex(s4.label);
-    const startWord = /^\w/.test(s4.label);
-    const endWord = /\w$/.test(s4.label);
+  return selections.filter((s6) => {
+    if (!s6.label) return false;
+    const escaped = _escapeRegex(s6.label);
+    const startWord = /^\w/.test(s6.label);
+    const endWord = /\w$/.test(s6.label);
     const pattern = (startWord ? "\\b" : "") + escaped + (endWord ? "\\b" : "");
     return new RegExp(pattern, "i").test(text); // nosemgrep
   });
@@ -19744,7 +24430,7 @@ function _formatToolArgs(args) {
   return parts.join(", ");
 }
 function renderToolCalls(host, toolCalls) {
-  return b2`
+  return x`
     <details
       class="dev-tool-calls"
       style="margin-top:10px;border-radius:6px;background:rgba(255,255,255,0.03);border:1px solid var(--divider-color);font-family:var(--code-font-family,monospace);font-size:11px;"
@@ -19765,13 +24451,13 @@ function renderToolCalls(host, toolCalls) {
         style="padding:6px 10px 8px;border-top:1px solid var(--divider-color);color:var(--secondary-text-color);"
       >
         ${toolCalls.map(
-          (tc, i7) => b2`
+          (tc, i5) => x`
             <div
-              style="padding:2px 0;${i7 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
+              style="padding:2px 0;${i5 > 0 ? "border-top:1px dashed var(--divider-color);margin-top:4px;padding-top:6px;" : ""}"
             >
               <span style="color:var(--primary-text-color);font-weight:600;"
                 >${tc.tool}</span
-              >${tc.arguments && Object.keys(tc.arguments).length ? b2`<span>(${_formatToolArgs(tc.arguments)})</span>` : b2`<span>()</span>`}
+              >${tc.arguments && Object.keys(tc.arguments).length ? x`<span>(${_formatToolArgs(tc.arguments)})</span>` : x`<span>()</span>`}
             </div>
           `,
         )}
@@ -19818,7 +24504,7 @@ function _welcomeSuggestions(host) {
 }
 function renderAutomationSuggestButton(host) {
   const busy = !!host._suggestingAutomation;
-  return b2`
+  return x`
     <button
       class="welcome-suggest-btn"
       ?disabled=${busy || host._loading || host._streaming}
@@ -19826,8 +24512,8 @@ function renderAutomationSuggestButton(host) {
     >
       ${
         busy
-          ? b2`<span class="spinner green"></span>`
-          : b2`<ha-icon
+          ? x`<span class="spinner green"></span>`
+          : x`<ha-icon
             icon="mdi:auto-fix"
             style="--mdc-icon-size:14px;"
           ></ha-icon>`
@@ -19841,12 +24527,12 @@ function renderAutomationSuggestButton(host) {
 function renderChat(host) {
   const isEmpty = host._messages.length === 0;
   if (isEmpty) {
-    return b2`
+    return x`
       <div class="chat-pane">
         <div class="chat-welcome-center" id="chat-messages">
-          ${i6(
+          ${i4(
             host._welcomeKey || 0,
-            b2`
+            x`
               <div class="welcome-center-content">
                 <img
                   src="/api/selora_ai/logo.png"
@@ -19856,11 +24542,11 @@ function renderChat(host) {
                 <div style="font-size:26px;font-weight:700;margin-bottom:6px;">
                   ${
                     host._newAutomationMode
-                      ? b2`${host._t("new_automation_title_prefix", "New")}
+                      ? x`${host._t("new_automation_title_prefix", "New")}
                         <span class="gold-text"
                           >${host._t("new_automation_gold", "Automation")}</span
                         >`
-                      : b2`${host._t("welcome_title_prefix", "Welcome to")}
+                      : x`${host._t("welcome_title_prefix", "Welcome to")}
                         <span class="gold-text">Selora AI</span>`
                   }
                 </div>
@@ -19882,7 +24568,7 @@ function renderChat(host) {
 
                 ${
                   host._llmNeedsSetup
-                    ? b2`
+                    ? x`
                       <div
                         style="margin-top:16px;padding:24px;border-radius:14px;background:rgba(251,191,36,0.06);border:1.5px solid rgba(251,191,36,0.25);cursor:pointer;transition:border-color 0.2s,background 0.2s;max-width:380px;"
                         @click=${() => host._goToSettings()}
@@ -19915,7 +24601,7 @@ function renderChat(host) {
                         </span>
                       </div>
                     `
-                    : b2`
+                    : x`
                       <div class="welcome-composer-area">
                         <selora-particles
                           class="welcome-composer-particles"
@@ -19930,7 +24616,7 @@ function renderChat(host) {
                       ${
                         host._newAutomationMode
                           ? renderAutomationSuggestButton(host)
-                          : b2`
+                          : x`
                             <details class="welcome-quickstart">
                               <summary class="welcome-quickstart-summary">
                                 <span
@@ -19973,7 +24659,7 @@ function renderChat(host) {
     !lastMsg.command_approval
       ? lastMsg
       : null;
-  return b2`
+  return x`
     <div class="chat-pane">
       <div
         class="chat-messages"
@@ -19984,7 +24670,7 @@ function renderChat(host) {
         ${host._deviceDetail ? renderDeviceDetail(host) : ""}
         ${
           host._loading
-            ? b2`
+            ? x`
               <div class="typing-bubble">
                 <div class="typing-dot"></div>
                 <div class="typing-dot"></div>
@@ -19998,7 +24684,7 @@ function renderChat(host) {
       <div class="chat-input-wrapper">
         ${
           host._chatScrolledAway && host._messages.length > 0
-            ? b2`
+            ? x`
               <button
                 class="chat-jump-bottom"
                 @click=${() => host._scrollChatToBottom()}
@@ -20015,7 +24701,7 @@ function renderChat(host) {
         }
         ${
           lastQuickActions
-            ? b2`
+            ? x`
               <div class="chat-quick-actions">
                 ${renderQuickActions(host, lastQuickActions.quick_actions, {
                   used: !!lastQuickActions._qa_used,
@@ -20044,13 +24730,13 @@ function _maybeDecodePercentEncoded(text) {
   } catch (_2) {}
   return null;
 }
-function _handlePaste(host, e5) {
-  const clip = e5.clipboardData;
+function _handlePaste(host, e6) {
+  const clip = e6.clipboardData;
   if (!clip) return;
   const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
   if (decoded === null) return;
-  e5.preventDefault();
-  const ta = e5.target;
+  e6.preventDefault();
+  const ta = e6.target;
   const start = ta.selectionStart ?? ta.value.length;
   const end = ta.selectionEnd ?? ta.value.length;
   const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
@@ -20106,7 +24792,7 @@ function _measureCaretInTextarea(textarea) {
   const mirror = document.createElement("div");
   const style = mirror.style;
   const cs = window.getComputedStyle(textarea);
-  for (const p4 of _MIRROR_COPY_PROPS) style[p4] = cs[p4];
+  for (const p2 of _MIRROR_COPY_PROPS) style[p2] = cs[p2];
   style.position = "absolute";
   style.visibility = "hidden";
   style.top = "0";
@@ -20233,7 +24919,7 @@ function _renderGhostOverlay(host) {
   if (!suffix) return "";
   const anchor = host._ghost.anchor;
   if (!anchor) return "";
-  return b2`
+  return x`
     <span
       class="composer-ghost-suffix"
       aria-hidden="true"
@@ -20290,7 +24976,7 @@ function _selectAutocompleteItem(host, textarea, item) {
 }
 function _removeSelection(host, idx) {
   const sels = host._autocompleteSelections || [];
-  host._autocompleteSelections = sels.filter((_2, i7) => i7 !== idx);
+  host._autocompleteSelections = sels.filter((_2, i5) => i5 !== idx);
 }
 function _renderAutocomplete(host) {
   const ac = host._autocomplete;
@@ -20317,14 +25003,14 @@ function _renderAutocomplete(host) {
     }
     groups.get(item.kind).push(item);
   }
-  return b2`
+  return x`
     <div class="composer-autocomplete" role="listbox" style=${positionStyle}>
       ${groupOrder.map((kind) => {
         const headerKV = AUTOCOMPLETE_KIND_LABEL_KEYS[kind];
         const header = headerKV
           ? host._t(headerKV[0], headerKV[1])
           : host._t("chat_autocomplete_kind_suggestions", "Suggestions");
-        return b2`
+        return x`
           <div class="composer-autocomplete-header">
             <span>${header}</span>
           </div>
@@ -20342,12 +25028,12 @@ function _renderAutocomplete(host) {
 }
 function _renderAutocompleteRow(host, ac, item) {
   const idx = ac.items.indexOf(item);
-  return b2`<button
+  return x`<button
     type="button"
     class="composer-autocomplete-item ${idx === ac.activeIndex ? "active" : ""}"
     role="option"
-    @mousedown=${(e5) => {
-      e5.preventDefault();
+    @mousedown=${(e6) => {
+      e6.preventDefault();
       const ta = host.shadowRoot?.querySelector(".composer-textarea");
       if (ta) _selectAutocompleteItem(host, ta, item);
     }}
@@ -20357,22 +25043,22 @@ function _renderAutocompleteRow(host, ac, item) {
   >
     <ha-icon icon=${item.icon}></ha-icon>
     <span class="composer-autocomplete-label">${item.label}</span>
-    ${item.area ? b2`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
+    ${item.area ? x`<span class="composer-autocomplete-area">${item.area}</span>` : ""}
   </button>`;
 }
 function _renderSelectionChips(host) {
   const sels = host._autocompleteSelections || [];
   if (!sels.length) return "";
-  return b2`
+  return x`
     <div class="composer-selections-inline">
       ${sels.map(
-        (s4, idx) => b2`
+        (s6, idx) => x`
           <span
             class="composer-selection-chip"
-            title=${s4.entity_id || s4.area_id || ""}
+            title=${s6.entity_id || s6.area_id || ""}
           >
-            <ha-icon icon=${s4.icon}></ha-icon>
-            ${s4.label}
+            <ha-icon icon=${s6.icon}></ha-icon>
+            ${s6.label}
             <button
               type="button"
               title=${host._t("chat_selection_remove", "Remove")}
@@ -20388,7 +25074,7 @@ function _renderSelectionChips(host) {
 }
 function _renderComposer(host, opts = {}) {
   const welcome = !!opts.welcome;
-  return b2`
+  return x`
     <div class="composer-wrap">
       ${_renderAutocomplete(host)}
       <div
@@ -20400,40 +25086,40 @@ function _renderComposer(host, opts = {}) {
             <textarea
               class="composer-textarea"
               .value=${host._input}
-              @paste=${(e5) => _handlePaste(host, e5)}
-              @input=${(e5) => {
-                host._input = e5.target.value;
+              @paste=${(e6) => _handlePaste(host, e6)}
+              @input=${(e6) => {
+                host._input = e6.target.value;
                 host._autocompleteSelections = pruneStaleSelections(
-                  e5.target.value,
+                  e6.target.value,
                   host._autocompleteSelections || [],
                 );
-                _autoResize(e5.target);
-                _updateAutocomplete(host, e5.target);
-                _updateGhost(host, e5.target);
+                _autoResize(e6.target);
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
               }}
-              @click=${(e5) => {
-                _updateAutocomplete(host, e5.target);
-                _updateGhost(host, e5.target);
+              @click=${(e6) => {
+                _updateAutocomplete(host, e6.target);
+                _updateGhost(host, e6.target);
               }}
-              @keyup=${(e5) => {
+              @keyup=${(e6) => {
                 if (
-                  e5.key === "ArrowLeft" ||
-                  e5.key === "ArrowRight" ||
-                  e5.key === "Home" ||
-                  e5.key === "End"
+                  e6.key === "ArrowLeft" ||
+                  e6.key === "ArrowRight" ||
+                  e6.key === "Home" ||
+                  e6.key === "End"
                 ) {
-                  _updateAutocomplete(host, e5.target);
-                  _updateGhost(host, e5.target);
+                  _updateAutocomplete(host, e6.target);
+                  _updateGhost(host, e6.target);
                 }
               }}
               @blur=${() => {
                 setTimeout(() => _closeAutocomplete(host), 150);
               }}
-              @keydown=${(e5) => {
+              @keydown=${(e6) => {
                 const ac = host._autocomplete;
                 if (ac?.open && ac.items.length) {
-                  if (e5.key === "ArrowDown") {
-                    e5.preventDefault();
+                  if (e6.key === "ArrowDown") {
+                    e6.preventDefault();
                     host._autocomplete = {
                       ...ac,
                       activeIndex: (ac.activeIndex + 1) % ac.items.length,
@@ -20441,8 +25127,8 @@ function _renderComposer(host, opts = {}) {
                     _scrollActiveItemIntoView(host);
                     return;
                   }
-                  if (e5.key === "ArrowUp") {
-                    e5.preventDefault();
+                  if (e6.key === "ArrowUp") {
+                    e6.preventDefault();
                     host._autocomplete = {
                       ...ac,
                       activeIndex:
@@ -20452,45 +25138,45 @@ function _renderComposer(host, opts = {}) {
                     _scrollActiveItemIntoView(host);
                     return;
                   }
-                  if (e5.key === "Enter" || e5.key === "Tab") {
-                    e5.preventDefault();
+                  if (e6.key === "Enter" || e6.key === "Tab") {
+                    e6.preventDefault();
                     _selectAutocompleteItem(
                       host,
-                      e5.target,
+                      e6.target,
                       ac.items[ac.activeIndex],
                     );
                     return;
                   }
-                  if (e5.key === "Escape") {
-                    e5.preventDefault();
+                  if (e6.key === "Escape") {
+                    e6.preventDefault();
                     _closeAutocomplete(host);
                     return;
                   }
                 }
-                if (e5.key === "Enter" && !e5.shiftKey) {
-                  e5.preventDefault();
+                if (e6.key === "Enter" && !e6.shiftKey) {
+                  e6.preventDefault();
                   host._sendMessage();
                   return;
                 }
-                if (e5.key === "Tab" && !e5.shiftKey) {
-                  e5.preventDefault();
-                  _acceptGhost(host, e5.target);
+                if (e6.key === "Tab" && !e6.shiftKey) {
+                  e6.preventDefault();
+                  _acceptGhost(host, e6.target);
                   return;
                 }
                 if (
-                  e5.key === "ArrowRight" &&
+                  e6.key === "ArrowRight" &&
                   host._ghost?.suffix &&
-                  e5.target.selectionStart === e5.target.value.length &&
-                  e5.target.selectionEnd === e5.target.value.length
+                  e6.target.selectionStart === e6.target.value.length &&
+                  e6.target.selectionEnd === e6.target.value.length
                 ) {
-                  e5.preventDefault();
-                  _acceptGhost(host, e5.target);
+                  e6.preventDefault();
+                  _acceptGhost(host, e6.target);
                   return;
                 }
                 const userHistory = host._messages
-                  .filter((m3) => m3.role === "user" && m3.content)
-                  .map((m3) => stripEntityMarkers(m3.content));
-                const ta = e5.target;
+                  .filter((m2) => m2.role === "user" && m2.content)
+                  .map((m2) => stripEntityMarkers(m2.content));
+                const ta = e6.target;
                 const atStart =
                   ta.selectionStart === 0 && ta.selectionEnd === 0;
                 const atEnd =
@@ -20509,26 +25195,26 @@ function _renderComposer(host, opts = {}) {
                   });
                 };
                 if (
-                  e5.key === "ArrowUp" &&
+                  e6.key === "ArrowUp" &&
                   userHistory.length > 0 &&
                   (inHistory || atStart || !host._input)
                 ) {
                   if (!inHistory) {
                     host._historyDraft = host._input || "";
-                    e5.preventDefault();
+                    e6.preventDefault();
                     applyHistory(0);
                     return;
                   }
                   if (host._historyIndex < userHistory.length - 1) {
-                    e5.preventDefault();
+                    e6.preventDefault();
                     applyHistory(host._historyIndex + 1);
                     return;
                   }
-                  e5.preventDefault();
+                  e6.preventDefault();
                   return;
                 }
-                if (e5.key === "ArrowDown" && inHistory && atEnd) {
-                  e5.preventDefault();
+                if (e6.key === "ArrowDown" && inHistory && atEnd) {
+                  e6.preventDefault();
                   if (host._historyIndex > 0) {
                     applyHistory(host._historyIndex - 1);
                     return;
@@ -20564,14 +25250,14 @@ function _renderComposer(host, opts = {}) {
         </div>
         ${
           host._streaming
-            ? b2`<button
+            ? x`<button
               class="composer-send"
               @click=${() => host._stopStreaming()}
               title=${host._t("chat_stop_generating", "Stop generating")}
             >
               <ha-icon icon="mdi:stop"></ha-icon>
             </button>`
-            : b2`<button
+            : x`<button
               class="composer-send"
               @click=${() => host._sendMessage()}
               ?disabled=${host._loading || !host._input.trim()}
@@ -20586,7 +25272,7 @@ function _renderComposer(host, opts = {}) {
 }
 function renderMessage(host, msg, idx) {
   const isUser = msg.role === "user";
-  if (msg._streaming && !msg.content) return b2``;
+  if (msg._streaming && !msg.content) return x``;
   let displayContent = msg.content;
   let showAutomationSpinner = false;
   let showSceneSpinner = false;
@@ -20642,11 +25328,11 @@ function renderMessage(host, msg, idx) {
     msg.approval_status !== "approved" &&
     msg.approval_status !== "denied" &&
     msg.approval_status !== "resolving";
-  return b2`
+  return x`
     <div class="message-row">
       ${
         isUser
-          ? b2`
+          ? x`
             <div class="bubble user">
               <span
                 class="msg-content"
@@ -20654,7 +25340,7 @@ function renderMessage(host, msg, idx) {
               ></span>
             </div>
           `
-          : b2`
+          : x`
             <div
               class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
@@ -20665,7 +25351,7 @@ function renderMessage(host, msg, idx) {
                 ${
                   msg.command_approval
                     ? ""
-                    : b2`<span
+                    : x`<span
                       class="msg-content ${msg._streaming ? "streaming-cursor" : ""}"
                       @click=${host._onCodeCopyClick}
                       .innerHTML=${renderMarkdown(displayContent)}
@@ -20682,7 +25368,7 @@ function renderMessage(host, msg, idx) {
                           ) % AUTOMATION_LABEL_KEYS.length;
                         const [labelKey, labelFallback] =
                           AUTOMATION_LABEL_KEYS[labelIdx];
-                        return b2`
+                        return x`
                         <div
                           style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
@@ -20701,7 +25387,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   showSceneSpinner
-                    ? b2`
+                    ? x`
                       <div
                         style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                       >
@@ -20722,7 +25408,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg.config_issue
-                    ? b2`
+                    ? x`
                       <div style="margin-top: 10px;">
                         <mwc-button dense raised @click=${host._goToSettings}
                           >${host._t(
@@ -20748,7 +25434,7 @@ function renderMessage(host, msg, idx) {
                 }
                 ${
                   msg._interrupted
-                    ? b2`
+                    ? x`
                       <div class="stream-interrupt">
                         <ha-icon
                           icon="mdi:alert-circle-outline"
@@ -20776,21 +25462,21 @@ function renderMessage(host, msg, idx) {
                 canRetry ||
                 showQuickActions ||
                 hasProposalActions
-                  ? b2`<div
+                  ? x`<div
                     class="bubble-meta"
                     style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;width:100%;opacity:1;"
                   >
                     ${
                       msg._streaming
-                        ? b2`<span style="opacity:0.5;">
+                        ? x`<span style="opacity:0.5;">
                           Selora AI ·
                           ${host._config?.developer_mode && typeof msg._replyMs === "number" ? _formatReplyMs(msg._replyMs) : formatTime(msg.timestamp)}
                         </span>`
                         : canCopy || canFeedback || canRetry
-                          ? b2`<div class="msg-actions">
+                          ? x`<div class="msg-actions">
                             ${
                               canCopy
-                                ? b2`<button
+                                ? x`<button
                                   class="msg-action-btn"
                                   title=${host._t(
                                     isProposal
@@ -20804,10 +25490,10 @@ function renderMessage(host, msg, idx) {
                                       : "chat_copy_message",
                                     isProposal ? "Copy YAML" : "Copy message",
                                   )}
-                                  @click=${(e5) =>
+                                  @click=${(e6) =>
                                     host._copyMessageText(
                                       msg,
-                                      e5.currentTarget,
+                                      e6.currentTarget,
                                       copyText,
                                     )}
                                 >
@@ -20820,7 +25506,7 @@ function renderMessage(host, msg, idx) {
                             }
                             ${
                               canFeedback && host._config?.telemetry_enabled
-                                ? b2`<button
+                                ? x`<button
                                     class="msg-action-btn${msg._feedback === "positive" ? " active" : ""}"
                                     title=${host._t(
                                       "chat_feedback_helpful",
@@ -20830,11 +25516,11 @@ function renderMessage(host, msg, idx) {
                                       "chat_feedback_helpful",
                                       "Good response",
                                     )}
-                                    @click=${(e5) =>
+                                    @click=${(e6) =>
                                       host._recordChatFeedback(
                                         msg,
                                         "positive",
-                                        e5.currentTarget,
+                                        e6.currentTarget,
                                       )}
                                   >
                                     <ha-icon
@@ -20852,11 +25538,11 @@ function renderMessage(host, msg, idx) {
                                       "chat_feedback_not_helpful",
                                       "Bad response",
                                     )}
-                                    @click=${(e5) =>
+                                    @click=${(e6) =>
                                       host._recordChatFeedback(
                                         msg,
                                         "negative",
-                                        e5.currentTarget,
+                                        e6.currentTarget,
                                       )}
                                   >
                                     <ha-icon
@@ -20868,7 +25554,7 @@ function renderMessage(host, msg, idx) {
                             }
                             ${
                               msg._interrupted && msg._retryWith
-                                ? b2`<button
+                                ? x`<button
                                   class="msg-action-btn"
                                   title=${host._t("chat_retry", "Retry")}
                                   aria-label=${host._t("chat_retry", "Retry")}
@@ -20886,7 +25572,7 @@ function renderMessage(host, msg, idx) {
                     }
                     ${
                       hasProposalActions || showQuickActions
-                        ? b2`<div class="msg-quick">
+                        ? x`<div class="msg-quick">
                           ${hasProposalActions ? host._renderProposalActions(msg, idx) : ""}
                           ${
                             showQuickActions
@@ -20951,25 +25637,25 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
     : (host._editedYaml[key] ?? originalYaml);
   const isDirty = !readOnly && current !== originalYaml;
   const saving = !!host._savingYaml[key];
-  return b2`
+  return x`
     <ha-code-editor
       mode="yaml"
       .value=${current}
       ?read-only=${readOnly}
-      @value-changed=${(e5) => {
+      @value-changed=${(e6) => {
         if (readOnly) return;
-        host._onYamlInput(key, e5.detail.value);
+        host._onYamlInput(key, e6.detail.value);
       }}
       autocomplete-entities
       style="--code-mirror-font-size:12px;${readOnly ? "opacity:0.95;" : ""}"
     ></ha-code-editor>
     ${
       isDirty || (onSave && !readOnly)
-        ? b2`
+        ? x`
           <div class="yaml-edit-bar">
             ${
               isDirty
-                ? b2`
+                ? x`
                   <span class="yaml-unsaved">
                     <ha-icon
                       icon="mdi:circle-edit-outline"
@@ -20978,11 +25664,11 @@ function renderYamlEditor(host, key, originalYaml, onSave = null, opts = {}) {
                     ${host._t("chat_yaml_unsaved_changes", "Unsaved changes")}
                   </span>
                 `
-                : b2`<span style="flex:1;"></span>`
+                : x`<span style="flex:1;"></span>`
             }
             ${
               onSave
-                ? b2`
+                ? x`
                   <button
                     class="btn btn-primary"
                     ?disabled=${saving || !isDirty}
@@ -21009,7 +25695,7 @@ function humanizeToken(value) {
   if (value == null || value === "") return "";
   return String(value)
     .replace(/_/g, " ")
-    .replace(/\b\w/g, (c4) => c4.toUpperCase());
+    .replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 function fmtEntity(hass, id) {
   if (!id) return "";
@@ -21022,7 +25708,7 @@ function fmtEntity(hass, id) {
     /_/g,
     " ",
   );
-  return raw.replace(/\b\w/g, (c4) => c4.toUpperCase());
+  return raw.replace(/\b\w/g, (c3) => c3.toUpperCase());
 }
 var _LIST_CONNECTORS = {
   en: { last: " and ", oxford: ", and " },
@@ -21043,15 +25729,15 @@ function fmtEntities(hass, val, language) {
   if (!val) return "";
   const arr = Array.isArray(val) ? val : [val];
   if (arr.length === 1) return fmtEntity(hass, arr[0]);
-  const c4 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
+  const c3 = _LIST_CONNECTORS[_langKey2(language, _LIST_CONNECTORS)];
   if (arr.length === 2)
-    return `${fmtEntity(hass, arr[0])}${c4.last}${fmtEntity(hass, arr[1])}`;
+    return `${fmtEntity(hass, arr[0])}${c3.last}${fmtEntity(hass, arr[1])}`;
   return (
     arr
       .slice(0, -1)
-      .map((e5) => fmtEntity(hass, e5))
+      .map((e6) => fmtEntity(hass, e6))
       .join(", ") +
-    c4.oxford +
+    c3.oxford +
     fmtEntity(hass, arr[arr.length - 1])
   );
 }
@@ -21164,9 +25850,9 @@ var _STATE_NAMES = {
 };
 function fmtState(state, language) {
   if (state == null) return null;
-  const s4 = String(state);
+  const s6 = String(state);
   const table = _STATE_NAMES[_langKey2(language, _STATE_NAMES)];
-  return table[s4] || s4.replace(/_/g, " ");
+  return table[s6] || s6.replace(/_/g, " ");
 }
 function fmtDuration(value) {
   if (!value) return "";
@@ -21264,31 +25950,31 @@ function fmtNumericValue(entityId, value) {
 }
 function fmtTime(hass, val) {
   if (val == null) return String(val);
-  const s4 = String(val).trim();
-  if (s4.includes("{{") || s4.includes("{%")) {
-    const m3 = s4.match(/states\(['"]([^'"]+)['"]\)/);
-    if (m3) return fmtEntity(hass, m3[1]);
-    const m22 = s4.match(/state_attr\(['"]([^'"]+)['"]/);
+  const s6 = String(val).trim();
+  if (s6.includes("{{") || s6.includes("{%")) {
+    const m2 = s6.match(/states\(['"]([^'"]+)['"]\)/);
+    if (m2) return fmtEntity(hass, m2[1]);
+    const m22 = s6.match(/state_attr\(['"]([^'"]+)['"]/);
     if (m22) return fmtEntity(hass, m22[1]);
     return "a calculated time";
   }
-  const num = Number(s4);
-  if (!isNaN(num) && num >= 0 && num <= 86400 && !s4.includes(":")) {
+  const num = Number(s6);
+  if (!isNaN(num) && num >= 0 && num <= 86400 && !s6.includes(":")) {
     const h3 = Math.floor(num / 3600);
-    const m3 = Math.floor((num % 3600) / 60);
-    return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = Math.floor((num % 3600) / 60);
+    return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
   }
-  const parts = s4.split(":");
+  const parts = s6.split(":");
   if (parts.length >= 2) {
     const h3 = parseInt(parts[0], 10);
-    const m3 = parseInt(parts[1], 10);
-    if (!isNaN(h3) && !isNaN(m3)) {
-      return `${String(h3).padStart(2, "0")}:${String(m3).padStart(2, "0")}`;
+    const m2 = parseInt(parts[1], 10);
+    if (!isNaN(h3) && !isNaN(m2)) {
+      return `${String(h3).padStart(2, "0")}:${String(m2).padStart(2, "0")}`;
     }
   }
-  if (s4.startsWith("input_datetime.") || s4.startsWith("sensor."))
-    return fmtEntity(hass, s4);
-  return s4;
+  if (s6.startsWith("input_datetime.") || s6.startsWith("sensor."))
+    return fmtEntity(hass, s6);
+  return s6;
 }
 
 // src/shared/flow-description.js
@@ -21309,7 +25995,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `When ${eid} becomes ${st}${dur}`,
     when_changes_state: (eid, dur) => `When ${eid} changes state${dur}`,
     for_duration: (d3) => ` for ${d3}`,
-    when_between: (eid, a3, b3) => `When ${eid} is between ${a3} and ${b3}`,
+    when_between: (eid, a4, b2) => `When ${eid} is between ${a4} and ${b2}`,
     when_rises_above: (eid, v2) => `When ${eid} rises above ${v2}`,
     when_drops_below: (eid, v2) => `When ${eid} drops below ${v2}`,
     when_value_changes: (eid) => `When ${eid} value changes`,
@@ -21317,13 +26003,13 @@ var PHRASES = {
     ha_starts: "starts",
     ha_shuts_down: "shuts down",
     ha_changes_state: "changes state",
-    every_seconds: (n4) => `Every ${n4} second${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Every ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Every ${n4} hour${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) => `Every ${n5} second${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Every ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Every ${n5} hour${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "On a time pattern",
-    when_template_entity: (e5) => `When ${e5} condition is met`,
+    when_template_entity: (e6) => `When ${e6} condition is met`,
     when_template_met: "When a template condition is met",
-    when_event: (n4) => `When ${n4} happens`,
+    when_event: (n5) => `When ${n5} happens`,
     when_event_generic: "When an event happens",
     when_device_triggered: (t4) => `When a device ${t4}`,
     when_device_is: (t4) => `When a device is ${t4}`,
@@ -21337,10 +26023,10 @@ var PHRASES = {
     when_geo: "When a location update is received",
     when_calendar: (ev, entity) => `When a calendar ${ev} begins${entity}`,
     calendar_event: "event",
-    on_entity: (e5) => ` on ${e5}`,
+    on_entity: (e6) => ` on ${e6}`,
     when_trigger_happens: "When this trigger happens",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} between ${a3} and ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} between ${a4} and ${b2}`,
     cond_above: (eid, v2) => `${eid} above ${v2}`,
     cond_below: (eid, v2) => `${eid} below ${v2}`,
     cond_numeric: (eid) => `${eid} numeric check`,
@@ -21349,11 +26035,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `on ${d3}`,
     cond_time_window: "Time window",
     cond_template_true: "Template evaluates to true",
-    cond_after_sun: (s4) => `after ${s4}`,
-    cond_before_sun: (s4) => `before ${s4}`,
+    cond_after_sun: (s6) => `after ${s6}`,
+    cond_before_sun: (s6) => `before ${s6}`,
     cond_sun_position: "Sun position",
-    cond_all: (n4) => `All ${n4} conditions must be true`,
-    cond_any: (n4) => `Any of ${n4} conditions is true`,
+    cond_all: (n5) => `All ${n5} conditions must be true`,
+    cond_any: (n5) => `Any of ${n5} conditions is true`,
     cond_none: "None of the conditions are true",
     cond_in_zone: (eid, z2) => `${eid} is in ${z2 || "zone"}`,
     cond_device: "Device condition",
@@ -21378,21 +26064,21 @@ var PHRASES = {
     extra_temp: (v2) => `to ${v2}\xB0`,
     extra_color_temp: (v2) => `color temp ${v2}`,
     wait_str: (d3) => `Wait ${d3}`,
-    wait_parts: (p4) => `Wait ${p4}`,
+    wait_parts: (p2) => `Wait ${p2}`,
     wait_plain: "Wait",
     wait_until: "Wait until condition is met",
     wait_for_trigger: "Wait for a trigger",
-    activate_scene: (e5) => `Activate scene: ${e5}`,
-    choose_between: (n4) => `Choose between ${n4} option${n4 !== 1 ? "s" : ""}`,
-    repeat_count: (n4) => `Repeat ${n4} time${n4 !== 1 ? "s" : ""}`,
+    activate_scene: (e6) => `Activate scene: ${e6}`,
+    choose_between: (n5) => `Choose between ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `Repeat ${n5} time${n5 !== 1 ? "s" : ""}`,
     repeat_while: "Repeat while condition holds",
     repeat_until: "Repeat until condition is met",
     repeat: "Repeat",
-    parallel: (n4) => `Run ${n4} actions in parallel`,
-    sequence: (n4) => `Run a sequence of ${n4} steps`,
+    parallel: (n5) => `Run ${n5} actions in parallel`,
+    sequence: (n5) => `Run a sequence of ${n5} steps`,
     set_variables: "Set variables",
-    stop_label: (s4) => `Stop: ${s4}`,
-    fire_event: (e5) => `Fire event: ${e5}`,
+    stop_label: (s6) => `Stop: ${s6}`,
+    fire_event: (e6) => `Fire event: ${e6}`,
     automation_step: "Automation step",
     joiner_dot: " \xB7 ",
   },
@@ -21412,7 +26098,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quand ${eid} devient ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quand ${eid} change d'\xE9tat${dur}`,
     for_duration: (d3) => ` pendant ${d3}`,
-    when_between: (eid, a3, b3) => `Quand ${eid} est entre ${a3} et ${b3}`,
+    when_between: (eid, a4, b2) => `Quand ${eid} est entre ${a4} et ${b2}`,
     when_rises_above: (eid, v2) => `Quand ${eid} d\xE9passe ${v2}`,
     when_drops_below: (eid, v2) => `Quand ${eid} descend sous ${v2}`,
     when_value_changes: (eid) => `Quand la valeur de ${eid} change`,
@@ -21420,15 +26106,15 @@ var PHRASES = {
     ha_starts: "d\xE9marre",
     ha_shuts_down: "s'arr\xEAte",
     ha_changes_state: "change d'\xE9tat",
-    every_seconds: (n4) =>
-      `Toutes les ${n4} seconde${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) =>
-      `Toutes les ${n4} minute${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Toutes les ${n4} heure${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) =>
+      `Toutes les ${n5} seconde${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) =>
+      `Toutes les ${n5} minute${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Toutes les ${n5} heure${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "Selon un sch\xE9ma temporel",
-    when_template_entity: (e5) => `Quand la condition sur ${e5} est vraie`,
+    when_template_entity: (e6) => `Quand la condition sur ${e6} est vraie`,
     when_template_met: "Quand une condition mod\xE8le est vraie",
-    when_event: (n4) => `Quand ${n4} se produit`,
+    when_event: (n5) => `Quand ${n5} se produit`,
     when_event_generic: "Quand un \xE9v\xE9nement se produit",
     when_device_triggered: (t4) => `Quand un appareil ${t4}`,
     when_device_is: (t4) => `Quand un appareil est ${t4}`,
@@ -21443,10 +26129,10 @@ var PHRASES = {
     when_calendar: (ev, entity) =>
       `Quand un ${ev} de calendrier commence${entity}`,
     calendar_event: "\xE9v\xE9nement",
-    on_entity: (e5) => ` sur ${e5}`,
+    on_entity: (e6) => ` sur ${e6}`,
     when_trigger_happens: "Quand ce d\xE9clencheur se produit",
     cond_is: (eid, st) => `${eid} est ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} entre ${a3} et ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} et ${b2}`,
     cond_above: (eid, v2) => `${eid} au-dessus de ${v2}`,
     cond_below: (eid, v2) => `${eid} en dessous de ${v2}`,
     cond_numeric: (eid) => `v\xE9rification num\xE9rique de ${eid}`,
@@ -21455,11 +26141,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `le ${d3}`,
     cond_time_window: "Fen\xEAtre temporelle",
     cond_template_true: "Le mod\xE8le est \xE9valu\xE9 \xE0 vrai",
-    cond_after_sun: (s4) => `apr\xE8s ${s4}`,
-    cond_before_sun: (s4) => `avant ${s4}`,
+    cond_after_sun: (s6) => `apr\xE8s ${s6}`,
+    cond_before_sun: (s6) => `avant ${s6}`,
     cond_sun_position: "Position du soleil",
-    cond_all: (n4) => `Les ${n4} conditions doivent \xEAtre vraies`,
-    cond_any: (n4) => `L'une des ${n4} conditions est vraie`,
+    cond_all: (n5) => `Les ${n5} conditions doivent \xEAtre vraies`,
+    cond_any: (n5) => `L'une des ${n5} conditions est vraie`,
     cond_none: "Aucune des conditions n'est vraie",
     cond_in_zone: (eid, z2) => `${eid} est dans ${z2 || "la zone"}`,
     cond_device: "Condition d'appareil",
@@ -21484,21 +26170,21 @@ var PHRASES = {
     extra_temp: (v2) => `\xE0 ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de couleur ${v2}`,
     wait_str: (d3) => `Attendre ${d3}`,
-    wait_parts: (p4) => `Attendre ${p4}`,
+    wait_parts: (p2) => `Attendre ${p2}`,
     wait_plain: "Attendre",
     wait_until: "Attendre que la condition soit vraie",
     wait_for_trigger: "Attendre un d\xE9clencheur",
-    activate_scene: (e5) => `Activer la sc\xE8ne : ${e5}`,
-    choose_between: (n4) => `Choisir parmi ${n4} option${n4 !== 1 ? "s" : ""}`,
-    repeat_count: (n4) => `R\xE9p\xE9ter ${n4} fois`,
+    activate_scene: (e6) => `Activer la sc\xE8ne : ${e6}`,
+    choose_between: (n5) => `Choisir parmi ${n5} option${n5 !== 1 ? "s" : ""}`,
+    repeat_count: (n5) => `R\xE9p\xE9ter ${n5} fois`,
     repeat_while: "R\xE9p\xE9ter tant que la condition est vraie",
     repeat_until: "R\xE9p\xE9ter jusqu'\xE0 ce que la condition soit vraie",
     repeat: "R\xE9p\xE9ter",
-    parallel: (n4) => `Ex\xE9cuter ${n4} actions en parall\xE8le`,
-    sequence: (n4) => `Ex\xE9cuter une s\xE9quence de ${n4} \xE9tapes`,
+    parallel: (n5) => `Ex\xE9cuter ${n5} actions en parall\xE8le`,
+    sequence: (n5) => `Ex\xE9cuter une s\xE9quence de ${n5} \xE9tapes`,
     set_variables: "D\xE9finir des variables",
-    stop_label: (s4) => `Arr\xEAter : ${s4}`,
-    fire_event: (e5) => `D\xE9clencher l'\xE9v\xE9nement : ${e5}`,
+    stop_label: (s6) => `Arr\xEAter : ${s6}`,
+    fire_event: (e6) => `D\xE9clencher l'\xE9v\xE9nement : ${e6}`,
     automation_step: "\xC9tape d'automatisation",
     joiner_dot: " \xB7 ",
   },
@@ -21517,7 +26203,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Wenn ${eid} zu ${st} wird${dur}`,
     when_changes_state: (eid, dur) => `Wenn ${eid} den Zustand \xE4ndert${dur}`,
     for_duration: (d3) => ` f\xFCr ${d3}`,
-    when_between: (eid, a3, b3) => `Wenn ${eid} zwischen ${a3} und ${b3} liegt`,
+    when_between: (eid, a4, b2) => `Wenn ${eid} zwischen ${a4} und ${b2} liegt`,
     when_rises_above: (eid, v2) => `Wenn ${eid} \xFCber ${v2} steigt`,
     when_drops_below: (eid, v2) => `Wenn ${eid} unter ${v2} f\xE4llt`,
     when_value_changes: (eid) => `Wenn sich der Wert von ${eid} \xE4ndert`,
@@ -21525,13 +26211,13 @@ var PHRASES = {
     ha_starts: "startet",
     ha_shuts_down: "herunterf\xE4hrt",
     ha_changes_state: "den Zustand \xE4ndert",
-    every_seconds: (n4) => `Alle ${n4} Sekunde${Number(n4) === 1 ? "" : "n"}`,
-    every_minutes: (n4) => `Alle ${n4} Minute${Number(n4) === 1 ? "" : "n"}`,
-    every_hours: (n4) => `Alle ${n4} Stunde${Number(n4) === 1 ? "" : "n"}`,
+    every_seconds: (n5) => `Alle ${n5} Sekunde${Number(n5) === 1 ? "" : "n"}`,
+    every_minutes: (n5) => `Alle ${n5} Minute${Number(n5) === 1 ? "" : "n"}`,
+    every_hours: (n5) => `Alle ${n5} Stunde${Number(n5) === 1 ? "" : "n"}`,
     on_time_pattern: "Nach einem Zeitmuster",
-    when_template_entity: (e5) => `Wenn Bedingung f\xFCr ${e5} erf\xFCllt ist`,
+    when_template_entity: (e6) => `Wenn Bedingung f\xFCr ${e6} erf\xFCllt ist`,
     when_template_met: "Wenn eine Template-Bedingung erf\xFCllt ist",
-    when_event: (n4) => `Wenn ${n4} eintritt`,
+    when_event: (n5) => `Wenn ${n5} eintritt`,
     when_event_generic: "Wenn ein Ereignis eintritt",
     when_device_triggered: (t4) => `Wenn ein Ger\xE4t ${t4}`,
     when_device_is: (t4) => `Wenn ein Ger\xE4t ${t4} ist`,
@@ -21545,10 +26231,10 @@ var PHRASES = {
     when_geo: "Wenn ein Standort-Update empfangen wird",
     when_calendar: (ev, entity) => `Wenn ein Kalender-${ev} beginnt${entity}`,
     calendar_event: "Ereignis",
-    on_entity: (e5) => ` auf ${e5}`,
+    on_entity: (e6) => ` auf ${e6}`,
     when_trigger_happens: "Wenn dieser Ausl\xF6ser eintritt",
     cond_is: (eid, st) => `${eid} ist ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} zwischen ${a3} und ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} zwischen ${a4} und ${b2}`,
     cond_above: (eid, v2) => `${eid} \xFCber ${v2}`,
     cond_below: (eid, v2) => `${eid} unter ${v2}`,
     cond_numeric: (eid) => `${eid} numerische Pr\xFCfung`,
@@ -21557,11 +26243,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `am ${d3}`,
     cond_time_window: "Zeitfenster",
     cond_template_true: "Template wird zu wahr ausgewertet",
-    cond_after_sun: (s4) => `nach ${s4}`,
-    cond_before_sun: (s4) => `vor ${s4}`,
+    cond_after_sun: (s6) => `nach ${s6}`,
+    cond_before_sun: (s6) => `vor ${s6}`,
     cond_sun_position: "Sonnenposition",
-    cond_all: (n4) => `Alle ${n4} Bedingungen m\xFCssen erf\xFCllt sein`,
-    cond_any: (n4) => `Eine der ${n4} Bedingungen ist erf\xFCllt`,
+    cond_all: (n5) => `Alle ${n5} Bedingungen m\xFCssen erf\xFCllt sein`,
+    cond_any: (n5) => `Eine der ${n5} Bedingungen ist erf\xFCllt`,
     cond_none: "Keine der Bedingungen ist erf\xFCllt",
     cond_in_zone: (eid, z2) => `${eid} ist in ${z2 || "Zone"}`,
     cond_device: "Ger\xE4tebedingung",
@@ -21586,21 +26272,21 @@ var PHRASES = {
     extra_temp: (v2) => `auf ${v2}\xB0`,
     extra_color_temp: (v2) => `Farbtemp. ${v2}`,
     wait_str: (d3) => `${d3} warten`,
-    wait_parts: (p4) => `${p4} warten`,
+    wait_parts: (p2) => `${p2} warten`,
     wait_plain: "Warten",
     wait_until: "Warten bis Bedingung erf\xFCllt ist",
     wait_for_trigger: "Auf Ausl\xF6ser warten",
-    activate_scene: (e5) => `Szene aktivieren: ${e5}`,
-    choose_between: (n4) => `Aus ${n4} Optionen w\xE4hlen`,
-    repeat_count: (n4) => `${n4}-mal wiederholen`,
+    activate_scene: (e6) => `Szene aktivieren: ${e6}`,
+    choose_between: (n5) => `Aus ${n5} Optionen w\xE4hlen`,
+    repeat_count: (n5) => `${n5}-mal wiederholen`,
     repeat_while: "Wiederholen solange Bedingung erf\xFCllt ist",
     repeat_until: "Wiederholen bis Bedingung erf\xFCllt ist",
     repeat: "Wiederholen",
-    parallel: (n4) => `${n4} Aktionen parallel ausf\xFChren`,
-    sequence: (n4) => `Eine Sequenz von ${n4} Schritten ausf\xFChren`,
+    parallel: (n5) => `${n5} Aktionen parallel ausf\xFChren`,
+    sequence: (n5) => `Eine Sequenz von ${n5} Schritten ausf\xFChren`,
     set_variables: "Variablen setzen",
-    stop_label: (s4) => `Stoppen: ${s4}`,
-    fire_event: (e5) => `Ereignis ausl\xF6sen: ${e5}`,
+    stop_label: (s6) => `Stoppen: ${s6}`,
+    fire_event: (e6) => `Ereignis ausl\xF6sen: ${e6}`,
     automation_step: "Automatisierungsschritt",
     joiner_dot: " \xB7 ",
   },
@@ -21620,7 +26306,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Cuando ${eid} pase a ${st}${dur}`,
     when_changes_state: (eid, dur) => `Cuando ${eid} cambie de estado${dur}`,
     for_duration: (d3) => ` durante ${d3}`,
-    when_between: (eid, a3, b3) => `Cuando ${eid} est\xE9 entre ${a3} y ${b3}`,
+    when_between: (eid, a4, b2) => `Cuando ${eid} est\xE9 entre ${a4} y ${b2}`,
     when_rises_above: (eid, v2) => `Cuando ${eid} supere ${v2}`,
     when_drops_below: (eid, v2) => `Cuando ${eid} baje de ${v2}`,
     when_value_changes: (eid) => `Cuando cambie el valor de ${eid}`,
@@ -21628,13 +26314,13 @@ var PHRASES = {
     ha_starts: "se inicie",
     ha_shuts_down: "se apague",
     ha_changes_state: "cambie de estado",
-    every_seconds: (n4) => `Cada ${n4} segundo${Number(n4) === 1 ? "" : "s"}`,
-    every_minutes: (n4) => `Cada ${n4} minuto${Number(n4) === 1 ? "" : "s"}`,
-    every_hours: (n4) => `Cada ${n4} hora${Number(n4) === 1 ? "" : "s"}`,
+    every_seconds: (n5) => `Cada ${n5} segundo${Number(n5) === 1 ? "" : "s"}`,
+    every_minutes: (n5) => `Cada ${n5} minuto${Number(n5) === 1 ? "" : "s"}`,
+    every_hours: (n5) => `Cada ${n5} hora${Number(n5) === 1 ? "" : "s"}`,
     on_time_pattern: "En un patr\xF3n temporal",
-    when_template_entity: (e5) => `Cuando se cumpla la condici\xF3n de ${e5}`,
+    when_template_entity: (e6) => `Cuando se cumpla la condici\xF3n de ${e6}`,
     when_template_met: "Cuando se cumpla una condici\xF3n de plantilla",
-    when_event: (n4) => `Cuando ocurra ${n4}`,
+    when_event: (n5) => `Cuando ocurra ${n5}`,
     when_event_generic: "Cuando ocurra un evento",
     when_device_triggered: (t4) => `Cuando un dispositivo ${t4}`,
     when_device_is: (t4) => `Cuando un dispositivo est\xE9 ${t4}`,
@@ -21649,10 +26335,10 @@ var PHRASES = {
     when_calendar: (ev, entity) =>
       `Cuando comience un ${ev} de calendario${entity}`,
     calendar_event: "evento",
-    on_entity: (e5) => ` en ${e5}`,
+    on_entity: (e6) => ` en ${e6}`,
     when_trigger_happens: "Cuando ocurra este disparador",
     cond_is: (eid, st) => `${eid} es ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} entre ${a3} y ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} entre ${a4} y ${b2}`,
     cond_above: (eid, v2) => `${eid} por encima de ${v2}`,
     cond_below: (eid, v2) => `${eid} por debajo de ${v2}`,
     cond_numeric: (eid) => `verificaci\xF3n num\xE9rica de ${eid}`,
@@ -21661,11 +26347,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `el ${d3}`,
     cond_time_window: "Ventana temporal",
     cond_template_true: "La plantilla se eval\xFAa como verdadera",
-    cond_after_sun: (s4) => `despu\xE9s de ${s4}`,
-    cond_before_sun: (s4) => `antes de ${s4}`,
+    cond_after_sun: (s6) => `despu\xE9s de ${s6}`,
+    cond_before_sun: (s6) => `antes de ${s6}`,
     cond_sun_position: "Posici\xF3n del sol",
-    cond_all: (n4) => `Las ${n4} condiciones deben ser verdaderas`,
-    cond_any: (n4) => `Cualquiera de las ${n4} condiciones es verdadera`,
+    cond_all: (n5) => `Las ${n5} condiciones deben ser verdaderas`,
+    cond_any: (n5) => `Cualquiera de las ${n5} condiciones es verdadera`,
     cond_none: "Ninguna de las condiciones es verdadera",
     cond_in_zone: (eid, z2) => `${eid} est\xE1 en ${z2 || "la zona"}`,
     cond_device: "Condici\xF3n de dispositivo",
@@ -21690,22 +26376,22 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. de color ${v2}`,
     wait_str: (d3) => `Esperar ${d3}`,
-    wait_parts: (p4) => `Esperar ${p4}`,
+    wait_parts: (p2) => `Esperar ${p2}`,
     wait_plain: "Esperar",
     wait_until: "Esperar hasta que se cumpla la condici\xF3n",
     wait_for_trigger: "Esperar un disparador",
-    activate_scene: (e5) => `Activar escena: ${e5}`,
-    choose_between: (n4) =>
-      `Elegir entre ${n4} opci${n4 !== 1 ? "ones" : "\xF3n"}`,
-    repeat_count: (n4) => `Repetir ${n4} ve${n4 !== 1 ? "ces" : "z"}`,
+    activate_scene: (e6) => `Activar escena: ${e6}`,
+    choose_between: (n5) =>
+      `Elegir entre ${n5} opci${n5 !== 1 ? "ones" : "\xF3n"}`,
+    repeat_count: (n5) => `Repetir ${n5} ve${n5 !== 1 ? "ces" : "z"}`,
     repeat_while: "Repetir mientras la condici\xF3n sea verdadera",
     repeat_until: "Repetir hasta que la condici\xF3n sea verdadera",
     repeat: "Repetir",
-    parallel: (n4) => `Ejecutar ${n4} acciones en paralelo`,
-    sequence: (n4) => `Ejecutar una secuencia de ${n4} pasos`,
+    parallel: (n5) => `Ejecutar ${n5} acciones en paralelo`,
+    sequence: (n5) => `Ejecutar una secuencia de ${n5} pasos`,
     set_variables: "Establecer variables",
-    stop_label: (s4) => `Detener: ${s4}`,
-    fire_event: (e5) => `Disparar evento: ${e5}`,
+    stop_label: (s6) => `Detener: ${s6}`,
+    fire_event: (e6) => `Disparar evento: ${e6}`,
     automation_step: "Paso de automatizaci\xF3n",
     joiner_dot: " \xB7 ",
   },
@@ -21724,7 +26410,7 @@ var PHRASES = {
     when_becomes: (eid, st, dur) => `Quando ${eid} diventa ${st}${dur}`,
     when_changes_state: (eid, dur) => `Quando ${eid} cambia stato${dur}`,
     for_duration: (d3) => ` per ${d3}`,
-    when_between: (eid, a3, b3) => `Quando ${eid} \xE8 tra ${a3} e ${b3}`,
+    when_between: (eid, a4, b2) => `Quando ${eid} \xE8 tra ${a4} e ${b2}`,
     when_rises_above: (eid, v2) => `Quando ${eid} supera ${v2}`,
     when_drops_below: (eid, v2) => `Quando ${eid} scende sotto ${v2}`,
     when_value_changes: (eid) => `Quando il valore di ${eid} cambia`,
@@ -21732,14 +26418,14 @@ var PHRASES = {
     ha_starts: "si avvia",
     ha_shuts_down: "si arresta",
     ha_changes_state: "cambia stato",
-    every_seconds: (n4) => `Ogni ${n4} second${Number(n4) === 1 ? "o" : "i"}`,
-    every_minutes: (n4) => `Ogni ${n4} minut${Number(n4) === 1 ? "o" : "i"}`,
-    every_hours: (n4) => `Ogni ${n4} or${Number(n4) === 1 ? "a" : "e"}`,
+    every_seconds: (n5) => `Ogni ${n5} second${Number(n5) === 1 ? "o" : "i"}`,
+    every_minutes: (n5) => `Ogni ${n5} minut${Number(n5) === 1 ? "o" : "i"}`,
+    every_hours: (n5) => `Ogni ${n5} or${Number(n5) === 1 ? "a" : "e"}`,
     on_time_pattern: "Su uno schema temporale",
-    when_template_entity: (e5) =>
-      `Quando la condizione su ${e5} \xE8 soddisfatta`,
+    when_template_entity: (e6) =>
+      `Quando la condizione su ${e6} \xE8 soddisfatta`,
     when_template_met: "Quando una condizione del modello \xE8 soddisfatta",
-    when_event: (n4) => `Quando ${n4} si verifica`,
+    when_event: (n5) => `Quando ${n5} si verifica`,
     when_event_generic: "Quando si verifica un evento",
     when_device_triggered: (t4) => `Quando un dispositivo ${t4}`,
     when_device_is: (t4) => `Quando un dispositivo \xE8 ${t4}`,
@@ -21755,10 +26441,10 @@ var PHRASES = {
     when_calendar: (ev, entity) =>
       `Quando inizia un ${ev} del calendario${entity}`,
     calendar_event: "evento",
-    on_entity: (e5) => ` su ${e5}`,
+    on_entity: (e6) => ` su ${e6}`,
     when_trigger_happens: "Quando si verifica questo trigger",
     cond_is: (eid, st) => `${eid} \xE8 ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} tra ${a3} e ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} tra ${a4} e ${b2}`,
     cond_above: (eid, v2) => `${eid} sopra ${v2}`,
     cond_below: (eid, v2) => `${eid} sotto ${v2}`,
     cond_numeric: (eid) => `verifica numerica di ${eid}`,
@@ -21767,11 +26453,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `il ${d3}`,
     cond_time_window: "Finestra temporale",
     cond_template_true: "Il modello \xE8 valutato vero",
-    cond_after_sun: (s4) => `dopo ${s4}`,
-    cond_before_sun: (s4) => `prima di ${s4}`,
+    cond_after_sun: (s6) => `dopo ${s6}`,
+    cond_before_sun: (s6) => `prima di ${s6}`,
     cond_sun_position: "Posizione del sole",
-    cond_all: (n4) => `Tutte le ${n4} condizioni devono essere vere`,
-    cond_any: (n4) => `Una delle ${n4} condizioni \xE8 vera`,
+    cond_all: (n5) => `Tutte le ${n5} condizioni devono essere vere`,
+    cond_any: (n5) => `Una delle ${n5} condizioni \xE8 vera`,
     cond_none: "Nessuna delle condizioni \xE8 vera",
     cond_in_zone: (eid, z2) => `${eid} \xE8 in ${z2 || "zona"}`,
     cond_device: "Condizione del dispositivo",
@@ -21796,21 +26482,21 @@ var PHRASES = {
     extra_temp: (v2) => `a ${v2}\xB0`,
     extra_color_temp: (v2) => `temp. colore ${v2}`,
     wait_str: (d3) => `Attendi ${d3}`,
-    wait_parts: (p4) => `Attendi ${p4}`,
+    wait_parts: (p2) => `Attendi ${p2}`,
     wait_plain: "Attendi",
     wait_until: "Attendi finch\xE9 la condizione non \xE8 soddisfatta",
     wait_for_trigger: "Attendi un trigger",
-    activate_scene: (e5) => `Attiva scena: ${e5}`,
-    choose_between: (n4) => `Scegli tra ${n4} opzion${n4 !== 1 ? "i" : "e"}`,
-    repeat_count: (n4) => `Ripeti ${n4} volt${n4 !== 1 ? "e" : "a"}`,
+    activate_scene: (e6) => `Attiva scena: ${e6}`,
+    choose_between: (n5) => `Scegli tra ${n5} opzion${n5 !== 1 ? "i" : "e"}`,
+    repeat_count: (n5) => `Ripeti ${n5} volt${n5 !== 1 ? "e" : "a"}`,
     repeat_while: "Ripeti finch\xE9 la condizione \xE8 vera",
     repeat_until: "Ripeti finch\xE9 la condizione non \xE8 vera",
     repeat: "Ripeti",
-    parallel: (n4) => `Esegui ${n4} azioni in parallelo`,
-    sequence: (n4) => `Esegui una sequenza di ${n4} passaggi`,
+    parallel: (n5) => `Esegui ${n5} azioni in parallelo`,
+    sequence: (n5) => `Esegui una sequenza di ${n5} passaggi`,
     set_variables: "Imposta variabili",
-    stop_label: (s4) => `Ferma: ${s4}`,
-    fire_event: (e5) => `Lancia evento: ${e5}`,
+    stop_label: (s6) => `Ferma: ${s6}`,
+    fire_event: (e6) => `Lancia evento: ${e6}`,
     automation_step: "Passo di automazione",
     joiner_dot: " \xB7 ",
   },
@@ -21831,7 +26517,7 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Wanneer ${eid} van status verandert${dur}`,
     for_duration: (d3) => ` gedurende ${d3}`,
-    when_between: (eid, a3, b3) => `Wanneer ${eid} tussen ${a3} en ${b3} is`,
+    when_between: (eid, a4, b2) => `Wanneer ${eid} tussen ${a4} en ${b2} is`,
     when_rises_above: (eid, v2) => `Wanneer ${eid} boven ${v2} stijgt`,
     when_drops_below: (eid, v2) => `Wanneer ${eid} onder ${v2} zakt`,
     when_value_changes: (eid) => `Wanneer de waarde van ${eid} verandert`,
@@ -21839,15 +26525,15 @@ var PHRASES = {
     ha_starts: "start",
     ha_shuts_down: "afsluit",
     ha_changes_state: "van status verandert",
-    every_seconds: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "seconde" : "seconden"}`,
-    every_minutes: (n4) =>
-      `Elke ${n4} ${Number(n4) === 1 ? "minuut" : "minuten"}`,
-    every_hours: (n4) => `Elke ${n4} uur`,
+    every_seconds: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "seconde" : "seconden"}`,
+    every_minutes: (n5) =>
+      `Elke ${n5} ${Number(n5) === 1 ? "minuut" : "minuten"}`,
+    every_hours: (n5) => `Elke ${n5} uur`,
     on_time_pattern: "Op een tijdpatroon",
-    when_template_entity: (e5) => `Wanneer de voorwaarde op ${e5} klopt`,
+    when_template_entity: (e6) => `Wanneer de voorwaarde op ${e6} klopt`,
     when_template_met: "Wanneer aan een sjabloonvoorwaarde wordt voldaan",
-    when_event: (n4) => `Wanneer ${n4} gebeurt`,
+    when_event: (n5) => `Wanneer ${n5} gebeurt`,
     when_event_generic: "Wanneer een gebeurtenis plaatsvindt",
     when_device_triggered: (t4) => `Wanneer een apparaat ${t4}`,
     when_device_is: (t4) => `Wanneer een apparaat ${t4} is`,
@@ -21862,10 +26548,10 @@ var PHRASES = {
     when_geo: "Wanneer er een locatie-update binnenkomt",
     when_calendar: (ev, entity) => `Wanneer een agenda-${ev} begint${entity}`,
     calendar_event: "gebeurtenis",
-    on_entity: (e5) => ` op ${e5}`,
+    on_entity: (e6) => ` op ${e6}`,
     when_trigger_happens: "Wanneer deze trigger optreedt",
     cond_is: (eid, st) => `${eid} is ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} tussen ${a3} en ${b3}`,
+    cond_between: (eid, a4, b2) => `${eid} tussen ${a4} en ${b2}`,
     cond_above: (eid, v2) => `${eid} boven ${v2}`,
     cond_below: (eid, v2) => `${eid} onder ${v2}`,
     cond_numeric: (eid) => `${eid} numerieke controle`,
@@ -21874,11 +26560,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `op ${d3}`,
     cond_time_window: "Tijdvenster",
     cond_template_true: "Sjabloon evalueert naar waar",
-    cond_after_sun: (s4) => `na ${s4}`,
-    cond_before_sun: (s4) => `v\xF3\xF3r ${s4}`,
+    cond_after_sun: (s6) => `na ${s6}`,
+    cond_before_sun: (s6) => `v\xF3\xF3r ${s6}`,
     cond_sun_position: "Zonpositie",
-    cond_all: (n4) => `Alle ${n4} voorwaarden moeten waar zijn`,
-    cond_any: (n4) => `E\xE9n van de ${n4} voorwaarden is waar`,
+    cond_all: (n5) => `Alle ${n5} voorwaarden moeten waar zijn`,
+    cond_any: (n5) => `E\xE9n van de ${n5} voorwaarden is waar`,
     cond_none: "Geen van de voorwaarden is waar",
     cond_in_zone: (eid, z2) => `${eid} bevindt zich in ${z2 || "zone"}`,
     cond_device: "Apparaatvoorwaarde",
@@ -21903,22 +26589,22 @@ var PHRASES = {
     extra_temp: (v2) => `naar ${v2}\xB0`,
     extra_color_temp: (v2) => `kleurtemp. ${v2}`,
     wait_str: (d3) => `Wacht ${d3}`,
-    wait_parts: (p4) => `Wacht ${p4}`,
+    wait_parts: (p2) => `Wacht ${p2}`,
     wait_plain: "Wacht",
     wait_until: "Wacht tot aan de voorwaarde is voldaan",
     wait_for_trigger: "Wacht op een trigger",
-    activate_scene: (e5) => `Sc\xE8ne activeren: ${e5}`,
-    choose_between: (n4) =>
-      `Kies tussen ${n4} ${n4 !== 1 ? "opties" : "optie"}`,
-    repeat_count: (n4) => `Herhaal ${n4} ${n4 !== 1 ? "keer" : "keer"}`,
+    activate_scene: (e6) => `Sc\xE8ne activeren: ${e6}`,
+    choose_between: (n5) =>
+      `Kies tussen ${n5} ${n5 !== 1 ? "opties" : "optie"}`,
+    repeat_count: (n5) => `Herhaal ${n5} ${n5 !== 1 ? "keer" : "keer"}`,
     repeat_while: "Herhaal zolang de voorwaarde geldt",
     repeat_until: "Herhaal totdat de voorwaarde wordt voldaan",
     repeat: "Herhalen",
-    parallel: (n4) => `Voer ${n4} acties parallel uit`,
-    sequence: (n4) => `Voer een reeks van ${n4} stappen uit`,
+    parallel: (n5) => `Voer ${n5} acties parallel uit`,
+    sequence: (n5) => `Voer een reeks van ${n5} stappen uit`,
     set_variables: "Variabelen instellen",
-    stop_label: (s4) => `Stop: ${s4}`,
-    fire_event: (e5) => `Gebeurtenis afvuren: ${e5}`,
+    stop_label: (s6) => `Stop: ${s6}`,
+    fire_event: (e6) => `Gebeurtenis afvuren: ${e6}`,
     automation_step: "Automatiseringsstap",
     joiner_dot: " \xB7 ",
   },
@@ -21939,8 +26625,8 @@ var PHRASES = {
     when_changes_state: (eid, dur) =>
       `Amikor ${eid} \xE1llapotot v\xE1lt${dur}`,
     for_duration: (d3) => ` ${d3}-ig`,
-    when_between: (eid, a3, b3) =>
-      `Amikor ${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt van`,
+    when_between: (eid, a4, b2) =>
+      `Amikor ${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt van`,
     when_rises_above: (eid, v2) => `Amikor ${eid} ${v2} f\xF6l\xE9 emelkedik`,
     when_drops_below: (eid, v2) => `Amikor ${eid} ${v2} al\xE1 esik`,
     when_value_changes: (eid) => `Amikor ${eid} \xE9rt\xE9ke v\xE1ltozik`,
@@ -21948,13 +26634,13 @@ var PHRASES = {
     ha_starts: "elindul",
     ha_shuts_down: "le\xE1ll",
     ha_changes_state: "\xE1llapotot v\xE1lt",
-    every_seconds: (n4) => `Minden ${n4} m\xE1sodperc`,
-    every_minutes: (n4) => `Minden ${n4} perc`,
-    every_hours: (n4) => `Minden ${n4} \xF3ra`,
+    every_seconds: (n5) => `Minden ${n5} m\xE1sodperc`,
+    every_minutes: (n5) => `Minden ${n5} perc`,
+    every_hours: (n5) => `Minden ${n5} \xF3ra`,
     on_time_pattern: "Id\u0151minta szerint",
-    when_template_entity: (e5) => `Amikor a ${e5} felt\xE9tel teljes\xFCl`,
+    when_template_entity: (e6) => `Amikor a ${e6} felt\xE9tel teljes\xFCl`,
     when_template_met: "Amikor egy sablonfelt\xE9tel teljes\xFCl",
-    when_event: (n4) => `Amikor ${n4} t\xF6rt\xE9nik`,
+    when_event: (n5) => `Amikor ${n5} t\xF6rt\xE9nik`,
     when_event_generic: "Amikor egy esem\xE9ny t\xF6rt\xE9nik",
     when_device_triggered: (t4) => `Amikor egy eszk\xF6z ${t4}`,
     when_device_is: (t4) => `Amikor egy eszk\xF6z ${t4}`,
@@ -21971,10 +26657,10 @@ var PHRASES = {
     when_calendar: (ev, entity) =>
       `Amikor egy napt\xE1ri ${ev} elkezd\u0151dik${entity}`,
     calendar_event: "esem\xE9ny",
-    on_entity: (e5) => ` itt: ${e5}`,
+    on_entity: (e6) => ` itt: ${e6}`,
     when_trigger_happens: "Amikor ez a trigger bek\xF6vetkezik",
     cond_is: (eid, st) => `${eid} \xE9rt\xE9ke ${st}`,
-    cond_between: (eid, a3, b3) => `${eid} ${a3} \xE9s ${b3} k\xF6z\xF6tt`,
+    cond_between: (eid, a4, b2) => `${eid} ${a4} \xE9s ${b2} k\xF6z\xF6tt`,
     cond_above: (eid, v2) => `${eid} ${v2} f\xF6l\xF6tt`,
     cond_below: (eid, v2) => `${eid} ${v2} alatt`,
     cond_numeric: (eid) => `${eid} numerikus ellen\u0151rz\xE9s`,
@@ -21983,11 +26669,11 @@ var PHRASES = {
     cond_on_weekday: (d3) => `${d3} napokon`,
     cond_time_window: "Id\u0151ablak",
     cond_template_true: "A sablon igaznak \xE9rt\xE9kel\u0151dik",
-    cond_after_sun: (s4) => `${s4} ut\xE1n`,
-    cond_before_sun: (s4) => `${s4} el\u0151tt`,
+    cond_after_sun: (s6) => `${s6} ut\xE1n`,
+    cond_before_sun: (s6) => `${s6} el\u0151tt`,
     cond_sun_position: "Nappoz\xEDci\xF3",
-    cond_all: (n4) => `Mind a ${n4} felt\xE9telnek igaznak kell lennie`,
-    cond_any: (n4) => `A ${n4} felt\xE9tel egyike igaz`,
+    cond_all: (n5) => `Mind a ${n5} felt\xE9telnek igaznak kell lennie`,
+    cond_any: (n5) => `A ${n5} felt\xE9tel egyike igaz`,
     cond_none: "Egyik felt\xE9tel sem igaz",
     cond_in_zone: (eid, z2) => `${eid} itt: ${z2 || "z\xF3na"}`,
     cond_device: "Eszk\xF6zfelt\xE9tel",
@@ -22012,21 +26698,21 @@ var PHRASES = {
     extra_temp: (v2) => `${v2}\xB0-ra`,
     extra_color_temp: (v2) => `sz\xEDnh\u0151m\xE9rs\xE9klet ${v2}`,
     wait_str: (d3) => `V\xE1rakoz\xE1s: ${d3}`,
-    wait_parts: (p4) => `V\xE1rakoz\xE1s: ${p4}`,
+    wait_parts: (p2) => `V\xE1rakoz\xE1s: ${p2}`,
     wait_plain: "V\xE1rakoz\xE1s",
     wait_until: "V\xE1rakoz\xE1s, am\xEDg a felt\xE9tel teljes\xFCl",
     wait_for_trigger: "V\xE1rakoz\xE1s triggerre",
-    activate_scene: (e5) => `Jelenet aktiv\xE1l\xE1sa: ${e5}`,
-    choose_between: (n4) => `V\xE1laszt\xE1s ${n4} opci\xF3 k\xF6z\xFCl`,
-    repeat_count: (n4) => `Ism\xE9tl\xE9s ${n4}-szor`,
+    activate_scene: (e6) => `Jelenet aktiv\xE1l\xE1sa: ${e6}`,
+    choose_between: (n5) => `V\xE1laszt\xE1s ${n5} opci\xF3 k\xF6z\xFCl`,
+    repeat_count: (n5) => `Ism\xE9tl\xE9s ${n5}-szor`,
     repeat_while: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel fenn\xE1ll",
     repeat_until: "Ism\xE9tl\xE9s, am\xEDg a felt\xE9tel teljes\xFCl",
     repeat: "Ism\xE9tl\xE9s",
-    parallel: (n4) => `${n4} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
-    sequence: (n4) => `${n4} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
+    parallel: (n5) => `${n5} m\u0171velet p\xE1rhuzamos futtat\xE1sa`,
+    sequence: (n5) => `${n5} l\xE9p\xE9ses szekvencia futtat\xE1sa`,
     set_variables: "V\xE1ltoz\xF3k be\xE1ll\xEDt\xE1sa",
-    stop_label: (s4) => `Meg\xE1ll\xEDt\xE1s: ${s4}`,
-    fire_event: (e5) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e5}`,
+    stop_label: (s6) => `Meg\xE1ll\xEDt\xE1s: ${s6}`,
+    fire_event: (e6) => `Esem\xE9ny kiv\xE1lt\xE1sa: ${e6}`,
     automation_step: "Automatizmus l\xE9p\xE9se",
     joiner_dot: " \xB7 ",
   },
@@ -22045,10 +26731,10 @@ function _val(phrases, key, ...args) {
 function describeFlowItem(hass, item) {
   if (!item || typeof item !== "object") return String(item ?? "");
   const T2 = _phrases(hass);
-  const t4 = (k2, ...a3) => _val(T2, k2, ...a3);
+  const t4 = (k2, ...a4) => _val(T2, k2, ...a4);
   const lang = hass?.language;
-  const p4 = item.platform || item.trigger;
-  if (p4 === "time") {
+  const p2 = item.platform || item.trigger;
+  if (p2 === "time") {
     const raw = item.at;
     if (Array.isArray(raw)) {
       return t4(
@@ -22058,7 +26744,7 @@ function describeFlowItem(hass, item) {
     }
     return t4("when_time_is", fmtTime(hass, raw));
   }
-  if (p4 === "sun") {
+  if (p2 === "sun") {
     const ev =
       item.event === "sunset"
         ? t4("sunset")
@@ -22068,17 +26754,17 @@ function describeFlowItem(hass, item) {
     if (item.offset) {
       const neg = item.offset.startsWith("-");
       const raw = neg ? item.offset.slice(1) : item.offset;
-      const [h3, m3, s4] = raw.split(":").map(Number);
+      const [h3, m2, s6] = raw.split(":").map(Number);
       const parts = [];
       if (h3) parts.push(`${h3}h`);
-      if (m3) parts.push(`${m3}min`);
-      if (s4) parts.push(`${s4}s`);
+      if (m2) parts.push(`${m2}min`);
+      if (s6) parts.push(`${s6}s`);
       const label = parts.join(" ") || item.offset;
       return t4("sun_offset", label, neg, ev);
     }
     return t4("when_it_is", ev);
   }
-  if (p4 === "state") {
+  if (p2 === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const rawTo = item.to == null ? null : String(item.to);
     const fromState = fmtState(item.from, lang);
@@ -22092,7 +26778,7 @@ function describeFlowItem(hass, item) {
     if (toState) return t4("when_becomes", eid, toState, dur);
     return t4("when_changes_state", eid, dur);
   }
-  if (p4 === "numeric_state") {
+  if (p2 === "numeric_state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const above = fmtNumericValue(item.entity_id, item.above);
     const below = fmtNumericValue(item.entity_id, item.below);
@@ -22102,7 +26788,7 @@ function describeFlowItem(hass, item) {
     if (item.below != null) return t4("when_drops_below", eid, below);
     return t4("when_value_changes", eid);
   }
-  if (p4 === "homeassistant") {
+  if (p2 === "homeassistant") {
     const ev =
       item.event === "start"
         ? t4("ha_starts")
@@ -22111,25 +26797,25 @@ function describeFlowItem(hass, item) {
           : t4("ha_changes_state");
     return t4("when_ha", ev);
   }
-  if (p4 === "time_pattern") {
+  if (p2 === "time_pattern") {
     if (item.seconds != null) return t4("every_seconds", item.seconds);
     if (item.minutes != null) return t4("every_minutes", item.minutes);
     if (item.hours != null) return t4("every_hours", item.hours);
     return t4("on_time_pattern");
   }
-  if (p4 === "template") {
+  if (p2 === "template") {
     const tmpl = item.value_template || "";
     const entityMatch = tmpl.match(/states\(['"]([^'"]+)['"]\)/);
     if (entityMatch)
       return t4("when_template_entity", fmtEntity(hass, entityMatch[1]));
     return t4("when_template_met");
   }
-  if (p4 === "event") {
+  if (p2 === "event") {
     if (item.event_type)
       return t4("when_event", humanizeToken(item.event_type).toLowerCase());
     return t4("when_event_generic");
   }
-  if (p4 === "device") {
+  if (p2 === "device") {
     const triggerType = item.type
       ? humanizeToken(item.type).toLowerCase()
       : t4("triggered");
@@ -22137,7 +26823,7 @@ function describeFlowItem(hass, item) {
       ? t4("when_device_triggered", triggerType)
       : t4("when_device_is", triggerType);
   }
-  if (p4 === "zone") {
+  if (p2 === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
     const zone = fmtEntity(hass, item.zone);
     const rawEvent = String(item.event || "enter");
@@ -22149,12 +26835,12 @@ function describeFlowItem(hass, item) {
           : humanizeToken(rawEvent).toLowerCase();
     return `${eid} ${ev} ${zone}`.trim();
   }
-  if (p4 === "mqtt")
+  if (p2 === "mqtt")
     return item.topic ? t4("when_mqtt_topic", item.topic) : t4("when_mqtt");
-  if (p4 === "webhook") return t4("when_webhook");
-  if (p4 === "tag") return t4("when_tag", item.tag_id || "");
-  if (p4 === "geo_location") return t4("when_geo");
-  if (p4 === "calendar") {
+  if (p2 === "webhook") return t4("when_webhook");
+  if (p2 === "tag") return t4("when_tag", item.tag_id || "");
+  if (p2 === "geo_location") return t4("when_geo");
+  if (p2 === "calendar") {
     const eventName = item.event
       ? humanizeToken(item.event).toLowerCase()
       : t4("calendar_event");
@@ -22163,7 +26849,7 @@ function describeFlowItem(hass, item) {
       : "";
     return t4("when_calendar", eventName, entity);
   }
-  if (p4) return t4("when_trigger_happens");
+  if (p2) return t4("when_trigger_happens");
   const cond = item.condition;
   if (cond === "state") {
     const eid = fmtEntities(hass, item.entity_id, lang);
@@ -22227,7 +26913,7 @@ function describeFlowItem(hass, item) {
     if (domain === "notify") {
       const target = svcName
         .replace(/_/g, " ")
-        .replace(/\b\w/g, (c4) => c4.toUpperCase());
+        .replace(/\b\w/g, (c3) => c3.toUpperCase());
       const msg = item.data?.message;
       const title = item.data?.title;
       if (title) return t4("notify_target", target, title);
@@ -22261,7 +26947,7 @@ function describeFlowItem(hass, item) {
     const actionKey = ACTION_KEYS[svcName];
     const name = actionKey
       ? t4(actionKey)
-      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c4) => c4.toUpperCase());
+      : svcName.replace(/_/g, " ").replace(/\b\w/g, (c3) => c3.toUpperCase());
     const targets = item.target?.entity_id ?? item.data?.entity_id;
     const tgt = fmtEntities(hass, targets, lang);
     const extras = [];
@@ -22359,7 +27045,7 @@ function collectFlowEntityIds(item) {
 }
 
 // src/panel/render-suggestions.js
-var ClampCursorDirective = class extends i5 {
+var ClampCursorDirective = class extends i3 {
   update(part, [force]) {
     const el = part.element;
     if (force) {
@@ -22377,17 +27063,17 @@ var ClampCursorDirective = class extends i5 {
 var clampCursor = e4(ClampCursorDirective);
 var MIN_CONF = 0.8;
 var COLLAPSED_COUNT = 3;
-function normalizeProactive(s4) {
+function normalizeProactive(s6) {
   return {
     type: "proactive",
-    cardKey: `proactive_${s4.suggestion_id}`,
-    title: s4.description,
-    subtitle: s4.evidence_summary || null,
+    cardKey: `proactive_${s6.suggestion_id}`,
+    title: s6.description,
+    subtitle: s6.evidence_summary || null,
     risk: null,
-    automationYaml: s4.automation_yaml || "",
-    automationData: s4.automation_data || null,
-    _original: s4,
-    _suggestionId: s4.suggestion_id,
+    automationYaml: s6.automation_yaml || "",
+    automationData: s6.automation_data || null,
+    _original: s6,
+    _suggestionId: s6.suggestion_id,
   };
 }
 function normalizeLLM(item) {
@@ -22407,12 +27093,12 @@ function normalizeLLM(item) {
 function buildQualified(host) {
   const seenKeys = /* @__PURE__ */ new Set();
   const qualified = [];
-  for (const s4 of host._proactiveSuggestions || []) {
-    if ((s4.confidence || 0) < MIN_CONF) continue;
-    const key = (s4.description || "").toLowerCase().trim();
+  for (const s6 of host._proactiveSuggestions || []) {
+    if ((s6.confidence || 0) < MIN_CONF) continue;
+    const key = (s6.description || "").toLowerCase().trim();
     if (seenKeys.has(key)) continue;
     seenKeys.add(key);
-    qualified.push(normalizeProactive(s4));
+    qualified.push(normalizeProactive(s6));
   }
   for (const item of host._suggestions || []) {
     const auto = item.automation || item.automation_data;
@@ -22438,12 +27124,12 @@ function applyFilters(host, qualified) {
     return true;
   });
   if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.title || "").localeCompare(b3.title || ""));
+    filtered.sort((a4, b2) => (a4.title || "").localeCompare(b2.title || ""));
   } else {
-    filtered.sort((a3, b3) => {
-      if (a3.type !== b3.type) return a3.type === "llm" ? -1 : 1;
-      const confA = a3._original?.confidence || 0;
-      const confB = b3._original?.confidence || 0;
+    filtered.sort((a4, b2) => {
+      if (a4.type !== b2.type) return a4.type === "llm" ? -1 : 1;
+      const confA = a4._original?.confidence || 0;
+      const confB = b2._original?.confidence || 0;
       return confB - confA;
     });
   }
@@ -22477,7 +27163,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
     };
   };
   const expandedClass = expandedText ? "expanded" : "";
-  return b2`
+  return x`
     <div
       class="card${fadingOut ? " fading-out" : ""}"
       style="padding:16px 18px;display:flex;flex-direction:column;"
@@ -22485,15 +27171,15 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-header" style="margin-bottom:0;">
         ${
           bulkMode
-            ? b2`
+            ? x`
               <label class="card-select">
                 <input
                   type="checkbox"
                   .checked=${!!selectedKeys[cardKey]}
-                  @change=${(e5) => {
+                  @change=${(e6) => {
                     host._selectedSuggestionKeys = {
                       ...host._selectedSuggestionKeys,
-                      [cardKey]: e5.target.checked,
+                      [cardKey]: e6.target.checked,
                     };
                   }}
                 />
@@ -22514,7 +27200,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
 
       ${
         item.subtitle
-          ? b2`
+          ? x`
             <div
               class="clamp-2 ${expandedClass}"
               style="font-size:12px;color:var(--secondary-text-color);line-height:1.5;margin-top:8px;"
@@ -22529,7 +27215,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       }
       ${
         item.risk?.level === "elevated"
-          ? b2`
+          ? x`
             <div
               class="proposal-status"
               style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25); margin-top:8px;font-size:12px;"
@@ -22544,7 +27230,7 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       <div class="card-tabs" style="margin-top:12px;">
         ${
           hasFlow
-            ? b2`
+            ? x`
               <button
                 class="card-tab ${activeTab === "flow" ? "active" : ""}"
                 @click=${() => {
@@ -22595,15 +27281,15 @@ function renderSuggestionCard(host, item, bulkMode = false, selectedKeys = {}) {
       ${activeTab === "flow" && hasFlow ? renderAutomationFlowchart(host, automationData) : ""}
       ${
         activeTab === "yaml"
-          ? b2`
+          ? x`
             <div style="margin-top:6px;">
               <ha-code-editor
                 mode="yaml"
                 .value=${displayYaml}
-                @value-changed=${(e5) => {
+                @value-changed=${(e6) => {
                   host._editedYaml = {
                     ...host._editedYaml,
-                    [cardKey]: e5.detail.value,
+                    [cardKey]: e6.detail.value,
                   };
                 }}
                 autocomplete-entities
@@ -22658,14 +27344,16 @@ function renderSuggestionsSection(host) {
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
-  return b2`
-    <div class="section-card suggestions-section">
-      <div class="section-card-header">
+  return x`
+    <div class="suggestions-section">
+      <div class="page-section-header">
         <div class="section-card-title-group">
-          <h3>${host._t("suggestions_section_title", "Suggested for you")}</h3>
+          <span class="page-section-title"
+            >${host._t("suggestions_section_title", "Suggested for you")}</span
+          >
           ${
             totalCount > 0
-              ? b2`<span class="badge"
+              ? x`<span class="badge"
                 >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
               >`
               : ""
@@ -22673,10 +27361,10 @@ function renderSuggestionsSection(host) {
         </div>
         ${
           isDev
-            ? b2`
+            ? x`
               <div class="section-card-actions">
                 <button
-                  class="btn"
+                  class="filter-row-secondary"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
                   title=${
                     host._llmNeedsSetup
@@ -22695,7 +27383,7 @@ function renderSuggestionsSection(host) {
                   ${host._loadingProactive ? host._t("suggestions_btn_scanning", "Scanning\u2026") : host._t("suggestions_btn_scan_now", "Scan Now")}
                 </button>
                 <button
-                  class="btn btn-primary"
+                  class="filter-row-action"
                   ?disabled=${host._generatingSuggestions || host._llmNeedsSetup}
                   title=${
                     host._llmNeedsSetup
@@ -22709,11 +27397,11 @@ function renderSuggestionsSection(host) {
                 >
                   ${
                     host._generatingSuggestions
-                      ? b2`<span
+                      ? x`<span
                         class="spinner"
                         style="width:14px;height:14px;border-width:2px;vertical-align:middle;"
                       ></span>`
-                      : b2`<ha-icon
+                      : x`<ha-icon
                         icon="mdi:auto-fix"
                         style="--mdc-icon-size:14px;"
                       ></ha-icon>`
@@ -22735,7 +27423,7 @@ function renderSuggestionsSection(host) {
 
       ${
         totalCount === 0
-          ? b2`
+          ? x`
             <p style="opacity:0.45;margin:0;font-size:13px;">
               ${host._t(
                 "suggestions_empty_state",
@@ -22743,10 +27431,10 @@ function renderSuggestionsSection(host) {
               )}
             </p>
           `
-          : b2`
+          : x`
             ${
               expanded
-                ? b2`<div class="filter-row" style="margin-bottom:12px;">
+                ? x`<div class="filter-row" style="margin-bottom:12px;">
                   <div class="filter-input-wrap" style="flex:0 1 260px;">
                     <ha-icon icon="mdi:magnify"></ha-icon>
                     <input
@@ -22756,14 +27444,14 @@ function renderSuggestionsSection(host) {
                         "Filter suggestions\u2026",
                       )}
                       .value=${host._suggestionFilter}
-                      @input=${(e5) => {
-                        host._suggestionFilter = e5.target.value;
+                      @input=${(e6) => {
+                        host._suggestionFilter = e6.target.value;
                         host._suggestionsVisibleCount = COLLAPSED_COUNT;
                       }}
                     />
                     ${
                       host._suggestionFilter
-                        ? b2`<ha-icon
+                        ? x`<ha-icon
                           icon="mdi:close-circle"
                           style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                           @click=${() => {
@@ -22776,7 +27464,7 @@ function renderSuggestionsSection(host) {
                   </div>
                   ${
                     isDev
-                      ? b2`
+                      ? x`
                         <div class="status-pills">
                           ${[
                             ["all", host._t("suggestions_filter_all", "All")],
@@ -22789,7 +27477,7 @@ function renderSuggestionsSection(host) {
                             ],
                             ["ai", host._t("suggestions_filter_ai", "AI")],
                           ].map(
-                            ([val, label]) => b2`
+                            ([val, label]) => x`
                               <button
                                 class="status-pill ${(host._suggestionSourceFilter || "all") === val ? "active" : ""}"
                                 @click=${() => {
@@ -22809,8 +27497,8 @@ function renderSuggestionsSection(host) {
                   <select
                     class="sort-select"
                     .value=${host._suggestionSortBy || "recent"}
-                    @change=${(e5) => {
-                      host._suggestionSortBy = e5.target.value;
+                    @change=${(e6) => {
+                      host._suggestionSortBy = e6.target.value;
                     }}
                   >
                     <option value="recent">
@@ -22825,7 +27513,7 @@ function renderSuggestionsSection(host) {
                   >
                     ${
                       bulkMode
-                        ? b2`
+                        ? x`
                           <span style="font-size:12px;opacity:0.7;">
                             ${selectedCount}
                             ${host._t("suggestions_bulk_selected", "selected")}
@@ -22892,7 +27580,7 @@ function renderSuggestionsSection(host) {
                             ${host._t("suggestions_bulk_done", "Done")}
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="btn btn-outline"
                             @click=${() => {
@@ -22920,7 +27608,7 @@ function renderSuggestionsSection(host) {
 
             ${
               remainingCount > 0
-                ? b2`
+                ? x`
                   <button
                     class="show-more-link"
                     @click=${() => {
@@ -22974,18 +27662,18 @@ function getStaleAutomations(host) {
     }
   }
   if (dirty) _saveKept(kept);
-  return host._automations.filter((a3) => {
-    if (!host._automationIsEnabled(a3)) return false;
-    if (!a3.automation_id?.startsWith("selora_ai_")) return false;
-    if (kept[a3.automation_id]) return false;
-    if (!a3.last_triggered) {
-      if (a3.last_updated) {
-        const created = new Date(a3.last_updated).getTime();
+  return host._automations.filter((a4) => {
+    if (!host._automationIsEnabled(a4)) return false;
+    if (!a4.automation_id?.startsWith("selora_ai_")) return false;
+    if (kept[a4.automation_id]) return false;
+    if (!a4.last_triggered) {
+      if (a4.last_updated) {
+        const created = new Date(a4.last_updated).getTime();
         if (created >= cutoff) return false;
       }
       return true;
     }
-    return new Date(a3.last_triggered).getTime() < cutoff;
+    return new Date(a4.last_triggered).getTime() < cutoff;
   });
 }
 
@@ -22997,12 +27685,12 @@ function renderFlowEntityLink(host, entityId) {
     stateObj?.attributes?.icon ||
     DOMAIN_ICONS3[entityId.split(".")[0]] ||
     "mdi:circle-medium";
-  return b2`<button
+  return x`<button
     type="button"
     class="flow-entity-link"
     title=${`Open ${friendly} (${entityId})`}
-    @click=${(e5) => {
-      e5.stopPropagation();
+    @click=${(e6) => {
+      e6.stopPropagation();
       host.dispatchEvent(
         new CustomEvent("hass-more-info", {
           bubbles: true,
@@ -23017,14 +27705,14 @@ function renderFlowEntityLink(host, entityId) {
 }
 var DURATION_RE =
   /\b(?:\d+\s*h(?:\s+\d+\s*m)?(?:\s+\d+\s*s)?|\d+\s*m(?:\s+\d+\s*s)?|\d+\s*s)\b/g;
-function expandDurationAbbrev(s4) {
-  return s4
+function expandDurationAbbrev(s6) {
+  return s6
     .replace(/(\d+)\s*h\b/g, "$1 hr")
     .replace(/(\d+)\s*m\b/g, "$1 min")
     .replace(/(\d+)\s*s\b/g, "$1 sec");
 }
 function renderFlowDuration(raw) {
-  return b2`<span class="flow-duration"
+  return x`<span class="flow-duration"
     ><ha-icon icon="mdi:clock-outline"></ha-icon>${expandDurationAbbrev(
       raw,
     )}</span
@@ -23033,33 +27721,33 @@ function renderFlowDuration(raw) {
 function splitDurations(text) {
   const out = [];
   let last = 0;
-  for (const m3 of text.matchAll(DURATION_RE)) {
-    if (m3.index > last) out.push(text.slice(last, m3.index));
-    out.push({ duration: m3[0] });
-    last = m3.index + m3[0].length;
+  for (const m2 of text.matchAll(DURATION_RE)) {
+    if (m2.index > last) out.push(text.slice(last, m2.index));
+    out.push({ duration: m2[0] });
+    last = m2.index + m2[0].length;
   }
   if (last < text.length) out.push(text.slice(last));
   return out;
 }
 function renderFlowDescription(host, item) {
   const description = describeFlowItem(host.hass, item);
-  if (!description) return b2`${description}`;
+  if (!description) return x`${description}`;
   const entityIds = collectFlowEntityIds(item);
   const lookups = entityIds
     .map((eid) => ({ eid, name: fmtEntity(host.hass, eid) }))
-    .filter((l3) => l3.name)
-    .sort((a3, b3) => b3.name.length - a3.name.length);
+    .filter((l5) => l5.name)
+    .sort((a4, b2) => b2.name.length - a4.name.length);
   const segments = [];
   let remaining = description;
   let safety = 32;
   while (remaining && safety-- > 0) {
     let bestIdx = -1;
     let bestMatch = null;
-    for (const l3 of lookups) {
-      const idx = remaining.indexOf(l3.name);
+    for (const l5 of lookups) {
+      const idx = remaining.indexOf(l5.name);
       if (idx >= 0 && (bestIdx === -1 || idx < bestIdx)) {
         bestIdx = idx;
-        bestMatch = l3;
+        bestMatch = l5;
       }
     }
     if (!bestMatch) {
@@ -23081,63 +27769,63 @@ function renderFlowDescription(host, item) {
       final.push(piece);
     }
   }
-  return b2`${final.map((s4) => {
-    if (typeof s4 === "string") return s4;
-    if (s4.entity) return renderFlowEntityLink(host, s4.entity);
-    if (s4.duration) return renderFlowDuration(s4.duration);
+  return x`${final.map((s6) => {
+    if (typeof s6 === "string") return s6;
+    if (s6.entity) return renderFlowEntityLink(host, s6.entity);
+    if (s6.duration) return renderFlowDuration(s6.duration);
     return "";
   })}`;
 }
 function renderFlowNode(host, item, kind) {
-  return b2`<div class="flow-node ${kind}-node">
+  return x`<div class="flow-node ${kind}-node">
     ${renderFlowDescription(host, item)}
   </div>`;
 }
 function renderActionItem(host, action) {
   if (action && typeof action === "object" && Array.isArray(action.choose)) {
-    return b2`<div class="flow-choose">
+    return x`<div class="flow-choose">
       ${action.choose.map(
-        (branch, i7) => b2`
+        (branch, i5) => x`
           <div class="flow-branch">
             <div class="flow-branch-label">
-              ${i7 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
+              ${i5 === 0 ? host._t("automations_flow_branch_if", "If") : host._t("automations_flow_branch_else_if", "Else if")}
             </div>
             ${(branch.conditions || []).map(
-              (c4) => b2`<div class="flow-node condition-node">
-                  ${renderFlowDescription(host, c4)}
+              (c3) => x`<div class="flow-node condition-node">
+                  ${renderFlowDescription(host, c3)}
                 </div>`,
             )}
             <div class="flow-arrow-sm">↓</div>
-            ${(branch.sequence || []).map((s4) => renderActionItem(host, s4))}
+            ${(branch.sequence || []).map((s6) => renderActionItem(host, s6))}
           </div>
         `,
       )}
       ${
         Array.isArray(action.default) && action.default.length
-          ? b2`<div class="flow-branch">
+          ? x`<div class="flow-branch">
             <div class="flow-branch-label">
               ${host._t("automations_flow_branch_otherwise", "Otherwise")}
             </div>
-            ${action.default.map((s4) => renderActionItem(host, s4))}
+            ${action.default.map((s6) => renderActionItem(host, s6))}
           </div>`
           : ""
       }
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.parallel)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_parallel", "In parallel")}
       </div>
-      ${action.parallel.map((s4) => renderActionItem(host, s4))}
+      ${action.parallel.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && Array.isArray(action.sequence)) {
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">
         ${host._t("automations_flow_branch_in_sequence", "In sequence")}
       </div>
-      ${action.sequence.map((s4) => renderActionItem(host, s4))}
+      ${action.sequence.map((s6) => renderActionItem(host, s6))}
     </div>`;
   }
   if (action && typeof action === "object" && action.repeat) {
@@ -23158,10 +27846,10 @@ function renderActionItem(host, action) {
         );
       return host._t("automations_flow_repeat", "Repeat");
     })();
-    return b2`<div class="flow-branch">
+    return x`<div class="flow-branch">
       <div class="flow-branch-label">${repeatLabel}</div>
-      ${(Array.isArray(inner) ? inner : [inner]).map((s4) =>
-        renderActionItem(host, s4),
+      ${(Array.isArray(inner) ? inner : [inner]).map((s6) =>
+        renderActionItem(host, s6),
       )}
     </div>`;
   }
@@ -23179,7 +27867,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
     /^\[Selora AI\]\s*/,
     "",
   );
-  return b2`
+  return x`
     <ha-icon
       icon="mdi:robot"
       style="--mdc-icon-size:18px;color:var(--primary-text-color);flex-shrink:0;"
@@ -23188,11 +27876,11 @@ function renderAutomationIdentity(alias, description, opts = {}) {
       ${
         nameOverride
           ? nameOverride
-          : b2`<div class="auto-row-title-row">
+          : x`<div class="auto-row-title-row">
             <span class="auto-row-title">${alias}</span>
             ${
               isSelora && !badge
-                ? b2`<ha-icon
+                ? x`<ha-icon
                   class="selora-ai-mark"
                   icon="mdi:creation"
                   title="Created by Selora AI"
@@ -23202,7 +27890,7 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             ${titleSuffix || ""}
             ${
               badge
-                ? b2`<span
+                ? x`<span
                   style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--selora-accent);color:#000;padding:2px 8px;border-radius:4px;flex-shrink:0;"
                   >${badge}</span
                 >`
@@ -23210,27 +27898,27 @@ function renderAutomationIdentity(alias, description, opts = {}) {
             }
           </div>`
       }
-      ${cleanedDescription ? b2`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
+      ${cleanedDescription ? x`<span class="auto-row-desc">${cleanedDescription}</span>` : ""}
       ${tail || ""}
     </div>
   `;
 }
 function renderAutomationFlowchart(host, auto) {
-  if (!auto) return b2``;
+  if (!auto) return x``;
   const triggers = (() => {
     const t4 = auto.triggers ?? auto.trigger ?? [];
     return Array.isArray(t4) ? t4 : [t4];
   })();
   const conditions = (() => {
-    const c4 = auto.conditions ?? auto.condition ?? [];
-    return Array.isArray(c4) ? c4 : [c4];
+    const c3 = auto.conditions ?? auto.condition ?? [];
+    return Array.isArray(c3) ? c3 : [c3];
   })().filter(Boolean);
   const actions = (() => {
-    const a3 = auto.actions ?? auto.action ?? [];
-    return Array.isArray(a3) ? a3 : [a3];
+    const a4 = auto.actions ?? auto.action ?? [];
+    return Array.isArray(a4) ? a4 : [a4];
   })();
-  if (!triggers.length && !actions.length) return b2``;
-  return b2`
+  if (!triggers.length && !actions.length) return x``;
+  return x`
     <div class="flow-chart">
       <div class="flow-section flow-section--inline">
         <div class="flow-label">
@@ -23240,13 +27928,13 @@ function renderAutomationFlowchart(host, auto) {
       </div>
       ${
         conditions.length
-          ? b2`
+          ? x`
             <div class="flow-arrow">↓</div>
             <div class="flow-section flow-section--inline">
               <div class="flow-label">
                 ${host._t("automations_flow_label_condition", "Condition")}
               </div>
-              ${conditions.map((c4) => renderFlowNode(host, c4, "condition"))}
+              ${conditions.map((c3) => renderFlowNode(host, c3, "condition"))}
             </div>
           `
           : ""
@@ -23256,7 +27944,7 @@ function renderAutomationFlowchart(host, auto) {
         <div class="flow-label">
           ${host._t("automations_flow_label_actions", "Actions")}
         </div>
-        ${actions.map((a3) => renderActionItem(host, a3))}
+        ${actions.map((a4) => renderActionItem(host, a4))}
       </div>
     </div>
   `;
@@ -23271,7 +27959,7 @@ function renderProposalCard(host, msg, msgIndex) {
     const isEnabled = _savedIsEnabled(host, msg);
     const yamlKey2 = `saved_${msgIndex}`;
     const yamlOpen2 = host._yamlOpen && host._yamlOpen[msgIndex];
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -23284,7 +27972,7 @@ function renderProposalCard(host, msg, msgIndex) {
           ${renderAutomationFlowchart(host, automation)}
           ${
             yaml
-              ? b2`
+              ? x`
                 <div
                   class="yaml-toggle"
                   style="margin-top:12px;"
@@ -23298,7 +27986,7 @@ function renderProposalCard(host, msg, msgIndex) {
                 </div>
                 ${
                   yamlOpen2
-                    ? b2`<div style="margin-top:6px;">
+                    ? x`<div style="margin-top:6px;">
                       ${host._renderYamlEditor(yamlKey2, yaml, null, {
                         readOnly: true,
                       })}
@@ -23313,7 +28001,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -23335,7 +28023,7 @@ function renderProposalCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div class="automation-subcard">
         <div class="automation-subcard-header">
           ${renderAutomationIdentity(
@@ -23359,7 +28047,7 @@ function renderProposalCard(host, msg, msgIndex) {
   const yamlKey = `proposal_${msgIndex}`;
   const hasEdits =
     host._editedYaml[yamlKey] !== void 0 && host._editedYaml[yamlKey] !== yaml;
-  return b2`
+  return x`
     <div class="automation-subcard">
       <div class="automation-subcard-header">
         ${renderAutomationIdentity(automation.alias, msg.description, {
@@ -23369,7 +28057,7 @@ function renderProposalCard(host, msg, msgIndex) {
       <div class="automation-subcard-body">
         ${
           risk?.level === "elevated"
-            ? b2`
+            ? x`
               <div
                 class="proposal-status"
                 style="background:rgba(255,152,0,0.12); color:var(--warning-color,#ff9800); border:1px solid rgba(255,152,0,0.25);"
@@ -23385,7 +28073,7 @@ function renderProposalCard(host, msg, msgIndex) {
                   <div style="margin-top:4px;">${risk.summary}</div>
                   ${
                     risk.reasons?.length
-                      ? b2`<div style="margin-top:6px; font-size:12px;">
+                      ? x`<div style="margin-top:6px; font-size:12px;">
                         ${risk.reasons.join(" ")}
                       </div>`
                       : ""
@@ -23410,11 +28098,11 @@ function renderProposalCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen
-            ? b2`<div style="margin-top:6px;">
+            ? x`<div style="margin-top:6px;">
               ${host._renderYamlEditor(yamlKey, yaml)}
               ${
                 hasEdits
-                  ? b2`<div class="proposal-verify">
+                  ? x`<div class="proposal-verify">
                     ${host._t(
                       "automations_proposal_yaml_edits_note",
                       "Your YAML edits will be used when you accept.",
@@ -23433,7 +28121,7 @@ function _savedIsEnabled(host, msg) {
   const savedAutomationId = msg.automation_id || null;
   if (!savedAutomationId) return false;
   const created = (host._automations || []).find(
-    (a3) => a3.automation_id === savedAutomationId,
+    (a4) => a4.automation_id === savedAutomationId,
   );
   return created ? host._automationIsEnabled(created) : false;
 }
@@ -23446,7 +28134,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const savedAutomationId = msg.automation_id || null;
     const created = savedAutomationId
       ? (host._automations || []).find(
-          (a3) => a3.automation_id === savedAutomationId,
+          (a4) => a4.automation_id === savedAutomationId,
         )
       : null;
     if (!created) return "";
@@ -23454,7 +28142,7 @@ function renderProposalActions(host, msg, msgIndex) {
     const toggling = !!(host._togglingAutomation || {})[savedAutomationId];
     const elevated = risk?.level === "elevated";
     if (isEnabled) {
-      return b2`<div class="qa-group automation-card-actions">
+      return x`<div class="qa-group automation-card-actions">
         <button
           class="qa-suggestion"
           ?disabled=${!!(host._runningAutomation || {})[savedAutomationId]}
@@ -23490,7 +28178,7 @@ function renderProposalActions(host, msg, msgIndex) {
         </button>
       </div>`;
     }
-    return b2`
+    return x`
       <div class="automation-card-actions">
         <button
           class="btn btn-success"
@@ -23513,7 +28201,7 @@ function renderProposalActions(host, msg, msgIndex) {
       </div>
       ${
         elevated
-          ? b2`<p class="automation-workflow-note elevated">
+          ? x`<p class="automation-workflow-note elevated">
             <ha-icon
               icon="mdi:shield-alert-outline"
               style="--mdc-icon-size:14px;"
@@ -23531,7 +28219,7 @@ function renderProposalActions(host, msg, msgIndex) {
     return "";
   }
   const yamlKey = `proposal_${msgIndex}`;
-  return b2`<div
+  return x`<div
     class="automation-card-actions ${(host._acceptAnimating || {})[msgIndex] ? "exiting" : ""}"
   >
     <button
@@ -23555,10 +28243,10 @@ function masonryColumns(cards, cols = 3, firstColFooter = null) {
   const w2 = window.innerWidth;
   const numCols = w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : cols;
   const buckets = Array.from({ length: numCols }, () => []);
-  cards.forEach((c4, i7) => buckets[i7 % numCols].push(c4));
+  cards.forEach((c3, i5) => buckets[i5 % numCols].push(c3));
   return buckets.map(
-    (col, i7) => b2`<div class="masonry-col">
-        ${col}${i7 === 0 && firstColFooter ? firstColFooter : ""}
+    (col, i5) => x`<div class="masonry-col">
+        ${col}${i5 === 0 && firstColFooter ? firstColFooter : ""}
       </div>`,
   );
 }
@@ -23569,44 +28257,44 @@ function renderAutomations(host) {
   const sortDir = host._sortDir || "desc";
   let filteredAutomations = [...host._automations];
   const staleList = getStaleAutomations(host);
-  const staleSet = new Set(staleList.map((a3) => a3.automation_id));
+  const staleSet = new Set(staleList.map((a4) => a4.automation_id));
   if (statusFilter === "enabled") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      host._automationIsEnabled(a3),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "disabled") {
     filteredAutomations = filteredAutomations.filter(
-      (a3) => !host._automationIsEnabled(a3),
+      (a4) => !host._automationIsEnabled(a4),
     );
   } else if (statusFilter === "stale") {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      staleSet.has(a3.automation_id),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      staleSet.has(a4.automation_id),
     );
   }
   if (filterText) {
-    filteredAutomations = filteredAutomations.filter((a3) =>
-      (a3.alias || "").toLowerCase().includes(filterText),
+    filteredAutomations = filteredAutomations.filter((a4) =>
+      (a4.alias || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", enabled_first: "asc" };
   if (sortBy === "recent") {
-    filteredAutomations.sort((a3, b3) => {
-      const aTime = a3.last_triggered
-        ? new Date(a3.last_triggered).getTime()
+    filteredAutomations.sort((a4, b2) => {
+      const aTime = a4.last_triggered
+        ? new Date(a4.last_triggered).getTime()
         : 0;
-      const bTime = b3.last_triggered
-        ? new Date(b3.last_triggered).getTime()
+      const bTime = b2.last_triggered
+        ? new Date(b2.last_triggered).getTime()
         : 0;
       return bTime - aTime;
     });
   } else if (sortBy === "alpha") {
-    filteredAutomations.sort((a3, b3) =>
-      (a3.alias || "").localeCompare(b3.alias || ""),
+    filteredAutomations.sort((a4, b2) =>
+      (a4.alias || "").localeCompare(b2.alias || ""),
     );
   } else if (sortBy === "enabled_first") {
-    filteredAutomations.sort((a3, b3) => {
-      const aOn = host._automationIsEnabled(a3) ? 0 : 1;
-      const bOn = host._automationIsEnabled(b3) ? 0 : 1;
+    filteredAutomations.sort((a4, b2) => {
+      const aOn = host._automationIsEnabled(a4) ? 0 : 1;
+      const bOn = host._automationIsEnabled(b2) ? 0 : 1;
       return aOn - bOn;
     });
   }
@@ -23624,9 +28312,9 @@ function renderAutomations(host) {
     safeAutoPage * perPage,
   );
   const selectableAutomations = filteredAutomations.filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
-  const selectableIds = selectableAutomations.map((a3) => a3.automation_id);
+  const selectableIds = selectableAutomations.map((a4) => a4.automation_id);
   const selectedIds = host._getSelectedAutomationIds();
   const selectedVisibleCount = selectableIds.filter(
     (id) => host._selectedAutomationIds[id],
@@ -23640,39 +28328,70 @@ function renderAutomations(host) {
     selectedIds.length - selectedVisibleCount,
   );
   const bulkDisabled = selectedIds.length === 0 || host._bulkActionInProgress;
-  return b2`
+  return x`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
-      ${renderSuggestionsSection(host)}
-      <div class="section-card">
-        <div class="section-card-header">
-          <h3>${host._t("automations_section_title", "Your Automations")}</h3>
+      <div class="page-root">
+        <div class="page-header">
+          <h1 class="page-h1">
+            ${host._t("automations_page_title", "Automations")}
+          </h1>
+          ${
+            host._automations.length > 0
+              ? x`<button
+                class="filter-row-action"
+                ?disabled=${host._llmNeedsSetup}
+                title=${
+                  host._llmNeedsSetup
+                    ? host._t(
+                        "automations_llm_setup_required_tooltip",
+                        "Configure an LLM provider first",
+                      )
+                    : ""
+                }
+                @click=${() => host._startNewAutomationChat()}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:13px;"
+                ></ha-icon>
+                ${host._t(
+                  "automations_new_automation_button",
+                  "New Automation",
+                )}
+              </button>`
+              : ""
+          }
+        </div>
+        ${renderSuggestionsSection(host)}
+        <div class="page-section-title">
+          ${host._t("automations_section_title", "Your Automations")}
         </div>
         ${
           host._automations.length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   ${["all", "enabled", "disabled"].map(
-                    (s4) => b2`
+                    (s6) => x`
                       <button
                         role="tab"
-                        aria-selected=${host._statusFilter === s4}
-                        class="filter-tab ${host._statusFilter === s4 ? "active" : ""}"
+                        aria-selected=${host._statusFilter === s6}
+                        class="filter-tab ${host._statusFilter === s6 ? "active" : ""}"
                         @click=${() => {
-                          host._statusFilter = s4;
+                          host._statusFilter = s6;
                           host._automationsPage = 1;
                         }}
                       >
                         ${host._t(
-                          `automations_status_tab_${s4}`,
-                          s4.charAt(0).toUpperCase() + s4.slice(1),
+                          `automations_status_tab_${s6}`,
+                          s6.charAt(0).toUpperCase() + s6.slice(1),
                         )}
                       </button>
                     `,
                   )}
                   ${
                     staleSet.size > 0
-                      ? b2`<button
+                      ? x`<button
                         role="tab"
                         aria-selected=${host._statusFilter === "stale"}
                         class="filter-tab ${host._statusFilter === "stale" ? "active" : ""}"
@@ -23697,17 +28416,17 @@ function renderAutomations(host) {
                 <div class="filter-tabs-actions">
                   ${
                     host._bulkEditMode
-                      ? b2`
+                      ? x`
                         <label class="bulk-select-all">
                           <input
                             type="checkbox"
                             ?checked=${allVisibleSelected}
                             .indeterminate=${partiallyVisibleSelected}
                             ?disabled=${selectableIds.length === 0 || host._bulkActionInProgress}
-                            @change=${(e5) =>
+                            @change=${(e6) =>
                               host._toggleSelectAllFiltered(
                                 filteredAutomations,
-                                e5.target.checked,
+                                e6.target.checked,
                               )}
                           />
                           <span
@@ -23727,7 +28446,7 @@ function renderAutomations(host) {
                           ${host._t("automations_bulk_done", "Done")}
                         </button>
                       `
-                      : b2`
+                      : x`
                         <button
                           class="filter-row-secondary"
                           @click=${() => {
@@ -23742,28 +28461,6 @@ function renderAutomations(host) {
                         </button>
                       `
                   }
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "automations_llm_setup_required_tooltip",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._startNewAutomationChat()}
-                  >
-                    <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t(
-                      "automations_new_automation_button",
-                      "New Automation",
-                    )}
-                  </button>
                 </div>
               </div>
               <div class="filter-row">
@@ -23776,14 +28473,14 @@ function renderAutomations(host) {
                       "Filter automations\u2026",
                     )}
                     .value=${host._automationFilter}
-                    @input=${(e5) => {
-                      host._automationFilter = e5.target.value;
+                    @input=${(e6) => {
+                      host._automationFilter = e6.target.value;
                       host._automationsPage = 1;
                     }}
                   />
                   ${
                     host._automationFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -23798,8 +28495,8 @@ function renderAutomations(host) {
                   <select
                     class="sort-select"
                     .value=${host._sortBy}
-                    @change=${(e5) => {
-                      host._sortBy = e5.target.value;
+                    @change=${(e6) => {
+                      host._sortBy = e6.target.value;
                     }}
                   >
                     <option value="recent">
@@ -23831,20 +28528,20 @@ function renderAutomations(host) {
               </div>
               ${
                 host._bulkEditMode && selectedIds.length > 0
-                  ? b2`
+                  ? x`
                     <div class="bulk-actions-row">
                       <div class="left">
                         ${selectedIds.length}
                         selected${
                           hiddenSelectedCount > 0
-                            ? b2` <span style="opacity:0.65;font-weight:500;"
+                            ? x` <span style="opacity:0.65;font-weight:500;"
                               >(${hiddenSelectedCount} hidden by filter)</span
                             >`
                             : ""
                         }
                         ${
                           host._bulkActionInProgress
-                            ? b2`<span style="opacity:0.75;font-weight:500;">
+                            ? x`<span style="opacity:0.75;font-weight:500;">
                               · ${host._bulkActionLabel}</span
                             >`
                             : ""
@@ -23915,91 +28612,91 @@ function renderAutomations(host) {
                   : ""
               }
               <div class="automations-list">
-                ${pagedAutomations.map((a3) => {
-                  const isDraft = !!a3._draft;
-                  const isOn = host._automationIsEnabled(a3);
-                  const isUnavailable = a3.state === "unavailable";
-                  const automationId = a3.automation_id || "";
+                ${pagedAutomations.map((a4) => {
+                  const isDraft = !!a4._draft;
+                  const isOn = host._automationIsEnabled(a4);
+                  const isUnavailable = a4.state === "unavailable";
+                  const automationId = a4.automation_id || "";
                   const hasAutomationId = !!automationId;
                   const canToggle =
                     hasAutomationId && !host._bulkActionInProgress;
                   const deleting = host._deletingAutomation[automationId];
                   const loadingChat = host._loadingToChat[automationId];
                   const burgerOpen = host._openBurgerMenu === automationId;
-                  const cardExpanded = !!host._cardActiveTab[a3.entity_id];
-                  const ago = formatTimeAgo(a3.last_triggered);
+                  const cardExpanded = !!host._cardActiveTab[a4.entity_id];
+                  const ago = formatTimeAgo(a4.last_triggered);
                   const lastRun = ago
                     ? ago
                     : !isOn
                       ? host._t("automations_last_run_disabled", "Disabled")
                       : host._t("automations_last_run_never", "Never");
-                  return b2`
+                  return x`
                     <div
-                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a3.entity_id ? " highlighted" : ""}"
-                      data-entity-id="${a3.entity_id}"
+                      class="auto-row${cardExpanded ? " expanded" : ""}${!isDraft && !isOn ? " disabled" : ""}${host._highlightedAutomation === a4.entity_id ? " highlighted" : ""}"
+                      data-entity-id="${a4.entity_id}"
                     >
                       <div
                         class="auto-row-main"
-                        @click=${(e5) => {
+                        @click=${(e6) => {
                           if (
-                            e5.target.closest(
+                            e6.target.closest(
                               ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .card-select, .rename-input, .rename-save-btn, .btn",
                             )
                           )
                             return;
-                          const current = host._cardActiveTab[a3.entity_id];
+                          const current = host._cardActiveTab[a4.entity_id];
                           if (current) {
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: null,
+                              [a4.entity_id]: null,
                             };
                           } else {
                             const defaultTab =
-                              (a3.triggers ?? a3.trigger)?.length ||
-                              (a3.actions ?? a3.action)?.length
+                              (a4.triggers ?? a4.trigger)?.length ||
+                              (a4.actions ?? a4.action)?.length
                                 ? "flow"
-                                : a3.yaml_text
+                                : a4.yaml_text
                                   ? "yaml"
                                   : hasAutomationId
                                     ? "history"
                                     : null;
                             host._cardActiveTab = {
                               ...host._cardActiveTab,
-                              [a3.entity_id]: defaultTab,
+                              [a4.entity_id]: defaultTab,
                             };
                           }
                         }}
                       >
                         ${
                           host._bulkEditMode && hasAutomationId
-                            ? b2`
+                            ? x`
                               <label class="card-select">
                                 <input
                                   type="checkbox"
                                   .checked=${!!host._selectedAutomationIds[automationId]}
                                   ?disabled=${host._bulkActionInProgress}
-                                  @click=${(e5) => e5.stopPropagation()}
-                                  @change=${(e5) =>
+                                  @click=${(e6) => e6.stopPropagation()}
+                                  @change=${(e6) =>
                                     host._toggleAutomationSelection(
                                       automationId,
-                                      e5,
+                                      e6,
                                     )}
                                 />
                               </label>
                             `
                             : ""
                         }
-                        ${renderAutomationIdentity(a3.alias, a3.description, {
-                          isSelora: !!a3.is_selora,
-                          titleSuffix: b2`
+                        ${renderAutomationIdentity(a4.alias, a4.description, {
+                          isSelora: !!a4.is_selora,
+                          titleSuffix: x`
                             ${
                               isUnavailable
-                                ? b2`<span
+                                ? x`<span
                                   class="needs-attention-pill"
-                                  @click=${(e5) => {
-                                    e5.stopPropagation();
+                                  @click=${(e6) => {
+                                    e6.stopPropagation();
                                     host._unavailableAutoId = automationId;
-                                    host._unavailableAutoName = a3.alias;
+                                    host._unavailableAutoName = a4.alias;
                                   }}
                                   >${host._t(
                                     "automations_needs_attention_pill",
@@ -24010,7 +28707,7 @@ function renderAutomations(host) {
                             }
                             ${
                               staleSet.has(automationId)
-                                ? b2`<span
+                                ? x`<span
                                   class="stale-pill"
                                   title=${staleTooltip(host)}
                                 >
@@ -24025,21 +28722,21 @@ function renderAutomations(host) {
                           `,
                           nameOverride:
                             host._editingAlias === automationId
-                              ? b2`
+                              ? x`
                                   <input
                                     class="rename-input"
                                     data-id="${automationId}"
                                     .value=${host._editingAliasValue}
-                                    @input=${(e5) => {
-                                      host._editingAliasValue = e5.target.value;
+                                    @input=${(e6) => {
+                                      host._editingAliasValue = e6.target.value;
                                     }}
-                                    @click=${(e5) => e5.stopPropagation()}
-                                    @keydown=${(e5) => {
-                                      if (e5.key === "Enter")
+                                    @click=${(e6) => e6.stopPropagation()}
+                                    @keydown=${(e6) => {
+                                      if (e6.key === "Enter")
                                         host._saveRenameAutomation(
                                           automationId,
                                         );
-                                      if (e5.key === "Escape")
+                                      if (e6.key === "Escape")
                                         host._cancelRenameAutomation();
                                     }}
                                   />
@@ -24058,7 +28755,7 @@ function renderAutomations(host) {
                                   </button>
                                 `
                               : null,
-                          tail: b2`<span class="auto-row-mobile-meta">
+                          tail: x`<span class="auto-row-mobile-meta">
                             <span
                               >${host._t(
                                 "automations_last_run_prefix",
@@ -24080,11 +28777,11 @@ function renderAutomations(host) {
                               "Last run:",
                             )} </span
                           >${lastRun}${
-                            a3.last_triggered
-                              ? b2`<span class="setting-tooltip"
+                            a4.last_triggered
+                              ? x`<span class="setting-tooltip"
                                 >Last run:
                                 ${new Date(
-                                  a3.last_triggered,
+                                  a4.last_triggered,
                                 ).toLocaleString()}</span
                               >`
                               : ""
@@ -24109,8 +28806,8 @@ function renderAutomations(host) {
                                 )
                           }"
                           style="flex-shrink:0;${canToggle ? "" : "opacity:0.45;cursor:not-allowed;"}"
-                          @click=${(e5) => {
-                            e5.stopPropagation();
+                          @click=${(e6) => {
+                            e6.stopPropagation();
                             if (!canToggle) {
                               host._showToast(
                                 host._t(
@@ -24126,13 +28823,13 @@ function renderAutomations(host) {
                             type="checkbox"
                             .checked=${isOn}
                             ?disabled=${!canToggle}
-                            @click=${(e5) => e5.stopPropagation()}
-                            @change=${(e5) => {
+                            @click=${(e6) => e6.stopPropagation()}
+                            @change=${(e6) => {
                               if (!canToggle) return;
                               host._toggleAutomation(
-                                a3.entity_id,
+                                a4.entity_id,
                                 automationId,
-                                e5.target.checked,
+                                e6.target.checked,
                               );
                             }}
                           />
@@ -24142,11 +28839,11 @@ function renderAutomations(host) {
                         </label>
                         ${
                           hasAutomationId
-                            ? b2`
+                            ? x`
                               <div class="burger-menu-wrapper">
                                 <button
                                   class="burger-btn"
-                                  @click=${(e5) => host._toggleBurgerMenu(automationId, e5)}
+                                  @click=${(e6) => host._toggleBurgerMenu(automationId, e6)}
                                   ?disabled=${host._bulkActionInProgress}
                                   title=${host._t(
                                     "automations_more_actions_tooltip",
@@ -24160,12 +28857,12 @@ function renderAutomations(host) {
                                 </button>
                                 ${
                                   burgerOpen
-                                    ? b2`
+                                    ? x`
                                       <div class="burger-dropdown">
                                         <button
                                           class="burger-item"
-                                          @click=${(e5) => {
-                                            e5.stopPropagation();
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
                                             host._openBurgerMenu = null;
                                             host._loadAutomationToChat(
                                               automationId,
@@ -24191,11 +28888,11 @@ function renderAutomations(host) {
                                         </button>
                                         <button
                                           class="burger-item"
-                                          @click=${(e5) => {
-                                            e5.stopPropagation();
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
                                             host._startRenameAutomation(
                                               automationId,
-                                              a3.alias,
+                                              a4.alias,
                                             );
                                           }}
                                         >
@@ -24210,8 +28907,8 @@ function renderAutomations(host) {
                                         </button>
                                         <button
                                           class="burger-item"
-                                          @click=${(e5) => {
-                                            e5.stopPropagation();
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
                                             host._openBurgerMenu = null;
                                             window.history.pushState(
                                               null,
@@ -24235,8 +28932,8 @@ function renderAutomations(host) {
                                         <button
                                           class="burger-item danger"
                                           ?disabled=${deleting}
-                                          @click=${(e5) => {
-                                            e5.stopPropagation();
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
                                             host._openBurgerMenu = null;
                                             host._deleteAutomation(
                                               automationId,
@@ -24270,21 +28967,21 @@ function renderAutomations(host) {
                       </div>
                       ${
                         cardExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               <div class="card-tabs" style="margin-top:0;">
                                 ${
-                                  (a3.triggers ?? a3.trigger)?.length ||
-                                  (a3.actions ?? a3.action)?.length
-                                    ? b2`
+                                  (a4.triggers ?? a4.trigger)?.length ||
+                                  (a4.actions ?? a4.action)?.length
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "flow" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "flow" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "flow"
                                                 ? null
                                                 : "flow",
@@ -24305,16 +29002,16 @@ function renderAutomations(host) {
                                     : ""
                                 }
                                 ${
-                                  a3.yaml_text
-                                    ? b2`
+                                  a4.yaml_text
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "yaml" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "yaml" ? "active" : ""}"
                                         @click=${() => {
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]:
+                                            [a4.entity_id]:
                                               host._cardActiveTab[
-                                                a3.entity_id
+                                                a4.entity_id
                                               ] === "yaml"
                                                 ? null
                                                 : "yaml",
@@ -24336,17 +29033,17 @@ function renderAutomations(host) {
                                 }
                                 ${
                                   hasAutomationId
-                                    ? b2`
+                                    ? x`
                                       <button
-                                        class="card-tab ${host._cardActiveTab[a3.entity_id] === "history" ? "active" : ""}"
+                                        class="card-tab ${host._cardActiveTab[a4.entity_id] === "history" ? "active" : ""}"
                                         @click=${() => {
                                           const isActive =
                                             host._cardActiveTab[
-                                              a3.entity_id
+                                              a4.entity_id
                                             ] === "history";
                                           host._cardActiveTab = {
                                             ...host._cardActiveTab,
-                                            [a3.entity_id]: isActive
+                                            [a4.entity_id]: isActive
                                               ? null
                                               : "history",
                                           };
@@ -24373,22 +29070,22 @@ function renderAutomations(host) {
                                     : ""
                                 }
                               </div>
-                              ${host._cardActiveTab[a3.entity_id] === "flow" && ((a3.triggers ?? a3.trigger)?.length || (a3.actions ?? a3.action)?.length) ? renderAutomationFlowchart(host, a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "flow" && ((a4.triggers ?? a4.trigger)?.length || (a4.actions ?? a4.action)?.length) ? renderAutomationFlowchart(host, a4) : ""}
                               ${
-                                host._cardActiveTab[a3.entity_id] === "yaml" &&
-                                a3.yaml_text
+                                host._cardActiveTab[a4.entity_id] === "yaml" &&
+                                a4.yaml_text
                                   ? host._renderYamlEditor(
-                                      `yaml_${a3.entity_id}`,
-                                      a3.yaml_text,
+                                      `yaml_${a4.entity_id}`,
+                                      a4.yaml_text,
                                       (key) =>
                                         host._saveActiveAutomationYaml(
-                                          a3.automation_id,
+                                          a4.automation_id,
                                           key,
                                         ),
                                     )
                                   : ""
                               }
-                              ${host._cardActiveTab[a3.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a3) : ""}
+                              ${host._cardActiveTab[a4.entity_id] === "history" && hasAutomationId ? host._renderVersionHistoryDrawer(a4) : ""}
                             </div>
                           `
                           : ""
@@ -24399,7 +29096,7 @@ function renderAutomations(host) {
               </div>
               ${
                 totalAutoPages > 1
-                  ? b2`
+                  ? x`
                     <div class="pagination">
                       <button
                         class="btn btn-outline"
@@ -24422,8 +29119,8 @@ function renderAutomations(host) {
                         <select
                           class="per-page-select"
                           .value=${String(host._autosPerPage)}
-                          @change=${(e5) => {
-                            host._autosPerPage = Number(e5.target.value);
+                          @change=${(e6) => {
+                            host._autosPerPage = Number(e6.target.value);
                             host._automationsPage = 1;
                           }}
                         >
@@ -24447,7 +29144,7 @@ function renderAutomations(host) {
               }
               ${
                 filteredAutomations.length === 0 && host._automations.length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No automations match "${host._automationFilter}"
@@ -24455,7 +29152,7 @@ function renderAutomations(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:robot-vacuum-variant"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -24494,7 +29191,7 @@ function renderAutomations(host) {
 }
 function renderUnavailableModal(host) {
   if (!host._unavailableAutoId) return "";
-  return b2`
+  return x`
     <div
       class="modal-overlay"
       @click=${() => {
@@ -24505,7 +29202,7 @@ function renderUnavailableModal(host) {
       <div
         class="modal-content"
         style="max-width:440px;border:1px solid var(--selora-accent);"
-        @click=${(e5) => e5.stopPropagation()}
+        @click=${(e6) => e6.stopPropagation()}
       >
         <h3 class="modal-title">
           <ha-icon
@@ -24612,7 +29309,7 @@ function renderUnavailableModal(host) {
 
 // src/panel/render-scenes.js
 function _sceneCardHeader(name, badge) {
-  return b2`
+  return x`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
       <ha-icon
         icon="mdi:palette"
@@ -24641,7 +29338,7 @@ function _renderTargetRow(host, entityId, stateData, editSceneId) {
       ? host._sceneEditedEntities(editSceneId)[entityId]
       : stateData;
   const single = JSON.stringify({ [entityId]: target });
-  return b2`
+  return x`
     <div class="scene-ent-row">
       <div
         class="selora-entity-grid scene-ent-tile"
@@ -24669,16 +29366,16 @@ function _renderEntityList(host, entities, editSceneId = null) {
     if (!groups.has(area)) groups.set(area, []);
     groups.get(area).push(id);
   }
-  const sorted = [...groups.entries()].sort((a3, b3) => {
-    if (!a3[0]) return 1;
-    if (!b3[0]) return -1;
-    return a3[0].localeCompare(b3[0]);
+  const sorted = [...groups.entries()].sort((a4, b2) => {
+    if (!a4[0]) return 1;
+    if (!b2[0]) return -1;
+    return a4[0].localeCompare(b2[0]);
   });
   const showHeaders = groups.size > 1;
-  return b2`
+  return x`
     ${
       editSceneId
-        ? b2`<div class="scene-ent-hint">
+        ? x`<div class="scene-ent-hint">
           <ha-icon icon="mdi:gesture-tap"></ha-icon>
           <span
             >Adjust each entity's desired state on the <strong>right</strong>.
@@ -24695,10 +29392,10 @@ function _renderEntityList(host, entities, editSceneId = null) {
         <span class="scene-ent-cap--target">Scene sets</span>
       </div>
       ${sorted.map(
-        ([area, areaIds]) => b2`
+        ([area, areaIds]) => x`
           ${
             showHeaders
-              ? b2`<div class="scene-ent-area">
+              ? x`<div class="scene-ent-area">
                 <ha-icon icon="mdi:floor-plan"></ha-icon>
                 <span>${area || "Unassigned"}</span>
               </div>`
@@ -24712,7 +29409,7 @@ function _renderEntityList(host, entities, editSceneId = null) {
     </div>
     ${
       editSceneId && host._sceneIsDirty(editSceneId)
-        ? b2`<div class="scene-edit-bar">
+        ? x`<div class="scene-edit-bar">
           <span class="scene-edit-bar-msg">
             <ha-icon icon="mdi:pencil"></ha-icon> Unsaved changes to this scene
           </span>
@@ -24760,7 +29457,7 @@ function renderSceneCard(host, msg, msgIndex) {
   const yamlKey = `scene_${msgIndex}`;
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
   if (status === "saved") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px;">
         <div class="proposal-header">
           <ha-icon icon="mdi:check-circle"></ha-icon>
@@ -24806,7 +29503,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "declined") {
-    return b2`
+    return x`
       <div class="proposal-card" style="margin-top:12px; opacity:0.6;">
         <div class="proposal-header" style="color:var(--secondary-text-color);">
           <ha-icon icon="mdi:close-circle-outline"></ha-icon>
@@ -24825,7 +29522,7 @@ function renderSceneCard(host, msg, msgIndex) {
     `;
   }
   if (status === "refining") {
-    return b2`
+    return x`
       <div style="margin-top:12px;padding:14px 0 0;">
         ${_sceneCardHeader(
           scene.name,
@@ -24835,7 +29532,7 @@ function renderSceneCard(host, msg, msgIndex) {
           ${_renderEntityList(host, scene.entities || {})}
           ${
             msg.scene_yaml
-              ? b2`<div
+              ? x`<div
                 class="yaml-toggle"
                 style="margin-top:10px;margin-bottom:0;"
                 @click=${() => toggleYaml(host, yamlKey)}
@@ -24850,7 +29547,7 @@ function renderSceneCard(host, msg, msgIndex) {
           }
           ${
             yamlOpen && msg.scene_yaml
-              ? b2`
+              ? x`
                 <ha-code-editor
                   mode="yaml"
                   .value=${msg.scene_yaml}
@@ -24864,7 +29561,7 @@ function renderSceneCard(host, msg, msgIndex) {
       </div>
     `;
   }
-  return b2`
+  return x`
     <div style="margin-top:12px;padding:14px 0 0;">
       ${_sceneCardHeader(
         scene.name,
@@ -24886,7 +29583,7 @@ function renderSceneCard(host, msg, msgIndex) {
         </div>
         ${
           yamlOpen && msg.scene_yaml
-            ? b2`
+            ? x`
               <ha-code-editor
                 mode="yaml"
                 .value=${msg.scene_yaml}
@@ -24919,43 +29616,68 @@ function renderScenes(host) {
   const sortDir = host._sceneSortDir || "desc";
   const statusFilter = host._sceneStatusFilter || "all";
   const allScenes = host._scenes || [];
-  const seloraCount = allScenes.filter((s4) => s4.source === "selora").length;
+  const seloraCount = allScenes.filter((s6) => s6.source === "selora").length;
   const manualCount = allScenes.length - seloraCount;
   let filtered = [...allScenes];
   if (statusFilter === "selora") {
-    filtered = filtered.filter((s4) => s4.source === "selora");
+    filtered = filtered.filter((s6) => s6.source === "selora");
   } else if (statusFilter === "manual") {
-    filtered = filtered.filter((s4) => s4.source !== "selora");
+    filtered = filtered.filter((s6) => s6.source !== "selora");
   }
   if (filterText) {
-    filtered = filtered.filter((s4) =>
-      (s4.name || "").toLowerCase().includes(filterText),
+    filtered = filtered.filter((s6) =>
+      (s6.name || "").toLowerCase().includes(filterText),
     );
   }
   const naturalDir = { recent: "desc", alpha: "asc", size: "desc" };
   if (sortBy === "recent") {
-    filtered.sort((a3, b3) => {
-      const at = a3.updated_at ? new Date(a3.updated_at).getTime() : 0;
-      const bt = b3.updated_at ? new Date(b3.updated_at).getTime() : 0;
+    filtered.sort((a4, b2) => {
+      const at = a4.updated_at ? new Date(a4.updated_at).getTime() : 0;
+      const bt = b2.updated_at ? new Date(b2.updated_at).getTime() : 0;
       return bt - at;
     });
   } else if (sortBy === "alpha") {
-    filtered.sort((a3, b3) => (a3.name || "").localeCompare(b3.name || ""));
+    filtered.sort((a4, b2) => (a4.name || "").localeCompare(b2.name || ""));
   } else if (sortBy === "size") {
-    filtered.sort((a3, b3) => (b3.entity_count || 0) - (a3.entity_count || 0));
+    filtered.sort((a4, b2) => (b2.entity_count || 0) - (a4.entity_count || 0));
   }
   if (sortDir !== naturalDir[sortBy]) {
     filtered.reverse();
   }
-  return b2`
+  return x`
     <div class="scroll-view">
-      <div class="section-card">
-        <div class="section-card-header">
-          <h3>${host._t("scenes_section_title", "Your Scenes")}</h3>
+      <div class="page-root">
+        <div class="page-header">
+          <h1 class="page-h1">
+            ${host._t("scenes_section_title", "Your Scenes")}
+          </h1>
+          ${
+            (host._scenes || []).length > 0
+              ? x`<button
+                class="filter-row-action"
+                ?disabled=${host._llmNeedsSetup}
+                title=${
+                  host._llmNeedsSetup
+                    ? host._t(
+                        "scenes_llm_needs_setup_tooltip",
+                        "Configure an LLM provider first",
+                      )
+                    : ""
+                }
+                @click=${() => host._newSceneChat()}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:13px;"
+                ></ha-icon>
+                ${host._t("scenes_new_scene_button", "New Scene")}
+              </button>`
+              : ""
+          }
         </div>
         ${
           (host._scenes || []).length > 0
-            ? b2`
+            ? x`
               <div class="filter-tabs-row" style="margin-top:12px;">
                 <div class="filter-tabs" role="tablist">
                   <button
@@ -24970,7 +29692,7 @@ function renderScenes(host) {
                   </button>
                   ${
                     seloraCount > 0 && manualCount > 0
-                      ? b2`
+                      ? x`
                         <button
                           role="tab"
                           aria-selected=${statusFilter === "selora"}
@@ -25003,27 +29725,6 @@ function renderScenes(host) {
                       : ""
                   }
                 </div>
-                <div class="filter-tabs-actions">
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${
-                      host._llmNeedsSetup
-                        ? host._t(
-                            "scenes_llm_needs_setup_tooltip",
-                            "Configure an LLM provider first",
-                          )
-                        : ""
-                    }
-                    @click=${() => host._newSceneChat()}
-                  >
-                    <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t("scenes_new_scene_button", "New Scene")}
-                  </button>
-                </div>
               </div>
               <div class="filter-row">
                 <div class="filter-input-wrap" style="flex:1 1 260px;">
@@ -25035,13 +29736,13 @@ function renderScenes(host) {
                       "Filter scenes\u2026",
                     )}
                     .value=${host._sceneFilter || ""}
-                    @input=${(e5) => {
-                      host._sceneFilter = e5.target.value;
+                    @input=${(e6) => {
+                      host._sceneFilter = e6.target.value;
                     }}
                   />
                   ${
                     host._sceneFilter
-                      ? b2`<ha-icon
+                      ? x`<ha-icon
                         icon="mdi:close-circle"
                         style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                         @click=${() => {
@@ -25055,8 +29756,8 @@ function renderScenes(host) {
                   <select
                     class="sort-select"
                     .value=${host._sceneSortBy || "recent"}
-                    @change=${(e5) => {
-                      host._sceneSortBy = e5.target.value;
+                    @change=${(e6) => {
+                      host._sceneSortBy = e6.target.value;
                     }}
                   >
                     <option value="recent">
@@ -25084,29 +29785,29 @@ function renderScenes(host) {
                 </div>
               </div>
               <div class="automations-list">
-                ${filtered.map((s4) => {
-                  const sceneId = s4.scene_id;
-                  const sceneEntityId = s4.entity_id;
-                  const entities = s4.entities || {};
-                  const entityCount = _sceneEntityCount(s4);
+                ${filtered.map((s6) => {
+                  const sceneId = s6.scene_id;
+                  const sceneEntityId = s6.entity_id;
+                  const entities = s6.entities || {};
+                  const entityCount = _sceneEntityCount(s6);
                   const isExpanded = !!host._expandedScenes?.[sceneId];
                   const yamlOpen = !!host._sceneYamlOpen?.[sceneId];
                   const burgerOpen = host._openSceneBurger === sceneId;
                   const deleting = !!host._deletingScene?.[sceneId];
                   const loadingChat = !!host._loadingToChat?.[sceneId];
-                  const updated = formatTimeAgo(s4.updated_at);
+                  const updated = formatTimeAgo(s6.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
-                  const isSelora = s4.source === "selora";
-                  return b2`
+                  const isSelora = s6.source === "selora";
+                  return x`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
                       data-scene-id="${sceneId}"
                     >
                       <div
                         class="auto-row-main"
-                        @click=${(e5) => {
+                        @click=${(e6) => {
                           if (
-                            e5.target.closest(
+                            e6.target.closest(
                               ".burger-menu-wrapper, .burger-dropdown, .burger-item, .btn",
                             )
                           )
@@ -25126,7 +29827,7 @@ function renderScenes(host) {
                           ></ha-icon>
                           ${
                             !isSelora && host.narrow
-                              ? b2`<span
+                              ? x`<span
                                 style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                 >HA</span
                               >`
@@ -25135,10 +29836,10 @@ function renderScenes(host) {
                         </div>
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
-                            <span class="auto-row-title">${s4.name}</span>
+                            <span class="auto-row-title">${s6.name}</span>
                             ${
                               !isSelora && !host.narrow
-                                ? b2`<span
+                                ? x`<span
                                   style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
                                   >HA</span
                                 >`
@@ -25164,12 +29865,12 @@ function renderScenes(host) {
                             class="btn btn-outline"
                             style="padding:4px 10px;height:28px;font-size:13px;"
                             ?disabled=${!sceneEntityId}
-                            @click=${(e5) => {
-                              e5.stopPropagation();
+                            @click=${(e6) => {
+                              e6.stopPropagation();
                               const id = sceneEntityId
                                 ? sceneEntityId.replace(/^scene\./, "")
                                 : sceneId;
-                              host._activateScene(id, s4.name);
+                              host._activateScene(id, s6.name);
                             }}
                             title=${host._t(
                               "scenes_activate_scene_tooltip",
@@ -25185,8 +29886,8 @@ function renderScenes(host) {
                           <div class="burger-menu-wrapper">
                             <button
                               class="burger-btn"
-                              @click=${(e5) => {
-                                e5.stopPropagation();
+                              @click=${(e6) => {
+                                e6.stopPropagation();
                                 host._openSceneBurger = burgerOpen
                                   ? null
                                   : sceneId;
@@ -25203,13 +29904,13 @@ function renderScenes(host) {
                             </button>
                             ${
                               burgerOpen
-                                ? b2`
+                                ? x`
                                   <div class="burger-dropdown">
                                     <button
                                       class="burger-item"
                                       ?disabled=${loadingChat}
-                                      @click=${(e5) => {
-                                        e5.stopPropagation();
+                                      @click=${(e6) => {
+                                        e6.stopPropagation();
                                         host._openSceneBurger = null;
                                         host._loadSceneToChat(sceneId);
                                       }}
@@ -25232,8 +29933,8 @@ function renderScenes(host) {
                                     </button>
                                     <button
                                       class="burger-item"
-                                      @click=${(e5) => {
-                                        e5.stopPropagation();
+                                      @click=${(e6) => {
+                                        e6.stopPropagation();
                                         host._openSceneBurger = null;
                                         if (sceneEntityId) {
                                           host.dispatchEvent(
@@ -25268,16 +29969,16 @@ function renderScenes(host) {
                                     </button>
                                     ${
                                       isSelora
-                                        ? b2`<button
+                                        ? x`<button
                                           class="burger-item danger"
                                           ?disabled=${deleting}
-                                          @click=${(e5) => {
-                                            e5.stopPropagation();
+                                          @click=${(e6) => {
+                                            e6.stopPropagation();
                                             host._openSceneBurger = null;
                                             host._deleteSceneConfirmId =
                                               sceneId;
                                             host._deleteSceneConfirmName =
-                                              s4.name;
+                                              s6.name;
                                           }}
                                         >
                                           <ha-icon
@@ -25307,7 +30008,7 @@ function renderScenes(host) {
                       </div>
                       ${
                         isExpanded
-                          ? b2`
+                          ? x`
                             <div class="auto-row-expand">
                               ${
                                 Object.keys(entities).length
@@ -25316,7 +30017,7 @@ function renderScenes(host) {
                                       entities,
                                       isSelora ? sceneId : null,
                                     )
-                                  : b2`<div
+                                  : x`<div
                                     style="font-size:12px;opacity:0.6;padding:6px 0;"
                                   >
                                     ${host._t(
@@ -25343,16 +30044,16 @@ function renderScenes(host) {
                               </div>
                               ${
                                 yamlOpen
-                                  ? b2`
+                                  ? x`
                                     <ha-code-editor
                                       mode="yaml"
                                       .value=${
                                         isSelora && host._sceneIsDirty(sceneId)
                                           ? host._sceneEditYaml(
                                               sceneId,
-                                              s4.name,
+                                              s6.name,
                                             )
-                                          : s4.yaml ||
+                                          : s6.yaml ||
                                             host._t(
                                               "scenes_yaml_unavailable_comment",
                                               "# YAML not available \u2014 open the scene in Home Assistant to view it.",
@@ -25374,7 +30075,7 @@ function renderScenes(host) {
               </div>
               ${
                 filtered.length === 0 && (host._scenes || []).length > 0
-                  ? b2`<div
+                  ? x`<div
                     style="text-align:center;opacity:0.45;padding:24px 0;"
                   >
                     No scenes match "${host._sceneFilter}"
@@ -25382,7 +30083,7 @@ function renderScenes(host) {
                   : ""
               }
             `
-            : b2`<div style="text-align:center;padding:32px 0;">
+            : x`<div style="text-align:center;padding:32px 0;">
               <ha-icon
                 icon="mdi:palette"
                 style="--mdc-icon-size:40px;display:block;margin-bottom:8px;opacity:0.35;"
@@ -25424,11 +30125,11 @@ function renderDeleteSceneModal(host) {
   const name =
     host._deleteSceneConfirmName ||
     host._t("scenes_delete_modal_fallback_name", "this scene");
-  return b2`
+  return x`
     <div
       class="modal-overlay"
-      @click=${(e5) => {
-        if (e5.target === e5.currentTarget) {
+      @click=${(e6) => {
+        if (e6.target === e6.currentTarget) {
           host._deleteSceneConfirmId = null;
           host._deleteSceneConfirmName = null;
         }
@@ -25595,8 +30296,8 @@ function _buildEntityIndex(hass, areasMap, devicesMap, entitiesMap) {
   if (!hass?.states) return items;
   const areaById = {};
   if (areasMap && typeof areasMap === "object") {
-    for (const [id, a3] of Object.entries(areasMap)) {
-      areaById[id] = a3?.name || id;
+    for (const [id, a4] of Object.entries(areasMap)) {
+      areaById[id] = a4?.name || id;
     }
   }
   const entReg = entitiesMap || hass.entities || {};
@@ -25655,17 +30356,17 @@ function _buildDeviceIndex(devicesMap, areasMap) {
 }
 function _interleave(lists, max) {
   const out = [];
-  let i7 = 0;
+  let i5 = 0;
   while (out.length < max) {
     let added = false;
     for (const list of lists) {
-      if (i7 < list.length && out.length < max) {
-        out.push(list[i7]);
+      if (i5 < list.length && out.length < max) {
+        out.push(list[i5]);
         added = true;
       }
     }
     if (!added) break;
-    i7++;
+    i5++;
   }
   return out;
 }
@@ -25736,7 +30437,7 @@ function _navigate(path) {
   window.dispatchEvent(new Event("location-changed"));
 }
 function _renderChipGroup(title, chips) {
-  return b2`
+  return x`
     <div>
       <div
         style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);margin-bottom:6px;"
@@ -25756,7 +30457,7 @@ function _renderChip({
   onOpen,
   onRemove,
 }) {
-  return b2`
+  return x`
     <span class="composer-selection-chip" title=${title || label}>
       <button
         type="button"
@@ -25767,7 +30468,7 @@ function _renderChip({
         <span style="line-height:1;">${label}</span>
         ${
           kindLabel
-            ? b2`<span
+            ? x`<span
               style="font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--secondary-text-color);"
               >${kindLabel}</span
             >`
@@ -25777,8 +30478,8 @@ function _renderChip({
       <button
         type="button"
         title=${host._t("ignore_list_remove_label", "Remove label")}
-        @click=${(e5) => {
-          e5.stopPropagation();
+        @click=${(e6) => {
+          e6.stopPropagation();
           onRemove();
         }}
       >
@@ -25789,7 +30490,7 @@ function _renderChip({
 }
 function _renderDropdown(host, items, activeIndex) {
   if (!items.length) return "";
-  return b2`
+  return x`
     <div
       style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;max-height:240px;overflow-y:auto;"
     >
@@ -25800,7 +30501,7 @@ function _renderDropdown(host, items, activeIndex) {
         else if (item.kind === KIND_HA_DEVICE)
           kindLabel = host._t("ignore_list_dropdown_kind_device", "Device");
         const active = idx === activeIndex;
-        return b2`
+        return x`
           <button
             type="button"
             data-ignore-row=${idx}
@@ -25809,8 +30510,8 @@ function _renderDropdown(host, items, activeIndex) {
               host._ignoreDropdownIndex = idx;
               host.requestUpdate();
             }}
-            @mousedown=${(e5) => {
-              e5.preventDefault();
+            @mousedown=${(e6) => {
+              e6.preventDefault();
               _selectItem(host, item);
             }}
           >
@@ -25821,12 +30522,12 @@ function _renderDropdown(host, items, activeIndex) {
             <span style="flex:1;">${item.label}</span>
             ${
               kindLabel
-                ? b2`<span
+                ? x`<span
                   style="font-size:11px;color:var(--secondary-text-color);"
                   >${kindLabel}</span
                 >`
                 : item.area
-                  ? b2`<span
+                  ? x`<span
                     style="font-size:11px;color:var(--secondary-text-color);"
                     >${item.area}</span
                   >`
@@ -25839,7 +30540,7 @@ function _renderDropdown(host, items, activeIndex) {
   `;
 }
 function _renderInfoCallout(host, labelName) {
-  return b2`
+  return x`
     <details
       style="margin-top:6px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);overflow:hidden;"
     >
@@ -25864,34 +30565,34 @@ function _renderInfoCallout(host, labelName) {
     </details>
   `;
 }
-function _onInputKeydown(host, e5) {
-  if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e5.key)) return;
+function _onInputKeydown(host, e6) {
+  if (!["ArrowDown", "ArrowUp", "Enter", "Escape"].includes(e6.key)) return;
   if (!host._ignoreDropdownOpen) {
-    if (e5.key === "Escape") {
-      e5.preventDefault();
+    if (e6.key === "Escape") {
+      e6.preventDefault();
     }
     return;
   }
   const items = _computeDropdownItems(host, host._ignoreInput || "");
   if (!items.length) {
-    if (e5.key === "Escape") {
-      e5.preventDefault();
+    if (e6.key === "Escape") {
+      e6.preventDefault();
       host._ignoreDropdownOpen = false;
       host.requestUpdate();
     }
     return;
   }
-  e5.preventDefault();
-  e5.stopPropagation();
+  e6.preventDefault();
+  e6.stopPropagation();
   const idx = host._ignoreDropdownIndex ?? 0;
-  if (e5.key === "ArrowDown") {
+  if (e6.key === "ArrowDown") {
     host._ignoreDropdownIndex = (idx + 1) % items.length;
-  } else if (e5.key === "ArrowUp") {
+  } else if (e6.key === "ArrowUp") {
     host._ignoreDropdownIndex = (idx - 1 + items.length) % items.length;
-  } else if (e5.key === "Enter") {
+  } else if (e6.key === "Enter") {
     _selectItem(host, items[idx]);
     return;
-  } else if (e5.key === "Escape") {
+  } else if (e6.key === "Escape") {
     host._ignoreDropdownOpen = false;
   }
   host.requestUpdate();
@@ -25911,7 +30612,7 @@ function renderIgnoreList(host) {
   const total =
     tagged.entities.length + tagged.devices.length + tagged.areas.length;
   const labelName = _config(host).exclude_label_name || "Selora exclude";
-  return b2`
+  return x`
     <div class="section-card settings-section">
       <div class="section-card-header">
         <h3>
@@ -25931,8 +30632,8 @@ function renderIgnoreList(host) {
             "Search an entity, device, or area\u2026",
           )}
           style="width:100%;box-sizing:border-box;"
-          @input=${(e5) => {
-            host._ignoreInput = e5.target.value;
+          @input=${(e6) => {
+            host._ignoreInput = e6.target.value;
             host._ignoreDropdownOpen = true;
             host._ignoreDropdownIndex = 0;
             host.requestUpdate();
@@ -25947,19 +30648,19 @@ function renderIgnoreList(host) {
               host.requestUpdate();
             }, 150);
           }}
-          @keydown=${(e5) => _onInputKeydown(host, e5)}
+          @keydown=${(e6) => _onInputKeydown(host, e6)}
         />
         ${_renderDropdown(host, items, activeIndex)}
       </div>
 
       ${
         total === 0
-          ? b2`<div
+          ? x`<div
             style="font-size:13px;color:var(--secondary-text-color);padding:12px 0 4px;"
           >
             ${host._t("ignore_list_empty_state", "Nothing ignored yet.")}
           </div>`
-          : b2`
+          : x`
             <div
               style="display:flex;flex-direction:column;gap:10px;margin-top:12px;"
             >
@@ -26033,10 +30734,10 @@ function _textInput({
   placeholder = "",
   style = "",
 }) {
-  return b2`
+  return x`
     ${
       label
-        ? b2`<label
+        ? x`<label
           style="font-size:13px;color:var(--secondary-text-color);display:block;margin-bottom:6px;"
           >${label}</label
         >`
@@ -26072,7 +30773,7 @@ function _todayCostHint(host) {
 function _renderUsageHeaderLink(host) {
   const cost = _todayCostHint(host);
   const hasData = cost !== null && cost > 0;
-  return b2`
+  return x`
     <button
       class="section-card-action"
       title=${host._t("settings_view_token_usage_title", "View token usage")}
@@ -26105,10 +30806,10 @@ var _PROVIDERS = [
 function _renderProviderPicker(host) {
   const providers = _PROVIDERS;
   const current = providers.find(
-    (p4) => p4.value === host._config.llm_provider,
+    (p2) => p2.value === host._config.llm_provider,
   );
   const open = host._providerDropdownOpen || false;
-  return b2`
+  return x`
     <div style="position:relative;">
       <button
         class="form-select"
@@ -26132,7 +30833,7 @@ function _renderProviderPicker(host) {
       </button>
       ${
         open
-          ? b2`
+          ? x`
             <div
               style="position:fixed;inset:0;z-index:9;"
               @click=${() => {
@@ -26144,15 +30845,15 @@ function _renderProviderPicker(host) {
               style="position:absolute;top:100%;left:0;right:0;z-index:10;margin-top:4px;border-radius:10px;border:1px solid var(--divider-color);background:var(--card-background-color);box-shadow:0 4px 12px rgba(0,0,0,0.15);overflow:hidden;"
             >
               ${providers.map(
-                (p4) => b2`
+                (p2) => x`
                   <button
-                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p4.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p4.disabled ? "var(--disabled-text-color, #999)" : p4.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p4.disabled ? "default" : "pointer"};opacity:${p4.disabled ? "0.5" : "1"};"
+                    style="display:block;width:100%;text-align:left;padding:10px 14px;border:none;background:${p2.value === host._config.llm_provider ? "var(--selora-accent)" : "transparent"};color:${p2.disabled ? "var(--disabled-text-color, #999)" : p2.value === host._config.llm_provider ? "#000" : "var(--primary-text-color)"};font-size:14px;cursor:${p2.disabled ? "default" : "pointer"};opacity:${p2.disabled ? "0.5" : "1"};"
                     @click=${() => {
-                      if (p4.disabled) return;
+                      if (p2.disabled) return;
                       host._providerDropdownOpen = false;
-                      host._updateConfig("llm_provider", p4.value);
+                      host._updateConfig("llm_provider", p2.value);
                       if (
-                        p4.value === "selora_local" &&
+                        p2.value === "selora_local" &&
                         host._config?.selora_local_discovered_host
                       ) {
                         host._updateConfig(
@@ -26165,7 +30866,7 @@ function _renderProviderPicker(host) {
                       host._llmSaveStatus = null;
                     }}
                   >
-                    ${p4.label}
+                    ${p2.label}
                   </button>
                 `,
               )}
@@ -26178,7 +30879,7 @@ function _renderProviderPicker(host) {
 }
 function renderSettings(host) {
   if (!host._config) {
-    return b2`
+    return x`
       <div
         class="scroll-view"
         style="display:flex; justify-content:center; padding-top:64px;"
@@ -26193,7 +30894,7 @@ function renderSettings(host) {
   const isOpenAI = host._config.llm_provider === "openai";
   const isOpenRouter = host._config.llm_provider === "openrouter";
   const isSeloraLocal = host._config.llm_provider === "selora_local";
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="settings-form">
         <a
@@ -26233,7 +30934,7 @@ function renderSettings(host) {
 
           ${
             isSeloraCloud
-              ? b2`
+              ? x`
                 <div class="form-group">
                   <label
                     >${host._t(
@@ -26243,7 +30944,7 @@ function renderSettings(host) {
                   >
                   ${
                     host._config.aigateway_linked
-                      ? b2`
+                      ? x`
                         <div
                           style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--divider-color);border-radius:8px;background:var(--card-background-color);"
                         >
@@ -26257,7 +30958,7 @@ function renderSettings(host) {
                             >
                               Linked${
                                 host._config.aigateway_user_email
-                                  ? b2` as
+                                  ? x` as
                                     <strong
                                       >${host._config.aigateway_user_email}</strong
                                     >`
@@ -26282,7 +30983,7 @@ function renderSettings(host) {
                           </button>
                         </div>
                       `
-                      : b2`
+                      : x`
                         <div
                           style="display:flex;flex-direction:column;gap:10px;"
                         >
@@ -26296,7 +30997,7 @@ function renderSettings(host) {
                           </p>
                           ${
                             host._config.developer_mode
-                              ? b2`
+                              ? x`
                                 ${_textInput({
                                   label: host._t(
                                     "settings_selora_cloud_url_label",
@@ -26305,10 +31006,10 @@ function renderSettings(host) {
                                   value:
                                     host._config.selora_connect_url ||
                                     "https://connect.selorahomes.com",
-                                  oninput: (e5) =>
+                                  oninput: (e6) =>
                                     host._updateConfig(
                                       "selora_connect_url",
-                                      e5.target.value,
+                                      e6.target.value,
                                     ),
                                 })}
                                 <div
@@ -26324,7 +31025,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<a
+                              ? x`<a
                                 class="btn btn-primary"
                                 href=${host._aigwAuthorizeUrl}
                                 target="_blank"
@@ -26336,7 +31037,7 @@ function renderSettings(host) {
                                   "Open sign-in page \u2192",
                                 )}
                               </a>`
-                              : b2`<button
+                              : x`<button
                                 class="btn btn-primary"
                                 ?disabled=${host._linkingAIGateway}
                                 @click=${() => host._startAIGatewayLink()}
@@ -26344,7 +31045,7 @@ function renderSettings(host) {
                               >
                                 ${
                                   host._linkingAIGateway
-                                    ? b2`<span
+                                    ? x`<span
                                         class="spinner"
                                         style="width:14px;height:14px;"
                                       ></span>
@@ -26361,7 +31062,7 @@ function renderSettings(host) {
                           }
                           ${
                             host._aigwAuthorizeUrl
-                              ? b2`<div
+                              ? x`<div
                                 style="font-size:12px;color:var(--secondary-text-color);margin-top:4px;"
                               >
                                 ${host._t(
@@ -26376,7 +31077,7 @@ function renderSettings(host) {
                   }
                   ${
                     host._aigatewayError
-                      ? b2`<div
+                      ? x`<div
                         style="color:var(--error-color,#d32f2f);font-size:13px;padding:6px 0 0;"
                       >
                         ${host._aigatewayError}
@@ -26386,7 +31087,7 @@ function renderSettings(host) {
                 </div>
                 ${
                   host._config.aigateway_linked && host._config.developer_mode
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         ${_textInput({
                           label: host._t(
@@ -26396,10 +31097,10 @@ function renderSettings(host) {
                           value:
                             host._config.selora_connect_url ||
                             "https://connect.selorahomes.com",
-                          oninput: (e5) =>
+                          oninput: (e6) =>
                             host._updateConfig(
                               "selora_connect_url",
-                              e5.target.value,
+                              e6.target.value,
                             ),
                         })}
                       </div>
@@ -26408,14 +31109,14 @@ function renderSettings(host) {
                 }
               `
               : isGemini
-                ? b2`
+                ? x`
                   <div class="form-group">
                     <label
                       >${host._t("settings_api_key_label", "API Key")}</label
                     >
                     ${
                       host._config.gemini_api_key_set
-                        ? b2`<button
+                        ? x`<button
                           class="key-hint key-set key-hint-btn"
                           title=${host._t(
                             "settings_click_replace_key_title",
@@ -26453,8 +31154,8 @@ function renderSettings(host) {
                                 ),
                             type: "password",
                             value: host._newApiKey,
-                            oninput: (e5) =>
-                              (host._newApiKey = e5.target.value),
+                            oninput: (e6) =>
+                              (host._newApiKey = e6.target.value),
                             placeholder: "AIza...",
                             style: "margin-top:8px;",
                           })
@@ -26465,20 +31166,20 @@ function renderSettings(host) {
                     ${_textInput({
                       label: host._t("settings_model_label", "Model"),
                       value: host._config.gemini_model,
-                      oninput: (e5) =>
-                        host._updateConfig("gemini_model", e5.target.value),
+                      oninput: (e6) =>
+                        host._updateConfig("gemini_model", e6.target.value),
                     })}
                   </div>
                 `
                 : isAnthropic
-                  ? b2`
+                  ? x`
                     <div class="form-group">
                       <label
                         >${host._t("settings_api_key_label", "API Key")}</label
                       >
                       ${
                         host._config.anthropic_api_key_set
-                          ? b2`<button
+                          ? x`<button
                             class="key-hint key-set key-hint-btn"
                             title=${host._t(
                               "settings_click_replace_key_title",
@@ -26517,8 +31218,8 @@ function renderSettings(host) {
                                   ),
                               type: "password",
                               value: host._newApiKey,
-                              oninput: (e5) =>
-                                (host._newApiKey = e5.target.value),
+                              oninput: (e6) =>
+                                (host._newApiKey = e6.target.value),
                               placeholder: "sk-ant-...",
                               style: "margin-top:8px;",
                             })
@@ -26529,16 +31230,16 @@ function renderSettings(host) {
                       ${_textInput({
                         label: host._t("settings_model_label", "Model"),
                         value: host._config.anthropic_model,
-                        oninput: (e5) =>
+                        oninput: (e6) =>
                           host._updateConfig(
                             "anthropic_model",
-                            e5.target.value,
+                            e6.target.value,
                           ),
                       })}
                     </div>
                   `
                   : isOpenAI
-                    ? b2`
+                    ? x`
                       <div class="form-group">
                         <label
                           >${host._t(
@@ -26548,7 +31249,7 @@ function renderSettings(host) {
                         >
                         ${
                           host._config.openai_api_key_set
-                            ? b2`<button
+                            ? x`<button
                               class="key-hint key-set key-hint-btn"
                               title=${host._t(
                                 "settings_click_replace_key_title",
@@ -26588,8 +31289,8 @@ function renderSettings(host) {
                                     ),
                                 type: "password",
                                 value: host._newApiKey,
-                                oninput: (e5) =>
-                                  (host._newApiKey = e5.target.value),
+                                oninput: (e6) =>
+                                  (host._newApiKey = e6.target.value),
                                 placeholder: "sk-...",
                                 style: "margin-top:8px;",
                               })
@@ -26600,13 +31301,13 @@ function renderSettings(host) {
                         ${_textInput({
                           label: host._t("settings_model_label", "Model"),
                           value: host._config.openai_model,
-                          oninput: (e5) =>
-                            host._updateConfig("openai_model", e5.target.value),
+                          oninput: (e6) =>
+                            host._updateConfig("openai_model", e6.target.value),
                         })}
                       </div>
                     `
                     : isOpenRouter
-                      ? b2`
+                      ? x`
                         <div class="form-group">
                           <label
                             >${host._t(
@@ -26616,7 +31317,7 @@ function renderSettings(host) {
                           >
                           ${
                             host._config.openrouter_api_key_set
-                              ? b2`<button
+                              ? x`<button
                                 class="key-hint key-set key-hint-btn"
                                 title=${host._t(
                                   "settings_click_replace_key_title",
@@ -26657,8 +31358,8 @@ function renderSettings(host) {
                                       ),
                                   type: "password",
                                   value: host._newApiKey,
-                                  oninput: (e5) =>
-                                    (host._newApiKey = e5.target.value),
+                                  oninput: (e6) =>
+                                    (host._newApiKey = e6.target.value),
                                   placeholder: "sk-or-...",
                                   style: "margin-top:8px;",
                                 })
@@ -26669,17 +31370,17 @@ function renderSettings(host) {
                           ${_textInput({
                             label: host._t("settings_model_label", "Model"),
                             value: host._config.openrouter_model,
-                            oninput: (e5) =>
+                            oninput: (e6) =>
                               host._updateConfig(
                                 "openrouter_model",
-                                e5.target.value,
+                                e6.target.value,
                               ),
                             placeholder: "anthropic/claude-sonnet-4.5",
                           })}
                         </div>
                       `
                       : isSeloraLocal
-                        ? b2`
+                        ? x`
                           <button
                             class="btn-link"
                             style="background:none;border:none;padding:0;color:var(--primary-color);font-size:12px;cursor:pointer;"
@@ -26703,7 +31404,7 @@ function renderSettings(host) {
                           </button>
                           ${
                             host._seloraLocalAdvanced
-                              ? b2`
+                              ? x`
                                 <p
                                   style="font-size:12px;color:var(--secondary-text-color);margin:8px 0;"
                                 >
@@ -26719,10 +31420,10 @@ function renderSettings(host) {
                                       "Host",
                                     ),
                                     value: host._config.selora_local_host || "",
-                                    oninput: (e5) =>
+                                    oninput: (e6) =>
                                       host._updateConfig(
                                         "selora_local_host",
-                                        e5.target.value,
+                                        e6.target.value,
                                       ),
                                     placeholder: "http://localhost:8080",
                                   })}
@@ -26747,7 +31448,7 @@ function renderSettings(host) {
                               : ""
                           }
                         `
-                        : b2`
+                        : x`
                           <div class="form-group">
                             ${_textInput({
                               label: host._t(
@@ -26755,10 +31456,10 @@ function renderSettings(host) {
                                 "Host",
                               ),
                               value: host._config.ollama_host,
-                              oninput: (e5) =>
+                              oninput: (e6) =>
                                 host._updateConfig(
                                   "ollama_host",
-                                  e5.target.value,
+                                  e6.target.value,
                                 ),
                             })}
                           </div>
@@ -26766,10 +31467,10 @@ function renderSettings(host) {
                             ${_textInput({
                               label: host._t("settings_model_label", "Model"),
                               value: host._config.ollama_model,
-                              oninput: (e5) =>
+                              oninput: (e6) =>
                                 host._updateConfig(
                                   "ollama_model",
-                                  e5.target.value,
+                                  e6.target.value,
                                 ),
                             })}
                           </div>
@@ -26778,7 +31479,7 @@ function renderSettings(host) {
           ${
             isSeloraCloud && !host._config.aigateway_linked
               ? ""
-              : b2`
+              : x`
                 <div class="card-save-bar">
                   <button
                     class="btn btn-primary"
@@ -26787,7 +31488,7 @@ function renderSettings(host) {
                   >
                     ${
                       host._savingLlmConfig
-                        ? b2`<span
+                        ? x`<span
                             class="spinner"
                             style="width:14px;height:14px;"
                           ></span>
@@ -26800,7 +31501,7 @@ function renderSettings(host) {
           }
           ${
             host._llmSaveStatus
-              ? b2`<div
+              ? x`<div
                 class="save-feedback save-feedback--${host._llmSaveStatus.type}"
               >
                 <ha-icon
@@ -26845,8 +31546,8 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.selora_connect_enabled}
-                @change=${(e5) => {
-                  if (e5.target.checked) {
+                @change=${(e6) => {
+                  if (e6.target.checked) {
                     host._startOAuthLink();
                   } else {
                     host._unlinkConnect();
@@ -26857,7 +31558,7 @@ function renderSettings(host) {
             </div>
             ${
               host._connectError
-                ? b2`<div
+                ? x`<div
                   style="color:var(--error-color,#d32f2f);font-size:13px;padding:4px 0 0;"
                 >
                   ${host._connectError}
@@ -26866,7 +31567,7 @@ function renderSettings(host) {
             }
             ${
               host._connectAuthorizeUrl
-                ? b2`<div
+                ? x`<div
                   style="display:flex;flex-direction:column;gap:6px;padding:8px 0 0;"
                 >
                   <a
@@ -26894,7 +31595,7 @@ function renderSettings(host) {
             }
             ${
               host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div
                     style="display:flex;align-items:center;gap:8px;padding:8px 0 0;"
                   >
@@ -26929,7 +31630,7 @@ function renderSettings(host) {
             ${
               host._config.developer_mode &&
               !host._config.selora_connect_enabled
-                ? b2`
+                ? x`
                   <div style="padding:8px 0 0;">
                     ${_textInput({
                       label: host._t(
@@ -26939,10 +31640,10 @@ function renderSettings(host) {
                       value:
                         host._config.selora_connect_url ||
                         "https://connect.selorahomes.com",
-                      oninput: (e5) =>
+                      oninput: (e6) =>
                         host._updateConfig(
                           "selora_connect_url",
-                          e5.target.value,
+                          e6.target.value,
                         ),
                     })}
                   </div>
@@ -26964,15 +31665,15 @@ function renderSettings(host) {
           </p>
           ${
             host._mcpTokens.length === 0
-              ? b2`<div
+              ? x`<div
                 style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
               >
                 ${host._t("settings_no_tokens_yet", "No tokens yet.")}
               </div>`
-              : b2`
+              : x`
                 <div class="mcp-token-list">
                   ${host._mcpTokens.map(
-                    (t4) => b2`
+                    (t4) => x`
                       <div class="mcp-token-row">
                         <ha-icon
                           icon="mdi:key-variant"
@@ -26990,7 +31691,7 @@ function renderSettings(host) {
                             <span>${t4.token_prefix}${"*".repeat(8)}</span>
                             ${
                               t4.expires_at
-                                ? b2`<span
+                                ? x`<span
                                   >&middot; expires
                                   ${new Date(t4.expires_at).toLocaleDateString(
                                     void 0,
@@ -27001,7 +31702,7 @@ function renderSettings(host) {
                             }
                             ${
                               t4.last_used_at
-                                ? b2`<span
+                                ? x`<span
                                   >&middot; used
                                   ${_timeAgo(t4.last_used_at)}</span
                                 >`
@@ -27015,11 +31716,11 @@ function renderSettings(host) {
                         >
                           ${
                             host._revokingTokenId === t4.id
-                              ? b2`<span
+                              ? x`<span
                                 class="spinner"
                                 style="width:14px;height:14px;"
                               ></span>`
-                              : b2`<ha-icon
+                              : x`<ha-icon
                                 icon="mdi:delete-outline"
                                 style="--mdc-icon-size:20px;"
                               ></ha-icon>`
@@ -27100,12 +31801,12 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.collector_enabled}
-                @change=${(e5) => host._updateConfig("collector_enabled", e5.target.checked)}
+                @change=${(e6) => host._updateConfig("collector_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
             ${
               host._config.collector_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -27113,10 +31814,10 @@ function renderSettings(host) {
                         <select
                           class="form-select"
                           .value=${host._config.collector_mode}
-                          @change=${(e5) =>
+                          @change=${(e6) =>
                             host._updateConfig(
                               "collector_mode",
-                              e5.target.value,
+                              e6.target.value,
                             )}
                         >
                           <option value="continuous">
@@ -27144,10 +31845,10 @@ function renderSettings(host) {
                           class="form-select"
                           type="number"
                           .value=${host._config.collector_interval}
-                          @input=${(e5) =>
+                          @input=${(e6) =>
                             host._updateConfig(
                               "collector_interval",
-                              parseInt(e5.target.value),
+                              parseInt(e6.target.value),
                             )}
                           style="width:100%;box-sizing:border-box;"
                         />
@@ -27155,7 +31856,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.collector_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -27164,10 +31865,10 @@ function renderSettings(host) {
                                   "Start (HH:MM)",
                                 ),
                                 value: host._config.collector_start_time,
-                                oninput: (e5) =>
+                                oninput: (e6) =>
                                   host._updateConfig(
                                     "collector_start_time",
-                                    e5.target.value,
+                                    e6.target.value,
                                   ),
                               })}
                             </div>
@@ -27178,10 +31879,10 @@ function renderSettings(host) {
                                   "End (HH:MM)",
                                 ),
                                 value: host._config.collector_end_time,
-                                oninput: (e5) =>
+                                oninput: (e6) =>
                                   host._updateConfig(
                                     "collector_end_time",
-                                    e5.target.value,
+                                    e6.target.value,
                                   ),
                               })}
                             </div>
@@ -27213,12 +31914,12 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.discovery_enabled}
-                @change=${(e5) => host._updateConfig("discovery_enabled", e5.target.checked)}
+                @change=${(e6) => host._updateConfig("discovery_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
             ${
               host._config.discovery_enabled
-                ? b2`
+                ? x`
                   <div class="service-details">
                     <div style="display:flex;gap:12px;">
                       <div class="form-group" style="flex:1;margin-bottom:0;">
@@ -27226,10 +31927,10 @@ function renderSettings(host) {
                         <select
                           class="form-select"
                           .value=${host._config.discovery_mode}
-                          @change=${(e5) =>
+                          @change=${(e6) =>
                             host._updateConfig(
                               "discovery_mode",
-                              e5.target.value,
+                              e6.target.value,
                             )}
                         >
                           <option value="continuous">
@@ -27257,10 +31958,10 @@ function renderSettings(host) {
                           class="form-select"
                           type="number"
                           .value=${host._config.discovery_interval}
-                          @input=${(e5) =>
+                          @input=${(e6) =>
                             host._updateConfig(
                               "discovery_interval",
-                              parseInt(e5.target.value),
+                              parseInt(e6.target.value),
                             )}
                           style="width:100%;box-sizing:border-box;"
                         />
@@ -27268,7 +31969,7 @@ function renderSettings(host) {
                     </div>
                     ${
                       host._config.discovery_mode === "scheduled"
-                        ? b2`
+                        ? x`
                           <div style="display:flex;gap:12px;margin-top:12px;">
                             <div style="flex:1;">
                               ${_textInput({
@@ -27277,10 +31978,10 @@ function renderSettings(host) {
                                   "Start (HH:MM)",
                                 ),
                                 value: host._config.discovery_start_time,
-                                oninput: (e5) =>
+                                oninput: (e6) =>
                                   host._updateConfig(
                                     "discovery_start_time",
-                                    e5.target.value,
+                                    e6.target.value,
                                   ),
                               })}
                             </div>
@@ -27291,10 +31992,10 @@ function renderSettings(host) {
                                   "End (HH:MM)",
                                 ),
                                 value: host._config.discovery_end_time,
-                                oninput: (e5) =>
+                                oninput: (e6) =>
                                   host._updateConfig(
                                     "discovery_end_time",
-                                    e5.target.value,
+                                    e6.target.value,
                                   ),
                               })}
                             </div>
@@ -27326,10 +32027,10 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.pattern_detection_enabled !== false}
-                @change=${(e5) =>
+                @change=${(e6) =>
                   host._updateConfig(
                     "pattern_detection_enabled",
-                    e5.target.checked,
+                    e6.target.checked,
                   )}
               ></ha-switch>
             </div>
@@ -27351,7 +32052,7 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.auto_purge_stale || false}
-                @change=${(e5) => host._updateConfig("auto_purge_stale", e5.target.checked)}
+                @change=${(e6) => host._updateConfig("auto_purge_stale", e6.target.checked)}
               ></ha-switch>
             </div>
           </div>
@@ -27374,7 +32075,7 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.telemetry_enabled === true}
-                @change=${(e5) => host._updateConfig("telemetry_enabled", e5.target.checked)}
+                @change=${(e6) => host._updateConfig("telemetry_enabled", e6.target.checked)}
               ></ha-switch>
             </div>
           </div>
@@ -27397,8 +32098,8 @@ function renderSettings(host) {
               </div>
               <ha-switch
                 .checked=${host._config.developer_mode}
-                @change=${async (e5) => {
-                  const val = e5.target.checked;
+                @change=${async (e6) => {
+                  const val = e6.target.checked;
                   host._updateConfig("developer_mode", val);
                   try {
                     await host.hass.callWS({
@@ -27496,7 +32197,7 @@ var MCP_TOOLS = [
 function renderApprovalGrants(host) {
   const grants = host._approvalGrants || [];
   if (!grants.length) {
-    return b2`<div
+    return x`<div
       style="font-size:13px;color:var(--secondary-text-color);padding:4px 0 8px;"
     >
       ${host._t(
@@ -27512,7 +32213,7 @@ function renderApprovalGrants(host) {
     medium: "#f59e0b",
     high: "#ef4444",
   };
-  return b2`
+  return x`
     <div class="mcp-token-list">
       ${grants.map((g2) => {
         const grantKey = g2.key || g2.service;
@@ -27520,7 +32221,7 @@ function renderApprovalGrants(host) {
           ? host?.hass?.states?.[g2.entity_id]?.attributes?.friendly_name ||
             g2.entity_id
           : null;
-        return b2`
+        return x`
           <div class="mcp-token-row">
             <ha-icon
               icon=${entityFriendly ? "mdi:shield-account-outline" : "mdi:shield-check-outline"}
@@ -27541,11 +32242,11 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-name">
                 ${g2.service}${
                   entityFriendly
-                    ? b2` <span
+                    ? x` <span
                       style="color:var(--secondary-text-color);font-weight:400;"
                       >→ ${entityFriendly}</span
                     >`
-                    : b2` <span
+                    : x` <span
                       style="color:var(--secondary-text-color);font-weight:400;font-style:italic;"
                       >→ ${host._t("settings_approval_all_label", "all")}</span
                     >`
@@ -27560,7 +32261,7 @@ function renderApprovalGrants(host) {
               <div class="mcp-token-meta">
                 <span
                   >granted
-                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? b2` by <strong>${g2.granted_by_name}</strong>` : ""}</span
+                  ${_timeAgo(g2.granted_at)}${g2.granted_by_name ? x` by <strong>${g2.granted_by_name}</strong>` : ""}</span
                 >
               </div>
             </div>
@@ -27570,11 +32271,11 @@ function renderApprovalGrants(host) {
             >
               ${
                 host._revokingApprovalKey === grantKey
-                  ? b2`<span
+                  ? x`<span
                     class="spinner"
                     style="width:14px;height:14px;"
                   ></span>`
-                  : b2`<ha-icon
+                  : x`<ha-icon
                     icon="mdi:delete-outline"
                     style="--mdc-icon-size:20px;"
                   ></ha-icon>`
@@ -27614,12 +32315,12 @@ function _timeAgo(isoString) {
 function renderCreateTokenDialog(host) {
   if (!host._showCreateTokenDialog) return "";
   if (host._createdToken) {
-    return b2`
+    return x`
       <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
         <div
           class="modal-content"
           style="max-width:480px;"
-          @click=${(e5) => e5.stopPropagation()}
+          @click=${(e6) => e6.stopPropagation()}
         >
           <h3 style="margin:0 0 12px;">
             ${host._t("settings_token_created_heading", "Token Created")}
@@ -27668,12 +32369,12 @@ function renderCreateTokenDialog(host) {
     `;
   }
   const permission = host._newTokenPermission;
-  return b2`
+  return x`
     <div class="modal-overlay" @click=${() => host._closeCreateTokenDialog()}>
       <div
         class="modal-content"
         style="max-width:480px;"
-        @click=${(e5) => e5.stopPropagation()}
+        @click=${(e6) => e6.stopPropagation()}
       >
         <h3 style="margin:0 0 16px;">
           ${host._t("settings_create_mcp_token_heading", "Create MCP Token")}
@@ -27689,8 +32390,8 @@ function renderCreateTokenDialog(host) {
               "e.g. Claude Desktop",
             )}
             .value=${host._newTokenName}
-            @input=${(e5) => {
-              host._newTokenName = e5.target.value;
+            @input=${(e6) => {
+              host._newTokenName = e6.target.value;
             }}
             style="width:100%;box-sizing:border-box;"
           />
@@ -27706,8 +32407,8 @@ function renderCreateTokenDialog(host) {
           <select
             class="form-select"
             .value=${permission}
-            @change=${(e5) => {
-              host._newTokenPermission = e5.target.value;
+            @change=${(e6) => {
+              host._newTokenPermission = e6.target.value;
               host.requestUpdate();
             }}
           >
@@ -27725,7 +32426,7 @@ function renderCreateTokenDialog(host) {
 
         ${
           permission === "custom"
-            ? b2`
+            ? x`
               <div class="form-group">
                 <label
                   >${host._t(
@@ -27735,15 +32436,15 @@ function renderCreateTokenDialog(host) {
                 >
                 <div class="mcp-tool-checklist">
                   ${MCP_TOOLS.map(
-                    (tool) => b2`
+                    (tool) => x`
                       <label class="mcp-tool-check">
                         <input
                           type="checkbox"
                           .checked=${host._newTokenTools[tool.name] || false}
-                          @change=${(e5) => {
+                          @change=${(e6) => {
                             host._newTokenTools = {
                               ...host._newTokenTools,
-                              [tool.name]: e5.target.checked,
+                              [tool.name]: e6.target.checked,
                             };
                             host.requestUpdate();
                           }}
@@ -27751,7 +32452,7 @@ function renderCreateTokenDialog(host) {
                         <span>${tool.label}</span>
                         ${
                           tool.admin
-                            ? b2`<span
+                            ? x`<span
                               class="mcp-token-badge mcp-token-badge--admin"
                               style="font-size:10px;padding:1px 5px;"
                               >${host._t("settings_admin_badge", "admin")}</span
@@ -27777,8 +32478,8 @@ function renderCreateTokenDialog(host) {
           <select
             class="form-select"
             .value=${host._newTokenExpiry}
-            @change=${(e5) => {
-              host._newTokenExpiry = e5.target.value;
+            @change=${(e6) => {
+              host._newTokenExpiry = e6.target.value;
               host.requestUpdate();
             }}
           >
@@ -27816,7 +32517,7 @@ function renderCreateTokenDialog(host) {
           >
             ${
               host._creatingToken
-                ? b2`<span
+                ? x`<span
                   class="spinner"
                   style="width:14px;height:14px;"
                 ></span>`
@@ -27833,7 +32534,7 @@ function renderCreateTokenDialog(host) {
 function renderTelemetryConsent(host) {
   const cfg = host._config;
   if (!cfg || cfg.telemetry_prompt_seen || cfg.telemetry_enabled) return "";
-  return b2`
+  return x`
     <div
       class="telemetry-consent"
       role="region"
@@ -27907,20 +32608,20 @@ function _findUsageSensors(hass) {
   }
   return result;
 }
-function _fmtTokens(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtTokens(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 >= 1e6) return (v2 / 1e6).toFixed(2) + "M";
   if (v2 >= 1e3) return (v2 / 1e3).toFixed(1) + "k";
   return Math.round(v2).toLocaleString();
 }
-function _fmtUsd(n4) {
-  const v2 = Number(n4) || 0;
+function _fmtUsd(n5) {
+  const v2 = Number(n5) || 0;
   if (v2 === 0) return "$0.00";
   if (v2 < 0.01) return "<$0.01";
   return "$" + v2.toFixed(2);
 }
-function _fmtInt(n4) {
-  return (Number(n4) || 0).toLocaleString();
+function _fmtInt(n5) {
+  return (Number(n5) || 0).toLocaleString();
 }
 async function _fetchPeriodStats(hass, statisticIds, periodStart) {
   if (!hass) return {};
@@ -27941,8 +32642,8 @@ async function _fetchPeriodStats(hass, statisticIds, periodStart) {
 function _sumChange(buckets) {
   if (!Array.isArray(buckets)) return 0;
   let total = 0;
-  for (const b3 of buckets) {
-    const v2 = Number(b3?.change ?? 0);
+  for (const b2 of buckets) {
+    const v2 = Number(b2?.change ?? 0);
     if (Number.isFinite(v2)) total += v2;
   }
   return total;
@@ -28072,12 +32773,12 @@ function _intentLabel(intent) {
 }
 function _groupByProviderModel(events) {
   const groups = /* @__PURE__ */ new Map();
-  for (const e5 of events) {
-    const key = `${e5.provider || "?"}::${e5.model || ""}`;
+  for (const e6 of events) {
+    const key = `${e6.provider || "?"}::${e6.model || ""}`;
     let g2 = groups.get(key);
     if (!g2) {
       g2 = {
-        kind: `${_providerLabel(e5.provider)}${e5.model ? ` \xB7 ${e5.model}` : ""}`,
+        kind: `${_providerLabel(e6.provider)}${e6.model ? ` \xB7 ${e6.model}` : ""}`,
         calls: 0,
         input_tokens: 0,
         output_tokens: 0,
@@ -28087,20 +32788,20 @@ function _groupByProviderModel(events) {
       groups.set(key, g2);
     }
     g2.calls += 1;
-    g2.input_tokens += Number(e5.input_tokens) || 0;
-    g2.output_tokens += Number(e5.output_tokens) || 0;
-    g2.cost_usd += Number(e5.cost_usd) || 0;
+    g2.input_tokens += Number(e6.input_tokens) || 0;
+    g2.output_tokens += Number(e6.output_tokens) || 0;
+    g2.cost_usd += Number(e6.cost_usd) || 0;
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _groupByKind(events) {
   const groups = /* @__PURE__ */ new Map();
-  for (const e5 of events) {
-    const key = e5.kind || "raw";
+  for (const e6 of events) {
+    const key = e6.kind || "raw";
     let g2 = groups.get(key);
     if (!g2) {
       g2 = {
@@ -28114,17 +32815,17 @@ function _groupByKind(events) {
       groups.set(key, g2);
     }
     g2.calls += 1;
-    g2.input_tokens += Number(e5.input_tokens) || 0;
-    g2.output_tokens += Number(e5.output_tokens) || 0;
-    g2.cost_usd += Number(e5.cost_usd) || 0;
-    if (e5.intent) {
-      g2.intents.set(e5.intent, (g2.intents.get(e5.intent) || 0) + 1);
+    g2.input_tokens += Number(e6.input_tokens) || 0;
+    g2.output_tokens += Number(e6.output_tokens) || 0;
+    g2.cost_usd += Number(e6.cost_usd) || 0;
+    if (e6.intent) {
+      g2.intents.set(e6.intent, (g2.intents.get(e6.intent) || 0) + 1);
     }
   }
   return [...groups.values()].sort(
-    (a3, b3) =>
-      b3.cost_usd - a3.cost_usd ||
-      b3.input_tokens + b3.output_tokens - (a3.input_tokens + a3.output_tokens),
+    (a4, b2) =>
+      b2.cost_usd - a4.cost_usd ||
+      b2.input_tokens + b2.output_tokens - (a4.input_tokens + a4.output_tokens),
   );
 }
 function _formatRelativeTime(iso) {
@@ -28163,27 +32864,27 @@ function _highlightYaml(yamlStr) {
     const rest = line.slice(indent.length);
     const listMatch = rest.match(/^(- )(.*)$/);
     if (listMatch) {
-      return b2`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-dash">- </span><span class="yaml-val">${listMatch[2]}</span></div>`;
     }
     const kvMatch = rest.match(/^([\w_-]+)(:)(.*)$/);
     if (kvMatch) {
       const val = kvMatch[3].trim();
-      return b2`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? b2` <span class="yaml-val">${val}</span>` : ""}</div>`;
+      return x`<div class="yaml-line">${indent}<span class="yaml-key">${kvMatch[1]}</span><span class="yaml-colon">:</span>${val ? x` <span class="yaml-val">${val}</span>` : ""}</div>`;
     }
-    return b2`<div class="yaml-line">${line}</div>`;
+    return x`<div class="yaml-line">${line}</div>`;
   });
 }
 function _renderDashboardSnippet(host, sensors) {
   const selected = host._dashboardSnippetKey || _USAGE_KEYS[0];
-  const s4 = sensors[selected];
-  const entityId = s4?.entityId || `sensor.${selected}`;
+  const s6 = sensors[selected];
+  const entityId = s6?.entityId || `sensor.${selected}`;
   const label =
-    s4?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
+    s6?.state?.attributes?.friendly_name || _USAGE_SENSOR_LABELS[selected];
   const yaml = _yamlForSensor(entityId, label);
-  return b2`
+  return x`
     <div class="usage-snippet-pills">
       ${_USAGE_KEYS.map(
-        (key) => b2`
+        (key) => x`
           <button
             class="usage-snippet-pill ${key === selected ? "active" : ""}"
             @click=${() => {
@@ -28200,8 +32901,8 @@ function _renderDashboardSnippet(host, sensors) {
       <code>${_highlightYaml(yaml)}</code>
       <button
         class="usage-copy-btn"
-        @click=${(e5) => {
-          const block = e5.currentTarget.closest(".usage-yaml-block");
+        @click=${(e6) => {
+          const block = e6.currentTarget.closest(".usage-yaml-block");
           const codeEl = block?.querySelector("code");
           if (codeEl) {
             const range = document.createRange();
@@ -28218,7 +32919,7 @@ function _renderDashboardSnippet(host, sensors) {
           ta.select();
           document.execCommand("copy");
           document.body.removeChild(ta);
-          const btn = e5.currentTarget;
+          const btn = e6.currentTarget;
           btn.textContent = host._t("usage_snippet_copied_label", "Copied!");
           setTimeout(() => {
             btn.textContent = host._t("usage_snippet_copy_button", "Copy");
@@ -28237,20 +32938,20 @@ function _renderDashboardSnippet(host, sensors) {
   `;
 }
 function _renderTile({ label, value, sub, icon }) {
-  return b2`
+  return x`
     <div class="usage-tile">
       <div class="usage-tile-head">
-        ${icon ? b2`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
+        ${icon ? x`<ha-icon icon=${icon} style="--mdc-icon-size:16px;"></ha-icon>` : ""}
         <span class="usage-tile-label">${label}</span>
       </div>
       <div class="usage-tile-value">${value}</div>
-      ${sub ? b2`<div class="usage-tile-sub">${sub}</div>` : ""}
+      ${sub ? x`<div class="usage-tile-sub">${sub}</div>` : ""}
     </div>
   `;
 }
 function _renderPeriodRow(title, stats) {
   if (!stats) {
-    return b2`
+    return x`
       <div class="usage-period-row usage-period-row--loading">
         <span class="usage-period-title">${title}</span>
         <span class="usage-period-loading">Loading…</span>
@@ -28262,13 +32963,13 @@ function _renderPeriodRow(title, stats) {
   const calls = stats.llm_calls || 0;
   const cost = stats.llm_cost || 0;
   const empty = !tokensIn && !tokensOut && !calls && !cost;
-  return b2`
+  return x`
     <div class="usage-period-row">
       <span class="usage-period-title">${title}</span>
       ${
         empty
-          ? b2`<span class="usage-period-empty">No activity</span>`
-          : b2`
+          ? x`<span class="usage-period-empty">No activity</span>`
+          : x`
             <span class="usage-period-cost">${_fmtUsd(cost)}</span>
             <span class="usage-period-tokens">
               ${_fmtTokens(tokensIn + tokensOut)} tokens · ${_fmtInt(calls)}
@@ -28281,16 +32982,16 @@ function _renderPeriodRow(title, stats) {
 }
 function _renderBreakdown(groups, totalCost) {
   if (!groups || groups.length === 0) return "";
-  return b2`
+  return x`
     <div class="usage-breakdown">
       ${groups.map((g2) => {
         const pct =
           totalCost > 0 ? Math.round((g2.cost_usd / totalCost) * 100) : 0;
         const tokens = g2.input_tokens + g2.output_tokens;
         const intentEntries = [...g2.intents.entries()].sort(
-          (a3, b3) => b3[1] - a3[1],
+          (a4, b2) => b2[1] - a4[1],
         );
-        return b2`
+        return x`
           <div class="usage-breakdown-row">
             <div class="usage-breakdown-head">
               <span class="usage-breakdown-label">${_kindLabel(g2.kind)}</span>
@@ -28306,14 +33007,14 @@ function _renderBreakdown(groups, totalCost) {
               <span>${_fmtInt(g2.calls)} call${g2.calls === 1 ? "" : "s"}</span>
               <span>·</span>
               <span>${_fmtTokens(tokens)} tokens</span>
-              ${totalCost > 0 ? b2`<span>·</span> <span>${pct}% of cost</span>` : ""}
+              ${totalCost > 0 ? x`<span>·</span> <span>${pct}% of cost</span>` : ""}
             </div>
             ${
               intentEntries.length > 0
-                ? b2`
+                ? x`
                   <div class="usage-breakdown-intents">
                     ${intentEntries.map(
-                      ([intent, count]) => b2`
+                      ([intent, count]) => x`
                         <span class="usage-intent-pill">
                           ${_intentLabel(intent)} · ${_fmtInt(count)}
                         </span>
@@ -28330,26 +33031,26 @@ function _renderBreakdown(groups, totalCost) {
   `;
 }
 function _renderRecentList(events) {
-  return b2`
+  return x`
     <div class="usage-recent-list">
-      ${events.map((e5) => {
-        const intent = _intentLabel(e5.intent);
-        return b2`
+      ${events.map((e6) => {
+        const intent = _intentLabel(e6.intent);
+        return x`
           <div class="usage-recent-row">
             <div class="usage-recent-main">
-              <span class="usage-recent-kind">${_kindLabel(e5.kind)}</span>
-              ${intent ? b2`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
+              <span class="usage-recent-kind">${_kindLabel(e6.kind)}</span>
+              ${intent ? x`<span class="usage-recent-intent">→ ${intent}</span>` : ""}
               <span class="usage-recent-time">
-                ${_formatRelativeTime(e5.timestamp)}
+                ${_formatRelativeTime(e6.timestamp)}
               </span>
             </div>
             <div class="usage-recent-details">
-              <span class="usage-recent-model">${e5.provider} · ${e5.model}</span>
+              <span class="usage-recent-model">${e6.provider} · ${e6.model}</span>
               <span class="usage-recent-tokens">
-                ${_fmtTokens((e5.input_tokens || 0) + (e5.output_tokens || 0))}
+                ${_fmtTokens((e6.input_tokens || 0) + (e6.output_tokens || 0))}
                 tok
               </span>
-              <span class="usage-recent-cost">${_fmtUsd(e5.cost_usd)}</span>
+              <span class="usage-recent-cost">${_fmtUsd(e6.cost_usd)}</span>
             </div>
           </div>
         `;
@@ -28384,8 +33085,8 @@ var _PROVIDER_LABELS = {
   selora_local: "Selora AI Local",
   selora_cloud: "Selora Cloud",
 };
-function _providerLabel(p4) {
-  return _PROVIDER_LABELS[p4] || p4;
+function _providerLabel(p2) {
+  return _PROVIDER_LABELS[p2] || p2;
 }
 function _defaultPriceFor(host, provider, model) {
   const table = host?._pricingDefaults || {};
@@ -28395,8 +33096,8 @@ function _overridePriceFor(host, provider, model) {
   const overrides = host?._config?.llm_pricing_overrides || {};
   return overrides[provider]?.[model] || null;
 }
-function _formatPrice(n4) {
-  const v2 = Number(n4);
+function _formatPrice(n5) {
+  const v2 = Number(n5);
   if (!Number.isFinite(v2)) return "\u2014";
   return "$" + v2.toFixed(v2 < 1 ? 3 : 2).replace(/\.?0+$/, "") + " / MTok";
 }
@@ -28480,7 +33181,7 @@ var SELORA_CLOUD_USAGE_URL = "https://connect.selorahomes.com/selora-ai";
 function _renderPricingCard(host) {
   const { provider, model } = _activeProviderModel(host);
   if (provider === "selora_cloud") {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -28515,7 +33216,7 @@ function _renderPricingCard(host) {
     `;
   }
   if (provider === "ollama" || provider === "selora_local" || !model) {
-    return b2`
+    return x`
       <div class="section-card">
         <div class="section-card-header">
           <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -28547,7 +33248,7 @@ function _renderPricingCard(host) {
     host._pricingEdit?.provider === provider &&
     host._pricingEdit?.model === model;
   const effective = override || defaults;
-  return b2`
+  return x`
     <div class="section-card">
       <div class="section-card-header">
         <h3>${host._t("usage_pricing_title", "Pricing")}</h3>
@@ -28582,11 +33283,11 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 ${host._t("usage_pricing_default_prefix", "default")}
                 ${_formatPrice(defaults[0])}
               </span>`
-              : b2`<span class="usage-pricing-default"
+              : x`<span class="usage-pricing-default"
                 >${host._t(
                   "usage_pricing_no_default",
                   "no built-in default",
@@ -28603,7 +33304,7 @@ function _renderPricingCard(host) {
           </span>
           ${
             defaults
-              ? b2`<span class="usage-pricing-default">
+              ? x`<span class="usage-pricing-default">
                 ${host._t("usage_pricing_default_prefix", "default")}
                 ${_formatPrice(defaults[1])}
               </span>`
@@ -28614,7 +33315,7 @@ function _renderPricingCard(host) {
 
       ${
         editing
-          ? b2`
+          ? x`
             <div class="usage-pricing-edit">
               <ha-textfield
                 label=${host._t(
@@ -28625,10 +33326,10 @@ function _renderPricingCard(host) {
                 step="0.01"
                 min="0"
                 .value=${String(host._pricingEdit.input ?? "")}
-                @input=${(e5) => {
+                @input=${(e6) => {
                   host._pricingEdit = {
                     ...host._pricingEdit,
-                    input: e5.target.value,
+                    input: e6.target.value,
                   };
                 }}
                 style="flex:1;min-width:120px;"
@@ -28642,10 +33343,10 @@ function _renderPricingCard(host) {
                 step="0.01"
                 min="0"
                 .value=${String(host._pricingEdit.output ?? "")}
-                @input=${(e5) => {
+                @input=${(e6) => {
                   host._pricingEdit = {
                     ...host._pricingEdit,
-                    output: e5.target.value,
+                    output: e6.target.value,
                   };
                 }}
                 style="flex:1;min-width:120px;"
@@ -28676,7 +33377,7 @@ function _renderPricingCard(host) {
               </div>
             </div>
           `
-          : b2`
+          : x`
             <div class="usage-pricing-actions">
               <button
                 class="btn btn-outline"
@@ -28708,7 +33409,7 @@ function _renderPricingCard(host) {
               </button>
               ${
                 override
-                  ? b2`
+                  ? x`
                     <button
                       class="btn btn-outline"
                       @click=${() => _clearPricingOverride(host, provider, model)}
@@ -28764,9 +33465,9 @@ function renderUsage(host) {
     null;
   const filteredRecent = recent
     ? recent.filter(
-        (e5) =>
-          (!filter.provider || e5.provider === filter.provider) &&
-          (filter.model == null || (e5.model || "") === filter.model),
+        (e6) =>
+          (!filter.provider || e6.provider === filter.provider) &&
+          (filter.model == null || (e6.model || "") === filter.model),
       )
     : null;
   const breakdown = filteredRecent
@@ -28778,13 +33479,13 @@ function renderUsage(host) {
     ? breakdown.reduce((sum, g2) => sum + g2.cost_usd, 0)
     : 0;
   const bufTokensIn = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.input_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.input_tokens, 0)
     : 0;
   const bufTokensOut = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.output_tokens, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.output_tokens, 0)
     : 0;
   const bufCalls = breakdown
-    ? breakdown.reduce((s4, g2) => s4 + g2.calls, 0)
+    ? breakdown.reduce((s6, g2) => s6 + g2.calls, 0)
     : 0;
   let dispTokensIn;
   let dispTokensOut;
@@ -28797,9 +33498,9 @@ function renderUsage(host) {
     dispTokensOut = t4.output || 0;
     dispCalls = t4.calls || 0;
     dispCost = t4.cost_usd || 0;
-    const p4 = filteredTotals.periods || {};
+    const p2 = filteredTotals.periods || {};
     const pick = (k2) => {
-      const v2 = p4[k2] || {};
+      const v2 = p2[k2] || {};
       return {
         llm_tokens_in: v2.input || 0,
         llm_tokens_out: v2.output || 0,
@@ -28830,7 +33531,7 @@ function renderUsage(host) {
   const filterChips =
     providerOptions.length === 0
       ? ""
-      : b2`
+      : x`
           <div class="usage-snippet-pills" style="margin-bottom:12px;">
             <button
               class="usage-snippet-pill ${!filter.provider ? "active" : ""}"
@@ -28839,19 +33540,19 @@ function renderUsage(host) {
               ${host._t("usage_filter_all_providers", "All providers")}
             </button>
             ${providerOptions.map(
-              (p4) => b2`
+              (p2) => x`
                 <button
-                  class="usage-snippet-pill ${filter.provider === p4 && filter.model == null ? "active" : ""}"
-                  @click=${() => setFilter(p4, null)}
+                  class="usage-snippet-pill ${filter.provider === p2 && filter.model == null ? "active" : ""}"
+                  @click=${() => setFilter(p2, null)}
                 >
-                  ${_providerLabel(p4)}
+                  ${_providerLabel(p2)}
                 </button>
               `,
             )}
           </div>
           ${
             filter.provider && modelOptions.length > 1
-              ? b2`
+              ? x`
                 <div class="usage-snippet-pills" style="margin-bottom:12px;">
                   <button
                     class="usage-snippet-pill ${filter.model == null ? "active" : ""}"
@@ -28860,12 +33561,12 @@ function renderUsage(host) {
                     ${host._t("usage_filter_all_models", "All models")}
                   </button>
                   ${modelOptions.map(
-                    (m3) => b2`
+                    (m2) => x`
                       <button
-                        class="usage-snippet-pill ${filter.model === m3 ? "active" : ""}"
-                        @click=${() => setFilter(filter.provider, m3)}
+                        class="usage-snippet-pill ${filter.model === m2 ? "active" : ""}"
+                        @click=${() => setFilter(filter.provider, m2)}
                       >
-                        ${m3 || host._t("usage_filter_no_model", "(no model)")}
+                        ${m2 || host._t("usage_filter_no_model", "(no model)")}
                       </button>
                     `,
                   )}
@@ -28874,14 +33575,14 @@ function renderUsage(host) {
               : ""
           }
         `;
-  return b2`
+  return x`
     <div class="scroll-view">
       <div class="usage-view">
         <a
           class="usage-crumb"
           href="#"
-          @click=${(e5) => {
-            e5.preventDefault();
+          @click=${(e6) => {
+            e6.preventDefault();
             host._setActiveTab("settings");
             host.requestUpdate();
           }}
@@ -28893,7 +33594,7 @@ function renderUsage(host) {
           <h2>${host._t("usage_token_usage_title", "Token usage")}</h2>
           ${
             lastProvider
-              ? b2`
+              ? x`
                 <span class="usage-subtitle">
                   ${lastProvider}${lastModel ? ` \xB7 ${lastModel}` : ""}
                 </span>
@@ -28905,7 +33606,7 @@ function renderUsage(host) {
         ${filterChips}
         ${
           sensorsMissing && recent !== null && recent.length === 0
-            ? b2`
+            ? x`
               <div class="section-card usage-empty">
                 <ha-icon
                   icon="mdi:information-outline"
@@ -28927,10 +33628,10 @@ function renderUsage(host) {
                 </div>
               </div>
             `
-            : b2`
+            : x`
               ${
                 hasTotals
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>${host._t("usage_totals_title", "Totals")}</h3>
@@ -28970,7 +33671,7 @@ function renderUsage(host) {
               }
               ${
                 !sensorsMissing || filterActive
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -29024,7 +33725,7 @@ function renderUsage(host) {
                 </div>
                 ${
                   filteredRecent && filteredRecent.length > 0
-                    ? b2`
+                    ? x`
                       <div
                         class="usage-snippet-pills"
                         style="margin-bottom:12px;"
@@ -29056,11 +33757,11 @@ function renderUsage(host) {
                 }
                 ${
                   filteredRecent === null
-                    ? b2`<div class="usage-period-loading">
+                    ? x`<div class="usage-period-loading">
                       ${host._t("usage_loading", "Loading\u2026")}
                     </div>`
                     : filteredRecent.length === 0
-                      ? b2`<div class="usage-period-empty">
+                      ? x`<div class="usage-period-empty">
                         ${host._t(
                           "usage_no_calls_recorded",
                           "No calls recorded yet.",
@@ -29072,7 +33773,7 @@ function renderUsage(host) {
 
               ${
                 filteredRecent && filteredRecent.length > 0
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -29087,7 +33788,7 @@ function renderUsage(host) {
               ${_renderPricingCard(host)}
               ${
                 sensorsMissing
-                  ? b2`
+                  ? x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -29109,7 +33810,7 @@ function renderUsage(host) {
                       </p>
                     </div>
                   `
-                  : b2`
+                  : x`
                     <div class="section-card">
                       <div class="section-card-header">
                         <h3>
@@ -29136,30 +33837,6178 @@ function renderUsage(host) {
   `;
 }
 
+// node_modules/lit-html/directives/unsafe-html.js
+var e5 = class extends i3 {
+  constructor(i5) {
+    if ((super(i5), (this.et = A), i5.type !== t3.CHILD))
+      throw Error(
+        this.constructor.directiveName +
+          "() can only be used in child bindings",
+      );
+  }
+  render(r4) {
+    if (r4 === A || null == r4) return ((this.ft = void 0), (this.et = r4));
+    if (r4 === T) return r4;
+    if ("string" != typeof r4)
+      throw Error(
+        this.constructor.directiveName + "() called with a non-string value",
+      );
+    if (r4 === this.et) return this.ft;
+    this.et = r4;
+    const s6 = [r4];
+    return (
+      (s6.raw = s6),
+      (this.ft = {
+        _$litType$: this.constructor.resultType,
+        strings: s6,
+        values: [],
+      })
+    );
+  }
+};
+((e5.directiveName = "unsafeHTML"), (e5.resultType = 1));
+var o5 = e4(e5);
+
+// src/panel/render-recipes.js
+var _ACCEPTED_SUFFIXES = [".tar.gz", ".tgz", ".zip"];
+var _DOMAIN_ICON = {
+  light: "mdi:lightbulb",
+  switch: "mdi:toggle-switch",
+  cover: "mdi:garage",
+  lock: "mdi:lock",
+  climate: "mdi:thermostat",
+  fan: "mdi:fan",
+  media_player: "mdi:speaker",
+  camera: "mdi:cctv",
+  vacuum: "mdi:robot-vacuum",
+  binary_sensor: "mdi:gesture-tap-button",
+  sensor: "mdi:gauge",
+  input_boolean: "mdi:toggle-switch-outline",
+  input_number: "mdi:counter",
+  input_text: "mdi:form-textbox",
+  input_select: "mdi:format-list-bulleted",
+  person: "mdi:account",
+  device_tracker: "mdi:map-marker",
+  zone: "mdi:map",
+};
+var _DEVICE_CLASS_ICON = {
+  moisture: "mdi:water-alert",
+  water: "mdi:water-alert",
+  door: "mdi:door",
+  window: "mdi:window-open-variant",
+  motion: "mdi:motion-sensor",
+  smoke: "mdi:smoke-detector",
+  temperature: "mdi:thermometer",
+  humidity: "mdi:water-percent",
+  battery: "mdi:battery",
+  power: "mdi:flash",
+  illuminance: "mdi:brightness-5",
+};
+function _domainOf2(entityId) {
+  const dot = entityId.indexOf(".");
+  return dot > 0 ? entityId.slice(0, dot) : "";
+}
+function _entityIcon2(hass, entityId) {
+  const state = hass?.states?.[entityId];
+  if (state?.attributes?.icon) return state.attributes.icon;
+  const dc = state?.attributes?.device_class;
+  if (dc && _DEVICE_CLASS_ICON[dc]) return _DEVICE_CLASS_ICON[dc];
+  return _DOMAIN_ICON[_domainOf2(entityId)] || "mdi:cube-outline";
+}
+function _entityFriendlyName(hass, entityId) {
+  const state = hass?.states?.[entityId];
+  const name = state?.attributes?.friendly_name;
+  const objectId = entityId.includes(".")
+    ? entityId.slice(entityId.indexOf(".") + 1)
+    : entityId;
+  return name || objectId.replace(/_/g, " ");
+}
+var _YAML_ESCAPE_RE = /[&<>]/g;
+var _YAML_ESC = { "&": "&amp;", "<": "&lt;", ">": "&gt;" };
+function _escape(s6) {
+  return s6.replace(_YAML_ESCAPE_RE, (c3) => _YAML_ESC[c3]);
+}
+function _highlightYamlValue(rest) {
+  const out = [];
+  let i5 = 0;
+  while (i5 < rest.length) {
+    if (rest[i5] === "{" && rest[i5 + 1] === "{") {
+      const end = rest.indexOf("}}", i5 + 2);
+      if (end !== -1) {
+        out.push(`<span class="yp">${_escape(rest.slice(i5, end + 2))}</span>`);
+        i5 = end + 2;
+        continue;
+      }
+    }
+    if (rest[i5] === '"' || rest[i5] === "'") {
+      const quote = rest[i5];
+      let end = i5 + 1;
+      while (end < rest.length && rest[end] !== quote) end++;
+      out.push(`<span class="ys">${_escape(rest.slice(i5, end + 1))}</span>`);
+      i5 = end + 1;
+      continue;
+    }
+    out.push(_escape(rest[i5]));
+    i5++;
+  }
+  let joined = out.join("");
+  const bareValue = rest.trim();
+  if (/^-?\d+(?:\.\d+)?$/.test(bareValue)) {
+    joined = joined.replace(
+      _escape(bareValue),
+      `<span class="yn">${_escape(bareValue)}</span>`,
+    );
+  } else if (
+    bareValue === "true" ||
+    bareValue === "false" ||
+    bareValue === "null" ||
+    bareValue === "~"
+  ) {
+    joined = joined.replace(
+      _escape(bareValue),
+      `<span class="yb">${_escape(bareValue)}</span>`,
+    );
+  }
+  return joined;
+}
+function _highlightYaml2(text) {
+  if (!text) return "";
+  return text
+    .split("\n")
+    .map((line) => {
+      const commentIdx = line.indexOf("#");
+      const indent = line.match(/^\s*/)[0];
+      const body = line.slice(indent.length);
+      if (body.startsWith("#")) {
+        return _escape(indent) + `<span class="yc">${_escape(body)}</span>`;
+      }
+      if (body.startsWith("- ") || body === "-") {
+        const rest = body.slice(2);
+        return (
+          _escape(indent) +
+          `<span class="yd">-</span> ` +
+          _highlightYamlValue(rest)
+        );
+      }
+      const m2 = body.match(/^([^\s:#][^:]*?):(\s*)(.*)$/);
+      if (m2) {
+        const [, key, sp, val] = m2;
+        let valOut = val;
+        let trailing = "";
+        const cIdx = val.indexOf("#");
+        if (cIdx !== -1 && val.slice(0, cIdx).split("'").length % 2 === 1) {
+          valOut = val.slice(0, cIdx).trimEnd();
+          trailing = ` <span class="yc">${_escape(val.slice(cIdx))}</span>`;
+        }
+        return (
+          _escape(indent) +
+          `<span class="yk">${_escape(key)}</span>:${sp}` +
+          (valOut ? _highlightYamlValue(valOut) : "") +
+          trailing
+        );
+      }
+      return _escape(line);
+    })
+    .join("\n");
+}
+function _hasAcceptedSuffix(name) {
+  const lower = (name || "").toLowerCase();
+  return _ACCEPTED_SUFFIXES.some((s6) => lower.endsWith(s6));
+}
+var _STYLE = x`
+  <style>
+    /* Type scale. The --selora-fs-* tokens are referenced throughout
+       this stylesheet but were never defined globally, so every
+       size silently fell back to the same inherited body size and
+       the visual hierarchy collapsed (chips looked the same size as
+       prose, "NEEDS YOU" pills looked too big). Defining them once
+       at the wizard's outermost containers cascades the scale to
+       every descendant. */
+    .recipes-root,
+    .scroll-view {
+      --selora-fs-micro: 10px;
+      --selora-fs-xs: 12px;
+      --selora-fs-sm: 13px;
+      --selora-fs-md: 14px;
+      --selora-fs-md-lg: 15px;
+      --selora-fs-lg: 17px;
+      --selora-fs-xl: 20px;
+      --selora-fs-2xl: 24px;
+      --selora-fs-3xl: 30px;
+    }
+    .recipes-root {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      max-width: 920px;
+    }
+    .install-card {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      padding: 20px;
+      border: 1px solid var(--divider-color);
+      border-top: none;
+      border-radius: 0 0 14px 14px;
+      background: var(--card-background-color);
+    }
+    /* Secondary "add a recipe from elsewhere" affordance. Collapsed by
+       default so the catalog is the focus; expands on click. */
+    .install-disclosure {
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+    }
+    .install-disclosure[open] {
+      background: transparent;
+    }
+    .install-disclosure-summary {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 20px;
+      cursor: pointer;
+      list-style: none;
+      user-select: none;
+      font-size: var(--selora-fs-md-lg);
+      font-weight: 600;
+      color: var(--primary-text-color);
+    }
+    .install-disclosure-summary::-webkit-details-marker {
+      display: none;
+    }
+    .install-disclosure-summary > ha-icon:first-child {
+      --mdc-icon-size: 18px;
+      color: var(--selora-accent);
+    }
+    .install-disclosure-hint {
+      font-size: var(--selora-fs-sm);
+      font-weight: 400;
+      color: var(--secondary-text-color);
+    }
+    .install-disclosure-chevron {
+      --mdc-icon-size: 20px;
+      color: var(--secondary-text-color);
+      margin-left: auto;
+      transition: transform 150ms ease;
+    }
+    .install-disclosure[open] .install-disclosure-chevron {
+      transform: rotate(180deg);
+    }
+    @media (max-width: 640px) {
+      .install-disclosure-hint {
+        display: none;
+      }
+      /* Stack the card body above its actions so the title/description get
+         the full width instead of being squeezed into a sliver beside the
+         buttons. */
+      .recipe-card-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .recipe-card-actions {
+        flex-wrap: wrap;
+      }
+    }
+    /* Same stacking when HA reports the panel itself as narrow (side panel),
+       independent of viewport width. */
+    :host([narrow]) .recipe-card-row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+    :host([narrow]) .recipe-card-actions {
+      flex-wrap: wrap;
+    }
+    /* Local-prefixed so this doesn't pick up the panel toolbar's
+       golden gradient line — that one is keyed on the global .header
+       class and was leaking into this card's title block. */
+    .install-card-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .install-card-title {
+      font-size: var(--selora-fs-lg);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .install-card-subtitle {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+    }
+    .install-source-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--secondary-text-color);
+      margin-bottom: 6px;
+    }
+    .install-source-label ha-icon {
+      --mdc-icon-size: 16px;
+      color: var(--selora-accent);
+    }
+    .install-url-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .install-url-input {
+      flex: 1;
+      padding: 10px 12px;
+      border: 1px solid var(--selora-inner-card-border);
+      border-radius: 10px;
+      background: var(--selora-inner-card-bg);
+      color: var(--primary-text-color);
+      font-size: var(--selora-fs-md);
+    }
+    .install-url-input:focus {
+      outline: none;
+      border-color: var(--selora-accent);
+    }
+    .install-or-divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 2px 0;
+    }
+    .install-or-divider::before,
+    .install-or-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--divider-color);
+    }
+    .install-or-text {
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      color: var(--secondary-text-color);
+    }
+    .install-dropzone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 28px 20px;
+      border: 1.5px dashed var(--selora-inner-card-border);
+      border-radius: 10px;
+      background: var(--selora-inner-card-bg);
+      text-align: center;
+      cursor: pointer;
+      transition:
+        border-color 120ms ease,
+        background 120ms ease,
+        transform 120ms ease;
+    }
+    .install-dropzone:hover {
+      border-color: var(--selora-accent);
+      background: color-mix(
+        in srgb,
+        var(--selora-accent) 6%,
+        var(--selora-inner-card-bg)
+      );
+    }
+    .install-dropzone.is-drag {
+      border-style: solid;
+      border-color: var(--selora-accent);
+      background: color-mix(
+        in srgb,
+        var(--selora-accent) 14%,
+        var(--selora-inner-card-bg)
+      );
+      transform: scale(1.005);
+    }
+    .install-dropzone.is-busy {
+      cursor: progress;
+      opacity: 0.75;
+    }
+    .install-dropzone-icon {
+      --mdc-icon-size: 30px;
+      color: var(--selora-accent);
+    }
+    .install-dropzone-title {
+      font-size: var(--selora-fs-md-lg);
+      font-weight: 600;
+      color: var(--primary-text-color);
+    }
+    .install-dropzone-hint {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+    }
+    .install-dropzone-hint code {
+      background: color-mix(in srgb, var(--primary-text-color) 8%, transparent);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 10.5px;
+    }
+    .install-error {
+      font-size: var(--selora-fs-sm);
+      color: var(--error-color, #c62828);
+      padding: 10px 12px;
+      background: color-mix(
+        in srgb,
+        var(--error-color, #c62828) 10%,
+        transparent
+      );
+      border: 1px solid
+        color-mix(in srgb, var(--error-color, #c62828) 28%, transparent);
+      border-radius: 8px;
+    }
+    .recipes-section-title {
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--secondary-text-color);
+    }
+    .recipes-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .recipes-h1 {
+      font-size: var(--selora-fs-3xl);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .recipes-empty {
+      padding: 22px;
+      text-align: center;
+      font-size: var(--selora-fs-md);
+      color: var(--secondary-text-color);
+      border: 1px dashed var(--divider-color);
+      border-radius: 12px;
+    }
+    .recipe-card {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 16px 18px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+    }
+    .recipe-card-row {
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+    .recipe-card-body {
+      flex: 1;
+      min-width: 0;
+    }
+    /* Expandable "what got installed" panel. Native <details> so it
+       needs no panel state; the summary row is the toggle. */
+    .recipe-details {
+      border-top: 1px solid var(--divider-color);
+      margin-top: 2px;
+    }
+    .recipe-details-summary {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding-top: 12px;
+      list-style: none;
+      cursor: pointer;
+      user-select: none;
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      color: var(--selora-accent);
+    }
+    .recipe-details-summary::-webkit-details-marker {
+      display: none;
+    }
+    .recipe-details-summary ha-icon {
+      --mdc-icon-size: 16px;
+      transition: transform 150ms ease;
+    }
+    /* Child combinator so an open parent doesn't rotate the nested
+       "View package file" chevron too. */
+    .recipe-details[open] > .recipe-details-summary ha-icon {
+      transform: rotate(180deg);
+    }
+    .recipe-package-view {
+      margin-top: 8px;
+    }
+    .recipe-package-view[open] > .recipe-details-summary ha-icon {
+      transform: rotate(180deg);
+    }
+    .recipe-package-view .yaml-preview {
+      margin-top: 8px;
+      max-height: 340px;
+      overflow: auto;
+    }
+    .recipe-details-grid {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px 18px;
+      padding: 14px 2px 4px;
+      align-items: start;
+    }
+    .recipe-details-key {
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      padding-top: 2px;
+    }
+    .recipe-details-val {
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+      line-height: 1.5;
+      min-width: 0;
+    }
+    .recipe-details-path {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .recipe-details-path code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: var(--selora-fs-xs);
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      border-radius: 6px;
+      padding: 3px 7px;
+      word-break: break-all;
+    }
+    .recipe-details-copy {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--secondary-text-color);
+      padding: 2px;
+      display: inline-flex;
+    }
+    .recipe-details-copy:hover {
+      color: var(--selora-accent);
+    }
+    .recipe-details-copy ha-icon {
+      --mdc-icon-size: 15px;
+    }
+    .recipe-details-binding {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-bottom: 6px;
+    }
+    .recipe-details-binding:last-child {
+      margin-bottom: 0;
+    }
+    .recipe-details-role {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+    }
+    .recipe-details-entities {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .recipe-details-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      font-size: var(--selora-fs-xs);
+      color: var(--primary-text-color);
+    }
+    .recipe-details-chip ha-icon {
+      --mdc-icon-size: 13px;
+      color: var(--selora-accent);
+    }
+    .recipe-details-empty {
+      color: var(--secondary-text-color);
+      font-style: italic;
+    }
+    .recipe-card-title {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      font-size: var(--selora-fs-lg);
+      font-weight: 700;
+      color: var(--primary-text-color);
+      margin-bottom: 2px;
+    }
+    .recipe-card-meta {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+    }
+    .recipe-card-desc {
+      font-size: var(--selora-fs-md);
+      color: var(--primary-text-color);
+      margin-top: 8px;
+      line-height: 1.45;
+    }
+    /* Installed cards are compact: the description lives inside the
+       expandable Details panel rather than always-on in the card body. */
+    .recipe-details-desc {
+      margin: 4px 0 12px;
+    }
+    .recipe-card-actions {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    /* Recipe-list cards pack several action buttons in a row; the
+       shared .btn rule doesn't constrain ha-icon size, so an icon
+       button (24px MDC default) ends up visibly taller than a
+       text-only one. Pin a consistent height and cap the icon glyph
+       to text size. */
+    .recipe-card-actions .btn {
+      min-height: 38px;
+      min-width: 104px;
+      justify-content: center;
+      padding-top: 8px;
+      padding-bottom: 8px;
+    }
+    .recipe-card-actions .btn ha-icon {
+      --mdc-icon-size: 16px;
+    }
+    /* Catalog (CDN-fetched recipes) — distinct visual treatment from
+       locally-bundled "Available" recipes so users can tell them
+       apart. Grid of cards with a search box at the top. */
+    .catalog-section {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .icon-spin {
+      animation: pi-spin 1s linear infinite;
+    }
+    .recipes-intro {
+      margin: -6px 0 4px;
+      font-size: var(--selora-fs-md);
+      color: var(--secondary-text-color);
+      line-height: 1.6;
+      max-width: 70ch;
+    }
+    .catalog-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    .catalog-override-banner {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: color-mix(in srgb, #06b6d4 14%, transparent);
+      color: #06b6d4;
+      font-size: 12px;
+    }
+    .catalog-override-banner ha-icon {
+      --mdc-icon-size: 14px;
+    }
+    .catalog-override-banner code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      color: var(--primary-text-color);
+    }
+    .catalog-loading,
+    .catalog-error {
+      padding: 18px;
+      border: 1px dashed var(--divider-color);
+      border-radius: 10px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-size: 13px;
+    }
+    .catalog-error {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-color: color-mix(in srgb, #ef4444 32%, transparent);
+      color: #ef4444;
+    }
+    .catalog-error ha-icon {
+      --mdc-icon-size: 18px;
+    }
+    .catalog-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+      align-items: stretch;
+    }
+    /* Featured strip: the prominent "highlighted" cards. With 2 items this
+       lays out 2-across on a wide panel and stacks on narrow. */
+    .catalog-grid-featured {
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+    }
+    .catalog-card-featured {
+      border-color: color-mix(
+        in srgb,
+        var(--selora-accent) 35%,
+        var(--divider-color)
+      );
+    }
+    .catalog-pagination {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      margin-top: 18px;
+    }
+    .catalog-page-indicator {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+      min-width: 84px;
+      text-align: center;
+    }
+    .catalog-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 20px;
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+      transition:
+        border-color 140ms ease,
+        transform 140ms ease,
+        box-shadow 140ms ease;
+    }
+    .catalog-card:hover {
+      border-color: color-mix(in srgb, var(--selora-accent) 50%, transparent);
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px
+        color-mix(in srgb, var(--selora-accent) 10%, transparent);
+    }
+    .catalog-card-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .catalog-card-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 11px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: color-mix(in srgb, var(--selora-accent) 16%, transparent);
+    }
+    .catalog-card-icon ha-icon {
+      --mdc-icon-size: 24px;
+      color: var(--selora-accent);
+    }
+    .catalog-card-title {
+      font-size: 17px;
+      font-weight: 700;
+      line-height: 1.25;
+      color: var(--primary-text-color);
+      margin-top: 2px;
+    }
+    .catalog-card-category {
+      flex-shrink: 0;
+      padding: 3px 9px;
+      border-radius: 999px;
+      background: color-mix(in srgb, #06b6d4 16%, transparent);
+      color: #06b6d4;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .catalog-card-meta {
+      font-size: 11px;
+      color: var(--secondary-text-color);
+    }
+    .catalog-card-desc {
+      font-size: 13px;
+      color: var(--secondary-text-color);
+      line-height: 1.55;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .catalog-card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .catalog-tag {
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-size: 11px;
+    }
+    .catalog-card-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: auto;
+      padding-top: 8px;
+    }
+    .catalog-install-btn {
+      width: 100%;
+      justify-content: center;
+    }
+    .catalog-installed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 16%,
+        transparent
+      );
+      color: var(--success-color, #2e7d32);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .catalog-installed-badge ha-icon {
+      --mdc-icon-size: 12px;
+    }
+    .recipe-installed-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 14%,
+        transparent
+      );
+      color: var(--success-color, #2e7d32);
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    /* Surfaces an in-progress wizard draft for an uninstalled recipe.
+       Uses a cool blue rather than the brand amber so it doesn't get
+       confused with the "Installed" badge — they communicate very
+       different things. */
+    .recipe-draft-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, #06b6d4 16%, transparent);
+      color: #06b6d4;
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .wizard-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--selora-accent);
+      cursor: pointer;
+      font-size: var(--selora-fs-sm);
+      background: none;
+      border: none;
+      padding: 0;
+      align-self: flex-start;
+    }
+    /* Two-pane layout: main content on the left, "What you need" on
+       the right. Stacks on narrow viewports so the rail drops below
+       the main pane. */
+    .wizard-root {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 360px;
+      gap: 24px;
+      align-items: start;
+    }
+    @media (max-width: 1100px) {
+      .wizard-root {
+        grid-template-columns: 1fr;
+      }
+    }
+    .wizard-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      padding: 24px 28px;
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+      min-width: 0;
+    }
+    .wizard-hero {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .wizard-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      color: var(--selora-accent);
+      text-transform: uppercase;
+    }
+    .wizard-eyebrow ha-icon {
+      --mdc-icon-size: 16px;
+    }
+    .wizard-eyebrow-meta {
+      color: var(--secondary-text-color);
+      font-weight: 600;
+      letter-spacing: 0.06em;
+    }
+    .wizard-hero {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    /* Eyebrow row mirrors the website: small caps RECIPE pill in
+       amber, version + released date in muted grey. */
+    .wizard-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .wizard-eyebrow ha-icon {
+      --mdc-icon-size: 14px;
+      color: var(--selora-accent);
+    }
+    .wizard-eyebrow-tag {
+      color: var(--selora-accent);
+    }
+    .wizard-eyebrow-sep {
+      opacity: 0.5;
+    }
+    .wizard-eyebrow-meta {
+      letter-spacing: 0.08em;
+    }
+    .wizard-hero-title {
+      /* Concrete fallback for the undefined --selora-fs token. Sized
+         to match the website detail-page hero so the wizard reads as
+         the same product surface. */
+      font-size: 38px;
+      font-weight: 800;
+      color: var(--primary-text-color);
+      line-height: 1.1;
+      letter-spacing: -0.02em;
+      margin: 4px 0 0;
+    }
+    .wizard-hero-tagline {
+      font-size: 16px;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+      max-width: 60ch;
+    }
+    .wizard-hero-description {
+      font-size: 14px;
+      color: var(--primary-text-color);
+      line-height: 1.65;
+      max-width: 70ch;
+      padding-top: 8px;
+      border-top: 1px solid var(--divider-color);
+    }
+    /* First tag (a thematic "primary" category like Safety / Routine)
+       lights up in amber with a bookmark icon, matching the website's
+       detail-page hero. The rest stay muted to read as secondary tags. */
+    .wizard-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .wizard-tag ha-icon {
+      --mdc-icon-size: 12px;
+    }
+    .wizard-tag.primary {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      border-color: color-mix(in srgb, var(--selora-accent) 40%, transparent);
+      color: var(--selora-accent);
+    }
+    .wizard-hero-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 4px;
+    }
+    .wizard-tag {
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      color: var(--secondary-text-color);
+      font-size: var(--selora-fs-xs);
+      font-weight: 600;
+    }
+    .wizard-tag.primary {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      border-color: var(--selora-accent);
+      color: var(--selora-accent);
+    }
+    .wizard-prose {
+      font-size: var(--selora-fs-md);
+      color: var(--primary-text-color);
+      line-height: 1.65;
+    }
+    .wizard-section-title {
+      margin: 0 0 12px;
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .wizard-inputs {
+      display: flex;
+      flex-direction: column;
+    }
+    .wizard-action-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding-top: 14px;
+      border-top: 1px solid var(--divider-color);
+    }
+    .wizard-action-footer-status {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+    }
+    /* Wizard layout: main content on the left, vertical progress
+       rail on the right. min-width:0 on the main column prevents
+       intrinsic-content sizing from leaking up (without it, a wide
+       chip row inside the detail panel would push the table wider). */
+    .wizard-root {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) 240px;
+      gap: 24px;
+      align-items: start;
+      width: 100%;
+    }
+    @media (max-width: 900px) {
+      .wizard-root {
+        grid-template-columns: 1fr;
+      }
+    }
+    .wizard-main {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .wizard-main > * {
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    /* Step 1 (Overview) gets a wider right column for the
+       "What you need" rail; the per-requirement cards have prose
+       that needs room. The other steps use the slimmer rail width
+       set by the default grid-template-columns. */
+    .wizard-root-overview {
+      grid-template-columns: minmax(0, 1fr) 340px;
+    }
+    /* On Step 1 the hero is the page itself — no card chrome around
+       it. The only card on this screen is the "What you need" rail
+       on the right. Matches the selorahomes.com detail-page layout
+       where the hero reads as bare text and the buttons sit free
+       below it. */
+    .wizard-root-overview .wizard-header {
+      border: none;
+      background: transparent;
+      padding: 0 4px;
+    }
+    /* Step heading rendered at the top of each step's body. Gives the
+       user a clear answer to "which step am I on and what's expected
+       of me" without needing to glance at the Progress rail. */
+    .step-heading {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin: 4px 0 2px;
+    }
+    .step-heading-eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .step-heading-num {
+      color: var(--secondary-text-color);
+    }
+    .step-heading-required,
+    .step-heading-optional {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+    }
+    .step-heading-required {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      color: var(--selora-accent);
+    }
+    .step-heading-optional {
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+    }
+    .step-heading-title {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      letter-spacing: -0.01em;
+      line-height: 1.2;
+    }
+    .step-heading-sub {
+      margin: 2px 0 0;
+      font-size: 14px;
+      color: var(--secondary-text-color);
+      line-height: 1.55;
+      max-width: 64ch;
+    }
+
+    /* Compact header for Steps 2-5: one-line strip with back arrow +
+       recipe title + version. Free of card chrome so the workspace
+       below (table, buckets, etc.) is the visual focus. Specificity
+       bump (.wizard-header.wizard-header-compact) so we override the
+       base .wizard-header rules that live later in this stylesheet —
+       otherwise the card border, background, and column flex direction
+       leak back in. */
+    .wizard-header.wizard-header-compact {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      padding: 6px 4px 14px;
+      border: none;
+      background: transparent;
+      border-bottom: 1px solid var(--divider-color);
+      border-radius: 0;
+      margin-bottom: 4px;
+    }
+    .wizard-back-compact {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      border: 1px solid var(--divider-color);
+      background: transparent;
+      color: var(--primary-text-color);
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: border-color 120ms ease;
+    }
+    .wizard-back-compact:hover {
+      border-color: var(--selora-accent);
+      color: var(--selora-accent);
+    }
+    .wizard-back-compact ha-icon {
+      --mdc-icon-size: 18px;
+    }
+    .wizard-compact-meta {
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+      min-width: 0;
+    }
+    .wizard-compact-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      letter-spacing: -0.01em;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .wizard-compact-version {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      letter-spacing: 0.04em;
+    }
+    /* "What you need" rail — one card per integration + role. */
+    .need-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px;
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+    }
+    @media (max-width: 900px) {
+      .need-rail {
+        position: static;
+      }
+    }
+    .need-rail-title {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      margin-bottom: 6px;
+    }
+    .need-rail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .need-rail-eyebrow {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      margin-top: 8px;
+    }
+    .need-card {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 12px;
+      padding: 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+    }
+    .need-card-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 9px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .need-card-icon ha-icon {
+      --mdc-icon-size: 20px;
+    }
+    /* Category palette for "What you need" cards. Mirrors the
+       selorahomes.com detail page: each kind of requirement has its
+       own hue so the homeowner can scan-distinguish them quickly. */
+    .need-card-icon--integration {
+      background: color-mix(in srgb, var(--selora-accent) 18%, transparent);
+    }
+    .need-card-icon--integration ha-icon {
+      color: var(--selora-accent);
+    }
+    .need-card-icon--role {
+      background: color-mix(in srgb, #06b6d4 18%, transparent);
+    }
+    .need-card-icon--role ha-icon {
+      color: #06b6d4;
+    }
+    .need-card-icon--pin {
+      background: color-mix(in srgb, #10b981 18%, transparent);
+    }
+    .need-card-icon--pin ha-icon {
+      color: #10b981;
+    }
+    .need-card-icon--region {
+      background: color-mix(in srgb, #f43f5e 18%, transparent);
+    }
+    .need-card-icon--region ha-icon {
+      color: #f43f5e;
+    }
+    .need-card-body {
+      min-width: 0;
+    }
+    .need-card-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      line-height: 1.3;
+    }
+    .need-card-meta {
+      font-size: 11px;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+      letter-spacing: 0.02em;
+    }
+    .need-card-desc {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+      margin-top: 4px;
+    }
+
+    /* Vertical step rail */
+    .step-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px 16px;
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+      position: sticky;
+      top: 12px;
+    }
+    @media (max-width: 900px) {
+      .step-rail {
+        position: static;
+      }
+    }
+    .step-rail-title {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      padding-left: 8px;
+    }
+    .step-rail-list {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .step-rail-row {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: none;
+      background: transparent;
+      color: var(--secondary-text-color);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-align: left;
+      cursor: default;
+    }
+    .step-rail-row:not([disabled]) {
+      cursor: pointer;
+    }
+    .step-rail-row:not([disabled]):hover {
+      background: var(--secondary-background-color);
+    }
+    .step-rail-icon {
+      --mdc-icon-size: 18px;
+      color: var(--secondary-text-color);
+    }
+    .step-rail-num {
+      width: 18px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+      font-size: 12px;
+      opacity: 0.7;
+    }
+    .step-rail-label {
+      color: var(--secondary-text-color);
+    }
+    .step-current {
+      background: color-mix(in srgb, var(--selora-accent) 12%, transparent);
+    }
+    .step-current .step-rail-icon,
+    .step-current .step-rail-label,
+    .step-current .step-rail-num {
+      color: var(--selora-accent);
+      opacity: 1;
+    }
+    .step-done .step-rail-icon {
+      color: var(--success-color, #2e7d32);
+    }
+    .step-done .step-rail-label,
+    .step-done .step-rail-num {
+      color: var(--primary-text-color);
+      opacity: 0.85;
+    }
+    .step-future .step-rail-icon,
+    .step-future .step-rail-label,
+    .step-future .step-rail-num {
+      opacity: 0.5;
+    }
+    .wizard-header {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 32px 36px 30px;
+      border: 1px solid var(--divider-color);
+      border-radius: 16px;
+      background: var(--card-background-color);
+      box-sizing: border-box;
+    }
+    .pi-board {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 1000px) {
+      .pi-board {
+        grid-template-columns: 1fr;
+      }
+    }
+    .pi-stage {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      border-radius: 12px;
+      border: 1px solid var(--divider-color);
+      background: var(--card-background-color);
+      min-width: 0;
+    }
+    .pi-stage-head {
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .pi-stage-ok .pi-stage-head {
+      color: var(--success-color, #2e7d32);
+    }
+    .pi-stage-failed .pi-stage-head {
+      color: #ef4444;
+    }
+    .pi-stage-items {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .pi-row {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 10px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid transparent;
+      background: var(--secondary-background-color);
+      cursor: pointer;
+      text-align: left;
+      font-family: inherit;
+      color: var(--primary-text-color);
+      transition:
+        background 120ms ease,
+        border-color 120ms ease;
+    }
+    .pi-row:hover {
+      border-color: var(--divider-color);
+    }
+    .pi-row.is-active {
+      border-color: var(--selora-accent);
+      background: color-mix(in srgb, var(--selora-accent) 10%, transparent);
+    }
+    .pi-status-icon {
+      --mdc-icon-size: 18px;
+      flex-shrink: 0;
+    }
+    .pi-row.pi-ok .pi-status-icon {
+      color: var(--success-color, #2e7d32);
+    }
+    .pi-row.pi-failed .pi-status-icon {
+      color: #ef4444;
+    }
+    .pi-row.pi-running .pi-status-icon {
+      color: var(--selora-accent);
+      animation: pi-spin 1.4s linear infinite;
+    }
+    .pi-row.pi-needs_input .pi-status-icon {
+      color: var(--selora-accent);
+    }
+    .pi-row.pi-skipped .pi-status-icon {
+      color: var(--secondary-text-color);
+      opacity: 0.7;
+    }
+    .pi-row.pi-pending .pi-status-icon {
+      color: var(--secondary-text-color);
+      opacity: 0.55;
+    }
+    @keyframes pi-spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    .pi-row-body {
+      min-width: 0;
+    }
+    .pi-row-title {
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .pi-row-detail {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pi-row.pi-skipped .pi-row-title,
+    .pi-row.pi-skipped .pi-row-detail {
+      opacity: 0.6;
+    }
+    /* Action panel docked under the pipeline board. */
+    .pi-action {
+      min-height: 100px;
+    }
+    .panel-shell {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 20px 22px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+    }
+    .panel-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      justify-content: space-between;
+    }
+    .panel-title {
+      font-size: var(--selora-fs-md-lg, 15px);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .panel-status {
+      padding: 3px 8px;
+      border-radius: 999px;
+      font-size: var(--selora-fs-micro, 10px);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .panel-status.ok {
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 14%,
+        transparent
+      );
+      color: var(--success-color, #2e7d32);
+    }
+    .panel-status.needs_input {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      color: var(--selora-accent);
+    }
+    .panel-status.failed {
+      background: color-mix(in srgb, #ef4444 14%, transparent);
+      color: #ef4444;
+    }
+    .panel-status.running {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      color: var(--selora-accent);
+    }
+    .panel-body {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-prose {
+      margin: 0;
+      font-size: var(--selora-fs-sm, 13px);
+      color: var(--primary-text-color);
+      line-height: 1.55;
+    }
+    .panel-muted {
+      color: var(--secondary-text-color);
+    }
+    .panel-error {
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: color-mix(in srgb, #ef4444 12%, transparent);
+      color: #ef4444;
+      font-size: var(--selora-fs-sm);
+    }
+    .panel-fields {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .panel-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .panel-field-label {
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      color: var(--primary-text-color);
+    }
+    .panel-field-optional {
+      color: var(--secondary-text-color);
+      font-weight: 400;
+      font-style: normal;
+      margin-left: 4px;
+    }
+    .panel-field-error {
+      font-size: var(--selora-fs-xs);
+      color: #ef4444;
+    }
+    .panel-field input,
+    .panel-field select {
+      padding: 8px 10px;
+      border: 1px solid var(--selora-inner-card-border);
+      border-radius: 10px;
+      background: var(--selora-inner-card-bg);
+      color: var(--primary-text-color);
+      font-size: var(--selora-fs-md);
+      font-family: inherit;
+      transition: border-color 0.3s;
+    }
+    .panel-field input:focus,
+    .panel-field select:focus {
+      outline: none;
+      border-color: var(--selora-accent);
+    }
+    .panel-field input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      align-self: flex-start;
+    }
+    .panel-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      min-width: 0;
+      max-width: 100%;
+    }
+    .role-filter-input {
+      width: 100%;
+      box-sizing: border-box;
+      margin: 4px 0 10px;
+      padding: 8px 11px;
+      border: 1px solid var(--selora-inner-card-border);
+      border-radius: 10px;
+      background: var(--selora-inner-card-bg);
+      color: var(--primary-text-color);
+      font-size: var(--selora-fs-sm);
+      font-family: inherit;
+    }
+    .role-filter-input:focus {
+      outline: none;
+      border-color: var(--selora-accent);
+    }
+    .role-show-more {
+      margin-top: 10px;
+      padding: 6px 12px;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--selora-accent);
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .role-show-more:hover {
+      border-color: var(--selora-accent);
+    }
+    .panel-footer {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      padding-top: 4px;
+      border-top: 1px solid var(--divider-color);
+      padding-top: 12px;
+    }
+    .panel-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 120ms ease;
+      font-family: inherit;
+    }
+    .panel-btn ha-icon {
+      --mdc-icon-size: 15px;
+    }
+    /* In-button spinner: sized to the label and tinted with the button's
+       own text colour so it shows on both primary (dark-on-accent) and
+       secondary buttons. */
+    .panel-btn .spinner {
+      width: 14px;
+      height: 14px;
+      border-width: 2px;
+      border-color: color-mix(in srgb, currentColor 30%, transparent);
+      border-top-color: currentColor;
+    }
+    .panel-btn.primary {
+      background: var(--selora-accent);
+      border: 1px solid var(--selora-accent);
+      color: #000;
+    }
+    .panel-btn.primary:hover:not([disabled]) {
+      background: var(--selora-accent-light, var(--selora-accent));
+      border-color: var(--selora-accent-light, var(--selora-accent));
+    }
+    .panel-btn.secondary {
+      background: transparent;
+      border: 1px solid var(--divider-color);
+      color: var(--primary-text-color);
+    }
+    .panel-btn.secondary:hover:not([disabled]) {
+      border-color: var(--selora-accent);
+    }
+    .panel-btn[disabled] {
+      opacity: 0.55;
+      cursor: progress;
+    }
+    .install-fail-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .install-fail-list li {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      line-height: 1.5;
+      color: var(--primary-text-color);
+    }
+    .install-fail-stage {
+      display: inline-block;
+      flex-shrink: 0;
+      padding: 2px 8px;
+      border-radius: 4px;
+      background: color-mix(in srgb, #ef4444 18%, transparent);
+      color: #ef4444;
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      align-self: flex-start;
+    }
+    /* Empty-state help block shown in a role-selection panel when
+       the home has zero matching candidates — instead of a curt "no
+       devices" line, give the user a clear next action and tell
+       them the wizard will auto-update when they pair something. */
+    .role-empty-help {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      padding: 16px;
+      border: 1px dashed var(--divider-color);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .role-empty-icon {
+      --mdc-icon-size: 28px;
+      color: var(--selora-accent);
+      margin-top: 2px;
+    }
+    .role-empty-body {
+      min-width: 0;
+    }
+    .role-empty-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      margin-bottom: 4px;
+    }
+    .role-empty-prose {
+      margin: 0 0 12px;
+      font-size: 13px;
+      line-height: 1.55;
+      color: var(--secondary-text-color);
+    }
+    .role-empty-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    /* Small detail line under an "integration is set up" panel —
+       surfaces the actual config entry title so the user sees what
+       got created (lat/lon for NWS, bridge ip for Hue, etc.) instead
+       of an opaque "configured" badge. */
+    .integration-entry-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 6px 10px;
+      border: 1px solid var(--divider-color);
+      border-radius: 8px;
+      background: var(--secondary-background-color);
+      width: fit-content;
+    }
+    .integration-entry-meta ha-icon {
+      --mdc-icon-size: 14px;
+      color: var(--secondary-text-color);
+    }
+    .integration-entry-meta code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 12px;
+      color: var(--primary-text-color);
+    }
+    /* ── 4-step wizard chrome ─────────────────────────────────── */
+    /* Hero card: stepper at the top as an eyebrow strip, hero copy
+       below a hairline divider. Single card to save the vertical
+       real estate the user flagged. */
+    .wizard-stepper-slot {
+      display: flex;
+      align-items: center;
+      padding-bottom: 14px;
+      border-bottom: 1px solid var(--divider-color);
+      margin-bottom: 14px;
+    }
+    /* Step bar — full width, evenly distributed pills with growing
+       separators between. One pill per step. Past steps show a
+       check, the current step is amber-filled, future steps muted. */
+    .step-bar {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    .step-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px 6px 6px;
+      background: transparent;
+      border: none;
+      color: var(--secondary-text-color);
+      font-family: inherit;
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      cursor: default;
+    }
+    .step-pill[disabled] {
+      cursor: default;
+    }
+    .step-pill:not([disabled]) {
+      cursor: pointer;
+    }
+    .step-num {
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      color: var(--secondary-text-color);
+    }
+    .step-num ha-icon {
+      --mdc-icon-size: 14px;
+    }
+    .step-current .step-num {
+      background: var(--selora-accent);
+      border-color: var(--selora-accent);
+      color: #000;
+    }
+    .step-current .step-label {
+      color: var(--primary-text-color);
+    }
+    .step-done .step-num {
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 22%,
+        transparent
+      );
+      border-color: var(--success-color, #2e7d32);
+      color: var(--success-color, #2e7d32);
+    }
+    .step-done .step-label {
+      color: var(--primary-text-color);
+    }
+    .step-sep {
+      flex: 1;
+      height: 2px;
+      background: var(--divider-color);
+      border-radius: 2px;
+    }
+    .step-sep.done {
+      background: var(--success-color, #2e7d32);
+    }
+    /* Step pane container — every step renders into this. Same
+       min-width:0 trick as the root so content widths don't
+       propagate upward. */
+    .step-pane {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      width: 100%;
+      min-width: 0;
+    }
+    .step-pane > * {
+      min-width: 0;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+    .step-prose {
+      margin: 0;
+      font-size: var(--selora-fs-md);
+      color: var(--primary-text-color);
+      line-height: 1.6;
+    }
+    /* Footer: hint on the left, Back + primary CTA on the right. */
+    .step-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding-top: 8px;
+    }
+    .step-footer-hint {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+    }
+    .step-footer-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* ── Overview + Activate cards ─────────────────────────────── */
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+    @media (max-width: 800px) {
+      .overview-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .overview-card {
+      padding: 18px 20px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+    }
+    .overview-card-title {
+      margin: 0 0 12px;
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .overview-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .overview-list.compact {
+      gap: 6px;
+    }
+    .overview-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+      line-height: 1.4;
+    }
+    .overview-list ha-icon {
+      --mdc-icon-size: 16px;
+      color: var(--selora-accent);
+      flex-shrink: 0;
+    }
+    .overview-list .panel-muted ha-icon {
+      color: var(--secondary-text-color);
+    }
+
+    /* ── Step 2: Match table ──────────────────────────────────── */
+    /* Single grid container. Each row is a subgrid spanning all
+       columns so column widths are computed once for the whole
+       table — without that, every row carried its own grid and
+       could resize on click (when the detail panel below caused
+       intrinsic widths to recompute). */
+    .match-table {
+      display: grid;
+      grid-template-columns: minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr);
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+      overflow: hidden;
+    }
+    .match-row {
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-column: 1 / -1;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border: none;
+      background: transparent;
+      text-align: left;
+      font-family: inherit;
+      color: var(--primary-text-color);
+      border-top: 1px solid var(--divider-color);
+    }
+    .match-row.match-head {
+      border-top: none;
+      font-size: var(--selora-fs-xs);
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      background: var(--secondary-background-color);
+    }
+    .match-row.match-data {
+      cursor: pointer;
+      transition: background 120ms ease;
+    }
+    .match-row.match-data:hover {
+      background: var(--secondary-background-color);
+    }
+    .match-row.is-active {
+      background: color-mix(in srgb, var(--selora-accent) 8%, transparent);
+    }
+    .match-cell-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 0;
+    }
+    /* Per-row category tile — type icon on a tinted backplate. Same
+       colour vocabulary as the "What you need" rail so the homeowner
+       sees the same item categorisation in both surfaces. Status is
+       conveyed by the STATUS text column (already coloured) — the
+       icon doesn't double-encode that signal anymore. */
+    .match-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .match-icon-wrap ha-icon {
+      --mdc-icon-size: 18px;
+    }
+    .match-icon-integration {
+      background: color-mix(in srgb, var(--selora-accent) 16%, transparent);
+    }
+    .match-icon-integration ha-icon {
+      color: var(--selora-accent);
+    }
+    .match-icon-role {
+      background: color-mix(in srgb, #06b6d4 16%, transparent);
+    }
+    .match-icon-role ha-icon {
+      color: #06b6d4;
+    }
+    .match-icon-pin {
+      background: color-mix(in srgb, #10b981 16%, transparent);
+    }
+    .match-icon-pin ha-icon {
+      color: #10b981;
+    }
+    .match-icon-input {
+      background: var(--selora-inner-card-bg);
+    }
+    .match-icon-input ha-icon {
+      color: var(--secondary-text-color);
+    }
+    /* Status nuance on the tile: skipped rows desaturate, failed rows
+       gain a red glyph (the rest keep their category colour). */
+    .match-icon-status-skipped {
+      opacity: 0.55;
+    }
+    .match-icon-status-failed {
+      background: color-mix(in srgb, #ef4444 16%, transparent);
+    }
+    .match-icon-status-failed ha-icon {
+      color: #ef4444;
+    }
+    .match-cell-text {
+      min-width: 0;
+    }
+    .match-title {
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+    }
+    .match-sub {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    /* Failure reason on a row: red, and allowed to wrap to two lines so
+       the homeowner reads the "why" without opening the action panel. */
+    .match-sub.is-error {
+      color: #ef4444;
+      white-space: normal;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+    }
+    .match-status {
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+    }
+    .match-status.pi-ok {
+      color: var(--success-color, #2e7d32);
+    }
+    .match-status.pi-needs_input {
+      color: var(--selora-accent);
+    }
+    .match-status.pi-failed {
+      color: #ef4444;
+    }
+    .match-status.pi-skipped,
+    .match-status.pi-pending {
+      color: var(--secondary-text-color);
+    }
+    .match-status.pi-running {
+      color: var(--selora-accent);
+    }
+    .match-selected {
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .match-empty {
+      /* Span all three grid tracks — otherwise it sits in column 1 and
+         the text wraps inside a narrow cell, reading as misaligned. */
+      grid-column: 1 / -1;
+      padding: 18px;
+      text-align: center;
+      color: var(--secondary-text-color);
+      border-top: 1px solid var(--divider-color);
+    }
+    .match-detail {
+      margin-top: 4px;
+    }
+
+    /* ── Step 3: Resolve buckets ──────────────────────────────── */
+    .bucket {
+      padding: 16px 18px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+    }
+    .bucket-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0 0 12px;
+      font-size: var(--selora-fs-sm);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .bucket-title ha-icon {
+      --mdc-icon-size: 18px;
+    }
+    .bucket-waiting .bucket-title,
+    .bucket-waiting .bucket-title ha-icon {
+      color: var(--selora-accent);
+    }
+    .bucket-failed .bucket-title,
+    .bucket-failed .bucket-title ha-icon {
+      color: #ef4444;
+    }
+    .bucket-running .bucket-title,
+    .bucket-running .bucket-title ha-icon {
+      color: var(--selora-accent);
+    }
+    .bucket-done .bucket-title,
+    .bucket-done .bucket-title ha-icon {
+      color: var(--success-color, #2e7d32);
+    }
+    .bucket-item {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      gap: 14px;
+      padding: 12px 0;
+      border-top: 1px solid var(--divider-color);
+      align-items: center;
+    }
+    .bucket-item:first-of-type {
+      border-top: none;
+      padding-top: 4px;
+    }
+    .bucket-item:last-of-type {
+      padding-bottom: 4px;
+    }
+    /* Status-driven tile: 32px backplate + glyph, mirroring the
+       Match table icons so install progress reads as the same
+       visual vocabulary. Status drives both backplate tint and
+       glyph color. */
+    .bucket-item-icon-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      flex-shrink: 0;
+    }
+    .bucket-item-icon-wrap ha-icon {
+      --mdc-icon-size: 18px;
+    }
+    .bucket-tile-ok {
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 18%,
+        transparent
+      );
+    }
+    .bucket-tile-ok ha-icon {
+      color: var(--success-color, #2e7d32);
+    }
+    .bucket-tile-running {
+      background: color-mix(in srgb, var(--selora-accent) 18%, transparent);
+    }
+    .bucket-tile-running ha-icon {
+      color: var(--selora-accent);
+      animation: pi-spin 1.4s linear infinite;
+    }
+    .bucket-tile-needs_input {
+      background: color-mix(in srgb, var(--selora-accent) 18%, transparent);
+    }
+    .bucket-tile-needs_input ha-icon {
+      color: var(--selora-accent);
+    }
+    .bucket-tile-failed {
+      background: color-mix(in srgb, #ef4444 18%, transparent);
+    }
+    .bucket-tile-failed ha-icon {
+      color: #ef4444;
+    }
+    .bucket-tile-pending {
+      background: var(--secondary-background-color);
+    }
+    .bucket-tile-pending ha-icon {
+      color: var(--secondary-text-color);
+      opacity: 0.7;
+    }
+    .bucket-tile-skipped {
+      background: var(--secondary-background-color);
+      opacity: 0.6;
+    }
+    .bucket-tile-skipped ha-icon {
+      color: var(--secondary-text-color);
+    }
+    .bucket-item-title {
+      font-size: 14px;
+      font-weight: 600;
+      line-height: 1.3;
+    }
+    .bucket-item-detail {
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .bucket-item-action {
+      grid-column: 1 / -1;
+      margin-top: 8px;
+    }
+
+    /* ── Step 4: Activate hero ────────────────────────────────── */
+    .activate-hero {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 20px 22px;
+      border-radius: 14px;
+      background: color-mix(
+        in srgb,
+        var(--selora-accent) 10%,
+        var(--card-background-color)
+      );
+      border: 1px solid
+        color-mix(in srgb, var(--selora-accent) 36%, transparent);
+    }
+    .activate-hero ha-icon {
+      --mdc-icon-size: 32px;
+      color: var(--selora-accent);
+    }
+    .activate-hero-title {
+      font-size: var(--selora-fs-lg, 18px);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .activate-hero-sub {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+    .activate-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 1000px) {
+      .activate-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .safety-card .overview-list ha-icon.safety-ok {
+      color: var(--success-color, #2e7d32);
+    }
+    .safety-card .overview-list ha-icon.safety-fail {
+      color: #ef4444;
+    }
+    /* Right rail — sticky on wide viewports so the role status stays
+       in view as the user fills out the inputs form. */
+    .wizard-rail {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 20px 18px;
+      border: 1px solid var(--divider-color);
+      border-radius: 14px;
+      background: var(--card-background-color);
+      position: sticky;
+      top: 12px;
+      max-height: calc(100vh - 24px);
+      overflow-y: auto;
+    }
+    @media (max-width: 1100px) {
+      .wizard-rail {
+        position: static;
+        max-height: none;
+      }
+    }
+    .wizard-rail-title {
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      color: var(--primary-text-color);
+      margin-bottom: 4px;
+    }
+    .wizard-rail-section-title {
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      margin-top: 6px;
+    }
+    .wizard-rail-loading {
+      padding: 18px 4px;
+      text-align: center;
+      color: var(--secondary-text-color);
+      font-size: var(--selora-fs-sm);
+    }
+    /* Role card — one per role in the rail. */
+    .role-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: var(--secondary-background-color);
+    }
+    .role-card.waiting {
+      border-color: color-mix(in srgb, #f59e0b 36%, transparent);
+    }
+    .role-card.select {
+      border-color: color-mix(in srgb, var(--selora-accent) 36%, transparent);
+    }
+    .role-card.missing {
+      border-color: color-mix(in srgb, #ef4444 32%, transparent);
+    }
+    .role-card-head {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 10px;
+      align-items: start;
+    }
+    .role-card-icon {
+      --mdc-icon-size: 22px;
+      color: var(--secondary-text-color);
+      margin-top: 1px;
+    }
+    .role-card.satisfied .role-card-icon {
+      color: var(--selora-accent);
+    }
+    .role-card.waiting .role-card-icon {
+      color: #f59e0b;
+    }
+    .role-card.select .role-card-icon {
+      color: var(--selora-accent);
+    }
+    .role-card-head-text {
+      min-width: 0;
+    }
+    .role-card-title {
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .role-card-desc {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      line-height: 1.45;
+      margin-top: 2px;
+    }
+    .role-card-status {
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .role-card-status.satisfied {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      color: var(--selora-accent);
+    }
+    .role-card-status.waiting {
+      background: color-mix(in srgb, #f59e0b 14%, transparent);
+      color: #f59e0b;
+    }
+    .role-card-status.select {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      color: var(--selora-accent);
+    }
+    .role-card-status.missing {
+      background: color-mix(in srgb, #ef4444 14%, transparent);
+      color: #ef4444;
+    }
+    .role-card-status.skipped {
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+    }
+    .role-card-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+    }
+    .role-card-chips .role-entity-chip {
+      margin: 0;
+    }
+    .role-card-empty {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+    }
+    .role-card-error {
+      font-size: var(--selora-fs-xs);
+      color: #ef4444;
+      line-height: 1.5;
+    }
+    .wizard-title {
+      font-size: var(--selora-fs-2xl);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .wizard-section {
+      padding: 16px 18px;
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--card-background-color);
+    }
+    .wizard-section h3 {
+      margin: 0 0 12px;
+      font-size: var(--selora-fs-md);
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .wizard-field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .wizard-field label {
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+      font-weight: 600;
+    }
+    .wizard-field .hint {
+      font-size: var(--selora-fs-md, 14px);
+      line-height: 1.5;
+      color: color-mix(in srgb, var(--primary-text-color) 80%, transparent);
+      margin-bottom: 2px;
+    }
+    .wizard-field input,
+    .wizard-field select {
+      padding: 9px 11px;
+      border: 1px solid var(--selora-inner-card-border);
+      border-radius: 10px;
+      background: var(--selora-inner-card-bg);
+      color: var(--primary-text-color);
+      font-size: var(--selora-fs-md);
+      transition: border-color 0.3s;
+    }
+    .wizard-field input:focus,
+    .wizard-field select:focus {
+      outline: none;
+      border-color: var(--selora-accent);
+    }
+    .role-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      align-items: start;
+      gap: 8px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--divider-color);
+    }
+    .role-row:last-child {
+      border-bottom: none;
+    }
+    .role-row .role-meta {
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+    }
+    .role-row .role-desc {
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+    .role-row .role-status {
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .role-status.ok {
+      color: var(--success-color, #2e7d32);
+    }
+    .role-status.missing {
+      color: var(--error-color, #c62828);
+    }
+    .role-entities {
+      grid-column: 1 / -1;
+      margin-top: 6px;
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+      word-break: break-all;
+    }
+    /* Entity picker card. Two-line layout: friendly name on top,
+       entity_id muted below. Domain icon sits on a tinted tile on
+       the left (matches the Match table / bucket items pattern).
+       Wide tap target — minimum 44px tall — so this works on touch. */
+    .role-entity-chip {
+      display: inline-grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      align-items: center;
+      gap: 10px;
+      padding: 8px 14px 8px 8px;
+      min-height: 44px;
+      border-radius: 10px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+      margin: 4px 6px 4px 0;
+      font-size: 14px;
+      line-height: 1.3;
+      color: var(--primary-text-color);
+      vertical-align: middle;
+      text-align: left;
+    }
+    .role-entity-chip > .chip-icon-tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: color-mix(in srgb, #06b6d4 16%, transparent);
+      flex-shrink: 0;
+    }
+    .role-entity-chip > .chip-icon-tile ha-icon {
+      --mdc-icon-size: 18px;
+      color: #06b6d4;
+    }
+    .role-entity-chip > .chip-text {
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+    }
+    .role-entity-chip > .chip-text .chip-name {
+      display: block;
+      font-size: 14px;
+      font-weight: 600;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .role-entity-chip > .chip-text .chip-id {
+      display: block;
+      font-size: 11px;
+      color: var(--secondary-text-color);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-top: 1px;
+    }
+    /* Required-selection chips are buttons the user toggles. Off
+       state reads as a regular chip; on state lights up with the
+       accent. The check appears only when selected — no
+       placeholder-circle clutter for the unselected case. */
+    .role-entity-toggle {
+      cursor: pointer;
+      transition:
+        background 120ms ease,
+        border-color 120ms ease,
+        color 120ms ease;
+      font-family: inherit;
+    }
+    .role-entity-toggle:hover:not([disabled]) {
+      border-color: var(--selora-accent);
+    }
+    .role-entity-toggle[disabled] {
+      cursor: progress;
+      opacity: 0.6;
+    }
+    .role-entity-toggle.is-on {
+      background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+      border-color: var(--selora-accent);
+    }
+    .role-entity-toggle.is-on > .chip-icon-tile {
+      background: color-mix(in srgb, var(--selora-accent) 22%, transparent);
+    }
+    .role-entity-toggle.is-on > .chip-icon-tile ha-icon {
+      color: var(--selora-accent);
+    }
+    .role-entity-toggle.is-on > .chip-text .chip-name {
+      color: var(--primary-text-color);
+    }
+    /* Locked pin = manifest pre-bound. Renders like a chip but
+       non-interactive; the lock badge tells the user this slot is
+       fixed by the installation manifest. */
+    .role-entity-chip.is-pinned {
+      background: color-mix(
+        in srgb,
+        var(--secondary-text-color) 10%,
+        transparent
+      );
+      color: var(--primary-text-color);
+      cursor: default;
+    }
+    .role-entity-chip.is-pinned .pin-badge {
+      --mdc-icon-size: 12px;
+      margin-left: 4px;
+      color: var(--secondary-text-color);
+      vertical-align: middle;
+    }
+    .role-entity-chip.is-pinned .chip-name {
+      display: inline-flex;
+      align-items: center;
+    }
+    /* Waiting-on card = manifest pin that hasn't resolved yet.
+       Renders below the chip row with the device-identity readout so
+       the field tech knows what to pair. */
+    /* Pair-this-device card. Visual hierarchy mirrors what the
+       homeowner reads top-to-bottom:
+         1. friendly title   (what the device IS / where it goes)
+         2. model            (which hardware to look for)
+         3. action prose     (what to do NEXT)
+         4. small footer     (integration + entity_id for the techie) */
+    .pending-binding {
+      display: grid;
+      grid-template-columns: 36px 1fr;
+      gap: 12px;
+      align-items: start;
+      padding: 14px 16px;
+      margin-top: 10px;
+      border-radius: 10px;
+      background: color-mix(in srgb, #f59e0b 8%, transparent);
+      border: 1px solid color-mix(in srgb, #f59e0b 30%, transparent);
+    }
+    .pending-binding-icon {
+      --mdc-icon-size: 26px;
+      color: #f59e0b;
+      margin-top: 1px;
+    }
+    .pending-binding-body {
+      min-width: 0;
+    }
+    .pending-binding-title {
+      font-weight: 600;
+      color: var(--primary-text-color);
+      font-size: var(--selora-fs-md-lg);
+      line-height: 1.25;
+    }
+    .pending-binding-model {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+      margin-top: 2px;
+    }
+    .pending-binding-action {
+      font-size: var(--selora-fs-sm);
+      color: var(--primary-text-color);
+      line-height: 1.55;
+      margin-top: 10px;
+    }
+    .pending-binding-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 12px;
+    }
+    .pending-binding-cta {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 8px;
+      font-size: var(--selora-fs-sm);
+      font-weight: 600;
+      cursor: pointer;
+      transition:
+        background 120ms ease,
+        border-color 120ms ease;
+      font-family: inherit;
+    }
+    .pending-binding-cta ha-icon {
+      --mdc-icon-size: 15px;
+    }
+    .pending-binding-cta.primary {
+      background: #f59e0b;
+      border: 1px solid #f59e0b;
+      color: white;
+    }
+    .pending-binding-cta.primary:hover:not([disabled]) {
+      background: #d88806;
+      border-color: #d88806;
+    }
+    .pending-binding-cta.secondary {
+      background: transparent;
+      border: 1px solid color-mix(in srgb, #f59e0b 40%, transparent);
+      color: var(--primary-text-color);
+    }
+    .pending-binding-cta.secondary:hover:not([disabled]) {
+      border-color: #f59e0b;
+      background: color-mix(in srgb, #f59e0b 8%, transparent);
+    }
+    .pending-binding-cta[disabled] {
+      opacity: 0.55;
+      cursor: progress;
+    }
+    .pending-binding-footer {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin-top: 12px;
+      padding-top: 10px;
+      border-top: 1px dashed color-mix(in srgb, #f59e0b 26%, transparent);
+      font-size: var(--selora-fs-xs);
+      color: var(--secondary-text-color);
+    }
+    .pending-binding-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: color-mix(in srgb, #f59e0b 14%, transparent);
+      color: #f59e0b;
+      font-weight: 600;
+    }
+    .pending-binding-pill ha-icon {
+      --mdc-icon-size: 12px;
+    }
+    .pending-binding-eid {
+      font-family: var(--selora-mono, ui-monospace, Menlo, monospace);
+      opacity: 0.7;
+      word-break: break-all;
+    }
+    .punch {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .punch-item {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: color-mix(
+        in srgb,
+        var(--error-color, #c62828) 8%,
+        transparent
+      );
+      border: 1px solid
+        color-mix(in srgb, var(--error-color, #c62828) 24%, transparent);
+      font-size: var(--selora-fs-sm);
+    }
+    .punch-item .stage-pill {
+      flex-shrink: 0;
+      padding: 1px 8px;
+      border-radius: 999px;
+      background: var(--secondary-background-color);
+      color: var(--secondary-text-color);
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .package-disclosure {
+      padding: 0;
+      overflow: hidden;
+    }
+    .package-disclosure summary {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 18px;
+      cursor: pointer;
+      list-style: none;
+      font-size: var(--selora-fs-md);
+      font-weight: 600;
+      color: var(--primary-text-color);
+      user-select: none;
+    }
+    .package-disclosure summary::-webkit-details-marker {
+      display: none;
+    }
+    .package-disclosure summary > .filler {
+      flex: 1;
+    }
+    .package-disclosure .chevron {
+      --mdc-icon-size: 18px;
+      color: var(--secondary-text-color);
+      transition: transform 120ms ease;
+    }
+    .package-disclosure[open] .chevron {
+      transform: rotate(90deg);
+    }
+    .package-disclosure summary ha-icon {
+      --mdc-icon-size: 18px;
+      color: var(--secondary-text-color);
+    }
+    .package-disclosure .package-disclosure-hint {
+      font-size: var(--selora-fs-micro);
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+      padding: 2px 8px;
+      border: 1px solid var(--divider-color);
+      border-radius: 999px;
+      margin-left: 8px;
+    }
+    .package-disclosure .yaml-preview {
+      border-top: 1px solid var(--divider-color);
+      border-radius: 0;
+      max-height: 320px;
+    }
+    .yaml-preview {
+      max-height: 360px;
+      overflow: auto;
+      padding: 12px 14px;
+      border-radius: 8px;
+      background: var(--code-editor-background-color, #1e1e1e);
+      color: var(--code-editor-text-color, #d4d4d4);
+      font-family: var(--selora-mono, ui-monospace, Menlo, monospace);
+      font-size: 12.5px;
+      line-height: 1.45;
+      white-space: pre;
+    }
+    /* Syntax-highlight token colours. The .yk/.ys/etc class names are
+       emitted by _highlightYaml in this same file; keep the palette
+       desaturated so the preview reads as part of the panel and not
+       like a code editor was pasted in. */
+    .yaml-preview .yk {
+      color: #9cdcfe;
+    } /* keys */
+    .yaml-preview .ys {
+      color: #ce9178;
+    } /* strings */
+    .yaml-preview .yn {
+      color: #b5cea8;
+    } /* numbers */
+    .yaml-preview .yb {
+      color: #569cd6;
+    } /* booleans / null */
+    .yaml-preview .yc {
+      color: #6a9955;
+      font-style: italic;
+    } /* comments */
+    .yaml-preview .yd {
+      color: #d4d4d4;
+    } /* list dashes */
+    .yaml-preview .yp {
+      color: #c586c0;
+    } /* HA runtime templates */
+    /* Uninstall confirmation modal — destructive variant of the
+       generic modal button from the panel's shared style. */
+    .uninstall-modal {
+      max-width: 440px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      border: 1px solid var(--divider-color);
+    }
+    .uninstall-modal .modal-title {
+      margin: 0;
+      font-size: var(--selora-fs-lg);
+      font-weight: 700;
+      color: var(--primary-text-color);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .uninstall-modal .modal-title-icon {
+      --mdc-icon-size: 22px;
+      color: #f59e0b;
+    }
+    .uninstall-modal .modal-body {
+      margin: 0;
+      font-size: var(--selora-fs-md);
+      color: var(--primary-text-color);
+      line-height: 1.55;
+    }
+    /* "Also remove integrations" checkbox list — shown in the
+       uninstall confirm modal when the recipe installed any
+       integrations via auto_setup. */
+    .uninstall-integrations {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin: 16px 0 4px;
+      padding: 14px;
+      border: 1px solid var(--divider-color);
+      border-radius: 10px;
+      background: var(--secondary-background-color);
+    }
+    .uninstall-integrations-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+    }
+    .uninstall-integrations-sub {
+      margin: 0 0 6px;
+      font-size: 12px;
+      color: var(--secondary-text-color);
+      line-height: 1.5;
+    }
+    .uninstall-integration-row {
+      display: grid;
+      grid-template-columns: auto auto 1fr;
+      align-items: center;
+      gap: 12px;
+      padding: 6px 4px;
+      cursor: pointer;
+      font-family: inherit;
+    }
+    .uninstall-integration-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--selora-accent);
+    }
+    .uninstall-integration-brand {
+      width: 28px;
+      height: 28px;
+      object-fit: contain;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    .uninstall-integration-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary-text-color);
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+    .uninstall-integration-warn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      color: #f59e0b;
+      margin-top: 2px;
+    }
+    .uninstall-integration-warn ha-icon {
+      --mdc-icon-size: 13px;
+    }
+    .uninstall-modal .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .uninstall-modal .modal-btn-icon {
+      --mdc-icon-size: 16px;
+    }
+    /* Scoped to .uninstall-modal for specificity — the shared
+       .modal-btn rules in modals.css.js define transparent
+       background and would otherwise win the cascade because they
+       load after this style block. */
+    .uninstall-modal .modal-destructive {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border-radius: 8px;
+      border: 1.5px solid #ef4444;
+      background: #ef4444;
+      color: white;
+      font-size: var(--selora-fs-sm, 13px);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .uninstall-modal .modal-destructive:hover {
+      background: #dc2626;
+      border-color: #dc2626;
+      opacity: 1;
+    }
+    .uninstall-modal .modal-destructive:focus-visible {
+      outline: 2px solid color-mix(in srgb, #ef4444 60%, white);
+      outline-offset: 2px;
+    }
+    .wizard-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      align-items: center;
+      padding-top: 12px;
+    }
+    .install-success {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 18px;
+      border: 1px solid
+        color-mix(in srgb, var(--success-color, #2e7d32) 30%, transparent);
+      border-radius: 12px;
+      background: color-mix(
+        in srgb,
+        var(--success-color, #2e7d32) 8%,
+        transparent
+      );
+    }
+  </style>
+`;
+function _renderInstallSourceCard(host) {
+  const urlBusy = host._recipesUrlBusy;
+  const uploadBusy = host._recipesUploadBusy;
+  const dragOver = host._recipesDragOver;
+  const error = host._recipesInstallError;
+  const onPickFile = () => {
+    if (uploadBusy) return;
+    host.renderRoot?.querySelector("#selora-recipe-upload-input")?.click();
+  };
+  const onDragOver = (e6) => {
+    e6.preventDefault();
+    if (uploadBusy) return;
+    if (!host._recipesDragOver) host._recipesDragOver = true;
+  };
+  const onDragLeave = (e6) => {
+    if (e6.currentTarget.contains(e6.relatedTarget)) return;
+    if (host._recipesDragOver) host._recipesDragOver = false;
+  };
+  const onDrop = (e6) => {
+    e6.preventDefault();
+    host._recipesDragOver = false;
+    if (uploadBusy) return;
+    const file = e6.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!_hasAcceptedSuffix(file.name)) {
+      host._recipesInstallError = `${host._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
+      return;
+    }
+    host._uploadRecipeArchive(file);
+  };
+  const onFileChosen = (e6) => {
+    const file = e6.target.files?.[0];
+    e6.target.value = "";
+    if (!file) return;
+    if (!_hasAcceptedSuffix(file.name)) {
+      host._recipesInstallError = `${host._t("recipes_install_unsupported_file_prefix", "Unsupported file:")} ${file.name}. ${host._t("recipes_install_unsupported_file_suffix", "Use a .tar.gz, .tgz, or .zip archive.")}`;
+      return;
+    }
+    host._uploadRecipeArchive(file);
+  };
+  return x`
+    <details class="install-disclosure" ?open=${!!error}>
+      <summary class="install-disclosure-summary">
+        <ha-icon icon="mdi:package-variant-closed"></ha-icon>
+        <span
+          >${host._t(
+            "recipes_install_source_summary",
+            "Install from a URL or file",
+          )}</span
+        >
+        <span class="install-disclosure-hint"
+          >${host._t(
+            "recipes_install_source_hint",
+            "Have a recipe from elsewhere? Add it here.",
+          )}</span
+        >
+        <ha-icon
+          class="install-disclosure-chevron"
+          icon="mdi:chevron-down"
+        ></ha-icon>
+      </summary>
+      <div class="install-card">
+        <div>
+          <div class="install-card-subtitle">
+            ${host._t(
+              "recipes_install_bom_note",
+              "The bill of materials is checked against your home before anything is installed.",
+            )}
+          </div>
+        </div>
+
+        <div>
+          <div class="install-source-label">
+            <ha-icon icon="mdi:link-variant"></ha-icon>
+            ${host._t("recipes_install_from_url_label", "Install from URL")}
+          </div>
+          <div class="install-url-row">
+            <input
+              class="install-url-input"
+              type="text"
+              .value=${host._recipesUrl || ""}
+              placeholder="https://example.com/recipes/foo.tar.gz"
+              @input=${(e6) => (host._recipesUrl = e6.target.value)}
+              @keydown=${(e6) => {
+                if (e6.key === "Enter" && !urlBusy)
+                  host._installRecipeFromUrl();
+              }}
+              ?disabled=${urlBusy}
+            />
+            <button
+              class="btn btn-primary"
+              ?disabled=${urlBusy || !host._recipesUrl}
+              @click=${() => host._installRecipeFromUrl()}
+            >
+              ${urlBusy ? host._t("recipes_install_fetching", "Fetching\u2026") : host._t("recipes_install_fetch_button", "Fetch")}
+            </button>
+          </div>
+        </div>
+
+        <div class="install-or-divider">
+          <span class="install-or-text"
+            >${host._t("recipes_install_or", "OR")}</span
+          >
+        </div>
+
+        <div>
+          <div class="install-source-label">
+            <ha-icon icon="mdi:upload-outline"></ha-icon>
+            ${host._t(
+              "recipes_install_upload_label",
+              "Upload from this device",
+            )}
+          </div>
+          <div
+            class="install-dropzone ${dragOver ? "is-drag" : ""} ${uploadBusy ? "is-busy" : ""}"
+            @click=${onPickFile}
+            @dragover=${onDragOver}
+            @dragleave=${onDragLeave}
+            @drop=${onDrop}
+          >
+            <ha-icon
+              class="install-dropzone-icon"
+              icon=${uploadBusy ? "mdi:progress-upload" : "mdi:cloud-upload-outline"}
+            ></ha-icon>
+            <div class="install-dropzone-title">
+              ${
+                uploadBusy
+                  ? host._t("recipes_install_uploading", "Uploading\u2026")
+                  : dragOver
+                    ? host._t(
+                        "recipes_install_drop_to_upload",
+                        "Drop to upload",
+                      )
+                    : host._t(
+                        "recipes_install_drop_here",
+                        "Drop a recipe archive here",
+                      )
+              }
+            </div>
+            <div class="install-dropzone-hint">
+              ${host._t("recipes_install_or_lower", "or")}
+              <strong
+                >${host._t(
+                  "recipes_install_click_to_choose",
+                  "click to choose a file",
+                )}</strong
+              >
+              · ${host._t("recipes_install_accepts", "accepts")}
+              <code>.tar.gz</code>
+              <code>.tgz</code>
+              <code>.zip</code>
+            </div>
+          </div>
+          <input
+            id="selora-recipe-upload-input"
+            type="file"
+            accept=".tar.gz,.tgz,.zip,application/gzip,application/zip,application/x-tar"
+            style="display:none;"
+            @change=${onFileChosen}
+          />
+        </div>
+
+        ${error ? x`<div class="install-error">${error}</div>` : ""}
+      </div>
+    </details>
+  `;
+}
+function _renderRecipeCard(host, manifest, installed) {
+  const isInstalled = !!installed;
+  const draftStep = !isInstalled
+    ? host._wizardDraftStep?.(manifest.slug) || 0
+    : 0;
+  const hasDraft = draftStep > 0;
+  return x`
+    <div class="recipe-card">
+      <div class="recipe-card-row">
+        <div class="recipe-card-body">
+          <div class="recipe-card-title">
+            ${manifest.title}
+            ${
+              isInstalled
+                ? x`
+                  <span class="recipe-installed-badge">
+                    <ha-icon
+                      icon="mdi:check"
+                      style="--mdc-icon-size:12px;"
+                    ></ha-icon>
+                    ${host._t("recipes_card_installed_badge", "Installed")}
+                  </span>
+                `
+                : ""
+            }
+            ${
+              hasDraft
+                ? x`
+                  <span class="recipe-draft-badge">
+                    <ha-icon
+                      icon="mdi:pencil-outline"
+                      style="--mdc-icon-size:12px;"
+                    ></ha-icon>
+                    ${host._t(
+                      "recipes_card_in_progress_step",
+                      "In progress \xB7 Step",
+                    )}
+                    ${draftStep}
+                  </span>
+                `
+                : ""
+            }
+          </div>
+          <div class="recipe-card-meta">
+            v${manifest.version}${manifest.author ? ` \xB7 ${manifest.author}` : ""}
+          </div>
+          ${manifest.description && !isInstalled ? x`<div class="recipe-card-desc">${manifest.description}</div>` : ""}
+        </div>
+        <div class="recipe-card-actions">
+          ${
+            isInstalled
+              ? x`
+                <button
+                  class="btn btn-outline"
+                  @click=${() => host._uninstallRecipe(manifest.slug)}
+                  ?disabled=${host._recipesBusy}
+                >
+                  ${host._t("recipes_card_uninstall_button", "Uninstall")}
+                </button>
+                ${
+                  manifest.binding_mode === "group"
+                    ? x`
+                      <button
+                        class="btn btn-outline"
+                        @click=${() => host._openManageDevices(manifest.slug)}
+                        ?disabled=${host._recipesBusy}
+                        title=${host._t(
+                          "recipes_card_manage_devices_title",
+                          "Swap or update the devices this recipe uses without re-running the wizard",
+                        )}
+                      >
+                        ${host._t(
+                          "recipes_card_manage_devices_button",
+                          "Manage devices",
+                        )}
+                      </button>
+                    `
+                    : ""
+                }
+                <button
+                  class="btn btn-primary"
+                  @click=${() => host._openRecipeWizard(manifest.slug)}
+                >
+                  ${host._t("recipes_card_configure_button", "Configure")}
+                </button>
+              `
+              : hasDraft
+                ? x`
+                  <button
+                    class="btn btn-outline"
+                    @click=${() => host._discardRecipeDraft(manifest.slug)}
+                    ?disabled=${host._recipesBusy}
+                    title=${host._t(
+                      "recipes_card_start_over_title",
+                      "Throw away saved progress and start the wizard from scratch",
+                    )}
+                  >
+                    ${host._t("recipes_card_start_over_button", "Start over")}
+                  </button>
+                  <button
+                    class="btn btn-primary"
+                    @click=${() => host._openRecipeWizard(manifest.slug)}
+                  >
+                    ${host._t("recipes_card_resume_button", "Resume")}
+                  </button>
+                `
+                : x`
+                  <button
+                    class="btn btn-primary"
+                    @click=${() => host._openRecipeWizard(manifest.slug)}
+                  >
+                    ${host._t("recipes_card_install_button", "Install")}
+                  </button>
+                `
+          }
+        </div>
+      </div>
+      ${isInstalled ? _renderInstalledDetails(host, installed, manifest.description) : ""}
+    </div>
+  `;
+}
+function _renderInstalledDetails(host, record, description) {
+  if (!record) return "";
+  const bindings = record.bindings || {};
+  const inputs = record.inputs || {};
+  const integrations = record.integrations_installed || {};
+  const bindingRoles = Object.keys(bindings).filter(
+    (role) => (bindings[role] || []).length > 0,
+  );
+  const inputKeys = Object.keys(inputs);
+  const integrationDomains = Object.keys(integrations);
+  const pkg = host._recipePackages?.[record.slug];
+  let installedOn = record.installed_at || "";
+  if (installedOn) {
+    const d3 = new Date(installedOn);
+    if (!Number.isNaN(d3.getTime())) installedOn = d3.toLocaleString();
+  }
+  const copyPath = () => {
+    if (record.package_path && navigator.clipboard) {
+      navigator.clipboard.writeText(record.package_path).catch(() => {});
+    }
+  };
+  return x`
+    <details
+      class="recipe-details"
+      @toggle=${(e6) => {
+        if (e6.target.open) host._loadRecipePackage?.(record.slug);
+      }}
+    >
+      <summary class="recipe-details-summary">
+        <ha-icon icon="mdi:chevron-down"></ha-icon>
+        ${host._t("recipes_details_summary", "Details")}
+      </summary>
+      ${
+        description
+          ? x`<div class="recipe-card-desc recipe-details-desc">
+            ${description}
+          </div>`
+          : ""
+      }
+      <div class="recipe-details-grid">
+        ${
+          pkg?.counts && Object.keys(pkg.counts).length
+            ? x`
+              <div class="recipe-details-key">
+                ${host._t("recipes_details_creates_key", "Creates")}
+              </div>
+              <div class="recipe-details-val">
+                ${_formatPackageCounts(host, pkg.counts)}
+              </div>
+            `
+            : ""
+        }
+        <div class="recipe-details-key">
+          ${host._t("recipes_details_version_key", "Version")}
+        </div>
+        <div class="recipe-details-val">
+          v${record.version}${installedOn ? ` \xB7 ${host._t("recipes_details_installed_on", "installed")} ${installedOn}` : ""}
+        </div>
+
+        <div class="recipe-details-key">
+          ${host._t("recipes_details_where_key", "Where")}
+        </div>
+        <div class="recipe-details-val">
+          <span class="recipe-details-path">
+            <code>${record.package_path || "\u2014"}</code>
+            ${
+              record.package_path
+                ? x`<button
+                  class="recipe-details-copy"
+                  title=${host._t(
+                    "recipes_details_copy_path_title",
+                    "Copy path",
+                  )}
+                  @click=${copyPath}
+                >
+                  <ha-icon icon="mdi:content-copy"></ha-icon>
+                </button>`
+                : ""
+            }
+          </span>
+          ${
+            pkg?.yaml
+              ? x`<details class="recipe-package-view">
+                <summary class="recipe-details-summary">
+                  <ha-icon icon="mdi:chevron-down"></ha-icon>
+                  ${host._t(
+                    "recipes_details_view_package",
+                    "View package file",
+                  )}
+                </summary>
+                ${o5(
+                  '<div class="yaml-preview">' +
+                    _highlightYaml2(pkg.yaml) +
+                    "</div>",
+                )}
+              </details>`
+              : ""
+          }
+        </div>
+
+        <div class="recipe-details-key">
+          ${host._t("recipes_details_devices_key", "Devices")}
+        </div>
+        <div class="recipe-details-val">
+          ${
+            bindingRoles.length === 0
+              ? x`<span class="recipe-details-empty"
+                >${host._t(
+                  "recipes_details_no_bound_devices",
+                  "No bound devices",
+                )}</span
+              >`
+              : bindingRoles.map((role) => {
+                  const ents = bindings[role] || [];
+                  return x`<div class="recipe-details-binding">
+                  <div class="recipe-details-role">${_humanizeRole(role)}</div>
+                  <div class="recipe-details-entities">
+                    ${
+                      ents.length === 0
+                        ? x`<span class="recipe-details-empty"
+                          >${host._t(
+                            "recipes_details_none_selected_optional",
+                            "None selected (optional)",
+                          )}</span
+                        >`
+                        : ents.map(
+                            (id) => x`<span class="recipe-details-chip">
+                              <ha-icon
+                                icon=${_entityIcon2(host.hass, id)}
+                              ></ha-icon>
+                              ${_entityFriendlyName(host.hass, id)}
+                            </span>`,
+                          )
+                    }
+                  </div>
+                </div>`;
+                })
+          }
+        </div>
+
+        ${
+          inputKeys.length
+            ? x`
+              <div class="recipe-details-key">
+                ${host._t("recipes_details_settings_key", "Settings")}
+              </div>
+              <div class="recipe-details-val">
+                ${inputKeys.map(
+                  (k2) => x`<div>
+                      <span class="recipe-details-role"
+                        >${_humanizeRole(k2)}:</span
+                      >
+                      ${String(inputs[k2])}
+                    </div>`,
+                )}
+              </div>
+            `
+            : ""
+        }
+        ${
+          integrationDomains.length
+            ? x`
+              <div class="recipe-details-key">
+                ${host._t("recipes_details_integrations_key", "Integrations")}
+              </div>
+              <div class="recipe-details-val">
+                <div class="recipe-details-entities">
+                  ${integrationDomains.map(
+                    (dom) => x`<span class="recipe-details-chip">
+                        <ha-icon icon="mdi:puzzle"></ha-icon>
+                        ${dom}
+                      </span>`,
+                  )}
+                </div>
+              </div>
+            `
+            : ""
+        }
+      </div>
+    </details>
+  `;
+}
+var _PACKAGE_SECTION_LABELS = {
+  automation: ["automation", "automations"],
+  script: ["script", "scripts"],
+  scene: ["scene", "scenes"],
+  group: ["group", "groups"],
+  template: ["template", "templates"],
+  input_boolean: ["toggle", "toggles"],
+  input_number: ["number helper", "number helpers"],
+  input_select: ["dropdown helper", "dropdown helpers"],
+  input_text: ["text helper", "text helpers"],
+  input_datetime: ["date/time helper", "date/time helpers"],
+  sensor: ["sensor", "sensors"],
+  binary_sensor: ["binary sensor", "binary sensors"],
+  timer: ["timer", "timers"],
+  counter: ["counter", "counters"],
+};
+function _formatPackageCounts(host, counts) {
+  const parts = Object.entries(counts || {})
+    .filter(([, n5]) => n5 > 0)
+    .map(([key, n5]) => {
+      const labels = _PACKAGE_SECTION_LABELS[key] || [key, `${key}s`];
+      return `${n5} ${n5 === 1 ? labels[0] : labels[1]}`;
+    });
+  if (!parts.length)
+    return x`<span class="recipe-details-empty"
+      >${host._t("recipes_details_creates_nothing", "Nothing")}</span
+    >`;
+  return parts.join(" \xB7 ");
+}
+function _humanizeRole(s6) {
+  if (!s6) return "";
+  const spaced = s6.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+function _renderListView(host) {
+  const available = host._recipesList?.available || [];
+  const installed = host._recipesList?.installed || [];
+  const installedBySlug = Object.fromEntries(
+    installed.map((r4) => [r4.slug, r4]),
+  );
+  const installedSlugs = new Set(installed.map((r4) => r4.slug));
+  const onlyInstalled = installed.filter(
+    (r4) => !available.some((a4) => a4.slug === r4.slug),
+  );
+  return x`
+    <div class="recipes-root">
+      <div class="recipes-header">
+        <div class="recipes-h1">
+          ${host._t("recipes_list_title", "Recipes")}
+        </div>
+        <button
+          class="filter-row-action"
+          @click=${() => {
+            host._loadRecipesList();
+            host._loadRecipesCatalog(true);
+          }}
+          title=${host._t(
+            "recipes_list_check_updates_title",
+            "Check selorahomes.com for new and updated recipes",
+          )}
+          ?disabled=${host._recipesBusy || host._recipesCatalogBusy}
+        >
+          <ha-icon
+            class=${host._recipesCatalogBusy ? "icon-spin" : ""}
+            icon="mdi:refresh"
+          ></ha-icon>
+          ${host._recipesCatalogBusy ? host._t("recipes_list_checking", "Checking\u2026") : host._t("recipes_list_check_updates_button", "Check for updates")}
+        </button>
+      </div>
+
+      <p class="recipes-intro">
+        ${host._t(
+          "recipes_list_intro",
+          "Recipes are ready-made automations you install in one step \u2014 a leak lockdown, a bedtime routine, a tornado alert. Selora checks each recipe against the devices in your home, then wires it up for you. Pick one below to get started.",
+        )}
+      </p>
+
+      ${_renderCatalogSection(host)}
+      ${
+        available.length > 0
+          ? x`
+            <div class="recipes-section-title">
+              ${host._t("recipes_list_on_this_device", "Installed")}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${available.map((m2) =>
+                _renderRecipeCard(host, m2, installedBySlug[m2.slug] || null),
+              )}
+            </div>
+          `
+          : ""
+      }
+      ${
+        onlyInstalled.length > 0
+          ? x`
+            <div class="recipes-section-title">
+              ${host._t(
+                "recipes_list_installed_missing_bundle",
+                "Installed (bundle missing from disk)",
+              )}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${onlyInstalled.map(
+                (rec) => x`
+                  <div class="recipe-card">
+                    <div class="recipe-card-body">
+                      <div class="recipe-card-title">
+                        ${rec.title}
+                        <span class="recipe-installed-badge"
+                          >${host._t(
+                            "recipes_card_installed_badge",
+                            "Installed",
+                          )}</span
+                        >
+                      </div>
+                      <div class="recipe-card-meta">
+                        v${rec.version} ·
+                        ${host._t("recipes_list_package_label", "package:")}
+                        ${rec.package_path}
+                      </div>
+                    </div>
+                    <div class="recipe-card-actions">
+                      <button
+                        class="btn btn-outline"
+                        @click=${() => host._uninstallRecipe(rec.slug)}
+                        ?disabled=${host._recipesBusy}
+                      >
+                        ${host._t("recipes_card_uninstall_button", "Uninstall")}
+                      </button>
+                    </div>
+                  </div>
+                `,
+              )}
+            </div>
+          `
+          : ""
+      }
+      ${_renderInstallSourceCard(host)}
+    </div>
+  `;
+}
+function _renderCatalogSection(host) {
+  const cat = host._recipesCatalog;
+  const installedSlugs = new Set(
+    (host._recipesList?.installed || []).map((r4) => r4.slug),
+  );
+  const filtered = host._filteredCatalog
+    ? host._filteredCatalog()
+    : cat?.recipes || [];
+  const currentOverride = host._catalogUrlOverride
+    ? host._catalogUrlOverride()
+    : "";
+  const isDev = !!host._config?.developer_mode;
+  return x`
+    <div class="catalog-section">
+      <div class="filter-row">
+        <div class="filter-input-wrap" style="flex:1 1 260px;">
+          <ha-icon icon="mdi:magnify"></ha-icon>
+          <input
+            type="text"
+            placeholder=${host._t(
+              "recipes_catalog_search_placeholder",
+              "Search recipes\u2026",
+            )}
+            .value=${host._recipesCatalogSearch || ""}
+            @input=${(e6) => host._onRecipesCatalogSearch(e6.target.value)}
+          />
+          ${
+            host._recipesCatalogSearch
+              ? x`<ha-icon
+                icon="mdi:close-circle"
+                style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
+                @click=${() => host._onRecipesCatalogSearch("")}
+              ></ha-icon>`
+              : ""
+          }
+        </div>
+        <div class="catalog-controls">
+          ${
+            isDev
+              ? x`<button
+                class="sort-dir-toggle"
+                @click=${() => {
+                  const next = window.prompt(
+                    host._t(
+                      "recipes_catalog_url_prompt",
+                      "Catalog URL (leave blank to reset to selorahomes.com):",
+                    ),
+                    currentOverride,
+                  );
+                  if (next === null) return;
+                  host._setCatalogUrlOverride(next.trim());
+                }}
+                title=${
+                  currentOverride
+                    ? `${host._t("recipes_catalog_using_override", "Using override:")} ${currentOverride}`
+                    : host._t(
+                        "recipes_catalog_set_url_title",
+                        "Set a catalog URL (dev / staging)",
+                      )
+                }
+              >
+                <ha-icon icon="mdi:cog-outline"></ha-icon>
+              </button>`
+              : ""
+          }
+        </div>
+      </div>
+      ${
+        currentOverride && isDev
+          ? x`<div class="catalog-override-banner">
+            <ha-icon icon="mdi:flask-outline"></ha-icon>
+            ${host._t(
+              "recipes_catalog_source_overridden",
+              "Catalog source overridden:",
+            )}
+            <code>${currentOverride}</code>
+          </div>`
+          : ""
+      }
+      ${
+        host._recipesCatalogError
+          ? x`<div class="catalog-error">
+            <ha-icon icon="mdi:cloud-off-outline"></ha-icon>
+            ${host._t(
+              "recipes_catalog_unreachable",
+              "Couldn't reach the recipes catalog:",
+            )}
+            ${host._recipesCatalogError}
+          </div>`
+          : !cat
+            ? x`<div class="catalog-loading">
+              ${
+                host._recipesCatalogBusy
+                  ? host._t(
+                      "recipes_catalog_fetching",
+                      "Fetching catalog\u2026",
+                    )
+                  : host._t(
+                      "recipes_catalog_will_load",
+                      "Catalog will load here.",
+                    )
+              }
+            </div>`
+            : filtered.length === 0
+              ? (host._recipesCatalogSearch || "").trim()
+                ? x`<div class="catalog-loading">
+                  ${host._t(
+                    "recipes_catalog_no_matches_prefix",
+                    "No matches for",
+                  )}
+                  &ldquo;${host._recipesCatalogSearch}&rdquo;.
+                </div>`
+                : x`<div class="catalog-loading">
+                  ${host._t(
+                    "recipes_catalog_empty",
+                    "No recipes in this catalog yet.",
+                  )}
+                </div>`
+              : _renderCatalogResults(host, filtered, installedSlugs)
+      }
+    </div>
+  `;
+}
+var _CATALOG_PAGE_SIZE = 6;
+function _renderCatalogResults(host, filtered, installedSlugs) {
+  const searching = !!(host._recipesCatalogSearch || "").trim();
+  let featured = [];
+  let rest = filtered;
+  if (!searching) {
+    const byDate = [...filtered].sort((a4, b2) =>
+      String(b2.released || "").localeCompare(String(a4.released || "")),
+    );
+    featured = byDate.slice(0, 2);
+    rest = byDate.slice(2);
+  }
+  const totalPages = Math.max(1, Math.ceil(rest.length / _CATALOG_PAGE_SIZE));
+  const page = Math.min(Math.max(1, host._catalogPage || 1), totalPages);
+  const start = (page - 1) * _CATALOG_PAGE_SIZE;
+  const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
+  const card = (entry, isFeatured) =>
+    _renderCatalogCard(host, entry, installedSlugs.has(entry.slug), isFeatured);
+  return x`
+    ${
+      featured.length
+        ? x`
+          <div class="recipes-section-title">
+            ${host._t("recipes_catalog_featured", "Featured")}
+          </div>
+          <div class="catalog-grid catalog-grid-featured">
+            ${featured.map((e6) => card(e6, true))}
+          </div>
+        `
+        : ""
+    }
+    ${
+      rest.length
+        ? x`
+          ${
+            !searching
+              ? x`<div class="recipes-section-title">
+                ${host._t("recipes_catalog_all", "All recipes")}
+              </div>`
+              : ""
+          }
+          <div class="catalog-grid">
+            ${pageItems.map((e6) => card(e6, false))}
+          </div>
+          ${totalPages > 1 ? _renderCatalogPagination(host, page, totalPages) : ""}
+        `
+        : ""
+    }
+  `;
+}
+function _renderCatalogPagination(host, page, totalPages) {
+  return x`
+    <div class="catalog-pagination">
+      <button
+        class="btn btn-outline"
+        ?disabled=${page <= 1}
+        @click=${() => host._setCatalogPage(page - 1)}
+      >
+        <ha-icon icon="mdi:chevron-left"></ha-icon>
+        ${host._t("recipes_catalog_prev", "Previous")}
+      </button>
+      <span class="catalog-page-indicator">
+        ${host._t("recipes_catalog_page", "Page")} ${page} / ${totalPages}
+      </span>
+      <button
+        class="btn btn-outline"
+        ?disabled=${page >= totalPages}
+        @click=${() => host._setCatalogPage(page + 1)}
+      >
+        ${host._t("recipes_catalog_next", "Next")}
+        <ha-icon icon="mdi:chevron-right"></ha-icon>
+      </button>
+    </div>
+  `;
+}
+var _CATALOG_CATEGORY_ICON = {
+  safety: "mdi:shield-home",
+  security: "mdi:shield-lock",
+  weather: "mdi:weather-partly-snowy-rainy",
+  routine: "mdi:calendar-clock",
+  routines: "mdi:calendar-clock",
+  comfort: "mdi:sofa",
+  energy: "mdi:lightning-bolt",
+  lighting: "mdi:lightbulb-group",
+  presence: "mdi:account-group",
+};
+function _catalogCategoryIcon(entry) {
+  const key = (entry.category || entry.category_title || "").toLowerCase();
+  return _CATALOG_CATEGORY_ICON[key] || "mdi:chef-hat";
+}
+function _renderCatalogCard(host, entry, alreadyInstalled, featured = false) {
+  return x`
+    <div class="catalog-card ${featured ? "catalog-card-featured" : ""}">
+      <div class="catalog-card-top">
+        <div class="catalog-card-icon">
+          <ha-icon icon=${_catalogCategoryIcon(entry)}></ha-icon>
+        </div>
+        ${
+          entry.category_title
+            ? x`<span class="catalog-card-category"
+              >${entry.category_title}</span
+            >`
+            : ""
+        }
+      </div>
+      <div class="catalog-card-title">${entry.title}</div>
+      <div class="catalog-card-meta">
+        v${entry.version}${entry.released ? ` \xB7 ${entry.released}` : ""}
+      </div>
+      ${entry.description ? x`<div class="catalog-card-desc">${entry.description}</div>` : ""}
+      ${
+        entry.tags?.length
+          ? x`<div class="catalog-card-tags">
+            ${entry.tags.map((t4) => x`<span class="catalog-tag">${t4}</span>`)}
+          </div>`
+          : ""
+      }
+      <div class="catalog-card-actions">
+        ${
+          alreadyInstalled
+            ? x`<span class="catalog-installed-badge">
+              <ha-icon icon="mdi:check"></ha-icon>
+              ${host._t("recipes_card_installed_badge", "Installed")}
+            </span>`
+            : x`<button
+              class="btn btn-primary catalog-install-btn"
+              @click=${() => host._installFromCatalogEntry(entry)}
+              ?disabled=${host._recipesBusy || host._recipesUrlBusy}
+            >
+              ${host._t("recipes_card_install_button", "Install")}
+            </button>`
+        }
+      </div>
+    </div>
+  `;
+}
+function _renderInputField(host, input) {
+  const value =
+    host._recipeWizardInputs[input.id] !== void 0
+      ? host._recipeWizardInputs[input.id]
+      : input.default;
+  const onInput = (e6) => {
+    const raw = e6.target.value;
+    let v2 = raw;
+    if (input.type === "number") v2 = raw === "" ? "" : Number(raw);
+    if (input.type === "boolean") v2 = e6.target.checked;
+    host._updateRecipeInput(input.id, v2);
+  };
+  if (input.type === "boolean") {
+    return x`
+      <div class="wizard-field">
+        <label style="display:flex;gap:8px;align-items:center;">
+          <input type="checkbox" .checked=${!!value} @change=${onInput} />
+          ${input.label}
+        </label>
+        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+      </div>
+    `;
+  }
+  if (input.type === "select") {
+    return x`
+      <div class="wizard-field">
+        <label>${input.label}</label>
+        ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+        <select .value=${String(value ?? "")} @change=${onInput}>
+          ${(input.choices || []).map(
+            (choice) => x`<option value=${choice}>${choice}</option>`,
+          )}
+        </select>
+      </div>
+    `;
+  }
+  return x`
+    <div class="wizard-field">
+      <label>${input.label}</label>
+      ${input.description ? x`<span class="hint">${input.description}</span>` : ""}
+      <input
+        type=${input.type === "number" ? "number" : "text"}
+        .value=${String(value ?? "")}
+        min=${input.min ?? ""}
+        max=${input.max ?? ""}
+        @input=${onInput}
+      />
+    </div>
+  `;
+}
+function _integrationPairCopy(host) {
+  return {
+    hue: {
+      label: "Philips Hue",
+      action: host._t(
+        "recipes_pair_hue_action",
+        "Pair this bulb to your Hue Bridge using the Hue app or its setup page.",
+      ),
+      cta: host._t("recipes_pair_hue_cta", "Open Hue setup"),
+    },
+    zha: {
+      label: "Zigbee (ZHA)",
+      action: host._t(
+        "recipes_pair_zha_action",
+        "Open ZHA's setup page and put the coordinator in pairing mode to add this device.",
+      ),
+      cta: host._t("recipes_pair_zha_cta", "Open ZHA setup"),
+    },
+    zwave_js: {
+      label: "Z-Wave",
+      action: host._t(
+        "recipes_pair_zwave_action",
+        "Start Z-Wave inclusion from its setup page to add this device.",
+      ),
+      cta: host._t("recipes_pair_zwave_cta", "Open Z-Wave setup"),
+    },
+    matter: {
+      label: "Matter",
+      action: host._t(
+        "recipes_pair_matter_action",
+        "Commission this Matter device with its pairing code from the Matter setup page.",
+      ),
+      cta: host._t("recipes_pair_matter_cta", "Open Matter setup"),
+    },
+    mqtt: {
+      label: "MQTT",
+      action: host._t(
+        "recipes_pair_mqtt_action",
+        "Bring this MQTT device online so it publishes to the configured topic.",
+      ),
+      cta: host._t("recipes_pair_mqtt_cta", "Open MQTT setup"),
+    },
+  };
+}
+function _integrationSetupPath(integration) {
+  if (!integration) return "/config/integrations/dashboard";
+  return `/config/integrations/integration/${integration}`;
+}
+function _navigateInHA(path) {
+  history.pushState(null, "", path);
+  window.dispatchEvent(new Event("location-changed"));
+}
+function _renderPunchList(host, items) {
+  if (!items || items.length === 0) return "";
+  return x`
+    <div class="wizard-section">
+      <h3>${host._t("recipes_punch_list_title", "Punch list")}</h3>
+      <div class="punch">
+        ${items.map(
+          (item) => x`
+            <div class="punch-item">
+              <span class="stage-pill">${item.stage}</span>
+              <div>
+                ${item.target ? x`<strong>${item.target}</strong>: ` : ""}${item.message}
+              </div>
+            </div>
+          `,
+        )}
+      </div>
+    </div>
+  `;
+}
+var _STATUS_ICON = {
+  ok: "mdi:check-circle",
+  failed: "mdi:close-circle",
+  running: "mdi:progress-clock",
+  needs_input: "mdi:alert-circle",
+  skipped: "mdi:circle-slice-8",
+  pending: "mdi:circle-outline",
+};
+function _statusLabel(host, status) {
+  return (
+    {
+      ok: host._t("recipes_status_done", "Done"),
+      failed: host._t("recipes_status_failed", "Failed"),
+      running: host._t("recipes_status_running", "Running"),
+      needs_input: host._t("recipes_status_needs_you", "Needs you"),
+      skipped: host._t("recipes_status_skipped", "Skipped"),
+      pending: host._t("recipes_status_pending", "Pending"),
+    }[status] || status
+  );
+}
+function _activeItem(host, items) {
+  if (!items?.length) return null;
+  if (host._recipeActiveItemId) {
+    const found = items.find((i5) => i5.id === host._recipeActiveItemId);
+    if (found) return found;
+  }
+  return (
+    items.find((i5) => i5.status === "needs_input" || i5.status === "failed") ||
+    items.find((i5) => i5.status === "running") ||
+    items.find((i5) => i5.status === "pending") ||
+    items[items.length - 1]
+  );
+}
+function _renderActionPanel(host, item) {
+  if (!item) return "";
+  if (item.kind === "inputs") return _renderInputsPanel(host, item);
+  if (item.kind === "role_selection")
+    return _renderRoleSelectionPanel(host, item);
+  if (item.kind === "pin") return _renderPinPanel(host, item);
+  if (item.kind === "integration") return _renderIntegrationPanel(host, item);
+  return _renderSystemPanel(host, item);
+}
+function _panelShell(host, title, statusKind, body, footer) {
+  return x`
+    <div class="panel-shell">
+      <div class="panel-head">
+        <div class="panel-title">${title}</div>
+        ${
+          statusKind
+            ? x`<span class="panel-status ${statusKind}"
+              >${_statusLabel(host, statusKind)}</span
+            >`
+            : ""
+        }
+      </div>
+      <div class="panel-body">${body}</div>
+      ${footer ? x`<div class="panel-footer">${footer}</div>` : ""}
+    </div>
+  `;
+}
+function _renderSystemPanel(host, item) {
+  return _panelShell(
+    host,
+    item.title,
+    item.status,
+    item.detail
+      ? x`<p class="panel-prose">${item.detail}</p>`
+      : x`<p class="panel-prose panel-muted">
+          ${host._t(
+            "recipes_system_panel_auto",
+            "This step runs automatically. No action needed from you.",
+          )}
+        </p>`,
+    null,
+  );
+}
+function _renderInputsPanel(host, item) {
+  const inputs = item.payload?.inputs || [];
+  return _panelShell(
+    host,
+    host._t("recipes_inputs_panel_title", "Recipe settings"),
+    item.status,
+    x`<div class="panel-fields">
+      ${inputs.map((input) => _renderInputField(host, input))}
+    </div>`,
+    null,
+  );
+}
+function _humaniseRoleFilter(host, role) {
+  const dc = role.device_class;
+  if (dc) {
+    const noun =
+      role.kind === "binary_sensor" || role.kind === "sensor"
+        ? host._t("recipes_role_filter_sensor_noun", "sensor")
+        : role.kind;
+    return `${dc.replace(/_/g, " ")} ${noun}`;
+  }
+  return (
+    role.kind?.replace(/_/g, " ") ||
+    host._t("recipes_role_filter_device_noun", "device")
+  );
+}
+function _renderRoleSelectionPanel(host, item) {
+  const role = item.payload?.role || {};
+  const candidates = item.payload?.candidates || [];
+  const pinned = item.payload?.pinned || [];
+  const bound = new Set(item.payload?.bound || []);
+  const selected = new Set((host._recipeWizardSelections || {})[role.id] || []);
+  const filterLabel = _humaniseRoleFilter(host, role);
+  const roleId = role.id;
+  const filterText = (host._recipeRoleFilters?.[roleId] || "")
+    .trim()
+    .toLowerCase();
+  const candidatesT = item.payload?.candidates || [];
+  const matched = filterText
+    ? candidatesT.filter((id) => {
+        const name = String(_entityFriendlyName(host.hass, id) || "");
+        return (
+          id.toLowerCase().includes(filterText) ||
+          name.toLowerCase().includes(filterText)
+        );
+      })
+    : candidatesT;
+  const ordered = [...matched].sort(
+    (a4, b2) => (selected.has(b2) ? 1 : 0) - (selected.has(a4) ? 1 : 0),
+  );
+  const CHIP_CAP = 12;
+  const expanded = !!host._recipeRoleExpanded?.[roleId] || !!filterText;
+  const selectedInMatch = ordered.filter((id) => selected.has(id)).length;
+  const shown = expanded
+    ? ordered
+    : ordered.slice(0, Math.max(CHIP_CAP, selectedInMatch));
+  const hiddenCount = ordered.length - shown.length;
+  const showFilter = candidatesT.length > CHIP_CAP;
+  return _panelShell(
+    host,
+    `${host._t("recipes_role_pick_prefix", "Pick:")} ${item.title}`,
+    item.status,
+    x`
+      ${role.description ? x`<p class="panel-prose">${role.description}</p>` : ""}
+      ${
+        pinned.length > 0
+          ? x`
+            <div class="panel-prose panel-muted">
+              ${pinned.length}
+              ${host._t(
+                "recipes_role_pinned_count_suffix",
+                "pinned by the recipe (always included).",
+              )}
+            </div>
+            <div class="panel-chips">
+              ${pinned.map(
+                (id) => x`
+                  <span class="role-entity-chip is-pinned" title=${id}>
+                    <span class="chip-icon-tile">
+                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                    </span>
+                    <span class="chip-text">
+                      <span class="chip-name">
+                        ${_entityFriendlyName(host.hass, id)}
+                        <ha-icon
+                          class="pin-badge"
+                          icon="mdi:lock-outline"
+                        ></ha-icon>
+                      </span>
+                      <span class="chip-id">${id}</span>
+                    </span>
+                  </span>
+                `,
+              )}
+            </div>
+          `
+          : ""
+      }
+      ${
+        candidates.length > 0
+          ? x`
+            <p class="panel-prose panel-muted">
+              ${host._t("recipes_role_pick_one_or_more", "Pick one or more")}
+              ${filterLabel}${role.max_count ? ` (${host._t("recipes_role_up_to", "up to")} ${role.max_count})` : ""}.
+              ${host._t(
+                "recipes_role_run_against",
+                "Selora will run the recipe against the ones you tick.",
+              )}
+            </p>
+            ${
+              showFilter
+                ? x`<input
+                  class="role-filter-input"
+                  type="text"
+                  .value=${host._recipeRoleFilters?.[roleId] || ""}
+                  placeholder=${host._t(
+                    "recipes_role_filter_placeholder",
+                    "Filter by name\u2026",
+                  )}
+                  @input=${(e6) => host._setRecipeRoleFilter(roleId, e6.target.value)}
+                />`
+                : ""
+            }
+            ${
+              ordered.length === 0
+                ? x`<p class="panel-prose panel-muted">
+                  ${host._t(
+                    "recipes_role_filter_no_matches",
+                    "No entities match your filter.",
+                  )}
+                </p>`
+                : x`
+                  <div class="panel-chips">
+                    ${shown.map((id) => {
+                      const on = selected.has(id);
+                      return x`
+                        <button
+                          class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
+                          type="button"
+                          title=${id}
+                          @click=${() =>
+                            host._toggleRecipeRoleEntity(
+                              role.id,
+                              id,
+                              role.max_count,
+                            )}
+                          ?disabled=${host._recipesBusy}
+                        >
+                          <span class="chip-icon-tile">
+                            <ha-icon
+                              icon=${_entityIcon2(host.hass, id)}
+                            ></ha-icon>
+                          </span>
+                          <span class="chip-text">
+                            <span class="chip-name">
+                              ${_entityFriendlyName(host.hass, id)}
+                            </span>
+                            <span class="chip-id">${id}</span>
+                          </span>
+                        </button>
+                      `;
+                    })}
+                  </div>
+                  ${
+                    hiddenCount > 0
+                      ? x`<button
+                        class="role-show-more"
+                        type="button"
+                        @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                      >
+                        ${host._t("recipes_role_show_all", "Show all")}
+                        (${ordered.length})
+                      </button>`
+                      : expanded && !filterText && candidatesT.length > CHIP_CAP
+                        ? x`<button
+                          class="role-show-more"
+                          type="button"
+                          @click=${() => host._toggleRecipeRoleExpanded(roleId)}
+                        >
+                          ${host._t("recipes_role_show_less", "Show less")}
+                        </button>`
+                        : ""
+                  }
+                `
+            }
+          `
+          : ""
+      }
+    `,
+    candidates.length === 0
+      ? x`
+          <div class="role-empty-help">
+            <ha-icon icon="mdi:radar" class="role-empty-icon"></ha-icon>
+            <div class="role-empty-body">
+              <div class="role-empty-title">
+                ${host._t("recipes_role_empty_none_prefix", "No")}
+                ${filterLabel}s
+                ${host._t("recipes_role_empty_none_suffix", "in your home yet")}
+              </div>
+              <p class="role-empty-prose">
+                ${host._t("recipes_role_empty_pair", "Pair")}
+                ${role.min_count > 0 ? x`${host._t("recipes_role_empty_at_least", "at least")} ` : ""}${host._t(
+                  "recipes_role_empty_one_prose",
+                  "one and it'll appear here automatically \u2014 you can leave this page to add a device and the wizard keeps your progress on Back.",
+                )}
+              </p>
+              <div class="role-empty-actions">
+                <button
+                  class="panel-btn primary"
+                  type="button"
+                  @click=${() => _navigateInHA("/config/integrations/dashboard")}
+                >
+                  <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                  ${host._t(
+                    "recipes_role_empty_add_device",
+                    "Add device in HA",
+                  )}
+                </button>
+                <button
+                  class="panel-btn secondary"
+                  type="button"
+                  ?disabled=${host._recipesBusy}
+                  @click=${() => host._refreshRecipePreview()}
+                >
+                  <ha-icon icon="mdi:refresh"></ha-icon>
+                  ${host._t("recipes_role_check_again", "Check again")}
+                </button>
+              </div>
+            </div>
+          </div>
+        `
+      : null,
+  );
+}
+function _renderPinPanel(host, item) {
+  const id = item.payload?.identity || {};
+  const integration = id.integration || "";
+  const copy = _integrationPairCopy(host)[integration];
+  const integrationLabel = copy?.label || integration;
+  const setupPath = _integrationSetupPath(integration);
+  const model = [id.manufacturer, id.model].filter(Boolean).join(" ");
+  const action =
+    copy?.action ||
+    host._t(
+      "recipes_pin_default_action",
+      "Add this device to Home Assistant. Selora will detect it automatically.",
+    );
+  return _panelShell(
+    host,
+    item.title,
+    item.status,
+    x`
+      ${model ? x`<div class="panel-prose panel-muted">${model}</div>` : ""}
+      <p class="panel-prose">${action}</p>
+      <p class="panel-prose panel-muted">
+        ${host._t("recipes_pin_expected_entity", "Expected entity id:")}
+        <code>${id.entity_id}</code>
+      </p>
+      <p class="panel-prose panel-muted">
+        ${host._t(
+          "recipes_pin_tip",
+          "Tip: leave this tab open. When the device pairs, this step ticks itself off \u2014 no need to click anything here.",
+        )}
+      </p>
+    `,
+    x`
+      <button
+        class="panel-btn primary"
+        type="button"
+        @click=${() => _navigateInHA(setupPath)}
+      >
+        <ha-icon icon="mdi:tools"></ha-icon>
+        ${
+          copy?.cta ||
+          (integration
+            ? `${host._t("recipes_pin_open_setup_prefix", "Open")} ${integrationLabel} ${host._t("recipes_pin_open_setup_suffix", "setup")}`
+            : host._t(
+                "recipes_pin_open_ha_integrations",
+                "Open HA integrations",
+              ))
+        }
+      </button>
+      <button
+        class="panel-btn secondary"
+        type="button"
+        ?disabled=${host._recipesBusy}
+        @click=${() => host._refreshRecipePreview()}
+      >
+        <ha-icon icon="mdi:refresh"></ha-icon>
+        ${host._t("recipes_pin_check_now", "Check now")}
+      </button>
+    `,
+  );
+}
+function _renderIntegrationPanel(host, item) {
+  const domain = item.payload?.domain || "";
+  const copy = _integrationPairCopy(host)[domain];
+  const flow = (host._recipeFlows || {})[domain];
+  if (item.status === "ok") {
+    const entryTitle = item.payload?.entry_title || "";
+    const label = copy?.label || domain;
+    return _panelShell(
+      host,
+      item.title,
+      item.status,
+      x`
+        <p class="panel-prose">
+          ${label}
+          ${host._t("recipes_integration_ready", "is set up and ready to use.")}
+        </p>
+        ${
+          entryTitle
+            ? x`<div class="integration-entry-meta">
+              <ha-icon icon="mdi:identifier"></ha-icon>
+              <span class="panel-muted"
+                >${host._t("recipes_integration_entry_label", "Entry:")}</span
+              >
+              <code>${entryTitle}</code>
+            </div>`
+            : ""
+        }
+        <p class="panel-prose panel-muted">
+          ${host._t(
+            "recipes_integration_manage_anytime",
+            "Manage this integration anytime from Settings \u2192 Devices & Services.",
+          )}
+        </p>
+      `,
+      x`
+        <button
+          class="panel-btn secondary"
+          type="button"
+          @click=${() => _navigateInHA(_integrationSetupPath(domain))}
+        >
+          <ha-icon icon="mdi:open-in-new"></ha-icon>
+          ${host._t("recipes_integration_open_in_ha", "Open in HA")}
+        </button>
+      `,
+    );
+  }
+  if (!flow) {
+    const autoSetup = item.payload?.auto_setup === true;
+    return _panelShell(
+      host,
+      item.title,
+      item.status,
+      x`
+        <p class="panel-prose">
+          ${autoSetup ? `${item.title} ${host._t("recipes_integration_autosetup_prose", "can be set up automatically using your Home Assistant location. No questions for you to answer.")}` : `${item.title} ${host._t("recipes_integration_needs_setup_prose", "needs to be set up before this recipe can install. You can start it without leaving this page.")}`}
+        </p>
+        ${flow?.error ? x`<div class="panel-error">${flow.error}</div>` : ""}
+      `,
+      x`
+        <button
+          class="panel-btn primary"
+          type="button"
+          ?disabled=${host._recipesBusy}
+          @click=${() => (autoSetup ? host._autoSetupIntegration(domain) : host._startIntegrationFlow(domain))}
+        >
+          ${
+            host._recipesBusy
+              ? x`<span class="spinner"></span>`
+              : x`<ha-icon
+                icon=${autoSetup ? "mdi:auto-fix" : "mdi:play"}
+              ></ha-icon>`
+          }
+          ${
+            host._recipesBusy
+              ? host._t("recipes_setting_up_button", "Setting up\u2026")
+              : autoSetup
+                ? host._t(
+                    "recipes_integration_setup_auto_button",
+                    "Set up automatically",
+                  )
+                : `${host._t("recipes_integration_setup_prefix", "Set up")} ${copy?.label || domain}`
+          }
+        </button>
+        <button
+          class="panel-btn secondary"
+          type="button"
+          @click=${() => _navigateInHA(_integrationSetupPath(domain))}
+        >
+          <ha-icon icon="mdi:open-in-new"></ha-icon>
+          ${host._t(
+            "recipes_integration_open_in_ha_settings",
+            "Open in HA settings",
+          )}
+        </button>
+      `,
+    );
+  }
+  if (flow.state === "form") {
+    return _renderFlowForm(host, item, flow);
+  }
+  if (flow.state === "error") {
+    return _panelShell(
+      host,
+      item.title,
+      "failed",
+      x`<p class="panel-prose">
+        ${
+          flow.error ||
+          host._t(
+            "recipes_integration_setup_failed",
+            "Setup failed. Try again or use HA's settings page.",
+          )
+        }
+      </p>`,
+      x`
+        <button
+          class="panel-btn secondary"
+          type="button"
+          @click=${() => host._resetIntegrationFlow(domain)}
+        >
+          ${host._t("recipes_integration_try_again", "Try again")}
+        </button>
+      `,
+    );
+  }
+  if (flow.state === "complete") {
+    return _panelShell(
+      host,
+      item.title,
+      "ok",
+      x`<p class="panel-prose">
+        ${copy?.label || domain}
+        ${host._t(
+          "recipes_integration_was_set_up",
+          "was set up. Selora will re-check the recipe automatically.",
+        )}
+      </p>`,
+      null,
+    );
+  }
+  return _panelShell(
+    host,
+    item.title,
+    "running",
+    x`<p>${host._t("recipes_working", "Working\u2026")}</p>`,
+    null,
+  );
+}
+function _renderFlowForm(host, item, flow) {
+  const fields = flow.step?.data_schema || [];
+  const values = flow.values || {};
+  const errors = flow.step?.errors || {};
+  return _panelShell(
+    host,
+    item.title,
+    "needs_input",
+    x`
+      ${flow.step?.description ? x`<p class="panel-prose">${flow.step.description}</p>` : ""}
+      ${errors.base ? x`<div class="panel-error">${errors.base}</div>` : ""}
+      <div class="panel-fields">
+        ${fields.map((f2) =>
+          _renderFlowField(
+            host,
+            item,
+            flow,
+            f2,
+            values[f2.name],
+            errors[f2.name],
+          ),
+        )}
+      </div>
+    `,
+    x`
+      <button
+        class="panel-btn secondary"
+        type="button"
+        @click=${() => host._abortIntegrationFlow(item.payload.domain)}
+      >
+        ${host._t("recipes_flow_cancel", "Cancel")}
+      </button>
+      <button
+        class="panel-btn primary"
+        type="button"
+        ?disabled=${host._recipesBusy}
+        @click=${() => host._submitIntegrationFlow(item.payload.domain)}
+      >
+        ${host._recipesBusy ? host._t("recipes_working", "Working\u2026") : host._t("recipes_flow_continue", "Continue")}
+      </button>
+    `,
+  );
+}
+function _renderFlowField(host, item, flow, field, value, error) {
+  const update = (v2) => {
+    const next = { ...(flow.values || {}), [field.name]: v2 };
+    host._recipeFlows = {
+      ...(host._recipeFlows || {}),
+      [item.payload.domain]: { ...flow, values: next },
+    };
+  };
+  const ftype = field.type || (field.selector ? "select" : "string");
+  let control;
+  if (ftype === "boolean") {
+    control = x`<input
+      type="checkbox"
+      .checked=${value ?? field.default ?? false}
+      @change=${(e6) => update(e6.target.checked)}
+    />`;
+  } else if (ftype === "integer" || ftype === "number") {
+    control = x`<input
+      type="number"
+      .value=${String(value ?? field.default ?? "")}
+      @input=${(e6) => update(e6.target.value === "" ? null : Number(e6.target.value))}
+    />`;
+  } else if (field.options || ftype === "select") {
+    control = x`<select
+      .value=${String(value ?? field.default ?? "")}
+      @change=${(e6) => update(e6.target.value)}
+    >
+      ${(field.options || []).map(
+        (opt) => x`
+          <option value=${opt.value ?? opt}>${opt.label ?? opt}</option>
+        `,
+      )}
+    </select>`;
+  } else {
+    control = x`<input
+      type="text"
+      .value=${String(value ?? field.default ?? "")}
+      @input=${(e6) => update(e6.target.value)}
+    />`;
+  }
+  return x`
+    <label class="panel-field">
+      <span class="panel-field-label">
+        ${field.description || field.name}
+        ${
+          field.required === false
+            ? x`<em class="panel-field-optional"
+              >${host._t("recipes_field_optional", "(optional)")}</em
+            >`
+            : ""
+        }
+      </span>
+      ${control}
+      ${error ? x`<span class="panel-field-error">${error}</span>` : ""}
+    </label>
+  `;
+}
+function _stepLabels(host) {
+  return [
+    host._t("recipes_step_overview", "Overview"),
+    host._t("recipes_step_settings", "Settings"),
+    host._t("recipes_step_match", "Match"),
+    host._t("recipes_step_set_up", "Set up"),
+    host._t("recipes_step_activate", "Activate"),
+  ];
+}
+function _humaniseSection(host, key, n5) {
+  const map = {
+    automation: [
+      host._t("recipes_section_automation_singular", "automation"),
+      host._t("recipes_section_automation_plural", "automations"),
+    ],
+    script: [
+      host._t("recipes_section_script_singular", "script"),
+      host._t("recipes_section_script_plural", "scripts"),
+    ],
+    scene: [
+      host._t("recipes_section_scene_singular", "scene"),
+      host._t("recipes_section_scene_plural", "scenes"),
+    ],
+    sensor: [
+      host._t("recipes_section_sensor_singular", "sensor"),
+      host._t("recipes_section_sensor_plural", "sensors"),
+    ],
+    binary_sensor: [
+      host._t("recipes_section_binary_sensor_singular", "binary sensor"),
+      host._t("recipes_section_binary_sensor_plural", "binary sensors"),
+    ],
+    input_boolean: [
+      host._t("recipes_section_helper_singular", "helper"),
+      host._t("recipes_section_helper_plural", "helpers"),
+    ],
+    input_number: [
+      host._t("recipes_section_helper_singular", "helper"),
+      host._t("recipes_section_helper_plural", "helpers"),
+    ],
+    input_text: [
+      host._t("recipes_section_helper_singular", "helper"),
+      host._t("recipes_section_helper_plural", "helpers"),
+    ],
+    input_select: [
+      host._t("recipes_section_helper_singular", "helper"),
+      host._t("recipes_section_helper_plural", "helpers"),
+    ],
+    input_datetime: [
+      host._t("recipes_section_helper_singular", "helper"),
+      host._t("recipes_section_helper_plural", "helpers"),
+    ],
+    timer: [
+      host._t("recipes_section_timer_singular", "timer"),
+      host._t("recipes_section_timer_plural", "timers"),
+    ],
+    counter: [
+      host._t("recipes_section_counter_singular", "counter"),
+      host._t("recipes_section_counter_plural", "counters"),
+    ],
+    template: [
+      host._t("recipes_section_template_singular", "template entity"),
+      host._t("recipes_section_template_plural", "template entities"),
+    ],
+    group: [
+      host._t("recipes_section_group_singular", "group"),
+      host._t("recipes_section_group_plural", "groups"),
+    ],
+    notify: [
+      host._t("recipes_section_notify_singular", "notifier"),
+      host._t("recipes_section_notify_plural", "notifiers"),
+    ],
+    light: [
+      host._t("recipes_section_light_singular", "light"),
+      host._t("recipes_section_light_plural", "lights"),
+    ],
+    switch: [
+      host._t("recipes_section_switch_singular", "switch"),
+      host._t("recipes_section_switch_plural", "switches"),
+    ],
+    cover: [
+      host._t("recipes_section_cover_singular", "cover"),
+      host._t("recipes_section_cover_plural", "covers"),
+    ],
+    climate: [
+      host._t("recipes_section_climate_singular", "climate entity"),
+      host._t("recipes_section_climate_plural", "climate entities"),
+    ],
+    media_player: [
+      host._t("recipes_section_media_player_singular", "media player"),
+      host._t("recipes_section_media_player_plural", "media players"),
+    ],
+    rest_command: [
+      host._t("recipes_section_rest_command_singular", "REST command"),
+      host._t("recipes_section_rest_command_plural", "REST commands"),
+    ],
+    shell_command: [
+      host._t("recipes_section_shell_command_singular", "shell command"),
+      host._t("recipes_section_shell_command_plural", "shell commands"),
+    ],
+    homeassistant: [
+      host._t("recipes_section_customisation_singular", "customisation"),
+      host._t("recipes_section_customisation_plural", "customisations"),
+    ],
+  };
+  const [singular, plural] = map[key] || [key, key];
+  return `${n5} ${n5 === 1 ? singular : plural}`;
+}
+function _roleIconForKind(role) {
+  const k2 = role.kind || "";
+  const dc = role.device_class || "";
+  const byClass = {
+    door: "mdi:door",
+    window: "mdi:window-closed-variant",
+    motion: "mdi:motion-sensor",
+    occupancy: "mdi:radar",
+    presence: "mdi:radar",
+    moisture: "mdi:water-alert",
+    smoke: "mdi:smoke-detector",
+    siren: "mdi:bullhorn",
+    temperature: "mdi:thermometer",
+    humidity: "mdi:water-percent",
+    illuminance: "mdi:brightness-5",
+    sound: "mdi:volume-high",
+  };
+  if (dc && byClass[dc]) return byClass[dc];
+  return (
+    {
+      light: "mdi:lightbulb-outline",
+      switch: "mdi:toggle-switch-outline",
+      sensor: "mdi:gauge",
+      binary_sensor: "mdi:radiobox-blank",
+      media_player: "mdi:speaker",
+      lock: "mdi:lock-outline",
+      cover: "mdi:window-shutter",
+      climate: "mdi:thermostat",
+      fan: "mdi:fan",
+      vacuum: "mdi:robot-vacuum",
+      camera: "mdi:cctv",
+      person: "mdi:account",
+      device_tracker: "mdi:crosshairs-gps",
+      zone: "mdi:map-marker-radius",
+    }[k2] || "mdi:devices"
+  );
+}
+function _renderWhatYouNeedRail(host, manifest) {
+  const integrations = manifest.integrations || [];
+  const roles = manifest.roles || [];
+  const required = roles.filter((r4) => (r4.min_count || 0) > 0);
+  const optional = roles.filter((r4) => (r4.min_count || 0) === 0);
+  const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
+  return x`
+    <aside class="need-rail">
+      <div class="need-rail-title">
+        ${host._t("recipes_what_you_need_title", "What you need")}
+      </div>
+      <div class="need-rail-list">
+        ${integrations.map(
+          (i5) => x`
+            <div class="need-card">
+              <div class="need-card-icon need-card-icon--integration">
+                <ha-icon icon="mdi:puzzle-outline"></ha-icon>
+              </div>
+              <div class="need-card-body">
+                <div class="need-card-title">${i5.title || i5.domain}</div>
+                ${i5.title && i5.title !== i5.domain ? x`<div class="need-card-meta">${i5.domain}</div>` : ""}
+              </div>
+            </div>
+          `,
+        )}
+        ${required.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
+        ${
+          optional.length
+            ? x`
+              <div class="need-rail-eyebrow">
+                ${host._t("recipes_optional_eyebrow", "Optional")}
+              </div>
+              ${optional.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
+            `
+            : ""
+        }
+      </div>
+    </aside>
+  `;
+}
+function _renderNeedRoleCard(role, pinned) {
+  const count = role.min_count > 1 ? `${role.min_count}+ ` : "";
+  const variant = pinned ? "pin" : "role";
+  return x`
+    <div class="need-card">
+      <div class="need-card-icon need-card-icon--${variant}">
+        <ha-icon icon=${_roleIconForKind(role)}></ha-icon>
+      </div>
+      <div class="need-card-body">
+        <div class="need-card-title">${count}${role.title || role.id}</div>
+        ${role.description ? x`<div class="need-card-desc">${role.description}</div>` : ""}
+      </div>
+    </div>
+  `;
+}
+function _renderWizardStepper(host) {
+  const current = host._recipeWizardStep || 1;
+  return x`
+    <aside class="step-rail">
+      <div class="step-rail-title">
+        ${host._t("recipes_progress_title", "Progress")}
+      </div>
+      <div class="step-rail-list">
+        ${_stepLabels(host).map((label, idx) => {
+          const step = idx + 1;
+          const state =
+            step < current ? "done" : step === current ? "current" : "future";
+          const clickable = step < current;
+          const icon =
+            state === "done"
+              ? "mdi:check-circle"
+              : state === "current"
+                ? "mdi:circle-slice-8"
+                : "mdi:circle-outline";
+          return x`
+            <button
+              class="step-rail-row step-${state}"
+              type="button"
+              ?disabled=${!clickable}
+              @click=${() => clickable && host._jumpToRecipeStep(step)}
+            >
+              <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
+              <span class="step-rail-num">${step}</span>
+              <span class="step-rail-label">${label}</span>
+            </button>
+          `;
+        })}
+      </div>
+    </aside>
+  `;
+}
+function _renderWizardFooter(host, opts) {
+  const current = host._recipeWizardStep || 1;
+  const { primary, primaryDisabled, hint, hideBack, hideSecondary } =
+    opts || {};
+  return x`
+    <div class="step-footer">
+      <div class="step-footer-hint">${hint || ""}</div>
+      <div class="step-footer-actions">
+        ${
+          hideSecondary
+            ? ""
+            : current > 1 && !hideBack
+              ? x`<button
+                class="panel-btn secondary"
+                type="button"
+                @click=${() => host._retreatRecipeStep()}
+              >
+                ${host._t("recipes_footer_back", "Back")}
+              </button>`
+              : x`<button
+                class="panel-btn secondary"
+                type="button"
+                @click=${() => host._closeRecipeWizard()}
+              >
+                ${host._t("recipes_footer_cancel", "Cancel")}
+              </button>`
+        }
+        ${
+          primary
+            ? x`<button
+              class="panel-btn primary"
+              type="button"
+              ?disabled=${primaryDisabled}
+              @click=${primary.onClick}
+            >
+              ${primary.label}
+              ${primary.icon ? x`<ha-icon icon=${primary.icon}></ha-icon>` : ""}
+            </button>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+function _renderWizardHero(host, manifest, opts) {
+  const compact = opts?.compact === true;
+  if (compact) {
+    return x`
+      <div class="wizard-header wizard-header-compact">
+        <button
+          class="wizard-back-compact"
+          type="button"
+          title=${host._t("recipes_back_to_overview", "Back to overview")}
+          @click=${() => host._jumpToRecipeStep(1)}
+        >
+          <ha-icon icon="mdi:arrow-left"></ha-icon>
+        </button>
+        <div class="wizard-compact-meta">
+          <div class="wizard-compact-title">${manifest.title}</div>
+          ${
+            manifest.version
+              ? x`<div class="wizard-compact-version">
+                v${manifest.version}
+              </div>`
+              : ""
+          }
+        </div>
+      </div>
+    `;
+  }
+  const released = manifest.released
+    ? new Date(manifest.released).toLocaleDateString(void 0, {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      })
+    : null;
+  return x`
+    <div class="wizard-header">
+      <div class="wizard-hero">
+        <div class="wizard-eyebrow">
+          <ha-icon icon="mdi:book-open-page-variant-outline"></ha-icon>
+          <span class="wizard-eyebrow-tag"
+            >${host._t("recipes_eyebrow_recipe", "RECIPE")}</span
+          >
+          ${
+            manifest.version
+              ? x`<span class="wizard-eyebrow-sep">·</span>
+                <span class="wizard-eyebrow-meta">v${manifest.version}</span>`
+              : ""
+          }
+          ${
+            released
+              ? x`<span class="wizard-eyebrow-sep">·</span>
+                <span class="wizard-eyebrow-meta"
+                  >${host._t("recipes_eyebrow_released", "Released")}
+                  ${released}</span
+                >`
+              : ""
+          }
+        </div>
+        <div class="wizard-hero-title">${manifest.title}</div>
+        ${manifest.tagline ? x`<div class="wizard-hero-tagline">${manifest.tagline}</div>` : ""}
+        ${
+          manifest.tags?.length
+            ? x`
+              <div class="wizard-hero-tags">
+                ${manifest.tags.map(
+                  (
+                    t4,
+                    idx,
+                  ) => x`<span class="wizard-tag ${idx === 0 ? "primary" : ""}">
+                      ${idx === 0 ? x`<ha-icon icon="mdi:bookmark"></ha-icon>` : ""}
+                      ${t4}
+                    </span>`,
+                )}
+              </div>
+            `
+            : ""
+        }
+        ${
+          manifest.description
+            ? x`<div class="wizard-hero-description">
+              ${manifest.description}
+            </div>`
+            : ""
+        }
+      </div>
+    </div>
+  `;
+}
+function _renderStep1Overview(host) {
+  const { manifest } = host._recipeWizardDetail;
+  const preview = host._recipeWizardPreview;
+  const counts = preview?.preview?.created_counts || {};
+  const bullets = Object.entries(counts)
+    .filter(([, n5]) => n5 > 0)
+    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
+  return x`
+    <div class="step-pane">
+      ${
+        bullets.length
+          ? x`
+            <section class="overview-card">
+              <h3 class="overview-card-title">
+                ${host._t("recipes_this_recipe_creates", "This recipe creates")}
+              </h3>
+              <ul class="overview-list">
+                ${bullets.map(
+                  (b2) => x`<li>
+                      <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                      ${b2[0].toUpperCase() + b2.slice(1)}
+                    </li>`,
+                )}
+              </ul>
+            </section>
+          `
+          : ""
+      }
+      ${_renderWizardFooter(host, {
+        primary: {
+          label: host._t("recipes_start_setup_button", "Start setup"),
+          icon: "mdi:arrow-right",
+          onClick: () => host._advanceRecipeStep(),
+        },
+        primaryDisabled: !host._canAdvanceFromStep(1) || host._recipesBusy,
+        hint: host._recipesBusy
+          ? host._t("recipes_loading_recipe", "Loading recipe\u2026")
+          : "",
+      })}
+    </div>
+  `;
+}
+function _renderStepHeading(host, stepNum, label, subline, required) {
+  return x`
+    <header class="step-heading">
+      <div class="step-heading-eyebrow">
+        <span class="step-heading-num"
+          >${host._t("recipes_step_label", "Step")} ${stepNum}
+          ${host._t("recipes_step_of_5", "of 5")}</span
+        >
+        ${
+          required === false
+            ? x`<span class="step-heading-optional"
+              >${host._t("recipes_optional_eyebrow", "Optional")}</span
+            >`
+            : required === true
+              ? x`<span class="step-heading-required"
+                >${host._t("recipes_required_eyebrow", "Required")}</span
+              >`
+              : ""
+        }
+      </div>
+      <h2 class="step-heading-title">${label}</h2>
+      ${subline ? x`<p class="step-heading-sub">${subline}</p>` : ""}
+    </header>
+  `;
+}
+function _renderStep2Settings(host) {
+  const { manifest } = host._recipeWizardDetail;
+  const inputs = (manifest.inputs || []).filter((i5) => !i5.resolver);
+  const required = inputs.some((i5) => i5.required !== false);
+  return x`
+    <div class="step-pane">
+      ${_renderStepHeading(
+        host,
+        2,
+        host._t("recipes_step2_title", "Recipe settings"),
+        inputs.length === 0
+          ? host._t(
+              "recipes_step2_sub_empty",
+              "This recipe has no settings to configure \u2014 just click Continue.",
+            )
+          : host._t(
+              "recipes_step2_sub",
+              "Recipe-wide preferences. Defaults are pre-filled; adjust only if you want to change something, then Continue.",
+            ),
+        inputs.length === 0 ? false : required,
+      )}
+      ${
+        inputs.length === 0
+          ? ""
+          : x`
+            <section class="overview-card">
+              <div class="panel-fields">
+                ${inputs.map((input) => _renderInputField(host, input))}
+              </div>
+            </section>
+          `
+      }
+      ${_renderWizardFooter(host, {
+        primary: {
+          label: host._t("recipes_continue_button", "Continue"),
+          icon: "mdi:arrow-right",
+          onClick: () => host._advanceRecipeStep(),
+        },
+        primaryDisabled: !host._canAdvanceFromStep(2) || host._recipesBusy,
+        hint: "",
+      })}
+    </div>
+  `;
+}
+function _step3BlockReason(host, preview, needsAction) {
+  if (needsAction) {
+    return host._t(
+      "recipes_step3_hint_finish",
+      "Finish the rows that say \u201CNeeds setup\u201D to continue.",
+    );
+  }
+  const punch = (preview?.punch_list || []).find(
+    (p2) => p2.code !== "binding_pending" && p2.message,
+  );
+  if (punch?.message) return punch.message;
+  return host._t(
+    "recipes_step3_hint_blocked",
+    "This recipe can't be prepared yet \u2014 check the recipe for errors, then try again.",
+  );
+}
+function _renderStep3Match(host) {
+  const preview = host._recipeWizardPreview;
+  const items = preview?.items || [];
+  const matchItems = items.filter(
+    (it) =>
+      it.stage === "configure" &&
+      (it.kind === "role_selection" ||
+        it.kind === "integration" ||
+        it.kind === "pin"),
+  );
+  const active = _activeItem(host, matchItems);
+  const canAdvance = host._canAdvanceFromStep(3);
+  const needsAction = matchItems.some(
+    (it) => it.status === "needs_input" || it.status === "failed",
+  );
+  return x`
+    <div class="step-pane">
+      ${_renderStepHeading(
+        host,
+        3,
+        host._t("recipes_step3_title", "Match devices"),
+        host._t(
+          "recipes_step3_sub",
+          "Pair each item below with an entity from your home. Click any row to set it up.",
+        ),
+        needsAction,
+      )}
+
+      <div class="match-table">
+        <div class="match-row match-head">
+          <div>${host._t("recipes_match_col_item", "Item")}</div>
+          <div>${host._t("recipes_match_col_status", "Status")}</div>
+          <div>${host._t("recipes_match_col_selected", "Selected")}</div>
+        </div>
+        ${
+          matchItems.length === 0
+            ? x`<div class="match-empty">
+              ${
+                host._recipesBusy
+                  ? host._t(
+                      "recipes_match_scanning",
+                      "Scanning your home\u2026",
+                    )
+                  : host._t(
+                      "recipes_match_nothing",
+                      "Nothing to match \u2014 this recipe runs without device setup.",
+                    )
+              }
+            </div>`
+            : matchItems.map((it) =>
+                _renderMatchRow(host, it, it.id === active?.id),
+              )
+        }
+      </div>
+
+      ${
+        active
+          ? x`<div class="match-detail">
+            ${_renderActionPanel(host, active)}
+          </div>`
+          : ""
+      }
+      ${_renderWizardFooter(host, {
+        primary: {
+          label: host._t("recipes_continue_button", "Continue"),
+          icon: "mdi:arrow-right",
+          onClick: () => host._advanceRecipeStep(),
+        },
+        primaryDisabled: !canAdvance || host._recipesBusy,
+        hint: canAdvance
+          ? host._t(
+              "recipes_step3_hint_ready",
+              "Looks good \u2014 ready to set up.",
+            )
+          : _step3BlockReason(host, preview, needsAction),
+      })}
+    </div>
+  `;
+}
+function _matchRowVisual(item) {
+  if (item.kind === "integration") {
+    return { icon: "mdi:puzzle-outline", variant: "integration" };
+  }
+  if (item.kind === "inputs") {
+    return { icon: "mdi:cog-outline", variant: "input" };
+  }
+  if (item.kind === "pin") {
+    return { icon: "mdi:link-variant", variant: "pin" };
+  }
+  if (item.kind === "role_selection") {
+    const role = item.payload?.role;
+    return {
+      icon: role ? _roleIconForKind(role) : "mdi:devices",
+      variant: "role",
+    };
+  }
+  return { icon: "mdi:circle-outline", variant: "role" };
+}
+function _renderMatchRow(host, item, active) {
+  const statusCopy = {
+    ok: host._t("recipes_match_status_ready", "Ready"),
+    needs_input: host._t("recipes_match_status_needs_setup", "Needs setup"),
+    failed: host._t("recipes_match_status_error", "Error"),
+    skipped: host._t("recipes_match_status_optional", "Optional"),
+    pending: host._t("recipes_match_status_waiting", "Waiting"),
+    running: host._t("recipes_match_status_working", "Working"),
+  };
+  let displayStatus = item.status;
+  let flowError = null;
+  if (item.kind === "integration") {
+    const flow = (host._recipeFlows || {})[item.payload?.domain];
+    if (flow?.state === "error") {
+      displayStatus = "failed";
+      flowError = flow.error || null;
+    }
+  }
+  const selected = _matchRowSelected(host, item);
+  const visual = _matchRowVisual(item);
+  return x`
+    <button
+      type="button"
+      class="match-row match-data ${active ? "is-active" : ""}"
+      @click=${() => {
+        host._recipeActiveItemId = item.id;
+      }}
+    >
+      <div class="match-cell-item">
+        <div
+          class="match-icon-wrap match-icon-${visual.variant} match-icon-status-${displayStatus}"
+        >
+          <ha-icon icon=${visual.icon}></ha-icon>
+        </div>
+        <div class="match-cell-text">
+          <div class="match-title">${item.title}</div>
+          ${
+            flowError
+              ? x`<div class="match-sub is-error" title=${flowError}>
+                ${flowError}
+              </div>`
+              : item.detail
+                ? x`<div class="match-sub">${item.detail}</div>`
+                : ""
+          }
+        </div>
+      </div>
+      <div class="match-status pi-${displayStatus}">
+        ${statusCopy[displayStatus] || displayStatus}
+      </div>
+      <div class="match-selected">${selected}</div>
+    </button>
+  `;
+}
+function _matchRowSelected(host, item) {
+  if (item.kind === "role_selection") {
+    const bound = item.payload?.bound || [];
+    const pinned = item.payload?.pinned || [];
+    const total = bound.length + pinned.length;
+    if (total === 0)
+      return x`<span class="panel-muted"
+        >${host._t("recipes_selected_none", "None")}</span
+      >`;
+    if (total === 1)
+      return _entityFriendlyName(host.hass, bound[0] || pinned[0]);
+    return `${total} ${host._t("recipes_selected_entities_suffix", "entities")}`;
+  }
+  if (item.kind === "pin") {
+    const id = item.payload?.identity || {};
+    const label = [id.manufacturer, id.model].filter(Boolean).join(" ");
+    return (
+      label ||
+      x`<span class="panel-muted"
+        >${host._t("recipes_selected_awaiting_pair", "Awaiting pair")}</span
+      >`
+    );
+  }
+  if (item.kind === "integration") {
+    return x`<span class="panel-muted">—</span>`;
+  }
+  if (item.kind === "inputs") {
+    const n5 = item.payload?.inputs?.length || 0;
+    return `${n5} ${n5 === 1 ? host._t("recipes_selected_setting_singular", "setting") : host._t("recipes_selected_setting_plural", "settings")}`;
+  }
+  return "";
+}
+function _renderStep4Resolve(host) {
+  const items = host._recipeWizardPreview?.items || [];
+  const result = host._recipeWizardResult;
+  const installOk = !!result && result.ok === true;
+  const installFailed = !!result && result.ok === false;
+  const apply = items
+    .filter((it) => it.stage === "apply")
+    .map((it) =>
+      installOk && it.status !== "failed" ? { ...it, status: "ok" } : it,
+    );
+  const interrupts = items.filter(
+    (it) => it.stage === "configure" && it.status === "needs_input",
+  );
+  const completed = apply.filter((it) => it.status === "ok");
+  const running = apply.filter((it) => it.status === "running");
+  const upcoming = apply.filter((it) => it.status === "pending");
+  const failed = apply.filter((it) => it.status === "failed");
+  const allDone =
+    installOk || (apply.length > 0 && completed.length === apply.length);
+  const errorPunch = installFailed ? result.punch_list || [] : [];
+  return x`
+    <div class="step-pane">
+      ${_renderStepHeading(
+        host,
+        4,
+        host._t("recipes_step4_title", "Setting up"),
+        host._recipesBusy
+          ? host._t(
+              "recipes_step4_sub_busy",
+              "Selora is installing your recipe. Sit tight \u2014 this only takes a few seconds.",
+            )
+          : installFailed
+            ? `${host._t("recipes_step4_sub_halted_prefix", "Install halted at the")} ${result.stage_reached || host._t("recipes_stage_unknown", "unknown")} ${host._t("recipes_step4_sub_halted_suffix", "stage. Go back to fix the issues below.")}`
+            : allDone
+              ? host._t(
+                  "recipes_step4_sub_done",
+                  "All done. Click Continue to review what was installed.",
+                )
+              : host._t("recipes_step4_sub_starting", "Starting setup\u2026"),
+        host._recipesBusy || !allDone,
+      )}
+      ${
+        installFailed
+          ? x`
+            <section class="bucket bucket-failed">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                ${host._t("recipes_bucket_install_failed", "Install failed")}
+              </h3>
+              ${
+                errorPunch.length
+                  ? x`<ul class="install-fail-list">
+                    ${errorPunch.map(
+                      (p2) => x`<li>
+                          <span class="install-fail-stage">${p2.stage}</span>
+                          ${p2.message}
+                        </li>`,
+                    )}
+                  </ul>`
+                  : x`<p class="panel-prose panel-muted">
+                    ${host._t(
+                      "recipes_bucket_no_details",
+                      "No details available. Check the Home Assistant log for the underlying error.",
+                    )}
+                  </p>`
+              }
+            </section>
+          `
+          : ""
+      }
+      ${
+        interrupts.length
+          ? x`
+            <section class="bucket bucket-waiting">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:hand-back-right-outline"></ha-icon>
+                ${host._t("recipes_bucket_waiting_for_you", "Waiting for you")}
+              </h3>
+              ${interrupts.map((it) => _renderBucketItem(host, it, true))}
+            </section>
+          `
+          : ""
+      }
+      ${
+        failed.length
+          ? x`
+            <section class="bucket bucket-failed">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:close-circle-outline"></ha-icon>
+                ${host._t("recipes_bucket_failed", "Failed")}
+              </h3>
+              ${failed.map((it) => _renderBucketItem(host, it, false))}
+            </section>
+          `
+          : ""
+      }
+      ${
+        running.length
+          ? x`
+            <section class="bucket bucket-running">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:cog-sync-outline"></ha-icon>
+                ${host._t("recipes_bucket_in_progress", "In progress")}
+              </h3>
+              ${running.map((it) => _renderBucketItem(host, it, false))}
+            </section>
+          `
+          : ""
+      }
+      ${
+        upcoming.length
+          ? x`
+            <section class="bucket bucket-upcoming">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:tray-arrow-down"></ha-icon>
+                ${host._t("recipes_bucket_up_next", "Up next")}
+              </h3>
+              ${upcoming.map((it) => _renderBucketItem(host, it, false))}
+            </section>
+          `
+          : ""
+      }
+      ${
+        completed.length
+          ? x`
+            <section class="bucket bucket-done">
+              <h3 class="bucket-title">
+                <ha-icon icon="mdi:check-circle-outline"></ha-icon>
+                ${host._t("recipes_bucket_completed", "Completed")}
+              </h3>
+              ${completed.map((it) => _renderBucketItem(host, it, false))}
+            </section>
+          `
+          : ""
+      }
+      ${_renderWizardFooter(host, {
+        primary: {
+          label: allDone
+            ? host._t("recipes_continue_button", "Continue")
+            : host._recipesBusy
+              ? host._t("recipes_working", "Working\u2026")
+              : installFailed
+                ? host._t("recipes_install_failed_button", "Install failed")
+                : host._t("recipes_setting_up_button", "Setting up\u2026"),
+          icon: allDone ? "mdi:arrow-right" : null,
+          onClick: () => host._advanceRecipeStep(),
+        },
+        primaryDisabled: host._recipesBusy || !host._canAdvanceFromStep(4),
+        hideBack: host._recipesBusy,
+        hint: installFailed
+          ? host._t(
+              "recipes_step4_hint_failed",
+              "Hit Back to revise your selections, then try again.",
+            )
+          : failed.length
+            ? host._t(
+                "recipes_step4_hint_something_failed",
+                "Something failed \u2014 go back and try again.",
+              )
+            : "",
+      })}
+    </div>
+  `;
+}
+function _renderBucketItem(host, item, interactive) {
+  const icon = _STATUS_ICON[item.status] || "mdi:circle-outline";
+  return x`
+    <div class="bucket-item">
+      <div class="bucket-item-icon-wrap bucket-tile-${item.status}">
+        <ha-icon icon=${icon}></ha-icon>
+      </div>
+      <div class="bucket-item-body">
+        <div class="bucket-item-title">${item.title}</div>
+        ${item.detail ? x`<div class="bucket-item-detail">${item.detail}</div>` : ""}
+      </div>
+      ${
+        interactive
+          ? x`<div class="bucket-item-action">
+            ${_renderActionPanel(host, item)}
+          </div>`
+          : ""
+      }
+    </div>
+  `;
+}
+function _renderDashboardOutcome(host) {
+  const manifest = host._recipeWizardDetail?.manifest;
+  if (!manifest?.dashboard) return "";
+  const card = host._recipeWizardResult?.record?.dashboard_card || {};
+  const placed = card.ok === true;
+  const dashboards = host._recipeDashboards || [];
+  const title = host._t("recipes_step5_dashboard_title", "Dashboard card");
+  if (placed) {
+    return x`
+      <section class="overview-card">
+        <h3 class="overview-card-title">${title}</h3>
+        <p class="step-prose">
+          <ha-icon icon="mdi:check-circle" class="safety-ok"></ha-icon>
+          ${host._t(
+            "recipes_step5_dashboard_added",
+            "A card was added to your dashboard.",
+          )}
+        </p>
+      </section>
+    `;
+  }
+  if (!dashboards.length) {
+    return x`
+      <section class="overview-card">
+        <h3 class="overview-card-title">${title}</h3>
+        <p class="step-prose panel-muted">
+          ${host._t(
+            "recipes_step5_dashboard_none",
+            "No editable dashboards found. Add a card yourself from your dashboard's edit mode.",
+          )}
+        </p>
+      </section>
+    `;
+  }
+  const current = host._recipeDashboardTarget;
+  const firstValue =
+    dashboards[0].url_path == null ? "" : dashboards[0].url_path;
+  const selected =
+    current === void 0 ? firstValue : current == null ? "" : current;
+  return x`
+    <section class="overview-card">
+      <h3 class="overview-card-title">${title}</h3>
+      <p class="step-prose panel-muted">
+        ${host._t(
+          "recipes_step5_dashboard_offer",
+          "Drop a card for this recipe onto a dashboard so you can tap it.",
+        )}
+      </p>
+      <select
+        class="role-filter-input"
+        .value=${selected}
+        @change=${(e6) => host._setRecipeDashboardTarget(e6.target.value)}
+        ?disabled=${host._recipesBusy}
+      >
+        ${dashboards.map(
+          (d3) => x`<option value=${d3.url_path == null ? "" : d3.url_path}>
+              ${d3.title}
+            </option>`,
+        )}
+      </select>
+      <div class="step5-dashboard-actions">
+        <button
+          class="panel-btn primary"
+          type="button"
+          @click=${() => host._insertRecipeDashboardCard()}
+          ?disabled=${host._recipesBusy}
+        >
+          ${host._t("recipes_step5_dashboard_add", "Add card")}
+          <ha-icon icon="mdi:view-dashboard-outline"></ha-icon>
+        </button>
+      </div>
+    </section>
+  `;
+}
+function _renderStep5Activate(host) {
+  const result = host._recipeWizardResult;
+  const counts = result?.preview?.created_counts || {};
+  const bindings = result?.bindings || {};
+  const allBoundIds = Object.values(bindings).flat();
+  const uniqueBound = [...new Set(allBoundIds)];
+  const safety = [
+    {
+      ok: result?.ok === true,
+      label:
+        result?.ok === true
+          ? host._t(
+              "recipes_safety_installed_ok",
+              "Recipe installed successfully",
+            )
+          : host._t("recipes_safety_install_incomplete", "Install incomplete"),
+    },
+    {
+      ok: (result?.punch_list?.length || 0) === 0,
+      label:
+        (result?.punch_list?.length || 0) === 0
+          ? host._t("recipes_safety_no_issues", "No outstanding issues")
+          : `${result.punch_list.length} ${host._t("recipes_safety_issues_to_address", "issue(s) to address")}`,
+    },
+    {
+      ok: Object.keys(counts).length > 0,
+      label:
+        Object.keys(counts).length > 0
+          ? host._t(
+              "recipes_safety_automations_generated",
+              "Automations generated",
+            )
+          : host._t("recipes_safety_no_artifacts", "No artifacts created"),
+    },
+  ];
+  const summaryBullets = Object.entries(counts)
+    .filter(([, n5]) => n5 > 0)
+    .map(([k2, n5]) => _humaniseSection(host, k2, n5));
+  return x`
+    <div class="step-pane">
+      ${_renderStepHeading(
+        host,
+        5,
+        host._t("recipes_step5_title", "Review & finish"),
+        host._t(
+          "recipes_step5_sub",
+          "Your recipe is installed and Home Assistant has been reloaded. Review what was created below, then click Finish.",
+        ),
+        false,
+      )}
+
+      <div class="activate-grid">
+        <section class="overview-card">
+          <h3 class="overview-card-title">
+            ${host._t("recipes_step5_created_title", "This recipe created")}
+          </h3>
+          ${
+            summaryBullets.length
+              ? x`<ul class="overview-list">
+                ${summaryBullets.map(
+                  (b2) => x`<li>
+                      <ha-icon icon="mdi:plus-circle-outline"></ha-icon>
+                      ${b2[0].toUpperCase() + b2.slice(1)}
+                    </li>`,
+                )}
+              </ul>`
+              : x`<p class="step-prose panel-muted">
+                ${host._t(
+                  "recipes_step5_no_entries",
+                  "No entries were generated.",
+                )}
+              </p>`
+          }
+        </section>
+
+        <section class="overview-card">
+          <h3 class="overview-card-title">
+            ${host._t("recipes_step5_devices_linked", "Devices linked")}
+          </h3>
+          ${
+            uniqueBound.length
+              ? x`<ul class="overview-list compact">
+                ${uniqueBound.slice(0, 8).map(
+                  (id) => x`<li>
+                      <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                      ${_entityFriendlyName(host.hass, id)}
+                    </li>`,
+                )}
+                ${
+                  uniqueBound.length > 8
+                    ? x`<li class="panel-muted">
+                      + ${uniqueBound.length - 8}
+                      ${host._t("recipes_step5_more_suffix", "more")}
+                    </li>`
+                    : ""
+                }
+              </ul>`
+              : x`<p class="step-prose panel-muted">
+                ${host._t(
+                  "recipes_step5_no_devices",
+                  "No devices are tied to this recipe.",
+                )}
+              </p>`
+          }
+        </section>
+
+        <section class="overview-card safety-card">
+          <h3 class="overview-card-title">
+            ${host._t("recipes_step5_safety_checks", "Safety checks")}
+          </h3>
+          <ul class="overview-list compact">
+            ${safety.map(
+              (s6) => x`<li>
+                  <ha-icon
+                    icon=${s6.ok ? "mdi:check-circle" : "mdi:alert-circle"}
+                    class=${s6.ok ? "safety-ok" : "safety-fail"}
+                  ></ha-icon>
+                  ${s6.label}
+                </li>`,
+            )}
+          </ul>
+        </section>
+        ${_renderDashboardOutcome(host)}
+      </div>
+
+      ${_renderWizardFooter(host, {
+        primary: {
+          label: host._t("recipes_finish_button", "Finish"),
+          icon: "mdi:check",
+          onClick: () => host._closeRecipeWizard(),
+        },
+        primaryDisabled: false,
+        hideBack: true,
+        hideSecondary: true,
+        hint: host._t(
+          "recipes_step5_hint",
+          "Home Assistant has been reloaded \u2014 your recipe is live.",
+        ),
+      })}
+    </div>
+  `;
+}
+function _renderWizardView(host) {
+  const detail = host._recipeWizardDetail;
+  if (!detail) {
+    return x`<div class="recipes-empty">
+      ${host._t("recipes_loading", "Loading\u2026")}
+    </div>`;
+  }
+  const step = host._recipeWizardStep || 1;
+  const body =
+    step === 1
+      ? _renderStep1Overview(host)
+      : step === 2
+        ? _renderStep2Settings(host)
+        : step === 3
+          ? _renderStep3Match(host)
+          : step === 4
+            ? _renderStep4Resolve(host)
+            : _renderStep5Activate(host);
+  const rail =
+    step === 1
+      ? _renderWhatYouNeedRail(host, detail.manifest)
+      : _renderWizardStepper(host);
+  return x`
+    <div class="wizard-root ${step === 1 ? "wizard-root-overview" : ""}">
+      <div class="wizard-main">
+        ${_renderWizardHero(host, detail.manifest, { compact: step !== 1 })}
+        ${body}
+      </div>
+      ${rail}
+    </div>
+  `;
+}
+function _renderResultView(host) {
+  const result = host._recipeWizardResult;
+  if (!result) return "";
+  return x`
+    <div class="recipes-root">
+      <button
+        class="wizard-back"
+        @click=${() => {
+          host._recipeWizardResult = null;
+          host._recipesView = "list";
+          host._recipeWizardSlug = null;
+          host._setRecipeWizardUrl?.(null);
+          host._loadRecipesList();
+        }}
+      >
+        <ha-icon icon="mdi:arrow-left"></ha-icon> ${host._t(
+          "recipes_back_to_recipes",
+          "Back to recipes",
+        )}
+      </button>
+      ${
+        result.ok
+          ? x`
+            <div class="install-success">
+              <div
+                style="font-size:var(--selora-fs-xl);font-weight:700;display:flex;align-items:center;gap:8px;"
+              >
+                <ha-icon icon="mdi:check-circle"></ha-icon>
+                ${host._t(
+                  "recipes_result_install_complete",
+                  "Installation complete",
+                )}
+              </div>
+              ${
+                result.record
+                  ? x`
+                    <div style="font-size:var(--selora-fs-md);line-height:1.6;">
+                      ${result.record.title} v${result.record.version}
+                      ${host._t(
+                        "recipes_result_installed_reloaded",
+                        "was installed and Home Assistant has been reloaded. Package file:",
+                      )}
+                      <code>${result.record.package_path}</code>
+                    </div>
+                  `
+                  : ""
+              }
+            </div>
+            ${
+              result.preview?.yaml
+                ? x`
+                  <details class="wizard-section package-disclosure">
+                    <summary>
+                      <ha-icon
+                        class="chevron"
+                        icon="mdi:chevron-right"
+                      ></ha-icon>
+                      <ha-icon icon="mdi:file-document-outline"></ha-icon>
+                      ${host._t(
+                        "recipes_result_view_yaml",
+                        "View generated package YAML",
+                      )}
+                      <span class="filler"></span>
+                      <span class="package-disclosure-hint"
+                        >${host._t("recipes_result_advanced", "advanced")}</span
+                      >
+                    </summary>
+                    ${o5(
+                      '<div class="yaml-preview">' +
+                        _highlightYaml2(result.preview.yaml) +
+                        "</div>",
+                    )}
+                  </details>
+                `
+                : ""
+            }
+          `
+          : x`
+            <div class="wizard-section">
+              <h3 style="color:var(--error-color,#c62828);">
+                ${host._t(
+                  "recipes_result_halted_at_stage",
+                  "Installation halted at stage:",
+                )}
+                ${result.stage_reached}
+              </h3>
+              <p
+                style="font-size:var(--selora-fs-md);color:var(--secondary-text-color);"
+              >
+                ${host._t(
+                  "recipes_result_fix_retry",
+                  "Fix the items below, then re-open the recipe to retry.",
+                )}
+              </p>
+            </div>
+            ${_renderPunchList(host, result.punch_list)}
+          `
+      }
+    </div>
+  `;
+}
+function _renderUninstallModal(host) {
+  const slug = host._recipeUninstallPending;
+  if (!slug) return "";
+  const record = (host._recipesList?.installed || []).find(
+    (r4) => r4.slug === slug,
+  );
+  const title = record?.title || slug;
+  const installedIntegrations = record?.integrations_installed || {};
+  const integrationDomains = Object.keys(installedIntegrations);
+  const selectedEntries = host._recipeUninstallEntries || {};
+  const onKey = (e6) => {
+    if (e6.key === "Enter") {
+      e6.preventDefault();
+      host._confirmRecipeUninstall();
+    } else if (e6.key === "Escape") {
+      e6.preventDefault();
+      host._cancelRecipeUninstall();
+    }
+  };
+  return x`
+    <div
+      class="modal-overlay"
+      @click=${(e6) => {
+        if (e6.target === e6.currentTarget) host._cancelRecipeUninstall();
+      }}
+      @keydown=${onKey}
+    >
+      <div
+        class="modal-content uninstall-modal"
+        @click=${(e6) => e6.stopPropagation()}
+      >
+        <h3 class="modal-title">
+          <ha-icon
+            icon="mdi:delete-alert-outline"
+            class="modal-title-icon"
+          ></ha-icon>
+          ${host._t("recipes_uninstall_confirm_prefix", "Uninstall")}
+          &ldquo;${title}&rdquo;?
+        </h3>
+        <p class="modal-body">
+          ${host._t(
+            "recipes_uninstall_body",
+            "The package file will be deleted and Home Assistant will reload. The automations this recipe created will be removed.",
+          )}
+        </p>
+        ${
+          integrationDomains.length
+            ? x`
+              <div class="uninstall-integrations">
+                <div class="uninstall-integrations-title">
+                  ${host._t(
+                    "recipes_uninstall_integrations_title",
+                    "Integrations this recipe installed",
+                  )}
+                </div>
+                <p class="uninstall-integrations-sub">
+                  ${host._t(
+                    "recipes_uninstall_integrations_sub",
+                    "Tick any that should be removed along with the recipe. Anything you leave unchecked stays in Home Assistant.",
+                  )}
+                </p>
+                ${integrationDomains.map((domain) => {
+                  const entryId = installedIntegrations[domain];
+                  const checked = !!selectedEntries[entryId];
+                  const others = host._otherUsersOfDomain(domain, slug);
+                  const iconUrl = `https://brands.home-assistant.io/_/${domain}/icon@2x.png`;
+                  return x`
+                    <label class="uninstall-integration-row">
+                      <input
+                        type="checkbox"
+                        .checked=${checked}
+                        @change=${() => host._toggleUninstallEntry(entryId)}
+                      />
+                      <img
+                        class="uninstall-integration-brand"
+                        src=${iconUrl}
+                        alt=""
+                        loading="lazy"
+                        @error=${(e6) => {
+                          e6.target.style.display = "none";
+                        }}
+                      />
+                      <div class="uninstall-integration-text">
+                        <div class="uninstall-integration-name">${domain}</div>
+                        ${
+                          others.length
+                            ? x`<div
+                              class="uninstall-integration-warn"
+                              title=${host._t(
+                                "recipes_uninstall_warn_title",
+                                "Removing this integration will break those recipes.",
+                              )}
+                            >
+                              <ha-icon icon="mdi:alert-outline"></ha-icon>
+                              ${host._t(
+                                "recipes_uninstall_still_used_by",
+                                "Still used by",
+                              )}
+                              ${others.join(", ")}
+                            </div>`
+                            : ""
+                        }
+                      </div>
+                    </label>
+                  `;
+                })}
+              </div>
+            `
+            : ""
+        }
+        <div class="modal-actions">
+          <button
+            class="modal-btn modal-cancel"
+            @click=${() => host._cancelRecipeUninstall()}
+          >
+            ${host._t("recipes_footer_cancel", "Cancel")}
+          </button>
+          <button
+            class="modal-btn modal-destructive"
+            autofocus
+            @click=${() => host._confirmRecipeUninstall()}
+          >
+            <ha-icon icon="mdi:delete-outline" class="modal-btn-icon"></ha-icon>
+            ${host._t("recipes_card_uninstall_button", "Uninstall")}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function _renderManageDevicesModal(host) {
+  const slug = host._recipeManageSlug;
+  if (!slug) return "";
+  const detail = host._recipeManageDetail;
+  return x`
+    <div
+      class="modal-overlay"
+      @click=${(e6) => {
+        if (e6.target === e6.currentTarget) host._closeManageDevices();
+      }}
+    >
+      <div
+        class="modal-content manage-modal"
+        @click=${(e6) => e6.stopPropagation()}
+      >
+        <h3 class="modal-title">
+          <ha-icon icon="mdi:swap-horizontal"></ha-icon>
+          ${host._t(
+            "recipes_card_manage_devices_button",
+            "Manage devices",
+          )}${detail ? ` \u2014 ${detail.manifest.title}` : ""}
+        </h3>
+        ${host._recipeManageError ? x`<div class="panel-error">${host._recipeManageError}</div>` : ""}
+        ${
+          !detail
+            ? x`<p class="panel-prose panel-muted">
+              ${host._recipeManageBusy ? host._t("recipes_loading", "Loading\u2026") : host._t("recipes_manage_no_detail", "No detail available.")}
+            </p>`
+            : x`
+              <p class="panel-prose">
+                ${host._t(
+                  "recipes_manage_intro",
+                  "Update which entities back each role. Saves immediately \u2014 automations are not re-rendered, only the group memberships change.",
+                )}
+              </p>
+              ${detail.manifest.roles.map((role) =>
+                _renderManageRoleRow(host, role),
+              )}
+            `
+        }
+        <div class="modal-actions">
+          <button
+            class="modal-btn modal-cancel"
+            @click=${() => host._closeManageDevices()}
+            ?disabled=${host._recipeManageBusy}
+          >
+            ${host._t("recipes_footer_cancel", "Cancel")}
+          </button>
+          <button
+            class="modal-btn modal-create"
+            @click=${() => host._saveManageDevices()}
+            ?disabled=${host._recipeManageBusy || !detail}
+          >
+            ${host._recipeManageBusy ? host._t("recipes_manage_saving", "Saving\u2026") : host._t("recipes_manage_save", "Save")}
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+function _renderManageRoleRow(host, role) {
+  const selected = new Set(host._recipeManageSelections[role.id] || []);
+  const states = host.hass?.states || {};
+  const candidates = Object.keys(states).filter((id) => {
+    if (!id.startsWith(`${role.kind}.`)) return false;
+    if (role.device_class) {
+      const dc = states[id]?.attributes?.device_class;
+      if (dc !== role.device_class) return false;
+    }
+    return true;
+  });
+  return x`
+    <div class="manage-role">
+      <div class="manage-role-head">
+        <div class="manage-role-title">${role.title || role.id}</div>
+        ${role.description ? x`<div class="manage-role-desc">${role.description}</div>` : ""}
+      </div>
+      <div class="panel-chips">
+        ${
+          candidates.length === 0
+            ? x`<p class="panel-prose panel-muted">
+              ${host._t("recipes_manage_no_entities_prefix", "No")} ${role.kind}
+              ${host._t(
+                "recipes_manage_no_entities_suffix",
+                "entities found in this home.",
+              )}
+            </p>`
+            : candidates.map((id) => {
+                const on = selected.has(id);
+                return x`
+                <button
+                  type="button"
+                  class="role-entity-chip role-entity-toggle ${on ? "is-on" : ""}"
+                  title=${id}
+                  @click=${() => host._toggleManageEntity(role.id, id)}
+                  ?disabled=${host._recipeManageBusy}
+                >
+                  <span class="chip-icon-tile">
+                    <ha-icon icon=${_entityIcon2(host.hass, id)}></ha-icon>
+                  </span>
+                  <span class="chip-text">
+                    <span class="chip-name">
+                      ${_entityFriendlyName(host.hass, id)}
+                    </span>
+                    <span class="chip-id">${id}</span>
+                  </span>
+                </button>
+              `;
+              })
+        }
+      </div>
+    </div>
+  `;
+}
+function renderRecipesV2(host) {
+  let body;
+  if (host._recipesView === "wizard") body = _renderWizardView(host);
+  else if (host._recipesView === "result") body = _renderResultView(host);
+  else body = _renderListView(host);
+  return x`
+    <div class="scroll-view">${_STYLE} ${body}</div>
+    ${_renderManageDevicesModal(host)} ${_renderUninstallModal(host)}
+  `;
+}
+
 // src/panel/render-version-history.js
-function renderVersionHistoryDrawer(host, a3) {
-  const automationId = a3.automation_id || a3.entity_id;
+function renderVersionHistoryDrawer(host, a4) {
+  const automationId = a4.automation_id || a4.entity_id;
   const versions = host._versions[automationId] || [];
   const loading = host._loadingVersions[automationId];
-  return b2`
+  return x`
     <div class="version-history">
       ${
         loading
-          ? b2`<div class="version-history-empty">
+          ? x`<div class="version-history-empty">
             ${host._t("version_history_loading", "Loading\u2026")}
           </div>`
           : versions.length === 0
-            ? b2`<div class="version-history-empty">
+            ? x`<div class="version-history-empty">
               ${host._t("version_history_empty", "No version history yet.")}
             </div>`
-            : b2`
+            : x`
               <ol class="version-list">
-                ${versions.map((v2, i7) =>
+                ${versions.map((v2, i5) =>
                   renderVersionEntry(
                     host,
                     automationId,
                     v2,
-                    i7,
+                    i5,
                     versions.length,
                   ),
                 )}
@@ -29169,16 +40018,16 @@ function renderVersionHistoryDrawer(host, a3) {
     </div>
   `;
 }
-function renderVersionEntry(host, automationId, v2, i7, total) {
+function renderVersionEntry(host, automationId, v2, i5, total) {
   const key = `${automationId}_${v2.version_id}`;
   const restoring = host._restoringVersion[key];
   const date = new Date(v2.created_at);
   const timeAgo = relativeTime(date);
-  const isCurrent = i7 === 0;
+  const isCurrent = i5 === 0;
   const message = v2.message || v2.version_message;
   const yamlOpen = !!host._expandedAutomations[`ver_${key}`];
-  const versionNumber = total - i7;
-  return b2`
+  const versionNumber = total - i5;
+  return x`
     <li class="version-entry ${isCurrent ? "current" : ""}">
       <span class="version-entry-dot" aria-hidden="true"></span>
       <div class="version-entry-card">
@@ -29187,7 +40036,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
             <span class="version-entry-num">v${versionNumber}</span>
             ${
               isCurrent
-                ? b2`<span class="version-entry-badge"
+                ? x`<span class="version-entry-badge"
                   >${host._t("version_history_current_badge", "Current")}</span
                 >`
                 : ""
@@ -29197,7 +40046,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
             >${timeAgo}</time
           >
         </header>
-        ${message ? b2`<p class="version-entry-message">${message}</p>` : ""}
+        ${message ? x`<p class="version-entry-message">${message}</p>` : ""}
         <div class="version-entry-actions">
           <button
             class="btn btn-outline version-entry-btn"
@@ -29211,7 +40060,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
           </button>
           ${
             !isCurrent
-              ? b2`
+              ? x`
                 <button
                   class="btn btn-outline version-entry-btn"
                   ?disabled=${restoring || !(v2.yaml || v2.yaml_content)}
@@ -29241,7 +40090,7 @@ function renderVersionEntry(host, automationId, v2, i7, total) {
         </div>
         ${
           yamlOpen
-            ? b2`<div class="version-entry-yaml">
+            ? x`<div class="version-entry-yaml">
               <ha-code-editor
                 mode="yaml"
                 .value=${v2.yaml || v2.yaml_content || host._t("version_history_no_yaml_stored", "(no YAML stored)")}
@@ -29259,11 +40108,11 @@ function renderDiffViewer(host) {
   if (!host._diffOpen) return "";
   const automationId = host._diffAutomationId;
   const versions = host._versions[automationId] || [];
-  return b2`
+  return x`
     <div
       style="position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;display:flex;align-items:center;justify-content:center;"
-      @click=${(e5) => {
-        if (e5.target === e5.currentTarget) {
+      @click=${(e6) => {
+        if (e6.target === e6.currentTarget) {
           host._diffOpen = false;
           host.requestUpdate();
         }
@@ -29304,8 +40153,8 @@ function renderDiffViewer(host) {
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionA || ""}
-              @change=${async (e5) => {
-                host._diffVersionA = e5.target.value;
+              @change=${async (e6) => {
+                host._diffVersionA = e6.target.value;
                 await host._loadDiff(
                   automationId,
                   host._diffVersionA,
@@ -29314,8 +40163,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -29331,8 +40180,8 @@ function renderDiffViewer(host) {
             <select
               style="font-size:12px;padding:4px 8px;border-radius:6px;background:var(--input-fill-color);border:1px solid var(--divider-color);color:var(--primary-text-color);"
               .value=${host._diffVersionB || ""}
-              @change=${async (e5) => {
-                host._diffVersionB = e5.target.value;
+              @change=${async (e6) => {
+                host._diffVersionB = e6.target.value;
                 await host._loadDiff(
                   automationId,
                   host._diffVersionA,
@@ -29341,8 +40190,8 @@ function renderDiffViewer(host) {
               }}
             >
               ${versions.map(
-                (v2, i7) => b2`<option value=${v2.version_id}>
-                    v${versions.length - i7} —
+                (v2, i5) => x`<option value=${v2.version_id}>
+                    v${versions.length - i5} —
                     ${v2.message || v2.version_message || new Date(v2.created_at).toLocaleDateString()}
                   </option>`,
               )}
@@ -29352,14 +40201,14 @@ function renderDiffViewer(host) {
         <div style="flex:1;overflow-y:auto;padding:12px 20px;">
           ${
             host._loadingDiff
-              ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+              ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                 ${host._t("version_history_loading_diff", "Loading diff\u2026")}
               </div>`
               : host._diffResult.length === 0
-                ? b2`<div style="opacity:0.5;text-align:center;padding:24px;">
+                ? x`<div style="opacity:0.5;text-align:center;padding:24px;">
                   ${host._t("version_history_no_diff", "No differences found.")}
                 </div>`
-                : b2`<pre
+                : x`<pre
                   style="font-size:12px;margin:0;font-family:monospace;white-space:pre-wrap;"
                 >
 ${host._diffResult.map((line) => {
@@ -29373,7 +40222,7 @@ ${host._diffResult.map((line) => {
     : line.startsWith("-")
       ? "#fa5252"
       : "var(--primary-text-color)";
-  return b2`<span
+  return x`<span
                       style="display:block;background:${bg};color:${color};padding:1px 4px;"
                       >${line}</span
                     >`;
@@ -29402,18 +40251,28 @@ __export(session_actions_exports, {
   _openSession: () => _openSession,
   _requestBulkDeleteSessions: () => _requestBulkDeleteSessions,
   _setActiveTab: () => _setActiveTab,
+  _setRecipeWizardUrl: () => _setRecipeWizardUrl,
   _startNewAutomationChat: () => _startNewAutomationChat,
   _suggestAutomationIdea: () => _suggestAutomationIdea,
   _toggleSelectAllSessions: () => _toggleSelectAllSessions,
   _toggleSessionSelection: () => _toggleSessionSelection,
 });
 var PANEL_PREFIX = "/selora-ai";
-var VALID_TABS = ["chat", "automations", "scenes", "settings", "usage"];
-function _tabFromPath(pathname) {
-  if (!pathname.startsWith(PANEL_PREFIX)) return null;
+var VALID_TABS = [
+  "chat",
+  "automations",
+  "scenes",
+  "recipes",
+  "settings",
+  "usage",
+];
+function _parsePath(pathname) {
+  if (!pathname.startsWith(PANEL_PREFIX)) return { tab: null, subpath: "" };
   const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
-  if (!rest) return "chat";
-  return VALID_TABS.includes(rest) ? rest : null;
+  if (!rest) return { tab: "chat", subpath: "" };
+  const [head, ...tail] = rest.split("/");
+  if (!VALID_TABS.includes(head)) return { tab: null, subpath: "" };
+  return { tab: head, subpath: tail.join("/") };
 }
 function _setActiveTab(tab) {
   if (!VALID_TABS.includes(tab)) return;
@@ -29425,14 +40284,40 @@ function _setActiveTab(tab) {
     window.history.replaceState({}, "", url);
   }
 }
+function _setRecipeWizardUrl(slug) {
+  const target = slug
+    ? `${PANEL_PREFIX}/recipes/${encodeURIComponent(slug)}`
+    : `${PANEL_PREFIX}/recipes`;
+  const url = new URL(window.location);
+  const slugChanged = url.pathname !== target;
+  url.pathname = target;
+  url.searchParams.delete("step");
+  if (slugChanged) {
+    window.history.pushState({}, "", url);
+  } else if (url.toString() !== window.location.toString()) {
+    window.history.replaceState({}, "", url);
+  }
+}
 function _checkTabParam() {
-  const tab = _tabFromPath(window.location.pathname);
-  if (tab && tab !== this._activeTab) {
+  const { tab, subpath } = _parsePath(window.location.pathname);
+  const tabActivated = tab && tab !== this._activeTab;
+  if (tabActivated) {
     this._activeTab = tab;
     if (tab !== "chat") this._showSidebar = false;
   }
-  if (tab === "usage") this._loadUsageStats?.();
-  if (tab === "settings") {
+  if (tab === "usage" && tabActivated) this._loadUsageStats?.();
+  if (tab === "recipes") {
+    if (tabActivated) this._loadRecipesList?.();
+    if (subpath) {
+      const slug = decodeURIComponent(subpath.split("/")[0] || "");
+      if (slug && slug !== this._recipeWizardSlug) {
+        this._openRecipeFromDeepLink?.(slug);
+      }
+    } else if (this._recipesView === "wizard") {
+      this._closeRecipeWizard?.();
+    }
+  }
+  if (tab === "settings" && tabActivated) {
     this._loadApprovalGrants?.();
     this._loadMcpTokens?.();
   }
@@ -29478,19 +40363,19 @@ async function _openSession(sessionId) {
     this._deviceDetailLoading = false;
     this._newAutomationMode = false;
     const sessionEntries = [...(this._streams || [])].filter(
-      (e5) =>
-        e5.sessionId === session.id &&
-        (e5.assistantMsg?._streaming || e5.assistantMsg?._interrupted),
+      (e6) =>
+        e6.sessionId === session.id &&
+        (e6.assistantMsg?._streaming || e6.assistantMsg?._interrupted),
     );
     if (sessionEntries.length > 0) {
       const tail = [];
-      for (const e5 of sessionEntries) {
-        if (e5.userMsg) tail.push(e5.userMsg);
-        tail.push(e5.assistantMsg);
+      for (const e6 of sessionEntries) {
+        if (e6.userMsg) tail.push(e6.userMsg);
+        tail.push(e6.assistantMsg);
       }
       this._messages = [...this._messages, ...tail];
       const liveEntry = sessionEntries.find(
-        (e5) => e5.assistantMsg?._streaming,
+        (e6) => e6.assistantMsg?._streaming,
       );
       if (liveEntry) {
         this._loading = !liveEntry.assistantMsg.content;
@@ -29657,41 +40542,41 @@ function _deleteSession(sessionId, evt) {
   this._swipedSessionId = null;
   this._deleteConfirmSessionId = sessionId;
 }
-function _onSessionTouchStart(e5, id) {
-  const touch = e5.touches[0];
+function _onSessionTouchStart(e6, id) {
+  const touch = e6.touches[0];
   this._touchStartX = touch.clientX;
   this._touchStartY = touch.clientY;
   this._touchSessionId = id;
   this._touchSwiping = false;
 }
-function _onSessionTouchMove(e5, id) {
+function _onSessionTouchMove(e6, id) {
   if (!this._touchStartX) return;
-  const dx = this._touchStartX - e5.touches[0].clientX;
-  const dy = Math.abs(e5.touches[0].clientY - this._touchStartY);
+  const dx = this._touchStartX - e6.touches[0].clientX;
+  const dy = Math.abs(e6.touches[0].clientY - this._touchStartY);
   if (!this._touchSwiping && dy > 10 && dy > Math.abs(dx)) {
     this._touchStartX = null;
     return;
   }
   if (dx > 10) {
     this._touchSwiping = true;
-    e5.preventDefault();
-    const el = e5.currentTarget;
+    e6.preventDefault();
+    const el = e6.currentTarget;
     el.parentElement.classList.add("reveal-delete");
     const clamped = Math.min(Math.max(dx, 0), 80);
     el.style.transform = `translateX(-${clamped}px)`;
     el.style.transition = "none";
   }
 }
-function _onSessionTouchEnd(e5, id) {
+function _onSessionTouchEnd(e6, id) {
   if (!this._touchSwiping) {
     this._touchStartX = null;
     return;
   }
-  e5.preventDefault();
-  const el = e5.currentTarget;
+  e6.preventDefault();
+  const el = e6.currentTarget;
   el.style.transition = "";
   el.style.transform = "";
-  const dx = this._touchStartX - e5.changedTouches[0].clientX;
+  const dx = this._touchStartX - e6.changedTouches[0].clientX;
   this._touchStartX = null;
   this._touchSwiping = false;
   if (dx > 40) {
@@ -29722,15 +40607,15 @@ async function _confirmDeleteSession() {
 }
 function _pruneStreamsForSession(sessionId) {
   if (!this._streams) return;
-  for (const e5 of [...this._streams]) {
-    if (e5.sessionId !== sessionId) continue;
+  for (const e6 of [...this._streams]) {
+    if (e6.sessionId !== sessionId) continue;
     try {
-      e5.teardown();
+      e6.teardown();
     } catch (_2) {}
     try {
-      e5.cancel();
+      e6.cancel();
     } catch (_2) {}
-    this._streams.delete(e5);
+    this._streams.delete(e6);
   }
 }
 function _toggleSessionSelection(sessionId) {
@@ -29741,14 +40626,14 @@ function _toggleSessionSelection(sessionId) {
 }
 function _toggleSelectAllSessions() {
   const allSelected = this._sessions.every(
-    (s4) => this._selectedSessionIds[s4.id],
+    (s6) => this._selectedSessionIds[s6.id],
   );
   if (allSelected) {
     this._selectedSessionIds = {};
   } else {
     const selected = {};
-    this._sessions.forEach((s4) => {
-      selected[s4.id] = true;
+    this._sessions.forEach((s6) => {
+      selected[s6.id] = true;
     });
     this._selectedSessionIds = selected;
   }
@@ -29812,17 +40697,17 @@ async function _triggerGenerateSuggestions() {
       type: "selora_ai/generate_suggestions",
     });
     const existingAliases = new Set(
-      (this._suggestions || []).map((s4) => {
-        const a3 = s4.automation || s4.automation_data || {};
-        return (a3.alias || "").toLowerCase();
+      (this._suggestions || []).map((s6) => {
+        const a4 = s6.automation || s6.automation_data || {};
+        return (a4.alias || "").toLowerCase();
       }),
     );
     const added = [];
-    for (const s4 of newSuggestions || []) {
-      const a3 = s4.automation || s4.automation_data || {};
-      const alias = (a3.alias || "").toLowerCase();
+    for (const s6 of newSuggestions || []) {
+      const a4 = s6.automation || s6.automation_data || {};
+      const alias = (a4.alias || "").toLowerCase();
       if (!existingAliases.has(alias)) {
-        added.push(s4);
+        added.push(s6);
         existingAliases.add(alias);
       }
     }
@@ -29859,7 +40744,7 @@ async function _loadAutomations() {
     });
     this._automations = (automations || []).reverse();
     const validIds = new Set(
-      this._automations.map((a3) => a3.automation_id).filter(Boolean),
+      this._automations.map((a4) => a4.automation_id).filter(Boolean),
     );
     this._selectedAutomationIds = Object.fromEntries(
       Object.entries(this._selectedAutomationIds || {}).filter(
@@ -29879,8 +40764,8 @@ async function _loadProactiveSuggestions() {
       status: "pending",
     });
     const seen = /* @__PURE__ */ new Set();
-    this._proactiveSuggestions = (suggestions || []).filter((s4) => {
-      const key = (s4.description || "").toLowerCase().trim();
+    this._proactiveSuggestions = (suggestions || []).filter((s6) => {
+      const key = (s6.description || "").toLowerCase().trim();
       if (seen.has(key)) return false;
       seen.add(key);
       return true;
@@ -29924,7 +40809,7 @@ async function _acceptProactiveSuggestion(suggestionId, editedYaml) {
     await this._loadAutomations();
     await new Promise((r4) => setTimeout(r4, 650));
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -29955,7 +40840,7 @@ async function _dismissProactiveSuggestion(suggestionId) {
       action: "dismissed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_dismissed_toast", "Suggestion dismissed"),
@@ -29977,7 +40862,7 @@ async function _snoozeProactiveSuggestion(suggestionId) {
       action: "snoozed",
     });
     this._proactiveSuggestions = this._proactiveSuggestions.filter(
-      (s4) => s4.suggestion_id !== suggestionId,
+      (s6) => s6.suggestion_id !== suggestionId,
     );
     this._showToast(
       this._t("suggestions_snoozed_toast", "Suggestion snoozed for 24h"),
@@ -30432,8 +41317,8 @@ function _scrollChatToBottom() {
   container.scrollTop = container.scrollHeight;
   this._chatScrolledAway = false;
 }
-function _onChatScroll(e5) {
-  const container = e5.currentTarget;
+function _onChatScroll(e6) {
+  const container = e6.currentTarget;
   if (!container) return;
   const overflow = container.scrollHeight - container.clientHeight;
   if (overflow <= 80) {
@@ -30489,8 +41374,8 @@ function _pulse(btn) {
   btn.classList.add("pulse");
   setTimeout(() => btn.classList.remove("pulse"), 300);
 }
-async function _onCodeCopyClick(e5) {
-  const btn = e5.target.closest?.(".selora-code-copy");
+async function _onCodeCopyClick(e6) {
+  const btn = e6.target.closest?.(".selora-code-copy");
   if (!btn) return;
   const code = btn.dataset.code || "";
   _pulse(btn);
@@ -30556,10 +41441,10 @@ function _getRefiningAutomationId(msgIndex = null) {
   if (msg?.refining_automation_id) return msg.refining_automation_id;
   if (msg?.automation_id) return msg.automation_id;
   if (msg?.automation?.id) return msg.automation.id;
-  for (const m3 of this._messages) {
-    if (m3.automation_status === "refining") {
-      if (m3.automation_id) return m3.automation_id;
-      if (m3.automation?.id) return m3.automation.id;
+  for (const m2 of this._messages) {
+    if (m2.automation_status === "refining") {
+      if (m2.automation_id) return m2.automation_id;
+      if (m2.automation?.id) return m2.automation.id;
     }
   }
   return null;
@@ -30651,14 +41536,14 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     msg?.risk_assessment?.level === "elevated";
   if (elevated) return;
   const created = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!created?.entity_id) {
     await new Promise((r4) => setTimeout(r4, 250));
     await this._loadAutomations();
   }
   const target = (this._automations || []).find(
-    (a3) => a3.automation_id === automationId,
+    (a4) => a4.automation_id === automationId,
   );
   if (!target?.entity_id) {
     console.warn("Auto-enable: couldn't resolve entity_id for", automationId);
@@ -30671,8 +41556,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
     );
     return;
   }
-  this._automations = (this._automations || []).map((a3) =>
-    a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+  this._automations = (this._automations || []).map((a4) =>
+    a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
   );
   this.requestUpdate();
   try {
@@ -30683,8 +41568,8 @@ async function _autoEnableAfterAccept(automationId, createResult, msg) {
       enabled: true,
     });
   } catch (err) {
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "off" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "off" } : a4,
     );
     this.requestUpdate();
     console.error("Failed to auto-enable new automation", err);
@@ -30708,7 +41593,7 @@ async function _removeDraftForSession(sessionId) {
   if (!sessionId) return;
   try {
     const draft = this._automations.find(
-      (a3) => a3._draft && a3._linked_session === sessionId,
+      (a4) => a4._draft && a4._linked_session === sessionId,
     );
     if (draft && draft._draft_id) {
       await this.hass.callWS({
@@ -30805,7 +41690,7 @@ async function _createAutomationFromSuggestion(automation) {
   }
 }
 function _discardSuggestion(suggestion) {
-  this._suggestions = this._suggestions.filter((s4) => s4 !== suggestion);
+  this._suggestions = this._suggestions.filter((s6) => s6 !== suggestion);
 }
 var ACCEPT_ANIM_MS = 240;
 async function _acceptAutomationWithEdits(msgIndex, automation, yamlKey) {
@@ -30913,9 +41798,9 @@ async function _createSuggestionWithEdits(auto, yamlKey, originalYaml) {
     const toast = _createdToast(auto.alias, createResult);
     this._showToast(toast.message, toast.type);
     await new Promise((r4) => setTimeout(r4, 650));
-    this._suggestions = this._suggestions.filter((s4) => {
-      const a3 = s4.automation || s4.automation_data;
-      return `sug_${a3?.alias}` !== yamlKey;
+    this._suggestions = this._suggestions.filter((s6) => {
+      const a4 = s6.automation || s6.automation_data;
+      return `sug_${a4?.alias}` !== yamlKey;
     });
     this._fadingOutSuggestions = {
       ...this._fadingOutSuggestions,
@@ -31034,7 +41919,7 @@ function _toggleAutomationSelection(automationId, evt) {
 }
 function _toggleSelectAllFiltered(filteredAutomations, checked) {
   const selectable = (filteredAutomations || []).filter(
-    (a3) => !a3._draft && a3.automation_id,
+    (a4) => !a4._draft && a4.automation_id,
   );
   const next = { ...this._selectedAutomationIds };
   for (const auto of selectable) {
@@ -31051,12 +41936,12 @@ async function _bulkToggleSelected(enable) {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id)
-    .filter((a3) =>
-      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
+    .filter((a4) => a4 && !a4._draft && a4.automation_id)
+    .filter((a4) =>
+      enable ? !this._automationIsEnabled(a4) : this._automationIsEnabled(a4),
     );
   const skippedCount = selectedIds.length - targets.length;
   if (!targets.length) {
@@ -31108,10 +41993,10 @@ async function _bulkSoftDeleteSelected() {
   if (this._bulkActionInProgress) return;
   const selectedIds = this._getSelectedAutomationIds();
   if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const byId = new Map(this._automations.map((a4) => [a4.automation_id, a4]));
   const targets = selectedIds
     .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id);
+    .filter((a4) => a4 && !a4._draft && a4.automation_id);
   if (!targets.length) return;
   if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
   this._bulkActionInProgress = true;
@@ -31175,8 +42060,8 @@ async function _enableSavedAutomation(entityId, automationId) {
       entity_id: entityId,
       enabled: true,
     });
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+    this._automations = (this._automations || []).map((a4) =>
+      a4.automation_id === automationId ? { ...a4, state: "on" } : a4,
     );
   } catch (err) {
     const message = err?.message || "unknown error";
@@ -31594,11 +42479,11 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "close_cover")
         return { ...base, state: "closed", current_position: 0 };
       if (service === "set_cover_position" && data.position != null) {
-        const p4 = Number(data.position);
+        const p2 = Number(data.position);
         return {
           ...base,
-          state: p4 > 0 ? "open" : "closed",
-          current_position: p4,
+          state: p2 > 0 ? "open" : "closed",
+          current_position: p2,
         };
       }
       return null;
@@ -31607,8 +42492,8 @@ function _sceneStateFromService(domain, service, data, prev) {
       if (service === "turn_off") return { state: "off" };
       if (service === "turn_on") return { ...base, state: "on" };
       if (service === "set_percentage" && data.percentage != null) {
-        const p4 = Number(data.percentage);
-        return { ...base, state: p4 > 0 ? "on" : "off", percentage: p4 };
+        const p2 = Number(data.percentage);
+        return { ...base, state: p2 > 0 ? "on" : "off", percentage: p2 };
       }
       if (service === "set_preset_mode" && data.preset_mode != null) {
         return { ...base, state: "on", preset_mode: data.preset_mode };
@@ -31668,7 +42553,7 @@ function _cleanSceneEntities(entities) {
 function _sceneEditedEntities(sceneId) {
   const edited = this._sceneEdits?.[sceneId];
   if (edited) return edited;
-  const scene = (this._scenes || []).find((s4) => s4.scene_id === sceneId);
+  const scene = (this._scenes || []).find((s6) => s6.scene_id === sceneId);
   return scene?.entities || {};
 }
 function _applySceneTileEdit(sceneId, entityId, domain, service, data) {
@@ -31797,8 +42682,8 @@ function _discardSceneEdits(sceneId) {
     }
     for (const pc of resolver.querySelectorAll("ha-panel-custom")) fix(pc);
     new MutationObserver((muts) => {
-      for (const m3 of muts) {
-        for (const n4 of m3.addedNodes) if (n4.nodeType === 1) fix(n4);
+      for (const m2 of muts) {
+        for (const n5 of m2.addedNodes) if (n5.nodeType === 1) fix(n5);
       }
     }).observe(resolver, { childList: true });
   };
@@ -31818,7 +42703,7 @@ var _SHA256_K = new Uint32Array([
   2756734187, 3204031479, 3329325298,
 ]);
 function _sha256(msgBytes) {
-  const rotr = (x2, n4) => (x2 >>> n4) | (x2 << (32 - n4));
+  const rotr = (x2, n5) => (x2 >>> n5) | (x2 << (32 - n5));
   const len = msgBytes.length;
   const bitLen = len * 8;
   const blocks = Math.ceil((len + 9) / 64);
@@ -31832,8 +42717,8 @@ function _sha256(msgBytes) {
     528734635, 1541459225,
   ];
   const w2 = new Uint32Array(64);
-  for (let i7 = 0; i7 < padded.length; i7 += 64) {
-    for (let t4 = 0; t4 < 16; t4++) w2[t4] = dv.getUint32(i7 + t4 * 4, false);
+  for (let i5 = 0; i5 < padded.length; i5 += 64) {
+    for (let t4 = 0; t4 < 16; t4++) w2[t4] = dv.getUint32(i5 + t4 * 4, false);
     for (let t4 = 16; t4 < 64; t4++) {
       const s0 =
         rotr(w2[t4 - 15], 7) ^ rotr(w2[t4 - 15], 18) ^ (w2[t4 - 15] >>> 3);
@@ -31841,40 +42726,40 @@ function _sha256(msgBytes) {
         rotr(w2[t4 - 2], 17) ^ rotr(w2[t4 - 2], 19) ^ (w2[t4 - 2] >>> 10);
       w2[t4] = (w2[t4 - 16] + s0 + w2[t4 - 7] + s1) | 0;
     }
-    let [a3, b3, c4, d3, e5, f3, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
+    let [a4, b2, c3, d3, e6, f2, g2, h8] = [h0, h1, h22, h3, h4, h5, h6, h7];
     for (let t4 = 0; t4 < 64; t4++) {
-      const S1 = rotr(e5, 6) ^ rotr(e5, 11) ^ rotr(e5, 25);
-      const ch = (e5 & f3) ^ (~e5 & g2);
+      const S1 = rotr(e6, 6) ^ rotr(e6, 11) ^ rotr(e6, 25);
+      const ch = (e6 & f2) ^ (~e6 & g2);
       const t1 = (h8 + S1 + ch + _SHA256_K[t4] + w2[t4]) | 0;
-      const S0 = rotr(a3, 2) ^ rotr(a3, 13) ^ rotr(a3, 22);
-      const maj = (a3 & b3) ^ (a3 & c4) ^ (b3 & c4);
+      const S0 = rotr(a4, 2) ^ rotr(a4, 13) ^ rotr(a4, 22);
+      const maj = (a4 & b2) ^ (a4 & c3) ^ (b2 & c3);
       const t22 = (S0 + maj) | 0;
       h8 = g2;
-      g2 = f3;
-      f3 = e5;
-      e5 = (d3 + t1) | 0;
-      d3 = c4;
-      c4 = b3;
-      b3 = a3;
-      a3 = (t1 + t22) | 0;
+      g2 = f2;
+      f2 = e6;
+      e6 = (d3 + t1) | 0;
+      d3 = c3;
+      c3 = b2;
+      b2 = a4;
+      a4 = (t1 + t22) | 0;
     }
-    h0 = (h0 + a3) | 0;
-    h1 = (h1 + b3) | 0;
-    h22 = (h22 + c4) | 0;
+    h0 = (h0 + a4) | 0;
+    h1 = (h1 + b2) | 0;
+    h22 = (h22 + c3) | 0;
     h3 = (h3 + d3) | 0;
-    h4 = (h4 + e5) | 0;
-    h5 = (h5 + f3) | 0;
+    h4 = (h4 + e6) | 0;
+    h5 = (h5 + f2) | 0;
     h6 = (h6 + g2) | 0;
     h7 = (h7 + h8) | 0;
   }
   const out = new Uint8Array(32);
   const ov = new DataView(out.buffer);
-  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i7) =>
-    ov.setUint32(i7 * 4, v2, false),
+  [h0, h1, h22, h3, h4, h5, h6, h7].forEach((v2, i5) =>
+    ov.setUint32(i5 * 4, v2, false),
   );
   return out;
 }
-var SeloraAIPanel = class extends i4 {
+var SeloraAIPanel = class extends s4 {
   // HA's recent panel resolver wraps each panel in a scoped custom-element
   // registry (via @webcomponents/scoped-custom-element-registry). With the
   // default attachShadow options, our shadow root gets a fresh per-panel
@@ -31886,7 +42771,7 @@ var SeloraAIPanel = class extends i4 {
   // so attachShadow uses the global registry. Lit reads this static for
   // its default createRenderRoot, which keeps style adoption intact.
   static shadowRootOptions = {
-    ...i4.shadowRootOptions,
+    ...s4.shadowRootOptions,
     customElements: window.customElements,
   };
   static get properties() {
@@ -31917,6 +42802,76 @@ var SeloraAIPanel = class extends i4 {
       _showSidebar: { type: Boolean },
       // Tabs
       _activeTab: { type: String },
+      // Recipes tab (v2 pipeline)
+      // ``_recipesView`` is one of "list" | "wizard" | "result".
+      _recipesView: { type: String },
+      _recipesList: { type: Object },
+      // Lazily-fetched package contents per slug: { [slug]: { yaml, counts } }.
+      // Populated when an installed recipe's Details panel is expanded.
+      _recipePackages: { type: Object },
+      _recipesBusy: { type: Boolean },
+      // Catalog fetched from selorahomes.com (or local dev). null
+      // until first fetch resolves; null + non-empty error means the
+      // fetch failed and we render a fallback message.
+      _recipesCatalog: { type: Object },
+      _recipesCatalogBusy: { type: Boolean },
+      _recipesCatalogError: { type: String },
+      _recipesCatalogSearch: { type: String },
+      // 1-based page for the paginated catalog list (below the featured strip).
+      _catalogPage: { type: Number },
+      _recipeWizardSlug: { type: String },
+      _recipeWizardDetail: { type: Object },
+      _recipeWizardInputs: { type: Object },
+      // Per-role pick for ``selection: required`` roles —
+      // ``{role_id: [entity_id, ...]}``. ``selection: auto`` roles
+      // are left out of this dict and the resolver fills them in
+      // automatically.
+      _recipeWizardSelections: { type: Object },
+      _recipeWizardPreview: { type: Object },
+      _recipeWizardResult: { type: Object },
+      // Install-source card (URL fetch + drag-and-drop upload).
+      _recipesUrl: { type: String },
+      _recipesUrlBusy: { type: Boolean },
+      _recipesUploadBusy: { type: Boolean },
+      _recipesDragOver: { type: Boolean },
+      _recipesInstallError: { type: String },
+      // Slug awaiting uninstall confirmation. ``null`` when no
+      // confirmation is in flight; otherwise the recipe's slug.
+      _recipeUninstallPending: { type: String },
+      // Set of HA config_entry ids the user opted to remove alongside
+      // the recipe. Populated via checkboxes in the uninstall modal.
+      _recipeUninstallEntries: { type: Object },
+      // Pipeline view: id of the item the action panel is focused on.
+      // ``null`` lets ``_activeItem`` pick the best default.
+      _recipeActiveItemId: { type: String },
+      // Role-selection panel UI state, keyed by role id. Transient (not
+      // persisted): a name filter string and a "show all candidates"
+      // toggle so broad roles (e.g. every ``sensor``) don't dump dozens
+      // of chips at once.
+      _recipeRoleFilters: { type: Object },
+      _recipeRoleExpanded: { type: Object },
+      // Dashboard-card picker state. ``_recipeDashboards`` is the list of
+      // writable dashboards from the backend; ``_recipeDashboardTarget``
+      // is the user's pick — ``undefined`` (manifest default), a
+      // url_path, or "__skip__" (don't add a card).
+      _recipeDashboards: { type: Array },
+      _recipeDashboardTarget: { type: String },
+      // Inline HA config-flow state, keyed by integration domain.
+      // ``{ [domain]: { flow_id, step, values, state, error } }``
+      // ``state`` ∈ ``"form" | "running" | "complete" | "error"``.
+      _recipeFlows: { type: Object },
+      // 4-step linear wizard: 1=Overview, 2=Match, 3=Resolve, 4=Activate.
+      // Each step gates the next via _canAdvanceFromStep.
+      _recipeWizardStep: { type: Number },
+      // v3 prototype — "Manage devices" modal state. ``slug`` indicates
+      // the modal is open for that recipe; ``detail`` carries the
+      // loaded manifest + installed record; ``selections`` mirrors the
+      // current role bindings the user is editing.
+      _recipeManageSlug: { type: String },
+      _recipeManageDetail: { type: Object },
+      _recipeManageSelections: { type: Object },
+      _recipeManageBusy: { type: Boolean },
+      _recipeManageError: { type: String },
       // Automations tab
       _suggestions: { type: Array },
       _automations: { type: Array },
@@ -32107,6 +43062,43 @@ var SeloraAIPanel = class extends i4 {
     this._streams = /* @__PURE__ */ new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
+    this._recipesView = "list";
+    this._recipesList = { available: [], installed: [] };
+    this._recipePackages = {};
+    this._recipesBusy = false;
+    this._nativeSelectOpen = false;
+    this._nativeSelectTimer = null;
+    this._recipesCatalog = null;
+    this._recipesCatalogBusy = false;
+    this._recipesCatalogError = null;
+    this._recipesCatalogSearch = "";
+    this._catalogPage = 1;
+    this._recipeWizardSlug = null;
+    this._recipeWizardDetail = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipesUrl = "";
+    this._recipesUrlBusy = false;
+    this._recipesUploadBusy = false;
+    this._recipesDragOver = false;
+    this._recipesInstallError = null;
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeRoleFilters = {};
+    this._recipeRoleExpanded = {};
+    this._recipeDashboards = [];
+    this._recipeDashboardTarget = void 0;
+    this._recipeEntityRegistryUnsub = null;
+    this._recipeWizardStep = 1;
+    this._recipeManageSlug = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    this._recipeManageBusy = false;
+    this._recipeManageError = null;
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
@@ -32237,9 +43229,9 @@ var SeloraAIPanel = class extends i4 {
     this._loadApprovalGrants();
     this._locationHandler = () => this._checkTabParam();
     window.addEventListener("location-changed", this._locationHandler);
-    this._keyDownHandler = (e5) => {
+    this._keyDownHandler = (e6) => {
       if (
-        e5.key === "Escape" &&
+        e6.key === "Escape" &&
         this._showFeedbackModal &&
         !this._submittingFeedback
       ) {
@@ -32247,11 +43239,11 @@ var SeloraAIPanel = class extends i4 {
         return;
       }
       if (
-        e5.key === "Escape" &&
+        e6.key === "Escape" &&
         this._activeTab === "chat" &&
         (this._streaming || this._loading)
       ) {
-        e5.preventDefault();
+        e6.preventDefault();
         this._stopStreaming();
       }
     };
@@ -32408,13 +43400,13 @@ var SeloraAIPanel = class extends i4 {
     this.requestUpdate();
   }
   _quotaProviderLabel() {
-    const p4 = this._quotaAlert?.provider;
-    if (p4 === "selora_cloud") return "Selora Cloud";
-    if (p4 === "anthropic") return "Anthropic";
-    if (p4 === "openai") return "OpenAI";
-    if (p4 === "openrouter") return "OpenRouter";
-    if (p4 === "gemini") return "Gemini";
-    if (p4 === "ollama") return "Ollama";
+    const p2 = this._quotaAlert?.provider;
+    if (p2 === "selora_cloud") return "Selora Cloud";
+    if (p2 === "anthropic") return "Anthropic";
+    if (p2 === "openai") return "OpenAI";
+    if (p2 === "openrouter") return "OpenRouter";
+    if (p2 === "gemini") return "Gemini";
+    if (p2 === "ollama") return "Ollama";
     return this._t("panel_quota_provider_default", "your LLM provider");
   }
   _renderQuotaBanner() {
@@ -32423,7 +43415,7 @@ var SeloraAIPanel = class extends i4 {
       0,
       Math.ceil((this._quotaAlert.until - Date.now()) / 1e3),
     );
-    return b2`
+    return x`
       <div class="quota-banner" role="alert">
         <ha-icon icon="mdi:speedometer-slow"></ha-icon>
         <div class="quota-banner-text">
@@ -32433,7 +43425,7 @@ var SeloraAIPanel = class extends i4 {
           >
           ${
             remaining > 0
-              ? b2` ${this._t("panel_quota_try_again_prefix", "Try again in")}
+              ? x` ${this._t("panel_quota_try_again_prefix", "Try again in")}
               ${remaining}s.`
               : ` ${this._t("panel_quota_retrying_now", "Retrying now\u2026")}`
           }
@@ -32450,6 +43442,9 @@ var SeloraAIPanel = class extends i4 {
   }
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this._unsubscribeRecipeEntityRegistry) {
+      this._unsubscribeRecipeEntityRegistry();
+    }
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
     }
@@ -32485,6 +43480,8 @@ var SeloraAIPanel = class extends i4 {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    clearTimeout(this._nativeSelectTimer);
+    this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
@@ -32727,9 +43724,9 @@ var SeloraAIPanel = class extends i4 {
     while (result.length < length) {
       const arr = new Uint8Array(length - result.length);
       crypto.getRandomValues(arr);
-      for (const b3 of arr) {
-        if (b3 < limit && result.length < length) {
-          result.push(chars[b3 % chars.length]);
+      for (const b2 of arr) {
+        if (b2 < limit && result.length < length) {
+          result.push(chars[b2 % chars.length]);
         }
       }
     }
@@ -33170,6 +44167,38 @@ var SeloraAIPanel = class extends i4 {
       this._submittingFeedback = false;
     }
   }
+  firstUpdated() {
+    const root = this.renderRoot;
+    root.addEventListener(
+      "mousedown",
+      (e6) => {
+        if (e6.target instanceof HTMLSelectElement && !e6.target.disabled) {
+          this._nativeSelectOpen = true;
+          clearTimeout(this._nativeSelectTimer);
+          this._nativeSelectTimer = setTimeout(
+            () => this._closeNativeSelect(),
+            8e3,
+          );
+        }
+      },
+      true,
+    );
+    const onClose = (e6) => {
+      if (e6.target instanceof HTMLSelectElement) this._closeNativeSelect();
+    };
+    root.addEventListener("change", onClose, true);
+    root.addEventListener("focusout", onClose, true);
+  }
+  _closeNativeSelect() {
+    clearTimeout(this._nativeSelectTimer);
+    if (!this._nativeSelectOpen) return;
+    this._nativeSelectOpen = false;
+    this.requestUpdate();
+  }
+  shouldUpdate(changedProps) {
+    if (this._nativeSelectOpen) return false;
+    return super.shouldUpdate(changedProps);
+  }
   updated(changedProps) {
     if (this._config) {
       this.toggleAttribute("needs-setup", this._llmNeedsSetup);
@@ -33191,11 +44220,11 @@ var SeloraAIPanel = class extends i4 {
       this.shadowRoot?.appendChild(probe);
       const resolved = getComputedStyle(probe).color;
       probe.remove();
-      const m3 = resolved.match(/\d+/g);
-      if (m3 && m3.length >= 3) {
+      const m2 = resolved.match(/\d+/g);
+      if (m2 && m2.length >= 3) {
         this._primaryColor =
           "#" +
-          [m3[0], m3[1], m3[2]]
+          [m2[0], m2[1], m2[2]]
             .map((v2) => parseInt(v2, 10).toString(16).padStart(2, "0"))
             .join("");
       }
@@ -33269,21 +44298,21 @@ var SeloraAIPanel = class extends i4 {
     let lastTop = container ? container.scrollTop : 0;
     const tick = () => {
       if (!this._chatPinDeadline) return;
-      const c4 = this.shadowRoot?.getElementById("chat-messages");
-      if (!c4) {
+      const c3 = this.shadowRoot?.getElementById("chat-messages");
+      if (!c3) {
         this._chatPinDeadline = 0;
         return;
       }
       const userScrolled =
-        c4.scrollTop < lastTop - 2 && c4.scrollHeight === lastHeight;
+        c3.scrollTop < lastTop - 2 && c3.scrollHeight === lastHeight;
       if (userScrolled) {
         this._chatScrolledAway = true;
         this._chatPinDeadline = 0;
         return;
       }
-      c4.scrollTop = c4.scrollHeight;
-      lastHeight = c4.scrollHeight;
-      lastTop = c4.scrollTop;
+      c3.scrollTop = c3.scrollHeight;
+      lastHeight = c3.scrollHeight;
+      lastTop = c3.scrollTop;
       if (Date.now() >= this._chatPinDeadline) {
         this._chatPinDeadline = 0;
         return;
@@ -33352,8 +44381,8 @@ var SeloraAIPanel = class extends i4 {
             ...this.hass,
             states: { ...this.hass.states, ...overrides },
           };
-        } catch (e5) {
-          console.warn("Selora: bad scene-states payload", e5);
+        } catch (e6) {
+          console.warn("Selora: bad scene-states payload", e6);
         }
       }
       const sceneEditId = grid.dataset.sceneEditId;
@@ -33376,7 +44405,7 @@ var SeloraAIPanel = class extends i4 {
       if (!wired) {
         const ids = (grid.dataset.entityIds || "")
           .split(",")
-          .map((s4) => s4.trim())
+          .map((s6) => s6.trim())
           .filter(Boolean);
         const noFeatures = grid.dataset.noFeatures === "true";
         grid.replaceChildren();
@@ -33396,10 +44425,10 @@ var SeloraAIPanel = class extends i4 {
             if (!groups.has(areaName)) groups.set(areaName, []);
             groups.get(areaName).push(id);
           }
-          const sortedGroups = [...groups.entries()].sort((a3, b3) => {
-            if (!a3[0]) return 1;
-            if (!b3[0]) return -1;
-            return a3[0].localeCompare(b3[0]);
+          const sortedGroups = [...groups.entries()].sort((a4, b2) => {
+            if (!a4[0]) return 1;
+            if (!b2[0]) return -1;
+            return a4[0].localeCompare(b2[0]);
           });
           const showHeaders = groups.size > 1;
           const buildTile = (id) => {
@@ -33422,8 +44451,8 @@ var SeloraAIPanel = class extends i4 {
             return card;
           };
           const areaIdByName = /* @__PURE__ */ new Map();
-          for (const a3 of Object.values(registries.areas || {})) {
-            if (a3.name) areaIdByName.set(a3.name, a3.area_id);
+          for (const a4 of Object.values(registries.areas || {})) {
+            if (a4.name) areaIdByName.set(a4.name, a4.area_id);
           }
           for (const [areaName, areaIds] of sortedGroups) {
             if (showHeaders) {
@@ -33447,8 +44476,8 @@ var SeloraAIPanel = class extends i4 {
                 if (!card) continue;
                 grid.appendChild(card);
                 appended += 1;
-              } catch (e5) {
-                console.warn("Selora: tile card create failed for", id, e5);
+              } catch (e6) {
+                console.warn("Selora: tile card create failed for", id, e6);
               }
             }
           }
@@ -33560,14 +44589,14 @@ var SeloraAIPanel = class extends i4 {
           this.hass.callWS({ type: "config/area_registry/list" }),
         ]);
         const entities = {};
-        for (const e5 of entityList) entities[e5.entity_id] = e5;
+        for (const e6 of entityList) entities[e6.entity_id] = e6;
         const devices = {};
         for (const d3 of deviceList) devices[d3.id] = d3;
         const areas = {};
-        for (const a3 of areaList) areas[a3.area_id] = a3;
+        for (const a4 of areaList) areas[a4.area_id] = a4;
         return { entities, devices, areas };
-      } catch (e5) {
-        console.warn("Selora: registry list failed", e5);
+      } catch (e6) {
+        console.warn("Selora: registry list failed", e6);
         return { entities: {}, devices: {}, areas: {} };
       }
     })();
@@ -33647,8 +44676,8 @@ var SeloraAIPanel = class extends i4 {
             helpers.createCardElement(buildConfig(id, opts));
           return this._tileCardCreator;
         }
-      } catch (e5) {
-        console.warn("Selora: loadCardHelpers() failed", e5);
+      } catch (e6) {
+        console.warn("Selora: loadCardHelpers() failed", e6);
       }
     }
     try {
@@ -33664,8 +44693,8 @@ var SeloraAIPanel = class extends i4 {
         };
         return this._tileCardCreator;
       }
-    } catch (e5) {
-      console.warn("Selora: hui-tile-card whenDefined failed", e5);
+    } catch (e6) {
+      console.warn("Selora: hui-tile-card whenDefined failed", e6);
     }
     this._tileCardCreator = null;
     return null;
@@ -33738,7 +44767,7 @@ var SeloraAIPanel = class extends i4 {
     if (!scene) return;
     const sessionId = scene.session_id;
     const known = sessionId
-      ? this._sessions.find((s4) => s4.id === sessionId)
+      ? this._sessions.find((s6) => s6.id === sessionId)
       : null;
     try {
       if (known) {
@@ -33837,6 +44866,999 @@ var SeloraAIPanel = class extends i4 {
   _renderAutomations() {
     return renderAutomations(this);
   }
+  _renderRecipesV2() {
+    return renderRecipesV2(this);
+  }
+  // ── Recipes (v2 pipeline) actions ──────────────────────────────
+  //
+  // All actions go directly to the deterministic pipeline's WS surface
+  // — no chat session, no LLM. The wizard's three views (list / wizard
+  // / result) are pure functions of the state these mutators maintain.
+  async _loadRecipesList() {
+    this._recipesBusy = true;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/list",
+      });
+      this._recipesList = {
+        available: result.available || [],
+        installed: result.installed || [],
+      };
+    } catch (err) {
+      console.error("Failed to load recipes list", err);
+      this._recipesList = { available: [], installed: [] };
+    } finally {
+      this._recipesBusy = false;
+    }
+    this._loadRecipesCatalog();
+  }
+  // Lazily read an installed recipe's package file (YAML + section counts) so
+  // the Details panel can show what it created and let the user view the file.
+  // Cached per slug; only refetched with force=true (e.g. after a rebind).
+  async _loadRecipePackage(slug, force = false) {
+    if (!slug) return;
+    if (!force && this._recipePackages[slug]) return;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/package",
+        slug,
+      });
+      this._recipePackages = {
+        ...this._recipePackages,
+        [slug]: { yaml: result.yaml || "", counts: result.counts || {} },
+      };
+    } catch (err) {
+      console.error("Failed to read recipe package", slug, err);
+    }
+  }
+  async _loadRecipesCatalog(force = false) {
+    this._recipesCatalogError = null;
+    if (!force && this._recipesCatalog?.recipes?.length) return;
+    this._recipesCatalogBusy = true;
+    const override = this._catalogUrlOverride();
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/catalog",
+        force_refresh: !!force,
+        ...(override ? { url: override } : {}),
+      });
+      this._recipesCatalog = {
+        recipes: result.recipes || [],
+        installed_slugs: new Set(result.installed_slugs || []),
+        generated_at: result.generated_at || "",
+      };
+    } catch (err) {
+      this._recipesCatalogError =
+        err?.message || err?.error || String(err) || "Catalog unavailable";
+      this._recipesCatalog = null;
+    } finally {
+      this._recipesCatalogBusy = false;
+    }
+  }
+  _catalogUrlOverride() {
+    try {
+      return localStorage.getItem("selora-ai-catalog-url") || "";
+    } catch {
+      return "";
+    }
+  }
+  _setCatalogUrlOverride(url) {
+    try {
+      if (url) {
+        localStorage.setItem("selora-ai-catalog-url", url);
+      } else {
+        localStorage.removeItem("selora-ai-catalog-url");
+      }
+    } catch (err) {
+      console.debug("Failed to persist catalog URL override", err);
+    }
+    this._loadRecipesCatalog(true);
+  }
+  // Substring search across the catalog (title + tags + description).
+  // Pure render-time filter so we don't re-fetch on every keystroke.
+  _filteredCatalog() {
+    const cat = this._recipesCatalog;
+    if (!cat) return [];
+    const q = (this._recipesCatalogSearch || "").trim().toLowerCase();
+    if (!q) return cat.recipes;
+    return cat.recipes.filter((r4) => {
+      const hay = [
+        r4.title,
+        r4.description,
+        r4.category,
+        r4.category_title,
+        ...(r4.tags || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  _onRecipesCatalogSearch(value) {
+    this._recipesCatalogSearch = value || "";
+    this._catalogPage = 1;
+  }
+  _setCatalogPage(n5) {
+    this._catalogPage = Math.max(1, n5);
+  }
+  // Install a recipe from a catalog entry — same backend path as
+  // the "paste a URL" install card, just pre-filled.
+  async _installFromCatalogEntry(entry) {
+    if (!entry?.package_url || this._recipesBusy) return;
+    this._recipesUrl = entry.package_url;
+    await this._installRecipeFromUrl();
+  }
+  // Deep-link entry point (marketing site → /selora-ai/recipes/<slug>).
+  // The bundle may not be on disk yet — if the slug isn't staged
+  // locally, fetch it from the catalog first so the wizard opens on
+  // the Overview instead of failing to load the manifest.
+  async _openRecipeFromDeepLink(slug) {
+    const staged = (this._recipesList?.available || []).some(
+      (r4) => r4.slug === slug,
+    );
+    if (staged) {
+      this._openRecipeWizard(slug);
+      return;
+    }
+    await this._loadRecipesCatalog();
+    const entry = (this._recipesCatalog?.recipes || []).find(
+      (r4) => r4.slug === slug,
+    );
+    if (entry?.package_url) {
+      await this._installFromCatalogEntry(entry);
+      return;
+    }
+    this._openRecipeWizard(slug);
+  }
+  async _openRecipeWizard(slug) {
+    this._recipesView = "wizard";
+    this._recipeWizardSlug = slug;
+    this._setRecipeWizardUrl?.(slug);
+    this._recipeWizardDetail = null;
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeWizardStep = 1;
+    this._recipeWizardResult = null;
+    this._recipeDashboardTarget = void 0;
+    this._recipeDashboards = [];
+    this._subscribeRecipeEntityRegistry();
+    this._recipesBusy = true;
+    try {
+      const detail = await this.hass.callWS({
+        type: "selora_ai/recipes/get",
+        slug,
+      });
+      this._recipeWizardDetail = detail;
+      if (detail.manifest?.dashboard) {
+        this._fetchRecipeDashboards();
+      }
+      const seeded = {};
+      for (const input of detail.manifest?.inputs || []) {
+        if (input.default !== void 0 && input.default !== null) {
+          seeded[input.id] = input.default;
+        }
+      }
+      this._recipeWizardInputs = seeded;
+      const seededSelections = {};
+      for (const role of detail.manifest?.roles || []) {
+        if (role.selection === "required") {
+          seededSelections[role.id] = [];
+        }
+      }
+      this._recipeWizardSelections = seededSelections;
+      const persisted = this._restoreWizardState(slug);
+      if (persisted) {
+        if (persisted.inputs && typeof persisted.inputs === "object") {
+          this._recipeWizardInputs = {
+            ...this._recipeWizardInputs,
+            ...persisted.inputs,
+          };
+        }
+        if (persisted.selections && typeof persisted.selections === "object") {
+          this._recipeWizardSelections = {
+            ...this._recipeWizardSelections,
+            ...persisted.selections,
+          };
+        }
+        if (
+          typeof persisted.step === "number" &&
+          persisted.step >= 1 &&
+          persisted.step <= 3
+        ) {
+          this._recipeWizardStep = persisted.step;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load recipe detail", err);
+    } finally {
+      this._recipesBusy = false;
+    }
+    await this._refreshRecipePreview();
+  }
+  // Toggle one entity in/out of a role's selection. Called from the
+  // wizard's per-role chip row. Triggers a fresh preview so role
+  // status + YAML stay in sync with the new pick.
+  //
+  // ``maxCount`` enforces the manifest's cap client-side. Without it
+  // the chip stays visually "on" but the backend silently drops the
+  // overflow when capping at max_count, which looks like a bug to
+  // the user. With it, adding past the cap rolls the oldest pick out
+  // of the selection (so max_count=1 behaves like radio buttons).
+  _toggleRecipeRoleEntity(roleId, entityId, maxCount) {
+    const current = (this._recipeWizardSelections || {})[roleId] || [];
+    const idx = current.indexOf(entityId);
+    let next;
+    if (idx >= 0) {
+      next = current.filter((e6) => e6 !== entityId);
+    } else if (maxCount && current.length >= maxCount) {
+      const keep = Math.max(0, maxCount - 1);
+      next = [...current.slice(current.length - keep), entityId];
+    } else {
+      next = [...current, entityId];
+    }
+    this._recipeWizardSelections = {
+      ...this._recipeWizardSelections,
+      [roleId]: next,
+    };
+    this._recipeActiveItemId = `configure/role:${roleId}`;
+    this._persistWizardState();
+    if (!this._recipesBusy) this._refreshRecipePreview();
+  }
+  _setRecipeRoleFilter(roleId, value) {
+    this._recipeRoleFilters = {
+      ...this._recipeRoleFilters,
+      [roleId]: value,
+    };
+  }
+  _toggleRecipeRoleExpanded(roleId) {
+    this._recipeRoleExpanded = {
+      ...this._recipeRoleExpanded,
+      [roleId]: !this._recipeRoleExpanded?.[roleId],
+    };
+  }
+  _closeRecipeWizard() {
+    this._clearWizardState(this._recipeWizardSlug);
+    this._recipesView = "list";
+    this._recipeWizardSlug = null;
+    this._setRecipeWizardUrl?.(null);
+    this._recipeWizardDetail = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeWizardStep = 1;
+    this._unsubscribeRecipeEntityRegistry();
+  }
+  // ── Wizard state persistence (localStorage) ─────────────────────
+  // Saves the user's in-progress wizard state (step, typed inputs,
+  // role selections) so reload / navigating away to pair a device
+  // doesn't force them to start over. Per-slug keys so different
+  // recipes have independent state. We don't persist:
+  // - ``_recipeWizardPreview``: fetched fresh on every open
+  // - ``_recipeWizardResult``: only meaningful during/after install
+  // - ``_recipeFlows``: inline config-flow state is per-session
+  //
+  // We DO persist step but cap restoration at 3 (pre-install). Steps
+  // 4 (live install stream) and 5 (post-install summary) carry
+  // ephemeral state we don't try to reconstruct.
+  _wizardStorageKey(slug) {
+    return `selora-ai-wizard:${slug}`;
+  }
+  // Update a single recipe input by id and persist. Called from the
+  // Step 2 settings form so input changes survive a page reload.
+  _updateRecipeInput(id, value) {
+    this._recipeWizardInputs = {
+      ...this._recipeWizardInputs,
+      [id]: value,
+    };
+    this._persistWizardState();
+  }
+  _persistWizardState() {
+    const slug = this._recipeWizardSlug;
+    if (!slug) return;
+    try {
+      const payload = JSON.stringify({
+        slug,
+        step: this._recipeWizardStep,
+        inputs: this._recipeWizardInputs,
+        selections: this._recipeWizardSelections,
+        savedAt: Date.now(),
+      });
+      localStorage.setItem(this._wizardStorageKey(slug), payload);
+    } catch (err) {
+      console.debug("Failed to persist wizard state", err);
+    }
+  }
+  _restoreWizardState(slug) {
+    if (!slug) return null;
+    try {
+      const raw = localStorage.getItem(this._wizardStorageKey(slug));
+      if (!raw) return null;
+      const state = JSON.parse(raw);
+      if (!state || state.slug !== slug) return null;
+      const TTL_MS = 24 * 60 * 60 * 1e3;
+      if (state.savedAt && Date.now() - state.savedAt > TTL_MS) {
+        localStorage.removeItem(this._wizardStorageKey(slug));
+        return null;
+      }
+      return state;
+    } catch (err) {
+      console.debug("Failed to restore wizard state", err);
+      return null;
+    }
+  }
+  _clearWizardState(slug) {
+    const target = slug || this._recipeWizardSlug;
+    if (!target) return;
+    try {
+      localStorage.removeItem(this._wizardStorageKey(target));
+    } catch (err) {
+      console.debug("Failed to clear wizard state", err);
+    }
+  }
+  // Lightweight check used by the recipes list to flag cards with an
+  // in-progress wizard. Returns the saved step (1–5) if one exists,
+  // or 0 if nothing is saved. We expose the step rather than just a
+  // boolean so the card UI can render "Resume on Step N" hints.
+  _wizardDraftStep(slug) {
+    const state = this._restoreWizardState(slug);
+    return state?.step || 0;
+  }
+  // "Start over" affordance on a draft card. Wipes the saved state
+  // and opens the wizard from Step 1. Bumps the panel to trigger a
+  // re-render so the card reflects the new (no-draft) state if the
+  // user immediately closes the wizard.
+  _discardRecipeDraft(slug) {
+    if (!slug) return;
+    this._clearWizardState(slug);
+    this.requestUpdate?.();
+  }
+  // ── 4-step wizard navigation ─────────────────────────────────────
+  // Linear flow: Overview → Match → Resolve → Activate. Each step
+  // gates the next via ``_canAdvanceFromStep``. Step 3 kicks off the
+  // install stream automatically on entry; on stream completion the
+  // wizard auto-advances to step 4.
+  _canAdvanceFromStep(step) {
+    const preview = this._recipeWizardPreview;
+    if (step === 1) {
+      return !!this._recipeWizardDetail;
+    }
+    if (step === 2) {
+      const items = preview?.items || [];
+      const badInputs = items.some(
+        (it) => it.kind === "inputs" && it.status === "needs_input",
+      );
+      const inputPunch = (preview?.punch_list || []).some(
+        (p2) => p2.code === "input_invalid",
+      );
+      return !badInputs && !inputPunch;
+    }
+    if (step === 3) {
+      if (!preview) return false;
+      if (preview.ok === false) return false;
+      const items = preview.items || [];
+      const blockingNeedsInput = items.some(
+        (it) =>
+          it.status === "needs_input" &&
+          it.kind !== "pin" &&
+          it.kind !== "inputs" &&
+          it.stage === "configure",
+      );
+      const earlyPunch = (preview.punch_list || []).some(
+        (p2) => p2.stage !== "resolve" || p2.code !== "binding_pending",
+      );
+      return !blockingNeedsInput && !earlyPunch;
+    }
+    if (step === 4) {
+      return !!this._recipeWizardResult?.ok;
+    }
+    return false;
+  }
+  _recipeHasMatchStep() {
+    const items = this._recipeWizardPreview?.items || [];
+    return items.some(
+      (it) =>
+        it.stage === "configure" &&
+        (it.kind === "role_selection" ||
+          it.kind === "integration" ||
+          it.kind === "pin"),
+    );
+  }
+  async _advanceRecipeStep() {
+    const current = this._recipeWizardStep || 1;
+    if (!this._canAdvanceFromStep(current)) return;
+    let next = current + 1;
+    if (
+      next === 3 &&
+      !this._recipeHasMatchStep() &&
+      this._canAdvanceFromStep(3)
+    ) {
+      next = 4;
+    }
+    this._recipeWizardStep = next;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+    if (next === 4) {
+      await this._runRecipeInstall();
+    }
+  }
+  _retreatRecipeStep() {
+    const current = this._recipeWizardStep || 1;
+    if (current <= 1) return;
+    if (current === 4 && this._recipesBusy) return;
+    if (current === 5) return;
+    let prev = current - 1;
+    if (prev === 3 && !this._recipeHasMatchStep()) prev = 2;
+    this._recipeWizardStep = prev;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+  }
+  _jumpToRecipeStep(step) {
+    if (step < 1 || step > 5) return;
+    if (step > (this._recipeWizardStep || 1)) return;
+    if (step === 5 && !this._recipeWizardResult?.ok) return;
+    this._recipeWizardStep = step;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+  }
+  // ── v3 prototype: Manage Devices modal ───────────────────────────
+  // Lets the user swap which entities back a v3 recipe's roles without
+  // re-running the install wizard. Backend call is
+  // ``selora_ai/recipes/rebind`` which rewrites only the ``group:``
+  // block in the installed package YAML and reloads core config.
+  async _openManageDevices(slug) {
+    this._recipeManageSlug = slug;
+    this._recipeManageBusy = true;
+    this._recipeManageError = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    try {
+      const detail = await this.hass.callWS({
+        type: "selora_ai/recipes/get",
+        slug,
+      });
+      this._recipeManageDetail = detail;
+      const current = detail?.installed?.bindings || {};
+      const seeded = {};
+      for (const role of detail.manifest?.roles || []) {
+        seeded[role.id] = [...(current[role.id] || [])];
+      }
+      this._recipeManageSelections = seeded;
+    } catch (err) {
+      this._recipeManageError =
+        err?.message || err?.error || String(err) || "Failed to load recipe";
+    } finally {
+      this._recipeManageBusy = false;
+    }
+  }
+  _closeManageDevices() {
+    this._recipeManageSlug = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    this._recipeManageError = null;
+  }
+  _toggleManageEntity(roleId, entityId) {
+    const role = (this._recipeManageDetail?.manifest?.roles || []).find(
+      (r4) => r4.id === roleId,
+    );
+    const current = this._recipeManageSelections[roleId] || [];
+    const idx = current.indexOf(entityId);
+    let next;
+    if (idx >= 0) {
+      next = current.filter((e6) => e6 !== entityId);
+    } else if (role?.max_count && current.length >= role.max_count) {
+      const keep = Math.max(0, role.max_count - 1);
+      next = [...current.slice(current.length - keep), entityId];
+    } else {
+      next = [...current, entityId];
+    }
+    this._recipeManageSelections = {
+      ...this._recipeManageSelections,
+      [roleId]: next,
+    };
+  }
+  async _saveManageDevices() {
+    if (!this._recipeManageSlug) return;
+    this._recipeManageBusy = true;
+    this._recipeManageError = null;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/rebind",
+        slug: this._recipeManageSlug,
+        selections: this._recipeManageSelections,
+      });
+      await this._loadRecipesList();
+      this._closeManageDevices();
+    } catch (err) {
+      this._recipeManageError =
+        err?.message ||
+        err?.error ||
+        String(err) ||
+        "Failed to update bindings";
+    } finally {
+      this._recipeManageBusy = false;
+    }
+  }
+  // ── Inline HA config-flow integration ────────────────────────────
+  // HA's config-flow endpoints are REST, NOT WebSocket (despite the
+  // similar ``config_entries/...`` naming used for some other commands).
+  // We use ``hass.callApi`` — the same helper HA's own frontend uses
+  // for config-flow UI — so auth and CORS are handled the same way.
+  // The flow lives inside the wizard so the user never leaves the
+  // page: kick it off, walk through each ``form`` step, and on
+  // ``create_entry`` refresh the preview so the integration row
+  // flips green.
+  async _startIntegrationFlow(domain) {
+    if (!domain) return;
+    this._recipesBusy = true;
+    try {
+      const step = await this.hass.callApi(
+        "POST",
+        "config/config_entries/flow",
+        { handler: domain, show_advanced_options: false },
+      );
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          flow_id: step.flow_id,
+          step,
+          values: {},
+          state: this._flowStateFromStep(step),
+          error: step.type === "abort" ? step.reason || "Flow aborted" : null,
+        },
+      };
+      if (step.type === "create_entry") {
+        await this._refreshRecipePreview();
+      }
+    } catch (err) {
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          state: "error",
+          error:
+            err?.body?.message || err?.message || err?.error || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+  async _submitIntegrationFlow(domain) {
+    const flow = (this._recipeFlows || {})[domain];
+    if (!flow?.flow_id) return;
+    this._recipesBusy = true;
+    try {
+      const step = await this.hass.callApi(
+        "POST",
+        `config/config_entries/flow/${flow.flow_id}`,
+        flow.values || {},
+      );
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          ...flow,
+          step,
+          flow_id: step.flow_id || flow.flow_id,
+          state: this._flowStateFromStep(step),
+          error: step.type === "abort" ? step.reason || "Flow aborted" : null,
+          // Keep values when the same form re-renders with errors;
+          // clear them when stepping forward to a new form so the
+          // next step starts blank.
+          values: step.type === "form" && step.errors ? flow.values : {},
+        },
+      };
+      if (step.type === "create_entry") {
+        await this._refreshRecipePreview();
+      }
+    } catch (err) {
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          ...flow,
+          state: "error",
+          error:
+            err?.body?.message || err?.message || err?.error || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+  // One-click setup for integrations whose manifest declares
+  // ``auto_setup`` — backend orchestrates the entire config flow
+  // using values the recipe knows + values resolvable from HA
+  // state (lat/lon, METAR from coordinates, etc.). No form rendered;
+  // the homeowner just sees a brief "working…" state and then the
+  // integration row flips to Configured.
+  async _autoSetupIntegration(domain) {
+    if (!domain || !this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/auto_setup_integration",
+        slug: this._recipeWizardSlug,
+        domain,
+      });
+      await this._refreshRecipePreview();
+    } catch (err) {
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          state: "error",
+          error:
+            err?.message || err?.error || err?.body?.message || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+  async _abortIntegrationFlow(domain) {
+    const flow = (this._recipeFlows || {})[domain];
+    if (flow?.flow_id) {
+      try {
+        await this.hass.callApi(
+          "DELETE",
+          `config/config_entries/flow/${flow.flow_id}`,
+        );
+      } catch (err) {
+        console.debug("Flow abort ignored", err);
+      }
+    }
+    this._resetIntegrationFlow(domain);
+  }
+  _resetIntegrationFlow(domain) {
+    const next = { ...(this._recipeFlows || {}) };
+    delete next[domain];
+    this._recipeFlows = next;
+  }
+  _flowStateFromStep(step) {
+    if (!step) return "error";
+    if (step.type === "form") return "form";
+    if (step.type === "create_entry") return "complete";
+    if (step.type === "abort") return "error";
+    return "running";
+  }
+  // ── Auto-advance on entity-registry events ───────────────────────
+  // When a pending pin's ``entity_id`` appears in the registry while
+  // the wizard is open, just re-run preview — the pin row flips from
+  // ``needs_input`` to ``ok`` without the user clicking anything.
+  async _subscribeRecipeEntityRegistry() {
+    this._unsubscribeRecipeEntityRegistry();
+    if (!this.hass?.connection) return;
+    try {
+      this._recipeEntityRegistryUnsub =
+        await this.hass.connection.subscribeEvents(() => {
+          if (this._recipeEntityRegistryTimer) {
+            clearTimeout(this._recipeEntityRegistryTimer);
+          }
+          this._recipeEntityRegistryTimer = setTimeout(() => {
+            this._recipeEntityRegistryTimer = null;
+            if (this._recipesView === "wizard" && !this._recipesBusy) {
+              this._refreshRecipePreview();
+            }
+          }, 350);
+        }, "entity_registry_updated");
+    } catch (err) {
+      console.debug("entity_registry subscribe failed", err);
+    }
+  }
+  _unsubscribeRecipeEntityRegistry() {
+    if (this._recipeEntityRegistryTimer) {
+      clearTimeout(this._recipeEntityRegistryTimer);
+      this._recipeEntityRegistryTimer = null;
+    }
+    if (this._recipeEntityRegistryUnsub) {
+      try {
+        this._recipeEntityRegistryUnsub();
+      } catch (err) {
+        console.debug("entity_registry unsub failed", err);
+      }
+      this._recipeEntityRegistryUnsub = null;
+    }
+  }
+  async _refreshRecipePreview() {
+    if (!this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    try {
+      const preview = await this.hass.callWS({
+        type: "selora_ai/recipes/preview",
+        slug: this._recipeWizardSlug,
+        inputs: this._recipeWizardInputs || {},
+        selections: this._recipeWizardSelections || {},
+      });
+      this._recipeWizardPreview = preview;
+    } catch (err) {
+      console.error("Failed to preview recipe", err);
+      this._recipeWizardPreview = {
+        ok: false,
+        stage_reached: "definition",
+        punch_list: [
+          {
+            stage: "definition",
+            code: "preview_failed",
+            message: err?.message || String(err),
+          },
+        ],
+        bindings: {},
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+  async _fetchRecipeDashboards() {
+    try {
+      const res = await this.hass.callWS({
+        type: "selora_ai/recipes/list_dashboards",
+      });
+      this._recipeDashboards = res?.dashboards || [];
+    } catch (err) {
+      console.debug("list_dashboards failed", err);
+      if (!Array.isArray(this._recipeDashboards)) this._recipeDashboards = [];
+    }
+  }
+  _setRecipeDashboardTarget(value) {
+    this._recipeDashboardTarget = value === "" ? null : value;
+  }
+  // Step 5 "Add card" action: place the recipe's manifest dashboard card
+  // onto the chosen dashboard after the install already ran. Resolves the
+  // target to the first writable dashboard when the user hasn't picked
+  // one, so the visibly-selected option is what actually gets written.
+  async _insertRecipeDashboardCard() {
+    const slug = this._recipeWizardSlug;
+    if (!slug || this._recipesBusy) return;
+    const dashboards = this._recipeDashboards || [];
+    let target = this._recipeDashboardTarget;
+    if (target === void 0) {
+      target = dashboards.length ? (dashboards[0].url_path ?? null) : null;
+    }
+    this._recipesBusy = true;
+    try {
+      const res = await this.hass.callWS({
+        type: "selora_ai/recipes/insert_dashboard_card",
+        slug,
+        target,
+      });
+      if (this._recipeWizardResult?.record) {
+        this._recipeWizardResult = {
+          ...this._recipeWizardResult,
+          record: {
+            ...this._recipeWizardResult.record,
+            dashboard_card: res,
+          },
+        };
+      }
+      if (!res?.ok) {
+        this._showToast(
+          this._t(
+            "recipes_dashboard_add_failed",
+            "Couldn't add the card to that dashboard.",
+          ),
+          "error",
+        );
+      }
+    } catch (err) {
+      console.error("insert_dashboard_card failed", err);
+      this._showToast(
+        this._t(
+          "recipes_dashboard_add_failed",
+          "Couldn't add the card to that dashboard.",
+        ),
+        "error",
+      );
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+  async _runRecipeInstall() {
+    if (!this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    const updateApplyItem = (step, status, detail) => {
+      const items = this._recipeWizardPreview?.items;
+      if (!items) return;
+      const idx = items.findIndex((it) => it.id === `apply/${step}`);
+      if (idx < 0) return;
+      const next = [...items];
+      next[idx] = {
+        ...next[idx],
+        status,
+        ...(detail !== void 0 ? { detail } : {}),
+      };
+      this._recipeWizardPreview = {
+        ...this._recipeWizardPreview,
+        items: next,
+      };
+      if (status === "running") {
+        this._recipeActiveItemId = `apply/${step}`;
+      }
+    };
+    let finalResult = null;
+    let unsub = null;
+    try {
+      await new Promise((resolve, reject) => {
+        this.hass.connection
+          .subscribeMessage(
+            (evt) => {
+              const payload = evt?.event;
+              if (!payload) return;
+              if (payload.type === "apply") {
+                updateApplyItem(payload.step, payload.status, payload.detail);
+              } else if (payload.type === "result") {
+                finalResult = payload.result;
+                resolve();
+              }
+            },
+            {
+              type: "selora_ai/recipes/install_stream",
+              slug: this._recipeWizardSlug,
+              inputs: this._recipeWizardInputs || {},
+              selections: this._recipeWizardSelections || {},
+              // The dashboard-card offer moved to Step 5 (post-install),
+              // so the install never auto-inserts — "__skip__" tells the
+              // pipeline to leave the card to the Step 5 "Add card" action.
+              dashboard_target: "__skip__",
+            },
+          )
+          .then((u3) => {
+            unsub = u3;
+          })
+          .catch(reject);
+      });
+      this._recipeWizardResult = finalResult;
+      if (finalResult?.ok) {
+        this._clearWizardState(this._recipeWizardSlug);
+        this._recipeDashboardTarget = void 0;
+      }
+    } catch (err) {
+      console.error("Recipe install failed", err);
+      this._recipeWizardResult = {
+        ok: false,
+        stage_reached: "definition",
+        punch_list: [
+          {
+            stage: "definition",
+            code: "install_failed",
+            message: err?.message || String(err),
+          },
+        ],
+      };
+    } finally {
+      if (unsub) {
+        try {
+          unsub();
+        } catch (e6) {
+          console.debug("install_stream unsub failed", e6);
+        }
+      }
+      this._recipesBusy = false;
+    }
+  }
+  async _installRecipeFromUrl() {
+    const url = (this._recipesUrl || "").trim();
+    if (!url || this._recipesUrlBusy) return;
+    this._recipesUrlBusy = true;
+    this._recipesInstallError = null;
+    try {
+      const staged = await this.hass.callWS({
+        type: "selora_ai/recipes/install_from_url",
+        url,
+      });
+      this._recipesUrl = "";
+      await this._loadRecipesList();
+      if (staged?.slug) this._openRecipeWizard(staged.slug);
+    } catch (err) {
+      this._recipesInstallError =
+        err?.message || err?.error || String(err) || "Unknown fetch error";
+    } finally {
+      this._recipesUrlBusy = false;
+    }
+  }
+  async _uploadRecipeArchive(file) {
+    if (!file || this._recipesUploadBusy) return;
+    this._recipesUploadBusy = true;
+    this._recipesInstallError = null;
+    try {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      const auth = this.hass?.auth?.accessToken
+        ? { Authorization: `Bearer ${this.hass.auth.accessToken}` }
+        : {};
+      const resp = await fetch("/api/selora_ai/recipes/upload", {
+        method: "POST",
+        headers: auth,
+        body: form,
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        this._recipesInstallError =
+          payload?.message || `Upload failed (HTTP ${resp.status})`;
+        return;
+      }
+      await this._loadRecipesList();
+      if (payload?.slug) this._openRecipeWizard(payload.slug);
+    } catch (err) {
+      this._recipesInstallError =
+        err?.message || String(err) || "Upload failed";
+    } finally {
+      this._recipesUploadBusy = false;
+    }
+  }
+  // Two-step uninstall: the button on the recipe row sets the pending
+  // slug, which surfaces a confirmation modal. The destructive action
+  // only runs after the user confirms (clicks Uninstall or hits Enter).
+  // Without the gate the click goes straight to delete-and-reload,
+  // which is too easy to do accidentally for a destructive operation.
+  _uninstallRecipe(slug) {
+    if (!slug || this._recipesBusy) return;
+    this._recipeUninstallPending = slug;
+    this._recipeUninstallEntries = {};
+  }
+  _cancelRecipeUninstall() {
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+  }
+  // Toggle one integration entry's "also remove" checkbox in the
+  // uninstall confirm modal.
+  _toggleUninstallEntry(entryId) {
+    const next = { ...(this._recipeUninstallEntries || {}) };
+    if (next[entryId]) {
+      delete next[entryId];
+    } else {
+      next[entryId] = true;
+    }
+    this._recipeUninstallEntries = next;
+  }
+  // For each domain the recipe installed, list OTHER installed recipes
+  // that also declare that domain. The uninstall modal uses this to
+  // show "still used by X" warnings so the user doesn't accidentally
+  // break another recipe by removing a shared integration.
+  _otherUsersOfDomain(domain, exceptSlug) {
+    const installed = this._recipesList?.installed || [];
+    const available = this._recipesList?.available || [];
+    const titleBySlug = Object.fromEntries(
+      available.map((r4) => [r4.slug, r4.title || r4.slug]),
+    );
+    const usingDomain = (manifest) =>
+      (manifest?.integrations || []).some((i5) => i5.domain === domain);
+    return installed
+      .filter((rec) => rec.slug !== exceptSlug)
+      .filter((rec) => {
+        const m2 = available.find((a4) => a4.slug === rec.slug);
+        return usingDomain(m2);
+      })
+      .map((rec) => titleBySlug[rec.slug] || rec.title || rec.slug);
+  }
+  async _confirmRecipeUninstall() {
+    const slug = this._recipeUninstallPending;
+    if (!slug) return;
+    const entries = Object.keys(this._recipeUninstallEntries || {});
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+    this._recipesBusy = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/uninstall",
+        slug,
+        remove_entries: entries,
+      });
+      this._clearWizardState(slug);
+      this._recipesView = "list";
+      this._recipeWizardSlug = null;
+      this._setRecipeWizardUrl?.(null);
+      await this._loadRecipesList();
+    } catch (err) {
+      console.error("Recipe uninstall failed", err);
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
   _renderSuggestionsSection() {
     return renderSuggestionsSection(this);
   }
@@ -33849,8 +45871,8 @@ var SeloraAIPanel = class extends i4 {
   async _loadUsageStats() {
     await loadUsageStats(this);
   }
-  _renderVersionHistoryDrawer(a3) {
-    return renderVersionHistoryDrawer(this, a3);
+  _renderVersionHistoryDrawer(a4) {
+    return renderVersionHistoryDrawer(this, a4);
   }
   _renderDiffViewer() {
     return renderDiffViewer(this);
@@ -33885,20 +45907,20 @@ var SeloraAIPanel = class extends i4 {
         label: this._t("feedback_category_general", "General"),
       },
     ];
-    return b2`
+    return x`
       <div
         class="modal-overlay"
-        @click=${(e5) => {
-          if (e5.target === e5.currentTarget) this._closeFeedback();
+        @click=${(e6) => {
+          if (e6.target === e6.currentTarget) this._closeFeedback();
         }}
       >
         <div
           class="modal-content"
           role="dialog"
           aria-modal="true"
-          @keydown=${(e5) => {
-            if (e5.key === "Enter" && e5.target.tagName !== "TEXTAREA") {
-              e5.preventDefault();
+          @keydown=${(e6) => {
+            if (e6.key === "Enter" && e6.target.tagName !== "TEXTAREA") {
+              e6.preventDefault();
               this._submitFeedback();
             }
           }}
@@ -33926,8 +45948,8 @@ var SeloraAIPanel = class extends i4 {
               "What's on your mind? (10 characters minimum)",
             )}
             .value=${this._feedbackText}
-            @input=${(e5) => {
-              this._feedbackText = e5.target.value;
+            @input=${(e6) => {
+              this._feedbackText = e6.target.value;
             }}
           ></textarea>
           <div
@@ -33941,7 +45963,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
             ${ratingOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackRating === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -33966,7 +45988,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
             ${categoryOptions.map(
-              (opt) => b2`
+              (opt) => x`
                 <button
                   class="btn btn-outline"
                   style="padding:6px 10px;${this._feedbackCategory === opt.value ? "border-color:var(--selora-accent);color:var(--selora-accent);background:rgba(251,191,36,0.08);" : ""}"
@@ -33994,8 +46016,8 @@ var SeloraAIPanel = class extends i4 {
                 "your@email.com \u2014 only if you'd like a reply",
               )}
               .value=${this._feedbackEmail}
-              @input=${(e5) => {
-                this._feedbackEmail = e5.target.value;
+              @input=${(e6) => {
+                this._feedbackEmail = e6.target.value;
               }}
             />
           </div>
@@ -34024,12 +46046,12 @@ var SeloraAIPanel = class extends i4 {
   // Render
   // -------------------------------------------------------------------------
   render() {
-    return b2`
+    return x`
       <div class="header">
         <div class="header-toolbar">
           ${
             this.narrow
-              ? b2`<button
+              ? x`<button
                 class="menu-btn"
                 @click=${() =>
                   this.dispatchEvent(
@@ -34103,11 +46125,28 @@ var SeloraAIPanel = class extends i4 {
                 >${this._t("panel_tab_scenes", "Scenes")}</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "recipes" ? "active" : ""}"
+              @click=${() => {
+                this._setActiveTab("recipes");
+                this._showSidebar = false;
+                this._recipesView = "list";
+                this._loadRecipesList();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon
+                  icon="mdi:book-open-variant"
+                  class="tab-icon"
+                ></ha-icon
+                >Recipes</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           ${
             this._activeTab !== "chat" || this._messages.length > 0
-              ? b2`<button
+              ? x`<button
                 class="header-new-chat"
                 title=${this._t("nav_new_chat", "New chat")}
                 aria-label=${this._t("nav_new_chat", "New chat")}
@@ -34132,8 +46171,8 @@ var SeloraAIPanel = class extends i4 {
             <button
               class="overflow-btn selora-menu-btn"
               aria-label=${this._t("nav_selora_menu", "Selora menu")}
-              @click=${(e5) => {
-                e5.stopPropagation();
+              @click=${(e6) => {
+                e6.stopPropagation();
                 const opening = !this._showOverflowMenu;
                 this._showOverflowMenu = opening;
                 if (opening && this.narrow) this._showSidebar = false;
@@ -34143,7 +46182,7 @@ var SeloraAIPanel = class extends i4 {
             </button>
             ${
               this._showOverflowMenu
-                ? b2`
+                ? x`
                   <div class="overflow-menu selora-menu">
                     <div class="overflow-section narrow-only">
                       <button
@@ -34180,6 +46219,19 @@ var SeloraAIPanel = class extends i4 {
                       >
                         <ha-icon icon="mdi:palette-outline"></ha-icon>
                         ${this._t("nav_scenes", "Scenes")}
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "recipes" ? "active" : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("recipes");
+                          this._showSidebar = false;
+                          this._recipesView = "list";
+                          this._loadRecipesList();
+                        }}
+                      >
+                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                        Recipes
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -34287,10 +46339,10 @@ var SeloraAIPanel = class extends i4 {
             >
               ${
                 this._sessions.length > 0
-                  ? b2`
+                  ? x`
                     ${
                       this._selectChatsMode
-                        ? b2`
+                        ? x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -34301,7 +46353,7 @@ var SeloraAIPanel = class extends i4 {
                             ${this._t("panel_sidebar_done", "Done")}
                           </button>
                         `
-                        : b2`
+                        : x`
                           <button
                             class="sidebar-select-btn"
                             @click=${() => {
@@ -34324,7 +46376,7 @@ var SeloraAIPanel = class extends i4 {
           </div>
           ${
             this._selectChatsMode
-              ? b2`
+              ? x`
                 <div class="select-actions-bar">
                   <label
                     class="select-all-label"
@@ -34335,7 +46387,7 @@ var SeloraAIPanel = class extends i4 {
                       .checked=${
                         this._sessions.length > 0 &&
                         this._sessions.every(
-                          (s4) => this._selectedSessionIds[s4.id],
+                          (s6) => this._selectedSessionIds[s6.id],
                         )
                       }
                     />
@@ -34363,7 +46415,7 @@ var SeloraAIPanel = class extends i4 {
                   </button>
                 </div>
               `
-              : b2`
+              : x`
                 <button
                   class="btn btn-primary new-chat-btn"
                   style="width:calc(100% - 24px);"
@@ -34380,26 +46432,26 @@ var SeloraAIPanel = class extends i4 {
           <div class="session-list">
             ${
               this._sessions.length === 0
-                ? b2`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
+                ? x`<div style="padding: 16px; font-size: 12px; opacity: 0.5;">
                   ${this._t(
                     "panel_sidebar_no_conversations",
                     "No conversations yet.",
                   )}
                 </div>`
                 : this._sessions.map(
-                    (s4) => b2`
+                    (s6) => x`
                     <div
-                      class="session-item-wrapper ${this._swipedSessionId === s4.id ? "reveal-delete" : ""}"
+                      class="session-item-wrapper ${this._swipedSessionId === s6.id ? "reveal-delete" : ""}"
                     >
                       <div
                         class="session-item-delete-bg"
-                        @click=${(e5) => this._deleteSession(s4.id, e5)}
+                        @click=${(e6) => this._deleteSession(s6.id, e6)}
                       >
                         <ha-icon icon="mdi:delete-outline"></ha-icon>
                       </div>
                       ${
-                        this._deleteConfirmSessionId === s4.id
-                          ? b2`
+                        this._deleteConfirmSessionId === s6.id
+                          ? x`
                             <div class="session-item session-delete-confirm">
                               <span class="session-delete-confirm-label"
                                 >${this._t(
@@ -34413,8 +46465,8 @@ var SeloraAIPanel = class extends i4 {
                                 <button
                                   class="btn btn-sm"
                                   style="background:#ef4444;color:#fff;border-color:#ef4444;padding:3px 10px;font-size:12px;"
-                                  @click=${(e5) => {
-                                    e5.stopPropagation();
+                                  @click=${(e6) => {
+                                    e6.stopPropagation();
                                     this._confirmDeleteSession();
                                   }}
                                 >
@@ -34423,8 +46475,8 @@ var SeloraAIPanel = class extends i4 {
                                 <button
                                   class="btn btn-outline btn-sm"
                                   style="padding:3px 10px;font-size:12px;"
-                                  @click=${(e5) => {
-                                    e5.stopPropagation();
+                                  @click=${(e6) => {
+                                    e6.stopPropagation();
                                     this._deleteConfirmSessionId = null;
                                   }}
                                 >
@@ -34433,50 +46485,50 @@ var SeloraAIPanel = class extends i4 {
                               </div>
                             </div>
                           `
-                          : b2`
+                          : x`
                             <div
-                              class="session-item ${s4.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s4.id ? "swiped" : ""}"
+                              class="session-item ${s6.id === this._activeSessionId ? "active" : ""} ${this._swipedSessionId === s6.id ? "swiped" : ""}"
                               @click=${() => {
-                                if (this._swipedSessionId === s4.id) {
+                                if (this._swipedSessionId === s6.id) {
                                   this._swipedSessionId = null;
                                   return;
                                 }
                                 this._selectChatsMode
-                                  ? this._toggleSessionSelection(s4.id)
-                                  : this._openSession(s4.id);
+                                  ? this._toggleSessionSelection(s6.id)
+                                  : this._openSession(s6.id);
                               }}
-                              @touchstart=${(e5) => this._onSessionTouchStart(e5, s4.id)}
-                              @touchmove=${(e5) => this._onSessionTouchMove(e5, s4.id)}
-                              @touchend=${(e5) => this._onSessionTouchEnd(e5, s4.id)}
+                              @touchstart=${(e6) => this._onSessionTouchStart(e6, s6.id)}
+                              @touchmove=${(e6) => this._onSessionTouchMove(e6, s6.id)}
+                              @touchend=${(e6) => this._onSessionTouchEnd(e6, s6.id)}
                             >
                               ${
                                 this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <input
                                       type="checkbox"
                                       class="session-checkbox"
-                                      .checked=${!!this._selectedSessionIds[s4.id]}
-                                      @click=${(e5) => {
-                                        e5.stopPropagation();
-                                        this._toggleSessionSelection(s4.id);
+                                      .checked=${!!this._selectedSessionIds[s6.id]}
+                                      @click=${(e6) => {
+                                        e6.stopPropagation();
+                                        this._toggleSessionSelection(s6.id);
                                       }}
                                     />
                                   `
                                   : ""
                               }
                               <div style="flex:1; min-width:0;">
-                                <div class="session-title">${s4.title}</div>
+                                <div class="session-title">${s6.title}</div>
                                 <div class="session-meta">
-                                  ${formatDate(s4.updated_at)}
+                                  ${formatDate(s6.updated_at)}
                                 </div>
                               </div>
                               ${
                                 !this._selectChatsMode
-                                  ? b2`
+                                  ? x`
                                     <ha-icon
                                       class="session-delete"
                                       icon="mdi:delete-outline"
-                                      @click=${(e5) => this._deleteSession(s4.id, e5)}
+                                      @click=${(e6) => this._deleteSession(s6.id, e6)}
                                       title=${this._t(
                                         "panel_session_delete_title",
                                         "Delete",
@@ -34511,6 +46563,7 @@ var SeloraAIPanel = class extends i4 {
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
+          ${this._activeTab === "recipes" ? this._renderRecipesV2() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
           ${this._activeTab === "usage" ? this._renderUsage() : ""}
         </div>
@@ -34519,11 +46572,11 @@ var SeloraAIPanel = class extends i4 {
       ${this._renderFeedbackModal()}
       ${
         this._deleteConfirmSessionId === "__bulk__"
-          ? b2`
+          ? x`
             <div
               class="modal-overlay"
-              @click=${(e5) => {
-                if (e5.target === e5.currentTarget)
+              @click=${(e6) => {
+                if (e6.target === e6.currentTarget)
                   this._deleteConfirmSessionId = null;
               }}
             >
@@ -34563,7 +46616,7 @@ var SeloraAIPanel = class extends i4 {
       }
       ${
         this._toast
-          ? b2`
+          ? x`
             <div class="toast ${this._toastType}">
               <span>${this._toast}</span>
               <ha-icon
@@ -34601,6 +46654,7 @@ if (!customElements.get("selora-ai")) {
 lit-html/lit-html.js:
 lit-element/lit-element.js:
 lit-html/directive.js:
+lit-html/directives/unsafe-html.js:
   (**
    * @license
    * Copyright 2017 Google LLC

@@ -68,6 +68,75 @@ export const layoutStyles = css`
     box-sizing: border-box;
   }
 
+  /* ---- Flat page layout ----
+     The "flat" pattern (used by Recipes, rolling out to Scenes/Automations):
+     a page-level title + lightweight uppercase section subheads, with content
+     and cards floating directly on the page background — no outer .section-card
+     panel. These are generic so any page can adopt them. */
+  .page-root {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    max-width: 920px;
+  }
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .page-h1 {
+    font-size: 30px;
+    font-weight: 700;
+    color: var(--primary-text-color);
+    margin: 0;
+  }
+  .page-intro {
+    margin: -6px 0 4px;
+    font-size: 14px;
+    color: var(--secondary-text-color);
+    line-height: 1.6;
+    max-width: 70ch;
+  }
+  .page-section-title {
+    font-size: 14px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--secondary-text-color);
+  }
+  /* On a flat page the row-list no longer sits inside a .section-card, so it
+     needs its own surface or it vanishes into the dark page background. Scoped
+     to .page-root so paneled pages (e.g. Automations until it's flattened)
+     keep the transparent list that relies on their panel. */
+  .page-root .automations-list {
+    background: var(--card-background-color);
+    overflow: hidden;
+  }
+  /* Same reasoning for suggestion cards (they were styled via .section-card
+     .card) — restore their inner-card surface on a flat page. */
+  .page-root .suggestions-section .card {
+    background: var(--selora-inner-card-bg);
+    border: 1px solid var(--selora-inner-card-border);
+    border-radius: 14px;
+  }
+  /* A section header row: the .page-section-title on the left, action buttons
+     on the right (e.g. Suggested for you → Scan Now / Generate). */
+  .page-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  /* Flat-page tab bar: drop the full-width baseline — it would run under any
+     toolbar action on the row (the "line under the button" issue). The active
+     tab's accent underline is the indicator. */
+  .page-root .filter-tabs-row {
+    border-bottom: none;
+  }
+
   /* ---- Section cards ---- */
   .section-card {
     background: var(--selora-section-bg);

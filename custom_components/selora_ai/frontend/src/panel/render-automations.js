@@ -774,10 +774,37 @@ export function renderAutomations(host) {
 
   return html`
     <div class="scroll-view" @click=${() => host._closeBurgerMenus()}>
-      ${renderSuggestionsSection(host)}
-      <div class="section-card">
-        <div class="section-card-header">
-          <h3>${host._t("automations_section_title", "Your Automations")}</h3>
+      <div class="page-root">
+        <div class="page-header">
+          <h1 class="page-h1">
+            ${host._t("automations_page_title", "Automations")}
+          </h1>
+          ${host._automations.length > 0
+            ? html`<button
+                class="filter-row-action"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup
+                  ? host._t(
+                      "automations_llm_setup_required_tooltip",
+                      "Configure an LLM provider first",
+                    )
+                  : ""}
+                @click=${() => host._startNewAutomationChat()}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:13px;"
+                ></ha-icon>
+                ${host._t(
+                  "automations_new_automation_button",
+                  "New Automation",
+                )}
+              </button>`
+            : ""}
+        </div>
+        ${renderSuggestionsSection(host)}
+        <div class="page-section-title">
+          ${host._t("automations_section_title", "Your Automations")}
         </div>
         ${host._automations.length > 0
           ? html`
@@ -874,26 +901,6 @@ export function renderAutomations(host) {
                           ${host._t("automations_bulk_edit", "Bulk edit")}
                         </button>
                       `}
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup
-                      ? host._t(
-                          "automations_llm_setup_required_tooltip",
-                          "Configure an LLM provider first",
-                        )
-                      : ""}
-                    @click=${() => host._startNewAutomationChat()}
-                  >
-                    <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t(
-                      "automations_new_automation_button",
-                      "New Automation",
-                    )}
-                  </button>
                 </div>
               </div>
               <div class="filter-row">

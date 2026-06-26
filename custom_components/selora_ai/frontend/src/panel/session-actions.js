@@ -3,13 +3,30 @@
 import { stripEntityMarkers } from "./chat-autocomplete.js";
 
 const PANEL_PREFIX = "/selora-ai";
-const VALID_TABS = ["chat", "automations", "scenes", "settings", "usage"];
+const VALID_TABS = [
+  "chat",
+  "automations",
+  "scenes",
+  "recipes",
+  "settings",
+  "usage",
+];
+
+function _parsePath(pathname) {
+  // Returns ``{ tab, subpath }`` where ``subpath`` is whatever
+  // follows ``/selora-ai/<tab>/``. Used for slug-aware deep links
+  // like ``/selora-ai/recipes/bedtime-routine`` so reloading
+  // mid-wizard restores the right view.
+  if (!pathname.startsWith(PANEL_PREFIX)) return { tab: null, subpath: "" };
+  const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
+  if (!rest) return { tab: "chat", subpath: "" };
+  const [head, ...tail] = rest.split("/");
+  if (!VALID_TABS.includes(head)) return { tab: null, subpath: "" };
+  return { tab: head, subpath: tail.join("/") };
+}
 
 function _tabFromPath(pathname) {
-  if (!pathname.startsWith(PANEL_PREFIX)) return null;
-  const rest = pathname.slice(PANEL_PREFIX.length).replace(/^\/+|\/+$/g, "");
-  if (!rest) return "chat";
-  return VALID_TABS.includes(rest) ? rest : null;
+  return _parsePath(pathname).tab;
 }
 
 export function _setActiveTab(tab) {
@@ -23,20 +40,79 @@ export function _setActiveTab(tab) {
   }
 }
 
+// URL helper for the recipes wizard. ``slug`` null →
+// ``/selora-ai/recipes``; otherwise → ``/selora-ai/recipes/<slug>``.
+//
+// We deliberately do NOT encode the current step in the URL. The
+// wizard's per-step state (typed inputs, picked device selections,
+// install result) lives only in memory — restoring to Step 3 on a
+// reload would put the user on a "pick devices" screen with empty
+// selections, which is more confusing than restarting at Step 1.
+// So reloads always land at Step 1; the URL just records which
+// recipe is open. The ``step`` parameter is accepted for call-site
+// API compatibility and ignored.
+export function _setRecipeWizardUrl(slug) {
+  const target = slug
+    ? `${PANEL_PREFIX}/recipes/${encodeURIComponent(slug)}`
+    : `${PANEL_PREFIX}/recipes`;
+  const url = new URL(window.location);
+  const slugChanged = url.pathname !== target;
+  url.pathname = target;
+  // Strip any legacy ?step= param so old bookmarks don't sustain
+  // the stale-restore behaviour after this change ships.
+  url.searchParams.delete("step");
+  if (slugChanged) {
+    window.history.pushState({}, "", url);
+  } else if (url.toString() !== window.location.toString()) {
+    window.history.replaceState({}, "", url);
+  }
+}
+
 export function _checkTabParam() {
-  const tab = _tabFromPath(window.location.pathname);
-  if (tab && tab !== this._activeTab) {
+  const { tab, subpath } = _parsePath(window.location.pathname);
+  // updated() calls this on every new hass object, so the per-tab data loads
+  // below must fire only on the actual tab *activation* — not on every HA
+  // state update — or each state change spams the backend (recipes/list,
+  // usage stats, grants/tokens) while the tab stays open.
+  const tabActivated = tab && tab !== this._activeTab;
+  if (tabActivated) {
     this._activeTab = tab;
     if (tab !== "chat") this._showSidebar = false;
   }
   // Deep-linking to /selora-ai/usage skips the Settings → Usage click that
   // normally triggers the stats load, so kick it off here.
-  if (tab === "usage") this._loadUsageStats?.();
+  if (tab === "usage" && tabActivated) this._loadUsageStats?.();
+  // Same story for /selora-ai/recipes — the user lands directly on the
+  // tab without going through the click handler that calls
+  // ``_loadRecipesList``. Without this they see an empty list until
+  // they hit Refresh.
+  if (tab === "recipes") {
+    if (tabActivated) this._loadRecipesList?.();
+    // /selora-ai/recipes/<slug>?step=N deep link: open the wizard
+    // for that slug (if not already) and jump to the requested step
+    // once detail is loaded. Skip slug ping when the wizard already
+    // matches to avoid resetting in-flight state.
+    if (subpath) {
+      const slug = decodeURIComponent(subpath.split("/")[0] || "");
+      // The URL only records which recipe is open, not the wizard
+      // step. Reload always lands on Step 1 — per-step state (typed
+      // inputs, picked devices, install result) is in-memory and
+      // can't be reconstructed from the URL, so restoring to a
+      // later step would show a half-empty form.
+      if (slug && slug !== this._recipeWizardSlug) {
+        this._openRecipeFromDeepLink?.(slug);
+      }
+    } else if (this._recipesView === "wizard") {
+      // URL went back to the bare /recipes path while a wizard was
+      // open (browser Back) — close the wizard so state follows URL.
+      this._closeRecipeWizard?.();
+    }
+  }
   // Same for /selora-ai/settings — the grants and MCP token lists are
   // mutable from elsewhere (the approval flow records Always grants
   // server-side; revokes happen on this tab) so we refresh on every
   // activation rather than serving the connectedCallback snapshot.
-  if (tab === "settings") {
+  if (tab === "settings" && tabActivated) {
     this._loadApprovalGrants?.();
     this._loadMcpTokens?.();
   }

@@ -1,0 +1,135 @@
+# Tornado Alert — NWS-driven severe weather response recipe.
+#
+# Subscribes to the US National Weather Service feed for the
+# homeowner's METAR station. On a tornado WATCH, sends a calm
+# heads-up TTS to every media player. On a tornado WARNING,
+# fires the indoor siren in the occupied rooms only, announces
+# the shelter zone, and calls out any exterior doors that are
+# still open.
+#
+# Demonstrates the wizard's inline-config-flow path: ``integrations``
+# lists ``nws``, and the Match step opens HA's NWS config flow
+# directly inside the wizard so the homeowner never has to leave
+# the page to wire up the integration.
+slug: tornado-alert
+version: 1.0.0
+title: Tornado Alert
+tagline: When the NWS issues a tornado warning, wake the right rooms and guide everyone to the shelter zone.
+description: >-
+  Watches the US National Weather Service feed for tornado watches
+  and warnings. On a watch, every media player gets a calm heads-up.
+  On a warning, the indoor siren fires in the occupied rooms only,
+  a TTS announcement directs the household to the configured
+  shelter zone, and any exterior door that's still open gets called
+  out by name. Requires the NWS integration (US-only) — the wizard
+  walks you through configuring it.
+author: Selora AI
+released: "2026-05-25"
+tags: [safety, weather, alerts]
+roles:
+  # Indoor siren — uses HA's dedicated ``siren`` domain so the
+  # wizard's candidate list won't surface every switch in the home
+  # (AC outlets, decorative-light plugs, etc.) as a "siren". Modern
+  # Z-Wave / zigbee siren integrations register their entity under
+  # the ``siren.*`` namespace; older devices that report as switches
+  # will need a manifest update or a homeowner-side template rename.
+  - id: indoor_siren
+    title: Indoor siren
+    kind: siren
+    min_count: 1
+    max_count: 1
+    selection: required
+    description: >-
+      Siren entity that fires on a tornado warning. Modern Z-Wave
+      and zigbee sirens register under the ``siren.*`` namespace in
+      Home Assistant.
+  # Occupancy sensors — the recipe uses these to fire the siren only
+  # in rooms that are currently occupied. The Aqara FP2 exposes one
+  # binary_sensor per zone, so multi-select is normal here.
+  - id: presence_sensors
+    title: Presence / occupancy sensors
+    kind: binary_sensor
+    device_class: occupancy
+    min_count: 1
+    selection: required
+    description: >-
+      Occupancy / mmWave presence sensors used to decide which rooms
+      to wake. Pick every sensor that reports a room you'd want the
+      siren to fire in.
+  # Exterior door sensors — the warning automation calls out by name
+  # any door that's still open when the warning fires. Optional —
+  # leave empty if the homeowner has no door sensors yet.
+  - id: door_sensors
+    title: Exterior door sensors
+    kind: binary_sensor
+    device_class: door
+    min_count: 0
+    selection: required
+    description: >-
+      Door sensors on exterior doors. If any are open when the
+      warning fires, they'll be called out in the announcement so
+      whoever's home knows to close them on the way to shelter.
+  # Where the TTS announcements play. Multi-select so the homeowner
+  # can fan out across every speaker (a tornado warning isn't
+  # something you want a single bedroom Echo to handle).
+  - id: announce_media_players
+    title: Announcement speakers
+    kind: media_player
+    min_count: 1
+    selection: required
+    description: >-
+      Speakers that the TTS watch / warning announcements play on.
+      Pick every media player you want included — typically every
+      whole-home speaker in the household.
+inputs:
+  # METAR station identifier (e.g. KOKC). Auto-resolved by the
+  # ``nws_station_from_location`` resolver from the home's lat/lon
+  # in HA config — the wizard never shows this field; the homeowner
+  # doesn't have to look anything up. If the resolver fails
+  # (location not set, NWS doesn't cover the home, network down)
+  # the pipeline halts at the validate stage with a punch list
+  # entry the homeowner can act on.
+  - id: station_code
+    type: string
+    label: NWS station code
+    description: >-
+      4-letter METAR identifier for the nearest NWS station. Resolved
+      automatically from your Home Assistant location via api.weather.gov.
+    resolver: nws_station_from_location
+    default: ""
+  - id: shelter_zone
+    type: string
+    label: Shelter location
+    description: >-
+      Name of the shelter zone, spoken in announcements. Usually a
+      windowless interior room — basement, interior bathroom, or
+      central hallway.
+    default: "the basement"
+  - id: warning_message
+    type: select
+    label: Warning announcement tone
+    description: How the warning TTS reads — calm, urgent, or terse.
+    default: "urgent"
+    choices:
+      - "calm"
+      - "urgent"
+      - "terse"
+integrations:
+  # Recipe sets up NWS hands-off — clicking "Set up" submits the
+  # config flow with values the recipe and HA already know: a
+  # placeholder api_key (NWS doesn't enforce keys on its public
+  # endpoints), the home's lat/lon from HA config, and the nearest
+  # METAR station resolved from coordinates via api.weather.gov.
+  # The homeowner never sees the form.
+  - domain: nws
+    title: National Weather Service
+    auto_setup:
+      values:
+        api_key: "selora-ai-recipe"
+      resolved:
+        latitude: hass_config_latitude
+        longitude: hass_config_longitude
+        station: nws_station_from_location
+package_files:
+  - package/automations/warning.yaml.j2
+  - package/automations/watch.yaml.j2
