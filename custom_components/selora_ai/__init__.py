@@ -927,15 +927,25 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             if val is not None:
                 attrs[attr_key] = val
 
-        # Resolve area: entity direct assignment, then device fallback
+        # Resolve area (entity assignment, device fallback) and — for
+        # media_player entities — the device manufacturer/model. Exposing
+        # the brand lets the model map a request like "the Sonos" or
+        # "HomePod" to an entity whose friendly name doesn't carry it
+        # (e.g. media_player.living_room_2) instead of claiming it absent.
         area_name = ""
+        manufacturer = ""
+        model = ""
         entry = entity_reg.async_get(state.entity_id)
         if entry:
             area_id = entry.area_id
-            if not area_id and entry.device_id:
+            if entry.device_id:
                 device = device_reg.async_get(entry.device_id)
                 if device:
-                    area_id = device.area_id
+                    if not area_id:
+                        area_id = device.area_id
+                    if domain == "media_player":
+                        manufacturer = device.manufacturer or ""
+                        model = device.model or ""
             if area_id:
                 area_name = area_id_to_name.get(area_id, "")
 
@@ -946,6 +956,10 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
         }
         if area_name:
             snapshot["area_name"] = area_name
+        if manufacturer:
+            snapshot["manufacturer"] = manufacturer
+        if model:
+            snapshot["model"] = model
         states.append(snapshot)
     return states
 

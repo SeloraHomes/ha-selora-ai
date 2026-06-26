@@ -563,6 +563,8 @@ class EntitySnapshot(TypedDict, total=False):
     entity_id: str
     state: str
     area_name: str
+    manufacturer: str
+    model: str
     attributes: dict[str, Any]
 
 
