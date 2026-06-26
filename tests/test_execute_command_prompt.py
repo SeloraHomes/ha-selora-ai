@@ -2073,3 +2073,145 @@ def test_redaction_preserves_object_id_phrase_target(hass) -> None:
     ]
     _redact_executed_entity_ids_for_generic_references(hass, records, "turn on the kitchen")
     assert records[0]["entity_ids"] == ["light.kitchen"]
+
+
+# ── Tool-loop final-answer forcing (doorbell automation regression) ──────────
+
+
+async def test_tool_loop_forces_final_answer_instead_of_exhaustion(hass, monkeypatch) -> None:
+    """A multi-read request (e.g. doorbell: resolve the trigger entity, the
+    speaker, and the existing automation, then emit) used to burn every round
+    on tool calls and dead-end in "I used several tools but couldn't complete
+    the analysis." The final round now withholds tools, forcing the model to
+    commit its answer (the terminal automation block) instead.
+    """
+    from unittest.mock import AsyncMock
+
+    from custom_components.selora_ai.const import MAX_TOOL_CALL_ROUNDS
+
+    client = _make_client(hass)
+
+    async def fake_raw_request(system, messages, tools=None):
+        # ``tools`` is withheld (None/empty) only on the forced final round.
+        return {"final": not tools}
+
+    monkeypatch.setattr(client._provider, "raw_request", fake_raw_request)
+    monkeypatch.setattr(
+        client._provider,
+        "extract_tool_calls",
+        lambda resp: [] if resp.get("final") else [{"name": "get_entity_state", "arguments": {}}],
+    )
+    monkeypatch.setattr(
+        client._provider,
+        "extract_text_response",
+        lambda resp: "Created the doorbell automation." if resp.get("final") else "",
+    )
+    monkeypatch.setattr(
+        client._provider,
+        "append_tool_result",
+        lambda messages, resp, tool_call, result: messages.append(
+            {"role": "user", "content": "tool result"}
+        ),
+    )
+
+    tool_executor = MagicMock()
+    tool_executor.execute = AsyncMock(return_value={})
+    tool_executor.call_log = []
+
+    text, err, _log = await client._send_request_with_tools(
+        "sys", [], tool_executor, tools=[{"name": "get_entity_state"}]
+    )
+
+    assert err is None
+    assert text == "Created the doorbell automation."
+    assert "couldn't complete the analysis" not in (text or "")
+    # The full read budget is used, then the final round commits the answer.
+    assert tool_executor.execute.await_count == MAX_TOOL_CALL_ROUNDS - 1
+
+
+async def test_stream_tool_loop_forces_final_answer(hass, monkeypatch) -> None:
+    """Streaming twin of the above — the panel path. The final tools-free round
+    streams a committed answer instead of the canned exhaustion message."""
+    from unittest.mock import AsyncMock
+
+    client = _make_client(hass)
+
+    async def fake_raw_request_stream(system, messages, tools=None):
+        yield {"final": not tools}
+
+    async def fake_stream_with_tools(resp, tool_calls, content_blocks):
+        if resp.get("final"):
+            yield "Created the doorbell automation."
+        else:
+            tool_calls.append({"name": "get_entity_state", "arguments": {}})
+
+    monkeypatch.setattr(client._provider, "raw_request_stream", fake_raw_request_stream)
+    monkeypatch.setattr(client._provider, "stream_with_tools", fake_stream_with_tools)
+    monkeypatch.setattr(
+        client._provider,
+        "append_streaming_tool_results",
+        lambda messages, content_blocks, tool_calls, results: messages.append(
+            {"role": "user", "content": "tool result"}
+        ),
+    )
+
+    tool_executor = MagicMock()
+    tool_executor.execute = AsyncMock(return_value={})
+    tool_executor.call_log = []
+
+    chunks = [
+        c
+        async for c in client._stream_request_with_tools(
+            "sys", [], tool_executor, tools=[{"name": "get_entity_state"}]
+        )
+    ]
+    result = "".join(chunks)
+
+    assert "Created the doorbell automation." in result
+    assert "couldn't complete the analysis" not in result
+
+
+async def test_stream_tool_loop_whitespace_only_final_falls_back(hass, monkeypatch) -> None:
+    """A forced final round that streams only formatting whitespace carries no
+    answer. ``streamed_text_parts`` still grows, so a bare length check would
+    wrongly treat it as committed; the round's content must be ``strip()``-ed
+    (matching the sync path) so the locale-aware acknowledgement still fires."""
+    from unittest.mock import AsyncMock
+
+    client = _make_client(hass)
+
+    async def fake_raw_request_stream(system, messages, tools=None):
+        yield {"final": not tools}
+
+    async def fake_stream_with_tools(resp, tool_calls, content_blocks):
+        if resp.get("final"):
+            # Provider streams formatting whitespace, then no substantive text.
+            yield "\n\n"
+        else:
+            tool_calls.append({"name": "get_entity_state", "arguments": {}})
+
+    monkeypatch.setattr(client._provider, "raw_request_stream", fake_raw_request_stream)
+    monkeypatch.setattr(client._provider, "stream_with_tools", fake_stream_with_tools)
+    monkeypatch.setattr(
+        client._provider,
+        "append_streaming_tool_results",
+        lambda messages, content_blocks, tool_calls, results: messages.append(
+            {"role": "user", "content": "tool result"}
+        ),
+    )
+
+    tool_executor = MagicMock()
+    tool_executor.execute = AsyncMock(return_value={})
+    tool_executor.call_log = []
+
+    chunks = [
+        c
+        async for c in client._stream_request_with_tools(
+            "sys", [], tool_executor, tools=[{"name": "get_entity_state"}]
+        )
+    ]
+    result = "".join(chunks)
+
+    # The acknowledgement fires despite the whitespace-only final chunk.
+    assert result.strip(), "expected a non-empty acknowledgement, got whitespace only"
+    assert _tool_failure_response([], language="en").strip() in result

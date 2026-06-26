@@ -1031,7 +1031,13 @@ HEALTH_CHECK_TIMEOUT = 15
 CLOUD_LLM_TEMPERATURE = 0.2
 
 # ── Tool Calling ────────────────────────────────────────────────────
-MAX_TOOL_CALL_ROUNDS = 5  # Maximum LLM-tool round trips per chat turn
+# Max LLM round trips per chat turn. The final round withholds tools so the
+# model commits a text answer (automation YAML is parsed from that terminal
+# block) instead of spending the round on another read and dead-ending in the
+# "couldn't complete the analysis" exhaustion path. Multi-entity automations
+# (e.g. doorbell → look up trigger entity, speaker, and the existing
+# automation, then emit) need the read headroom this allows.
+MAX_TOOL_CALL_ROUNDS = 6
 MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
 
 # ── Backend chat-stream guards ──────────────────────────────────────

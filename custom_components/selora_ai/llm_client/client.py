@@ -1206,17 +1206,30 @@ class LLMClient:
         tool_calls_log: list[ToolCallLog] = []
 
         for _round in range(MAX_TOOL_CALL_ROUNDS):
+            # On the last permitted round, withhold tools so the model commits
+            # a final answer from what it has gathered instead of spending the
+            # round on another read and dead-ending below. Every provider omits
+            # an empty/None tools list (``if tools:`` guard), so this forces a
+            # text turn — which is exactly where automation YAML is parsed from.
+            is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
+            round_tools = None if is_final_round else tools
             try:
-                response_data = await self._provider.raw_request(system, messages, tools=tools)
+                response_data = await self._provider.raw_request(
+                    system, messages, tools=round_tools
+                )
             except ConnectionError as exc:
                 return None, str(exc), tool_calls_log
 
             requested_tools = self._provider.extract_tool_calls(response_data)
 
             if not requested_tools:
-                # Final round — leave usage in the buffer so architect_chat
+                # Final answer — leave usage in the buffer so architect_chat
                 # can flush it with the parsed intent.
                 text = self._provider.extract_text_response(response_data)
+                # A blank forced-final answer falls through to the
+                # acknowledgement below rather than returning an empty turn.
+                if is_final_round and not (text and text.strip()):
+                    break
                 return text, None, tool_calls_log
 
             # Tool round — record under chat_tool_round so the breakdown
@@ -1333,8 +1346,14 @@ class LLMClient:
         """
         streamed_text_parts: list[str] = []
         for _round in range(MAX_TOOL_CALL_ROUNDS):
+            # Final round withholds tools so the model streams a committed
+            # answer (the terminal automation block) instead of requesting
+            # another tool and exhausting into the dead-end message below.
+            is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
+            round_tools = None if is_final_round else tools
             tool_calls: list[dict[str, Any]] = []
             content_blocks: list[dict[str, Any]] = []
+            text_len_before = len(streamed_text_parts)
             # The first model narration of a *subsequent* round (post-tool-
             # result prose) must not fuse with the prior round's prose tail
             # under the WS handler's `full_text += chunk` — insert one boundary
@@ -1343,7 +1362,9 @@ class LLMClient:
             first_text_in_round = True
 
             try:
-                async for resp in self._provider.raw_request_stream(system, messages, tools=tools):
+                async for resp in self._provider.raw_request_stream(
+                    system, messages, tools=round_tools
+                ):
                     async for text in self._provider.stream_with_tools(
                         resp, tool_calls, content_blocks
                     ):
@@ -1370,6 +1391,21 @@ class LLMClient:
             # Leave usage in the buffer so the calling architect_chat_stream
             # flushes it under "chat".
             if not tool_calls:
+                # If the forced final round committed nothing substantive, emit
+                # the acknowledgement so the user isn't left with an empty turn.
+                # Match the sync path's ``strip()`` test: a round that streams
+                # only formatting whitespace/newlines grows ``streamed_text_parts``
+                # but carries no answer, so a bare length check would wrongly
+                # treat it as committed.
+                final_chunk = "".join(streamed_text_parts[text_len_before:])
+                if is_final_round and not final_chunk.strip():
+                    yield _join_stream_boundary(
+                        "".join(streamed_text_parts),
+                        _tool_failure_response(
+                            tool_executor.call_log,
+                            language=language or self._hass.config.language,
+                        ),
+                    )
                 return
 
             # Tool round — flush usage tagged so the agent loop is visible
