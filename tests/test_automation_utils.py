@@ -11,9 +11,13 @@ import pytest
 import yaml
 
 from custom_components.selora_ai.automation_utils import (
+    _collect_referenced_resources,
+    _looks_like_spoken_text,
     _parse_automation_yaml,
     _quote_yaml_booleans,
     _read_automations_yaml,
+    _resolve_tts_engine,
+    _rewrite_spoken_play_media,
     _write_automations_yaml,
     assess_automation_risk,
     async_create_automation,
@@ -2846,3 +2850,439 @@ class TestFindStaleAutomations:
         ]
         stale = find_stale_automations(hass)
         assert len(stale) == 0
+
+
+class TestSpokenPlayMediaRewrite:
+    """media_player.play_media handed announcement text plays nothing — it must
+    be repaired to tts.speak so doorbell-style announcements actually speak."""
+
+    @staticmethod
+    def _hass(
+        *,
+        tts_entities: list[str] | None = None,
+        tts_speak: bool = True,
+        known: set[str] | None = None,
+    ) -> MagicMock:
+        tts_entities = ["tts.home_assistant_cloud"] if tts_entities is None else tts_entities
+        known = known if known is not None else set()
+        service_registry: dict[str, set[str]] = {
+            "tts": {"speak"} if tts_speak else set(),
+            "media_player": {"play_media", "turn_on", "volume_set"},
+            "light": {"turn_on", "turn_off"},
+        }
+        hass = MagicMock()
+        hass.services.has_service.side_effect = lambda domain, service: (
+            service in service_registry.get(domain, set())
+        )
+        hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in service_registry[domain]} if service_registry.get(domain) else {}
+        )
+        hass.states.async_entity_ids.side_effect = lambda domain: (
+            list(tts_entities) if domain == "tts" else []
+        )
+        hass.states.get.side_effect = lambda eid: MagicMock() if eid in known else None
+        return hass
+
+    @pytest.fixture(autouse=True)
+    def _patch_entity_registry(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        registry_ids: set[str] = set()
+
+        def _fake_async_get(_hass: Any) -> Any:
+            reg = MagicMock()
+            reg.async_get.side_effect = lambda eid: MagicMock() if eid in registry_ids else None
+            return reg
+
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils.er.async_get",
+            _fake_async_get,
+        )
+        self._registry_ids = registry_ids
+
+    def _set_registry(self, ids: set[str]) -> None:
+        self._registry_ids.clear()
+        self._registry_ids.update(ids)
+
+    # -- prose vs. playable-media detection -------------------------------
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "There is a visitor at the door",
+            "Someone is at the front door.",
+            "Good morning, time to wake up",
+            "Check http status now",  # 'http' substring alone is not a URI
+        ],
+    )
+    def test_detects_spoken_text(self, value: str) -> None:
+        assert _looks_like_spoken_text(value) is True
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "玄関に訪問者がいます",  # Japanese, no word spaces
+            "Кто-то у двери",  # Russian (Cyrillic)
+            "有访客在门口",  # Chinese
+            "현관에 방문자가 있습니다",  # Korean
+            "Il y a un visiteur à la porte",  # accented Latin
+        ],
+    )
+    def test_detects_non_latin_spoken_text(self, value: str) -> None:
+        # i18n: announcements in CJK / Cyrillic / accented scripts must also be
+        # repaired, not just ASCII-Latin ones.
+        assert _looks_like_spoken_text(value) is True
+
+    @pytest.mark.parametrize(
+        "value",
+        [
+            "media-source://media_source/local/chime.mp3",
+            "http://example.com/stream.mp3",
+            "spotify:playlist:37i9dQ",
+            "/local/doorbell.wav",
+            "chime",  # single token, no space
+            "",
+            "{{ state_attr('sensor.radio', 'url') }}",  # template → dynamic media
+            "{% if x %}a{% endif %}",  # statement-block template
+        ],
+    )
+    def test_ignores_playable_media(self, value: str) -> None:
+        assert _looks_like_spoken_text(value) is False
+
+    # -- TTS engine resolution --------------------------------------------
+    def test_resolve_engine_prefers_cloud(self) -> None:
+        hass = self._hass(tts_entities=["tts.piper", "tts.home_assistant_cloud"])
+        assert _resolve_tts_engine(hass) == "tts.home_assistant_cloud"
+
+    def test_resolve_engine_none_when_no_tts(self) -> None:
+        hass = self._hass(tts_entities=[])
+        assert _resolve_tts_engine(hass) is None
+
+    # -- the doorbell repair, end-to-end ----------------------------------
+    def test_doorbell_play_media_text_rewritten_to_tts_speak(self) -> None:
+        ids = {
+            "binary_sensor.reolink_doorbell_visitor",
+            "media_player.living_room_sonos",
+            "tts.home_assistant_cloud",
+        }
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Doorbell Announcer",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.reolink_doorbell_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {
+                        "media_content_id": "There is a visitor at the door",
+                        "media_content_type": "music",
+                    },
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "tts.speak"
+        assert action["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert action["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+        assert action["data"]["message"] == "There is a visitor at the door"
+        # The non-playable media keys are dropped by the rewrite.
+        assert "media_content_id" not in action["data"]
+        assert "media_content_type" not in action["data"]
+
+    def test_genuine_play_media_left_untouched(self) -> None:
+        self._set_registry({"media_player.living_room_sonos"})
+        hass = self._hass(known={"media_player.living_room_sonos"})
+        payload = {
+            "alias": "Play Doorbell Chime",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {
+                        "media_content_id": "media-source://media_source/local/chime.mp3",
+                        "media_content_type": "music",
+                    },
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized["actions"][0]["action"] == "media_player.play_media"
+
+    def test_rewrite_is_not_env_gated(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # The repair is unconditional here; no environment flag disables it.
+        monkeypatch.setenv("SELORA_RAW_MODE", "1")
+        self._set_registry(
+            {"media_player.living_room_sonos", "tts.home_assistant_cloud"}
+        )
+        hass = self._hass(
+            known={"media_player.living_room_sonos", "tts.home_assistant_cloud"}
+        )
+        payload = {
+            "alias": "Doorbell Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {"media_content_id": "There is a visitor at the door"},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized["actions"][0]["action"] == "tts.speak"
+
+    def test_no_tts_engine_leaves_action_but_stays_valid(self) -> None:
+        self._set_registry({"media_player.living_room_sonos"})
+        hass = self._hass(tts_entities=[], known={"media_player.living_room_sonos"})
+        payload = {
+            "alias": "Doorbell Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {"media_content_id": "There is a visitor at the door"},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized["actions"][0]["action"] == "media_player.play_media"
+
+    def test_rewrite_helper_direct(self) -> None:
+        hass = self._hass()
+        action = {
+            "action": "media_player.play_media",
+            "target": {"entity_id": "media_player.living_room_sonos"},
+            "data": {"media_content_id": "Dinner is ready"},
+        }
+        out = _rewrite_spoken_play_media(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        assert out["data"]["message"] == "Dinner is ready"
+        assert out["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+
+    def test_non_latin_announcement_rewritten(self) -> None:
+        ids = {"media_player.living_room_sonos", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Doorbell Announcer JP",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {"media_content_id": "玄関に訪問者がいます"},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "tts.speak"
+        assert action["data"]["message"] == "玄関に訪問者がいます"
+
+    def test_play_media_announcement_nested_in_choose_rewritten(self) -> None:
+        ids = {
+            "binary_sensor.reolink_doorbell_visitor",
+            "media_player.living_room_sonos",
+            "tts.home_assistant_cloud",
+        }
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Conditional Doorbell",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.reolink_doorbell_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "state",
+                                    "entity_id": "binary_sensor.reolink_doorbell_visitor",
+                                    "state": "on",
+                                }
+                            ],
+                            "sequence": [
+                                {
+                                    "action": "media_player.play_media",
+                                    "target": {
+                                        "entity_id": "media_player.living_room_sonos"
+                                    },
+                                    "data": {
+                                        "media_content_id": "There is a visitor at the door"
+                                    },
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        nested = normalized["actions"][0]["choose"][0]["sequence"][0]
+        assert nested["action"] == "tts.speak"
+        assert nested["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert nested["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+
+    def test_area_targeted_play_media_left_untouched(self) -> None:
+        # No concrete media_player entity → tts.speak would have no speaker, so
+        # the rewrite must bail and leave the original action in place.
+        ids = {"tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Area Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"area_id": "living_room"},
+                    "data": {"media_content_id": "There is a visitor at the door"},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "media_player.play_media"
+        assert action["target"] == {"area_id": "living_room"}
+
+    def test_rewrite_with_hallucinated_speaker_rejected(self) -> None:
+        # After the rewrite moves the speaker into data.media_player_entity_id,
+        # it must still be validated against the running instance.
+        ids = {"tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Ghost Speaker",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.does_not_exist"},
+                    "data": {"media_content_id": "There is a visitor at the door"},
+                }
+            ],
+        }
+        valid, reason, _normalized = validate_automation_payload(payload, hass)
+        assert valid is False
+        assert "media_player.does_not_exist" in reason
+
+    def test_play_media_in_nested_sequence_list_rewritten(self) -> None:
+        # HA accepts nested sequence lists inside control-flow branches
+        # (parallel: [[{...}]]); the announcement inside must still be repaired.
+        ids = {"media_player.living_room_sonos", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Parallel Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "parallel": [
+                        [
+                            {
+                                "action": "media_player.play_media",
+                                "target": {
+                                    "entity_id": "media_player.living_room_sonos"
+                                },
+                                "data": {
+                                    "media_content_id": "There is a visitor at the door"
+                                },
+                            }
+                        ]
+                    ]
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        nested = normalized["actions"][0]["parallel"][0][0]
+        assert nested["action"] == "tts.speak"
+        assert nested["data"]["media_player_entity_id"] == "media_player.living_room_sonos"
+
+    def test_templated_play_media_left_untouched(self) -> None:
+        # A templated media_content_id renders to a dynamic URL/media-source at
+        # run time — it must keep playing media, not get spoken, even when TTS
+        # is configured.
+        ids = {"media_player.living_room_sonos", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Dynamic Radio",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "action": "media_player.play_media",
+                    "target": {"entity_id": "media_player.living_room_sonos"},
+                    "data": {
+                        "media_content_id": "{{ state_attr('sensor.radio', 'url') }}",
+                        "media_content_type": "music",
+                    },
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized["actions"][0]["action"] == "media_player.play_media"
+
+    def test_resource_collector_tracks_media_player_entity_id(self) -> None:
+        # Ignored-entity filtering walks _collect_referenced_resources; the
+        # rewritten speaker lives in data.media_player_entity_id, so the
+        # collector must surface it (else suggestions speaking through an
+        # ignored speaker would never be hidden).
+        automation = {
+            "alias": "Announcer",
+            "triggers": [{"platform": "time", "at": "07:00:00"}],
+            "actions": [
+                {
+                    "action": "tts.speak",
+                    "target": {"entity_id": "tts.home_assistant_cloud"},
+                    "data": {
+                        "media_player_entity_id": "media_player.living_room_sonos",
+                        "message": "There is a visitor at the door",
+                    },
+                }
+            ],
+        }
+        entities, _devices, _areas = _collect_referenced_resources(automation)
+        assert "media_player.living_room_sonos" in entities
+
+    def test_rewrite_preserves_other_action_keys(self) -> None:
+        hass = self._hass()
+        action = {
+            "alias": "announce visitor",
+            "enabled": True,
+            "continue_on_error": True,
+            "action": "media_player.play_media",
+            "target": {"entity_id": "media_player.living_room_sonos"},
+            "data": {"media_content_id": "Dinner is ready"},
+        }
+        out = _rewrite_spoken_play_media(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        # Per-action metadata survives the rewrite …
+        assert out["alias"] == "announce visitor"
+        assert out["enabled"] is True
+        assert out["continue_on_error"] is True
+        # … while the stale media-call keys are gone.
+        assert "media_content_id" not in out["data"]
