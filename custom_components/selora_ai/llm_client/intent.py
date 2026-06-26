@@ -1062,6 +1062,13 @@ _SCORE_ENTITY_ID_HIT = 3
 _SCORE_FNAME_SUBSTRING_HIT = 2
 _SCORE_AREA_HIT = 1
 _SCORE_CATEGORY_DOMAIN_HIT = 5
+# Brand match (manufacturer/model) is a strong, identifying signal — the
+# user typed "the Sonos" precisely because the friendly_name omits it —
+# so it weighs as much as a friendly_name token hit. Without it, a
+# media_player whose only brand signal is manufacturer="Sonos" scores 0
+# and sorts past the cap, so the brand fields added to the prompt line
+# never reach the model. See _format_entity_line in sanitize.py.
+_SCORE_BRAND_HIT = 5
 
 # Category keyword → HA domain. When the user types a plural/category
 # word like "lights", the entity-id and friendly-name substring checks
@@ -1526,6 +1533,11 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
     fname = str(entity.get("attributes", {}).get("friendly_name", "")).lower()
     fname_tokens = set(re.split(r"[^a-z0-9]+", fname)) - {""}
     area = (entity.get("area_name") or "").lower()
+    # Device brand (populated for media_player in the snapshot). Lets a
+    # request like "the Sonos" rank media_player.living_room_2 whose
+    # friendly_name carries no brand, so it survives the entity cap.
+    brand = f"{entity.get('manufacturer', '')} {entity.get('model', '')}".lower()
+    brand_tokens = set(re.split(r"[^a-z0-9]+", brand)) - {""}
 
     score = 0
     for kw in keywords:
@@ -1535,6 +1547,8 @@ def _score_entity_against_keywords(entity: EntitySnapshot, keywords: set[str]) -
             score += _SCORE_FNAME_SUBSTRING_HIT
         if kw in eid_local:
             score += _SCORE_ENTITY_ID_HIT
+        if kw in brand_tokens:
+            score += _SCORE_BRAND_HIT
         if area and kw in area:
             score += _SCORE_AREA_HIT
         # Category keyword (lights, switches, covers, …) → boost every

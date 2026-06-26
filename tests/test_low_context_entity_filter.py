@@ -154,6 +154,38 @@ def test_score_combines_all_signals() -> None:
     assert _score_entity_against_keywords(e, {"kitchen"}) == 9
 
 
+def test_score_matches_device_brand() -> None:
+    """A brand keyword ('sonos') must score against manufacturer/model even
+    when the friendly_name omits the brand — otherwise the speaker scores 0."""
+    speaker = {
+        "entity_id": "media_player.living_room_2",
+        "attributes": {"friendly_name": "Living Room"},
+        "area_name": "Living Room",
+        "manufacturer": "Sonos",
+        "model": "One SL",
+    }
+    assert _score_entity_against_keywords(speaker, {"sonos"}) == 5
+    # No brand fields → no brand contribution (and no crash).
+    assert _score_entity_against_keywords(_entity("light.x", "Lamp"), {"sonos"}) == 0
+
+
+def test_brand_named_speaker_survives_cap() -> None:
+    """'the Sonos' must rank the brand-only media_player above unrelated
+    entities so it survives the entity cap and reaches the prompt."""
+    sonos = {
+        "entity_id": "media_player.living_room_2",
+        "attributes": {"friendly_name": "Living Room"},
+        "area_name": "Living Room",
+        "manufacturer": "Sonos",
+        "model": "One SL",
+    }
+    pool = [_entity(f"light.l{i}", f"Light {i}") for i in range(30)] + [sonos]
+    kw = _low_context_keywords("make the sonos announce dinner is ready")
+    kept = _filter_entities_by_keywords(pool, kw, cap=15)
+    assert sonos in kept
+    assert kept[0]["entity_id"] == "media_player.living_room_2"
+
+
 def test_low_context_keywords_drops_stopwords() -> None:
     """Sanity that the keyword extractor still strips fillers — relevance hinges on it."""
     assert _low_context_keywords("turn on the porch light please") == {"porch", "light"}

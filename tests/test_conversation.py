@@ -396,9 +396,91 @@ class TestSeloraConversationEntity:
         outlet = next(s for s in states if s["entity_id"] == "switch.outlet")
         assert set(outlet["attributes"].keys()) == {"friendly_name"}
 
+    def test_collect_entity_states_includes_device_brand(self, hass: HomeAssistant) -> None:
+        """media_player snapshots carry device manufacturer/model so brand-named
+        requests ('the Sonos') resolve even when the friendly name omits the
+        brand; non-speaker domains stay brand-free to bound prompt size."""
+        from homeassistant.helpers import device_registry as dr
+        from homeassistant.helpers import entity_registry as er
+        from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+        entry = MockConfigEntry(domain="test", entry_id="brand_entry")
+        entry.add_to_hass(hass)
+        dev_reg = dr.async_get(hass)
+        ent_reg = er.async_get(hass)
+
+        # A Sonos whose friendly name does NOT contain the brand.
+        sonos = dev_reg.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={("test", "sonos")},
+            manufacturer="Sonos",
+            model="One SL",
+        )
+        ent_reg.async_get_or_create(
+            "media_player", "test", "sonos_lr",
+            device_id=sonos.id, suggested_object_id="living_room_2",
+        )
+        hass.states.async_set(
+            "media_player.living_room_2", "paused", {"friendly_name": "Living Room"}
+        )
+
+        # A light from a branded device — scoped out, no brand on the snapshot.
+        hue = dev_reg.async_get_or_create(
+            config_entry_id=entry.entry_id,
+            identifiers={("test", "hue")},
+            manufacturer="Signify",
+            model="Hue White",
+        )
+        ent_reg.async_get_or_create(
+            "light", "test", "hue_kitchen",
+            device_id=hue.id, suggested_object_id="kitchen",
+        )
+        hass.states.async_set("light.kitchen", "on", {"friendly_name": "Kitchen"})
+
+        by_id = {s["entity_id"]: s for s in _collect_entity_states(hass)}
+
+        speaker = by_id["media_player.living_room_2"]
+        assert speaker["manufacturer"] == "Sonos"
+        assert speaker["model"] == "One SL"
+
+        light = by_id["light.kitchen"]
+        assert "manufacturer" not in light
+        assert "model" not in light
+
 
 class TestFormatEntityLine:
     """Tests for _format_entity_line prompt serialization."""
+
+    def test_includes_device_brand(self) -> None:
+        """manufacturer/model appear when present so the model can match brands."""
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
+
+        entity = {
+            "entity_id": "media_player.living_room_2",
+            "state": "paused",
+            "area_name": "Living Room",
+            "manufacturer": "Sonos",
+            "model": "One SL",
+            "attributes": {"friendly_name": "Living Room"},
+        }
+        line = _format_entity_line(entity)
+        assert "manufacturer=" in line
+        assert "Sonos" in line
+        assert "model=" in line
+        assert "One SL" in line
+
+    def test_omits_device_brand_when_absent(self) -> None:
+        """No manufacturer/model fields when the snapshot lacks them."""
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
+
+        entity = {
+            "entity_id": "light.kitchen",
+            "state": "on",
+            "attributes": {"friendly_name": "Kitchen"},
+        }
+        line = _format_entity_line(entity)
+        assert "manufacturer" not in line
+        assert "model" not in line
 
     def test_includes_whitelisted_attrs(self) -> None:
         """Whitelisted attributes should appear in the entity line."""
