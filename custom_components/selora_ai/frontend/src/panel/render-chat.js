@@ -364,6 +364,71 @@ function _autoResize(textarea) {
   textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
 }
 
+// Some sources put percent-encoded text on the clipboard (e.g. YAML
+// copied out of a URL-encoded context arrives as
+// `alias%3A%20Doorbell%0A...` instead of real colons/spaces/newlines).
+// Pasting that verbatim fills the composer — and the persisted user
+// bubble — with `%20`/`%0A`/`%3A` gibberish. Detect that shape and hand
+// back the decoded text; return null to let the browser paste untouched.
+//
+// We only act on a blob that is ENTIRELY encoder output: the unreserved
+// characters encodeURIComponent leaves alone (`A-Za-z0-9-_.!~*'()`),
+// plus `%` and `+` (the form-urlencoded space). Any other LITERAL
+// character — `:` `/` `?` `=` `&` `#`, a space, a newline — means the
+// text is URL/query-shaped or ordinary prose, not a fully-encoded
+// document, so we leave it for the native paste. This is what keeps a
+// URL that happens to contain an encoded newline (`mailto:?body=a%0Ab`,
+// an API query param) from being silently decoded into a different,
+// invalid URL. We additionally require an encoded newline (`%0A`) as
+// proof this is a multi-line document worth rescuing, and only accept a
+// decode that actually reintroduces whitespace.
+const _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
+export function _maybeDecodePercentEncoded(text) {
+  if (typeof text !== "string" || !text) return null;
+  if (!_ENCODED_BLOB_RE.test(text)) return null;
+  if (!/%0A/i.test(text)) return null;
+  try {
+    // Apply the form-urlencoded rule: a clipboard from an
+    // application/x-www-form-urlencoded source encodes spaces as `+`,
+    // which decodeURIComponent leaves untouched. Replace `+` with space
+    // BEFORE decoding so a literal plus (encoded as %2B) still survives
+    // as `+`. A %20-only blob has no `+`, so this is a no-op there.
+    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
+    if (decoded !== text && /\s/.test(decoded)) return decoded;
+  } catch (_) {
+    // Malformed % sequence — not really URL-encoded; leave it alone.
+  }
+  return null;
+}
+
+// Paste handler for the composer. Transparently decodes percent-encoded
+// clipboard content (see _maybeDecodePercentEncoded); for any other text
+// it does nothing and lets the browser's native paste run.
+function _handlePaste(host, e) {
+  const clip = e.clipboardData;
+  if (!clip) return;
+  const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
+  if (decoded === null) return;
+  e.preventDefault();
+  const ta = e.target;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end = ta.selectionEnd ?? ta.value.length;
+  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
+  ta.value = next;
+  const caret = start + decoded.length;
+  ta.setSelectionRange(caret, caret);
+  // Mirror the @input path so host state, autocomplete, ghost text and
+  // sizing all stay consistent after a programmatic insert.
+  host._input = next;
+  host._autocompleteSelections = pruneStaleSelections(
+    next,
+    host._autocompleteSelections || [],
+  );
+  _autoResize(ta);
+  _updateAutocomplete(host, ta);
+  _updateGhost(host, ta);
+}
+
 // Measure the pixel coordinates of the caret inside a textarea by mirroring
 // the textarea's content in a hidden div with matching typography, then
 // reading the offset of a marker span placed at the caret index. Returns
@@ -793,6 +858,7 @@ function _renderComposer(host, opts = {}) {
             <textarea
               class="composer-textarea"
               .value=${host._input}
+              @paste=${(e) => _handlePaste(host, e)}
               @input=${(e) => {
                 host._input = e.target.value;
                 // Drop chips whose label no longer appears (user deleted the word).
