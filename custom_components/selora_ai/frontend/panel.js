@@ -20033,6 +20033,39 @@ function _autoResize(textarea) {
   textarea.style.height = "auto";
   textarea.style.height = Math.min(textarea.scrollHeight, 200) + "px";
 }
+var _ENCODED_BLOB_RE = /^[A-Za-z0-9\-_.!~*'()%+]+$/;
+function _maybeDecodePercentEncoded(text) {
+  if (typeof text !== "string" || !text) return null;
+  if (!_ENCODED_BLOB_RE.test(text)) return null;
+  if (!/%0A/i.test(text)) return null;
+  try {
+    const decoded = decodeURIComponent(text.replace(/\+/g, " "));
+    if (decoded !== text && /\s/.test(decoded)) return decoded;
+  } catch (_2) {}
+  return null;
+}
+function _handlePaste(host, e5) {
+  const clip = e5.clipboardData;
+  if (!clip) return;
+  const decoded = _maybeDecodePercentEncoded(clip.getData("text"));
+  if (decoded === null) return;
+  e5.preventDefault();
+  const ta = e5.target;
+  const start = ta.selectionStart ?? ta.value.length;
+  const end = ta.selectionEnd ?? ta.value.length;
+  const next = ta.value.slice(0, start) + decoded + ta.value.slice(end);
+  ta.value = next;
+  const caret = start + decoded.length;
+  ta.setSelectionRange(caret, caret);
+  host._input = next;
+  host._autocompleteSelections = pruneStaleSelections(
+    next,
+    host._autocompleteSelections || [],
+  );
+  _autoResize(ta);
+  _updateAutocomplete(host, ta);
+  _updateGhost(host, ta);
+}
 var _MIRROR_COPY_PROPS = [
   "boxSizing",
   "width",
@@ -20367,6 +20400,7 @@ function _renderComposer(host, opts = {}) {
             <textarea
               class="composer-textarea"
               .value=${host._input}
+              @paste=${(e5) => _handlePaste(host, e5)}
               @input=${(e5) => {
                 host._input = e5.target.value;
                 host._autocompleteSelections = pruneStaleSelections(
