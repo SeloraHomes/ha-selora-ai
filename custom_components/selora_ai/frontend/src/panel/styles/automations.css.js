@@ -52,7 +52,16 @@ export const automationsStyles = css`
     transition: background 0.15s;
   }
   .auto-row-main:hover {
-    background: var(--secondary-background-color);
+    /* Subtle tint over the row's surface — a flat % of the text color reads
+       gently in both themes, unlike --secondary-background-color which is a
+       heavy medium-gray on the light card surface. */
+    background: color-mix(in srgb, var(--primary-text-color) 5%, transparent);
+  }
+  /* An expanded row is already "open" — its header shouldn't keep flashing the
+     hover highlight (it only collapses on click). Drop the hover background so
+     the expanded card reads as a calm, settled surface. */
+  .auto-row.expanded .auto-row-main:hover {
+    background: transparent;
   }
   .auto-row-name {
     flex: 1;
@@ -167,7 +176,7 @@ export const automationsStyles = css`
     display: block;
   }
   .auto-row-expand {
-    padding: 0 16px 16px;
+    padding: 14px 16px 16px;
   }
   /* Scene desired-state list: each row = the entity's real HA tile
      (left, rendered with the scene's target state) + the final desired

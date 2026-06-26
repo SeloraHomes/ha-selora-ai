@@ -90,6 +90,8 @@ class ToolExecutor:
             "validate_action": self._validate_action,
             "execute_command": self._execute_command,
             "activate_scene": self._activate_scene,
+            "list_dashboards": self._list_dashboards,
+            "insert_dashboard_card": self._insert_dashboard_card,
             "search_entities": self._search_entities,
             "get_entity_history": self._get_entity_history,
             "eval_template": self._eval_template,
@@ -151,6 +153,41 @@ class ToolExecutor:
         from .mcp_server import _tool_activate_scene
 
         return await _tool_activate_scene(self._hass, arguments)
+
+    async def _list_dashboards(self, _arguments: dict[str, Any]) -> dict[str, Any]:
+        from .recipes.dashboard import list_writable_dashboards
+
+        return {"dashboards": list_writable_dashboards(self._hass)}
+
+    async def _insert_dashboard_card(self, arguments: dict[str, Any]) -> dict[str, Any]:
+        from .recipes.dashboard import async_place_card
+
+        card = arguments.get("card")
+        if not isinstance(card, dict) or not str(card.get("type", "")).strip():
+            return {"error": "card must be an object with a 'type' field"}
+        # ``view`` arrives as a string; coerce a numeric one to an int so
+        # it indexes the views list rather than matching a title.
+        view_raw = arguments.get("view", 0)
+        view: int | str
+        if isinstance(view_raw, str) and view_raw.strip().lstrip("-").isdigit():
+            view = int(view_raw)
+        else:
+            view = view_raw if view_raw not in ("", None) else 0
+        tag = str(arguments.get("tag") or "selora_chat")
+        result = await async_place_card(
+            self._hass,
+            card=card,
+            tag=tag,
+            target=arguments.get("dashboard_target") or None,
+            view=view,
+        )
+        return {
+            "ok": result.ok,
+            "reason": result.reason,
+            "target": result.target,
+            "view": result.view,
+            "message": result.message,
+        }
 
     async def _search_entities(self, arguments: dict[str, Any]) -> dict[str, Any]:
         from .mcp_server import _tool_search_entities

@@ -383,9 +383,30 @@ export function renderScenes(host) {
 
   return html`
     <div class="scroll-view">
-      <div class="section-card">
-        <div class="section-card-header">
-          <h3>${host._t("scenes_section_title", "Your Scenes")}</h3>
+      <div class="page-root">
+        <div class="page-header">
+          <h1 class="page-h1">
+            ${host._t("scenes_section_title", "Your Scenes")}
+          </h1>
+          ${(host._scenes || []).length > 0
+            ? html`<button
+                class="filter-row-action"
+                ?disabled=${host._llmNeedsSetup}
+                title=${host._llmNeedsSetup
+                  ? host._t(
+                      "scenes_llm_needs_setup_tooltip",
+                      "Configure an LLM provider first",
+                    )
+                  : ""}
+                @click=${() => host._newSceneChat()}
+              >
+                <ha-icon
+                  icon="mdi:plus"
+                  style="--mdc-icon-size:13px;"
+                ></ha-icon>
+                ${host._t("scenes_new_scene_button", "New Scene")}
+              </button>`
+            : ""}
         </div>
         ${(host._scenes || []).length > 0
           ? html`
@@ -437,25 +458,6 @@ export function renderScenes(host) {
                         </button>
                       `
                     : ""}
-                </div>
-                <div class="filter-tabs-actions">
-                  <button
-                    class="filter-row-action"
-                    ?disabled=${host._llmNeedsSetup}
-                    title=${host._llmNeedsSetup
-                      ? host._t(
-                          "scenes_llm_needs_setup_tooltip",
-                          "Configure an LLM provider first",
-                        )
-                      : ""}
-                    @click=${() => host._newSceneChat()}
-                  >
-                    <ha-icon
-                      icon="mdi:plus"
-                      style="--mdc-icon-size:13px;"
-                    ></ha-icon>
-                    ${host._t("scenes_new_scene_button", "New Scene")}
-                  </button>
                 </div>
               </div>
               <div class="filter-row">

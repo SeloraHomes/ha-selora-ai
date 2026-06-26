@@ -323,10 +323,12 @@ export function renderSuggestionsSection(host) {
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
 
   return html`
-    <div class="section-card suggestions-section">
-      <div class="section-card-header">
+    <div class="suggestions-section">
+      <div class="page-section-header">
         <div class="section-card-title-group">
-          <h3>${host._t("suggestions_section_title", "Suggested for you")}</h3>
+          <span class="page-section-title"
+            >${host._t("suggestions_section_title", "Suggested for you")}</span
+          >
           ${totalCount > 0
             ? html`<span class="badge"
                 >${totalCount} ${host._t("suggestions_badge_new", "new")}</span
@@ -337,7 +339,7 @@ export function renderSuggestionsSection(host) {
           ? html`
               <div class="section-card-actions">
                 <button
-                  class="btn"
+                  class="filter-row-secondary"
                   ?disabled=${host._loadingProactive || host._llmNeedsSetup}
                   title=${host._llmNeedsSetup
                     ? host._t(
@@ -356,7 +358,7 @@ export function renderSuggestionsSection(host) {
                     : host._t("suggestions_btn_scan_now", "Scan Now")}
                 </button>
                 <button
-                  class="btn btn-primary"
+                  class="filter-row-action"
                   ?disabled=${host._generatingSuggestions ||
                   host._llmNeedsSetup}
                   title=${host._llmNeedsSetup

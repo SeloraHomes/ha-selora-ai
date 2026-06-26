@@ -246,8 +246,14 @@ class DataCollector:
         # running), fire immediately — the upstream is already warm.
         async def _initial_cycle(delay_seconds: float = 0.0) -> None:
             if delay_seconds > 0:
-                with contextlib.suppress(asyncio.CancelledError):
+                try:
                     await asyncio.sleep(delay_seconds)
+                except asyncio.CancelledError:
+                    # async_stop() cancels this during the boot-grace window
+                    # (disable/reload mid-window). Bail out instead of falling
+                    # through to the expensive collect/analyze cycle after the
+                    # collector was already stopped.
+                    return
             try:
                 await self._collect_analyze_log()
             except Exception:

@@ -1,0 +1,34 @@
+{# v3 bedtime routine. Same trigger + actions as the literal-mode
+   bedtime-routine, but every target.entity_id is a single group
+   reference from the ``groups`` context dict — NOT a literal entity
+   list from ``roles``. HA expands the group's members at call time,
+   so updating the group's entities (via the Manage Devices UI)
+   takes effect immediately without re-rendering this file. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_bedtime
+    alias: "Bedtime Routine (v3)"
+    description: "Dim lights, lock doors, set thermostat — v3 group-bound."
+    mode: single
+    trigger:
+      - platform: time
+        at: "{{ inputs.bedtime }}"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id: {{ groups.bedroom_lights }}
+        data:
+          transition: {{ inputs.dim_seconds }}
+      # The door_locks group might be empty (optional role). HA still
+      # accepts a service call against an empty group — it just calls
+      # the service on zero entities. Conditionally emitting based on
+      # whether the role had any selections at install time would defeat
+      # the rebind story (the user could ADD locks later via Manage
+      # Devices and the automation needs to already target the group).
+      - service: lock.lock
+        target:
+          entity_id: {{ groups.door_locks }}
+      - service: climate.set_temperature
+        target:
+          entity_id: {{ groups.thermostat }}
+        data:
+          temperature: {{ inputs.night_temperature }}

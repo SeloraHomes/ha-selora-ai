@@ -1,0 +1,55 @@
+{# Tornado WARNING automation — fires the siren in occupied zones,
+   announces the shelter zone.
+
+   Triggered on any state change of weather.<station>; the condition
+   filters down to the "Tornado Warning" string. The NWS HA
+   integration surfaces severe weather codes as the weather entity's
+   state value.
+
+   ``value_template`` is single-quoted so YAML doesn't read the leading
+   ``{{`` as a flow mapping. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_warning
+    alias: "Tornado Alert — warning response"
+    description: >-
+      When the NWS feed flips to a tornado warning, fire the siren in
+      the occupied rooms and announce the shelter zone.
+    mode: single
+    trigger:
+      - platform: state
+        entity_id: weather.{{ inputs.station_code | lower }}
+    condition:
+      - condition: template
+        value_template: "{% raw %}{{ 'tornado warning' in trigger.to_state.state | lower }}{% endraw %}"
+    action:
+      # 1. Fire the siren. Single role with max_count=1 so index 0.
+      # ``siren.turn_on`` is the HA service for the siren domain;
+      # most modern Z-Wave / zigbee sirens accept it directly. If the
+      # homeowner's siren is shimmed as a switch, the manifest will
+      # need a binding-mode that translates this for them.
+      - service: siren.turn_on
+        target:
+          entity_id: {{ roles.indoor_siren[0] }}
+{% if roles.announce_media_players %}
+      # 2. Announce on every configured speaker. Tone copy is picked
+      #    at render time from the homeowner's warning_message input.
+      - service: tts.cloud_say
+        data:
+          entity_id:
+{% for player in roles.announce_media_players %}
+            - {{ player }}
+{% endfor %}
+{% if inputs.warning_message == 'calm' %}
+          message: "A tornado warning is in effect for your area. Please move to {{ inputs.shelter_zone }}."
+{% elif inputs.warning_message == 'terse' %}
+          message: "Tornado warning. Move to {{ inputs.shelter_zone }} now."
+{% else %}
+          message: "Tornado warning. Move to {{ inputs.shelter_zone }} immediately."
+{% endif %}
+{% endif %}
+      # 3. Push notification mirrors the announcement so anyone away
+      #    from a speaker still gets the alert on their phone.
+      - service: notify.notify
+        data:
+          title: "Tornado warning"
+          message: "Tornado warning in effect. Move to {{ inputs.shelter_zone }}."

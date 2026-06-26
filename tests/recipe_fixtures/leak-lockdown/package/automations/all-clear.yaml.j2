@@ -1,0 +1,39 @@
+{# All-clear automation: every leak sensor dry for N minutes → lights off. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_all_clear
+    alias: "Leak Lockdown — all clear"
+    description: "When every leak sensor is dry again, turn off the alarm lights."
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+{% for sensor in roles.leak_sensors %}
+          - {{ sensor }}
+{% endfor %}
+        from: "on"
+        to: "off"
+        for:
+          minutes: {{ inputs.all_clear_delay_minutes }}
+    condition:
+      # AND-semantics: every listed entity must be off for the action to
+      # run. A trigger fires when ONE sensor dries up, but if another
+      # sensor is still wet the condition blocks — no premature all-clear.
+      - condition: state
+        entity_id:
+{% for sensor in roles.leak_sensors %}
+          - {{ sensor }}
+{% endfor %}
+        state: "off"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id:
+{% for light in roles.alarm_lights %}
+            - {{ light }}
+{% endfor %}
+      - service: notify.notify
+        data:
+          title: "Leak cleared"
+          message: >-
+            All leak sensors are dry again. Covers remain closed — re-open
+            them manually once you've confirmed it's safe.

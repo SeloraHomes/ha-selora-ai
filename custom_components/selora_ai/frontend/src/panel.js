@@ -28,6 +28,7 @@ import { renderSuggestionsSection } from "./panel/render-suggestions.js";
 import { renderSettings } from "./panel/render-settings.js";
 import { renderTelemetryConsent } from "./panel/render-telemetry-consent.js";
 import { renderUsage, loadUsageStats } from "./panel/render-usage.js";
+import { renderRecipesV2 } from "./panel/render-recipes.js";
 import {
   renderVersionHistoryDrawer,
   renderDiffViewer,
@@ -233,6 +234,77 @@ class SeloraAIPanel extends LitElement {
 
       // Tabs
       _activeTab: { type: String },
+
+      // Recipes tab (v2 pipeline)
+      // ``_recipesView`` is one of "list" | "wizard" | "result".
+      _recipesView: { type: String },
+      _recipesList: { type: Object },
+      // Lazily-fetched package contents per slug: { [slug]: { yaml, counts } }.
+      // Populated when an installed recipe's Details panel is expanded.
+      _recipePackages: { type: Object },
+      _recipesBusy: { type: Boolean },
+      // Catalog fetched from selorahomes.com (or local dev). null
+      // until first fetch resolves; null + non-empty error means the
+      // fetch failed and we render a fallback message.
+      _recipesCatalog: { type: Object },
+      _recipesCatalogBusy: { type: Boolean },
+      _recipesCatalogError: { type: String },
+      _recipesCatalogSearch: { type: String },
+      // 1-based page for the paginated catalog list (below the featured strip).
+      _catalogPage: { type: Number },
+      _recipeWizardSlug: { type: String },
+      _recipeWizardDetail: { type: Object },
+      _recipeWizardInputs: { type: Object },
+      // Per-role pick for ``selection: required`` roles —
+      // ``{role_id: [entity_id, ...]}``. ``selection: auto`` roles
+      // are left out of this dict and the resolver fills them in
+      // automatically.
+      _recipeWizardSelections: { type: Object },
+      _recipeWizardPreview: { type: Object },
+      _recipeWizardResult: { type: Object },
+      // Install-source card (URL fetch + drag-and-drop upload).
+      _recipesUrl: { type: String },
+      _recipesUrlBusy: { type: Boolean },
+      _recipesUploadBusy: { type: Boolean },
+      _recipesDragOver: { type: Boolean },
+      _recipesInstallError: { type: String },
+      // Slug awaiting uninstall confirmation. ``null`` when no
+      // confirmation is in flight; otherwise the recipe's slug.
+      _recipeUninstallPending: { type: String },
+      // Set of HA config_entry ids the user opted to remove alongside
+      // the recipe. Populated via checkboxes in the uninstall modal.
+      _recipeUninstallEntries: { type: Object },
+      // Pipeline view: id of the item the action panel is focused on.
+      // ``null`` lets ``_activeItem`` pick the best default.
+      _recipeActiveItemId: { type: String },
+      // Role-selection panel UI state, keyed by role id. Transient (not
+      // persisted): a name filter string and a "show all candidates"
+      // toggle so broad roles (e.g. every ``sensor``) don't dump dozens
+      // of chips at once.
+      _recipeRoleFilters: { type: Object },
+      _recipeRoleExpanded: { type: Object },
+      // Dashboard-card picker state. ``_recipeDashboards`` is the list of
+      // writable dashboards from the backend; ``_recipeDashboardTarget``
+      // is the user's pick — ``undefined`` (manifest default), a
+      // url_path, or "__skip__" (don't add a card).
+      _recipeDashboards: { type: Array },
+      _recipeDashboardTarget: { type: String },
+      // Inline HA config-flow state, keyed by integration domain.
+      // ``{ [domain]: { flow_id, step, values, state, error } }``
+      // ``state`` ∈ ``"form" | "running" | "complete" | "error"``.
+      _recipeFlows: { type: Object },
+      // 4-step linear wizard: 1=Overview, 2=Match, 3=Resolve, 4=Activate.
+      // Each step gates the next via _canAdvanceFromStep.
+      _recipeWizardStep: { type: Number },
+      // v3 prototype — "Manage devices" modal state. ``slug`` indicates
+      // the modal is open for that recipe; ``detail`` carries the
+      // loaded manifest + installed record; ``selections`` mirrors the
+      // current role bindings the user is editing.
+      _recipeManageSlug: { type: String },
+      _recipeManageDetail: { type: Object },
+      _recipeManageSelections: { type: Object },
+      _recipeManageBusy: { type: Boolean },
+      _recipeManageError: { type: String },
 
       // Automations tab
       _suggestions: { type: Array },
@@ -457,6 +529,46 @@ class SeloraAIPanel extends LitElement {
     this._streams = new Set();
     this._showSidebar = false;
     this._activeTab = "chat";
+    this._recipesView = "list";
+    this._recipesList = { available: [], installed: [] };
+    this._recipePackages = {};
+    this._recipesBusy = false;
+    // A native <select> popup collapses if the host re-renders while open.
+    // ``shouldUpdate`` defers re-renders while one is open; wired in
+    // ``firstUpdated``.
+    this._nativeSelectOpen = false;
+    this._nativeSelectTimer = null;
+    this._recipesCatalog = null;
+    this._recipesCatalogBusy = false;
+    this._recipesCatalogError = null;
+    this._recipesCatalogSearch = "";
+    this._catalogPage = 1;
+    this._recipeWizardSlug = null;
+    this._recipeWizardDetail = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipesUrl = "";
+    this._recipesUrlBusy = false;
+    this._recipesUploadBusy = false;
+    this._recipesDragOver = false;
+    this._recipesInstallError = null;
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeRoleFilters = {};
+    this._recipeRoleExpanded = {};
+    this._recipeDashboards = [];
+    this._recipeDashboardTarget = undefined;
+    this._recipeEntityRegistryUnsub = null;
+    this._recipeWizardStep = 1;
+    this._recipeManageSlug = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    this._recipeManageBusy = false;
+    this._recipeManageError = null;
     this._suggestions = [];
     this._automations = [];
     this._expandedAutomations = {};
@@ -865,6 +977,9 @@ class SeloraAIPanel extends LitElement {
 
   disconnectedCallback() {
     super.disconnectedCallback();
+    if (this._unsubscribeRecipeEntityRegistry) {
+      this._unsubscribeRecipeEntityRegistry();
+    }
     if (this._locationHandler) {
       window.removeEventListener("location-changed", this._locationHandler);
     }
@@ -900,6 +1015,8 @@ class SeloraAIPanel extends LitElement {
       clearInterval(this._oauthPollTimer);
       this._oauthPollTimer = null;
     }
+    clearTimeout(this._nativeSelectTimer);
+    this._nativeSelectOpen = false;
     if (this._aigatewayPollTimer) {
       clearInterval(this._aigatewayPollTimer);
       this._aigatewayPollTimer = null;
@@ -1682,6 +1799,54 @@ class SeloraAIPanel extends LitElement {
       clearTimeout(timeout);
       this._submittingFeedback = false;
     }
+  }
+
+  firstUpdated() {
+    // Native <select> dropdowns close if the element (or an ancestor) is
+    // re-rendered while the popup is open. The panel re-renders on every
+    // `hass` push and on the 1s quota tick, which intermittently collapsed
+    // an open dropdown mid-click (e.g. the recipe wizard's dashboard picker).
+    // Track open state via delegated, capture-phase listeners on the shadow
+    // root and defer host updates (see ``shouldUpdate``) until it closes.
+    // These live on this element's own shadow root, so they're GC'd with the
+    // element — no teardown needed.
+    const root = this.renderRoot;
+    root.addEventListener(
+      "mousedown",
+      (e) => {
+        if (e.target instanceof HTMLSelectElement && !e.target.disabled) {
+          this._nativeSelectOpen = true;
+          // Safety net: a missed close event must never freeze live updates.
+          clearTimeout(this._nativeSelectTimer);
+          this._nativeSelectTimer = setTimeout(
+            () => this._closeNativeSelect(),
+            8000,
+          );
+        }
+      },
+      true,
+    );
+    const onClose = (e) => {
+      if (e.target instanceof HTMLSelectElement) this._closeNativeSelect();
+    };
+    root.addEventListener("change", onClose, true);
+    root.addEventListener("focusout", onClose, true);
+  }
+
+  _closeNativeSelect() {
+    clearTimeout(this._nativeSelectTimer);
+    if (!this._nativeSelectOpen) return;
+    this._nativeSelectOpen = false;
+    // Flush any host update deferred while the dropdown was open.
+    this.requestUpdate();
+  }
+
+  shouldUpdate(changedProps) {
+    // Don't re-render while a native <select> dropdown is open — it would
+    // collapse the popup. ``_closeNativeSelect`` calls requestUpdate() so the
+    // latest state renders once the dropdown closes.
+    if (this._nativeSelectOpen) return false;
+    return super.shouldUpdate(changedProps);
   }
 
   updated(changedProps) {
@@ -2525,6 +2690,1218 @@ class SeloraAIPanel extends LitElement {
     return renderAutomations(this);
   }
 
+  _renderRecipesV2() {
+    return renderRecipesV2(this);
+  }
+
+  // ── Recipes (v2 pipeline) actions ──────────────────────────────
+  //
+  // All actions go directly to the deterministic pipeline's WS surface
+  // — no chat session, no LLM. The wizard's three views (list / wizard
+  // / result) are pure functions of the state these mutators maintain.
+
+  async _loadRecipesList() {
+    this._recipesBusy = true;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/list",
+      });
+      this._recipesList = {
+        available: result.available || [],
+        installed: result.installed || [],
+      };
+    } catch (err) {
+      console.error("Failed to load recipes list", err);
+      this._recipesList = { available: [], installed: [] };
+    } finally {
+      this._recipesBusy = false;
+    }
+    // Fire-and-forget the catalog fetch too. We don't gate the list
+    // view on it — if the CDN is down or slow the local bundles
+    // still render. Catalog appears under its own section once the
+    // promise resolves.
+    this._loadRecipesCatalog();
+  }
+
+  // Lazily read an installed recipe's package file (YAML + section counts) so
+  // the Details panel can show what it created and let the user view the file.
+  // Cached per slug; only refetched with force=true (e.g. after a rebind).
+  async _loadRecipePackage(slug, force = false) {
+    if (!slug) return;
+    if (!force && this._recipePackages[slug]) return;
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/package",
+        slug,
+      });
+      this._recipePackages = {
+        ...this._recipePackages,
+        [slug]: { yaml: result.yaml || "", counts: result.counts || {} },
+      };
+    } catch (err) {
+      console.error("Failed to read recipe package", slug, err);
+    }
+  }
+
+  async _loadRecipesCatalog(force = false) {
+    this._recipesCatalogError = null;
+    if (!force && this._recipesCatalog?.recipes?.length) return;
+    this._recipesCatalogBusy = true;
+    // Honour a per-browser catalog URL override stored in localStorage.
+    // Dev workflow: set this once to ``http://localhost:1313/api/recipes.json``
+    // (or any staging URL) and the catalog fetches against it without
+    // touching the HA env or restarting the integration.
+    const override = this._catalogUrlOverride();
+    try {
+      const result = await this.hass.callWS({
+        type: "selora_ai/recipes/catalog",
+        force_refresh: !!force,
+        ...(override ? { url: override } : {}),
+      });
+      this._recipesCatalog = {
+        recipes: result.recipes || [],
+        installed_slugs: new Set(result.installed_slugs || []),
+        generated_at: result.generated_at || "",
+      };
+    } catch (err) {
+      this._recipesCatalogError =
+        err?.message || err?.error || String(err) || "Catalog unavailable";
+      this._recipesCatalog = null;
+    } finally {
+      this._recipesCatalogBusy = false;
+    }
+  }
+
+  _catalogUrlOverride() {
+    try {
+      return localStorage.getItem("selora-ai-catalog-url") || "";
+    } catch {
+      return "";
+    }
+  }
+
+  _setCatalogUrlOverride(url) {
+    try {
+      if (url) {
+        localStorage.setItem("selora-ai-catalog-url", url);
+      } else {
+        localStorage.removeItem("selora-ai-catalog-url");
+      }
+    } catch (err) {
+      console.debug("Failed to persist catalog URL override", err);
+    }
+    this._loadRecipesCatalog(true);
+  }
+
+  // Substring search across the catalog (title + tags + description).
+  // Pure render-time filter so we don't re-fetch on every keystroke.
+  _filteredCatalog() {
+    const cat = this._recipesCatalog;
+    if (!cat) return [];
+    const q = (this._recipesCatalogSearch || "").trim().toLowerCase();
+    if (!q) return cat.recipes;
+    return cat.recipes.filter((r) => {
+      const hay = [
+        r.title,
+        r.description,
+        r.category,
+        r.category_title,
+        ...(r.tags || []),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+      return hay.includes(q);
+    });
+  }
+
+  _onRecipesCatalogSearch(value) {
+    this._recipesCatalogSearch = value || "";
+    // A new query changes the result set — jump back to the first page.
+    this._catalogPage = 1;
+  }
+
+  _setCatalogPage(n) {
+    this._catalogPage = Math.max(1, n);
+  }
+
+  // Install a recipe from a catalog entry — same backend path as
+  // the "paste a URL" install card, just pre-filled.
+  async _installFromCatalogEntry(entry) {
+    if (!entry?.package_url || this._recipesBusy) return;
+    this._recipesUrl = entry.package_url;
+    await this._installRecipeFromUrl();
+  }
+
+  // Deep-link entry point (marketing site → /selora-ai/recipes/<slug>).
+  // The bundle may not be on disk yet — if the slug isn't staged
+  // locally, fetch it from the catalog first so the wizard opens on
+  // the Overview instead of failing to load the manifest.
+  async _openRecipeFromDeepLink(slug) {
+    const staged = (this._recipesList?.available || []).some(
+      (r) => r.slug === slug,
+    );
+    if (staged) {
+      this._openRecipeWizard(slug);
+      return;
+    }
+    // Not on disk — stage it from the catalog by slug.
+    await this._loadRecipesCatalog();
+    const entry = (this._recipesCatalog?.recipes || []).find(
+      (r) => r.slug === slug,
+    );
+    if (entry?.package_url) {
+      // _installFromCatalogEntry stages the tarball then opens the
+      // wizard for the staged slug on success.
+      await this._installFromCatalogEntry(entry);
+      return;
+    }
+    // Unknown slug — open anyway so the wizard surfaces the load error
+    // rather than silently doing nothing.
+    this._openRecipeWizard(slug);
+  }
+
+  async _openRecipeWizard(slug) {
+    this._recipesView = "wizard";
+    this._recipeWizardSlug = slug;
+    // Reflect the wizard's slug in the URL so reloading mid-install
+    // restores the same wizard instead of bouncing back to the list.
+    this._setRecipeWizardUrl?.(slug);
+    this._recipeWizardDetail = null;
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeWizardStep = 1;
+    this._recipeWizardResult = null;
+    // Reset the dashboard picker to the manifest default for this recipe.
+    this._recipeDashboardTarget = undefined;
+    this._recipeDashboards = [];
+    // Auto-advance hook: when a device pairs (new entity appears in
+    // the registry) we re-run preview without the user clicking
+    // anything. Cheap subscription, lives for as long as the wizard
+    // is open.
+    this._subscribeRecipeEntityRegistry();
+    this._recipesBusy = true;
+    try {
+      const detail = await this.hass.callWS({
+        type: "selora_ai/recipes/get",
+        slug,
+      });
+      this._recipeWizardDetail = detail;
+      // Recipes that declare a dashboard card need the writable-dashboard
+      // list for the "which dashboard?" picker. Fetch once, lazily.
+      if (detail.manifest?.dashboard) {
+        this._fetchRecipeDashboards();
+      }
+      // Seed wizard inputs with manifest defaults so the form has
+      // sensible starting values and the preview WS sees concrete data
+      // on the first call. The user can override before installing.
+      const seeded = {};
+      for (const input of detail.manifest?.inputs || []) {
+        if (input.default !== undefined && input.default !== null) {
+          seeded[input.id] = input.default;
+        }
+      }
+      this._recipeWizardInputs = seeded;
+      // Seed selections: every ``selection: required`` role starts
+      // with an empty pick list so the role row shows toggles but
+      // the install button stays disabled until the user picks.
+      // ``selection: auto`` roles are intentionally absent — the
+      // backend resolver fills them in for us.
+      const seededSelections = {};
+      for (const role of detail.manifest?.roles || []) {
+        if (role.selection === "required") {
+          seededSelections[role.id] = [];
+        }
+      }
+      this._recipeWizardSelections = seededSelections;
+      // Restore any persisted state for this slug — picks the user
+      // made before navigating away (e.g. to pair a device in HA
+      // settings) come back exactly where they left off. Seeded
+      // defaults above are overwritten only for fields the user has
+      // actually touched.
+      const persisted = this._restoreWizardState(slug);
+      if (persisted) {
+        if (persisted.inputs && typeof persisted.inputs === "object") {
+          this._recipeWizardInputs = {
+            ...this._recipeWizardInputs,
+            ...persisted.inputs,
+          };
+        }
+        if (persisted.selections && typeof persisted.selections === "object") {
+          this._recipeWizardSelections = {
+            ...this._recipeWizardSelections,
+            ...persisted.selections,
+          };
+        }
+        if (
+          typeof persisted.step === "number" &&
+          persisted.step >= 1 &&
+          persisted.step <= 3
+        ) {
+          // Restore only to safe pre-install steps. Steps 4 (live
+          // install) and 5 (post-install activate) depend on
+          // ephemeral state (stream, result) that we don't persist,
+          // so any value above 3 maps back to 3.
+          this._recipeWizardStep = persisted.step;
+        }
+      }
+    } catch (err) {
+      console.error("Failed to load recipe detail", err);
+    } finally {
+      this._recipesBusy = false;
+    }
+    // First preview pass — kicks off role resolution against the
+    // live home so the wizard renders bindings + any punch list
+    // immediately.
+    await this._refreshRecipePreview();
+  }
+
+  // Toggle one entity in/out of a role's selection. Called from the
+  // wizard's per-role chip row. Triggers a fresh preview so role
+  // status + YAML stay in sync with the new pick.
+  //
+  // ``maxCount`` enforces the manifest's cap client-side. Without it
+  // the chip stays visually "on" but the backend silently drops the
+  // overflow when capping at max_count, which looks like a bug to
+  // the user. With it, adding past the cap rolls the oldest pick out
+  // of the selection (so max_count=1 behaves like radio buttons).
+  _toggleRecipeRoleEntity(roleId, entityId, maxCount) {
+    const current = (this._recipeWizardSelections || {})[roleId] || [];
+    const idx = current.indexOf(entityId);
+    let next;
+    if (idx >= 0) {
+      next = current.filter((e) => e !== entityId);
+    } else if (maxCount && current.length >= maxCount) {
+      // Rolling window: drop oldest picks to make room for the new
+      // one. Keeps the last (maxCount - 1) picks + the new id.
+      const keep = Math.max(0, maxCount - 1);
+      next = [...current.slice(current.length - keep), entityId];
+    } else {
+      next = [...current, entityId];
+    }
+    this._recipeWizardSelections = {
+      ...this._recipeWizardSelections,
+      [roleId]: next,
+    };
+    // Anchor the action panel to this role while the user is picking.
+    // Without it, _activeItem's fallback can drift to a different
+    // role once this one flips to ok (e.g. a multi-select role where
+    // the user wants to pick a second device for the SAME role).
+    this._recipeActiveItemId = `configure/role:${roleId}`;
+    this._persistWizardState();
+    // Re-run preview so role .ok status + YAML reflect the pick.
+    // Cheap WS call; skip if a request is already in flight to avoid
+    // pile-up while the user clicks several chips in a row.
+    if (!this._recipesBusy) this._refreshRecipePreview();
+  }
+
+  _setRecipeRoleFilter(roleId, value) {
+    this._recipeRoleFilters = {
+      ...this._recipeRoleFilters,
+      [roleId]: value,
+    };
+  }
+
+  _toggleRecipeRoleExpanded(roleId) {
+    this._recipeRoleExpanded = {
+      ...this._recipeRoleExpanded,
+      [roleId]: !this._recipeRoleExpanded?.[roleId],
+    };
+  }
+
+  _closeRecipeWizard() {
+    // Clearing on explicit close — the user chose to abandon the
+    // wizard, not navigate away temporarily. Reloads / device-pair
+    // detours keep the saved state intact; only Cancel + finished
+    // install + uninstall purge it.
+    this._clearWizardState(this._recipeWizardSlug);
+    this._recipesView = "list";
+    this._recipeWizardSlug = null;
+    this._setRecipeWizardUrl?.(null);
+    this._recipeWizardDetail = null;
+    this._recipeWizardInputs = {};
+    this._recipeWizardSelections = {};
+    this._recipeWizardPreview = null;
+    this._recipeWizardResult = null;
+    this._recipeActiveItemId = null;
+    this._recipeFlows = {};
+    this._recipeWizardStep = 1;
+    this._unsubscribeRecipeEntityRegistry();
+  }
+
+  // ── Wizard state persistence (localStorage) ─────────────────────
+  // Saves the user's in-progress wizard state (step, typed inputs,
+  // role selections) so reload / navigating away to pair a device
+  // doesn't force them to start over. Per-slug keys so different
+  // recipes have independent state. We don't persist:
+  // - ``_recipeWizardPreview``: fetched fresh on every open
+  // - ``_recipeWizardResult``: only meaningful during/after install
+  // - ``_recipeFlows``: inline config-flow state is per-session
+  //
+  // We DO persist step but cap restoration at 3 (pre-install). Steps
+  // 4 (live install stream) and 5 (post-install summary) carry
+  // ephemeral state we don't try to reconstruct.
+
+  _wizardStorageKey(slug) {
+    return `selora-ai-wizard:${slug}`;
+  }
+
+  // Update a single recipe input by id and persist. Called from the
+  // Step 2 settings form so input changes survive a page reload.
+  _updateRecipeInput(id, value) {
+    this._recipeWizardInputs = {
+      ...this._recipeWizardInputs,
+      [id]: value,
+    };
+    this._persistWizardState();
+  }
+
+  _persistWizardState() {
+    const slug = this._recipeWizardSlug;
+    if (!slug) return;
+    try {
+      const payload = JSON.stringify({
+        slug,
+        step: this._recipeWizardStep,
+        inputs: this._recipeWizardInputs,
+        selections: this._recipeWizardSelections,
+        savedAt: Date.now(),
+      });
+      localStorage.setItem(this._wizardStorageKey(slug), payload);
+    } catch (err) {
+      // localStorage can throw (quota, private mode). Best-effort —
+      // a missed persist just means the next reload starts fresh.
+      console.debug("Failed to persist wizard state", err);
+    }
+  }
+
+  _restoreWizardState(slug) {
+    if (!slug) return null;
+    try {
+      const raw = localStorage.getItem(this._wizardStorageKey(slug));
+      if (!raw) return null;
+      const state = JSON.parse(raw);
+      if (!state || state.slug !== slug) return null;
+      // Stale state (older than 24h) gets purged. Long enough for the
+      // homeowner to leave and pair a device; short enough that
+      // "yesterday's abandoned wizard" doesn't haunt them.
+      const TTL_MS = 24 * 60 * 60 * 1000;
+      if (state.savedAt && Date.now() - state.savedAt > TTL_MS) {
+        localStorage.removeItem(this._wizardStorageKey(slug));
+        return null;
+      }
+      return state;
+    } catch (err) {
+      console.debug("Failed to restore wizard state", err);
+      return null;
+    }
+  }
+
+  _clearWizardState(slug) {
+    const target = slug || this._recipeWizardSlug;
+    if (!target) return;
+    try {
+      localStorage.removeItem(this._wizardStorageKey(target));
+    } catch (err) {
+      console.debug("Failed to clear wizard state", err);
+    }
+  }
+
+  // Lightweight check used by the recipes list to flag cards with an
+  // in-progress wizard. Returns the saved step (1–5) if one exists,
+  // or 0 if nothing is saved. We expose the step rather than just a
+  // boolean so the card UI can render "Resume on Step N" hints.
+  _wizardDraftStep(slug) {
+    const state = this._restoreWizardState(slug);
+    return state?.step || 0;
+  }
+
+  // "Start over" affordance on a draft card. Wipes the saved state
+  // and opens the wizard from Step 1. Bumps the panel to trigger a
+  // re-render so the card reflects the new (no-draft) state if the
+  // user immediately closes the wizard.
+  _discardRecipeDraft(slug) {
+    if (!slug) return;
+    this._clearWizardState(slug);
+    // Force a re-render so the card flips from Resume → Install.
+    // ``requestUpdate`` is the Lit-native nudge for non-reactive
+    // changes (localStorage isn't tracked by Lit).
+    this.requestUpdate?.();
+  }
+
+  // ── 4-step wizard navigation ─────────────────────────────────────
+  // Linear flow: Overview → Match → Resolve → Activate. Each step
+  // gates the next via ``_canAdvanceFromStep``. Step 3 kicks off the
+  // install stream automatically on entry; on stream completion the
+  // wizard auto-advances to step 4.
+
+  _canAdvanceFromStep(step) {
+    const preview = this._recipeWizardPreview;
+    if (step === 1) {
+      // Overview is read-only — always advanceable as long as we
+      // have a detail/preview to show.
+      return !!this._recipeWizardDetail;
+    }
+    if (step === 2) {
+      // Settings step: only input validation blocks. Don't gate on
+      // ``preview.ok`` here — that flips false whenever ANY other
+      // item still needs attention (e.g. a pending device pair),
+      // even though those are Step 3 / Step 4 concerns. Step 2 only
+      // cares about whether the recipe's own inputs validate.
+      const items = preview?.items || [];
+      const badInputs = items.some(
+        (it) => it.kind === "inputs" && it.status === "needs_input",
+      );
+      // Also block on input_invalid punch items in case the preview
+      // hasn't produced an items list yet (race on first open).
+      const inputPunch = (preview?.punch_list || []).some(
+        (p) => p.code === "input_invalid",
+      );
+      return !badInputs && !inputPunch;
+    }
+    if (step === 3) {
+      // Match step requires every non-pin item to be resolved. Pins
+      // (device pairs) can remain pending — they show as interrupts
+      // in step 4 with auto-advance via entity_registry events.
+      // We REQUIRE a loaded preview here: if it never arrived (initial
+      // race, WS error, etc.) the gating used to fail-open because
+      // every check looked at an empty items list. Fail-closed now.
+      if (!preview) return false;
+      if (preview.ok === false) return false;
+      const items = preview.items || [];
+      const blockingNeedsInput = items.some(
+        (it) =>
+          it.status === "needs_input" &&
+          it.kind !== "pin" &&
+          it.kind !== "inputs" &&
+          it.stage === "configure",
+      );
+      // Also block on definition/resolve/validate punch items.
+      const earlyPunch = (preview.punch_list || []).some(
+        (p) => p.stage !== "resolve" || p.code !== "binding_pending",
+      );
+      return !blockingNeedsInput && !earlyPunch;
+    }
+    if (step === 4) {
+      // Resolve step advances when install finishes successfully.
+      return !!this._recipeWizardResult?.ok;
+    }
+    return false;
+  }
+
+  _recipeHasMatchStep() {
+    // True when Step 3 has anything to do — a role to pick, an
+    // integration to set up, or a device to pair. Recipes that create
+    // only helpers (no device roles) have nothing here.
+    const items = this._recipeWizardPreview?.items || [];
+    return items.some(
+      (it) =>
+        it.stage === "configure" &&
+        (it.kind === "role_selection" ||
+          it.kind === "integration" ||
+          it.kind === "pin"),
+    );
+  }
+
+  async _advanceRecipeStep() {
+    const current = this._recipeWizardStep || 1;
+    if (!this._canAdvanceFromStep(current)) return;
+    let next = current + 1;
+    // Skip the Match step entirely when there's nothing to match — but
+    // only if the preview is healthy. If it isn't (e.g. a render error),
+    // we still land on Step 3 so it can show the actual blocker rather
+    // than silently dropping the user into a doomed install.
+    if (
+      next === 3 &&
+      !this._recipeHasMatchStep() &&
+      this._canAdvanceFromStep(3)
+    ) {
+      next = 4;
+    }
+    this._recipeWizardStep = next;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+    // Step is intentionally NOT written to the URL — per-step state
+    // (typed inputs, picked devices, install stream result) lives
+    // only in memory, so restoring to Step 3+ on reload would show a
+    // half-empty form. Reloads always land at Step 1.
+    // Entering Step 4 (Set up) auto-runs the install stream so the
+    // user sees the buckets fill in real time. We deliberately do NOT
+    // auto-advance to Step 5 — the install finishes faster than the
+    // user can read the "Completed" rows, and a silent jump to Step 5
+    // makes it feel like nothing happened. The user clicks Continue
+    // on Step 4 themselves when they've seen the result.
+    if (next === 4) {
+      await this._runRecipeInstall();
+    }
+  }
+
+  _retreatRecipeStep() {
+    const current = this._recipeWizardStep || 1;
+    if (current <= 1) return;
+    // Don't allow going back from Step 4 mid-install or from Step 5
+    // (install already on disk; can't be un-applied without uninstall).
+    if (current === 4 && this._recipesBusy) return;
+    if (current === 5) return;
+    let prev = current - 1;
+    // Mirror the forward skip: don't strand the user on an empty Match
+    // step when going back from Set up.
+    if (prev === 3 && !this._recipeHasMatchStep()) prev = 2;
+    this._recipeWizardStep = prev;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+  }
+
+  _jumpToRecipeStep(step) {
+    // Only allow jumping to a completed step (lower number) or the
+    // current one. Forward jumps must go through _advanceRecipeStep so
+    // gating is honoured.
+    if (step < 1 || step > 5) return;
+    if (step > (this._recipeWizardStep || 1)) return;
+    if (step === 5 && !this._recipeWizardResult?.ok) return;
+    this._recipeWizardStep = step;
+    this._recipeActiveItemId = null;
+    this._persistWizardState();
+  }
+
+  // ── v3 prototype: Manage Devices modal ───────────────────────────
+  // Lets the user swap which entities back a v3 recipe's roles without
+  // re-running the install wizard. Backend call is
+  // ``selora_ai/recipes/rebind`` which rewrites only the ``group:``
+  // block in the installed package YAML and reloads core config.
+
+  async _openManageDevices(slug) {
+    this._recipeManageSlug = slug;
+    this._recipeManageBusy = true;
+    this._recipeManageError = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    try {
+      const detail = await this.hass.callWS({
+        type: "selora_ai/recipes/get",
+        slug,
+      });
+      this._recipeManageDetail = detail;
+      // Seed selections from the installed record's bindings so the
+      // user sees the current state as the starting point.
+      const current = detail?.installed?.bindings || {};
+      const seeded = {};
+      for (const role of detail.manifest?.roles || []) {
+        seeded[role.id] = [...(current[role.id] || [])];
+      }
+      this._recipeManageSelections = seeded;
+    } catch (err) {
+      this._recipeManageError =
+        err?.message || err?.error || String(err) || "Failed to load recipe";
+    } finally {
+      this._recipeManageBusy = false;
+    }
+  }
+
+  _closeManageDevices() {
+    this._recipeManageSlug = null;
+    this._recipeManageDetail = null;
+    this._recipeManageSelections = {};
+    this._recipeManageError = null;
+  }
+
+  _toggleManageEntity(roleId, entityId) {
+    // Mirror the wizard's max_count rolling-window behaviour so the
+    // user can't pick more than the manifest allows.
+    const role = (this._recipeManageDetail?.manifest?.roles || []).find(
+      (r) => r.id === roleId,
+    );
+    const current = this._recipeManageSelections[roleId] || [];
+    const idx = current.indexOf(entityId);
+    let next;
+    if (idx >= 0) {
+      next = current.filter((e) => e !== entityId);
+    } else if (role?.max_count && current.length >= role.max_count) {
+      const keep = Math.max(0, role.max_count - 1);
+      next = [...current.slice(current.length - keep), entityId];
+    } else {
+      next = [...current, entityId];
+    }
+    this._recipeManageSelections = {
+      ...this._recipeManageSelections,
+      [roleId]: next,
+    };
+  }
+
+  async _saveManageDevices() {
+    if (!this._recipeManageSlug) return;
+    this._recipeManageBusy = true;
+    this._recipeManageError = null;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/rebind",
+        slug: this._recipeManageSlug,
+        selections: this._recipeManageSelections,
+      });
+      await this._loadRecipesList();
+      this._closeManageDevices();
+    } catch (err) {
+      this._recipeManageError =
+        err?.message ||
+        err?.error ||
+        String(err) ||
+        "Failed to update bindings";
+    } finally {
+      this._recipeManageBusy = false;
+    }
+  }
+
+  // ── Inline HA config-flow integration ────────────────────────────
+  // HA's config-flow endpoints are REST, NOT WebSocket (despite the
+  // similar ``config_entries/...`` naming used for some other commands).
+  // We use ``hass.callApi`` — the same helper HA's own frontend uses
+  // for config-flow UI — so auth and CORS are handled the same way.
+  // The flow lives inside the wizard so the user never leaves the
+  // page: kick it off, walk through each ``form`` step, and on
+  // ``create_entry`` refresh the preview so the integration row
+  // flips green.
+
+  async _startIntegrationFlow(domain) {
+    if (!domain) return;
+    this._recipesBusy = true;
+    try {
+      const step = await this.hass.callApi(
+        "POST",
+        "config/config_entries/flow",
+        { handler: domain, show_advanced_options: false },
+      );
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          flow_id: step.flow_id,
+          step,
+          values: {},
+          state: this._flowStateFromStep(step),
+          error: step.type === "abort" ? step.reason || "Flow aborted" : null,
+        },
+      };
+      if (step.type === "create_entry") {
+        // Some integrations create the entry on init (no form needed).
+        await this._refreshRecipePreview();
+      }
+    } catch (err) {
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          state: "error",
+          error:
+            err?.body?.message || err?.message || err?.error || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
+  async _submitIntegrationFlow(domain) {
+    const flow = (this._recipeFlows || {})[domain];
+    if (!flow?.flow_id) return;
+    this._recipesBusy = true;
+    try {
+      const step = await this.hass.callApi(
+        "POST",
+        `config/config_entries/flow/${flow.flow_id}`,
+        flow.values || {},
+      );
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          ...flow,
+          step,
+          flow_id: step.flow_id || flow.flow_id,
+          state: this._flowStateFromStep(step),
+          error: step.type === "abort" ? step.reason || "Flow aborted" : null,
+          // Keep values when the same form re-renders with errors;
+          // clear them when stepping forward to a new form so the
+          // next step starts blank.
+          values: step.type === "form" && step.errors ? flow.values : {},
+        },
+      };
+      if (step.type === "create_entry") {
+        await this._refreshRecipePreview();
+      }
+    } catch (err) {
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          ...flow,
+          state: "error",
+          error:
+            err?.body?.message || err?.message || err?.error || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
+  // One-click setup for integrations whose manifest declares
+  // ``auto_setup`` — backend orchestrates the entire config flow
+  // using values the recipe knows + values resolvable from HA
+  // state (lat/lon, METAR from coordinates, etc.). No form rendered;
+  // the homeowner just sees a brief "working…" state and then the
+  // integration row flips to Configured.
+  async _autoSetupIntegration(domain) {
+    if (!domain || !this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/auto_setup_integration",
+        slug: this._recipeWizardSlug,
+        domain,
+      });
+      // Refresh preview so the integration row flips status.
+      await this._refreshRecipePreview();
+    } catch (err) {
+      // Surface as if the flow had errored — same UI state the user
+      // would see for a manual flow failure.
+      this._recipeFlows = {
+        ...(this._recipeFlows || {}),
+        [domain]: {
+          state: "error",
+          error:
+            err?.message || err?.error || err?.body?.message || String(err),
+        },
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
+  async _abortIntegrationFlow(domain) {
+    const flow = (this._recipeFlows || {})[domain];
+    if (flow?.flow_id) {
+      try {
+        await this.hass.callApi(
+          "DELETE",
+          `config/config_entries/flow/${flow.flow_id}`,
+        );
+      } catch (err) {
+        // ``abort`` is best-effort — if HA already finalised the flow
+        // there's nothing to undo, so silently drop the error.
+        console.debug("Flow abort ignored", err);
+      }
+    }
+    this._resetIntegrationFlow(domain);
+  }
+
+  _resetIntegrationFlow(domain) {
+    const next = { ...(this._recipeFlows || {}) };
+    delete next[domain];
+    this._recipeFlows = next;
+  }
+
+  _flowStateFromStep(step) {
+    if (!step) return "error";
+    if (step.type === "form") return "form";
+    if (step.type === "create_entry") return "complete";
+    if (step.type === "abort") return "error";
+    // ``external_step``, ``progress``, ``menu`` — surface as running.
+    return "running";
+  }
+
+  // ── Auto-advance on entity-registry events ───────────────────────
+  // When a pending pin's ``entity_id`` appears in the registry while
+  // the wizard is open, just re-run preview — the pin row flips from
+  // ``needs_input`` to ``ok`` without the user clicking anything.
+
+  async _subscribeRecipeEntityRegistry() {
+    this._unsubscribeRecipeEntityRegistry();
+    if (!this.hass?.connection) return;
+    try {
+      this._recipeEntityRegistryUnsub =
+        await this.hass.connection.subscribeEvents(() => {
+          // Debounce a touch — pairing flows often fire 3-4 events
+          // back-to-back as device + entities materialise.
+          if (this._recipeEntityRegistryTimer) {
+            clearTimeout(this._recipeEntityRegistryTimer);
+          }
+          this._recipeEntityRegistryTimer = setTimeout(() => {
+            this._recipeEntityRegistryTimer = null;
+            if (this._recipesView === "wizard" && !this._recipesBusy) {
+              this._refreshRecipePreview();
+            }
+          }, 350);
+        }, "entity_registry_updated");
+    } catch (err) {
+      console.debug("entity_registry subscribe failed", err);
+    }
+  }
+
+  _unsubscribeRecipeEntityRegistry() {
+    if (this._recipeEntityRegistryTimer) {
+      clearTimeout(this._recipeEntityRegistryTimer);
+      this._recipeEntityRegistryTimer = null;
+    }
+    if (this._recipeEntityRegistryUnsub) {
+      try {
+        this._recipeEntityRegistryUnsub();
+      } catch (err) {
+        console.debug("entity_registry unsub failed", err);
+      }
+      this._recipeEntityRegistryUnsub = null;
+    }
+  }
+
+  async _refreshRecipePreview() {
+    if (!this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    try {
+      const preview = await this.hass.callWS({
+        type: "selora_ai/recipes/preview",
+        slug: this._recipeWizardSlug,
+        inputs: this._recipeWizardInputs || {},
+        selections: this._recipeWizardSelections || {},
+      });
+      this._recipeWizardPreview = preview;
+    } catch (err) {
+      console.error("Failed to preview recipe", err);
+      this._recipeWizardPreview = {
+        ok: false,
+        stage_reached: "definition",
+        punch_list: [
+          {
+            stage: "definition",
+            code: "preview_failed",
+            message: err?.message || String(err),
+          },
+        ],
+        bindings: {},
+      };
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
+  async _fetchRecipeDashboards() {
+    try {
+      const res = await this.hass.callWS({
+        type: "selora_ai/recipes/list_dashboards",
+      });
+      this._recipeDashboards = res?.dashboards || [];
+    } catch (err) {
+      console.debug("list_dashboards failed", err);
+      // Don't clobber a previously-fetched list on a transient failure
+      // (e.g. the WS call racing an HA reload). Only seed an empty array
+      // when we have nothing at all.
+      if (!Array.isArray(this._recipeDashboards)) this._recipeDashboards = [];
+    }
+  }
+
+  _setRecipeDashboardTarget(value) {
+    // "" from the picker maps to the default dashboard (url_path null).
+    this._recipeDashboardTarget = value === "" ? null : value;
+  }
+
+  // Step 5 "Add card" action: place the recipe's manifest dashboard card
+  // onto the chosen dashboard after the install already ran. Resolves the
+  // target to the first writable dashboard when the user hasn't picked
+  // one, so the visibly-selected option is what actually gets written.
+  async _insertRecipeDashboardCard() {
+    const slug = this._recipeWizardSlug;
+    if (!slug || this._recipesBusy) return;
+    const dashboards = this._recipeDashboards || [];
+    let target = this._recipeDashboardTarget;
+    if (target === undefined) {
+      target = dashboards.length ? (dashboards[0].url_path ?? null) : null;
+    }
+    this._recipesBusy = true;
+    try {
+      const res = await this.hass.callWS({
+        type: "selora_ai/recipes/insert_dashboard_card",
+        slug,
+        target,
+      });
+      // Reflect the placement in the wizard result so the outcome card
+      // flips to the "added" state on the next render.
+      if (this._recipeWizardResult?.record) {
+        this._recipeWizardResult = {
+          ...this._recipeWizardResult,
+          record: {
+            ...this._recipeWizardResult.record,
+            dashboard_card: res,
+          },
+        };
+      }
+      if (!res?.ok) {
+        this._showToast(
+          this._t(
+            "recipes_dashboard_add_failed",
+            "Couldn't add the card to that dashboard.",
+          ),
+          "error",
+        );
+      }
+    } catch (err) {
+      console.error("insert_dashboard_card failed", err);
+      this._showToast(
+        this._t(
+          "recipes_dashboard_add_failed",
+          "Couldn't add the card to that dashboard.",
+        ),
+        "error",
+      );
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
+  async _runRecipeInstall() {
+    if (!this._recipeWizardSlug) return;
+    this._recipesBusy = true;
+    // Live-flip Apply rows as the backend reports each step. We do
+    // this by mutating the preview's ``items`` list in place — the
+    // pipeline view re-reads it on every render so the column repaints
+    // with the new statuses without any extra plumbing.
+    const updateApplyItem = (step, status, detail) => {
+      const items = this._recipeWizardPreview?.items;
+      if (!items) return;
+      const idx = items.findIndex((it) => it.id === `apply/${step}`);
+      if (idx < 0) return;
+      const next = [...items];
+      next[idx] = {
+        ...next[idx],
+        status,
+        ...(detail !== undefined ? { detail } : {}),
+      };
+      this._recipeWizardPreview = {
+        ...this._recipeWizardPreview,
+        items: next,
+      };
+      // Focus the running step so the action panel narrates progress.
+      if (status === "running") {
+        this._recipeActiveItemId = `apply/${step}`;
+      }
+    };
+
+    let finalResult = null;
+    let unsub = null;
+    try {
+      await new Promise((resolve, reject) => {
+        // ``subscribeMessage`` matches HA's WS connection API: each
+        // event from the server triggers the callback; the returned
+        // promise resolves with the unsubscribe fn. The "result"
+        // event ends the stream — we close the subscription and let
+        // the outer await resolve.
+        this.hass.connection
+          .subscribeMessage(
+            (evt) => {
+              const payload = evt?.event;
+              if (!payload) return;
+              if (payload.type === "apply") {
+                updateApplyItem(payload.step, payload.status, payload.detail);
+              } else if (payload.type === "result") {
+                finalResult = payload.result;
+                resolve();
+              }
+            },
+            {
+              type: "selora_ai/recipes/install_stream",
+              slug: this._recipeWizardSlug,
+              inputs: this._recipeWizardInputs || {},
+              selections: this._recipeWizardSelections || {},
+              // The dashboard-card offer moved to Step 5 (post-install),
+              // so the install never auto-inserts — "__skip__" tells the
+              // pipeline to leave the card to the Step 5 "Add card" action.
+              dashboard_target: "__skip__",
+            },
+          )
+          .then((u) => {
+            unsub = u;
+          })
+          .catch(reject);
+      });
+      // Stay inside the wizard. The 4-step flow renders the result
+      // as Step 5 (Activate); the legacy ``result`` view is reached
+      // only when the user clicks [Activate recipe] in Step 5.
+      this._recipeWizardResult = finalResult;
+      // Install landed — the saved wizard state has done its job.
+      // Clear it so a re-install of the same recipe starts clean.
+      if (finalResult?.ok) {
+        this._clearWizardState(this._recipeWizardSlug);
+        // Reset the picker selection for Step 5. We deliberately do NOT
+        // re-fetch dashboards here: a recipe install never changes the
+        // dashboard set, and a refetch racing the HA reload can fail and
+        // wipe the good list captured at wizard open.
+        this._recipeDashboardTarget = undefined;
+      }
+    } catch (err) {
+      console.error("Recipe install failed", err);
+      this._recipeWizardResult = {
+        ok: false,
+        stage_reached: "definition",
+        punch_list: [
+          {
+            stage: "definition",
+            code: "install_failed",
+            message: err?.message || String(err),
+          },
+        ],
+      };
+    } finally {
+      if (unsub) {
+        try {
+          unsub();
+        } catch (e) {
+          console.debug("install_stream unsub failed", e);
+        }
+      }
+      this._recipesBusy = false;
+    }
+  }
+
+  async _installRecipeFromUrl() {
+    // Fetch + extract + validate manifest. The bundle lands in
+    // <config>/selora_ai_recipes/<slug>/ but the install pipeline
+    // doesn't run until the user opens the wizard. Auto-opens the
+    // wizard for the just-fetched recipe so the workflow continues
+    // without an extra click.
+    const url = (this._recipesUrl || "").trim();
+    if (!url || this._recipesUrlBusy) return;
+    this._recipesUrlBusy = true;
+    this._recipesInstallError = null;
+    try {
+      const staged = await this.hass.callWS({
+        type: "selora_ai/recipes/install_from_url",
+        url,
+      });
+      this._recipesUrl = "";
+      await this._loadRecipesList();
+      if (staged?.slug) this._openRecipeWizard(staged.slug);
+    } catch (err) {
+      this._recipesInstallError =
+        err?.message || err?.error || String(err) || "Unknown fetch error";
+    } finally {
+      this._recipesUrlBusy = false;
+    }
+  }
+
+  async _uploadRecipeArchive(file) {
+    // POSTs the file to the integration's upload endpoint. The endpoint
+    // does the same extract + validate + stage as the URL path; on
+    // success we open the wizard for the staged recipe.
+    if (!file || this._recipesUploadBusy) return;
+    this._recipesUploadBusy = true;
+    this._recipesInstallError = null;
+    try {
+      const form = new FormData();
+      form.append("file", file, file.name);
+      const auth = this.hass?.auth?.accessToken
+        ? { Authorization: `Bearer ${this.hass.auth.accessToken}` }
+        : {};
+      const resp = await fetch("/api/selora_ai/recipes/upload", {
+        method: "POST",
+        headers: auth,
+        body: form,
+      });
+      const payload = await resp.json().catch(() => ({}));
+      if (!resp.ok) {
+        this._recipesInstallError =
+          payload?.message || `Upload failed (HTTP ${resp.status})`;
+        return;
+      }
+      await this._loadRecipesList();
+      if (payload?.slug) this._openRecipeWizard(payload.slug);
+    } catch (err) {
+      this._recipesInstallError =
+        err?.message || String(err) || "Upload failed";
+    } finally {
+      this._recipesUploadBusy = false;
+    }
+  }
+
+  // Two-step uninstall: the button on the recipe row sets the pending
+  // slug, which surfaces a confirmation modal. The destructive action
+  // only runs after the user confirms (clicks Uninstall or hits Enter).
+  // Without the gate the click goes straight to delete-and-reload,
+  // which is too easy to do accidentally for a destructive operation.
+  _uninstallRecipe(slug) {
+    if (!slug || this._recipesBusy) return;
+    this._recipeUninstallPending = slug;
+    // Reset entry selections — default UNCHECKED for every integration
+    // the recipe installed (user explicitly opts in to removal).
+    this._recipeUninstallEntries = {};
+  }
+
+  _cancelRecipeUninstall() {
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+  }
+
+  // Toggle one integration entry's "also remove" checkbox in the
+  // uninstall confirm modal.
+  _toggleUninstallEntry(entryId) {
+    const next = { ...(this._recipeUninstallEntries || {}) };
+    if (next[entryId]) {
+      delete next[entryId];
+    } else {
+      next[entryId] = true;
+    }
+    this._recipeUninstallEntries = next;
+  }
+
+  // For each domain the recipe installed, list OTHER installed recipes
+  // that also declare that domain. The uninstall modal uses this to
+  // show "still used by X" warnings so the user doesn't accidentally
+  // break another recipe by removing a shared integration.
+  _otherUsersOfDomain(domain, exceptSlug) {
+    const installed = this._recipesList?.installed || [];
+    const available = this._recipesList?.available || [];
+    const titleBySlug = Object.fromEntries(
+      available.map((r) => [r.slug, r.title || r.slug]),
+    );
+    const usingDomain = (manifest) =>
+      (manifest?.integrations || []).some((i) => i.domain === domain);
+    return installed
+      .filter((rec) => rec.slug !== exceptSlug)
+      .filter((rec) => {
+        const m = available.find((a) => a.slug === rec.slug);
+        return usingDomain(m);
+      })
+      .map((rec) => titleBySlug[rec.slug] || rec.title || rec.slug);
+  }
+
+  async _confirmRecipeUninstall() {
+    const slug = this._recipeUninstallPending;
+    if (!slug) return;
+    const entries = Object.keys(this._recipeUninstallEntries || {});
+    this._recipeUninstallPending = null;
+    this._recipeUninstallEntries = {};
+    this._recipesBusy = true;
+    try {
+      await this.hass.callWS({
+        type: "selora_ai/recipes/uninstall",
+        slug,
+        remove_entries: entries,
+      });
+      // Clear any persisted wizard state for the slug so a future
+      // re-install starts from a clean slate.
+      this._clearWizardState(slug);
+      // Return to the list and drop any ``/recipes/<slug>`` deep-link.
+      // The uninstall reloads HA, which fires a ``location-changed``;
+      // a stale slug URL would route through ``_openRecipeFromDeepLink``
+      // and reopen the wizard for the just-removed recipe (its bundle is
+      // still staged on disk, so the handler happily reopens it).
+      this._recipesView = "list";
+      this._recipeWizardSlug = null;
+      this._setRecipeWizardUrl?.(null);
+      await this._loadRecipesList();
+    } catch (err) {
+      console.error("Recipe uninstall failed", err);
+    } finally {
+      this._recipesBusy = false;
+    }
+  }
+
   _renderSuggestionsSection() {
     return renderSuggestionsSection(this);
   }
@@ -2808,6 +4185,23 @@ class SeloraAIPanel extends LitElement {
                 >${this._t("panel_tab_scenes", "Scenes")}</span
               >
             </div>
+            <div
+              class="tab ${this._activeTab === "recipes" ? "active" : ""}"
+              @click=${() => {
+                this._setActiveTab("recipes");
+                this._showSidebar = false;
+                this._recipesView = "list";
+                this._loadRecipesList();
+              }}
+            >
+              <span class="tab-inner"
+                ><ha-icon
+                  icon="mdi:book-open-variant"
+                  class="tab-icon"
+                ></ha-icon
+                >Recipes</span
+              >
+            </div>
           </div>
           <span class="header-spacer"></span>
           ${this._activeTab !== "chat" || this._messages.length > 0
@@ -2889,6 +4283,21 @@ class SeloraAIPanel extends LitElement {
                       >
                         <ha-icon icon="mdi:palette-outline"></ha-icon>
                         ${this._t("nav_scenes", "Scenes")}
+                      </button>
+                      <button
+                        class="overflow-item ${this._activeTab === "recipes"
+                          ? "active"
+                          : ""}"
+                        @click=${() => {
+                          this._showOverflowMenu = false;
+                          this._setActiveTab("recipes");
+                          this._showSidebar = false;
+                          this._recipesView = "list";
+                          this._loadRecipesList();
+                        }}
+                      >
+                        <ha-icon icon="mdi:book-open-variant"></ha-icon>
+                        Recipes
                       </button>
                       <div class="overflow-divider"></div>
                     </div>
@@ -3229,6 +4638,7 @@ class SeloraAIPanel extends LitElement {
           ${this._activeTab === "chat" ? this._renderChat() : ""}
           ${this._activeTab === "automations" ? this._renderAutomations() : ""}
           ${this._activeTab === "scenes" ? this._renderScenes() : ""}
+          ${this._activeTab === "recipes" ? this._renderRecipesV2() : ""}
           ${this._activeTab === "settings" ? this._renderSettings() : ""}
           ${this._activeTab === "usage" ? this._renderUsage() : ""}
         </div>

@@ -1,0 +1,47 @@
+{# Bedtime routine — fires at the configured time, then walks through
+   each wind-down action in order. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_bedtime
+    alias: "Bedtime Routine"
+    description: "Dim lights, lock doors, set thermostat to night temperature."
+    mode: single
+    trigger:
+      - platform: time
+        at: "{{ inputs.bedtime }}"
+    action:
+      - service: light.turn_off
+        target:
+          entity_id:
+{% for light in roles.bedroom_lights %}
+            - {{ light }}
+{% endfor %}
+        data:
+          transition: {{ inputs.dim_seconds }}
+{% if roles.door_locks %}
+      - service: lock.lock
+        target:
+          entity_id:
+{% for lock in roles.door_locks %}
+            - {{ lock }}
+{% endfor %}
+{% endif %}
+{% if roles.thermostat %}
+      - service: climate.set_temperature
+        target:
+          entity_id: {{ roles.thermostat[0] }}
+        data:
+          temperature: {{ inputs.night_temperature }}
+{% endif %}
+{% if inputs.announce_on_finish %}
+      - service: notify.notify
+        data:
+          title: "Goodnight"
+          message: >-
+{% if inputs.greeting_style == 'warm' %}
+            The house is buttoned up for the night. Sleep well.
+{% elif inputs.greeting_style == 'brief' %}
+            Bedtime routine complete.
+{% else %}
+            Lights down, doors locked, thermostat dropped. See you at sunrise!
+{% endif %}
+{% endif %}

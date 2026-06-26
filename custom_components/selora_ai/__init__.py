@@ -7410,6 +7410,17 @@ async def async_setup(hass: HomeAssistant, config: dict[str, Any]) -> bool:
     """Set up the Selora AI component."""
     hass.data.setdefault(DOMAIN, {})
 
+    # Recipes v2 — deterministic pipeline that renders an HA package.
+    # Register WS commands first thing so the panel can list / install
+    # recipes even before the chat surface has finished its own setup.
+    # The HTTP upload view is registered alongside so users can ingest
+    # a bundle from a local file (URL fetch goes through the WS layer).
+    from .recipes.upload_view import async_register_recipe_upload_view
+    from .recipes.ws import async_register_recipe_websocket_commands
+
+    async_register_recipe_websocket_commands(hass)
+    async_register_recipe_upload_view(hass)
+
     # Register WebSocket API
     websocket_api.async_register_command(hass, _handle_websocket_chat)
     websocket_api.async_register_command(hass, _handle_websocket_chat_stream)

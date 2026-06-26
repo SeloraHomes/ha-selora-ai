@@ -1,0 +1,41 @@
+{# Engage automation: any leak sensor going wet → close covers + alarm lights. #}
+automation:
+  - id: selora_recipe_{{ slug | replace('-', '_') }}_engage
+    alias: "Leak Lockdown — engage"
+    description: "Close covers and flash alarm lights when any leak sensor goes wet."
+    mode: single
+    trigger:
+      - platform: state
+        entity_id:
+{% for sensor in roles.leak_sensors %}
+          - {{ sensor }}
+{% endfor %}
+        from: "off"
+        to: "on"
+    action:
+{% if roles.lockdown_covers %}
+      - service: cover.close_cover
+        target:
+          entity_id:
+{% for cover in roles.lockdown_covers %}
+            - {{ cover }}
+{% endfor %}
+{% endif %}
+      - service: light.turn_on
+        target:
+          entity_id:
+{% for light in roles.alarm_lights %}
+            - {{ light }}
+{% endfor %}
+        data:
+          color_name: red
+          brightness_pct: {{ inputs.alarm_brightness }}
+      - service: notify.notify
+        data:
+          title: "Leak detected"
+          # Embed the HA runtime template literally. The raw/endraw block
+          # passes the bytes through unchanged so HA evaluates the
+          # ``trigger`` expression at automation time, not at render time.
+          # The block tags are mid-line so lstrip_blocks doesn't strip
+          # the YAML indent that surrounds them.
+          message: "{% raw %}{{ trigger.to_state.attributes.friendly_name }}{% endraw %} went wet. Covers closed, alarm lights on."
