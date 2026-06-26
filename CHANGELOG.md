@@ -1,3 +1,33 @@
+## [0.11.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.10.0...v0.11.0) (2026-06-26)
+
+### Features
+
+* **chat:** multilingual entity resolution + lexical ranking ([3c56943](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3c5694315fbf789d5eee09415a7707cd17ec18b3))
+* **chat:** per-message action toolbar ([5691bc6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5691bc642bbca5bd08d2990f4c75848a7ad3d8fc))
+* **i18n:** add pt/ru/ja/ko/zh locales + i18n fixes ([4f5e597](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4f5e59716fbd9f7cc4f9e4d49b780eeefeb99737))
+* **i18n:** multi-language support — fr / de / es / it ([3d9a74d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/3d9a74d4debfd8dd4510153aa17b5ff7c292358b))
+* **recipes:** recipe wizard + public catalog install flow ([eef371d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/eef371d1e2c851d10df6bc44f699195548a79045))
+* **telemetry:** add usage_activity event ([89f6551](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/89f655133626572bfc2b3ca1573ac7df91cd350a))
+* **telemetry:** anonymous opt-in PostHog telemetry ([2e85198](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2e85198109d28e1f26c1b705b6b2c10f32b28955))
+* **usage:** record Selora Cloud token/call usage locally ([5db1919](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5db19197ca56910edb184830fddfa524485fed8b))
+
+### Bug Fixes
+
+* **chat:** cloud + multi-provider reliability ([7395aba](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/7395aba03ab779af7aa0212e78aa6df706c38a9d))
+* **chat:** resolve device triggers so button automations complete ([87917e7](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/87917e7197d4f471349eda084022e3797d91e46c))
+* **chat:** stop hover actions shifting layout ([da7463f](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/da7463f1c2c87b854a7a8cc66a121ae7bd422947))
+* **client:** thread user_message + new intent + command_policy exports ([4228ea8](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/4228ea8b8326cffc5c8445a549b8db21ed0212b4))
+* **collector:** catch provider ConnectionError ([86078ac](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/86078ac15adca91f040148ccb24b3c1db093c348))
+* **integration:** commit a final answer when the tool loop exhausts ([664e95d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/664e95d8a683a484831008c838125219e2f333b1))
+* **integration:** repair silent play_media announcements to tts.speak ([1506c63](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/1506c63e5580a05e220cdeca50256d82f18418ac))
+* **integration:** surface device manufacturer/model in entity context for brand resolution ([47caed6](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/47caed662b914c55be0c678447932ff01e4970c9))
+* **llm:** reliable cloud chat with weak gateway models ([8b5b703](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/8b5b70365e7a82a7d0cb47096bbef890da3e6bcb))
+* **panel:** decode percent-encoded YAML pasted into chat ([971023d](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/971023d407659572583a22a7db3e9a8687aec562))
+* protect code fences from tile-marker substitution ([84dd8ba](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/84dd8bab5d675ccd3da491da4fe9b676eca969ef))
+* recipe template sandbox + state-filter determinism (pre-release review) ([2f2ed75](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2f2ed757f851fe1a0382c7295e0fe0d930a95868))
+* reduce recorder attr spam and chat-stream errors ([2240069](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/2240069e8d5efda17599e2777c2b8fcbde401b94))
+* **suggestions:** click to expand truncated card title/subtitle ([5fad883](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/commit/5fad88341c21aecf6b5882e3ba8195b72f2cd6b3))
+
 ## [0.10.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.9.0...v0.10.0) (2026-06-16)
 
 ### Features
