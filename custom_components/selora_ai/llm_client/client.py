@@ -1217,60 +1217,71 @@ class LLMClient:
                 response_data = await self._provider.raw_request(
                     system, messages, tools=round_tools
                 )
-            except ConnectionError as exc:
-                return None, str(exc), tool_calls_log
 
-            requested_tools = self._provider.extract_tool_calls(response_data)
+                requested_tools = self._provider.extract_tool_calls(response_data)
 
-            if not requested_tools:
-                # Final answer — leave usage in the buffer so architect_chat
-                # can flush it with the parsed intent.
-                text = self._provider.extract_text_response(response_data)
-                # A blank forced-final answer falls through to the
-                # acknowledgement below rather than returning an empty turn.
-                if is_final_round and not (text and text.strip()):
-                    break
-                return text, None, tool_calls_log
+                if not requested_tools:
+                    # Final answer — leave usage in the buffer so architect_chat
+                    # can flush it with the parsed intent.
+                    text = self._provider.extract_text_response(response_data)
+                    # A blank forced-final answer falls through to the
+                    # acknowledgement below rather than returning an empty turn.
+                    if is_final_round and not (text and text.strip()):
+                        break
+                    return text, None, tool_calls_log
 
-            # Tool round — record under chat_tool_round so the breakdown
-            # shows how much the agent loop costs vs the answering call.
-            self._usage.flush("chat_tool_round")
+                # Tool round — record under chat_tool_round so the breakdown
+                # shows how much the agent loop costs vs the answering call.
+                self._usage.flush("chat_tool_round")
 
-            # Execute each tool and build the result messages
-            requires_approval_hit = False
-            executed_results: list[ToolWriteResult] = []
-            non_write_tool_seen = False
-            for tool_call in requested_tools:
-                _LOGGER.info(
-                    "LLM tool call: %s(%s)",
-                    tool_call["name"],
-                    json.dumps(tool_call["arguments"], default=str)[:200],
-                )
-                result = await tool_executor.execute(tool_call["name"], tool_call["arguments"])
-                tool_calls_log.append(
-                    {
-                        "tool": tool_call["name"],
-                        "arguments": tool_call["arguments"],
-                        "result": result,
-                    }
-                )
+                # Execute each tool and build the result messages
+                requires_approval_hit = False
+                executed_results: list[ToolWriteResult] = []
+                non_write_tool_seen = False
+                for tool_call in requested_tools:
+                    _LOGGER.info(
+                        "LLM tool call: %s(%s)",
+                        tool_call["name"],
+                        json.dumps(tool_call["arguments"], default=str)[:200],
+                    )
+                    result = await tool_executor.execute(tool_call["name"], tool_call["arguments"])
+                    tool_calls_log.append(
+                        {
+                            "tool": tool_call["name"],
+                            "arguments": tool_call["arguments"],
+                            "result": result,
+                        }
+                    )
 
-                self._provider.append_tool_result(messages, response_data, tool_call, result)
+                    self._provider.append_tool_result(messages, response_data, tool_call, result)
 
-                if isinstance(result, dict) and result.get("requires_approval"):
-                    requires_approval_hit = True
-                elif (
-                    tool_call["name"] in ("execute_command", "activate_scene")
-                    and isinstance(result, dict)
-                    and (result.get("executed") is True or result.get("status") == "activated")
-                ):
-                    normalized = _normalized_write_result(tool_call["name"], result)
-                    if normalized is not None:
-                        executed_results.append(normalized)
+                    if isinstance(result, dict) and result.get("requires_approval"):
+                        requires_approval_hit = True
+                    elif (
+                        tool_call["name"] in ("execute_command", "activate_scene")
+                        and isinstance(result, dict)
+                        and (result.get("executed") is True or result.get("status") == "activated")
+                    ):
+                        normalized = _normalized_write_result(tool_call["name"], result)
+                        if normalized is not None:
+                            executed_results.append(normalized)
+                        else:
+                            non_write_tool_seen = True
                     else:
                         non_write_tool_seen = True
-                else:
-                    non_write_tool_seen = True
+            except ConnectionError as exc:
+                return None, str(exc), tool_calls_log
+            except Exception as exc:
+                # A malformed provider response (missing tool-call keys, a
+                # non-JSON 200 body, a flaky gateway) must NOT escape as an
+                # opaque WS error: that bypasses architect_chat's
+                # "already executed — don't retry" guard and risks re-firing
+                # a command the user then retries. Return like the
+                # ConnectionError path (and like the streaming loop at
+                # _stream_request_with_tools) so the guard runs on
+                # tool_calls_log, which already holds any executed calls.
+                _LOGGER.exception("Tool-calling request failed")
+                return None, str(exc), tool_calls_log
 
             # Short-circuit when any tool returned requires_approval:
             # ``synthesize_approval_from_tool_log`` will build the approval

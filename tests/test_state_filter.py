@@ -81,3 +81,27 @@ def test_ground_truth_block_singular_grammar() -> None:
 
 def test_ground_truth_block_none_for_command() -> None:
     assert ground_truth_block(_ENTITIES, "turn off the lights") is None
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "¿qué persianas están cerrado?",  # es masc singular
+        "¿qué persianas están cerrados?",  # es masc plural
+        "¿qué persianas están cerradas?",  # es fem plural
+        "quali tapparelle sono chiusi?",  # it masc plural
+        "quali tapparelle sono chiuse?",  # it fem plural
+    ],
+)
+def test_detect_state_filter_es_it_closed_forms(message: str) -> None:
+    # Gender/number variants of "closed" must all engage the deterministic
+    # path; missing forms silently hand filtering back to the LLM, which is
+    # exactly the wrong-count bug this module exists to prevent.
+    assert detect_state_filter(message) == ("cover", "closed")
+
+
+def test_detect_state_filter_picks_first_mentioned_domain() -> None:
+    # A two-category question must resolve deterministically to the
+    # first-mentioned domain, not an arbitrary set-iteration order.
+    assert detect_state_filter("which covers and lights are open?") == ("cover", "open")
+    assert detect_state_filter("which lights and covers are on?") == ("light", "on")

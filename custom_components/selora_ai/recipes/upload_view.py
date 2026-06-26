@@ -22,6 +22,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import aiohttp
 from aiohttp import web
 from homeassistant.components.http import HomeAssistantView
 
@@ -119,10 +120,13 @@ class RecipeUploadView(HomeAssistantView):
                             status_code=413,
                         )
                     fh.write(chunk)
-        except OSError as exc:
+        except (OSError, web.HTTPException, aiohttp.ClientError) as exc:
+            # OSError: disk write failed. ClientError/ClientPayloadError: a
+            # truncated or malformed multipart body — without this the read
+            # loop would 500 and leave the partial temp file behind.
             target.unlink(missing_ok=True)
-            _LOGGER.exception("Failed writing recipe upload to disk")
-            return self.json_message(f"Failed to save upload: {exc}", status_code=500)
+            _LOGGER.exception("Failed reading/writing recipe upload")
+            return self.json_message(f"Failed to save upload: {exc}", status_code=400)
 
         try:
             staged = await async_stage_archive_file(self._hass, target)

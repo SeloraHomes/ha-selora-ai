@@ -36,7 +36,12 @@ from custom_components.selora_ai.recipes.pipeline import (
     async_preview,
     async_uninstall,
 )
-from custom_components.selora_ai.recipes.renderer import render_package
+from custom_components.selora_ai.recipes.renderer import (
+    RenderError,
+    _build_environment,
+    _render_one,
+    render_package,
+)
 from custom_components.selora_ai.recipes.resolver import resolve
 from custom_components.selora_ai.recipes.validator import validate_inputs
 
@@ -651,6 +656,26 @@ def test_slug_to_filename_yields_valid_ha_package_name() -> None:
 
     for slug in ("leak-lockdown", "My-Recipe", "Baby_Sleep", "ABC123"):
         assert re.fullmatch(r"[a-z0-9_]+", _slug_to_filename(slug))
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "x: {{ cycler.__init__.__globals__ }}",
+        "x: {{ self.__init__.__globals__ }}",
+        "x: {{ ''.__class__.__mro__[1].__subclasses__() }}",
+        "x: {{ request.__class__ }}",
+    ],
+)
+def test_renderer_sandbox_blocks_python_introspection(payload: str) -> None:
+    """Recipe templates are attacker-controllable (public catalog / pasted
+    URL / upload). The render environment MUST be sandboxed so a template
+    can't reach Python internals — a plain jinja2.Environment would make
+    this remote code execution at render (preview) time. The sandbox turns
+    the gadget access into a SecurityError, surfaced as RenderError."""
+    env = _build_environment({"t.yaml.j2": payload})
+    with pytest.raises(RenderError):
+        _render_one(env, "t.yaml.j2", {})
 
 
 def test_configuration_yaml_packages_include_added() -> None:

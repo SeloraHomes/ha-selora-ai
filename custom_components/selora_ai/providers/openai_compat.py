@@ -96,8 +96,15 @@ class OpenAICompatibleProvider(LLMProvider):
             return []
         result = []
         for tc in tool_calls:
+            fn = tc.get("function") or {}
+            name = fn.get("name")
+            tc_id = tc.get("id")
+            # Skip a malformed tool_call missing its id/name rather than
+            # KeyError-ing the whole turn on a flaky gateway response.
+            if not tc_id or not name:
+                continue
             try:
-                args = json.loads(tc["function"]["arguments"])
+                args = json.loads(fn["arguments"])
             except (
                 json.JSONDecodeError,
                 KeyError,
@@ -106,8 +113,8 @@ class OpenAICompatibleProvider(LLMProvider):
                 args = {}
             result.append(
                 {
-                    "id": tc["id"],
-                    "name": tc["function"]["name"],
+                    "id": tc_id,
+                    "name": name,
                     "arguments": args,
                 }
             )
@@ -138,7 +145,9 @@ class OpenAICompatibleProvider(LLMProvider):
         tool_calls: list[dict[str, Any]],
         results: list[dict[str, Any]],
     ) -> None:
-        for tc, res in zip(tool_calls, results, strict=True):
+        # strict=False: cancel/watchdog early-break can leave results
+        # shorter than tool_calls; pair what we have.
+        for tc, res in zip(tool_calls, results, strict=False):
             messages.append(
                 {
                     "role": "assistant",

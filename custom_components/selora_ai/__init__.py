@@ -8227,6 +8227,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     # Clean up shared in-memory caches
     hass.data[DOMAIN].pop("proactive_suggestions", None)
     hass.data[DOMAIN].pop("latest_suggestions", None)
+    hass.data[DOMAIN].pop("_mcp_suggestion_status", None)
     hass.data[DOMAIN].pop("_conv_store", None)
     hass.data[DOMAIN].pop("_scene_store", None)
 

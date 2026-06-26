@@ -243,3 +243,49 @@ class TestSuggestionsPrompt:
         """Calling without tools_available defaults to False (no suggestions block)."""
         prompt = build_architect_system_prompt()
         assert "SUGGESTIONS:" not in prompt
+
+
+class TestSuggestionStatusCap:
+    """The in-memory suggestion-status overlay must stay bounded (one key
+    is minted per suggestion digest ever seen, so it would otherwise grow
+    for the life of the process)."""
+
+    def test_set_status_evicts_oldest_past_cap(self) -> None:
+        from custom_components.selora_ai.mcp_server import (
+            _MCP_SUGGESTION_STATUS_MAX,
+            _set_suggestion_status,
+        )
+
+        store: dict[str, dict[str, object]] = {}
+        total = _MCP_SUGGESTION_STATUS_MAX + 50
+        for i in range(total):
+            _set_suggestion_status(store, f"sug-{i}", {"status": "pending"})
+
+        assert len(store) == _MCP_SUGGESTION_STATUS_MAX
+        # The oldest 50 keys were evicted; the newest cap-worth remain.
+        assert "sug-0" not in store
+        assert f"sug-{total - 1}" in store
+
+    def test_re_touch_survives_eviction(self) -> None:
+        from custom_components.selora_ai.mcp_server import (
+            _MCP_SUGGESTION_STATUS_MAX,
+            _set_suggestion_status,
+        )
+
+        store: dict[str, dict[str, object]] = {}
+        _set_suggestion_status(store, "keep-me", {"status": "pending"})
+        # Fill the rest of the cap with older filler keys.
+        for i in range(_MCP_SUGGESTION_STATUS_MAX - 1):
+            _set_suggestion_status(store, f"filler-{i}", {"status": "pending"})
+        # Re-touch keep-me (e.g. a dismiss) so it moves to the END of the
+        # insertion order, ahead of the fillers.
+        _set_suggestion_status(store, "keep-me", {"status": "dismissed"})
+        # Overflow with 10 brand-new keys → evicts the 10 oldest fillers.
+        for i in range(10):
+            _set_suggestion_status(store, f"new-{i}", {"status": "pending"})
+
+        assert len(store) == _MCP_SUGGESTION_STATUS_MAX
+        # keep-me is now newer than the fillers, so it survived with its
+        # latest status; the oldest filler was evicted.
+        assert store.get("keep-me") == {"status": "dismissed"}
+        assert "filler-0" not in store

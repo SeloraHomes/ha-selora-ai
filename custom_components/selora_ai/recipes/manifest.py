@@ -415,17 +415,22 @@ class Manifest:
 def _coerce_role(data: Any) -> RoleSpec:
     if not isinstance(data, dict):
         raise ManifestError(f"role entry must be a mapping, got {type(data).__name__}")
-    role = RoleSpec(
-        id=str(data.get("id", "")).strip(),
-        kind=str(data.get("kind", "")).strip(),
-        device_class=(str(data["device_class"]).strip() if data.get("device_class") else None),
-        features=tuple(str(f).strip() for f in (data.get("features") or [])),
-        min_count=int(data.get("min_count", 1)),
-        max_count=(int(data["max_count"]) if data.get("max_count") is not None else None),
-        description=str(data.get("description", "")),
-        title=str(data.get("title", "")).strip(),
-        selection=str(data.get("selection", "auto")).strip().lower(),  # type: ignore[arg-type]
-    )
+    try:
+        role = RoleSpec(
+            id=str(data.get("id", "")).strip(),
+            kind=str(data.get("kind", "")).strip(),
+            device_class=(str(data["device_class"]).strip() if data.get("device_class") else None),
+            features=tuple(str(f).strip() for f in (data.get("features") or [])),
+            min_count=int(data.get("min_count", 1)),
+            max_count=(int(data["max_count"]) if data.get("max_count") is not None else None),
+            description=str(data.get("description", "")),
+            title=str(data.get("title", "")).strip(),
+            selection=str(data.get("selection", "auto")).strip().lower(),  # type: ignore[arg-type]
+        )
+    except (ValueError, TypeError) as exc:
+        # Non-numeric min_count/max_count etc. Raise ManifestError so the
+        # loader skips this one bundle instead of failing the whole list.
+        raise ManifestError(f"invalid role entry: {exc}") from exc
     role.validate()
     return role
 
@@ -433,18 +438,23 @@ def _coerce_role(data: Any) -> RoleSpec:
 def _coerce_input(data: Any) -> InputSpec:
     if not isinstance(data, dict):
         raise ManifestError(f"input entry must be a mapping, got {type(data).__name__}")
-    spec = InputSpec(
-        id=str(data.get("id", "")).strip(),
-        type=str(data.get("type", "")).strip(),  # type: ignore[arg-type]
-        label=str(data.get("label", "")),
-        description=str(data.get("description", "")),
-        default=data.get("default"),
-        required=bool(data.get("required", True)),
-        resolver=(str(data["resolver"]).strip() if data.get("resolver") else None),
-        min=(float(data["min"]) if data.get("min") is not None else None),
-        max=(float(data["max"]) if data.get("max") is not None else None),
-        choices=tuple(data.get("choices") or ()),
-    )
+    try:
+        spec = InputSpec(
+            id=str(data.get("id", "")).strip(),
+            type=str(data.get("type", "")).strip(),  # type: ignore[arg-type]
+            label=str(data.get("label", "")),
+            description=str(data.get("description", "")),
+            default=data.get("default"),
+            required=bool(data.get("required", True)),
+            resolver=(str(data["resolver"]).strip() if data.get("resolver") else None),
+            min=(float(data["min"]) if data.get("min") is not None else None),
+            max=(float(data["max"]) if data.get("max") is not None else None),
+            choices=tuple(data.get("choices") or ()),
+        )
+    except (ValueError, TypeError) as exc:
+        # Non-numeric min/max etc. Raise ManifestError so the loader skips
+        # this one bundle instead of failing the whole list.
+        raise ManifestError(f"invalid input entry: {exc}") from exc
     spec.validate()
     return spec
 

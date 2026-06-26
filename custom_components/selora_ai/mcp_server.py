@@ -699,6 +699,14 @@ class SeloraAIMCPView(HomeAssistantView):
         except Exception:
             return web.Response(status=HTTPStatus.BAD_REQUEST, text="Invalid JSON")
 
+        # A valid JSON-RPC message is an object. A bare list/string/number/
+        # null parses fine but has no .get — guard before we touch it.
+        if not isinstance(json_data, dict):
+            return web.Response(
+                status=HTTPStatus.BAD_REQUEST,
+                text="Request must be a valid JSON-RPC 2.0 message",
+            )
+
         method = json_data.get("method")
         req_id = json_data.get("id")
         params = json_data.get("params")
@@ -2645,9 +2653,31 @@ def _find_collector(hass: HomeAssistant) -> DataCollector | None:
     return None
 
 
+# Cap the in-memory suggestion-status overlay. One key is minted per
+# suggestion digest ever seen, so without a bound it grows for the life of
+# the process. Active suggestions are re-touched on status change and
+# survive eviction longest; evicted stale entries simply fall back to
+# "pending" if their suggestion ever reappears.
+_MCP_SUGGESTION_STATUS_MAX = 500
+
+
 def _get_suggestion_status_store(hass: HomeAssistant) -> dict[str, dict[str, Any]]:
     domain_data = hass.data.setdefault(DOMAIN, {})
     return domain_data.setdefault("_mcp_suggestion_status", {})
+
+
+def _set_suggestion_status(
+    status_store: dict[str, dict[str, Any]],
+    suggestion_id: str,
+    entry: dict[str, Any],
+) -> None:
+    """Insert/refresh a status entry, evicting the oldest (insertion-order)
+    entries once the overlay exceeds its cap. Re-inserting moves the key to
+    the end so a just-decided suggestion is the last thing evicted."""
+    status_store.pop(suggestion_id, None)
+    status_store[suggestion_id] = entry
+    while len(status_store) > _MCP_SUGGESTION_STATUS_MAX:
+        del status_store[next(iter(status_store))]
 
 
 def _collect_entity_ids(value: Any) -> list[str]:
@@ -2730,10 +2760,11 @@ def _normalize_suggestion(
     }
 
     if suggestion_id not in status_store:
-        status_store[suggestion_id] = {
-            "status": status,
-            "created_at": created_at,
-        }
+        _set_suggestion_status(
+            status_store,
+            suggestion_id,
+            {"status": status, "created_at": created_at},
+        )
 
     return suggestion
 
@@ -2907,11 +2938,17 @@ async def _tool_accept_suggestion(hass: HomeAssistant, arguments: dict[str, Any]
         return created
 
     status_store = _get_suggestion_status_store(hass)
-    status_store[suggestion_id] = {
-        "status": "accepted",
-        "created_at": status_store.get(suggestion_id, {}).get("created_at", target["created_at"]),
-        "updated_at": datetime.now(UTC).isoformat(),
-    }
+    _set_suggestion_status(
+        status_store,
+        suggestion_id,
+        {
+            "status": "accepted",
+            "created_at": status_store.get(suggestion_id, {}).get(
+                "created_at", target["created_at"]
+            ),
+            "updated_at": datetime.now(UTC).isoformat(),
+        },
+    )
 
     return {
         "suggestion_id": suggestion_id,
@@ -2941,12 +2978,18 @@ async def _tool_dismiss_suggestion(
 
     # Update in-memory status overlay (used by phase-2 suggestion rendering)
     status_store: dict[str, dict[str, Any]] = _get_suggestion_status_store(hass)
-    status_store[suggestion_id] = {
-        "status": "dismissed",
-        "reason": dismissal_reason,
-        "created_at": status_store.get(suggestion_id, {}).get("created_at", target["created_at"]),
-        "updated_at": now_iso,
-    }
+    _set_suggestion_status(
+        status_store,
+        suggestion_id,
+        {
+            "status": "dismissed",
+            "reason": dismissal_reason,
+            "created_at": status_store.get(suggestion_id, {}).get(
+                "created_at", target["created_at"]
+            ),
+            "updated_at": now_iso,
+        },
+    )
 
     # Persist to PatternStore so dismissal survives HA restarts (#43)
     pattern_store = hass.data.get(DOMAIN, {}).get("pattern_store")

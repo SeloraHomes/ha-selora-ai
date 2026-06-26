@@ -173,7 +173,7 @@ class GeminiProvider(LLMProvider):
         result: list[dict[str, Any]] = []
         for i, part in enumerate(parts):
             fc = part.get("functionCall")
-            if fc:
+            if fc and fc.get("name"):
                 result.append(
                     {
                         "id": f"call_{i}",
@@ -238,7 +238,9 @@ class GeminiProvider(LLMProvider):
                 "role": "user",
                 "_tool_responses": [
                     {"name": tc["name"], "result": res}
-                    for tc, res in zip(tool_calls, results, strict=True)
+                    # strict=False: cancel/watchdog early-break can leave
+                    # results shorter than tool_calls; pair what we have.
+                    for tc, res in zip(tool_calls, results, strict=False)
                 ],
             }
         )

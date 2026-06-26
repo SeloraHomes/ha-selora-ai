@@ -354,7 +354,15 @@ def update_package_groups(
             raise PackagerError(
                 f"group {object_id!r} not present in package {target}; rebind aborted"
             )
-        existing_groups[object_id]["entities"] = list(entities)
+        group_body = existing_groups[object_id]
+        if not isinstance(group_body, dict):
+            # Hand-edited package: the group body was blanked or replaced
+            # with a scalar. Surface a PackagerError (which the rebind WS
+            # handler renders gracefully) rather than crashing on a TypeError.
+            raise PackagerError(
+                f"group {object_id!r} in package {target} is not a mapping; rebind aborted"
+            )
+        group_body["entities"] = list(entities)
     parsed["group"] = existing_groups
 
     new_body = yaml.safe_dump(
