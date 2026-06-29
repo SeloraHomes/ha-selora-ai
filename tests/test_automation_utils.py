@@ -17,6 +17,7 @@ from custom_components.selora_ai.automation_utils import (
     _quote_yaml_booleans,
     _read_automations_yaml,
     _resolve_tts_engine,
+    _rewrite_legacy_tts_say,
     _rewrite_spoken_play_media,
     _write_automations_yaml,
     assess_automation_risk,
@@ -2005,9 +2006,7 @@ class TestAsyncCreateAutomation:
                     "for": "00:05:00",
                 }
             ],
-            "action": [
-                {"action": "notify.persistent_notification", "data": {"message": "x"}}
-            ],
+            "action": [{"action": "notify.persistent_notification", "data": {"message": "x"}}],
         }
         await async_create_automation(hass, suggestion)
         _patch_store.add_version.assert_awaited_once()
@@ -3019,12 +3018,8 @@ class TestSpokenPlayMediaRewrite:
     def test_rewrite_is_not_env_gated(self, monkeypatch: pytest.MonkeyPatch) -> None:
         # The repair is unconditional here; no environment flag disables it.
         monkeypatch.setenv("SELORA_RAW_MODE", "1")
-        self._set_registry(
-            {"media_player.living_room_sonos", "tts.home_assistant_cloud"}
-        )
-        hass = self._hass(
-            known={"media_player.living_room_sonos", "tts.home_assistant_cloud"}
-        )
+        self._set_registry({"media_player.living_room_sonos", "tts.home_assistant_cloud"})
+        hass = self._hass(known={"media_player.living_room_sonos", "tts.home_assistant_cloud"})
         payload = {
             "alias": "Doorbell Announcer",
             "trigger": [{"platform": "time", "at": "07:00:00"}],
@@ -3123,12 +3118,8 @@ class TestSpokenPlayMediaRewrite:
                             "sequence": [
                                 {
                                     "action": "media_player.play_media",
-                                    "target": {
-                                        "entity_id": "media_player.living_room_sonos"
-                                    },
-                                    "data": {
-                                        "media_content_id": "There is a visitor at the door"
-                                    },
+                                    "target": {"entity_id": "media_player.living_room_sonos"},
+                                    "data": {"media_content_id": "There is a visitor at the door"},
                                 }
                             ],
                         }
@@ -3202,12 +3193,8 @@ class TestSpokenPlayMediaRewrite:
                         [
                             {
                                 "action": "media_player.play_media",
-                                "target": {
-                                    "entity_id": "media_player.living_room_sonos"
-                                },
-                                "data": {
-                                    "media_content_id": "There is a visitor at the door"
-                                },
+                                "target": {"entity_id": "media_player.living_room_sonos"},
+                                "data": {"media_content_id": "There is a visitor at the door"},
                             }
                         ]
                     ]
@@ -3286,3 +3273,386 @@ class TestSpokenPlayMediaRewrite:
         assert out["continue_on_error"] is True
         # … while the stale media-call keys are gone.
         assert "media_content_id" not in out["data"]
+
+
+class TestLegacyTtsSayRewrite:
+    """``tts.cloud_say`` (and other ``tts.<provider>_say`` services) only exist
+    when that provider is set up — ``cloud_say`` needs a paid HA Cloud (Nabu
+    Casa) subscription. On an install without it the action calls nothing, so
+    it must be repaired to the unified ``tts.speak`` instead of dead-ending."""
+
+    @staticmethod
+    def _hass(
+        *,
+        tts_entities: list[str] | None = None,
+        tts_speak: bool = True,
+        say_services: set[str] | None = None,
+        known: set[str] | None = None,
+    ) -> MagicMock:
+        tts_entities = ["tts.home_assistant_cloud"] if tts_entities is None else tts_entities
+        known = known if known is not None else set()
+        tts_services: set[str] = set(say_services or set())
+        if tts_speak:
+            tts_services.add("speak")
+        service_registry: dict[str, set[str]] = {
+            "tts": tts_services,
+            "media_player": {"play_media", "turn_on", "volume_set"},
+            "light": {"turn_on", "turn_off"},
+        }
+        hass = MagicMock()
+        hass.services.has_service.side_effect = lambda domain, service: (
+            service in service_registry.get(domain, set())
+        )
+        hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in service_registry[domain]} if service_registry.get(domain) else {}
+        )
+        hass.states.async_entity_ids.side_effect = lambda domain: (
+            list(tts_entities) if domain == "tts" else []
+        )
+        hass.states.get.side_effect = lambda eid: MagicMock() if eid in known else None
+        return hass
+
+    @pytest.fixture(autouse=True)
+    def _patch_entity_registry(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        registry_ids: set[str] = set()
+
+        def _fake_async_get(_hass: Any) -> Any:
+            reg = MagicMock()
+            reg.async_get.side_effect = lambda eid: MagicMock() if eid in registry_ids else None
+            return reg
+
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils.er.async_get",
+            _fake_async_get,
+        )
+        self._registry_ids = registry_ids
+
+    def _set_registry(self, ids: set[str]) -> None:
+        self._registry_ids.clear()
+        self._registry_ids.update(ids)
+
+    # -- the reported doorbell bug, end-to-end ----------------------------
+    def test_cloud_say_without_nabu_casa_rewritten_to_tts_speak(self) -> None:
+        # The exact failure mode reported: tts.cloud_say is unregistered (no HA
+        # Cloud subscription) so the announcement silently does nothing.
+        ids = {"binary_sensor.front_door_visitor", "media_player.living_room_2"}
+        self._set_registry(ids | {"tts.home_assistant_cloud"})
+        hass = self._hass(known=ids | {"tts.home_assistant_cloud"})
+        payload = {
+            "alias": "Doorbell Visitor TTS",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "service": "tts.cloud_say",
+                    "target": {"entity_id": "media_player.living_room_2"},
+                    "data": {"message": "Someone is at the front door."},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "tts.speak"
+        assert action["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert action["data"]["media_player_entity_id"] == "media_player.living_room_2"
+        assert action["data"]["message"] == "Someone is at the front door."
+
+    def test_registered_cloud_say_left_untouched(self) -> None:
+        # When HA Cloud IS set up, tts.cloud_say exists and works — don't rewrite.
+        ids = {"media_player.living_room_2", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(say_services={"cloud_say"}, known=ids)
+        action = {
+            "service": "tts.cloud_say",
+            "target": {"entity_id": "media_player.living_room_2"},
+            "data": {"message": "Someone is at the front door."},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_google_translate_say_rewritten(self) -> None:
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        action = {
+            "action": "tts.google_translate_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "Dinner is ready", "language": "en"},
+        }
+        out = _rewrite_legacy_tts_say(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        assert out["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+        assert out["data"]["message"] == "Dinner is ready"
+        # tts.speak understands language too — carry it across.
+        assert out["data"]["language"] == "en"
+
+    def test_speaker_in_bare_entity_id_rewritten(self) -> None:
+        # Older legacy say configs put the speaker in a top-level entity_id.
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        action = {
+            "service": "tts.cloud_say",
+            "entity_id": "media_player.kitchen",
+            "data": {"message": "Dinner is ready"},
+        }
+        out = _rewrite_legacy_tts_say(action, hass)
+        assert out is not None
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+    def test_no_message_left_untouched(self) -> None:
+        hass = self._hass()
+        action = {
+            "service": "tts.cloud_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_no_tts_speak_leaves_action(self) -> None:
+        hass = self._hass(tts_speak=False)
+        action = {
+            "service": "tts.cloud_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "hi"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_no_engine_leaves_action(self) -> None:
+        hass = self._hass(tts_entities=[])
+        action = {
+            "service": "tts.cloud_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "hi"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_area_target_leaves_action(self) -> None:
+        # No concrete media_player speaker → tts.speak has nowhere to play.
+        hass = self._hass()
+        action = {
+            "service": "tts.cloud_say",
+            "target": {"area_id": "living_room"},
+            "data": {"message": "hi"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_unregistered_cloud_say_with_no_repair_path_is_rejected(self) -> None:
+        # No TTS engine to retarget to → the rewrite bails and the missing
+        # service gate rejects the automation rather than persisting a no-op.
+        ids = {"media_player.living_room_2"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=[], known=ids)
+        payload = {
+            "alias": "Doorbell Visitor TTS",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "service": "tts.cloud_say",
+                    "target": {"entity_id": "media_player.living_room_2"},
+                    "data": {"message": "Someone is at the front door."},
+                }
+            ],
+        }
+        valid, reason, _normalized = validate_automation_payload(payload, hass)
+        assert valid is False
+        assert "tts.cloud_say" in reason
+
+    def test_non_say_tts_service_left_untouched(self) -> None:
+        # tts.speak itself isn't a legacy say verb — must not be touched.
+        hass = self._hass()
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {
+                "media_player_entity_id": "media_player.kitchen",
+                "message": "hi",
+            },
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_templated_say_service_left_untouched(self) -> None:
+        # A templated service name resolves at runtime; rewriting it to a
+        # fixed tts.speak engine would change behavior. Leave it alone (the
+        # service-existence gate skips templated names too).
+        hass = self._hass()
+        action = {
+            "service": "tts.{{ states('input_select.tts_provider') }}_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "hi"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_cloud_say_nested_in_choose_rewritten(self) -> None:
+        ids = {
+            "binary_sensor.front_door_visitor",
+            "media_player.living_room_2",
+            "tts.home_assistant_cloud",
+        }
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        payload = {
+            "alias": "Conditional Doorbell",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "state",
+                                    "entity_id": "binary_sensor.front_door_visitor",
+                                    "state": "on",
+                                }
+                            ],
+                            "sequence": [
+                                {
+                                    "service": "tts.cloud_say",
+                                    "target": {"entity_id": "media_player.living_room_2"},
+                                    "data": {"message": "Someone is at the front door."},
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        nested = normalized["actions"][0]["choose"][0]["sequence"][0]
+        assert nested["action"] == "tts.speak"
+        assert nested["data"]["media_player_entity_id"] == "media_player.living_room_2"
+
+    def test_unrepairable_nested_cloud_say_is_rejected(self) -> None:
+        # No TTS engine → the nested cloud_say can't be repaired and is left
+        # in place. The service gate must reject it just like a top-level one,
+        # not persist a silent/non-existent service buried in a choose branch.
+        ids = {"binary_sensor.front_door_visitor", "media_player.living_room_2"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=[], known=ids)
+        payload = {
+            "alias": "Conditional Doorbell",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [
+                                {
+                                    "condition": "state",
+                                    "entity_id": "binary_sensor.front_door_visitor",
+                                    "state": "on",
+                                }
+                            ],
+                            "sequence": [
+                                {
+                                    "service": "tts.cloud_say",
+                                    "target": {"entity_id": "media_player.living_room_2"},
+                                    "data": {"message": "Someone is at the front door."},
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        }
+        valid, reason, _normalized = validate_automation_payload(payload, hass)
+        assert valid is False
+        assert "tts.cloud_say" in reason
+
+    def test_templated_say_service_passes_validation_unchanged(self) -> None:
+        # The whole automation must validate (templated services are skipped by
+        # the existence gate) and the service name must be preserved verbatim.
+        ids = {"media_player.living_room_2"}
+        self._set_registry(ids)
+        hass = self._hass(known=ids)
+        templated = "tts.{{ states('input_select.tts_provider') }}_say"
+        payload = {
+            "alias": "Templated Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "service": templated,
+                    "target": {"entity_id": "media_player.living_room_2"},
+                    "data": {"message": "hello"},
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        act = normalized["actions"][0]
+        assert act.get("action", act.get("service")) == templated
+
+    def test_unrepairable_cloud_say_in_nested_parallel_list_is_rejected(self) -> None:
+        # HA accepts parallel: [[{...}]]; _iter_service_actions must recurse
+        # into the inner list so an unrepairable missing service there is
+        # rejected, not persisted.
+        ids = {"media_player.living_room_2"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=[], known=ids)
+        payload = {
+            "alias": "Parallel Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "parallel": [
+                        [
+                            {
+                                "service": "tts.cloud_say",
+                                "target": {"entity_id": "media_player.living_room_2"},
+                                "data": {"message": "Someone is at the front door."},
+                            }
+                        ]
+                    ]
+                }
+            ],
+        }
+        valid, reason, _normalized = validate_automation_payload(payload, hass)
+        assert valid is False
+        assert "tts.cloud_say" in reason
+
+    def test_unrepairable_nested_cloud_say_in_repeat_is_rejected(self) -> None:
+        # Same hole, reached through a repeat.sequence branch.
+        ids = {"media_player.living_room_2"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=[], known=ids)
+        payload = {
+            "alias": "Repeated Announcer",
+            "trigger": [{"platform": "time", "at": "07:00:00"}],
+            "action": [
+                {
+                    "repeat": {
+                        "count": 2,
+                        "sequence": [
+                            {
+                                "service": "tts.cloud_say",
+                                "target": {"entity_id": "media_player.living_room_2"},
+                                "data": {"message": "Someone is at the front door."},
+                            }
+                        ],
+                    }
+                }
+            ],
+        }
+        valid, reason, _normalized = validate_automation_payload(payload, hass)
+        assert valid is False
+        assert "tts.cloud_say" in reason

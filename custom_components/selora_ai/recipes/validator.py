@@ -64,6 +64,16 @@ def _coerce_value(spec: InputSpec, raw: Any) -> tuple[Any, str | None]:
     ``(value, error)`` — ``error`` is None on success.
     """
     if raw is None or raw == "":
+        # A resolver-driven input is computed, not user-supplied. An empty
+        # string from the resolver is its intended result (a resolver raises
+        # ResolverError when a value is genuinely required but unavailable —
+        # e.g. the tts_engine resolver returns "" for a home with no TTS
+        # engine so the template can omit the announcement). Trust it: don't
+        # treat it as a missing required field or replace it with the default,
+        # which would otherwise either halt the install or render a service
+        # call against a non-existent engine.
+        if spec.resolver and raw == "" and spec.type == "string":
+            return "", None
         if spec.required and spec.default is None:
             return None, "required"
         return spec.default, None
