@@ -1157,18 +1157,129 @@ def _rewrite_spoken_play_media(
     return rewritten
 
 
+def _rewrite_legacy_tts_say(
+    action: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any] | None:
+    """Rewrite a legacy ``tts.<provider>_say`` action whose service is not
+    registered on this instance into the unified ``tts.speak`` call.
+
+    The per-provider ``tts.<provider>_say`` services (``tts.cloud_say``,
+    ``tts.google_translate_say``, …) only exist when that provider is set up —
+    notably ``tts.cloud_say`` requires a paid Home Assistant Cloud (Nabu Casa)
+    subscription. An LLM that emits ``tts.cloud_say`` on an install without it
+    produces an automation that calls nothing: it passes the trigger but the
+    action silently does nothing because the service is unregistered.
+
+    When the named ``tts.*_say`` service is missing but ``tts.speak`` and a TTS
+    engine are available, retarget it to ``tts.speak`` with the engine as the
+    target and the original speaker passed as ``media_player_entity_id`` —
+    preserving the message and any ``language`` / ``options`` / ``cache`` data.
+
+    Returns the rewritten action, or ``None`` when the action is not a legacy
+    say call, the named service actually exists (so it works as-is), or it is
+    not rewritable (no ``tts.speak``, no engine, or no concrete media_player
+    speaker — in which case the missing-service gate rejects it downstream).
+    """
+    service = str(action.get("action", action.get("service", "")))
+    if "." not in service or "{{" in service:
+        # A templated service name (e.g. tts.{{ states('input_select.x') }}_say)
+        # resolves at runtime; treating it as a fixed unregistered service and
+        # rewriting it would change the automation's behavior. Leave it — the
+        # service-existence gate skips templated names too.
+        return None
+    domain, name = service.split(".", 1)
+    if domain != "tts" or not name.endswith("_say"):
+        return None
+    # The provider's say service is registered here — it works, leave it alone.
+    if hass.services.has_service("tts", name):
+        return None
+
+    if not hass.services.has_service("tts", "speak"):
+        _LOGGER.warning(
+            "Announcement automation uses %s but that service is not registered "
+            "(needs the matching TTS provider) and tts.speak is unavailable; "
+            "leaving as-is (it will be silent).",
+            service,
+        )
+        return None
+    engine = _resolve_tts_engine(hass)
+    if engine is None:
+        _LOGGER.warning(
+            "Announcement automation uses %s but that service is not registered "
+            "and no TTS engine entity is configured; leaving as-is (it will be "
+            "silent).",
+            service,
+        )
+        return None
+
+    data = action.get("data")
+    data = data if isinstance(data, dict) else {}
+    message = data.get("message")
+    if not isinstance(message, str) or not message.strip():
+        # A say call without a concrete message is not something we can safely
+        # rebuild as tts.speak — leave it for the missing-service gate.
+        return None
+
+    # Legacy say targets the speaker through target.entity_id / a bare
+    # entity_id / data.entity_id — the same shapes _play_media_speaker reads.
+    speaker = _play_media_speaker(action)
+    speaker_ids: list[str] = []
+    for part in speaker if isinstance(speaker, list) else [speaker]:
+        if isinstance(part, str):
+            speaker_ids.extend(p.strip() for p in part.split(",") if p.strip())
+    # tts.speak addresses the speaker via data.media_player_entity_id, which
+    # accepts only media_player entity_ids. If we can't identify a concrete
+    # media_player speaker, leave the action untouched so it goes through the
+    # normal missing-service gate rather than emitting a tts.speak that can't run.
+    if not speaker_ids or any(s.split(".")[0] != "media_player" for s in speaker_ids):
+        _LOGGER.warning(
+            "Announcement automation uses %s but its target is not a concrete "
+            "media_player entity (area/device target or another domain); leaving "
+            "as-is (it will be silent).",
+            service,
+        )
+        return None
+
+    # Preserve any per-action keys the original carried (alias, enabled,
+    # continue_on_error, variables, …); only the service-call shape is replaced.
+    rewritten: dict[str, Any] = {
+        key: val
+        for key, val in action.items()
+        if key not in ("action", "service", "target", "entity_id", "data")
+    }
+    rewritten["action"] = "tts.speak"
+    rewritten["target"] = {"entity_id": engine}
+    new_data: dict[str, Any] = {
+        "media_player_entity_id": speaker_ids[0] if len(speaker_ids) == 1 else speaker_ids,
+        "message": message,
+    }
+    # Carry over the say options tts.speak also understands.
+    for key in ("language", "options", "cache"):
+        if key in data:
+            new_data[key] = data[key]
+    rewritten["data"] = new_data
+    _LOGGER.info(
+        "Rewrote unregistered %s announcement to tts.speak (engine=%s, speaker=%s).",
+        service,
+        engine,
+        ", ".join(speaker_ids),
+    )
+    return rewritten
+
+
 def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
-    """Apply :func:`_rewrite_spoken_play_media` to *action* and to any actions
-    nested in its control-flow branches (``choose`` / ``if`` / ``sequence`` /
-    ``repeat`` / ``parallel`` …).
+    """Apply the announcement repairs (:func:`_rewrite_spoken_play_media` and
+    :func:`_rewrite_legacy_tts_say`) to *action* and to any actions nested in
+    its control-flow branches (``choose`` / ``if`` / ``sequence`` / ``repeat`` /
+    ``parallel`` …).
 
     Mirrors the recursion the entity walker and condition validator already do,
-    so a ``media_player.play_media`` announcement buried inside a conditional
-    branch is repaired just like a top-level one. Returns the resulting action
-    (the rewritten ``tts.speak`` form, or the original with nested branches
-    rewritten in place).
+    so a silent announcement buried inside a conditional branch is repaired just
+    like a top-level one. Returns the resulting action (a rewritten ``tts.speak``
+    form, or the original with nested branches rewritten in place).
     """
-    rewritten = _rewrite_spoken_play_media(action, hass)
+    rewritten = _rewrite_spoken_play_media(action, hass) or _rewrite_legacy_tts_say(action, hass)
     if rewritten is not None:
         return rewritten
 
@@ -1274,6 +1385,11 @@ def validate_automation_payload(
     # 2. Target entity domains must have *some* service registered — this catches
     #    cross-domain calls like homeassistant.turn_on targeting binary_sensor.motion
     #    (binary_sensor has no services at all, so it's read-only).
+    # Both gates run over every service call in the action tree, not just the
+    # top-level ones: a call buried in a choose/if/repeat/parallel branch (e.g.
+    # an unregistered tts.cloud_say that _rewrite_announcements couldn't repair
+    # because no TTS engine is available) must be rejected exactly like a
+    # top-level one, never persisted as a silent/non-existent service.
     normalized_actions: list[dict[str, Any]] = []
     for act in actions:
         norm_act = _normalize_item(act)
@@ -1283,30 +1399,31 @@ def validate_automation_payload(
             # (recursively, incl. control-flow branches) before the
             # service/entity gates below validate the result.
             norm_act = _rewrite_announcements(norm_act, hass)
-            action_service = str(norm_act.get("action", norm_act.get("service", "")))
-            if "." in action_service and "{{" not in action_service:
-                svc_domain, svc_name = action_service.split(".", 1)
-                if svc_domain and not hass.services.has_service(svc_domain, svc_name):
-                    return (
-                        False,
-                        f"action uses non-existent service '{action_service}'",
-                        None,
-                    )
-            # Reject targets in read-only domains (no services registered at all)
-            target = norm_act.get("target", {})
-            entity_ids = target.get("entity_id", "") if isinstance(target, dict) else ""
-            if isinstance(entity_ids, str):
-                entity_ids = [entity_ids] if entity_ids else []
-            for eid in entity_ids:
-                if "{{" in eid:
-                    continue
-                eid_domain = eid.split(".")[0] if "." in eid else ""
-                if eid_domain and not hass.services.async_services_for_domain(eid_domain):
-                    return (
-                        False,
-                        f"action targets read-only domain '{eid_domain}' ({eid})",
-                        None,
-                    )
+            for svc_act in _iter_service_actions([norm_act]):
+                action_service = str(svc_act.get("action", svc_act.get("service", "")))
+                if "." in action_service and "{{" not in action_service:
+                    svc_domain, svc_name = action_service.split(".", 1)
+                    if svc_domain and not hass.services.has_service(svc_domain, svc_name):
+                        return (
+                            False,
+                            f"action uses non-existent service '{action_service}'",
+                            None,
+                        )
+                # Reject targets in read-only domains (no services registered at all)
+                target = svc_act.get("target", {})
+                entity_ids = target.get("entity_id", "") if isinstance(target, dict) else ""
+                if isinstance(entity_ids, str):
+                    entity_ids = [entity_ids] if entity_ids else []
+                for eid in entity_ids:
+                    if "{{" in eid:
+                        continue
+                    eid_domain = eid.split(".")[0] if "." in eid else ""
+                    if eid_domain and not hass.services.async_services_for_domain(eid_domain):
+                        return (
+                            False,
+                            f"action targets read-only domain '{eid_domain}' ({eid})",
+                            None,
+                        )
         normalized_actions.append(norm_act)
 
     # Recurse into action control-flow (`choose`, `if`, `repeat`, etc.) so
@@ -1391,6 +1508,14 @@ def _iter_service_actions(actions: Any) -> Iterator[dict[str, Any]]:
     if not isinstance(actions, list):
         return
     for action in actions:
+        if isinstance(action, list):
+            # HA accepts nested action-sequence lists (e.g.
+            # ``parallel: [[{...}], [{...}]]``); recurse so service calls
+            # inside them aren't skipped — _rewrite_announcements walks this
+            # same shape, so the validator must too or an unrepairable missing
+            # service buried in such a branch slips through.
+            yield from _iter_service_actions(action)
+            continue
         if not isinstance(action, dict):
             continue
         yield action

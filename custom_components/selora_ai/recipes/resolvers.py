@@ -105,7 +105,7 @@ async def _resolve_nws_station(hass: HomeAssistant) -> str:
     return str(station_id)
 
 
-# ── Registry ───────────────────────────────────────────────────────
+# ── HA location resolvers ──────────────────────────────────────────
 
 
 async def _resolve_hass_latitude(hass: HomeAssistant) -> float:
@@ -130,12 +130,51 @@ async def _resolve_hass_longitude(hass: HomeAssistant) -> float:
     return float(hass.config.longitude)
 
 
+# ── TTS engine resolver ────────────────────────────────────────────
+
+
+# Order of preference when several TTS engines are configured. Mirrors
+# automation_utils._resolve_tts_engine so a recipe announcement and an
+# LLM-generated announcement land on the same engine for a given home.
+_TTS_ENGINE_PREFERENCE = ("cloud", "piper", "google")
+
+
+async def _resolve_tts_engine(hass: HomeAssistant) -> str:
+    """Pick a Text-to-Speech engine entity for ``tts.speak`` announcements.
+
+    Recipes used to hard-code ``tts.cloud_say``, which only exists with a
+    paid Home Assistant Cloud (Nabu Casa) subscription — on every other home
+    the announcement passed its trigger but called nothing. Resolving the
+    engine from the home's actual ``tts.*`` entities (prefer HA Cloud, then
+    Piper, then Google, else the first available) lets the template emit a
+    portable ``tts.speak`` call that works regardless of subscription.
+
+    Returns the engine entity_id, or ``""`` when the home has no TTS engine
+    configured. The empty string is intentional, not a :class:`ResolverError`:
+    a home without TTS should still get the rest of the recipe (siren, push
+    notification), so the template guards the announcement on a non-empty
+    value and simply omits it rather than halting the whole install.
+    """
+    tts_entities = sorted(hass.states.async_entity_ids("tts"))
+    if not tts_entities:
+        return ""
+    for preferred in _TTS_ENGINE_PREFERENCE:
+        for eid in tts_entities:
+            if preferred in eid:
+                return eid
+    return tts_entities[0]
+
+
+# ── Registry ───────────────────────────────────────────────────────
+
+
 Resolver = Callable[["HomeAssistant"], Awaitable[Any]]
 
 RESOLVERS: dict[str, Resolver] = {
     "nws_station_from_location": _resolve_nws_station,
     "hass_config_latitude": _resolve_hass_latitude,
     "hass_config_longitude": _resolve_hass_longitude,
+    "tts_engine": _resolve_tts_engine,
 }
 
 
