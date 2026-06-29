@@ -22,12 +22,15 @@ variables:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    - if: $CI_COMMIT_BRANCH == "next"
     - if: $CI_COMMIT_BRANCH =~ /^[0-9]+\.[0-9]+\.x$/
 
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+    # `next` is the machine-managed prerelease mirror of main (see mirror-next).
+    - if: $CI_COMMIT_BRANCH == "next"
     - if: $CI_COMMIT_BRANCH =~ /^[0-9]+\.[0-9]+\.x$/
 
 # =============================================================================
@@ -148,6 +151,9 @@ release-patch-script:
 #   GL_TOKEN — GitLab project access token (api + write_repository scope)
 #   GH_TOKEN — GitHub personal access token (repo scope) for HACS mirror releases
 
+# Stable release: scheduled or manual ("Run pipeline" web button) on main, or
+# manual on a maintenance branch. Cuts a clean vX.Y.Z and commits the
+# CHANGELOG/manifest bump back. This is the only release HACS shows by default.
 release:
   stage: release
   image: node:lts-alpine
@@ -164,6 +170,51 @@ release:
   script:
     - npx semantic-release
   variables:
+    GIT_AUTHOR_NAME: "semantic-release[bot]"
+    GIT_AUTHOR_EMAIL: "semantic-release@selora.ai"
+    GIT_COMMITTER_NAME: "semantic-release[bot]"
+    GIT_COMMITTER_EMAIL: "semantic-release@selora.ai"
+
+# Mirror main → next on every push to main. semantic-release won't let main
+# itself be the prerelease branch (it requires at least one stable release
+# branch), so `next` is a machine-managed mirror that carries the prerelease
+# channel. Fast-forwarding next here is what makes "every push to main yields a
+# prerelease" work: the push below triggers a `next` pipeline whose `prerelease`
+# job tags the -pre. Runs in the release stage so it only fires after tests pass.
+mirror-next:
+  stage: release
+  image: alpine:latest
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  before_script:
+    - apk add --no-cache git
+  script:
+    # Plain (fast-forward) push: `next` is only ever advanced by this job and
+    # main only moves forward, so next is always a strict ancestor of main —
+    # a fast-forward. No `-f`, matching the branch's allow_force_push = false;
+    # a non-fast-forward here means something manually touched next and should
+    # fail loudly rather than be papered over.
+    - git push "https://oauth2:${GL_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "HEAD:next"
+
+# Prerelease: every push to `next` cuts a vX.Y.Z-pre.N tag (PRERELEASE=true flips
+# release.config.js to the prerelease channel). It tags + publishes only — no commit
+# back — and the GitHub release is flagged as a prerelease so HACS ignores it
+# unless a user opts into betas. mirror-next keeps `next` fast-forwarded to main,
+# so this fires on every main push; the stable `release` job above cuts the
+# clean vX.Y.Z when triggered manually/on schedule.
+prerelease:
+  stage: release
+  image: node:lts-alpine
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "next"
+  before_script:
+    - apk add --no-cache git zip
+    - npm ci
+    - cd custom_components/selora_ai/frontend && npm ci && cd ../../..
+  script:
+    - npx semantic-release
+  variables:
+    PRERELEASE: "true"
     GIT_AUTHOR_NAME: "semantic-release[bot]"
     GIT_AUTHOR_EMAIL: "semantic-release@selora.ai"
     GIT_COMMITTER_NAME: "semantic-release[bot]"

@@ -90,6 +90,20 @@ describe("ensureRelease", () => {
     assert.equal(payload.target_commitish, sha);
   });
 
+  it("defaults prerelease to false so HACS surfaces the release", async () => {
+    const apiFn = mock.fn(async () => ({ id: 1 }));
+    await ensureRelease({ ...baseArgs, apiFn });
+    const payload = JSON.parse(apiFn.mock.calls[0].arguments[1]);
+    assert.equal(payload.prerelease, false);
+  });
+
+  it("flags the release as a prerelease when requested so HACS keeps it off the default list", async () => {
+    const apiFn = mock.fn(async () => ({ id: 1 }));
+    await ensureRelease({ ...baseArgs, prerelease: true, apiFn });
+    const payload = JSON.parse(apiFn.mock.calls[0].arguments[1]);
+    assert.equal(payload.prerelease, true);
+  });
+
   it("reuses existing release on 422 conflict", async () => {
     const existingRelease = {
       id: 99,
