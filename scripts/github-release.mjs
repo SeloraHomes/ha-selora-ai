@@ -70,6 +70,7 @@ export async function ensureRelease({
   notes,
   token,
   targetCommitish = "main",
+  prerelease = false,
   apiFn = githubApi,
 }) {
   const headers = {
@@ -83,6 +84,10 @@ export async function ensureRelease({
       target_commitish: targetCommitish,
       name: tag,
       body: notes,
+      // HACS installs the latest non-prerelease release by default, so marking
+      // rc tags as prereleases keeps them off normal users' update lists unless
+      // they enable "show beta versions" for this repo.
+      prerelease,
     });
     const release = await apiFn(
       {
@@ -187,12 +192,16 @@ export async function main(version, token, targetCommitish = "main") {
     try { return readFileSync("CHANGELOG.md", "utf8"); } catch { return ""; }
   })();
   const tag = `v${version}`;
+  // A semver prerelease identifier (e.g. 0.12.0-rc.1) means this is a
+  // prerelease tag — flag it so HACS keeps it off the default update list.
+  const prerelease = version.includes("-");
   const release = await ensureRelease({
     repo: GITHUB_REPO,
     tag,
     notes: extractNotes(changelog),
     token,
     targetCommitish,
+    prerelease,
   });
 
   // 3. Remove any stale asset (required — GitHub rejects duplicate names),
