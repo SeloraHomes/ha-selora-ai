@@ -89,6 +89,44 @@ def test_empty_inputs_passthrough():
     assert _inject_entity_markers("hello", []) == "hello"
 
 
+def test_single_plain_word_name_not_matched_in_prose() -> None:
+    # Regression: a Chromecast whose friendly_name is the common word
+    # "Search" must NOT match the verb "search" in unrelated clarification
+    # prose. Single plain words are too generic for the prose fallback.
+    text = (
+        "It seems the Reolink doorbell is not listed among your devices. "
+        "Let me know if you would like me to search for it again."
+    )
+    entities = [_ent("media_player.search", "Search")]
+    out = _inject_entity_markers(text, entities)
+    assert out == text
+    assert "[[entities:" not in out
+
+
+def test_single_plain_word_names_play_home_not_matched() -> None:
+    for word in ("Play", "Home", "Music", "Cast"):
+        text = f"You can play music, go home, or cast it — your {word.lower()} setup."
+        entities = [_ent(f"media_player.{word.lower()}", word)]
+        out = _inject_entity_markers(text, entities)
+        assert "[[entities:" not in out, word
+
+
+def test_camelcase_single_token_still_matches_in_prose() -> None:
+    # "HeatPump" splits into "heat pump" — it carries a distinguishing
+    # signal, so it is NOT treated as a weak plain word.
+    text = "Your heat pump is running efficiently."
+    entities = [_ent("climate.heatpump", "HeatPump")]
+    out = _inject_entity_markers(text, entities)
+    assert "[[entities:climate.heatpump]]" in out
+
+
+def test_multiword_name_still_matched_in_prose() -> None:
+    text = "Yes, you have a garage door in your setup."
+    entities = [_ent("cover.garage_door", "Garage Door")]
+    out = _inject_entity_markers(text, entities)
+    assert "[[entities:cover.garage_door]]" in out
+
+
 def test_bullet_list_replaced_inline_with_marker():
     # Exact failure shape from the user's screenshot. The "Lights (5 on):"
     # header AND the bullet list should be replaced *in place* by a
@@ -562,14 +600,7 @@ def test_bullet_line_with_raw_entity_id_wins_over_friendly_name_collision():
 def test_prose_around_fenced_block_still_gets_marker():
     # Friendly-name salvage MUST still fire on the prose surrounding a
     # fenced block — only the block contents are off-limits.
-    text = (
-        "Yes, you have a garage door.\n"
-        "\n"
-        "```yaml\n"
-        "# unrelated yaml\n"
-        "foo: bar\n"
-        "```\n"
-    )
+    text = "Yes, you have a garage door.\n\n```yaml\n# unrelated yaml\nfoo: bar\n```\n"
     entities = [_ent("cover.garage_door", "Garage Door")]
     out = _inject_entity_markers(text, entities)
     assert "[[entities:cover.garage_door]]" in out

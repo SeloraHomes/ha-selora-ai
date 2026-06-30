@@ -2586,6 +2586,10 @@ def parse_architect_response(
 
             if not is_valid or normalized is None:
                 _LOGGER.warning("Discarding invalid architect automation payload: %s", reason)
+                # Preserve the rejected payload so the WS handler's retry
+                # loop can build a ground-truth correction from the actual
+                # bad actions before re-prompting the model.
+                data["rejected_automation"] = data.get("automation")
                 data.pop("automation", None)
                 data.pop("automation_yaml", None)
                 data["validation_error"] = reason
@@ -3103,19 +3107,31 @@ def parse_streamed_response(
                     is_valid, reason, normalized = True, "", coerced
             if not is_valid or normalized is None:
                 _LOGGER.warning("Discarding invalid streamed automation payload: %s", reason)
-                # Always surface the device-listing clarification when
-                # validation rejects — matches the JSON-mode path so a
-                # user gets the same actionable list regardless of
-                # transport. Preserve any pre-block prose the LoRA
-                # emitted by prefixing it to the humanised clarification.
+                # Surface the device-listing clarification when validation
+                # rejects — matches the JSON-mode path so a user gets the
+                # same actionable list regardless of transport.
                 humanised = _humanise_unknown_entity_error(reason, entities)
-                bubble = f"{response_text}: {humanised}" if response_text else humanised
+                # Only prefix the model's pre-block prose for the
+                # clarification (unknown entity_id) case, where it adds
+                # context. For hard service/domain rejections that prose is
+                # an optimistic description of an automation that was NOT
+                # created — gluing it onto the error with ": " yields a
+                # contradictory "Here's what it will do.: I couldn't create
+                # it." bubble. ``rejected_automation`` is carried so the WS
+                # handler's retry loop can build a ground-truth correction.
+                is_clarification = "unknown entity_id" in reason
+                bubble = (
+                    f"{response_text}: {humanised}"
+                    if (response_text and is_clarification)
+                    else humanised
+                )
                 return _attach_qa(
                     {
-                        "intent": ("clarification" if "unknown entity_id" in reason else "answer"),
+                        "intent": ("clarification" if is_clarification else "answer"),
                         "response": bubble,
                         "validation_error": reason,
                         "validation_target": "automation",
+                        "rejected_automation": automation_data,
                     }
                 )
             automation_yaml = yaml.dump(normalized, default_flow_style=False, allow_unicode=True)

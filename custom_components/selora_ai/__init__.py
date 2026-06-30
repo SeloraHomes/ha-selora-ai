@@ -57,6 +57,7 @@ if TYPE_CHECKING:
         ToolCallLog,
     )
 
+from .agent_steps import decode_step, is_step_chunk, make_step
 from .automation_utils import suggestion_content_fingerprint
 from .const import (
     AIGATEWAY_TOKEN_PATH,
@@ -488,6 +489,7 @@ class ConversationStore:
         quick_actions: list[dict[str, Any]] | None = None,
         command_approval: dict[str, Any] | None = None,
         approval_status: str | None = None,
+        steps: list[dict[str, Any]] | None = None,
     ) -> ChatMessage:
         """Append a message to a session, auto-create if missing, and persist."""
         await self._ensure_loaded()
@@ -545,6 +547,8 @@ class ConversationStore:
             message["command_approval"] = command_approval
         if approval_status is not None:
             message["approval_status"] = approval_status
+        if steps:
+            message["steps"] = steps
 
         session["messages"].append(message)
 
@@ -1381,6 +1385,8 @@ async def _execute_command_calls(
     device, and HA services are not universally safe to treat as
     redundant — an explicit command must reach Home Assistant.
     """
+    from .llm_client.command_policy import approval_entity_ids  # noqa: PLC0415
+
     executed: list[dict[str, Any]] = []
     failed: list[dict[str, Any]] = []
     error_suffix = ""
@@ -1391,15 +1397,26 @@ async def _execute_command_calls(
         domain_part, service_name = service.split(".", 1)
         target = call.get("target", {}) or {}
         data = call.get("data", {}) or {}
-        raw_entity = target.get("entity_id") if isinstance(target, dict) else None
-        if raw_entity is None and isinstance(data, dict):
-            raw_entity = data.get("entity_id")
-        if isinstance(raw_entity, str):
-            entity_ids = [raw_entity]
-        elif isinstance(raw_entity, list):
-            entity_ids = [str(e) for e in raw_entity if isinstance(e, str)]
+        # The RECORD's entity_ids are what the UI tile, appended entity
+        # markers, and benchmark entity-walk read. For tts.speak that must be
+        # the speaker (data.media_player_entity_id), not the engine in
+        # target.entity_id — the engine is an implementation detail and never
+        # the device the user means. approval_entity_ids() encodes that rule;
+        # other services keep the existing target/data.entity_id derivation.
+        # NOTE: the dispatched call below still uses the raw target (engine in
+        # target.entity_id) — that's the shape tts.speak actually needs to run.
+        if service == "tts.speak":
+            entity_ids = approval_entity_ids(call)
         else:
-            entity_ids = []
+            raw_entity = target.get("entity_id") if isinstance(target, dict) else None
+            if raw_entity is None and isinstance(data, dict):
+                raw_entity = data.get("entity_id")
+            if isinstance(raw_entity, str):
+                entity_ids = [raw_entity]
+            elif isinstance(raw_entity, list):
+                entity_ids = [str(e) for e in raw_entity if isinstance(e, str)]
+            else:
+                entity_ids = []
         record: dict[str, Any] = {
             "domain": domain_part,
             "action": service_name,
@@ -1438,19 +1455,28 @@ def _executed_record_from_call(call: dict[str, Any]) -> dict[str, Any]:
     via the tool loop. Falls back to empty strings when ``service``
     has no ``.`` (defensive — the tool log path validates upstream).
     """
+    from .llm_client.command_policy import approval_entity_ids  # noqa: PLC0415
+
     service = str(call.get("service", "") or "")
     if "." in service:
         domain_part, service_name = service.split(".", 1)
     else:
         domain_part, service_name = "", service
-    target = call.get("target")
-    raw_entity = target.get("entity_id") if isinstance(target, dict) else None
-    if isinstance(raw_entity, list):
-        entity_ids: list[str] = [str(e) for e in raw_entity if isinstance(e, str)]
-    elif isinstance(raw_entity, str):
-        entity_ids = [raw_entity]
+    # For tts.speak the user-visible target is the speaker
+    # (data.media_player_entity_id), not the engine in target.entity_id —
+    # mirror approval_entity_ids so the tool-log and immediate-command paths
+    # carry the same speaker ids in their wire records.
+    if service == "tts.speak":
+        entity_ids: list[str] = approval_entity_ids(call)
     else:
-        entity_ids = []
+        target = call.get("target")
+        raw_entity = target.get("entity_id") if isinstance(target, dict) else None
+        if isinstance(raw_entity, list):
+            entity_ids = [str(e) for e in raw_entity if isinstance(e, str)]
+        elif isinstance(raw_entity, str):
+            entity_ids = [raw_entity]
+        else:
+            entity_ids = []
     data = call.get("data")
     return {
         "domain": domain_part,
@@ -1527,15 +1553,26 @@ def _redact_executed_entity_ids_for_generic_references(
 
 
 def _entity_ids_from_calls(calls: list[dict[str, Any]]) -> list[str]:
-    """Return a deduplicated ordered list of entity_ids targeted by service calls."""
+    """Return a deduplicated ordered list of entity_ids targeted by service
+    calls — the ids appended as ``[[entities:…]]`` markers under the reply.
+
+    For tts.speak the user-visible target is the speaker
+    (data.media_player_entity_id), not the engine in target.entity_id, so the
+    marker shows the speaker tile — same rule as approval_entity_ids and the
+    executed records."""
+    from .llm_client.command_policy import approval_entity_ids  # noqa: PLC0415
+
     seen: set[str] = set()
     result: list[str] = []
     for call in calls:
-        target = call.get("target", {})
-        raw = target.get("entity_id") or call.get("data", {}).get("entity_id")
-        if raw is None:
-            continue
-        ids = [raw] if isinstance(raw, str) else list(raw)
+        if call.get("service") == "tts.speak":
+            ids: list[str] = approval_entity_ids(call)
+        else:
+            target = call.get("target", {})
+            raw = target.get("entity_id") or call.get("data", {}).get("entity_id")
+            if raw is None:
+                continue
+            ids = [raw] if isinstance(raw, str) else list(raw)
         for eid in ids:
             if eid and eid not in seen:
                 seen.add(eid)
@@ -1642,6 +1679,27 @@ def _normalized_name(name: str) -> str:
     """Strip whitespace, underscores, and hyphens so "Heat Pump",
     "HeatPump", and "heat_pump" all hash to the same key."""
     return re.sub(r"[\s_\-]+", "", name.lower())
+
+
+def _is_weak_prose_name(name: str) -> bool:
+    """True when *name* is a single plain word — too generic to safely match
+    in unanchored prose.
+
+    The prose-mention fallback in :func:`_inject_entity_markers` is a last
+    resort that scans free text for any device's friendly_name. A single
+    common word surfaces a spurious tile when it also occurs as ordinary
+    vocabulary — e.g. a Chromecast named "Search" matching the verb in "let me
+    search for it again". Names that carry a distinguishing signal are NOT
+    weak and still match: multi-word ("Garage Door"), CamelCase ("HeatPump",
+    which splits into words), or digit/symbol-bearing ("Light0"). Explicit
+    entity_id tokens, LLM-emitted markers, and bullet/status structure all use
+    separate paths and are unaffected.
+    """
+    stripped = name.strip()
+    if not stripped or " " in stripped or not stripped.isalpha():
+        return False
+    # A CamelCase name splits into multiple search forms → not a plain word.
+    return len(_name_search_forms(stripped)) == 1
 
 
 def _inject_entity_markers(
@@ -2036,6 +2094,11 @@ def _inject_entity_markers(
                     or not _under_cap()
                 ):
                     continue
+                # Last-resort prose matching skips single plain words: they
+                # collide with ordinary vocabulary and surface spurious tiles
+                # (e.g. media_player "Search" matching the verb "search").
+                if _is_weak_prose_name(name):
+                    continue
                 matched = False
                 for needle in _name_search_forms(name):
                     idx = 0
@@ -2377,6 +2440,168 @@ def _safe_send_message(
     return True
 
 
+# Interval between heartbeats pumped while a non-streamed correction round is
+# in flight. Must stay well under the frontend's post-token idle watchdog
+# (STREAM_CLOUD_IDLE_TIMEOUT_S, 45s) so a slow cloud round can't be mistaken
+# for a dead server. Matches the streaming tool-loop keepalive cadence.
+_AUTOMATION_RETRY_HEARTBEAT_S = 15.0
+
+
+def _upsert_step(steps: list[dict[str, Any]], step: dict[str, Any]) -> None:
+    """Insert *step* into *steps*, or replace the existing entry with the same
+    ``id`` in place. Keeps the server-side agent-activity timeline in lockstep
+    with the frontend's live upsert so a step that transitions (warn → done)
+    never appears twice in the done event or the persisted message."""
+    step_id = step.get("id")
+    for i, existing in enumerate(steps):
+        if existing.get("id") == step_id:
+            steps[i] = step
+            return
+    steps.append(step)
+
+
+def _automation_retry_budget(provider: Any) -> int:
+    """How many validation-failure correction rounds a provider may spend.
+
+    Each round re-prompts the model with a ground-truth feedback block (real
+    services for the involved entities) so a hallucinated or wrong service can
+    be corrected without hand-coding a rewrite per case. Selora AI Local
+    (low-context, tool-less, slow) gets none — a multi-second extra round there
+    is not worth it. Cloud is fast enough for several; Ollama gets one.
+    """
+    if getattr(provider, "is_low_context", False):
+        return 0
+    if getattr(provider, "is_local", False):
+        return 1
+    return 3
+
+
+async def _retry_invalid_automation(
+    hass: HomeAssistant,
+    llm: Any,
+    parsed: dict[str, Any],
+    *,
+    user_message: str,
+    entities: list[Any],
+    automations: list[dict[str, Any]] | None,
+    history: list[dict[str, str]] | None,
+    tool_executor: Any,
+    session_id: str | None,
+    language: str | None,
+    heartbeat: Callable[[], bool],
+    emit_step: Callable[[dict[str, Any]], bool] | None = None,
+) -> dict[str, Any]:
+    """Self-correct a chat-generated automation that failed validation.
+
+    When :func:`validate_automation_payload` rejects the model's automation,
+    re-prompt with :func:`build_service_feedback` — the actual integration
+    behind each target entity and that integration's real service list — and
+    let the model fix its own output. Returns the last parsed result: corrected
+    if a round succeeded, else the final failed attempt (its clean error bubble
+    is shown to the user).
+
+    This replaces per-service rewrite patches with one general loop: any
+    non-existent-service or read-only-target rejection is fed back and corrected
+    against ground truth instead of guessed at.
+    """
+    import json  # noqa: PLC0415 — module imports json lazily at point of use
+
+    from .automation_utils import build_service_feedback  # noqa: PLC0415
+
+    budget = _automation_retry_budget(llm.provider)
+    attempt = 0
+    while (
+        attempt < budget
+        and parsed.get("validation_target") == "automation"
+        and parsed.get("validation_error")
+        # Stop (don't retry) once a round comes back as an "unknown entity_id"
+        # clarification — the user must pick the entity; correcting service
+        # ground truth can't resolve it. Surface the clarification instead.
+        and parsed.get("intent") != "clarification"
+    ):
+        rejected = parsed.get("rejected_automation")
+        if not isinstance(rejected, dict):
+            break
+        attempt += 1
+        feedback = build_service_feedback(hass, str(parsed["validation_error"]), rejected)
+        correction = (
+            "Your previous automation proposal failed Home Assistant validation and "
+            "was NOT created. Here is the automation you proposed:\n\n"
+            f"```json\n{json.dumps(rejected, indent=2, default=str)}\n```\n\n"
+            f"{feedback}\n\n"
+            "Resubmit the corrected automation now."
+        )
+        _LOGGER.info(
+            "Automation validation failed (%s); correction round %d/%d.",
+            parsed.get("validation_error"),
+            attempt,
+            budget,
+        )
+        if emit_step is not None:
+            emit_step(
+                make_step(
+                    f"correct-{attempt}",
+                    "correct",
+                    "Fixed an invalid service and retried",
+                    status="done",
+                    detail=str(parsed["validation_error"]),
+                )
+            )
+        # The correction round is non-streamed and can outlast the frontend's
+        # idle watchdog on slow cloud models. Run it as a task and pump
+        # heartbeats while it's in flight so the client doesn't finalize the
+        # turn as "server stopped responding" mid-correction. A dead socket
+        # cancels the in-flight call and abandons the retry.
+        if not heartbeat():
+            break
+        correction_task = asyncio.ensure_future(
+            llm.architect_chat(
+                correction,
+                entities,
+                existing_automations=automations,
+                history=history,
+                tool_executor=tool_executor,
+                session_id=session_id,
+                language=language,
+            )
+        )
+        client_alive = True
+        try:
+            while not correction_task.done():
+                try:
+                    await asyncio.wait_for(
+                        asyncio.shield(correction_task),
+                        timeout=_AUTOMATION_RETRY_HEARTBEAT_S,
+                    )
+                except TimeoutError:
+                    if not heartbeat():
+                        correction_task.cancel()
+                        with suppress(asyncio.CancelledError):
+                            await correction_task
+                        client_alive = False
+                        break
+            if not client_alive:
+                break
+            parsed = correction_task.result()
+        except Exception as exc:  # noqa: BLE001 — best-effort retry
+            # The correction round is optional: a failure here (provider/
+            # transport error, parse failure) must NOT escalate an
+            # already-handled validation rejection into a generic websocket
+            # error that drops the turn. Keep the prior parse — it carries the
+            # clean validation_error response the user sees — and stop. (A
+            # genuine task cancellation is a BaseException and still
+            # propagates.)
+            _LOGGER.warning(
+                "Automation correction round %d failed (%s); keeping the prior validation error.",
+                attempt,
+                exc,
+            )
+            break
+    if attempt and parsed.get("automation"):
+        _LOGGER.info("Automation corrected after %d validation round(s).", attempt)
+    return parsed
+
+
 @websocket_api.async_response
 @decorators.websocket_command(
     {
@@ -2591,6 +2816,26 @@ async def _handle_websocket_chat_stream(
         # the chunk that introduces the JSON-block opener so the prose
         # prefix still streams but the JSON tokens after it don't.
         sent_chars = 0
+
+        # Agent-activity timeline ("what's happening"). Steps arrive inline in
+        # the stream as encoded chunks (tool reads) and are also emitted by
+        # this handler (validation / correction rounds). Each is forwarded
+        # live as a {type:"step"} event, then carried in the done event and
+        # persisted with the assistant message so a reload restores them.
+        steps: list[dict[str, Any]] = []
+
+        def _emit_step(step: dict[str, Any]) -> bool:
+            # Upsert by id so a step that transitions in place (e.g. the
+            # "validate" row going warn → done after a successful correction)
+            # replaces its prior entry instead of stacking a duplicate. Mirrors
+            # the frontend's live upsert so the done event's canonical list —
+            # which replaces the live one — and the persisted timeline match.
+            _upsert_step(steps, step)
+            return _safe_send_message(
+                connection,
+                websocket_api.event_message(msg["id"], {"type": "step", "step": step}),
+            )
+
         # True once a ```automation / ```scene spinner sentinel has been
         # forwarded, so the mid-stream suppressor doesn't send a second.
         spinner_sentinel_sent = False
@@ -2676,6 +2921,13 @@ async def _handle_websocket_chat_stream(
                     websocket_api.event_message(msg["id"], {"type": "heartbeat"}),
                 ):
                     # Client gone — stop pumping the LLM into a dead socket.
+                    return
+                continue
+            if is_step_chunk(chunk):
+                # Agent-activity step (tool read) — forward to the timeline,
+                # never into the bubble text. A dead socket aborts the turn.
+                step = decode_step(chunk)
+                if step is not None and not _emit_step(step):
                     return
                 continue
             full_text += chunk
@@ -2813,6 +3065,65 @@ async def _handle_websocket_chat_stream(
             language=msg.get("language"),
         )
 
+        # Surface the automation lifecycle on the activity timeline: drafted →
+        # validated (→ corrected, if a service didn't exist).
+        automation_attempted = parsed.get("automation") is not None or (
+            parsed.get("validation_target") == "automation" and parsed.get("validation_error")
+        )
+        if automation_attempted:
+            _emit_step(make_step("draft", "draft", "Drafted the automation"))
+
+        # Self-correct an automation that failed validation (e.g. a
+        # hallucinated service) by feeding the model the real services for
+        # the involved entities and letting it retry — instead of rejecting
+        # outright or hand-coding a rewrite per bad service. No-op unless the
+        # parse came back as an automation with a validation_error.
+        #
+        # Skip a clarification: an "unknown entity_id" rejection sets
+        # validation_target/validation_error too, but the parser marks it
+        # intent="clarification" because the user should disambiguate the
+        # entity, not have the model guess a different one. build_service_feedback
+        # targets service/read-only-domain failures; running it here would burn
+        # correction rounds and could replace the clarification with a proposal
+        # for the wrong entity. Surface the clarification immediately instead.
+        if (
+            parsed.get("validation_target") == "automation"
+            and parsed.get("validation_error")
+            and parsed.get("intent") != "clarification"
+        ):
+            _emit_step(
+                make_step(
+                    "validate",
+                    "validate",
+                    "Checked it against your Home Assistant",
+                    status="warn",
+                    detail=str(parsed.get("validation_error")),
+                )
+            )
+            parsed = await _retry_invalid_automation(
+                hass,
+                llm,
+                parsed,
+                user_message=user_message,
+                entities=entities,
+                automations=automations,
+                history=history,
+                tool_executor=tool_executor,
+                session_id=session_id,
+                language=msg.get("language"),
+                heartbeat=lambda: _safe_send_message(
+                    connection,
+                    websocket_api.event_message(msg["id"], {"type": "heartbeat"}),
+                ),
+                emit_step=_emit_step,
+            )
+
+        # Final validation state for the timeline: a present automation means
+        # it passed (possibly after correction). Reuses the "validate" step id
+        # so a prior warn row transitions to done rather than stacking.
+        if automation_attempted and parsed.get("automation") is not None:
+            _emit_step(make_step("validate", "validate", "Validated the automation"))
+
         intent_type = parsed.get("intent", "answer")
         response_text = parsed.get("response", full_text)
 
@@ -2916,6 +3227,7 @@ async def _handle_websocket_chat_stream(
             quick_actions=parsed.get("quick_actions"),
             command_approval=command_approval_payload,
             approval_status="pending" if command_approval_payload else None,
+            steps=steps or None,
         )
         persisted_any = True
 
@@ -2991,6 +3303,7 @@ async def _handle_websocket_chat_stream(
                     "tool_calls": tool_executor.call_log
                     if tool_executor and tool_executor.call_log
                     else None,
+                    "steps": steps or None,
                     "raw_response": full_text,
                     "command_approval": command_approval_payload,
                     "approval_message_index": assistant_message_index
@@ -6989,6 +7302,7 @@ async def _resolve_approval(
         _classify_call,
         _validate_review_call,
         _validate_safe_call,
+        approval_entity_ids,
         call_required_approval,
     )
     from .mcp_server import _safe_command_entity_allowlist
@@ -7046,14 +7360,12 @@ async def _resolve_approval(
         service = str(call.get("service", ""))
         if not service:
             continue
-        target = call.get("target") or {}
-        raw = target.get("entity_id") if isinstance(target, dict) else None
-        if isinstance(raw, str):
-            call_ids: list[str] = [raw] if raw else []
-        elif isinstance(raw, list):
-            call_ids = [eid for eid in raw if isinstance(eid, str)]
-        else:
-            call_ids = []
+        # Key the per-entity grant on the same id the approval check used.
+        # For tts.speak that's the speaker (data.media_player_entity_id), not
+        # the engine in target.entity_id — otherwise a Session/Always grant
+        # recorded against the engine would never match the speaker-keyed
+        # re-prompt check, re-showing the card on every identical announcement.
+        call_ids = approval_entity_ids(call)
         if entity_scope == "all" or not call_ids:
             pair: tuple[str, str | None] = (service, None)
             if pair not in seen_pairs:

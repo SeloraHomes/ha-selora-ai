@@ -19,6 +19,7 @@ import { formatTime } from "../shared/date-utils.js";
 import { renderDeviceDetail } from "./render-device-detail.js";
 import { renderQuickActions } from "./quick-actions.js";
 import { renderApprovalCard } from "./render-approval-card.js";
+import { renderAgentSteps } from "./render-agent-steps.js";
 import {
   AUTOCOMPLETE_MIN_CHARS,
   buildSuggestionIndex,
@@ -1173,16 +1174,22 @@ export function renderMessage(host, msg, idx) {
                 ? " assistant-wrap--approval"
                 : ""}"
             >
+              ${renderAgentSteps(host, msg.steps)}
               <div
                 class="bubble assistant${msg.command_approval
                   ? " bubble--approval"
-                  : ""}"
+                  : (showAutomationSpinner || showSceneSpinner) &&
+                      !displayContent?.trim()
+                    ? " bubble--spinner-only"
+                    : ""}"
                 style="max-width:100%;align-self:auto;"
               >
                 ${msg.command_approval
                   ? ""
                   : html`<span
-                      class="msg-content ${msg._streaming
+                      class="msg-content ${msg._streaming &&
+                      !showAutomationSpinner &&
+                      !showSceneSpinner
                         ? "streaming-cursor"
                         : ""}"
                       @click=${host._onCodeCopyClick}
@@ -1200,7 +1207,9 @@ export function renderMessage(host, msg, idx) {
                         AUTOMATION_LABEL_KEYS[labelIdx];
                       return html`
                         <div
-                          style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          style="display:flex;align-items:center;gap:10px;${displayContent?.trim()
+                            ? "margin-top:12px;"
+                            : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
                           <div
                             class="typing-dot"
@@ -1217,7 +1226,9 @@ export function renderMessage(host, msg, idx) {
                 ${showSceneSpinner
                   ? html`
                       <div
-                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                        style="display:flex;align-items:center;gap:10px;${displayContent?.trim()
+                          ? "margin-top:12px;"
+                          : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                       >
                         <div
                           class="typing-dot"

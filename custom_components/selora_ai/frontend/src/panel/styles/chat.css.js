@@ -507,6 +507,16 @@ export const chatStyles = css`
     border: none;
     padding: 0;
   }
+  /* While drafting an automation/scene the bubble's only content is the
+     amber progress box, which has its own border + background. Wrapping it
+     in the standard bubble shell nests two rounded boxes — strip the bubble
+     chrome so only the progress box shows. */
+  .bubble.assistant.bubble--spinner-only {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
   .bubble-meta {
     font-size: 10px;
     opacity: 0.5;

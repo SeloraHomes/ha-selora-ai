@@ -744,6 +744,10 @@ class ChatMessage(TypedDict, total=False):
     automation_id: str
     risk_assessment: RiskAssessment
     tool_calls: list[ToolCallLog]
+    # Agent-activity timeline entries (the "what's happening" steps). See
+    # agent_steps.AgentStep — kept as plain dicts here to avoid a cross-module
+    # import cycle; the websocket layer owns the canonical shape.
+    steps: list[dict[str, Any]]
     devices: list[dict[str, Any]]
     scene: ScenePayload
     scene_yaml: str

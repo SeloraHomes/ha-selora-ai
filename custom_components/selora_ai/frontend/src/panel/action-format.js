@@ -112,6 +112,21 @@ export function actionIcon(service) {
   return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
 }
 
+// The user-visible target entity_ids for a service call. For tts.speak the
+// `target.entity_id` is the TTS *engine* (an implementation detail chosen by
+// the backend engine resolver) and the device that actually plays the message
+// is the speaker in `data.media_player_entity_id`. Mirror the backend
+// `command_policy.approval_entity_ids` so the approval card, entity tile, and
+// scope chip show/confirm the speaker, not a `tts.*` engine. Every other
+// service reads `target.entity_id` as before.
+export function callTargetEntityIds(call) {
+  const raw =
+    call?.service === "tts.speak"
+      ? call?.data?.media_player_entity_id
+      : call?.target?.entity_id;
+  return Array.isArray(raw) ? raw : raw ? [raw] : [];
+}
+
 // Return ``{ verb, pastVerb, targetText, entityIds }`` for one call.
 // ``entityIds`` is empty when the service has no entity target (notify
 // channels, scripts, shell_commands). Callers that want to render an
@@ -119,8 +134,7 @@ export function actionIcon(service) {
 // non-entity fallback case.
 export function describeCall(host, call) {
   const service = call?.service || "";
-  const target = call?.target?.entity_id;
-  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const ids = callTargetEntityIds(call);
 
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;

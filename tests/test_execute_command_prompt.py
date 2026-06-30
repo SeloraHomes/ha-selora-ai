@@ -2018,6 +2018,80 @@ def test_executed_service_calls_from_log_preserves_data() -> None:
     assert record["data"] == {"brightness_pct": 60}
 
 
+def test_executed_record_from_call_keys_tts_speak_on_speaker() -> None:
+    """A tts.speak wire record must carry the SPEAKER in entity_ids (so the
+    UI tile and entity markers show the device that plays the message), not
+    the TTS engine in target.entity_id."""
+    from custom_components.selora_ai import _executed_record_from_call
+
+    record = _executed_record_from_call(
+        {
+            "service": "tts.speak",
+            "target": {"entity_id": "tts.google_translate_en_com"},
+            "data": {
+                "media_player_entity_id": "media_player.kitchen",
+                "message": "Someone is at the front door.",
+            },
+        }
+    )
+    assert record["domain"] == "tts"
+    assert record["action"] == "speak"
+    assert record["entity_ids"] == ["media_player.kitchen"]
+
+
+async def test_execute_command_calls_records_speaker_for_tts_speak(hass) -> None:
+    """Executing a tts.speak dispatches to the engine (target.entity_id) but
+    records the speaker as the touched entity, so downstream tiles/markers
+    point at the media_player the user hears — not the tts.* engine."""
+    from custom_components.selora_ai import _execute_command_calls
+
+    seen: dict[str, object] = {}
+
+    async def _capture(call) -> None:
+        seen["data"] = dict(call.data)
+
+    hass.services.async_register("tts", "speak", _capture)
+
+    executed, failed, _ = await _execute_command_calls(
+        hass,
+        [
+            {
+                "service": "tts.speak",
+                "target": {"entity_id": "tts.google_translate_en_com"},
+                "data": {
+                    "media_player_entity_id": "media_player.kitchen",
+                    "message": "Someone is at the front door.",
+                },
+            }
+        ],
+    )
+    assert failed == []
+    assert len(executed) == 1
+    # Record shows the speaker, not the engine.
+    assert executed[0]["entity_ids"] == ["media_player.kitchen"]
+    # But the dispatched call still targets the engine + carries the speaker.
+    assert seen["data"]["entity_id"] == "tts.google_translate_en_com"
+    assert seen["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+
+def test_entity_ids_from_calls_uses_speaker_for_tts_speak() -> None:
+    """The appended [[entities:…]] markers built from the calls show the
+    speaker for tts.speak, not the engine."""
+    from custom_components.selora_ai import _entity_ids_from_calls
+
+    ids = _entity_ids_from_calls(
+        [
+            {
+                "service": "tts.speak",
+                "target": {"entity_id": "tts.home_assistant_cloud"},
+                "data": {"media_player_entity_id": "media_player.kitchen"},
+            },
+            {"service": "lock.unlock", "target": {"entity_id": "lock.front"}},
+        ]
+    )
+    assert ids == ["media_player.kitchen", "lock.front"]
+
+
 def test_fallback_execution_records_redact_generic_targets(hass) -> None:
     """The post-tool failure path must redact generic-target entity_ids from
     its wire records, exactly like the normal success path. A 'set the
@@ -2215,3 +2289,182 @@ async def test_stream_tool_loop_whitespace_only_final_falls_back(hass, monkeypat
     # The acknowledgement fires despite the whitespace-only final chunk.
     assert result.strip(), "expected a non-empty acknowledgement, got whitespace only"
     assert _tool_failure_response([], language="en").strip() in result
+
+
+def _tts_command_hass(
+    *,
+    cloud_active: bool,
+    tts_entities: list[str],
+    say_services: set[str],
+    monkeypatch: pytest.MonkeyPatch,
+) -> MagicMock:
+    """MagicMock hass for the TTS command-canonicalization tests.
+
+    Mirrors the automation_utils rewriter test harness: a service registry
+    (tts.speak + the given legacy say services), a live tts.* entity set, and
+    a patched _cloud_tts_active so the no-subscription install can be modelled.
+    """
+    tts_services = set(say_services) | {"speak"}
+    registry = {"tts": tts_services, "media_player": {"play_media"}}
+    hass = MagicMock()
+    hass.services.has_service.side_effect = lambda d, s: s in registry.get(d, set())
+    hass.states.async_entity_ids.side_effect = lambda d: (
+        list(tts_entities) if d == "tts" else []
+    )
+    hass.states.get.side_effect = lambda eid: MagicMock()
+    monkeypatch.setattr(
+        "custom_components.selora_ai.automation_utils._cloud_tts_active",
+        lambda _hass: cloud_active,
+    )
+    return hass
+
+
+def test_command_cloud_say_without_subscription_canonicalized(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The reported chat-command failure: the model emits a tts.cloud_say
+    service call. cloud_say is registered (default_config) but mute (no Nabu
+    Casa), so it must be rewritten to tts.speak on a working engine BEFORE the
+    approval card is built — otherwise the user approves a call that fails at
+    dispatch with "Playback failed to start"."""
+    from custom_components.selora_ai.llm_client.command_policy import _normalize_tts_calls
+
+    hass = _tts_command_hass(
+        cloud_active=False,
+        tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+        say_services={"cloud_say"},
+        monkeypatch=monkeypatch,
+    )
+    calls = [
+        {
+            "service": "tts.cloud_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "Someone is at the front door."},
+        }
+    ]
+    _normalize_tts_calls(calls, hass)
+    assert calls[0]["service"] == "tts.speak"
+    # Falls back to the working (google) engine; cloud is unusable.
+    assert calls[0]["target"] == {"entity_id": "tts.google_translate_en_com"}
+    assert calls[0]["data"]["media_player_entity_id"] == "media_player.kitchen"
+    assert calls[0]["data"]["message"] == "Someone is at the front door."
+
+
+def test_command_non_tts_call_untouched(monkeypatch: pytest.MonkeyPatch) -> None:
+    """A non-TTS command call is left byte-for-byte unchanged."""
+    from custom_components.selora_ai.llm_client.command_policy import _normalize_tts_calls
+
+    hass = _tts_command_hass(
+        cloud_active=False,
+        tts_entities=["tts.google_translate_en_com"],
+        say_services=set(),
+        monkeypatch=monkeypatch,
+    )
+    calls = [{"service": "light.turn_on", "target": {"entity_id": "light.kitchen"}, "data": {}}]
+    before = [dict(c) for c in calls]
+    _normalize_tts_calls(calls, hass)
+    assert calls == before
+
+
+def test_command_tts_speak_validates_speaker_not_engine(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The P1 regression: a valid announcement command (tts.cloud_say →
+    media_player.kitchen) is canonicalized to tts.speak whose target.entity_id
+    is the TTS engine and whose speaker moves to data.media_player_entity_id.
+    The existence guard must validate the SPEAKER (a collected media_player),
+    not the engine (a tts.* entity never in the snapshot) — otherwise the
+    rewrite blocks the very request it exists to fix, before the approval card
+    can show."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        apply_command_policy,
+    )
+
+    class _NoStandingGrants:
+        def is_approved(self, *_a: object, **_k: object) -> bool:
+            return False
+
+    hass = _tts_command_hass(
+        cloud_active=False,
+        tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+        say_services={"cloud_say"},
+        monkeypatch=monkeypatch,
+    )
+    parsed = {
+        "intent": "command",
+        "response": "Announcing on the kitchen speaker.",
+        "calls": [
+            {
+                "service": "tts.cloud_say",
+                "target": {"entity_id": "media_player.kitchen"},
+                "data": {"message": "Someone is at the front door."},
+            }
+        ],
+    }
+    final = apply_command_policy(
+        parsed,
+        [_ent("media_player.kitchen")],
+        hass=hass,
+        approval_store=_NoStandingGrants(),
+    )
+    # NOT blocked by the existence guard — surfaces an approval card.
+    assert final["intent"] == "command_approval", final
+    call0 = final["command_approval"]["calls"][0]
+    assert call0["service"] == "tts.speak"
+    # _validate_review_call normalizes target.entity_id to a list.
+    assert call0["target"] == {"entity_id": ["tts.google_translate_en_com"]}
+    assert call0["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+
+def test_validate_review_call_rejects_speakerless_tts_speak() -> None:
+    """A tts.speak that names an engine target but no data.media_player_entity_id
+    must be rejected — the engine satisfying requires_target would otherwise let
+    a speakerless announcement through (it would fail / behave wrong at run
+    time). The required-target gate uses the speaker for this service."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        _classify_call,
+        _validate_review_call,
+    )
+
+    _bucket, entry = _classify_call("tts.speak")
+    assert entry is not None
+    speakerless = {
+        "service": "tts.speak",
+        "target": {"entity_id": "tts.google_translate_en_com"},
+        "data": {"message": "Someone is at the front door."},
+    }
+    validated, err = _validate_review_call(speakerless, entry)
+    assert validated is None
+    assert err is not None and "requires" in err
+
+    # With a speaker it validates (engine kept in target, speaker in data).
+    with_speaker = {
+        "service": "tts.speak",
+        "target": {"entity_id": "tts.google_translate_en_com"},
+        "data": {
+            "media_player_entity_id": "media_player.kitchen",
+            "message": "Someone is at the front door.",
+        },
+    }
+    validated2, err2 = _validate_review_call(with_speaker, entry)
+    assert err2 is None
+    assert validated2 is not None
+    assert validated2["target"] == {"entity_id": ["tts.google_translate_en_com"]}
+
+
+def test_approval_entity_ids_keys_on_speaker_for_tts_speak() -> None:
+    """approval_entity_ids returns the speaker for tts.speak (so the existence
+    guard and per-entity grant key on a real device), and target.entity_id for
+    everything else."""
+    from custom_components.selora_ai.llm_client.command_policy import (
+        approval_entity_ids,
+    )
+
+    speak = {
+        "service": "tts.speak",
+        "target": {"entity_id": "tts.google_translate_en_com"},
+        "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+    }
+    assert approval_entity_ids(speak) == ["media_player.kitchen"]
+    lock = {"service": "lock.unlock", "target": {"entity_id": "lock.front"}}
+    assert approval_entity_ids(lock) == ["lock.front"]

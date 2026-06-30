@@ -3112,6 +3112,16 @@ var chatStyles = i`
     border: none;
     padding: 0;
   }
+  /* While drafting an automation/scene the bubble's only content is the
+     amber progress box, which has its own border + background. Wrapping it
+     in the standard bubble shell nests two rounded boxes — strip the bubble
+     chrome so only the progress box shows. */
+  .bubble.assistant.bubble--spinner-only {
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+  }
   .bubble-meta {
     font-size: 10px;
     opacity: 0.5;
@@ -23045,10 +23055,16 @@ function _friendlyName(host, entityId) {
 function actionIcon(service) {
   return DOMAIN_ICONS[_domainOf(service)] || "mdi:cog-play-outline";
 }
+function callTargetEntityIds(call) {
+  const raw =
+    call?.service === "tts.speak"
+      ? call?.data?.media_player_entity_id
+      : call?.target?.entity_id;
+  return Array.isArray(raw) ? raw : raw ? [raw] : [];
+}
 function describeCall(host, call) {
   const service = call?.service || "";
-  const target = call?.target?.entity_id;
-  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const ids = callTargetEntityIds(call);
   const forms =
     SERVICE_FORMS[service] || DOMAIN_FORMS[_domainOf(service)] || null;
   const t4 =
@@ -23120,8 +23136,7 @@ function _renderActionTile(call) {
   `;
 }
 function _renderCallRow(host, call, reason) {
-  const target = call?.target?.entity_id;
-  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const ids = callTargetEntityIds(call);
   const { targetText } = describeCall(host, call);
   const rightSide = ids.length
     ? x`
@@ -23167,9 +23182,7 @@ function _proposalEntityIds(approval) {
   const seen = /* @__PURE__ */ new Set();
   const ids = [];
   for (const call of approval?.calls || []) {
-    const t4 = call?.target?.entity_id;
-    const list = Array.isArray(t4) ? t4 : t4 ? [t4] : [];
-    for (const eid of list) {
+    for (const eid of callTargetEntityIds(call)) {
       if (typeof eid === "string" && !seen.has(eid)) {
         seen.add(eid);
         ids.push(eid);
@@ -23296,6 +23309,99 @@ function renderApprovalCard(host, msg, approval, approvalStatus) {
           `
           : ""
       }
+    </div>
+  `;
+}
+
+// src/panel/render-agent-steps.js
+var STATUS_ICON = {
+  active: "mdi:loading",
+  done: "mdi:check-circle-outline",
+  warn: "mdi:alert-circle-outline",
+  error: "mdi:close-circle-outline",
+};
+var KIND_ICON = {
+  tool: "mdi:cog-outline",
+  draft: "mdi:pencil-outline",
+  validate: "mdi:shield-check-outline",
+  correct: "mdi:autorenew",
+  info: "mdi:information-outline",
+};
+var STATUS_SEVERITY = { done: 0, active: 1, warn: 2, error: 3 };
+function _stepColor(status) {
+  if (status === "warn") return "var(--warning-color, #f59e0b)";
+  if (status === "error") return "var(--error-color, #ef4444)";
+  return "var(--secondary-text-color)";
+}
+function _stepIcon(step) {
+  if (step.status === "active") return STATUS_ICON.active;
+  if (step.status === "warn") return STATUS_ICON.warn;
+  if (step.status === "error") return STATUS_ICON.error;
+  return step.icon || KIND_ICON[step.kind] || STATUS_ICON.done;
+}
+function _dedupeSteps(steps) {
+  const byKey = /* @__PURE__ */ new Map();
+  for (const step of steps) {
+    if (!step || !step.label) continue;
+    const key = `${step.kind || ""}::${step.label}`;
+    const prev = byKey.get(key);
+    if (!prev) {
+      byKey.set(key, { ...step });
+      continue;
+    }
+    if (
+      (STATUS_SEVERITY[step.status] ?? 0) > (STATUS_SEVERITY[prev.status] ?? 0)
+    ) {
+      prev.status = step.status;
+      if (step.detail) prev.detail = step.detail;
+    }
+  }
+  return [...byKey.values()];
+}
+function renderAgentSteps(host, steps) {
+  if (!Array.isArray(steps) || steps.length === 0) return "";
+  const items = _dedupeSteps(steps);
+  if (items.length === 0) return "";
+  const lastIndex = items.length - 1;
+  return x`
+    <div
+      class="agent-steps"
+      style="display:flex;flex-direction:column;gap:7px;margin:2px 2px 10px;"
+    >
+      ${items.map((step, i5) => {
+        const color = _stepColor(step.status);
+        const spinning = step.status === "active";
+        const emphasised = step.status === "warn" || step.status === "error";
+        const showRail = i5 !== lastIndex;
+        return x`
+          <div
+            class="agent-step"
+            style="display:flex;align-items:center;gap:9px;"
+            title=${step.detail || ""}
+          >
+            <div
+              style="position:relative;width:16px;height:16px;flex-shrink:0;display:flex;align-items:center;justify-content:center;"
+            >
+              ${
+                showRail
+                  ? x`<span
+                    style="position:absolute;left:50%;top:15px;height:11px;width:1px;background:var(--divider-color);transform:translateX(-50%);"
+                  ></span>`
+                  : ""
+              }
+              <ha-icon
+                icon=${_stepIcon(step)}
+                class=${spinning ? "agent-step-spin" : ""}
+                style="--mdc-icon-size:16px;color:${color};"
+              ></ha-icon>
+            </div>
+            <span
+              style="font-size:12px;line-height:1.3;color:${emphasised ? color : "var(--secondary-text-color)"};${emphasised ? "" : "opacity:0.9;"}"
+              >${step.label}</span
+            >
+          </div>
+        `;
+      })}
     </div>
   `;
 }
@@ -25366,15 +25472,16 @@ function renderMessage(host, msg, idx) {
             <div
               class="assistant-wrap${msg.command_approval || msg.automation || msg.scene ? " assistant-wrap--approval" : ""}"
             >
+              ${renderAgentSteps(host, msg.steps)}
               <div
-                class="bubble assistant${msg.command_approval ? " bubble--approval" : ""}"
+                class="bubble assistant${msg.command_approval ? " bubble--approval" : (showAutomationSpinner || showSceneSpinner) && !displayContent?.trim() ? " bubble--spinner-only" : ""}"
                 style="max-width:100%;align-self:auto;"
               >
                 ${
                   msg.command_approval
                     ? ""
                     : x`<span
-                      class="msg-content ${msg._streaming ? "streaming-cursor" : ""}"
+                      class="msg-content ${msg._streaming && !showAutomationSpinner && !showSceneSpinner ? "streaming-cursor" : ""}"
                       @click=${host._onCodeCopyClick}
                       .innerHTML=${renderMarkdown(displayContent)}
                     ></span>`
@@ -25392,7 +25499,7 @@ function renderMessage(host, msg, idx) {
                           AUTOMATION_LABEL_KEYS[labelIdx];
                         return x`
                         <div
-                          style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                          style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                         >
                           <div
                             class="typing-dot"
@@ -25411,7 +25518,7 @@ function renderMessage(host, msg, idx) {
                   showSceneSpinner
                     ? x`
                       <div
-                        style="display:flex;align-items:center;gap:10px;margin-top:12px;padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
+                        style="display:flex;align-items:center;gap:10px;${displayContent?.trim() ? "margin-top:12px;" : ""}padding:12px;border-radius:8px;background:rgba(251,191,36,0.08);border:1px solid rgba(251,191,36,0.15);"
                       >
                         <div
                           class="typing-dot"
@@ -32157,12 +32264,12 @@ function renderSettings(host) {
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
         >
           <a
-            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.10.0"}"
+            href="https://github.com/SeloraHomes/ha-selora-ai/releases/tag/v${"0.11.0"}"
             target="_blank"
             rel="noopener noreferrer"
             style="color:inherit;text-decoration:none;"
           >
-            Selora AI v${"0.10.0"}
+            Selora AI v${"0.11.0"}
           </a>
         </div>
       </div>
@@ -41179,6 +41286,14 @@ async function _sendMessage() {
         if (this._activeTurn === myTurn) this._loading = false;
       } else if (event.type === "heartbeat") {
         lastActivityAt = Date.now();
+      } else if (event.type === "step" && event.step && event.step.id) {
+        lastActivityAt = Date.now();
+        const steps = assistantMsg.steps ? [...assistantMsg.steps] : [];
+        const at = steps.findIndex((s6) => s6.id === event.step.id);
+        if (at >= 0) steps[at] = event.step;
+        else steps.push(event.step);
+        assistantMsg.steps = steps;
+        this._messages = [...this._messages];
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
@@ -41238,6 +41353,7 @@ async function _sendMessage() {
           ? "pending"
           : null;
         assistantMsg.tool_calls = event.tool_calls || null;
+        assistantMsg.steps = event.steps || assistantMsg.steps || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
@@ -41317,19 +41433,25 @@ function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
-  const note =
-    "\n\n" + this._t("chat_actions_cancelled_by_user", "_Cancelled by user_");
+  const reason = this._t(
+    "chat_actions_cancelled_by_user",
+    "_Cancelled by user_",
+  ).replace(/^_+|_+$/g, "");
   const lastMsg = this._messages[this._messages.length - 1];
   if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;
-    if (!lastMsg.content?.endsWith(note)) {
-      lastMsg.content = (lastMsg.content || "") + note;
-    }
+    lastMsg._interrupted = true;
+    lastMsg._interruptReason = reason;
     this._messages = [...this._messages];
   } else {
     this._messages = [
       ...this._messages,
-      { role: "assistant", content: note.trimStart() },
+      {
+        role: "assistant",
+        content: "",
+        _interrupted: true,
+        _interruptReason: reason,
+      },
     ];
   }
 }
@@ -44150,7 +44272,7 @@ var SeloraAIPanel = class extends s4 {
       const payload = {
         message: text,
         ha_version: this.hass?.config?.version || "unknown",
-        integration_version: true ? "0.10.0" : "unknown",
+        integration_version: true ? "0.11.0" : "unknown",
       };
       if (this._feedbackRating) payload.rating = this._feedbackRating;
       if (this._feedbackCategory) payload.category = this._feedbackCategory;

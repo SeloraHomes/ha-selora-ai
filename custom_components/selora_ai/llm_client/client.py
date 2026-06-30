@@ -18,6 +18,7 @@ import logging
 import re
 from typing import TYPE_CHECKING, Any
 
+from ..agent_steps import encode_tool_step
 from ..const import (
     ANALYSIS_LLM_TIMEOUT,
     ANALYSIS_OUTPUT_BASE_TOKENS,
@@ -1354,8 +1355,12 @@ class LLMClient:
         pure text response (up to MAX_TOOL_CALL_ROUNDS).
 
         Yields text chunks (str) directly — same interface as send_request_stream.
+        Read/inspect tool calls are also surfaced as encoded agent-activity
+        steps (``encode_tool_step``) so the panel can show a "what's happening"
+        timeline; the websocket handler separates them from bubble text.
         """
         streamed_text_parts: list[str] = []
+        tool_step_seq = 0
         for _round in range(MAX_TOOL_CALL_ROUNDS):
             # Final round withholds tools so the model streams a committed
             # answer (the terminal automation block) instead of requesting
@@ -1470,6 +1475,12 @@ class LLMClient:
                     break
                 result = exec_task.result()
                 results.append(result)
+                # Surface read/inspect tools as a timeline step. Write tools
+                # (execute_command / activate_scene) have their own result UI
+                # and are intentionally not narrated here.
+                if tc["name"] not in ("execute_command", "activate_scene"):
+                    tool_step_seq += 1
+                    yield encode_tool_step(tool_step_seq, tc["name"])
                 if isinstance(result, dict) and result.get("requires_approval"):
                     requires_approval_hit = True
                 elif (
