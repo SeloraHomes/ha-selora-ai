@@ -127,6 +127,7 @@ _SNAPSHOT_PROPERTY_KEYS: frozenset[str] = frozenset(
         "suggestions_dismissed",
         "llm_provider",
         "devices_by_integration",
+        "country",
         "ha_version",
         "app_version",
     }
@@ -412,7 +413,7 @@ class TelemetryClient:
             _count_blueprints, hass.config.path("blueprints")
         )
 
-        return {
+        snapshot: dict[str, Any] = {
             "devices": len(dev_reg.devices),
             "integrations": integrations,
             "automations": len(hass.states.async_all("automation")),
@@ -429,6 +430,16 @@ class TelemetryClient:
             "ha_version": HA_VERSION,
             "app_version": await self._async_app_version(),
         }
+
+        # Coarse, self-declared install country from HA's own general
+        # settings (ISO-3166 alpha-2, e.g. "CA"). Read locally — no IP is
+        # ever sent and GeoIP stays disabled (see ``_capture``), so this is
+        # the only geographic signal we transmit. Omitted when unset.
+        country = hass.config.country
+        if country:
+            snapshot["country"] = country
+
+        return snapshot
 
     async def _count_suggestions(self, status: str) -> int:
         """Count stored suggestions in ``status`` (0 on any failure)."""

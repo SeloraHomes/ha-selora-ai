@@ -492,6 +492,40 @@ async def test_snapshot_buckets_custom_integration_domains(hass, client) -> None
     assert breakdown.get("other", 0) >= 1
 
 
+async def test_snapshot_includes_configured_country(hass, client) -> None:
+    """The coarse, self-declared HA country is sent when set — no IP leak."""
+    _add_llm_entry(hass, telemetry_enabled=True)
+    hass.config.country = "CA"
+    session = _FakeSession()
+    with patch(
+        "custom_components.selora_ai.telemetry.async_get_clientsession",
+        return_value=session,
+    ):
+        await client.async_send_snapshot(provider="anthropic")
+        await hass.async_block_till_done()
+
+    props = session.calls[0]["json"]["properties"]
+    assert props["country"] == "CA"
+    # GeoIP stays disabled and the real IP is never transmitted.
+    assert props["$ip"] == "0.0.0.0"
+    assert props["$geoip_disable"] is True
+
+
+async def test_snapshot_omits_country_when_unset(hass, client) -> None:
+    """An install with no configured country sends no country property."""
+    _add_llm_entry(hass, telemetry_enabled=True)
+    hass.config.country = None
+    session = _FakeSession()
+    with patch(
+        "custom_components.selora_ai.telemetry.async_get_clientsession",
+        return_value=session,
+    ):
+        await client.async_send_snapshot(provider="anthropic")
+        await hass.async_block_till_done()
+
+    assert "country" not in session.calls[0]["json"]["properties"]
+
+
 # ── reload behaviour (telemetry options are hot, no reload) ───────────
 
 
