@@ -1062,12 +1062,32 @@ def _play_media_speaker(action: dict[str, Any]) -> str | list[str] | None:
     return None
 
 
-def _resolve_tts_engine(hass: HomeAssistant) -> str | None:
-    """Pick a TTS engine entity for ``tts.speak``: prefer HA Cloud, then Piper,
-    then Google, else the first available ``tts.*`` entity. ``None`` when none."""
+def _engine_matches_provider(engine_entity_id: str, provider: str) -> bool:
+    """True when ``engine_entity_id`` looks like it belongs to ``provider``.
+
+    ``provider`` is the prefix of a legacy ``tts.<provider>_say`` service
+    (``cloud``, ``google_translate``, ``piper``, …). Match on the full provider
+    token or its first segment so ``google_translate`` also matches a
+    ``tts.google_en_com`` entity. Used to keep canonicalization on the same
+    provider that the legacy service named.
+    """
+    eid = engine_entity_id.lower()
+    return provider in eid or provider.split("_", 1)[0] in eid
+
+
+def _resolve_tts_engine(hass: HomeAssistant, *, prefer: str | None = None) -> str | None:
+    """Pick a TTS engine entity for ``tts.speak``. When ``prefer`` is given (the
+    provider of a legacy ``tts.<provider>_say`` service), return an engine that
+    belongs to that provider so canonicalization keeps the original voice. Else
+    prefer HA Cloud, then Piper, then Google, else the first available ``tts.*``
+    entity. ``None`` when none."""
     tts_entities = sorted(hass.states.async_entity_ids("tts"))
     if not tts_entities:
         return None
+    if prefer:
+        for eid in tts_entities:
+            if _engine_matches_provider(eid, prefer):
+                return eid
     for preferred in ("cloud", "piper", "google"):
         for eid in tts_entities:
             if preferred in eid:
@@ -1161,25 +1181,34 @@ def _rewrite_legacy_tts_say(
     action: dict[str, Any],
     hass: HomeAssistant,
 ) -> dict[str, Any] | None:
-    """Rewrite a legacy ``tts.<provider>_say`` action whose service is not
-    registered on this instance into the unified ``tts.speak`` call.
+    """Rewrite a legacy ``tts.<provider>_say`` action into the unified
+    ``tts.speak`` call whenever the canonical path is available.
 
     The per-provider ``tts.<provider>_say`` services (``tts.cloud_say``,
-    ``tts.google_translate_say``, …) only exist when that provider is set up —
-    notably ``tts.cloud_say`` requires a paid Home Assistant Cloud (Nabu Casa)
-    subscription. An LLM that emits ``tts.cloud_say`` on an install without it
-    produces an automation that calls nothing: it passes the trigger but the
-    action silently does nothing because the service is unregistered.
+    ``tts.google_translate_say``, …) are the legacy, non-portable form: each
+    only exists while that specific provider is set up, and ``tts.speak`` is
+    HA's canonical replacement. We always retarget to ``tts.speak`` — not just
+    when the legacy service is missing — so an automation never hard-codes a
+    provider-specific service that breaks the moment that provider is removed
+    or the config is moved to another install. (The missing-service variant is
+    the worst case: an LLM emitting ``tts.cloud_say`` on an install without that
+    provider produces an action that silently does nothing.)
 
-    When the named ``tts.*_say`` service is missing but ``tts.speak`` and a TTS
-    engine are available, retarget it to ``tts.speak`` with the engine as the
-    target and the original speaker passed as ``media_player_entity_id`` —
-    preserving the message and any ``language`` / ``options`` / ``cache`` data.
+    When ``tts.speak`` and a TTS engine are available, retarget to ``tts.speak``
+    with the engine as the target and the original speaker passed as
+    ``media_player_entity_id`` — preserving the message and any ``language`` /
+    ``options`` / ``cache`` data. The engine is chosen to match the legacy
+    service's own provider (``cloud_say`` → the cloud engine,
+    ``google_translate_say`` → the google engine) so the voice never changes.
+    A *registered* (working) legacy call is left untouched when no engine for
+    its provider exists, rather than swapping it onto a different provider; an
+    unregistered (broken) call still falls back to any working engine.
 
     Returns the rewritten action, or ``None`` when the action is not a legacy
-    say call, the named service actually exists (so it works as-is), or it is
-    not rewritable (no ``tts.speak``, no engine, or no concrete media_player
-    speaker — in which case the missing-service gate rejects it downstream).
+    say call, or it is not rewritable (no ``tts.speak``, no engine, or no
+    concrete media_player speaker). When not rewritable, a registered legacy
+    service is left to run as-is and an unregistered one is rejected by the
+    missing-service gate downstream.
     """
     service = str(action.get("action", action.get("service", "")))
     if "." not in service or "{{" in service:
@@ -1191,25 +1220,40 @@ def _rewrite_legacy_tts_say(
     domain, name = service.split(".", 1)
     if domain != "tts" or not name.endswith("_say"):
         return None
-    # The provider's say service is registered here — it works, leave it alone.
-    if hass.services.has_service("tts", name):
-        return None
+    provider = name[: -len("_say")]
+    # Canonicalize even when the legacy say service is registered: tts.speak is
+    # the portable form, and a per-provider tts.*_say is non-portable. Bail only
+    # when the canonical path can't be built (handled by the gates below).
 
     if not hass.services.has_service("tts", "speak"):
         _LOGGER.warning(
-            "Announcement automation uses %s but that service is not registered "
-            "(needs the matching TTS provider) and tts.speak is unavailable; "
-            "leaving as-is (it will be silent).",
+            "Announcement automation uses legacy %s but tts.speak is unavailable "
+            "to canonicalize it to; leaving as-is.",
             service,
         )
         return None
-    engine = _resolve_tts_engine(hass)
+    # Prefer the engine belonging to the legacy service's own provider so the
+    # voice/provider never silently changes (cloud_say → the cloud engine,
+    # google_translate_say → the google engine).
+    engine = _resolve_tts_engine(hass, prefer=provider)
     if engine is None:
         _LOGGER.warning(
-            "Announcement automation uses %s but that service is not registered "
-            "and no TTS engine entity is configured; leaving as-is (it will be "
-            "silent).",
+            "Announcement automation uses legacy %s but no TTS engine entity is "
+            "configured to retarget tts.speak at; leaving as-is.",
             service,
+        )
+        return None
+    # Don't change the provider of a *working* call: when the legacy service is
+    # registered but the only engine we can resolve belongs to a different
+    # provider, leave it as-is rather than swapping the voice (and possibly
+    # invalidating provider-specific options). An unregistered service is broken
+    # regardless, so any working engine is still an improvement there.
+    if hass.services.has_service("tts", name) and not _engine_matches_provider(engine, provider):
+        _LOGGER.debug(
+            "Leaving registered legacy %s as-is: no matching %s TTS engine to "
+            "canonicalize to without changing the provider.",
+            service,
+            provider,
         )
         return None
 
@@ -1260,7 +1304,7 @@ def _rewrite_legacy_tts_say(
             new_data[key] = data[key]
     rewritten["data"] = new_data
     _LOGGER.info(
-        "Rewrote unregistered %s announcement to tts.speak (engine=%s, speaker=%s).",
+        "Canonicalized legacy %s announcement to tts.speak (engine=%s, speaker=%s).",
         service,
         engine,
         ", ".join(speaker_ids),
