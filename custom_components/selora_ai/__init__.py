@@ -927,16 +927,22 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             if val is not None:
                 attrs[attr_key] = val
 
-        # Resolve area (entity assignment, device fallback) and — for
-        # media_player entities — the device manufacturer/model. Exposing
-        # the brand lets the model map a request like "the Sonos" or
-        # "HomePod" to an entity whose friendly name doesn't carry it
-        # (e.g. media_player.living_room_2) instead of claiming it absent.
+        # Resolve area (entity assignment, device fallback), the source
+        # integration (entry.platform), and — for media_player entities —
+        # the device manufacturer/model. Exposing the brand lets the model
+        # map a request like "the Sonos" or "HomePod" to an entity whose
+        # friendly name doesn't carry it (e.g. media_player.living_room_2)
+        # instead of claiming it absent. Exposing the integration lets it
+        # apply brand-specific semantics (e.g. that a reolink
+        # binary_sensor.*_visitor is the doorbell button press) that the
+        # entity_id and friendly_name alone don't reveal.
         area_name = ""
         manufacturer = ""
         model = ""
+        platform = ""
         entry = entity_reg.async_get(state.entity_id)
         if entry:
+            platform = entry.platform or ""
             area_id = entry.area_id
             if entry.device_id:
                 device = device_reg.async_get(entry.device_id)
@@ -960,6 +966,8 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
             snapshot["manufacturer"] = manufacturer
         if model:
             snapshot["model"] = model
+        if platform:
+            snapshot["platform"] = platform
         states.append(snapshot)
     return states
 
