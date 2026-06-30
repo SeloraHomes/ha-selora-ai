@@ -32,6 +32,9 @@ def _format_entity_line(entity: EntitySnapshot) -> str:
     area = entity.get("area_name", "")
     if area:
         parts.append(f"area={_format_untrusted_text(area)}")
+    platform = entity.get("platform", "")
+    if platform:
+        parts.append(f"platform={_format_untrusted_text(platform)}")
     manufacturer = entity.get("manufacturer", "")
     if manufacturer:
         parts.append(f"manufacturer={_format_untrusted_text(manufacturer)}")

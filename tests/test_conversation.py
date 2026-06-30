@@ -482,6 +482,37 @@ class TestFormatEntityLine:
         assert "manufacturer" not in line
         assert "model" not in line
 
+    def test_includes_platform(self) -> None:
+        """The source integration appears so the model can apply brand semantics.
+
+        Lets the model know e.g. that a reolink binary_sensor.*_visitor is the
+        doorbell button press, which the entity_id/friendly_name don't reveal.
+        """
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
+
+        entity = {
+            "entity_id": "binary_sensor.front_door_visitor",
+            "state": "off",
+            "area_name": "Front Porch",
+            "platform": "reolink",
+            "attributes": {"friendly_name": "Front Door Visitor"},
+        }
+        line = _format_entity_line(entity)
+        assert "platform=" in line
+        assert "reolink" in line
+
+    def test_omits_platform_when_absent(self) -> None:
+        """No platform field when the snapshot lacks it."""
+        from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
+
+        entity = {
+            "entity_id": "light.kitchen",
+            "state": "on",
+            "attributes": {"friendly_name": "Kitchen"},
+        }
+        line = _format_entity_line(entity)
+        assert "platform" not in line
+
     def test_includes_whitelisted_attrs(self) -> None:
         """Whitelisted attributes should appear in the entity line."""
         from custom_components.selora_ai.llm_client.sanitize import _format_entity_line
