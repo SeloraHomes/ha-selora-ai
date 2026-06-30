@@ -1075,24 +1075,70 @@ def _engine_matches_provider(engine_entity_id: str, provider: str) -> bool:
     return provider in eid or provider.split("_", 1)[0] in eid
 
 
+def _cloud_tts_active(hass: HomeAssistant) -> bool:
+    """True when Home Assistant Cloud TTS is actually usable on this install.
+
+    The ``cloud`` integration ships in ``default_config`` and creates the
+    ``tts.home_assistant_cloud`` entity unconditionally — its TTS platform is
+    forwarded regardless of login state, and the entity reports ``available``
+    with a live (``unknown``) state even with no Nabu Casa subscription. So
+    entity presence / state / availability cannot tell a working cloud engine
+    apart from a dead one that only fails at call time; the login + active
+    subscription state is the only reliable signal. Imported lazily and guarded
+    so the integration still works when the cloud component is absent.
+    """
+    try:
+        from homeassistant.components.cloud import async_active_subscription
+    except ImportError:
+        return False
+    try:
+        return bool(async_active_subscription(hass))
+    except (KeyError, AttributeError):
+        # Cloud data not populated / internal API shifted — treat as inactive
+        # rather than route an announcement at an engine that can't speak.
+        return False
+
+
+def _tts_engine_usable(hass: HomeAssistant, engine: str) -> bool:
+    """True when *engine* is a live ``tts.*`` entity that can actually speak.
+
+    A cloud engine reports ``available`` regardless of subscription (see
+    :func:`_cloud_tts_active`), so it is only usable with an active HA Cloud
+    subscription. Any other engine is usable whenever it is present as a live
+    entity.
+    """
+    if engine not in hass.states.async_entity_ids("tts"):
+        return False
+    if _engine_matches_provider(engine, "cloud"):
+        return _cloud_tts_active(hass)
+    return True
+
+
 def _resolve_tts_engine(hass: HomeAssistant, *, prefer: str | None = None) -> str | None:
-    """Pick a TTS engine entity for ``tts.speak``. When ``prefer`` is given (the
-    provider of a legacy ``tts.<provider>_say`` service), return an engine that
-    belongs to that provider so canonicalization keeps the original voice. Else
-    prefer HA Cloud, then Piper, then Google, else the first available ``tts.*``
-    entity. ``None`` when none."""
-    tts_entities = sorted(hass.states.async_entity_ids("tts"))
-    if not tts_entities:
+    """Pick a usable TTS engine entity for ``tts.speak``. When ``prefer`` is
+    given (the provider of a legacy ``tts.<provider>_say`` service), return an
+    engine that belongs to that provider so canonicalization keeps the original
+    voice. Else prefer HA Cloud, then Piper, then Google, else the first usable
+    ``tts.*`` entity.
+
+    Only *usable* engines are considered (:func:`_tts_engine_usable`): a cloud
+    engine present without an active Nabu Casa subscription is skipped, since it
+    reports available yet fails at call time. ``None`` when no usable engine
+    exists."""
+    usable = [
+        eid for eid in sorted(hass.states.async_entity_ids("tts")) if _tts_engine_usable(hass, eid)
+    ]
+    if not usable:
         return None
     if prefer:
-        for eid in tts_entities:
+        for eid in usable:
             if _engine_matches_provider(eid, prefer):
                 return eid
     for preferred in ("cloud", "piper", "google"):
-        for eid in tts_entities:
+        for eid in usable:
             if preferred in eid:
                 return eid
-    return tts_entities[0]
+    return usable[0]
 
 
 def _rewrite_spoken_play_media(
@@ -1312,18 +1358,75 @@ def _rewrite_legacy_tts_say(
     return rewritten
 
 
+def _retarget_tts_speak_engine(
+    action: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any] | None:
+    """Pin a ``tts.speak`` action's engine to one that actually exists on this
+    install.
+
+    ``tts.speak`` addresses the TTS *engine* via ``target.entity_id``. The LLM
+    routinely copies the example engine (``tts.home_assistant_cloud``) from the
+    system prompt verbatim, regardless of which engines the home actually has.
+    ``tts.home_assistant_cloud`` exists and reports available on nearly every
+    install (the ``cloud`` integration ships in ``default_config``), yet only
+    speaks with an active Nabu Casa subscription — so the action validates but
+    runs silently mute on installs without one. (The engine can also be wholly
+    absent / registry-only, which the unknown-entity gate would otherwise pass.)
+
+    When the action's engine is not *usable* (:func:`_tts_engine_usable` —
+    missing, registry-only, or a cloud engine without an active subscription),
+    retarget it to a resolved usable engine. A usable engine the LLM picked is
+    left untouched. Returns the rewritten action, or ``None`` when nothing
+    better can be done (the chosen engine is already usable, no engine is
+    resolvable, or the target is not a single concrete engine entity_id).
+    """
+    service = str(action.get("action", action.get("service", "")))
+    if service != "tts.speak":
+        return None
+    target = action.get("target")
+    target = target if isinstance(target, dict) else {}
+    engine = target.get("entity_id")
+    # Only handle the canonical single-engine string. A list target or a
+    # templated engine resolves elsewhere/at runtime — leave it for the gates
+    # rather than guess at it.
+    if engine is not None and (not isinstance(engine, str) or "{{" in engine):
+        return None
+    if isinstance(engine, str) and _tts_engine_usable(hass, engine):
+        # The LLM picked a usable engine — keep its choice.
+        return None
+    resolved = _resolve_tts_engine(hass)
+    if resolved is None or resolved == engine:
+        # No usable engine to offer (home has no working TTS): leave as-is so
+        # the existing service/entity gates handle it rather than emit a guess.
+        return None
+    rewritten = dict(action)
+    rewritten["target"] = {**target, "entity_id": resolved}
+    _LOGGER.info(
+        "Retargeted tts.speak engine %s -> %s (chosen engine is not a live TTS "
+        "entity on this install).",
+        engine or "<unset>",
+        resolved,
+    )
+    return rewritten
+
+
 def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
-    """Apply the announcement repairs (:func:`_rewrite_spoken_play_media` and
-    :func:`_rewrite_legacy_tts_say`) to *action* and to any actions nested in
-    its control-flow branches (``choose`` / ``if`` / ``sequence`` / ``repeat`` /
-    ``parallel`` …).
+    """Apply the announcement repairs (:func:`_rewrite_spoken_play_media`,
+    :func:`_rewrite_legacy_tts_say`, and :func:`_retarget_tts_speak_engine`) to
+    *action* and to any actions nested in its control-flow branches (``choose`` /
+    ``if`` / ``sequence`` / ``repeat`` / ``parallel`` …).
 
     Mirrors the recursion the entity walker and condition validator already do,
     so a silent announcement buried inside a conditional branch is repaired just
     like a top-level one. Returns the resulting action (a rewritten ``tts.speak``
     form, or the original with nested branches rewritten in place).
     """
-    rewritten = _rewrite_spoken_play_media(action, hass) or _rewrite_legacy_tts_say(action, hass)
+    rewritten = (
+        _rewrite_spoken_play_media(action, hass)
+        or _rewrite_legacy_tts_say(action, hass)
+        or _retarget_tts_speak_engine(action, hass)
+    )
     if rewritten is not None:
         return rewritten
 

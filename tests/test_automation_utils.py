@@ -17,8 +17,10 @@ from custom_components.selora_ai.automation_utils import (
     _quote_yaml_booleans,
     _read_automations_yaml,
     _resolve_tts_engine,
+    _retarget_tts_speak_engine,
     _rewrite_legacy_tts_say,
     _rewrite_spoken_play_media,
+    _tts_engine_usable,
     _write_automations_yaml,
     assess_automation_risk,
     async_create_automation,
@@ -2897,6 +2899,17 @@ class TestSpokenPlayMediaRewrite:
         )
         self._registry_ids = registry_ids
 
+    @pytest.fixture(autouse=True)
+    def _patch_cloud_active(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Default to a working HA Cloud (active Nabu Casa subscription) so a
+        # cloud engine is usable; individual tests flip self._cloud_active to
+        # model the no-subscription install where cloud TTS is present but mute.
+        self._cloud_active = True
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils._cloud_tts_active",
+            lambda _hass: self._cloud_active,
+        )
+
     def _set_registry(self, ids: set[str]) -> None:
         self._registry_ids.clear()
         self._registry_ids.update(ids)
@@ -2953,6 +2966,32 @@ class TestSpokenPlayMediaRewrite:
     def test_resolve_engine_none_when_no_tts(self) -> None:
         hass = self._hass(tts_entities=[])
         assert _resolve_tts_engine(hass) is None
+
+    def test_resolve_engine_skips_cloud_without_subscription(self) -> None:
+        # The reported case: cloud engine is present (default_config) but there's
+        # no active Nabu Casa subscription, so it can't speak. Resolution must
+        # skip it and pick the working Piper engine even though cloud is the
+        # globally preferred provider.
+        self._cloud_active = False
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.piper"])
+        assert _resolve_tts_engine(hass) == "tts.piper"
+
+    def test_resolve_engine_none_when_only_unsubscribed_cloud(self) -> None:
+        # Cloud is the only engine and it's not subscribed → nothing can speak.
+        self._cloud_active = False
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud"])
+        assert _resolve_tts_engine(hass) is None
+
+    def test_engine_usable_cloud_gated_on_subscription(self) -> None:
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.piper"])
+        # Piper is always usable when present; cloud only with a subscription.
+        assert _tts_engine_usable(hass, "tts.piper") is True
+        self._cloud_active = True
+        assert _tts_engine_usable(hass, "tts.home_assistant_cloud") is True
+        self._cloud_active = False
+        assert _tts_engine_usable(hass, "tts.home_assistant_cloud") is False
+        # An engine that isn't even present is never usable.
+        assert _tts_engine_usable(hass, "tts.absent") is False
 
     # -- the doorbell repair, end-to-end ----------------------------------
     def test_doorbell_play_media_text_rewritten_to_tts_speak(self) -> None:
@@ -3327,6 +3366,17 @@ class TestLegacyTtsSayRewrite:
         )
         self._registry_ids = registry_ids
 
+    @pytest.fixture(autouse=True)
+    def _patch_cloud_active(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        # Default to a working HA Cloud (active Nabu Casa subscription) so a
+        # cloud engine is usable; individual tests flip self._cloud_active to
+        # model the no-subscription install where cloud TTS is present but mute.
+        self._cloud_active = True
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils._cloud_tts_active",
+            lambda _hass: self._cloud_active,
+        )
+
     def _set_registry(self, ids: set[str]) -> None:
         self._registry_ids.clear()
         self._registry_ids.update(ids)
@@ -3362,6 +3412,176 @@ class TestLegacyTtsSayRewrite:
         assert action["target"] == {"entity_id": "tts.home_assistant_cloud"}
         assert action["data"]["media_player_entity_id"] == "media_player.living_room_2"
         assert action["data"]["message"] == "Someone is at the front door."
+
+    # -- tts.speak engine retargeting -------------------------------------
+    def test_tts_speak_dead_engine_retargeted_to_live_one(self) -> None:
+        # The reported HomePod case: the LLM copied tts.home_assistant_cloud from
+        # the prompt, but the only live engine here is Piper. The cloud engine is
+        # not in the live tts.* set, so retarget to the available one.
+        hass = self._hass(tts_entities=["tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {
+                "media_player_entity_id": "media_player.kitchen",
+                "message": "Someone is at the front door",
+            },
+        }
+        out = _retarget_tts_speak_engine(action, hass)
+        assert out is not None
+        assert out["target"] == {"entity_id": "tts.piper"}
+        # Everything else is preserved untouched.
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+        assert out["data"]["message"] == "Someone is at the front door"
+
+    def test_tts_speak_live_engine_left_untouched(self) -> None:
+        # The LLM picked an engine that actually exists live — keep its choice.
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+        }
+        assert _retarget_tts_speak_engine(action, hass) is None
+
+    def test_tts_speak_missing_engine_gets_resolved_one(self) -> None:
+        # tts.speak without a target engine fails at runtime; inject a live one.
+        hass = self._hass(tts_entities=["tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+        }
+        out = _retarget_tts_speak_engine(action, hass)
+        assert out is not None
+        assert out["target"] == {"entity_id": "tts.piper"}
+
+    def test_tts_speak_no_live_engine_left_as_is(self) -> None:
+        # No working TTS at all → leave the action for the downstream gates
+        # rather than emit a guessed engine.
+        hass = self._hass(tts_entities=[])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+        }
+        assert _retarget_tts_speak_engine(action, hass) is None
+
+    def test_tts_speak_templated_engine_left_as_is(self) -> None:
+        # A templated engine resolves at runtime — don't second-guess it.
+        hass = self._hass(tts_entities=["tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.{{ states('input_select.engine') }}"},
+            "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+        }
+        assert _retarget_tts_speak_engine(action, hass) is None
+
+    def test_validate_payload_retargets_dead_tts_speak_engine(self) -> None:
+        # End-to-end: an LLM-emitted tts.speak whose cloud engine only lingers in
+        # the registry (disabled, no live state) passes the unknown-entity gate
+        # today, then runs mute. validate_automation_payload must retarget it to
+        # the live Piper engine before persisting.
+        ids = {"binary_sensor.front_door_visitor", "media_player.kitchen", "tts.piper"}
+        # Cloud engine is registry-known (so the unknown-entity gate accepts it)
+        # but NOT live (absent from async_entity_ids("tts")).
+        self._set_registry(ids | {"tts.home_assistant_cloud"})
+        hass = self._hass(tts_entities=["tts.piper"], known=ids)
+        payload = {
+            "alias": "Doorbell Announcement",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "action": "tts.speak",
+                    "target": {"entity_id": "tts.home_assistant_cloud"},
+                    "data": {
+                        "media_player_entity_id": "media_player.kitchen",
+                        "message": "Someone is at the front door",
+                    },
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "tts.speak"
+        assert action["target"] == {"entity_id": "tts.piper"}
+        assert action["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+    def test_tts_speak_unsubscribed_cloud_retargeted_to_working_engine(self) -> None:
+        # The exact reported HomePod case: cloud engine is present and live but
+        # there's NO Nabu Casa subscription, so it validates yet plays nothing.
+        # Retarget to the home's working Piper engine.
+        self._cloud_active = False
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {
+                "media_player_entity_id": "media_player.kitchen",
+                "message": "Someone is at the front door",
+            },
+        }
+        out = _retarget_tts_speak_engine(action, hass)
+        assert out is not None
+        assert out["target"] == {"entity_id": "tts.piper"}
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+
+    def test_tts_speak_subscribed_cloud_left_untouched(self) -> None:
+        # With an active subscription the cloud engine works — keep the choice.
+        self._cloud_active = True
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud", "tts.piper"])
+        action = {
+            "action": "tts.speak",
+            "target": {"entity_id": "tts.home_assistant_cloud"},
+            "data": {"media_player_entity_id": "media_player.kitchen", "message": "hi"},
+        }
+        assert _retarget_tts_speak_engine(action, hass) is None
+
+    def test_validate_payload_retargets_unsubscribed_cloud_engine(self) -> None:
+        # End-to-end: cloud engine is registry-known AND live (default_config),
+        # but no subscription → it passes the unknown-entity gate, then runs
+        # mute. validate_automation_payload must retarget it to live Piper.
+        self._cloud_active = False
+        ids = {
+            "binary_sensor.front_door_visitor",
+            "media_player.kitchen",
+            "tts.home_assistant_cloud",
+            "tts.piper",
+        }
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.piper"],
+            known=ids,
+        )
+        payload = {
+            "alias": "Doorbell Announcement",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "action": "tts.speak",
+                    "target": {"entity_id": "tts.home_assistant_cloud"},
+                    "data": {
+                        "media_player_entity_id": "media_player.kitchen",
+                        "message": "Someone is at the front door",
+                    },
+                }
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized["actions"][0]["target"] == {"entity_id": "tts.piper"}
 
     def test_registered_cloud_say_still_canonicalized(self) -> None:
         # Even when tts.cloud_say is registered (HA's `cloud` integration ships
