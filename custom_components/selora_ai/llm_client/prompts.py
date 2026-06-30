@@ -606,6 +606,13 @@ def build_architect_system_prompt(
         "  fan.turn_on / fan.turn_off / fan.set_percentage / fan.oscillate\n"
         "  media_player.turn_on / media_player.turn_off / media_player.media_play / media_player.media_pause / media_player.volume_set\n"
         "  scene.turn_on  input_boolean.turn_on / turn_off / toggle\n"
+        "For spoken announcements / TTS, ALWAYS use the portable `tts.speak` — "
+        "target the TTS engine entity and pass the speaker via "
+        "`data.media_player_entity_id`. NEVER use the legacy per-provider "
+        "`tts.<provider>_say` (e.g. `tts.cloud_say`, `tts.google_translate_say`): "
+        "they are non-portable and break when the provider changes. Shape:\n"
+        '  {"service": "tts.speak", "target": {"entity_id": "tts.home_assistant_cloud"}, '
+        '"data": {"media_player_entity_id": "media_player.kitchen", "message": "..."}}\n'
         "Example for 'Open the garage door' — RIGHT:\n"
         '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
         "WRONG (entity_id stuffed into the service field):\n"

@@ -3363,8 +3363,12 @@ class TestLegacyTtsSayRewrite:
         assert action["data"]["media_player_entity_id"] == "media_player.living_room_2"
         assert action["data"]["message"] == "Someone is at the front door."
 
-    def test_registered_cloud_say_left_untouched(self) -> None:
-        # When HA Cloud IS set up, tts.cloud_say exists and works — don't rewrite.
+    def test_registered_cloud_say_still_canonicalized(self) -> None:
+        # Even when tts.cloud_say is registered (HA's `cloud` integration ships
+        # enabled by default and registers it), canonicalize to the portable
+        # tts.speak so the automation never hard-codes a provider-specific
+        # service. _resolve_tts_engine prefers the cloud engine, so the voice
+        # is preserved.
         ids = {"media_player.living_room_2", "tts.home_assistant_cloud"}
         self._set_registry(ids)
         hass = self._hass(say_services={"cloud_say"}, known=ids)
@@ -3373,7 +3377,12 @@ class TestLegacyTtsSayRewrite:
             "target": {"entity_id": "media_player.living_room_2"},
             "data": {"message": "Someone is at the front door."},
         }
-        assert _rewrite_legacy_tts_say(action, hass) is None
+        out = _rewrite_legacy_tts_say(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        assert out["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert out["data"]["media_player_entity_id"] == "media_player.living_room_2"
+        assert out["data"]["message"] == "Someone is at the front door."
 
     def test_google_translate_say_rewritten(self) -> None:
         ids = {"media_player.kitchen", "tts.home_assistant_cloud"}
@@ -3392,6 +3401,49 @@ class TestLegacyTtsSayRewrite:
         assert out["data"]["message"] == "Dinner is ready"
         # tts.speak understands language too — carry it across.
         assert out["data"]["language"] == "en"
+
+    def test_registered_legacy_say_keeps_its_own_provider_engine(self) -> None:
+        # Multi-engine install: a REGISTERED tts.google_translate_say must
+        # canonicalize to the GOOGLE engine, never the (globally preferred)
+        # cloud engine — otherwise we'd silently change the voice/provider.
+        ids = {
+            "media_player.kitchen",
+            "tts.home_assistant_cloud",
+            "tts.google_translate_en_com",
+        }
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+            say_services={"google_translate_say"},  # registered + working
+            known=ids,
+        )
+        action = {
+            "service": "tts.google_translate_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "Dinner is ready"},
+        }
+        out = _rewrite_legacy_tts_say(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        assert out["target"] == {"entity_id": "tts.google_translate_en_com"}
+
+    def test_registered_legacy_say_left_when_no_matching_engine(self) -> None:
+        # A REGISTERED (working) tts.google_translate_say on an install whose
+        # only engine is the cloud one: don't swap it onto a different provider
+        # — leave it as-is.
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud"],
+            say_services={"google_translate_say"},
+            known=ids,
+        )
+        action = {
+            "service": "tts.google_translate_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "Dinner is ready"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
 
     def test_speaker_in_bare_entity_id_rewritten(self) -> None:
         # Older legacy say configs put the speaker in a top-level entity_id.
@@ -3464,6 +3516,54 @@ class TestLegacyTtsSayRewrite:
         valid, reason, _normalized = validate_automation_payload(payload, hass)
         assert valid is False
         assert "tts.cloud_say" in reason
+
+    def test_repro_screenshot_unregistered_multi_action(self) -> None:
+        # REPRO of the reported screenshot: a multi-action announcement
+        # (volume_set, delay, tts.cloud_say, delay, volume_set) where
+        # tts.cloud_say is UNREGISTERED but a TTS engine + concrete speaker
+        # exist. Asserts what the validator actually does end-to-end.
+        ids = {"binary_sensor.front_door_visitor", "media_player.kitchen"}
+        self._set_registry(ids | {"tts.home_assistant_cloud"})
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud"],
+            say_services=set(),  # cloud_say NOT registered
+            known=ids | {"tts.home_assistant_cloud"},
+        )
+        payload = {
+            "alias": "Doorbell Visitor",
+            "trigger": [
+                {
+                    "platform": "state",
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                }
+            ],
+            "action": [
+                {
+                    "service": "media_player.volume_set",
+                    "target": {"entity_id": "media_player.kitchen"},
+                    "data": {"volume_level": 0.5},
+                },
+                {"delay": {"seconds": 1}},
+                {
+                    "service": "tts.cloud_say",
+                    "target": {"entity_id": "media_player.kitchen"},
+                    "data": {"message": "A visitor is at the front door."},
+                },
+                {"delay": {"seconds": 10}},
+                {
+                    "service": "media_player.volume_set",
+                    "target": {"entity_id": "media_player.kitchen"},
+                    "data": {"volume_level": 0.75},
+                },
+            ],
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        assert normalized is not None
+        say = normalized["actions"][2]
+        assert say["action"] == "tts.speak", say
+        assert "cloud_say" not in str(normalized)
 
     def test_non_say_tts_service_left_untouched(self) -> None:
         # tts.speak itself isn't a legacy say verb — must not be touched.
