@@ -194,7 +194,7 @@ mirror-next:
     # a fast-forward. No `-f`, matching the branch's allow_force_push = false;
     # a non-fast-forward here means something manually touched next and should
     # fail loudly rather than be papered over.
-    - git push "https://oauth2:${GL_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "HEAD:next"
+    - git push "https://oauth2:${GL_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "HEAD:refs/heads/next"
 
 # Prerelease: every push to `next` cuts a vX.Y.Z-pre.N tag (PRERELEASE=true flips
 # release.config.js to the prerelease channel). It tags + publishes only — no commit
