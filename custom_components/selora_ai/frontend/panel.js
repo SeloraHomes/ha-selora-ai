@@ -2158,6 +2158,15 @@ var headerStyles = i`
     height: var(--header-height, 56px);
     box-sizing: border-box;
     position: relative;
+    /* Drive tab collapsing off the header's OWN width, not HA's
+       window-level [narrow] flag. With the HA sidebar docked the panel
+       content area can be far narrower than the window, so [narrow]
+       stays false while the absolutely-centered tabs still collide with
+       the title and right-side buttons. A container query measures the
+       real available width and collapses the tabs into the Selora menu
+       before they can overlap. */
+    container-type: inline-size;
+    container-name: selora-header;
   }
   /* Suppress decorative glow when no LLM is configured — keeps the
      pre-setup screen calm. */
@@ -2297,6 +2306,19 @@ var headerStyles = i`
   /* Narrow layout: hide centered tabs, they live in the Selora menu instead */
   :host([narrow]) .tabs-center {
     display: none;
+  }
+  /* When the header itself is too narrow to fit the centered tab strip
+     without colliding with the title / right-side buttons, collapse the
+     tabs into the Selora menu (which surfaces its narrow-only nav
+     section at the same breakpoint below). Covers the docked-sidebar
+     case where [narrow] is false but the panel is still cramped. */
+  @container selora-header (max-width: 880px) {
+    .tabs-center {
+      display: none;
+    }
+    .overflow-section.narrow-only {
+      display: flex;
+    }
   }
   :host([narrow]) .header-logo {
     margin-inline-start: 4px;
