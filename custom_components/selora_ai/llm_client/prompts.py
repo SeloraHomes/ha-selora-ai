@@ -610,8 +610,14 @@ def build_architect_system_prompt(
         "target the TTS engine entity and pass the speaker via "
         "`data.media_player_entity_id`. NEVER use the legacy per-provider "
         "`tts.<provider>_say` (e.g. `tts.cloud_say`, `tts.google_translate_say`): "
-        "they are non-portable and break when the provider changes. Shape:\n"
-        '  {"service": "tts.speak", "target": {"entity_id": "tts.home_assistant_cloud"}, '
+        "they are non-portable and break when the provider changes. Pick a "
+        "`tts.*` engine from the entity list for `target.entity_id`. Note "
+        "`tts.home_assistant_cloud` exists on most installs but ONLY speaks with "
+        "an active Home Assistant Cloud (Nabu Casa) subscription — if the home "
+        "has another engine (e.g. `tts.piper`, `tts.google_translate_en_com`), "
+        "prefer it. The system substitutes an available engine if you pick one "
+        "that can't speak. Shape (engine is illustrative):\n"
+        '  {"service": "tts.speak", "target": {"entity_id": "tts.<engine_on_this_install>"}, '
         '"data": {"media_player_entity_id": "media_player.kitchen", "message": "..."}}\n'
         "Example for 'Open the garage door' — RIGHT:\n"
         '  {"service": "cover.open_cover", "target": {"entity_id": "cover.garage_door"}}\n'
