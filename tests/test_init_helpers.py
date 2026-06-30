@@ -8,9 +8,21 @@
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
 from custom_components.selora_ai import (
+    _entry_is_configurable_llm,
     _executed_record_from_call,
+    _find_llm,
+    _resolve_llm_entry,
     _sanitize_history_override,
+)
+from custom_components.selora_ai.const import (
+    CONF_AIGATEWAY_REFRESH_TOKEN,
+    CONF_ENTRY_TYPE,
+    CONF_LLM_PROVIDER,
+    DOMAIN,
+    ENTRY_TYPE_DEVICE,
 )
 
 
@@ -137,3 +149,94 @@ def test_executed_record_filters_non_str_entities_in_list() -> None:
         }
     )
     assert record["entity_ids"] == ["light.a", "light.b"]
+
+
+# --- _entry_is_configurable_llm -------------------------------------------
+
+
+def test_entry_configurable_with_explicit_provider() -> None:
+    assert _entry_is_configurable_llm({CONF_LLM_PROVIDER: "anthropic"}) is True
+
+
+def test_entry_configurable_with_aigateway_refresh_token() -> None:
+    assert _entry_is_configurable_llm({CONF_AIGATEWAY_REFRESH_TOKEN: "aigw_x"}) is True
+
+
+def test_entry_not_configurable_when_empty() -> None:
+    # The stray second entry: no provider, no tokens. Must not be treated
+    # as a real LLM entry (would default to empty-cred Selora Cloud).
+    assert _entry_is_configurable_llm({}) is False
+    assert _entry_is_configurable_llm({CONF_LLM_PROVIDER: ""}) is False
+    assert _entry_is_configurable_llm({CONF_AIGATEWAY_REFRESH_TOKEN: ""}) is False
+
+
+# --- _find_llm ------------------------------------------------------------
+
+
+def _hass_with_data(data: dict[str, object]) -> SimpleNamespace:
+    return SimpleNamespace(data={DOMAIN: data})
+
+
+def test_find_llm_prefers_configured_over_unconfigured() -> None:
+    unconfigured = SimpleNamespace(is_configured=False)
+    configured = SimpleNamespace(is_configured=True)
+    # Unconfigured inserted first — picking insertion order would return it.
+    hass = _hass_with_data(
+        {"e_unconfigured": {"llm": unconfigured}, "e_configured": {"llm": configured}}
+    )
+    assert _find_llm(hass) is configured
+
+
+def test_find_llm_falls_back_to_first_when_none_configured() -> None:
+    first = SimpleNamespace(is_configured=False)
+    second = SimpleNamespace(is_configured=False)
+    hass = _hass_with_data({"a": {"llm": first}, "b": {"llm": second}})
+    assert _find_llm(hass) is first
+
+
+def test_find_llm_skips_non_dict_and_missing_llm_entries() -> None:
+    configured = SimpleNamespace(is_configured=True)
+    hass = _hass_with_data(
+        {"_approval_store": "not-a-dict", "no_llm": {}, "real": {"llm": configured}}
+    )
+    assert _find_llm(hass) is configured
+
+
+def test_find_llm_returns_none_when_no_clients() -> None:
+    assert _find_llm(SimpleNamespace(data={})) is None
+
+
+# --- _resolve_llm_entry ---------------------------------------------------
+
+
+def _hass_with_entries(entries: list[SimpleNamespace]) -> SimpleNamespace:
+    return SimpleNamespace(
+        config_entries=SimpleNamespace(async_entries=lambda _domain: entries)
+    )
+
+
+def test_resolve_llm_entry_prefers_configured_over_stray() -> None:
+    stray = SimpleNamespace(data={})  # no provider, no tokens
+    real = SimpleNamespace(data={CONF_LLM_PROVIDER: "selora_cloud"})
+    # Stray first — insertion order alone would return it.
+    hass = _hass_with_entries([stray, real])
+    assert _resolve_llm_entry(hass) is real
+
+
+def test_resolve_llm_entry_skips_device_entries() -> None:
+    device = SimpleNamespace(data={CONF_ENTRY_TYPE: ENTRY_TYPE_DEVICE})
+    real = SimpleNamespace(data={CONF_LLM_PROVIDER: "anthropic"})
+    hass = _hass_with_entries([device, real])
+    assert _resolve_llm_entry(hass) is real
+
+
+def test_resolve_llm_entry_falls_back_to_first_non_device() -> None:
+    stray = SimpleNamespace(data={})
+    hass = _hass_with_entries([stray])
+    assert _resolve_llm_entry(hass) is stray
+
+
+def test_resolve_llm_entry_none_when_only_device_entries() -> None:
+    device = SimpleNamespace(data={CONF_ENTRY_TYPE: ENTRY_TYPE_DEVICE})
+    hass = _hass_with_entries([device])
+    assert _resolve_llm_entry(hass) is None

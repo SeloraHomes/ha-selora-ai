@@ -1011,20 +1011,60 @@ def _get_device_manager(hass: HomeAssistant) -> DeviceManager | None:
 
 
 def _find_llm(hass: HomeAssistant) -> Any:
-    """Find the LLMClient from any active config entry, or None."""
+    """Find the LLMClient from an active config entry, or None.
+
+    Prefer a *configured* client. With more than one entry loaded (e.g. a
+    stray second "Selora AI" entry that never linked a provider), the raw
+    insertion order in ``hass.data`` is not stable across reloads — so
+    returning the first match can bind chat to an unconfigured provider
+    and surface "configure your LLM provider" even though another entry is
+    fully linked. Fall back to the first client when none report
+    configured, so a single half-set-up install still yields its client
+    for the deterministic not-configured reply.
+    """
+    fallback: Any = None
     for entry_data in hass.data.get(DOMAIN, {}).values():
-        if isinstance(entry_data, dict) and "llm" in entry_data:
-            return entry_data["llm"]
-    return None
+        if not (isinstance(entry_data, dict) and "llm" in entry_data):
+            continue
+        llm = entry_data["llm"]
+        if fallback is None:
+            fallback = llm
+        if getattr(llm, "is_configured", False):
+            return llm
+    return fallback
+
+
+def _entry_is_configurable_llm(entry_data: dict[str, Any]) -> bool:
+    """Whether an entry carries enough to be a real LLM provider entry.
+
+    A second "Add entry" that never linked a provider has neither an
+    explicit ``llm_provider`` nor AI Gateway tokens. Without this check it
+    would default to Selora Cloud (``DEFAULT_LLM_PROVIDER``) with empty
+    credentials, and its collector would fire auth-less requests the
+    gateway rejects with HTTP 401 "Missing or malformed Authorization
+    header". Mirrors the non-default branches of ``_resolve_llm_provider``.
+    """
+    if entry_data.get(CONF_LLM_PROVIDER):
+        return True
+    return bool(_aigateway_view(entry_data)["refresh_token"])
 
 
 def _resolve_llm_entry(hass: HomeAssistant) -> ConfigEntry | None:
-    """Return the integration's LLM config entry, ignoring device-onboarding entries."""
+    """Return the integration's LLM config entry, ignoring device-onboarding entries.
+
+    Prefer an entry that actually carries LLM credentials over a stray
+    unconfigured one, so settings saves and relink target the live
+    provider rather than a half-set-up duplicate.
+    """
+    fallback: ConfigEntry | None = None
     for entry in hass.config_entries.async_entries(DOMAIN):
         if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
             continue
-        return entry
-    return None
+        if fallback is None:
+            fallback = entry
+        if _entry_is_configurable_llm(entry.data):
+            return entry
+    return fallback
 
 
 def _aigateway_view(entry_data: dict[str, Any]) -> dict[str, Any]:
@@ -7617,6 +7657,21 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         _LOGGER.info("Selora AI device onboarding entry loaded: %s", entry.title)
         return True
 
+    # A stray entry that never linked a provider (no explicit llm_provider
+    # and no AI Gateway tokens) would otherwise default to Selora Cloud
+    # with empty credentials — its collector then fires auth-less requests
+    # the gateway rejects with HTTP 401 "Missing or malformed Authorization
+    # header", and chat may bind to it and report "configure your LLM
+    # provider". Treat it as records-only, like device entries. Mirror this
+    # guard in async_unload_entry so teardown doesn't touch shared state.
+    if not _entry_is_configurable_llm(entry.data):
+        _LOGGER.warning(
+            "Selora AI entry %s has no LLM provider linked — skipping runtime "
+            "setup. Remove the duplicate entry or link a provider in Settings.",
+            entry.title,
+        )
+        return True
+
     provider = _resolve_llm_provider(entry.data)
 
     # Auto-create the "Selora exclude" label so users can apply it from HA's
@@ -8160,6 +8215,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload — stop background tasks, close sessions."""
     # Device onboarding entries have no runtime state to clean up
     if entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+        return True
+
+    # Entries skipped at setup (records-only — e.g. an unconfigured stray
+    # entry) own no per-entry runtime state, so there's nothing to tear
+    # down. Returning early also keeps us from running the shared-state
+    # cleanup below (MCP token store, JWT validator) on behalf of an entry
+    # that never created it — that state belongs to the real entry.
+    if entry.entry_id not in hass.data.get(DOMAIN, {}):
         return True
 
     data = hass.data[DOMAIN].pop(entry.entry_id, {})
