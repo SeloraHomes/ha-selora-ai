@@ -226,6 +226,31 @@ async def test_unload_closes_mcp_token_store_and_clears_shared_keys(hass) -> Non
 
 
 @pytest.mark.asyncio
+async def test_unload_skipped_entry_leaves_shared_state_intact(hass) -> None:
+    """An entry skipped at setup (records-only, e.g. an unconfigured stray
+    entry) owns no per-entry runtime state. Unloading it must not run the
+    shared-state teardown — that token store / JWT validator belongs to
+    the real, configured entry.
+    """
+    entry = _make_entry()  # entry_id deliberately NOT in hass.data[DOMAIN]
+    mcp_token_store = MagicMock()
+    mcp_token_store.async_close = AsyncMock()
+    hass.data.setdefault(DOMAIN, {}).update(
+        {
+            "mcp_token_store": mcp_token_store,
+            "selora_jwt_validator": MagicMock(),
+        }
+    )
+
+    result = await async_unload_entry(hass, entry)
+
+    assert result is True
+    mcp_token_store.async_close.assert_not_awaited()
+    assert "mcp_token_store" in hass.data[DOMAIN]
+    assert "selora_jwt_validator" in hass.data[DOMAIN]
+
+
+@pytest.mark.asyncio
 async def test_unload_is_safe_when_optional_state_is_missing(hass) -> None:
     """A partial setup (e.g. failed mid-init) leaves only some keys.
     Unload must tolerate missing pattern engine / store / scheduled
