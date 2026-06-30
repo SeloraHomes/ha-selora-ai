@@ -14,6 +14,7 @@ import re
 from typing import TYPE_CHECKING, Any
 import uuid
 
+from ..automation_utils import _rewrite_announcements
 from ..const import (
     APPROVAL_RISK_HIGH,
     APPROVAL_RISK_LOW,
@@ -1023,6 +1024,69 @@ def _normalize_parametric_calls(
         # thermostat" → climate.bedroom). Retargeting either to the one
         # thermostat that exists risks acting on the wrong device, so unknown
         # ids are left for the validation loop to reject (→ clarification).
+
+
+def _normalize_tts_calls(calls: list[Any], hass: HomeAssistant) -> None:
+    """In-place canonicalization of TTS announcement *commands* before they
+    reach the approval card or the dispatcher.
+
+    The same defects the automation writer repairs in ``automations.yaml`` also
+    arrive as one-shot service calls on the chat-command path: the LLM emits a
+    legacy ``tts.<provider>_say`` (e.g. ``tts.cloud_say``, which HA registers
+    via ``default_config`` even with no Nabu Casa subscription, so it validates
+    but fails at call time with "Playback failed to start"), a ``tts.speak``
+    pinned to a dead engine, or a ``media_player.play_media`` handed spoken
+    text. Reuse :func:`_rewrite_announcements` so the command path and the
+    automation path repair these identically — otherwise the user approves a
+    ``tts.cloud_say`` that can never run.
+
+    The automation rewriters speak the action shape (``action`` key, engine in
+    ``target.entity_id``, speaker in ``data.media_player_entity_id``); a command
+    call uses the ``service`` key. We translate into the action shape, rewrite,
+    then map the result back onto the call (``service`` key, dropping any stale
+    top-level ``entity_id`` the legacy say carried). Only TTS / play_media calls
+    are touched; everything else is left byte-for-byte unchanged.
+    """
+    for call in calls:
+        if not isinstance(call, dict):
+            continue
+        service = str(call.get("service", "")).strip()
+        if "." not in service:
+            continue
+        domain, name = service.split(".", 1)
+        is_legacy_say = domain == "tts" and name.endswith("_say")
+        is_speak = service == "tts.speak"
+        is_play_media = service == "media_player.play_media"
+        if not (is_legacy_say or is_speak or is_play_media):
+            continue
+        action_form: dict[str, Any] = {k: v for k, v in call.items() if k != "service"}
+        action_form["action"] = service
+        rewritten = _rewrite_announcements(action_form, hass)
+        new_service = str(rewritten.get("action") or rewritten.get("service") or "")
+        if not new_service:
+            continue
+        # Map the action shape back onto the command-call shape. Replace the
+        # whole target/data so a rewrite that drops the legacy speaker target
+        # (now carried in data.media_player_entity_id) doesn't leave a stale
+        # entity_id behind.
+        call["service"] = new_service
+        if "target" in rewritten:
+            call["target"] = rewritten["target"]
+        elif "target" in call:
+            del call["target"]
+        if "data" in rewritten:
+            call["data"] = rewritten["data"]
+        # A legacy say put the speaker in a top-level entity_id; tts.speak
+        # carries it in data.media_player_entity_id, so the stray top-level
+        # key would otherwise re-target the engine call at the speaker.
+        if new_service != service and "entity_id" in call:
+            del call["entity_id"]
+        if new_service != service:
+            _LOGGER.info(
+                "Canonicalized command TTS call %s -> %s before approval/dispatch",
+                service,
+                new_service,
+            )
 
 
 # Matches prose the LLM uses when narrating a device action. Detects the
@@ -2659,6 +2723,33 @@ def _entity_ids_from_call(call: dict[str, Any]) -> list[str]:
     return []
 
 
+def approval_entity_ids(call: dict[str, Any]) -> list[str]:
+    """Entity ids the approval flow keys on (existence guard, per-entity
+    grant, standing-grant re-prompt check).
+
+    For ``tts.speak`` the ``target.entity_id`` is the TTS *engine*
+    (``tts.home_assistant_cloud`` / ``tts.google_translate_*``) — an
+    implementation detail chosen by the engine resolver, never present in the
+    collected entity snapshot, and not what the user is being asked to approve.
+    The user-meaningful target is the speaker in ``data.media_player_entity_id``.
+    Return the speaker so (a) the existence guard validates a real, collected
+    device instead of rejecting the engine as "a device you don't have", and
+    (b) the per-entity grant keys on the speaker — matching how the legacy
+    ``tts.<provider>_say`` call (speaker in ``target.entity_id``) was always
+    keyed, so a Session/Always grant survives the cloud_say→tts.speak rewrite.
+    Every other service keys on ``target.entity_id``.
+    """
+    if str(call.get("service", "")).strip() == "tts.speak":
+        data = call.get("data")
+        speaker = data.get("media_player_entity_id") if isinstance(data, dict) else None
+        if isinstance(speaker, str):
+            return [speaker] if speaker else []
+        if isinstance(speaker, list):
+            return [s for s in speaker if isinstance(s, str)]
+        return []
+    return _entity_ids_from_call(call)
+
+
 def _nearest_verb_before(
     haystack: str, position: int, *, max_distance: int = _VERB_PROXIMITY_CHARS
 ) -> str | None:
@@ -3061,7 +3152,15 @@ def _validate_review_call(
     else:
         return None, f"{service} had an invalid target payload"
 
-    if len(target_ids) > _MAX_TARGET_ENTITIES:
+    # The required/approval target. For tts.speak the ``target.entity_id`` is
+    # the TTS *engine* (always present after canonicalization) and the real
+    # target is the speaker in ``data.media_player_entity_id``; gate on the
+    # speaker so a tts.speak that names an engine but no speaker is rejected
+    # rather than "approved" as a speakerless announcement that fails at run
+    # time. Other services gate on their target.entity_id as before.
+    gate_ids = approval_entity_ids(call) if service == "tts.speak" else target_ids
+
+    if len(gate_ids) > _MAX_TARGET_ENTITIES:
         return None, f"{service} targeted too many entities at once (max {_MAX_TARGET_ENTITIES})"
 
     # Without ``requires_target=False`` we treat the entity_id as
@@ -3071,7 +3170,7 @@ def _validate_review_call(
     # click on a malformed proposal could unlock every door / disarm
     # every alarm. Only services that legitimately target by service
     # name (notify.*, script.*, shell_command.*) get the opt-out.
-    if entry.get("requires_target", True) and not target_ids:
+    if entry.get("requires_target", True) and not gate_ids:
         return None, f"{service} requires an explicit entity_id target"
 
     return (
@@ -3339,6 +3438,13 @@ def apply_command_policy(
             calls,
             str(result.get("response", "") or ""),
         )
+        # Canonicalize TTS announcement calls (legacy tts.*_say, dead-engine
+        # tts.speak, spoken play_media) onto a working tts.speak BEFORE the
+        # call is classified and bundled into an approval card — so the user
+        # approves the call that will actually run, not a tts.cloud_say that
+        # validates yet fails at dispatch. Needs hass to resolve live engines.
+        if hass is not None:
+            _normalize_tts_calls(calls, hass)
 
     allowed_entities = {e.get("entity_id", "") for e in entities if e.get("entity_id")}
     if not isinstance(calls, list):
@@ -3399,10 +3505,13 @@ def apply_command_policy(
             # wins over wildcard (``lock.unlock``); ``is_approved`` does
             # the fallback so a v1 wildcard grant still covers each
             # individual entity here.
-            _ids = _entity_ids_from_call(call)
+            _ids = approval_entity_ids(call)
             # Entity-existence guard for entity-targeted REVIEW services
             # (lock.*, alarm_*, vacuum.*, water_heater.*, and the
-            # entity-required tts.* path). The model regularly fabricates
+            # entity-required tts.* path). For tts.speak this is the speaker
+            # (data.media_player_entity_id), not the engine in target.entity_id
+            # (engines aren't collected, so checking the engine would reject a
+            # valid announcement). The model regularly fabricates
             # plausible-sounding entity_ids when the user names a domain
             # they don't actually have ("lock the back door" with no
             # lock.* entities — emits lock.back_door anyway). _validate_review_call

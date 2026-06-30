@@ -20,6 +20,7 @@ from custom_components.selora_ai.automation_utils import (
     _retarget_tts_speak_engine,
     _rewrite_legacy_tts_say,
     _rewrite_spoken_play_media,
+    _rewrite_tts_media_source,
     _tts_engine_usable,
     _write_automations_yaml,
     assess_automation_risk,
@@ -27,6 +28,7 @@ from custom_components.selora_ai.automation_utils import (
     async_delete_automation,
     async_toggle_automation,
     async_update_automation,
+    build_service_feedback,
     count_selora_automations,
     find_stale_automations,
     get_selora_automation_cap,
@@ -3604,6 +3606,216 @@ class TestLegacyTtsSayRewrite:
         assert out["data"]["media_player_entity_id"] == "media_player.living_room_2"
         assert out["data"]["message"] == "Someone is at the front door."
 
+    def test_registered_cloud_say_without_subscription_rewritten(self) -> None:
+        # The exact reported case: tts.cloud_say is REGISTERED (HA's `cloud`
+        # integration ships in default_config and registers it unconditionally)
+        # but there's no active Nabu Casa subscription, so the cloud engine is
+        # mute. Registration alone must not be mistaken for a working call — the
+        # broken cloud_say is rewritten onto the install's working engine.
+        self._cloud_active = False
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud", "tts.google_translate_en_com"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+            say_services={"cloud_say"},  # registered via default_config, but mute
+            known=ids,
+        )
+        action = {
+            "service": "tts.cloud_say",
+            "data": {
+                "entity_id": "media_player.kitchen",
+                "message": "Someone is at the front door.",
+            },
+        }
+        out = _rewrite_legacy_tts_say(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        # Cloud is unusable, so we fall back to the working (google) engine.
+        assert out["target"] == {"entity_id": "tts.google_translate_en_com"}
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+        assert out["data"]["message"] == "Someone is at the front door."
+
+    def test_third_party_google_cloud_say_not_subscription_gated(self) -> None:
+        # A third-party say service whose name merely contains "cloud"
+        # (google_cloud_say) is NOT Home Assistant Cloud — it must not be gated
+        # on a Nabu Casa subscription. Here google_cloud_say is registered +
+        # working, and the only OTHER usable engine is piper (a DIFFERENT
+        # provider). The fix keeps google_cloud_say classified as usable, so the
+        # "don't swap a working provider's voice" gate leaves it as-is rather
+        # than rewriting it onto piper. (Before the fix it was misclassified as
+        # HA Cloud → "unusable" → silently rewritten to the piper voice.)
+        self._cloud_active = False
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud", "tts.piper"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.piper"],
+            say_services={"google_cloud_say"},  # registered third-party, working
+            known=ids,
+        )
+        action = {
+            "service": "tts.google_cloud_say",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {"message": "Dinner is ready"},
+        }
+        assert _rewrite_legacy_tts_say(action, hass) is None
+
+    def test_third_party_google_cloud_engine_usable_without_subscription(self) -> None:
+        # The HA-cloud subscription gate is anchored to home_assistant_cloud,
+        # so a third-party tts.google_cloud_* engine stays usable with no
+        # Nabu Casa subscription.
+        self._cloud_active = False
+        ids = {"tts.home_assistant_cloud", "tts.google_cloud_en_us"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_cloud_en_us"],
+            known=ids,
+        )
+        assert _tts_engine_usable(hass, "tts.google_cloud_en_us") is True
+        # The genuine HA cloud engine is still gated off without a subscription.
+        assert _tts_engine_usable(hass, "tts.home_assistant_cloud") is False
+
+    # -- TTS media-source URI (media-source://tts/cloud_say?message=…) ----
+    def test_tts_media_source_cloud_say_uri_rewritten(self) -> None:
+        # The reported third variant: the LLM encodes the announcement as a
+        # play_media call whose media_content_id is a TTS media-source URI with
+        # the cloud_say engine baked in. cloud_say needs a Nabu Casa
+        # subscription, so without one play_media fails at run time. Extract the
+        # message and rebuild as tts.speak on the working (google) engine.
+        self._cloud_active = False
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud", "tts.google_translate_en_com"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+            known=ids,
+        )
+        action = {
+            "service": "media_player.play_media",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {
+                "media_content_id": (
+                    "media-source://tts/cloud_say?message=Someone+is+at+the+front+door"
+                ),
+                "media_content_type": "music",
+            },
+        }
+        out = _rewrite_tts_media_source(action, hass)
+        assert out is not None
+        assert out["action"] == "tts.speak"
+        assert out["target"] == {"entity_id": "tts.google_translate_en_com"}
+        assert out["data"]["media_player_entity_id"] == "media_player.kitchen"
+        # The '+'-encoded message is URL-decoded back to a plain sentence.
+        assert out["data"]["message"] == "Someone is at the front door"
+        # The old media-call keys are dropped — no stale media_content_id/type.
+        assert "media_content_id" not in out["data"]
+        assert "media_content_type" not in out["data"]
+
+    def test_tts_media_source_preserves_provider_when_usable(self) -> None:
+        # When the URI's own provider (cloud) IS usable, keep its voice rather
+        # than swapping engines.
+        self._cloud_active = True
+        ids = {"media_player.kitchen", "tts.home_assistant_cloud", "tts.google_translate_en_com"}
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+            known=ids,
+        )
+        action = {
+            "service": "media_player.play_media",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {
+                "media_content_id": "media-source://tts/cloud_say?message=Dinner+is+ready&language=en",
+                "media_content_type": "music",
+            },
+        }
+        out = _rewrite_tts_media_source(action, hass)
+        assert out is not None
+        assert out["target"] == {"entity_id": "tts.home_assistant_cloud"}
+        assert out["data"]["message"] == "Dinner is ready"
+        # language query param is carried across to tts.speak.
+        assert out["data"]["language"] == "en"
+
+    def test_tts_media_source_templated_uri_left_alone(self) -> None:
+        # A templated media_content_id resolves at run time — never rewrite a
+        # guess.
+        self._cloud_active = False
+        ids = {"media_player.kitchen", "tts.google_translate_en_com"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=["tts.google_translate_en_com"], known=ids)
+        action = {
+            "service": "media_player.play_media",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {
+                "media_content_id": "media-source://tts/cloud_say?message={{ states('input_text.x') }}",
+                "media_content_type": "music",
+            },
+        }
+        assert _rewrite_tts_media_source(action, hass) is None
+
+    def test_doorbell_tts_media_source_automation_end_to_end(self) -> None:
+        # The user's exact reported automation: a doorbell trigger + a
+        # play_media action carrying a media-source://tts/cloud_say URI. Without
+        # a Nabu Casa subscription it validates but is silent. The full
+        # validate_automation_payload path must repair the action to tts.speak.
+        self._cloud_active = False
+        ids = {
+            "binary_sensor.front_door_visitor",
+            "media_player.kitchen",
+            "tts.home_assistant_cloud",
+            "tts.google_translate_en_com",
+        }
+        self._set_registry(ids)
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.google_translate_en_com"],
+            known=ids,
+        )
+        payload = {
+            "alias": "Doorbell Announcement",
+            "triggers": [
+                {
+                    "entity_id": "binary_sensor.front_door_visitor",
+                    "to": "on",
+                    "trigger": "state",
+                }
+            ],
+            "conditions": [],
+            "actions": [
+                {
+                    "action": "media_player.play_media",
+                    "data": {
+                        "media_content_id": (
+                            "media-source://tts/cloud_say?message=Someone+is+at+the+front+door"
+                        ),
+                        "media_content_type": "music",
+                    },
+                    "target": {"entity_id": "media_player.kitchen"},
+                }
+            ],
+            "mode": "single",
+        }
+        valid, reason, normalized = validate_automation_payload(payload, hass)
+        assert valid, reason
+        action = normalized["actions"][0]
+        assert action["action"] == "tts.speak"
+        assert action["target"] == {"entity_id": "tts.google_translate_en_com"}
+        assert action["data"]["media_player_entity_id"] == "media_player.kitchen"
+        assert action["data"]["message"] == "Someone is at the front door"
+
+    def test_tts_media_source_non_tts_play_media_untouched(self) -> None:
+        # A genuine media URL is not a TTS media source — leave it alone.
+        self._cloud_active = False
+        ids = {"media_player.kitchen", "tts.google_translate_en_com"}
+        self._set_registry(ids)
+        hass = self._hass(tts_entities=["tts.google_translate_en_com"], known=ids)
+        action = {
+            "service": "media_player.play_media",
+            "target": {"entity_id": "media_player.kitchen"},
+            "data": {
+                "media_content_id": "https://example.com/stream.mp3",
+                "media_content_type": "music",
+            },
+        }
+        assert _rewrite_tts_media_source(action, hass) is None
+
     def test_google_translate_say_rewritten(self) -> None:
         ids = {"media_player.kitchen", "tts.home_assistant_cloud"}
         self._set_registry(ids)
@@ -3976,3 +4188,156 @@ class TestLegacyTtsSayRewrite:
         valid, reason, _normalized = validate_automation_payload(payload, hass)
         assert valid is False
         assert "tts.cloud_say" in reason
+
+
+class TestBuildServiceFeedback:
+    """Tests for build_service_feedback — the ground-truth correction text fed
+    back to the model when an automation fails validation."""
+
+    @staticmethod
+    def _hass(services: dict[str, list[str]], integrations: dict[str, str]) -> MagicMock:
+        hass = MagicMock()
+        hass.services.async_services_for_domain.side_effect = lambda domain: (
+            {svc: {} for svc in services.get(domain, [])}
+        )
+
+        def _fake_async_get(_hass: Any) -> Any:
+            reg = MagicMock()
+
+            def _entry(eid: str) -> Any:
+                if eid not in integrations:
+                    return None
+                entry = MagicMock()
+                entry.platform = integrations[eid]
+                return entry
+
+            reg.async_get.side_effect = _entry
+            return reg
+
+        hass._fake_async_get = _fake_async_get
+        return hass
+
+    def _patch_registry(self, hass: MagicMock, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.setattr(
+            "custom_components.selora_ai.automation_utils.er.async_get",
+            hass._fake_async_get,
+        )
+
+    def test_nonexistent_service_names_real_integration_services(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The doorbell case: media_player.snapshot doesn't exist; the target is
+        a Sonos, so the feedback must name the real sonos.* services."""
+        hass = self._hass(
+            services={
+                "media_player": ["play_media", "media_pause", "volume_set"],
+                "sonos": ["snapshot", "restore", "play_queue"],
+            },
+            integrations={"media_player.living_room": "sonos"},
+        )
+        self._patch_registry(hass, monkeypatch)
+        rejected = {
+            "alias": "Doorbell announce",
+            "action": [
+                {
+                    "action": "media_player.snapshot",
+                    "target": {"entity_id": "media_player.living_room"},
+                },
+            ],
+        }
+        out = build_service_feedback(
+            hass,
+            "action uses non-existent service 'media_player.snapshot'",
+            rejected,
+        )
+        assert "media_player.snapshot" in out
+        assert "does not exist" in out
+        # The integration behind the target entity, with its real services.
+        assert "sonos" in out
+        assert "sonos.snapshot" in out
+        assert "sonos.restore" in out
+        # The stated domain's real services are listed too.
+        assert "media_player.play_media" in out
+        # And the model is told not to invent services.
+        assert "Do not invent" in out
+
+    def test_nonexistent_service_finds_target_in_nested_branch(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The offending action can live inside a choose/if branch — the walker
+        must still resolve its target entity."""
+        hass = self._hass(
+            services={"sonos": ["snapshot", "restore"], "media_player": ["play_media"]},
+            integrations={"media_player.den": "sonos"},
+        )
+        self._patch_registry(hass, monkeypatch)
+        rejected = {
+            "alias": "Nested",
+            "action": [
+                {
+                    "choose": [
+                        {
+                            "conditions": [],
+                            "sequence": [
+                                {
+                                    "action": "media_player.restore",
+                                    "target": {"entity_id": "media_player.den"},
+                                }
+                            ],
+                        }
+                    ]
+                }
+            ],
+        }
+        out = build_service_feedback(
+            hass,
+            "action uses non-existent service 'media_player.restore'",
+            rejected,
+        )
+        assert "sonos.restore" in out
+
+    def test_read_only_domain_feedback(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        hass = self._hass(services={}, integrations={})
+        self._patch_registry(hass, monkeypatch)
+        out = build_service_feedback(
+            hass,
+            "action targets read-only domain 'binary_sensor' (binary_sensor.motion)",
+            {"alias": "x", "action": []},
+        )
+        assert "binary_sensor" in out
+        assert "read-only" in out
+        # Steers toward using state in a trigger/condition.
+        assert "trigger" in out
+
+    def test_generic_reason_falls_back_to_resubmit(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        hass = self._hass(services={}, integrations={})
+        self._patch_registry(hass, monkeypatch)
+        out = build_service_feedback(
+            hass, "automation must include at least one trigger", {"alias": "x"}
+        )
+        assert "resubmit" in out.lower()
+        assert "automation must include at least one trigger" in out
+
+    def test_unknown_target_integration_still_lists_domain_services(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """When the target entity isn't in the registry, we can't name its
+        integration, but the stated domain's real services still help."""
+        hass = self._hass(
+            services={"media_player": ["play_media", "media_pause"]},
+            integrations={},
+        )
+        self._patch_registry(hass, monkeypatch)
+        rejected = {
+            "alias": "x",
+            "action": [
+                {
+                    "action": "media_player.snapshot",
+                    "target": {"entity_id": "media_player.ghost"},
+                }
+            ],
+        }
+        out = build_service_feedback(
+            hass, "action uses non-existent service 'media_player.snapshot'", rejected
+        )
+        assert "media_player.play_media" in out

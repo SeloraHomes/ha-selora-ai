@@ -1075,6 +1075,11 @@ STREAM_TOOL_CANCEL_GRACE_S = 2.0
 # during slow tool work. Picked so a provider that emits raw user text
 # (including arbitrary Unicode and isolated NULs) cannot collide.
 STREAM_KEEPALIVE = "\x00\x01selora-keepalive\x01\x00"
+# Prefix marking a stream chunk as a structured agent-activity step (the
+# PostHog-style "what's happening" timeline) rather than bubble text. The
+# remainder of the chunk after this prefix is the step's JSON payload. Same
+# NUL-delimited shape as STREAM_KEEPALIVE so raw provider text can't collide.
+STREAM_STEP_PREFIX = "\x00\x01selora-step\x01"
 # Shown when the stream completes cleanly but the answer-path reply is
 # blank (provider returned an empty / whitespace-only completion) and
 # there is no structural payload to render. Without this, the "done"

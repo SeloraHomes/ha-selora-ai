@@ -10,6 +10,7 @@ from math import floor
 from pathlib import Path
 import re
 from typing import TYPE_CHECKING, Any
+import urllib.parse
 import uuid
 
 from homeassistant.core import HomeAssistant
@@ -1099,17 +1100,47 @@ def _cloud_tts_active(hass: HomeAssistant) -> bool:
         return False
 
 
+def _is_ha_cloud_engine(engine_entity_id: str) -> bool:
+    """True only for the Home Assistant Cloud (Nabu Casa) TTS engine entity.
+
+    HA Cloud creates ``tts.home_assistant_cloud``; that is the one engine whose
+    availability lies about subscription state (see :func:`_cloud_tts_active`).
+    The match is anchored to ``home_assistant_cloud`` so a third-party provider
+    whose entity_id merely *contains* "cloud" — e.g. ``tts.google_cloud_…`` —
+    is NOT treated as HA Cloud and subscription-gated.
+    """
+    return "home_assistant_cloud" in engine_entity_id.lower()
+
+
+def _legacy_say_usable(hass: HomeAssistant, provider: str, name: str) -> bool:
+    """True when a legacy ``tts.<provider>_say`` service can actually speak.
+
+    Registration is not usability: the ``cloud`` integration ships in
+    ``default_config`` and registers ``tts.cloud_say`` unconditionally, so
+    :meth:`hass.services.has_service` reports it present even with no active
+    Nabu Casa subscription — a call that validates but runs silently mute.
+    Only the HA Cloud say service (provider exactly ``cloud`` →
+    ``tts.cloud_say``) is subscription-gated; a third-party provider whose name
+    merely contains "cloud" (``google_cloud_say``) is a normal working service.
+    """
+    if not hass.services.has_service("tts", name):
+        return False
+    if provider == "cloud":
+        return _cloud_tts_active(hass)
+    return True
+
+
 def _tts_engine_usable(hass: HomeAssistant, engine: str) -> bool:
     """True when *engine* is a live ``tts.*`` entity that can actually speak.
 
-    A cloud engine reports ``available`` regardless of subscription (see
+    The HA Cloud engine reports ``available`` regardless of subscription (see
     :func:`_cloud_tts_active`), so it is only usable with an active HA Cloud
-    subscription. Any other engine is usable whenever it is present as a live
-    entity.
+    subscription. Any other engine — including a third-party ``tts.google_cloud_*``
+    — is usable whenever it is present as a live entity.
     """
     if engine not in hass.states.async_entity_ids("tts"):
         return False
-    if _engine_matches_provider(engine, "cloud"):
+    if _is_ha_cloud_engine(engine):
         return _cloud_tts_active(hass)
     return True
 
@@ -1139,6 +1170,110 @@ def _resolve_tts_engine(hass: HomeAssistant, *, prefer: str | None = None) -> st
             if preferred in eid:
                 return eid
     return usable[0]
+
+
+_TTS_MEDIA_SOURCE_PREFIX = "media-source://tts/"
+
+
+def _rewrite_tts_media_source(
+    action: dict[str, Any],
+    hass: HomeAssistant,
+) -> dict[str, Any] | None:
+    """Rewrite a ``media_player.play_media`` whose ``media_content_id`` is a TTS
+    media-source URI (``media-source://tts/<engine>?message=…``) into a portable
+    ``tts.speak`` call.
+
+    The LLM sometimes encodes an announcement as a TTS media-source URI with a
+    hard-coded engine — e.g. ``media-source://tts/cloud_say?message=Someone+is+at
+    +the+front+door``. Like the legacy ``tts.<provider>_say`` service, that engine
+    is non-portable: ``cloud_say`` needs a Nabu Casa subscription, so on an
+    install without one the ``play_media`` call fails at run time ("Playback
+    failed to start") even though it validates. Extract the spoken message (and
+    ``language``) from the URI query and rebuild as ``tts.speak`` on a *usable*
+    engine, preferring the URI's own provider so the voice is preserved when that
+    provider works (cloud → the cloud engine when subscribed, else a fallback).
+
+    Returns the rewritten action, or ``None`` when it is not a TTS media-source
+    play_media or is not rewritable (templated URI, no message, no ``tts.speak``,
+    no usable engine, or no concrete media_player speaker).
+    """
+    service = str(action.get("action", action.get("service", "")))
+    if service != "media_player.play_media":
+        return None
+
+    data = action.get("data")
+    data = data if isinstance(data, dict) else {}
+    content_id = data.get("media_content_id")
+    if not isinstance(content_id, str) or not content_id.startswith(_TTS_MEDIA_SOURCE_PREFIX):
+        return None
+    # A templated URI resolves to its real value at run time — rewriting it
+    # would change behaviour based on a guess. Leave it for the normal gates.
+    if "{{" in content_id or "{%" in content_id:
+        return None
+
+    remainder = content_id[len(_TTS_MEDIA_SOURCE_PREFIX) :]
+    engine_token, _, query = remainder.partition("?")
+    params = urllib.parse.parse_qs(query)  # already URL-decodes values (+, %xx)
+    message = (params.get("message") or [""])[0]
+    if not message.strip():
+        # No spoken text to rebuild from (e.g. a non-message TTS media source).
+        return None
+
+    if not hass.services.has_service("tts", "speak"):
+        _LOGGER.warning(
+            "Announcement uses TTS media-source %s but tts.speak is unavailable "
+            "to canonicalize it to; leaving as-is.",
+            content_id,
+        )
+        return None
+    # The URI engine token mirrors the legacy service name (``cloud_say``) or a
+    # provider/engine id; prefer an engine from that provider so the voice is
+    # kept when usable, falling back to any working engine otherwise.
+    provider = engine_token[: -len("_say")] if engine_token.endswith("_say") else engine_token
+    engine = _resolve_tts_engine(hass, prefer=provider)
+    if engine is None:
+        _LOGGER.warning(
+            "Announcement uses TTS media-source %s but no usable TTS engine is "
+            "configured to retarget tts.speak at; leaving as-is.",
+            content_id,
+        )
+        return None
+
+    speaker = _play_media_speaker(action)
+    speaker_ids: list[str] = []
+    for part in speaker if isinstance(speaker, list) else [speaker]:
+        if isinstance(part, str):
+            speaker_ids.extend(p.strip() for p in part.split(",") if p.strip())
+    if not speaker_ids or any(s.split(".")[0] != "media_player" for s in speaker_ids):
+        _LOGGER.warning(
+            "Announcement uses TTS media-source %s but its target is not a "
+            "concrete media_player entity; leaving as-is (it will be silent).",
+            content_id,
+        )
+        return None
+
+    rewritten: dict[str, Any] = {
+        key: val
+        for key, val in action.items()
+        if key not in ("action", "service", "target", "entity_id", "data")
+    }
+    rewritten["action"] = "tts.speak"
+    rewritten["target"] = {"entity_id": engine}
+    new_data: dict[str, Any] = {
+        "media_player_entity_id": speaker_ids[0] if len(speaker_ids) == 1 else speaker_ids,
+        "message": message,
+    }
+    language = (params.get("language") or [""])[0]
+    if language:
+        new_data["language"] = language
+    rewritten["data"] = new_data
+    _LOGGER.info(
+        "Canonicalized TTS media-source announcement (%s) to tts.speak (engine=%s, speaker=%s).",
+        content_id,
+        engine,
+        ", ".join(speaker_ids),
+    )
+    return rewritten
 
 
 def _rewrite_spoken_play_media(
@@ -1290,11 +1425,13 @@ def _rewrite_legacy_tts_say(
         )
         return None
     # Don't change the provider of a *working* call: when the legacy service is
-    # registered but the only engine we can resolve belongs to a different
+    # genuinely usable but the only engine we can resolve belongs to a different
     # provider, leave it as-is rather than swapping the voice (and possibly
-    # invalidating provider-specific options). An unregistered service is broken
-    # regardless, so any working engine is still an improvement there.
-    if hass.services.has_service("tts", name) and not _engine_matches_provider(engine, provider):
+    # invalidating provider-specific options). A broken call — unregistered, or
+    # registered-but-mute like tts.cloud_say with no active subscription — is
+    # worth rewriting onto any working engine instead. Registration alone is not
+    # usability (see _legacy_say_usable), so we gate on usability, not presence.
+    if _legacy_say_usable(hass, provider, name) and not _engine_matches_provider(engine, provider):
         _LOGGER.debug(
             "Leaving registered legacy %s as-is: no matching %s TTS engine to "
             "canonicalize to without changing the provider.",
@@ -1412,10 +1549,11 @@ def _retarget_tts_speak_engine(
 
 
 def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[str, Any]:
-    """Apply the announcement repairs (:func:`_rewrite_spoken_play_media`,
-    :func:`_rewrite_legacy_tts_say`, and :func:`_retarget_tts_speak_engine`) to
-    *action* and to any actions nested in its control-flow branches (``choose`` /
-    ``if`` / ``sequence`` / ``repeat`` / ``parallel`` …).
+    """Apply the announcement repairs (:func:`_rewrite_tts_media_source`,
+    :func:`_rewrite_spoken_play_media`, :func:`_rewrite_legacy_tts_say`, and
+    :func:`_retarget_tts_speak_engine`) to *action* and to any actions nested in
+    its control-flow branches (``choose`` / ``if`` / ``sequence`` / ``repeat`` /
+    ``parallel`` …).
 
     Mirrors the recursion the entity walker and condition validator already do,
     so a silent announcement buried inside a conditional branch is repaired just
@@ -1423,7 +1561,8 @@ def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[
     form, or the original with nested branches rewritten in place).
     """
     rewritten = (
-        _rewrite_spoken_play_media(action, hass)
+        _rewrite_tts_media_source(action, hass)
+        or _rewrite_spoken_play_media(action, hass)
         or _rewrite_legacy_tts_say(action, hass)
         or _retarget_tts_speak_engine(action, hass)
     )
@@ -1453,6 +1592,156 @@ def _rewrite_announcements(action: dict[str, Any], hass: HomeAssistant) -> dict[
     if isinstance(repeat, dict) and "sequence" in repeat:
         repeat["sequence"] = _rewrite_seq(repeat["sequence"])
     return action
+
+
+_MAX_SERVICES_IN_FEEDBACK = 30
+
+
+def _iter_action_dicts(actions: Any) -> Iterator[dict[str, Any]]:
+    """Yield every action dict in *actions*, recursing into control-flow
+    branches (``choose`` / ``if`` / ``repeat`` / ``sequence`` / ``parallel`` /
+    ``then`` / ``else`` / ``default``) — the same shapes the validator and the
+    announcement rewriter walk."""
+    if isinstance(actions, dict):
+        actions = [actions]
+    if not isinstance(actions, list):
+        return
+    for act in actions:
+        if not isinstance(act, dict):
+            continue
+        yield act
+        for key in ("sequence", "then", "else", "default", "parallel"):
+            if key in act:
+                yield from _iter_action_dicts(act[key])
+        choose = act.get("choose")
+        if isinstance(choose, list):
+            for branch in choose:
+                if isinstance(branch, dict):
+                    yield from _iter_action_dicts(branch.get("sequence"))
+        repeat = act.get("repeat")
+        if isinstance(repeat, dict):
+            yield from _iter_action_dicts(repeat.get("sequence"))
+
+
+def _action_service(action: dict[str, Any]) -> str:
+    """The service id an action calls, from the ``action`` or legacy ``service`` key."""
+    return str(action.get("action", action.get("service", "")))
+
+
+def _action_target_entity_ids(action: dict[str, Any]) -> list[str]:
+    """Every entity_id an action targets — ``target.entity_id``, a bare
+    ``entity_id``, or ``data.entity_id`` — flattened across comma-strings and lists."""
+    ids: list[str] = []
+    candidates: list[Any] = []
+    target = action.get("target")
+    if isinstance(target, dict):
+        candidates.append(target.get("entity_id"))
+    candidates.append(action.get("entity_id"))
+    data = action.get("data")
+    if isinstance(data, dict):
+        candidates.append(data.get("entity_id"))
+    for cand in candidates:
+        if isinstance(cand, str):
+            ids.extend(part.strip() for part in cand.split(",") if part.strip())
+        elif isinstance(cand, list):
+            ids.extend(str(part).strip() for part in cand if str(part).strip())
+    return ids
+
+
+def _real_services_for_domain(hass: HomeAssistant, domain: str) -> list[str]:
+    """Sorted ``domain.service`` ids actually registered for *domain*, capped so
+    a chatty domain can't blow up the feedback prompt."""
+    services = hass.services.async_services_for_domain(domain)
+    names = sorted(f"{domain}.{name}" for name in services)
+    return names[:_MAX_SERVICES_IN_FEEDBACK]
+
+
+def _entity_integration(hass: HomeAssistant, entity_id: str) -> str | None:
+    """The integration (platform) that provides *entity_id*, or ``None`` if it
+    is not in the entity registry."""
+    entry = er.async_get(hass).async_get(entity_id)
+    return entry.platform if entry else None
+
+
+def build_service_feedback(
+    hass: HomeAssistant,
+    reason: str,
+    rejected_automation: dict[str, Any] | None,
+) -> str:
+    """Turn a :func:`validate_automation_payload` rejection into an actionable
+    correction the model can act on, naming the REAL services available on this
+    Home Assistant for the entities and domains involved.
+
+    This is the generalised alternative to per-service rewrite patches: instead
+    of hand-coding a fix for each hallucinated service (``media_player.snapshot``
+    → ``sonos.snapshot`` …), we hand the model ground truth — the actual
+    integration behind each target entity and that integration's real service
+    list — and let it correct its own output. One mechanism covers the whole
+    class of non-existent-service / read-only-target rejections.
+    """
+    lines: list[str] = [
+        "The automation you proposed was rejected by Home Assistant and was NOT created.",
+        f"Reason: {reason}",
+        "",
+    ]
+
+    svc_match = re.search(r"non-existent service '([^']+)'", reason)
+    if svc_match:
+        bad_service = svc_match.group(1)
+        bad_domain = bad_service.split(".", 1)[0]
+        lines.append(f"The service '{bad_service}' does not exist on this Home Assistant.")
+
+        # List the real services of the integration actually behind the
+        # entities the offending action targeted — this is where calls like
+        # snapshot/restore really live (e.g. ``sonos.snapshot`` for a Sonos
+        # media_player), so the model can retarget to a service that exists.
+        target_ids: list[str] = []
+        if isinstance(rejected_automation, dict):
+            actions = rejected_automation.get("action") or rejected_automation.get("actions") or []
+            for act in _iter_action_dicts(actions):
+                if _action_service(act) == bad_service:
+                    target_ids.extend(_action_target_entity_ids(act))
+
+        listed_integrations: set[str] = set()
+        for eid in target_ids:
+            integration = _entity_integration(hass, eid)
+            if not integration or integration in listed_integrations:
+                continue
+            listed_integrations.add(integration)
+            integ_services = _real_services_for_domain(hass, integration)
+            if integ_services:
+                lines.append(
+                    f"- {eid} is provided by the '{integration}' integration. "
+                    f"Its real services: {', '.join(integ_services)}."
+                )
+
+        domain_services = _real_services_for_domain(hass, bad_domain)
+        if domain_services:
+            lines.append(f"- Real '{bad_domain}' services: {', '.join(domain_services)}.")
+
+        lines.append("")
+        lines.append(
+            "Rewrite the action(s) to use ONLY services listed above. Do not invent "
+            "service names. If no suitable service exists for a step, omit that step."
+        )
+        return "\n".join(lines)
+
+    ro_match = re.search(r"read-only domain '([^']+)'", reason)
+    if ro_match:
+        domain = ro_match.group(1)
+        lines.append(
+            f"The '{domain}' domain is read-only (it registers no services), so you "
+            "cannot call a service on it or use it as a service target. Use its state "
+            "in a trigger or condition instead, and put the action on a controllable "
+            "entity (light, switch, media_player, lock, climate, …)."
+        )
+        return "\n".join(lines)
+
+    lines.append(
+        "Fix the issue above and resubmit a corrected automation. Use only entity_ids "
+        "and services that exist on this Home Assistant."
+    )
+    return "\n".join(lines)
 
 
 def validate_automation_payload(

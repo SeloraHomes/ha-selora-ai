@@ -404,6 +404,17 @@ export async function _sendMessage() {
         // the watchdog without flipping firstTokenSeen so the longer
         // pre-token grace stays in effect.
         lastActivityAt = Date.now();
+      } else if (event.type === "step" && event.step && event.step.id) {
+        // Agent-activity timeline entry (tool read, drafting, validation,
+        // correction). Upsert by id so a step can transition in place
+        // (e.g. validate: warn → done) instead of stacking a duplicate.
+        lastActivityAt = Date.now();
+        const steps = assistantMsg.steps ? [...assistantMsg.steps] : [];
+        const at = steps.findIndex((s) => s.id === event.step.id);
+        if (at >= 0) steps[at] = event.step;
+        else steps.push(event.step);
+        assistantMsg.steps = steps;
+        this._messages = [...this._messages];
       } else if (event.type === "done") {
         teardown();
         const responseText = event.response || assistantMsg.content || "";
@@ -476,6 +487,9 @@ export async function _sendMessage() {
           ? "pending"
           : null;
         assistantMsg.tool_calls = event.tool_calls || null;
+        // Canonical timeline from the server (covers any step the live
+        // stream dropped); fall back to what streamed in if absent.
+        assistantMsg.steps = event.steps || assistantMsg.steps || null;
         assistantMsg._replyMs = Date.now() - sendStartedAt;
         assistantMsg._streaming = false;
         this._messages = [...this._messages];
@@ -593,19 +607,33 @@ export function _stopStreaming() {
   }
   this._streaming = false;
   this._loading = false;
-  const note =
-    "\n\n" + this._t("chat_actions_cancelled_by_user", "_Cancelled by user_");
+  // Surface the cancellation via the structured _interrupted path (the
+  // styled "Response was cut short" row) rather than appending markdown to
+  // the bubble content. While drafting an automation/scene the content holds
+  // an unterminated ```automation``` block that stripAutomationBlock removes
+  // wholesale — a note appended after it would be stripped too, leaving an
+  // empty bubble with no sign the turn was stopped. The translation carries
+  // markdown italics (`_…_`) for the legacy content-append use; strip them
+  // since _interruptReason renders as plain text.
+  const reason = this._t(
+    "chat_actions_cancelled_by_user",
+    "_Cancelled by user_",
+  ).replace(/^_+|_+$/g, "");
   const lastMsg = this._messages[this._messages.length - 1];
   if (lastMsg && lastMsg.role === "assistant") {
     lastMsg._streaming = false;
-    if (!lastMsg.content?.endsWith(note)) {
-      lastMsg.content = (lastMsg.content || "") + note;
-    }
+    lastMsg._interrupted = true;
+    lastMsg._interruptReason = reason;
     this._messages = [...this._messages];
   } else {
     this._messages = [
       ...this._messages,
-      { role: "assistant", content: note.trimStart() },
+      {
+        role: "assistant",
+        content: "",
+        _interrupted: true,
+        _interruptReason: reason,
+      },
     ];
   }
 }

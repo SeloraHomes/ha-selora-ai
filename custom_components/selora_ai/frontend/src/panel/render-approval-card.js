@@ -14,7 +14,11 @@
 // markers in chat prose.
 
 import { html } from "lit";
-import { actionIcon, describeCall } from "./action-format.js";
+import {
+  actionIcon,
+  callTargetEntityIds,
+  describeCall,
+} from "./action-format.js";
 
 const RISK_LEVEL_STYLES = {
   low: {
@@ -67,8 +71,7 @@ function _renderActionTile(call) {
 }
 
 function _renderCallRow(host, call, reason) {
-  const target = call?.target?.entity_id;
-  const ids = Array.isArray(target) ? target : target ? [target] : [];
+  const ids = callTargetEntityIds(call);
   const { targetText } = describeCall(host, call);
 
   // Right side: a real HA tile if we have entity targets, otherwise a
@@ -122,9 +125,7 @@ function _proposalEntityIds(approval) {
   const seen = new Set();
   const ids = [];
   for (const call of approval?.calls || []) {
-    const t = call?.target?.entity_id;
-    const list = Array.isArray(t) ? t : t ? [t] : [];
-    for (const eid of list) {
+    for (const eid of callTargetEntityIds(call)) {
       if (typeof eid === "string" && !seen.has(eid)) {
         seen.add(eid);
         ids.push(eid);
