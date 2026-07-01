@@ -70,6 +70,30 @@ def test_stream_prompt_omits_execute_command_without_tools(hass) -> None:
     assert "execute_command" not in prompt
 
 
+# ── Tool strategy recipe ─────────────────────────────────────────────────────
+
+
+def test_tool_strategy_recipe_states_usable_budget() -> None:
+    from custom_components.selora_ai.const import MAX_TOOL_CALL_ROUNDS
+    from custom_components.selora_ai.llm_client.prompts import _tool_strategy_recipe
+
+    recipe = _tool_strategy_recipe()
+    # Orient-once guidance and the usable budget (one less than the cap, since
+    # the final round withholds tools) must both be present.
+    assert "get_home_snapshot" in recipe
+    assert str(MAX_TOOL_CALL_ROUNDS - 1) in recipe
+
+
+def test_json_prompt_includes_tool_strategy_only_with_tools(hass) -> None:
+    assert "TOOL STRATEGY" in build_architect_system_prompt(tools_available=True)
+    assert "TOOL STRATEGY" not in build_architect_system_prompt(tools_available=False)
+
+
+def test_stream_prompt_includes_tool_strategy_only_with_tools(hass) -> None:
+    assert "TOOL STRATEGY" in build_architect_stream_system_prompt(tools_available=True)
+    assert "TOOL STRATEGY" not in build_architect_stream_system_prompt(tools_available=False)
+
+
 # ── _suppress_duplicate_command_after_tool ───────────────────────────────────
 
 
