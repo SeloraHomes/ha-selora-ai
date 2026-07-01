@@ -407,6 +407,28 @@ def test_qwen_clean_envelope_records_no_repair() -> None:
     assert repairs == []
 
 
+def test_tool_markup_leak_records_repair() -> None:
+    """Stripping a leaked tool-call block counts as a repair."""
+    from custom_components.selora_ai.llm_client.parsers import (
+        strip_leaked_tool_markup,
+    )
+
+    with repair_capture() as repairs:
+        strip_leaked_tool_markup('Looking.\n\n<invoke name="list_devices">x</invoke>')
+    assert "tool_markup_leak" in repairs
+
+
+def test_no_tool_markup_leak_records_no_repair() -> None:
+    """Clean prose with a bare ``<`` must not record a leak repair."""
+    from custom_components.selora_ai.llm_client.parsers import (
+        strip_leaked_tool_markup,
+    )
+
+    with repair_capture() as repairs:
+        strip_leaked_tool_markup("Set the heat when temp < 20 degrees.")
+    assert repairs == []
+
+
 # ── resilience + identity ────────────────────────────────────────────
 
 

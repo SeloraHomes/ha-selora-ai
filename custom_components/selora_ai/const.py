@@ -1036,8 +1036,11 @@ CLOUD_LLM_TEMPERATURE = 0.2
 # block) instead of spending the round on another read and dead-ending in the
 # "couldn't complete the analysis" exhaustion path. Multi-entity automations
 # (e.g. doorbell → look up trigger entity, speaker, and the existing
-# automation, then emit) need the read headroom this allows.
-MAX_TOOL_CALL_ROUNDS = 6
+# automation, then emit) need the read headroom this allows — 8 leaves ~7
+# tool-gathering turns after the final tool-less commit round. Small models
+# that orient with several serial reads (see `_tool_strategy_recipe`) were
+# dead-ending at 6.
+MAX_TOOL_CALL_ROUNDS = 8
 MAX_TOOL_RESULT_CHARS = 16000  # Truncate tool results to prevent token explosion
 
 # ── Backend chat-stream guards ──────────────────────────────────────

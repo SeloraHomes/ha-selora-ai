@@ -74,10 +74,12 @@ from .intent import (
 )
 from .lang_detect import resolve_reply_language
 from .parsers import (
+    MarkupLeakGuard,
     parse_architect_response,
     parse_command_response_text,
     parse_streamed_response,
     parse_suggestions,
+    strip_leaked_tool_markup,
 )
 from .prompts import (
     build_analysis_prompt,
@@ -124,6 +126,19 @@ _CURRENT_VERB_RE = re.compile(
     r"disarm|turn|switch|toggle|set|start|stop|activate|deactivate|"
     r"enable|disable)\b",
     re.IGNORECASE,
+)
+
+
+# Appended to the system prompt on the final tool round. That round
+# withholds tools to force a committed text answer; without this a model
+# that still wants to act writes the tool call it wanted to make as plain
+# text (``<invoke name="list_devices">…``), which never executes and leaks
+# raw markup into the reply. Tell it explicitly to stop and commit.
+_FINAL_ROUND_DIRECTIVE = (
+    "\n\nIMPORTANT: This is your final turn — no tools are available now. "
+    "Do NOT write tool-call syntax, XML tags, or function-call markup. "
+    "Answer using only what you have already gathered. If you could not "
+    "finish, say so plainly in prose."
 )
 
 
@@ -1214,9 +1229,10 @@ class LLMClient:
             # text turn — which is exactly where automation YAML is parsed from.
             is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
             round_tools = None if is_final_round else tools
+            round_system = system + _FINAL_ROUND_DIRECTIVE if is_final_round else system
             try:
                 response_data = await self._provider.raw_request(
-                    system, messages, tools=round_tools
+                    round_system, messages, tools=round_tools
                 )
 
                 requested_tools = self._provider.extract_tool_calls(response_data)
@@ -1225,8 +1241,14 @@ class LLMClient:
                     # Final answer — leave usage in the buffer so architect_chat
                     # can flush it with the parsed intent.
                     text = self._provider.extract_text_response(response_data)
-                    # A blank forced-final answer falls through to the
-                    # acknowledgement below rather than returning an empty turn.
+                    # Defence in depth: a model that emitted its next tool call
+                    # as text (instead of a real tool_use block) lands here with
+                    # markup in ``text`` and nothing executed. Cut the leaked
+                    # tail so it never reaches the panel.
+                    text = strip_leaked_tool_markup(text) if text else text
+                    # A blank forced-final answer — or one that was ENTIRELY a
+                    # leaked tool call — falls through to the acknowledgement
+                    # below rather than returning an empty/garbage turn.
                     if is_final_round and not (text and text.strip()):
                         break
                     return text, None, tool_calls_log
@@ -1367,6 +1389,7 @@ class LLMClient:
             # another tool and exhausting into the dead-end message below.
             is_final_round = _round == MAX_TOOL_CALL_ROUNDS - 1
             round_tools = None if is_final_round else tools
+            round_system = system + _FINAL_ROUND_DIRECTIVE if is_final_round else system
             tool_calls: list[dict[str, Any]] = []
             content_blocks: list[dict[str, Any]] = []
             text_len_before = len(streamed_text_parts)
@@ -1376,10 +1399,14 @@ class LLMClient:
             # space so "...search for them." + "I don't see..." doesn't render
             # as "...search for them.I don't see...".
             first_text_in_round = True
+            # Per-round guard: strips leaked tool-call markup from the stream
+            # before it reaches the panel. Fresh each round so a leak in the
+            # final tool-less round can't retroactively silence earlier prose.
+            leak_guard = MarkupLeakGuard()
 
             try:
                 async for resp in self._provider.raw_request_stream(
-                    system, messages, tools=round_tools
+                    round_system, messages, tools=round_tools
                 ):
                     async for text in self._provider.stream_with_tools(
                         resp, tool_calls, content_blocks
@@ -1387,8 +1414,15 @@ class LLMClient:
                         if _round > 0 and first_text_in_round and text:
                             text = _join_stream_boundary("".join(streamed_text_parts), text)
                             first_text_in_round = False
-                        streamed_text_parts.append(text)
-                        yield text
+                        safe = leak_guard.feed(text)
+                        if safe:
+                            streamed_text_parts.append(safe)
+                            yield safe
+                # Release any tail the guard held back pending more context.
+                tail = leak_guard.flush()
+                if tail:
+                    streamed_text_parts.append(tail)
+                    yield tail
 
             except ConnectionError:
                 # Transient transport / provider errors propagate so the WS

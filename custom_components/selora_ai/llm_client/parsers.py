@@ -169,6 +169,155 @@ def _strip_trigger_action_recap(text: str) -> str:
     return cleaned.rstrip()
 
 
+# A model that still wants to act after its tool budget is spent (the
+# final tool round withholds tools to force a text turn) sometimes writes
+# the tool call it *wanted* to make as plain text instead of a real
+# tool_use block: ``<tool_calls><invoke name="list_devices">…``. Some
+# backends mangle it further, spraying tokenizer special-token pieces
+# between the ``<`` and the keyword — ``< |  | DSML |  | tool_calls>`` /
+# ``</ |  | DSML |  | invoke>``. None of it is executed (the loop only
+# runs structured tool_use blocks) and it must never reach the panel.
+#
+# ``_LEAK_TOKENS`` are the keywords that head such a block; the connective
+# run (pipes / whitespace / ``DSML`` / ``antml:``) between ``<`` and the
+# keyword is tolerated so the mangled form matches too.
+_LEAK_KEYWORDS = ("function_calls", "tool_calls", "invoke", "parameter")
+_LEAK_CONNECTIVE_TOKENS = ("dsml", "antml:")
+_LEAK_CONNECTIVE_RE = re.compile(r"(?:\|+\s*|dsml\s*|antml:\s*)", re.IGNORECASE)
+_TOOL_MARKUP_LEAK_RE = re.compile(
+    r"</?\s*(?:\|+\s*)*(?:dsml\s*(?:\|+\s*)*)?(?:antml:\s*)?"
+    r"(?:function_calls|tool_calls|invoke|parameter)\b",
+    re.IGNORECASE,
+)
+
+
+def _leak_marker_prefix_could_match(chunk: str) -> bool:
+    """True if ``chunk`` (which starts with ``<``) could still grow into a
+    leaked tool-call marker — i.e. it is worth holding back for more stream
+    context rather than emitting.
+
+    Strips the leading ``<``, an optional ``/``, and the connective filler
+    (pipes / whitespace / ``DSML`` / ``antml:``) the same way the full
+    matcher tolerates it, then asks whether what remains is a prefix of a
+    marker keyword (or of the connective tokens, so a split ``DSML`` is
+    held too). Normal prose ``<`` — ``"temp < 20"``, ``"a < b"`` — is ruled
+    out immediately so streaming stays responsive.
+    """
+    body = chunk[1:].lstrip("/")
+    while True:
+        stripped = _LEAK_CONNECTIVE_RE.sub("", body, count=1)
+        if stripped == body:
+            break
+        body = stripped
+    body = body.lstrip()
+    if not body:
+        return True  # only connective filler so far — undecided
+    low = body.lower()
+    return any(kw.startswith(low) for kw in (*_LEAK_KEYWORDS, *_LEAK_CONNECTIVE_TOKENS))
+
+
+def strip_leaked_tool_markup(text: str) -> str:
+    """Truncate leaked tool-call markup and everything after it.
+
+    The leak is always a tail: the model narrates, then dumps the syntax
+    of the call it wanted to make. Cut from the first marker to the end and
+    trim the trailing whitespace the removal leaves behind. Returns ``text``
+    unchanged when no marker is present.
+    """
+    if not isinstance(text, str) or not text:
+        return text
+    match = _TOOL_MARKUP_LEAK_RE.search(text)
+    if not match:
+        return text
+    record_repair("tool_markup_leak")
+    return text[: match.start()].rstrip()
+
+
+class MarkupLeakGuard:
+    """Stream-safe filter that suppresses leaked tool-call markup.
+
+    Fed the model's text chunks in order; returns only the portion safe to
+    emit. It holds back any trailing partial that could be the start of a
+    marker (so a marker split across chunk boundaries is still caught), and
+    once a full marker is seen it drops the rest of the stream — the leaked
+    block is junk through to the end of the turn.
+
+    One guard per tool round: a leak in the final (tool-less) round must
+    not silence legitimate prose streamed in an earlier round.
+    """
+
+    def __init__(self) -> None:
+        self._buf = ""
+        self._suppressing = False
+
+    @property
+    def suppressed(self) -> bool:
+        """Whether a leak marker was seen and the tail is being dropped."""
+        return self._suppressing
+
+    def feed(self, chunk: str) -> str:
+        """Consume ``chunk``; return the text safe to emit right now."""
+        if self._suppressing:
+            return ""
+        if chunk:
+            self._buf += chunk
+        out: list[str] = []
+        while self._buf:
+            lt = self._buf.find("<")
+            if lt == -1:
+                # No candidate. Emit everything except a trailing whitespace
+                # run — that run might precede a marker in the next chunk and
+                # would then have to be dropped with it.
+                body = self._buf.rstrip()
+                out.append(body)
+                self._buf = self._buf[len(body) :]
+                break
+            # Emit prose up to the ``<``, minus its trailing whitespace run.
+            # The whitespace stays attached to the candidate so it is dropped
+            # too when the candidate turns out to be a leak (``prose\n\n<…>``).
+            prefix = self._buf[:lt].rstrip()
+            out.append(prefix)
+            self._buf = self._buf[len(prefix) :]
+            candidate = self._buf[self._buf.find("<") :]
+            match = _TOOL_MARKUP_LEAK_RE.match(candidate)
+            # A match that ends exactly at the buffer edge is NOT proof of a
+            # leak: ``\b`` is satisfied by end-of-string, so a chunk split
+            # right after ``<parameter`` (prose ``<parameterized>``) matches
+            # here even though the next chunk would disambiguate it. Only
+            # suppress once a real delimiter (``>``/whitespace/attribute) is
+            # present after the keyword; otherwise wait for the next chunk.
+            if match and match.end() < len(candidate):
+                self._suppressing = True
+                self._buf = ""
+                record_repair("tool_markup_leak")
+                break
+            if match is not None or _leak_marker_prefix_could_match(candidate):
+                break  # keyword at buffer edge, or partial — wait for more
+            # Not a marker: release the held whitespace and the ``<``, rescan.
+            keep = self._buf.find("<") + 1
+            out.append(self._buf[:keep])
+            self._buf = self._buf[keep:]
+        return "".join(out)
+
+    def flush(self) -> str:
+        """Emit any leftover held-back text at the end of the round.
+
+        A leftover ``<…`` that still looks like a partial marker (stream
+        ended mid-``<invoke``) is dropped, keeping the prose before it;
+        ordinary trailing text is emitted intact.
+        """
+        if self._suppressing:
+            self._buf = ""
+            return ""
+        leftover = self._buf
+        self._buf = ""
+        lt = leftover.find("<")
+        if lt != -1 and _leak_marker_prefix_could_match(leftover[lt:]):
+            record_repair("tool_markup_leak")
+            return leftover[:lt]
+        return leftover
+
+
 # Map each service action to a semantic verb so an entity swap across
 # domains (lock.lock → cover.close_cover) preserves user intent.
 _SERVICE_ACTION_VERB: dict[str, str] = {

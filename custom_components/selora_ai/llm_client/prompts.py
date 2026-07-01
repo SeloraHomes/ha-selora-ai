@@ -12,6 +12,7 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+from ..const import MAX_TOOL_CALL_ROUNDS
 from ..types import EntitySnapshot, HomeSnapshot
 from .command_policy import (
     _MAX_COMMAND_CALLS,
@@ -470,6 +471,44 @@ def build_minimal_chat_messages(
     return messages
 
 
+def _tool_strategy_recipe() -> str:
+    """Directive tool-use recipe injected when tools are available.
+
+    Small models (e.g. DeepSeek V4 Flash) otherwise orient by chaining
+    several broad reads (``list_devices`` → ``get_device`` → ``get_entity_state``
+    → ``search_entities``) and exhaust the round budget before they reach the
+    creation step — the failure that leaks tool-call markup and produces no
+    automation. This tells the model to orient once, resolve only what the
+    task needs, batch independent reads, and commit. The usable budget is one
+    less than ``MAX_TOOL_CALL_ROUNDS`` because the final round withholds tools
+    to force a text answer.
+    """
+    usable = max(1, MAX_TOOL_CALL_ROUNDS - 1)
+    return (
+        "TOOL STRATEGY — read this BEFORE calling any tool:\n"
+        f"You have a LIMITED tool budget — about {usable} tool-gathering turns "
+        "before you MUST commit a final answer (the last turn runs with no "
+        "tools). A wasted turn can leave you unable to finish, so spend the "
+        "budget deliberately.\n"
+        "1. ORIENT ONCE. Start with `get_home_snapshot` for a whole-home "
+        "inventory instead of chaining `list_devices` + `get_device` + "
+        "`get_entity_state` to rediscover what one snapshot already gives you. "
+        "NEVER re-list or re-read what you can already see in context.\n"
+        "2. PLAN before you dig. In one sentence to yourself, name the EXACT "
+        "trigger entity and the EXACT target service/entity the task needs, "
+        "then gather only those. Do not explore open-endedly.\n"
+        "3. RESOLVE with TARGETED queries — `search_entities` (fuzzy name/area), "
+        "`find_entities_by_area`, `get_device_triggers` (device button/press "
+        "triggers) — not broad listings.\n"
+        "4. BATCH independent reads in a SINGLE turn (request several tool "
+        "calls at once). Only reads that depend on a prior result go in the "
+        "next turn.\n"
+        "5. COMMIT as soon as you have what you need — emit the automation / "
+        "scene / command block or the answer. Do NOT keep gathering, and NEVER "
+        "write tool-call syntax as text.\n\n"
+    )
+
+
 def build_architect_system_prompt(
     *,
     tools_available: bool = False,
@@ -538,7 +577,7 @@ def build_architect_system_prompt(
         "the policy validator to flag it.\n"
         "Helper tools for entity resolution: `search_entities` (fuzzy match by "
         "name/alias/area), `find_entities_by_area`, `get_entity_state`. Helper "
-        "tool for verb/parameter validation: `validate_action`.\n\n"
+        "tool for verb/parameter validation: `validate_action`.\n\n" + _tool_strategy_recipe()
         if tools_available
         else ""
     )
@@ -948,7 +987,7 @@ def build_architect_stream_system_prompt(
             "Append a ```command``` block only when batching multiple calls in one "
             "turn or when the entity_id is genuinely ambiguous.\n"
             "Helper tools: `search_entities`, `find_entities_by_area`, "
-            "`get_entity_state`, `validate_action`.\n\n"
+            "`get_entity_state`, `validate_action`.\n\n" + _tool_strategy_recipe()
             if tools_available
             else ""
         )
