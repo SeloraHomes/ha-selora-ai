@@ -383,6 +383,7 @@
     "scenes_card_created_title": "장면 생성됨",
     "scenes_card_saved_status": "Home Assistant에 저장됨",
     "scenes_card_activate_button": "활성화",
+    "scenes_card_test_button": "장면 테스트",
     "scenes_card_view_in_ha_button": "HA에서 보기",
     "scenes_card_declined_title": "장면 거부됨",
     "scenes_card_declined_message": "닫혔습니다. 아래에 답장하여 수정할 수 있습니다.",

@@ -931,6 +931,147 @@ class TestChatCommandExecution:
         assert all(isinstance(e, dict) and not e.get("entity_ids") for e in executed)
         assert "Failed" in result["response"]
 
+    @pytest.mark.asyncio
+    async def test_command_suppressed_during_scene_refinement(self, hass) -> None:
+        """A command intent emitted while refining a scene must NOT execute a
+        live service call, and the confirmation prose ("Turned on the TV") is
+        replaced with the safe refinement message — never claiming an action
+        that didn't happen."""
+        from custom_components.selora_ai import (
+            _REFINEMENT_SUPPRESSED_BY_LANG,
+            _handle_websocket_chat,
+        )
+        from custom_components.selora_ai.const import DOMAIN
+        from custom_components.selora_ai.conversation_store import ConversationStore
+
+        service_calls: list[dict] = []
+
+        async def _track_call(call) -> None:  # noqa: ANN001
+            service_calls.append(dict(call.data))
+
+        hass.services.async_register("media_player", "turn_on", _track_call)
+
+        # Seed a session whose latest scene status is "refining".
+        store = ConversationStore(hass)
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN]["_conv_store"] = store
+        session = await store.create_session()
+        await store.append_message(
+            session["id"],
+            "assistant",
+            "I've loaded the scene Movie Night for refinement.",
+            intent="scene",
+            scene={"name": "Movie Night", "entities": {}},
+            scene_yaml="name: Movie Night\nentities: {}\n",
+            scene_status="refining",
+        )
+
+        mock_llm = AsyncMock()
+        mock_llm.architect_chat = AsyncMock(
+            return_value={
+                "intent": "command",
+                "response": "Turning on the TV.",
+                "calls": [
+                    {
+                        "service": "media_player.turn_on",
+                        "target": {"entity_id": "media_player.tv"},
+                        "data": {},
+                    }
+                ],
+            }
+        )
+        hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
+
+        connection = MagicMock()
+        connection.user = MagicMock(is_admin=True)
+        msg = {
+            "id": 1,
+            "type": "selora_ai/chat",
+            "message": "also turn on the TV",
+            "session_id": session["id"],
+        }
+
+        handler = self._get_inner_handler(_handle_websocket_chat)
+        await handler(hass, connection, msg)
+
+        # No live device action.
+        assert service_calls == []
+        result = connection.send_result.call_args[0][1]
+        assert result["executed"] == []
+        assert result["intent"] == "answer"
+        # Safe message, not the model's "Turning on the TV." confirmation.
+        assert result["response"] == _REFINEMENT_SUPPRESSED_BY_LANG["en"]
+
+    @pytest.mark.asyncio
+    async def test_command_approval_suppressed_during_scene_refinement(self, hass) -> None:
+        """A REVIEW-risk service (lock.unlock) reaches the handler as
+        intent="command_approval" (apply_command_policy upgrades it). During
+        refinement it must NOT persist an approval card — otherwise the
+        approval resolver could later execute a live unlock, bypassing the
+        "nothing is sent to devices while refining" guard."""
+        from custom_components.selora_ai import (
+            _REFINEMENT_SUPPRESSED_BY_LANG,
+            _handle_websocket_chat,
+        )
+        from custom_components.selora_ai.const import DOMAIN
+        from custom_components.selora_ai.conversation_store import ConversationStore
+
+        store = ConversationStore(hass)
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN]["_conv_store"] = store
+        session = await store.create_session()
+        await store.append_message(
+            session["id"],
+            "assistant",
+            "I've loaded the scene Movie Night for refinement.",
+            intent="scene",
+            scene={"name": "Movie Night", "entities": {}},
+            scene_yaml="name: Movie Night\nentities: {}\n",
+            scene_status="refining",
+        )
+
+        mock_llm = AsyncMock()
+        mock_llm.architect_chat = AsyncMock(
+            return_value={
+                "intent": "command_approval",
+                "response": "This will unlock the front door — approve?",
+                "command_approval": {
+                    "calls": [
+                        {
+                            "service": "lock.unlock",
+                            "target": {"entity_id": "lock.front_door"},
+                            "data": {},
+                        }
+                    ],
+                    "risk": "high",
+                },
+            }
+        )
+        hass.data[DOMAIN]["test_entry"] = {"llm": mock_llm}
+
+        connection = MagicMock()
+        connection.user = MagicMock(is_admin=True)
+        msg = {
+            "id": 1,
+            "type": "selora_ai/chat",
+            "message": "also unlock the front door",
+            "session_id": session["id"],
+        }
+
+        handler = self._get_inner_handler(_handle_websocket_chat)
+        await handler(hass, connection, msg)
+
+        result = connection.send_result.call_args[0][1]
+        assert result["intent"] == "answer"
+        # No approval card persisted or forwarded.
+        assert result.get("command_approval") is None
+        assert result["response"] == _REFINEMENT_SUPPRESSED_BY_LANG["en"]
+        # And the stored assistant turn carries no pending approval.
+        stored = await store.get_session(session["id"])
+        assert all(
+            m.get("approval_status") != "pending" for m in stored["messages"]
+        )
+
 
 class TestBuildCommandConfirmation:
     """Unit tests for _build_command_confirmation (#94)."""

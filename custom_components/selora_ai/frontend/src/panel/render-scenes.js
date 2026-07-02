@@ -180,20 +180,40 @@ export function renderSceneCard(host, msg, msgIndex) {
 
   if (status === "saved") {
     return html`
-      <div class="proposal-card" style="margin-top:12px;">
-        <div class="proposal-header">
-          <ha-icon icon="mdi:check-circle"></ha-icon>
-          ${host._t("scenes_card_created_title", "Scene Created")}
+      <div style="margin-top:12px;padding:14px 0 0;">
+        <div class="scene-saved-head">
+          <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
+          <span class="scene-saved-name">${scene.name}</span>
+          <span class="scene-saved-tag">
+            ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
+          </span>
         </div>
-        <div class="proposal-body">
-          <div class="proposal-name">${scene.name}</div>
-          <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> ${host._t(
-              "scenes_card_saved_status",
-              "Saved to Home Assistant",
-            )}
-          </div>
-          <div class="proposal-actions">
+        <div class="proposal-body" style="padding:0;">
+          ${_renderEntityList(host, scene.entities || {})}
+          ${msg.scene_yaml
+            ? html`<div
+                  class="yaml-toggle"
+                  style="margin-top:10px;margin-bottom:0;"
+                  @click=${() => toggleYaml(host, yamlKey)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${yamlOpen
+                    ? host._t("scenes_hide_yaml", "Hide YAML")
+                    : host._t("scenes_view_yaml", "View YAML")}
+                </div>
+                ${yamlOpen
+                  ? html`<ha-code-editor
+                      mode="yaml"
+                      .value=${msg.scene_yaml}
+                      read-only
+                      style="--code-mirror-font-size:12px;margin-top:10px;"
+                    ></ha-code-editor>`
+                  : ""}`
+            : ""}
+          <div class="proposal-actions" style="margin-top:14px;">
             <button
               class="btn btn-success"
               @click=${() => {
@@ -207,7 +227,7 @@ export function renderSceneCard(host, msg, msgIndex) {
               }}
             >
               <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-              ${host._t("scenes_card_activate_button", "Activate")}
+              ${host._t("scenes_card_test_button", "Test Scene")}
             </button>
             <button
               class="btn btn-outline"

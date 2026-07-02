@@ -383,6 +383,7 @@
     "scenes_card_created_title": "Szene erstellt",
     "scenes_card_saved_status": "In Home Assistant gespeichert",
     "scenes_card_activate_button": "Aktivieren",
+    "scenes_card_test_button": "Szene testen",
     "scenes_card_view_in_ha_button": "In HA anzeigen",
     "scenes_card_declined_title": "Szene abgelehnt",
     "scenes_card_declined_message": "Abgelehnt. Sie können sie verfeinern, indem Sie unten antworten.",

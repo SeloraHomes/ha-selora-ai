@@ -383,6 +383,7 @@
     "scenes_card_created_title": "场景已创建",
     "scenes_card_saved_status": "已保存到 Home Assistant",
     "scenes_card_activate_button": "激活",
+    "scenes_card_test_button": "测试场景",
     "scenes_card_view_in_ha_button": "在 HA 中查看",
     "scenes_card_declined_title": "场景已拒绝",
     "scenes_card_declined_message": "已忽略。您可以在下方回复以进一步完善它。",

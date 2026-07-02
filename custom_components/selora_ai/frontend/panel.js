@@ -4021,6 +4021,37 @@ var proposalStyles = i`
     color: var(--secondary-text-color);
   }
 
+  /* ---- Saved scene confirmation (chat card) ---- */
+  .scene-saved-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .scene-saved-icon {
+    color: var(--success-color, #4caf50);
+    --mdc-icon-size: 20px;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .scene-saved-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--primary-text-color);
+  }
+  .scene-saved-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success-color, #4caf50);
+    background: rgba(76, 175, 80, 0.12);
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
   /* ---- Scene entity list ---- */
   .scene-entity-list {
     margin: 8px 0 12px;
@@ -7751,6 +7782,7 @@ var en_default = {
     scenes_card_created_title: "Scene Created",
     scenes_card_saved_status: "Saved to Home Assistant",
     scenes_card_activate_button: "Activate",
+    scenes_card_test_button: "Test Scene",
     scenes_card_view_in_ha_button: "View in HA",
     scenes_card_declined_title: "Scene Declined",
     scenes_card_declined_message:
@@ -8796,6 +8828,7 @@ var fr_default = {
     scenes_card_created_title: "Sc\xE8ne cr\xE9\xE9e",
     scenes_card_saved_status: "Enregistr\xE9e dans Home Assistant",
     scenes_card_activate_button: "Activer",
+    scenes_card_test_button: "Tester la sc\xE8ne",
     scenes_card_view_in_ha_button: "Voir dans HA",
     scenes_card_declined_title: "Sc\xE8ne refus\xE9e",
     scenes_card_declined_message:
@@ -9875,6 +9908,7 @@ var de_default = {
     scenes_card_created_title: "Szene erstellt",
     scenes_card_saved_status: "In Home Assistant gespeichert",
     scenes_card_activate_button: "Aktivieren",
+    scenes_card_test_button: "Szene testen",
     scenes_card_view_in_ha_button: "In HA anzeigen",
     scenes_card_declined_title: "Szene abgelehnt",
     scenes_card_declined_message:
@@ -10944,6 +10978,7 @@ var es_default = {
     scenes_card_created_title: "Escena creada",
     scenes_card_saved_status: "Guardado en Home Assistant",
     scenes_card_activate_button: "Activar",
+    scenes_card_test_button: "Probar escena",
     scenes_card_view_in_ha_button: "Ver en HA",
     scenes_card_declined_title: "Escena rechazada",
     scenes_card_declined_message:
@@ -12000,6 +12035,7 @@ var it_default = {
     scenes_card_created_title: "Scena creata",
     scenes_card_saved_status: "Salvata in Home Assistant",
     scenes_card_activate_button: "Attiva",
+    scenes_card_test_button: "Prova scena",
     scenes_card_view_in_ha_button: "Apri in HA",
     scenes_card_declined_title: "Scena rifiutata",
     scenes_card_declined_message:
@@ -13074,6 +13110,7 @@ var nl_default = {
     scenes_card_created_title: "Sc\xE8ne aangemaakt",
     scenes_card_saved_status: "Opgeslagen in Home Assistant",
     scenes_card_activate_button: "Activeren",
+    scenes_card_test_button: "Sc\xE8ne testen",
     scenes_card_view_in_ha_button: "Bekijken in HA",
     scenes_card_declined_title: "Sc\xE8ne geweigerd",
     scenes_card_declined_message:
@@ -14147,6 +14184,7 @@ var hu_default = {
     scenes_card_created_title: "Jelenet l\xE9trehozva",
     scenes_card_saved_status: "Mentve a Home Assistantba",
     scenes_card_activate_button: "Aktiv\xE1l\xE1s",
+    scenes_card_test_button: "Jelenet tesztel\xE9se",
     scenes_card_view_in_ha_button: "Megtekint\xE9s a HA-ban",
     scenes_card_declined_title: "Jelenet elutas\xEDtva",
     scenes_card_declined_message:
@@ -15227,6 +15265,7 @@ var pt_default = {
     scenes_card_created_title: "Cena criada",
     scenes_card_saved_status: "Guardada no Home Assistant",
     scenes_card_activate_button: "Ativar",
+    scenes_card_test_button: "Testar cena",
     scenes_card_view_in_ha_button: "Ver no HA",
     scenes_card_declined_title: "Cena recusada",
     scenes_card_declined_message:
@@ -16491,6 +16530,8 @@ var ru_default = {
       "\u0421\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u043E \u0432 Home Assistant",
     scenes_card_activate_button:
       "\u0410\u043A\u0442\u0438\u0432\u0438\u0440\u043E\u0432\u0430\u0442\u044C",
+    scenes_card_test_button:
+      "\u041F\u0440\u043E\u0432\u0435\u0440\u0438\u0442\u044C \u0441\u0446\u0435\u043D\u0443",
     scenes_card_view_in_ha_button:
       "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 HA",
     scenes_card_declined_title:
@@ -17947,6 +17988,7 @@ var ja_default = {
     scenes_card_saved_status:
       "Home Assistant \u306B\u4FDD\u5B58\u3057\u307E\u3057\u305F",
     scenes_card_activate_button: "\u8D77\u52D5",
+    scenes_card_test_button: "\u30B7\u30FC\u30F3\u3092\u30C6\u30B9\u30C8",
     scenes_card_view_in_ha_button: "HA \u3067\u8868\u793A",
     scenes_card_declined_title:
       "\u30B7\u30FC\u30F3\u304C\u62D2\u5426\u3055\u308C\u307E\u3057\u305F",
@@ -19214,6 +19256,7 @@ var ko_default = {
     scenes_card_created_title: "\uC7A5\uBA74 \uC0DD\uC131\uB428",
     scenes_card_saved_status: "Home Assistant\uC5D0 \uC800\uC7A5\uB428",
     scenes_card_activate_button: "\uD65C\uC131\uD654",
+    scenes_card_test_button: "\uC7A5\uBA74 \uD14C\uC2A4\uD2B8",
     scenes_card_view_in_ha_button: "HA\uC5D0\uC11C \uBCF4\uAE30",
     scenes_card_declined_title: "\uC7A5\uBA74 \uAC70\uBD80\uB428",
     scenes_card_declined_message:
@@ -20385,6 +20428,7 @@ var zh_Hans_default = {
     scenes_card_created_title: "\u573A\u666F\u5DF2\u521B\u5EFA",
     scenes_card_saved_status: "\u5DF2\u4FDD\u5B58\u5230 Home Assistant",
     scenes_card_activate_button: "\u6FC0\u6D3B",
+    scenes_card_test_button: "\u6D4B\u8BD5\u573A\u666F",
     scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u67E5\u770B",
     scenes_card_declined_title: "\u573A\u666F\u5DF2\u62D2\u7EDD",
     scenes_card_declined_message:
@@ -21526,6 +21570,7 @@ var zh_Hant_default = {
     scenes_card_created_title: "\u60C5\u5883\u5DF2\u5EFA\u7ACB",
     scenes_card_saved_status: "\u5DF2\u5132\u5B58\u81F3 Home Assistant",
     scenes_card_activate_button: "\u555F\u52D5",
+    scenes_card_test_button: "\u6E2C\u8A66\u5834\u666F",
     scenes_card_view_in_ha_button: "\u5728 HA \u4E2D\u6AA2\u8996",
     scenes_card_declined_title: "\u60C5\u5883\u5DF2\u62D2\u7D55",
     scenes_card_declined_message:
@@ -29587,20 +29632,42 @@ function renderSceneCard(host, msg, msgIndex) {
   const yamlOpen = host._yamlOpen && host._yamlOpen[yamlKey];
   if (status === "saved") {
     return x`
-      <div class="proposal-card" style="margin-top:12px;">
-        <div class="proposal-header">
-          <ha-icon icon="mdi:check-circle"></ha-icon>
-          ${host._t("scenes_card_created_title", "Scene Created")}
+      <div style="margin-top:12px;padding:14px 0 0;">
+        <div class="scene-saved-head">
+          <ha-icon icon="mdi:check-circle" class="scene-saved-icon"></ha-icon>
+          <span class="scene-saved-name">${scene.name}</span>
+          <span class="scene-saved-tag">
+            ${host._t("scenes_card_saved_status", "Saved to Home Assistant")}
+          </span>
         </div>
-        <div class="proposal-body">
-          <div class="proposal-name">${scene.name}</div>
-          <div class="proposal-status saved">
-            <ha-icon icon="mdi:check"></ha-icon> ${host._t(
-              "scenes_card_saved_status",
-              "Saved to Home Assistant",
-            )}
-          </div>
-          <div class="proposal-actions">
+        <div class="proposal-body" style="padding:0;">
+          ${_renderEntityList(host, scene.entities || {})}
+          ${
+            msg.scene_yaml
+              ? x`<div
+                  class="yaml-toggle"
+                  style="margin-top:10px;margin-bottom:0;"
+                  @click=${() => toggleYaml(host, yamlKey)}
+                >
+                  <ha-icon
+                    icon="mdi:code-braces"
+                    style="--mdc-icon-size:14px;"
+                  ></ha-icon>
+                  ${yamlOpen ? host._t("scenes_hide_yaml", "Hide YAML") : host._t("scenes_view_yaml", "View YAML")}
+                </div>
+                ${
+                  yamlOpen
+                    ? x`<ha-code-editor
+                      mode="yaml"
+                      .value=${msg.scene_yaml}
+                      read-only
+                      style="--code-mirror-font-size:12px;margin-top:10px;"
+                    ></ha-code-editor>`
+                    : ""
+                }`
+              : ""
+          }
+          <div class="proposal-actions" style="margin-top:14px;">
             <button
               class="btn btn-success"
               @click=${() => {
@@ -29611,7 +29678,7 @@ function renderSceneCard(host, msg, msgIndex) {
               }}
             >
               <ha-icon icon="mdi:play" style="--mdc-icon-size:14px;"></ha-icon>
-              ${host._t("scenes_card_activate_button", "Activate")}
+              ${host._t("scenes_card_test_button", "Test Scene")}
             </button>
             <button
               class="btn btn-outline"

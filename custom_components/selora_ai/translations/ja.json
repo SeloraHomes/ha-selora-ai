@@ -383,6 +383,7 @@
     "scenes_card_created_title": "シーンを作成しました",
     "scenes_card_saved_status": "Home Assistant に保存しました",
     "scenes_card_activate_button": "起動",
+    "scenes_card_test_button": "シーンをテスト",
     "scenes_card_view_in_ha_button": "HA で表示",
     "scenes_card_declined_title": "シーンが拒否されました",
     "scenes_card_declined_message": "却下しました。下記に返信して調整できます。",

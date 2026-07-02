@@ -403,6 +403,7 @@
     "scenes_card_created_title": "Scène aangemaakt",
     "scenes_card_saved_status": "Opgeslagen in Home Assistant",
     "scenes_card_activate_button": "Activeren",
+    "scenes_card_test_button": "Scène testen",
     "scenes_card_view_in_ha_button": "Bekijken in HA",
     "scenes_card_declined_title": "Scène geweigerd",
     "scenes_card_declined_message": "Afgewezen. U kunt deze verfijnen door hieronder te reageren.",
