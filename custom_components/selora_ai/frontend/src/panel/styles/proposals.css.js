@@ -153,6 +153,37 @@ export const proposalStyles = css`
     color: var(--secondary-text-color);
   }
 
+  /* ---- Saved scene confirmation (chat card) ---- */
+  .scene-saved-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+  }
+  .scene-saved-icon {
+    color: var(--success-color, #4caf50);
+    --mdc-icon-size: 20px;
+    display: flex;
+    flex-shrink: 0;
+  }
+  .scene-saved-name {
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--primary-text-color);
+  }
+  .scene-saved-tag {
+    display: inline-flex;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--success-color, #4caf50);
+    background: rgba(76, 175, 80, 0.12);
+    padding: 3px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
   /* ---- Scene entity list ---- */
   .scene-entity-list {
     margin: 8px 0 12px;

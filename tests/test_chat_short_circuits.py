@@ -1206,6 +1206,24 @@ class TestArchitectChatStreamShortCircuits:
         assert envelope["intent"] == "answer"
         assert "calls" not in envelope
 
+    def test_scene_refinement_prompt_forbids_live_commands(self, hass) -> None:
+        """While refining a scene, a "turn on X" request is a scene edit, not
+        a live command. The prompt must tell the model to fold it into the
+        scene proposal and never emit a command intent — regression for the
+        model executing devices instead of updating the scene under
+        refinement."""
+        client = _make_client(hass)
+        messages = client._build_chat_messages(
+            "also turn on the TV and the amp, set the amp input to TV",
+            [_entity("media_player.tv", "Samsung Q6")],
+            None,
+            None,
+            refining_scene_context=("Movie Night", "scene yaml here"),
+        )
+        prompt = messages[-1]["content"]
+        assert "ACTIVE SCENE REFINEMENT" in prompt
+        assert "NEVER" in prompt and "command intent" in prompt
+
 
 class TestJoinStreamBoundary:
     """The boundary helper inserts exactly one separator and never doubles."""

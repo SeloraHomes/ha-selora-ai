@@ -383,6 +383,7 @@
     "scenes_card_created_title": "情境已建立",
     "scenes_card_saved_status": "已儲存至 Home Assistant",
     "scenes_card_activate_button": "啟動",
+    "scenes_card_test_button": "測試場景",
     "scenes_card_view_in_ha_button": "在 HA 中檢視",
     "scenes_card_declined_title": "情境已拒絕",
     "scenes_card_declined_message": "已關閉。您可以在下方回覆以進一步調整。",

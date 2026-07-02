@@ -724,18 +724,21 @@ def _find_active_refining_yaml(
 def _find_active_refining_scene(
     stored_messages: list[dict[str, Any]],
 ) -> tuple[str, str] | None:
-    """Return (sanitized_name, yaml) for the active refining scene.
+    """Return (sanitized_name, yaml) for the scene under active refinement.
 
-    Returns a result when the most recent scene status in the session is
-    "refining" — meaning the user loaded a scene for refinement and all
-    subsequent messages are part of that refinement conversation.  A newer
-    "pending", "saved", or "declined" status means the refinement ended.
+    Active means the most recent scene status in the session is "pending"
+    (a proposal chat just built, still on screen awaiting accept/decline) or
+    "refining" (the user loaded a saved scene to edit). Both are the same
+    conversational context: the user is shaping that scene, so a follow-up
+    like "also turn on the TV" is a scene edit, not a live command. A newer
+    "saved" or "declined" status means the user resolved the proposal and
+    the scene context ended.
     """
     for m in reversed(stored_messages):
         status = m.get("scene_status")
-        if status in ("pending", "saved", "declined"):
+        if status in ("saved", "declined"):
             return None
-        if status == "refining" and m.get("scene_yaml"):
+        if status in ("pending", "refining") and m.get("scene_yaml"):
             name = (m.get("scene") or {}).get("name", "")
             safe_name = _sanitize_history_text(name, max_length=100)
             return safe_name, m["scene_yaml"]
@@ -862,7 +865,7 @@ def _build_history_from_session(
             header += f"]\n{m['automation_yaml']}"
             content = f"{content}\n\n{header}"
         elif i in latest_scene_indices and not (
-            skip_refining_scene_yaml and m.get("scene_status") == "refining"
+            skip_refining_scene_yaml and m.get("scene_status") in ("pending", "refining")
         ):
             scene_name = _sanitize_history_text((m.get("scene") or {}).get("name", ""))
             sid = m.get("scene_id", "")
@@ -1863,6 +1866,38 @@ async def _handle_websocket_chat(
         and delay_val <= 0
     ):
         intent_type = "command"
+    if intent_type in ("command", "delayed_command", "command_approval") and (
+        refining or refining_scene
+    ):
+        # Safety net: while the user is refining an automation or scene, a
+        # command intent means "fold this into the proposal", not "operate
+        # the house now". The pre-provider short-circuit already suppresses
+        # deterministic commands during refinement (client.py); this covers
+        # the LLM-emitted case so a request like "also turn on the TV" while
+        # editing a scene never runs against live devices. Covers
+        # delayed_command too — a "…in 5 minutes" follow-up must not schedule
+        # a live action mid-refinement — and command_approval, which
+        # apply_command_policy produces for REVIEW services (e.g.
+        # lock.unlock); left through, its approval card would persist and
+        # later execute live devices via the approval resolver. Setting the
+        # intent to "answer" drops the calls AND stops the approval payload
+        # from being persisted or forwarded (both are gated on
+        # intent == "command_approval" below), so nothing runs, schedules,
+        # or awaits approval.
+        _LOGGER.debug(
+            "Suppressing %s during refinement (scene=%s, automation=%s)",
+            intent_type,
+            bool(refining_scene),
+            bool(refining),
+        )
+        result["calls"] = []
+        intent_type = "answer"
+        # Replace the model's command confirmation ("Turned on the TV") — it
+        # would otherwise claim an action that never ran and was not folded
+        # into the proposal.
+        response_text = _approval_phrase(
+            _REFINEMENT_SUPPRESSED_BY_LANG, msg.get("language") or hass.config.language
+        )
     if intent_type == "command":
         calls = result.get("calls", [])
         executed, failed, error_suffix = await _execute_command_calls(hass, calls)
@@ -2688,6 +2723,38 @@ async def _handle_websocket_chat_stream(
             and delay_val <= 0
         ):
             intent_type = "command"
+        if intent_type in ("command", "delayed_command", "command_approval") and (
+            refining or refining_scene
+        ):
+            # Safety net: while the user is refining an automation or scene, a
+            # command intent means "fold this into the proposal", not "operate
+            # the house now". The pre-provider short-circuit already suppresses
+            # deterministic commands during refinement (client.py); this covers
+            # the LLM-emitted case so a request like "also turn on the TV" while
+            # editing a scene never runs against live devices. Covers
+            # delayed_command too — a "…in 5 minutes" follow-up must not
+            # schedule a live action mid-refinement — and command_approval,
+            # which apply_command_policy produces for REVIEW services (e.g.
+            # lock.unlock); left through, its approval card would persist and
+            # later execute live devices via the approval resolver. Setting the
+            # intent to "answer" drops the calls AND stops the approval payload
+            # from being persisted or forwarded (both are gated on
+            # intent == "command_approval" below), so nothing runs, schedules,
+            # or awaits approval.
+            _LOGGER.debug(
+                "Suppressing %s during refinement (scene=%s, automation=%s)",
+                intent_type,
+                bool(refining_scene),
+                bool(refining),
+            )
+            parsed["calls"] = []
+            intent_type = "answer"
+            # Replace the model's command confirmation ("Turned on the TV") —
+            # it would otherwise claim an action that never ran and was not
+            # folded into the proposal.
+            response_text = _approval_phrase(
+                _REFINEMENT_SUPPRESSED_BY_LANG, msg.get("language") or hass.config.language
+            )
         if intent_type == "command":
             calls = parsed.get("calls", [])
             executed, failed, error_suffix = await _execute_command_calls(hass, calls)
@@ -3317,6 +3384,26 @@ _EMPTY_RESPONSE_BY_LANG: dict[str, str] = {
     "ja": "今回は応答がありませんでした。もう一度お試しいただくか、繰り返し発生する場合は言い換えてください。",
     "ko": "이번에는 응답을 받지 못했습니다. 다시 시도하시거나 계속되면 다르게 표현해 주세요.",
     "ru": "На этот раз я не получил ответа. Пожалуйста, попробуйте снова или переформулируйте, если это повторяется.",
+}
+
+
+# Shown when a command/delayed_command is suppressed because a scene or
+# automation is being refined. Replaces the model's original command
+# confirmation ("Turned on the TV") — which would otherwise claim an
+# action that never ran and was not folded into the proposal.
+_REFINEMENT_SUPPRESSED_BY_LANG: dict[str, str] = {
+    "en": "I didn't run that — we're refining a proposal here, so nothing was sent to your devices. Tell me what to change and I'll update it.",
+    "fr": "Je n'ai rien exécuté — nous affinons une proposition ici, donc rien n'a été envoyé à vos appareils. Dites-moi quoi changer et je la mettrai à jour.",
+    "de": "Ich habe nichts ausgeführt – wir verfeinern hier einen Vorschlag, daher wurde nichts an Ihre Geräte gesendet. Sagen Sie mir, was ich ändern soll, und ich aktualisiere ihn.",
+    "es": "No ejecuté nada: estamos perfeccionando una propuesta aquí, así que no se envió nada a tus dispositivos. Dime qué cambiar y la actualizaré.",
+    "it": "Non ho eseguito nulla: stiamo perfezionando una proposta qui, quindi non è stato inviato nulla ai tuoi dispositivi. Dimmi cosa cambiare e la aggiornerò.",
+    "nl": "Ik heb niets uitgevoerd — we verfijnen hier een voorstel, dus er is niets naar je apparaten gestuurd. Vertel me wat er moet veranderen en ik werk het bij.",
+    "hu": "Nem hajtottam végre semmit – itt egy javaslatot finomítunk, ezért semmi sem lett elküldve az eszközeidnek. Mondd meg, mit változtassak, és frissítem.",
+    "zh": "我没有执行任何操作——我们正在这里优化一个方案，因此没有向你的设备发送任何指令。告诉我要更改什么，我会更新它。",
+    "pt": "Não executei nada — estamos a refinar uma proposta aqui, por isso nada foi enviado para os seus dispositivos. Diga-me o que alterar e eu atualizo-a.",
+    "ja": "何も実行していません。ここでは提案を調整しているため、デバイスには何も送信されていません。変更したい内容を教えていただければ更新します。",
+    "ko": "아무것도 실행하지 않았습니다 — 여기서는 제안을 다듬는 중이라 기기로 아무것도 전송되지 않았습니다. 무엇을 바꿀지 알려주시면 업데이트하겠습니다.",
+    "ru": "Я ничего не выполнил — здесь мы дорабатываем предложение, поэтому на ваши устройства ничего не отправлено. Скажите, что изменить, и я обновлю его.",
 }
 
 

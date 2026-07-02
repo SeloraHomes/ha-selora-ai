@@ -383,6 +383,7 @@
     "scenes_card_created_title": "Cena criada",
     "scenes_card_saved_status": "Guardada no Home Assistant",
     "scenes_card_activate_button": "Ativar",
+    "scenes_card_test_button": "Testar cena",
     "scenes_card_view_in_ha_button": "Ver no HA",
     "scenes_card_declined_title": "Cena recusada",
     "scenes_card_declined_message": "Dispensada. Pode aperfeiçoá-la respondendo abaixo.",
