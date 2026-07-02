@@ -245,6 +245,305 @@ describe("buildSuggestionIndex", () => {
     expect(buildSuggestionIndex(null, null)).toEqual([]);
     expect(buildSuggestionIndex({}, null)).toEqual([]);
   });
+
+  it("drops a device's remote when it also exposes a media_player", () => {
+    // A TV device exposes a media_player + its IR/CEC remote (same device_id).
+    // The remote is an accessory of the media_player, so it's dropped.
+    const hassTv = {
+      states: {
+        "media_player.tv": {
+          attributes: { friendly_name: "Samsung Q6 Series" },
+          state: "off",
+        },
+        "remote.tv": {
+          attributes: { friendly_name: "Samsung Q6 Series" },
+          state: "off",
+        },
+      },
+      entities: {
+        "media_player.tv": { area_id: "game", device_id: "dev_tv" },
+        "remote.tv": { area_id: "game", device_id: "dev_tv" },
+      },
+    };
+    const items = buildSuggestionIndex(hassTv, { game: { name: "Game Area" } });
+    const tvRows = items.filter((i) => i.kind === "device");
+    expect(tvRows).toHaveLength(1);
+    expect(tvRows[0].entity_id).toBe("media_player.tv");
+  });
+
+  it("sources device_id from the full entity registry (real path)", () => {
+    // Real installs: hass.entities (display registry) OMITS device_id — it
+    // arrives only via config/entity_registry/list, passed as the 4th arg.
+    // The accessory dedupe must work off that, not hass.entities.
+    const hassTv = {
+      states: {
+        "media_player.tv": {
+          attributes: { friendly_name: "Samsung Q6 Series" },
+          state: "off",
+        },
+        "remote.tv": {
+          attributes: { friendly_name: "Samsung Q6 Series" },
+          state: "off",
+        },
+      },
+      // Display registry: area only, NO device_id (mirrors real HA).
+      entities: {
+        "media_player.tv": { area_id: "game" },
+        "remote.tv": { area_id: "game" },
+      },
+    };
+    // Full entity registry (4th arg) carries device_id.
+    const fullEntities = {
+      "media_player.tv": { area_id: "game", device_id: "dev_tv" },
+      "remote.tv": { area_id: "game", device_id: "dev_tv" },
+    };
+    const items = buildSuggestionIndex(
+      hassTv,
+      { game: { name: "Game Area" } },
+      null,
+      fullEntities,
+    );
+    const tvRows = items.filter((i) => i.kind === "device");
+    expect(tvRows).toHaveLength(1);
+    expect(tvRows[0].entity_id).toBe("media_player.tv");
+  });
+
+  it("falls back to hass.entities area when full registry is empty", () => {
+    // Transient WS failure: _ensureFullRegistries resolves to empty maps and
+    // passes {} as the 4th arg. Per-entity fallback must still recover area
+    // metadata from the display registry rather than losing all area chips.
+    const hass = {
+      states: {
+        "light.kitchen": {
+          attributes: { friendly_name: "Kitchen Light" },
+          state: "on",
+        },
+      },
+      entities: {
+        "light.kitchen": { area_id: "kitchen" },
+      },
+    };
+    const items = buildSuggestionIndex(
+      hass,
+      { kitchen: { name: "Kitchen" } },
+      null,
+      {}, // empty full registry (WS failure)
+    );
+    const row = items.find((i) => i.entity_id === "light.kitchen");
+    expect(row.area).toBe("Kitchen");
+  });
+
+  it("keeps a garage door's cover AND lock (complementary controls)", () => {
+    // One garage-door device exposes cover + lock under the same name. Both
+    // are addressable ("open" vs "lock the garage door"), so neither is
+    // dropped — the accessory rule is scoped to remote→media_player only.
+    const hassGarage = {
+      states: {
+        "cover.garage_door": {
+          attributes: { friendly_name: "Garage Door" },
+          state: "closed",
+        },
+        "lock.garage_door": {
+          attributes: { friendly_name: "Garage Door" },
+          state: "locked",
+        },
+      },
+      entities: {
+        "cover.garage_door": { area_id: "garage", device_id: "dev_garage" },
+        "lock.garage_door": { area_id: "garage", device_id: "dev_garage" },
+      },
+    };
+    const items = buildSuggestionIndex(hassGarage, {
+      garage: { name: "Garage" },
+    });
+    const domains = items
+      .filter((i) => i.kind === "device")
+      .map((i) => i.domain)
+      .sort();
+    expect(domains).toEqual(["cover", "lock"]);
+  });
+
+  it("drops the area-less shadow of the SAME device's area-tagged row", () => {
+    // Two entities of ONE device (same device_id), same name/domain, one with
+    // an area and one without — the area-less one is a redundant shadow.
+    const hassDup = {
+      states: {
+        "media_player.tv_a": {
+          attributes: { friendly_name: "Living TV" },
+          state: "off",
+        },
+        "media_player.tv_b": {
+          attributes: { friendly_name: "Living TV" },
+          state: "off",
+        },
+      },
+      entities: {
+        "media_player.tv_a": { device_id: "dev_tv" }, // no area
+        "media_player.tv_b": { area_id: "living", device_id: "dev_tv" },
+      },
+    };
+    const items = buildSuggestionIndex(hassDup, {
+      living: { name: "Living Room" },
+    });
+    const rows = items.filter((i) => i.kind === "device");
+    expect(rows).toHaveLength(1);
+    expect(rows[0].entity_id).toBe("media_player.tv_b");
+  });
+
+  it("keeps distinct device-less helpers with the same name", () => {
+    // Helpers (input_boolean, …) have no device_id. A global "Guest Mode" and
+    // a room-specific one share a name; the area-tagged one must NOT evict the
+    // global area-less one — they're distinct entities, not one device.
+    const hassHelpers = {
+      states: {
+        "input_boolean.guest_mode": {
+          attributes: { friendly_name: "Guest Mode" },
+          state: "off",
+        },
+        "input_boolean.guest_mode_kitchen": {
+          attributes: { friendly_name: "Guest Mode" },
+          state: "off",
+        },
+      },
+      entities: {
+        "input_boolean.guest_mode": {}, // global, no device, no area
+        "input_boolean.guest_mode_kitchen": { area_id: "kitchen" },
+      },
+    };
+    const items = buildSuggestionIndex(hassHelpers, {
+      kitchen: { name: "Kitchen" },
+    });
+    const ids = items
+      .filter((i) => i.kind === "device")
+      .map((i) => i.entity_id)
+      .sort();
+    expect(ids).toEqual([
+      "input_boolean.guest_mode",
+      "input_boolean.guest_mode_kitchen",
+    ]);
+  });
+
+  it("collapses a TV split across two integrations to one row", () => {
+    // Real case: Music Assistant exposes "Samsung Q6 Series (82)" (no area);
+    // Samsung Smart TV exposes "Samsung Q6 Series (82) (QN82Q6FNA)" as a
+    // media_player + remote in an area — one physical TV. The names form a
+    // pure parenthetical chain (not a fork), so the area-less Music Assistant
+    // row is shadowed by the area-tagged Smart TV one, and the accessory
+    // remote is dropped: a single row survives.
+    const hassTv = {
+      states: {
+        "media_player.samsung_ma": {
+          attributes: { friendly_name: "Samsung Q6 Series (82)" },
+          state: "off",
+        },
+        "media_player.samsung_tv": {
+          attributes: { friendly_name: "Samsung Q6 Series (82) (QN82Q6FNA)" },
+          state: "off",
+        },
+        "remote.samsung_tv": {
+          attributes: { friendly_name: "Samsung Q6 Series (82) (QN82Q6FNA)" },
+          state: "off",
+        },
+      },
+      entities: {
+        "media_player.samsung_ma": { device_id: "dev_ma" }, // no area
+        "media_player.samsung_tv": { area_id: "game", device_id: "dev_tv" },
+        "remote.samsung_tv": { area_id: "game", device_id: "dev_tv" },
+      },
+    };
+    const items = buildSuggestionIndex(hassTv, { game: { name: "Game Area" } });
+    const ids = items
+      .filter((i) => i.kind === "device")
+      .map((i) => i.entity_id);
+    expect(ids).toEqual(["media_player.samsung_tv"]);
+  });
+
+  it("keeps devices disambiguated by differing parentheticals", () => {
+    // "(Left)"/"(Right)" are deliberate disambiguators for two real devices
+    // in one area — the parenthetical VALUES differ, so they must not merge.
+    const hassLamps = {
+      states: {
+        "light.lamp_left": {
+          attributes: { friendly_name: "Lamp (Left)" },
+          state: "off",
+        },
+        "light.lamp_right": {
+          attributes: { friendly_name: "Lamp (Right)" },
+          state: "off",
+        },
+        "sensor_climate.indoor": {
+          attributes: { friendly_name: "Sensor (Indoor)" },
+          state: "on",
+        },
+      },
+      entities: {
+        "light.lamp_left": { area_id: "living" },
+        "light.lamp_right": { area_id: "living" },
+      },
+    };
+    const items = buildSuggestionIndex(hassLamps, {
+      living: { name: "Living Room" },
+    });
+    const labels = items
+      .filter((i) => i.kind === "device")
+      .map((i) => i.label)
+      .sort();
+    expect(labels).toEqual(["Lamp (Left)", "Lamp (Right)"]);
+  });
+
+  it("keeps distinct same-name devices while the registry is pending", () => {
+    // First-use path: the `devices` map hasn't loaded, so device-inherited
+    // areas resolve to null. Two "Bed Light"s in different rooms must NOT
+    // collapse — device_id disambiguates them even with no area chip yet.
+    const hassPending = {
+      states: {
+        "light.bed_a": {
+          attributes: { friendly_name: "Bed Light" },
+          state: "off",
+        },
+        "light.bed_b": {
+          attributes: { friendly_name: "Bed Light" },
+          state: "off",
+        },
+      },
+      entities: {
+        "light.bed_a": { device_id: "dev_master" },
+        "light.bed_b": { device_id: "dev_guest" },
+      },
+    };
+    // devices arg omitted (null) — areas can't be resolved yet.
+    const items = buildSuggestionIndex(hassPending, {});
+    const rows = items.filter((i) => i.kind === "device");
+    expect(rows).toHaveLength(2);
+    expect(rows.map((r) => r.entity_id).sort()).toEqual([
+      "light.bed_a",
+      "light.bed_b",
+    ]);
+  });
+
+  it("keeps same-named devices in different areas apart", () => {
+    const hassMulti = {
+      states: {
+        "light.bed_a": {
+          attributes: { friendly_name: "Bed Light" },
+          state: "off",
+        },
+        "light.bed_b": {
+          attributes: { friendly_name: "Bed Light" },
+          state: "off",
+        },
+      },
+      entities: {
+        "light.bed_a": { area_id: "master" },
+        "light.bed_b": { area_id: "guest" },
+      },
+    };
+    const items = buildSuggestionIndex(hassMulti, {
+      master: { name: "Master" },
+      guest: { name: "Guest" },
+    });
+    expect(items.filter((i) => i.kind === "device")).toHaveLength(2);
+  });
 });
 
 describe("rankSuggestions", () => {

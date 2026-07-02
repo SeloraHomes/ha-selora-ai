@@ -1046,7 +1046,12 @@ export function detectTrigger(text, caret, lang) {
 //
 // `_lowerLabel` is precomputed because ranking calls toLowerCase() on every
 // candidate for every keystroke — doing it once here is cheaper.
-export function buildSuggestionIndex(hass, areas, devices = null) {
+export function buildSuggestionIndex(
+  hass,
+  areas,
+  devices = null,
+  entities = null,
+) {
   const items = [];
   if (!hass?.states) return items;
 
@@ -1057,14 +1062,19 @@ export function buildSuggestionIndex(hass, areas, devices = null) {
     }
   }
 
-  // hass.entities (display registry) gives us area_id for each entity —
-  // the state object itself doesn't carry it. Most HA setups assign
-  // areas at the DEVICE level (entity inherits via device_id), so the
-  // optional `devices` map lets us fall back to the device's area when
-  // the entity row has none of its own. Without this, "Bed Light" in
-  // five different bedrooms would render with no area chip and be
-  // indistinguishable.
-  const entReg = hass.entities || {};
+  // We need each entity's area_id and device_id, which the state object
+  // doesn't carry. Prefer the full entity registry (config/entity_registry/
+  // list, passed in as `entities` once _ensureFullRegistries resolves) — the
+  // display registry in `hass.entities` OMITS device_id, so without the full
+  // registry the same-device dedupe can't pair a remote with its media_player.
+  // Fall back PER ENTITY to the display registry: if the full registry is
+  // empty (transient WS failure resolves to {}) or simply lacks an entity, we
+  // still recover its area_id from hass.entities rather than losing all area
+  // metadata. Most HA setups assign areas at the DEVICE level (entity inherits
+  // via device_id), so `devices` lets us fall back to the device's area when
+  // the entity row has none of its own.
+  const fullEntReg = entities || {};
+  const displayEntReg = hass.entities || {};
 
   for (const [entityId, state] of Object.entries(hass.states)) {
     const domain = entityId.split(".")[0];
@@ -1075,7 +1085,7 @@ export function buildSuggestionIndex(hass, areas, devices = null) {
     // power users; we just don't surface it as a suggestion.
     const friendly = state?.attributes?.friendly_name;
     if (!friendly) continue;
-    const entry = entReg[entityId];
+    const entry = fullEntReg[entityId] || displayEntReg[entityId];
     let areaId = entry?.area_id || null;
     if (!areaId && entry?.device_id && devices) {
       areaId = devices[entry.device_id]?.area_id || null;
@@ -1087,6 +1097,7 @@ export function buildSuggestionIndex(hass, areas, devices = null) {
         kind: "device",
         domain,
         entity_id: entityId,
+        device_id: entry?.device_id || null,
         label: friendly,
         area_id: areaId,
         area: areaName,
@@ -1143,7 +1154,140 @@ export function buildSuggestionIndex(hass, areas, devices = null) {
     });
   }
 
-  return items;
+  return dedupeDeviceItems(items);
+}
+
+// A single physical device often surfaces as several controllable rows —
+// a TV appears as a media_player AND a remote; one physical TV can even be
+// two HA devices (Music Assistant + Samsung Smart TV). Some rows are noise;
+// others are legitimately distinct controls. This dedupe is deliberately
+// CONSERVATIVE — it removes a row only when doing so cannot hide a device
+// the user might address:
+//
+//   1. Accessory domains — a `remote` on the SAME device as a `media_player`
+//      is that player's IR/CEC control surface; drop it. Scoped to
+//      remote->media_player ONLY: a garage door's `cover` + `lock` are BOTH
+//      kept (different actions, different entities).
+//   2. Exact duplicates — rows identical in device, name, area AND domain.
+//   3a. Same-device shadow — an area-less row whose OWN device also has an
+//       area-tagged row of the same name+domain (the entity minus its chip).
+//   3b. Cross-integration shadow — when two rows share a base name and
+//       domain and differ only by an ADDED parenthetical qualifier (a pure
+//       prefix chain, never a fork like "(Left)"/"(Right)"), the area-less,
+//       device-bearing row is the same physical device seen under a less-
+//       qualified name; drop it in favour of the area-tagged sibling.
+//
+// Dedupe never collapses across different domains (beyond the accessory
+// rule), forked parenthetical names, or device-less helper rows — so
+// verb-constrained searches ("lock the Garage Door") always still find a
+// candidate, and "Lamp (Left)"/"Lamp (Right)" stay distinct.
+const ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
+
+// Lowercased, whitespace-collapsed label.
+function normLabel(s) {
+  return s.toLowerCase().replace(/\s+/g, " ").trim();
+}
+
+// Base name with ALL trailing "(…)" groups removed.
+function baseLabel(normalized) {
+  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
+}
+
+// True when `shorter` is `longer` minus only trailing parenthetical groups.
+function isParenPrefix(shorter, longer) {
+  if (shorter === longer) return true;
+  if (!longer.startsWith(shorter)) return false;
+  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
+}
+
+// A set of same-base labels FORKS when two differ by parenthetical VALUE
+// rather than by an added qualifier ("lamp (left)" vs "lamp (right)").
+// Sorted by length, a pure chain has each label a paren-prefix of the next.
+function labelsForked(labels) {
+  const sorted = [...labels].sort((a, b) => a.length - b.length);
+  for (let i = 0; i + 1 < sorted.length; i++) {
+    if (!isParenPrefix(sorted[i], sorted[i + 1])) return true;
+  }
+  return false;
+}
+
+export function dedupeDeviceItems(items) {
+  const devices = items.filter((i) => i.kind === "device");
+
+  // Which domains does each physical device expose?
+  const domainsByDevice = new Map();
+  for (const it of devices) {
+    if (!it.device_id) continue;
+    if (!domainsByDevice.has(it.device_id)) {
+      domainsByDevice.set(it.device_id, new Set());
+    }
+    domainsByDevice.get(it.device_id).add(it.domain);
+  }
+
+  const kept = new Set();
+  const seenIdentity = new Set();
+  for (const it of devices) {
+    // 1. Drop accessory-domain rows when their parent domain is present on
+    //    the same device (a TV's remote alongside its media_player).
+    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
+    if (
+      parent &&
+      it.device_id &&
+      domainsByDevice.get(it.device_id)?.has(parent)
+    ) {
+      continue;
+    }
+    // 2. Collapse exact duplicates (device + name + area + domain). The
+    //    disambiguator is device_id when present, else the unique
+    //    entity_id, so device-less helpers are never merged with a
+    //    same-named peer and two distinct devices stay apart before areas
+    //    resolve (two "Bed Light"s in different rooms).
+    const disambig = it.device_id || it.entity_id;
+    const identity = `${disambig}\u0000${it._lowerLabel}\u0000${it.area_id || ""}\u0000${it.domain}`;
+    if (seenIdentity.has(identity)) continue;
+    seenIdentity.add(identity);
+    kept.add(it);
+  }
+
+  // 3a. Same-device area-less shadow (same device_id, name and domain).
+  //     Device-less rows are exempt: a global helper must not be hidden by
+  //     a room-specific same-named peer.
+  const sameDeviceAreaTagged = new Set();
+  for (const it of kept) {
+    if (it.area_id && it.device_id) {
+      sameDeviceAreaTagged.add(
+        `${it.device_id}\u0000${it._lowerLabel}\u0000${it.domain}`,
+      );
+    }
+  }
+  for (const it of [...kept]) {
+    if (it.area_id || !it.device_id) continue;
+    const key = `${it.device_id}\u0000${it._lowerLabel}\u0000${it.domain}`;
+    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
+  }
+
+  // 3b. Cross-integration shadow: within a base-name + domain bucket that
+  //     holds MORE THAN ONE distinct name and is a pure prefix chain (not a
+  //     fork), drop the area-less, device-bearing rows in favour of the
+  //     area-tagged sibling. Single-name buckets are left to 3a; forks and
+  //     device-less rows are never touched.
+  const buckets = new Map();
+  for (const it of kept) {
+    const key = `${baseLabel(normLabel(it.label))}\u0000${it.domain}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(it);
+  }
+  for (const rows of buckets.values()) {
+    const labels = new Set(rows.map((r) => normLabel(r.label)));
+    if (labels.size < 2) continue;
+    if (!rows.some((r) => r.area_id)) continue;
+    if (labelsForked(labels)) continue;
+    for (const it of rows) {
+      if (!it.area_id && it.device_id) kept.delete(it);
+    }
+  }
+
+  return items.filter((i) => i.kind !== "device" || kept.has(i));
 }
 
 // ── Ranking ───────────────────────────────────────────────────────────

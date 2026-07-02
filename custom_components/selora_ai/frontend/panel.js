@@ -24351,7 +24351,7 @@ function detectTrigger(text, caret, lang) {
   if (articleWords.has(best.query.trim().toLowerCase())) return null;
   return best;
 }
-function buildSuggestionIndex(hass, areas, devices = null) {
+function buildSuggestionIndex(hass, areas, devices = null, entities = null) {
   const items = [];
   if (!hass?.states) return items;
   const areaById = {};
@@ -24360,12 +24360,13 @@ function buildSuggestionIndex(hass, areas, devices = null) {
       areaById[id] = a4?.name || a4?.area_id || id;
     }
   }
-  const entReg = hass.entities || {};
+  const fullEntReg = entities || {};
+  const displayEntReg = hass.entities || {};
   for (const [entityId, state] of Object.entries(hass.states)) {
     const domain = entityId.split(".")[0];
     const friendly = state?.attributes?.friendly_name;
     if (!friendly) continue;
-    const entry = entReg[entityId];
+    const entry = fullEntReg[entityId] || displayEntReg[entityId];
     let areaId = entry?.area_id || null;
     if (!areaId && entry?.device_id && devices) {
       areaId = devices[entry.device_id]?.area_id || null;
@@ -24376,6 +24377,7 @@ function buildSuggestionIndex(hass, areas, devices = null) {
         kind: "device",
         domain,
         entity_id: entityId,
+        device_id: entry?.device_id || null,
         label: friendly,
         area_id: areaId,
         area: areaName,
@@ -24428,7 +24430,83 @@ function buildSuggestionIndex(hass, areas, devices = null) {
       _lowerLabel: name.toLowerCase(),
     });
   }
-  return items;
+  return dedupeDeviceItems(items);
+}
+var ACCESSORY_DOMAIN_PARENT = { remote: "media_player" };
+function normLabel(s6) {
+  return s6.toLowerCase().replace(/\s+/g, " ").trim();
+}
+function baseLabel(normalized) {
+  return normalized.replace(/(?:\s*\([^)]*\))+\s*$/, "").trim();
+}
+function isParenPrefix(shorter, longer) {
+  if (shorter === longer) return true;
+  if (!longer.startsWith(shorter)) return false;
+  return /^(?:\s*\([^)]*\))+\s*$/.test(longer.slice(shorter.length));
+}
+function labelsForked(labels) {
+  const sorted = [...labels].sort((a4, b2) => a4.length - b2.length);
+  for (let i5 = 0; i5 + 1 < sorted.length; i5++) {
+    if (!isParenPrefix(sorted[i5], sorted[i5 + 1])) return true;
+  }
+  return false;
+}
+function dedupeDeviceItems(items) {
+  const devices = items.filter((i5) => i5.kind === "device");
+  const domainsByDevice = /* @__PURE__ */ new Map();
+  for (const it of devices) {
+    if (!it.device_id) continue;
+    if (!domainsByDevice.has(it.device_id)) {
+      domainsByDevice.set(it.device_id, /* @__PURE__ */ new Set());
+    }
+    domainsByDevice.get(it.device_id).add(it.domain);
+  }
+  const kept = /* @__PURE__ */ new Set();
+  const seenIdentity = /* @__PURE__ */ new Set();
+  for (const it of devices) {
+    const parent = ACCESSORY_DOMAIN_PARENT[it.domain];
+    if (
+      parent &&
+      it.device_id &&
+      domainsByDevice.get(it.device_id)?.has(parent)
+    ) {
+      continue;
+    }
+    const disambig = it.device_id || it.entity_id;
+    const identity = `${disambig}\0${it._lowerLabel}\0${it.area_id || ""}\0${it.domain}`;
+    if (seenIdentity.has(identity)) continue;
+    seenIdentity.add(identity);
+    kept.add(it);
+  }
+  const sameDeviceAreaTagged = /* @__PURE__ */ new Set();
+  for (const it of kept) {
+    if (it.area_id && it.device_id) {
+      sameDeviceAreaTagged.add(
+        `${it.device_id}\0${it._lowerLabel}\0${it.domain}`,
+      );
+    }
+  }
+  for (const it of [...kept]) {
+    if (it.area_id || !it.device_id) continue;
+    const key = `${it.device_id}\0${it._lowerLabel}\0${it.domain}`;
+    if (sameDeviceAreaTagged.has(key)) kept.delete(it);
+  }
+  const buckets = /* @__PURE__ */ new Map();
+  for (const it of kept) {
+    const key = `${baseLabel(normLabel(it.label))}\0${it.domain}`;
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(it);
+  }
+  for (const rows of buckets.values()) {
+    const labels = new Set(rows.map((r4) => normLabel(r4.label)));
+    if (labels.size < 2) continue;
+    if (!rows.some((r4) => r4.area_id)) continue;
+    if (labelsForked(labels)) continue;
+    for (const it of rows) {
+      if (!it.area_id && it.device_id) kept.delete(it);
+    }
+  }
+  return items.filter((i5) => i5.kind !== "device" || kept.has(i5));
 }
 function _scoreItem(item, lowerQuery) {
   const label = item._lowerLabel;
@@ -25022,6 +25100,7 @@ function _updateAutocomplete(host, textarea) {
     host.hass,
     cache?.areas || host.hass?.areas,
     cache?.devices || null,
+    cache?.entities || null,
   );
   let items;
   if (trigger.domains) {
@@ -25156,17 +25235,20 @@ function _renderAutocomplete(host) {
   if (!ac?.open || !ac.items?.length) return "";
   const ta = host.shadowRoot?.querySelector(".composer-textarea");
   const wrap = host.shadowRoot?.querySelector(".composer-wrap");
-  let leftPx = 0;
-  if (ac.anchor && ta && wrap) {
-    const taRect = ta.getBoundingClientRect();
+  let positionStyle = "";
+  if (wrap) {
     const wrapRect = wrap.getBoundingClientRect();
-    leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
-    const maxLeft = Math.max(0, wrapRect.width - 320);
-    leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
+    let horizontal = "";
+    if (ac.anchor && ta) {
+      const taRect = ta.getBoundingClientRect();
+      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
+      const maxLeft = Math.max(0, wrapRect.width - 320);
+      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
+    }
+    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
   }
-  const positionStyle = ac.anchor
-    ? `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`
-    : "";
   const groupOrder = [];
   const groups = /* @__PURE__ */ new Map();
   for (const item of ac.items) {
