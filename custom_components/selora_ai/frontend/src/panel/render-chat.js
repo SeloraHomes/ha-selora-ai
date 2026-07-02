@@ -555,6 +555,7 @@ function _updateAutocomplete(host, textarea) {
     host.hass,
     cache?.areas || host.hass?.areas,
     cache?.devices || null,
+    cache?.entities || null,
   );
   // Three paths based on how much the user has narrowed things down:
   //   1. Verb constrains the domain ("unlock the …") — enumerate / rank
@@ -737,18 +738,30 @@ function _renderAutocomplete(host) {
   // .composer-wrap is cheap and survives layout changes.
   const ta = host.shadowRoot?.querySelector(".composer-textarea");
   const wrap = host.shadowRoot?.querySelector(".composer-wrap");
-  let leftPx = 0;
-  if (ac.anchor && ta && wrap) {
-    const taRect = ta.getBoundingClientRect();
+  let positionStyle = "";
+  if (wrap) {
     const wrapRect = wrap.getBoundingClientRect();
-    leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
-    // Keep the dropdown inside the composer-wrap so it never overflows.
-    const maxLeft = Math.max(0, wrapRect.width - 320);
-    leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+    // Always open ABOVE the composer. On mobile the keyboard occupies the
+    // bottom of the screen, so the space above the input is the only region
+    // reliably visible — opening below risks hiding the menu behind the
+    // keyboard. The original "runs off the top" bug wasn't the direction; it
+    // was an uncapped height. getBoundingClientRect() is already relative to
+    // the visible (visual) viewport, so wrapRect.top IS the room above the
+    // composer — cap max-height to it so a long list scrolls internally
+    // instead of spilling past the top of the screen. Clamp strictly (no
+    // floor): flooring it up let the menu overflow when space was tight.
+    const maxH = Math.max(0, Math.min(320, wrapRect.top - 12));
+    let horizontal = "";
+    if (ac.anchor && ta) {
+      const taRect = ta.getBoundingClientRect();
+      let leftPx = ac.anchor.left + (taRect.left - wrapRect.left);
+      // Keep the dropdown inside the composer-wrap so it never overflows.
+      const maxLeft = Math.max(0, wrapRect.width - 320);
+      leftPx = Math.min(Math.max(0, leftPx), maxLeft);
+      horizontal = `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`;
+    }
+    positionStyle = `bottom:calc(100% + 6px);top:auto;max-height:${maxH}px;${horizontal}`;
   }
-  const positionStyle = ac.anchor
-    ? `left:${leftPx}px;right:auto;width:320px;max-width:calc(100% - 8px);`
-    : "";
   // Group rows by kind so the dropdown shows two labelled sections
   // (Devices, then Areas) when both are present. We preserve the order
   // _updateAutocomplete produced inside each group so the primary kind
