@@ -13,7 +13,7 @@ import json
 
 import pytest
 
-from custom_components.selora_ai.const import estimate_llm_cost_usd
+from custom_components.selora_ai.llm_client.pricing import estimate_llm_cost_usd
 from custom_components.selora_ai.providers.anthropic import AnthropicProvider
 from custom_components.selora_ai.providers.gemini import GeminiProvider
 from custom_components.selora_ai.providers.openai import OpenAIProvider

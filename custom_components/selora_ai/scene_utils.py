@@ -486,3 +486,11 @@ async def async_remove_scene_yaml(
             raise SceneDeleteError(f"Scene reload failed after removal: {exc}") from exc
 
     return True
+
+
+async def get_area_names(hass: HomeAssistant) -> list[str]:
+    """Return all area names from the HA area registry."""
+    from homeassistant.helpers import area_registry as ar  # noqa: PLC0415
+
+    area_reg = ar.async_get(hass)
+    return [area.name for area in area_reg.async_list_areas()]

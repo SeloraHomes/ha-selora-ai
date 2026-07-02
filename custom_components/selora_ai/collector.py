@@ -21,7 +21,6 @@ from pathlib import Path
 import re
 import time
 from typing import TYPE_CHECKING, Any
-import uuid
 
 from homeassistant.const import EVENT_HOMEASSISTANT_STARTED
 from homeassistant.core import CoreState, HomeAssistant, callback
@@ -31,7 +30,6 @@ from homeassistant.helpers.event import async_track_time_interval
 import yaml
 
 from .automation_utils import (
-    AUTOMATIONS_YAML_LOCK,
     assess_automation_risk,
     count_selora_automations,
     find_stale_automations,
@@ -42,7 +40,6 @@ from .automation_utils import (
 from .const import (
     ACTIVITY_HIGH_THRESHOLD,
     ANALYSIS_LLM_TIMEOUT,
-    AUTOMATION_ID_PREFIX,
     AUTOMATION_STALE_DAYS,
     CATEGORY_LINK_WEIGHTS,
     COLLECTOR_DOMAINS,
@@ -82,7 +79,7 @@ if TYPE_CHECKING:
     from collections.abc import Callable
 
     from .pattern_store import PatternStore
-    from .types import AutomationDict, HomeSnapshot, RecorderHistoryRecord
+    from .types import HomeSnapshot, RecorderHistoryRecord
 
 _LOGGER = logging.getLogger(__name__)
 _STALE_NOTIFICATION_ID = "selora_ai_stale_automations"
@@ -805,135 +802,6 @@ class DataCollector:
         else:
             _LOGGER.info("No new automation suggestions from LLM")
 
-    async def _create_automations(self, suggestions: list[AutomationDict]) -> list[dict[str, str]]:
-        """Write valid suggestions to automations.yaml and reload HA automations.
-
-        Automations are created **disabled** so the user can review first.
-        Returns list of {"id": ..., "alias": ...} for each created automation.
-        """
-        automations_path = Path(self._hass.config.config_dir) / "automations.yaml"
-
-        # Validate and build new entries before taking the lock so we minimize
-        # how long we block chat-driven creates / toggles / renames while the
-        # auto-writer is running.
-        candidates: list[dict[str, Any]] = []
-        for suggestion in suggestions:
-            if not isinstance(suggestion, dict):
-                continue
-
-            is_valid, reason, normalized = validate_automation_payload(suggestion, self._hass)
-            if not is_valid or normalized is None:
-                _LOGGER.debug("Skipping invalid suggestion: %s", reason)
-                continue
-
-            alias = normalized["alias"]
-            triggers = normalized["triggers"]
-            actions = normalized["actions"]
-            conditions = normalized["conditions"]
-            short_id = uuid.uuid4().hex[:8]
-            description = normalized.get("description") or alias
-            candidates.append(
-                {
-                    "id": f"{AUTOMATION_ID_PREFIX}{short_id}",
-                    "alias": alias,
-                    "description": description,
-                    "initial_state": False,
-                    # The Selora AI label is attached via the entity
-                    # registry AFTER the reload — see the post-reload
-                    # block below. ``labels:`` is not a valid key in
-                    # the automation YAML schema; including it makes
-                    # HA load the automation as "unavailable".
-                    "triggers": triggers,
-                    "conditions": conditions or [],
-                    "actions": actions,
-                    "mode": normalized.get("mode", "single"),
-                }
-            )
-
-        if not candidates:
-            _LOGGER.info("No new automations to create (all invalid)")
-            return []
-
-        # All read-modify-write paths must hold AUTOMATIONS_YAML_LOCK so a
-        # chat-driven create / toggle / rename cannot land between our read
-        # and our write and get clobbered.
-        async with AUTOMATIONS_YAML_LOCK:
-            try:
-                existing = await self._hass.async_add_executor_job(
-                    self._read_automations_yaml, automations_path
-                )
-            except Exception:
-                _LOGGER.exception("Failed to read automations.yaml")
-                return []
-
-            existing_aliases = {a.get("alias", "").lower() for a in existing if isinstance(a, dict)}
-
-            # Filter against existing aliases AND against earlier candidates
-            # in this batch — the LLM can return two suggestions with the same
-            # alias in one cycle, and we must not write both.
-            new_automations: list[dict[str, Any]] = []
-            for cand in candidates:
-                key = cand["alias"].lower()
-                if key in existing_aliases:
-                    continue
-                existing_aliases.add(key)
-                new_automations.append(cand)
-
-            dup_count = len(candidates) - len(new_automations)
-            if dup_count:
-                _LOGGER.debug("Skipping %d duplicate automations", dup_count)
-
-            if not new_automations:
-                _LOGGER.info("No new automations to create (all duplicates)")
-                return []
-
-            existing.extend(new_automations)
-            try:
-                await self._hass.async_add_executor_job(
-                    self._write_automations_yaml, automations_path, existing
-                )
-            except Exception:
-                _LOGGER.exception("Failed to write automations.yaml")
-                return []
-
-            # Reload inside the lock so a concurrent writer can't see a
-            # partially-applied state (file written but reload not done).
-            try:
-                await self._hass.services.async_call("automation", "reload", blocking=True)
-            except Exception:
-                _LOGGER.warning("Failed to reload automations — restart HA to pick them up")
-
-            # Attach the Selora AI label to each new automation entity
-            # via the entity registry. Best-effort; the YAML write is
-            # what actually creates the automation.
-            try:
-                from .automation_utils import _attach_selora_label_to_entity
-
-                for automation in new_automations:
-                    await _attach_selora_label_to_entity(self._hass, automation["id"])
-            except Exception:
-                _LOGGER.debug("Failed to attach Selora AI label to new automations")
-
-        # Record first version for each new automation in the lifecycle store
-        try:
-            from .automation_utils import _get_automation_store
-
-            store = _get_automation_store(self._hass)
-            for automation in new_automations:
-                yaml_text = yaml.dump(automation, allow_unicode=True, default_flow_style=False)
-                await store.add_version(
-                    automation["id"],
-                    yaml_text,
-                    automation,
-                    "Created by collector",
-                    session_id=None,
-                )
-        except Exception:
-            _LOGGER.exception("Failed to record automation versions in store")
-
-        _LOGGER.info("Created %d new automations in automations.yaml", len(new_automations))
-        return [{"id": a["id"], "alias": a["alias"]} for a in new_automations]
-
     @staticmethod
     def _read_automations_yaml(path: Path) -> list[dict[str, Any]]:
         """Read and parse automations.yaml (runs in executor).
@@ -963,66 +831,6 @@ class DataCollector:
             len(suggestions),
             created_count,
         )
-
-    @staticmethod
-    def _humanize_trigger(t: dict[str, Any] | Any) -> str:
-        """Convert a trigger dict to a readable string."""
-        if not isinstance(t, dict):
-            return str(t)
-        platform = t.get("platform", "")
-        if platform == "sun":
-            return f"At {t.get('event', 'sunset')}"
-        if platform == "time":
-            time_val = t.get("at") or t.get("event", "")
-            return f"At {time_val}" if time_val else "At a scheduled time"
-        if platform == "zone":
-            event = t.get("event", "enter")
-            zone = t.get("entity_id", "zone.home").replace("zone.", "").replace("_", " ")
-            return f"When someone {'leaves' if event == 'leave' else 'enters'} {zone}"
-        if platform == "state":
-            entity = t.get("entity_id", "unknown")
-            to_state = t.get("to", "")
-            from_state = t.get("from", "")
-            parts = [f"{entity} changes"]
-            if from_state:
-                parts.append(f"from {from_state}")
-            if to_state:
-                parts.append(f"to {to_state}")
-            return " ".join(parts)
-        if platform == "numeric_state":
-            entity = t.get("entity_id", "unknown")
-            above = t.get("above")
-            below = t.get("below")
-            if above and below:
-                return f"{entity} is between {above} and {below}"
-            if above:
-                return f"{entity} goes above {above}"
-            if below:
-                return f"{entity} goes below {below}"
-            return f"{entity} value changes"
-        return f"{platform}: {t.get('entity_id', '')}" if platform else str(t)
-
-    @staticmethod
-    def _humanize_action(a: dict[str, Any] | Any) -> str:
-        """Convert an action dict to a readable string."""
-        if not isinstance(a, dict):
-            return str(a)
-        service = a.get("service", "")
-        data = a.get("data", {})
-        if not service:
-            return str(a)
-        # Make service name readable
-        parts = service.replace(".", " → ", 1).replace("_", " ")
-        target = data.get("entity_id", "")
-        message = data.get("message", "")
-        extras = []
-        if target:
-            extras.append(target)
-        if message:
-            extras.append(f'"{message}"')
-        if extras:
-            return f"{parts} ({', '.join(extras)})"
-        return parts
 
     def _collect_devices(self) -> list[dict[str, Any]]:
         """Get all devices from the HA device registry."""

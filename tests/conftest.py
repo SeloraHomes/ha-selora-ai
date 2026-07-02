@@ -20,6 +20,12 @@ import yaml
 pytest_plugins = "pytest_homeassistant_custom_component"
 
 
+@pytest.fixture(autouse=True)
+def _enable_custom_component(enable_custom_integrations) -> None:
+    """Auto-enable custom integrations so our domain is discoverable."""
+    return
+
+
 # ── Automations YAML helper ──────────────────────────────────────────
 
 

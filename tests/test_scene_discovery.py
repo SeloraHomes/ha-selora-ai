@@ -1,17 +1,11 @@
-"""Tests for scene_discovery and area-enriched entity collection."""
+"""Tests for get_area_names and area-enriched entity collection."""
 
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
-import pytest
 
-from custom_components.selora_ai.scene_discovery import get_area_names
-
-
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
+from custom_components.selora_ai.scene_utils import get_area_names
 
 
 # ── get_area_names ───────────────────────────────────────────────────

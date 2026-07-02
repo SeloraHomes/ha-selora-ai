@@ -61,11 +61,6 @@ async def _unload_if_created(hass, result) -> None:
 
 
 @pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
-
-
-@pytest.fixture(autouse=True)
 def _stub_selora_local_probe():
     """Skip the Selora AI Local availability probe in tests.
 
@@ -89,8 +84,13 @@ def _stub_selora_local_probe():
 
 
 @pytest.fixture(autouse=True)
-async def _setup_ha_dependencies(hass):
-    """Set up HA components that our integration depends on (conversation, http)."""
+async def _setup_ha_dependencies(_enable_custom_component, hass):
+    """Set up HA components that our integration depends on (conversation, http).
+
+    Depends on ``_enable_custom_component`` (the shared conftest fixture) so the
+    custom-integration loader cache is primed before we load any integration —
+    otherwise ``selora_ai`` isn't discoverable during the flow.
+    """
     await async_setup_component(hass, "homeassistant", {})
     await async_setup_component(hass, "http", {})
     await async_setup_component(hass, "conversation", {})

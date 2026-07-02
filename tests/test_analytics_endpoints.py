@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.selora_ai import _handle_websocket_get_analytics
 from custom_components.selora_ai.mcp_server import _tool_home_analytics
+from custom_components.selora_ai.websocket.usage import _handle_websocket_get_analytics
 
 # Access the original coroutine behind the @async_response decorator
 _analytics_handler = _handle_websocket_get_analytics.__wrapped__
@@ -74,7 +74,7 @@ class TestWebsocketGetAnalytics:
         msg = {"id": 1, "type": "selora_ai/get_analytics"}
 
         with patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.usage._get_pattern_store",
             return_value=mock_pattern_store,
         ):
             await _analytics_handler(hass, mock_connection, msg)
@@ -97,7 +97,7 @@ class TestWebsocketGetAnalytics:
         }
 
         with patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.usage._get_pattern_store",
             return_value=mock_pattern_store,
         ):
             await _analytics_handler(hass, mock_connection, msg)
@@ -115,7 +115,7 @@ class TestWebsocketGetAnalytics:
         msg = {"id": 3, "type": "selora_ai/get_analytics"}
 
         with patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.usage._get_pattern_store",
             return_value=None,
         ):
             await _analytics_handler(hass, mock_connection, msg)

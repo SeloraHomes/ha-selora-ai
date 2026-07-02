@@ -25,12 +25,6 @@ EVENT_LLM_QUOTA_EXCEEDED = f"{DOMAIN}_quota_exceeded"
 DEFAULT_QUOTA_BACKOFF_SECONDS = 60
 
 # ── LLM Usage Sensors ────────────────────────────────────────────────
-# Persistent counters survive restarts via RestoreSensor; the store key
-# below is for an explicit fallback save (in case restore returns None
-# during an unclean shutdown).
-LLM_USAGE_STORE_KEY = f"{DOMAIN}.llm_usage_counters"
-LLM_USAGE_STORE_VERSION = 1
-
 
 # ── Integration Discovery Database ──────────────────────────────────
 
@@ -783,7 +777,6 @@ CONF_ANTHROPIC_API_KEY = "anthropic_api_key"
 CONF_ANTHROPIC_MODEL = "anthropic_model"
 
 DEFAULT_ANTHROPIC_HOST = "https://api.anthropic.com"
-DEFAULT_ANTHROPIC_API_KEY = ""  # User must provide their own key during setup
 DEFAULT_ANTHROPIC_MODEL = "claude-sonnet-4-6"
 ANTHROPIC_API_VERSION = "2023-06-01"
 
@@ -893,10 +886,6 @@ SELORA_LOCAL_LORA_FILENAME_KEYWORDS: tuple[str, ...] = (
 
 # Endpoint paths
 ANTHROPIC_MESSAGES_ENDPOINT = "/v1/messages"
-OLLAMA_CHAT_ENDPOINT = "/v1/chat/completions"
-OPENAI_CHAT_ENDPOINT = "/v1/chat/completions"
-OPENROUTER_CHAT_ENDPOINT = "/v1/chat/completions"
-MESSAGES_ENDPOINT = ANTHROPIC_MESSAGES_ENDPOINT  # Legacy compatibility
 
 # ── MQTT (future) ────────────────────────────────────────────────────
 # Reaction-based behavior capture (Matthew, Mar 4).
@@ -975,37 +964,6 @@ LLM_PRICING_USD_PER_MTOK: dict[str, dict[str, tuple[float, float]]] = {
 # An entry takes precedence over the built-in table; missing entries fall
 # through to the defaults above.
 CONF_LLM_PRICING_OVERRIDES = "llm_pricing_overrides"
-
-
-def estimate_llm_cost_usd(
-    provider: str,
-    model: str,
-    input_tokens: int,
-    output_tokens: int,
-    overrides: dict[str, dict[str, tuple[float, float] | list[float]]] | None = None,
-) -> float:
-    """Return an approximate USD cost for one call, or 0 when unknown.
-
-    ``overrides`` (optional) lets the user supply custom $/MTok rates per
-    provider/model — typically loaded from the config entry's options.
-    Override shape mirrors ``LLM_PRICING_USD_PER_MTOK``; values may be
-    tuples or 2-element lists (lists survive a JSON round-trip).
-    """
-    pricing: tuple[float, float] | list[float] | None = None
-    if overrides:
-        override_entry = overrides.get(provider, {}).get(model)
-        if override_entry is not None:
-            pricing = override_entry
-    if pricing is None:
-        pricing = LLM_PRICING_USD_PER_MTOK.get(provider, {}).get(model)
-    # Selora Cloud bills in prepaid credits (volume-discounted packs), not
-    # per-token USD, so there is no meaningful token→USD rate to apply here.
-    # Token and call counts are still recorded; cost stays unset.
-    if not pricing or len(pricing) < 2:
-        return 0.0
-    in_price = float(pricing[0])
-    out_price = float(pricing[1])
-    return (input_tokens * in_price + output_tokens * out_price) / 1_000_000.0
 
 
 # ── LLM Timeout ─────────────────────────────────────────────────────
