@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from homeassistant.core import HomeAssistant
 import pytest
 
-from custom_components.selora_ai import (
-    _automation_references_device,
+from custom_components.selora_ai import _automation_references_device
+from custom_components.selora_ai.websocket.devices import (
     _handle_websocket_get_device_detail,
 )
 
@@ -166,7 +166,7 @@ async def test_device_detail_success(hass: HomeAssistant, mock_connection, devic
             return_value=[],
         ),
         patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.devices._get_pattern_store",
             return_value=None,
         ),
     ):
@@ -227,7 +227,7 @@ async def test_device_detail_linked_automations(hass: HomeAssistant, mock_connec
             return_value=automations,
         ),
         patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.devices._get_pattern_store",
             return_value=None,
         ),
     ):
@@ -275,7 +275,7 @@ async def test_device_detail_related_patterns(hass: HomeAssistant, mock_connecti
             return_value=[],
         ),
         patch(
-            "custom_components.selora_ai._get_pattern_store",
+            "custom_components.selora_ai.websocket.devices._get_pattern_store",
             return_value=mock_store,
         ),
     ):

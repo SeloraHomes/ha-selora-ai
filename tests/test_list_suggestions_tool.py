@@ -21,11 +21,6 @@ from custom_components.selora_ai.types import SuggestionDict
 
 
 @pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
-
-
-@pytest.fixture(autouse=True)
 def _preload_prompts():
     """Load prompt files so system prompts include tool-policy text."""
     _llm_mod._TOOL_POLICY_TEXT, _llm_mod._DEVICE_KNOWLEDGE_TEXT = _read_prompt_files()

@@ -2,14 +2,8 @@
 
 from __future__ import annotations
 
-import pytest
 
 from custom_components.selora_ai.scene_store import SceneStore
-
-
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
 
 
 class MockStore:

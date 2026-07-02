@@ -16,15 +16,9 @@ from __future__ import annotations
 # ruff: noqa: ANN001, ANN202
 from unittest.mock import AsyncMock, MagicMock
 
-import pytest
 
 from custom_components.selora_ai.llm_client import LLMClient
 from custom_components.selora_ai.providers import create_provider
-
-
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):  # type: ignore[no-untyped-def]
-    """Auto-enable custom integrations so our domain is discoverable."""
 
 
 def _make_client(hass) -> LLMClient:

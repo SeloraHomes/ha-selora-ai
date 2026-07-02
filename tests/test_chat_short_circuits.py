@@ -32,11 +32,6 @@ from custom_components.selora_ai.llm_client.client import _join_stream_boundary
 from custom_components.selora_ai.providers import create_provider
 
 
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):  # type: ignore[no-untyped-def]
-    """Auto-enable custom integrations so our domain is discoverable."""
-
-
 def _make_client(hass) -> LLMClient:
     provider = create_provider("anthropic", hass, api_key="test-key")
     return LLMClient(hass, provider)

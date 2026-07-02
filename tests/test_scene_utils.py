@@ -22,11 +22,6 @@ from custom_components.selora_ai.scene_utils import (
 )
 
 
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
-
-
 # ── validate_scene_payload ───────────────────────────────────────────
 
 

@@ -11,7 +11,6 @@ from __future__ import annotations
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from homeassistant.core import HomeAssistant
-import pytest
 
 from custom_components.selora_ai import _collect_entity_states
 from custom_components.selora_ai.const import DOMAIN
@@ -70,11 +69,6 @@ def test_unwrap_entity_markers_falls_back_to_entity_id():
     )
     assert "Unknown" in out
     assert "[[entity:" not in out
-
-
-@pytest.fixture(autouse=True)
-def _enable_custom_component(enable_custom_integrations):
-    """Auto-enable custom integrations so our domain is discoverable."""
 
 
 def _make_entity(hass: HomeAssistant) -> SeloraConversationEntity:
