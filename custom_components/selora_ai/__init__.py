@@ -444,7 +444,11 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
     from .entity_filter import EntityFilter
 
     _SKIP_STATES = {"unavailable", "unknown"}
-    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation"}
+    # ``scene`` is deliberately not in COLLECTOR_DOMAINS (a scene carries no
+    # meaningful state to collect for pattern detection), but the architect
+    # needs scenes in AVAILABLE ENTITIES so it can reference their real
+    # entity_ids when building automations/commands that activate them.
+    _ALLOWED_DOMAINS = COLLECTOR_DOMAINS | {"automation", "scene"}
     all_states = hass.states.async_all()
     ef = EntityFilter(hass, [s.entity_id for s in all_states])
 
@@ -455,9 +459,14 @@ def _collect_entity_states(hass: HomeAssistant) -> list[EntitySnapshot]:
 
     states: list[EntitySnapshot] = []
     for state in all_states:
-        if state.state in _SKIP_STATES:
-            continue
         domain = state.entity_id.split(".")[0]
+        # A scene's state is the timestamp it was last activated — "unknown"
+        # just means never-triggered, not unavailable, so keep those or a
+        # freshly-created scene would be invisible to the architect. A
+        # genuinely "unavailable" scene is still dropped like any other entity.
+        skip_states = {"unavailable"} if domain == "scene" else _SKIP_STATES
+        if state.state in skip_states:
+            continue
         if domain not in _ALLOWED_DOMAINS:
             continue
         if not ef.is_active(state.entity_id):

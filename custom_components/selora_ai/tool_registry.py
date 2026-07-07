@@ -418,9 +418,14 @@ TOOL_SEARCH_ENTITIES = ToolDef(
     name="search_entities",
     description=(
         "Fuzzy-search entities by free-text query across entity_id, friendly "
-        "name, aliases, and area. Returns ranked matches. Use this when the "
-        "user names a device informally and you need to resolve it to an "
-        "entity_id before issuing a command."
+        "name, aliases, and area. Returns ranked matches (with total_scored so "
+        "you can gauge confidence). Use this when the user names a device — or "
+        "a SCENE — informally and you need to resolve it to an entity_id before "
+        "issuing a command or building an automation. To resolve a named scene "
+        "('Stores at 50%'), search with domain='scene' and use the top match's "
+        "entity_id verbatim; NEVER guess a scene.<slug> id — a wrong id fails "
+        "validation. If the top match looks weak (low score, several close "
+        "candidates), broaden the query or ask the user which one."
     ),
     params=(
         ToolParam(
