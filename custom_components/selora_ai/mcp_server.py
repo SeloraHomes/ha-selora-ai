@@ -2265,7 +2265,12 @@ async def _tool_search_entities(hass: HomeAssistant, arguments: dict[str, Any]) 
         if not is_actionable_entity(state.entity_id):
             continue
         domain = state.entity_id.split(".", 1)[0]
-        if domain not in COLLECTOR_DOMAINS:
+        # ``scene`` is not collected (a scene has no meaningful state), but it
+        # must be resolvable here: this fuzzy search is how the architect maps
+        # a named scene ("Stores at 50%") to its real entity_id without
+        # bloating context by listing every scene. Guessing the id instead
+        # fails automation validation as an unknown entity_id.
+        if domain not in COLLECTOR_DOMAINS and domain != "scene":
             continue
         if domain_filter and domain != domain_filter:
             continue
