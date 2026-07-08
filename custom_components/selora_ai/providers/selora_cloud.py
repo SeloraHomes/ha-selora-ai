@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncIterator
+from enum import Enum
 import json
 import logging
 import re
@@ -59,6 +60,48 @@ _LOGGER = logging.getLogger(__name__)
 # a healthy upstream. Keep the total budget short so a genuinely-down
 # upstream still surfaces quickly.
 _UPSTREAM_RETRY_DELAYS: tuple[float, ...] = (2.0, 4.0, 6.0)
+
+# Shown to the user when the OAuth refresh fails. The wording is chosen per
+# failure class so the advice matches the cause: a rejected refresh token
+# can only be fixed by re-linking, while a network/5xx blip is worth a retry.
+_REFRESH_TERMINAL_MESSAGE = "Selora Cloud session expired — relink in Settings to continue."
+_REFRESH_TRANSIENT_MESSAGE = (
+    "Couldn't reach Selora Cloud to refresh the session — try again in a moment."
+)
+
+
+class CloudSessionExpiredError(ConnectionError):
+    """The OAuth refresh token was rejected — the user must re-link.
+
+    Subclasses ``ConnectionError`` so every existing ``except
+    ConnectionError`` arm still catches it; the WS chat handler
+    additionally uses the type to pick a localized, cause-specific
+    message. Carries the English text as its default (log/fallback) value.
+    """
+
+
+class CloudUnreachableError(ConnectionError):
+    """A token refresh failed transiently (network / 5xx / timeout).
+
+    Distinct from :class:`CloudSessionExpiredError` so the user is told to
+    retry rather than re-link. Also a ``ConnectionError`` subclass.
+    """
+
+
+class _RefreshResult(Enum):
+    """Outcome of a token-refresh attempt.
+
+    Distinguishing these lets the caller pick the right user message and
+    behaviour: ``TERMINAL`` fails fast (relink), ``TRANSIENT`` is retried.
+    """
+
+    OK = "ok"
+    # Credential rejected (4xx from the token endpoint) or missing refresh
+    # token — retrying is pointless, the user must re-link.
+    TERMINAL = "terminal"
+    # Network error, timeout, 429, or 5xx from the token endpoint — the
+    # refresh may succeed on a retry.
+    TRANSIENT = "transient"
 
 
 _TOKEN_FIELD_RE = re.compile(r'("(?:access_token|refresh_token|id_token|token)"\s*:\s*")[^"]+(")')
@@ -236,18 +279,21 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
             return False
         return time.time() + AIGATEWAY_REFRESH_LEEWAY_SECONDS >= self._expires_at
 
-    async def _refresh_access_token(self) -> bool:
+    async def _refresh_access_token(self) -> _RefreshResult:
         """Refresh the access token using the stored refresh token.
 
-        Returns True on success. Persists the new tokens to the config
-        entry. Single-flight via ``self._refresh_lock``.
+        Returns ``_RefreshResult.OK`` on success, ``TERMINAL`` when the
+        credential is rejected (4xx) or absent — retrying can't help and
+        the user must re-link — and ``TRANSIENT`` for a network error,
+        timeout, 429, or 5xx that a retry may clear. Persists the new
+        tokens on success. Single-flight via ``self._refresh_lock``.
         """
         async with self._refresh_lock:
             # Re-check under the lock — another caller may have refreshed.
             if not self._needs_refresh():
-                return True
+                return _RefreshResult.OK
             if not self._refresh_token:
-                return False
+                return _RefreshResult.TERMINAL
 
             session = async_get_clientsession(self._hass)
             try:
@@ -270,18 +316,25 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                             resp.status,
                             body,
                         )
-                        return False
+                        # 5xx / 429 are server-side or throttling — worth a
+                        # retry. Any other 4xx means the refresh token or
+                        # client is rejected: re-linking is the only fix.
+                        if resp.status >= 500 or resp.status == 429:
+                            return _RefreshResult.TRANSIENT
+                        return _RefreshResult.TERMINAL
                     data = await resp.json()
             except (aiohttp.ClientError, TimeoutError) as exc:
                 _LOGGER.warning("AI Gateway token refresh error: %s", _mask_tokens(str(exc)))
-                return False
+                return _RefreshResult.TRANSIENT
 
             access = data.get("access_token")
             expires_in = int(data.get("expires_in") or 0)
             new_refresh = data.get("refresh_token")  # only present on rotation
             if not access:
+                # 200 with no token is a server contract violation, not a
+                # bad credential — treat as transient so a retry can recover.
                 _LOGGER.warning("AI Gateway refresh response missing access_token")
-                return False
+                return _RefreshResult.TRANSIENT
 
             self._access_token = access
             self._expires_at = time.time() + expires_in if expires_in > 0 else 0.0
@@ -289,7 +342,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
                 self._refresh_token = new_refresh
 
             self._persist_tokens()
-            return True
+            return _RefreshResult.OK
 
     def _persist_tokens(self) -> None:
         """Write the current tokens back to the config entry."""
@@ -311,18 +364,25 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
     async def _ensure_token(self) -> None:
         if not self._needs_refresh():
             return
-        ok = await self._refresh_access_token()
-        if ok:
+        result = await self._refresh_access_token()
+        if result is _RefreshResult.OK:
             return
-        # Refresh failed (network blip, refresh token revoked, Connect
-        # upgrade in progress). Sending the request anyway with an
-        # expired access token would return 401 — same outcome as
-        # raising here, but the error message is mystifying. Raise
-        # ConnectionError now so the chat handler's existing arm can
-        # tell the user to retry / relink in plain English instead.
-        raise ConnectionError(
-            "Selora Cloud session expired and could not refresh — try again or relink in Settings."
-        )
+        # A rejected credential can't be retried away — fail fast and point
+        # the user at the relink flow. Sending the request anyway with an
+        # expired access token would return a mystifying 401.
+        if result is _RefreshResult.TERMINAL:
+            raise CloudSessionExpiredError(_REFRESH_TERMINAL_MESSAGE)
+        # Transient (network blip / 5xx / Connect upgrade in progress):
+        # retry on the same short budget the upstream path uses before
+        # giving up, so a momentary hiccup self-heals instead of surfacing.
+        for delay in _UPSTREAM_RETRY_DELAYS:
+            await asyncio.sleep(delay)
+            result = await self._refresh_access_token()
+            if result is _RefreshResult.OK:
+                return
+            if result is _RefreshResult.TERMINAL:
+                raise CloudSessionExpiredError(_REFRESH_TERMINAL_MESSAGE)
+        raise CloudUnreachableError(_REFRESH_TRANSIENT_MESSAGE)
 
     async def send_request(
         self,
@@ -467,6 +527,7 @@ class SeloraCloudProvider(OpenAICompatibleProvider):
             return True
         # Refresh leeway expired (or we never had an access token):
         # exercise the token endpoint as the auth + reachability probe.
-        # Success → healthy. Failure → unhealthy, same outcome the old
-        # chat-based probe produced when the gateway was unreachable.
-        return await self._refresh_access_token()
+        # Success → healthy. Failure (terminal or transient) → unhealthy,
+        # same outcome the old chat-based probe produced when the gateway
+        # was unreachable.
+        return await self._refresh_access_token() is _RefreshResult.OK
