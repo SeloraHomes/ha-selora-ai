@@ -2983,14 +2983,29 @@ async def _handle_websocket_chat_stream(
                 provider_type,
             )
         else:
-            error_msg = (
-                str(exc)
-                if str(exc)
-                else (
-                    "Couldn't reach the LLM provider. Check your connection "
-                    "in Settings, then try again."
-                )
+            # Cloud-session failures carry a typed cause so the user gets
+            # localized, actionable advice (relink vs retry) rather than the
+            # raw English exception text. Other ConnectionErrors keep their
+            # own message (or the generic fallback).
+            from .providers.selora_cloud import (  # noqa: PLC0415
+                CloudSessionExpiredError,
+                CloudUnreachableError,
             )
+
+            reply_language = msg.get("language") or hass.config.language
+            if isinstance(exc, CloudSessionExpiredError):
+                error_msg = _approval_phrase(_CLOUD_SESSION_EXPIRED_BY_LANG, reply_language)
+            elif isinstance(exc, CloudUnreachableError):
+                error_msg = _approval_phrase(_CLOUD_UNREACHABLE_BY_LANG, reply_language)
+            else:
+                error_msg = (
+                    str(exc)
+                    if str(exc)
+                    else (
+                        "Couldn't reach the LLM provider. Check your connection "
+                        "in Settings, then try again."
+                    )
+                )
             cause_suffix = (
                 " Then I lost the connection to the LLM — only retry if there's more to do."
             )
@@ -3413,6 +3428,43 @@ _REFINEMENT_SUPPRESSED_BY_LANG: dict[str, str] = {
     "ja": "何も実行していません。ここでは提案を調整しているため、デバイスには何も送信されていません。変更したい内容を教えていただければ更新します。",
     "ko": "아무것도 실행하지 않았습니다 — 여기서는 제안을 다듬는 중이라 기기로 아무것도 전송되지 않았습니다. 무엇을 바꿀지 알려주시면 업데이트하겠습니다.",
     "ru": "Я ничего не выполнил — здесь мы дорабатываем предложение, поэтому на ваши устройства ничего не отправлено. Скажите, что изменить, и я обновлю его.",
+}
+
+
+# Shown in chat when the Selora Cloud OAuth session can't be refreshed.
+# Two variants so the advice matches the cause: a rejected refresh token
+# needs a re-link, a transient network/5xx blip just needs a retry. Raised
+# as CloudSessionExpiredError / CloudUnreachableError by the provider and
+# localized here (the streaming WS path keeps the typed exception).
+_CLOUD_SESSION_EXPIRED_BY_LANG: dict[str, str] = {
+    "en": "Selora Cloud session expired — relink in Settings to continue.",
+    "fr": "Session Selora Cloud expirée — reconnectez-vous dans les Paramètres pour continuer.",
+    "de": "Selora Cloud-Sitzung abgelaufen — bitte in den Einstellungen neu verknüpfen, um fortzufahren.",
+    "es": "La sesión de Selora Cloud caducó: vuelve a vincularla en Ajustes para continuar.",
+    "it": "Sessione Selora Cloud scaduta: ricollegala nelle Impostazioni per continuare.",
+    "nl": "Selora Cloud-sessie verlopen — koppel opnieuw in Instellingen om door te gaan.",
+    "hu": "A Selora Cloud munkamenet lejárt – a folytatáshoz csatlakoztassa újra a Beállításokban.",
+    "zh": "Selora Cloud 会话已过期——请在“设置”中重新关联以继续。",
+    "pt": "A sessão do Selora Cloud expirou — volte a vincular em Definições para continuar.",
+    "ja": "Selora Cloud のセッションが期限切れです。続行するには設定で再連携してください。",
+    "ko": "Selora Cloud 세션이 만료되었습니다. 계속하려면 설정에서 다시 연결하세요.",
+    "ru": "Сессия Selora Cloud истекла — повторно свяжите её в настройках, чтобы продолжить.",
+}
+
+
+_CLOUD_UNREACHABLE_BY_LANG: dict[str, str] = {
+    "en": "Couldn't reach Selora Cloud to refresh the session — try again in a moment.",
+    "fr": "Impossible de joindre Selora Cloud pour actualiser la session — réessayez dans un instant.",
+    "de": "Selora Cloud konnte zum Aktualisieren der Sitzung nicht erreicht werden — bitte gleich erneut versuchen.",
+    "es": "No se pudo conectar con Selora Cloud para renovar la sesión: inténtalo de nuevo en un momento.",
+    "it": "Impossibile raggiungere Selora Cloud per aggiornare la sessione: riprova tra un momento.",
+    "nl": "Kon Selora Cloud niet bereiken om de sessie te vernieuwen — probeer het zo opnieuw.",
+    "hu": "Nem sikerült elérni a Selora Cloudot a munkamenet frissítéséhez – próbálja újra egy pillanat múlva.",
+    "zh": "无法连接 Selora Cloud 以刷新会话——请稍后重试。",
+    "pt": "Não foi possível contactar o Selora Cloud para atualizar a sessão — tente novamente daqui a pouco.",
+    "ja": "セッションを更新するために Selora Cloud に接続できませんでした。しばらくしてからもう一度お試しください。",
+    "ko": "세션을 갱신하기 위해 Selora Cloud에 연결하지 못했습니다. 잠시 후 다시 시도하세요.",
+    "ru": "Не удалось подключиться к Selora Cloud для обновления сессии — повторите попытку через мгновение.",
 }
 
 

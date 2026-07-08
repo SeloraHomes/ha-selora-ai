@@ -23,7 +23,12 @@ from unittest.mock import AsyncMock
 import pytest
 
 from custom_components.selora_ai import _aigateway_view
-from custom_components.selora_ai.providers.selora_cloud import SeloraCloudProvider
+from custom_components.selora_ai.providers.selora_cloud import (
+    CloudSessionExpiredError,
+    CloudUnreachableError,
+    SeloraCloudProvider,
+    _RefreshResult,
+)
 
 
 class TestAigatewayView:
@@ -417,7 +422,7 @@ class TestHealthCheckDoesNotCreateChatSession:
 
         send_super = AsyncMock(return_value=("should-not-be-called", None))
         send_self = AsyncMock(return_value=("should-not-be-called", None))
-        refresh = AsyncMock(return_value=True)
+        refresh = AsyncMock(return_value=_RefreshResult.OK)
 
         monkeypatch.setattr(openai_compat.OpenAICompatibleProvider, "send_request", send_super)
         monkeypatch.setattr(provider, "send_request", send_self)
@@ -457,7 +462,7 @@ class TestHealthCheckDoesNotCreateChatSession:
 
         send_super = AsyncMock(return_value=("nope", None))
         send_self = AsyncMock(return_value=("nope", None))
-        refresh = AsyncMock(return_value=True)
+        refresh = AsyncMock(return_value=_RefreshResult.OK)
 
         monkeypatch.setattr(openai_compat.OpenAICompatibleProvider, "send_request", send_super)
         monkeypatch.setattr(provider, "send_request", send_self)
@@ -473,7 +478,9 @@ class TestHealthCheckDoesNotCreateChatSession:
         self, hass, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         provider = self._make_provider(hass, expires_at=1.0)
-        monkeypatch.setattr(provider, "_refresh_access_token", AsyncMock(return_value=False))
+        monkeypatch.setattr(
+            provider, "_refresh_access_token", AsyncMock(return_value=_RefreshResult.TERMINAL)
+        )
 
         assert await provider.health_check() is False
 
@@ -528,3 +535,202 @@ class TestMaskTokens:
         assert "secret_prefix" not in masked_then_sliced
         assert "AAAA" not in masked_then_sliced
         assert '"access_token":"***"' in masked_then_sliced
+
+
+class _FakeResponse:
+    """Minimal async-context-manager stand-in for an aiohttp response."""
+
+    def __init__(self, status: int, payload: dict | None = None) -> None:
+        self.status = status
+        self._payload = payload or {}
+
+    async def __aenter__(self) -> _FakeResponse:
+        return self
+
+    async def __aexit__(self, *_exc: object) -> bool:
+        return False
+
+    async def text(self) -> str:
+        return "body"
+
+    async def json(self) -> dict:
+        return self._payload
+
+
+class _FakeSession:
+    def __init__(self, response: _FakeResponse | Exception) -> None:
+        self._response = response
+
+    def post(self, *_a: object, **_kw: object) -> _FakeResponse:
+        if isinstance(self._response, Exception):
+            raise self._response
+        return self._response
+
+
+def _make_refresh_provider(hass) -> SeloraCloudProvider:
+    return SeloraCloudProvider(
+        hass,
+        access_token="ey.stale",
+        refresh_token="aigw_refresh",
+        expires_at=1.0,  # already within refresh leeway → _needs_refresh() is True
+        connect_url="https://example.test",
+        client_id="cid",
+        entry_id="entry-id",
+    )
+
+
+class TestRefreshCategorization:
+    """_refresh_access_token classifies failures so the caller can react."""
+
+    async def test_4xx_is_terminal(self, hass, monkeypatch: pytest.MonkeyPatch) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(_FakeResponse(401)),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.TERMINAL
+
+    async def test_5xx_is_transient(self, hass, monkeypatch: pytest.MonkeyPatch) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(_FakeResponse(503)),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
+
+    async def test_429_is_transient(self, hass, monkeypatch: pytest.MonkeyPatch) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(_FakeResponse(429)),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
+
+    async def test_network_error_is_transient(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        import aiohttp
+
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(aiohttp.ClientError("boom")),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
+
+    async def test_missing_access_token_is_transient(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(_FakeResponse(200, {"expires_in": 3600})),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
+
+    async def test_success_is_ok_and_persists(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        monkeypatch.setattr(provider, "_persist_tokens", lambda: None)
+        monkeypatch.setattr(
+            selora_cloud,
+            "async_get_clientsession",
+            lambda _hass: _FakeSession(
+                _FakeResponse(200, {"access_token": "ey.new", "expires_in": 3600})
+            ),
+        )
+        assert await provider._refresh_access_token() is _RefreshResult.OK
+        assert provider._access_token == "ey.new"
+
+
+class TestEnsureTokenBehaviour:
+    """_ensure_token picks the message + retry behaviour by failure class."""
+
+    async def test_terminal_fails_fast_with_relink_message(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        refresh = AsyncMock(return_value=_RefreshResult.TERMINAL)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        slept: list[float] = []
+        monkeypatch.setattr(
+            selora_cloud.asyncio, "sleep", lambda s: slept.append(s) or _async_none()
+        )
+
+        with pytest.raises(CloudSessionExpiredError, match="relink"):
+            await provider._ensure_token()
+        # No retry, no sleep — a rejected credential can't be retried away.
+        assert refresh.await_count == 1
+        assert slept == []
+
+    async def test_transient_retries_then_recovers(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        refresh = AsyncMock(
+            side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.OK]
+        )
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+
+        # Should not raise — the second attempt recovers.
+        await provider._ensure_token()
+        assert refresh.await_count == 2
+
+    async def test_transient_exhausted_raises_try_again_message(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        refresh = AsyncMock(return_value=_RefreshResult.TRANSIENT)
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+
+        with pytest.raises(CloudUnreachableError, match="try again"):
+            await provider._ensure_token()
+        # Initial attempt + one per retry delay.
+        assert refresh.await_count == len(selora_cloud._UPSTREAM_RETRY_DELAYS) + 1
+
+    async def test_transient_then_terminal_switches_to_relink(
+        self, hass, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A refresh token revoked mid-retry must surface relink, not try-again."""
+        from custom_components.selora_ai.providers import selora_cloud
+
+        provider = _make_refresh_provider(hass)
+        refresh = AsyncMock(
+            side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.TERMINAL]
+        )
+        monkeypatch.setattr(provider, "_refresh_access_token", refresh)
+        monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
+
+        with pytest.raises(CloudSessionExpiredError, match="relink"):
+            await provider._ensure_token()
+        assert refresh.await_count == 2
+
+
+async def _async_none() -> None:
+    return None
