@@ -34,6 +34,7 @@ def _make_pattern_store() -> MagicMock:
     store.get_recently_dismissed_suggestions = AsyncMock(return_value=[])
     store.get_suggestions = AsyncMock(return_value=[])
     store.save_suggestion = AsyncMock(return_value="sugg_id_001")
+    store.update_pattern_status = AsyncMock(return_value=True)
     # Default: no active patterns to backfill (#67)
     store.get_patterns = AsyncMock(return_value=[])
     # Default: enough history to pass hardening checks (#67)
@@ -714,3 +715,454 @@ class TestGenerateFromPatterns:
 
         assert len(result) == 0
         store.save_suggestion.assert_not_awaited()
+
+
+# ═══════════════════════════════════════════════════════════════════════
+# Quality gate: cap, fan-out collapse, LLM scoring, fallback
+# ═══════════════════════════════════════════════════════════════════════
+
+
+def _corr_pattern(
+    i: int,
+    *,
+    trigger: str | None = None,
+    trigger_state: str = "on",
+    confidence: float = 0.8,
+) -> dict[str, Any]:
+    """Build a distinct correlation pattern for gate tests."""
+    trig = trigger or f"binary_sensor.motion_{i}"
+    resp = f"light.room_{i}"
+    return {
+        "pattern_id": f"pat_{i}",
+        "type": "correlation",
+        "confidence": confidence,
+        "description": f"{trig} {trigger_state} -> {resp} on",
+        "entity_ids": [trig, resp],
+        "evidence": {
+            "trigger_entity": trig,
+            "trigger_state": trigger_state,
+            "response_entity": resp,
+            "response_state": "on",
+        },
+    }
+
+
+def _patch_devices(count: int) -> Any:
+    """Patch the device registry so the cap resolves to a known home size.
+
+    Only ``len(devices)`` matters to ``_suggestion_cap``; the MagicMock's
+    default empty ``__iter__`` keeps ``resolve_ignored_entity_ids`` a no-op
+    (it iterates ``devices.values()``).
+    """
+    mock_dr = patch("custom_components.selora_ai.suggestion_generator.dr.async_get")
+    started = mock_dr.start()
+    mock_devices = MagicMock()
+    mock_devices.__len__.return_value = count
+    started.return_value.devices = mock_devices
+    return mock_dr
+
+
+def _echo_validate() -> Any:
+    """Patch validate_automation_payload to accept and echo the built payload."""
+    p = patch("custom_components.selora_ai.suggestion_generator.validate_automation_payload")
+    started = p.start()
+    started.side_effect = lambda auto, hass: (True, "ok", auto)
+    return p
+
+
+def _make_gen_with_llm(store: MagicMock, llm: MagicMock) -> SuggestionGenerator:
+    """Build a SuggestionGenerator wired to a mock LLM for scoring-gate tests."""
+    mock_hass = MagicMock()
+    mock_hass.services.has_service.side_effect = lambda d, s: (
+        s in _REGISTERED_SERVICES.get(d, set())
+    )
+    mock_state = MagicMock()
+    mock_state.state = "on"
+    mock_hass.states.get.return_value = mock_state
+    return SuggestionGenerator(mock_hass, store, llm=llm)
+
+
+class TestClusterKey:
+    """_cluster_key must separate distinct automations while grouping fan-out."""
+
+    def test_time_weekday_and_weekend_differ(self):
+        base = {
+            "type": "time_based",
+            "entity_ids": ["light.hall"],
+            "evidence": {"time_slot": "18:00", "target_state": "on"},
+        }
+        weekday = {**base, "evidence": {**base["evidence"], "is_weekday": True}}
+        weekend = {**base, "evidence": {**base["evidence"], "is_weekday": False}}
+        assert SuggestionGenerator._cluster_key(weekday) != SuggestionGenerator._cluster_key(
+            weekend
+        )
+
+    def test_sequence_trigger_from_differs(self):
+        base = {
+            "type": "sequence",
+            "entity_ids": ["cover.garage", "light.porch"],
+            "evidence": {
+                "trigger_entity": "cover.garage",
+                "trigger_to": "open",
+                "response_entity": "light.porch",
+                "response_state": "on",
+            },
+        }
+        from_closed = {**base, "evidence": {**base["evidence"], "trigger_from": "closed"}}
+        from_opening = {**base, "evidence": {**base["evidence"], "trigger_from": "opening"}}
+        assert SuggestionGenerator._cluster_key(from_closed) != SuggestionGenerator._cluster_key(
+            from_opening
+        )
+
+    def test_sequence_fan_out_same_trigger_groups(self):
+        """Same trigger (entity/from/to), different response target → same cluster."""
+        base = {
+            "type": "sequence",
+            "entity_ids": ["cover.garage", "light.porch"],
+            "evidence": {
+                "trigger_entity": "cover.garage",
+                "trigger_from": "closed",
+                "trigger_to": "open",
+                "response_state": "on",
+            },
+        }
+        to_porch = {**base, "evidence": {**base["evidence"], "response_entity": "light.porch"}}
+        to_deck = {**base, "evidence": {**base["evidence"], "response_entity": "light.deck"}}
+        assert SuggestionGenerator._cluster_key(to_porch) == SuggestionGenerator._cluster_key(
+            to_deck
+        )
+
+    def test_correlation_fan_out_same_trigger_groups(self):
+        base = {
+            "type": "correlation",
+            "entity_ids": ["binary_sensor.door", "light.a"],
+            "evidence": {"trigger_entity": "binary_sensor.door", "trigger_state": "off"},
+        }
+        to_a = {**base, "evidence": {**base["evidence"], "response_entity": "light.a"}}
+        to_b = {**base, "evidence": {**base["evidence"], "response_entity": "light.b"}}
+        assert SuggestionGenerator._cluster_key(to_a) == SuggestionGenerator._cluster_key(to_b)
+
+
+class TestSuggestionQualityGate:
+    """Tests for the cap / collapse / LLM-scoring gate."""
+
+    @pytest.mark.asyncio
+    async def test_caps_to_home_size(self):
+        """More candidates than slots → capped to the home-size cap (llm-less fallback)."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)  # llm=None → confidence fallback
+        patterns = [_corr_pattern(i, confidence=0.9 - i * 0.01) for i in range(20)]
+
+        dr_patch = _patch_devices(132)  # ceil(132/15)=9, clamped to [3,15] → 9
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            dr_patch.stop()
+            val_patch.stop()
+
+        assert len(result) == 9
+        assert store.save_suggestion.await_count == 9
+
+    @pytest.mark.asyncio
+    async def test_slots_full_returns_empty(self):
+        """Already at cap → no generation, no saves."""
+        store = _make_pattern_store()
+        # Default MagicMock device count → cap floor (3). Three pending fills it.
+        store.get_suggestions = AsyncMock(
+            side_effect=lambda status="pending": (
+                [{"automation_data": {}, "status": "pending"}] * 3 if status == "pending" else []
+            )
+        )
+        gen = _make_gen_with_services(store=store)
+        result = await gen.generate_from_patterns([_corr_pattern(1)])
+        assert result == []
+        store.save_suggestion.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_collapses_fan_out_variants(self):
+        """Same trigger, different targets → collapse to the highest-confidence one."""
+        store = _make_pattern_store()
+        gen = _make_gen_with_services(store=store)  # llm=None
+        # One trigger (front door motion off) fanning out to three lights.
+        patterns = [
+            _corr_pattern(
+                0, trigger="binary_sensor.front_door", trigger_state="off", confidence=0.6
+            ),
+            _corr_pattern(
+                1, trigger="binary_sensor.front_door", trigger_state="off", confidence=0.9
+            ),
+            _corr_pattern(
+                2, trigger="binary_sensor.front_door", trigger_state="off", confidence=0.7
+            ),
+        ]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 1
+        assert store.save_suggestion.await_count == 1
+        saved = store.save_suggestion.call_args[0][0]
+        assert saved["confidence"] == 0.9
+
+    @pytest.mark.asyncio
+    async def test_llm_filters_low_quality(self):
+        """LLM scores gate the output: low-score / keep=false candidates are dropped."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(
+            return_value=(
+                '[{"score": 90, "keep": true, "reason": "sensible"},'
+                ' {"score": 20, "keep": false, "reason": "coincidence"}]',
+                None,
+            )
+        )
+        mock_hass = MagicMock()
+        mock_hass.services.has_service.side_effect = lambda d, s: (
+            s in _REGISTERED_SERVICES.get(d, set())
+        )
+        mock_state = MagicMock()
+        mock_state.state = "on"
+        mock_hass.states.get.return_value = mock_state
+        gen = SuggestionGenerator(mock_hass, store, llm=mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.8), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        mock_llm.send_request.assert_awaited_once()
+        assert len(result) == 1
+        assert result[0]["pattern_id"] == "pat_0"
+        # The rejected pattern is durably persisted so backfill / re-detection
+        # won't re-score it (#67). quality_rejected is NOT reactivated by
+        # save_pattern the way the causality "rejected" status is.
+        store.update_pattern_status.assert_awaited_once_with("pat_1", "quality_rejected")
+
+    @pytest.mark.asyncio
+    async def test_fallback_does_not_persist_rejections(self):
+        """Without usable LLM scores we can't judge quality — nothing is marked rejected."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(side_effect=RuntimeError("boom"))
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        val_patch = _echo_validate()
+        try:
+            await gen.generate_from_patterns([_corr_pattern(0, confidence=0.8)])
+        finally:
+            val_patch.stop()
+
+        store.update_pattern_status.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_cluster_keeps_sensible_lower_confidence_variant(self):
+        """In a fan-out cluster, a rejected high-confidence variant must not bury a passing one."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        # Candidate order: A (spurious, high conf) then B (sensible, low conf),
+        # both sharing the front_door trigger cluster.
+        mock_llm.send_request = AsyncMock(
+            return_value=(
+                '[{"score": 10, "keep": false}, {"score": 80, "keep": true}]',
+                None,
+            )
+        )
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [
+            _corr_pattern(
+                0, trigger="binary_sensor.front_door", trigger_state="off", confidence=0.9
+            ),
+            _corr_pattern(
+                1, trigger="binary_sensor.front_door", trigger_state="off", confidence=0.6
+            ),
+        ]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        # The sensible lower-confidence variant survives; the cluster isn't empty.
+        assert len(result) == 1
+        assert result[0]["pattern_id"] == "pat_1"
+
+    @pytest.mark.asyncio
+    async def test_llm_string_keep_false_rejects(self):
+        """A quoted keep=\"false\" must reject, even with a passing score (not bool('false')=True)."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(
+            return_value=(
+                '[{"score": 90, "keep": "true"}, {"score": 95, "keep": "false"}]',
+                None,
+            )
+        )
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.8), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 1
+        assert result[0]["pattern_id"] == "pat_0"
+
+    @pytest.mark.asyncio
+    async def test_llm_failure_falls_back_to_confidence(self):
+        """LLM raising → fall back to confidence ranking, still capped."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(side_effect=RuntimeError("boom"))
+        mock_hass = MagicMock()
+        mock_hass.services.has_service.side_effect = lambda d, s: (
+            s in _REGISTERED_SERVICES.get(d, set())
+        )
+        mock_state = MagicMock()
+        mock_state.state = "on"
+        mock_hass.states.get.return_value = mock_state
+        gen = SuggestionGenerator(mock_hass, store, llm=mock_llm)
+
+        # 5 distinct patterns, default cap 3 → top-3 by confidence survive.
+        confidences = [0.9, 0.85, 0.8, 0.7, 0.6]
+        patterns = [_corr_pattern(i, confidence=c) for i, c in enumerate(confidences)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 3
+        saved_conf = sorted(
+            (call.args[0]["confidence"] for call in store.save_suggestion.call_args_list),
+            reverse=True,
+        )
+        assert saved_conf == [0.9, 0.85, 0.8]
+
+    @pytest.mark.asyncio
+    async def test_llm_length_matching_non_dict_falls_back(self):
+        """Length-matching but non-dict verdicts are unusable → confidence fallback, no crash."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        # Two entries (matches candidate count) but not objects.
+        mock_llm.send_request = AsyncMock(return_value=('["keep it", 42]', None))
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.9), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        # Fell back to confidence ranking (cap 3) — both kept, nothing raised.
+        assert len(result) == 2
+
+    @pytest.mark.asyncio
+    async def test_llm_numeric_string_scores_coerced(self):
+        """Numeric-string scores coerce; a genuine low score is dropped and persisted."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(
+            return_value=(
+                '[{"score": "90", "keep": true}, {"score": "55", "keep": true}]',
+                None,
+            )
+        )
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.8), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 1
+        assert result[0]["pattern_id"] == "pat_0"
+        # 55 < MIN_SCORE is a real quality verdict → durably rejected.
+        store.update_pattern_status.assert_awaited_once_with("pat_1", "quality_rejected")
+
+    @pytest.mark.asyncio
+    async def test_llm_non_numeric_score_falls_back_without_persisting(self):
+        """A non-numeric score is a formatting glitch, not a verdict → fallback, no rejection."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(
+            return_value=(
+                '[{"score": "bad", "keep": true}, {"score": 90, "keep": true}]',
+                None,
+            )
+        )
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.9), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        # Whole batch unusable → confidence fallback keeps both; nothing suppressed.
+        assert len(result) == 2
+        store.update_pattern_status.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_score_timeout_is_threaded_to_scoring_call(self):
+        """The caller's score_timeout bounds the LLM wait_for (interactive budget)."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        # Plain MagicMock (not AsyncMock): wait_for is patched, so send_request's
+        # return value is never awaited — avoids an un-awaited-coroutine warning.
+        mock_llm.send_request = MagicMock(return_value=object())
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        with patch(
+            "custom_components.selora_ai.suggestion_generator.asyncio.wait_for",
+            new=AsyncMock(return_value=('[{"score": 90, "keep": true}]', None)),
+        ) as mock_wait_for:
+            try:
+                await gen.generate_from_patterns(patterns, score_timeout=7)
+            finally:
+                val_patch.stop()
+
+        assert mock_wait_for.await_args.kwargs["timeout"] == 7
+
+    @pytest.mark.asyncio
+    async def test_llm_missing_score_falls_back_without_persisting(self):
+        """A verdict missing `score` makes the batch unusable → no durable rejection."""
+        store = _make_pattern_store()
+        mock_llm = MagicMock()
+        mock_llm.send_request = AsyncMock(
+            return_value=('[{"keep": true}, {"score": 90, "keep": true}]', None)
+        )
+        gen = _make_gen_with_llm(store, mock_llm)
+
+        patterns = [_corr_pattern(0, confidence=0.9), _corr_pattern(1, confidence=0.8)]
+
+        val_patch = _echo_validate()
+        try:
+            result = await gen.generate_from_patterns(patterns)
+        finally:
+            val_patch.stop()
+
+        assert len(result) == 2
+        store.update_pattern_status.assert_not_awaited()

@@ -28,6 +28,7 @@ from ..automation_utils import suggestion_content_fingerprint
 from ..const import (
     DOMAIN,
     SIGNAL_PROACTIVE_SUGGESTIONS,
+    SUGGESTION_SCORING_TIMEOUT_INTERACTIVE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -92,17 +93,29 @@ async def _handle_websocket_generate_suggestions(
         pattern_engine = runtime.get("pattern_engine")
         suggestion_generator = runtime.get("suggestion_generator")
         if pattern_engine and suggestion_generator:
+            patterns = []
             try:
                 async with asyncio.timeout(15):
                     patterns = await pattern_engine.scan()
-                    suggestions = await suggestion_generator.generate_from_patterns(patterns)
-                    if suggestions:
-                        existing = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
-                        existing.extend(suggestions)
-                        hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
-                        async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
             except TimeoutError:
                 _LOGGER.warning("Pattern scan timed out after 15s, continuing with LLM")
+
+            # Generation scores candidates with a bounded interactive LLM
+            # timeout and falls back to confidence ranking when the LLM is
+            # slow. It must NOT share the scan's short outer deadline, or a
+            # slow scorer would be cancelled before the fallback can save
+            # anything; the internal timeout bounds it instead.
+            try:
+                suggestions = await suggestion_generator.generate_from_patterns(
+                    patterns, score_timeout=SUGGESTION_SCORING_TIMEOUT_INTERACTIVE
+                )
+                if suggestions:
+                    existing = hass.data.get(DOMAIN, {}).get("proactive_suggestions", [])
+                    existing.extend(suggestions)
+                    hass.data[DOMAIN]["proactive_suggestions"] = existing[-50:]
+                    async_dispatcher_send(hass, SIGNAL_PROACTIVE_SUGGESTIONS)
+            except Exception:
+                _LOGGER.exception("On-demand pattern suggestion generation failed")
 
         # 2. Run the LLM analysis with a shorter interactive timeout (30s)
         collector = runtime.get("collector")

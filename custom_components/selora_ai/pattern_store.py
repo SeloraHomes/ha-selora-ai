@@ -21,7 +21,7 @@ Data layout:
                 "detected_at": str,
                 "last_seen": str,
                 "occurrence_count": int,
-                "status": "active" | "dismissed" | "snoozed" | "accepted",
+                "status": "active|dismissed|snoozed|accepted|rejected|quality_rejected",
                 "snooze_until": str | None,
             }
         },

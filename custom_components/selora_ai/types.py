@@ -225,7 +225,7 @@ class PatternDict(TypedDict, total=False):
     detected_at: str
     last_seen: str
     occurrence_count: int
-    status: str  # "active" | "dismissed" | "snoozed" | "accepted" | "rejected"
+    status: str  # active | dismissed | snoozed | accepted | rejected | quality_rejected
     snooze_until: str | None
 
 
