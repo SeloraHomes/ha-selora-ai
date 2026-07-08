@@ -98,6 +98,28 @@ _LOGGER = logging.getLogger(__name__)
 _STORE_VERSION = 1
 
 
+def _suggestion_reference_ids(suggestion: dict[str, Any]) -> set[str]:
+    """Return every entity_id **and** device_id a suggestion's automation uses.
+
+    Suggestions carry the automation payload under ``automation_data``; walk
+    it with the shared resource collector so control-flow blocks, the
+    deprecated service-call forms, and the device trigger/action /
+    ``target.device_id`` forms are all covered. Falls back to the payload
+    itself for the collector-shaped suggestions (which are automation dicts).
+
+    Entity IDs and device IDs share one set: an entity_id always contains a
+    ``.`` and a device_id never does, so they can't collide when intersected
+    against removed references.
+    """
+    from .automation_utils import _collect_referenced_resources  # noqa: PLC0415
+
+    payload = suggestion.get("automation_data")
+    if not isinstance(payload, dict) or not payload:
+        payload = suggestion
+    entities, devices, _areas = _collect_referenced_resources(payload)
+    return entities | devices
+
+
 class PatternStore:
     """Persistent store for state history, patterns, and proactive suggestions."""
 
@@ -836,6 +858,90 @@ class PatternStore:
             if s["pattern_id"] == pattern_id and s["status"] in ("pending", "snoozed"):
                 return True
         return False
+
+    # ── Cache invalidation ──────────────────────────────────────────────
+
+    async def purge_stale_references(self, reference_ids: set[str]) -> dict[str, int]:
+        """Drop learned data referencing removed *reference_ids*.
+
+        ``reference_ids`` is a mixed set of removed **entity_ids and
+        device_ids** (they never collide — entity_ids contain a ``.``, device
+        ids don't). Called when devices, entities, or whole integrations are
+        removed from Home Assistant so the store stops feeding deleted entities
+        into pattern detection and proposing automations that target them:
+
+        - ``state_history`` keys (entity_ids) matching a reference are deleted,
+        - ``patterns`` whose ``entity_ids`` touch any reference are dropped,
+        - ``suggestions`` whose automation references any of them — by
+          entity_id **or** device_id — are dropped (covers device-only
+          automations that carry no entity_id).
+
+        Returns the per-section removal counts. Nothing is persisted when
+        there was nothing to remove.
+        """
+        if not reference_ids:
+            return {"history": 0, "patterns": 0, "suggestions": 0}
+
+        data = await self._get_loaded_data()
+        targets = set(reference_ids)
+
+        history = data["state_history"]
+        stale_history = [eid for eid in history if eid in targets]
+        for eid in stale_history:
+            del history[eid]
+        removed_history = len(stale_history)
+
+        patterns = data["patterns"]
+        stale_patterns = [
+            pid for pid, p in patterns.items() if targets.intersection(p.get("entity_ids") or [])
+        ]
+        for pid in stale_patterns:
+            del patterns[pid]
+
+        suggestions = data["suggestions"]
+        stale_suggestions = [
+            sid
+            for sid, s in suggestions.items()
+            if targets.intersection(_suggestion_reference_ids(s))
+        ]
+        for sid in stale_suggestions:
+            del suggestions[sid]
+
+        counts = {
+            "history": removed_history,
+            "patterns": len(stale_patterns),
+            "suggestions": len(stale_suggestions),
+        }
+        if any(counts.values()):
+            await self._save()
+            _LOGGER.info(
+                "Purged learned data for %d removed references: %s",
+                len(targets),
+                counts,
+            )
+        return counts
+
+    async def clear_learned_data(self) -> dict[str, int]:
+        """Break-glass wipe of all learned data.
+
+        Empties state history, detected patterns, and pending/queued
+        suggestions. ``deleted_hashes`` and ``meta`` are intentionally kept —
+        the former still prevents re-proposing automations the user already
+        deleted. Returns the counts that were cleared.
+        """
+        data = await self._get_loaded_data()
+        counts = {
+            "history": len(data["state_history"]),
+            "patterns": len(data["patterns"]),
+            "suggestions": len(data["suggestions"]),
+        }
+        data["state_history"] = {}
+        data["patterns"] = {}
+        data["suggestions"] = {}
+        self._pending_state_changes = 0
+        await self._save()
+        _LOGGER.info("Cleared learned data (break-glass): %s", counts)
+        return counts
 
     # ── Deleted automation hashes ───────────────────────────────────────
 

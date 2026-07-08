@@ -315,6 +315,7 @@ class SeloraAIPanel extends LitElement {
       _config: { type: Object },
       _savingLlmConfig: { type: Boolean },
       _savingAdvancedConfig: { type: Boolean },
+      _clearingCache: { type: Boolean },
       _llmSaveStatus: { type: Object },
       _showApiKeyInput: { type: Boolean },
       _newApiKey: { type: String },
@@ -582,6 +583,7 @@ class SeloraAIPanel extends LitElement {
     this._config = null;
     this._savingLlmConfig = false;
     this._savingAdvancedConfig = false;
+    this._clearingCache = false;
     this._llmSaveStatus = null;
     this._showApiKeyInput = false;
     this._newApiKey = "";
@@ -1476,6 +1478,35 @@ class SeloraAIPanel extends LitElement {
       );
     } catch (err) {
       this._showToast("Failed to unlink: " + err.message, "error");
+    }
+  }
+
+  async _clearLearnedCache() {
+    const ok = window.confirm(
+      this._t(
+        "panel_clear_cache_confirm",
+        "Clear all learned data?\n\nStored usage history, detected patterns, and pending suggestions will be deleted. This is safe — Selora relearns over time and your saved automations are untouched.",
+      ),
+    );
+    if (!ok) return;
+    this._clearingCache = true;
+    this.requestUpdate();
+    try {
+      await this.hass.callWS({ type: "selora_ai/clear_cache" });
+      this._showToast(
+        this._t("panel_clear_cache_done", "Learned data cleared."),
+        "success",
+      );
+    } catch (err) {
+      this._showToast(
+        this._t("panel_clear_cache_failed", "Failed to clear learned data:") +
+          " " +
+          err.message,
+        "error",
+      );
+    } finally {
+      this._clearingCache = false;
+      this.requestUpdate();
     }
   }
 

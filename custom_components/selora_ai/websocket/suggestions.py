@@ -61,6 +61,36 @@ async def _handle_websocket_get_suggestions(
 @websocket_api.async_response
 @decorators.websocket_command(
     {
+        vol.Required("type"): "selora_ai/clear_cache",
+    }
+)
+async def _handle_websocket_clear_cache(
+    hass: HomeAssistant,
+    connection: websocket_api.ActiveConnection,
+    msg: dict[str, Any],
+) -> None:
+    """Break-glass: wipe learned data (history, patterns, suggestions).
+
+    The caches normally self-heal when devices/entities are removed
+    (``StaleCacheInvalidator``); this is the manual reset for when they've
+    already drifted. ``_get_pattern_store`` returns ``None`` when pattern
+    detection is disabled — the reset still clears the in-memory suggestion
+    caches the collector can populate, so it never no-ops for the user.
+    """
+    if not _require_admin(connection, msg):
+        return
+
+    from ..cache_invalidation import async_clear_all_caches
+
+    pattern_store = _get_pattern_store(hass)
+    counts = await async_clear_all_caches(hass, pattern_store)
+    _LOGGER.info("Cleared learned cache via panel: %s", counts)
+    connection.send_result(msg["id"], counts)
+
+
+@websocket_api.async_response
+@decorators.websocket_command(
+    {
         vol.Required("type"): "selora_ai/generate_suggestions",
     }
 )
@@ -520,6 +550,7 @@ def async_register(hass: HomeAssistant) -> None:
     from homeassistant.components import websocket_api
 
     websocket_api.async_register_command(hass, _handle_websocket_get_suggestions)
+    websocket_api.async_register_command(hass, _handle_websocket_clear_cache)
     websocket_api.async_register_command(hass, _handle_websocket_generate_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_get_proactive_suggestions)
     websocket_api.async_register_command(hass, _handle_websocket_update_proactive_suggestion)

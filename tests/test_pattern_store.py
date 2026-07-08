@@ -668,3 +668,144 @@ class TestAnalyticsQueries:
             assert summary["busiest_hour"] == 20  # 03:00 UTC = 20:00 PDT
         finally:
             dt_util.set_default_time_zone(zoneinfo.ZoneInfo("US/Pacific"))
+
+
+# ── Cache invalidation ─────────────────────────────────────────────────────
+
+
+async def _seed_stale_and_live(ps: PatternStore) -> None:
+    """Seed the store with one entity that will be 'removed' and one that stays."""
+    ts = datetime.now(UTC).isoformat()
+    await ps.record_state_change("light.gone", "on", "off", ts)
+    await ps.record_state_change("light.kept", "on", "off", ts)
+    await ps.save_pattern(
+        {
+            "pattern_id": "p_gone",
+            "type": "time_based",
+            "confidence": 0.8,
+            "entity_ids": ["light.gone"],
+            "description": "Stale pattern",
+        }
+    )
+    await ps.save_pattern(
+        {
+            "pattern_id": "p_kept",
+            "type": "time_based",
+            "confidence": 0.8,
+            "entity_ids": ["light.kept"],
+            "description": "Live pattern",
+        }
+    )
+    await ps.save_suggestion(
+        {
+            "suggestion_id": "s_gone",
+            "pattern_id": "p_gone",
+            "description": "Suggestion for removed device",
+            "automation_data": {
+                "alias": "Stale",
+                "trigger": [{"platform": "state", "entity_id": "light.gone"}],
+                "action": [{"service": "light.turn_on", "target": {"entity_id": "light.gone"}}],
+            },
+        }
+    )
+    await ps.save_suggestion(
+        {
+            "suggestion_id": "s_kept",
+            "pattern_id": "p_kept",
+            "description": "Suggestion for live device",
+            "automation_data": {
+                "alias": "Live",
+                "trigger": [{"platform": "state", "entity_id": "light.kept"}],
+                "action": [{"service": "light.turn_on", "target": {"entity_id": "light.kept"}}],
+            },
+        }
+    )
+
+
+@pytest.mark.asyncio
+async def test_purge_entities_removes_only_stale_references(pattern_store):
+    """purge_entities drops history/patterns/suggestions for removed entities only."""
+    ps, _ = pattern_store
+    await _seed_stale_and_live(ps)
+
+    counts = await ps.purge_stale_references({"light.gone"})
+
+    assert counts == {"history": 1, "patterns": 1, "suggestions": 1}
+    data = await ps._get_loaded_data()
+    assert "light.gone" not in data["state_history"]
+    assert "light.kept" in data["state_history"]
+    assert "p_gone" not in data["patterns"]
+    assert "p_kept" in data["patterns"]
+    assert "s_gone" not in data["suggestions"]
+    assert "s_kept" in data["suggestions"]
+
+
+@pytest.mark.asyncio
+async def test_purge_stale_references_matches_device_only_suggestion(pattern_store):
+    """A suggestion referencing only a device_id is purged when the device goes."""
+    ps, _ = pattern_store
+    await ps.save_suggestion(
+        {
+            "suggestion_id": "s_device",
+            "pattern_id": "",
+            "description": "Device-only automation",
+            "automation_data": {
+                "alias": "Device only",
+                "trigger": [{"platform": "device", "device_id": "dev123", "domain": "sensor"}],
+                "action": [{"device_id": "dev123", "domain": "light", "type": "turn_on"}],
+            },
+        }
+    )
+
+    counts = await ps.purge_stale_references({"dev123"})
+
+    assert counts["suggestions"] == 1
+    data = await ps._get_loaded_data()
+    assert "s_device" not in data["suggestions"]
+
+
+@pytest.mark.asyncio
+async def test_purge_entities_empty_set_is_noop(pattern_store):
+    """purge_entities with no ids does nothing and never saves."""
+    ps, mock_st = pattern_store
+    await _seed_stale_and_live(ps)
+    await ps.flush()
+    saves_before = len(mock_st.saved_data)
+
+    counts = await ps.purge_stale_references(set())
+
+    assert counts == {"history": 0, "patterns": 0, "suggestions": 0}
+    assert len(mock_st.saved_data) == saves_before
+
+
+@pytest.mark.asyncio
+async def test_purge_entities_no_match_does_not_save(pattern_store):
+    """purge_entities for an unknown entity leaves the store untouched."""
+    ps, mock_st = pattern_store
+    await _seed_stale_and_live(ps)
+    await ps.flush()
+    saves_before = len(mock_st.saved_data)
+
+    counts = await ps.purge_stale_references({"light.never_existed"})
+
+    assert counts == {"history": 0, "patterns": 0, "suggestions": 0}
+    assert len(mock_st.saved_data) == saves_before
+
+
+@pytest.mark.asyncio
+async def test_clear_learned_data_wipes_all(pattern_store):
+    """clear_learned_data empties history, patterns, and suggestions."""
+    ps, _ = pattern_store
+    await _seed_stale_and_live(ps)
+    await ps.record_deleted_automation("hash123", "Deleted automation")
+
+    counts = await ps.clear_learned_data()
+
+    assert counts == {"history": 2, "patterns": 2, "suggestions": 2}
+    data = await ps._get_loaded_data()
+    assert data["state_history"] == {}
+    assert data["patterns"] == {}
+    assert data["suggestions"] == {}
+    # deleted_hashes are intentionally preserved so deleted automations
+    # aren't re-proposed.
+    assert "hash123" in data["deleted_hashes"]
