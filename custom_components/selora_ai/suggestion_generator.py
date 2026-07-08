@@ -11,9 +11,11 @@ import asyncio
 from datetime import UTC, datetime, timedelta
 import json
 import logging
-from typing import TYPE_CHECKING, Any
+from math import ceil
+from typing import TYPE_CHECKING, Any, TypedDict
 
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr
 import yaml
 
 from .automation_utils import (
@@ -31,13 +33,48 @@ from .const import (
     CONFIDENCE_MEDIUM,
     DISMISSAL_SUPPRESSION_WINDOW_DAYS,
     PATTERN_HISTORY_RETENTION_DAYS,
+    PATTERN_STATUS_QUALITY_REJECTED,
+    PATTERN_SUGGESTION_CEILING,
+    PATTERN_SUGGESTION_DEVICES_PER,
+    PATTERN_SUGGESTION_FLOOR,
+    PATTERN_SUGGESTION_MIN_SCORE,
     PATTERN_TYPE_CORRELATION,
     PATTERN_TYPE_SEQUENCE,
     PATTERN_TYPE_TIME_BASED,
+    SUGGESTION_SCORING_TIMEOUT,
 )
 from .pattern_store import PatternStore
 
 _LOGGER = logging.getLogger(__name__)
+
+# String tokens an LLM may emit for a false ``keep`` verdict. Needed because
+# ``bool("false")`` is True — a plain cast would surface a candidate the model
+# explicitly tried to reject.
+_FALSEY_KEEP_TOKENS = frozenset({"false", "no", "0", "off", ""})
+
+
+def _coerce_keep(value: Any) -> bool:
+    """Interpret a verdict's ``keep`` field, tolerating string booleans.
+
+    Real bools / numbers use normal truthiness; quoted booleans are parsed so
+    ``"false"`` reads as False rather than True. Unrecognised strings fall back
+    to truthiness (matching the missing-field default of keep=True).
+    """
+    if isinstance(value, str):
+        return value.strip().lower() not in _FALSEY_KEEP_TOKENS
+    return bool(value)
+
+
+class _Candidate(TypedDict):
+    """A validated suggestion candidate awaiting the quality gate."""
+
+    pattern_id: str
+    confidence: float
+    automation_data: AutomationDict
+    automation_yaml: str
+    description: str
+    evidence_summary: str
+    cluster_key: str
 
 
 class SuggestionGenerator:
@@ -53,8 +90,18 @@ class SuggestionGenerator:
         self._store = pattern_store
         self._llm = llm
 
-    async def generate_from_patterns(self, patterns: list[PatternDict]) -> list[SuggestionDict]:
+    async def generate_from_patterns(
+        self,
+        patterns: list[PatternDict],
+        *,
+        score_timeout: float = SUGGESTION_SCORING_TIMEOUT,
+    ) -> list[SuggestionDict]:
         """Convert patterns into automation suggestions.
+
+        ``score_timeout`` bounds the LLM quality-scoring call. Callers on a
+        tight wall-clock budget (the on-demand websocket path) pass a shorter
+        value so the confidence-ranking fallback fires and its results are
+        saved before their outer deadline cancels the whole coroutine.
 
         For each pattern above CONFIDENCE_MEDIUM:
         1. Skip if already has a pending suggestion
@@ -64,10 +111,24 @@ class SuggestionGenerator:
         5. Deduplicate against existing automations
         6. Deduplicate against other suggestions in this batch by content (#46)
         7. Deduplicate against already-stored suggestions by content (#46)
-        8. Optionally enrich description via LLM (with dismissal context, #45)
-        9. Save to pattern store
+        8. Score candidates via LLM and drop low-quality / non-sequiturs
+        9. Collapse fan-out variants (same trigger) to the best passing one
+        10. Cap to a home-size-relative number of slots and save the winners
         """
-        suggestions: list[SuggestionDict] = []
+        # Stop early once the suggestions tab is already at its home-size cap —
+        # no point mining, clustering, or scoring candidates we can't surface.
+        cap = self._suggestion_cap()
+        pending_count = len(await self._store.get_suggestions(status="pending"))
+        slots = max(0, cap - pending_count)
+        if slots == 0:
+            _LOGGER.debug(
+                "Suggestion cap reached (%d pending / cap %d) — skipping generation",
+                pending_count,
+                cap,
+            )
+            return []
+
+        candidates: list[_Candidate] = []
         existing_aliases = self._get_existing_aliases()
 
         # Build content fingerprints of already-stored suggestions (#46)
@@ -168,22 +229,47 @@ class SuggestionGenerator:
 
             yaml_text = yaml.dump(normalized, allow_unicode=True, default_flow_style=False)
 
-            suggestion: SuggestionDict = {
-                "pattern_id": pattern_id,
-                "source": "pattern",
-                "confidence": pattern["confidence"],
-                "automation_data": normalized,
-                "automation_yaml": yaml_text,
-                "description": pattern["description"],
-                "evidence_summary": self._build_evidence_summary(pattern),
-            }
+            candidates.append(
+                {
+                    "pattern_id": pattern_id,
+                    "confidence": pattern["confidence"],
+                    "automation_data": normalized,
+                    "automation_yaml": yaml_text,
+                    "description": pattern["description"],
+                    "evidence_summary": self._build_evidence_summary(pattern),
+                    "cluster_key": self._cluster_key(pattern),
+                }
+            )
 
+        # Quality gate: score every candidate, then collapse each trigger's
+        # fan-out variants to the best *passing* one (so a spurious
+        # high-confidence variant can't crowd out a sensible lower-confidence
+        # one) and cap. Falls back to confidence collapse+rank without an LLM.
+        selected = await self._score_and_select(candidates, slots, score_timeout)
+
+        suggestions: list[SuggestionDict] = []
+        for cand in selected:
+            suggestion: SuggestionDict = {
+                "pattern_id": cand["pattern_id"],
+                "source": "pattern",
+                "confidence": cand["confidence"],
+                "automation_data": cand["automation_data"],
+                "automation_yaml": cand["automation_yaml"],
+                "description": cand["description"],
+                "evidence_summary": cand["evidence_summary"],
+            }
             sid = await self._store.save_suggestion(suggestion)
             suggestion["suggestion_id"] = sid
             suggestions.append(suggestion)
 
         if suggestions:
-            _LOGGER.info("Generated %d proactive suggestions from patterns", len(suggestions))
+            _LOGGER.info(
+                "Generated %d proactive suggestions from %d candidates (cap %d, %d slots)",
+                len(suggestions),
+                len(candidates),
+                cap,
+                slots,
+            )
 
         return suggestions
 
@@ -261,6 +347,223 @@ class SuggestionGenerator:
         except Exception:
             _LOGGER.debug("Batch LLM enrichment failed, descriptions unchanged")
         return 0
+
+    def _suggestion_cap(self) -> int:
+        """Cap on pattern-derived suggestions, scaled to home size.
+
+        ~1 slot per PATTERN_SUGGESTION_DEVICES_PER devices, clamped between a
+        floor (small homes still get a few) and a ceiling (large homes don't
+        drown in cards). Uses the device registry — the same source the
+        collector's LLM-analysis cap uses.
+        """
+        device_count = len(dr.async_get(self._hass).devices)
+        scaled = ceil(device_count / PATTERN_SUGGESTION_DEVICES_PER)
+        return max(PATTERN_SUGGESTION_FLOOR, min(scaled, PATTERN_SUGGESTION_CEILING))
+
+    @staticmethod
+    def _cluster_key(pattern: PatternDict) -> str:
+        """Group key that collapses fan-out variants of one insight.
+
+        A busy home produces many near-duplicate patterns that share a trigger
+        but fan out to different targets (front-door motion stops → porch light
+        / garage spots / deck lights / sconces). They are the same idea, so we
+        key on everything the generated automation's *trigger and conditions*
+        use — but not the response target — and keep only the strongest
+        candidate per key.
+
+        The key must include every trigger/condition field the automation
+        actually depends on, or genuinely distinct automations collapse: a
+        weekday and a weekend time pattern differ only by ``is_weekday`` (their
+        HA ``time`` condition), and two sequences with the same ``trigger_to``
+        but different ``trigger_from`` are different state triggers.
+        """
+        evidence = pattern.get("evidence", {})
+        ptype = pattern["type"]
+        if ptype == PATTERN_TYPE_TIME_BASED:
+            entity_id = (pattern.get("entity_ids") or [""])[0]
+            return (
+                f"time:{entity_id}:{evidence.get('time_slot', '')}"
+                f":{evidence.get('target_state', '')}:{evidence.get('is_weekday')}"
+            )
+        trigger_entity = evidence.get("trigger_entity", "")
+        if ptype == PATTERN_TYPE_SEQUENCE:
+            return (
+                f"sequence:{trigger_entity}"
+                f":{evidence.get('trigger_from', '')}:{evidence.get('trigger_to', '')}"
+            )
+        trigger_state = evidence.get("trigger_state") or evidence.get("trigger_to", "")
+        return f"{ptype}:{trigger_entity}:{trigger_state}"
+
+    @staticmethod
+    def _collapse_variants(candidates: list[_Candidate]) -> list[_Candidate]:
+        """Keep only the highest-confidence candidate per cluster key."""
+        best: dict[str, _Candidate] = {}
+        for cand in candidates:
+            key = cand["cluster_key"]
+            current = best.get(key)
+            if current is None or cand["confidence"] > current["confidence"]:
+                best[key] = cand
+        collapsed = list(best.values())
+        if len(collapsed) < len(candidates):
+            _LOGGER.debug(
+                "Collapsed %d fan-out candidates into %d clusters",
+                len(candidates),
+                len(collapsed),
+            )
+        return collapsed
+
+    async def _score_and_select(
+        self, candidates: list[_Candidate], slots: int, score_timeout: float
+    ) -> list[_Candidate]:
+        """Score candidates, collapse fan-out variants, cap to ``slots``.
+
+        The LLM rates each candidate 0-100 on whether it is a genuinely useful,
+        sensible cause→effect worth automating, flagging spurious statistical
+        coincidences (e.g. a camera in one room controlling an unrelated room).
+
+        Scoring happens *before* collapsing so that within a trigger's fan-out
+        cluster the best *passing* candidate wins — a spurious high-confidence
+        variant can't crowd out a sensible lower-confidence one. On
+        no-LLM / timeout / bad output we fall back to a confidence-based
+        collapse + rank so the volume cap still applies.
+
+        Candidates the LLM rejects have their pattern marked ``rejected`` in the
+        store so ``_backfill_unsugested_patterns`` (#67) stops re-surfacing and
+        re-scoring them every cycle — and so a later fallback can't quietly save
+        a pattern the gate already judged low-quality. Reactivation on fresh
+        detection (``save_pattern``) still lets a strengthened pattern retry.
+        """
+        if not candidates or slots <= 0:
+            return []
+
+        raw = await self._score_candidates(candidates, score_timeout)
+        verdicts = self._normalize_verdicts(raw, len(candidates)) if raw is not None else None
+
+        if verdicts is None:
+            # Fallback: no usable scores — collapse by confidence, then rank.
+            ranked = [(0.0, c["confidence"], c) for c in self._collapse_variants(candidates)]
+        else:
+            # Keep only passing candidates, then collapse each trigger cluster
+            # to its best survivor (by score, tie-broken by confidence).
+            best_per_cluster: dict[str, tuple[float, _Candidate]] = {}
+            rejected_pattern_ids: list[str] = []
+            for cand, (keep, score) in zip(candidates, verdicts, strict=False):
+                if not keep or score < PATTERN_SUGGESTION_MIN_SCORE:
+                    if cand["pattern_id"]:
+                        rejected_pattern_ids.append(cand["pattern_id"])
+                    continue
+                key = cand["cluster_key"]
+                current = best_per_cluster.get(key)
+                if current is None or (score, cand["confidence"]) > (
+                    current[0],
+                    current[1]["confidence"],
+                ):
+                    best_per_cluster[key] = (score, cand)
+            await self._persist_rejections(rejected_pattern_ids)
+            ranked = [
+                (score, cand["confidence"], cand) for score, cand in best_per_cluster.values()
+            ]
+
+        ranked.sort(key=lambda r: (r[0], r[1]), reverse=True)
+        return [cand for _score, _conf, cand in ranked[:slots]]
+
+    async def _persist_rejections(self, pattern_ids: list[str]) -> None:
+        """Durably mark LLM-rejected patterns so they aren't re-scored.
+
+        Uses PATTERN_STATUS_QUALITY_REJECTED, *not* the causality "rejected"
+        status: ``save_pattern`` reactivates "rejected" patterns whenever they
+        are re-detected, which for a still-occurring pattern would flip it back
+        to active and re-score it every scan. A semantic non-sequitur won't
+        become sensible with more data, so the quality verdict must survive
+        rescans.
+        """
+        if not pattern_ids:
+            return
+        for pid in pattern_ids:
+            await self._store.update_pattern_status(pid, PATTERN_STATUS_QUALITY_REJECTED)
+        _LOGGER.debug("Marked %d LLM-rejected pattern(s) as quality-rejected", len(pattern_ids))
+
+    @staticmethod
+    def _normalize_verdicts(raw: list[Any], expected: int) -> list[tuple[bool, float]] | None:
+        """Coerce raw LLM verdicts into (keep, score) tuples.
+
+        Returns None — signalling the caller to fall back to confidence ranking
+        (which persists no rejections) — when the batch is unusable: wrong
+        length, any element that isn't a dict, or any element with a missing or
+        non-numeric ``score``. A malformed score must NOT be treated as 0.0:
+        rejections are durable (quality_rejected), so silently scoring a
+        formatting glitch as 0 would permanently suppress a valid pattern.
+        Numeric strings ("90") are accepted; booleans and anything ``float()``
+        can't parse are treated as malformed.
+        """
+        if len(raw) != expected:
+            return None
+        normalized: list[tuple[bool, float]] = []
+        for verdict in raw:
+            if not isinstance(verdict, dict):
+                return None
+            raw_score = verdict.get("score")
+            if isinstance(raw_score, bool) or not isinstance(raw_score, (int, float, str)):
+                return None
+            try:
+                score = float(raw_score)
+            except (TypeError, ValueError):
+                return None
+            normalized.append((_coerce_keep(verdict.get("keep", True)), score))
+        return normalized
+
+    async def _score_candidates(
+        self, candidates: list[_Candidate], score_timeout: float
+    ) -> list[dict[str, Any]] | None:
+        """LLM batch scorer. Returns per-candidate verdicts or None on failure."""
+        if not self._llm:
+            return None
+
+        items = "\n".join(
+            f"{i}. {self._describe_candidate(c)}" for i, c in enumerate(candidates, 1)
+        )
+        prompt = (
+            "Review these candidate smart-home automations, each derived from an "
+            "observed usage pattern. For each, decide whether it is a genuinely "
+            "useful, sensible cause→effect a homeowner would want automated.\n"
+            "Reject spurious statistical coincidences — e.g. a camera or sensor in "
+            "one room controlling an unrelated room's devices, or effects with no "
+            "plausible relationship to the trigger.\n"
+            "Reply with ONLY a JSON array, one object per candidate in the same "
+            'order: {"score": <0-100>, "keep": <true|false>, "reason": "<short>"}.'
+            "\n\n" + items
+        )
+
+        try:
+            result, _ = await asyncio.wait_for(
+                self._llm.send_request(
+                    system=(
+                        "You are a smart-home automation reviewer. You score how "
+                        "useful and sensible each proposed automation is. "
+                        "Reply with only a JSON array."
+                    ),
+                    messages=[{"role": "user", "content": prompt}],
+                ),
+                timeout=score_timeout,
+            )
+            if not result:
+                return None
+            verdicts = json.loads(result.strip())
+            if not isinstance(verdicts, list):
+                return None
+            return verdicts
+        except TimeoutError:
+            _LOGGER.debug("Suggestion scoring timed out — falling back to confidence rank")
+        except (json.JSONDecodeError, ValueError):
+            _LOGGER.debug("Suggestion scoring returned invalid JSON — falling back")
+        except Exception:
+            _LOGGER.debug("Suggestion scoring failed — falling back to confidence rank")
+        return None
+
+    @staticmethod
+    def _describe_candidate(cand: _Candidate) -> str:
+        """One plain-English line describing a candidate for the scoring prompt."""
+        return f"{cand['description']} ({cand['evidence_summary']})"
 
     def _get_existing_aliases(self) -> set[str]:
         """Return lowercase aliases of every automation, prefix-stripped.

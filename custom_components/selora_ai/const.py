@@ -1298,6 +1298,26 @@ PATTERN_MAX_PATTERNS = 500
 PATTERN_MAX_SUGGESTIONS = 200
 PATTERN_MAX_DELETED_HASHES = 1000
 
+# ── Pattern Suggestion Quality Gate ──────────────────────────────────
+# Cap on pattern-derived proactive suggestions, scaled to home size.
+PATTERN_SUGGESTION_DEVICES_PER = 15  # ~1 suggestion slot per N devices
+PATTERN_SUGGESTION_FLOOR = 3  # small homes still get a few
+PATTERN_SUGGESTION_CEILING = 15  # never exceed on very large homes
+# Minimum LLM quality score (0-100) a candidate must meet to be surfaced.
+PATTERN_SUGGESTION_MIN_SCORE = 60
+# LLM scoring-call timeout (seconds). Background generation can afford the full
+# window; the on-demand websocket path runs inside a tight interactive budget,
+# so it uses a shorter timeout to guarantee the confidence-ranking fallback
+# fires (and its results are saved) before the caller's deadline cancels it.
+SUGGESTION_SCORING_TIMEOUT = 30
+SUGGESTION_SCORING_TIMEOUT_INTERACTIVE = 10
+# Durable status for patterns the LLM quality gate judged non-sensical. Kept
+# distinct from the causality-guardrail "rejected" status because save_pattern
+# reactivates "rejected" on re-detection — a semantic non-sequitur (e.g. a
+# camera driving an unrelated room) won't become sensible with more data, so it
+# must survive rescans rather than be re-scored every cycle.
+PATTERN_STATUS_QUALITY_REJECTED = "quality_rejected"
+
 PATTERN_TYPE_TIME_BASED = "time_based"
 PATTERN_TYPE_CORRELATION = "correlation"
 PATTERN_TYPE_SEQUENCE = "sequence"

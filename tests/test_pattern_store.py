@@ -200,6 +200,40 @@ async def test_save_pattern_updates_existing(pattern_store, sample_time_pattern)
 
 
 @pytest.mark.asyncio
+async def test_save_pattern_reactivates_causality_rejected(pattern_store, sample_time_pattern):
+    """A causality-'rejected' pattern flips back to active when re-detected."""
+    ps, _ = pattern_store
+
+    pid = await ps.save_pattern(sample_time_pattern)
+    await ps.update_pattern_status(pid, "rejected")
+
+    await ps.save_pattern({**sample_time_pattern, "confidence": 0.9})
+
+    data = await ps._get_loaded_data()
+    assert data["patterns"][pid]["status"] == "active"
+
+
+@pytest.mark.asyncio
+async def test_save_pattern_does_not_reactivate_quality_rejected(
+    pattern_store, sample_time_pattern
+):
+    """A quality-gate rejection survives re-detection (must not be re-scored)."""
+    ps, _ = pattern_store
+
+    pid = await ps.save_pattern(sample_time_pattern)
+    await ps.update_pattern_status(pid, "quality_rejected")
+
+    # Re-detected on the next scan — save_pattern updates the record.
+    await ps.save_pattern({**sample_time_pattern, "confidence": 0.9})
+
+    data = await ps._get_loaded_data()
+    assert data["patterns"][pid]["status"] == "quality_rejected"
+    # And it is never returned as an active pattern for backfill.
+    active = await ps.get_patterns(status="active")
+    assert pid not in {p["pattern_id"] for p in active}
+
+
+@pytest.mark.asyncio
 async def test_get_patterns_filters_by_status_and_type(pattern_store):
     """get_patterns returns only matching patterns."""
     ps, _ = pattern_store
