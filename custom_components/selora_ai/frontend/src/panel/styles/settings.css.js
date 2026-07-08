@@ -462,4 +462,35 @@ export const settingsStyles = css`
   .mcp-tool-check input[type="checkbox"] {
     accent-color: var(--selora-accent);
   }
+  .settings-maintenance {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--selora-zinc-800);
+  }
+  .settings-maintenance .service-desc {
+    display: block;
+    margin-top: 2px;
+  }
+  .btn-danger {
+    color: var(--error-color, #ef4444);
+    border: 1px solid
+      color-mix(in srgb, var(--error-color, #ef4444) 45%, transparent);
+    background: color-mix(in srgb, var(--error-color, #ef4444) 8%, transparent);
+    white-space: nowrap;
+  }
+  .btn-danger:hover:not([disabled]) {
+    background: color-mix(
+      in srgb,
+      var(--error-color, #ef4444) 16%,
+      transparent
+    );
+  }
+  .btn-danger[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
 `;

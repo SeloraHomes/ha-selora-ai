@@ -4438,6 +4438,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     else:
         _LOGGER.info("Pattern detection disabled")
 
+    # Keep the suggestion caches in sync with the entity registry: when a
+    # device / entity / integration is removed, purge its now-stale references
+    # so Selora stops proposing automations for gone devices. Runs regardless
+    # of pattern detection — the collector can populate latest_suggestions even
+    # when patterns are off, so the store passed here may be None (memory-only).
+    from .cache_invalidation import StaleCacheInvalidator
+
+    cache_invalidator = StaleCacheInvalidator(
+        hass, hass.data[DOMAIN][entry.entry_id].get("pattern_store")
+    )
+    cache_invalidator.async_start()
+    hass.data[DOMAIN][entry.entry_id]["cache_invalidator"] = cache_invalidator
+
     # Anonymous home-inventory telemetry (opt-in, off by default). One
     # snapshot shortly after startup once registries are populated, then
     # refreshed daily. The emit is gated on the toggle (read live), so we
@@ -4597,6 +4610,9 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             await task
 
     # Stop pattern detection
+    cache_invalidator = data.get("cache_invalidator")
+    if cache_invalidator:
+        cache_invalidator.async_stop()
     pattern_engine = data.get("pattern_engine")
     if pattern_engine:
         await pattern_engine.async_stop()

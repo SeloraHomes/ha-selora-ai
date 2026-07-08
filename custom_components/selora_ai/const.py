@@ -1275,6 +1275,12 @@ CONF_ENRICHMENT_INTERVAL = "enrichment_interval"
 DEFAULT_ENRICHMENT_INTERVAL = 21600  # 6 hours
 CONF_PATTERN_ENABLED = "pattern_detection_enabled"
 
+# Debounce window (seconds) for purging stale entity references from the
+# pattern/suggestion caches after a device/entity/integration is removed.
+# Removing an integration cascades into many entity-registry removals; batching
+# them collapses the cleanup into a single store write.
+STALE_CACHE_PURGE_DELAY = 5
+
 # HA label that, when applied to an entity / device / area, marks it off-limits
 # for proactive suggestions. The integration auto-creates the label on first
 # setup and exposes WS commands to tag/untag from the Selora panel — but the
