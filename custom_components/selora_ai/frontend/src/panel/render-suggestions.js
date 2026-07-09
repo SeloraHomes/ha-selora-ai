@@ -25,6 +25,15 @@ const clampCursor = directive(ClampCursorDirective);
 const MIN_CONF = 0.8;
 const COLLAPSED_COUNT = 3;
 
+// Collapsed suggestions render as a single row. The grid drops to fewer
+// columns on narrow viewports (see .automations-grid auto-fill), so match the
+// card count to the columns that fit: 1 on phones, 2 on tablets, 3 on desktop.
+// Same 600/1000 breakpoints as masonryColumns() in render-automations.js.
+function collapsedSuggestionCount() {
+  const w = window.innerWidth;
+  return w <= 600 ? 1 : w <= 1000 ? 2 : COLLAPSED_COUNT;
+}
+
 function normalizeProactive(s) {
   return {
     type: "proactive",
@@ -314,10 +323,11 @@ export function renderSuggestionsSection(host) {
   const filtered = applyFilters(host, qualified);
   const totalCount = qualified.length;
   const isDev = !!host._config?.developer_mode;
-  const visibleCount = host._suggestionsVisibleCount || COLLAPSED_COUNT;
+  const collapsedCount = collapsedSuggestionCount();
+  const visibleCount = host._suggestionsVisibleCount || collapsedCount;
   const visibleItems = filtered.slice(0, visibleCount);
   const remainingCount = filtered.length - visibleCount;
-  const expanded = visibleCount > COLLAPSED_COUNT;
+  const expanded = visibleCount > collapsedCount;
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
@@ -417,7 +427,8 @@ export function renderSuggestionsSection(host) {
                       .value=${host._suggestionFilter}
                       @input=${(e) => {
                         host._suggestionFilter = e.target.value;
-                        host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                        host._suggestionsVisibleCount =
+                          collapsedSuggestionCount();
                       }}
                     />
                     ${host._suggestionFilter
@@ -426,7 +437,8 @@ export function renderSuggestionsSection(host) {
                           style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                           @click=${() => {
                             host._suggestionFilter = "";
-                            host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                            host._suggestionsVisibleCount =
+                              collapsedSuggestionCount();
                           }}
                         ></ha-icon>`
                       : ""}
@@ -454,7 +466,7 @@ export function renderSuggestionsSection(host) {
                                 @click=${() => {
                                   host._suggestionSourceFilter = val;
                                   host._suggestionsVisibleCount =
-                                    COLLAPSED_COUNT;
+                                    collapsedSuggestionCount();
                                 }}
                               >
                                 ${label}

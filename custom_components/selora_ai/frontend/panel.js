@@ -27382,6 +27382,10 @@ var ClampCursorDirective = class extends i5 {
 var clampCursor = e4(ClampCursorDirective);
 var MIN_CONF = 0.8;
 var COLLAPSED_COUNT = 3;
+function collapsedSuggestionCount() {
+  const w2 = window.innerWidth;
+  return w2 <= 600 ? 1 : w2 <= 1e3 ? 2 : COLLAPSED_COUNT;
+}
 function normalizeProactive(s4) {
   return {
     type: "proactive",
@@ -27656,10 +27660,11 @@ function renderSuggestionsSection(host) {
   const filtered = applyFilters(host, qualified);
   const totalCount = qualified.length;
   const isDev = !!host._config?.developer_mode;
-  const visibleCount = host._suggestionsVisibleCount || COLLAPSED_COUNT;
+  const collapsedCount = collapsedSuggestionCount();
+  const visibleCount = host._suggestionsVisibleCount || collapsedCount;
   const visibleItems = filtered.slice(0, visibleCount);
   const remainingCount = filtered.length - visibleCount;
-  const expanded = visibleCount > COLLAPSED_COUNT;
+  const expanded = visibleCount > collapsedCount;
   const bulkMode = !!host._suggestionBulkMode;
   const selectedKeys = host._selectedSuggestionKeys || {};
   const selectedCount = Object.values(selectedKeys).filter(Boolean).length;
@@ -27765,7 +27770,8 @@ function renderSuggestionsSection(host) {
                       .value=${host._suggestionFilter}
                       @input=${(e6) => {
                         host._suggestionFilter = e6.target.value;
-                        host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                        host._suggestionsVisibleCount =
+                          collapsedSuggestionCount();
                       }}
                     />
                     ${
@@ -27775,7 +27781,8 @@ function renderSuggestionsSection(host) {
                           style="--mdc-icon-size:16px;cursor:pointer;opacity:0.5;flex-shrink:0;"
                           @click=${() => {
                             host._suggestionFilter = "";
-                            host._suggestionsVisibleCount = COLLAPSED_COUNT;
+                            host._suggestionsVisibleCount =
+                              collapsedSuggestionCount();
                           }}
                         ></ha-icon>`
                         : ""
@@ -27802,7 +27809,7 @@ function renderSuggestionsSection(host) {
                                 @click=${() => {
                                   host._suggestionSourceFilter = val;
                                   host._suggestionsVisibleCount =
-                                    COLLAPSED_COUNT;
+                                    collapsedSuggestionCount();
                                 }}
                               >
                                 ${label}
