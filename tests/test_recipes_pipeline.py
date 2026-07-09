@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -21,6 +22,8 @@ from custom_components.selora_ai.recipes.loader import (
 )
 from custom_components.selora_ai.recipes.manifest import (
     ManifestError,
+    RoleSpec,
+    _coerce_role,
     load_manifest,
 )
 from custom_components.selora_ai.recipes.packager import (
@@ -42,7 +45,10 @@ from custom_components.selora_ai.recipes.renderer import (
     _render_one,
     render_package,
 )
-from custom_components.selora_ai.recipes.resolver import resolve
+from custom_components.selora_ai.recipes.resolver import (
+    _entity_satisfies_role,
+    resolve,
+)
 from custom_components.selora_ai.recipes.validator import validate_inputs
 
 # Test recipe fixtures. Integration no longer ships builtin recipes
@@ -309,6 +315,129 @@ async def test_resolver_binds_leak_sensors_and_lights(
         "light.alarm_strip_one",
         "light.alarm_strip_two",
     }
+
+
+# ── Integration (platform) role filter ──────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "domain",
+    [
+        "lg_thinq",
+        "nws",
+        "17track",       # digit prefix — a real HA integration shape
+        "3_day_blinds",  # digit prefix + underscores
+    ],
+)
+def test_role_parses_integration_filter(domain) -> None:
+    """The optional ``integration`` field round-trips through the loader,
+    including valid HA domains that start with a digit, and defaults to
+    None when absent."""
+    scoped = _coerce_role(
+        {"id": "fridge_doors", "kind": "binary_sensor", "device_class": "door", "integration": domain}
+    )
+    assert scoped.integration == domain
+    unscoped = _coerce_role({"id": "any_door", "kind": "binary_sensor", "device_class": "door"})
+    assert unscoped.integration is None
+
+
+@pytest.mark.parametrize(
+    "bad",
+    [
+        "lg thinq!",   # space + punctuation
+        "LG_ThinQ",    # uppercase — HA domains are lowercase
+        123,           # YAML number (int)
+        "123",         # purely numeric — no HA domain is digits-only
+        "lg-thinq",    # hyphen is not a domain char
+    ],
+)
+def test_role_rejects_malformed_integration(bad) -> None:
+    """A non-domain-shaped integration is caught at manifest load, not
+    silently ignored at resolve time. HA domains are lowercase
+    ``[a-z0-9_]`` identifiers carrying at least one letter, so uppercase,
+    punctuation, and digits-only values are rejected. Digit-prefixed
+    domains (17track) are valid and covered by the parses test above."""
+    with pytest.raises(ManifestError, match="integration"):
+        _coerce_role({"id": "fridge_doors", "kind": "binary_sensor", "integration": bad})
+
+
+def _fake_registry(platforms: dict[str, str | None]):
+    """Fake entity registry: entity_id -> platform. A platform of None
+    (or an entity_id not present) means "no registry entry"."""
+
+    def _get(entity_id: str):
+        if entity_id not in platforms:
+            return None
+        return SimpleNamespace(platform=platforms[entity_id], original_device_class="door")
+
+    return SimpleNamespace(async_get=_get)
+
+
+def test_entity_satisfies_role_integration_filter() -> None:
+    """An integration-scoped role matches only entities owned by that
+    integration; an unscoped role still matches every door."""
+    fridge = SimpleNamespace(
+        entity_id="binary_sensor.refrigerator_door", attributes={"device_class": "door"}
+    )
+    dishwasher = SimpleNamespace(
+        entity_id="binary_sensor.dishwasher_door", attributes={"device_class": "door"}
+    )
+    stick_on = SimpleNamespace(
+        entity_id="binary_sensor.myggbett_door", attributes={"device_class": "door"}
+    )
+    reg = _fake_registry(
+        {
+            "binary_sensor.refrigerator_door": "lg_thinq",
+            "binary_sensor.dishwasher_door": "mqtt",
+            # stick_on has no registry entry at all.
+        }
+    )
+
+    scoped = RoleSpec(
+        id="fridge_doors", kind="binary_sensor", device_class="door", integration="lg_thinq"
+    )
+    assert _entity_satisfies_role(scoped, fridge, reg) is True
+    assert _entity_satisfies_role(scoped, dishwasher, reg) is False
+    # No registry entry ⇒ no known platform ⇒ can't satisfy a scoped role.
+    assert _entity_satisfies_role(scoped, stick_on, reg) is False
+
+    unscoped = RoleSpec(id="any_door", kind="binary_sensor", device_class="door")
+    assert _entity_satisfies_role(unscoped, fridge, reg) is True
+    assert _entity_satisfies_role(unscoped, dishwasher, reg) is True
+
+
+def test_role_parses_and_validates_match_filter() -> None:
+    """``match`` round-trips and a bad regex is rejected at load."""
+    r = _coerce_role(
+        {"id": "wf", "kind": "sensor", "match": r"water[ _]filter$"}
+    )
+    assert r.match == r"water[ _]filter$"
+    assert _coerce_role({"id": "x", "kind": "sensor"}).match is None
+    with pytest.raises(ManifestError, match="valid regex"):
+        _coerce_role({"id": "wf", "kind": "sensor", "match": "water(filter"})
+
+
+def test_entity_satisfies_role_match_filter() -> None:
+    """A ``match`` role narrows to entities whose entity_id OR friendly
+    name matches, so ``water[ _]filter$`` picks the LG water-filter status
+    sensor but not the months-in-use or fresh-air-filter siblings."""
+    reg = _fake_registry({})  # match doesn't need the registry
+    role = RoleSpec(id="wf", kind="sensor", match=r"water[ _]filter$")
+
+    def s(entity_id, name):
+        return SimpleNamespace(entity_id=entity_id, attributes={"friendly_name": name})
+
+    status = s("sensor.refrigerator_water_filter", "Water filter")
+    used = s("sensor.refrigerator_water_filter_used", "Water filter used")
+    fresh = s("sensor.refrigerator_fresh_air_filter", "Fresh air filter")
+    assert _entity_satisfies_role(role, status, reg) is True
+    assert _entity_satisfies_role(role, used, reg) is False
+    assert _entity_satisfies_role(role, fresh, reg) is False
+
+    # Renamed entity_id but the friendly name still carries the label —
+    # match on name keeps the role resolving.
+    renamed = s("sensor.kitchen_thing_42", "Water filter")
+    assert _entity_satisfies_role(role, renamed, reg) is True
 
 
 async def test_resolver_fails_when_no_moisture_sensors(

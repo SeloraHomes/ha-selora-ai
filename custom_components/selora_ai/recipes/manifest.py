@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+import re
 from typing import Any, Literal
 
 import yaml
@@ -86,6 +87,23 @@ class RoleSpec:
             ``window``). Many domains overload entities — without this
             a ``binary_sensor`` role would match doorbells, leaks, and
             motion alike.
+        integration: Optional integration (platform) filter, e.g.
+            ``lg_thinq``. When set, only entities owned by that
+            integration in the registry match. Use it for
+            device-specific recipes where ``kind`` + ``device_class``
+            is still too broad — an LG fridge door and a stick-on
+            contact sensor both register as ``binary_sensor`` /
+            ``door``, but only the fridge's is provided by
+            ``lg_thinq``. Entities with no registry entry (so no known
+            platform) never match a role that sets this.
+        match: Optional case-insensitive regex, tested against both the
+            entity_id and the friendly name. When set, only entities
+            matching it qualify. Use it to pin a role to one entity
+            among an integration's many of the same domain — e.g. an
+            LG fridge exposes several ``sensor`` entities (water
+            filter, fresh-air filter, ...), and ``water[ _]filter$``
+            narrows to just the water-filter status. Matching name OR
+            entity_id keeps it working if the homeowner renamed one.
         features: Optional list of capability strings the matched
             entity must support. Currently supports ``color`` (light
             must advertise an HS / RGB / RGBW / RGBWW colour mode).
@@ -113,6 +131,8 @@ class RoleSpec:
     id: str
     kind: str
     device_class: str | None = None
+    integration: str | None = None
+    match: str | None = None
     features: tuple[str, ...] = ()
     min_count: int = 1
     max_count: int | None = None
@@ -134,6 +154,26 @@ class RoleSpec:
                 f"role {self.id!r}: unknown kind {self.kind!r} "
                 f"(expected one of: {', '.join(sorted(_VALID_KINDS))})"
             )
+        # HA integration/platform domains are lowercase [a-z0-9_] strings
+        # that may start with a digit (e.g. 17track, 3_day_blinds) but
+        # always carry at least one letter. Reject uppercase, punctuation,
+        # and purely-numeric values the registry-platform match can't hit.
+        if self.integration is not None and not re.fullmatch(
+            r"[a-z0-9_]*[a-z][a-z0-9_]*", self.integration
+        ):
+            raise ManifestError(
+                f"role {self.id!r}: integration {self.integration!r} must be a lowercase "
+                "domain-shaped string (e.g. 'lg_thinq')"
+            )
+        # ``match`` must be a compilable regex — catch a bad pattern on disk
+        # rather than throwing deep in the resolver's candidate scan.
+        if self.match is not None:
+            try:
+                re.compile(self.match)
+            except re.error as exc:
+                raise ManifestError(
+                    f"role {self.id!r}: match {self.match!r} is not a valid regex ({exc})"
+                ) from exc
         if self.min_count < _ROLE_COUNT_MIN:
             raise ManifestError(f"role {self.id!r}: min_count={self.min_count} cannot be negative")
         if self.max_count is not None:
@@ -420,6 +460,8 @@ def _coerce_role(data: Any) -> RoleSpec:
             id=str(data.get("id", "")).strip(),
             kind=str(data.get("kind", "")).strip(),
             device_class=(str(data["device_class"]).strip() if data.get("device_class") else None),
+            integration=(str(data["integration"]).strip() if data.get("integration") else None),
+            match=(str(data["match"]) if data.get("match") else None),
             features=tuple(str(f).strip() for f in (data.get("features") or [])),
             min_count=int(data.get("min_count", 1)),
             max_count=(int(data["max_count"]) if data.get("max_count") is not None else None),

@@ -15,6 +15,7 @@ result.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import re
 from typing import TYPE_CHECKING, Any
 
 from .manifest import BindingSpec, Manifest, RoleSpec
@@ -337,6 +338,22 @@ def _entity_satisfies_role(role: RoleSpec, state: Any, ent_reg: Any) -> bool:
             ent = ent_reg.async_get(state.entity_id)
             if not ent or ent.original_device_class != role.device_class:
                 return False
+    if role.integration:
+        # Match on the entity's owning integration (registry platform).
+        # An entity with no registry entry has no known platform, so it
+        # can't satisfy an integration-scoped role.
+        ent = ent_reg.async_get(state.entity_id)
+        if not ent or ent.platform != role.integration:
+            return False
+    if role.match:
+        # Case-insensitive regex against the entity_id OR the friendly name,
+        # so the role still resolves if the homeowner renamed the entity.
+        name = attrs.get("friendly_name") or state.entity_id
+        if not (
+            re.search(role.match, state.entity_id, re.IGNORECASE)
+            or re.search(role.match, name, re.IGNORECASE)
+        ):
+            return False
     return not any(not _entity_supports_feature(f, attrs) for f in role.features)
 
 
@@ -362,6 +379,10 @@ def _format_count_failure(
     filter_summary = role.kind
     if role.device_class:
         filter_summary += f", device_class={role.device_class}"
+    if role.integration:
+        filter_summary += f", integration={role.integration}"
+    if role.match:
+        filter_summary += f", match={role.match}"
     if role.features:
         filter_summary += f", features=[{', '.join(role.features)}]"
     need = role.min_count
