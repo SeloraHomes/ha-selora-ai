@@ -3618,10 +3618,21 @@ function _humanizeRole(s) {
 function _renderListView(host) {
   const available = host._recipesList?.available || [];
   const installed = host._recipesList?.installed || [];
-  const installedBySlug = Object.fromEntries(installed.map((r) => [r.slug, r]));
+  const availableBySlug = Object.fromEntries(available.map((m) => [m.slug, m]));
   const installedSlugs = new Set(installed.map((r) => r.slug));
-  const onlyInstalled = installed.filter(
-    (r) => !available.some((a) => a.slug === r.slug),
+  // Partition on-disk bundles + install records into three state-based
+  // sections so nothing on disk goes unreachable:
+  //  - installedWithBundle: installed + bundle present → full management card
+  //  - onlyInstalled:       installed but bundle went missing → repair card
+  //  - stagedNotInstalled:  staged on disk, no install record yet (file/URL
+  //                         upload or a manually placed bundle, before the
+  //                         wizard completes) → Install / Resume card. These
+  //                         may not be in the public catalog, so this is the
+  //                         only panel surface that can reopen them.
+  const installedWithBundle = installed.filter((r) => availableBySlug[r.slug]);
+  const onlyInstalled = installed.filter((r) => !availableBySlug[r.slug]);
+  const stagedNotInstalled = available.filter(
+    (m) => !installedSlugs.has(m.slug),
   );
 
   return html`
@@ -3660,15 +3671,25 @@ function _renderListView(host) {
       </p>
 
       ${_renderCatalogSection(host)}
-      ${available.length > 0
+      ${installedWithBundle.length > 0
         ? html`
             <div class="recipes-section-title">
-              ${host._t("recipes_list_on_this_device", "Installed")}
+              ${host._t("recipes_list_installed_section", "Installed recipes")}
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;">
-              ${available.map((m) =>
-                _renderRecipeCard(host, m, installedBySlug[m.slug] || null),
+              ${installedWithBundle.map((r) =>
+                _renderRecipeCard(host, availableBySlug[r.slug], r),
               )}
+            </div>
+          `
+        : ""}
+      ${stagedNotInstalled.length > 0
+        ? html`
+            <div class="recipes-section-title">
+              ${host._t("recipes_list_staged_section", "Not yet installed")}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${stagedNotInstalled.map((m) => _renderRecipeCard(host, m, null))}
             </div>
           `
         : ""}

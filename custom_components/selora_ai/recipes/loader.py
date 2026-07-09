@@ -70,7 +70,7 @@ async def async_remove_bundle(hass: HomeAssistant, slug: str) -> bool:
     directory was removed, False if there was nothing to remove.
 
     Called on uninstall so an uninstalled recipe stops appearing in the
-    panel's "On this device" list. Defensive: only removes a direct child
+    panel's "Installed recipes" list. Defensive: only removes a direct child
     of the bundles dir (no path traversal via a crafted slug).
     """
     base = bundles_dir(hass)

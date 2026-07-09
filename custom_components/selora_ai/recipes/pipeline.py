@@ -225,7 +225,7 @@ async def async_uninstall(
     await store.async_remove(slug)
 
     # Delete the staged bundle directory so the uninstalled recipe stops
-    # showing in the panel's "On this device" list (and doesn't bloat the
+    # showing in the panel's "Installed recipes" list (and doesn't bloat the
     # filesystem). Best-effort — it's re-stageable from the catalog, so a
     # failure here never blocks the uninstall.
     try:
