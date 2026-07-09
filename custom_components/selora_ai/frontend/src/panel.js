@@ -3764,6 +3764,11 @@ class SeloraAIPanel extends LitElement {
         // dashboard set, and a refetch racing the HA reload can fail and
         // wipe the good list captured at wizard open.
         this._recipeDashboardTarget = undefined;
+        // Refresh install records so the list-view card flips to the
+        // installed state (badge + Uninstall/Configure) without a manual
+        // page reload. Fire-and-forget: Step 5 stays put; the list is
+        // fresh by the time the user returns to it.
+        this._loadRecipesList();
       }
     } catch (err) {
       console.error("Recipe install failed", err);
