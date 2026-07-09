@@ -239,6 +239,10 @@ export const settingsStyles = css`
   .advanced-section .service-row:last-of-type {
     padding-bottom: 16px;
   }
+  .advanced-section .settings-maintenance {
+    margin: 16px 32px 0;
+    padding-top: 16px;
+  }
   /* Match .section-card's tighter mobile padding so all settings
      cards line their content up at the same horizontal offset. */
   @media (max-width: 600px) {
@@ -256,6 +260,10 @@ export const settingsStyles = css`
       padding-right: 12px;
     }
     .advanced-section .settings-separator {
+      margin-left: 12px;
+      margin-right: 12px;
+    }
+    .advanced-section .settings-maintenance {
       margin-left: 12px;
       margin-right: 12px;
     }
