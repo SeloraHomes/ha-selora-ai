@@ -8075,10 +8075,11 @@ var en_default = {
     recipes_list_checking: "Checking\u2026",
     recipes_list_installed_missing_bundle:
       "Installed (bundle missing from disk)",
+    recipes_list_installed_section: "Installed recipes",
     recipes_list_intro:
       "Recipes are ready-made automations you install in one step \u2014 a leak lockdown, a bedtime routine, a tornado alert. Selora checks each recipe against the devices in your home, then wires it up for you. Pick one below to get started.",
-    recipes_list_on_this_device: "Installed",
     recipes_list_package_label: "package:",
+    recipes_list_staged_section: "Not yet installed",
     recipes_list_title: "Recipes",
     recipes_loading: "Loading\u2026",
     recipes_loading_recipe: "Loading recipe\u2026",
@@ -9153,10 +9154,11 @@ var fr_default = {
     recipes_list_checking: "V\xE9rification\u2026",
     recipes_list_installed_missing_bundle:
       "Install\xE9e (bundle manquant sur le disque)",
+    recipes_list_installed_section: "Recettes install\xE9es",
     recipes_list_intro:
       "Les recettes sont des automatisations pr\xEAtes \xE0 l'emploi que vous installez en une \xE9tape \u2014 une coupure en cas de fuite, une routine du coucher, une alerte tornade. Selora v\xE9rifie chaque recette par rapport aux appareils de votre domicile, puis la met en place pour vous. Choisissez-en une ci-dessous pour commencer.",
-    recipes_list_on_this_device: "Install\xE9es",
     recipes_list_package_label: "package :",
+    recipes_list_staged_section: "Pas encore install\xE9es",
     recipes_list_title: "Recettes",
     recipes_loading: "Chargement\u2026",
     recipes_loading_recipe: "Chargement de la recette\u2026",
@@ -10237,10 +10239,11 @@ var de_default = {
     recipes_list_checking: "Wird gepr\xFCft\u2026",
     recipes_list_installed_missing_bundle:
       "Installiert (Bundle fehlt auf dem Datentr\xE4ger)",
+    recipes_list_installed_section: "Installierte Rezepte",
     recipes_list_intro:
       "Rezepte sind fertige Automatisierungen, die Sie in einem Schritt installieren \u2014 eine Lecksperre, eine Schlafenszeit-Routine, eine Tornado-Warnung. Selora pr\xFCft jedes Rezept anhand der Ger\xE4te in Ihrem Zuhause und richtet es dann f\xFCr Sie ein. W\xE4hlen Sie unten eines aus, um zu beginnen.",
-    recipes_list_on_this_device: "Installiert",
     recipes_list_package_label: "Paket:",
+    recipes_list_staged_section: "Noch nicht installiert",
     recipes_list_title: "Rezepte",
     recipes_loading: "Wird geladen\u2026",
     recipes_loading_recipe: "Rezept wird geladen\u2026",
@@ -11311,10 +11314,11 @@ var es_default = {
     recipes_list_checking: "Comprobando\u2026",
     recipes_list_installed_missing_bundle:
       "Instalada (falta el paquete en el disco)",
+    recipes_list_installed_section: "Recetas instaladas",
     recipes_list_intro:
       "Las recetas son automatizaciones listas para usar que instala en un solo paso \u2014 un bloqueo por fugas, una rutina para dormir, una alerta de tornado. Selora comprueba cada receta con los dispositivos de su hogar y luego la configura por usted. Elija una a continuaci\xF3n para empezar.",
-    recipes_list_on_this_device: "Instaladas",
     recipes_list_package_label: "paquete:",
+    recipes_list_staged_section: "A\xFAn no instaladas",
     recipes_list_title: "Recetas",
     recipes_loading: "Cargando\u2026",
     recipes_loading_recipe: "Cargando receta\u2026",
@@ -12375,10 +12379,11 @@ var it_default = {
     recipes_list_checking: "Controllo\u2026",
     recipes_list_installed_missing_bundle:
       "Installata (bundle mancante dal disco)",
+    recipes_list_installed_section: "Ricette installate",
     recipes_list_intro:
       "Le ricette sono automazioni preconfezionate che installi in un solo passaggio \u2014 un blocco antiallagamento, una routine per la notte, un avviso tornado. Selora confronta ogni ricetta con i dispositivi nella Sua casa, poi la configura per Lei. Ne scelga una qui sotto per iniziare.",
-    recipes_list_on_this_device: "Installate",
     recipes_list_package_label: "pacchetto:",
+    recipes_list_staged_section: "Non ancora installate",
     recipes_list_title: "Ricette",
     recipes_loading: "Caricamento\u2026",
     recipes_loading_recipe: "Caricamento ricetta\u2026",
@@ -13457,10 +13462,11 @@ var nl_default = {
     recipes_list_checking: "Controleren\u2026",
     recipes_list_installed_missing_bundle:
       "Ge\xEFnstalleerd (bundel ontbreekt op schijf)",
+    recipes_list_installed_section: "Ge\xEFnstalleerde recepten",
     recipes_list_intro:
       "Recepten zijn kant-en-klare automatiseringen die u in \xE9\xE9n stap installeert \u2014 een lekvergrendeling, een bedtijdroutine, een tornadowaarschuwing. Selora controleert elk recept tegen de apparaten in uw woning en stelt het vervolgens voor u in. Kies er hieronder een om te beginnen.",
-    recipes_list_on_this_device: "Ge\xEFnstalleerd",
     recipes_list_package_label: "pakket:",
+    recipes_list_staged_section: "Nog niet ge\xEFnstalleerd",
     recipes_list_title: "Recepten",
     recipes_loading: "Laden\u2026",
     recipes_loading_recipe: "Recept laden\u2026",
@@ -14569,10 +14575,11 @@ var hu_default = {
     recipes_list_checking: "Ellen\u0151rz\xE9s\u2026",
     recipes_list_installed_missing_bundle:
       "Telep\xEDtve (a csomag hi\xE1nyzik a lemezr\u0151l)",
+    recipes_list_installed_section: "Telep\xEDtett receptek",
     recipes_list_intro:
       "A receptek k\xE9sz automatizmusok, amelyeket egyetlen l\xE9p\xE9sben telep\xEDthet \u2014 egy sziv\xE1rg\xE1sv\xE9delem, egy lefekv\xE9si rutin, egy torn\xE1d\xF3riaszt\xE1s. A Selora minden receptet \xF6sszevet az otthon\xE1ban l\xE9v\u0151 eszk\xF6z\xF6kkel, majd bek\xF6tik \xD6nnek. V\xE1lasszon egyet al\xE1bb a kezd\xE9shez.",
-    recipes_list_on_this_device: "Telep\xEDtve",
     recipes_list_package_label: "csomag:",
+    recipes_list_staged_section: "M\xE9g nincs telep\xEDtve",
     recipes_list_title: "Receptek",
     recipes_loading: "Bet\xF6lt\xE9s\u2026",
     recipes_loading_recipe: "Recept bet\xF6lt\xE9se\u2026",
@@ -15638,10 +15645,11 @@ var pt_default = {
     recipes_list_checking: "A verificar\u2026",
     recipes_list_installed_missing_bundle:
       "Instalada (pacote em falta no disco)",
+    recipes_list_installed_section: "Receitas instaladas",
     recipes_list_intro:
       "As receitas s\xE3o automa\xE7\xF5es prontas a usar que instala num \xFAnico passo \u2014 um bloqueio contra fugas, uma rotina de hora de dormir, um alerta de tornado. O Selora verifica cada receita em rela\xE7\xE3o aos dispositivos da sua casa e configura-a por si. Escolha uma abaixo para come\xE7ar.",
-    recipes_list_on_this_device: "Instaladas",
     recipes_list_package_label: "pacote:",
+    recipes_list_staged_section: "Ainda n\xE3o instaladas",
     recipes_list_title: "Receitas",
     recipes_loading: "A carregar\u2026",
     recipes_loading_recipe: "A carregar receita\u2026",
@@ -17100,11 +17108,13 @@ var ru_default = {
       "\u041F\u0440\u043E\u0432\u0435\u0440\u043A\u0430\u2026",
     recipes_list_installed_missing_bundle:
       "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E (\u043F\u0430\u043A\u0435\u0442 \u043E\u0442\u0441\u0443\u0442\u0441\u0442\u0432\u0443\u0435\u0442 \u043D\u0430 \u0434\u0438\u0441\u043A\u0435)",
+    recipes_list_installed_section:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0440\u0435\u0446\u0435\u043F\u0442\u044B",
     recipes_list_intro:
       "\u0420\u0435\u0446\u0435\u043F\u0442\u044B \u2014 \u044D\u0442\u043E \u0433\u043E\u0442\u043E\u0432\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0435 \u0432 \u043E\u0434\u0438\u043D \u0448\u0430\u0433: \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u0438 \u043F\u0440\u043E\u0442\u0435\u0447\u043A\u0435, \u0440\u0435\u0436\u0438\u043C \u043F\u0435\u0440\u0435\u0434 \u0441\u043D\u043E\u043C, \u043E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u043E \u0442\u043E\u0440\u043D\u0430\u0434\u043E. Selora \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442 \u043A\u0430\u0436\u0434\u044B\u0439 \u0440\u0435\u0446\u0435\u043F\u0442 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435, \u0430 \u0437\u0430\u0442\u0435\u043C \u043D\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0435\u0442 \u0435\u0433\u043E \u0437\u0430 \u0432\u0430\u0441. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043E\u0434\u0438\u043D \u0438\u0437 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u043E\u0432 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C.",
-    recipes_list_on_this_device:
-      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435",
     recipes_list_package_label: "\u043F\u0430\u043A\u0435\u0442:",
+    recipes_list_staged_section:
+      "\u0415\u0449\u0451 \u043D\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B",
     recipes_list_title: "\u0420\u0435\u0446\u0435\u043F\u0442\u044B",
     recipes_loading: "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
     recipes_loading_recipe:
@@ -18476,11 +18486,12 @@ var ja_default = {
     recipes_list_checking: "\u78BA\u8A8D\u4E2D\u2026",
     recipes_list_installed_missing_bundle:
       "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\uFF08\u30D0\u30F3\u30C9\u30EB\u304C\u30C7\u30A3\u30B9\u30AF\u4E0A\u306B\u898B\u3064\u304B\u308A\u307E\u305B\u3093\uFF09",
+    recipes_list_installed_section:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30EC\u30B7\u30D4",
     recipes_list_intro:
       "\u30EC\u30B7\u30D4\u306F\u3001\u30EF\u30F3\u30B9\u30C6\u30C3\u30D7\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u308B\u65E2\u88FD\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3067\u3059 \u2014 \u6F0F\u6C34\u5BFE\u7B56\u3001\u5C31\u5BDD\u30EB\u30FC\u30C6\u30A3\u30F3\u3001\u7ADC\u5DFB\u30A2\u30E9\u30FC\u30C8\u306A\u3069\u3002Selora \u306F\u5404\u30EC\u30B7\u30D4\u3092\u3054\u81EA\u5B85\u306E\u30C7\u30D0\u30A4\u30B9\u3068\u7167\u5408\u3057\u3001\u914D\u7DDA\u307E\u3067\u884C\u3044\u307E\u3059\u3002\u4E0B\u304B\u30891\u3064\u9078\u3093\u3067\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
-    recipes_list_on_this_device:
-      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F",
     recipes_list_package_label: "\u30D1\u30C3\u30B1\u30FC\u30B8\uFF1A",
+    recipes_list_staged_section: "\u672A\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
     recipes_list_title: "\u30EC\u30B7\u30D4",
     recipes_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     recipes_loading_recipe:
@@ -19721,10 +19732,11 @@ var ko_default = {
     recipes_list_checking: "\uD655\uC778 \uC911\u2026",
     recipes_list_installed_missing_bundle:
       "\uC124\uCE58\uB428 (\uB514\uC2A4\uD06C\uC5D0 \uBC88\uB4E4 \uC5C6\uC74C)",
+    recipes_list_installed_section: "\uC124\uCE58\uB41C \uB808\uC2DC\uD53C",
     recipes_list_intro:
       "\uB808\uC2DC\uD53C\uB294 \uD55C \uB2E8\uACC4\uB85C \uC124\uCE58\uD558\uB294 \uBBF8\uB9AC \uB9CC\uB4E4\uC5B4\uC9C4 \uC790\uB3D9\uD654\uC785\uB2C8\uB2E4 \u2014 \uB204\uC218 \uCC28\uB2E8, \uCDE8\uCE68 \uB8E8\uD2F4, \uD1A0\uB124\uC774\uB3C4 \uACBD\uBCF4 \uB4F1. Selora\uAC00 \uAC01 \uB808\uC2DC\uD53C\uB97C \uC9D1\uC758 \uAE30\uAE30\uC640 \uB300\uC870\uD558\uC5EC \uD655\uC778\uD55C \uB2E4\uC74C \uC0AC\uC6A9\uC790\uB97C \uC704\uD574 \uC5F0\uACB0\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C \uD558\uB098\uB97C \uC120\uD0DD\uD558\uC5EC \uC2DC\uC791\uD558\uC138\uC694.",
-    recipes_list_on_this_device: "\uC124\uCE58\uB428",
     recipes_list_package_label: "\uD328\uD0A4\uC9C0:",
+    recipes_list_staged_section: "\uC124\uCE58\uB418\uC9C0 \uC54A\uC74C",
     recipes_list_title: "\uB808\uC2DC\uD53C",
     recipes_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     recipes_loading_recipe:
@@ -20880,10 +20892,11 @@ var zh_Hans_default = {
     recipes_list_checking: "\u68C0\u67E5\u4E2D\u2026",
     recipes_list_installed_missing_bundle:
       "\u5DF2\u5B89\u88C5\uFF08\u78C1\u76D8\u4E0A\u7F3A\u5C11\u6346\u7ED1\u5305\uFF09",
+    recipes_list_installed_section: "\u5DF2\u5B89\u88C5\u7684\u914D\u65B9",
     recipes_list_intro:
       "\u914D\u65B9\u662F\u60A8\u4E00\u6B65\u5373\u53EF\u5B89\u88C5\u7684\u73B0\u6210\u81EA\u52A8\u5316\u2014\u2014\u6F0F\u6C34\u5C01\u9501\u3001\u5C31\u5BDD\u4F8B\u7A0B\u3001\u9F99\u5377\u98CE\u8B66\u62A5\u3002Selora \u4F1A\u5BF9\u7167\u60A8\u5BB6\u4E2D\u7684\u8BBE\u5907\u6838\u5BF9\u6BCF\u4E2A\u914D\u65B9\uFF0C\u7136\u540E\u4E3A\u60A8\u63A5\u597D\u7EBF\u8DEF\u3002\u5728\u4E0B\u65B9\u9009\u62E9\u4E00\u4E2A\u5373\u53EF\u5F00\u59CB\u3002",
-    recipes_list_on_this_device: "\u5DF2\u5B89\u88C5",
     recipes_list_package_label: "\u5305\uFF1A",
+    recipes_list_staged_section: "\u5C1A\u672A\u5B89\u88C5",
     recipes_list_title: "\u914D\u65B9",
     recipes_loading: "\u52A0\u8F7D\u4E2D\u2026",
     recipes_loading_recipe: "\u6B63\u5728\u52A0\u8F7D\u914D\u65B9\u2026",
@@ -22036,10 +22049,11 @@ var zh_Hant_default = {
     recipes_list_checking: "\u6AA2\u67E5\u4E2D\u2026",
     recipes_list_installed_missing_bundle:
       "\u5DF2\u5B89\u88DD\uFF08\u78C1\u789F\u4E0A\u7F3A\u5C11\u5957\u4EF6\uFF09",
+    recipes_list_installed_section: "\u5DF2\u5B89\u88DD\u7684\u98DF\u8B5C",
     recipes_list_intro:
       "\u98DF\u8B5C\u662F\u60A8\u53EA\u9700\u4E00\u6B65\u5373\u53EF\u5B89\u88DD\u7684\u73FE\u6210\u81EA\u52D5\u5316\u2014\u2014\u6F0F\u6C34\u9396\u5B9A\u3001\u5C31\u5BE2\u4F8B\u884C\u7A0B\u5E8F\u3001\u9F8D\u6372\u98A8\u8B66\u5831\u3002Selora \u6703\u5C07\u6BCF\u500B\u98DF\u8B5C\u8207\u60A8\u5BB6\u4E2D\u7684\u88DD\u7F6E\u9032\u884C\u6BD4\u5C0D\u6AA2\u67E5\uFF0C\u7136\u5F8C\u70BA\u60A8\u5B8C\u6210\u63A5\u7DDA\u8A2D\u5B9A\u3002\u8ACB\u5728\u4E0B\u65B9\u9078\u64C7\u4E00\u500B\u958B\u59CB\u4F7F\u7528\u3002",
-    recipes_list_on_this_device: "\u5DF2\u5B89\u88DD",
     recipes_list_package_label: "\u5957\u4EF6\uFF1A",
+    recipes_list_staged_section: "\u5C1A\u672A\u5B89\u88DD",
     recipes_list_title: "\u98DF\u8B5C",
     recipes_loading: "\u8F09\u5165\u4E2D\u2026",
     recipes_loading_recipe: "\u6B63\u5728\u8F09\u5165\u98DF\u8B5C\u2026",
@@ -37787,12 +37801,16 @@ function _humanizeRole(s4) {
 function _renderListView(host) {
   const available = host._recipesList?.available || [];
   const installed = host._recipesList?.installed || [];
-  const installedBySlug = Object.fromEntries(
-    installed.map((r4) => [r4.slug, r4]),
+  const availableBySlug = Object.fromEntries(
+    available.map((m3) => [m3.slug, m3]),
   );
   const installedSlugs = new Set(installed.map((r4) => r4.slug));
-  const onlyInstalled = installed.filter(
-    (r4) => !available.some((a3) => a3.slug === r4.slug),
+  const installedWithBundle = installed.filter(
+    (r4) => availableBySlug[r4.slug],
+  );
+  const onlyInstalled = installed.filter((r4) => !availableBySlug[r4.slug]);
+  const stagedNotInstalled = available.filter(
+    (m3) => !installedSlugs.has(m3.slug),
   );
   return b2`
     <div class="recipes-root">
@@ -37829,15 +37847,27 @@ function _renderListView(host) {
 
       ${_renderCatalogSection(host)}
       ${
-        available.length > 0
+        installedWithBundle.length > 0
           ? b2`
             <div class="recipes-section-title">
-              ${host._t("recipes_list_on_this_device", "Installed")}
+              ${host._t("recipes_list_installed_section", "Installed recipes")}
             </div>
             <div style="display:flex;flex-direction:column;gap:10px;">
-              ${available.map((m3) =>
-                _renderRecipeCard(host, m3, installedBySlug[m3.slug] || null),
+              ${installedWithBundle.map((r4) =>
+                _renderRecipeCard(host, availableBySlug[r4.slug], r4),
               )}
+            </div>
+          `
+          : ""
+      }
+      ${
+        stagedNotInstalled.length > 0
+          ? b2`
+            <div class="recipes-section-title">
+              ${host._t("recipes_list_staged_section", "Not yet installed")}
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              ${stagedNotInstalled.map((m3) => _renderRecipeCard(host, m3, null))}
             </div>
           `
           : ""
