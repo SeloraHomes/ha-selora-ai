@@ -14,6 +14,19 @@ sets and returns a base code only when there is a clear, unambiguous
 winner; otherwise it returns ``None`` and the caller falls back to the
 panel locale. English carries no marker set — an English message scores
 zero everywhere and falls back, which is correct.
+
+Markers are split into two tiers so a single hit is trusted only when it
+carries real signal:
+
+- **Strong** markers (``_STRONG_MARKERS``): imperative command verbs and
+  accented interrogatives ("apaga", "éteins", "accendi", "welche"). None
+  is a plausible English word, so a lone hit is unambiguous — this keeps
+  short verb-plus-entity commands like "apaga el ventilador" detected
+  even when the device name and article are not in the marker list.
+- **Weak** markers: bare articles and plain nouns ("camera", "die",
+  "los", "che") that collide with English words. A lone weak hit is far
+  more likely a false friend than real signal, so it needs a second hit
+  to corroborate before it can flip an English conversation.
 """
 
 from __future__ import annotations
@@ -163,26 +176,121 @@ _MARKERS: dict[str, frozenset[str]] = {
 }
 
 
+# High-signal subset of ``_MARKERS``: command verbs and accented
+# interrogatives that carry no English false-friend risk. A lone hit here
+# is enough to detect (see module docstring). Must stay a subset of
+# ``_MARKERS`` — asserted below so the two can't drift apart.
+_STRONG_MARKERS: dict[str, frozenset[str]] = {
+    "fr": frozenset(
+        {
+            "allume",
+            "allumes",
+            "allumée",
+            "allumées",
+            "éteins",
+            "éteint",
+            "éteintes",
+            "ferme",
+            "ouvre",
+            "fais",
+            "mets",
+            "quelles",
+            "quel",
+            "quelle",
+            "quels",
+            "très",
+        }
+    ),
+    "de": frozenset(
+        {
+            "schalte",
+            "mach",
+            "kannst",
+            "welche",
+            "welcher",
+            "welches",
+            "lichter",
+            "küche",
+            "wohnzimmer",
+            "schlafzimmer",
+        }
+    ),
+    "es": frozenset(
+        {
+            "enciende",
+            "apaga",
+            "para",  # imperative "stop" ("para la música"); not English prose
+            "pon",
+            "encendidas",
+            "encendido",
+            "apagado",
+            "está",
+            "están",
+            "qué",
+            "cuál",
+            "cuáles",
+            "salón",
+        }
+    ),
+    "it": frozenset(
+        {
+            "accendi",
+            "spegni",
+            "fai",
+            "metti",
+            "quale",
+            "quali",
+            "accese",
+            "acceso",
+            "spento",
+            "spenta",
+            "salotto",
+            "cameretta",
+        }
+    ),
+}
+
+assert all(_STRONG_MARKERS[lang] <= _MARKERS[lang] for lang in _STRONG_MARKERS), (
+    "_STRONG_MARKERS must be a subset of _MARKERS"
+)
+
+# Distinct hits a weak-only match needs before it is trusted. One weak
+# hit is indistinguishable from an English false friend (see docstring).
+_MIN_WEAK_SCORE = 2
+
+
 def detect_language(text: str) -> str | None:
     """Return the base locale code (``fr``/``de``/``es``/``it``) the message
     is written in, or ``None`` when undetected or ambiguous.
 
-    A clear winner requires a non-zero score that strictly beats every
-    other locale; a tie returns ``None`` so the caller keeps the panel
-    locale rather than guessing.
+    The top-scoring locale wins only when its evidence beats a lone false
+    friend: either one **strong** marker hit (an unambiguous command verb
+    or accented interrogative) or at least ``_MIN_WEAK_SCORE`` total hits.
+    Locales rank by (strong hits, total hits) so a strong command verb
+    outranks an incidental weak collision; a tie on that key returns
+    ``None`` so the caller keeps the panel locale rather than guessing.
     """
     if not text:
         return None
     tokens = set(normalize(text).split())
     if not tokens:
         return None
-    scores = {lang: len(tokens & markers) for lang, markers in _MARKERS.items()}
+    # (strong hits, total hits) per locale — strong hits dominate ranking.
+    scores = {
+        lang: (
+            len(tokens & _STRONG_MARKERS.get(lang, frozenset())),
+            len(tokens & markers),
+        )
+        for lang, markers in _MARKERS.items()
+    }
     ranked = sorted(scores.items(), key=lambda kv: kv[1], reverse=True)
-    best_lang, best_score = ranked[0]
-    if best_score == 0:
+    best_lang, (best_strong, best_total) = ranked[0]
+    if best_total == 0:
         return None
-    if len(ranked) > 1 and ranked[1][1] == best_score:
+    if len(ranked) > 1 and ranked[1][1] == (best_strong, best_total):
         return None  # tie — ambiguous
+    if best_strong == 0 and best_total < _MIN_WEAK_SCORE:
+        return None  # lone weak hit — likely an English false friend
     return best_lang
 
 
