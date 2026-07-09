@@ -1378,22 +1378,21 @@ export function renderSettings(host) {
                 : host._t("settings_save_button", "Save")}
             </button>
           </div>
+        </details>
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>
+              ${host._t("settings_clear_cache_label", "Clear learned data")}
+            </h3>
+          </div>
           <div class="settings-maintenance">
-            <div class="service-label-group">
-              <label
-                >${host._t(
-                  "settings_clear_cache_label",
-                  "Clear learned data",
-                )}</label
-              >
-              <span class="service-desc"
-                >${host._t(
-                  "settings_clear_cache_desc",
-                  "Wipes stored usage history, detected patterns, and pending suggestions. Use this if suggestions reference devices you've removed. Selora relearns over time; your saved automations are not affected.",
-                )}</span
-              >
-            </div>
+            <span class="service-desc"
+              >${host._t(
+                "settings_clear_cache_desc",
+                "Wipes stored usage history, detected patterns, and pending suggestions. Use this if suggestions reference devices you've removed. Selora relearns over time; your saved automations are not affected.",
+              )}</span
+            >
             <button
               class="btn btn-danger"
               @click=${host._clearLearnedCache}
@@ -1404,7 +1403,7 @@ export function renderSettings(host) {
                 : host._t("settings_clear_cache_button", "Clear")}
             </button>
           </div>
-        </details>
+        </div>
 
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"

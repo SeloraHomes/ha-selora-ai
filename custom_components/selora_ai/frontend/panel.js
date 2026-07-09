@@ -5868,10 +5868,6 @@ var settingsStyles = i`
   .advanced-section .service-row:last-of-type {
     padding-bottom: 16px;
   }
-  .advanced-section .settings-maintenance {
-    margin: 16px 32px 0;
-    padding-top: 16px;
-  }
   /* Match .section-card's tighter mobile padding so all settings
      cards line their content up at the same horizontal offset. */
   @media (max-width: 600px) {
@@ -5889,10 +5885,6 @@ var settingsStyles = i`
       padding-right: 12px;
     }
     .advanced-section .settings-separator {
-      margin-left: 12px;
-      margin-right: 12px;
-    }
-    .advanced-section .settings-maintenance {
       margin-left: 12px;
       margin-right: 12px;
     }
@@ -6103,14 +6095,18 @@ var settingsStyles = i`
     display: flex;
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-top: 16px;
-    padding-top: 16px;
-    border-top: 1px solid var(--selora-zinc-800);
+    gap: 24px;
   }
   .settings-maintenance .service-desc {
     display: block;
-    margin-top: 2px;
+    max-width: 60ch;
+  }
+  @media (max-width: 600px) {
+    .settings-maintenance {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
   }
   .btn-danger {
     color: var(--error-color, #ef4444);
@@ -32474,22 +32470,21 @@ function renderSettings(host) {
               ${host._savingAdvancedConfig ? host._t("settings_saving_label", "Saving\u2026") : host._t("settings_save_button", "Save")}
             </button>
           </div>
+        </details>
 
+        <div class="section-card settings-section">
+          <div class="section-card-header">
+            <h3>
+              ${host._t("settings_clear_cache_label", "Clear learned data")}
+            </h3>
+          </div>
           <div class="settings-maintenance">
-            <div class="service-label-group">
-              <label
-                >${host._t(
-                  "settings_clear_cache_label",
-                  "Clear learned data",
-                )}</label
-              >
-              <span class="service-desc"
-                >${host._t(
-                  "settings_clear_cache_desc",
-                  "Wipes stored usage history, detected patterns, and pending suggestions. Use this if suggestions reference devices you've removed. Selora relearns over time; your saved automations are not affected.",
-                )}</span
-              >
-            </div>
+            <span class="service-desc"
+              >${host._t(
+                "settings_clear_cache_desc",
+                "Wipes stored usage history, detected patterns, and pending suggestions. Use this if suggestions reference devices you've removed. Selora relearns over time; your saved automations are not affected.",
+              )}</span
+            >
             <button
               class="btn btn-danger"
               @click=${host._clearLearnedCache}
@@ -32498,7 +32493,7 @@ function renderSettings(host) {
               ${host._clearingCache ? host._t("settings_clear_cache_clearing", "Clearing\u2026") : host._t("settings_clear_cache_button", "Clear")}
             </button>
           </div>
-        </details>
+        </div>
 
         <div
           style="text-align:center;font-size:11px;opacity:0.35;margin-top:24px;"
