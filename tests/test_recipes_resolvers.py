@@ -7,7 +7,7 @@ a portable ``tts.speak`` engine resolved from the home's actual TTS setup.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -35,9 +35,48 @@ class TestTtsEngineResolver:
         assert RESOLVERS.get("tts_engine") is _resolve_tts_engine
 
     @pytest.mark.asyncio
-    async def test_prefers_cloud(self) -> None:
+    async def test_prefers_piper_over_cloud_and_google(self) -> None:
+        # HA Cloud (Nabu Casa) is a competitor — never preferred. With a
+        # local engine present, Piper wins even when cloud is usable.
         hass = _hass(["tts.piper", "tts.home_assistant_cloud", "tts.google_en"])
-        assert await _resolve_tts_engine(hass) == "tts.home_assistant_cloud"
+        with patch(
+            "custom_components.selora_ai.automation_utils._tts_engine_usable",
+            return_value=True,
+        ):
+            assert await _resolve_tts_engine(hass) == "tts.piper"
+
+    @pytest.mark.asyncio
+    async def test_skips_unusable_cloud(self) -> None:
+        # Cloud reports available without a subscription but fails at call
+        # time, so an unusable cloud engine is filtered out entirely.
+        hass = _hass(["tts.home_assistant_cloud"])
+        with patch(
+            "custom_components.selora_ai.automation_utils._tts_engine_usable",
+            side_effect=lambda h, eid: "home_assistant_cloud" not in eid,
+        ):
+            assert await _resolve_tts_engine(hass) == ""
+
+    @pytest.mark.asyncio
+    async def test_cloud_used_only_as_last_resort(self) -> None:
+        # Subscribed cloud-only home: nothing local to prefer, so cloud is
+        # the fallback rather than leaving the announcement engineless.
+        hass = _hass(["tts.home_assistant_cloud"])
+        with patch(
+            "custom_components.selora_ai.automation_utils._tts_engine_usable",
+            return_value=True,
+        ):
+            assert await _resolve_tts_engine(hass) == "tts.home_assistant_cloud"
+
+    @pytest.mark.asyncio
+    async def test_cloud_loses_to_other_usable_engine(self) -> None:
+        # A usable non-Piper/Google engine (e.g. Microsoft) beats cloud
+        # even though sorted order puts "home_assistant_cloud" first.
+        hass = _hass(["tts.home_assistant_cloud", "tts.microsoft"])
+        with patch(
+            "custom_components.selora_ai.automation_utils._tts_engine_usable",
+            return_value=True,
+        ):
+            assert await _resolve_tts_engine(hass) == "tts.microsoft"
 
     @pytest.mark.asyncio
     async def test_prefers_piper_over_google(self) -> None:

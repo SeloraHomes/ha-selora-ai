@@ -2204,19 +2204,6 @@ var headerStyles = i`
   :host([narrow]) .tabs-center {
     display: none;
   }
-  /* When the header itself is too narrow to fit the centered tab strip
-     without colliding with the title / right-side buttons, collapse the
-     tabs into the Selora menu (which surfaces its narrow-only nav
-     section at the same breakpoint below). Covers the docked-sidebar
-     case where [narrow] is false but the panel is still cramped. */
-  @container selora-header (max-width: 880px) {
-    .tabs-center {
-      display: none;
-    }
-    .overflow-section.narrow-only {
-      display: flex;
-    }
-  }
   :host([narrow]) .header-logo {
     margin-inline-start: 4px;
     width: 20px;
@@ -2418,6 +2405,23 @@ var headerStyles = i`
   }
   :host([narrow]) .overflow-section.narrow-only {
     display: flex;
+  }
+  /* When the header itself is too narrow to fit the centered tab strip
+     without colliding with the title / right-side buttons, collapse the
+     tabs into the Selora menu (which surfaces its narrow-only nav
+     section here). Covers the docked-sidebar case where [narrow] is
+     false but the panel is still cramped. Placed AFTER the base
+     .overflow-section.narrow-only { display: none } and .tabs-center
+     rules so it wins on source order — otherwise the later base rule
+     re-hides the menu's nav section and the homeowner loses navigation
+     entirely once the header collapses. */
+  @container selora-header (max-width: 880px) {
+    .tabs-center {
+      display: none;
+    }
+    .overflow-section.narrow-only {
+      display: flex;
+    }
   }
   .overflow-item {
     display: flex;
@@ -7992,6 +7996,7 @@ var en_default = {
     recipes_bucket_up_next: "Up next",
     recipes_bucket_waiting_for_you: "Waiting for you",
     recipes_card_configure_button: "Configure",
+    recipes_card_reconfigure_button: "Reconfigure",
     recipes_card_in_progress_step: "In progress \xB7 Step",
     recipes_card_install_button: "Install",
     recipes_card_installed_badge: "Installed",
@@ -8022,6 +8027,7 @@ var en_default = {
     recipes_details_none_selected_optional: "None selected (optional)",
     recipes_details_settings_key: "Settings",
     recipes_details_summary: "Details",
+    recipes_details_installed_title: "Installation details",
     recipes_details_version_key: "Version",
     recipes_details_where_key: "Where",
     recipes_eyebrow_recipe: "RECIPE",
@@ -8078,6 +8084,8 @@ var en_default = {
     recipes_list_installed_section: "Installed recipes",
     recipes_list_intro:
       "Recipes are ready-made automations you install in one step \u2014 a leak lockdown, a bedtime routine, a tornado alert. Selora checks each recipe against the devices in your home, then wires it up for you. Pick one below to get started.",
+    recipes_list_on_this_device: "Installed",
+    recipes_list_staged: "On this device",
     recipes_list_package_label: "package:",
     recipes_list_staged_section: "Not yet installed",
     recipes_list_title: "Recipes",
@@ -8253,6 +8261,7 @@ var en_default = {
     recipes_step_label: "Step",
     recipes_step_match: "Match",
     recipes_step_of_5: "of 5",
+    recipes_step_of_4: "of 4",
     recipes_step_overview: "Overview",
     recipes_step_set_up: "Set up",
     recipes_step_settings: "Settings",
@@ -8269,6 +8278,7 @@ var en_default = {
     recipes_uninstall_warn_title:
       "Removing this integration will break those recipes.",
     recipes_what_you_need_title: "What you need",
+    recipes_works_with: "Works with",
     recipes_working: "Working\u2026",
     recipes_role_filter_placeholder: "Filter by name\u2026",
     recipes_role_filter_no_matches: "No entities match your filter.",
@@ -9067,6 +9077,7 @@ var fr_default = {
     recipes_bucket_up_next: "\xC0 suivre",
     recipes_bucket_waiting_for_you: "En attente de votre action",
     recipes_card_configure_button: "Configurer",
+    recipes_card_reconfigure_button: "Reconfigurer",
     recipes_card_in_progress_step: "En cours \xB7 \xC9tape",
     recipes_card_install_button: "Installer",
     recipes_card_installed_badge: "Install\xE9e",
@@ -9100,6 +9111,7 @@ var fr_default = {
       "Aucun s\xE9lectionn\xE9 (facultatif)",
     recipes_details_settings_key: "Param\xE8tres",
     recipes_details_summary: "D\xE9tails",
+    recipes_details_installed_title: "D\xE9tails de l'installation",
     recipes_details_version_key: "Version",
     recipes_details_where_key: "Emplacement",
     recipes_eyebrow_recipe: "RECETTE",
@@ -9157,6 +9169,8 @@ var fr_default = {
     recipes_list_installed_section: "Recettes install\xE9es",
     recipes_list_intro:
       "Les recettes sont des automatisations pr\xEAtes \xE0 l'emploi que vous installez en une \xE9tape \u2014 une coupure en cas de fuite, une routine du coucher, une alerte tornade. Selora v\xE9rifie chaque recette par rapport aux appareils de votre domicile, puis la met en place pour vous. Choisissez-en une ci-dessous pour commencer.",
+    recipes_list_on_this_device: "Install\xE9es",
+    recipes_list_staged: "Sur cet appareil",
     recipes_list_package_label: "package :",
     recipes_list_staged_section: "Pas encore install\xE9es",
     recipes_list_title: "Recettes",
@@ -9337,6 +9351,7 @@ var fr_default = {
     recipes_step_label: "\xC9tape",
     recipes_step_match: "Associer",
     recipes_step_of_5: "sur 5",
+    recipes_step_of_4: "sur 4",
     recipes_step_overview: "Aper\xE7u",
     recipes_step_set_up: "Configurer",
     recipes_step_settings: "Param\xE8tres",
@@ -9354,6 +9369,7 @@ var fr_default = {
     recipes_uninstall_warn_title:
       "Supprimer cette int\xE9gration cassera ces recettes.",
     recipes_what_you_need_title: "Ce dont vous avez besoin",
+    recipes_works_with: "Compatible avec",
     recipes_working: "Traitement\u2026",
     recipes_role_filter_placeholder: "Filtrer par nom\u2026",
     recipes_role_filter_no_matches:
@@ -10154,6 +10170,7 @@ var de_default = {
     recipes_bucket_up_next: "Als N\xE4chstes",
     recipes_bucket_waiting_for_you: "Wartet auf Sie",
     recipes_card_configure_button: "Konfigurieren",
+    recipes_card_reconfigure_button: "Neu konfigurieren",
     recipes_card_in_progress_step: "In Bearbeitung \xB7 Schritt",
     recipes_card_install_button: "Installieren",
     recipes_card_installed_badge: "Installiert",
@@ -10185,6 +10202,7 @@ var de_default = {
     recipes_details_none_selected_optional: "Keine ausgew\xE4hlt (optional)",
     recipes_details_settings_key: "Einstellungen",
     recipes_details_summary: "Details",
+    recipes_details_installed_title: "Installationsdetails",
     recipes_details_version_key: "Version",
     recipes_details_where_key: "Wo",
     recipes_eyebrow_recipe: "REZEPT",
@@ -10242,6 +10260,8 @@ var de_default = {
     recipes_list_installed_section: "Installierte Rezepte",
     recipes_list_intro:
       "Rezepte sind fertige Automatisierungen, die Sie in einem Schritt installieren \u2014 eine Lecksperre, eine Schlafenszeit-Routine, eine Tornado-Warnung. Selora pr\xFCft jedes Rezept anhand der Ger\xE4te in Ihrem Zuhause und richtet es dann f\xFCr Sie ein. W\xE4hlen Sie unten eines aus, um zu beginnen.",
+    recipes_list_on_this_device: "Installiert",
+    recipes_list_staged: "Auf diesem Ger\xE4t",
     recipes_list_package_label: "Paket:",
     recipes_list_staged_section: "Noch nicht installiert",
     recipes_list_title: "Rezepte",
@@ -10421,6 +10441,7 @@ var de_default = {
     recipes_step_label: "Schritt",
     recipes_step_match: "Zuordnen",
     recipes_step_of_5: "von 5",
+    recipes_step_of_4: "von 4",
     recipes_step_overview: "\xDCbersicht",
     recipes_step_set_up: "Einrichten",
     recipes_step_settings: "Einstellungen",
@@ -10438,6 +10459,7 @@ var de_default = {
     recipes_uninstall_warn_title:
       "Das Entfernen dieser Integration besch\xE4digt diese Rezepte.",
     recipes_what_you_need_title: "Was Sie ben\xF6tigen",
+    recipes_works_with: "Kompatibel mit",
     recipes_working: "Arbeite\u2026",
     recipes_role_filter_placeholder: "Nach Name filtern\u2026",
     recipes_role_filter_no_matches: "Keine Entit\xE4t entspricht Ihrem Filter.",
@@ -11228,6 +11250,7 @@ var es_default = {
     recipes_bucket_up_next: "A continuaci\xF3n",
     recipes_bucket_waiting_for_you: "Esper\xE1ndole",
     recipes_card_configure_button: "Configurar",
+    recipes_card_reconfigure_button: "Reconfigurar",
     recipes_card_in_progress_step: "En curso \xB7 Paso",
     recipes_card_install_button: "Instalar",
     recipes_card_installed_badge: "Instalada",
@@ -11260,6 +11283,7 @@ var es_default = {
     recipes_details_none_selected_optional: "Ninguno seleccionado (opcional)",
     recipes_details_settings_key: "Ajustes",
     recipes_details_summary: "Detalles",
+    recipes_details_installed_title: "Detalles de instalaci\xF3n",
     recipes_details_version_key: "Versi\xF3n",
     recipes_details_where_key: "D\xF3nde",
     recipes_eyebrow_recipe: "RECETA",
@@ -11317,6 +11341,8 @@ var es_default = {
     recipes_list_installed_section: "Recetas instaladas",
     recipes_list_intro:
       "Las recetas son automatizaciones listas para usar que instala en un solo paso \u2014 un bloqueo por fugas, una rutina para dormir, una alerta de tornado. Selora comprueba cada receta con los dispositivos de su hogar y luego la configura por usted. Elija una a continuaci\xF3n para empezar.",
+    recipes_list_on_this_device: "Instaladas",
+    recipes_list_staged: "En este dispositivo",
     recipes_list_package_label: "paquete:",
     recipes_list_staged_section: "A\xFAn no instaladas",
     recipes_list_title: "Recetas",
@@ -11494,6 +11520,7 @@ var es_default = {
     recipes_step_label: "Paso",
     recipes_step_match: "Emparejar",
     recipes_step_of_5: "de 5",
+    recipes_step_of_4: "de 4",
     recipes_step_overview: "Resumen",
     recipes_step_set_up: "Configurar",
     recipes_step_settings: "Ajustes",
@@ -11511,6 +11538,7 @@ var es_default = {
     recipes_uninstall_warn_title:
       "Eliminar esta integraci\xF3n romper\xE1 esas recetas.",
     recipes_what_you_need_title: "Lo que necesita",
+    recipes_works_with: "Compatible con",
     recipes_working: "Trabajando\u2026",
     recipes_role_filter_placeholder: "Filtrar por nombre\u2026",
     recipes_role_filter_no_matches: "Ninguna entidad coincide con el filtro.",
@@ -12293,6 +12321,7 @@ var it_default = {
     recipes_bucket_up_next: "Prossime",
     recipes_bucket_waiting_for_you: "In attesa di Lei",
     recipes_card_configure_button: "Configura",
+    recipes_card_reconfigure_button: "Riconfigura",
     recipes_card_in_progress_step: "In corso \xB7 Passaggio",
     recipes_card_install_button: "Installa",
     recipes_card_installed_badge: "Installata",
@@ -12325,6 +12354,7 @@ var it_default = {
     recipes_details_none_selected_optional: "Nessuno selezionato (opzionale)",
     recipes_details_settings_key: "Impostazioni",
     recipes_details_summary: "Dettagli",
+    recipes_details_installed_title: "Dettagli installazione",
     recipes_details_version_key: "Versione",
     recipes_details_where_key: "Dove",
     recipes_eyebrow_recipe: "RICETTA",
@@ -12382,6 +12412,8 @@ var it_default = {
     recipes_list_installed_section: "Ricette installate",
     recipes_list_intro:
       "Le ricette sono automazioni preconfezionate che installi in un solo passaggio \u2014 un blocco antiallagamento, una routine per la notte, un avviso tornado. Selora confronta ogni ricetta con i dispositivi nella Sua casa, poi la configura per Lei. Ne scelga una qui sotto per iniziare.",
+    recipes_list_on_this_device: "Installate",
+    recipes_list_staged: "Su questo dispositivo",
     recipes_list_package_label: "pacchetto:",
     recipes_list_staged_section: "Non ancora installate",
     recipes_list_title: "Ricette",
@@ -12560,6 +12592,7 @@ var it_default = {
     recipes_step_label: "Passaggio",
     recipes_step_match: "Abbina",
     recipes_step_of_5: "di 5",
+    recipes_step_of_4: "di 4",
     recipes_step_overview: "Panoramica",
     recipes_step_set_up: "Configura",
     recipes_step_settings: "Impostazioni",
@@ -12577,6 +12610,7 @@ var it_default = {
     recipes_uninstall_warn_title:
       "La rimozione di questa integrazione render\xE0 inutilizzabili quelle ricette.",
     recipes_what_you_need_title: "Di cosa ha bisogno",
+    recipes_works_with: "Compatibile con",
     recipes_working: "In corso\u2026",
     recipes_role_filter_placeholder: "Filtra per nome\u2026",
     recipes_role_filter_no_matches: "Nessuna entit\xE0 corrisponde al filtro.",
@@ -13377,6 +13411,7 @@ var nl_default = {
     recipes_bucket_up_next: "Hierna",
     recipes_bucket_waiting_for_you: "Wacht op u",
     recipes_card_configure_button: "Configureren",
+    recipes_card_reconfigure_button: "Opnieuw configureren",
     recipes_card_in_progress_step: "Bezig \xB7 Stap",
     recipes_card_install_button: "Installeren",
     recipes_card_installed_badge: "Ge\xEFnstalleerd",
@@ -13408,6 +13443,7 @@ var nl_default = {
     recipes_details_none_selected_optional: "Niets geselecteerd (optioneel)",
     recipes_details_settings_key: "Instellingen",
     recipes_details_summary: "Details",
+    recipes_details_installed_title: "Installatiedetails",
     recipes_details_version_key: "Versie",
     recipes_details_where_key: "Waar",
     recipes_eyebrow_recipe: "RECEPT",
@@ -13465,6 +13501,8 @@ var nl_default = {
     recipes_list_installed_section: "Ge\xEFnstalleerde recepten",
     recipes_list_intro:
       "Recepten zijn kant-en-klare automatiseringen die u in \xE9\xE9n stap installeert \u2014 een lekvergrendeling, een bedtijdroutine, een tornadowaarschuwing. Selora controleert elk recept tegen de apparaten in uw woning en stelt het vervolgens voor u in. Kies er hieronder een om te beginnen.",
+    recipes_list_on_this_device: "Ge\xEFnstalleerd",
+    recipes_list_staged: "Op dit apparaat",
     recipes_list_package_label: "pakket:",
     recipes_list_staged_section: "Nog niet ge\xEFnstalleerd",
     recipes_list_title: "Recepten",
@@ -13643,6 +13681,7 @@ var nl_default = {
     recipes_step_label: "Stap",
     recipes_step_match: "Koppelen",
     recipes_step_of_5: "van 5",
+    recipes_step_of_4: "van 4",
     recipes_step_overview: "Overzicht",
     recipes_step_set_up: "Instellen",
     recipes_step_settings: "Instellingen",
@@ -13660,6 +13699,7 @@ var nl_default = {
     recipes_uninstall_warn_title:
       "Het verwijderen van deze integratie maakt die recepten onbruikbaar.",
     recipes_what_you_need_title: "Wat u nodig hebt",
+    recipes_works_with: "Werkt met",
     recipes_working: "Bezig\u2026",
     recipes_role_filter_placeholder: "Filteren op naam\u2026",
     recipes_role_filter_no_matches:
@@ -14480,6 +14520,7 @@ var hu_default = {
     recipes_bucket_up_next: "K\xF6vetkezik",
     recipes_bucket_waiting_for_you: "\xD6nre v\xE1r",
     recipes_card_configure_button: "Konfigur\xE1l\xE1s",
+    recipes_card_reconfigure_button: "\xDAjrakonfigur\xE1l\xE1s",
     recipes_card_in_progress_step: "Folyamatban \xB7 L\xE9p\xE9s",
     recipes_card_install_button: "Telep\xEDt\xE9s",
     recipes_card_installed_badge: "Telep\xEDtve",
@@ -14516,6 +14557,7 @@ var hu_default = {
       "Nincs kiv\xE1lasztva (nem k\xF6telez\u0151)",
     recipes_details_settings_key: "Be\xE1ll\xEDt\xE1sok",
     recipes_details_summary: "R\xE9szletek",
+    recipes_details_installed_title: "Telep\xEDt\xE9s r\xE9szletei",
     recipes_details_version_key: "Verzi\xF3",
     recipes_details_where_key: "Hol",
     recipes_eyebrow_recipe: "RECEPT",
@@ -14578,6 +14620,8 @@ var hu_default = {
     recipes_list_installed_section: "Telep\xEDtett receptek",
     recipes_list_intro:
       "A receptek k\xE9sz automatizmusok, amelyeket egyetlen l\xE9p\xE9sben telep\xEDthet \u2014 egy sziv\xE1rg\xE1sv\xE9delem, egy lefekv\xE9si rutin, egy torn\xE1d\xF3riaszt\xE1s. A Selora minden receptet \xF6sszevet az otthon\xE1ban l\xE9v\u0151 eszk\xF6z\xF6kkel, majd bek\xF6tik \xD6nnek. V\xE1lasszon egyet al\xE1bb a kezd\xE9shez.",
+    recipes_list_on_this_device: "Telep\xEDtve",
+    recipes_list_staged: "Ezen az eszk\xF6z\xF6n",
     recipes_list_package_label: "csomag:",
     recipes_list_staged_section: "M\xE9g nincs telep\xEDtve",
     recipes_list_title: "Receptek",
@@ -14760,6 +14804,7 @@ var hu_default = {
     recipes_step_label: "L\xE9p\xE9s",
     recipes_step_match: "P\xE1ros\xEDt\xE1s",
     recipes_step_of_5: "/ 5",
+    recipes_step_of_4: "/ 4",
     recipes_step_overview: "\xC1ttekint\xE9s",
     recipes_step_set_up: "Be\xE1ll\xEDt\xE1s",
     recipes_step_settings: "Be\xE1ll\xEDt\xE1sok",
@@ -14777,6 +14822,7 @@ var hu_default = {
     recipes_uninstall_warn_title:
       "Ennek az integr\xE1ci\xF3nak az elt\xE1vol\xEDt\xE1sa megt\xF6ri azokat a recepteket.",
     recipes_what_you_need_title: "Mire van sz\xFCks\xE9ge",
+    recipes_works_with: "Kompatibilis ezzel",
     recipes_working: "Folyamatban\u2026",
     recipes_role_filter_placeholder: "Sz\u0171r\xE9s n\xE9v szerint\u2026",
     recipes_role_filter_no_matches:
@@ -15559,6 +15605,7 @@ var pt_default = {
     recipes_bucket_up_next: "A seguir",
     recipes_bucket_waiting_for_you: "\xC0 sua espera",
     recipes_card_configure_button: "Configurar",
+    recipes_card_reconfigure_button: "Reconfigurar",
     recipes_card_in_progress_step: "Em curso \xB7 Passo",
     recipes_card_install_button: "Instalar",
     recipes_card_installed_badge: "Instalada",
@@ -15591,6 +15638,7 @@ var pt_default = {
     recipes_details_none_selected_optional: "Nenhum selecionado (opcional)",
     recipes_details_settings_key: "Defini\xE7\xF5es",
     recipes_details_summary: "Detalhes",
+    recipes_details_installed_title: "Detalhes da instala\xE7\xE3o",
     recipes_details_version_key: "Vers\xE3o",
     recipes_details_where_key: "Onde",
     recipes_eyebrow_recipe: "RECEITA",
@@ -15648,6 +15696,8 @@ var pt_default = {
     recipes_list_installed_section: "Receitas instaladas",
     recipes_list_intro:
       "As receitas s\xE3o automa\xE7\xF5es prontas a usar que instala num \xFAnico passo \u2014 um bloqueio contra fugas, uma rotina de hora de dormir, um alerta de tornado. O Selora verifica cada receita em rela\xE7\xE3o aos dispositivos da sua casa e configura-a por si. Escolha uma abaixo para come\xE7ar.",
+    recipes_list_on_this_device: "Instaladas",
+    recipes_list_staged: "Neste dispositivo",
     recipes_list_package_label: "pacote:",
     recipes_list_staged_section: "Ainda n\xE3o instaladas",
     recipes_list_title: "Receitas",
@@ -15826,6 +15876,7 @@ var pt_default = {
     recipes_step_label: "Passo",
     recipes_step_match: "Associar",
     recipes_step_of_5: "de 5",
+    recipes_step_of_4: "de 4",
     recipes_step_overview: "Vis\xE3o geral",
     recipes_step_set_up: "Configurar",
     recipes_step_settings: "Defini\xE7\xF5es",
@@ -15843,6 +15894,7 @@ var pt_default = {
     recipes_uninstall_warn_title:
       "Remover esta integra\xE7\xE3o ir\xE1 quebrar essas receitas.",
     recipes_what_you_need_title: "O que precisa",
+    recipes_works_with: "Compat\xEDvel com",
     recipes_working: "A processar\u2026",
     recipes_role_filter_placeholder: "Filtrar por nome\u2026",
     recipes_role_filter_no_matches: "Nenhuma entidade corresponde ao filtro.",
@@ -16976,6 +17028,8 @@ var ru_default = {
       "\u041E\u0436\u0438\u0434\u0430\u0435\u0442 \u0432\u0430\u0441",
     recipes_card_configure_button:
       "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
+    recipes_card_reconfigure_button:
+      "\u041F\u0435\u0440\u0435\u043D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
     recipes_card_in_progress_step:
       "\u0412 \u043F\u0440\u043E\u0446\u0435\u0441\u0441\u0435 \xB7 \u0428\u0430\u0433",
     recipes_card_install_button:
@@ -17029,6 +17083,8 @@ var ru_default = {
       "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     recipes_details_summary:
       "\u041F\u043E\u0434\u0440\u043E\u0431\u043D\u043E\u0441\u0442\u0438",
+    recipes_details_installed_title:
+      "\u0414\u0435\u0442\u0430\u043B\u0438 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043A\u0438",
     recipes_details_version_key: "\u0412\u0435\u0440\u0441\u0438\u044F",
     recipes_details_where_key: "\u0413\u0434\u0435",
     recipes_eyebrow_recipe: "\u0420\u0415\u0426\u0415\u041F\u0422",
@@ -17112,6 +17168,10 @@ var ru_default = {
       "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435 \u0440\u0435\u0446\u0435\u043F\u0442\u044B",
     recipes_list_intro:
       "\u0420\u0435\u0446\u0435\u043F\u0442\u044B \u2014 \u044D\u0442\u043E \u0433\u043E\u0442\u043E\u0432\u044B\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438, \u043A\u043E\u0442\u043E\u0440\u044B\u0435 \u0432\u044B \u0443\u0441\u0442\u0430\u043D\u0430\u0432\u043B\u0438\u0432\u0430\u0435\u0442\u0435 \u0432 \u043E\u0434\u0438\u043D \u0448\u0430\u0433: \u0431\u043B\u043E\u043A\u0438\u0440\u043E\u0432\u043A\u0430 \u043F\u0440\u0438 \u043F\u0440\u043E\u0442\u0435\u0447\u043A\u0435, \u0440\u0435\u0436\u0438\u043C \u043F\u0435\u0440\u0435\u0434 \u0441\u043D\u043E\u043C, \u043E\u043F\u043E\u0432\u0435\u0449\u0435\u043D\u0438\u0435 \u043E \u0442\u043E\u0440\u043D\u0430\u0434\u043E. Selora \u043F\u0440\u043E\u0432\u0435\u0440\u044F\u0435\u0442 \u043A\u0430\u0436\u0434\u044B\u0439 \u0440\u0435\u0446\u0435\u043F\u0442 \u043F\u043E \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0430\u043C \u0432 \u0432\u0430\u0448\u0435\u043C \u0434\u043E\u043C\u0435, \u0430 \u0437\u0430\u0442\u0435\u043C \u043D\u0430\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0435\u0442 \u0435\u0433\u043E \u0437\u0430 \u0432\u0430\u0441. \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043E\u0434\u0438\u043D \u0438\u0437 \u0432\u0430\u0440\u0438\u0430\u043D\u0442\u043E\u0432 \u043D\u0438\u0436\u0435, \u0447\u0442\u043E\u0431\u044B \u043D\u0430\u0447\u0430\u0442\u044C.",
+    recipes_list_on_this_device:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u044B\u0435",
+    recipes_list_staged:
+      "\u041D\u0430 \u044D\u0442\u043E\u043C \u0443\u0441\u0442\u0440\u043E\u0439\u0441\u0442\u0432\u0435",
     recipes_list_package_label: "\u043F\u0430\u043A\u0435\u0442:",
     recipes_list_staged_section:
       "\u0415\u0449\u0451 \u043D\u0435 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u044B",
@@ -17385,6 +17445,7 @@ var ru_default = {
     recipes_step_match:
       "\u0421\u043E\u043F\u043E\u0441\u0442\u0430\u0432\u0438\u0442\u044C",
     recipes_step_of_5: "\u0438\u0437 5",
+    recipes_step_of_4: "\u0438\u0437 4",
     recipes_step_overview: "\u041E\u0431\u0437\u043E\u0440",
     recipes_step_set_up:
       "\u041D\u0430\u0441\u0442\u0440\u043E\u0438\u0442\u044C",
@@ -17408,6 +17469,8 @@ var ru_default = {
       "\u0423\u0434\u0430\u043B\u0435\u043D\u0438\u0435 \u044D\u0442\u043E\u0439 \u0438\u043D\u0442\u0435\u0433\u0440\u0430\u0446\u0438\u0438 \u043D\u0430\u0440\u0443\u0448\u0438\u0442 \u0440\u0430\u0431\u043E\u0442\u0443 \u044D\u0442\u0438\u0445 \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u0432.",
     recipes_what_you_need_title:
       "\u0427\u0442\u043E \u0432\u0430\u043C \u043D\u0443\u0436\u043D\u043E",
+    recipes_works_with:
+      "\u0420\u0430\u0431\u043E\u0442\u0430\u0435\u0442 \u0441",
     recipes_working:
       "\u0412\u044B\u043F\u043E\u043B\u043D\u0435\u043D\u0438\u0435\u2026",
     recipes_role_filter_placeholder:
@@ -18375,6 +18438,7 @@ var ja_default = {
     recipes_bucket_waiting_for_you:
       "\u3042\u306A\u305F\u306E\u5BFE\u5FDC\u5F85\u3061",
     recipes_card_configure_button: "\u8A2D\u5B9A",
+    recipes_card_reconfigure_button: "\u518D\u8A2D\u5B9A",
     recipes_card_in_progress_step:
       "\u9032\u884C\u4E2D \xB7 \u30B9\u30C6\u30C3\u30D7",
     recipes_card_install_button: "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
@@ -18420,6 +18484,8 @@ var ja_default = {
       "\u672A\u9078\u629E\uFF08\u4EFB\u610F\uFF09",
     recipes_details_settings_key: "\u8A2D\u5B9A",
     recipes_details_summary: "\u8A73\u7D30",
+    recipes_details_installed_title:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u306E\u8A73\u7D30",
     recipes_details_version_key: "\u30D0\u30FC\u30B8\u30E7\u30F3",
     recipes_details_where_key: "\u5834\u6240",
     recipes_eyebrow_recipe: "\u30EC\u30B7\u30D4",
@@ -18490,6 +18556,9 @@ var ja_default = {
       "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u306E\u30EC\u30B7\u30D4",
     recipes_list_intro:
       "\u30EC\u30B7\u30D4\u306F\u3001\u30EF\u30F3\u30B9\u30C6\u30C3\u30D7\u3067\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3067\u304D\u308B\u65E2\u88FD\u306E\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3067\u3059 \u2014 \u6F0F\u6C34\u5BFE\u7B56\u3001\u5C31\u5BDD\u30EB\u30FC\u30C6\u30A3\u30F3\u3001\u7ADC\u5DFB\u30A2\u30E9\u30FC\u30C8\u306A\u3069\u3002Selora \u306F\u5404\u30EC\u30B7\u30D4\u3092\u3054\u81EA\u5B85\u306E\u30C7\u30D0\u30A4\u30B9\u3068\u7167\u5408\u3057\u3001\u914D\u7DDA\u307E\u3067\u884C\u3044\u307E\u3059\u3002\u4E0B\u304B\u30891\u3064\u9078\u3093\u3067\u59CB\u3081\u307E\u3057\u3087\u3046\u3002",
+    recipes_list_on_this_device:
+      "\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F",
+    recipes_list_staged: "\u3053\u306E\u30C7\u30D0\u30A4\u30B9\u4E0A",
     recipes_list_package_label: "\u30D1\u30C3\u30B1\u30FC\u30B8\uFF1A",
     recipes_list_staged_section: "\u672A\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB",
     recipes_list_title: "\u30EC\u30B7\u30D4",
@@ -18708,6 +18777,7 @@ var ja_default = {
     recipes_step_label: "\u30B9\u30C6\u30C3\u30D7",
     recipes_step_match: "\u7167\u5408",
     recipes_step_of_5: "\uFF0F5",
+    recipes_step_of_4: "/ 4",
     recipes_step_overview: "\u6982\u8981",
     recipes_step_set_up: "\u8A2D\u5B9A",
     recipes_step_settings: "\u8A2D\u5B9A",
@@ -18727,6 +18797,7 @@ var ja_default = {
     recipes_uninstall_warn_title:
       "\u3053\u306E\u30A4\u30F3\u30C6\u30B0\u30EC\u30FC\u30B7\u30E7\u30F3\u3092\u524A\u9664\u3059\u308B\u3068\u3001\u305D\u308C\u3089\u306E\u30EC\u30B7\u30D4\u304C\u52D5\u4F5C\u3057\u306A\u304F\u306A\u308A\u307E\u3059\u3002",
     recipes_what_you_need_title: "\u5FC5\u8981\u306A\u3082\u306E",
+    recipes_works_with: "\u5BFE\u5FDC",
     recipes_working: "\u51E6\u7406\u4E2D\u2026",
     recipes_role_filter_placeholder:
       "\u540D\u524D\u3067\u7D5E\u308A\u8FBC\u307F\u2026",
@@ -19631,6 +19702,7 @@ var ko_default = {
     recipes_bucket_up_next: "\uB2E4\uC74C \uCC28\uB840",
     recipes_bucket_waiting_for_you: "\uC0AC\uC6A9\uC790 \uB300\uAE30 \uC911",
     recipes_card_configure_button: "\uAD6C\uC131",
+    recipes_card_reconfigure_button: "\uC7AC\uAD6C\uC131",
     recipes_card_in_progress_step: "\uC9C4\uD589 \uC911 \xB7 \uB2E8\uACC4",
     recipes_card_install_button: "\uC124\uCE58",
     recipes_card_installed_badge: "\uC124\uCE58\uB428",
@@ -19669,6 +19741,7 @@ var ko_default = {
       "\uC120\uD0DD \uC548 \uD568 (\uC120\uD0DD \uC0AC\uD56D)",
     recipes_details_settings_key: "\uC124\uC815",
     recipes_details_summary: "\uC138\uBD80 \uC815\uBCF4",
+    recipes_details_installed_title: "\uC124\uCE58 \uC138\uBD80 \uC815\uBCF4",
     recipes_details_version_key: "\uBC84\uC804",
     recipes_details_where_key: "\uC704\uCE58",
     recipes_eyebrow_recipe: "\uB808\uC2DC\uD53C",
@@ -19735,6 +19808,8 @@ var ko_default = {
     recipes_list_installed_section: "\uC124\uCE58\uB41C \uB808\uC2DC\uD53C",
     recipes_list_intro:
       "\uB808\uC2DC\uD53C\uB294 \uD55C \uB2E8\uACC4\uB85C \uC124\uCE58\uD558\uB294 \uBBF8\uB9AC \uB9CC\uB4E4\uC5B4\uC9C4 \uC790\uB3D9\uD654\uC785\uB2C8\uB2E4 \u2014 \uB204\uC218 \uCC28\uB2E8, \uCDE8\uCE68 \uB8E8\uD2F4, \uD1A0\uB124\uC774\uB3C4 \uACBD\uBCF4 \uB4F1. Selora\uAC00 \uAC01 \uB808\uC2DC\uD53C\uB97C \uC9D1\uC758 \uAE30\uAE30\uC640 \uB300\uC870\uD558\uC5EC \uD655\uC778\uD55C \uB2E4\uC74C \uC0AC\uC6A9\uC790\uB97C \uC704\uD574 \uC5F0\uACB0\uD569\uB2C8\uB2E4. \uC544\uB798\uC5D0\uC11C \uD558\uB098\uB97C \uC120\uD0DD\uD558\uC5EC \uC2DC\uC791\uD558\uC138\uC694.",
+    recipes_list_on_this_device: "\uC124\uCE58\uB428",
+    recipes_list_staged: "\uC774 \uAE30\uAE30\uC5D0 \uC788\uC74C",
     recipes_list_package_label: "\uD328\uD0A4\uC9C0:",
     recipes_list_staged_section: "\uC124\uCE58\uB418\uC9C0 \uC54A\uC74C",
     recipes_list_title: "\uB808\uC2DC\uD53C",
@@ -19930,6 +20005,7 @@ var ko_default = {
     recipes_step_label: "\uB2E8\uACC4",
     recipes_step_match: "\uB9E4\uCE6D",
     recipes_step_of_5: "/ 5",
+    recipes_step_of_4: "/ 4",
     recipes_step_overview: "\uAC1C\uC694",
     recipes_step_set_up: "\uC124\uC815",
     recipes_step_settings: "\uC124\uC815",
@@ -19948,6 +20024,7 @@ var ko_default = {
     recipes_uninstall_warn_title:
       "\uC774 \uD1B5\uD569\uC744 \uC81C\uAC70\uD558\uBA74 \uD574\uB2F9 \uB808\uC2DC\uD53C\uAC00 \uC791\uB3D9\uD558\uC9C0 \uC54A\uAC8C \uB429\uB2C8\uB2E4.",
     recipes_what_you_need_title: "\uD544\uC694\uD55C \uAC83",
+    recipes_works_with: "\uC9C0\uC6D0",
     recipes_working: "\uCC98\uB9AC \uC911\u2026",
     recipes_role_filter_placeholder:
       "\uC774\uB984\uC73C\uB85C \uD544\uD130\u2026",
@@ -20797,6 +20874,7 @@ var zh_Hans_default = {
     recipes_bucket_up_next: "\u63A5\u4E0B\u6765",
     recipes_bucket_waiting_for_you: "\u7B49\u5F85\u60A8\u64CD\u4F5C",
     recipes_card_configure_button: "\u914D\u7F6E",
+    recipes_card_reconfigure_button: "\u91CD\u65B0\u914D\u7F6E",
     recipes_card_in_progress_step: "\u8FDB\u884C\u4E2D \xB7 \u6B65\u9AA4",
     recipes_card_install_button: "\u5B89\u88C5",
     recipes_card_installed_badge: "\u5DF2\u5B89\u88C5",
@@ -20834,6 +20912,7 @@ var zh_Hans_default = {
       "\u672A\u9009\u62E9\uFF08\u53EF\u9009\uFF09",
     recipes_details_settings_key: "\u8BBE\u7F6E",
     recipes_details_summary: "\u8BE6\u60C5",
+    recipes_details_installed_title: "\u5B89\u88C5\u8BE6\u60C5",
     recipes_details_version_key: "\u7248\u672C",
     recipes_details_where_key: "\u4F4D\u7F6E",
     recipes_eyebrow_recipe: "\u914D\u65B9",
@@ -20895,6 +20974,8 @@ var zh_Hans_default = {
     recipes_list_installed_section: "\u5DF2\u5B89\u88C5\u7684\u914D\u65B9",
     recipes_list_intro:
       "\u914D\u65B9\u662F\u60A8\u4E00\u6B65\u5373\u53EF\u5B89\u88C5\u7684\u73B0\u6210\u81EA\u52A8\u5316\u2014\u2014\u6F0F\u6C34\u5C01\u9501\u3001\u5C31\u5BDD\u4F8B\u7A0B\u3001\u9F99\u5377\u98CE\u8B66\u62A5\u3002Selora \u4F1A\u5BF9\u7167\u60A8\u5BB6\u4E2D\u7684\u8BBE\u5907\u6838\u5BF9\u6BCF\u4E2A\u914D\u65B9\uFF0C\u7136\u540E\u4E3A\u60A8\u63A5\u597D\u7EBF\u8DEF\u3002\u5728\u4E0B\u65B9\u9009\u62E9\u4E00\u4E2A\u5373\u53EF\u5F00\u59CB\u3002",
+    recipes_list_on_this_device: "\u5DF2\u5B89\u88C5",
+    recipes_list_staged: "\u5728\u6B64\u8BBE\u5907\u4E0A",
     recipes_list_package_label: "\u5305\uFF1A",
     recipes_list_staged_section: "\u5C1A\u672A\u5B89\u88C5",
     recipes_list_title: "\u914D\u65B9",
@@ -21083,6 +21164,7 @@ var zh_Hans_default = {
     recipes_step_label: "\u6B65\u9AA4",
     recipes_step_match: "\u5339\u914D",
     recipes_step_of_5: "/ 5",
+    recipes_step_of_4: "/ 4",
     recipes_step_overview: "\u6982\u89C8",
     recipes_step_set_up: "\u8BBE\u7F6E",
     recipes_step_settings: "\u8BBE\u7F6E",
@@ -21101,6 +21183,7 @@ var zh_Hans_default = {
       "\u79FB\u9664\u6B64\u96C6\u6210\u5C06\u4F7F\u90A3\u4E9B\u914D\u65B9\u65E0\u6CD5\u6B63\u5E38\u5DE5\u4F5C\u3002",
     recipes_what_you_need_title:
       "\u60A8\u9700\u8981\u51C6\u5907\u7684\u5185\u5BB9",
+    recipes_works_with: "\u517C\u5BB9",
     recipes_working: "\u5904\u7406\u4E2D\u2026",
     recipes_role_filter_placeholder: "\u6309\u540D\u79F0\u7B5B\u9009\u2026",
     recipes_role_filter_no_matches:
@@ -21952,6 +22035,7 @@ var zh_Hant_default = {
     recipes_bucket_up_next: "\u63A5\u4E0B\u4F86",
     recipes_bucket_waiting_for_you: "\u7B49\u5F85\u60A8\u8655\u7406",
     recipes_card_configure_button: "\u8A2D\u5B9A",
+    recipes_card_reconfigure_button: "\u91CD\u65B0\u8A2D\u5B9A",
     recipes_card_in_progress_step: "\u9032\u884C\u4E2D \xB7 \u6B65\u9A5F",
     recipes_card_install_button: "\u5B89\u88DD",
     recipes_card_installed_badge: "\u5DF2\u5B89\u88DD",
@@ -21989,6 +22073,7 @@ var zh_Hant_default = {
       "\u672A\u9078\u64C7\uFF08\u9078\u586B\uFF09",
     recipes_details_settings_key: "\u8A2D\u5B9A",
     recipes_details_summary: "\u8A73\u7D30\u8CC7\u8A0A",
+    recipes_details_installed_title: "\u5B89\u88DD\u8A73\u60C5",
     recipes_details_version_key: "\u7248\u672C",
     recipes_details_where_key: "\u4F4D\u7F6E",
     recipes_eyebrow_recipe: "\u98DF\u8B5C",
@@ -22052,6 +22137,8 @@ var zh_Hant_default = {
     recipes_list_installed_section: "\u5DF2\u5B89\u88DD\u7684\u98DF\u8B5C",
     recipes_list_intro:
       "\u98DF\u8B5C\u662F\u60A8\u53EA\u9700\u4E00\u6B65\u5373\u53EF\u5B89\u88DD\u7684\u73FE\u6210\u81EA\u52D5\u5316\u2014\u2014\u6F0F\u6C34\u9396\u5B9A\u3001\u5C31\u5BE2\u4F8B\u884C\u7A0B\u5E8F\u3001\u9F8D\u6372\u98A8\u8B66\u5831\u3002Selora \u6703\u5C07\u6BCF\u500B\u98DF\u8B5C\u8207\u60A8\u5BB6\u4E2D\u7684\u88DD\u7F6E\u9032\u884C\u6BD4\u5C0D\u6AA2\u67E5\uFF0C\u7136\u5F8C\u70BA\u60A8\u5B8C\u6210\u63A5\u7DDA\u8A2D\u5B9A\u3002\u8ACB\u5728\u4E0B\u65B9\u9078\u64C7\u4E00\u500B\u958B\u59CB\u4F7F\u7528\u3002",
+    recipes_list_on_this_device: "\u5DF2\u5B89\u88DD",
+    recipes_list_staged: "\u5728\u6B64\u88DD\u7F6E\u4E0A",
     recipes_list_package_label: "\u5957\u4EF6\uFF1A",
     recipes_list_staged_section: "\u5C1A\u672A\u5B89\u88DD",
     recipes_list_title: "\u98DF\u8B5C",
@@ -22242,6 +22329,7 @@ var zh_Hant_default = {
     recipes_step_label: "\u6B65\u9A5F",
     recipes_step_match: "\u6BD4\u5C0D",
     recipes_step_of_5: "\uFF0F\u5171 5 \u6B65",
+    recipes_step_of_4: "/ 4",
     recipes_step_overview: "\u7E3D\u89BD",
     recipes_step_set_up: "\u8A2D\u5B9A",
     recipes_step_settings: "\u8A2D\u5B9A",
@@ -22259,6 +22347,7 @@ var zh_Hant_default = {
     recipes_uninstall_warn_title:
       "\u79FB\u9664\u6B64\u6574\u5408\u5C07\u6703\u7834\u58DE\u90A3\u4E9B\u98DF\u8B5C\u3002",
     recipes_what_you_need_title: "\u60A8\u9700\u8981\u7684\u9805\u76EE",
+    recipes_works_with: "\u76F8\u5BB9\u65BC",
     recipes_working: "\u8655\u7406\u4E2D\u2026",
     recipes_role_filter_placeholder: "\u4F9D\u540D\u7A31\u7BE9\u9078\u2026",
     recipes_role_filter_no_matches:
@@ -34645,12 +34734,26 @@ var _STYLE = b2`
         color-mix(in srgb, var(--error-color, #c62828) 28%, transparent);
       border-radius: 8px;
     }
+    /* Section dividers (Featured / All recipes / Installed / On this
+       device). A brighter, larger label with a trailing hairline rule
+       and generous top spacing so the sections read as distinct bands
+       rather than blending into the grid of cards. */
     .recipes-section-title {
-      font-size: var(--selora-fs-md);
-      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: var(--selora-fs-md-lg);
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--secondary-text-color);
+      letter-spacing: 0.12em;
+      color: var(--primary-text-color);
+      margin: 26px 0 2px;
+    }
+    .recipes-section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--divider-color);
     }
     .recipes-header {
       display: flex;
@@ -34807,7 +34910,19 @@ var _STYLE = b2`
       background: var(--secondary-background-color);
       border: 1px solid var(--divider-color);
       font-size: var(--selora-fs-xs);
+      font-family: inherit;
       color: var(--primary-text-color);
+    }
+    /* Chips backed by a live entity open the more-info dialog. */
+    .recipe-details-chip--clickable {
+      cursor: pointer;
+      transition:
+        border-color 120ms ease,
+        background 120ms ease;
+    }
+    .recipe-details-chip--clickable:hover {
+      border-color: var(--selora-accent);
+      background: color-mix(in srgb, var(--selora-accent) 10%, transparent);
     }
     .recipe-details-chip ha-icon {
       --mdc-icon-size: 13px;
@@ -34971,24 +35086,73 @@ var _STYLE = b2`
       box-shadow: 0 6px 20px
         color-mix(in srgb, var(--selora-accent) 10%, transparent);
     }
+    /* The whole card is the click target (no Install button); clicking
+       opens the recipe's Overview. */
+    .catalog-card-clickable {
+      cursor: pointer;
+      text-align: left;
+    }
+    .catalog-card-clickable:focus-visible {
+      outline: 2px solid var(--selora-accent);
+      outline-offset: 2px;
+    }
+    /* While a catalog recipe's bundle downloads after a click. */
+    .catalog-card.is-staging {
+      cursor: progress;
+      opacity: 0.7;
+    }
+    .catalog-card-spinner {
+      --mdc-icon-size: 20px;
+      color: var(--selora-accent);
+      flex-shrink: 0;
+    }
     .catalog-card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
-    .catalog-card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
+    /* Category + Installed pills sit together at the top of the card. */
+    .catalog-card-pills {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: color-mix(in srgb, var(--selora-accent) 16%, transparent);
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    .catalog-card-icon ha-icon {
-      --mdc-icon-size: 24px;
-      color: var(--selora-accent);
+    /* Footer strip of integration brand chips — logo + name, matching
+       the selorahomes.com integrations styling. The logo is an app-icon
+       tile with a thin white ring so a coloured mark reads on any theme;
+       the name gives the context a bare mark lacks. Wraps when a recipe
+       spans several integrations. */
+    .recipe-brands {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .recipe-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 14px 5px 5px;
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+    }
+    .recipe-brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #fff;
+      padding: 2px;
+      box-sizing: border-box;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .recipe-brand-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-text-color);
     }
     .catalog-card-title {
       font-size: 17px;
@@ -35033,13 +35197,33 @@ var _STYLE = b2`
       color: var(--secondary-text-color);
       font-size: 11px;
     }
+    /* The footer (brand strip + actions) is pinned to the card bottom as
+       one unit, so the logos sit directly above the buttons instead of
+       floating mid-card with a gap, and buttons still align across a
+       grid row. */
+    .catalog-card-footer {
+      margin-top: auto;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Actions sit at the bottom, right-aligned; a catalog card's lone
+       Install stretches full-width via .catalog-install-btn, while an
+       installed card's Uninstall / Manage / Configure sit as a
+       natural-width row. */
     .catalog-card-actions {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-end;
-      margin-top: auto;
-      padding-top: 8px;
+      gap: 8px;
+    }
+    .catalog-card-actions .btn {
+      min-width: 104px;
+      justify-content: center;
     }
     .catalog-install-btn {
+      flex: 1 1 100%;
       width: 100%;
       justify-content: center;
     }
@@ -35495,6 +35679,63 @@ var _STYLE = b2`
     }
     .need-card-icon--integration ha-icon {
       color: var(--selora-accent);
+    }
+    /* "Works with <integration>" banner — the recipe's brand marquee,
+       above the requirement cards. Accent-tinted card, logo on a white
+       chip so any coloured mark reads on light or dark themes. */
+    .need-integrations {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .need-integration {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid
+        color-mix(in srgb, var(--selora-accent) 30%, var(--divider-color));
+      background: color-mix(
+        in srgb,
+        var(--selora-accent) 8%,
+        var(--card-background-color)
+      );
+    }
+    .need-integration-logo-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 11px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    }
+    .need-integration-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .need-integration-logo-wrap ha-icon {
+      --mdc-icon-size: 26px;
+      color: var(--selora-accent);
+    }
+    .need-integration-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .need-integration-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      line-height: 1.25;
+      margin-top: 1px;
     }
     .need-card-icon--role {
       background: color-mix(in srgb, #06b6d4 18%, transparent);
@@ -36150,6 +36391,50 @@ var _STYLE = b2`
       min-width: 0;
       max-width: 100%;
       box-sizing: border-box;
+    }
+    /* Bottom action row of the recipe Overview: the "← Back to recipes"
+       link sits at the lower-left, the primary actions (Start setup, or
+       Uninstall / Reconfigure) at the lower-right — same shape whether
+       or not the recipe is installed. */
+    .overview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .overview-actions-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    /* .wizard-back defaults to align-self: flex-start (for the result
+       view where it stands alone); center it here so it lines up with
+       the action buttons on the same row. */
+    .overview-actions .wizard-back {
+      align-self: center;
+    }
+    .overview-actions-hint {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+    }
+    /* Installation-details rendered as a standalone card (Overview),
+       expanded by default rather than a bare disclosure. */
+    .recipe-details-card {
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      padding: 4px 16px 16px;
+      margin-top: 0;
+    }
+    .recipe-details-card > .recipe-details-summary {
+      font-size: var(--selora-fs-md-lg, 15px);
+      font-weight: 700;
+      color: var(--primary-text-color);
+      padding-top: 14px;
     }
     .step-prose {
       margin: 0;
@@ -37461,129 +37746,9 @@ function _renderInstallSourceCard(host) {
     </details>
   `;
 }
-function _renderRecipeCard(host, manifest, installed) {
-  const isInstalled = !!installed;
-  const draftStep = !isInstalled
-    ? host._wizardDraftStep?.(manifest.slug) || 0
-    : 0;
-  const hasDraft = draftStep > 0;
-  return b2`
-    <div class="recipe-card">
-      <div class="recipe-card-row">
-        <div class="recipe-card-body">
-          <div class="recipe-card-title">
-            ${manifest.title}
-            ${
-              isInstalled
-                ? b2`
-                  <span class="recipe-installed-badge">
-                    <ha-icon
-                      icon="mdi:check"
-                      style="--mdc-icon-size:12px;"
-                    ></ha-icon>
-                    ${host._t("recipes_card_installed_badge", "Installed")}
-                  </span>
-                `
-                : ""
-            }
-            ${
-              hasDraft
-                ? b2`
-                  <span class="recipe-draft-badge">
-                    <ha-icon
-                      icon="mdi:pencil-outline"
-                      style="--mdc-icon-size:12px;"
-                    ></ha-icon>
-                    ${host._t(
-                      "recipes_card_in_progress_step",
-                      "In progress \xB7 Step",
-                    )}
-                    ${draftStep}
-                  </span>
-                `
-                : ""
-            }
-          </div>
-          <div class="recipe-card-meta">
-            v${manifest.version}${manifest.author ? ` \xB7 ${manifest.author}` : ""}
-          </div>
-          ${manifest.description && !isInstalled ? b2`<div class="recipe-card-desc">${manifest.description}</div>` : ""}
-        </div>
-        <div class="recipe-card-actions">
-          ${
-            isInstalled
-              ? b2`
-                <button
-                  class="btn btn-outline"
-                  @click=${() => host._uninstallRecipe(manifest.slug)}
-                  ?disabled=${host._recipesBusy}
-                >
-                  ${host._t("recipes_card_uninstall_button", "Uninstall")}
-                </button>
-                ${
-                  manifest.binding_mode === "group"
-                    ? b2`
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => host._openManageDevices(manifest.slug)}
-                        ?disabled=${host._recipesBusy}
-                        title=${host._t(
-                          "recipes_card_manage_devices_title",
-                          "Swap or update the devices this recipe uses without re-running the wizard",
-                        )}
-                      >
-                        ${host._t(
-                          "recipes_card_manage_devices_button",
-                          "Manage devices",
-                        )}
-                      </button>
-                    `
-                    : ""
-                }
-                <button
-                  class="btn btn-primary"
-                  @click=${() => host._openRecipeWizard(manifest.slug)}
-                >
-                  ${host._t("recipes_card_configure_button", "Configure")}
-                </button>
-              `
-              : hasDraft
-                ? b2`
-                  <button
-                    class="btn btn-outline"
-                    @click=${() => host._discardRecipeDraft(manifest.slug)}
-                    ?disabled=${host._recipesBusy}
-                    title=${host._t(
-                      "recipes_card_start_over_title",
-                      "Throw away saved progress and start the wizard from scratch",
-                    )}
-                  >
-                    ${host._t("recipes_card_start_over_button", "Start over")}
-                  </button>
-                  <button
-                    class="btn btn-primary"
-                    @click=${() => host._openRecipeWizard(manifest.slug)}
-                  >
-                    ${host._t("recipes_card_resume_button", "Resume")}
-                  </button>
-                `
-                : b2`
-                  <button
-                    class="btn btn-primary"
-                    @click=${() => host._openRecipeWizard(manifest.slug)}
-                  >
-                    ${host._t("recipes_card_install_button", "Install")}
-                  </button>
-                `
-          }
-        </div>
-      </div>
-      ${isInstalled ? _renderInstalledDetails(host, installed, manifest.description) : ""}
-    </div>
-  `;
-}
-function _renderInstalledDetails(host, record, description) {
+function _renderInstalledDetails(host, record, description, opts = {}) {
   if (!record) return "";
+  const asCard = !!opts.asCard;
   const bindings = record.bindings || {};
   const inputs = record.inputs || {};
   const integrations = record.integrations_installed || {};
@@ -37605,17 +37770,18 @@ function _renderInstalledDetails(host, record, description) {
   };
   return b2`
     <details
-      class="recipe-details"
+      class="recipe-details ${asCard ? "recipe-details-card" : ""}"
+      ?open=${asCard}
       @toggle=${(e6) => {
         if (e6.target.open) host._loadRecipePackage?.(record.slug);
       }}
     >
       <summary class="recipe-details-summary">
         <ha-icon icon="mdi:chevron-down"></ha-icon>
-        ${host._t("recipes_details_summary", "Details")}
+        ${asCard ? host._t("recipes_details_installed_title", "Installation details") : host._t("recipes_details_summary", "Details")}
       </summary>
       ${
-        description
+        !asCard && description
           ? b2`<div class="recipe-card-desc recipe-details-desc">
             ${description}
           </div>`
@@ -37707,14 +37873,35 @@ function _renderInstalledDetails(host, record, description) {
                             "None selected (optional)",
                           )}</span
                         >`
-                        : ents.map(
-                            (id) => b2`<span class="recipe-details-chip">
-                              <ha-icon
-                                icon=${_entityIcon2(host.hass, id)}
-                              ></ha-icon>
-                              ${_entityFriendlyName(host.hass, id)}
-                            </span>`,
-                          )
+                        : ents.map((id) => {
+                            const name = _entityFriendlyName(host.hass, id);
+                            const inner = b2`<ha-icon
+                              icon=${_entityIcon2(host.hass, id)}
+                            ></ha-icon>
+                            ${name}`;
+                            if (!host.hass?.states?.[id]) {
+                              return b2`<span class="recipe-details-chip"
+                              >${inner}</span
+                            >`;
+                            }
+                            return b2`<button
+                            type="button"
+                            class="recipe-details-chip recipe-details-chip--clickable"
+                            title=${`Open ${name} (${id})`}
+                            @click=${(e6) => {
+                              e6.stopPropagation();
+                              host.dispatchEvent(
+                                new CustomEvent("hass-more-info", {
+                                  bubbles: true,
+                                  composed: true,
+                                  detail: { entityId: id },
+                                }),
+                              );
+                            }}
+                          >
+                            ${inner}
+                          </button>`;
+                          })
                     }
                   </div>
                 </div>`;
@@ -37805,13 +37992,22 @@ function _renderListView(host) {
     available.map((m3) => [m3.slug, m3]),
   );
   const installedSlugs = new Set(installed.map((r4) => r4.slug));
-  const installedWithBundle = installed.filter(
-    (r4) => availableBySlug[r4.slug],
-  );
   const onlyInstalled = installed.filter((r4) => !availableBySlug[r4.slug]);
-  const stagedNotInstalled = available.filter(
-    (m3) => !installedSlugs.has(m3.slug),
+  const installedAvailable = available.filter((m3) =>
+    installedSlugs.has(m3.slug),
   );
+  const catalogBySlug = new Map(
+    (host._recipesCatalog?.recipes || []).map((r4) => [r4.slug, r4]),
+  );
+  const catalogSlugs = new Set(catalogBySlug.keys());
+  const stagedLocal = available.filter(
+    (m3) => !installedSlugs.has(m3.slug) && !catalogSlugs.has(m3.slug),
+  );
+  const withCategory = (m3) => {
+    if (m3.category_title) return m3;
+    const cat = catalogBySlug.get(m3.slug)?.category_title;
+    return cat ? { ...m3, category_title: cat } : m3;
+  };
   return b2`
     <div class="recipes-root">
       <div class="recipes-header">
@@ -37845,29 +38041,31 @@ function _renderListView(host) {
         )}
       </p>
 
-      ${_renderCatalogSection(host)}
+      ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
       ${
-        installedWithBundle.length > 0
+        installedAvailable.length > 0
           ? b2`
             <div class="recipes-section-title">
               ${host._t("recipes_list_installed_section", "Installed recipes")}
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${installedWithBundle.map((r4) =>
-                _renderRecipeCard(host, availableBySlug[r4.slug], r4),
+            <div class="catalog-grid">
+              ${installedAvailable.map((m3) =>
+                _renderCatalogCard(host, withCategory(m3), true),
               )}
             </div>
           `
           : ""
       }
       ${
-        stagedNotInstalled.length > 0
+        stagedLocal.length > 0
           ? b2`
             <div class="recipes-section-title">
-              ${host._t("recipes_list_staged_section", "Not yet installed")}
+              ${host._t("recipes_list_staged", "On this device")}
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${stagedNotInstalled.map((m3) => _renderRecipeCard(host, m3, null))}
+            <div class="catalog-grid">
+              ${stagedLocal.map((m3) =>
+                _renderCatalogCard(host, withCategory(m3), false),
+              )}
             </div>
           `
           : ""
@@ -37917,7 +38115,6 @@ function _renderListView(host) {
           `
           : ""
       }
-      ${_renderInstallSourceCard(host)}
     </div>
   `;
 }
@@ -38047,10 +38244,11 @@ function _renderCatalogSection(host) {
 var _CATALOG_PAGE_SIZE = 6;
 function _renderCatalogResults(host, filtered, installedSlugs) {
   const searching = !!(host._recipesCatalogSearch || "").trim();
+  const browseable = filtered.filter((e6) => !installedSlugs.has(e6.slug));
   let featured = [];
-  let rest = filtered;
+  let rest = browseable;
   if (!searching) {
-    const byDate = [...filtered].sort((a3, b3) =>
+    const byDate = [...browseable].sort((a3, b3) =>
       String(b3.released || "").localeCompare(String(a3.released || "")),
     );
     featured = byDate.slice(0, 2);
@@ -38061,7 +38259,7 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   const start = (page - 1) * _CATALOG_PAGE_SIZE;
   const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
   const card = (entry, isFeatured) =>
-    _renderCatalogCard(host, entry, installedSlugs.has(entry.slug), isFeatured);
+    _renderCatalogCard(host, entry, false, isFeatured);
   return b2`
     ${
       featured.length
@@ -38081,7 +38279,7 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
           ${
             !searching
               ? b2`<div class="recipes-section-title">
-                ${host._t("recipes_catalog_all", "All recipes")}
+                ${host._t("recipes_catalog_all", "Available recipes")}
               </div>`
               : ""
           }
@@ -38119,39 +38317,100 @@ function _renderCatalogPagination(host, page, totalPages) {
     </div>
   `;
 }
-var _CATALOG_CATEGORY_ICON = {
-  safety: "mdi:shield-home",
-  security: "mdi:shield-lock",
-  weather: "mdi:weather-partly-snowy-rainy",
-  routine: "mdi:calendar-clock",
-  routines: "mdi:calendar-clock",
-  comfort: "mdi:sofa",
-  energy: "mdi:lightning-bolt",
-  lighting: "mdi:lightbulb-group",
-  presence: "mdi:account-group",
-};
-function _catalogCategoryIcon(entry) {
-  const key = (entry.category || entry.category_title || "").toLowerCase();
-  return _CATALOG_CATEGORY_ICON[key] || "mdi:chef-hat";
+function _recipeIntegrationBrands(entry) {
+  if (Array.isArray(entry.integration_brands)) return entry.integration_brands;
+  const domains = /* @__PURE__ */ new Set();
+  for (const item of [...(entry.required || []), ...(entry.optional || [])]) {
+    if (item && item.integration) domains.add(item.integration);
+  }
+  for (const i7 of entry.integrations || []) {
+    if (i7 && i7.domain) domains.add(i7.domain);
+  }
+  for (const r4 of entry.roles || []) {
+    if (r4 && r4.integration) domains.add(r4.integration);
+  }
+  return [...domains].map((d3) => ({ domain: d3, title: d3 }));
 }
-function _renderCatalogCard(host, entry, alreadyInstalled, featured = false) {
+function _renderRecipeBrandStrip(brands) {
+  if (!brands || !brands.length) return "";
   return b2`
-    <div class="catalog-card ${featured ? "catalog-card-featured" : ""}">
+    <div class="recipe-brands">
+      ${brands.map(
+        (b3) => b2`<span class="recipe-brand" title=${b3.reason || b3.title}>
+            <img
+              class="recipe-brand-logo"
+              src=${`https://brands.home-assistant.io/_/${b3.domain}/icon@2x.png`}
+              alt=""
+              loading="lazy"
+              @error=${(e6) => {
+                e6.target.style.display = "none";
+              }}
+            />
+            <span class="recipe-brand-name">${b3.title}</span>
+          </span>`,
+      )}
+    </div>
+  `;
+}
+function _renderCatalogCard(host, entry, installed, featured = false) {
+  const slug = entry.slug;
+  const staged = (host._recipesList?.available || []).some(
+    (r4) => r4.slug === slug,
+  );
+  const open = () => {
+    if (host._recipesBusy || host._recipesUrlBusy) return;
+    if (installed || staged) {
+      host._openRecipeWizard(slug);
+    } else {
+      host._installFromCatalogEntry(entry);
+    }
+  };
+  const meta = entry.released || entry.author || "";
+  const staging = host._recipesStagingSlug === slug;
+  return b2`
+    <div
+      class="catalog-card catalog-card-clickable ${featured ? "catalog-card-featured" : ""} ${staging ? "is-staging" : ""}"
+      role="button"
+      tabindex="0"
+      aria-busy=${staging ? "true" : "false"}
+      @click=${open}
+      @keydown=${(e6) => {
+        if (e6.key === "Enter" || e6.key === " ") {
+          e6.preventDefault();
+          open();
+        }
+      }}
+    >
       <div class="catalog-card-top">
-        <div class="catalog-card-icon">
-          <ha-icon icon=${_catalogCategoryIcon(entry)}></ha-icon>
+        <div class="catalog-card-pills">
+          ${
+            entry.category_title
+              ? b2`<span class="catalog-card-category"
+                >${entry.category_title}</span
+              >`
+              : ""
+          }
         </div>
         ${
-          entry.category_title
-            ? b2`<span class="catalog-card-category"
-              >${entry.category_title}</span
-            >`
+          staging
+            ? b2`<ha-icon
+              class="catalog-card-spinner icon-spin"
+              icon="mdi:loading"
+            ></ha-icon>`
+            : ""
+        }
+        ${
+          installed
+            ? b2`<span class="catalog-installed-badge">
+              <ha-icon icon="mdi:check"></ha-icon>
+              ${host._t("recipes_card_installed_badge", "Installed")}
+            </span>`
             : ""
         }
       </div>
       <div class="catalog-card-title">${entry.title}</div>
       <div class="catalog-card-meta">
-        v${entry.version}${entry.released ? ` \xB7 ${entry.released}` : ""}
+        v${entry.version}${meta ? ` \xB7 ${meta}` : ""}
       </div>
       ${entry.description ? b2`<div class="catalog-card-desc">${entry.description}</div>` : ""}
       ${
@@ -38163,22 +38422,13 @@ function _renderCatalogCard(host, entry, alreadyInstalled, featured = false) {
           </div>`
           : ""
       }
-      <div class="catalog-card-actions">
-        ${
-          alreadyInstalled
-            ? b2`<span class="catalog-installed-badge">
-              <ha-icon icon="mdi:check"></ha-icon>
-              ${host._t("recipes_card_installed_badge", "Installed")}
-            </span>`
-            : b2`<button
-              class="btn btn-primary catalog-install-btn"
-              @click=${() => host._installFromCatalogEntry(entry)}
-              ?disabled=${host._recipesBusy || host._recipesUrlBusy}
-            >
-              ${host._t("recipes_card_install_button", "Install")}
-            </button>`
-        }
-      </div>
+      ${
+        _recipeIntegrationBrands(entry).length
+          ? b2`<div class="catalog-card-footer">
+            ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
+          </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -39072,25 +39322,29 @@ function _renderWhatYouNeedRail(host, manifest) {
   const required = roles.filter((r4) => (r4.min_count || 0) > 0);
   const optional = roles.filter((r4) => (r4.min_count || 0) === 0);
   const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
+  const brandMap = /* @__PURE__ */ new Map();
+  for (const i7 of integrations) {
+    if (i7.domain) brandMap.set(i7.domain, i7.title || i7.domain);
+  }
+  for (const r4 of roles) {
+    if (r4.integration && !brandMap.has(r4.integration)) {
+      brandMap.set(r4.integration, r4.integration_title || r4.integration);
+    }
+  }
+  const brands = [...brandMap].map(([domain, title]) => ({ domain, title }));
   return b2`
     <aside class="need-rail">
       <div class="need-rail-title">
         ${host._t("recipes_what_you_need_title", "What you need")}
       </div>
+      ${
+        brands.length
+          ? b2`<div class="need-integrations">
+            ${brands.map((b3) => _renderIntegrationBanner(host, b3))}
+          </div>`
+          : ""
+      }
       <div class="need-rail-list">
-        ${integrations.map(
-          (i7) => b2`
-            <div class="need-card">
-              <div class="need-card-icon need-card-icon--integration">
-                <ha-icon icon="mdi:puzzle-outline"></ha-icon>
-              </div>
-              <div class="need-card-body">
-                <div class="need-card-title">${i7.title || i7.domain}</div>
-                ${i7.title && i7.title !== i7.domain ? b2`<div class="need-card-meta">${i7.domain}</div>` : ""}
-              </div>
-            </div>
-          `,
-        )}
         ${required.map((r4) => _renderNeedRoleCard(r4, hasPin(r4)))}
         ${
           optional.length
@@ -39104,6 +39358,34 @@ function _renderWhatYouNeedRail(host, manifest) {
         }
       </div>
     </aside>
+  `;
+}
+function _renderIntegrationBanner(host, brand) {
+  const iconUrl = `https://brands.home-assistant.io/_/${brand.domain}/icon@2x.png`;
+  return b2`
+    <div class="need-integration">
+      <div class="need-integration-logo-wrap">
+        <img
+          class="need-integration-logo"
+          src=${iconUrl}
+          alt=""
+          loading="lazy"
+          @error=${(e6) => {
+            const img = e6.target;
+            img.style.display = "none";
+            const fb = img.nextElementSibling;
+            if (fb) fb.style.display = "";
+          }}
+        />
+        <ha-icon icon="mdi:puzzle-outline" style="display:none"></ha-icon>
+      </div>
+      <div class="need-integration-text">
+        <div class="need-integration-eyebrow">
+          ${host._t("recipes_works_with", "Works with")}
+        </div>
+        <div class="need-integration-name">${brand.title}</div>
+      </div>
+    </div>
   `;
 }
 function _renderNeedRoleCard(role, pinned) {
@@ -39123,17 +39405,23 @@ function _renderNeedRoleCard(role, pinned) {
 }
 function _renderWizardStepper(host) {
   const current = host._recipeWizardStep || 1;
+  const labels = _stepLabels(host).slice(1);
   return b2`
     <aside class="step-rail">
       <div class="step-rail-title">
         ${host._t("recipes_progress_title", "Progress")}
       </div>
       <div class="step-rail-list">
-        ${_stepLabels(host).map((label, idx) => {
+        ${labels.map((label, idx) => {
+          const internalStep = idx + 2;
           const step = idx + 1;
           const state =
-            step < current ? "done" : step === current ? "current" : "future";
-          const clickable = step < current;
+            internalStep < current
+              ? "done"
+              : internalStep === current
+                ? "current"
+                : "future";
+          const clickable = internalStep < current;
           const icon =
             state === "done"
               ? "mdi:check-circle"
@@ -39145,7 +39433,7 @@ function _renderWizardStepper(host) {
               class="step-rail-row step-${state}"
               type="button"
               ?disabled=${!clickable}
-              @click=${() => clickable && host._jumpToRecipeStep(step)}
+              @click=${() => clickable && host._jumpToRecipeStep(internalStep)}
             >
               <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
               <span class="step-rail-num">${step}</span>
@@ -39290,6 +39578,56 @@ function _renderWizardHero(host, manifest, opts) {
 }
 function _renderStep1Overview(host) {
   const { manifest } = host._recipeWizardDetail;
+  const backLink = b2`<button
+    class="wizard-back"
+    @click=${() => host._closeRecipeWizard()}
+  >
+    <ha-icon icon="mdi:arrow-left"></ha-icon>
+    ${host._t("recipes_back_to_recipes", "Back to recipes")}
+  </button>`;
+  const record = (host._recipesList?.installed || []).find(
+    (r4) => r4.slug === manifest.slug,
+  );
+  if (record) {
+    return b2`
+      <div class="step-pane">
+        ${_renderInstalledDetails(host, record, null, { asCard: true })}
+        <div class="overview-actions">
+          ${backLink}
+          <div class="overview-actions-group">
+            ${
+              manifest.binding_mode === "group"
+                ? b2`<button
+                  class="btn btn-outline"
+                  @click=${() => host._openManageDevices(manifest.slug)}
+                  ?disabled=${host._recipesBusy}
+                >
+                  ${host._t(
+                    "recipes_card_manage_devices_button",
+                    "Manage devices",
+                  )}
+                </button>`
+                : ""
+            }
+            <button
+              class="btn btn-outline"
+              @click=${() => host._uninstallRecipe(manifest.slug)}
+              ?disabled=${host._recipesBusy}
+            >
+              ${host._t("recipes_card_uninstall_button", "Uninstall")}
+            </button>
+            <button
+              class="btn btn-primary"
+              @click=${() => host._advanceRecipeStep()}
+              ?disabled=${host._recipesBusy}
+            >
+              ${host._t("recipes_card_reconfigure_button", "Reconfigure")}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   const preview = host._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
@@ -39316,27 +39654,37 @@ function _renderStep1Overview(host) {
           `
           : ""
       }
-      ${_renderWizardFooter(host, {
-        primary: {
-          label: host._t("recipes_start_setup_button", "Start setup"),
-          icon: "mdi:arrow-right",
-          onClick: () => host._advanceRecipeStep(),
-        },
-        primaryDisabled: !host._canAdvanceFromStep(1) || host._recipesBusy,
-        hint: host._recipesBusy
-          ? host._t("recipes_loading_recipe", "Loading recipe\u2026")
-          : "",
-      })}
+      <div class="overview-actions">
+        ${backLink}
+        <div class="overview-actions-group">
+          ${
+            host._recipesBusy
+              ? b2`<span class="overview-actions-hint"
+                >${host._t("recipes_loading_recipe", "Loading recipe\u2026")}</span
+              >`
+              : ""
+          }
+          <button
+            class="btn btn-primary"
+            @click=${() => host._advanceRecipeStep()}
+            ?disabled=${!host._canAdvanceFromStep(1) || host._recipesBusy}
+          >
+            ${host._t("recipes_start_setup_button", "Start setup")}
+            <ha-icon icon="mdi:arrow-right"></ha-icon>
+          </button>
+        </div>
+      </div>
     </div>
   `;
 }
 function _renderStepHeading(host, stepNum, label, subline, required) {
+  const displayNum = stepNum - 1;
   return b2`
     <header class="step-heading">
       <div class="step-heading-eyebrow">
         <span class="step-heading-num"
-          >${host._t("recipes_step_label", "Step")} ${stepNum}
-          ${host._t("recipes_step_of_5", "of 5")}</span
+          >${host._t("recipes_step_label", "Step")} ${displayNum}
+          ${host._t("recipes_step_of_4", "of 4")}</span
         >
         ${
           required === false
@@ -43250,6 +43598,9 @@ var SeloraAIPanel = class extends i4 {
       // Install-source card (URL fetch + drag-and-drop upload).
       _recipesUrl: { type: String },
       _recipesUrlBusy: { type: Boolean },
+      // Slug of the catalog recipe currently being staged (downloaded)
+      // after a card click, so its card can show a loading spinner.
+      _recipesStagingSlug: { type: String },
       _recipesUploadBusy: { type: Boolean },
       _recipesDragOver: { type: Boolean },
       _recipesInstallError: { type: String },
@@ -43500,6 +43851,7 @@ var SeloraAIPanel = class extends i4 {
     this._recipeWizardResult = null;
     this._recipesUrl = "";
     this._recipesUrlBusy = false;
+    this._recipesStagingSlug = null;
     this._recipesUploadBusy = false;
     this._recipesDragOver = false;
     this._recipesInstallError = null;
@@ -45361,9 +45713,22 @@ var SeloraAIPanel = class extends i4 {
   }
   async _loadRecipesCatalog(force = false) {
     this._recipesCatalogError = null;
+    const override = this._catalogUrlOverride();
+    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}`;
+    if (!this._recipesCatalog?.recipes?.length) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+        if (cached?.recipes?.length) {
+          this._recipesCatalog = {
+            recipes: cached.recipes,
+            installed_slugs: new Set(cached.installed_slugs || []),
+            generated_at: cached.generated_at || "",
+          };
+        }
+      } catch {}
+    }
     if (!force && this._recipesCatalog?.recipes?.length) return;
     this._recipesCatalogBusy = true;
-    const override = this._catalogUrlOverride();
     try {
       const result = await this.hass.callWS({
         type: "selora_ai/recipes/catalog",
@@ -45375,10 +45740,19 @@ var SeloraAIPanel = class extends i4 {
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
       };
+      try {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            recipes: result.recipes || [],
+            installed_slugs: result.installed_slugs || [],
+            generated_at: result.generated_at || "",
+          }),
+        );
+      } catch {}
     } catch (err) {
       this._recipesCatalogError =
         err?.message || err?.error || String(err) || "Catalog unavailable";
-      this._recipesCatalog = null;
     } finally {
       this._recipesCatalogBusy = false;
     }
@@ -45434,8 +45808,13 @@ var SeloraAIPanel = class extends i4 {
   // the "paste a URL" install card, just pre-filled.
   async _installFromCatalogEntry(entry) {
     if (!entry?.package_url || this._recipesBusy) return;
+    this._recipesStagingSlug = entry.slug || null;
     this._recipesUrl = entry.package_url;
-    await this._installRecipeFromUrl();
+    try {
+      await this._installRecipeFromUrl();
+    } finally {
+      this._recipesStagingSlug = null;
+    }
   }
   // Deep-link entry point (marketing site → /selora-ai/recipes/<slug>).
   // The bundle may not be on disk yet — if the slug isn't staged
@@ -45450,9 +45829,13 @@ var SeloraAIPanel = class extends i4 {
       return;
     }
     await this._loadRecipesCatalog();
-    const entry = (this._recipesCatalog?.recipes || []).find(
-      (r4) => r4.slug === slug,
-    );
+    const find = () =>
+      (this._recipesCatalog?.recipes || []).find((r4) => r4.slug === slug);
+    let entry = find();
+    if (!entry) {
+      await this._loadRecipesCatalog(true);
+      entry = find();
+    }
     if (entry?.package_url) {
       await this._installFromCatalogEntry(entry);
       return;
@@ -45484,6 +45867,9 @@ var SeloraAIPanel = class extends i4 {
       this._recipeWizardDetail = detail;
       if (detail.manifest?.dashboard) {
         this._fetchRecipeDashboards();
+      }
+      if ((this._recipesList?.installed || []).some((r4) => r4.slug === slug)) {
+        this._loadRecipePackage(slug);
       }
       const seeded = {};
       for (const input of detail.manifest?.inputs || []) {

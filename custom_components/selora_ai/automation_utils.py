@@ -1149,8 +1149,9 @@ def _resolve_tts_engine(hass: HomeAssistant, *, prefer: str | None = None) -> st
     """Pick a usable TTS engine entity for ``tts.speak``. When ``prefer`` is
     given (the provider of a legacy ``tts.<provider>_say`` service), return an
     engine that belongs to that provider so canonicalization keeps the original
-    voice. Else prefer HA Cloud, then Piper, then Google, else the first usable
-    ``tts.*`` entity.
+    voice. Else prefer Piper, then Google, else the first usable ``tts.*``
+    entity. HA Cloud (Nabu Casa) is a competitor, so it's never preferred —
+    only used as a last-resort fallback when it's the sole usable engine.
 
     Only *usable* engines are considered (:func:`_tts_engine_usable`): a cloud
     engine present without an active Nabu Casa subscription is skipped, since it
@@ -1165,10 +1166,16 @@ def _resolve_tts_engine(hass: HomeAssistant, *, prefer: str | None = None) -> st
         for eid in usable:
             if _engine_matches_provider(eid, prefer):
                 return eid
-    for preferred in ("cloud", "piper", "google"):
+    for preferred in ("piper", "google"):
         for eid in usable:
             if preferred in eid:
                 return eid
+    # Cloud is a competitor → never chosen while any other usable engine
+    # exists (e.g. tts.microsoft), even though the sorted list might put
+    # it first. Fall back to cloud only when it's the sole usable engine.
+    for eid in usable:
+        if not _is_ha_cloud_engine(eid):
+            return eid
     return usable[0]
 
 

@@ -265,6 +265,9 @@ class SeloraAIPanel extends LitElement {
       // Install-source card (URL fetch + drag-and-drop upload).
       _recipesUrl: { type: String },
       _recipesUrlBusy: { type: Boolean },
+      // Slug of the catalog recipe currently being staged (downloaded)
+      // after a card click, so its card can show a loading spinner.
+      _recipesStagingSlug: { type: String },
       _recipesUploadBusy: { type: Boolean },
       _recipesDragOver: { type: Boolean },
       _recipesInstallError: { type: String },
@@ -552,6 +555,7 @@ class SeloraAIPanel extends LitElement {
     this._recipeWizardResult = null;
     this._recipesUrl = "";
     this._recipesUrlBusy = false;
+    this._recipesStagingSlug = null;
     this._recipesUploadBusy = false;
     this._recipesDragOver = false;
     this._recipesInstallError = null;
@@ -2776,13 +2780,35 @@ class SeloraAIPanel extends LitElement {
 
   async _loadRecipesCatalog(force = false) {
     this._recipesCatalogError = null;
-    if (!force && this._recipesCatalog?.recipes?.length) return;
-    this._recipesCatalogBusy = true;
     // Honour a per-browser catalog URL override stored in localStorage.
     // Dev workflow: set this once to ``http://localhost:1313/api/recipes.json``
     // (or any staging URL) and the catalog fetches against it without
     // touching the HA env or restarting the integration.
     const override = this._catalogUrlOverride();
+    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}`;
+    // Hydrate from the last good catalog so category pills + section
+    // grouping render immediately — even across reloads and while a
+    // slow/unreachable endpoint (e.g. a dev Hugo server) is fetching.
+    // Installed cards borrow their category from the catalog by slug,
+    // so without this they'd lose it whenever the fetch is pending.
+    if (!this._recipesCatalog?.recipes?.length) {
+      try {
+        const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
+        if (cached?.recipes?.length) {
+          this._recipesCatalog = {
+            recipes: cached.recipes,
+            installed_slugs: new Set(cached.installed_slugs || []),
+            generated_at: cached.generated_at || "",
+          };
+        }
+      } catch {
+        /* corrupt cache — ignore and fetch fresh */
+      }
+    }
+    // Non-forced loads are content with the cached/in-memory catalog;
+    // only an explicit "Check for updates" (force) hits the network.
+    if (!force && this._recipesCatalog?.recipes?.length) return;
+    this._recipesCatalogBusy = true;
     try {
       const result = await this.hass.callWS({
         type: "selora_ai/recipes/catalog",
@@ -2794,10 +2820,23 @@ class SeloraAIPanel extends LitElement {
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
       };
+      try {
+        localStorage.setItem(
+          cacheKey,
+          JSON.stringify({
+            recipes: result.recipes || [],
+            installed_slugs: result.installed_slugs || [],
+            generated_at: result.generated_at || "",
+          }),
+        );
+      } catch {
+        /* storage full / disabled — non-fatal */
+      }
     } catch (err) {
       this._recipesCatalogError =
         err?.message || err?.error || String(err) || "Catalog unavailable";
-      this._recipesCatalog = null;
+      // Keep any cached/previous catalog so a failed refresh doesn't wipe
+      // categories and mis-sort the list; only clear if we never had one.
     } finally {
       this._recipesCatalogBusy = false;
     }
@@ -2860,8 +2899,15 @@ class SeloraAIPanel extends LitElement {
   // the "paste a URL" install card, just pre-filled.
   async _installFromCatalogEntry(entry) {
     if (!entry?.package_url || this._recipesBusy) return;
+    // Surfaced on the clicked card as a spinner while the bundle
+    // downloads; cleared once the wizard opens (or on failure).
+    this._recipesStagingSlug = entry.slug || null;
     this._recipesUrl = entry.package_url;
-    await this._installRecipeFromUrl();
+    try {
+      await this._installRecipeFromUrl();
+    } finally {
+      this._recipesStagingSlug = null;
+    }
   }
 
   // Deep-link entry point (marketing site → /selora-ai/recipes/<slug>).
@@ -2878,9 +2924,16 @@ class SeloraAIPanel extends LitElement {
     }
     // Not on disk — stage it from the catalog by slug.
     await this._loadRecipesCatalog();
-    const entry = (this._recipesCatalog?.recipes || []).find(
-      (r) => r.slug === slug,
-    );
+    const find = () =>
+      (this._recipesCatalog?.recipes || []).find((r) => r.slug === slug);
+    let entry = find();
+    // The cached catalog may predate a recipe this deep link points at
+    // (marketing links to freshly-published recipes). Force a fresh
+    // fetch and re-check before falling through to the error path.
+    if (!entry) {
+      await this._loadRecipesCatalog(true);
+      entry = find();
+    }
     if (entry?.package_url) {
       // _installFromCatalogEntry stages the tarball then opens the
       // wizard for the staged slug on success.
@@ -2926,6 +2979,14 @@ class SeloraAIPanel extends LitElement {
       // list for the "which dashboard?" picker. Fetch once, lazily.
       if (detail.manifest?.dashboard) {
         this._fetchRecipeDashboards();
+      }
+      // Installed recipe → the Overview shows an always-open
+      // "Installation details" card. Load its package data now so the
+      // created-counts and YAML are present on first render; a
+      // default-open <details> never fires the `toggle` event that
+      // would otherwise trigger the fetch.
+      if ((this._recipesList?.installed || []).some((r) => r.slug === slug)) {
+        this._loadRecipePackage(slug);
       }
       // Seed wizard inputs with manifest defaults so the form has
       // sensible starting values and the preview WS sees concrete data

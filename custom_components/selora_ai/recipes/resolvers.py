@@ -133,10 +133,13 @@ async def _resolve_hass_longitude(hass: HomeAssistant) -> float:
 # ── TTS engine resolver ────────────────────────────────────────────
 
 
-# Order of preference when several TTS engines are configured. Mirrors
-# automation_utils._resolve_tts_engine so a recipe announcement and an
-# LLM-generated announcement land on the same engine for a given home.
-_TTS_ENGINE_PREFERENCE = ("cloud", "piper", "google")
+# Order of preference when several TTS engines are configured. Local /
+# open engines first — Home Assistant Cloud (Nabu Casa) is a competitor,
+# so it's never *preferred*, only used as a last-resort fallback (and
+# only when actually usable). Mirrors automation_utils._resolve_tts_engine
+# so a recipe announcement and an LLM-generated announcement land on the
+# same engine for a given home.
+_TTS_ENGINE_PREFERENCE = ("piper", "google")
 
 
 async def _resolve_tts_engine(hass: HomeAssistant) -> str:
@@ -145,24 +148,45 @@ async def _resolve_tts_engine(hass: HomeAssistant) -> str:
     Recipes used to hard-code ``tts.cloud_say``, which only exists with a
     paid Home Assistant Cloud (Nabu Casa) subscription — on every other home
     the announcement passed its trigger but called nothing. Resolving the
-    engine from the home's actual ``tts.*`` entities (prefer HA Cloud, then
-    Piper, then Google, else the first available) lets the template emit a
-    portable ``tts.speak`` call that works regardless of subscription.
+    engine from the home's *usable* ``tts.*`` entities (prefer Piper, then
+    Google, else the first usable) lets the template emit a portable
+    ``tts.speak`` call that works regardless of subscription.
 
-    Returns the engine entity_id, or ``""`` when the home has no TTS engine
-    configured. The empty string is intentional, not a :class:`ResolverError`:
+    Only usable engines are considered: HA Cloud reports ``available`` even
+    without an active subscription but fails at call time, so it's filtered
+    out unless the home actually has a subscription — and even then it's
+    never preferred over a local engine (it's a competitor). Homeowners can
+    still change the engine after install; this is just the default pick.
+
+    Returns the engine entity_id, or ``""`` when the home has no usable TTS
+    engine. The empty string is intentional, not a :class:`ResolverError`:
     a home without TTS should still get the rest of the recipe (siren, push
     notification), so the template guards the announcement on a non-empty
     value and simply omits it rather than halting the whole install.
     """
-    tts_entities = sorted(hass.states.async_entity_ids("tts"))
-    if not tts_entities:
+    # Lazy import: automation_utils is heavy and pulls HA helpers; keep it
+    # off the module-load path for the recipes package.
+    from ..automation_utils import (  # noqa: PLC0415
+        _is_ha_cloud_engine,
+        _tts_engine_usable,
+    )
+
+    usable = [
+        eid for eid in sorted(hass.states.async_entity_ids("tts")) if _tts_engine_usable(hass, eid)
+    ]
+    if not usable:
         return ""
     for preferred in _TTS_ENGINE_PREFERENCE:
-        for eid in tts_entities:
+        for eid in usable:
             if preferred in eid:
                 return eid
-    return tts_entities[0]
+    # Cloud is a competitor → never chosen while any other usable engine
+    # exists (e.g. tts.microsoft); sorted order could otherwise put it
+    # first. Fall back to cloud only when it's the sole usable engine.
+    for eid in usable:
+        if not _is_ha_cloud_engine(eid):
+            return eid
+    return usable[0]
 
 
 # ── Registry ───────────────────────────────────────────────────────

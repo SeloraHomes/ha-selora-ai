@@ -2961,8 +2961,27 @@ class TestSpokenPlayMediaRewrite:
         assert _looks_like_spoken_text(value) is False
 
     # -- TTS engine resolution --------------------------------------------
-    def test_resolve_engine_prefers_cloud(self) -> None:
+    def test_resolve_engine_prefers_piper_over_cloud(self) -> None:
+        # HA Cloud (Nabu Casa) is a competitor — never preferred over a
+        # local engine, even when it has an active subscription.
+        self._cloud_active = True
         hass = self._hass(tts_entities=["tts.piper", "tts.home_assistant_cloud"])
+        assert _resolve_tts_engine(hass) == "tts.piper"
+
+    def test_resolve_engine_other_beats_cloud(self) -> None:
+        # A usable non-Piper/Google engine wins over cloud even though the
+        # sorted list puts "home_assistant_cloud" first.
+        self._cloud_active = True
+        hass = self._hass(
+            tts_entities=["tts.home_assistant_cloud", "tts.microsoft"]
+        )
+        assert _resolve_tts_engine(hass) == "tts.microsoft"
+
+    def test_resolve_engine_cloud_only_last_resort(self) -> None:
+        # Subscribed cloud-only home still gets an engine — cloud is the
+        # fallback when there's no local engine to prefer.
+        self._cloud_active = True
+        hass = self._hass(tts_entities=["tts.home_assistant_cloud"])
         assert _resolve_tts_engine(hass) == "tts.home_assistant_cloud"
 
     def test_resolve_engine_none_when_no_tts(self) -> None:

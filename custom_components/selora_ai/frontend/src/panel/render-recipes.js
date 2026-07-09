@@ -449,12 +449,26 @@ const _STYLE = html`
         color-mix(in srgb, var(--error-color, #c62828) 28%, transparent);
       border-radius: 8px;
     }
+    /* Section dividers (Featured / All recipes / Installed / On this
+       device). A brighter, larger label with a trailing hairline rule
+       and generous top spacing so the sections read as distinct bands
+       rather than blending into the grid of cards. */
     .recipes-section-title {
-      font-size: var(--selora-fs-md);
-      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      font-size: var(--selora-fs-md-lg);
+      font-weight: 800;
       text-transform: uppercase;
-      letter-spacing: 0.04em;
-      color: var(--secondary-text-color);
+      letter-spacing: 0.12em;
+      color: var(--primary-text-color);
+      margin: 26px 0 2px;
+    }
+    .recipes-section-title::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: var(--divider-color);
     }
     .recipes-header {
       display: flex;
@@ -611,7 +625,19 @@ const _STYLE = html`
       background: var(--secondary-background-color);
       border: 1px solid var(--divider-color);
       font-size: var(--selora-fs-xs);
+      font-family: inherit;
       color: var(--primary-text-color);
+    }
+    /* Chips backed by a live entity open the more-info dialog. */
+    .recipe-details-chip--clickable {
+      cursor: pointer;
+      transition:
+        border-color 120ms ease,
+        background 120ms ease;
+    }
+    .recipe-details-chip--clickable:hover {
+      border-color: var(--selora-accent);
+      background: color-mix(in srgb, var(--selora-accent) 10%, transparent);
     }
     .recipe-details-chip ha-icon {
       --mdc-icon-size: 13px;
@@ -775,24 +801,73 @@ const _STYLE = html`
       box-shadow: 0 6px 20px
         color-mix(in srgb, var(--selora-accent) 10%, transparent);
     }
+    /* The whole card is the click target (no Install button); clicking
+       opens the recipe's Overview. */
+    .catalog-card-clickable {
+      cursor: pointer;
+      text-align: left;
+    }
+    .catalog-card-clickable:focus-visible {
+      outline: 2px solid var(--selora-accent);
+      outline-offset: 2px;
+    }
+    /* While a catalog recipe's bundle downloads after a click. */
+    .catalog-card.is-staging {
+      cursor: progress;
+      opacity: 0.7;
+    }
+    .catalog-card-spinner {
+      --mdc-icon-size: 20px;
+      color: var(--selora-accent);
+      flex-shrink: 0;
+    }
     .catalog-card-top {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 8px;
     }
-    .catalog-card-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 11px;
+    /* Category + Installed pills sit together at the top of the card. */
+    .catalog-card-pills {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: color-mix(in srgb, var(--selora-accent) 16%, transparent);
+      flex-wrap: wrap;
+      gap: 6px;
     }
-    .catalog-card-icon ha-icon {
-      --mdc-icon-size: 24px;
-      color: var(--selora-accent);
+    /* Footer strip of integration brand chips — logo + name, matching
+       the selorahomes.com integrations styling. The logo is an app-icon
+       tile with a thin white ring so a coloured mark reads on any theme;
+       the name gives the context a bare mark lacks. Wraps when a recipe
+       spans several integrations. */
+    .recipe-brands {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .recipe-brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 5px 14px 5px 5px;
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      border: 1px solid var(--divider-color);
+    }
+    .recipe-brand-logo {
+      width: 34px;
+      height: 34px;
+      border-radius: 8px;
+      background: #fff;
+      padding: 2px;
+      box-sizing: border-box;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .recipe-brand-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--primary-text-color);
     }
     .catalog-card-title {
       font-size: 17px;
@@ -837,13 +912,33 @@ const _STYLE = html`
       color: var(--secondary-text-color);
       font-size: 11px;
     }
+    /* The footer (brand strip + actions) is pinned to the card bottom as
+       one unit, so the logos sit directly above the buttons instead of
+       floating mid-card with a gap, and buttons still align across a
+       grid row. */
+    .catalog-card-footer {
+      margin-top: auto;
+      padding-top: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    /* Actions sit at the bottom, right-aligned; a catalog card's lone
+       Install stretches full-width via .catalog-install-btn, while an
+       installed card's Uninstall / Manage / Configure sit as a
+       natural-width row. */
     .catalog-card-actions {
       display: flex;
+      flex-wrap: wrap;
       justify-content: flex-end;
-      margin-top: auto;
-      padding-top: 8px;
+      gap: 8px;
+    }
+    .catalog-card-actions .btn {
+      min-width: 104px;
+      justify-content: center;
     }
     .catalog-install-btn {
+      flex: 1 1 100%;
       width: 100%;
       justify-content: center;
     }
@@ -1299,6 +1394,63 @@ const _STYLE = html`
     }
     .need-card-icon--integration ha-icon {
       color: var(--selora-accent);
+    }
+    /* "Works with <integration>" banner — the recipe's brand marquee,
+       above the requirement cards. Accent-tinted card, logo on a white
+       chip so any coloured mark reads on light or dark themes. */
+    .need-integrations {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .need-integration {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid
+        color-mix(in srgb, var(--selora-accent) 30%, var(--divider-color));
+      background: color-mix(
+        in srgb,
+        var(--selora-accent) 8%,
+        var(--card-background-color)
+      );
+    }
+    .need-integration-logo-wrap {
+      width: 46px;
+      height: 46px;
+      border-radius: 11px;
+      background: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.18);
+    }
+    .need-integration-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+    }
+    .need-integration-logo-wrap ha-icon {
+      --mdc-icon-size: 26px;
+      color: var(--selora-accent);
+    }
+    .need-integration-eyebrow {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--secondary-text-color);
+    }
+    .need-integration-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--primary-text-color);
+      line-height: 1.25;
+      margin-top: 1px;
     }
     .need-card-icon--role {
       background: color-mix(in srgb, #06b6d4 18%, transparent);
@@ -1954,6 +2106,50 @@ const _STYLE = html`
       min-width: 0;
       max-width: 100%;
       box-sizing: border-box;
+    }
+    /* Bottom action row of the recipe Overview: the "← Back to recipes"
+       link sits at the lower-left, the primary actions (Start setup, or
+       Uninstall / Reconfigure) at the lower-right — same shape whether
+       or not the recipe is installed. */
+    .overview-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    .overview-actions-group {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin-left: auto;
+    }
+    /* .wizard-back defaults to align-self: flex-start (for the result
+       view where it stands alone); center it here so it lines up with
+       the action buttons on the same row. */
+    .overview-actions .wizard-back {
+      align-self: center;
+    }
+    .overview-actions-hint {
+      font-size: var(--selora-fs-sm);
+      color: var(--secondary-text-color);
+    }
+    /* Installation-details rendered as a standalone card (Overview),
+       expanded by default rather than a bare disclosure. */
+    .recipe-details-card {
+      border: 1px solid var(--divider-color);
+      border-radius: 12px;
+      background: var(--secondary-background-color);
+      padding: 4px 16px 16px;
+      margin-top: 0;
+    }
+    .recipe-details-card > .recipe-details-summary {
+      font-size: var(--selora-fs-md-lg, 15px);
+      font-weight: 700;
+      color: var(--primary-text-color);
+      padding-top: 14px;
     }
     .step-prose {
       margin: 0;
@@ -3273,133 +3469,16 @@ function _renderInstallSourceCard(host) {
 
 // ── List view ──────────────────────────────────────────────────────
 
-function _renderRecipeCard(host, manifest, installed) {
-  const isInstalled = !!installed;
-  // A saved wizard draft promotes the card from "Install" → "Resume"
-  // and surfaces a "Start over" affordance that wipes the draft.
-  const draftStep = !isInstalled
-    ? host._wizardDraftStep?.(manifest.slug) || 0
-    : 0;
-  const hasDraft = draftStep > 0;
-  return html`
-    <div class="recipe-card">
-      <div class="recipe-card-row">
-        <div class="recipe-card-body">
-          <div class="recipe-card-title">
-            ${manifest.title}
-            ${isInstalled
-              ? html`
-                  <span class="recipe-installed-badge">
-                    <ha-icon
-                      icon="mdi:check"
-                      style="--mdc-icon-size:12px;"
-                    ></ha-icon>
-                    ${host._t("recipes_card_installed_badge", "Installed")}
-                  </span>
-                `
-              : ""}
-            ${hasDraft
-              ? html`
-                  <span class="recipe-draft-badge">
-                    <ha-icon
-                      icon="mdi:pencil-outline"
-                      style="--mdc-icon-size:12px;"
-                    ></ha-icon>
-                    ${host._t(
-                      "recipes_card_in_progress_step",
-                      "In progress · Step",
-                    )}
-                    ${draftStep}
-                  </span>
-                `
-              : ""}
-          </div>
-          <div class="recipe-card-meta">
-            v${manifest.version}${manifest.author
-              ? ` · ${manifest.author}`
-              : ""}
-          </div>
-          ${manifest.description && !isInstalled
-            ? html`<div class="recipe-card-desc">${manifest.description}</div>`
-            : ""}
-        </div>
-        <div class="recipe-card-actions">
-          ${isInstalled
-            ? html`
-                <button
-                  class="btn btn-outline"
-                  @click=${() => host._uninstallRecipe(manifest.slug)}
-                  ?disabled=${host._recipesBusy}
-                >
-                  ${host._t("recipes_card_uninstall_button", "Uninstall")}
-                </button>
-                ${manifest.binding_mode === "group"
-                  ? html`
-                      <button
-                        class="btn btn-outline"
-                        @click=${() => host._openManageDevices(manifest.slug)}
-                        ?disabled=${host._recipesBusy}
-                        title=${host._t(
-                          "recipes_card_manage_devices_title",
-                          "Swap or update the devices this recipe uses without re-running the wizard",
-                        )}
-                      >
-                        ${host._t(
-                          "recipes_card_manage_devices_button",
-                          "Manage devices",
-                        )}
-                      </button>
-                    `
-                  : ""}
-                <button
-                  class="btn btn-primary"
-                  @click=${() => host._openRecipeWizard(manifest.slug)}
-                >
-                  ${host._t("recipes_card_configure_button", "Configure")}
-                </button>
-              `
-            : hasDraft
-              ? html`
-                  <button
-                    class="btn btn-outline"
-                    @click=${() => host._discardRecipeDraft(manifest.slug)}
-                    ?disabled=${host._recipesBusy}
-                    title=${host._t(
-                      "recipes_card_start_over_title",
-                      "Throw away saved progress and start the wizard from scratch",
-                    )}
-                  >
-                    ${host._t("recipes_card_start_over_button", "Start over")}
-                  </button>
-                  <button
-                    class="btn btn-primary"
-                    @click=${() => host._openRecipeWizard(manifest.slug)}
-                  >
-                    ${host._t("recipes_card_resume_button", "Resume")}
-                  </button>
-                `
-              : html`
-                  <button
-                    class="btn btn-primary"
-                    @click=${() => host._openRecipeWizard(manifest.slug)}
-                  >
-                    ${host._t("recipes_card_install_button", "Install")}
-                  </button>
-                `}
-        </div>
-      </div>
-      ${isInstalled
-        ? _renderInstalledDetails(host, installed, manifest.description)
-        : ""}
-    </div>
-  `;
-}
-
 // Read-only "what got installed" panel for an installed recipe.
 // Sourced entirely from the InstallRecord returned by
 // ``selora_ai/recipes/list`` — no install re-run, no extra WS call.
-function _renderInstalledDetails(host, record, description) {
+function _renderInstalledDetails(host, record, description, opts = {}) {
   if (!record) return "";
+  // ``asCard``: render as a standalone "Installation details" card,
+  // expanded by default (used on the recipe Overview, where there's
+  // room). The description is dropped in this mode since the hero above
+  // already shows it. Otherwise it's a collapsed "Details" disclosure.
+  const asCard = !!opts.asCard;
   const bindings = record.bindings || {};
   const inputs = record.inputs || {};
   const integrations = record.integrations_installed || {};
@@ -3426,16 +3505,19 @@ function _renderInstalledDetails(host, record, description) {
 
   return html`
     <details
-      class="recipe-details"
+      class="recipe-details ${asCard ? "recipe-details-card" : ""}"
+      ?open=${asCard}
       @toggle=${(e) => {
         if (e.target.open) host._loadRecipePackage?.(record.slug);
       }}
     >
       <summary class="recipe-details-summary">
         <ha-icon icon="mdi:chevron-down"></ha-icon>
-        ${host._t("recipes_details_summary", "Details")}
+        ${asCard
+          ? host._t("recipes_details_installed_title", "Installation details")
+          : host._t("recipes_details_summary", "Details")}
       </summary>
-      ${description
+      ${!asCard && description
         ? html`<div class="recipe-card-desc recipe-details-desc">
             ${description}
           </div>`
@@ -3520,15 +3602,39 @@ function _renderInstalledDetails(host, record, description) {
                             "None selected (optional)",
                           )}</span
                         >`
-                      : ents.map(
-                          (id) =>
-                            html`<span class="recipe-details-chip">
-                              <ha-icon
-                                icon=${_entityIcon(host.hass, id)}
-                              ></ha-icon>
-                              ${_entityFriendlyName(host.hass, id)}
-                            </span>`,
-                        )}
+                      : ents.map((id) => {
+                          const name = _entityFriendlyName(host.hass, id);
+                          const inner = html`<ha-icon
+                              icon=${_entityIcon(host.hass, id)}
+                            ></ha-icon>
+                            ${name}`;
+                          // Clickable when the entity is live — opens HA's
+                          // more-info dialog. A bound entity that no longer
+                          // exists (unpaired device) stays a static chip so
+                          // we don't fire more-info on a dead id.
+                          if (!host.hass?.states?.[id]) {
+                            return html`<span class="recipe-details-chip"
+                              >${inner}</span
+                            >`;
+                          }
+                          return html`<button
+                            type="button"
+                            class="recipe-details-chip recipe-details-chip--clickable"
+                            title=${`Open ${name} (${id})`}
+                            @click=${(e) => {
+                              e.stopPropagation();
+                              host.dispatchEvent(
+                                new CustomEvent("hass-more-info", {
+                                  bubbles: true,
+                                  composed: true,
+                                  detail: { entityId: id },
+                                }),
+                              );
+                            }}
+                          >
+                            ${inner}
+                          </button>`;
+                        })}
                   </div>
                 </div>`;
               })}
@@ -3620,20 +3726,37 @@ function _renderListView(host) {
   const installed = host._recipesList?.installed || [];
   const availableBySlug = Object.fromEntries(available.map((m) => [m.slug, m]));
   const installedSlugs = new Set(installed.map((r) => r.slug));
-  // Partition on-disk bundles + install records into three state-based
-  // sections so nothing on disk goes unreachable:
-  //  - installedWithBundle: installed + bundle present → full management card
-  //  - onlyInstalled:       installed but bundle went missing → repair card
-  //  - stagedNotInstalled:  staged on disk, no install record yet (file/URL
-  //                         upload or a manually placed bundle, before the
-  //                         wizard completes) → Install / Resume card. These
-  //                         may not be in the public catalog, so this is the
-  //                         only panel surface that can reopen them.
-  const installedWithBundle = installed.filter((r) => availableBySlug[r.slug]);
+  // Partition on-disk bundles + install records so nothing goes
+  // unreachable:
+  //  - installedAvailable: installed + bundle present → management card
+  //  - onlyInstalled:      installed but bundle went missing → repair card
+  //  - stagedLocal:        staged on disk, not installed, and not in the
+  //                        catalog (file/URL upload) → its own section,
+  //                        the only panel surface that can reopen them.
   const onlyInstalled = installed.filter((r) => !availableBySlug[r.slug]);
-  const stagedNotInstalled = available.filter(
-    (m) => !installedSlugs.has(m.slug),
+  const installedAvailable = available.filter((m) =>
+    installedSlugs.has(m.slug),
   );
+  // Local bundles present on disk but NOT installed and NOT in the
+  // catalog — i.e. side-loaded via "Install from a URL or file". They
+  // stay visible (with an Install button) under their own heading;
+  // catalog recipes already show in the browse grid, so exclude those
+  // to avoid a duplicate card.
+  const catalogBySlug = new Map(
+    (host._recipesCatalog?.recipes || []).map((r) => [r.slug, r]),
+  );
+  const catalogSlugs = new Set(catalogBySlug.keys());
+  const stagedLocal = available.filter(
+    (m) => !installedSlugs.has(m.slug) && !catalogSlugs.has(m.slug),
+  );
+  // A loaded manifest has no category; borrow the catalog entry's
+  // category_title (by slug) so an installed recipe keeps its category
+  // pill just like it had in the browse grid.
+  const withCategory = (m) => {
+    if (m.category_title) return m;
+    const cat = catalogBySlug.get(m.slug)?.category_title;
+    return cat ? { ...m, category_title: cat } : m;
+  };
 
   return html`
     <div class="recipes-root">
@@ -3670,26 +3793,28 @@ function _renderListView(host) {
         )}
       </p>
 
-      ${_renderCatalogSection(host)}
-      ${installedWithBundle.length > 0
+      ${_renderInstallSourceCard(host)} ${_renderCatalogSection(host)}
+      ${installedAvailable.length > 0
         ? html`
             <div class="recipes-section-title">
               ${host._t("recipes_list_installed_section", "Installed recipes")}
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${installedWithBundle.map((r) =>
-                _renderRecipeCard(host, availableBySlug[r.slug], r),
+            <div class="catalog-grid">
+              ${installedAvailable.map((m) =>
+                _renderCatalogCard(host, withCategory(m), true),
               )}
             </div>
           `
         : ""}
-      ${stagedNotInstalled.length > 0
+      ${stagedLocal.length > 0
         ? html`
             <div class="recipes-section-title">
-              ${host._t("recipes_list_staged_section", "Not yet installed")}
+              ${host._t("recipes_list_staged", "On this device")}
             </div>
-            <div style="display:flex;flex-direction:column;gap:10px;">
-              ${stagedNotInstalled.map((m) => _renderRecipeCard(host, m, null))}
+            <div class="catalog-grid">
+              ${stagedLocal.map((m) =>
+                _renderCatalogCard(host, withCategory(m), false),
+              )}
             </div>
           `
         : ""}
@@ -3736,7 +3861,6 @@ function _renderListView(host) {
             </div>
           `
         : ""}
-      ${_renderInstallSourceCard(host)}
     </div>
   `;
 }
@@ -3866,10 +3990,14 @@ const _CATALOG_PAGE_SIZE = 6;
 function _renderCatalogResults(host, filtered, installedSlugs) {
   const searching = !!(host._recipesCatalogSearch || "").trim();
 
+  // Installed recipes are shown in their own section below (as their own
+  // cards), so keep them out of Featured / the browse grid entirely.
+  const browseable = filtered.filter((e) => !installedSlugs.has(e.slug));
+
   let featured = [];
-  let rest = filtered;
+  let rest = browseable;
   if (!searching) {
-    const byDate = [...filtered].sort((a, b) =>
+    const byDate = [...browseable].sort((a, b) =>
       String(b.released || "").localeCompare(String(a.released || "")),
     );
     featured = byDate.slice(0, 2);
@@ -3882,7 +4010,7 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
   const pageItems = rest.slice(start, start + _CATALOG_PAGE_SIZE);
 
   const card = (entry, isFeatured) =>
-    _renderCatalogCard(host, entry, installedSlugs.has(entry.slug), isFeatured);
+    _renderCatalogCard(host, entry, false, isFeatured);
 
   return html`
     ${featured.length
@@ -3899,7 +4027,7 @@ function _renderCatalogResults(host, filtered, installedSlugs) {
       ? html`
           ${!searching
             ? html`<div class="recipes-section-title">
-                ${host._t("recipes_catalog_all", "All recipes")}
+                ${host._t("recipes_catalog_all", "Available recipes")}
               </div>`
             : ""}
           <div class="catalog-grid">
@@ -3939,41 +4067,118 @@ function _renderCatalogPagination(host, page, totalPages) {
   `;
 }
 
-// Category → glyph for the catalog card's icon tile. Falls back to a
-// generic chef-hat (recipe) when the category isn't recognised.
-const _CATALOG_CATEGORY_ICON = {
-  safety: "mdi:shield-home",
-  security: "mdi:shield-lock",
-  weather: "mdi:weather-partly-snowy-rainy",
-  routine: "mdi:calendar-clock",
-  routines: "mdi:calendar-clock",
-  comfort: "mdi:sofa",
-  energy: "mdi:lightning-bolt",
-  lighting: "mdi:lightbulb-group",
-  presence: "mdi:account-group",
-};
-
-function _catalogCategoryIcon(entry) {
-  const key = (entry.category || entry.category_title || "").toLowerCase();
-  return _CATALOG_CATEGORY_ICON[key] || "mdi:chef-hat";
+// The integration brands a recipe touches, as {domain, title} pairs for
+// the footer strip. The backend resolves friendly titles from
+// KNOWN_INTEGRATIONS and sends ``integration_brands`` on both catalog
+// entries and loaded manifests. The fallback derives domains from older
+// payload shapes and labels each by its bare domain.
+function _recipeIntegrationBrands(entry) {
+  if (Array.isArray(entry.integration_brands)) return entry.integration_brands;
+  const domains = new Set();
+  for (const item of [...(entry.required || []), ...(entry.optional || [])]) {
+    if (item && item.integration) domains.add(item.integration);
+  }
+  for (const i of entry.integrations || []) {
+    if (i && i.domain) domains.add(i.domain);
+  }
+  for (const r of entry.roles || []) {
+    if (r && r.integration) domains.add(r.integration);
+  }
+  return [...domains].map((d) => ({ domain: d, title: d }));
 }
 
-function _renderCatalogCard(host, entry, alreadyInstalled, featured = false) {
+// Footer strip of integration brand chips — logo + name, so a recipe
+// reads as "LG ThinQ" not a bare mark, and one that spans several
+// integrations shows them all. Sits above the card actions on both
+// catalog and installed cards, so the same recipe reads the same before
+// and after install. Logos load from the HA brand CDN; ``@error`` drops
+// any the CDN lacks, leaving the name label.
+function _renderRecipeBrandStrip(brands) {
+  if (!brands || !brands.length) return "";
   return html`
-    <div class="catalog-card ${featured ? "catalog-card-featured" : ""}">
+    <div class="recipe-brands">
+      ${brands.map(
+        (b) =>
+          html`<span class="recipe-brand" title=${b.reason || b.title}>
+            <img
+              class="recipe-brand-logo"
+              src=${`https://brands.home-assistant.io/_/${b.domain}/icon@2x.png`}
+              alt=""
+              loading="lazy"
+              @error=${(e) => {
+                e.target.style.display = "none";
+              }}
+            />
+            <span class="recipe-brand-name">${b.title}</span>
+          </span>`,
+      )}
+    </div>
+  `;
+}
+
+// One clickable card for every recipe — catalog, installed, or
+// side-loaded. There's no Install button: clicking the card opens the
+// recipe's Overview, which is where the install / uninstall / configure
+// decision is made. A catalog recipe not yet on disk is staged first
+// (``_installFromCatalogEntry`` downloads then opens the Overview; the
+// list-level busy spinner covers the fetch); anything already on disk
+// opens the Overview directly. ``installed`` surfaces the badge and
+// picks the direct-open path.
+function _renderCatalogCard(host, entry, installed, featured = false) {
+  const slug = entry.slug;
+  const staged = (host._recipesList?.available || []).some(
+    (r) => r.slug === slug,
+  );
+  const open = () => {
+    if (host._recipesBusy || host._recipesUrlBusy) return;
+    if (installed || staged) {
+      host._openRecipeWizard(slug);
+    } else {
+      host._installFromCatalogEntry(entry);
+    }
+  };
+  const meta = entry.released || entry.author || "";
+  const staging = host._recipesStagingSlug === slug;
+  return html`
+    <div
+      class="catalog-card catalog-card-clickable ${featured
+        ? "catalog-card-featured"
+        : ""} ${staging ? "is-staging" : ""}"
+      role="button"
+      tabindex="0"
+      aria-busy=${staging ? "true" : "false"}
+      @click=${open}
+      @keydown=${(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          open();
+        }
+      }}
+    >
       <div class="catalog-card-top">
-        <div class="catalog-card-icon">
-          <ha-icon icon=${_catalogCategoryIcon(entry)}></ha-icon>
+        <div class="catalog-card-pills">
+          ${entry.category_title
+            ? html`<span class="catalog-card-category"
+                >${entry.category_title}</span
+              >`
+            : ""}
         </div>
-        ${entry.category_title
-          ? html`<span class="catalog-card-category"
-              >${entry.category_title}</span
-            >`
+        ${staging
+          ? html`<ha-icon
+              class="catalog-card-spinner icon-spin"
+              icon="mdi:loading"
+            ></ha-icon>`
+          : ""}
+        ${installed
+          ? html`<span class="catalog-installed-badge">
+              <ha-icon icon="mdi:check"></ha-icon>
+              ${host._t("recipes_card_installed_badge", "Installed")}
+            </span>`
           : ""}
       </div>
       <div class="catalog-card-title">${entry.title}</div>
       <div class="catalog-card-meta">
-        v${entry.version}${entry.released ? ` · ${entry.released}` : ""}
+        v${entry.version}${meta ? ` · ${meta}` : ""}
       </div>
       ${entry.description
         ? html`<div class="catalog-card-desc">${entry.description}</div>`
@@ -3985,20 +4190,11 @@ function _renderCatalogCard(host, entry, alreadyInstalled, featured = false) {
             )}
           </div>`
         : ""}
-      <div class="catalog-card-actions">
-        ${alreadyInstalled
-          ? html`<span class="catalog-installed-badge">
-              <ha-icon icon="mdi:check"></ha-icon>
-              ${host._t("recipes_card_installed_badge", "Installed")}
-            </span>`
-          : html`<button
-              class="btn btn-primary catalog-install-btn"
-              @click=${() => host._installFromCatalogEntry(entry)}
-              ?disabled=${host._recipesBusy || host._recipesUrlBusy}
-            >
-              ${host._t("recipes_card_install_button", "Install")}
-            </button>`}
-      </div>
+      ${_recipeIntegrationBrands(entry).length
+        ? html`<div class="catalog-card-footer">
+            ${_renderRecipeBrandStrip(_recipeIntegrationBrands(entry))}
+          </div>`
+        : ""}
     </div>
   `;
 }
@@ -5081,27 +5277,32 @@ function _renderWhatYouNeedRail(host, manifest) {
   // pins are open device classes the homeowner can satisfy with any
   // matching entity in their home.
   const hasPin = (role) => Boolean((manifest.bindings || {})[role.id]?.length);
+  // Distinct integrations this recipe touches, deduped by domain:
+  // declared explicitly (``manifest.integrations``) or implied by an
+  // integration-scoped role (``role.integration``). Explicit titles win
+  // over the role-derived one. Rendered once as a prominent "Works with"
+  // banner atop the rail rather than a timid chip repeated per card.
+  const brandMap = new Map();
+  for (const i of integrations) {
+    if (i.domain) brandMap.set(i.domain, i.title || i.domain);
+  }
+  for (const r of roles) {
+    if (r.integration && !brandMap.has(r.integration)) {
+      brandMap.set(r.integration, r.integration_title || r.integration);
+    }
+  }
+  const brands = [...brandMap].map(([domain, title]) => ({ domain, title }));
   return html`
     <aside class="need-rail">
       <div class="need-rail-title">
         ${host._t("recipes_what_you_need_title", "What you need")}
       </div>
+      ${brands.length
+        ? html`<div class="need-integrations">
+            ${brands.map((b) => _renderIntegrationBanner(host, b))}
+          </div>`
+        : ""}
       <div class="need-rail-list">
-        ${integrations.map(
-          (i) => html`
-            <div class="need-card">
-              <div class="need-card-icon need-card-icon--integration">
-                <ha-icon icon="mdi:puzzle-outline"></ha-icon>
-              </div>
-              <div class="need-card-body">
-                <div class="need-card-title">${i.title || i.domain}</div>
-                ${i.title && i.title !== i.domain
-                  ? html`<div class="need-card-meta">${i.domain}</div>`
-                  : ""}
-              </div>
-            </div>
-          `,
-        )}
         ${required.map((r) => _renderNeedRoleCard(r, hasPin(r)))}
         ${optional.length
           ? html`
@@ -5113,6 +5314,39 @@ function _renderWhatYouNeedRail(host, manifest) {
           : ""}
       </div>
     </aside>
+  `;
+}
+
+// Prominent "Works with <integration>" banner. The brand logo sits on a
+// white chip (so a coloured mark reads on any theme) inside an
+// accent-tinted card; ``@error`` falls back to a puzzle glyph when the
+// HA brand CDN has no logo for the domain.
+function _renderIntegrationBanner(host, brand) {
+  const iconUrl = `https://brands.home-assistant.io/_/${brand.domain}/icon@2x.png`;
+  return html`
+    <div class="need-integration">
+      <div class="need-integration-logo-wrap">
+        <img
+          class="need-integration-logo"
+          src=${iconUrl}
+          alt=""
+          loading="lazy"
+          @error=${(e) => {
+            const img = e.target;
+            img.style.display = "none";
+            const fb = img.nextElementSibling;
+            if (fb) fb.style.display = "";
+          }}
+        />
+        <ha-icon icon="mdi:puzzle-outline" style="display:none"></ha-icon>
+      </div>
+      <div class="need-integration-text">
+        <div class="need-integration-eyebrow">
+          ${host._t("recipes_works_with", "Works with")}
+        </div>
+        <div class="need-integration-name">${brand.title}</div>
+      </div>
+    </div>
   `;
 }
 
@@ -5142,17 +5376,27 @@ function _renderWizardStepper(host) {
   // scrolls step content. Each row: status icon + label. Done rows
   // are clickable to jump back; future rows are disabled.
   const current = host._recipeWizardStep || 1;
+  // Overview (internal step 1) is the recipe's landing page, not a
+  // progress step — the rail starts at Settings. Drop the Overview
+  // label and map the remaining steps to internal 2..5 while numbering
+  // them 1..4 for the homeowner.
+  const labels = _stepLabels(host).slice(1);
   return html`
     <aside class="step-rail">
       <div class="step-rail-title">
         ${host._t("recipes_progress_title", "Progress")}
       </div>
       <div class="step-rail-list">
-        ${_stepLabels(host).map((label, idx) => {
+        ${labels.map((label, idx) => {
+          const internalStep = idx + 2;
           const step = idx + 1;
           const state =
-            step < current ? "done" : step === current ? "current" : "future";
-          const clickable = step < current;
+            internalStep < current
+              ? "done"
+              : internalStep === current
+                ? "current"
+                : "future";
+          const clickable = internalStep < current;
           const icon =
             state === "done"
               ? "mdi:check-circle"
@@ -5164,7 +5408,7 @@ function _renderWizardStepper(host) {
               class="step-rail-row step-${state}"
               type="button"
               ?disabled=${!clickable}
-              @click=${() => clickable && host._jumpToRecipeStep(step)}
+              @click=${() => clickable && host._jumpToRecipeStep(internalStep)}
             >
               <ha-icon class="step-rail-icon" icon=${icon}></ha-icon>
               <span class="step-rail-num">${step}</span>
@@ -5316,6 +5560,58 @@ function _renderWizardHero(host, manifest, opts) {
 
 function _renderStep1Overview(host) {
   const { manifest } = host._recipeWizardDetail;
+  // "← Back to recipes" — shares the action row with the primary
+  // buttons (left side) so installed and uninstalled overviews match.
+  const backLink = html`<button
+    class="wizard-back"
+    @click=${() => host._closeRecipeWizard()}
+  >
+    <ha-icon icon="mdi:arrow-left"></ha-icon>
+    ${host._t("recipes_back_to_recipes", "Back to recipes")}
+  </button>`;
+  // Installed recipe → the Overview is its "manage" page: show what got
+  // installed plus Uninstall / Reconfigure, rather than the setup CTA.
+  const record = (host._recipesList?.installed || []).find(
+    (r) => r.slug === manifest.slug,
+  );
+  if (record) {
+    return html`
+      <div class="step-pane">
+        ${_renderInstalledDetails(host, record, null, { asCard: true })}
+        <div class="overview-actions">
+          ${backLink}
+          <div class="overview-actions-group">
+            ${manifest.binding_mode === "group"
+              ? html`<button
+                  class="btn btn-outline"
+                  @click=${() => host._openManageDevices(manifest.slug)}
+                  ?disabled=${host._recipesBusy}
+                >
+                  ${host._t(
+                    "recipes_card_manage_devices_button",
+                    "Manage devices",
+                  )}
+                </button>`
+              : ""}
+            <button
+              class="btn btn-outline"
+              @click=${() => host._uninstallRecipe(manifest.slug)}
+              ?disabled=${host._recipesBusy}
+            >
+              ${host._t("recipes_card_uninstall_button", "Uninstall")}
+            </button>
+            <button
+              class="btn btn-primary"
+              @click=${() => host._advanceRecipeStep()}
+              ?disabled=${host._recipesBusy}
+            >
+              ${host._t("recipes_card_reconfigure_button", "Reconfigure")}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
   const preview = host._recipeWizardPreview;
   const counts = preview?.preview?.created_counts || {};
   const bullets = Object.entries(counts)
@@ -5342,17 +5638,24 @@ function _renderStep1Overview(host) {
             </section>
           `
         : ""}
-      ${_renderWizardFooter(host, {
-        primary: {
-          label: host._t("recipes_start_setup_button", "Start setup"),
-          icon: "mdi:arrow-right",
-          onClick: () => host._advanceRecipeStep(),
-        },
-        primaryDisabled: !host._canAdvanceFromStep(1) || host._recipesBusy,
-        hint: host._recipesBusy
-          ? host._t("recipes_loading_recipe", "Loading recipe…")
-          : "",
-      })}
+      <div class="overview-actions">
+        ${backLink}
+        <div class="overview-actions-group">
+          ${host._recipesBusy
+            ? html`<span class="overview-actions-hint"
+                >${host._t("recipes_loading_recipe", "Loading recipe…")}</span
+              >`
+            : ""}
+          <button
+            class="btn btn-primary"
+            @click=${() => host._advanceRecipeStep()}
+            ?disabled=${!host._canAdvanceFromStep(1) || host._recipesBusy}
+          >
+            ${host._t("recipes_start_setup_button", "Start setup")}
+            <ha-icon icon="mdi:arrow-right"></ha-icon>
+          </button>
+        </div>
+      </div>
     </div>
   `;
 }
@@ -5377,12 +5680,15 @@ function _renderStep1Overview(host) {
 // needs an anchor. ``required`` adds a "REQUIRED" eyebrow chip when
 // the step needs user input; omit it for read-only / optional steps.
 function _renderStepHeading(host, stepNum, label, subline, required) {
+  // Callers pass the internal step (2..5); Overview isn't a numbered
+  // step, so display 1..4.
+  const displayNum = stepNum - 1;
   return html`
     <header class="step-heading">
       <div class="step-heading-eyebrow">
         <span class="step-heading-num"
-          >${host._t("recipes_step_label", "Step")} ${stepNum}
-          ${host._t("recipes_step_of_5", "of 5")}</span
+          >${host._t("recipes_step_label", "Step")} ${displayNum}
+          ${host._t("recipes_step_of_4", "of 4")}</span
         >
         ${required === false
           ? html`<span class="step-heading-optional"
