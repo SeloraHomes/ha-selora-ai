@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
-from homeassistant.core import HomeAssistant
+import asyncio
+
+from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import (
     area_registry as ar,
 )
@@ -359,3 +361,156 @@ async def test_validate_action_rejects_unavailable_entity(
         {"service": "light.turn_on", "entity_id": "light.kitchen_light"},
     )
     assert execution.get("valid") is False
+
+
+@pytest.mark.asyncio
+async def test_execute_command_waits_for_delayed_state(hass: HomeAssistant, setup_entities) -> None:
+    """Regression: execute_command must report the post-command state, not the
+    stale pre-command one.
+
+    blocking=True awaits the service handler but not the state-change event.
+    Integrations that update state a beat after the handler returns (coordinator
+    / poll-backed lights) would otherwise be read back at their old value — the
+    "commands executed but lights still report off" bug. The read-back must wait
+    for the fresh state.
+    """
+    from custom_components.selora_ai.mcp_server import _tool_execute_command
+
+    async def _delayed_turn_off(call: ServiceCall) -> None:
+        # Simulate a handler that returns before the state propagates.
+        async def _apply() -> None:
+            await asyncio.sleep(0.05)
+            hass.states.async_set("light.kitchen_light", "off", {"friendly_name": "Kitchen Light"})
+
+        hass.async_create_task(_apply())
+
+    hass.services.async_register("light", "turn_off", _delayed_turn_off)
+
+    execution = await _tool_execute_command(
+        hass,
+        {"service": "light.turn_off", "entity_id": "light.kitchen_light"},
+    )
+
+    assert execution["executed"] is True
+    assert execution["states"] == [{"entity_id": "light.kitchen_light", "state": "off"}]
+
+
+@pytest.mark.asyncio
+async def test_execute_command_no_op_returns_promptly(hass: HomeAssistant, setup_entities) -> None:
+    """Regression: an idempotent no-op command must not stall on the settle
+    timeout.
+
+    Turning on an already-on light commonly completes without emitting *any*
+    state event (the integration short-circuits and writes nothing). Because the
+    target already satisfies the requested action, execute_command must skip the
+    settle wait and return immediately rather than block for the full timeout.
+    The service handler here writes no state at all; the short wait_for makes a
+    regression to waiting out _STATE_SETTLE_TIMEOUT fail the test.
+    """
+    from custom_components.selora_ai.mcp_server import _tool_execute_command
+
+    handler_calls: list[str] = []
+
+    async def _silent_turn_on(call: ServiceCall) -> None:
+        # Already-on light: a real integration short-circuits, writing nothing.
+        handler_calls.append("light.turn_on")
+
+    hass.services.async_register("light", "turn_on", _silent_turn_on)
+
+    execution = await asyncio.wait_for(
+        _tool_execute_command(
+            hass,
+            {"service": "light.turn_on", "entity_id": "light.kitchen_light"},
+        ),
+        timeout=1.0,
+    )
+
+    assert handler_calls == ["light.turn_on"]  # the command really ran
+    assert execution["executed"] is True
+    assert execution["states"] == [{"entity_id": "light.kitchen_light", "state": "on"}]
+
+
+@pytest.mark.asyncio
+async def test_execute_command_mixed_batch_settles_on_transitioning_only(
+    hass: HomeAssistant, setup_entities
+) -> None:
+    """Regression: a batch mixing an already-satisfied target with one that must
+    transition must return as soon as the transitioning one settles.
+
+    kitchen_light is already on and emits no event; living_lamp is off and
+    transitions a beat later. Only the transitioning target should be armed, so
+    the already-on one can't keep the settle wait pending until the timeout.
+    """
+    from custom_components.selora_ai.mcp_server import _tool_execute_command
+
+    async def _turn_on(call: ServiceCall) -> None:
+        for eid in call.data.get("entity_id", []):
+            st = hass.states.get(eid)
+            if st is not None and st.state != "on":
+                # Off target: reflect the change a beat after the handler returns.
+                async def _apply(entity_id: str = eid) -> None:
+                    await asyncio.sleep(0.05)
+                    hass.states.async_set(entity_id, "on", {"friendly_name": entity_id})
+
+                hass.async_create_task(_apply())
+            # Already-on target: a real integration writes nothing here.
+
+    hass.services.async_register("light", "turn_on", _turn_on)
+
+    execution = await asyncio.wait_for(
+        _tool_execute_command(
+            hass,
+            {
+                "service": "light.turn_on",
+                "entity_id": ["light.kitchen_light", "light.living_lamp"],
+            },
+        ),
+        timeout=1.0,
+    )
+
+    assert execution["executed"] is True
+    states = {s["entity_id"]: s["state"] for s in execution["states"]}
+    assert states == {"light.kitchen_light": "on", "light.living_lamp": "on"}
+
+
+@pytest.mark.asyncio
+async def test_execute_command_waits_for_terminal_not_transitional_state(
+    hass: HomeAssistant, setup_entities
+) -> None:
+    """Regression: for a service with a known terminal state, the read-back must
+    wait for that state, not the transitional one.
+
+    cover.open_cover emits "opening" before "open". Settling on the first event
+    would report the transitional "opening"; the watch must hold until the cover
+    reaches "open".
+    """
+    from homeassistant.helpers import entity_registry as er
+
+    from custom_components.selora_ai.mcp_server import _tool_execute_command
+
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create("cover", "test", "garage_uid", suggested_object_id="garage")
+    hass.states.async_set("cover.garage", "closed", {"friendly_name": "Garage"})
+
+    async def _open_cover(call: ServiceCall) -> None:
+        # Transitional state synchronously, terminal state a beat later.
+        hass.states.async_set("cover.garage", "opening", {"friendly_name": "Garage"})
+
+        async def _finish() -> None:
+            await asyncio.sleep(0.05)
+            hass.states.async_set("cover.garage", "open", {"friendly_name": "Garage"})
+
+        hass.async_create_task(_finish())
+
+    hass.services.async_register("cover", "open_cover", _open_cover)
+
+    execution = await asyncio.wait_for(
+        _tool_execute_command(
+            hass,
+            {"service": "cover.open_cover", "entity_id": "cover.garage"},
+        ),
+        timeout=1.0,
+    )
+
+    assert execution["executed"] is True
+    assert execution["states"] == [{"entity_id": "cover.garage", "state": "open"}]
