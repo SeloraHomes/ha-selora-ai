@@ -46123,6 +46123,7 @@ var SeloraAIPanel = class extends i4 {
       if (finalResult?.ok) {
         this._clearWizardState(this._recipeWizardSlug);
         this._recipeDashboardTarget = void 0;
+        this._loadRecipesList();
       }
     } catch (err) {
       console.error("Recipe install failed", err);
