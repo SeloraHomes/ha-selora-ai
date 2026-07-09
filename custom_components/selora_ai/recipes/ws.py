@@ -19,14 +19,16 @@ from dataclasses import asdict, replace
 import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urljoin
 
 from homeassistant.components import websocket_api
 from homeassistant.components.websocket_api import decorators
 import voluptuous as vol
 import yaml
 
+from ..const import KNOWN_INTEGRATIONS
 from .archive import ArchiveError, async_install_from_url
-from .catalog import CatalogError, async_get_catalog
+from .catalog import CatalogError, _catalog_url, async_get_catalog
 from .dashboard import async_insert_card, list_writable_dashboards
 from .loader import async_list_bundles, async_load_bundle
 from .manifest import ManifestError
@@ -51,9 +53,48 @@ from .store import get_install_store
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
 
-    from .manifest import Manifest
+    from .manifest import Manifest, RoleSpec
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _role_summary(role: RoleSpec) -> dict[str, Any]:
+    """Serialise a role for the client, resolving a friendly title for
+    its ``integration`` scope (``lg_thinq`` → ``LG ThinQ``) so the
+    wizard can label the card without shipping the whole integrations
+    database. Falls back to the raw domain for unknown integrations.
+    """
+    data = asdict(role)
+    if role.integration:
+        info = KNOWN_INTEGRATIONS.get(role.integration)
+        data["integration_title"] = info.name if info else role.integration
+    return data
+
+
+def _integration_brands(items: list[tuple[str, str]]) -> list[dict[str, str]]:
+    """Resolve ``(domain, reason)`` pairs to ``{domain, title, reason}``
+    for the card brand strip — deduped by domain (first non-empty reason
+    wins), order-preserving. Titles come from ``KNOWN_INTEGRATIONS``
+    (``lg_thinq`` → ``LG ThinQ``); an unknown domain falls back to
+    itself. ``reason`` explains why the recipe needs the integration and
+    is surfaced on hover; empty when the recipe didn't say.
+    """
+    order: list[str] = []
+    by_domain: dict[str, dict[str, str]] = {}
+    for domain, reason in items:
+        if not domain:
+            continue
+        if domain not in by_domain:
+            info = KNOWN_INTEGRATIONS.get(domain)
+            by_domain[domain] = {
+                "domain": domain,
+                "title": info.name if info else domain,
+                "reason": reason or "",
+            }
+            order.append(domain)
+        elif reason and not by_domain[domain]["reason"]:
+            by_domain[domain]["reason"] = reason
+    return [by_domain[d] for d in order]
 
 
 def _require_admin(connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> bool:
@@ -107,9 +148,17 @@ def _manifest_summary(manifest: Manifest) -> dict[str, Any]:
         "released": manifest.released,
         "tags": list(manifest.tags),
         "binding_mode": manifest.binding_mode,
-        "roles": [asdict(r) for r in manifest.roles],
+        "roles": [_role_summary(r) for r in manifest.roles],
         "inputs": [asdict(i) for i in manifest.inputs],
         "integrations": [asdict(i) for i in manifest.integrations],
+        # Deduped {domain, title, reason} brands for the card logo strip
+        # — declared integrations plus any integration-scoped role. The
+        # role's description explains why the integration is needed
+        # (shown on hover); declared integrations carry no reason.
+        "integration_brands": _integration_brands(
+            [(i.domain, "") for i in manifest.integrations]
+            + [(r.integration, r.description) for r in manifest.roles if r.integration]
+        ),
         # Present only when the recipe ships a final-stage dashboard card.
         # The wizard reads this to show the "which dashboard?" picker.
         "dashboard": asdict(manifest.dashboard) if manifest.dashboard else None,
@@ -669,12 +718,33 @@ async def _ws_recipes_catalog(
         return
     installed = await get_install_store(hass).async_list()
     installed_slugs = {r.slug for r in installed}
+    # The catalog may list ``package_url`` relative to itself (the Hugo
+    # dev server emits ``/recipes/…tar.gz``); the installer needs an
+    # absolute URL, so resolve each against the catalog's own URL. An
+    # already-absolute URL is returned unchanged by urljoin.
+    base_url = _catalog_url(msg.get("url") or None)
+    # Enrich each entry with {domain, title} brands for the card logo
+    # strip, resolved from the integration hints in its required/optional
+    # blocks. Copy per entry so the shared cached payload isn't mutated.
+    recipes: list[dict[str, Any]] = []
+    for entry in catalog.get("recipes", []):
+        reqs = (entry.get("required") or []) + (entry.get("optional") or [])
+        items = [
+            (item["integration"], str(item.get("reason") or ""))
+            for item in reqs
+            if isinstance(item, dict) and item.get("integration")
+        ]
+        enriched = {**entry, "integration_brands": _integration_brands(items)}
+        pkg = entry.get("package_url")
+        if pkg:
+            enriched["package_url"] = urljoin(base_url, str(pkg))
+        recipes.append(enriched)
     connection.send_result(
         msg["id"],
         {
             "generated_at": catalog.get("generated_at", ""),
             "count": catalog.get("count", 0),
-            "recipes": catalog.get("recipes", []),
+            "recipes": recipes,
             "installed_slugs": sorted(installed_slugs),
         },
     )

@@ -162,19 +162,6 @@ export const headerStyles = css`
   :host([narrow]) .tabs-center {
     display: none;
   }
-  /* When the header itself is too narrow to fit the centered tab strip
-     without colliding with the title / right-side buttons, collapse the
-     tabs into the Selora menu (which surfaces its narrow-only nav
-     section at the same breakpoint below). Covers the docked-sidebar
-     case where [narrow] is false but the panel is still cramped. */
-  @container selora-header (max-width: 880px) {
-    .tabs-center {
-      display: none;
-    }
-    .overflow-section.narrow-only {
-      display: flex;
-    }
-  }
   :host([narrow]) .header-logo {
     margin-inline-start: 4px;
     width: 20px;
@@ -376,6 +363,23 @@ export const headerStyles = css`
   }
   :host([narrow]) .overflow-section.narrow-only {
     display: flex;
+  }
+  /* When the header itself is too narrow to fit the centered tab strip
+     without colliding with the title / right-side buttons, collapse the
+     tabs into the Selora menu (which surfaces its narrow-only nav
+     section here). Covers the docked-sidebar case where [narrow] is
+     false but the panel is still cramped. Placed AFTER the base
+     .overflow-section.narrow-only { display: none } and .tabs-center
+     rules so it wins on source order — otherwise the later base rule
+     re-hides the menu's nav section and the homeowner loses navigation
+     entirely once the header collapses. */
+  @container selora-header (max-width: 880px) {
+    .tabs-center {
+      display: none;
+    }
+    .overflow-section.narrow-only {
+      display: flex;
+    }
   }
   .overflow-item {
     display: flex;
