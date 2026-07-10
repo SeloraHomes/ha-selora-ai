@@ -544,6 +544,11 @@ class SeloraAIPanel extends LitElement {
     this._nativeSelectTimer = null;
     this._recipesCatalog = null;
     this._recipesCatalogBusy = false;
+    // True once we've fetched the catalog from the server this session.
+    // localStorage only provides instant paint — the server applies the
+    // min-version gate, so a merely-hydrated catalog must still trigger a
+    // real fetch that re-filters. Reset per page load (fresh instance).
+    this._recipesCatalogFetched = false;
     this._recipesCatalogError = null;
     this._recipesCatalogSearch = "";
     this._catalogPage = 1;
@@ -2785,7 +2790,12 @@ class SeloraAIPanel extends LitElement {
     // (or any staging URL) and the catalog fetches against it without
     // touching the HA env or restarting the integration.
     const override = this._catalogUrlOverride();
-    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}`;
+    // Key the cache on the integration version (from _config, loaded on
+    // mount before the recipes view) so an upgrade never reuses a catalog
+    // filtered by the old version's min-version gate — a stale key simply
+    // misses and we fetch fresh.
+    const version = this._config?.integration_version || "";
+    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}:${version}`;
     // Hydrate from the last good catalog so category pills + section
     // grouping render immediately — even across reloads and while a
     // slow/unreachable endpoint (e.g. a dev Hugo server) is fetching.
@@ -2805,9 +2815,14 @@ class SeloraAIPanel extends LitElement {
         /* corrupt cache — ignore and fetch fresh */
       }
     }
-    // Non-forced loads are content with the cached/in-memory catalog;
-    // only an explicit "Check for updates" (force) hits the network.
-    if (!force && this._recipesCatalog?.recipes?.length) return;
+    // The localStorage hydrate above is only for instant paint. The
+    // server applies the min-version gate per request, so a cached
+    // catalog must NOT be treated as authoritative — re-fetch on every
+    // open (the server's own TTL makes this cheap) so recipes that became
+    // incompatible (upgrade, or a recipe that newly declared a floor) are
+    // re-filtered out. Skip the network only when we already fetched this
+    // session; "Check for updates" (force) always fetches.
+    if (!force && this._recipesCatalogFetched) return;
     this._recipesCatalogBusy = true;
     try {
       const result = await this.hass.callWS({
@@ -2820,6 +2835,9 @@ class SeloraAIPanel extends LitElement {
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
       };
+      // Server fetch succeeded and the gate has run — later opens this
+      // session can trust the in-memory catalog without re-fetching.
+      this._recipesCatalogFetched = true;
       try {
         localStorage.setItem(
           cacheKey,

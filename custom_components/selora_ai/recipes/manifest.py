@@ -24,6 +24,8 @@ from typing import Any, Literal
 
 import yaml
 
+from .version_gate import _release_tuple
+
 # ── Errors ──────────────────────────────────────────────────────────
 
 
@@ -412,6 +414,12 @@ class Manifest:
     # ISO-8601 date the version was released. Surfaced in the wizard
     # header for context. Optional.
     released: str
+    # Lowest Selora AI integration version that ships the features this
+    # recipe relies on (e.g. integration-scoped roles, the ``event``
+    # role kind). A recipe requiring a newer integration than the one
+    # installed is hidden from the catalog — see ``version_gate``. Blank
+    # (the default) means "runs on any version". Semver-style string.
+    min_integration_version: str
     # Short keyword tags rendered as pills under the title (``safety``,
     # ``water``, ``alerts``…). Pure display metadata; the pipeline
     # never reads them.
@@ -633,6 +641,12 @@ def load_manifest(bundle_root: Path) -> Manifest:
 
     tagline = str(data.get("tagline", "")).strip()
     released = str(data.get("released", "")).strip()
+    min_integration_version = str(data.get("min_integration_version", "")).strip()
+    if min_integration_version and _release_tuple(min_integration_version) is None:
+        raise ManifestError(
+            f"min_integration_version {min_integration_version!r} must be a "
+            "semver-style string (e.g. '0.12.0')"
+        )
     tags_raw = data.get("tags") or []
     if not isinstance(tags_raw, list):
         raise ManifestError(f"tags must be a list of strings, got {type(tags_raw).__name__}")
@@ -652,6 +666,7 @@ def load_manifest(bundle_root: Path) -> Manifest:
         description=description,
         author=author,
         released=released,
+        min_integration_version=min_integration_version,
         tags=tags,
         roles=roles,
         inputs=inputs,

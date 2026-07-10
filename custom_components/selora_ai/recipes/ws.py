@@ -49,6 +49,7 @@ from .renderer import _group_object_id
 from .resolver import resolve
 from .resolvers import RESOLVERS, ResolverError
 from .store import get_install_store
+from .version_gate import integration_version, meets_minimum
 
 if TYPE_CHECKING:
     from homeassistant.core import HomeAssistant
@@ -146,6 +147,7 @@ def _manifest_summary(manifest: Manifest) -> dict[str, Any]:
         "description": manifest.description,
         "author": manifest.author,
         "released": manifest.released,
+        "min_integration_version": manifest.min_integration_version,
         "tags": list(manifest.tags),
         "binding_mode": manifest.binding_mode,
         "roles": [_role_summary(r) for r in manifest.roles],
@@ -723,11 +725,20 @@ async def _ws_recipes_catalog(
     # absolute URL, so resolve each against the catalog's own URL. An
     # already-absolute URL is returned unchanged by urljoin.
     base_url = _catalog_url(msg.get("url") or None)
+    # Hide recipes that require a newer integration than this one — they
+    # rely on features this version doesn't ship, so installing them
+    # would silently misbehave. The read is blocking + cached; run once
+    # off the event loop. See ``version_gate``.
+    current_version = await hass.async_add_executor_job(integration_version)
+    hidden = 0
     # Enrich each entry with {domain, title} brands for the card logo
     # strip, resolved from the integration hints in its required/optional
     # blocks. Copy per entry so the shared cached payload isn't mutated.
     recipes: list[dict[str, Any]] = []
     for entry in catalog.get("recipes", []):
+        if not meets_minimum(current_version, str(entry.get("min_integration_version") or "")):
+            hidden += 1
+            continue
         reqs = (entry.get("required") or []) + (entry.get("optional") or [])
         items = [
             (item["integration"], str(item.get("reason") or ""))
@@ -739,13 +750,25 @@ async def _ws_recipes_catalog(
         if pkg:
             enriched["package_url"] = urljoin(base_url, str(pkg))
         recipes.append(enriched)
+    if hidden:
+        _LOGGER.debug(
+            "Hid %d recipe(s) requiring a newer integration than %s",
+            hidden,
+            current_version or "unknown",
+        )
     connection.send_result(
         msg["id"],
         {
             "generated_at": catalog.get("generated_at", ""),
-            "count": catalog.get("count", 0),
+            # ``count`` reflects what the client actually receives after
+            # the version gate, not the catalog's raw total.
+            "count": len(recipes),
             "recipes": recipes,
             "installed_slugs": sorted(installed_slugs),
+            # How many entries this integration version is too old to run,
+            # so the panel can show "N recipes need a newer Selora AI".
+            "hidden_incompatible": hidden,
+            "integration_version": current_version,
         },
     )
 

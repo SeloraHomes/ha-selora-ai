@@ -137,10 +137,18 @@ async def _handle_websocket_get_config(
     )
     _selora_local_available = _selora_local_discovered_host is not None
 
+    # Installed integration version — the frontend keys its recipe-catalog
+    # cache on this so an upgrade never reuses a catalog filtered by the
+    # old version's min-version gate. Blocking read, cached after first.
+    from ..recipes.version_gate import integration_version
+
+    _integration_version = await hass.async_add_executor_job(integration_version)
+
     connection.send_result(
         msg["id"],
         {
             "llm_provider": _resolve_llm_provider(config_data),
+            "integration_version": _integration_version,
             # Never send the raw key to the frontend — only a safe display hint.
             "anthropic_api_key_hint": _mask_api_key(config_data.get(CONF_ANTHROPIC_API_KEY, "")),
             "anthropic_api_key_set": bool(config_data.get(CONF_ANTHROPIC_API_KEY)),
