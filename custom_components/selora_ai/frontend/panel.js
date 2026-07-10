@@ -43840,6 +43840,7 @@ var SeloraAIPanel = class extends i4 {
     this._nativeSelectTimer = null;
     this._recipesCatalog = null;
     this._recipesCatalogBusy = false;
+    this._recipesCatalogFetched = false;
     this._recipesCatalogError = null;
     this._recipesCatalogSearch = "";
     this._catalogPage = 1;
@@ -45714,7 +45715,8 @@ var SeloraAIPanel = class extends i4 {
   async _loadRecipesCatalog(force = false) {
     this._recipesCatalogError = null;
     const override = this._catalogUrlOverride();
-    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}`;
+    const version = this._config?.integration_version || "";
+    const cacheKey = `selora_ai.recipes.catalog:${override || "default"}:${version}`;
     if (!this._recipesCatalog?.recipes?.length) {
       try {
         const cached = JSON.parse(localStorage.getItem(cacheKey) || "null");
@@ -45727,7 +45729,7 @@ var SeloraAIPanel = class extends i4 {
         }
       } catch {}
     }
-    if (!force && this._recipesCatalog?.recipes?.length) return;
+    if (!force && this._recipesCatalogFetched) return;
     this._recipesCatalogBusy = true;
     try {
       const result = await this.hass.callWS({
@@ -45740,6 +45742,7 @@ var SeloraAIPanel = class extends i4 {
         installed_slugs: new Set(result.installed_slugs || []),
         generated_at: result.generated_at || "",
       };
+      this._recipesCatalogFetched = true;
       try {
         localStorage.setItem(
           cacheKey,
