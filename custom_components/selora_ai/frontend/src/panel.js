@@ -363,6 +363,7 @@ class SeloraAIPanel extends LitElement {
 
       // Burger menu
       _openBurgerMenu: { type: String },
+      _openBurgerMenuStyle: { type: String },
 
       // Action loading states
       _deletingAutomation: { type: Object },
@@ -623,6 +624,7 @@ class SeloraAIPanel extends LitElement {
     this._suggestionSortBy = "recent";
     // Burger menu
     this._openBurgerMenu = null;
+    this._openBurgerMenuStyle = "";
     // Action loading states
     this._deletingAutomation = {};
     this._restoringVersion = {};
@@ -709,6 +711,15 @@ class SeloraAIPanel extends LitElement {
     this._quotaClearTimer = null;
   }
 
+  // Close both row-level (burger) menus — automations and scenes — and drop
+  // the cached fixed-position style. Shared by outside-click, scroll, and
+  // navigation so a menu never lingers detached from its row.
+  _closeRowMenus() {
+    if (this._openBurgerMenu != null) this._openBurgerMenu = null;
+    if (this._openSceneBurger != null) this._openSceneBurger = null;
+    if (this._openBurgerMenuStyle) this._openBurgerMenuStyle = "";
+  }
+
   connectedCallback() {
     super.connectedCallback();
     // Inject Inter font into document head (Shadow DOM can't @import fonts)
@@ -728,7 +739,13 @@ class SeloraAIPanel extends LitElement {
     this._loadConfig();
     this._loadMcpTokens();
     this._loadApprovalGrants();
-    this._locationHandler = () => this._checkTabParam();
+    // Any open row menu is transient: navigating away or coming back should
+    // never leave one open (it would show at a stale fixed position).
+    this._closeRowMenus();
+    this._locationHandler = () => {
+      this._closeRowMenus();
+      this._checkTabParam();
+    };
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e) => {
       if (
@@ -749,10 +766,29 @@ class SeloraAIPanel extends LitElement {
       }
     };
     window.addEventListener("keydown", this._keyDownHandler);
-    this._closeOverflowHandler = () => {
+    this._closeOverflowHandler = (e) => {
       if (this._showOverflowMenu) this._showOverflowMenu = false;
+      // Close any open row (burger) menu on a click outside it. The menu and
+      // its trigger both live inside `.burger-menu-wrapper`, so a click whose
+      // composed path includes that wrapper is "inside" and must not close.
+      if (this._openBurgerMenu != null || this._openSceneBurger != null) {
+        const path = e.composedPath ? e.composedPath() : [];
+        const insideMenu = path.some((el) =>
+          el?.classList?.contains?.("burger-menu-wrapper"),
+        );
+        if (!insideMenu) this._closeRowMenus();
+      }
     };
     document.addEventListener("click", this._closeOverflowHandler);
+    // A fixed-position menu detaches from its row on scroll — close it so it
+    // can't hang in mid-air over unrelated content. Capture phase catches
+    // scrolls on inner containers (the panel's `.scroll-view`).
+    this._closeRowMenusOnScroll = () => {
+      if (this._openBurgerMenu != null || this._openSceneBurger != null) {
+        this._closeRowMenus();
+      }
+    };
+    window.addEventListener("scroll", this._closeRowMenusOnScroll, true);
 
     // Mobile keyboard: use visualViewport to keep the chat input visible.
     // The pinning logic only runs when an input/textarea inside the panel is
@@ -996,6 +1032,10 @@ class SeloraAIPanel extends LitElement {
     }
     if (this._closeOverflowHandler) {
       document.removeEventListener("click", this._closeOverflowHandler);
+    }
+    if (this._closeRowMenusOnScroll) {
+      window.removeEventListener("scroll", this._closeRowMenusOnScroll, true);
+      this._closeRowMenusOnScroll = null;
     }
     if (this._keyDownHandler) {
       window.removeEventListener("keydown", this._keyDownHandler);

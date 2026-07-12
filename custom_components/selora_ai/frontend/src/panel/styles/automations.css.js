@@ -23,7 +23,9 @@ export const automationsStyles = css`
   }
   .auto-row.disabled
     > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.auto-row-name):not(ha-icon) {
+    > :not(.burger-menu-wrapper):not(.row-action-btn):not(.auto-row-name):not(
+      ha-icon
+    ) {
     opacity: 0.5;
   }
   .auto-row.disabled .auto-row-desc,
@@ -126,6 +128,35 @@ export const automationsStyles = css`
     color: var(--selora-accent);
     flex-shrink: 0;
     opacity: 0.9;
+  }
+  /* Marks a row installed by a recipe (managed outside the panel). Neutral
+     accent tint so it reads as informational, not a warning like stale/error. */
+  .recipe-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 220px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+    color: var(--selora-accent);
+    border: 1px solid color-mix(in srgb, var(--selora-accent) 40%, transparent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .recipe-pill .recipe-pill-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recipe-pill ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
   }
   .auto-row-desc {
     font-size: 12px;

@@ -1,5 +1,6 @@
 import { html } from "lit";
 import { toggleYaml } from "./render-automations.js";
+import { burgerMenuAnchor } from "./automation-management.js";
 import { formatTimeAgo } from "../shared/date-utils.js";
 
 // ---------------------------------------------------------------------------
@@ -554,6 +555,7 @@ export function renderScenes(host) {
                   const updated = formatTimeAgo(s.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` · updated ${updated}` : ""}`;
                   const isSelora = s.source === "selora";
+                  const recipeTitle = s.recipe_title || "";
                   return html`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
@@ -564,7 +566,7 @@ export function renderScenes(host) {
                         @click=${(e) => {
                           if (
                             e.target.closest(
-                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .btn",
+                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
                             )
                           )
                             return;
@@ -581,7 +583,7 @@ export function renderScenes(host) {
                             icon="mdi:palette"
                             style="--mdc-icon-size:18px;color:var(--selora-accent);"
                           ></ha-icon>
-                          ${!isSelora && host.narrow
+                          ${!isSelora && !recipeTitle && host.narrow
                             ? html`<span
                                 style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                 >HA</span
@@ -591,12 +593,27 @@ export function renderScenes(host) {
                         <div class="auto-row-name">
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s.name}</span>
-                            ${!isSelora && !host.narrow
+                            ${recipeTitle
                               ? html`<span
-                                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
-                                  >HA</span
-                                >`
-                              : ""}
+                                  class="recipe-pill"
+                                  title=${host._t(
+                                    "automations_recipe_pill_tooltip",
+                                    "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                  )}
+                                >
+                                  <ha-icon
+                                    icon="mdi:book-open-variant"
+                                  ></ha-icon>
+                                  <span class="recipe-pill-name"
+                                    >${recipeTitle}</span
+                                  >
+                                </span>`
+                              : !isSelora && !host.narrow
+                                ? html`<span
+                                    style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                    >HA</span
+                                  >`
+                                : ""}
                           </div>
                           <span class="auto-row-desc auto-row-desc--meta-only"
                             >${meta}</span
@@ -614,8 +631,7 @@ export function renderScenes(host) {
                           style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
                         >
                           <button
-                            class="btn btn-outline"
-                            style="padding:4px 10px;height:28px;font-size:13px;"
+                            class="row-action-btn"
                             ?disabled=${!sceneEntityId}
                             @click=${(e) => {
                               e.stopPropagation();
@@ -625,24 +641,28 @@ export function renderScenes(host) {
                               host._activateScene(id, s.name);
                             }}
                             title=${host._t(
-                              "scenes_activate_scene_tooltip",
-                              "Activate scene",
+                              "scenes_activate_button",
+                              "Activate",
                             )}
                           >
                             <ha-icon
                               icon="mdi:play"
-                              style="--mdc-icon-size:14px;"
+                              style="--mdc-icon-size:16px;"
                             ></ha-icon>
-                            ${host._t("scenes_activate_button", "Activate")}
                           </button>
                           <div class="burger-menu-wrapper">
                             <button
                               class="burger-btn"
                               @click=${(e) => {
                                 e.stopPropagation();
-                                host._openSceneBurger = burgerOpen
-                                  ? null
-                                  : sceneId;
+                                if (burgerOpen) {
+                                  host._openSceneBurger = null;
+                                  return;
+                                }
+                                host._openBurgerMenuStyle = burgerMenuAnchor(
+                                  e.currentTarget,
+                                );
+                                host._openSceneBurger = sceneId;
                               }}
                               title=${host._t(
                                 "scenes_more_actions_tooltip",
@@ -656,7 +676,10 @@ export function renderScenes(host) {
                             </button>
                             ${burgerOpen
                               ? html`
-                                  <div class="burger-dropdown">
+                                  <div
+                                    class="burger-dropdown"
+                                    style=${host._openBurgerMenuStyle}
+                                  >
                                     <button
                                       class="burger-item"
                                       ?disabled=${loadingChat}
