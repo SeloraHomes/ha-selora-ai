@@ -524,6 +524,13 @@ async def _handle_websocket_get_automations(
 
         store = _get_automation_store(hass)
 
+        # Map each automation back to the recipe that installed it (if any),
+        # so the panel can badge recipe-owned rows and explain why they're
+        # not editable in-app.
+        from ..recipes.attribution import async_build_recipe_attribution
+
+        attribution = await async_build_recipe_attribution(hass)
+
         automations = []
 
         for state in hass.states.async_all("automation"):
@@ -586,10 +593,23 @@ async def _handle_websocket_get_automations(
             # Merge lifecycle metadata from the store
             meta = await store.get_metadata(automation_id) if automation_id else None
 
+            # Recipe attribution: match on the automation's YAML id first
+            # (stable), then its friendly name / alias.
+            recipe_ref = None
+            state_id_attr = state.attributes.get("id")
+            if state_id_attr is not None:
+                recipe_ref = attribution["automations_by_id"].get(str(state_id_attr))
+            if recipe_ref is None:
+                recipe_ref = attribution["automations_by_alias"].get(
+                    str(state.attributes.get("friendly_name", ""))
+                )
+
             automations.append(
                 {
                     "entity_id": entity_id,
                     "automation_id": automation_id,
+                    "recipe_slug": recipe_ref["slug"] if recipe_ref else "",
+                    "recipe_title": recipe_ref["title"] if recipe_ref else "",
                     "alias": state.attributes.get("friendly_name", entity_id),
                     "description": description or full_config.get("description", ""),
                     "state": state.state,

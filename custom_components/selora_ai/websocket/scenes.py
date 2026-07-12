@@ -331,6 +331,17 @@ async def _handle_websocket_get_scenes(
     await store.async_reconcile_yaml(force=True)
     scenes = await store.async_list_scenes()
 
+    from ..recipes.attribution import async_build_recipe_attribution  # noqa: PLC0415
+
+    attribution = await async_build_recipe_attribution(hass)
+
+    def _recipe_fields(scene_id: str, name: str) -> dict[str, str]:
+        ref = attribution["scenes_by_id"].get(scene_id) or attribution["scenes_by_name"].get(name)
+        return {
+            "recipe_slug": ref["slug"] if ref else "",
+            "recipe_title": ref["title"] if ref else "",
+        }
+
     from ..scene_utils import _get_scenes_path, _read_scenes_yaml  # noqa: PLC0415
 
     scenes_path = _get_scenes_path(hass)
@@ -440,6 +451,9 @@ async def _handle_websocket_get_scenes(
                 "source": "home_assistant",
             }
         )
+
+    for item in enriched:
+        item.update(_recipe_fields(item.get("scene_id", ""), item.get("name", "")))
 
     connection.send_result(msg["id"], {"scenes": enriched})
 

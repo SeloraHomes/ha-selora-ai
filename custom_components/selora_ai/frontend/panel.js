@@ -4377,7 +4377,10 @@ var cardElementStyles = i`
   .burger-menu-wrapper {
     position: relative;
   }
-  .burger-btn {
+  /* Square icon buttons on a list row: the kebab menu and the primary action
+     (Run / Activate) share one size so they line up as a matched pair. */
+  .burger-btn,
+  .row-action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -4391,19 +4394,28 @@ var cardElementStyles = i`
     transition: background 0.15s;
     --mdc-icon-size: 18px;
   }
-  .burger-btn:hover {
+  .burger-btn:hover:not(:disabled),
+  .row-action-btn:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.06);
     color: var(--primary-text-color);
   }
+  /* Externally-managed rows (e.g. recipe packages) show the menu disabled,
+     matching the disabled toggle, with an explanatory tooltip. */
+  .burger-btn:disabled,
+  .row-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  /* Positioned fixed to the viewport (top/bottom/right set inline per-open via
+     burgerMenuAnchor) so it escapes the nested overflow:hidden/auto containers
+     the row lives in — otherwise it's clipped near the list edges. */
   .burger-dropdown {
-    position: absolute;
-    right: 0;
-    top: 38px;
+    position: fixed;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
     border-radius: 10px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    z-index: 100;
+    z-index: 1000;
     min-width: 180px;
     overflow: hidden;
   }
@@ -4808,7 +4820,9 @@ var automationsStyles = i`
   }
   .auto-row.disabled
     > .auto-row-main
-    > :not(.burger-menu-wrapper):not(.auto-row-name):not(ha-icon) {
+    > :not(.burger-menu-wrapper):not(.row-action-btn):not(.auto-row-name):not(
+      ha-icon
+    ) {
     opacity: 0.5;
   }
   .auto-row.disabled .auto-row-desc,
@@ -4911,6 +4925,35 @@ var automationsStyles = i`
     color: var(--selora-accent);
     flex-shrink: 0;
     opacity: 0.9;
+  }
+  /* Marks a row installed by a recipe (managed outside the panel). Neutral
+     accent tint so it reads as informational, not a warning like stale/error. */
+  .recipe-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 220px;
+    padding: 2px 8px;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--selora-accent) 14%, transparent);
+    color: var(--selora-accent);
+    border: 1px solid color-mix(in srgb, var(--selora-accent) 40%, transparent);
+    white-space: nowrap;
+    flex-shrink: 0;
+    cursor: help;
+  }
+  .recipe-pill .recipe-pill-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .recipe-pill ha-icon {
+    --mdc-icon-size: 12px;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
   }
   .auto-row-desc {
     font-size: 12px;
@@ -7696,6 +7739,11 @@ var en_default = {
     automations_toast_toggle_unresolved:
       "Unable to toggle: automation id was not resolved. Reload and try again.",
     automations_more_actions_tooltip: "More actions",
+    automations_run_tooltip: "Run Automation",
+    automations_more_actions_external:
+      "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+    automations_recipe_pill_tooltip:
+      "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
     automations_burger_loading: "Loading\u2026",
     automations_burger_refine_in_chat: "Refine in chat",
     automations_burger_rename: "Rename",
@@ -8758,6 +8806,11 @@ var fr_default = {
     automations_toast_toggle_unresolved:
       "Impossible de basculer : l'ID de l'automatisation n'a pas \xE9t\xE9 r\xE9solu. Rechargez et r\xE9essayez.",
     automations_more_actions_tooltip: "Plus d'actions",
+    automations_run_tooltip: "Ex\xE9cuter l'automatisation",
+    automations_more_actions_external:
+      "G\xE9r\xE9e en dehors de Selora AI \u2014 modifiez-la l\xE0 o\xF9 elle est d\xE9finie, par ex. une recette install\xE9e.",
+    automations_recipe_pill_tooltip:
+      "Install\xE9e par une recette Selora \u2014 g\xE9rez-la depuis l'onglet Recettes.",
     automations_burger_loading: "Chargement\u2026",
     automations_burger_refine_in_chat: "Affiner dans le chat",
     automations_burger_rename: "Renommer",
@@ -9854,6 +9907,11 @@ var de_default = {
     automations_toast_toggle_unresolved:
       "Umschalten nicht m\xF6glich: Automatisierungs-ID konnte nicht aufgel\xF6st werden. Laden Sie neu und versuchen Sie es erneut.",
     automations_more_actions_tooltip: "Weitere Aktionen",
+    automations_run_tooltip: "Automatisierung ausf\xFChren",
+    automations_more_actions_external:
+      "Au\xDFerhalb von Selora AI verwaltet \u2014 bearbeite sie dort, wo sie definiert ist, z. B. in einem installierten Rezept.",
+    automations_recipe_pill_tooltip:
+      "Von einem Selora-Rezept installiert \u2014 verwalte es im Tab \u201ERezepte\u201C.",
     automations_burger_loading: "Lade\u2026",
     automations_burger_refine_in_chat: "Im Chat verfeinern",
     automations_burger_rename: "Umbenennen",
@@ -10940,6 +10998,11 @@ var es_default = {
     automations_toast_toggle_unresolved:
       "No se puede alternar: no se resolvi\xF3 el ID de la automatizaci\xF3n. Recargue e int\xE9ntelo de nuevo.",
     automations_more_actions_tooltip: "M\xE1s acciones",
+    automations_run_tooltip: "Ejecutar automatizaci\xF3n",
+    automations_more_actions_external:
+      "Gestionada fuera de Selora AI \u2014 ed\xEDtala donde est\xE1 definida, p. ej. en una receta instalada.",
+    automations_recipe_pill_tooltip:
+      "Instalada por una receta de Selora \u2014 gesti\xF3nala desde la pesta\xF1a Recetas.",
     automations_burger_loading: "Cargando\u2026",
     automations_burger_refine_in_chat: "Refinar en el chat",
     automations_burger_rename: "Cambiar nombre",
@@ -12014,6 +12077,11 @@ var it_default = {
     automations_toast_toggle_unresolved:
       "Impossibile cambiare stato: ID automazione non risolto. Ricarichi e riprovi.",
     automations_more_actions_tooltip: "Altre azioni",
+    automations_run_tooltip: "Esegui automazione",
+    automations_more_actions_external:
+      "Gestita al di fuori di Selora AI \u2014 modificala dove \xE8 definita, ad es. in una ricetta installata.",
+    automations_recipe_pill_tooltip:
+      "Installata da una ricetta Selora \u2014 gestiscila dalla scheda Ricette.",
     automations_burger_loading: "Caricamento\u2026",
     automations_burger_refine_in_chat: "Perfeziona in chat",
     automations_burger_rename: "Rinomina",
@@ -13104,6 +13172,11 @@ var nl_default = {
     automations_toast_toggle_unresolved:
       "Kan niet schakelen: automatisering-id kon niet worden opgelost. Herlaad en probeer opnieuw.",
     automations_more_actions_tooltip: "Meer acties",
+    automations_run_tooltip: "Automatisering uitvoeren",
+    automations_more_actions_external:
+      "Beheerd buiten Selora AI \u2014 bewerk het waar het is gedefinieerd, bijv. een ge\xEFnstalleerd recept.",
+    automations_recipe_pill_tooltip:
+      "Ge\xEFnstalleerd door een Selora-recept \u2014 beheer het via het tabblad Recepten.",
     automations_burger_loading: "Laden\u2026",
     automations_burger_refine_in_chat: "Verfijnen in chat",
     automations_burger_rename: "Naam wijzigen",
@@ -14194,6 +14267,11 @@ var hu_default = {
     automations_toast_toggle_unresolved:
       "Az \xE1tkapcsol\xE1s nem lehets\xE9ges: az automatizmus azonos\xEDt\xF3ja nem oldhat\xF3 fel. T\xF6ltse \xFAjra az oldalt, \xE9s pr\xF3b\xE1lja \xFAjra.",
     automations_more_actions_tooltip: "Tov\xE1bbi m\u0171veletek",
+    automations_run_tooltip: "Automatiz\xE1l\xE1s futtat\xE1sa",
+    automations_more_actions_external:
+      "A Selora AI-n k\xEDv\xFCl kezelve \u2014 ott szerkeszd, ahol meg van hat\xE1rozva, pl. egy telep\xEDtett receptben.",
+    automations_recipe_pill_tooltip:
+      "Egy Selora recept telep\xEDtette \u2014 kezeld a Receptek lapon.",
     automations_burger_loading: "Bet\xF6lt\xE9s\u2026",
     automations_burger_refine_in_chat: "Finom\xEDt\xE1s a besz\xE9lget\xE9sben",
     automations_burger_rename: "\xC1tnevez\xE9s",
@@ -15291,6 +15369,11 @@ var pt_default = {
     automations_toast_toggle_unresolved:
       "N\xE3o foi poss\xEDvel alternar: o id da automa\xE7\xE3o n\xE3o foi resolvido. Recarregue e tente novamente.",
     automations_more_actions_tooltip: "Mais a\xE7\xF5es",
+    automations_run_tooltip: "Executar automa\xE7\xE3o",
+    automations_more_actions_external:
+      "Gerida fora do Selora AI \u2014 edite-a onde est\xE1 definida, por ex. numa receita instalada.",
+    automations_recipe_pill_tooltip:
+      "Instalada por uma receita Selora \u2014 fa\xE7a a gest\xE3o no separador Receitas.",
     automations_burger_loading: "A carregar\u2026",
     automations_burger_refine_in_chat: "Aperfei\xE7oar na conversa",
     automations_burger_rename: "Mudar o nome",
@@ -16563,6 +16646,12 @@ var ru_default = {
       "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u043F\u0435\u0440\u0435\u043A\u043B\u044E\u0447\u0438\u0442\u044C: \u0438\u0434\u0435\u043D\u0442\u0438\u0444\u0438\u043A\u0430\u0442\u043E\u0440 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u0438 \u043D\u0435 \u0440\u0430\u0437\u0440\u0435\u0448\u0451\u043D. \u041F\u0435\u0440\u0435\u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u0435 \u0438 \u043F\u043E\u0432\u0442\u043E\u0440\u0438\u0442\u0435 \u043F\u043E\u043F\u044B\u0442\u043A\u0443.",
     automations_more_actions_tooltip:
       "\u0414\u043E\u043F\u043E\u043B\u043D\u0438\u0442\u0435\u043B\u044C\u043D\u044B\u0435 \u0434\u0435\u0439\u0441\u0442\u0432\u0438\u044F",
+    automations_run_tooltip:
+      "\u0417\u0430\u043F\u0443\u0441\u0442\u0438\u0442\u044C \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0437\u0430\u0446\u0438\u044E",
+    automations_more_actions_external:
+      "\u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0435\u0442\u0441\u044F \u0432\u043D\u0435 Selora AI \u2014 \u0438\u0437\u043C\u0435\u043D\u0438\u0442\u0435 \u0435\u0451 \u0442\u0430\u043C, \u0433\u0434\u0435 \u043E\u043D\u0430 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440 \u0432 \u0443\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043D\u043E\u043C \u0440\u0435\u0446\u0435\u043F\u0442\u0435.",
+    automations_recipe_pill_tooltip:
+      "\u0423\u0441\u0442\u0430\u043D\u043E\u0432\u043B\u0435\u043D\u043E \u0440\u0435\u0446\u0435\u043F\u0442\u043E\u043C Selora \u2014 \u0443\u043F\u0440\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u0438\u043C \u043D\u0430 \u0432\u043A\u043B\u0430\u0434\u043A\u0435 \xAB\u0420\u0435\u0446\u0435\u043F\u0442\u044B\xBB.",
     automations_burger_loading:
       "\u0417\u0430\u0433\u0440\u0443\u0437\u043A\u0430\u2026",
     automations_burger_refine_in_chat:
@@ -18053,6 +18142,12 @@ var ja_default = {
     automations_toast_toggle_unresolved:
       "\u5207\u308A\u66FF\u3048\u3067\u304D\u307E\u305B\u3093\uFF1A\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3 ID \u3092\u89E3\u6C7A\u3067\u304D\u307E\u305B\u3093\u3067\u3057\u305F\u3002\u518D\u8AAD\u307F\u8FBC\u307F\u3057\u3066\u3082\u3046\u4E00\u5EA6\u304A\u8A66\u3057\u304F\u3060\u3055\u3044\u3002",
     automations_more_actions_tooltip: "\u305D\u306E\u4ED6\u306E\u64CD\u4F5C",
+    automations_run_tooltip:
+      "\u30AA\u30FC\u30C8\u30E1\u30FC\u30B7\u30E7\u30F3\u3092\u5B9F\u884C",
+    automations_more_actions_external:
+      "Selora AI \u306E\u5916\u3067\u7BA1\u7406\u3055\u308C\u3066\u3044\u307E\u3059 \u2014 \u5B9A\u7FA9\u5143\uFF08\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u6E08\u307F\u30EC\u30B7\u30D4\u306A\u3069\uFF09\u3067\u7DE8\u96C6\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
+    automations_recipe_pill_tooltip:
+      "Selora \u30EC\u30B7\u30D4\u306B\u3088\u3063\u3066\u30A4\u30F3\u30B9\u30C8\u30FC\u30EB\u3055\u308C\u307E\u3057\u305F \u2014 \u300C\u30EC\u30B7\u30D4\u300D\u30BF\u30D6\u304B\u3089\u7BA1\u7406\u3057\u3066\u304F\u3060\u3055\u3044\u3002",
     automations_burger_loading: "\u8AAD\u307F\u8FBC\u307F\u4E2D\u2026",
     automations_burger_refine_in_chat:
       "\u30C1\u30E3\u30C3\u30C8\u3067\u8ABF\u6574",
@@ -19347,6 +19442,11 @@ var ko_default = {
     automations_toast_toggle_unresolved:
       "\uC804\uD658\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4: \uC790\uB3D9\uD654 ID\uAC00 \uD655\uC778\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4. \uC0C8\uB85C \uACE0\uCE68 \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD558\uC138\uC694.",
     automations_more_actions_tooltip: "\uCD94\uAC00 \uB3D9\uC791",
+    automations_run_tooltip: "\uC790\uB3D9\uD654 \uC2E4\uD589",
+    automations_more_actions_external:
+      "Selora AI \uC678\uBD80\uC5D0\uC11C \uAD00\uB9AC\uB429\uB2C8\uB2E4 \u2014 \uC815\uC758\uB41C \uC704\uCE58(\uC124\uCE58\uB41C \uB808\uC2DC\uD53C \uB4F1)\uC5D0\uC11C \uD3B8\uC9D1\uD558\uC138\uC694.",
+    automations_recipe_pill_tooltip:
+      "Selora \uB808\uC2DC\uD53C\uB85C \uC124\uCE58\uB428 \u2014 \uB808\uC2DC\uD53C \uD0ED\uC5D0\uC11C \uAD00\uB9AC\uD558\uC138\uC694.",
     automations_burger_loading: "\uBD88\uB7EC\uC624\uB294 \uC911\u2026",
     automations_burger_refine_in_chat: "\uCC44\uD305\uC5D0\uC11C \uC218\uC815",
     automations_burger_rename: "\uC774\uB984 \uBCC0\uACBD",
@@ -20538,6 +20638,11 @@ var zh_Hans_default = {
     automations_toast_toggle_unresolved:
       "\u65E0\u6CD5\u5207\u6362\uFF1A\u672A\u80FD\u89E3\u6790\u81EA\u52A8\u5316 ID\u3002\u8BF7\u91CD\u65B0\u52A0\u8F7D\u540E\u518D\u8BD5\u3002",
     automations_more_actions_tooltip: "\u66F4\u591A\u64CD\u4F5C",
+    automations_run_tooltip: "\u8FD0\u884C\u81EA\u52A8\u5316",
+    automations_more_actions_external:
+      "\u5728 Selora AI \u4E4B\u5916\u7BA1\u7406 \u2014 \u8BF7\u5728\u5176\u5B9A\u4E49\u5904\uFF08\u4F8B\u5982\u5DF2\u5B89\u88C5\u7684\u914D\u65B9\uFF09\u8FDB\u884C\u7F16\u8F91\u3002",
+    automations_recipe_pill_tooltip:
+      "\u7531 Selora \u914D\u65B9\u5B89\u88C5 \u2014 \u8BF7\u5728\u201C\u914D\u65B9\u201D\u6807\u7B7E\u9875\u4E2D\u7BA1\u7406\u3002",
     automations_burger_loading: "\u52A0\u8F7D\u4E2D\u2026",
     automations_burger_refine_in_chat: "\u5728\u5BF9\u8BDD\u4E2D\u5B8C\u5584",
     automations_burger_rename: "\u91CD\u547D\u540D",
@@ -21696,6 +21801,11 @@ var zh_Hant_default = {
     automations_toast_toggle_unresolved:
       "\u7121\u6CD5\u5207\u63DB\uFF1A\u672A\u80FD\u89E3\u6790\u81EA\u52D5\u5316 ID\u3002\u8ACB\u91CD\u65B0\u8F09\u5165\u5F8C\u518D\u8A66\u3002",
     automations_more_actions_tooltip: "\u66F4\u591A\u52D5\u4F5C",
+    automations_run_tooltip: "\u57F7\u884C\u81EA\u52D5\u5316",
+    automations_more_actions_external:
+      "\u5728 Selora AI \u4E4B\u5916\u7BA1\u7406 \u2014 \u8ACB\u5728\u5176\u5B9A\u7FA9\u8655\uFF08\u4F8B\u5982\u5DF2\u5B89\u88DD\u7684\u914D\u65B9\uFF09\u9032\u884C\u7DE8\u8F2F\u3002",
+    automations_recipe_pill_tooltip:
+      "\u7531 Selora \u914D\u65B9\u5B89\u88DD \u2014 \u8ACB\u5728\u300C\u914D\u65B9\u300D\u5206\u9801\u4E2D\u7BA1\u7406\u3002",
     automations_burger_loading: "\u8F09\u5165\u4E2D\u2026",
     automations_burger_refine_in_chat: "\u5728\u5C0D\u8A71\u4E2D\u8ABF\u6574",
     automations_burger_rename: "\u91CD\u65B0\u547D\u540D",
@@ -29051,6 +29161,8 @@ function renderAutomations(host) {
                     hasAutomationId && !host._bulkActionInProgress;
                   const deleting = host._deletingAutomation[automationId];
                   const loadingChat = host._loadingToChat[automationId];
+                  const runKey = automationId || a3.entity_id;
+                  const running = !!host._runningAutomation?.[runKey];
                   const burgerOpen = host._openBurgerMenu === automationId;
                   const cardExpanded = !!host._cardActiveTab[a3.entity_id];
                   const ago = formatTimeAgo(a3.last_triggered);
@@ -29069,7 +29181,7 @@ function renderAutomations(host) {
                         @click=${(e6) => {
                           if (
                             e6.target.closest(
-                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .card-select, .rename-input, .rename-save-btn, .btn",
+                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .card-select, .rename-input, .rename-save-btn, .btn",
                             )
                           )
                             return;
@@ -29118,6 +29230,24 @@ function renderAutomations(host) {
                         ${renderAutomationIdentity(a3.alias, a3.description, {
                           isSelora: !!a3.is_selora,
                           titleSuffix: b2`
+                            ${
+                              a3.recipe_title
+                                ? b2`<span
+                                  class="recipe-pill"
+                                  title=${host._t(
+                                    "automations_recipe_pill_tooltip",
+                                    "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                  )}
+                                >
+                                  <ha-icon
+                                    icon="mdi:book-open-variant"
+                                  ></ha-icon>
+                                  <span class="recipe-pill-name"
+                                    >${a3.recipe_title}</span
+                                  >
+                                </span>`
+                                : ""
+                            }
                             ${
                               isUnavailable
                                 ? b2`<span
@@ -29267,6 +29397,33 @@ function renderAutomations(host) {
                           </div>
                         </label>
                         ${
+                          !isDraft && a3.entity_id
+                            ? b2`
+                              <button
+                                class="row-action-btn"
+                                ?disabled=${running || isUnavailable}
+                                @click=${(e6) => {
+                                  e6.stopPropagation();
+                                  if (running || isUnavailable) return;
+                                  host._runAutomation(
+                                    a3.entity_id,
+                                    automationId,
+                                  );
+                                }}
+                                title=${host._t(
+                                  "automations_run_tooltip",
+                                  "Run Automation",
+                                )}
+                              >
+                                <ha-icon
+                                  icon="mdi:play"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </button>
+                            `
+                            : ""
+                        }
+                        ${
                           hasAutomationId
                             ? b2`
                               <div class="burger-menu-wrapper">
@@ -29287,7 +29444,10 @@ function renderAutomations(host) {
                                 ${
                                   burgerOpen
                                     ? b2`
-                                      <div class="burger-dropdown">
+                                      <div
+                                        class="burger-dropdown"
+                                        style=${host._openBurgerMenuStyle}
+                                      >
                                         <button
                                           class="burger-item"
                                           @click=${(e6) => {
@@ -29391,7 +29551,25 @@ function renderAutomations(host) {
                                 }
                               </div>
                             `
-                            : ""
+                            : isDraft
+                              ? ""
+                              : b2`
+                                <div class="burger-menu-wrapper">
+                                  <button
+                                    class="burger-btn"
+                                    disabled
+                                    title=${host._t(
+                                      "automations_more_actions_external",
+                                      "Managed outside Selora AI \u2014 edit it where it's defined, e.g. an installed recipe.",
+                                    )}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:dots-vertical"
+                                      style="--mdc-icon-size:16px;"
+                                    ></ha-icon>
+                                  </button>
+                                </div>
+                              `
                         }
                       </div>
                       ${
@@ -29734,6 +29912,500 @@ function renderUnavailableModal(host) {
       </div>
     </div>
   `;
+}
+
+// src/panel/automation-management.js
+var automation_management_exports = {};
+__export(automation_management_exports, {
+  _automationIsEnabled: () => _automationIsEnabled,
+  _bulkSoftDeleteSelected: () => _bulkSoftDeleteSelected,
+  _bulkToggleSelected: () => _bulkToggleSelected,
+  _cancelRenameAutomation: () => _cancelRenameAutomation,
+  _clearAutomationSelection: () => _clearAutomationSelection,
+  _closeBurgerMenus: () => _closeBurgerMenus,
+  _deleteAutomation: () => _deleteAutomation,
+  _enableSavedAutomation: () => _enableSavedAutomation,
+  _getSelectedAutomationIds: () => _getSelectedAutomationIds,
+  _loadAutomationToChat: () => _loadAutomationToChat,
+  _loadDiff: () => _loadDiff,
+  _loadVersionHistory: () => _loadVersionHistory,
+  _openAutomationInHA: () => _openAutomationInHA,
+  _openDiffViewer: () => _openDiffViewer,
+  _openVersionHistory: () => _openVersionHistory,
+  _restoreVersion: () => _restoreVersion,
+  _runAutomation: () => _runAutomation,
+  _saveRenameAutomation: () => _saveRenameAutomation,
+  _startRenameAutomation: () => _startRenameAutomation,
+  _toggleAutomation: () => _toggleAutomation,
+  _toggleAutomationSelection: () => _toggleAutomationSelection,
+  _toggleBurgerMenu: () => _toggleBurgerMenu,
+  _toggleExpandAutomation: () => _toggleExpandAutomation,
+  _toggleSelectAllFiltered: () => _toggleSelectAllFiltered,
+  burgerMenuAnchor: () => burgerMenuAnchor,
+});
+function _toggleExpandAutomation(key) {
+  this._expandedAutomations = {
+    ...this._expandedAutomations,
+    [key]: !this._expandedAutomations[key],
+  };
+  this.requestUpdate();
+}
+function _getSelectedAutomationIds() {
+  return Object.keys(this._selectedAutomationIds || {}).filter(
+    (id) => this._selectedAutomationIds[id],
+  );
+}
+function _automationIsEnabled(automation) {
+  if (!automation) return false;
+  if (automation.state === "on") return true;
+  if (automation.state === "unavailable") return false;
+  return false;
+}
+function _toggleAutomationSelection(automationId, evt) {
+  evt.stopPropagation();
+  if (!automationId) return;
+  const checked = !!evt.target.checked;
+  this._selectedAutomationIds = {
+    ...this._selectedAutomationIds,
+    [automationId]: checked,
+  };
+  this.requestUpdate();
+}
+function _toggleSelectAllFiltered(filteredAutomations, checked) {
+  const selectable = (filteredAutomations || []).filter(
+    (a3) => !a3._draft && a3.automation_id,
+  );
+  const next = { ...this._selectedAutomationIds };
+  for (const auto of selectable) {
+    next[auto.automation_id] = checked;
+  }
+  this._selectedAutomationIds = next;
+  this.requestUpdate();
+}
+function _clearAutomationSelection() {
+  this._selectedAutomationIds = {};
+  this.requestUpdate();
+}
+async function _bulkToggleSelected(enable) {
+  if (this._bulkActionInProgress) return;
+  const selectedIds = this._getSelectedAutomationIds();
+  if (!selectedIds.length) return;
+  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const targets = selectedIds
+    .map((id) => byId.get(id))
+    .filter((a3) => a3 && !a3._draft && a3.automation_id)
+    .filter((a3) =>
+      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
+    );
+  const skippedCount = selectedIds.length - targets.length;
+  if (!targets.length) {
+    this._showToast(
+      `Selected automations are already ${enable ? "enabled" : "disabled"}.`,
+      "info",
+    );
+    return;
+  }
+  this._bulkActionInProgress = true;
+  this._bulkActionLabel = `${enable ? "Enabling" : "Disabling"} ${targets.length} automation(s)\u2026`;
+  let successCount = 0;
+  try {
+    for (const auto of targets) {
+      try {
+        await this.hass.callWS({
+          type: "selora_ai/toggle_automation",
+          automation_id: auto.automation_id,
+          entity_id: auto.entity_id,
+          enabled: enable,
+        });
+        successCount += 1;
+      } catch (err) {
+        console.error("Bulk toggle failed", auto.automation_id, err);
+      }
+    }
+    await this._loadAutomations();
+    const failedCount = targets.length - successCount;
+    if (failedCount === 0) {
+      const skippedNote =
+        skippedCount > 0 ? ` (${skippedCount} already in target state)` : "";
+      this._showToast(
+        `${enable ? "Enabled" : "Disabled"} ${successCount} automation(s)${skippedNote}.`,
+        "success",
+      );
+    } else {
+      this._showToast(
+        `${enable ? "Enable" : "Disable"} completed: ${successCount} succeeded, ${failedCount} failed.`,
+        "error",
+      );
+    }
+  } finally {
+    this._bulkActionInProgress = false;
+    this._bulkActionLabel = "";
+    this.requestUpdate();
+  }
+}
+async function _bulkSoftDeleteSelected() {
+  if (this._bulkActionInProgress) return;
+  const selectedIds = this._getSelectedAutomationIds();
+  if (!selectedIds.length) return;
+  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
+  const targets = selectedIds
+    .map((id) => byId.get(id))
+    .filter((a3) => a3 && !a3._draft && a3.automation_id);
+  if (!targets.length) return;
+  if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
+  this._bulkActionInProgress = true;
+  this._bulkActionLabel = `Deleting ${targets.length} automation(s)\u2026`;
+  let successCount = 0;
+  try {
+    for (const auto of targets) {
+      try {
+        await this.hass.callWS({
+          type: "selora_ai/delete_automation",
+          automation_id: auto.automation_id,
+        });
+        successCount += 1;
+      } catch (err) {
+        console.error("Bulk delete failed", auto.automation_id, err);
+      }
+    }
+    this._selectedAutomationIds = {};
+    await this._loadAutomations();
+    const failedCount = targets.length - successCount;
+    if (failedCount === 0) {
+      this._showToast(`Deleted ${successCount} automation(s).`, "success");
+    } else {
+      this._showToast(
+        `Delete completed: ${successCount} succeeded, ${failedCount} failed.`,
+        "error",
+      );
+    }
+  } finally {
+    this._bulkActionInProgress = false;
+    this._bulkActionLabel = "";
+    this.requestUpdate();
+  }
+}
+async function _toggleAutomation(entityId, automationId, enabled) {
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: entityId,
+      enabled: !!enabled,
+    });
+    await this._loadAutomations();
+  } catch (err) {
+    console.error("Failed to toggle automation", err);
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to toggle automation: ${message}`, "error");
+  }
+}
+async function _enableSavedAutomation(entityId, automationId) {
+  if (!entityId || !automationId) return;
+  this._togglingAutomation = {
+    ...(this._togglingAutomation || {}),
+    [automationId]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/toggle_automation",
+      automation_id: automationId,
+      entity_id: entityId,
+      enabled: true,
+    });
+    this._automations = (this._automations || []).map((a3) =>
+      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
+    );
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to enable automation: ${message}`, "error");
+  } finally {
+    this._togglingAutomation = {
+      ...(this._togglingAutomation || {}),
+      [automationId]: false,
+    };
+    this.requestUpdate();
+  }
+}
+async function _runAutomation(entityId, automationId) {
+  if (!entityId) return;
+  const key = automationId || entityId;
+  this._runningAutomation = {
+    ...(this._runningAutomation || {}),
+    [key]: true,
+  };
+  this.requestUpdate();
+  try {
+    await this.hass.callService(
+      "automation",
+      "trigger",
+      { skip_condition: true },
+      { entity_id: entityId },
+    );
+    this._showToast(
+      this._t("automation_management_triggered", "Automation triggered."),
+      "success",
+    );
+  } catch (err) {
+    const message = err?.message || "unknown error";
+    this._showToast(`Failed to run automation: ${message}`, "error");
+  } finally {
+    this._runningAutomation = {
+      ...(this._runningAutomation || {}),
+      [key]: false,
+    };
+    this.requestUpdate();
+  }
+}
+function _openAutomationInHA(automationId) {
+  if (!automationId) return;
+  window.history.pushState(null, "", `/config/automation/edit/${automationId}`);
+  window.dispatchEvent(new Event("location-changed"));
+}
+var BURGER_MENU_HEIGHT = 220;
+var BURGER_MENU_GAP = 6;
+function burgerMenuAnchor(btn) {
+  if (!btn?.getBoundingClientRect) return "";
+  const rect = btn.getBoundingClientRect();
+  const right = Math.max(8, window.innerWidth - rect.right);
+  const openUp = window.innerHeight - rect.bottom < BURGER_MENU_HEIGHT;
+  const vertical = openUp
+    ? `bottom:${Math.max(8, window.innerHeight - rect.top + BURGER_MENU_GAP)}px`
+    : `top:${rect.bottom + BURGER_MENU_GAP}px`;
+  return `right:${right}px;${vertical};`;
+}
+function _toggleBurgerMenu(automationId, evt) {
+  evt.stopPropagation();
+  if (this._openBurgerMenu === automationId) {
+    this._openBurgerMenu = null;
+    this.requestUpdate();
+    return;
+  }
+  this._openBurgerMenuStyle = burgerMenuAnchor(evt.currentTarget);
+  this._openBurgerMenu = automationId;
+  this.requestUpdate();
+}
+function _closeBurgerMenus() {
+  if (this._openBurgerMenu) {
+    this._openBurgerMenu = null;
+    this.requestUpdate();
+  }
+}
+function _startRenameAutomation(automationId, currentAlias) {
+  this._editingAlias = automationId;
+  this._editingAliasValue = currentAlias || "";
+  this._openBurgerMenu = null;
+  this.requestUpdate();
+  this.updateComplete.then(() => {
+    const input = this.shadowRoot.querySelector(
+      `.rename-input[data-id="${automationId}"]`,
+    );
+    if (input) {
+      input.focus();
+      input.select();
+    }
+  });
+}
+async function _saveRenameAutomation(automationId) {
+  const newAlias = (this._editingAliasValue || "").trim();
+  if (!newAlias) {
+    this._editingAlias = null;
+    return;
+  }
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/rename_automation",
+      automation_id: automationId,
+      alias: newAlias,
+    });
+    this._editingAlias = null;
+    this._showToast(
+      this._t("automation_management_renamed", "Automation renamed"),
+      "success",
+    );
+    await this._loadAutomations();
+  } catch (err) {
+    console.error("Failed to rename automation", err);
+    this._showToast("Failed to rename: " + err.message, "error");
+  }
+}
+function _cancelRenameAutomation() {
+  this._editingAlias = null;
+  this._editingAliasValue = "";
+}
+async function _openVersionHistory(automationId) {
+  const isOpen = !!this._versionHistoryOpen[automationId];
+  this._versionHistoryOpen = {
+    ...this._versionHistoryOpen,
+    [automationId]: !isOpen,
+  };
+  if (!isOpen && !this._versions[automationId]) {
+    await this._loadVersionHistory(automationId);
+  }
+  this.requestUpdate();
+}
+async function _loadVersionHistory(automationId) {
+  this._loadingVersions = { ...this._loadingVersions, [automationId]: true };
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/get_automation_versions",
+      automation_id: automationId,
+    });
+    const ordered = Array.isArray(result) ? [...result].reverse() : [];
+    this._versions = { ...this._versions, [automationId]: ordered };
+  } catch (err) {
+    console.error("Failed to load version history", err);
+    this._showToast("Failed to load version history: " + err.message, "error");
+  } finally {
+    this._loadingVersions = {
+      ...this._loadingVersions,
+      [automationId]: false,
+    };
+  }
+  this.requestUpdate();
+}
+async function _openDiffViewer(automationId) {
+  const versions = this._versions[automationId];
+  if (!versions || versions.length < 2)
+    await this._loadVersionHistory(automationId);
+  const v2 = this._versions[automationId] || [];
+  this._diffAutomationId = automationId;
+  this._diffVersionA = v2[0]?.version_id || null;
+  this._diffVersionB = v2[1]?.version_id || null;
+  this._diffResult = [];
+  this._diffOpen = true;
+  if (this._diffVersionA && this._diffVersionB) {
+    await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
+  }
+  this.requestUpdate();
+}
+async function _loadDiff(automationId, versionAId, versionBId) {
+  if (!versionAId || !versionBId) return;
+  this._loadingDiff = true;
+  this._diffResult = [];
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/get_automation_diff",
+      automation_id: automationId,
+      version_id_a: versionAId,
+      version_id_b: versionBId,
+    });
+    const diffText = result?.diff || "";
+    this._diffResult = diffText ? diffText.split("\n") : [];
+  } catch (err) {
+    console.error("Failed to load diff", err);
+    this._showToast("Failed to load diff: " + err.message, "error");
+  } finally {
+    this._loadingDiff = false;
+  }
+  this.requestUpdate();
+}
+async function _restoreVersion(automationId, versionId, yamlText) {
+  const key = `${automationId}_${versionId}`;
+  this._restoringVersion = { ...this._restoringVersion, [key]: true };
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/update_automation_yaml",
+      automation_id: automationId,
+      yaml_text: yamlText,
+      version_message: `Restored from version ${versionId}`,
+    });
+    this._versionHistoryOpen = {
+      ...this._versionHistoryOpen,
+      [automationId]: false,
+    };
+    this._versions = { ...this._versions, [automationId]: null };
+    await this._loadAutomations();
+    this._showToast(
+      this._t("automation_management_version_restored", "Version restored."),
+      "success",
+    );
+  } catch (err) {
+    console.error("Failed to restore version", err);
+    this._showToast("Failed to restore version: " + err.message, "error");
+  } finally {
+    this._restoringVersion = { ...this._restoringVersion, [key]: false };
+  }
+  this.requestUpdate();
+}
+async function _deleteAutomation(automationId) {
+  if (
+    !confirm(
+      this._t(
+        "automation_management_delete_confirm",
+        "Delete this automation permanently?",
+      ),
+    )
+  )
+    return;
+  this._deletingAutomation = {
+    ...this._deletingAutomation,
+    [automationId]: true,
+  };
+  try {
+    await this.hass.callWS({
+      type: "selora_ai/delete_automation",
+      automation_id: automationId,
+    });
+    await this._loadAutomations();
+    this._showToast(
+      this._t("automation_management_deleted", "Automation deleted."),
+      "success",
+    );
+  } catch (err) {
+    console.error("Failed to delete automation", err);
+    this._showToast("Failed to delete automation: " + err.message, "error");
+  } finally {
+    this._deletingAutomation = {
+      ...this._deletingAutomation,
+      [automationId]: false,
+    };
+  }
+  this.requestUpdate();
+}
+async function _loadAutomationToChat(automationId) {
+  if (!automationId) {
+    this._showToast(
+      this._t(
+        "automation_management_cannot_refine_no_id",
+        "This automation cannot be refined because it has no automation ID.",
+      ),
+      "error",
+    );
+    return;
+  }
+  this._loadingToChat = { ...this._loadingToChat, [automationId]: true };
+  try {
+    const result = await this.hass.callWS({
+      type: "selora_ai/load_automation_to_session",
+      automation_id: automationId,
+    });
+    const sessionId = result?.session_id;
+    if (sessionId) {
+      this._activeSessionId = sessionId;
+      this._setActiveTab("chat");
+      this._showSidebar = false;
+      this._input = "";
+      await this._openSession(sessionId);
+      this._showToast(
+        this._t(
+          "automation_management_loaded_to_chat",
+          "Automation loaded into chat.",
+        ),
+        "success",
+      );
+    }
+  } catch (err) {
+    console.error("Failed to load automation to chat", err);
+    this._showToast(
+      "Failed to load automation into chat: " + err.message,
+      "error",
+    );
+  } finally {
+    this._loadingToChat = { ...this._loadingToChat, [automationId]: false };
+  }
+  this.requestUpdate();
 }
 
 // src/panel/render-scenes.js
@@ -30249,6 +30921,7 @@ function renderScenes(host) {
                   const updated = formatTimeAgo(s4.updated_at);
                   const meta = `${entityCount} entit${entityCount === 1 ? "y" : "ies"}${updated ? ` \xB7 updated ${updated}` : ""}`;
                   const isSelora = s4.source === "selora";
+                  const recipeTitle = s4.recipe_title || "";
                   return b2`
                     <div
                       class="auto-row${isExpanded ? " expanded" : ""}"
@@ -30259,7 +30932,7 @@ function renderScenes(host) {
                         @click=${(e6) => {
                           if (
                             e6.target.closest(
-                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .btn",
+                              ".burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .btn",
                             )
                           )
                             return;
@@ -30277,7 +30950,7 @@ function renderScenes(host) {
                             style="--mdc-icon-size:18px;color:var(--selora-accent);"
                           ></ha-icon>
                           ${
-                            !isSelora && host.narrow
+                            !isSelora && !recipeTitle && host.narrow
                               ? b2`<span
                                 style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:1px 4px;border-radius:3px;"
                                 >HA</span
@@ -30289,12 +30962,27 @@ function renderScenes(host) {
                           <div class="auto-row-title-row">
                             <span class="auto-row-title">${s4.name}</span>
                             ${
-                              !isSelora && !host.narrow
+                              recipeTitle
                                 ? b2`<span
-                                  style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
-                                  >HA</span
-                                >`
-                                : ""
+                                  class="recipe-pill"
+                                  title=${host._t(
+                                    "automations_recipe_pill_tooltip",
+                                    "Installed by a Selora recipe \u2014 manage it from the Recipes tab.",
+                                  )}
+                                >
+                                  <ha-icon
+                                    icon="mdi:book-open-variant"
+                                  ></ha-icon>
+                                  <span class="recipe-pill-name"
+                                    >${recipeTitle}</span
+                                  >
+                                </span>`
+                                : !isSelora && !host.narrow
+                                  ? b2`<span
+                                    style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.04em;background:var(--secondary-background-color);color:var(--secondary-text-color);padding:2px 6px;border-radius:4px;flex-shrink:0;"
+                                    >HA</span
+                                  >`
+                                  : ""
                             }
                           </div>
                           <span class="auto-row-desc auto-row-desc--meta-only"
@@ -30313,8 +31001,7 @@ function renderScenes(host) {
                           style="display:flex;align-items:center;gap:8px;flex-shrink:0;"
                         >
                           <button
-                            class="btn btn-outline"
-                            style="padding:4px 10px;height:28px;font-size:13px;"
+                            class="row-action-btn"
                             ?disabled=${!sceneEntityId}
                             @click=${(e6) => {
                               e6.stopPropagation();
@@ -30324,24 +31011,28 @@ function renderScenes(host) {
                               host._activateScene(id, s4.name);
                             }}
                             title=${host._t(
-                              "scenes_activate_scene_tooltip",
-                              "Activate scene",
+                              "scenes_activate_button",
+                              "Activate",
                             )}
                           >
                             <ha-icon
                               icon="mdi:play"
-                              style="--mdc-icon-size:14px;"
+                              style="--mdc-icon-size:16px;"
                             ></ha-icon>
-                            ${host._t("scenes_activate_button", "Activate")}
                           </button>
                           <div class="burger-menu-wrapper">
                             <button
                               class="burger-btn"
                               @click=${(e6) => {
                                 e6.stopPropagation();
-                                host._openSceneBurger = burgerOpen
-                                  ? null
-                                  : sceneId;
+                                if (burgerOpen) {
+                                  host._openSceneBurger = null;
+                                  return;
+                                }
+                                host._openBurgerMenuStyle = burgerMenuAnchor(
+                                  e6.currentTarget,
+                                );
+                                host._openSceneBurger = sceneId;
                               }}
                               title=${host._t(
                                 "scenes_more_actions_tooltip",
@@ -30356,7 +31047,10 @@ function renderScenes(host) {
                             ${
                               burgerOpen
                                 ? b2`
-                                  <div class="burger-dropdown">
+                                  <div
+                                    class="burger-dropdown"
+                                    style=${host._openBurgerMenuStyle}
+                                  >
                                     <button
                                       class="burger-item"
                                       ?disabled=${loadingChat}
@@ -41027,6 +41721,7 @@ function _parsePath(pathname) {
 }
 function _setActiveTab(tab) {
   if (!VALID_TABS.includes(tab)) return;
+  this._closeRowMenus?.();
   this._activeTab = tab;
   const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
   if (window.location.pathname !== target) {
@@ -42627,482 +43322,6 @@ function _onYamlInput(key, value) {
   this.requestUpdate();
 }
 
-// src/panel/automation-management.js
-var automation_management_exports = {};
-__export(automation_management_exports, {
-  _automationIsEnabled: () => _automationIsEnabled,
-  _bulkSoftDeleteSelected: () => _bulkSoftDeleteSelected,
-  _bulkToggleSelected: () => _bulkToggleSelected,
-  _cancelRenameAutomation: () => _cancelRenameAutomation,
-  _clearAutomationSelection: () => _clearAutomationSelection,
-  _closeBurgerMenus: () => _closeBurgerMenus,
-  _deleteAutomation: () => _deleteAutomation,
-  _enableSavedAutomation: () => _enableSavedAutomation,
-  _getSelectedAutomationIds: () => _getSelectedAutomationIds,
-  _loadAutomationToChat: () => _loadAutomationToChat,
-  _loadDiff: () => _loadDiff,
-  _loadVersionHistory: () => _loadVersionHistory,
-  _openAutomationInHA: () => _openAutomationInHA,
-  _openDiffViewer: () => _openDiffViewer,
-  _openVersionHistory: () => _openVersionHistory,
-  _restoreVersion: () => _restoreVersion,
-  _runAutomation: () => _runAutomation,
-  _saveRenameAutomation: () => _saveRenameAutomation,
-  _startRenameAutomation: () => _startRenameAutomation,
-  _toggleAutomation: () => _toggleAutomation,
-  _toggleAutomationSelection: () => _toggleAutomationSelection,
-  _toggleBurgerMenu: () => _toggleBurgerMenu,
-  _toggleExpandAutomation: () => _toggleExpandAutomation,
-  _toggleSelectAllFiltered: () => _toggleSelectAllFiltered,
-});
-function _toggleExpandAutomation(key) {
-  this._expandedAutomations = {
-    ...this._expandedAutomations,
-    [key]: !this._expandedAutomations[key],
-  };
-  this.requestUpdate();
-}
-function _getSelectedAutomationIds() {
-  return Object.keys(this._selectedAutomationIds || {}).filter(
-    (id) => this._selectedAutomationIds[id],
-  );
-}
-function _automationIsEnabled(automation) {
-  if (!automation) return false;
-  if (automation.state === "on") return true;
-  if (automation.state === "unavailable") return false;
-  return false;
-}
-function _toggleAutomationSelection(automationId, evt) {
-  evt.stopPropagation();
-  if (!automationId) return;
-  const checked = !!evt.target.checked;
-  this._selectedAutomationIds = {
-    ...this._selectedAutomationIds,
-    [automationId]: checked,
-  };
-  this.requestUpdate();
-}
-function _toggleSelectAllFiltered(filteredAutomations, checked) {
-  const selectable = (filteredAutomations || []).filter(
-    (a3) => !a3._draft && a3.automation_id,
-  );
-  const next = { ...this._selectedAutomationIds };
-  for (const auto of selectable) {
-    next[auto.automation_id] = checked;
-  }
-  this._selectedAutomationIds = next;
-  this.requestUpdate();
-}
-function _clearAutomationSelection() {
-  this._selectedAutomationIds = {};
-  this.requestUpdate();
-}
-async function _bulkToggleSelected(enable) {
-  if (this._bulkActionInProgress) return;
-  const selectedIds = this._getSelectedAutomationIds();
-  if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
-  const targets = selectedIds
-    .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id)
-    .filter((a3) =>
-      enable ? !this._automationIsEnabled(a3) : this._automationIsEnabled(a3),
-    );
-  const skippedCount = selectedIds.length - targets.length;
-  if (!targets.length) {
-    this._showToast(
-      `Selected automations are already ${enable ? "enabled" : "disabled"}.`,
-      "info",
-    );
-    return;
-  }
-  this._bulkActionInProgress = true;
-  this._bulkActionLabel = `${enable ? "Enabling" : "Disabling"} ${targets.length} automation(s)\u2026`;
-  let successCount = 0;
-  try {
-    for (const auto of targets) {
-      try {
-        await this.hass.callWS({
-          type: "selora_ai/toggle_automation",
-          automation_id: auto.automation_id,
-          entity_id: auto.entity_id,
-          enabled: enable,
-        });
-        successCount += 1;
-      } catch (err) {
-        console.error("Bulk toggle failed", auto.automation_id, err);
-      }
-    }
-    await this._loadAutomations();
-    const failedCount = targets.length - successCount;
-    if (failedCount === 0) {
-      const skippedNote =
-        skippedCount > 0 ? ` (${skippedCount} already in target state)` : "";
-      this._showToast(
-        `${enable ? "Enabled" : "Disabled"} ${successCount} automation(s)${skippedNote}.`,
-        "success",
-      );
-    } else {
-      this._showToast(
-        `${enable ? "Enable" : "Disable"} completed: ${successCount} succeeded, ${failedCount} failed.`,
-        "error",
-      );
-    }
-  } finally {
-    this._bulkActionInProgress = false;
-    this._bulkActionLabel = "";
-    this.requestUpdate();
-  }
-}
-async function _bulkSoftDeleteSelected() {
-  if (this._bulkActionInProgress) return;
-  const selectedIds = this._getSelectedAutomationIds();
-  if (!selectedIds.length) return;
-  const byId = new Map(this._automations.map((a3) => [a3.automation_id, a3]));
-  const targets = selectedIds
-    .map((id) => byId.get(id))
-    .filter((a3) => a3 && !a3._draft && a3.automation_id);
-  if (!targets.length) return;
-  if (!confirm(`Delete ${targets.length} selected automation(s)?`)) return;
-  this._bulkActionInProgress = true;
-  this._bulkActionLabel = `Deleting ${targets.length} automation(s)\u2026`;
-  let successCount = 0;
-  try {
-    for (const auto of targets) {
-      try {
-        await this.hass.callWS({
-          type: "selora_ai/delete_automation",
-          automation_id: auto.automation_id,
-        });
-        successCount += 1;
-      } catch (err) {
-        console.error("Bulk delete failed", auto.automation_id, err);
-      }
-    }
-    this._selectedAutomationIds = {};
-    await this._loadAutomations();
-    const failedCount = targets.length - successCount;
-    if (failedCount === 0) {
-      this._showToast(`Deleted ${successCount} automation(s).`, "success");
-    } else {
-      this._showToast(
-        `Delete completed: ${successCount} succeeded, ${failedCount} failed.`,
-        "error",
-      );
-    }
-  } finally {
-    this._bulkActionInProgress = false;
-    this._bulkActionLabel = "";
-    this.requestUpdate();
-  }
-}
-async function _toggleAutomation(entityId, automationId, enabled) {
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/toggle_automation",
-      automation_id: automationId,
-      entity_id: entityId,
-      enabled: !!enabled,
-    });
-    await this._loadAutomations();
-  } catch (err) {
-    console.error("Failed to toggle automation", err);
-    const message = err?.message || "unknown error";
-    this._showToast(`Failed to toggle automation: ${message}`, "error");
-  }
-}
-async function _enableSavedAutomation(entityId, automationId) {
-  if (!entityId || !automationId) return;
-  this._togglingAutomation = {
-    ...(this._togglingAutomation || {}),
-    [automationId]: true,
-  };
-  this.requestUpdate();
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/toggle_automation",
-      automation_id: automationId,
-      entity_id: entityId,
-      enabled: true,
-    });
-    this._automations = (this._automations || []).map((a3) =>
-      a3.automation_id === automationId ? { ...a3, state: "on" } : a3,
-    );
-  } catch (err) {
-    const message = err?.message || "unknown error";
-    this._showToast(`Failed to enable automation: ${message}`, "error");
-  } finally {
-    this._togglingAutomation = {
-      ...(this._togglingAutomation || {}),
-      [automationId]: false,
-    };
-    this.requestUpdate();
-  }
-}
-async function _runAutomation(entityId, automationId) {
-  if (!entityId) return;
-  const key = automationId || entityId;
-  this._runningAutomation = {
-    ...(this._runningAutomation || {}),
-    [key]: true,
-  };
-  this.requestUpdate();
-  try {
-    await this.hass.callService(
-      "automation",
-      "trigger",
-      { skip_condition: true },
-      { entity_id: entityId },
-    );
-    this._showToast(
-      this._t("automation_management_triggered", "Automation triggered."),
-      "success",
-    );
-  } catch (err) {
-    const message = err?.message || "unknown error";
-    this._showToast(`Failed to run automation: ${message}`, "error");
-  } finally {
-    this._runningAutomation = {
-      ...(this._runningAutomation || {}),
-      [key]: false,
-    };
-    this.requestUpdate();
-  }
-}
-function _openAutomationInHA(automationId) {
-  if (!automationId) return;
-  window.history.pushState(null, "", `/config/automation/edit/${automationId}`);
-  window.dispatchEvent(new Event("location-changed"));
-}
-function _toggleBurgerMenu(automationId, evt) {
-  evt.stopPropagation();
-  this._openBurgerMenu =
-    this._openBurgerMenu === automationId ? null : automationId;
-  this.requestUpdate();
-}
-function _closeBurgerMenus() {
-  if (this._openBurgerMenu) {
-    this._openBurgerMenu = null;
-    this.requestUpdate();
-  }
-}
-function _startRenameAutomation(automationId, currentAlias) {
-  this._editingAlias = automationId;
-  this._editingAliasValue = currentAlias || "";
-  this._openBurgerMenu = null;
-  this.requestUpdate();
-  this.updateComplete.then(() => {
-    const input = this.shadowRoot.querySelector(
-      `.rename-input[data-id="${automationId}"]`,
-    );
-    if (input) {
-      input.focus();
-      input.select();
-    }
-  });
-}
-async function _saveRenameAutomation(automationId) {
-  const newAlias = (this._editingAliasValue || "").trim();
-  if (!newAlias) {
-    this._editingAlias = null;
-    return;
-  }
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/rename_automation",
-      automation_id: automationId,
-      alias: newAlias,
-    });
-    this._editingAlias = null;
-    this._showToast(
-      this._t("automation_management_renamed", "Automation renamed"),
-      "success",
-    );
-    await this._loadAutomations();
-  } catch (err) {
-    console.error("Failed to rename automation", err);
-    this._showToast("Failed to rename: " + err.message, "error");
-  }
-}
-function _cancelRenameAutomation() {
-  this._editingAlias = null;
-  this._editingAliasValue = "";
-}
-async function _openVersionHistory(automationId) {
-  const isOpen = !!this._versionHistoryOpen[automationId];
-  this._versionHistoryOpen = {
-    ...this._versionHistoryOpen,
-    [automationId]: !isOpen,
-  };
-  if (!isOpen && !this._versions[automationId]) {
-    await this._loadVersionHistory(automationId);
-  }
-  this.requestUpdate();
-}
-async function _loadVersionHistory(automationId) {
-  this._loadingVersions = { ...this._loadingVersions, [automationId]: true };
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/get_automation_versions",
-      automation_id: automationId,
-    });
-    const ordered = Array.isArray(result) ? [...result].reverse() : [];
-    this._versions = { ...this._versions, [automationId]: ordered };
-  } catch (err) {
-    console.error("Failed to load version history", err);
-    this._showToast("Failed to load version history: " + err.message, "error");
-  } finally {
-    this._loadingVersions = {
-      ...this._loadingVersions,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-async function _openDiffViewer(automationId) {
-  const versions = this._versions[automationId];
-  if (!versions || versions.length < 2)
-    await this._loadVersionHistory(automationId);
-  const v2 = this._versions[automationId] || [];
-  this._diffAutomationId = automationId;
-  this._diffVersionA = v2[0]?.version_id || null;
-  this._diffVersionB = v2[1]?.version_id || null;
-  this._diffResult = [];
-  this._diffOpen = true;
-  if (this._diffVersionA && this._diffVersionB) {
-    await this._loadDiff(automationId, this._diffVersionA, this._diffVersionB);
-  }
-  this.requestUpdate();
-}
-async function _loadDiff(automationId, versionAId, versionBId) {
-  if (!versionAId || !versionBId) return;
-  this._loadingDiff = true;
-  this._diffResult = [];
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/get_automation_diff",
-      automation_id: automationId,
-      version_id_a: versionAId,
-      version_id_b: versionBId,
-    });
-    const diffText = result?.diff || "";
-    this._diffResult = diffText ? diffText.split("\n") : [];
-  } catch (err) {
-    console.error("Failed to load diff", err);
-    this._showToast("Failed to load diff: " + err.message, "error");
-  } finally {
-    this._loadingDiff = false;
-  }
-  this.requestUpdate();
-}
-async function _restoreVersion(automationId, versionId, yamlText) {
-  const key = `${automationId}_${versionId}`;
-  this._restoringVersion = { ...this._restoringVersion, [key]: true };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/update_automation_yaml",
-      automation_id: automationId,
-      yaml_text: yamlText,
-      version_message: `Restored from version ${versionId}`,
-    });
-    this._versionHistoryOpen = {
-      ...this._versionHistoryOpen,
-      [automationId]: false,
-    };
-    this._versions = { ...this._versions, [automationId]: null };
-    await this._loadAutomations();
-    this._showToast(
-      this._t("automation_management_version_restored", "Version restored."),
-      "success",
-    );
-  } catch (err) {
-    console.error("Failed to restore version", err);
-    this._showToast("Failed to restore version: " + err.message, "error");
-  } finally {
-    this._restoringVersion = { ...this._restoringVersion, [key]: false };
-  }
-  this.requestUpdate();
-}
-async function _deleteAutomation(automationId) {
-  if (
-    !confirm(
-      this._t(
-        "automation_management_delete_confirm",
-        "Delete this automation permanently?",
-      ),
-    )
-  )
-    return;
-  this._deletingAutomation = {
-    ...this._deletingAutomation,
-    [automationId]: true,
-  };
-  try {
-    await this.hass.callWS({
-      type: "selora_ai/delete_automation",
-      automation_id: automationId,
-    });
-    await this._loadAutomations();
-    this._showToast(
-      this._t("automation_management_deleted", "Automation deleted."),
-      "success",
-    );
-  } catch (err) {
-    console.error("Failed to delete automation", err);
-    this._showToast("Failed to delete automation: " + err.message, "error");
-  } finally {
-    this._deletingAutomation = {
-      ...this._deletingAutomation,
-      [automationId]: false,
-    };
-  }
-  this.requestUpdate();
-}
-async function _loadAutomationToChat(automationId) {
-  if (!automationId) {
-    this._showToast(
-      this._t(
-        "automation_management_cannot_refine_no_id",
-        "This automation cannot be refined because it has no automation ID.",
-      ),
-      "error",
-    );
-    return;
-  }
-  this._loadingToChat = { ...this._loadingToChat, [automationId]: true };
-  try {
-    const result = await this.hass.callWS({
-      type: "selora_ai/load_automation_to_session",
-      automation_id: automationId,
-    });
-    const sessionId = result?.session_id;
-    if (sessionId) {
-      this._activeSessionId = sessionId;
-      this._setActiveTab("chat");
-      this._showSidebar = false;
-      this._input = "";
-      await this._openSession(sessionId);
-      this._showToast(
-        this._t(
-          "automation_management_loaded_to_chat",
-          "Automation loaded into chat.",
-        ),
-        "success",
-      );
-    }
-  } catch (err) {
-    console.error("Failed to load automation to chat", err);
-    this._showToast(
-      "Failed to load automation into chat: " + err.message,
-      "error",
-    );
-  } finally {
-    this._loadingToChat = { ...this._loadingToChat, [automationId]: false };
-  }
-  this.requestUpdate();
-}
-
 // src/panel/scene-actions.js
 var scene_actions_exports = {};
 __export(scene_actions_exports, {
@@ -43689,6 +43908,7 @@ var SeloraAIPanel = class extends i4 {
       _suggestionSortBy: { type: String },
       // Burger menu
       _openBurgerMenu: { type: String },
+      _openBurgerMenuStyle: { type: String },
       // Action loading states
       _deletingAutomation: { type: Object },
       _restoringVersion: { type: Object },
@@ -43911,6 +44131,7 @@ var SeloraAIPanel = class extends i4 {
     this._suggestionSourceFilter = "all";
     this._suggestionSortBy = "recent";
     this._openBurgerMenu = null;
+    this._openBurgerMenuStyle = "";
     this._deletingAutomation = {};
     this._restoringVersion = {};
     this._loadingToChat = {};
@@ -43982,6 +44203,14 @@ var SeloraAIPanel = class extends i4 {
     this._quotaSubPending = false;
     this._quotaClearTimer = null;
   }
+  // Close both row-level (burger) menus — automations and scenes — and drop
+  // the cached fixed-position style. Shared by outside-click, scroll, and
+  // navigation so a menu never lingers detached from its row.
+  _closeRowMenus() {
+    if (this._openBurgerMenu != null) this._openBurgerMenu = null;
+    if (this._openSceneBurger != null) this._openSceneBurger = null;
+    if (this._openBurgerMenuStyle) this._openBurgerMenuStyle = "";
+  }
   connectedCallback() {
     super.connectedCallback();
     if (!document.querySelector("link[data-selora-font]")) {
@@ -44000,7 +44229,11 @@ var SeloraAIPanel = class extends i4 {
     this._loadConfig();
     this._loadMcpTokens();
     this._loadApprovalGrants();
-    this._locationHandler = () => this._checkTabParam();
+    this._closeRowMenus();
+    this._locationHandler = () => {
+      this._closeRowMenus();
+      this._checkTabParam();
+    };
     window.addEventListener("location-changed", this._locationHandler);
     this._keyDownHandler = (e6) => {
       if (
@@ -44021,10 +44254,23 @@ var SeloraAIPanel = class extends i4 {
       }
     };
     window.addEventListener("keydown", this._keyDownHandler);
-    this._closeOverflowHandler = () => {
+    this._closeOverflowHandler = (e6) => {
       if (this._showOverflowMenu) this._showOverflowMenu = false;
+      if (this._openBurgerMenu != null || this._openSceneBurger != null) {
+        const path = e6.composedPath ? e6.composedPath() : [];
+        const insideMenu = path.some((el) =>
+          el?.classList?.contains?.("burger-menu-wrapper"),
+        );
+        if (!insideMenu) this._closeRowMenus();
+      }
     };
     document.addEventListener("click", this._closeOverflowHandler);
+    this._closeRowMenusOnScroll = () => {
+      if (this._openBurgerMenu != null || this._openSceneBurger != null) {
+        this._closeRowMenus();
+      }
+    };
+    window.addEventListener("scroll", this._closeRowMenusOnScroll, true);
     this._keyboardOpen = false;
     this._resetHostKeyboardStyles = () => {
       const host = this.shadowRoot?.host;
@@ -44223,6 +44469,10 @@ var SeloraAIPanel = class extends i4 {
     }
     if (this._closeOverflowHandler) {
       document.removeEventListener("click", this._closeOverflowHandler);
+    }
+    if (this._closeRowMenusOnScroll) {
+      window.removeEventListener("scroll", this._closeRowMenusOnScroll, true);
+      this._closeRowMenusOnScroll = null;
     }
     if (this._keyDownHandler) {
       window.removeEventListener("keydown", this._keyDownHandler);

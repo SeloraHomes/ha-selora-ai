@@ -1043,6 +1043,8 @@ export function renderAutomations(host) {
                     hasAutomationId && !host._bulkActionInProgress;
                   const deleting = host._deletingAutomation[automationId];
                   const loadingChat = host._loadingToChat[automationId];
+                  const runKey = automationId || a.entity_id;
+                  const running = !!host._runningAutomation?.[runKey];
                   const burgerOpen = host._openBurgerMenu === automationId;
                   const cardExpanded = !!host._cardActiveTab[a.entity_id];
                   const ago = formatTimeAgo(a.last_triggered);
@@ -1068,7 +1070,7 @@ export function renderAutomations(host) {
                         @click=${(e) => {
                           if (
                             e.target.closest(
-                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .card-select, .rename-input, .rename-save-btn, .btn",
+                              ".toggle-switch, .burger-menu-wrapper, .burger-dropdown, .burger-item, .row-action-btn, .card-select, .rename-input, .rename-save-btn, .btn",
                             )
                           )
                             return;
@@ -1117,6 +1119,22 @@ export function renderAutomations(host) {
                         ${renderAutomationIdentity(a.alias, a.description, {
                           isSelora: !!a.is_selora,
                           titleSuffix: html`
+                            ${a.recipe_title
+                              ? html`<span
+                                  class="recipe-pill"
+                                  title=${host._t(
+                                    "automations_recipe_pill_tooltip",
+                                    "Installed by a Selora recipe — manage it from the Recipes tab.",
+                                  )}
+                                >
+                                  <ha-icon
+                                    icon="mdi:book-open-variant"
+                                  ></ha-icon>
+                                  <span class="recipe-pill-name"
+                                    >${a.recipe_title}</span
+                                  >
+                                </span>`
+                              : ""}
                             ${isUnavailable
                               ? html`<span
                                   class="needs-attention-pill"
@@ -1257,6 +1275,31 @@ export function renderAutomations(host) {
                             <div class="toggle-thumb"></div>
                           </div>
                         </label>
+                        ${!isDraft && a.entity_id
+                          ? html`
+                              <button
+                                class="row-action-btn"
+                                ?disabled=${running || isUnavailable}
+                                @click=${(e) => {
+                                  e.stopPropagation();
+                                  if (running || isUnavailable) return;
+                                  host._runAutomation(
+                                    a.entity_id,
+                                    automationId,
+                                  );
+                                }}
+                                title=${host._t(
+                                  "automations_run_tooltip",
+                                  "Run Automation",
+                                )}
+                              >
+                                <ha-icon
+                                  icon="mdi:play"
+                                  style="--mdc-icon-size:16px;"
+                                ></ha-icon>
+                              </button>
+                            `
+                          : ""}
                         ${hasAutomationId
                           ? html`
                               <div class="burger-menu-wrapper">
@@ -1277,7 +1320,10 @@ export function renderAutomations(host) {
                                 </button>
                                 ${burgerOpen
                                   ? html`
-                                      <div class="burger-dropdown">
+                                      <div
+                                        class="burger-dropdown"
+                                        style=${host._openBurgerMenuStyle}
+                                      >
                                         <button
                                           class="burger-item"
                                           @click=${(e) => {
@@ -1376,7 +1422,25 @@ export function renderAutomations(host) {
                                   : ""}
                               </div>
                             `
-                          : ""}
+                          : isDraft
+                            ? ""
+                            : html`
+                                <div class="burger-menu-wrapper">
+                                  <button
+                                    class="burger-btn"
+                                    disabled
+                                    title=${host._t(
+                                      "automations_more_actions_external",
+                                      "Managed outside Selora AI — edit it where it's defined, e.g. an installed recipe.",
+                                    )}
+                                  >
+                                    <ha-icon
+                                      icon="mdi:dots-vertical"
+                                      style="--mdc-icon-size:16px;"
+                                    ></ha-icon>
+                                  </button>
+                                </div>
+                              `}
                       </div>
                       ${cardExpanded
                         ? html`

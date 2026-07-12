@@ -31,6 +31,10 @@ function _tabFromPath(pathname) {
 
 export function _setActiveTab(tab) {
   if (!VALID_TABS.includes(tab)) return;
+  // Header tab switches go through history.replaceState (no location-changed
+  // event), so close any open row menu here too — otherwise a fixed-position
+  // burger menu can survive the switch and reappear at its stale coordinates.
+  this._closeRowMenus?.();
   this._activeTab = tab;
   const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
   if (window.location.pathname !== target) {

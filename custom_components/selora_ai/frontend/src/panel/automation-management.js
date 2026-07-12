@@ -255,10 +255,36 @@ export function _openAutomationInHA(automationId) {
   window.dispatchEvent(new Event("location-changed"));
 }
 
+// The dropdown menu is ~220px tall. Its row lives inside several nested
+// overflow:hidden/auto containers (.automations-list, .scroll-view, .main),
+// so an absolutely-positioned menu gets clipped near the edges. Instead we
+// position it fixed to the viewport, anchored to the trigger button.
+const BURGER_MENU_HEIGHT = 220;
+const BURGER_MENU_GAP = 6;
+
+// Shared by the automations and scenes lists: compute the fixed-position CSS
+// (right-aligned to the button, opening down or up depending on room) so the
+// dropdown escapes every ancestor's overflow clipping. Returns a style string.
+export function burgerMenuAnchor(btn) {
+  if (!btn?.getBoundingClientRect) return "";
+  const rect = btn.getBoundingClientRect();
+  const right = Math.max(8, window.innerWidth - rect.right);
+  const openUp = window.innerHeight - rect.bottom < BURGER_MENU_HEIGHT;
+  const vertical = openUp
+    ? `bottom:${Math.max(8, window.innerHeight - rect.top + BURGER_MENU_GAP)}px`
+    : `top:${rect.bottom + BURGER_MENU_GAP}px`;
+  return `right:${right}px;${vertical};`;
+}
+
 export function _toggleBurgerMenu(automationId, evt) {
   evt.stopPropagation();
-  this._openBurgerMenu =
-    this._openBurgerMenu === automationId ? null : automationId;
+  if (this._openBurgerMenu === automationId) {
+    this._openBurgerMenu = null;
+    this.requestUpdate();
+    return;
+  }
+  this._openBurgerMenuStyle = burgerMenuAnchor(evt.currentTarget);
+  this._openBurgerMenu = automationId;
   this.requestUpdate();
 }
 

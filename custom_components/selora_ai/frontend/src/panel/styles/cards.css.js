@@ -16,7 +16,10 @@ export const cardElementStyles = css`
   .burger-menu-wrapper {
     position: relative;
   }
-  .burger-btn {
+  /* Square icon buttons on a list row: the kebab menu and the primary action
+     (Run / Activate) share one size so they line up as a matched pair. */
+  .burger-btn,
+  .row-action-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -30,19 +33,28 @@ export const cardElementStyles = css`
     transition: background 0.15s;
     --mdc-icon-size: 18px;
   }
-  .burger-btn:hover {
+  .burger-btn:hover:not(:disabled),
+  .row-action-btn:hover:not(:disabled) {
     background: rgba(0, 0, 0, 0.06);
     color: var(--primary-text-color);
   }
+  /* Externally-managed rows (e.g. recipe packages) show the menu disabled,
+     matching the disabled toggle, with an explanatory tooltip. */
+  .burger-btn:disabled,
+  .row-action-btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  /* Positioned fixed to the viewport (top/bottom/right set inline per-open via
+     burgerMenuAnchor) so it escapes the nested overflow:hidden/auto containers
+     the row lives in — otherwise it's clipped near the list edges. */
   .burger-dropdown {
-    position: absolute;
-    right: 0;
-    top: 38px;
+    position: fixed;
     background: var(--card-background-color);
     border: 1px solid var(--divider-color);
     border-radius: 10px;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-    z-index: 100;
+    z-index: 1000;
     min-width: 180px;
     overflow: hidden;
   }
