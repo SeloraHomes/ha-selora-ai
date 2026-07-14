@@ -26,15 +26,25 @@ def test_fill_uses_relevance_rank_not_input_order() -> None:
     entities: list[EntitySnapshot] = [_switch(i) for i in range(_CLOUD_MAX_ENTITIES)]
     # Pinned need (fan domain) — always kept.
     entities.append(
-        {"entity_id": "fan.office", "attributes": {"friendly_name": "Office Fan"}, "area_name": "office"}
+        {
+            "entity_id": "fan.office",
+            "attributes": {"friendly_name": "Office Fan"},
+            "area_name": "office",
+        }
     )
     # Highly relevant to the request but sitting at the very end of the input.
     entities.append(
-        {"entity_id": "light.office", "attributes": {"friendly_name": "Office Light"}, "area_name": "office"}
+        {
+            "entity_id": "light.office",
+            "attributes": {"friendly_name": "Office Light"},
+            "area_name": "office",
+        }
     )
 
     selected = _filter_cloud_entities(
-        entities, _low_context_keywords("turn on the office fan and office light"), cap=_CLOUD_MAX_ENTITIES
+        entities,
+        _low_context_keywords("turn on the office fan and office light"),
+        cap=_CLOUD_MAX_ENTITIES,
     )
     ids = [e["entity_id"] for e in selected]
 
@@ -55,7 +65,10 @@ def test_pinned_need_survives_over_same_class_diagnostics() -> None:
     entities.append(
         {
             "entity_id": "sensor.living_room_temp",
-            "attributes": {"friendly_name": "Living Room Temperature", "device_class": "temperature"},
+            "attributes": {
+                "friendly_name": "Living Room Temperature",
+                "device_class": "temperature",
+            },
             "area_name": "living room",
         }
     )
@@ -72,7 +85,9 @@ def test_no_need_returns_keyword_ranking() -> None:
     entities: list[EntitySnapshot] = [_switch(i) for i in range(20)]
     entities.append({"entity_id": "light.porch", "attributes": {"friendly_name": "Porch Light"}})
 
-    selected = _filter_cloud_entities(entities, _low_context_keywords("turn on the porch light"), cap=5)
+    selected = _filter_cloud_entities(
+        entities, _low_context_keywords("turn on the porch light"), cap=5
+    )
     assert selected[0]["entity_id"] == "light.porch"
 
 
@@ -86,28 +101,22 @@ def test_cloud_budget_is_500() -> None:
 
 
 def test_ac_phrasing_pins_climate_via_message() -> None:
-    """"turn on the AC" — 'ac' is dropped by the tokenizer, so the climate
+    """ "turn on the AC" — 'ac' is dropped by the tokenizer, so the climate
     entity must be pinned via the raw-message scan, surviving past the cap."""
     entities: list[EntitySnapshot] = [_switch(i) for i in range(30)]
     entities.append(
         {"entity_id": "climate.living_room", "attributes": {"friendly_name": "Living Room"}}
     )
     msg = "turn on the AC"
-    selected = _filter_cloud_entities(
-        entities, _low_context_keywords(msg), cap=5, message=msg
-    )
+    selected = _filter_cloud_entities(entities, _low_context_keywords(msg), cap=5, message=msg)
     assert "climate.living_room" in [e["entity_id"] for e in selected]
 
 
 def test_air_conditioner_phrasing_pins_climate() -> None:
     entities: list[EntitySnapshot] = [_switch(i) for i in range(30)]
-    entities.append(
-        {"entity_id": "climate.bedroom", "attributes": {"friendly_name": "Bedroom"}}
-    )
+    entities.append({"entity_id": "climate.bedroom", "attributes": {"friendly_name": "Bedroom"}})
     msg = "switch on the air conditioner"
-    selected = _filter_cloud_entities(
-        entities, _low_context_keywords(msg), cap=5, message=msg
-    )
+    selected = _filter_cloud_entities(entities, _low_context_keywords(msg), cap=5, message=msg)
     assert "climate.bedroom" in [e["entity_id"] for e in selected]
 
 
@@ -116,10 +125,6 @@ def test_dotted_ac_phrasing_pins_climate() -> None:
     leaves no \\b before the space — needs the (?!\\w) boundary)."""
     for msg in ("turn on the A.C.", "turn on the A.C. please", "set the A.C to cool"):
         entities: list[EntitySnapshot] = [_switch(i) for i in range(30)]
-        entities.append(
-            {"entity_id": "climate.den", "attributes": {"friendly_name": "Den"}}
-        )
-        selected = _filter_cloud_entities(
-            entities, _low_context_keywords(msg), cap=5, message=msg
-        )
+        entities.append({"entity_id": "climate.den", "attributes": {"friendly_name": "Den"}})
+        selected = _filter_cloud_entities(entities, _low_context_keywords(msg), cap=5, message=msg)
         assert "climate.den" in [e["entity_id"] for e in selected], msg

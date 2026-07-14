@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "保存更改失败：",
     "scene_actions_refine_default_name": "该场景",
     "session_toast_new_automation_chat_failed": "启动新的自动化对话失败：",
+    "session_toast_new_session_failed": "开始新对话失败：",
     "session_toast_ai_no_suggestion": "AI 未返回建议——请重试。",
     "session_toast_suggest_failed": "生成建议失败——请检查 LLM 配置。",
     "suggestions_analysis_no_new": "分析完成——此时没有新的建议",

@@ -10,6 +10,21 @@ export function _quickStart(message) {
   this._sendMessage();
 }
 
+// "Ask Selora" from outside the chat (e.g. an Insights recommendation): open a
+// FRESH conversation for the question rather than appending it to whatever
+// session was last active. _newSession creates the session server-side, clears
+// the message list, and switches to the chat tab.
+export async function _askInNewChat(message) {
+  // Only send once the fresh session actually exists. If session creation
+  // failed, bail out — appending the prompt to the previously-active session
+  // (a different conversation) would be worse than doing nothing. _newSession
+  // already surfaced the error toast.
+  const ok = await this._newSession();
+  if (!ok) return;
+  this._input = message;
+  this._sendMessage();
+}
+
 export function _selectQuickAction(action) {
   const text = action.value || action.label;
   // Command-approval buttons carry a sentinel value of the form

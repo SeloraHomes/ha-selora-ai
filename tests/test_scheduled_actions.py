@@ -597,11 +597,14 @@ class TestScheduledTaskTracker:
 
         hass.async_add_executor_job = fake_executor_job
 
-        with patch(
-            "custom_components.selora_ai.automation_utils.async_delete_automation",
-        ) as mock_delete, patch(
-            "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
-            return_value=MagicMock(),
+        with (
+            patch(
+                "custom_components.selora_ai.automation_utils.async_delete_automation",
+            ) as mock_delete,
+            patch(
+                "custom_components.selora_ai.scheduled_actions.async_track_point_in_utc_time",
+                return_value=MagicMock(),
+            ),
         ):
             removed = await tracker.async_cleanup_stale_automations()
 
@@ -623,9 +626,7 @@ class TestScheduledTaskTracker:
         assert local_fire.minute == 0
 
     @pytest.mark.asyncio
-    async def test_cleanup_removes_same_day_past_time(
-        self, hass: MagicMock
-    ) -> None:
+    async def test_cleanup_removes_same_day_past_time(self, hass: MagicMock) -> None:
         """Same-day automation whose trigger time has passed should be cleaned up."""
         tracker = ScheduledTaskTracker(hass)
         eastern = ZoneInfo("America/New_York")

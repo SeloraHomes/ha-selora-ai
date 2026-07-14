@@ -1328,6 +1328,96 @@ PATTERN_TYPE_TIME_BASED = "time_based"
 PATTERN_TYPE_CORRELATION = "correlation"
 PATTERN_TYPE_SEQUENCE = "sequence"
 
+# Master off-switch for the proactive pattern-suggestion pipeline (detection →
+# generation → "improvement" cards). Disabled: pattern suggestions infer intent
+# from statistical co-occurrence, which is non-deterministic and produced noise
+# (a motion sensor "causing" unrelated devices). The detection/generation code
+# is kept but left idle; suggestions are rebuilt deterministically via the
+# Insights check catalog. Flip to True (or delete this gate) when that lands.
+PATTERN_SUGGESTIONS_ENABLED = False
+
+# ── Insights: Layer 1 health monitoring ──────────────────────────────
+# Deterministic, LLM-free observability over what HA itself can see
+# (entities, devices, integrations). Runs off the shared state_changed tap
+# plus a periodic aggregation tick. See health_monitor.py / health_store.py.
+HEALTH_STORE_KEY = "selora_ai_health"
+CONF_INSIGHTS_ENABLED = "insights_enabled"
+CONF_INSIGHTS_INTERVAL = "insights_interval"
+DEFAULT_INSIGHTS_INTERVAL = 900  # 15 min — health aggregation + insight pass
+# Floor for the scan interval. A cleared/zero/negative/non-numeric value would
+# otherwise reach ``async_track_time_interval`` and raise while creating the
+# timer, aborting Insights startup — leaving Health shown as on but never
+# scanning. Values below this fall back to the default.
+MIN_INSIGHTS_INTERVAL = 60
+
+# Detector thresholds
+# Availability flapping: N available<->unavailable transitions inside the
+# rolling window flags the entity as flapping.
+HEALTH_FLAP_WINDOW_SECS = 900
+HEALTH_FLAP_MIN_TRANSITIONS = 6
+# Unavailable continuously for longer than this raises a signal.
+HEALTH_UNAVAILABLE_GRACE_SECS = 300
+# "Silent": an entity whose observed update cadence has lapsed. Flag when the
+# age since last update exceeds baseline_cadence * multiplier, never under the
+# floor (avoids false positives on naturally slow sensors).
+HEALTH_SILENT_MULTIPLIER = 6.0
+HEALTH_SILENT_MIN_SECS = 3600
+# Battery level (%) at or below this raises a battery_low signal.
+HEALTH_BATTERY_LOW_PCT = 15
+
+# Storage bounds
+HEALTH_MAX_SIGNALS = 500
+HEALTH_SIGNAL_RETENTION_DAYS = 30  # prune resolved signals older than this
+
+# Signal kinds
+HEALTH_KIND_UNAVAILABLE = "unavailable"
+HEALTH_KIND_FLAPPING = "flapping"
+HEALTH_KIND_SILENT = "silent"
+HEALTH_KIND_STALE = "stale"
+HEALTH_KIND_BATTERY_LOW = "battery_low"
+HEALTH_KIND_INTEGRATION_ERROR = "integration_error"
+
+# Severities (shared by signals and insights)
+HEALTH_SEVERITY_INFO = "info"
+HEALTH_SEVERITY_WARNING = "warning"
+HEALTH_SEVERITY_CRITICAL = "critical"
+
+# ── Insights: Layer 2 advisor ────────────────────────────────────────
+INSIGHT_KIND_ISSUE = "issue"
+INSIGHT_KIND_FIX = "fix"
+INSIGHT_KIND_IMPROVEMENT = "improvement"
+INSIGHT_MAX_STORED = 200
+
+# ── Insights: export handoff to the Selora OS host ────────────────────
+# The integration NEVER talks to Connect. It publishes an atomically-written,
+# checksummed artifact under <config>/selora_ai/insights/; the Selora OS host
+# copies it VM->host and owns the upload. Immutable numbered artifacts +
+# atomic manifest pointer make the host's copy race-free by construction.
+# v2 added the full home roster (integrations/devices/entities/automations)
+# so the host + Connect can render "what's running, what's not" — not just
+# the exception signals.
+INSIGHTS_EXPORT_SCHEMA_VERSION = 2
+# Safety ceiling on entity rows in the roster. gzip absorbs a big home, but a
+# pathological install shouldn't produce an unbounded artifact. Truncation is
+# logged (never silent) and flagged in the envelope's collection block.
+INSIGHTS_ROSTER_MAX_ENTITIES = 5000
+# Path parts under hass.config.config_dir.
+INSIGHTS_EXPORT_PATH_PARTS = ("selora_ai", "insights")
+INSIGHTS_EXPORT_ARTIFACT_DIR = "exports"
+INSIGHTS_EXPORT_MANIFEST_NAME = "manifest.json"
+# Marker the HOST drops into the export dir to opt in. Absent -> the
+# integration writes nothing (self-hosted installs stay clean; the
+# integration can't otherwise detect it's running on Selora OS).
+INSIGHTS_EXPORT_MARKER_NAME = ".export_enabled"
+INSIGHTS_EXPORT_TMP_PREFIX = ".tmp-"
+CONF_INSIGHTS_EXPORT_CADENCE = "insights_export_cadence_seconds"
+DEFAULT_INSIGHTS_EXPORT_CADENCE = 900
+CONF_INSIGHTS_EXPORT_RETENTION = "insights_export_retention"
+DEFAULT_INSIGHTS_EXPORT_RETENTION = 3
+# Host treats "manifest not advancing past next_expected_at + grace" as a
+# health signal ("HA up but Selora AI silent"). Grace = N * cadence.
+INSIGHTS_EXPORT_STALE_GRACE_MULTIPLIER = 2
+
 CONFIDENCE_HIGH = 0.75
 CONFIDENCE_MEDIUM = 0.50
 
@@ -1349,6 +1439,10 @@ SIGNAL_PROACTIVE_SUGGESTIONS = f"{DOMAIN}_proactive_suggestions"
 SIGNAL_SCENE_DELETED = f"{DOMAIN}_scene_deleted"
 SIGNAL_SCENE_REFRESHED = f"{DOMAIN}_scene_refreshed"
 SIGNAL_SCENE_RESTORED = f"{DOMAIN}_scene_restored"
+# Fired after Insights startup and after each health scan so the Home Health
+# sensor refreshes immediately (its store is wired after the sensor platform is
+# forwarded, so it would otherwise read a falsely-healthy 100 until its poll).
+SIGNAL_INSIGHTS_UPDATED = f"{DOMAIN}_insights_updated"
 
 # ── Selora Connect (OAuth 2.0) ────────────────────────────────────────
 CONF_SELORA_CONNECT_ENABLED = "selora_connect_enabled"

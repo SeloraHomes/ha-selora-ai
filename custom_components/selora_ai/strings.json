@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "Failed to save changes:",
     "scene_actions_refine_default_name": "the scene",
     "session_toast_new_automation_chat_failed": "Failed to start a new automation chat:",
+    "session_toast_new_session_failed": "Failed to start a new conversation:",
     "session_toast_ai_no_suggestion": "AI didn't return a suggestion — try again.",
     "session_toast_suggest_failed": "Failed to generate a suggestion — check LLM config.",
     "suggestions_analysis_no_new": "Analysis complete — no new suggestions at this time",

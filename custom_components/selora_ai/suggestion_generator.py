@@ -12,6 +12,7 @@ from datetime import UTC, datetime, timedelta
 import json
 import logging
 from math import ceil
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, TypedDict
 
 from homeassistant.core import HomeAssistant
@@ -19,6 +20,8 @@ from homeassistant.helpers import device_registry as dr
 import yaml
 
 from .automation_utils import (
+    _collect_referenced_entity_ids,
+    _read_automations_yaml,
     _strip_legacy_selora_prefix,
     suggestion_content_fingerprint,
     validate_automation_payload,
@@ -130,6 +133,9 @@ class SuggestionGenerator:
 
         candidates: list[_Candidate] = []
         existing_aliases = self._get_existing_aliases()
+        # Entity groups of existing automations, to drop correlations that are
+        # just an existing automation's own effect (see the helper docstring).
+        existing_entity_groups = await self._existing_automation_entity_groups()
 
         # Build content fingerprints of already-stored suggestions (#46)
         stored_fingerprints = await self._get_stored_suggestion_fingerprints()
@@ -171,6 +177,21 @@ class SuggestionGenerator:
 
             pattern_id = pattern.get("pattern_id", "")
             if pattern_id and await self._store.has_suggestion_for_pattern(pattern_id):
+                continue
+
+            # Skip a correlation/sequence whose entities are already linked by an
+            # existing automation — the correlation is that automation's effect,
+            # not a new opportunity (and re-suggesting it, often with cause and
+            # effect reversed, would conflict with the automation that produced
+            # it).
+            if self._pair_already_automated(
+                pattern.get("entity_ids") or [], existing_entity_groups
+            ):
+                _LOGGER.debug(
+                    "Skipping pattern %s — its entities are already linked by an "
+                    "existing automation (correlation is that automation's effect)",
+                    pattern_id,
+                )
                 continue
 
             # Skip patterns whose suggestions were recently dismissed (#44)
@@ -579,6 +600,40 @@ class SuggestionGenerator:
                 normalised = _strip_legacy_selora_prefix(alias)
                 aliases.add(normalised.lower())
         return aliases
+
+    async def _existing_automation_entity_groups(self) -> list[frozenset[str]]:
+        """Per existing automation, the set of entity_ids it references.
+
+        Used to drop a correlation/sequence pattern whose two entities are
+        ALREADY tied together by one existing automation. Such a correlation is
+        that automation's own effect, not a new opportunity — e.g. an "unlock
+        front door -> turn on porch lights" automation makes the lock and the
+        lights co-occur, which must not resurface as "automate the front door
+        lock when the porch lights turn on" (reversed cause and effect, and a
+        conflict with the very automation that produced the correlation).
+
+        Read from automations.yaml (where HA stores UI + YAML automations);
+        best-effort — an unreadable / split config just yields no groups and the
+        existing alias/fingerprint dedup still applies.
+        """
+        path = Path(self._hass.config.config_dir) / "automations.yaml"
+        automations = await self._hass.async_add_executor_job(_read_automations_yaml, path)
+        groups: list[frozenset[str]] = []
+        for auto in automations:
+            refs = _collect_referenced_entity_ids(auto)
+            if len(refs) >= 2:
+                groups.append(frozenset(refs))
+        return groups
+
+    @staticmethod
+    def _pair_already_automated(entity_ids: list[str], groups: list[frozenset[str]]) -> bool:
+        """True when a single existing automation already references at least
+        two of ``entity_ids`` — i.e. the pattern's entities are already linked,
+        so any correlation between them is that automation's doing."""
+        ids = {e for e in entity_ids if e}
+        if len(ids) < 2:
+            return False
+        return any(len(ids & group) >= 2 for group in groups)
 
     async def _get_stored_suggestion_fingerprints(self) -> set[str]:
         """Build content fingerprints of all pending/snoozed suggestions in the store."""

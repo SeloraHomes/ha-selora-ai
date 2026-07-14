@@ -16,6 +16,14 @@ import {
   fmtTime,
 } from "./formatting.js";
 
+// Normalize a value that HA allows as either a single mapping or a list
+// (conditions, sequence, triggers, actions, ...) into an array. `x || []`
+// only guards null/undefined — a lone object slips through and later `.map`
+// / `.length` throws. Falsy -> [], array -> as-is, scalar/object -> [x].
+export function asArray(v) {
+  return Array.isArray(v) ? v : v == null || v === false ? [] : [v];
+}
+
 // Phrase catalog. Each template is a function so we can interpolate vars
 // without runtime string-templating. Adding a locale: copy the EN block,
 // translate, keep the same keys + arg order. Missing keys fall back to EN
@@ -934,8 +942,8 @@ export function describeFlowItem(hass, item) {
       parts.push(t("cond_before_sun", String(item.before).replace(/_/g, " ")));
     return parts.join(", ") || t("cond_sun_position");
   }
-  if (cond === "and") return t("cond_all", (item.conditions || []).length);
-  if (cond === "or") return t("cond_any", (item.conditions || []).length);
+  if (cond === "and") return t("cond_all", asArray(item.conditions).length);
+  if (cond === "or") return t("cond_any", asArray(item.conditions).length);
   if (cond === "not") return t("cond_none");
   if (cond === "zone") {
     const eid = fmtEntities(hass, item.entity_id, lang);
@@ -1036,7 +1044,7 @@ export function describeFlowItem(hass, item) {
   if (item.wait_template) return t("wait_until");
   if (item.wait_for_trigger) return t("wait_for_trigger");
   if (item.scene) return t("activate_scene", fmtEntity(hass, item.scene));
-  if (item.choose) return t("choose_between", item.choose.length);
+  if (item.choose) return t("choose_between", asArray(item.choose).length);
   if (item.repeat) {
     const r = item.repeat;
     if (r.count != null) return t("repeat_count", r.count);
@@ -1044,8 +1052,8 @@ export function describeFlowItem(hass, item) {
     if (r.until) return t("repeat_until");
     return t("repeat");
   }
-  if (item.parallel) return t("parallel", (item.parallel || []).length);
-  if (item.sequence) return t("sequence", (item.sequence || []).length);
+  if (item.parallel) return t("parallel", asArray(item.parallel).length);
+  if (item.sequence) return t("sequence", asArray(item.sequence).length);
   if (item.variables) return t("set_variables");
   if (item.stop) return t("stop_label", item.stop);
   if (item.event) return t("fire_event", String(item.event).replace(/_/g, " "));

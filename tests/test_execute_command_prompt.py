@@ -2327,9 +2327,7 @@ def _tts_command_hass(
     registry = {"tts": tts_services, "media_player": {"play_media"}}
     hass = MagicMock()
     hass.services.has_service.side_effect = lambda d, s: s in registry.get(d, set())
-    hass.states.async_entity_ids.side_effect = lambda d: (
-        list(tts_entities) if d == "tts" else []
-    )
+    hass.states.async_entity_ids.side_effect = lambda d: list(tts_entities) if d == "tts" else []
     hass.states.get.side_effect = lambda eid: MagicMock()
     monkeypatch.setattr(
         "custom_components.selora_ai.automation_utils._cloud_tts_active",

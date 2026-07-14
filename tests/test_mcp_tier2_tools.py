@@ -1380,9 +1380,7 @@ async def test_search_entities_normalizes_punctuation_and_case(
 
 
 @pytest.mark.asyncio
-async def test_search_entities_matches_alias(
-    hass: HomeAssistant, setup_world
-) -> None:
+async def test_search_entities_matches_alias(hass: HomeAssistant, setup_world) -> None:
     """The aliases set should be searchable ('reading lamp' → bedroom_lamp)."""
     result = await _tool_search_entities(hass, {"query": "reading lamp"})
     ids = [m["entity_id"] for m in result["matches"]]

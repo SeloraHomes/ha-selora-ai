@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "Не удалось сохранить изменения:",
     "scene_actions_refine_default_name": "сцена",
     "session_toast_new_automation_chat_failed": "Не удалось начать новый чат автоматизации:",
+    "session_toast_new_session_failed": "Не удалось начать новый разговор:",
     "session_toast_ai_no_suggestion": "ИИ не вернул предложение — повторите попытку.",
     "session_toast_suggest_failed": "Не удалось сгенерировать предложение — проверьте конфигурацию LLM.",
     "suggestions_analysis_no_new": "Анализ завершён — новых предложений на данный момент нет",

@@ -627,6 +627,7 @@
     "automation_crud_save_changes_failed": "Opslaan van wijzigingen mislukt:",
     "scene_actions_refine_default_name": "de scène",
     "session_toast_new_automation_chat_failed": "Starten van nieuw automatiseringsgesprek mislukt:",
+    "session_toast_new_session_failed": "Starten van nieuw gesprek mislukt:",
     "session_toast_ai_no_suggestion": "AI heeft geen suggestie geretourneerd — probeer het opnieuw.",
     "session_toast_suggest_failed": "Genereren van suggestie mislukt — controleer LLM-configuratie.",
     "suggestions_analysis_no_new": "Analyse voltooid — momenteel geen nieuwe suggesties",

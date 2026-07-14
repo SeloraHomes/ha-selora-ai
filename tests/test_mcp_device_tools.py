@@ -315,9 +315,7 @@ async def test_get_device_exposes_zha_ieee(hass: HomeAssistant) -> None:
 
 
 @pytest.mark.asyncio
-async def test_get_device_no_zha_ieee_for_non_zigbee(
-    hass: HomeAssistant, setup_home
-) -> None:
+async def test_get_device_no_zha_ieee_for_non_zigbee(hass: HomeAssistant, setup_home) -> None:
     """Non-Zigbee devices omit `zha_ieee` (no spurious key)."""
     devices = (await _tool_list_devices(hass, {"domain": "light"}))["devices"]
     device_id = devices[0]["device_id"]

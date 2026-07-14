@@ -156,8 +156,11 @@ async def test_insert_appends_card_to_storage_dashboard() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_insert_card(
-        hass, slug="baby-sleep", spec=_spec(),
-        bindings={"toggle": ["input_boolean.baby_sleeping"]}, inputs={},
+        hass,
+        slug="baby-sleep",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.baby_sleeping"]},
+        inputs={},
     )
 
     assert result.ok and result.reason == "inserted"
@@ -174,8 +177,11 @@ async def test_insert_is_idempotent() -> None:
     hass = _hass_with({None: dash})
 
     await async_insert_card(
-        hass, slug="baby-sleep", spec=_spec(),
-        bindings={"toggle": ["input_boolean.baby_sleeping"]}, inputs={},
+        hass,
+        slug="baby-sleep",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.baby_sleeping"]},
+        inputs={},
     )
 
     cards = dash.saved["views"][0]["cards"]
@@ -189,8 +195,11 @@ async def test_insert_seeds_view_when_config_not_found() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_insert_card(
-        hass, slug="s", spec=_spec(),
-        bindings={"toggle": ["input_boolean.b"]}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.b"]},
+        inputs={},
     )
 
     assert result.ok
@@ -202,7 +211,11 @@ async def test_insert_skips_yaml_mode() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_insert_card(
-        hass, slug="s", spec=_spec(), bindings={}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(),
+        bindings={},
+        inputs={},
     )
 
     assert not result.ok
@@ -213,7 +226,11 @@ async def test_insert_skips_yaml_mode() -> None:
 async def test_insert_missing_dashboard_returns_not_writable() -> None:
     hass = _hass_with({})  # no default dashboard
     result = await async_insert_card(
-        hass, slug="s", spec=_spec(), bindings={}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(),
+        bindings={},
+        inputs={},
     )
     assert not result.ok
 
@@ -222,8 +239,11 @@ async def test_insert_view_not_found() -> None:
     dash = FakeDashboard({"views": [{"title": "Home", "cards": []}]})
     hass = _hass_with({None: dash})
     result = await async_insert_card(
-        hass, slug="s", spec=_spec(view="Nonexistent"),
-        bindings={"toggle": ["x.y"]}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(view="Nonexistent"),
+        bindings={"toggle": ["x.y"]},
+        inputs={},
     )
     assert not result.ok and result.reason == "view_not_found"
 
@@ -234,8 +254,11 @@ async def test_insert_targets_named_dashboard() -> None:
     hass = _hass_with({None: home, "lovelace-home": other})
 
     await async_insert_card(
-        hass, slug="s", spec=_spec(target="lovelace-home"),
-        bindings={"toggle": ["x.y"]}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(target="lovelace-home"),
+        bindings={"toggle": ["x.y"]},
+        inputs={},
     )
 
     assert home.saved is None
@@ -251,8 +274,11 @@ async def test_insert_into_sections_view_uses_first_section() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_insert_card(
-        hass, slug="baby-sleep", spec=_spec(),
-        bindings={"toggle": ["input_boolean.baby_sleeping"]}, inputs={},
+        hass,
+        slug="baby-sleep",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.baby_sleeping"]},
+        inputs={},
     )
 
     assert result.ok and result.reason == "inserted"
@@ -269,8 +295,11 @@ async def test_insert_into_sections_view_seeds_section_when_none() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_insert_card(
-        hass, slug="s", spec=_spec(),
-        bindings={"toggle": ["input_boolean.b"]}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.b"]},
+        inputs={},
     )
 
     assert result.ok
@@ -288,9 +317,7 @@ async def test_insert_sections_view_is_idempotent() -> None:
                     "sections": [
                         {
                             "type": "grid",
-                            "cards": [
-                                {"type": "button", "entity": "old", CARD_TAG_KEY: "s"}
-                            ],
+                            "cards": [{"type": "button", "entity": "old", CARD_TAG_KEY: "s"}],
                         }
                     ],
                 }
@@ -300,8 +327,11 @@ async def test_insert_sections_view_is_idempotent() -> None:
     hass = _hass_with({None: dash})
 
     await async_insert_card(
-        hass, slug="s", spec=_spec(),
-        bindings={"toggle": ["input_boolean.new"]}, inputs={},
+        hass,
+        slug="s",
+        spec=_spec(),
+        bindings={"toggle": ["input_boolean.new"]},
+        inputs={},
     )
 
     cards = dash.saved["views"][0]["sections"][0]["cards"]
@@ -378,7 +408,9 @@ async def test_place_card_uses_given_tag() -> None:
     hass = _hass_with({None: dash})
 
     result = await async_place_card(
-        hass, card={"type": "button", "entity": "x.y"}, tag="my-tag",
+        hass,
+        card={"type": "button", "entity": "x.y"},
+        tag="my-tag",
     )
 
     assert result.ok

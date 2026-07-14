@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "Échec de l'enregistrement des modifications :",
     "scene_actions_refine_default_name": "la scène",
     "session_toast_new_automation_chat_failed": "Échec du démarrage d'un nouveau chat d'automatisation :",
+    "session_toast_new_session_failed": "Échec du démarrage d'une nouvelle conversation :",
     "session_toast_ai_no_suggestion": "L'IA n'a pas retourné de suggestion — réessayez.",
     "session_toast_suggest_failed": "Échec de la génération d'une suggestion — vérifiez la configuration LLM.",
     "suggestions_analysis_no_new": "Analyse terminée — aucune nouvelle suggestion pour le moment",

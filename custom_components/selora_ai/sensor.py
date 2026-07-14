@@ -23,7 +23,7 @@ from homeassistant.components.sensor import (
     SensorStateClass,
 )
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import CURRENCY_DOLLAR
+from homeassistant.const import CURRENCY_DOLLAR, PERCENTAGE
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
@@ -40,6 +40,7 @@ from .const import (
     KNOWN_INTEGRATIONS,
     SIGNAL_ACTIVITY_LOG,
     SIGNAL_DEVICES_UPDATED,
+    SIGNAL_INSIGHTS_UPDATED,
     SIGNAL_LLM_USAGE,
 )
 
@@ -115,6 +116,7 @@ async def async_setup_entry(
         LLMTokensOutSensor(hass, entry),
         LLMCallsSensor(hass, entry),
         LLMCostSensor(hass, entry),
+        HomeHealthSensor(hass, entry),
     ]
     async_add_entities(sensors, update_before_add=True)
     _LOGGER.info("Selora AI Hub: %d sensors registered", len(sensors))
@@ -124,9 +126,12 @@ async def async_setup_entry(
 
 
 def _hub_device_info() -> DeviceInfo:
+    # Display name is just "Selora AI" — it's the integration's device, not a
+    # physical hub. The identifier stays ``selora_ai_hub`` so existing entity
+    # associations and registry links are preserved across the rename.
     return DeviceInfo(
         identifiers={(DOMAIN, "selora_ai_hub")},
-        name="Selora AI Hub",
+        name="Selora AI",
     )
 
 
@@ -608,3 +613,130 @@ class LLMCostSensor(_LLMUsageBaseSensor):
 
     def _delta_for(self, payload: dict[str, Any]) -> float:
         return float(payload.get("cost_usd", 0.0) or 0.0)
+
+
+# ── Home Health Sensor (Insights Layer 1/2 surface) ─────────────────
+
+# Per-active-signal penalty against a perfect score of 100, weighted by
+# severity. The value is CLAMPED to [0, 100] so it reads as a real health
+# percentage — a home with many issues lands low, never above 100.
+_HEALTH_PENALTY = {"critical": 15, "warning": 5, "info": 1}
+
+
+def _compute_health_score(by_severity: dict[str, int]) -> int:
+    """0-100 health score: 100 = no active signals, dropping with severity."""
+    penalty = sum(
+        _HEALTH_PENALTY.get(sev, _HEALTH_PENALTY["info"]) * count
+        for sev, count in by_severity.items()
+    )
+    return max(0, 100 - penalty)
+
+
+class HomeHealthSensor(SensorEntity):
+    """Surfaces the Insights health state as a 0-100 health score.
+
+    Reads from the HealthStore / InsightsEngine populated by the Insights
+    subsystem. The value is a health *score* (100 = no active signals; it
+    drops as severity-weighted signals accumulate, clamped to 0-100) — NOT
+    the raw signal count, which is exposed as the ``active_signals``
+    attribute. The full signal/insight lists are large and kept out of the
+    recorder.
+    """
+
+    _attr_has_entity_name = True
+    _attr_unique_id = "selora_ai_hub_home_health"
+    _attr_name = "Home Health"
+    _attr_icon = "mdi:heart-pulse"
+    _attr_native_unit_of_measurement = PERCENTAGE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _unrecorded_attributes = frozenset({"signals", "insights"})
+
+    def __init__(self, hass: HomeAssistant, entry: ConfigEntry) -> None:
+        self.hass = hass
+        self._entry = entry
+        self._unsub_timer: Callable[[], None] | None = None
+        self._unsub_signal: Callable[[], None] | None = None
+        self._count: int = 0
+        self._score: int = 100
+        self._by_severity: dict[str, int] = {}
+        self._signals: list[dict[str, Any]] = []
+        self._insights: list[dict[str, Any]] = []
+        self._last_scan: str | None = None
+        self._attr_device_info = _hub_device_info()
+        # Unavailable until a HealthStore is found. When Insights is disabled no
+        # store is ever created, so the sensor stays unavailable rather than
+        # reporting a misleading perfect score for a subsystem that isn't
+        # running. (Also covers the brief startup window before the store is
+        # wired into hass.data — SIGNAL_INSIGHTS_UPDATED flips it available.)
+        self._attr_available = False
+
+    @property
+    def native_value(self) -> int:
+        return self._score
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        return {
+            "active_signals": self._count,
+            "critical": self._by_severity.get("critical", 0),
+            "warning": self._by_severity.get("warning", 0),
+            "info": self._by_severity.get("info", 0),
+            "last_scan": self._last_scan,
+            "signals": self._signals,
+            "insights": self._insights,
+        }
+
+    async def _async_refresh(self) -> None:
+        from .health_store import get_health_store
+        from .insights import get_insights_engine
+
+        store = get_health_store(self.hass)
+        if store is None:
+            # No Insights subsystem (disabled, or not yet wired at startup) —
+            # report unavailable, not a fabricated 100% healthy score.
+            self._attr_available = False
+            self._count = 0
+            self._score = 100
+            return
+        self._attr_available = True
+        signals = await store.get_active_signals()
+        self._count = len(signals)
+        by_severity: dict[str, int] = {}
+        for sig in signals:
+            sev = sig.get("severity", "info")
+            by_severity[sev] = by_severity.get(sev, 0) + 1
+        self._by_severity = by_severity
+        self._score = _compute_health_score(by_severity)
+        self._signals = signals[:50]
+        self._last_scan = await store.get_last_scan()
+
+        engine = get_insights_engine(self.hass)
+        self._insights = (await engine.async_get_insights())[:50] if engine else []
+
+    async def async_added_to_hass(self) -> None:
+        await self._async_refresh()
+
+        async def _tick(_now: datetime) -> None:
+            await self._async_refresh()
+            self.async_write_ha_state()
+
+        self._unsub_timer = async_track_time_interval(self.hass, _tick, _UPDATE_INTERVAL)
+
+        # The HealthStore/InsightsEngine are wired into hass.data AFTER the
+        # sensor platform is forwarded, so the initial refresh above sees no
+        # store and would publish a falsely-healthy 100. Insights startup (and
+        # every subsequent scan) fires SIGNAL_INSIGHTS_UPDATED to pull the real
+        # score in without waiting for the 60s poll.
+        async def _on_insights_updated() -> None:
+            await self._async_refresh()
+            self.async_write_ha_state()
+
+        self._unsub_signal = async_dispatcher_connect(
+            self.hass, SIGNAL_INSIGHTS_UPDATED, _on_insights_updated
+        )
+
+    async def async_will_remove_from_hass(self) -> None:
+        if self._unsub_timer:
+            self._unsub_timer()
+        if self._unsub_signal:
+            self._unsub_signal()

@@ -31,9 +31,7 @@ class TestDetectCategoryQuestion:
             ("list my switch", "switch"),  # singular inventory request
         ],
     )
-    def test_recognised_inventory_phrasings(
-        self, prompt: str, expected_domain: str
-    ) -> None:
+    def test_recognised_inventory_phrasings(self, prompt: str, expected_domain: str) -> None:
         detected = _detect_category_question(prompt)
         assert detected is not None
         assert detected[0] == expected_domain
@@ -105,9 +103,7 @@ class TestDetectCategoryQuestion:
             ("show me all of my switches", "switch"),
         ],
     )
-    def test_accepts_whole_home_quantifier_prompts(
-        self, prompt: str, expected_domain: str
-    ) -> None:
+    def test_accepts_whole_home_quantifier_prompts(self, prompt: str, expected_domain: str) -> None:
         """``in total`` / ``all my <category>`` / ``all the <category>``
         expand scope rather than narrowing it. The deterministic
         override must still fire on these — earlier code mis-classified
@@ -128,9 +124,7 @@ class TestDetectStateFilterQuestion:
             ("what locks are unlocked?", ("lock", "unlocked")),
         ],
     )
-    def test_recognised_state_filter_pairs(
-        self, prompt: str, expected: tuple[str, str]
-    ) -> None:
+    def test_recognised_state_filter_pairs(self, prompt: str, expected: tuple[str, str]) -> None:
         detected = _detect_state_filter_question(prompt)
         assert detected is not None
         assert (detected[0], detected[1]) == expected
@@ -161,10 +155,7 @@ class TestDetectStateFilterQuestion:
         assert singular == "switch"
 
     def test_rejects_scope_qualified_prompt(self) -> None:
-        assert (
-            _detect_state_filter_question("what lights are on in the kitchen?")
-            is None
-        )
+        assert _detect_state_filter_question("what lights are on in the kitchen?") is None
 
 
 class TestIsPureInventoryQuestion:

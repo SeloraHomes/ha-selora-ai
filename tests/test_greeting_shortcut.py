@@ -7,7 +7,6 @@ returns a canned reply without calling the provider — these tests pin
 that behaviour: greetings must short-circuit, real requests must not.
 """
 
-
 # ruff: noqa: ANN001, ANN202  # pre-existing test fixture type-annotation debt
 from __future__ import annotations
 

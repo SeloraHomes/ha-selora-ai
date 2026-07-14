@@ -27,6 +27,7 @@ from .. import (
 from ..automation_utils import suggestion_content_fingerprint
 from ..const import (
     DOMAIN,
+    PATTERN_SUGGESTIONS_ENABLED,
     SIGNAL_PROACTIVE_SUGGESTIONS,
     SUGGESTION_SCORING_TIMEOUT_INTERACTIVE,
 )
@@ -122,7 +123,9 @@ async def _handle_websocket_generate_suggestions(
         # 1. Run the fast, local-only pattern engine first (milliseconds)
         pattern_engine = runtime.get("pattern_engine")
         suggestion_generator = runtime.get("suggestion_generator")
-        if pattern_engine and suggestion_generator:
+        # Pattern-suggestion generation is gated off pending its deterministic
+        # replacement; the LLM analysis (step 2 below) still runs.
+        if PATTERN_SUGGESTIONS_ENABLED and pattern_engine and suggestion_generator:
             patterns = []
             try:
                 async with asyncio.timeout(15):

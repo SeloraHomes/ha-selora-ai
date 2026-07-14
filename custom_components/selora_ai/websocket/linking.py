@@ -49,6 +49,8 @@ from ..const import (
     CONF_ENTRY_TYPE,
     CONF_GEMINI_API_KEY,
     CONF_GEMINI_MODEL,
+    CONF_INSIGHTS_ENABLED,
+    CONF_INSIGHTS_INTERVAL,
     CONF_LLM_PRICING_OVERRIDES,
     CONF_LLM_PROVIDER,
     CONF_OLLAMA_HOST,
@@ -79,6 +81,7 @@ from ..const import (
     DEFAULT_DISCOVERY_MODE,
     DEFAULT_DISCOVERY_START_TIME,
     DEFAULT_GEMINI_MODEL,
+    DEFAULT_INSIGHTS_INTERVAL,
     DEFAULT_LLM_PROVIDER,
     DEFAULT_OLLAMA_HOST,
     DEFAULT_OLLAMA_MODEL,
@@ -193,6 +196,8 @@ async def _handle_websocket_get_config(
                 CONF_DISCOVERY_END_TIME, DEFAULT_DISCOVERY_END_TIME
             ),
             "pattern_detection_enabled": config_data.get(CONF_PATTERN_ENABLED, True),
+            "insights_enabled": config_data.get(CONF_INSIGHTS_ENABLED, True),
+            "insights_interval": config_data.get(CONF_INSIGHTS_INTERVAL, DEFAULT_INSIGHTS_INTERVAL),
             "exclude_label_id": SELORA_EXCLUDE_LABEL_ID,
             "exclude_label_name": SELORA_EXCLUDE_LABEL_NAME,
             "label_tagged": resolve_label_tagged_items(hass),
@@ -265,6 +270,39 @@ async def _handle_websocket_update_config(
 
     new_data = {k: v for k, v in new_config.items() if k in data_keys}
     new_options = {k: v for k, v in new_config.items() if k not in data_keys}
+
+    # Only persist KNOWN settable options. Without this any key a client sends
+    # lands in entry.options verbatim — a crafted (admin) payload could bloat
+    # the entry with junk keys or flip a future safety-gating option that isn't
+    # meant to be user-settable. Data-keys (credentials/JWT) are already handled
+    # above; this allowlist mirrors the option surface get_config exposes.
+    allowed_option_keys = {
+        CONF_COLLECTOR_ENABLED,
+        CONF_COLLECTOR_MODE,
+        CONF_COLLECTOR_INTERVAL,
+        CONF_COLLECTOR_START_TIME,
+        CONF_COLLECTOR_END_TIME,
+        CONF_DISCOVERY_ENABLED,
+        CONF_DISCOVERY_MODE,
+        CONF_DISCOVERY_INTERVAL,
+        CONF_DISCOVERY_START_TIME,
+        CONF_DISCOVERY_END_TIME,
+        CONF_AUTO_PURGE_STALE,
+        CONF_INSIGHTS_ENABLED,
+        CONF_INSIGHTS_INTERVAL,
+        CONF_TELEMETRY_ENABLED,
+        CONF_TELEMETRY_PROMPT_SEEN,
+        CONF_LLM_PRICING_OVERRIDES,
+        "pattern_detection_enabled",  # frontend key (see get_config)
+        "developer_mode",
+    }
+    unknown_keys = [k for k in new_options if k not in allowed_option_keys]
+    if unknown_keys:
+        _LOGGER.warning(
+            "Ignoring unrecognized config option key(s): %s", ", ".join(sorted(unknown_keys))
+        )
+        for k in unknown_keys:
+            new_options.pop(k, None)
 
     # Never store a null/empty provider — fall back to the existing value.
     if CONF_LLM_PROVIDER in new_data and not new_data[CONF_LLM_PROVIDER]:

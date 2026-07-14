@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "변경 사항을 저장하지 못했습니다:",
     "scene_actions_refine_default_name": "장면",
     "session_toast_new_automation_chat_failed": "새 자동화 채팅을 시작하지 못했습니다:",
+    "session_toast_new_session_failed": "새 대화를 시작하지 못했습니다:",
     "session_toast_ai_no_suggestion": "AI가 제안을 반환하지 않았습니다 — 다시 시도하세요.",
     "session_toast_suggest_failed": "제안을 생성하지 못했습니다 — LLM 구성을 확인하세요.",
     "suggestions_analysis_no_new": "분석 완료 — 현재 새로운 제안이 없습니다",

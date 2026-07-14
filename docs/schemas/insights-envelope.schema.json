@@ -1,0 +1,227 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://selorahomes.com/schemas/insights-envelope.schema.json",
+  "title": "Selora AI Insights Export Envelope",
+  "description": "The gzipped JSON document referenced by manifest.artifact.path. A full snapshot of the home's device-plane health each publish.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "sequence",
+    "generated_at",
+    "signals",
+    "insights",
+    "inventory",
+    "roster",
+    "collection"
+  ],
+  "additionalProperties": true,
+  "properties": {
+    "schema_version": { "type": "integer", "const": 2 },
+    "sequence": { "type": "integer" },
+    "generated_at": { "type": "string", "format": "date-time" },
+
+    "signals": {
+      "type": "array",
+      "description": "Active Layer-1 health signals, deduped per (kind, target).",
+      "items": { "$ref": "#/$defs/healthSignal" }
+    },
+    "insights": {
+      "type": "array",
+      "description": "Deterministic advisor items derived from signals + patterns.",
+      "items": { "$ref": "#/$defs/insight" }
+    },
+    "inventory": {
+      "type": "object",
+      "description": "Aggregate counts.",
+      "additionalProperties": { "type": "integer" }
+    },
+    "roster": { "$ref": "#/$defs/homeRoster" },
+    "collection": {
+      "type": "object",
+      "properties": {
+        "status": { "type": "string", "enum": ["ok", "partial"] },
+        "partial_reason": { "type": ["string", "null"] },
+        "roster_truncated": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    }
+  },
+
+  "$defs": {
+    "healthSignal": {
+      "type": "object",
+      "required": [
+        "signal_id", "kind", "severity", "target", "target_kind",
+        "evidence", "first_seen", "last_seen", "count", "status"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "signal_id": { "type": "string", "description": "Stable id: '<kind>:<target>'." },
+        "kind": {
+          "type": "string",
+          "enum": ["unavailable", "flapping", "silent", "stale", "battery_low", "integration_error"]
+        },
+        "severity": { "type": "string", "enum": ["critical", "warning", "info"] },
+        "target": { "type": "string", "description": "entity_id, device_id, or integration domain." },
+        "target_kind": { "type": "string", "enum": ["entity", "device", "integration"] },
+        "device_id": { "type": ["string", "null"], "description": "Device the target belongs to when target_kind is 'entity'; null for device/integration targets or entities with no device." },
+        "area_name": { "type": "string" },
+        "evidence": { "type": "object", "additionalProperties": true },
+        "first_seen": { "type": "string", "format": "date-time" },
+        "last_seen": { "type": "string", "format": "date-time" },
+        "count": { "type": "integer" },
+        "status": { "type": "string", "enum": ["active", "resolved", "acknowledged"] }
+      }
+    },
+
+    "insight": {
+      "type": "object",
+      "required": [
+        "insight_id", "kind", "severity", "title", "detail",
+        "linked_signals", "suggested_action", "source", "created_at", "status"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "insight_id": { "type": "string" },
+        "kind": { "type": "string", "enum": ["issue", "fix", "improvement"] },
+        "severity": { "type": "string", "enum": ["critical", "warning", "info"] },
+        "title": { "type": "string" },
+        "detail": { "type": "string" },
+        "linked_signals": { "type": "array", "items": { "type": "string" } },
+        "suggested_action": { "type": "object", "additionalProperties": true },
+        "source": { "type": "string", "enum": ["deterministic", "llm"] },
+        "created_at": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["new", "acknowledged", "resolved", "dismissed"] }
+      }
+    },
+
+    "homeRoster": {
+      "type": "object",
+      "description": "Full device-plane inventory: what's running and what's not.",
+      "required": ["integrations", "devices", "entities", "automations", "scripts", "scenes", "truncated"],
+      "additionalProperties": true,
+      "properties": {
+        "truncated": {
+          "type": "boolean",
+          "description": "True when the entity list hit the per-publish cap."
+        },
+        "integrations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["domain", "title", "state", "devices", "entities", "has_issue"],
+            "additionalProperties": true,
+            "properties": {
+              "domain": { "type": "string" },
+              "name": {
+                "type": "string",
+                "description": "Human integration name from its manifest (e.g. 'National Weather Service (NWS)'). Consumers label by name → title → domain; empty when unresolved."
+              },
+              "title": { "type": "string" },
+              "state": {
+                "type": "string",
+                "description": "loaded | setup_error | setup_retry | not_loaded | migration_error | ..."
+              },
+              "devices": { "type": "integer" },
+              "entities": { "type": "integer" },
+              "has_issue": { "type": "boolean" },
+              "custom": { "type": "boolean", "description": "True when the integration is a custom component (not built into Home Assistant)." }
+            }
+          }
+        },
+        "devices": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "name", "manufacturer", "model", "area", "integration", "disabled", "entities", "unavailable_entities"],
+            "additionalProperties": true,
+            "properties": {
+              "id": { "type": "string" },
+              "name": { "type": "string" },
+              "manufacturer": { "type": "string" },
+              "model": { "type": "string" },
+              "area": { "type": "string" },
+              "integration": { "type": "string" },
+              "disabled": { "type": "boolean" },
+              "entities": { "type": "integer" },
+              "unavailable_entities": {
+                "type": "integer",
+                "description": "Count of ENABLED, visible entities on the device with no usable state (genuinely unavailable). Excludes disabled and hidden entities — a disabled entity is intentionally off, not broken."
+              },
+              "disabled_entities": {
+                "type": "integer",
+                "description": "Count of intentionally-disabled entities on the device. Neutral (like HA's '+N disabled'), not a health problem."
+              },
+              "url": {
+                "type": "string",
+                "description": "Device configuration_url (e.g. an add-on's homepage / management page); empty string when the device has none."
+              }
+            }
+          }
+        },
+        "entities": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity_id", "name", "domain", "device_class", "area", "state", "available", "last_changed", "disabled", "hidden"],
+            "additionalProperties": true,
+            "properties": {
+              "entity_id": { "type": "string" },
+              "name": { "type": "string" },
+              "domain": { "type": "string" },
+              "device_class": { "type": "string" },
+              "area": { "type": "string" },
+              "state": { "type": "string" },
+              "available": { "type": "boolean" },
+              "last_changed": { "type": ["string", "null"], "format": "date-time" },
+              "disabled": { "type": "boolean" },
+              "hidden": { "type": "boolean" },
+              "device_id": { "type": ["string", "null"], "description": "Device this entity belongs to; null if it has no device." }
+            }
+          }
+        },
+        "automations": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity_id", "name", "enabled", "selora", "last_triggered"],
+            "additionalProperties": true,
+            "properties": {
+              "entity_id": { "type": "string" },
+              "name": { "type": "string" },
+              "enabled": { "type": "boolean" },
+              "selora": { "type": "boolean", "description": "Selora-generated automation." },
+              "last_triggered": { "type": ["string", "null"], "format": "date-time" }
+            }
+          }
+        },
+        "scripts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity_id", "name", "state", "last_triggered"],
+            "additionalProperties": true,
+            "properties": {
+              "entity_id": { "type": "string" },
+              "name": { "type": "string" },
+              "state": { "type": "string" },
+              "last_triggered": { "type": ["string", "null"], "format": "date-time" }
+            }
+          }
+        },
+        "scenes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["entity_id", "name"],
+            "additionalProperties": true,
+            "properties": {
+              "entity_id": { "type": "string" },
+              "name": { "type": "string" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

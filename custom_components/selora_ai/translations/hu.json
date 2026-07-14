@@ -627,6 +627,7 @@
     "automation_crud_save_changes_failed": "A változások mentése nem sikerült:",
     "scene_actions_refine_default_name": "a jelenet",
     "session_toast_new_automation_chat_failed": "Nem sikerült új automatizmus-beszélgetést indítani:",
+    "session_toast_new_session_failed": "Nem sikerült új beszélgetést indítani:",
     "session_toast_ai_no_suggestion": "Az AI nem adott vissza javaslatot — próbálja újra.",
     "session_toast_suggest_failed": "Nem sikerült javaslatot generálni — ellenőrizze az LLM-konfigurációt.",
     "suggestions_analysis_no_new": "Az elemzés befejeződött — jelenleg nincsenek új javaslatok",

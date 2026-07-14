@@ -10,7 +10,31 @@ const VALID_TABS = [
   "recipes",
   "settings",
   "usage",
+  "insights",
 ];
+
+// The HA sidebar link points at the bare /selora-ai path with no tab suffix,
+// so returning to the panel from another HA page re-creates it on the default
+// chat tab and the URL alone can't restore where the user was. Remember the
+// last active tab for the browser session so the round-trip keeps it.
+const TAB_STORAGE_KEY = "selora_ai_active_tab";
+
+function _readStoredTab() {
+  try {
+    return window.sessionStorage.getItem(TAB_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function _writeStoredTab(tab) {
+  try {
+    window.sessionStorage.setItem(TAB_STORAGE_KEY, tab);
+  } catch {
+    // Storage unavailable (private mode / disabled): tab restore just won't
+    // persist — not worth surfacing.
+  }
+}
 
 function _parsePath(pathname) {
   // Returns ``{ tab, subpath }`` where ``subpath`` is whatever
@@ -36,6 +60,7 @@ export function _setActiveTab(tab) {
   // burger menu can survive the switch and reappear at its stale coordinates.
   this._closeRowMenus?.();
   this._activeTab = tab;
+  _writeStoredTab(tab);
   const target = tab === "chat" ? PANEL_PREFIX : `${PANEL_PREFIX}/${tab}`;
   if (window.location.pathname !== target) {
     const url = new URL(window.location);
@@ -73,7 +98,23 @@ export function _setRecipeWizardUrl(slug) {
 }
 
 export function _checkTabParam() {
-  const { tab, subpath } = _parsePath(window.location.pathname);
+  // eslint-disable-next-line prefer-const -- `tab` is reassigned by the restore below
+  let { tab, subpath } = _parsePath(window.location.pathname);
+  // Once per panel lifetime: if we landed on the bare path (tab === "chat")
+  // but the user was last on another tab this session, restore it. Rewriting
+  // the URL here lets the normal activation below fire the tab's data load.
+  if (!this._tabRestored) {
+    this._tabRestored = true;
+    if (tab === "chat" && this._activeTab === "chat") {
+      const stored = _readStoredTab();
+      if (stored && stored !== "chat" && VALID_TABS.includes(stored)) {
+        tab = stored;
+        const url = new URL(window.location);
+        url.pathname = `${PANEL_PREFIX}/${stored}`;
+        window.history.replaceState({}, "", url);
+      }
+    }
+  }
   // updated() calls this on every new hass object, so the per-tab data loads
   // below must fire only on the actual tab *activation* — not on every HA
   // state update — or each state change spams the backend (recipes/list,
@@ -83,15 +124,28 @@ export function _checkTabParam() {
     this._activeTab = tab;
     if (tab !== "chat") this._showSidebar = false;
   }
+  // hass can land AFTER a tab was already activated: on a direct nav or
+  // restore to /selora-ai/<tab> via a mount path where `hass` arrives after
+  // connectedCallback, the activation above ran the tab's data load with no
+  // `this.hass`, the requests failed and were swallowed, and tabActivated is
+  // now false so nothing retries — the tab stays empty until the user leaves
+  // and returns. Treat the undefined->defined hass transition as a reason to
+  // (re)load the active tab's data. Fires at most once per hass arrival, so it
+  // doesn't spam the backend on ordinary state updates.
+  const hassJustArrived = !!this.hass && !this._hadHass;
+  this._hadHass = !!this.hass;
+  const shouldLoad = tabActivated || hassJustArrived;
   // Deep-linking to /selora-ai/usage skips the Settings → Usage click that
   // normally triggers the stats load, so kick it off here.
-  if (tab === "usage" && tabActivated) this._loadUsageStats?.();
+  if (tab === "usage" && shouldLoad) this._loadUsageStats?.();
+  // Same for /selora-ai/insights — load audit + health data on direct nav.
+  if (tab === "insights" && shouldLoad) this._openInsights?.();
   // Same story for /selora-ai/recipes — the user lands directly on the
   // tab without going through the click handler that calls
   // ``_loadRecipesList``. Without this they see an empty list until
   // they hit Refresh.
   if (tab === "recipes") {
-    if (tabActivated) this._loadRecipesList?.();
+    if (shouldLoad) this._loadRecipesList?.();
     // /selora-ai/recipes/<slug>?step=N deep link: open the wizard
     // for that slug (if not already) and jump to the requested step
     // once detail is loaded. Skip slug ping when the wizard already
@@ -116,7 +170,7 @@ export function _checkTabParam() {
   // mutable from elsewhere (the approval flow records Always grants
   // server-side; revokes happen on this tab) so we refresh on every
   // activation rather than serving the connectedCallback snapshot.
-  if (tab === "settings" && tabActivated) {
+  if (tab === "settings" && shouldLoad) {
     this._loadApprovalGrants?.();
     this._loadMcpTokens?.();
   }
@@ -224,6 +278,10 @@ export async function _openSession(sessionId) {
   }
 }
 
+// Returns true when a fresh session was created server-side, false on failure.
+// Callers that MUST target a brand-new conversation (e.g. _askInNewChat) check
+// this and skip sending on failure, so a transient WS error can't append the
+// message to whatever session was previously active.
 export async function _newSession() {
   try {
     const { session_id } = await this.hass.callWS({
@@ -240,8 +298,19 @@ export async function _newSession() {
     this._welcomeKey = (this._welcomeKey || 0) + 1;
     await this._loadSessions();
     if (this.narrow) this._showSidebar = false;
+    return true;
   } catch (err) {
     console.error("Failed to create session", err);
+    this._showToast(
+      this._t(
+        "session_toast_new_session_failed",
+        "Failed to start a new conversation:",
+      ) +
+        " " +
+        (err?.message || err),
+      "error",
+    );
+    return false;
   }
 }
 

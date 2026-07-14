@@ -607,6 +607,7 @@
     "automation_crud_save_changes_failed": "Änderungen konnten nicht gespeichert werden:",
     "scene_actions_refine_default_name": "die Szene",
     "session_toast_new_automation_chat_failed": "Neuer Automatisierungs-Chat konnte nicht gestartet werden:",
+    "session_toast_new_session_failed": "Neue Unterhaltung konnte nicht gestartet werden:",
     "session_toast_ai_no_suggestion": "KI hat keinen Vorschlag zurückgegeben — versuchen Sie es erneut.",
     "session_toast_suggest_failed": "Vorschlag konnte nicht generiert werden — prüfen Sie die LLM-Konfiguration.",
     "suggestions_analysis_no_new": "Analyse abgeschlossen — derzeit keine neuen Vorschläge",

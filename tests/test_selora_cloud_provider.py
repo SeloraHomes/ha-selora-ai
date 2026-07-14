@@ -615,9 +615,7 @@ class TestRefreshCategorization:
         )
         assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
 
-    async def test_network_error_is_transient(
-        self, hass, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_network_error_is_transient(self, hass, monkeypatch: pytest.MonkeyPatch) -> None:
         import aiohttp
 
         from custom_components.selora_ai.providers import selora_cloud
@@ -643,9 +641,7 @@ class TestRefreshCategorization:
         )
         assert await provider._refresh_access_token() is _RefreshResult.TRANSIENT
 
-    async def test_success_is_ok_and_persists(
-        self, hass, monkeypatch: pytest.MonkeyPatch
-    ) -> None:
+    async def test_success_is_ok_and_persists(self, hass, monkeypatch: pytest.MonkeyPatch) -> None:
         from custom_components.selora_ai.providers import selora_cloud
 
         provider = _make_refresh_provider(hass)
@@ -689,9 +685,7 @@ class TestEnsureTokenBehaviour:
         from custom_components.selora_ai.providers import selora_cloud
 
         provider = _make_refresh_provider(hass)
-        refresh = AsyncMock(
-            side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.OK]
-        )
+        refresh = AsyncMock(side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.OK])
         monkeypatch.setattr(provider, "_refresh_access_token", refresh)
         monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
 
@@ -721,9 +715,7 @@ class TestEnsureTokenBehaviour:
         from custom_components.selora_ai.providers import selora_cloud
 
         provider = _make_refresh_provider(hass)
-        refresh = AsyncMock(
-            side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.TERMINAL]
-        )
+        refresh = AsyncMock(side_effect=[_RefreshResult.TRANSIENT, _RefreshResult.TERMINAL])
         monkeypatch.setattr(provider, "_refresh_access_token", refresh)
         monkeypatch.setattr(selora_cloud.asyncio, "sleep", lambda _s: _async_none())
 

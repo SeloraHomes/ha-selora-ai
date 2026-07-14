@@ -13,6 +13,9 @@ export const sharedBadges = css`
     line-height: 1;
     display: inline-flex;
     align-items: center;
+    /* inline-flex ignores text-align; center the content explicitly so a
+       min-width-padded badge isn't left-aligned. */
+    justify-content: center;
     transition: all 0.25s ease;
   }
   .chip {

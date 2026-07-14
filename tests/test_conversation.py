@@ -411,8 +411,11 @@ class TestSeloraConversationEntity:
             model="One SL",
         )
         ent_reg.async_get_or_create(
-            "media_player", "test", "sonos_lr",
-            device_id=sonos.id, suggested_object_id="living_room_2",
+            "media_player",
+            "test",
+            "sonos_lr",
+            device_id=sonos.id,
+            suggested_object_id="living_room_2",
         )
         hass.states.async_set(
             "media_player.living_room_2", "paused", {"friendly_name": "Living Room"}
@@ -426,8 +429,11 @@ class TestSeloraConversationEntity:
             model="Hue White",
         )
         ent_reg.async_get_or_create(
-            "light", "test", "hue_kitchen",
-            device_id=hue.id, suggested_object_id="kitchen",
+            "light",
+            "test",
+            "hue_kitchen",
+            device_id=hue.id,
+            suggested_object_id="kitchen",
         )
         hass.states.async_set("light.kitchen", "on", {"friendly_name": "Kitchen"})
 
