@@ -65,6 +65,13 @@ _VALID_KINDS: frozenset[str] = frozenset(
         "person",
         "device_tracker",
         "zone",
+        # ``event`` entities are stateless trigger sources (buttons,
+        # doorbells, appliance faults), not queryable devices — their
+        # state is the last-fired timestamp and the payload rides in the
+        # ``event_type`` attribute. A role of this kind is only useful
+        # when the package consumes it as an automation trigger; templates
+        # that read ``.state`` get a timestamp, not a value.
+        "event",
     }
 )
 
@@ -84,7 +91,10 @@ class RoleSpec:
             ``leak_sensors``). Must be a python-identifier shape so it
             plays nicely with Jinja.
         kind: HA domain the entity must belong to (``binary_sensor``,
-            ``light``, ``cover``, ...).
+            ``light``, ``cover``, ...). ``event`` is accepted for
+            stateless trigger sources (buttons, appliance faults); such a
+            role must be consumed as an automation trigger, since its
+            state is only the last-fired timestamp.
         device_class: Optional HA device_class filter (e.g. ``moisture``,
             ``window``). Many domains overload entities — without this
             a ``binary_sensor`` role would match doorbells, leaks, and

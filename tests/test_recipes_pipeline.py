@@ -8,8 +8,8 @@ flow will work.
 
 from __future__ import annotations
 
-import shutil
 from pathlib import Path
+import shutil
 from types import SimpleNamespace
 
 import pytest
@@ -66,9 +66,7 @@ def _stage_bundle(hass, slug: str) -> Path:
     """
     src = TEST_RECIPE_FIXTURES / slug
     if not src.exists():
-        raise FileNotFoundError(
-            f"No fixture bundle for slug {slug!r} in recipe_fixtures/"
-        )
+        raise FileNotFoundError(f"No fixture bundle for slug {slug!r} in recipe_fixtures/")
     dest = Path(hass.config.config_dir) / RECIPE_BUNDLE_DIR / slug
     dest.parent.mkdir(parents=True, exist_ok=True)
     if dest.exists():
@@ -256,6 +254,28 @@ def test_manifest_rejects_unknown_role_kind(tmp_path: Path) -> None:
         load_manifest(bundle)
 
 
+def test_manifest_accepts_event_kind(tmp_path: Path) -> None:
+    """``event`` entities (stateless trigger sources) are a valid role kind."""
+    bundle = tmp_path / "evt"
+    bundle.mkdir()
+    (bundle / "package").mkdir()
+    (bundle / "package" / "x.yaml.j2").write_text("automation: []\n")
+    (bundle / "manifest.yaml").write_text(
+        "slug: evt\n"
+        "version: 1.0.0\n"
+        "title: Evt\n"
+        "roles:\n"
+        "  - id: error_events\n"
+        "    kind: event\n"
+        "    integration: lg_thinq\n"
+        "    match: error\n"
+        "package_files:\n"
+        "  - package/x.yaml.j2\n"
+    )
+    manifest = load_manifest(bundle)
+    assert manifest.roles[0].kind == "event"
+
+
 def test_manifest_rejects_path_traversal(tmp_path: Path) -> None:
     bundle = tmp_path / "trav"
     bundle.mkdir()
@@ -276,9 +296,7 @@ def test_manifest_rejects_path_traversal(tmp_path: Path) -> None:
 # ── Resolver ────────────────────────────────────────────────────────
 
 
-async def test_resolver_binds_leak_sensors_and_lights(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_resolver_binds_leak_sensors_and_lights(hass, leak_bundle_dir: Path) -> None:
     """Auto-selection role (leak_sensors) binds every match; required
     roles (alarm_lights, lockdown_covers) only bind what we pass in
     ``selections``. The wizard owns picking those; the resolver just
@@ -325,7 +343,7 @@ async def test_resolver_binds_leak_sensors_and_lights(
     [
         "lg_thinq",
         "nws",
-        "17track",       # digit prefix — a real HA integration shape
+        "17track",  # digit prefix — a real HA integration shape
         "3_day_blinds",  # digit prefix + underscores
     ],
 )
@@ -334,7 +352,12 @@ def test_role_parses_integration_filter(domain) -> None:
     including valid HA domains that start with a digit, and defaults to
     None when absent."""
     scoped = _coerce_role(
-        {"id": "fridge_doors", "kind": "binary_sensor", "device_class": "door", "integration": domain}
+        {
+            "id": "fridge_doors",
+            "kind": "binary_sensor",
+            "device_class": "door",
+            "integration": domain,
+        }
     )
     assert scoped.integration == domain
     unscoped = _coerce_role({"id": "any_door", "kind": "binary_sensor", "device_class": "door"})
@@ -344,11 +367,11 @@ def test_role_parses_integration_filter(domain) -> None:
 @pytest.mark.parametrize(
     "bad",
     [
-        "lg thinq!",   # space + punctuation
-        "LG_ThinQ",    # uppercase — HA domains are lowercase
-        123,           # YAML number (int)
-        "123",         # purely numeric — no HA domain is digits-only
-        "lg-thinq",    # hyphen is not a domain char
+        "lg thinq!",  # space + punctuation
+        "LG_ThinQ",  # uppercase — HA domains are lowercase
+        123,  # YAML number (int)
+        "123",  # purely numeric — no HA domain is digits-only
+        "lg-thinq",  # hyphen is not a domain char
     ],
 )
 def test_role_rejects_malformed_integration(bad) -> None:
@@ -408,9 +431,7 @@ def test_entity_satisfies_role_integration_filter() -> None:
 
 def test_role_parses_and_validates_match_filter() -> None:
     """``match`` round-trips and a bad regex is rejected at load."""
-    r = _coerce_role(
-        {"id": "wf", "kind": "sensor", "match": r"water[ _]filter$"}
-    )
+    r = _coerce_role({"id": "wf", "kind": "sensor", "match": r"water[ _]filter$"})
     assert r.match == r"water[ _]filter$"
     assert _coerce_role({"id": "x", "kind": "sensor"}).match is None
     with pytest.raises(ManifestError, match="valid regex"):
@@ -440,9 +461,7 @@ def test_entity_satisfies_role_match_filter() -> None:
     assert _entity_satisfies_role(role, renamed, reg) is True
 
 
-async def test_resolver_fails_when_no_moisture_sensors(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_resolver_fails_when_no_moisture_sensors(hass, leak_bundle_dir: Path) -> None:
     # Seed lights + covers but no leak sensors.
     hass.states.async_set("cover.kitchen_valve", "open")
     hass.states.async_set(
@@ -564,9 +583,7 @@ async def test_resolver_caps_max_count(hass, leak_bundle_dir: Path) -> None:
 # ── Inputs validator ────────────────────────────────────────────────
 
 
-async def test_validate_inputs_coerces_and_defaults(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_validate_inputs_coerces_and_defaults(hass, leak_bundle_dir: Path) -> None:
     bundle = await async_load_bundle(hass, "leak-lockdown")
     report = validate_inputs(bundle.manifest, {"alarm_brightness": "75"})
     assert report.ok
@@ -576,29 +593,20 @@ async def test_validate_inputs_coerces_and_defaults(
     }
 
 
-async def test_validate_inputs_flags_out_of_range(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_validate_inputs_flags_out_of_range(hass, leak_bundle_dir: Path) -> None:
     bundle = await async_load_bundle(hass, "leak-lockdown")
     report = validate_inputs(bundle.manifest, {"alarm_brightness": 250})
     assert not report.ok
     assert any(
-        i.input_id == "alarm_brightness" and "above maximum" in i.reason
-        for i in report.issues
+        i.input_id == "alarm_brightness" and "above maximum" in i.reason for i in report.issues
     )
 
 
-async def test_validate_inputs_select_rejects_bad_choice(
-    hass, bedtime_bundle_dir: Path
-) -> None:
+async def test_validate_inputs_select_rejects_bad_choice(hass, bedtime_bundle_dir: Path) -> None:
     bundle = await async_load_bundle(hass, "bedtime-routine")
-    report = validate_inputs(
-        bundle.manifest, {"greeting_style": "obnoxious"}
-    )
+    report = validate_inputs(bundle.manifest, {"greeting_style": "obnoxious"})
     assert not report.ok
-    assert any(
-        i.input_id == "greeting_style" for i in report.issues
-    )
+    assert any(i.input_id == "greeting_style" for i in report.issues)
 
 
 # ── Renderer ────────────────────────────────────────────────────────
@@ -618,9 +626,7 @@ _BEDTIME_FULL_SELECTION = {
 async def test_render_leak_lockdown(hass, leak_bundle_dir: Path) -> None:
     _seed_leak_home(hass)
     bundle = await async_load_bundle(hass, "leak-lockdown")
-    resolution = resolve(
-        bundle.manifest, hass, selections=_LEAK_FULL_SELECTION
-    )
+    resolution = resolve(bundle.manifest, hass, selections=_LEAK_FULL_SELECTION)
     input_report = validate_inputs(bundle.manifest, {})
     rendered = render_package(
         bundle=bundle,
@@ -636,21 +642,18 @@ async def test_render_leak_lockdown(hass, leak_bundle_dir: Path) -> None:
         "Leak Lockdown — all clear",
     }
     # The engage automation triggers on ALL leak sensors.
-    engage = next(
-        a for a in parsed["automation"] if a["alias"].endswith("engage")
-    )
+    engage = next(a for a in parsed["automation"] if a["alias"].endswith("engage"))
     assert set(engage["trigger"][0]["entity_id"]) == {
         "binary_sensor.kitchen_leak",
         "binary_sensor.basement_leak",
     }
     # The all-clear automation has the AND-state condition.
-    all_clear = next(
-        a for a in parsed["automation"] if a["alias"].endswith("all clear")
-    )
+    all_clear = next(a for a in parsed["automation"] if a["alias"].endswith("all clear"))
     assert any(
         c.get("condition") == "state"
         and c.get("state") == "off"
-        and set(c["entity_id"]) == {
+        and set(c["entity_id"])
+        == {
             "binary_sensor.kitchen_leak",
             "binary_sensor.basement_leak",
         }
@@ -661,14 +664,10 @@ async def test_render_leak_lockdown(hass, leak_bundle_dir: Path) -> None:
     assert "DO NOT EDIT BY HAND" in rendered.yaml_text
 
 
-async def test_render_bedtime_routine(
-    hass, bedtime_bundle_dir: Path
-) -> None:
+async def test_render_bedtime_routine(hass, bedtime_bundle_dir: Path) -> None:
     _seed_bedtime_home(hass)
     bundle = await async_load_bundle(hass, "bedtime-routine")
-    resolution = resolve(
-        bundle.manifest, hass, selections=_BEDTIME_FULL_SELECTION
-    )
+    resolution = resolve(bundle.manifest, hass, selections=_BEDTIME_FULL_SELECTION)
     input_report = validate_inputs(bundle.manifest, {})
     rendered = render_package(
         bundle=bundle,
@@ -704,9 +703,7 @@ async def test_tornado_alert_auto_resolver_hides_station_code(
 
     # Drive the wizard items derivation as the WS handler would.
     _seed_tornado_home(hass)
-    resolution = resolve(
-        bundle.manifest, hass, selections=_TORNADO_FULL_SELECTION
-    )
+    resolution = resolve(bundle.manifest, hass, selections=_TORNADO_FULL_SELECTION)
     # Build a minimal PipelineResult so derive_items has something to
     # walk; the inputs row should still be present but only carry
     # the non-auto-resolved fields.
@@ -732,18 +729,14 @@ async def test_tornado_alert_auto_resolver_hides_station_code(
     assert {"shelter_zone", "warning_message"}.issubset(set(payload_ids))
 
 
-async def test_render_tornado_alert(
-    hass, tornado_bundle_dir: Path
-) -> None:
+async def test_render_tornado_alert(hass, tornado_bundle_dir: Path) -> None:
     """The tornado-alert recipe exercises the inline-integration path
     (its manifest lists ``nws``) and templates the weather entity id
     from the homeowner-provided METAR code.
     """
     _seed_tornado_home(hass)
     bundle = await async_load_bundle(hass, "tornado-alert")
-    resolution = resolve(
-        bundle.manifest, hass, selections=_TORNADO_FULL_SELECTION
-    )
+    resolution = resolve(bundle.manifest, hass, selections=_TORNADO_FULL_SELECTION)
     input_report = validate_inputs(
         bundle.manifest,
         {
@@ -832,9 +825,7 @@ def test_ensure_packages_include_refuses_unsafe_homeassistant_form() -> None:
         _ensure_packages_include(original)
 
 
-def test_packages_include_routes_into_included_homeassistant_file(
-    hass, tmp_path
-) -> None:
+def test_packages_include_routes_into_included_homeassistant_file(hass, tmp_path) -> None:
     # configuration.yaml uses ``homeassistant: !include homeassistant.yaml``.
     # The packages key belongs in the included file, and configuration.yaml
     # must be left untouched (no duplicate top-level homeassistant: block).
@@ -856,9 +847,7 @@ def test_packages_include_routes_into_included_homeassistant_file(
 
 
 @pytest.mark.parametrize("quote", ['"', "'"])
-def test_packages_include_routes_into_quoted_included_file(
-    hass, tmp_path, quote
-) -> None:
+def test_packages_include_routes_into_quoted_included_file(hass, tmp_path, quote) -> None:
     # YAML allows a quoted include target (`!include "homeassistant.yaml"`).
     # The quotes must be stripped so we edit the real file — not create one
     # literally named `"homeassistant.yaml"`, which would leave packages
@@ -880,9 +869,7 @@ def test_packages_include_routes_into_quoted_included_file(
 # ── Pipeline end-to-end ─────────────────────────────────────────────
 
 
-async def test_preview_renders_without_writing(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_preview_renders_without_writing(hass, leak_bundle_dir: Path) -> None:
     _seed_leak_home(hass)
     result = await async_preview(
         hass,
@@ -898,9 +885,7 @@ async def test_preview_renders_without_writing(
     assert not package_path(hass, "leak-lockdown").exists()
 
 
-async def test_install_writes_package_and_record(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_install_writes_package_and_record(hass, leak_bundle_dir: Path) -> None:
     _seed_leak_home(hass)
     result = await async_install(
         hass,
@@ -918,15 +903,11 @@ async def test_install_writes_package_and_record(
     assert "Leak Lockdown — engage" in text
     assert "brightness_pct: 80" in text
     # configuration.yaml now has the packages include.
-    config_text = (
-        Path(hass.config.config_dir) / "configuration.yaml"
-    ).read_text(encoding="utf-8")
+    config_text = (Path(hass.config.config_dir) / "configuration.yaml").read_text(encoding="utf-8")
     assert _has_packages_include(config_text)
 
 
-async def test_install_surfaces_reload_core_config_failure(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_install_surfaces_reload_core_config_failure(hass, leak_bundle_dir: Path) -> None:
     """A failing ``homeassistant.reload_core_config`` must abort the install
     as ``reload_failed`` — not silently record the recipe as active when HA
     never loaded the package.
@@ -940,9 +921,7 @@ async def test_install_surfaces_reload_core_config_failure(
 
     hass.services.async_register("homeassistant", "reload_core_config", _boom)
 
-    result = await async_install(
-        hass, slug="leak-lockdown", selections=_LEAK_FULL_SELECTION
-    )
+    result = await async_install(hass, slug="leak-lockdown", selections=_LEAK_FULL_SELECTION)
     assert not result.ok
     assert result.stage_reached == "reload"
     assert any(item.code == "reload_failed" for item in result.punch_list)
@@ -950,9 +929,7 @@ async def test_install_surfaces_reload_core_config_failure(
     assert await get_install_store(hass).async_get("leak-lockdown") is None
 
 
-async def test_ws_package_returns_yaml_and_counts(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_ws_package_returns_yaml_and_counts(hass, leak_bundle_dir: Path) -> None:
     """The package WS reads the installed file and summarises its sections so
     the panel can show what a recipe created + let the user view the YAML.
     """
@@ -961,9 +938,7 @@ async def test_ws_package_returns_yaml_and_counts(
     from custom_components.selora_ai.recipes.ws import _ws_recipes_package
 
     _seed_leak_home(hass)
-    install = await async_install(
-        hass, slug="leak-lockdown", selections=_LEAK_FULL_SELECTION
-    )
+    install = await async_install(hass, slug="leak-lockdown", selections=_LEAK_FULL_SELECTION)
     assert install.ok, install.punch_list
 
     connection = MagicMock()
@@ -999,9 +974,7 @@ async def test_ws_package_missing_file_errors(hass, tmp_path) -> None:
     assert connection.send_error.call_args[0][1] == "not_found"
 
 
-async def test_install_punch_list_when_role_unmet(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_install_punch_list_when_role_unmet(hass, leak_bundle_dir: Path) -> None:
     # No moisture sensors seeded.
     hass.states.async_set(
         "light.something",
@@ -1015,9 +988,7 @@ async def test_install_punch_list_when_role_unmet(
     assert "leak_sensors" in targets
 
 
-async def test_uninstall_removes_package_and_record(
-    hass, leak_bundle_dir: Path
-) -> None:
+async def test_uninstall_removes_package_and_record(hass, leak_bundle_dir: Path) -> None:
     _seed_leak_home(hass)
     install_result = await async_install(
         hass, slug="leak-lockdown", selections=_LEAK_FULL_SELECTION
@@ -1104,9 +1075,7 @@ def _write_pinned_recipe(tmp_path: Path) -> Path:
     return root
 
 
-async def test_resolver_locks_present_pin_and_lists_pending_one(
-    hass, tmp_path: Path
-) -> None:
+async def test_resolver_locks_present_pin_and_lists_pending_one(hass, tmp_path: Path) -> None:
     """The resolved binding is ``pinned``; the missing one shows up
     in ``pending`` with full identity attached. The role's ``selected``
     list contains only the resolved pin.
@@ -1142,9 +1111,7 @@ async def test_resolver_locks_present_pin_and_lists_pending_one(
     assert "waiting on" in role.reason
 
 
-async def test_pipeline_surfaces_binding_pending_in_punch_list(
-    hass, tmp_path: Path
-) -> None:
+async def test_pipeline_surfaces_binding_pending_in_punch_list(hass, tmp_path: Path) -> None:
     """The pipeline turns each pending binding into a separate
     ``binding_pending`` punch item carrying device identity hints so
     the wizard can render a device card.
@@ -1170,9 +1137,7 @@ async def test_pipeline_surfaces_binding_pending_in_punch_list(
     assert result.pinned == {"hub_lights": ["light.present_one"]}
 
 
-async def test_resolved_pin_unblocks_install(
-    hass, tmp_path: Path
-) -> None:
+async def test_resolved_pin_unblocks_install(hass, tmp_path: Path) -> None:
     """Once every pin is present (the device got paired), the role
     flips to ok and the install button becomes reachable.
     """
@@ -1208,33 +1173,27 @@ async def test_v3_render_emits_group_block_and_group_refs(
     _seed_v3_bedtime_home(hass)
     result = await async_install(
         hass,
-        slug='bedtime-routine-v3',
+        slug="bedtime-routine-v3",
         inputs={},
         selections=_V3_BEDTIME_FULL_SELECTION,
     )
     assert result.ok, result.punch_list
     parsed = yaml.safe_load(result.preview.yaml_text)
     # Group block created with the role members.
-    assert 'group' in parsed
-    assert parsed['group']['selora_bedtime_routine_v3_bedroom_lights'][
-        'entities'
-    ] == ['light.bedroom', 'light.hallway']
+    assert "group" in parsed
+    assert parsed["group"]["selora_bedtime_routine_v3_bedroom_lights"]["entities"] == [
+        "light.bedroom",
+        "light.hallway",
+    ]
     # Automation references the group, not the literal entity ids.
-    auto = parsed['automation'][0]
-    actions = auto['action']
-    light_action = next(
-        a for a in actions if a.get('service') == 'light.turn_off'
-    )
-    assert (
-        light_action['target']['entity_id']
-        == 'group.selora_bedtime_routine_v3_bedroom_lights'
-    )
-    assert 'light.bedroom' not in str(light_action)
+    auto = parsed["automation"][0]
+    actions = auto["action"]
+    light_action = next(a for a in actions if a.get("service") == "light.turn_off")
+    assert light_action["target"]["entity_id"] == "group.selora_bedtime_routine_v3_bedroom_lights"
+    assert "light.bedroom" not in str(light_action)
 
 
-async def test_v3_rebind_updates_group_without_rerender(
-    hass, v3_bedtime_bundle_dir: Path
-) -> None:
+async def test_v3_rebind_updates_group_without_rerender(hass, v3_bedtime_bundle_dir: Path) -> None:
     """Core pass criterion: device replacement without re-install.
     Install with one set of lights, rebind to a different set, the
     package YAML's automation block must be byte-identical and only
@@ -1243,44 +1202,44 @@ async def test_v3_rebind_updates_group_without_rerender(
     _seed_v3_bedtime_home(hass)
     install_result = await async_install(
         hass,
-        slug='bedtime-routine-v3',
+        slug="bedtime-routine-v3",
         inputs={},
         selections=_V3_BEDTIME_FULL_SELECTION,
     )
     assert install_result.ok
-    path = package_path(hass, 'bedtime-routine-v3')
-    yaml_before = path.read_text(encoding='utf-8')
+    path = package_path(hass, "bedtime-routine-v3")
+    yaml_before = path.read_text(encoding="utf-8")
     parsed_before = yaml.safe_load(yaml_before)
-    automation_before = parsed_before['automation']
+    automation_before = parsed_before["automation"]
 
     # Swap in a different light — same role, different entity.
     from custom_components.selora_ai.recipes.packager import (
         update_package_groups,
     )
+
     update_package_groups(
         hass,
-        'bedtime-routine-v3',
+        "bedtime-routine-v3",
         {
-            'selora_bedtime_routine_v3_bedroom_lights': [
-                'light.spare',
-                'light.hallway',
+            "selora_bedtime_routine_v3_bedroom_lights": [
+                "light.spare",
+                "light.hallway",
             ],
-            'selora_bedtime_routine_v3_door_locks': ['lock.front_door'],
-            'selora_bedtime_routine_v3_thermostat': ['climate.upstairs'],
+            "selora_bedtime_routine_v3_door_locks": ["lock.front_door"],
+            "selora_bedtime_routine_v3_thermostat": ["climate.upstairs"],
         },
     )
-    parsed_after = yaml.safe_load(path.read_text(encoding='utf-8'))
+    parsed_after = yaml.safe_load(path.read_text(encoding="utf-8"))
     # Automations untouched.
-    assert parsed_after['automation'] == automation_before
+    assert parsed_after["automation"] == automation_before
     # Group membership swapped.
-    assert parsed_after['group'][
-        'selora_bedtime_routine_v3_bedroom_lights'
-    ]['entities'] == ['light.spare', 'light.hallway']
+    assert parsed_after["group"]["selora_bedtime_routine_v3_bedroom_lights"]["entities"] == [
+        "light.spare",
+        "light.hallway",
+    ]
 
 
-async def test_v3_rebind_preserves_install_metadata(
-    hass, v3_bedtime_bundle_dir: Path
-) -> None:
+async def test_v3_rebind_preserves_install_metadata(hass, v3_bedtime_bundle_dir: Path) -> None:
     """Rebinding through the WS handler must not wipe the record's
     ``integrations_installed`` / ``dashboard_card``. async_record() does
     a full overwrite, so the handler has to carry them forward — losing
@@ -1294,7 +1253,7 @@ async def test_v3_rebind_preserves_install_metadata(
     _seed_v3_bedtime_home(hass)
     install_result = await async_install(
         hass,
-        slug='bedtime-routine-v3',
+        slug="bedtime-routine-v3",
         inputs={},
         selections=_V3_BEDTIME_FULL_SELECTION,
     )
@@ -1303,7 +1262,7 @@ async def test_v3_rebind_preserves_install_metadata(
     # Simulate a recipe that auto-created a config entry and placed a
     # dashboard card — the metadata uninstall later relies on.
     store = get_install_store(hass)
-    base = await store.async_get('bedtime-routine-v3')
+    base = await store.async_get("bedtime-routine-v3")
     await store.async_record(
         slug=base.slug,
         version=base.version,
@@ -1311,20 +1270,20 @@ async def test_v3_rebind_preserves_install_metadata(
         package_path=base.package_path,
         bindings=base.bindings,
         inputs=base.inputs,
-        integrations_installed={'nws': 'entry_abc123'},
-        dashboard_card={'ok': True, 'target': 'lovelace', 'view': 0},
+        integrations_installed={"nws": "entry_abc123"},
+        dashboard_card={"ok": True, "target": "lovelace", "view": 0},
     )
 
     connection = MagicMock()
     connection.user.is_admin = True
     msg = {
-        'id': 1,
-        'type': 'selora_ai/recipes/rebind',
-        'slug': 'bedtime-routine-v3',
-        'selections': {
-            'bedroom_lights': ['light.spare', 'light.hallway'],
-            'door_locks': ['lock.front_door'],
-            'thermostat': ['climate.upstairs'],
+        "id": 1,
+        "type": "selora_ai/recipes/rebind",
+        "slug": "bedtime-routine-v3",
+        "selections": {
+            "bedroom_lights": ["light.spare", "light.hallway"],
+            "door_locks": ["lock.front_door"],
+            "thermostat": ["climate.upstairs"],
         },
     }
     # The registered handler is wrapped by async_response/websocket_command
@@ -1334,74 +1293,69 @@ async def test_v3_rebind_preserves_install_metadata(
     connection.send_error.assert_not_called()
     connection.send_result.assert_called_once()
 
-    record = await store.async_get('bedtime-routine-v3')
+    record = await store.async_get("bedtime-routine-v3")
     # Metadata survived the rebind.
-    assert record.integrations_installed == {'nws': 'entry_abc123'}
+    assert record.integrations_installed == {"nws": "entry_abc123"}
     assert record.dashboard_card == {
-        'ok': True,
-        'target': 'lovelace',
-        'view': 0,
+        "ok": True,
+        "target": "lovelace",
+        "view": 0,
     }
     # Bindings reflect the new selection.
-    assert record.bindings['bedroom_lights'] == ['light.spare', 'light.hallway']
+    assert record.bindings["bedroom_lights"] == ["light.spare", "light.hallway"]
 
 
-async def test_v3_uninstall_removes_package_and_groups(
-    hass, v3_bedtime_bundle_dir: Path
-) -> None:
+async def test_v3_uninstall_removes_package_and_groups(hass, v3_bedtime_bundle_dir: Path) -> None:
     """Atomic uninstall: removing the package file is the only step;
     every group declared in the package goes with it because they're
     in the same file."""
     _seed_v3_bedtime_home(hass)
     install_result = await async_install(
         hass,
-        slug='bedtime-routine-v3',
+        slug="bedtime-routine-v3",
         inputs={},
         selections=_V3_BEDTIME_FULL_SELECTION,
     )
     assert install_result.ok
-    path = package_path(hass, 'bedtime-routine-v3')
+    path = package_path(hass, "bedtime-routine-v3")
     assert path.exists()
-    uninstall_result = await async_uninstall(hass, 'bedtime-routine-v3')
+    uninstall_result = await async_uninstall(hass, "bedtime-routine-v3")
     assert uninstall_result.ok
     assert not path.exists()
 
 
-async def test_v3_and_literal_modes_coexist(
-    hass, v3_bedtime_bundle_dir: Path
-) -> None:
+async def test_v3_and_literal_modes_coexist(hass, v3_bedtime_bundle_dir: Path) -> None:
     """Installing the v3 demo and the classic literal-mode bedtime
     at the same time must not interfere — each produces its own
     package file with its own structure."""
     _seed_v3_bedtime_home(hass)
     # The literal-mode bedtime fixture seeds different state, so we
     # also need bed_light/bedroom_lamp for the pinned bindings.
-    hass.states.async_set('light.bed_light', 'off')
-    hass.states.async_set('light.bedroom_lamp', 'off')
+    hass.states.async_set("light.bed_light", "off")
+    hass.states.async_set("light.bedroom_lamp", "off")
 
     v3_result = await async_install(
         hass,
-        slug='bedtime-routine-v3',
+        slug="bedtime-routine-v3",
         inputs={},
         selections=_V3_BEDTIME_FULL_SELECTION,
     )
     classic_result = await async_install(
         hass,
-        slug='bedtime-routine',
+        slug="bedtime-routine",
         inputs={},
         selections={
-            'bedroom_lights': ['light.bedroom', 'light.hallway'],
-            'door_locks': ['lock.front_door'],
-            'thermostat': ['climate.upstairs'],
+            "bedroom_lights": ["light.bedroom", "light.hallway"],
+            "door_locks": ["lock.front_door"],
+            "thermostat": ["climate.upstairs"],
         },
     )
     assert v3_result.ok and classic_result.ok
-    v3_yaml = package_path(hass, 'bedtime-routine-v3').read_text()
-    classic_yaml = package_path(hass, 'bedtime-routine').read_text()
+    v3_yaml = package_path(hass, "bedtime-routine-v3").read_text()
+    classic_yaml = package_path(hass, "bedtime-routine").read_text()
     # v3 has a group: block; literal mode does not.
-    assert 'group:' in v3_yaml
-    assert 'group:' not in classic_yaml
+    assert "group:" in v3_yaml
+    assert "group:" not in classic_yaml
     # Different files; neither references the other's automations.
-    assert 'bedtime_routine_v3' in v3_yaml
-    assert 'bedtime_routine_v3' not in classic_yaml
-
+    assert "bedtime_routine_v3" in v3_yaml
+    assert "bedtime_routine_v3" not in classic_yaml
