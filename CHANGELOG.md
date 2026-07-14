@@ -1,3 +1,5 @@
+## [0.12.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.11.0...v0.12.0) (2026-07-14)
+
 ## [0.11.0](https://gitlab.com/selorahomes/products/selora-ai/ha-integration/compare/v0.10.0...v0.11.0) (2026-06-26)
 
 ### Features
